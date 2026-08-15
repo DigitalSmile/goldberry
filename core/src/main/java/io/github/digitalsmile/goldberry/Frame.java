@@ -49,15 +49,7 @@ public final class Frame {
     ///
     /// @param argb a colour as `0xAARRGGBB`
     public void fill(int argb) {
-        var premultiplied = premultiply(argb);
-        var pixels = buffer.pixels();
-        var width = buffer.size().width();
-        for (var row = 0; row < buffer.size().height(); row++) {
-            var base = row * buffer.stride();
-            for (var column = 0; column < width; column++) {
-                pixels.putInt(base + column * 4, premultiplied);
-            }
-        }
+        fillPixels(0, 0, buffer.size().width(), buffer.size().height(), premultiply(argb));
     }
 
     /// Fills a rectangle given in logical coordinates.
@@ -75,13 +67,36 @@ public final class Frame {
             return;
         }
 
-        var premultiplied = premultiply(argb);
+        fillPixels(left, top, right - left, bottom - top, premultiply(argb));
+    }
+
+    /// Fills a rectangle of the buffer, in physical pixels.
+    ///
+    /// One row is built and then copied down the rectangle, rather than writing
+    /// every pixel individually. At 1080p the per-pixel version is over two
+    /// million `putInt` calls per frame, which is enough to be visible as
+    /// hesitation while a window is being dragged — the copy runs at memory
+    /// speed instead.
+    private void fillPixels(int x, int y, int width, int height, int premultiplied) {
+        if (width <= 0 || height <= 0) {
+            return;
+        }
+
+        var rowBytes = new byte[Math.multiplyExact(width, 4)];
+        for (var i = 0; i < rowBytes.length; i += 4) {
+            // Little-endian, matching the BGRA memory order PixelBuffer
+            // normalises to: blue lowest, alpha highest.
+            rowBytes[i] = (byte) premultiplied;
+            rowBytes[i + 1] = (byte) (premultiplied >>> 8);
+            rowBytes[i + 2] = (byte) (premultiplied >>> 16);
+            rowBytes[i + 3] = (byte) (premultiplied >>> 24);
+        }
+
         var pixels = buffer.pixels();
-        for (var row = top; row < bottom; row++) {
-            var base = row * buffer.stride();
-            for (var column = left; column < right; column++) {
-                pixels.putInt(base + column * 4, premultiplied);
-            }
+        var offset = y * buffer.stride() + x * 4;
+        for (var row = 0; row < height; row++) {
+            pixels.put(offset, rowBytes, 0, rowBytes.length);
+            offset += buffer.stride();
         }
     }
 

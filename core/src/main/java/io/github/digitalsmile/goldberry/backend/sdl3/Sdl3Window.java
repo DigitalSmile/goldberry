@@ -110,7 +110,18 @@ final class Sdl3Window implements BackendWindow {
     public void requestFrame() {
         backend.requireUiThread();
         requireOpen();
+        if (framePending) {
+            // Already asked. Pushing a second wakeup would put an event on SDL's
+            // queue for every repaint() call in a batch.
+            return;
+        }
         framePending = true;
+
+        // Wake the loop. Without this the request sits until the next platform
+        // event or the loop's idle heartbeat -- so a repaint asked for from an
+        // event handler was drawn up to a second later, and a window being
+        // resized showed black where it had not caught up yet.
+        backend.wakeup();
     }
 
     @Override

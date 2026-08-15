@@ -266,6 +266,31 @@ class HeadlessBackendTest {
 
     @Test
     @Timeout(10)
+    @DisplayName("an outstanding frame request never lets the loop sit idle")
+    void pendingFrameDoesNotPark() {
+        // The bug this exists for cost a second per frame. A repaint asked for
+        // from an event handler left the request sitting until the next platform
+        // event or the loop's idle heartbeat, so a window being resized lagged a
+        // step behind the pointer with black where it had not caught up.
+        //
+        // Whatever the mechanism -- headless queues the event, sdl3 pushes a
+        // wakeup -- the observable rule is the same: a pending frame request must
+        // make the next pump return promptly rather than wait out its timeout.
+        var window = (HeadlessWindow) backend.createWindow(SPEC);
+        window.requestFrame();
+
+        var start = System.nanoTime();
+        var delivered = backend.pumpEvents(event -> {}, Duration.ofSeconds(5));
+        var elapsed = Duration.ofNanos(System.nanoTime() - start);
+
+        assertEquals(1, delivered);
+        assertTrue(
+                elapsed.toMillis() < 1_000,
+                () -> "the pump waited " + elapsed.toMillis() + "ms with a frame already requested");
+    }
+
+    @Test
+    @Timeout(10)
     @DisplayName("pumpEvents returns when the timeout elapses")
     void pumpTimesOut() {
         var start = System.nanoTime();

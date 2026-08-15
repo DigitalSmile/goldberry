@@ -133,20 +133,33 @@ public final class Sdl3Backend implements Backend {
             hasEvent = video.pollEvent(eventBuffer);
         }
 
-        // Frame requests are synthesized rather than delivered by SDL. This is
-        // where vsync alignment will come from once there is a renderer to align
-        // to; today a requested frame becomes due on the next pump, which is
-        // honest about being a heartbeat rather than a refresh signal.
-        for (var window : windowsById.values()) {
-            if (window.takeFrameRequest()) {
-                translated.add(new BackendEvent.FrameDue(window));
-            }
-        }
-
         for (var event : translated) {
             sink.accept(event);
         }
-        return translated.size();
+
+        // Frames AFTER the events that caused them.
+        //
+        // Collecting requests before dispatching would miss every repaint asked
+        // for by a handler -- which is most of them: a resize, an expose and a
+        // scale change all end in repaint(). Those frames would then wait for the
+        // next pump, and during an interactive resize that reads as the window
+        // lagging a step behind the pointer with black where it has not caught
+        // up.
+        //
+        // Requests made while handling a FrameDue below are deliberately left for
+        // the next pump: draining until empty here would let a self-scheduling
+        // animation hold the loop and starve input.
+        var frames = new ArrayList<BackendEvent>();
+        for (var window : windowsById.values()) {
+            if (window.takeFrameRequest()) {
+                frames.add(new BackendEvent.FrameDue(window));
+            }
+        }
+        for (var event : frames) {
+            sink.accept(event);
+        }
+
+        return translated.size() + frames.size();
     }
 
     private void translate(int type, int windowId, List<BackendEvent> out) {

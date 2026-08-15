@@ -89,6 +89,12 @@ block can be scheduled honestly.
   and fail rather than skip when it is absent — has been tested locally against
   every path but has not itself been through CI. —
   [ADR-0016](adr/0016-verify-the-artifact-and-never-skip-the-check.md)
+- **Live resize stalls on Windows and macOS.** Both run a modal loop during a
+  resize gesture, so SDL does not return from event pumping until the drag ends
+  and frames stop with it. Wayland and X11 are prompt. The fix is
+  `SDL_AddEventWatch`, drawing from inside SDL's own callback, which is a
+  different shape of frame loop and waits for a renderer worth driving from it. —
+  [ADR-0024](adr/0024-a-repaint-must-wake-the-loop.md)
 - **Blend2D and AsmJit have no release tags**, so both are pinned by branch and
   the build is not reproducible. They must become commit SHAs before publishing.
 - **The layout registry has two entries.** The canary, the primitive widths, and

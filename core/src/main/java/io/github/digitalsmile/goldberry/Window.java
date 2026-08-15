@@ -175,19 +175,38 @@ public final class Window implements AutoCloseable {
         LOG.trace("painting {}", size);
 
         painter.accept(new Frame(cached, window.scale()));
-        window.present(cached, List.of(DamageRect.all(size)));
+
+        try {
+            window.present(cached, List.of(DamageRect.all(size)));
+        } catch (RuntimeException e) {
+            // A window can be resized between the size being read above and the
+            // frame reaching the platform -- which during a drag is common, not
+            // exotic. The backend refuses a frame that no longer matches its
+            // surface, and rightly: a mismatched blit is corruption. But that is
+            // a dropped frame, not a failure, and letting it out of here would
+            // end the event loop mid-resize.
+            var current = window.isOpen() ? window.physicalSize() : size;
+            if (!current.equals(size)) {
+                LOG.debug("dropped a {} frame: the window became {} while it was painted", size, current);
+                repaint();
+                return;
+            }
+            throw e;
+        }
     }
 
     void handleResize(LogicalSize size) {
         LOG.debug("window resized to {} -> {}", size, window.physicalSize());
-        cached = null;
+        // The buffer is NOT dropped here. paint() reallocates when the size no
+        // longer matches, which is the same test one step later -- and dropping
+        // it eagerly means a multi-megabyte allocation for every resize event a
+        // compositor sends, which during a drag is per pointer motion.
         resizeHandler.accept(size);
         repaint();
     }
 
     void handleScaleChange(DisplayScale scale) {
         LOG.info("window moved to a {} display -> {}", scale, window.physicalSize());
-        cached = null;
         scaleHandler.accept(scale);
         repaint();
     }
