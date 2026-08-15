@@ -9,7 +9,9 @@
 #
 # `workflow_call` is what lets release.yml reuse this without duplicating it.
 #
-# STATUS: never run.
+# STATUS: green. Both architectures build and the layout check passes against the
+# downloaded dylib, so the Mach-O branch of the export machinery
+# (-exported_symbols_list, -u _symbol) is exercised rather than assumed.
 
 name: macOS
 
