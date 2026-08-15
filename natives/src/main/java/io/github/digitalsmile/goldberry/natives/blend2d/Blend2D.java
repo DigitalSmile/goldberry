@@ -38,6 +38,13 @@ final class Blend2D {
     private static final long COMPILER_OFFSET = Layouts.BL_RUNTIME_BUILD_INFO.offsetOf("compiler_info");
     private static final long COMPILER_SIZE = Layouts.BL_RUNTIME_BUILD_INFO.sizeOf("compiler_info");
 
+    private static final long METRICS_SIZE = Layouts.BL_FONT_METRICS.offsetOf("size");
+    private static final long METRICS_ASCENT = Layouts.BL_FONT_METRICS.offsetOf("ascent");
+    private static final long METRICS_DESCENT = Layouts.BL_FONT_METRICS.offsetOf("descent");
+    private static final long METRICS_LINE_GAP = Layouts.BL_FONT_METRICS.offsetOf("line_gap");
+    private static final long METRICS_X_HEIGHT = Layouts.BL_FONT_METRICS.offsetOf("x_height");
+    private static final long METRICS_CAP_HEIGHT = Layouts.BL_FONT_METRICS.offsetOf("cap_height");
+
     private static final long IMAGE_DATA_PIXELS = Layouts.BL_IMAGE_DATA.offsetOf("pixel_data");
     private static final long IMAGE_DATA_STRIDE = Layouts.BL_IMAGE_DATA.offsetOf("stride");
     private static final long IMAGE_DATA_FORMAT = Layouts.BL_IMAGE_DATA.offsetOf("format");
@@ -61,6 +68,18 @@ final class Blend2D {
     private final MethodHandle contextClearAll;
     private final MethodHandle contextFillAllRgba32;
     private final MethodHandle contextFillRectDRgba32;
+    private final MethodHandle contextFillGlyphRunDRgba32;
+
+    private final MethodHandle fontDataInit;
+    private final MethodHandle fontDataCreateFromData;
+    private final MethodHandle fontDataDestroy;
+    private final MethodHandle fontFaceInit;
+    private final MethodHandle fontFaceCreateFromData;
+    private final MethodHandle fontFaceDestroy;
+    private final MethodHandle fontInit;
+    private final MethodHandle fontCreateFromFace;
+    private final MethodHandle fontDestroy;
+    private final MethodHandle fontGetMetrics;
 
     private Blend2D(SymbolLookup lookup) {
         this.runtimeQueryInfo = downcall(lookup, "bl_runtime_query_info", FunctionDescriptor.of(
@@ -105,6 +124,44 @@ final class Blend2D {
                 resultOf(ValueLayout.ADDRESS, ValueLayout.JAVA_INT));
         this.contextFillRectDRgba32 = downcall(lookup, "bl_context_fill_rect_d_rgba32",
                 resultOf(ValueLayout.ADDRESS, ValueLayout.ADDRESS, ValueLayout.JAVA_INT));
+        // BLResult bl_context_fill_glyph_run_d_rgba32(BLContextCore*,
+        //     const BLPoint* origin, const BLFontCore*, const BLGlyphRun*, uint32_t)
+        //
+        // The `_d` suffix is the origin's type: doubles, so a baseline can land
+        // between physical pixels. The `_i` variant takes a BLPointI and is not
+        // bound, because rounding the baseline is exactly what ADR-0031 went to
+        // some trouble to stop doing for rectangles.
+        this.contextFillGlyphRunDRgba32 = downcall(lookup, "bl_context_fill_glyph_run_d_rgba32",
+                resultOf(ValueLayout.ADDRESS, ValueLayout.ADDRESS, ValueLayout.ADDRESS,
+                        ValueLayout.ADDRESS, ValueLayout.JAVA_INT));
+
+        // The three font objects. Each `create` REPLACES what the handle holds,
+        // so each one has to be `init`ed first -- Blend2D releases the previous
+        // instance, and releasing an uninitialised one reads a pointer that was
+        // never written.
+        this.fontDataInit = downcall(lookup, "bl_font_data_init", resultOf(ValueLayout.ADDRESS));
+        // BLResult bl_font_data_create_from_data(BLFontDataCore*, const void* data,
+        //     size_t data_size, BLDestroyExternalDataFunc, void* user_data)
+        this.fontDataCreateFromData = downcall(lookup, "bl_font_data_create_from_data",
+                resultOf(ValueLayout.ADDRESS, ValueLayout.ADDRESS, ValueLayout.JAVA_LONG,
+                        ValueLayout.ADDRESS, ValueLayout.ADDRESS));
+        this.fontDataDestroy = downcall(lookup, "bl_font_data_destroy",
+                resultOf(ValueLayout.ADDRESS));
+
+        this.fontFaceInit = downcall(lookup, "bl_font_face_init", resultOf(ValueLayout.ADDRESS));
+        this.fontFaceCreateFromData = downcall(lookup, "bl_font_face_create_from_data",
+                resultOf(ValueLayout.ADDRESS, ValueLayout.ADDRESS, ValueLayout.JAVA_INT));
+        this.fontFaceDestroy = downcall(lookup, "bl_font_face_destroy",
+                resultOf(ValueLayout.ADDRESS));
+
+        this.fontInit = downcall(lookup, "bl_font_init", resultOf(ValueLayout.ADDRESS));
+        // The size is a `float`, not a double: Blend2D's own choice, and the one
+        // place in the paint path where a coordinate narrows.
+        this.fontCreateFromFace = downcall(lookup, "bl_font_create_from_face",
+                resultOf(ValueLayout.ADDRESS, ValueLayout.ADDRESS, ValueLayout.JAVA_FLOAT));
+        this.fontDestroy = downcall(lookup, "bl_font_destroy", resultOf(ValueLayout.ADDRESS));
+        this.fontGetMetrics = downcall(lookup, "bl_font_get_metrics",
+                resultOf(ValueLayout.ADDRESS, ValueLayout.ADDRESS));
     }
 
     static Blend2D get() {
@@ -276,6 +333,112 @@ final class Blend2D {
                     (int) contextFillRectDRgba32.invokeExact(context, rect, argb));
         } catch (Throwable t) {
             throw failure("bl_context_fill_rect_d_rgba32", t);
+        }
+    }
+
+    /// Fills a run of positioned glyphs, with `origin` on the baseline.
+    ///
+    /// `glyphRun` is a descriptor pointing at arrays the caller still owns, so
+    /// those arrays must outlive the call — which they do, because
+    /// [BlendGlyphBuffer] holds all three in one arena.
+    void contextFillGlyphRun(
+            MemorySegment context, MemorySegment origin, MemorySegment font,
+            MemorySegment glyphRun, int argb) {
+        try {
+            check("bl_context_fill_glyph_run_d_rgba32",
+                    (int) contextFillGlyphRunDRgba32.invokeExact(
+                            context, origin, font, glyphRun, argb));
+        } catch (Throwable t) {
+            throw failure("bl_context_fill_glyph_run_d_rgba32", t);
+        }
+    }
+
+    // --- fonts ---------------------------------------------------------------
+
+    void fontDataInit(MemorySegment fontData) {
+        check("bl_font_data_init", invoke(fontDataInit, fontData));
+    }
+
+    /// Points `fontData` at a font file's bytes, which Blend2D does **not** copy.
+    ///
+    /// The destroy callback and its user data are NULL for the same reason
+    /// [#imageInitFromData] passes NULL: the bytes belong to Java, and handing
+    /// Blend2D a free function for memory it did not allocate is how a heap gets
+    /// corrupted. The caller keeps them alive instead.
+    void fontDataCreate(MemorySegment fontData, MemorySegment bytes, long length) {
+        int result;
+        try {
+            result = (int) fontDataCreateFromData.invokeExact(
+                    fontData, bytes, length, MemorySegment.NULL, MemorySegment.NULL);
+        } catch (Throwable t) {
+            throw failure("bl_font_data_create_from_data", t);
+        }
+        check("bl_font_data_create_from_data", result);
+    }
+
+    void fontDataDestroy(MemorySegment fontData) {
+        check("bl_font_data_destroy", invoke(fontDataDestroy, fontData));
+    }
+
+    void fontFaceInit(MemorySegment face) {
+        check("bl_font_face_init", invoke(fontFaceInit, face));
+    }
+
+    /// Reads face `index` out of `fontData`.
+    ///
+    /// Unlike HarfBuzz, Blend2D **reports** a file it cannot parse: a corrupt or
+    /// non-font blob fails here with a `BLResult` rather than producing an empty
+    /// face that silently shapes to `.notdef`. That difference is worth knowing
+    /// when the two disagree about the same bytes.
+    void fontFaceCreate(MemorySegment face, MemorySegment fontData, int index) {
+        int result;
+        try {
+            result = (int) fontFaceCreateFromData.invokeExact(face, fontData, index);
+        } catch (Throwable t) {
+            throw failure("bl_font_face_create_from_data", t);
+        }
+        check("bl_font_face_create_from_data", result);
+    }
+
+    void fontFaceDestroy(MemorySegment face) {
+        check("bl_font_face_destroy", invoke(fontFaceDestroy, face));
+    }
+
+    void fontInit(MemorySegment font) {
+        check("bl_font_init", invoke(fontInit, font));
+    }
+
+    /// Sizes `face` at `size` units per em.
+    ///
+    /// This is where the font matrix comes from — `size / units-per-em` — and
+    /// therefore where the units of every glyph placement are decided. See
+    /// [BlendGlyphPlacementType].
+    void fontCreate(MemorySegment font, MemorySegment face, float size) {
+        int result;
+        try {
+            result = (int) fontCreateFromFace.invokeExact(font, face, size);
+        } catch (Throwable t) {
+            throw failure("bl_font_create_from_face", t);
+        }
+        check("bl_font_create_from_face", result);
+    }
+
+    void fontDestroy(MemorySegment font) {
+        check("bl_font_destroy", invoke(fontDestroy, font));
+    }
+
+    /// The font's metrics, already scaled by its size.
+    BlendFontMetrics fontMetrics(MemorySegment font) {
+        try (var arena = Arena.ofConfined()) {
+            var metrics = arena.allocate(Layouts.BL_FONT_METRICS.layout());
+            check("bl_font_get_metrics", invoke(fontGetMetrics, font, metrics));
+            return new BlendFontMetrics(
+                    metrics.get(ValueLayout.JAVA_FLOAT, METRICS_SIZE),
+                    metrics.get(ValueLayout.JAVA_FLOAT, METRICS_ASCENT),
+                    metrics.get(ValueLayout.JAVA_FLOAT, METRICS_DESCENT),
+                    metrics.get(ValueLayout.JAVA_FLOAT, METRICS_LINE_GAP),
+                    metrics.get(ValueLayout.JAVA_FLOAT, METRICS_X_HEIGHT),
+                    metrics.get(ValueLayout.JAVA_FLOAT, METRICS_CAP_HEIGHT));
         }
     }
 

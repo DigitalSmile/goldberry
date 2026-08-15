@@ -44,6 +44,7 @@ final class HarfBuzz {
     private final MethodHandle faceCreate;
     private final MethodHandle faceDestroy;
     private final MethodHandle faceGetEmpty;
+    private final MethodHandle faceGetUpem;
     private final MethodHandle fontCreate;
     private final MethodHandle fontDestroy;
     private final MethodHandle fontSetScale;
@@ -80,6 +81,8 @@ final class HarfBuzz {
                 FunctionDescriptor.ofVoid(ValueLayout.ADDRESS));
         this.faceGetEmpty = downcall(lookup, "hb_face_get_empty",
                 FunctionDescriptor.of(ValueLayout.ADDRESS));
+        this.faceGetUpem = downcall(lookup, "hb_face_get_upem",
+                FunctionDescriptor.of(ValueLayout.JAVA_INT, ValueLayout.ADDRESS));
         this.fontCreate = downcall(lookup, "hb_font_create",
                 FunctionDescriptor.of(ValueLayout.ADDRESS, ValueLayout.ADDRESS));
         this.fontDestroy = downcall(lookup, "hb_font_destroy",
@@ -194,6 +197,20 @@ final class HarfBuzz {
             return (MemorySegment) faceGetEmpty.invokeExact();
         } catch (Throwable t) {
             throw failure("hb_face_get_empty", t);
+        }
+    }
+
+    /// The face's units per em — the grid its outlines are designed on.
+    ///
+    /// It is also the scale HarfBuzz reports advances in when nothing has set
+    /// one, which is what makes it the number the Blend2D side has to agree
+    /// with (ADR-0034). Commonly 1000 for a PostScript-flavoured face and 2048
+    /// for a TrueType one, and free to be anything.
+    int faceUpem(MemorySegment face) {
+        try {
+            return (int) faceGetUpem.invokeExact(face);
+        } catch (Throwable t) {
+            throw failure("hb_face_get_upem", t);
         }
     }
 

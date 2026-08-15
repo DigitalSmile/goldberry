@@ -96,6 +96,27 @@ bl_context_clear_all
 bl_context_fill_all_rgba32
 bl_context_fill_rect_d_rgba32
 
+# Fonts, and the glyphs HarfBuzz chose (sec. 6, ADR-0034). Bytes -> data ->
+# face -> font, three objects for the same reason HarfBuzz needs three: the
+# file, the typeface, and the size it is used at are different things. Only the
+# from-data constructors are bound; Goldberry never gives Blend2D a file path.
+bl_font_data_init
+bl_font_data_create_from_data
+bl_font_data_destroy
+bl_font_face_init
+bl_font_face_create_from_data
+bl_font_face_destroy
+bl_font_init
+bl_font_create_from_face
+bl_font_destroy
+
+# Where the baseline goes. Scaled by the font's size, unlike the design metrics
+# on the face, which is what makes them the ones a paint pass wants.
+bl_font_get_metrics
+
+# The call the whole font chain exists for.
+bl_context_fill_glyph_run_d_rgba32
+
 # --- Yoga (sec. 5, layout) ---------------------------------------------------
 # The node API, bound in the `yoga` package. YGSize and the measure callback are
 # above -- they were proven first (ADR-0017), and this is what finally drives
@@ -198,6 +219,9 @@ hb_blob_destroy
 hb_face_create
 hb_face_destroy
 hb_face_get_empty
+# The units advances come back in when nothing sets a scale -- and therefore
+# the units Blend2D's font matrix expects. See ADR-0034.
+hb_face_get_upem
 hb_font_create
 hb_font_destroy
 hb_font_set_scale

@@ -40,6 +40,9 @@ public final class ShapedFont implements AutoCloseable {
     /// destroyed.
     private final boolean borrowedFace;
 
+    /// The x scale last set, or [#UNSCALED] if none has been.
+    private int xScale = UNSCALED;
+
     private boolean closed;
 
     private ShapedFont(MemorySegment blob, MemorySegment face, boolean borrowedFace) {
@@ -121,9 +124,33 @@ public final class ShapedFont implements AutoCloseable {
     /// that a 16px font reports advances a sixty-fourth of a pixel apart. Passing
     /// the pixel size directly instead gives whole-pixel advances and visibly
     /// uneven spacing, because every fractional advance is truncated.
+    /// A run shaped after this is no longer in design units, so it can no longer
+    /// be handed to Blend2D unchanged — see [#isDesignUnits()].
     public void setScale(int xScale, int yScale) {
         requireUsable();
         harfbuzz.fontScale(font, xScale, yScale);
+        this.xScale = xScale;
+    }
+
+    /// The face's units per em — the grid the outlines were designed on, and the
+    /// units advances come back in while the font is [unscaled][#UNSCALED].
+    ///
+    /// Commonly 1000 or 2048, and not guaranteed to be either.
+    public int unitsPerEm() {
+        requireUsable();
+        return harfbuzz.faceUpem(face);
+    }
+
+    /// Whether shaping with this font reports positions in **font design units**.
+    ///
+    /// True while no scale has been set, and true again if one is set to the
+    /// face's own units per em. It matters because that is precisely the
+    /// condition under which a [GlyphRun] can be handed to Blend2D without
+    /// converting it: Blend2D applies `size / units-per-em` itself, so a run
+    /// that has already been scaled has the size applied twice (ADR-0034).
+    public boolean isDesignUnits() {
+        requireUsable();
+        return xScale == UNSCALED || xScale == unitsPerEm();
     }
 
     /// Whether the font has been closed.

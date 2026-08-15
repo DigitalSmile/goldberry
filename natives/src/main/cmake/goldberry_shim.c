@@ -67,7 +67,7 @@
 #endif
 
 /* Bumped whenever the exported surface changes shape. */
-#define GOLDBERRY_ABI_VERSION 7u
+#define GOLDBERRY_ABI_VERSION 8u
 
 GOLDBERRY_EXPORT uint32_t goldberry_abi_version(void) {
     return GOLDBERRY_ABI_VERSION;
@@ -325,6 +325,70 @@ static const goldberry_layout_entry_t GOLDBERRY_LAYOUTS[] = {
     GB_FIELD(BLPointI, x),
     GB_FIELD(BLPointI, y),
 
+    /* Doubles, like BLRect and for the same reason: a glyph run's origin is a
+     * baseline position, and a baseline that snapped to whole pixels would
+     * quantise line spacing at fractional scales. */
+    GB_STRUCT(BLPoint),
+    GB_FIELD(BLPoint, x),
+    GB_FIELD(BLPoint, y),
+
+    /*
+     * Fonts and glyph runs (ADR-0034).
+     *
+     * The three font objects are BLObjectDetail-shaped like every other core
+     * object, so these rows say the same thing BLImageCore's does.
+     */
+    GB_STRUCT(BLFontDataCore),
+    GB_STRUCT(BLFontFaceCore),
+    GB_STRUCT(BLFontCore),
+
+    /*
+     * BLGlyphRun is a descriptor, not a container: it points at somebody else's
+     * glyph ids and placements and carries the STRIDE of each. Goldberry fills
+     * one in per fill, so every field here is written by Java -- which makes
+     * this the layout row with the least margin for error in the table. A wrong
+     * `size` offset reads a byte count as a glyph count.
+     */
+    GB_STRUCT(BLGlyphRun),
+    GB_FIELD(BLGlyphRun, glyph_data),
+    GB_FIELD(BLGlyphRun, placement_data),
+    GB_FIELD(BLGlyphRun, size),
+    GB_FIELD(BLGlyphRun, reserved),
+    GB_FIELD(BLGlyphRun, placement_type),
+    GB_FIELD(BLGlyphRun, glyph_advance),
+    GB_FIELD(BLGlyphRun, placement_advance),
+    GB_FIELD(BLGlyphRun, flags),
+
+    /* Four int32s: an offset that moves the glyph and an advance that moves the
+     * pen -- exactly the four numbers HarfBuzz reports per glyph, in the same
+     * order. That correspondence is what makes the crossing a copy rather than
+     * a conversion. */
+    GB_STRUCT(BLGlyphPlacement),
+    GB_FIELD(BLGlyphPlacement, placement),
+    GB_FIELD(BLGlyphPlacement, advance),
+
+    /* Scaled by the font's size, so ascent and descent are already in the units
+     * a paint pass draws in. The union of ascent/v_ascent with
+     * ascent_by_orientation[2] overlaps the same memory, which is why the Java
+     * layout is a flat run of floats. */
+    GB_STRUCT(BLFontMetrics),
+    GB_FIELD(BLFontMetrics, size),
+    GB_FIELD(BLFontMetrics, ascent),
+    GB_FIELD(BLFontMetrics, v_ascent),
+    GB_FIELD(BLFontMetrics, descent),
+    GB_FIELD(BLFontMetrics, v_descent),
+    GB_FIELD(BLFontMetrics, line_gap),
+    GB_FIELD(BLFontMetrics, x_height),
+    GB_FIELD(BLFontMetrics, cap_height),
+    GB_FIELD(BLFontMetrics, x_min),
+    GB_FIELD(BLFontMetrics, y_min),
+    GB_FIELD(BLFontMetrics, x_max),
+    GB_FIELD(BLFontMetrics, y_max),
+    GB_FIELD(BLFontMetrics, underline_position),
+    GB_FIELD(BLFontMetrics, underline_thickness),
+    GB_FIELD(BLFontMetrics, strikethrough_position),
+    GB_FIELD(BLFontMetrics, strikethrough_thickness),
+
     /* Which Blend2D is linked in. A build fact, like SDL's version. */
     GB_STRUCT(BLRuntimeBuildInfo),
     GB_FIELD(BLRuntimeBuildInfo, major_version),
@@ -374,6 +438,20 @@ static const goldberry_layout_entry_t GOLDBERRY_LAYOUTS[] = {
     GB_CONSTANT("BL_DATA_ACCESS_READ", BL_DATA_ACCESS_READ),
     GB_CONSTANT("BL_DATA_ACCESS_WRITE", BL_DATA_ACCESS_WRITE),
     GB_CONSTANT("BL_DATA_ACCESS_RW", BL_DATA_ACCESS_RW),
+
+    /*
+     * How a glyph run's placements are to be read. ADVANCE_OFFSET is the one
+     * Goldberry uses and the one that decides the units: Blend2D multiplies
+     * those placements by the FONT MATRIX, which is size/units-per-em, so they
+     * have to arrive in font design units. Naming DESIGN_UNITS and USER_UNITS
+     * beside it is not decoration -- picking either of them by mistake would
+     * scale every advance by the point size and still render. See ADR-0034.
+     */
+    GB_CONSTANT("BL_GLYPH_PLACEMENT_TYPE_NONE", BL_GLYPH_PLACEMENT_TYPE_NONE),
+    GB_CONSTANT("BL_GLYPH_PLACEMENT_TYPE_ADVANCE_OFFSET", BL_GLYPH_PLACEMENT_TYPE_ADVANCE_OFFSET),
+    GB_CONSTANT("BL_GLYPH_PLACEMENT_TYPE_DESIGN_UNITS", BL_GLYPH_PLACEMENT_TYPE_DESIGN_UNITS),
+    GB_CONSTANT("BL_GLYPH_PLACEMENT_TYPE_USER_UNITS", BL_GLYPH_PLACEMENT_TYPE_USER_UNITS),
+    GB_CONSTANT("BL_GLYPH_PLACEMENT_TYPE_ABSOLUTE_UNITS", BL_GLYPH_PLACEMENT_TYPE_ABSOLUTE_UNITS),
 
     GB_CONSTANT("BL_RUNTIME_INFO_TYPE_BUILD", BL_RUNTIME_INFO_TYPE_BUILD),
     GB_CONSTANT("BL_RUNTIME_INFO_TYPE_SYSTEM", BL_RUNTIME_INFO_TYPE_SYSTEM),

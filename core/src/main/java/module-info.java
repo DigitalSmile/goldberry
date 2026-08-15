@@ -23,6 +23,11 @@ module io.github.digitalsmile.goldberry.core {
     // engines, so the seam is exercised before a widget tree lands on it.
     exports io.github.digitalsmile.goldberry.layout;
 
+    // Where HarfBuzz's shaping meets Blend2D's rasterizer (ADR-0034). The two
+    // libraries know nothing of each other, and this package is what holds them
+    // to the one thing they must agree on: the units a glyph position is in.
+    exports io.github.digitalsmile.goldberry.text;
+
     // The backend SPI, and the one backend that needs no platform under it.
     // `sdl3` will live here too and will be what makes this module `requires`
     // the natives module; `headless` deliberately does not, so tests of

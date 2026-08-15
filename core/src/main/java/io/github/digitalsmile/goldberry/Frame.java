@@ -5,6 +5,8 @@ import io.github.digitalsmile.goldberry.backend.LogicalSize;
 import io.github.digitalsmile.goldberry.backend.PhysicalSize;
 import io.github.digitalsmile.goldberry.backend.PixelBuffer;
 import io.github.digitalsmile.goldberry.natives.blend2d.BlendContext;
+import io.github.digitalsmile.goldberry.natives.blend2d.BlendFont;
+import io.github.digitalsmile.goldberry.natives.blend2d.BlendGlyphBuffer;
 import io.github.digitalsmile.goldberry.natives.blend2d.BlendImage;
 
 /// The surface a [Window] paints into.
@@ -92,6 +94,29 @@ public final class Frame {
     public void fillRect(float x, float y, float width, float height, int argb) {
         requireOpen();
         context.fillRect(x, y, width, height, argb);
+    }
+
+    /// Draws staged glyphs with `(x, baseline)` on the baseline.
+    ///
+    /// The primitive, not the text API. It takes a font and a buffer of
+    /// positioned glyphs because that is what a rasterizer draws; deciding
+    /// *which* glyphs, at what positions, is shaping, and
+    /// [Font][io.github.digitalsmile.goldberry.text.Font] is what joins the two.
+    /// Call that instead unless there is a reason not to.
+    ///
+    /// `baseline` is the line the letters sit on — an `a` is above it, a `g`
+    /// hangs below — so the top of a line of text is `baseline - ascent`.
+    ///
+    /// The glyph buffer's offsets and advances are in the font's **design
+    /// units**, not in the logical coordinates everything else here uses. That
+    /// asymmetry is Blend2D's: the font's own matrix converts them, which is
+    /// what lets one shaping result be drawn at any size (ADR-0034).
+    ///
+    /// @param argb a colour as `0xAARRGGBB`, not premultiplied
+    public void drawGlyphs(
+            double x, double baseline, BlendFont font, BlendGlyphBuffer glyphs, int argb) {
+        requireOpen();
+        context.fillGlyphRun(x, baseline, font, glyphs, argb);
     }
 
     /// Finishes the frame, so the pixels are complete before anything presents

@@ -16,8 +16,8 @@ import java.util.stream.Stream;
 /// against what the C compiler computed for the library that is actually loaded.
 /// The interface is sealed so the permitted list and [#all()] sit together.
 public sealed interface BlendEnum
-        permits BlendCompOp, BlendDataAccess, BlendFormat, BlendResultCode,
-                BlendRuntimeInfoType, BlendTransformOp {
+        permits BlendCompOp, BlendDataAccess, BlendFormat, BlendGlyphPlacementType,
+                BlendResultCode, BlendRuntimeInfoType, BlendTransformOp {
 
     /// The value Blend2D's header gives this constant.
     int nativeValue();
@@ -31,6 +31,7 @@ public sealed interface BlendEnum
                         BlendCompOp.values(),
                         BlendDataAccess.values(),
                         BlendFormat.values(),
+                        BlendGlyphPlacementType.values(),
                         BlendResultCode.values(),
                         BlendRuntimeInfoType.values(),
                         BlendTransformOp.values())

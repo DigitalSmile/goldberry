@@ -298,6 +298,115 @@ public final class Layouts {
                     ValueLayout.JAVA_INT.withName("x"),
                     ValueLayout.JAVA_INT.withName("y")));
 
+    /// ```c
+    /// struct BLPoint { double x, y; };
+    /// ```
+    ///
+    /// Where a glyph run's origin — its baseline — is given. Doubles for the
+    /// reason [#BL_RECT] is: a baseline snapped to whole pixels would quantise
+    /// line spacing, and at 1.5&times; that is a visibly uneven paragraph.
+    public static final NativeStructLayout BL_POINT = new NativeStructLayout(
+            "BLPoint",
+            MemoryLayout.structLayout(
+                    ValueLayout.JAVA_DOUBLE.withName("x"),
+                    ValueLayout.JAVA_DOUBLE.withName("y")));
+
+    /// A run of positioned glyphs, as Blend2D reads one — `BLGlyphRun`.
+    ///
+    /// A **descriptor**, not a container: two pointers into memory the caller
+    /// owns, plus the stride of each array. That is what lets Goldberry hand
+    /// over glyph ids and placements it staged itself rather than copying them
+    /// into a Blend2D-shaped buffer first.
+    ///
+    /// ```c
+    /// struct BLGlyphRun {
+    ///     void    *glyph_data;
+    ///     void    *placement_data;
+    ///     size_t   size;
+    ///     uint8_t  reserved;
+    ///     uint8_t  placement_type;
+    ///     int8_t   glyph_advance;
+    ///     int8_t   placement_advance;
+    ///     uint32_t flags;
+    /// };
+    /// ```
+    ///
+    /// The two `*_advance` fields are **strides in bytes**, not advances in the
+    /// typographic sense — Blend2D's naming, kept rather than improved on,
+    /// because a field renamed at the boundary is a field nobody can grep for.
+    /// They are `int8_t`: a stride wider than 127 bytes cannot be expressed, and
+    /// Goldberry's are 4 and 16.
+    public static final NativeStructLayout BL_GLYPH_RUN = new NativeStructLayout(
+            "BLGlyphRun",
+            MemoryLayout.structLayout(
+                    ValueLayout.ADDRESS.withName("glyph_data"),
+                    ValueLayout.ADDRESS.withName("placement_data"),
+                    ValueLayout.JAVA_LONG.withName("size"),
+                    ValueLayout.JAVA_BYTE.withName("reserved"),
+                    ValueLayout.JAVA_BYTE.withName("placement_type"),
+                    ValueLayout.JAVA_BYTE.withName("glyph_advance"),
+                    ValueLayout.JAVA_BYTE.withName("placement_advance"),
+                    ValueLayout.JAVA_INT.withName("flags")));
+
+    /// Where one glyph goes — `BLGlyphPlacement`.
+    ///
+    /// ```c
+    /// struct BLGlyphPlacement {
+    ///     BLPointI placement;
+    ///     BLPointI advance;
+    /// };
+    /// ```
+    ///
+    /// `placement` moves the glyph without moving the pen; `advance` moves the
+    /// pen. Those are the same two things HarfBuzz reports as offset and
+    /// advance, in the same order and the same width, which is why the crossing
+    /// is four `int` writes per glyph and not a conversion.
+    ///
+    /// The units are **font design units**, because Blend2D multiplies these by
+    /// the font matrix — see [ADR-0034][io.github.digitalsmile.goldberry.natives.blend2d.BlendFont].
+    public static final NativeStructLayout BL_GLYPH_PLACEMENT = new NativeStructLayout(
+            "BLGlyphPlacement",
+            MemoryLayout.structLayout(
+                    MemoryLayout.structLayout(
+                                    ValueLayout.JAVA_INT.withName("x"),
+                                    ValueLayout.JAVA_INT.withName("y"))
+                            .withName("placement"),
+                    MemoryLayout.structLayout(
+                                    ValueLayout.JAVA_INT.withName("x"),
+                                    ValueLayout.JAVA_INT.withName("y"))
+                            .withName("advance")));
+
+    /// A font's metrics at the size it was created with — `BLFontMetrics`.
+    ///
+    /// Sixteen floats, already scaled: `ascent` is how far above the baseline
+    /// this font reaches *at this size*, in the context's own units. The face's
+    /// `BLFontDesignMetrics` carries the same numbers in design units and is
+    /// deliberately not bound — one of the two has to be the one a paint pass
+    /// reaches for, and it is this one.
+    ///
+    /// The C declaration overlaps `ascent`/`v_ascent` with an
+    /// `ascent_by_orientation[2]` array in an anonymous union, and likewise for
+    /// descent. Same memory, so a flat run of floats models it exactly.
+    public static final NativeStructLayout BL_FONT_METRICS = new NativeStructLayout(
+            "BLFontMetrics",
+            MemoryLayout.structLayout(
+                    ValueLayout.JAVA_FLOAT.withName("size"),
+                    ValueLayout.JAVA_FLOAT.withName("ascent"),
+                    ValueLayout.JAVA_FLOAT.withName("v_ascent"),
+                    ValueLayout.JAVA_FLOAT.withName("descent"),
+                    ValueLayout.JAVA_FLOAT.withName("v_descent"),
+                    ValueLayout.JAVA_FLOAT.withName("line_gap"),
+                    ValueLayout.JAVA_FLOAT.withName("x_height"),
+                    ValueLayout.JAVA_FLOAT.withName("cap_height"),
+                    ValueLayout.JAVA_FLOAT.withName("x_min"),
+                    ValueLayout.JAVA_FLOAT.withName("y_min"),
+                    ValueLayout.JAVA_FLOAT.withName("x_max"),
+                    ValueLayout.JAVA_FLOAT.withName("y_max"),
+                    ValueLayout.JAVA_FLOAT.withName("underline_position"),
+                    ValueLayout.JAVA_FLOAT.withName("underline_thickness"),
+                    ValueLayout.JAVA_FLOAT.withName("strikethrough_position"),
+                    ValueLayout.JAVA_FLOAT.withName("strikethrough_thickness")));
+
     /// Which Blend2D is linked in.
     ///
     /// A build fact rather than a runtime one, exactly like [SdlVersion][
@@ -392,6 +501,10 @@ public final class Layouts {
                 BL_RECT,
                 BL_SIZE_I,
                 BL_POINT_I,
+                BL_POINT,
+                BL_GLYPH_RUN,
+                BL_GLYPH_PLACEMENT,
+                BL_FONT_METRICS,
                 BL_RUNTIME_BUILD_INFO,
                 HB_GLYPH_INFO,
                 HB_GLYPH_POSITION);

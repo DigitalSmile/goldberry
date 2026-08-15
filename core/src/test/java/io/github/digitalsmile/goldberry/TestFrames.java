@@ -32,6 +32,17 @@ public final class TestFrames {
         public int alphaAt(int x, int y) {
             return pixel(x, y) >>> 24;
         }
+
+        /// Finishes the frame, so the pixels are complete before they are read.
+        ///
+        /// [Frame#end()] is package-private — ending a frame is [Window]'s job —
+        /// and a test in another package still has to do it, because a context
+        /// that has not been ended may have work queued and the buffer is then
+        /// half-drawn. Exposing it here rather than widening `Frame` keeps that
+        /// a test's privilege.
+        public void end() {
+            frame.end();
+        }
     }
 
     public static Target of(int width, int height, float scale) {

@@ -36,6 +36,7 @@ public final class BlendContext implements AutoCloseable {
     private final Arena arena;
     private final MemorySegment context;
     private final MemorySegment rect;
+    private final MemorySegment origin;
     private final Thread owner = Thread.currentThread();
     private final BlendImage image;
     private final double scale;
@@ -46,6 +47,9 @@ public final class BlendContext implements AutoCloseable {
     private static final long RECT_Y = Layouts.BL_RECT.offsetOf("y");
     private static final long RECT_W = Layouts.BL_RECT.offsetOf("w");
     private static final long RECT_H = Layouts.BL_RECT.offsetOf("h");
+
+    private static final long POINT_X = Layouts.BL_POINT.offsetOf("x");
+    private static final long POINT_Y = Layouts.BL_POINT.offsetOf("y");
 
     private BlendContext(BlendImage image, double scale) {
         this.image = image;
@@ -58,6 +62,8 @@ public final class BlendContext implements AutoCloseable {
             // keep -- allocating per call would put a confined arena on the hot
             // path to hold sixteen bytes for the duration of one call.
             this.rect = arena.allocate(Layouts.BL_RECT.layout());
+            // One BLPoint, reused for every glyph run, for the same reason.
+            this.origin = arena.allocate(Layouts.BL_POINT.layout());
 
             // NULL create-info asks for the defaults: synchronous, on this
             // thread. Blend2D's banded multithreading is a thread_count away and
@@ -163,6 +169,43 @@ public final class BlendContext implements AutoCloseable {
         rect.set(ValueLayout.JAVA_DOUBLE, RECT_W, width);
         rect.set(ValueLayout.JAVA_DOUBLE, RECT_H, height);
         blend2d.contextFillRect(context, rect, argb);
+    }
+
+    /// Draws a run of glyphs with `(x, y)` on the **baseline**.
+    ///
+    /// The baseline, not the top of the text: `y` is the line the letters sit
+    /// on, so an `a` is entirely above it and a `g` hangs below. Placing a
+    /// paragraph means adding [BlendFontMetrics#ascent] to the top of the box
+    /// and stepping by [BlendFontMetrics#lineHeight] from there.
+    ///
+    /// Coordinates are the context's own — logical when the context was scaled —
+    /// and so is the font's size. What is *not* in those units is the glyph
+    /// buffer: its offsets and advances are in font design units, and the font's
+    /// matrix is what reconciles the two (ADR-0034).
+    ///
+    /// An empty buffer draws nothing rather than failing: a blank line is
+    /// ordinary, and shaping empty text produces exactly this.
+    ///
+    /// @param argb a colour as `0xAARRGGBB`, not premultiplied
+    public void fillGlyphRun(
+            double x, double y, BlendFont font, BlendGlyphBuffer glyphs, int argb) {
+        requireUsable();
+        Objects.requireNonNull(font, "font");
+        Objects.requireNonNull(glyphs, "glyphs");
+        // NaN before the emptiness test, for the reason fillRect checks it
+        // there: a NaN baseline draws nothing at all, and an arithmetic bug in a
+        // layout pass would look like text that simply did not appear.
+        if (Double.isNaN(x) || Double.isNaN(y)) {
+            throw new IllegalArgumentException(
+                    "a glyph run with a NaN origin cannot be drawn, and Blend2D would silently"
+                            + " draw nothing: " + x + "," + y);
+        }
+        if (glyphs.isEmpty()) {
+            return;
+        }
+        origin.set(ValueLayout.JAVA_DOUBLE, POINT_X, x);
+        origin.set(ValueLayout.JAVA_DOUBLE, POINT_Y, y);
+        blend2d.contextFillGlyphRun(context, origin, font.pointer(), glyphs.pointer(), argb);
     }
 
     /// Whether the context has been closed.
