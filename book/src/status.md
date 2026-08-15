@@ -5,7 +5,7 @@ Tracked against the milestone ladder in `docs/ARCHITECTURE.md` §16.
 | Milestone | State | |
 |---|---|---|
 | Foundation | **done** | Multi-module Gradle (Groovy DSL), version catalog, convention plugins, JPMS module graph, JDK 25 toolchain, JUnit 6, licence disclosure, decision log |
-| M0 — Skeleton | **in progress** | **The superbuild links on four of six targets.** Blend2D, AsmJit, SDL3, Yoga, HarfBuzz and libxkbcommon statically combine into one `libgoldberry` exporting exactly the symbols on the export list and nothing else — both Linux targets in CI's manylinux containers, both macOS targets on an Apple Silicon runner. The layout probe passes against the real library, and Yoga's measure callback crosses in both directions including the `YGSize` struct-by-value return ([ADR-0017](adr/0017-proving-the-struct-by-value-upcall.md)), so the hand-written binding mechanism is proven end to end. SDL3's lifecycle, error and version calls are bound and tested against the real library ([ADR-0018](adr/0018-sdl-conventions-stop-at-the-boundary.md)). Still to come: the two Windows targets, Yoga's node API, SDL3 windowing, the backend SPI, `headless`, and a blank window at correct fractional DPI |
+| M0 — Skeleton | **in progress** | **The superbuild links on four of six targets.** Blend2D, AsmJit, SDL3, Yoga, HarfBuzz and libxkbcommon statically combine into one `libgoldberry` exporting exactly the symbols on the export list and nothing else — both Linux targets in CI's manylinux containers, both macOS targets on an Apple Silicon runner. The layout probe passes against the real library, and Yoga's measure callback crosses in both directions including the `YGSize` struct-by-value return ([ADR-0017](adr/0017-proving-the-struct-by-value-upcall.md)), so the hand-written binding mechanism is proven end to end. SDL3's lifecycle, error and version calls are bound and tested against the real library ([ADR-0018](adr/0018-sdl-conventions-stop-at-the-boundary.md)). The backend SPI's first cut and the `headless` backend are in `:core`, with fractional DPI correct by construction ([ADR-0019](adr/0019-the-backend-spis-first-cut.md)). Still to come: the two Windows targets, Yoga's node API, SDL3 windowing, the `sdl3` backend, and a blank window at correct fractional DPI |
 | M1 — Vertical slice | not started | Styled wrapped paragraph, resized at 60 fps; paragraph cache + upcall benchmarks |
 | M2 — Widgets & style | not started | CSS engine, KDL inflater + hot reload, core controls, Nord light/dark, golden-image CI |
 | M3 — Shell | not started | Menus, popups, tray, dialogs, scroll, forms, CSD, charts, widget showcase |
@@ -17,7 +17,7 @@ Tracked against the milestone ladder in `docs/ARCHITECTURE.md` §16.
 | Module | Artifact | Contents |
 |---|---|---|
 | `:natives` | `goldberry-natives-{platform}-{arch}` | Hand-written FFM bindings, owning wrappers, and the CMake superbuild that produces `libgoldberry` |
-| `:core` | `goldberry-core` | Widgets, style, layout, text, paint, the backend SPI |
+| `:core` | `goldberry-core` | Widgets, style, layout, text, paint, the backend SPI, and the backends themselves — `headless` today, `sdl3` and `scarlet` to come |
 | `:widgets` | `goldberry-widgets` | The widget catalog — controls, containers, menus, charts — plus the showcase screens that serve as the visual regression corpus |
 | `:gpu` | `goldberry-gpu` | `canvas3d` and the GPU composition path |
 

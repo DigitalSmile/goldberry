@@ -24,6 +24,7 @@
 - [ADR-0016 Verify the artifact, never skip the check](adr/0016-verify-the-artifact-and-never-skip-the-check.md)
 - [ADR-0017 Proving the struct-by-value upcall](adr/0017-proving-the-struct-by-value-upcall.md)
 - [ADR-0018 SDL's conventions stop at the boundary](adr/0018-sdl-conventions-stop-at-the-boundary.md)
+- [ADR-0019 The backend SPI's first cut](adr/0019-the-backend-spis-first-cut.md)
 
 ---
 

@@ -1,0 +1,204 @@
+package io.github.digitalsmile.goldberry.backend.headless;
+
+import io.github.digitalsmile.goldberry.backend.BackendEvent;
+import io.github.digitalsmile.goldberry.backend.BackendException;
+import io.github.digitalsmile.goldberry.backend.BackendWindow;
+import io.github.digitalsmile.goldberry.backend.DamageRect;
+import io.github.digitalsmile.goldberry.backend.DisplayScale;
+import io.github.digitalsmile.goldberry.backend.LogicalSize;
+import io.github.digitalsmile.goldberry.backend.PhysicalSize;
+import io.github.digitalsmile.goldberry.backend.PixelBuffer;
+import io.github.digitalsmile.goldberry.backend.WindowSpec;
+import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
+
+/// A window that exists only as state.
+///
+/// Presented frames are kept instead of shown, and every rule the SPI states is
+/// checked here rather than assumed — which is the point: a real backend that
+/// breaks one of them fails the same tests.
+public final class HeadlessWindow implements BackendWindow {
+
+    private final HeadlessBackend backend;
+
+    private LogicalSize size;
+    private DisplayScale scale;
+    private String title;
+    private boolean open = true;
+    private boolean framePending;
+
+    private PixelBuffer lastFrame;
+    private List<DamageRect> lastDamage = List.of();
+    private int presentCount;
+
+    HeadlessWindow(HeadlessBackend backend, WindowSpec spec, DisplayScale scale) {
+        this.backend = backend;
+        this.size = spec.size();
+        this.scale = scale;
+        this.title = spec.title();
+    }
+
+    @Override
+    public LogicalSize size() {
+        backend.requireUiThread();
+        return size;
+    }
+
+    @Override
+    public PhysicalSize physicalSize() {
+        backend.requireUiThread();
+        return scale.toPhysical(size);
+    }
+
+    @Override
+    public DisplayScale scale() {
+        backend.requireUiThread();
+        return scale;
+    }
+
+    @Override
+    public void present(PixelBuffer frame, List<DamageRect> damage) {
+        backend.requireUiThread();
+        requireOpen();
+        Objects.requireNonNull(frame, "frame");
+        Objects.requireNonNull(damage, "damage");
+
+        var expected = physicalSize();
+        if (!frame.size().equals(expected)) {
+            throw new IllegalArgumentException(
+                    "frame is " + frame.size() + " but the window is " + expected
+                            + ". The frame was rasterized against a stale size --"
+                            + " a resize was processed after layout and before paint.");
+        }
+        for (var rect : damage) {
+            if (!rect.fitsWithin(expected)) {
+                throw new IllegalArgumentException(
+                        "damage " + rect + " falls outside the " + expected + " frame");
+            }
+        }
+
+        // Copied, because the SPI lends the buffer for the duration of the call
+        // and Blend2D reuses it for the next frame. A test asserting on pixels
+        // must be asserting on the frame it was given, not on whatever came next.
+        this.lastFrame = copyOf(frame);
+        this.lastDamage = List.copyOf(damage);
+        this.presentCount++;
+        this.framePending = false;
+    }
+
+    @Override
+    public void requestFrame() {
+        backend.requireUiThread();
+        requireOpen();
+        // Coalescing is the contract: asking twice before the frame arrives must
+        // not draw twice.
+        if (framePending) {
+            return;
+        }
+        framePending = true;
+        backend.post(new BackendEvent.FrameDue(this));
+    }
+
+    @Override
+    public void setTitle(String title) {
+        backend.requireUiThread();
+        requireOpen();
+        this.title = Objects.requireNonNull(title, "title");
+    }
+
+    @Override
+    public String title() {
+        backend.requireUiThread();
+        return title;
+    }
+
+    @Override
+    public boolean isOpen() {
+        return open;
+    }
+
+    @Override
+    public void close() {
+        if (!open) {
+            return;
+        }
+        backend.requireUiThread();
+        open = false;
+        framePending = false;
+        backend.forget(this);
+    }
+
+    /// The last frame presented, if any. What a golden-image test asserts on.
+    public Optional<PixelBuffer> lastFrame() {
+        backend.requireUiThread();
+        return Optional.ofNullable(lastFrame);
+    }
+
+    /// The damage list that came with [#lastFrame()].
+    public List<DamageRect> lastDamage() {
+        backend.requireUiThread();
+        return lastDamage;
+    }
+
+    /// How many frames have been presented. Frame-loop tests count these.
+    public int presentCount() {
+        backend.requireUiThread();
+        return presentCount;
+    }
+
+    /// Whether a [#requestFrame()] is outstanding.
+    public boolean isFramePending() {
+        backend.requireUiThread();
+        return framePending;
+    }
+
+    /// Resizes the window as the platform would, and queues the event.
+    ///
+    /// The logical size changes; the scale does not.
+    public void resizeTo(LogicalSize newSize) {
+        backend.requireUiThread();
+        requireOpen();
+        this.size = Objects.requireNonNull(newSize, "newSize");
+        backend.post(new BackendEvent.Resized(this, size, physicalSize()));
+    }
+
+    /// Moves the window to a display with a different scale, and queues the
+    /// event.
+    ///
+    /// The logical size is unchanged — that is what distinguishes this from a
+    /// resize, and the case a toolkit gets wrong by treating the two as one.
+    public void rescaleTo(DisplayScale newScale) {
+        backend.requireUiThread();
+        requireOpen();
+        this.scale = Objects.requireNonNull(newScale, "newScale");
+        backend.post(new BackendEvent.ScaleChanged(this, scale, physicalSize()));
+    }
+
+    /// Queues a close request, as a title-bar button would.
+    public void requestClose() {
+        backend.requireUiThread();
+        requireOpen();
+        backend.post(new BackendEvent.CloseRequested(this));
+    }
+
+    /// Queues an expose, as an uncovered or restored window would.
+    public void expose() {
+        backend.requireUiThread();
+        requireOpen();
+        backend.post(new BackendEvent.Exposed(this));
+    }
+
+    private static PixelBuffer copyOf(PixelBuffer frame) {
+        var pixels = frame.pixels();
+        var copy = java.nio.ByteBuffer.allocate(pixels.remaining());
+        copy.put(pixels.duplicate()).flip();
+        return new PixelBuffer(frame.size(), frame.format(), frame.stride(), copy);
+    }
+
+    private void requireOpen() {
+        if (!open) {
+            throw new BackendException("the window is closed");
+        }
+    }
+}
