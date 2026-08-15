@@ -308,12 +308,22 @@ foreach(_symbol IN LISTS GOLDBERRY_EXPORTED_SYMBOLS)
 endforeach()
 
 if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    # The `local: *` clause is what hides everything not listed. It is also
+    # sufficient: --exclude-libs,ALL used to be here as belt-and-braces and had to
+    # go, because it does not merely hide archive symbols by default -- it forces
+    # them local, and a version script cannot promote a symbol the linker has
+    # already been told to hide. With it in place, SDL_Init was pulled into the
+    # library by -u, occupied its four megabytes, and was not exported: `nm -D`
+    # reported goldberry's own four symbols and nothing else.
+    #
+    # That went unnoticed while every exported symbol came from goldberry_shim.c,
+    # which is an object file rather than an archive member. SDL3 is the first
+    # upstream symbol on the list, and it found the flaw immediately.
     set(_version_script "${CMAKE_BINARY_DIR}/goldberry.map")
     string(JOIN ";\n    " _sym_block ${GOLDBERRY_EXPORTED_SYMBOLS})
     file(WRITE "${_version_script}" "GOLDBERRY_0 {\n  global:\n    ${_sym_block};\n  local:\n    *;\n};\n")
     target_link_options(goldberry PRIVATE
         "LINKER:--version-script=${_version_script}"
-        "LINKER:--exclude-libs,ALL"
         "LINKER:--no-undefined")
 
 elseif(CMAKE_SYSTEM_NAME STREQUAL "Darwin")

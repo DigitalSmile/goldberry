@@ -5,7 +5,7 @@ Tracked against the milestone ladder in `docs/ARCHITECTURE.md` §16.
 | Milestone | State | |
 |---|---|---|
 | Foundation | **done** | Multi-module Gradle (Groovy DSL), version catalog, convention plugins, JPMS module graph, JDK 25 toolchain, JUnit 6, licence disclosure, decision log |
-| M0 — Skeleton | **in progress** | **The superbuild links on four of six targets.** Blend2D, AsmJit, SDL3, Yoga, HarfBuzz and libxkbcommon statically combine into one `libgoldberry` exporting exactly the symbols on the export list and nothing else — both Linux targets in CI's manylinux containers, both macOS targets on an Apple Silicon runner. The layout probe passes against the real library, and Yoga's measure callback crosses in both directions including the `YGSize` struct-by-value return ([ADR-0017](adr/0017-proving-the-struct-by-value-upcall.md)), so the hand-written binding mechanism is proven end to end. Still to come: the two Windows targets, Yoga's node API, SDL3 bindings, the backend SPI, `headless`, and a blank window at correct fractional DPI |
+| M0 — Skeleton | **in progress** | **The superbuild links on four of six targets.** Blend2D, AsmJit, SDL3, Yoga, HarfBuzz and libxkbcommon statically combine into one `libgoldberry` exporting exactly the symbols on the export list and nothing else — both Linux targets in CI's manylinux containers, both macOS targets on an Apple Silicon runner. The layout probe passes against the real library, and Yoga's measure callback crosses in both directions including the `YGSize` struct-by-value return ([ADR-0017](adr/0017-proving-the-struct-by-value-upcall.md)), so the hand-written binding mechanism is proven end to end. SDL3's lifecycle, error and version calls are bound and tested against the real library ([ADR-0018](adr/0018-sdl-conventions-stop-at-the-boundary.md)). Still to come: the two Windows targets, Yoga's node API, SDL3 windowing, the backend SPI, `headless`, and a blank window at correct fractional DPI |
 | M1 — Vertical slice | not started | Styled wrapped paragraph, resized at 60 fps; paragraph cache + upcall benchmarks |
 | M2 — Widgets & style | not started | CSS engine, KDL inflater + hot reload, core controls, Nord light/dark, golden-image CI |
 | M3 — Shell | not started | Menus, popups, tray, dialogs, scroll, forms, CSD, charts, widget showcase |
@@ -89,6 +89,13 @@ block can be scheduled honestly.
   row proves nothing the round trip in
   [ADR-0017](adr/0017-proving-the-struct-by-value-upcall.md) does not. —
   [ADR-0010](adr/0010-hand-written-ffm-bindings.md)
+- **The export machinery was never exercised on an upstream symbol until now.**
+  `--exclude-libs,ALL` forced static-archive symbols local, and a version script
+  cannot promote a symbol already marked hidden, so `SDL_Init` linked in without
+  being exported. Fixed by removing the flag — the version script's `local: *`
+  was always sufficient. The equivalent question on the MSVC `.def` and Mach-O
+  `-exported_symbols_list` branches is answered by the next CI run, not by
+  argument. — [ADR-0018](adr/0018-sdl-conventions-stop-at-the-boundary.md)
 - **CMake arguments live in two places** — `natives/build.gradle` for local builds
   and the CI workflows — because the manylinux container has no JDK. They must be
   kept in step. — [ADR-0012](adr/0012-native-ci-runners-with-a-pinned-glibc.md)

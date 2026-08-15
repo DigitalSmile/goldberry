@@ -31,7 +31,17 @@ goldberry_layout_count
 goldberry_probe_measure
 
 # --- SDL3 (sec. 4, backend SPI) ----------------------------------------------
-# Added as they are bound, starting with the M0 blank window.
+# Lifecycle, error and version. Enough to prove SDL3 is reachable through this
+# list and to report which SDL is linked in; windowing follows.
+SDL_Init
+SDL_InitSubSystem
+SDL_QuitSubSystem
+SDL_WasInit
+SDL_Quit
+SDL_GetError
+SDL_ClearError
+SDL_GetVersion
+SDL_GetRevision
 
 # --- Blend2D (sec. 5, paint & raster) ----------------------------------------
 
