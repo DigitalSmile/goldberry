@@ -43,6 +43,16 @@ application {
     applicationDefaultJvmArgs = [
             '--enable-native-access=io.github.digitalsmile.goldberry.natives',
     ]
+
+    // macOS drives AppKit from the process's first thread, and the java launcher
+    // runs main on a secondary one unless told otherwise. Without this, SDL's
+    // Cocoa driver cannot create a device and SDL_Init fails with "No available
+    // video device" -- which mentions neither threads nor this flag (ADR-0030).
+    //
+    // Harmless nowhere else, but only macOS needs it, so only macOS gets it.
+    if (hostTarget.startsWith('macos')) {
+        applicationDefaultJvmArgs += '-XstartOnFirstThread'
+    }
 }
 
 // Not published: it is a demonstration, not an artifact (§15).

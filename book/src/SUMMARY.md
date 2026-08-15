@@ -34,6 +34,8 @@
 - [ADR-0026 SDL picks the video driver (partly superseded)](adr/0026-sdl-picks-the-video-driver.md)
 - [ADR-0027 Prefer Wayland, fall back to X11](adr/0027-prefer-wayland-fall-back-to-x11.md)
 - [ADR-0028 The start-up timeline](adr/0028-the-start-up-timeline.md)
+- [ADR-0029 The superbuild download is not a hang](adr/0029-the-superbuild-download-is-not-a-hang.md)
+- [ADR-0030 macOS needs the first thread](adr/0030-macos-needs-the-first-thread.md)
 
 ---
 

@@ -46,6 +46,16 @@ public final class Sdl3Backend implements Backend {
     /// X11 behind it, resolved inside SDL.
     private static final String PREFERRED_LINUX_DRIVERS = "wayland,x11";
 
+    /// The macOS `java` launcher sets `JAVA_STARTED_ON_FIRST_THREAD_<pid>=1` in
+    /// the environment when it is given `-XstartOnFirstThread`. It is the only
+    /// way to ask, from Java, whether `main` is running on the process's first
+    /// thread — and the answer decides whether AppKit can start at all.
+    private static final String FIRST_THREAD_ENV = "JAVA_STARTED_ON_FIRST_THREAD_";
+
+    /// The flag whose absence is, on macOS, by far the most likely reason
+    /// `SDL_Init` reports no video device.
+    private static final String FIRST_THREAD_FLAG = "-XstartOnFirstThread";
+
     private final SdlVideo video = SdlVideo.get();
     private final Thread uiThread = Thread.currentThread();
     private final Map<Integer, Sdl3Window> windowsById = new LinkedHashMap<>();
@@ -67,7 +77,7 @@ public final class Sdl3Backend implements Backend {
                     Sdl.get().version(), Sdl.get().videoDriver());
         } catch (SdlException e) {
             eventBuffer.close();
-            throw new BackendException("SDL could not initialize its video subsystem", e);
+            throw new BackendException(videoFailureMessage(), e);
         } catch (UnsatisfiedLinkError e) {
             eventBuffer.close();
             throw new BackendException(
@@ -125,6 +135,60 @@ public final class Sdl3Backend implements Backend {
         } else {
             LOG.warn("SDL refused the video driver hint {}={}", Sdl.VIDEO_DRIVER_HINT, drivers);
         }
+    }
+
+    /// Whether this JVM is one where AppKit cannot start.
+    ///
+    /// macOS requires AppKit to be driven from the process's first thread, and the
+    /// `java` launcher runs `main` on a secondary thread unless it is given
+    /// `-XstartOnFirstThread`. SDL's Cocoa driver therefore refuses to create a
+    /// device, `SDL_Init` finds no other driver, and the error it reports is the
+    /// thoroughly unhelpful "No available video device" — which names neither the
+    /// thread nor the flag (ADR-0030).
+    ///
+    /// Taken as a hint rather than a precondition. The environment variable is set
+    /// by the launcher, so a JVM embedded through `JNI_CreateJavaVM` on the real
+    /// main thread would not have it and would still work; failing up front on the
+    /// strength of that would be wrong. Everything here is therefore phrased as
+    /// "this is probably why", and only ever after SDL has actually said no.
+    ///
+    /// @param osName the value of `os.name`
+    /// @param firstThreadEnv the value of `JAVA_STARTED_ON_FIRST_THREAD_<pid>`, or null
+    /// @return true if the missing flag is worth mentioning
+    static boolean firstThreadFlagLikelyMissing(String osName, String firstThreadEnv) {
+        var macOs = osName != null
+                && (osName.toLowerCase(Locale.ROOT).contains("mac")
+                        || osName.toLowerCase(Locale.ROOT).contains("darwin"));
+        return macOs && !"1".equals(firstThreadEnv);
+    }
+
+    private static boolean firstThreadFlagLikelyMissing() {
+        return firstThreadFlagLikelyMissing(
+                System.getProperty("os.name", ""),
+                System.getenv(FIRST_THREAD_ENV + ProcessHandle.current().pid()));
+    }
+
+    /// The message for a video subsystem that would not start, with the macOS
+    /// first-thread explanation attached when it applies.
+    ///
+    /// @param flagMissing whether to append the `-XstartOnFirstThread` guidance
+    /// @return the exception message
+    static String videoFailureMessage(boolean flagMissing) {
+        var base = "SDL could not initialize its video subsystem";
+        if (!flagMissing) {
+            return base;
+        }
+        return base + """
+                .
+                On macOS the UI toolkit has to run on the process's first thread, and \
+                the java launcher does not put main there by default — so SDL finds no \
+                usable video driver and reports "No available video device".
+                Add the JVM flag: %s
+                For the showcase, ./gradlew run already passes it.""".formatted(FIRST_THREAD_FLAG);
+    }
+
+    private static String videoFailureMessage() {
+        return videoFailureMessage(firstThreadFlagLikelyMissing());
     }
 
     @Override

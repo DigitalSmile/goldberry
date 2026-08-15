@@ -38,6 +38,20 @@ needs CMake ≥ 3.28, Ninja, a C/C++ toolchain, and — on Linux, for libxkbcomm
 Meson. `./gradlew :natives:checkToolchain` verifies all of it up front and names
 the packages to install if anything is absent.
 
+**The first native build downloads about 330 MB** — Blend2D, AsmJit, Yoga,
+HarfBuzz and SDL3, cloned by the superbuild — which typically takes a few
+minutes. Compiling them afterwards is comparatively quick, around a minute on a
+recent laptop. Git reports its progress as it goes, so a configure step that
+looks idle for a long time is a slow connection rather than a stuck build
+(ADR-0029).
+
+The clones land in `natives/.deps/<target>`, deliberately outside `build/` so
+that `./gradlew clean` does not throw them away. To discard them on purpose:
+
+```sh
+./gradlew :natives:cleanNativeDeps
+```
+
 For a Java-only build with no native toolchain:
 
 ```sh
@@ -93,6 +107,12 @@ catches an unexported package or a wrong `--enable-native-access` (ADR-0023).
 
 A window opens. `-Pgoldberry.example.frames=3` paints three frames and exits,
 which is what CI runs under Xvfb.
+
+**On macOS**, AppKit has to be driven from the process's first thread, so any
+Goldberry application needs `-XstartOnFirstThread`. `./gradlew run` passes it for
+you; an application of your own has to pass it itself, exactly as it would for
+LWJGL or SWT. Without it `SDL_Init` fails with "No available video device", which
+says nothing about threads — see [ADR-0030](book/src/adr/0030-macos-needs-the-first-thread.md).
 
 ## Logging
 
