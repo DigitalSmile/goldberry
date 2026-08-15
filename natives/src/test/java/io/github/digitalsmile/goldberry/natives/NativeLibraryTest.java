@@ -11,7 +11,7 @@ import org.junit.jupiter.params.provider.CsvSource;
 class NativeLibraryTest {
 
     /// The path here must match the `into(...)` in the `nativeJar*` tasks in
-    /// `natives/build.gradle.kts`. Asserting the literal means a rename on either
+    /// `natives/build.gradle`. Asserting the literal means a rename on either
     /// side shows up as a failing test rather than as an UnsatisfiedLinkError on
     /// one platform in production.
     @ParameterizedTest

@@ -44,8 +44,23 @@ For a Java-only build with no native toolchain:
 ./gradlew build -Pgoldberry.skipNative=true
 ```
 
+Tests that need real native code skip when no library is loadable, so this stays
+green — it just verifies less.
+
 Released artifacts are built on native runners per platform, so a locally built
-library is for development only.
+library is for development only. To check a library built somewhere else — a CI
+artifact, a colleague's build — point the tests at it instead of building one:
+
+```sh
+./gradlew :natives:test \
+  -Dgoldberry.native.library=/path/to/libgoldberry.so \
+  -Dgoldberry.native.required=true
+```
+
+Supplying a library is also what tells the build not to build its own. Adding
+`goldberry.native.required=true` turns "no library, skip quietly" into a failure,
+which is how CI verifies that the artifact it just built actually loads — see
+[ADR-0016](book/src/adr/0016-verify-the-artifact-and-never-skip-the-check.md).
 
 ## Documentation
 

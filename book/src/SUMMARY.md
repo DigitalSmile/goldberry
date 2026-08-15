@@ -21,6 +21,7 @@
 - [ADR-0013 Groovy DSL for the build](adr/0013-groovy-dsl-for-the-build.md)
 - [ADR-0014 One widgets module, charts included](adr/0014-single-widgets-module.md)
 - [ADR-0015 Licensing and third-party disclosure](adr/0015-licensing-and-third-party-disclosure.md)
+- [ADR-0016 Verify the artifact, never skip the check](adr/0016-verify-the-artifact-and-never-skip-the-check.md)
 
 ---
 

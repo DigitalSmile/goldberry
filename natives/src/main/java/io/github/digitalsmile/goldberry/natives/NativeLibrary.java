@@ -45,7 +45,7 @@ public final class NativeLibrary {
 
     /// Where the library lives inside its classifier jar.
     ///
-    /// Kept in step with the `nativeJar*` tasks in `natives/build.gradle.kts`;
+    /// Kept in step with the `nativeJar*` tasks in `natives/build.gradle`;
     /// tested on both sides so a rename cannot silently break loading.
     public static String resourcePath(NativePlatform platform) {
         return "/io/github/digitalsmile/goldberry/natives/"

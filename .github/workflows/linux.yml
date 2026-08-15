@@ -12,9 +12,9 @@
 #
 # `workflow_call` is what lets release.yml reuse this without duplicating it.
 #
-# STATUS: never run. The dependency list below in particular will need tuning on
-# the first execution -- SDL3 and libxkbcommon each need a spread of X11/Wayland
-# development headers the manylinux image does not ship.
+# STATUS: the natives jobs pass on x64 and aarch64 -- the dependency list below
+# was the open question and it turned out to be right. The verify jobs failed on
+# the first run and were reworked; see ADR-0016.
 
 name: Linux
 
@@ -108,9 +108,16 @@ jobs:
           path: build/install/lib/libgoldberry.so
           if-no-files-found: error
 
-  # Building an artifact is not the same as testing it. LayoutVerificationTest
-  # skips without a native library, so this is where the hand-written struct
-  # layouts are actually checked against a compiled libgoldberry.
+  # Building an artifact is not the same as testing it. This is where the
+  # hand-written struct layouts are actually checked against a compiled
+  # libgoldberry -- the one downloaded from the natives job, which for Linux is
+  # the manylinux-built binary that ships. These runners have no C/C++ toolchain
+  # and must not acquire one: handing Gradle a library with
+  # `goldberry.native.library` is also what tells it not to build a rival one.
+  #
+  # `goldberry.native.required=true` is not decoration. LayoutVerificationTest
+  # skips when no library is loadable, and a verify job that skipped every test
+  # is a green tick over an artifact nothing opened. See ADR-0016.
   verify:
     name: Verify layouts (${{ matrix.target }})
     needs: natives
@@ -136,4 +143,5 @@ jobs:
           path: native-lib
       - run: |
           ./gradlew :natives:test --no-daemon \
-            -Dgoldberry.native.library="$PWD/native-lib/libgoldberry.so"
+            -Dgoldberry.native.library="$PWD/native-lib/libgoldberry.so" \
+            -Dgoldberry.native.required=true

@@ -2,10 +2,9 @@ package io.github.digitalsmile.goldberry.natives.layout;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import io.github.digitalsmile.goldberry.natives.GoldberryShim;
-import io.github.digitalsmile.goldberry.natives.NativeLibrary;
+import io.github.digitalsmile.goldberry.natives.NativeLibraryRequirement;
 import io.github.digitalsmile.goldberry.natives.NativePlatform;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
@@ -17,14 +16,14 @@ import org.junit.jupiter.api.Test;
 /// This is the check ADR-0010 rests on. It needs a built `libgoldberry`, so it
 /// skips — loudly, with a reason — when the superbuild has not run. It must run
 /// on every target in CI: passing on Linux says nothing about Win64's 4-byte
-/// `long` or aarch64's alignment rules.
+/// `long` or aarch64's alignment rules. Which is why CI passes
+/// `-Dgoldberry.native.required=true`, turning that skip into a failure
+/// ([NativeLibraryRequirement], ADR-0016).
 class LayoutVerificationTest {
 
     @BeforeAll
     static void requireNativeLibrary() {
-        assumeTrue(
-                NativeLibrary.isAvailable(),
-                "libgoldberry is not built for this platform; run :natives:cmakeBuild<Target> first");
+        NativeLibraryRequirement.enforce();
     }
 
     @Test

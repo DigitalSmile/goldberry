@@ -276,6 +276,25 @@ tasks.register('stageHostArtifact', Copy) {
 }
 
 // --- Tests -------------------------------------------------------------------
+
+// The library under test, when it is not the one this machine builds.
+//
+// This is how CI verifies the *published* artifact: the Linux legs build inside
+// the manylinux container, and a library built anywhere else is a different
+// binary (ADR-0012, ADR-0016). Accepted as either -D or -P, because -D is what
+// NativeLibrary documents for a plain JVM run and -P is what reaches for the
+// hand first in Gradle.
+def externalLibrary = providers.systemProperty('goldberry.native.library')
+        .orElse(providers.gradleProperty('goldberry.native.library'))
+
+// Turns the "no library, skip quietly" default into a hard failure. CI sets it,
+// because a verification job that skips is a green tick over an unverified
+// artifact -- the one outcome worse than a red one (ADR-0016).
+def nativeRequired = providers.systemProperty('goldberry.native.required')
+        .orElse(providers.gradleProperty('goldberry.native.required'))
+        .map { Boolean.parseBoolean(it) }
+        .getOrElse(false)
+
 // JEP 472: restricted native access is a warning from the unnamed module in
 // Java 25 and an error in a later release.
 //
@@ -287,13 +306,15 @@ tasks.register('stageHostArtifact', Copy) {
 tasks.named('test') {
     jvmArgs '--enable-native-access=ALL-UNNAMED'
 
-    // Points at the locally built library rather than one unpacked from a
+    // Falls back to the locally built library rather than one unpacked from a
     // classifier jar. Set unconditionally: whether the file exists is decided at
     // execution time by NativeLibrary.isAvailable(), so the tests skip cleanly
     // when it is absent. Testing for it here instead would read the filesystem
     // during configuration, before cmakeBuild has had a chance to run.
     systemProperty 'goldberry.native.library',
-            installDir.get().dir('lib').file(hostTarget.library).asFile.absolutePath
+            externalLibrary.getOrElse(
+                    installDir.get().dir('lib').file(hostTarget.library).asFile.absolutePath)
+    systemProperty 'goldberry.native.required', nativeRequired
 }
 
 // --- Wiring into the root build ----------------------------------------------
@@ -317,5 +338,15 @@ if (skipNative) {
     tasks.named('assemble') { dependsOn cmakeBuild }
     // So the layout verification actually runs locally rather than skipping --
     // it is the check the hand-written bindings rest on (ADR-0010).
-    tasks.named('test') { dependsOn cmakeBuild }
+    //
+    // Unless a library was handed to us. Being given one to verify is the whole
+    // reason CI's verify jobs exist, and those runners have no C/C++ toolchain:
+    // building here would fail in checkToolchain before a single test ran, and
+    // succeeding would be worse still -- it would verify a library built on the
+    // wrong machine while the downloaded artifact sat unread (ADR-0016).
+    if (externalLibrary.present) {
+        logger.info("Goldberry: verifying ${externalLibrary.get()}; not building a native library")
+    } else {
+        tasks.named('test') { dependsOn cmakeBuild }
+    }
 }

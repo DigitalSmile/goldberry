@@ -95,7 +95,13 @@ jobs:
         with:
           name: native-windows-x64
           path: native-lib
+      # No C/C++ toolchain is set up in this job, and none is wanted: passing
+      # `goldberry.native.library` tells Gradle to verify the downloaded artifact
+      # rather than build a rival one, and `goldberry.native.required` turns a
+      # test that would have skipped for want of a library into a failure
+      # (ADR-0016).
       - shell: bash
         run: |
           ./gradlew :natives:test --no-daemon \
-            -Dgoldberry.native.library="$PWD/native-lib/goldberry.dll"
+            -Dgoldberry.native.library="$PWD/native-lib/goldberry.dll" \
+            -Dgoldberry.native.required=true

@@ -5,7 +5,7 @@ Tracked against the milestone ladder in `docs/ARCHITECTURE.md` §16.
 | Milestone | State | |
 |---|---|---|
 | Foundation | **done** | Multi-module Gradle (Groovy DSL), version catalog, convention plugins, JPMS module graph, JDK 25 toolchain, JUnit 6, licence disclosure, decision log |
-| M0 — Skeleton | **in progress** | **The superbuild links on linux-x64.** Blend2D, AsmJit, SDL3, Yoga, HarfBuzz and libxkbcommon statically combine into one `libgoldberry.so` exporting exactly the three symbols on the export list and nothing else. The layout probe passes against the real library, so the hand-written binding mechanism is proven end to end. Still to come: the other five targets, SDL3 bindings, the backend SPI, `headless`, and a blank window at correct fractional DPI |
+| M0 — Skeleton | **in progress** | **The superbuild links on both Linux targets.** Blend2D, AsmJit, SDL3, Yoga, HarfBuzz and libxkbcommon statically combine into one `libgoldberry.so` exporting exactly the three symbols on the export list and nothing else — built locally on x64, and in CI's manylinux containers on x64 and aarch64. The layout probe passes against the real library, so the hand-written binding mechanism is proven end to end. Still to come: the Windows and macOS targets, SDL3 bindings, the backend SPI, `headless`, and a blank window at correct fractional DPI |
 | M1 — Vertical slice | not started | Styled wrapped paragraph, resized at 60 fps; paragraph cache + upcall benchmarks |
 | M2 — Widgets & style | not started | CSS engine, KDL inflater + hot reload, core controls, Nord light/dark, golden-image CI |
 | M3 — Shell | not started | Menus, popups, tray, dialogs, scroll, forms, CSD, charts, widget showcase |
@@ -64,12 +64,18 @@ block can be scheduled honestly.
 - **`YGSize` struct-by-value upcall returns.** The fiddliest corner of FFM, and it
   sits on the layout engine's hot path. Should be proven first in M0. —
   [ADR-0010](adr/0010-hand-written-ffm-bindings.md)
-- **Only linux-x64 has ever been built.** The superbuild links there, but the
-  MSVC (`/INCLUDE:`, `.def`) and Mach-O (`-u,_symbol`,
-  `-exported_symbols_list`) branches of the export machinery are unexercised, as
-  is linux-aarch64. CI has never run, so the manylinux container's X11/Wayland
-  header list is still a guess. —
+- **Only the Linux targets have ever been built.** Both link, x64 locally and in
+  the manylinux container and aarch64 in the container, so the ELF version-script
+  branch of the export machinery and the container's X11/Wayland header list are
+  no longer guesses. The MSVC (`/INCLUDE:`, `.def`) and Mach-O (`-u,_symbol`,
+  `-exported_symbols_list`) branches remain unexercised — the Windows and macOS
+  workflows have never run. —
   [ADR-0012](adr/0012-native-ci-runners-with-a-pinned-glibc.md)
+- **Layout verification has not yet passed in CI.** The first run's verify jobs
+  failed without running a test, and the fix — verify the downloaded artifact,
+  and fail rather than skip when it is absent — has been tested locally against
+  every path but has not itself been through CI. —
+  [ADR-0016](adr/0016-verify-the-artifact-and-never-skip-the-check.md)
 - **Blend2D and AsmJit have no release tags**, so both are pinned by branch and
   the build is not reproducible. They must become commit SHAs before publishing.
 - **The layout registry has one entry.** The probe mechanism is proven, but it
