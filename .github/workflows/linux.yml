@@ -28,6 +28,7 @@ on:
 env:
   # Keep in step with gradle/libs.versions.toml.
   BLEND2D_REF: master
+  ASMJIT_REF: master
   YOGA_REF: v3.1.0
   HARFBUZZ_REF: 8.5.0
   SDL3_REF: release-3.2.0
@@ -46,7 +47,7 @@ jobs:
           distribution: temurin
           java-version: '25'
       - uses: gradle/actions/setup-gradle@v4
-      - run: ./gradlew build checkLicenses --no-daemon
+      - run: ./gradlew build checkLicenses -Pgoldberry.skipNative=true --no-daemon
 
   natives:
     name: libgoldberry (${{ matrix.target }})
@@ -85,6 +86,7 @@ jobs:
             -DCMAKE_INSTALL_PREFIX=$PWD/build/install \
             -DGOLDBERRY_TARGET_ID=${{ matrix.target }} \
             -DGOLDBERRY_BLEND2D_REF=$BLEND2D_REF \
+            -DGOLDBERRY_ASMJIT_REF=$ASMJIT_REF \
             -DGOLDBERRY_YOGA_REF=$YOGA_REF \
             -DGOLDBERRY_HARFBUZZ_REF=$HARFBUZZ_REF \
             -DGOLDBERRY_SDL3_REF=$SDL3_REF \

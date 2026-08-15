@@ -8,10 +8,13 @@ junit = "6.0.0"
 # Git refs consumed by the CMake superbuild. These are pins, not ranges: a
 # floating ref would make the artifact irreproducible.
 #
-# VERIFY ON FIRST BUILD: these refs have not yet been resolved against upstream.
-# Blend2D in particular has historically had no release tags, so it is pinned by
-# branch here and must become a commit SHA before anything is published.
+# These refs build and link on linux-x64. Blend2D and AsmJit have no release
+# tags, so they are pinned by branch -- which means the build is NOT yet
+# reproducible. Both must become commit SHAs before anything is published.
 blend2d = "master"
+# AsmJit is Blend2D's JIT backend, embedded into it rather than linked. Its ref
+# must suit the Blend2D ref above -- Blend2D compiles asmjit's sources directly.
+asmjit = "master"
 yoga = "v3.1.0"
 harfbuzz = "8.5.0"
 sdl3 = "release-3.2.0"

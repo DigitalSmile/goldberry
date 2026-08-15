@@ -12,19 +12,27 @@
 # same discipline ADR-0010 applies to struct layouts.
 #
 # Blank lines and #-comments are ignored. One symbol per line.
+#
+# ASCII ONLY, including in comments. CMake's file(STRINGS) extracts runs of
+# printable ASCII, so a non-ASCII byte splits the line -- a comment containing
+# one returns its tail as a separate element that no longer starts with '#', and
+# the parser hands that fragment to the linker as a symbol name. The build now
+# rejects anything that is not a valid C identifier, but keeping this file ASCII
+# avoids the problem at its source. (Hence "sec. 4" rather than the section sign
+# used elsewhere in the docs.)
 
 # --- libgoldberry's own surface ---------------------------------------------
 goldberry_abi_version
 goldberry_layout_table
 goldberry_layout_count
 
-# --- SDL3 (§4 backend SPI) ---------------------------------------------------
+# --- SDL3 (sec. 4, backend SPI) ----------------------------------------------
 # Added as they are bound, starting with the M0 blank window.
 
-# --- Blend2D (§5 paint & raster) ---------------------------------------------
+# --- Blend2D (sec. 5, paint & raster) ----------------------------------------
 
-# --- Yoga (§5 layout) --------------------------------------------------------
+# --- Yoga (sec. 5, layout) ---------------------------------------------------
 
-# --- HarfBuzz (§6 text) ------------------------------------------------------
+# --- HarfBuzz (sec. 6, text) -------------------------------------------------
 
-# --- libxkbcommon (Linux/Scarlet only, §7.1) ---------------------------------
+# --- libxkbcommon (Linux/Scarlet only, sec. 7.1) -----------------------------

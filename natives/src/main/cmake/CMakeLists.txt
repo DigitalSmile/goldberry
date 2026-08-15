@@ -11,9 +11,10 @@
 # the glibc floor at 2.28. A library built outside that container links against
 # the host's glibc and is therefore NOT the publishable artifact.
 #
-# STATUS: not yet built end to end. The structure, options, and link model below
-# are deliberate; the upstream refs and the per-project option names are marked
-# VERIFY where they have not been resolved against upstream yet.
+# STATUS: builds and links on linux-x64. The upstream refs, CMake target names,
+# and the export model below are all confirmed against the pinned revisions on
+# that target. Windows, macOS, and linux-aarch64 have not been built yet -- the
+# MSVC and Mach-O branches of the export machinery are still unexercised.
 
 cmake_minimum_required(VERSION 3.28)
 
@@ -44,6 +45,7 @@ include(ExternalProject)
 # Upstream refs are pinned in gradle/libs.versions.toml and passed in by Gradle.
 # Defaults exist only so a bare `cmake -S ...` is not immediately broken.
 set(GOLDBERRY_BLEND2D_REF "master" CACHE STRING "Blend2D git ref")
+set(GOLDBERRY_ASMJIT_REF "master" CACHE STRING "AsmJit git ref (must suit the Blend2D ref)")
 set(GOLDBERRY_YOGA_REF "v3.1.0" CACHE STRING "Yoga git ref")
 set(GOLDBERRY_HARFBUZZ_REF "8.5.0" CACHE STRING "HarfBuzz git ref")
 set(GOLDBERRY_SDL3_REF "release-3.2.0" CACHE STRING "SDL3 git ref")
@@ -63,10 +65,39 @@ message(STATUS "Goldberry target: ${GOLDBERRY_TARGET_ID} (${CMAKE_SYSTEM_NAME}/$
 # Silicon that needs W^X handling (MAP_JIT + pthread_jit_write_protect_np).
 # Verify on the macOS leg before trusting it.
 # ============================================================================
+# Blend2D does not consume asmjit as a CMake target -- it does
+# `add_subdirectory("${ASMJIT_DIR}" asmjit)` with ASMJIT_EMBED, compiling asmjit
+# straight into itself so the shared library avoids linking libstdc++. So it
+# needs asmjit's SOURCE DIRECTORY, not a target.
+#
+# SOURCE_SUBDIR therefore points at a directory that does not exist: that makes
+# FetchContent download asmjit without calling add_subdirectory() on it, leaving
+# Blend2D to add it exactly once, its own way. Declaring it normally produces a
+# rival asmjit subproject and duplicate targets.
 FetchContent_Declare(asmjit
     GIT_REPOSITORY https://github.com/asmjit/asmjit.git
-    GIT_TAG master  # VERIFY: pin to a SHA before publishing.
-    GIT_SHALLOW TRUE)
+    GIT_TAG ${GOLDBERRY_ASMJIT_REF}
+    GIT_SHALLOW TRUE
+    SOURCE_SUBDIR goldberry-do-not-add-subdirectory)
+
+FetchContent_MakeAvailable(asmjit)
+
+set(ASMJIT_DIR "${asmjit_SOURCE_DIR}" CACHE PATH "Location of asmjit" FORCE)
+
+# Upstream's own guard for this cannot fire: blend2d/CMakeLists.txt writes
+# `message(FATAL ...)`, and FATAL is not a CMake message mode. CMake treats the
+# word as message text, prints it as a notice, and CARRIES ON -- straight into
+# `add_subdirectory("")`, which resolves to Blend2D's own directory and recurses
+# until the 1000-frame limit. The real error is then unrecognisable.
+#
+# So check it here, where it can still fail usefully.
+if(NOT EXISTS "${ASMJIT_DIR}/CMakeLists.txt")
+    message(FATAL_ERROR
+        "asmjit was not populated at '${ASMJIT_DIR}'.\n"
+        "Blend2D needs asmjit's source directory. Without it Blend2D recurses into "
+        "itself and fails with 'Maximum recursion depth of 1000 exceeded'.")
+endif()
+message(STATUS "Goldberry: asmjit for Blend2D at ${ASMJIT_DIR}")
 
 FetchContent_Declare(blend2d
     GIT_REPOSITORY https://github.com/blend2d/blend2d.git
@@ -126,7 +157,8 @@ set(SDL_TESTS OFF CACHE BOOL "" FORCE)
 set(SDL_EXAMPLES OFF CACHE BOOL "" FORCE)
 set(SDL_INSTALL OFF CACHE BOOL "" FORCE)
 
-FetchContent_MakeAvailable(asmjit blend2d yoga harfbuzz sdl3)
+# asmjit is deliberately absent: it was populated above and is added by Blend2D.
+FetchContent_MakeAvailable(blend2d yoga harfbuzz sdl3)
 
 # ============================================================================
 # libxkbcommon -- keyboard translation (§3, §7.1)
@@ -142,11 +174,22 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
         GIT_REPOSITORY https://github.com/xkbcommon/libxkbcommon.git
         GIT_TAG ${GOLDBERRY_XKBCOMMON_REF}
         GIT_SHALLOW TRUE
+        # Core library only. `enable-x11` builds libxkbcommon-x11, which fetches a
+        # keymap over an xcb connection, and `enable-wayland` builds an interactive
+        # demo tool -- Goldberry needs neither. Per §7.1 it uses xkb_state and
+        # xkb_compose to translate keys from a keymap the backend hands it: SDL3
+        # owns the X11 connection, and the Scarlet compositor delivers its keymap
+        # as an fd. Turning these off also drops the xcb-xkb and wayland-protocols
+        # build dependencies, which is a consequence rather than the reason.
         CONFIGURE_COMMAND meson setup <BINARY_DIR> <SOURCE_DIR>
             --prefix <INSTALL_DIR>
+            # Meson's default libdir is arch-qualified (lib/x86_64-linux-gnu on
+            # Debian-ish hosts, lib64 on others), so the install path would vary
+            # by distribution. Pin it so the link line below is always right.
+            --libdir lib
             --default-library static
-            -Denable-x11=true
-            -Denable-wayland=true
+            -Denable-x11=false
+            -Denable-wayland=false
             -Denable-docs=false
             -Denable-tools=false
         BUILD_COMMAND meson compile -C <BINARY_DIR>
@@ -173,11 +216,14 @@ set_target_properties(goldberry PROPERTIES
 # The shim includes upstream headers to compute sizeof/offsetof, so it needs the
 # include paths -- but only PRIVATE ones. No upstream header is part of
 # Goldberry's interface.
+# Target names confirmed against the pinned revisions. Blend2D's is lowercase --
+# `Blend2D::Blend2D` does not exist, whatever the project's own capitalisation
+# suggests.
 target_link_libraries(goldberry PRIVATE
-    Blend2D::Blend2D      # VERIFY: exported target name
-    yogacore              # VERIFY: exported target name
-    harfbuzz              # VERIFY: exported target name
-    SDL3::SDL3-static)    # VERIFY: exported target name
+    blend2d::blend2d
+    yogacore
+    harfbuzz
+    SDL3::SDL3-static)
 
 if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     add_dependencies(goldberry xkbcommon)
@@ -211,6 +257,17 @@ foreach(_line IN LISTS _symbol_lines)
     string(STRIP "${_line}" _line)
     if(_line STREQUAL "" OR _line MATCHES "^#")
         continue()
+    endif()
+    # Anything surviving the comment filter must be a C identifier. Without this
+    # check, junk reaches the linker as `-u <junk>` and fails much later with a
+    # version-script syntax error that names neither this file nor the offending
+    # line. file(STRINGS) splitting a comment on a non-ASCII byte is exactly how
+    # that happened once.
+    if(NOT _line MATCHES "^[A-Za-z_][A-Za-z0-9_]*$")
+        message(FATAL_ERROR
+            "exports/goldberry.symbols: '${_line}' is not a valid symbol name.\n"
+            "Every non-comment line must be a C identifier. If this looks like part "
+            "of a comment, the comment probably contains a non-ASCII character.")
     endif()
     list(APPEND GOLDBERRY_EXPORTED_SYMBOLS "${_line}")
 endforeach()

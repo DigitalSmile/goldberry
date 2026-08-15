@@ -101,6 +101,21 @@ def checkToolchain = tasks.register('checkToolchain') {
             }
         }
 
+        // Separate from `probe`: a successful `pkg-config --exists` prints
+        // nothing, so judging it by its output would report every package as
+        // absent. Exit status is the only signal here.
+        def succeeds = { String tool, String... args ->
+            try {
+                def process = new ProcessBuilder([tool, *args])
+                        .redirectErrorStream(true)
+                        .start()
+                process.inputStream.text
+                return process.waitFor() == 0
+            } catch (Exception ignored) {
+                return false
+            }
+        }
+
         def required = [['cmake', '--version'], ['ninja', '--version']]
         // libxkbcommon is meson-built upstream, and is Linux-only (§7.1).
         if (needsMeson) {
@@ -114,6 +129,55 @@ def checkToolchain = tasks.register('checkToolchain') {
 
                 The superbuild needs CMake >= 3.28, Ninja, and (on Linux) Meson.
                 On Debian/Ubuntu: sudo apt install cmake ninja-build meson""".stripIndent())
+        }
+
+        // Development headers. Without this check a missing one surfaces minutes
+        // into the build, from inside meson or SDL3's CMake, naming a pkg-config
+        // module rather than a package -- so the error tells you what is absent
+        // but not what to install.
+        if (needsMeson) {
+            // module, apt package, dnf package, required, what it is for
+            def headers = [
+                    ['x11', 'libx11-dev', 'libX11-devel', true, 'SDL3 X11 backend'],
+                    ['xext', 'libxext-dev', 'libXext-devel', true, 'SDL3 X11 backend'],
+                    ['xrandr', 'libxrandr-dev', 'libXrandr-devel', true, 'SDL3 per-monitor DPI'],
+                    ['xcursor', 'libxcursor-dev', 'libXcursor-devel', true, 'SDL3 cursors'],
+                    ['xi', 'libxi-dev', 'libXi-devel', true, 'SDL3 input'],
+                    ['xfixes', 'libxfixes-dev', 'libXfixes-devel', true, 'SDL3 pointer capture'],
+                    ['wayland-client', 'libwayland-dev', 'wayland-devel', true, 'SDL3 Wayland backend'],
+                    ['wayland-cursor', 'libwayland-dev', 'wayland-devel', true, 'SDL3 Wayland cursors'],
+                    ['wayland-egl', 'libwayland-dev', 'wayland-devel', true, 'SDL3 Wayland backend'],
+                    ['xkeyboard-config', 'xkb-data', 'xkeyboard-config', true, 'libxkbcommon keymaps'],
+                    ['xss', 'libxss-dev', 'libXScrnSaver-devel', false, 'SDL3 screensaver inhibition'],
+                    ['alsa', 'libasound2-dev', 'alsa-lib-devel', false, 'SDL3 audio'],
+                    ['libpulse', 'libpulse-dev', 'pulseaudio-libs-devel', false, 'SDL3 audio'],
+                    ['libdrm', 'libdrm-dev', 'libdrm-devel', false, 'SDL3 KMS/DRM'],
+                    ['gbm', 'libgbm-dev', 'mesa-libgbm-devel', false, 'SDL3 KMS/DRM'],
+                    ['libudev', 'libudev-dev', 'systemd-devel', false, 'SDL3 device hotplug'],
+                    ['dbus-1', 'libdbus-1-dev', 'dbus-devel', false, 'SDL3 desktop integration'],
+            ]
+
+            def absent = headers.findAll { !succeeds('pkg-config', '--exists', it[0]) }
+            def useDnf = succeeds('sh', '-c', 'command -v dnf')
+            def installCommand = { rows ->
+                def packages = rows.collect { useDnf ? it[2] : it[1] }.unique().sort()
+                (useDnf ? 'sudo dnf install -y ' : 'sudo apt install ') + packages.join(' ')
+            }
+
+            def absentRequired = absent.findAll { it[3] }
+            if (!absentRequired.isEmpty()) {
+                def detail = absentRequired.collect { "  ${it[0]} -- ${it[4]}" }.join('\n')
+                throw new GradleException(
+                        "Missing development headers the superbuild needs:\n" + detail +
+                                "\n\n" + installCommand(absentRequired) + "\n")
+            }
+
+            def absentOptional = absent.findAll { !it[3] }
+            if (!absentOptional.isEmpty()) {
+                logger.warn("WARNING: optional headers absent; SDL3 will build without these features:\n" +
+                        absentOptional.collect { "  ${it[0]} -- ${it[4]}" }.join('\n') +
+                        "\n  " + installCommand(absentOptional))
+            }
         }
 
         logger.lifecycle("Native toolchain OK; host target is ${hostTarget.id}.")
@@ -140,6 +204,7 @@ def cmakeConfigure = tasks.register('cmakeConfigure', Exec) {
             // Pinned upstream refs; see gradle/libs.versions.toml. CI passes the
             // same set -- ADR-0012 notes these now live in two places.
             "-DGOLDBERRY_BLEND2D_REF=${libs.versions.blend2d.get()}",
+            "-DGOLDBERRY_ASMJIT_REF=${libs.versions.asmjit.get()}",
             "-DGOLDBERRY_YOGA_REF=${libs.versions.yoga.get()}",
             "-DGOLDBERRY_HARFBUZZ_REF=${libs.versions.harfbuzz.get()}",
             "-DGOLDBERRY_SDL3_REF=${libs.versions.sdl3.get()}",
@@ -222,10 +287,35 @@ tasks.register('stageHostArtifact', Copy) {
 tasks.named('test') {
     jvmArgs '--enable-native-access=ALL-UNNAMED'
 
-    // Lets the layout-verification test find a locally built library instead of
-    // one unpacked from a classifier jar.
-    def localLibrary = installDir.get().dir('lib').file(hostTarget.library).asFile
-    if (localLibrary.exists()) {
-        systemProperty 'goldberry.native.library', localLibrary.absolutePath
-    }
+    // Points at the locally built library rather than one unpacked from a
+    // classifier jar. Set unconditionally: whether the file exists is decided at
+    // execution time by NativeLibrary.isAvailable(), so the tests skip cleanly
+    // when it is absent. Testing for it here instead would read the filesystem
+    // during configuration, before cmakeBuild has had a chance to run.
+    systemProperty 'goldberry.native.library',
+            installDir.get().dir('lib').file(hostTarget.library).asFile.absolutePath
+}
+
+// --- Wiring into the root build ----------------------------------------------
+//
+// `./gradlew build` builds libgoldberry for this machine too. "If not already
+// built" comes free: cmakeBuild declares the install directory as its output, so
+// Gradle skips it when it is up to date.
+//
+// The trade-off is deliberate and worth stating: a plain `./gradlew build` now
+// needs a C/C++ toolchain, which the native tasks were originally kept out of
+// `build` to avoid. `-Pgoldberry.skipNative=true` restores the Java-only build.
+// The CI Java jobs pass it, because a separate job builds the natives properly
+// on each platform and the Java job exists for fast feedback.
+def skipNative = providers.gradleProperty('goldberry.skipNative')
+        .map { Boolean.parseBoolean(it) }
+        .getOrElse(false)
+
+if (skipNative) {
+    logger.info('Goldberry: skipping the native build (-Pgoldberry.skipNative=true)')
+} else {
+    tasks.named('assemble') { dependsOn cmakeBuild }
+    // So the layout verification actually runs locally rather than skipping --
+    // it is the check the hand-written bindings rest on (ADR-0010).
+    tasks.named('test') { dependsOn cmakeBuild }
 }

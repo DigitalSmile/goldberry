@@ -5,7 +5,7 @@ Tracked against the milestone ladder in `docs/ARCHITECTURE.md` §16.
 | Milestone | State | |
 |---|---|---|
 | Foundation | **done** | Multi-module Gradle (Groovy DSL), version catalog, convention plugins, JPMS module graph, JDK 25 toolchain, JUnit 6, licence disclosure, decision log |
-| M0 — Skeleton | **in progress** | Native build and CI wired; binding foundation, library loader, and layout-verification harness in place. Not yet linked: the superbuild has never completed a build. Still to come: SDL3 bindings, the backend SPI, `headless`, and a blank window at correct fractional DPI |
+| M0 — Skeleton | **in progress** | **The superbuild links on linux-x64.** Blend2D, AsmJit, SDL3, Yoga, HarfBuzz and libxkbcommon statically combine into one `libgoldberry.so` exporting exactly the three symbols on the export list and nothing else. The layout probe passes against the real library, so the hand-written binding mechanism is proven end to end. Still to come: the other five targets, SDL3 bindings, the backend SPI, `headless`, and a blank window at correct fractional DPI |
 | M1 — Vertical slice | not started | Styled wrapped paragraph, resized at 60 fps; paragraph cache + upcall benchmarks |
 | M2 — Widgets & style | not started | CSS engine, KDL inflater + hot reload, core controls, Nord light/dark, golden-image CI |
 | M3 — Shell | not started | Menus, popups, tray, dialogs, scroll, forms, CSD, charts, widget showcase |
@@ -64,13 +64,18 @@ block can be scheduled honestly.
 - **`YGSize` struct-by-value upcall returns.** The fiddliest corner of FFM, and it
   sits on the layout engine's hot path. Should be proven first in M0. —
   [ADR-0010](adr/0010-hand-written-ffm-bindings.md)
-- **The superbuild has never linked, and CI has never run.** Upstream refs in
-  `gradle/libs.versions.toml` and the CMake target names in the superbuild are
-  marked `VERIFY` and unresolved, and the manylinux container will need its
-  X11/Wayland development headers tuned on the first run. Blocks all of M0. —
+- **Only linux-x64 has ever been built.** The superbuild links there, but the
+  MSVC (`/INCLUDE:`, `.def`) and Mach-O (`-u,_symbol`,
+  `-exported_symbols_list`) branches of the export machinery are unexercised, as
+  is linux-aarch64. CI has never run, so the manylinux container's X11/Wayland
+  header list is still a guess. —
   [ADR-0012](adr/0012-native-ci-runners-with-a-pinned-glibc.md)
-- **Blend2D has no release tags**, so it is pinned by branch. That must become a
-  commit SHA before anything is published, or the artifacts are irreproducible.
+- **Blend2D and AsmJit have no release tags**, so both are pinned by branch and
+  the build is not reproducible. They must become commit SHAs before publishing.
+- **The layout registry has one entry.** The probe mechanism is proven, but it
+  only covers the canary struct and the primitive widths so far. Its value
+  arrives as `YGSize`, `SDL_Event` and the rest are bound. —
+  [ADR-0010](adr/0010-hand-written-ffm-bindings.md)
 - **CMake arguments live in two places** — `natives/build.gradle` for local builds
   and the CI workflows — because the manylinux container has no JDK. They must be
   kept in step. — [ADR-0012](adr/0012-native-ci-runners-with-a-pinned-glibc.md)

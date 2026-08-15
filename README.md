@@ -32,14 +32,16 @@ Requires a **JDK 25** toolchain. Gradle provisions one if it cannot find one.
 ./gradlew build
 ```
 
-That builds and tests every Java module and needs no native toolchain.
+That builds and tests every Java module and, if it is missing or out of date,
+the native library `libgoldberry` for this machine. Building the native library
+needs CMake ≥ 3.28, Ninja, a C/C++ toolchain, and — on Linux, for libxkbcommon —
+Meson. `./gradlew :natives:checkToolchain` verifies all of it up front and names
+the packages to install if anything is absent.
 
-The native library, `libgoldberry`, is a separate opt-in task graph. It needs
-CMake ≥ 3.28, Ninja, and — on Linux, for libxkbcommon — Meson:
+For a Java-only build with no native toolchain:
 
 ```sh
-./gradlew :natives:checkToolchain   # verifies the tools, with instructions on failure
-./gradlew :natives:cmakeBuild       # builds libgoldberry for this machine
+./gradlew build -Pgoldberry.skipNative=true
 ```
 
 Released artifacts are built on native runners per platform, so a locally built
