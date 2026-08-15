@@ -5,10 +5,9 @@
 [![macOS](https://github.com/digitalsmile/goldberry/actions/workflows/macos.yml/badge.svg)](https://github.com/digitalsmile/goldberry/actions/workflows/macos.yml)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 
-**A fast and modern UI toolkit for Java.** Part of [Scarlet Macaw OS](https://scarletmacaw.org),
-usable standalone on Linux, Windows, and macOS from day 1.
+**A fast and modern UI toolkit for Java.**
 
-Goldberry is a retained-mode, declarative desktop UI toolkit written in pure Java
+Goldberry is a declarative desktop UI toolkit written in pure Java
 over a small set of native C libraries bound via the Foreign Function & Memory
 API. No JNI, no bundled web engine, no platform widget wrapping.
 
@@ -18,8 +17,8 @@ API. No JNI, no bundled web engine, no platform widget wrapping.
   records or as KDL markup. Markup and stylesheets hot-reload at runtime.
 - **Real layout and real styling.** Flexbox via Yoga, and a genuine CSS subset
   with variables, cascade, and transitions — not a proprietary styling DSL.
-- **Cross-platform from the first commit.** Linux (Wayland/X11), Windows, macOS,
-  and the Scarlet Macaw compositor are peer backends behind one SPI.
+- **Cross-platform from the first commit.** Linux (Wayland/X11), Windows, macOS 
+  are peer backends behind one SPI.
 
 > **Pre-release.** Nothing renders yet — see [Status](book/src/status.md) for what
 > works and what is still open.
