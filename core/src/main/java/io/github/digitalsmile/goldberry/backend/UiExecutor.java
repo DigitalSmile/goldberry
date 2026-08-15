@@ -1,10 +1,12 @@
 package io.github.digitalsmile.goldberry.backend;
 
+import io.github.digitalsmile.goldberry.natives.log.Logs;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.Executor;
+import org.slf4j.Logger;
 
 /// The way onto the UI thread from anywhere else.
 ///
@@ -23,6 +25,8 @@ import java.util.concurrent.Executor;
 /// a bug in the producer, and one that shows up as memory growth rather than as
 /// a mysterious freeze.
 public final class UiExecutor implements Executor {
+
+    private static final Logger LOG = Logs.of(UiExecutor.class);
 
     private final Thread uiThread;
     private final Runnable wakeup;
@@ -87,6 +91,10 @@ public final class UiExecutor implements Executor {
             try {
                 queued.run();
             } catch (Throwable t) {
+                // Logged as well as collected: the exception thrown below names
+                // only the first, and a task that failed on the UI thread is
+                // worth a line even when something upstream swallows it.
+                LOG.error("a queued UI task failed", t);
                 if (failures == null) {
                     failures = new ArrayList<>();
                 }

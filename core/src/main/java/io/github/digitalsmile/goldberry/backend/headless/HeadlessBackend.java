@@ -7,6 +7,7 @@ import io.github.digitalsmile.goldberry.backend.BackendWindow;
 import io.github.digitalsmile.goldberry.backend.DisplayScale;
 import io.github.digitalsmile.goldberry.backend.EventSink;
 import io.github.digitalsmile.goldberry.backend.WindowSpec;
+import io.github.digitalsmile.goldberry.natives.log.Logs;
 import java.time.Duration;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -15,6 +16,7 @@ import java.util.Objects;
 import java.util.Queue;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.LockSupport;
+import org.slf4j.Logger;
 
 /// A backend with no platform underneath it.
 ///
@@ -31,6 +33,8 @@ import java.util.concurrent.locks.LockSupport;
 /// Events are injected, not observed: [#post] queues one for the next
 /// [#pumpEvents]. A test drives the same code path a real backend drives.
 public final class HeadlessBackend implements Backend {
+
+    private static final Logger LOG = Logs.of(HeadlessBackend.class);
 
     /// The scale new windows get. Deliberately fractional in tests elsewhere:
     /// 100% is the scale at which every HiDPI bug hides.
@@ -72,6 +76,7 @@ public final class HeadlessBackend implements Backend {
 
         var window = new HeadlessWindow(this, spec, scale);
         windows.add(window);
+        LOG.debug("created headless window \"{}\" {} at {}", spec.title(), spec.size(), scale);
         return window;
     }
 

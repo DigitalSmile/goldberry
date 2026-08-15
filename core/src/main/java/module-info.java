@@ -9,6 +9,7 @@
 /// accident -- the boundary in §3.1 is the module graph, not a convention.
 module io.github.digitalsmile.goldberry.core {
     requires transitive io.github.digitalsmile.goldberry.natives;
+    requires org.slf4j;
 
     exports io.github.digitalsmile.goldberry;
 

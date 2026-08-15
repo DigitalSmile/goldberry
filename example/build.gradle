@@ -1,36 +1,17 @@
 plugins {
+    id 'goldberry.java-conventions'
     id 'application'
 }
 
 description = 'Goldberry showcase: what the toolkit looks like from an application'
 
-group = 'io.github.digitalsmile.example'
-version = '0.1.0-SNAPSHOT'
-
-java {
-    toolchain {
-        languageVersion = JavaLanguageVersion.of(25)
-    }
-}
-
-// Read from the toolkit rather than duplicated, so the two cannot drift. The
-// composite substitutes the local build for these coordinates whatever the
-// version says, but a version is still required to write the dependency -- and
-// stating the real one keeps this file honest if the composite is ever removed.
-def goldberryVersion = {
-    var properties = new Properties()
-    var file = file('../gradle.properties')
-    if (file.isFile()) {
-        file.withInputStream { properties.load(it) }
-    }
-    return properties.getProperty('goldberryVersion', '0.1.0-SNAPSHOT')
-}()
-
 dependencies {
-    // Coordinates, not `project(':core')`. The composite build in settings.gradle
-    // substitutes the local source tree, so this is the same line an application
-    // outside this repository would write.
-    implementation "io.github.digitalsmile:goldberry-core:${goldberryVersion}"
+    implementation project(':core')
+
+    // Logback only here, and only at runtime. The toolkit binds no SLF4J
+    // provider, so choosing one is the application's call -- this is what making
+    // that call looks like (ADR-0023).
+    runtimeOnly libs.logback.classic
 }
 
 // Where a locally built libgoldberry lives, for a run straight from the source
@@ -48,7 +29,7 @@ def hostTarget = {
 def hostLibrary = {
     def name = hostTarget.startsWith('windows') ? 'goldberry.dll'
             : hostTarget.startsWith('macos') ? 'libgoldberry.dylib' : 'libgoldberry.so'
-    return file("../natives/build/native/${hostTarget}/install/lib/${name}")
+    return rootProject.file("natives/build/native/${hostTarget}/install/lib/${name}")
 }()
 
 application {
@@ -56,12 +37,16 @@ application {
     mainModule = 'io.github.digitalsmile.goldberry.example'
 
     // JEP 472: the natives module is the one that touches native code, so it is
-    // the one named here. Naming it rather than ALL-UNNAMED is what the module
-    // descriptors in the toolkit exist for (ADR-0007).
+    // the one named here. Naming a module rather than ALL-UNNAMED is what the
+    // module descriptors in the toolkit exist for (ADR-0007), and running the
+    // showcase on the module path is what proves they are right.
     applicationDefaultJvmArgs = [
             '--enable-native-access=io.github.digitalsmile.goldberry.natives',
     ]
 }
+
+// Not published: it is a demonstration, not an artifact (§15).
+tasks.withType(PublishToMavenRepository).configureEach { enabled = false }
 
 tasks.named('run') {
     // An explicitly supplied path wins, so CI can point at a downloaded
@@ -84,7 +69,7 @@ tasks.named('run') {
         if (!explicit.present && !hostLibrary.isFile()) {
             logger.warn("""
                 No libgoldberry found at ${hostLibrary}.
-                Build it first:  (cd .. && ./gradlew :natives:cmakeBuild)
+                Build it first:  ./gradlew :natives:cmakeBuild
                 Or point at one: ./gradlew run -Pgoldberry.native.library=<path>
                 """.stripIndent())
         }

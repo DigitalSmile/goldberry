@@ -20,7 +20,12 @@ rootProject.name = 'goldberry'
 //   :core     widgets, style, layout, text, paint, backend SPI
 //   :widgets  the widget catalog, charts included (ADR-0014)
 //   :gpu      canvas3d and the GPU composition path
+//
+// :example is the showcase. It is a subproject rather than a separate build so
+// that Gradle and every IDE see it -- see ADR-0023, which supersedes ADR-0021.
+// It is not published.
 include ':natives',
         ':core',
         ':widgets',
-        ':gpu'
+        ':gpu',
+        ':example'

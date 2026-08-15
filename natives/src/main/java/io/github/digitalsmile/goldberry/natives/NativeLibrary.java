@@ -1,5 +1,6 @@
 package io.github.digitalsmile.goldberry.natives;
 
+import io.github.digitalsmile.goldberry.natives.log.Logs;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
@@ -9,6 +10,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.Optional;
+import org.slf4j.Logger;
 
 /// Locates and loads `libgoldberry`, and hands out the symbol lookup every
 /// binding is built from.
@@ -21,6 +23,8 @@ public final class NativeLibrary {
     /// Overrides discovery with an explicit path — used by the build to test
     /// against a locally cross-built library instead of a published jar.
     public static final String LIBRARY_PATH_PROPERTY = "goldberry.native.library";
+
+    private static final Logger LOG = Logs.of(NativeLibrary.class);
 
     private static final class Holder {
         private static final NativeLibrary INSTANCE = load();
@@ -100,6 +104,9 @@ public final class NativeLibrary {
         // Unloading it would invalidate every downcall handle in the toolkit,
         // so this is deliberately not scoped.
         var lookup = SymbolLookup.libraryLookup(libraryPath, Arena.global());
+        // The first question asked of any bug report that starts "it works on my
+        // machine": which library, from where.
+        LOG.info("loaded libgoldberry for {} from {}", platform.classifier(), libraryPath);
         return new NativeLibrary(lookup, platform, libraryPath);
     }
 
@@ -117,6 +124,7 @@ public final class NativeLibrary {
             // loaded from inside a jar.
             var target = Files.createTempDirectory("goldberry-natives")
                     .resolve(platform.libraryFileName());
+            LOG.debug("unpacking {} to {}", resource, target);
             Files.copy(in, target, StandardCopyOption.REPLACE_EXISTING);
             target.toFile().deleteOnExit();
             target.getParent().toFile().deleteOnExit();

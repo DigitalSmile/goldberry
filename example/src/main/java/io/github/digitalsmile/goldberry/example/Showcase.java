@@ -2,6 +2,8 @@ package io.github.digitalsmile.goldberry.example;
 
 import io.github.digitalsmile.goldberry.Goldberry;
 import io.github.digitalsmile.goldberry.Window;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /// Goldberry's showcase.
 ///
@@ -10,8 +12,14 @@ import io.github.digitalsmile.goldberry.Window;
 /// display's real pixel density. The widget catalog, the CSS engine and the text
 /// stack arrive on top of this file, not beside it.
 ///
-/// Run it with `./gradlew run` from either this directory or the repository root.
+/// It is also where logging is configured — `logback.xml` beside this class,
+/// because binding a logging implementation is an application's decision and
+/// never a library's (ADR-0023).
+///
+/// Run it with `./gradlew run` from the repository root.
 public final class Showcase {
+
+    private static final Logger LOG = LoggerFactory.getLogger(Showcase.class);
 
     /// Nord `nord0` and `nord8` (`docs/ARCHITECTURE.md` §10) — so the first
     /// window Goldberry ever draws is already the right colour.
@@ -25,6 +33,8 @@ public final class Showcase {
         var frameLimit = frameLimit(args);
         var painted = new int[1];
 
+        LOG.info("Goldberry {} — showcase starting", Goldberry.version());
+
         var window = Window.open("Goldberry — showcase", 960, 640);
 
         window.onPaint(frame -> {
@@ -36,11 +46,11 @@ public final class Showcase {
             frame.fillRect(0, 0, frame.size().width(), 32, ACCENT);
 
             painted[0]++;
-            System.out.println("painted frame " + painted[0] + " at " + frame.pixelSize());
+            LOG.info("painted frame {} at {}", painted[0], frame.pixelSize());
 
             if (frameLimit > 0) {
                 if (painted[0] >= frameLimit) {
-                    System.out.println("painted " + painted[0] + " frame(s); exiting");
+                    LOG.info("painted {} frame(s); exiting", painted[0]);
                     Goldberry.stop();
                 } else {
                     window.repaint();
@@ -48,10 +58,10 @@ public final class Showcase {
             }
         });
 
-        window.onResize(size -> System.out.println("resized to " + size));
-        window.onScaleChange(scale -> System.out.println("scale is now " + scale));
+        window.onResize(size -> LOG.info("resized to {}", size));
+        window.onScaleChange(scale -> LOG.info("scale is now {}", scale));
         window.onCloseRequest(() -> {
-            System.out.println("closing");
+            LOG.info("close requested");
             return true;
         });
 
@@ -60,16 +70,14 @@ public final class Showcase {
         Goldberry.async(Showcase::describeEnvironment)
                 .thenAccept(text -> window.title("Goldberry — " + text));
 
-        System.out.println("Goldberry " + Goldberry.version()
-                + " — " + window.size() + " at " + window.scale()
-                + " → " + window.pixelSize());
-
         Goldberry.run();
+        LOG.info("showcase finished");
     }
 
     /// Stands in for real background work — reading a config file, loading a
     /// font, talking to a service. The point is where its result lands.
     private static String describeEnvironment() {
+        LOG.debug("describing the environment on {}", Thread.currentThread());
         return "showcase on " + System.getProperty("os.name")
                 + " / " + System.getProperty("os.arch");
     }

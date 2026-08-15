@@ -8,10 +8,12 @@ import io.github.digitalsmile.goldberry.backend.PhysicalSize;
 import io.github.digitalsmile.goldberry.backend.PixelBuffer;
 import io.github.digitalsmile.goldberry.backend.PixelFormat;
 import io.github.digitalsmile.goldberry.backend.WindowSpec;
+import io.github.digitalsmile.goldberry.natives.log.Logs;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
+import org.slf4j.Logger;
 
 /// A window on the screen.
 ///
@@ -33,6 +35,8 @@ import java.util.function.Consumer;
 /// Work that is not instant belongs on [Goldberry#async]; its result comes back
 /// here automatically.
 public final class Window implements AutoCloseable {
+
+    private static final Logger LOG = Logs.of(Window.class);
 
     private final GoldberryRuntime runtime;
     private final BackendWindow window;
@@ -68,6 +72,8 @@ public final class Window implements AutoCloseable {
         var backendWindow = runtime.backend().createWindow(spec);
         var window = new Window(runtime, backendWindow);
         runtime.register(backendWindow, window);
+        LOG.info("window \"{}\" opened: {} at {} -> {}",
+                spec.title(), backendWindow.size(), backendWindow.scale(), backendWindow.physicalSize());
         window.repaint();
         return window;
     }
@@ -146,6 +152,7 @@ public final class Window implements AutoCloseable {
         if (!window.isOpen()) {
             return;
         }
+        LOG.info("window \"{}\" closed", window.title());
         runtime.forget(window);
         window.close();
         cached = null;
@@ -162,20 +169,24 @@ public final class Window implements AutoCloseable {
             return;
         }
         if (cached == null || !cached.size().equals(size)) {
+            LOG.debug("allocating a {} frame buffer", size);
             cached = PixelBuffer.allocate(size, PixelFormat.BGRA32_PREMULTIPLIED);
         }
+        LOG.trace("painting {}", size);
 
         painter.accept(new Frame(cached, window.scale()));
         window.present(cached, List.of(DamageRect.all(size)));
     }
 
     void handleResize(LogicalSize size) {
+        LOG.debug("window resized to {} -> {}", size, window.physicalSize());
         cached = null;
         resizeHandler.accept(size);
         repaint();
     }
 
     void handleScaleChange(DisplayScale scale) {
+        LOG.info("window moved to a {} display -> {}", scale, window.physicalSize());
         cached = null;
         scaleHandler.accept(scale);
         repaint();

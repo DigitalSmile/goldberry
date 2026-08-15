@@ -13,6 +13,7 @@ import io.github.digitalsmile.goldberry.natives.sdl.SdlException;
 import io.github.digitalsmile.goldberry.natives.sdl.SdlSubsystem;
 import io.github.digitalsmile.goldberry.natives.sdl.SdlVideo;
 import io.github.digitalsmile.goldberry.natives.sdl.SdlWindowFlag;
+import io.github.digitalsmile.goldberry.natives.log.Logs;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.EnumSet;
@@ -20,6 +21,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import org.slf4j.Logger;
 
 /// The desktop backend (ADR-0003).
 ///
@@ -32,6 +34,8 @@ import java.util.Objects;
 /// queue is internally locked, so pushing to it is the one thing another thread
 /// may do.
 public final class Sdl3Backend implements Backend {
+
+    private static final Logger LOG = Logs.of(Sdl3Backend.class);
 
     private final SdlVideo video = SdlVideo.get();
     private final Thread uiThread = Thread.currentThread();
@@ -48,6 +52,7 @@ public final class Sdl3Backend implements Backend {
     public Sdl3Backend() {
         try {
             Sdl.get().initialize(EnumSet.of(SdlSubsystem.VIDEO));
+            LOG.info("sdl3 backend started on SDL {}", Sdl.get().version());
         } catch (SdlException e) {
             eventBuffer.close();
             throw new BackendException("SDL could not initialize its video subsystem", e);
@@ -96,6 +101,8 @@ public final class Sdl3Backend implements Backend {
 
         var window = new Sdl3Window(this, handle, spec.title());
         windowsById.put(handle.id(), window);
+        LOG.debug("created SDL window {} \"{}\" {} flags={}",
+                handle.id(), spec.title(), spec.size(), flags);
         return window;
     }
 
@@ -210,6 +217,7 @@ public final class Sdl3Backend implements Backend {
         }
         requireUiThread();
         closed = true;
+        LOG.debug("closing the sdl3 backend and its {} window(s)", windowsById.size());
         for (var window : List.copyOf(windowsById.values())) {
             window.close();
         }

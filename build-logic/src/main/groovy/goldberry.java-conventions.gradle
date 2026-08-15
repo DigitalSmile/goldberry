@@ -41,6 +41,16 @@ tasks.withType(JavaCompile).configureEach {
 }
 
 dependencies {
+    // The logging facade, everywhere. `api` because a type from it appears in no
+    // signature but a consumer wiring a backend needs it on their module path,
+    // and because a toolkit that logs through a facade its consumers cannot see
+    // is a toolkit that logs nowhere.
+    //
+    // No implementation is bound here, by design: choosing one is the
+    // application's call, and a library that ships a backend takes that choice
+    // away (ADR-0023).
+    api catalog.findLibrary('slf4j-api').get()
+
     testImplementation platform(catalog.findLibrary('junit-bom').get())
     testImplementation catalog.findLibrary('junit-jupiter').get()
     testRuntimeOnly catalog.findLibrary('junit-platform-launcher').get()

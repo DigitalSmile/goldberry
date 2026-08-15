@@ -78,41 +78,7 @@ tasks.register('checkLicenses') {
 // ============================================================================
 // The example
 //
-// example/ is a separate build on purpose (ADR-0021): it consumes Goldberry
-// through its published coordinates so the module graph and the packaging are
-// exercised the way an application exercises them. The cost is that its tasks do
-// not appear here, and `./gradlew run` from the root fails with "task 'run' not
-// found" -- accurate but not helpful.
-//
-// These delegate. `./gradlew run` does what someone typing it expects.
+// :example is a subproject now (ADR-0023), so `./gradlew run` finds its `run`
+// task the same way `./gradlew test` finds every module's tests, and IDEs import
+// it with the rest. Nothing to delegate.
 // ============================================================================
-// A separate PROCESS, not a nested build. The obvious `GradleBuild` task type
-// runs example/ as a nested build of this one, and example/settings.gradle then
-// tries to `includeBuild '..'` -- back into the build already running it. Gradle
-// rejects the cycle: "Cannot include build 'goldberry' in build ':example'".
-// Shelling out to the example's own wrapper keeps the two builds unrelated,
-// which is the arrangement ADR-0021 asked for anyway.
-def exampleTask = { String name, String description, String target ->
-    tasks.register(name, Exec) {
-        it.group = 'application'
-        it.description = description
-        it.workingDir = file('example')
-
-        var windows = System.getProperty('os.name', '').toLowerCase().contains('windows')
-        var command = windows ? ['cmd', '/c', 'gradlew.bat'] : ['./gradlew']
-        command += target
-
-        // Forwarded so `./gradlew run -Pgoldberry.example.frames=3` reaches the
-        // build that understands it.
-        ['goldberry.example.frames', 'goldberry.native.library', 'goldberry.skipNative'].each { key ->
-            var value = providers.gradleProperty(key)
-            if (value.present) {
-                command += "-P${key}=${value.get()}".toString()
-            }
-        }
-        it.commandLine = command
-    }
-}
-
-exampleTask('run', 'Runs the Goldberry showcase from example/.', 'run')
-exampleTask('buildExample', 'Builds the showcase in example/.', 'build')

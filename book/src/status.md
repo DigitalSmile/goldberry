@@ -21,10 +21,13 @@ Tracked against the milestone ladder in `docs/ARCHITECTURE.md` §16.
 | `:widgets` | `goldberry-widgets` | The widget catalog — controls, containers, menus, charts — plus the showcase screens that serve as the visual regression corpus |
 | `:gpu` | `goldberry-gpu` | `canvas3d` and the GPU composition path |
 
-`example/` is not in this table: it is a separate Gradle build that consumes
-Goldberry through its published coordinates, so it proves what the module graph
-and the packaging actually expose to an application. See
-[ADR-0021](adr/0021-the-example-is-a-separate-build.md).
+`:example` is a fifth subproject and is not published: it is the showcase, and it
+runs on the module path so that what the module graph exposes to an application is
+exercised rather than assumed ([ADR-0023](adr/0023-logging-and-the-example-as-a-subproject.md)).
+
+Every module logs through SLF4J and binds no implementation. An application that
+adds one gets the toolkit's diagnostics; one that adds none gets silence, SLF4J's
+own no-provider warning included.
 
 Every module ships a `module-info.java`. That is not decoration: the module graph
 is what enforces the rule that raw `MemorySegment` never escapes `:natives`, and

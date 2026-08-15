@@ -13,6 +13,10 @@
 /// release makes it an error.
 module io.github.digitalsmile.goldberry.natives {
 
+    // A facade, not an implementation: applications choose the backend, and one
+    // that chooses none sees nothing at all (ADR-0023).
+    requires transitive org.slf4j;
+
     // The wrapper packages, and only those. The `natives` package itself stays
     // unexported: NativeLibrary hands out a SymbolLookup, and a foreign type in
     // the public surface of this module is the boundary leaking by another name.
@@ -21,4 +25,16 @@ module io.github.digitalsmile.goldberry.natives {
     // ByteBuffer (ADR-0019).
     exports io.github.digitalsmile.goldberry.natives.sdl;
     exports io.github.digitalsmile.goldberry.natives.yoga;
+
+    // Toolkit plumbing, not application surface.
+    //
+    // `exports ... to io.github.digitalsmile.goldberry.core` would say that
+    // precisely and does not compile: :core depends on :natives, so :core is not
+    // on the module path when this compiles, and javac warns that the target
+    // module is not found -- which -Werror makes fatal. Adding :core here would
+    // be a dependency cycle, and turning off the module lint to keep one
+    // qualified export costs more than it buys.
+    //
+    // So it is a plain export with a docstring that says what it is for.
+    exports io.github.digitalsmile.goldberry.natives.log;
 }

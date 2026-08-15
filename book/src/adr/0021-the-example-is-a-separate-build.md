@@ -1,6 +1,6 @@
 # ADR-0021: The example is a separate build
 
-- **Status:** Accepted
+- **Status:** Superseded by [ADR-0023](0023-logging-and-the-example-as-a-subproject.md) for the build arrangement; its reasoning about what the example must prove still stands
 - **Date:** 2026-08-15
 - **Relates to:** `docs/ARCHITECTURE.md` §15, [ADR-0007](0007-jpms-modules-enforce-the-native-boundary.md), [ADR-0014](0014-single-widgets-module.md)
 

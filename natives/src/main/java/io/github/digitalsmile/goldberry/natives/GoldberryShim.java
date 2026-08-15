@@ -1,11 +1,13 @@
 package io.github.digitalsmile.goldberry.natives;
 
+import io.github.digitalsmile.goldberry.natives.log.Logs;
 import java.lang.foreign.FunctionDescriptor;
 import java.lang.foreign.Linker;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.SymbolLookup;
 import java.lang.foreign.ValueLayout;
 import java.lang.invoke.MethodHandle;
+import org.slf4j.Logger;
 
 /// Bindings for libgoldberry's own three exported functions.
 ///
@@ -20,6 +22,8 @@ public final class GoldberryShim {
     /// 2 added `goldberry_probe_measure` (ADR-0017); 3 added SDL3's windowing and
     /// event surface, and the constant rows in the layout table (ADR-0020).
     public static final int SUPPORTED_ABI_VERSION = 3;
+
+    private static final Logger LOG = Logs.of(GoldberryShim.class);
 
     private static final Linker LINKER = Linker.nativeLinker();
 
@@ -78,6 +82,8 @@ public final class GoldberryShim {
     private static GoldberryShim create() {
         var shim = new GoldberryShim(NativeLibrary.get().lookup());
         var version = shim.abiVersion();
+        LOG.debug("libgoldberry reports ABI version {}, {} layout entries",
+                version, version == SUPPORTED_ABI_VERSION ? shim.layoutCount() : -1);
         if (version != SUPPORTED_ABI_VERSION) {
             throw new UnsatisfiedLinkError(
                     "libgoldberry reports ABI version " + version + ", but this build of "

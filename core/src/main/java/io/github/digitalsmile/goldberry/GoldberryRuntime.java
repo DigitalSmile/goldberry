@@ -6,9 +6,11 @@ import io.github.digitalsmile.goldberry.backend.BackendException;
 import io.github.digitalsmile.goldberry.backend.BackendWindow;
 import io.github.digitalsmile.goldberry.backend.EventLoop;
 import io.github.digitalsmile.goldberry.backend.sdl3.Sdl3Backend;
+import io.github.digitalsmile.goldberry.natives.log.Logs;
 import java.util.IdentityHashMap;
 import java.util.Map;
 import java.util.Objects;
+import org.slf4j.Logger;
 
 /// The backend and event loop, owned so applications do not have to be.
 ///
@@ -20,6 +22,8 @@ import java.util.Objects;
 /// Package-private. [Goldberry] and [Window] are the public surface; this is the
 /// wiring behind them.
 final class GoldberryRuntime {
+
+    private static final Logger LOG = Logs.of(GoldberryRuntime.class);
 
     private static GoldberryRuntime instance;
 
@@ -35,6 +39,7 @@ final class GoldberryRuntime {
     /// The runtime, starting the desktop backend on first use.
     static synchronized GoldberryRuntime get() {
         if (instance == null) {
+            LOG.debug("starting the Goldberry runtime on {}", Thread.currentThread().getName());
             instance = new GoldberryRuntime(new Sdl3Backend());
         }
         return instance;
@@ -65,6 +70,7 @@ final class GoldberryRuntime {
         }
         var runtime = instance;
         instance = null;
+        LOG.debug("shutting the Goldberry runtime down");
         runtime.loop.close();
         runtime.backend.close();
         runtime.windows.clear();

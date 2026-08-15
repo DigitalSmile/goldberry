@@ -83,16 +83,28 @@ Goldberry.async(() -> loadTheThing())
 
 ## Run the showcase
 
-`example/` is a separate build that consumes Goldberry the way an application
-would — through published coordinates, on the module path (ADR-0021).
+`:example` is an ordinary subproject that runs on the module path, which is what
+catches an unexported package or a wrong `--enable-native-access` (ADR-0023).
 
 ```sh
 ./gradlew :natives:cmakeBuild     # once, to build libgoldberry
-./gradlew run                     # or: cd example && ./gradlew run
+./gradlew run
 ```
 
 A window opens. `-Pgoldberry.example.frames=3` paints three frames and exits,
 which is what CI runs under Xvfb.
+
+## Logging
+
+Goldberry logs through **SLF4J** and binds no implementation. Add one and the
+toolkit's diagnostics appear:
+
+```groovy
+runtimeOnly 'ch.qos.logback:logback-classic:1.5.18'
+```
+
+Add nothing and you get silence — including from SLF4J itself, which otherwise
+prints a "no providers were found" warning to stderr (ADR-0023).
 
 ## Documentation
 

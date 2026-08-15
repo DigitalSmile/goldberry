@@ -1,11 +1,9 @@
-# Example CI (ADR-0021)
+# Example CI (ADR-0021, ADR-0023)
 #
-# The showcase is a separate Gradle build that consumes Goldberry through its
-# published coordinates, so this workflow answers a question the toolkit's own
-# builds cannot: does an application outside this repository actually work? A
-# module that forgets to export a package, a jar that ships without its native
-# library, an --enable-native-access argument that names the wrong module -- each
-# of those passes every test in the main build and fails here.
+# The showcase runs on the MODULE PATH, which is what this job is really for. A
+# package the toolkit forgets to export, an --enable-native-access naming a module
+# that does not exist, a native library that resolves only from the build tree --
+# each of those compiles fine and fails here.
 #
 # And it runs the thing. A window opens under Xvfb, a frame is presented, and the
 # process exits on its own. "It compiled" is not the claim being made.
@@ -64,17 +62,15 @@ jobs:
         run: ./gradlew :natives:cmakeBuild --no-daemon
 
       - name: Build the example
-        working-directory: example
-        run: ./gradlew build --no-daemon
+        run: ./gradlew :example:build --no-daemon
 
       # Xvfb gives SDL a real X display to open a real window on. Without it SDL
       # has no video driver and the backend fails at startup -- which is the
       # correct behaviour, and not what this job is trying to find out.
       - name: Open a window
-        working-directory: example
         run: |
           xvfb-run -a --server-args="-screen 0 1280x1024x24" \
-            ./gradlew run --no-daemon -Pgoldberry.example.frames=3 --console=plain \
+            ./gradlew :example:run --no-daemon -Pgoldberry.example.frames=3 --console=plain \
             | tee run.log
           # The build succeeding is not enough: `run` exits 0 if main() returns
           # without drawing anything at all.
@@ -85,5 +81,5 @@ jobs:
         if: always()
         with:
           name: example-run-log
-          path: example/run.log
+          path: run.log
           if-no-files-found: warn

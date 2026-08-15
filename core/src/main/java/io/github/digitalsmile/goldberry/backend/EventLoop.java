@@ -1,11 +1,13 @@
 package io.github.digitalsmile.goldberry.backend;
 
+import io.github.digitalsmile.goldberry.natives.log.Logs;
 import java.time.Duration;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.function.Supplier;
+import org.slf4j.Logger;
 
 /// Drives a backend: drains queued UI work, pumps platform events, repeats.
 ///
@@ -32,6 +34,8 @@ import java.util.function.Supplier;
 /// threads (§5) and the UI thread hands over a finished buffer, so a slow frame
 /// costs a frame rather than the event loop.
 public final class EventLoop implements AutoCloseable {
+
+    private static final Logger LOG = Logs.of(EventLoop.class);
 
     /// How long a single pump waits before returning with nothing.
     ///
@@ -69,6 +73,7 @@ public final class EventLoop implements AutoCloseable {
         }
 
         running = true;
+        LOG.debug("event loop started on {}", Thread.currentThread().getName());
         try {
             while (running) {
                 // Before the pump: work queued while the loop was blocked should
@@ -91,6 +96,7 @@ public final class EventLoop implements AutoCloseable {
             }
         } finally {
             running = false;
+            LOG.debug("event loop finished");
         }
     }
 

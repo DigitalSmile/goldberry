@@ -1,0 +1,29 @@
+<!--
+  Logback configuration for the showcase.
+
+  Goldberry itself binds no SLF4J provider (ADR-0023): a library that ships one
+  takes the choice away from the application. This file is that choice being
+  made, in the one place entitled to make it.
+
+  Logback's own startup chatter is off, because the first thing an application
+  should print is its own first line.
+-->
+<configuration>
+
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <!-- Time, level, the last segment of the logger name, message. Short
+                 enough to read while a window is opening. -->
+            <pattern>%d{HH:mm:ss.SSS} %-5level %logger{0} - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <!-- The toolkit at debug: window lifecycle, buffer allocations, backend
+         start-up. Frame-by-frame detail is at trace, which is off. -->
+    <logger name="io.github.digitalsmile.goldberry" level="DEBUG"/>
+
+    <root level="INFO">
+        <appender-ref ref="CONSOLE"/>
+    </root>
+
+</configuration>
