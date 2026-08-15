@@ -1,6 +1,6 @@
 # ADR-0026: SDL picks the video driver, and says which
 
-- **Status:** Accepted
+- **Status:** Its decision is superseded by [ADR-0027](0027-prefer-wayland-fall-back-to-x11.md) — Goldberry now prefers Wayland. The findings below, and the logging, stand
 - **Date:** 2026-08-15
 - **Relates to:** `docs/ARCHITECTURE.md` §4, [ADR-0003](0003-sdl3-as-the-only-desktop-backend.md), [ADR-0024](0024-a-repaint-must-wake-the-loop.md)
 

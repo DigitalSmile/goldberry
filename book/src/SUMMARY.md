@@ -31,7 +31,8 @@
 - [ADR-0023 Logging, and the example as a subproject](adr/0023-logging-and-the-example-as-a-subproject.md)
 - [ADR-0024 A repaint must wake the loop](adr/0024-a-repaint-must-wake-the-loop.md)
 - [ADR-0025 Where Linker.critical is worth it](adr/0025-where-linker-critical-is-worth-it.md)
-- [ADR-0026 SDL picks the video driver](adr/0026-sdl-picks-the-video-driver.md)
+- [ADR-0026 SDL picks the video driver (partly superseded)](adr/0026-sdl-picks-the-video-driver.md)
+- [ADR-0027 Prefer Wayland, fall back to X11](adr/0027-prefer-wayland-fall-back-to-x11.md)
 
 ---
 

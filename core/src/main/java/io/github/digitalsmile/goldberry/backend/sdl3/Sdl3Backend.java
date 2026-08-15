@@ -18,6 +18,7 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.LinkedHashMap;
+import java.util.Locale;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -37,8 +38,12 @@ public final class Sdl3Backend implements Backend {
 
     private static final Logger LOG = Logs.of(Sdl3Backend.class);
 
-    /// Overrides SDL's own choice of video driver. See [#selectVideoDriver()].
+    /// Overrides the video driver choice. See [#selectVideoDriver()].
     public static final String VIDEO_DRIVER_PROPERTY = "goldberry.backend.videoDriver";
+
+    /// What Goldberry asks for on a Linux Wayland session: a preference, with
+    /// X11 behind it, resolved inside SDL.
+    private static final String PREFERRED_LINUX_DRIVERS = "wayland,x11";
 
     private final SdlVideo video = SdlVideo.get();
     private final Thread uiThread = Thread.currentThread();
@@ -71,29 +76,52 @@ public final class Sdl3Backend implements Backend {
         }
     }
 
-    /// Names the video driver, when asked to.
+    /// Chooses the video driver.
     ///
-    /// SDL picks for itself and its choice is informed: on Linux it uses Wayland
-    /// only when the compositor advertises `wp_fifo_manager_v1`, and falls back to
-    /// X11 otherwise, because without that protocol its Wayland presentation has
-    /// no reliable frame pacing. On a Wayland session whose compositor lacks it —
-    /// GNOME, at the time of writing — that means an XWayland window, which
-    /// resizes visibly worse than a native one.
+    /// SDL picks for itself and its choice is informed: on Linux it prefers
+    /// Wayland only when the compositor advertises `wp_fifo_manager_v1`, and falls
+    /// back to X11 otherwise, because without that protocol it judges its own
+    /// Wayland presentation to have no reliable frame pacing. GNOME's Mutter does
+    /// not advertise it, so on the most common Linux desktop SDL chooses XWayland.
     ///
-    /// Goldberry does not override that judgement: SDL knows more about its own
-    /// backends than we do, and forcing Wayland everywhere would trade one
-    /// stutter for another on every machine. But the choice is worth being able
-    /// to make, so `-Dgoldberry.backend.videoDriver=wayland` makes it, and the
-    /// driver actually chosen is logged either way (ADR-0026).
+    /// Goldberry asks for Wayland first anyway, because what SDL is protecting
+    /// against is less bad than what it falls back to: an XWayland window resizes
+    /// visibly worse than a native one. Measured on GNOME, the Wayland path
+    /// reports *higher* per-frame numbers and looks better, because the extra time
+    /// is the compositor pacing the client rather than work (ADR-0027).
+    ///
+    /// The hint takes a comma-separated list and SDL tries each in turn, so
+    /// `wayland,x11` is a preference and not a demand — a machine with no Wayland
+    /// gets X11 exactly as before, inside SDL, with no fallback logic here.
+    ///
+    /// Three things override it, in order: `-Dgoldberry.backend.videoDriver`, an
+    /// `SDL_VIDEO_DRIVER` already in the environment, and not being on Linux.
     private static void selectVideoDriver() {
         var requested = System.getProperty(VIDEO_DRIVER_PROPERTY);
-        if (requested == null || requested.isBlank()) {
+        if (requested != null && !requested.isBlank()) {
+            applyVideoDriver(requested, "asked for by " + VIDEO_DRIVER_PROPERTY);
             return;
         }
-        if (Sdl.get().setHint(Sdl.VIDEO_DRIVER_HINT, requested)) {
-            LOG.info("asked SDL for the {} video driver", requested);
+
+        // SDL reads this hint from the environment too. Setting it here would
+        // silently beat what the user put in their shell.
+        if (System.getenv(Sdl.VIDEO_DRIVER_HINT) != null || System.getenv("SDL_VIDEODRIVER") != null) {
+            LOG.debug("leaving the video driver to the environment");
+            return;
+        }
+
+        var linux = System.getProperty("os.name", "").toLowerCase(Locale.ROOT).contains("linux");
+        var waylandSession = System.getenv("WAYLAND_DISPLAY");
+        if (linux && waylandSession != null && !waylandSession.isBlank()) {
+            applyVideoDriver(PREFERRED_LINUX_DRIVERS, "a Wayland session is running");
+        }
+    }
+
+    private static void applyVideoDriver(String drivers, String because) {
+        if (Sdl.get().setHint(Sdl.VIDEO_DRIVER_HINT, drivers)) {
+            LOG.debug("asking SDL for video driver {} ({})", drivers, because);
         } else {
-            LOG.warn("SDL refused the video driver hint {}={}", Sdl.VIDEO_DRIVER_HINT, requested);
+            LOG.warn("SDL refused the video driver hint {}={}", Sdl.VIDEO_DRIVER_HINT, drivers);
         }
     }
 
