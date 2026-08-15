@@ -5,27 +5,35 @@ package io.github.digitalsmile.goldberry.natives.yoga;
 /// Mirrors `YGMeasureMode` in `yoga/YGEnums.h`. The ordinals are Yoga's, not
 /// Java's: they are declared explicitly so reordering this enum cannot silently
 /// change what crosses the boundary.
-public enum MeasureMode {
+public enum MeasureMode implements YogaEnum {
 
     /// No constraint. The node may be whatever size it wants.
-    UNDEFINED(0),
+    UNDEFINED(0, "YGMeasureModeUndefined"),
 
     /// The parent has fixed the size. The node gets those bounds regardless of
     /// what it asks for.
-    EXACTLY(1),
+    EXACTLY(1, "YGMeasureModeExactly"),
 
     /// An upper bound. The node may be anything up to the given size.
-    AT_MOST(2);
+    AT_MOST(2, "YGMeasureModeAtMost");
 
     private final int nativeValue;
+    private final String nativeName;
 
-    MeasureMode(int nativeValue) {
+    MeasureMode(int nativeValue, String nativeName) {
         this.nativeValue = nativeValue;
+        this.nativeName = nativeName;
     }
 
     /// The `YGMeasureMode` value this maps to.
+    @Override
     public int nativeValue() {
         return nativeValue;
+    }
+
+    @Override
+    public String nativeName() {
+        return nativeName;
     }
 
     /// Maps a `YGMeasureMode` back to Java.

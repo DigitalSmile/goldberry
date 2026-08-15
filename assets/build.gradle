@@ -1,0 +1,45 @@
+plugins {
+    id 'java'
+}
+
+description = 'Goldberry asset preparation: fetches the pinned fonts and icon set and compiles them into resources'
+
+// Not `goldberry.java-conventions`, and not published.
+//
+// This is a build-time tool, not a module of the toolkit: it never ships, it has
+// no module-info because nothing consumes it as a module, and it targets the
+// same JDK as everything else only because there is no reason not to. §15's
+// artifact list is unchanged by it (ADR-0033).
+group = 'io.github.digitalsmile'
+version = providers.gradleProperty('goldberryVersion').get()
+
+def catalog = extensions.getByType(org.gradle.api.artifacts.VersionCatalogsExtension).named('libs')
+def javaVersion = catalog.findVersion('java').get().requiredVersion as int
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(javaVersion)
+    }
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+    options.release = javaVersion
+    options.compilerArgs.addAll(['-Xlint:all,-serial', '-Werror'])
+}
+
+dependencies {
+    testImplementation platform(libs.junit.bom)
+    testImplementation libs.junit.jupiter
+    testRuntimeOnly libs.junit.platform.launcher
+}
+
+tasks.named('test') {
+    useJUnitPlatform()
+    testLogging {
+        events 'failed'
+        exceptionFormat = 'full'
+    }
+}
+
+tasks.withType(PublishToMavenRepository).configureEach { enabled = false }

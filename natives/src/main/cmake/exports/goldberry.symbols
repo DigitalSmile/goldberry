@@ -65,9 +65,160 @@ SDL_PushEvent
 SDL_PumpEvents
 
 # --- Blend2D (sec. 5, paint & raster) ----------------------------------------
+# The image and context surface: enough to rasterize a frame into the buffer the
+# platform lends us. Paths, gradients, strokes and text follow. See ADR-0031.
+#
+# Note the snake_case: this revision of Blend2D renamed its C API from
+# blImageInit to bl_image_init. A symbol list copied from an older example fails
+# to link, which is one more reason the ref is a commit SHA (ADR-0030).
+
+# Which Blend2D is linked in.
+bl_runtime_query_info
+
+# Images. Only the external-data constructor is bound: Goldberry never asks
+# Blend2D to allocate pixels, it hands over the ones it already has.
+bl_image_init_as_from_data
+bl_image_destroy
+bl_image_get_data
+
+# Rendering context lifecycle.
+bl_context_init_as
+bl_context_end
+bl_context_destroy
+bl_context_flush
+
+# State: the display scale reaches the rasterizer as a transform.
+bl_context_apply_transform_op
+bl_context_set_comp_op
+
+# Drawing.
+bl_context_clear_all
+bl_context_fill_all_rgba32
+bl_context_fill_rect_d_rgba32
 
 # --- Yoga (sec. 5, layout) ---------------------------------------------------
+# The node API, bound in the `yoga` package. YGSize and the measure callback are
+# above -- they were proven first (ADR-0017), and this is what finally drives
+# them from a real layout pass.
+
+# Config: the point scale factor is what makes fractional DPI land on physical
+# pixels, and web defaults are what make Yoga agree with CSS. See ADR-0029.
+YGConfigNew
+YGConfigFree
+YGConfigSetPointScaleFactor
+YGConfigGetPointScaleFactor
+YGConfigSetUseWebDefaults
+YGConfigGetUseWebDefaults
+
+# Node lifecycle and tree structure.
+YGNodeNew
+YGNodeNewWithConfig
+YGNodeFree
+YGNodeInsertChild
+YGNodeRemoveChild
+YGNodeRemoveAllChildren
+YGNodeGetChildCount
+YGNodeSetMeasureFunc
+YGNodeHasMeasureFunc
+YGNodeMarkDirty
+YGNodeIsDirty
+YGNodeGetHasNewLayout
+YGNodeSetHasNewLayout
+YGNodeCalculateLayout
+
+# Style: the enum-valued properties.
+YGNodeStyleSetDirection
+YGNodeStyleSetFlexDirection
+YGNodeStyleSetJustifyContent
+YGNodeStyleSetAlignContent
+YGNodeStyleSetAlignItems
+YGNodeStyleSetAlignSelf
+YGNodeStyleSetPositionType
+YGNodeStyleSetFlexWrap
+YGNodeStyleSetOverflow
+YGNodeStyleSetDisplay
+
+# Style: plain numbers.
+YGNodeStyleSetFlexGrow
+YGNodeStyleSetFlexShrink
+YGNodeStyleSetAspectRatio
+YGNodeStyleSetBorder
+
+# Style: lengths. Yoga splits each property into points, percent and -- where
+# the property admits it -- auto, which StyleLength puts back together.
+YGNodeStyleSetWidth
+YGNodeStyleSetWidthPercent
+YGNodeStyleSetWidthAuto
+YGNodeStyleSetHeight
+YGNodeStyleSetHeightPercent
+YGNodeStyleSetHeightAuto
+YGNodeStyleSetMinWidth
+YGNodeStyleSetMinWidthPercent
+YGNodeStyleSetMinHeight
+YGNodeStyleSetMinHeightPercent
+YGNodeStyleSetMaxWidth
+YGNodeStyleSetMaxWidthPercent
+YGNodeStyleSetMaxHeight
+YGNodeStyleSetMaxHeightPercent
+YGNodeStyleSetFlexBasis
+YGNodeStyleSetFlexBasisPercent
+YGNodeStyleSetFlexBasisAuto
+YGNodeStyleSetPosition
+YGNodeStyleSetPositionPercent
+YGNodeStyleSetMargin
+YGNodeStyleSetMarginPercent
+YGNodeStyleSetMarginAuto
+YGNodeStyleSetPadding
+YGNodeStyleSetPaddingPercent
+YGNodeStyleSetGap
+YGNodeStyleSetGapPercent
+
+# The computed layout -- the whole point of the rest of it.
+YGNodeLayoutGetLeft
+YGNodeLayoutGetTop
+YGNodeLayoutGetWidth
+YGNodeLayoutGetHeight
+YGNodeLayoutGetMargin
+YGNodeLayoutGetBorder
+YGNodeLayoutGetPadding
+YGNodeLayoutGetDirection
+YGNodeLayoutGetHadOverflow
 
 # --- HarfBuzz (sec. 6, text) -------------------------------------------------
+# Shaping: UTF-16 in (which is what a Java String already is), glyph ids and
+# positions out. See ADR-0032.
+
+# Which HarfBuzz is linked in.
+hb_version
+
+# A font's bytes -> a face -> a font. Three objects because HarfBuzz separates
+# the file, the typeface, and the sizing of it.
+hb_blob_create
+hb_blob_destroy
+hb_face_create
+hb_face_destroy
+hb_face_get_empty
+hb_font_create
+hb_font_destroy
+hb_font_set_scale
+
+# The buffer: the run of text being shaped, and afterwards the glyphs.
+hb_buffer_create
+hb_buffer_destroy
+hb_buffer_reset
+hb_buffer_add_utf16
+hb_buffer_guess_segment_properties
+hb_buffer_set_direction
+hb_buffer_get_direction
+hb_buffer_set_script
+hb_buffer_set_language
+hb_buffer_get_length
+hb_buffer_get_glyph_infos
+hb_buffer_get_glyph_positions
+hb_script_from_string
+hb_language_from_string
+
+# The one call the rest of it exists for.
+hb_shape
 
 # --- libxkbcommon (Linux/Scarlet only, sec. 7.1) -----------------------------

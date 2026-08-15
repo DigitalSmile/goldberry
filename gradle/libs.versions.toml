@@ -14,13 +14,25 @@ logback = "1.5.18"
 # Git refs consumed by the CMake superbuild. These are pins, not ranges: a
 # floating ref would make the artifact irreproducible.
 #
-# These refs build and link on linux-x64. Blend2D and AsmJit have no release
-# tags, so they are pinned by branch -- which means the build is NOT yet
-# reproducible. Both must become commit SHAs before anything is published.
-blend2d = "master"
-# AsmJit is Blend2D's JIT backend, embedded into it rather than linked. Its ref
-# must suit the Blend2D ref above -- Blend2D compiles asmjit's sources directly.
-asmjit = "master"
+# Blend2D and AsmJit have no release tags at all, so they are pinned by **commit
+# SHA** rather than by branch (ADR-0030). A SHA is not a worse pin than a tag
+# here -- it is a better one, since a tag can be moved and a SHA cannot. The cost
+# is that moving either forward is a deliberate edit, which is the point.
+#
+# Whoever moves them: update this file, the defaults in
+# natives/src/main/cmake/CMakeLists.txt, and the three CI workflows, then rebuild
+# from a clean _deps. `./gradlew :natives:checkPinnedRefs` fails if the four
+# disagree.
+#
+# Blend2D master @ 2025-11-29 -- "[doc] Updated documentation (changed links)".
+blend2d = "6dbc2cefbc996379e07104e34519a440b49b15d7"
+# AsmJit is Blend2D's JIT backend, embedded into it rather than linked, so
+# Blend2D compiles asmjit's sources directly and the two refs must suit each
+# other. There is no manifest saying which pairs work -- only that this pair
+# builds and links, which is exactly why both are pinned together.
+#
+# AsmJit master @ 2026-03-26 -- "[bug] Fixed new_gpw() using kUIntPtr ... (#510)".
+asmjit = "0bd5787b54b575ed94bf32ac452153b34385c514"
 yoga = "v3.1.0"
 harfbuzz = "8.5.0"
 sdl3 = "release-3.2.0"

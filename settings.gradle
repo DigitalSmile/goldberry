@@ -21,11 +21,17 @@ rootProject.name = 'goldberry'
 //   :widgets  the widget catalog, charts included (ADR-0014)
 //   :gpu      canvas3d and the GPU composition path
 //
+// :assets is a build-time tool, not a published module: it fetches the pinned
+// fonts and icon set and prepares them into resources :core packages. It is
+// ordinary Java rather than build-script code because compiling 1544 SVGs into
+// path data is real logic that deserves real tests (ADR-0033).
+//
 // :example is the showcase. It is a subproject rather than a separate build so
 // that Gradle and every IDE see it -- see ADR-0023, which supersedes ADR-0021.
-// It is not published.
+// It is not published either.
 include ':natives',
         ':core',
         ':widgets',
         ':gpu',
+        ':assets',
         ':example'

@@ -34,6 +34,11 @@
 - [ADR-0026 SDL picks the video driver (partly superseded)](adr/0026-sdl-picks-the-video-driver.md)
 - [ADR-0027 Prefer Wayland, fall back to X11](adr/0027-prefer-wayland-fall-back-to-x11.md)
 - [ADR-0028 The start-up timeline](adr/0028-the-start-up-timeline.md)
+- [ADR-0029 Yoga's node API, and who owns a node](adr/0029-yogas-node-api-and-who-owns-a-node.md)
+- [ADR-0030 Pin Blend2D and AsmJit by commit SHA](adr/0030-pin-blend2d-and-asmjit-by-commit-sha.md)
+- [ADR-0031 Blend2D, and painting into a borrowed buffer](adr/0031-blend2d-and-the-borrowed-buffer.md)
+- [ADR-0032 Shaping is UTF-16 in, glyphs out](adr/0032-shaping-is-utf16-in-glyphs-out.md)
+- [ADR-0033 Assets are fetched and compiled, not committed](adr/0033-assets-are-fetched-and-compiled-not-committed.md)
 
 ---
 

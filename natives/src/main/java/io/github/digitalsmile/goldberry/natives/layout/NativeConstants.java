@@ -1,8 +1,11 @@
 package io.github.digitalsmile.goldberry.natives.layout;
 
+import io.github.digitalsmile.goldberry.natives.blend2d.BlendEnum;
+import io.github.digitalsmile.goldberry.natives.harfbuzz.HarfBuzzEnum;
 import io.github.digitalsmile.goldberry.natives.sdl.SdlEventType;
 import io.github.digitalsmile.goldberry.natives.sdl.SdlPixelFormat;
 import io.github.digitalsmile.goldberry.natives.sdl.SdlWindowFlag;
+import io.github.digitalsmile.goldberry.natives.yoga.YogaEnum;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -27,6 +30,21 @@ public final class NativeConstants {
         }
         for (var format : SdlPixelFormat.values()) {
             constants.add(new NativeConstant(format.nativeName(), format.value()));
+        }
+        // Every enumerator of every Yoga enum the bindings model. The list comes
+        // from the sealed interface rather than from here, so an enum added to
+        // the bindings is checked without this method being touched.
+        for (var value : YogaEnum.all()) {
+            constants.add(new NativeConstant(value.nativeName(), value.nativeValue()));
+        }
+        // Blend2D, by the same route and for the same reason.
+        for (var value : BlendEnum.all()) {
+            constants.add(new NativeConstant(value.nativeName(), value.nativeValue()));
+        }
+        // And HarfBuzz, whose direction values have gaps in them -- which is
+        // exactly the sort of thing that is wrong until something checks.
+        for (var value : HarfBuzzEnum.all()) {
+            constants.add(new NativeConstant(value.nativeName(), value.nativeValue()));
         }
         return List.copyOf(constants);
     }

@@ -73,6 +73,14 @@ def cmakeSourceDir = layout.projectDirectory.dir('src/main/cmake')
 def cmakeWorkDir = layout.buildDirectory.dir("native/${hostTarget.id}/cmake")
 def installDir = layout.buildDirectory.dir("native/${hostTarget.id}/install")
 
+// Published so :core's tests can find the locally built library without
+// re-deriving the host target. The alternative was duplicating the detection
+// above in a second build file, where it would drift the first time a target is
+// added -- and the two disagreeing means :core silently testing against a
+// library that is not the one :natives just built. See ADR-0031.
+ext.hostNativeLibrary = installDir.map { it.dir('lib').file(hostTarget.library) }
+ext.hostNativeTargetId = hostTarget.id
+
 // Where CI drops the libraries downloaded from every runner, so one job can
 // assemble all six classifier jars. Locally only the host's directory exists.
 def artifactsDir = providers.gradleProperty('goldberry.artifactsDir')
@@ -183,6 +191,81 @@ def checkToolchain = tasks.register('checkToolchain') {
         logger.lifecycle("Native toolchain OK; host target is ${hostTarget.id}.")
     }
 }
+
+// --- Pinned upstream refs ----------------------------------------------------
+//
+// The refs live in four places: this file's source of truth
+// (gradle/libs.versions.toml), the CMake defaults so a bare `cmake -S` is not
+// broken, and the three CI workflows, which cannot read the catalog because the
+// manylinux container has no JDK to run Gradle with (ADR-0012).
+//
+// That duplication is survivable only if something notices when it drifts.
+// Nothing did, which is how Blend2D stayed on a floating `master` through four
+// ADRs: every copy agreed, and all four were wrong together. Now that the pins
+// are commit SHAs (ADR-0030), a stale copy would mean CI silently building a
+// different Blend2D than the one that was tested -- so this check exists.
+
+def pinnedRefs = [
+        BLEND2D: libs.versions.blend2d.get(),
+        ASMJIT: libs.versions.asmjit.get(),
+        YOGA: libs.versions.yoga.get(),
+        HARFBUZZ: libs.versions.harfbuzz.get(),
+        SDL3: libs.versions.sdl3.get(),
+        XKBCOMMON: libs.versions.xkbcommon.get(),
+]
+
+def workflowsDir = rootProject.layout.projectDirectory.dir('.github/workflows')
+
+tasks.register('checkPinnedRefs') {
+    group = 'verification'
+    description = 'Fails if the CMake defaults or the CI workflows disagree with the version catalog.'
+
+    def cmakeLists = cmakeSourceDir.file('CMakeLists.txt')
+    def workflows = ['linux.yml', 'macos.yml', 'windows.yml'].collect { workflowsDir.file(it) }
+
+    inputs.file cmakeLists
+    inputs.files workflows
+    inputs.property 'refs', pinnedRefs
+
+    doLast {
+        def problems = []
+
+        // `set(GOLDBERRY_BLEND2D_REF "<ref>" CACHE STRING "...")`
+        def cmakeText = cmakeLists.asFile.text
+        pinnedRefs.each { name, expected ->
+            def match = cmakeText =~ /set\(GOLDBERRY_${name}_REF\s+"([^"]*)"/
+            if (!match) {
+                problems << "CMakeLists.txt declares no GOLDBERRY_${name}_REF default"
+            } else if (match[0][1] != expected) {
+                problems << "CMakeLists.txt has GOLDBERRY_${name}_REF=${match[0][1]}, catalog says ${expected}"
+            }
+        }
+
+        // `  BLEND2D_REF: <ref>` in the workflow's env block. A workflow that
+        // does not mention a ref is not at fault -- macos.yml has no
+        // XKBCOMMON_REF because libxkbcommon is Linux-only.
+        workflows.each { workflow ->
+            def text = workflow.asFile.text
+            pinnedRefs.each { name, expected ->
+                def match = text =~ /(?m)^\s*${name}_REF:\s*(\S+)\s*$/
+                if (match && match[0][1] != expected) {
+                    problems << "${workflow.asFile.name} has ${name}_REF=${match[0][1]}, catalog says ${expected}"
+                }
+            }
+        }
+
+        if (problems) {
+            throw new GradleException(
+                    "Pinned upstream refs disagree across the build:\n  "
+                            + problems.join('\n  ')
+                            + "\n\ngradle/libs.versions.toml is the source of truth."
+                            + " A stale copy means CI builds something other than what was tested.")
+        }
+        logger.lifecycle("Pinned refs agree across the catalog, CMake and ${workflows.size()} workflows.")
+    }
+}
+
+tasks.named('check') { dependsOn 'checkPinnedRefs' }
 
 // --- Host build --------------------------------------------------------------
 

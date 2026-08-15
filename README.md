@@ -21,7 +21,8 @@ API. No JNI, no bundled web engine, no platform widget wrapping.
 - **Cross-platform from the first commit.** Linux (Wayland/X11), Windows, macOS 
   are peer backends behind one SPI.
 
-> **Pre-release.** A window opens and presents frames; there are no widgets yet.
+> **Pre-release.** A window opens, Blend2D rasterizes its frames, and Yoga lays
+> out a tree behind the boundary; there are no widgets yet.
 > See [Status](book/src/status.md) for what works and what is still open.
 
 ## Quick start
@@ -71,8 +72,17 @@ Goldberry.run();
 ```
 
 That is the whole API for a window: no backend to name, no event loop to build,
-no `switch` over platform events (ADR-0022). Painting takes **logical**
-coordinates, so the same code is correct at 100%, 125% and 150%.
+no `switch` over platform events (ADR-0022).
+
+Painting takes **logical** coordinates, and they are not rounded on the way in.
+Blend2D's context is scaled once per frame, so a rectangle at `x = 10.5` on a
+150% display lands on physical 15.75 and is antialiased across the two pixels it
+actually covers — the same code is correct at 100%, 125% and 150%
+([ADR-0031](book/src/adr/0031-blend2d-and-the-borrowed-buffer.md)). Colours are
+`0xAARRGGBB` and are **not** premultiplied; the rasterizer handles that.
+
+When the platform lends its own surface — SDL does — Blend2D draws straight into
+it. A frame costs no copy at all.
 
 Work that is not instant goes off the UI thread and comes back on it:
 
@@ -80,6 +90,45 @@ Work that is not instant goes off the UI thread and comes back on it:
 Goldberry.async(() -> loadTheThing())
          .thenAccept(thing -> window.title(thing.name()));   // on the UI thread
 ```
+
+## Layout
+
+Flexbox comes from **Yoga**, bound directly rather than reimplemented. There are
+no widgets to style yet, so this is the layer beneath them rather than an API to
+build against — but it is what the CSS subset compiles to
+([ADR-0029](book/src/adr/0029-yogas-node-api-and-who-owns-a-node.md)):
+
+```java
+try (var config = YogaConfig.create();          // CSS's defaults, not Yoga's
+     var root = YogaNode.create(config)) {
+
+    config.setPointScaleFactor(window.scale().factor());  // snap to real pixels
+    root.setFlexDirection(FlexDirection.ROW);
+    root.setPadding(Edge.ALL, StyleLength.points(8));
+
+    var sidebar = YogaNode.create(config);
+    sidebar.setWidth(StyleLength.percent(25));
+    root.addChild(sidebar);                     // the parent owns it from here
+
+    root.calculateLayout(960, 640);
+    var box = sidebar.layout();                 // 236.0x624.0 at (8.0, 8.0)
+}
+```
+
+Text enters layout as a measured leaf: Yoga knows nothing about glyphs, so a
+paragraph reports how tall it came out at the width Yoga proposes. That callback
+is a Java method called from C returning a struct **by value**, which is the
+fiddliest thing the toolkit asks of FFM and the reason
+[ADR-0017](book/src/adr/0017-proving-the-struct-by-value-upcall.md) exists.
+
+```java
+paragraph.setMeasureFunction((width, widthMode, height, heightMode) ->
+        shape(text, width));                    // runs during calculateLayout
+```
+
+The point scale factor is what makes fractional DPI land correctly: at 1× a row
+of 101 points splits 51/50, and at 2× it splits 50.5/50.5 — the same tree on a
+different pixel grid.
 
 ## Run the showcase
 

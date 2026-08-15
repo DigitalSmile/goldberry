@@ -4,30 +4,55 @@ import io.github.digitalsmile.goldberry.backend.DisplayScale;
 import io.github.digitalsmile.goldberry.backend.LogicalSize;
 import io.github.digitalsmile.goldberry.backend.PhysicalSize;
 import io.github.digitalsmile.goldberry.backend.PixelBuffer;
+import io.github.digitalsmile.goldberry.natives.blend2d.BlendContext;
+import io.github.digitalsmile.goldberry.natives.blend2d.BlendImage;
 
 /// The surface a [Window] paints into.
 ///
 /// Coordinates are **logical**, like everything an application writes: a
 /// rectangle at `(10, 10)` is ten points from the corner whether the display runs
-/// at 100% or 150%, and [Frame] does the conversion. The physical size is
-/// available for the rare code that needs it, but reaching for it usually means
-/// something is about to be wrong on somebody's laptop.
+/// at 100% or 150%. That conversion is not arithmetic done here — the Blend2D
+/// context is scaled once when the frame begins, so a fractional coordinate
+/// reaches the rasterizer intact and is antialiased across the physical pixels
+/// it actually covers. A rectangle at logical `x = 10.5` on a 1.5&times; display
+/// lands at physical 15.75 and looks like it; snapping it to 15 or 16 would move
+/// it by a third of a logical pixel (ADR-0031).
 ///
 /// Colours are `0xAARRGGBB` — the packing everyone already knows from CSS and
-/// Java 2D. Blend2D's buffers want premultiplied BGRA in memory, and that
-/// conversion happens here rather than in application code.
+/// Java 2D — and are **not** premultiplied. The buffer underneath is, and
+/// Blend2D converts when it composites. Callers who premultiply first get a
+/// frame that is visibly too dark with nothing reporting a problem.
 ///
-/// This is a placeholder for a real canvas. Blend2D takes over in M1 with paths,
-/// gradients and text; `fill` and `fillRect` are what a blank window needs and
-/// no more.
+/// The physical size is available for the rare code that needs it, but reaching
+/// for it usually means something is about to be wrong on somebody's laptop.
+///
+/// A frame is valid only for the duration of the paint callback it was handed
+/// to. [Window] ends it before presenting, because pixels a context has not
+/// finished with are not pixels worth showing.
 public final class Frame {
 
     private final PixelBuffer buffer;
     private final DisplayScale scale;
+    private final BlendImage image;
+    private final BlendContext context;
+
+    private boolean ended;
 
     Frame(PixelBuffer buffer, DisplayScale scale) {
         this.buffer = buffer;
         this.scale = scale;
+
+        // The image is a view over the buffer, not a copy of it: when the
+        // platform lends its own surface, Blend2D rasterizes straight into the
+        // memory that will be presented, and the frame costs no blit at all.
+        this.image = BlendImage.wrapping(
+                buffer.pixels(), buffer.size().width(), buffer.size().height(), buffer.stride());
+        try {
+            this.context = BlendContext.on(image, scale.factor());
+        } catch (RuntimeException | Error e) {
+            image.close();
+            throw e;
+        }
     }
 
     /// The size to paint in, in logical pixels.
@@ -45,78 +70,53 @@ public final class Frame {
         return scale;
     }
 
-    /// Fills the whole frame.
+    /// Fills the whole frame, **replacing** whatever is there.
     ///
-    /// @param argb a colour as `0xAARRGGBB`
+    /// A replacement rather than a blend, because this is what a background is:
+    /// blending a translucent colour over the previous frame composites onto it,
+    /// so the same call every frame would darken until it was opaque.
+    ///
+    /// @param argb a colour as `0xAARRGGBB`, not premultiplied
     public void fill(int argb) {
-        fillPixels(0, 0, buffer.size().width(), buffer.size().height(), premultiply(argb));
+        requireOpen();
+        context.clearTo(argb);
     }
 
-    /// Fills a rectangle given in logical coordinates.
+    /// Fills a rectangle given in logical coordinates, blending over what is
+    /// already there.
     ///
     /// Clipped to the frame rather than throwing: a rectangle that runs off the
     /// edge is ordinary in a UI, and layout has not run yet to prevent it.
     ///
-    /// @param argb a colour as `0xAARRGGBB`
+    /// @param argb a colour as `0xAARRGGBB`, not premultiplied
     public void fillRect(float x, float y, float width, float height, int argb) {
-        var left = Math.max(0, scale.toPhysical(x));
-        var top = Math.max(0, scale.toPhysical(y));
-        var right = Math.min(buffer.size().width(), scale.toPhysical(x + width));
-        var bottom = Math.min(buffer.size().height(), scale.toPhysical(y + height));
-        if (left >= right || top >= bottom) {
-            return;
-        }
-
-        fillPixels(left, top, right - left, bottom - top, premultiply(argb));
+        requireOpen();
+        context.fillRect(x, y, width, height, argb);
     }
 
-    /// Fills a rectangle of the buffer, in physical pixels.
+    /// Finishes the frame, so the pixels are complete before anything presents
+    /// them.
     ///
-    /// One row is built and then copied down the rectangle, rather than writing
-    /// every pixel individually. At 1080p the per-pixel version is over two
-    /// million `putInt` calls per frame, which is enough to be visible as
-    /// hesitation while a window is being dragged — the copy runs at memory
-    /// speed instead.
-    private void fillPixels(int x, int y, int width, int height, int premultiplied) {
-        if (width <= 0 || height <= 0) {
+    /// Package-private: ending a frame is [Window]'s job, and an application
+    /// that could do it would be able to invalidate its own canvas halfway
+    /// through painting.
+    void end() {
+        if (ended) {
             return;
         }
-
-        var rowBytes = new byte[Math.multiplyExact(width, 4)];
-        for (var i = 0; i < rowBytes.length; i += 4) {
-            // Little-endian, matching the BGRA memory order PixelBuffer
-            // normalises to: blue lowest, alpha highest.
-            rowBytes[i] = (byte) premultiplied;
-            rowBytes[i + 1] = (byte) (premultiplied >>> 8);
-            rowBytes[i + 2] = (byte) (premultiplied >>> 16);
-            rowBytes[i + 3] = (byte) (premultiplied >>> 24);
-        }
-
-        var pixels = buffer.pixels();
-        var offset = y * buffer.stride() + x * 4;
-        for (var row = 0; row < height; row++) {
-            pixels.put(offset, rowBytes, 0, rowBytes.length);
-            offset += buffer.stride();
+        ended = true;
+        try {
+            context.close();
+        } finally {
+            image.close();
         }
     }
 
-    /// Converts `0xAARRGGBB` to the premultiplied form the compositor expects.
-    ///
-    /// Compositing straight-alpha data as if it were premultiplied darkens every
-    /// edge in the frame, which reads as "the antialiasing looks wrong" rather
-    /// than as a format bug — so the conversion is not optional, and it is done
-    /// once here instead of hoped for.
-    static int premultiply(int argb) {
-        var alpha = (argb >>> 24) & 0xFF;
-        if (alpha == 0xFF) {
-            return argb;
+    private void requireOpen() {
+        if (ended) {
+            throw new IllegalStateException(
+                    "this frame has already been presented — a Frame is valid only inside the"
+                            + " paint callback it was handed to");
         }
-        if (alpha == 0) {
-            return 0;
-        }
-        var red = ((argb >>> 16) & 0xFF) * alpha / 0xFF;
-        var green = ((argb >>> 8) & 0xFF) * alpha / 0xFF;
-        var blue = (argb & 0xFF) * alpha / 0xFF;
-        return (alpha << 24) | (red << 16) | (green << 8) | blue;
     }
 }

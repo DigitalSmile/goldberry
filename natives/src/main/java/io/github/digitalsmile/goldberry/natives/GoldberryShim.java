@@ -22,8 +22,10 @@ public final class GoldberryShim {
     ///
     /// 2 added `goldberry_probe_measure` (ADR-0017); 3 added SDL3's windowing and
     /// event surface, and the constant rows in the layout table (ADR-0020); 4
-    /// added `SDL_GetCurrentVideoDriver` and `SDL_SetHint` (ADR-0026).
-    public static final int SUPPORTED_ABI_VERSION = 4;
+    /// added `SDL_GetCurrentVideoDriver` and `SDL_SetHint` (ADR-0026); 5 added
+    /// Yoga's node API and its enumerators (ADR-0029); 6 added Blend2D's image
+    /// and context surface (ADR-0031); 7 added HarfBuzz shaping (ADR-0032).
+    public static final int SUPPORTED_ABI_VERSION = 7;
 
     private static final Logger LOG = Logs.of(GoldberryShim.class);
 

@@ -97,16 +97,33 @@ public final class MeasureCallback implements AutoCloseable {
     /// Until it is called the failure is invisible: Yoga was told zero and
     /// carried on.
     public void throwIfFailed() {
+        var pending = takeFailure();
+        if (pending != null) {
+            throw asUnchecked(pending);
+        }
+    }
+
+    /// Hands back the pending failure and clears it, without throwing.
+    ///
+    /// [YogaNode] uses this rather than [#throwIfFailed()] because a layout pass
+    /// can fail in several callbacks at once: throwing at the first one found
+    /// would leave the others pending, and the next pass would then fail with an
+    /// exception from the one before it. The tree collects them all and reports
+    /// them together.
+    Throwable takeFailure() {
         var pending = failure;
-        if (pending == null) {
-            return;
-        }
         failure = null;
-        switch (pending) {
-            case RuntimeException e -> throw e;
+        return pending;
+    }
+
+    /// Rethrows what a measure function threw, wrapping only what has to be
+    /// wrapped so that a caller can still catch its own exception type.
+    static RuntimeException asUnchecked(Throwable failure) {
+        return switch (failure) {
+            case RuntimeException e -> e;
             case Error e -> throw e;
-            default -> throw new IllegalStateException("the measure function failed", pending);
-        }
+            default -> new IllegalStateException("the measure function failed", failure);
+        };
     }
 
     /// Releases the stub and its arena.

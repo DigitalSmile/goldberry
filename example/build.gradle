@@ -17,20 +17,16 @@ dependencies {
 // Where a locally built libgoldberry lives, for a run straight from the source
 // tree. A released application gets the library from a classifier jar instead
 // and needs none of this.
-def hostTarget = {
-    def os = System.getProperty('os.name', '').toLowerCase()
-    def arch = System.getProperty('os.arch', '').toLowerCase()
-    def osToken = os.contains('mac') || os.contains('darwin') ? 'macos'
-            : os.contains('windows') ? 'windows' : 'linux'
-    def archToken = arch in ['aarch64', 'arm64'] ? 'aarch64' : 'x64'
-    return "${osToken}-${archToken}"
-}()
+//
+// Taken from :natives rather than derived again here. This file used to carry
+// its own copy of the host-target detection -- a looser one, which guessed
+// `linux` for anything it did not recognise where :natives raises. Three copies
+// of that logic is two too many, and the failure mode is silent: the showcase
+// would look for a library in a directory the superbuild never writes to.
+evaluationDependsOn(':natives')
 
-def hostLibrary = {
-    def name = hostTarget.startsWith('windows') ? 'goldberry.dll'
-            : hostTarget.startsWith('macos') ? 'libgoldberry.dylib' : 'libgoldberry.so'
-    return rootProject.file("natives/build/native/${hostTarget}/install/lib/${name}")
-}()
+def hostTarget = project(':natives').ext.hostNativeTargetId
+def hostLibrary = project(':natives').ext.hostNativeLibrary.get().asFile
 
 application {
     mainClass = 'io.github.digitalsmile.goldberry.example.Showcase'
@@ -57,6 +53,17 @@ tasks.named('run') {
         systemProperty 'goldberry.native.library', explicit.get()
     } else if (hostLibrary.isFile()) {
         systemProperty 'goldberry.native.library', hostLibrary.absolutePath
+    }
+
+    // Forwarded to the forked JVM, because that is where the application runs.
+    // `logback.xml` documents `-Dgoldberry.log.level=TRACE` as the way to see
+    // the start-up timeline and per-frame timings (ADR-0028), and without this
+    // that property reached the Gradle daemon and stopped there -- the flag
+    // appeared to do nothing at all.
+    def logLevel = providers.systemProperty('goldberry.log.level')
+            .orElse(providers.gradleProperty('goldberry.log.level'))
+    if (logLevel.present) {
+        systemProperty 'goldberry.log.level', logLevel.get()
     }
 
     // Lets CI open a window, confirm it, and exit without a human closing it.

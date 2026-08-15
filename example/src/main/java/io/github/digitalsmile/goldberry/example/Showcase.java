@@ -2,6 +2,10 @@ package io.github.digitalsmile.goldberry.example;
 
 import io.github.digitalsmile.goldberry.Goldberry;
 import io.github.digitalsmile.goldberry.Window;
+import io.github.digitalsmile.goldberry.layout.Box;
+import io.github.digitalsmile.goldberry.layout.BoxPainter;
+import io.github.digitalsmile.goldberry.natives.yoga.FlexDirection;
+import io.github.digitalsmile.goldberry.natives.yoga.StyleLength;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -25,6 +29,32 @@ public final class Showcase {
     /// window Goldberry ever draws is already the right colour.
     private static final int BACKGROUND = 0xFF2E3440;
     private static final int ACCENT = 0xFF88C0D0;
+    private static final int PANEL = 0xFF3B4252;
+    private static final int MUTED = 0xFF4C566A;
+
+    /// The layout the window paints, built once and reused every frame.
+    ///
+    /// Flexbox through Yoga, filled through Blend2D, in logical coordinates
+    /// throughout — the two engines meeting (ADR-0033). It is a value, so
+    /// building it outside the paint callback is not an optimisation but the
+    /// natural thing to do.
+    private static final Box LAYOUT = Box.of()
+            .direction(FlexDirection.COLUMN)
+            .background(BACKGROUND)
+            .children(
+                    // A 32-point bar across the top, whatever the display scale.
+                    Box.filled(ACCENT).size(StyleLength.UNDEFINED, StyleLength.points(32)),
+                    Box.of()
+                            .grow(1)
+                            .direction(FlexDirection.ROW)
+                            .padding(StyleLength.points(16))
+                            .gap(StyleLength.points(16))
+                            .children(
+                                    // A quarter-width sidebar and a body that
+                                    // takes what is left.
+                                    Box.filled(PANEL).size(
+                                            StyleLength.percent(25), StyleLength.UNDEFINED),
+                                    Box.filled(MUTED).grow(1)));
 
     private Showcase() {
     }
@@ -38,12 +68,12 @@ public final class Showcase {
         var window = Window.open("Goldberry — showcase", widthOf(args), heightOf(args));
 
         window.onPaint(frame -> {
-            frame.fill(BACKGROUND);
-
-            // Logical coordinates: this bar is 32 points tall on every display,
-            // and Goldberry decides how many real pixels that is. Nothing here
-            // knows or cares whether the screen runs at 100% or 150%.
-            frame.fillRect(0, 0, frame.size().width(), 32, ACCENT);
+            // Yoga lays the tree out at the frame's logical size and Blend2D
+            // fills the result. Logical coordinates throughout: the bar is 32
+            // points tall and the sidebar a quarter of the width on every
+            // display, and nothing here knows whether the screen runs at 100%
+            // or 150%.
+            BoxPainter.paint(frame, LAYOUT);
 
             painted[0]++;
             LOG.info("painted frame {} at {}", painted[0], frame.pixelSize());

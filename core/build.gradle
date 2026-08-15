@@ -33,3 +33,103 @@ sourceSets {
 dependencies {
     api project(':natives')
 }
+
+// ============================================================================
+// Bundled assets (§6.1, §6.2, §6.3, ADR-0033)
+//
+// Inter and JetBrains Mono are the embedded UI and code faces, OpenMoji is the
+// emoji slot, and Lucide is the icon set. The work is done by :assets — an
+// ordinary Java tool with its own tests — and only invoked here.
+//
+// The archives are cached under ~/.gradle rather than in the project's build
+// directory: they total 90 MB, they are pinned by checksum so they cannot go
+// stale, and a `clean` should not mean downloading them again.
+// ============================================================================
+
+def assetCache = layout.settingsDirectory.dir('.gradle/assets')
+def assetResources = layout.buildDirectory.dir('generated/assets')
+
+// A configuration rather than a reach into :assets' source sets. Resolving
+// another project's classpath directly is unsafe and Gradle refuses it; this
+// asks for the same thing through the dependency graph, which also carries the
+// build dependency on :assets.
+configurations {
+    assetTool
+}
+
+dependencies {
+    assetTool project(':assets')
+}
+
+def prepareAssets = tasks.register('prepareAssets', JavaExec) {
+    group = 'assets'
+    description = 'Fetches the pinned fonts and icon set and prepares them as resources.'
+
+    classpath = configurations.assetTool
+    mainClass = 'io.github.digitalsmile.goldberry.assets.PrepareAssets'
+    args assetCache.asFile.absolutePath, assetResources.get().asFile.absolutePath
+
+    // The tool is the input: change the manifest — a version, a checksum, the
+    // list of entries — and this reruns. The cache directory deliberately is
+    // not, or an unrelated archive landing in it would redo all the work.
+    inputs.files configurations.assetTool
+    outputs.dir assetResources
+}
+
+// Deriving the source directory from the task provider carries the dependency to
+// processResources and sourcesJar alike, the same way generateBuildInfo does.
+sourceSets.main.resources.srcDir(prepareAssets.map { assetResources.get() })
+
+/// Vendors the verbatim upstream licence texts into licenses/.
+///
+/// Run by hand and committed, not wired into `build`: ADR-0015 wants those texts
+/// in the repository so it is self-describing, and a generated file inside a
+/// tracked directory that nobody committed is worse than no file at all.
+tasks.register('vendorLicences', JavaExec) {
+    group = 'assets'
+    description = 'Copies the upstream asset licences into licenses/ from the pinned archives.'
+
+    classpath = configurations.assetTool
+    mainClass = 'io.github.digitalsmile.goldberry.assets.PrepareAssets'
+    args assetCache.asFile.absolutePath,
+            assetResources.get().asFile.absolutePath,
+            rootProject.layout.projectDirectory.dir('licenses').asFile.absolutePath
+}
+
+// Frame rasterizes through Blend2D (ADR-0031), so the tests that paint need a
+// real libgoldberry. They abort cleanly without one, the same way :natives' do
+// — a Java-only contributor should not need a C++ toolchain to run them.
+//
+// The default is :natives' own host library, taken from that project rather
+// than re-derived here: the host-target detection lives in one place, so adding
+// a target cannot leave :core testing a different library than the one that was
+// just built. An explicitly supplied path still wins, which is how CI verifies a
+// downloaded artifact (ADR-0016).
+evaluationDependsOn(':natives')
+
+def hostNativeLibrary = project(':natives').ext.hostNativeLibrary
+
+tasks.named('test') {
+    jvmArgs '--enable-native-access=ALL-UNNAMED'
+
+    // Set unconditionally, existence decided at execution time -- testing for
+    // the file here would read the filesystem during configuration, before
+    // cmakeBuild has had a chance to run. RendererRequirement is what turns a
+    // missing library into a skip.
+    systemProperty 'goldberry.native.library',
+            providers.systemProperty('goldberry.native.library')
+                    .orElse(hostNativeLibrary.map { it.asFile.absolutePath })
+                    .get()
+}
+
+// `./gradlew build` should exercise the frame path, not just compile it. Same
+// bargain :natives makes, and the same escape hatch: -Pgoldberry.skipNative=true
+// for a Java-only build, which leaves the rendering tests skipping.
+def skipNative = providers.gradleProperty('goldberry.skipNative')
+        .map { Boolean.parseBoolean(it) }
+        .getOrElse(false)
+def externalLibrary = providers.systemProperty('goldberry.native.library').isPresent()
+
+if (!skipNative && !externalLibrary) {
+    tasks.named('test') { dependsOn ':natives:cmakeBuild' }
+}

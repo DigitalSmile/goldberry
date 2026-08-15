@@ -40,6 +40,26 @@
  */
 #include <SDL3/SDL.h>
 
+/*
+ * For Blend2D's object model. Every "core" object -- BLImageCore, BLContextCore
+ * and the rest -- is one 16-byte BLObjectDetail union, and the Java side
+ * allocates them by that size. If that ever stopped being true the bindings
+ * would hand Blend2D a segment too small to initialise, so the equality is
+ * asserted here rather than assumed. See ADR-0031.
+ *
+ * blend2d.h is C-compatible: the C++ class bodies are all behind __cplusplus,
+ * and the C API is what remains.
+ */
+#include <blend2d/blend2d.h>
+
+/*
+ * For hb_glyph_info_t and hb_glyph_position_t. Shaping returns two parallel
+ * arrays of these, read directly out of HarfBuzz's own memory rather than
+ * copied -- so their strides have to be exactly right or every glyph after the
+ * first lands at the wrong offset. See ADR-0032.
+ */
+#include <hb.h>
+
 #if defined(_WIN32)
 #define GOLDBERRY_EXPORT __declspec(dllexport)
 #else
@@ -47,7 +67,7 @@
 #endif
 
 /* Bumped whenever the exported surface changes shape. */
-#define GOLDBERRY_ABI_VERSION 4u
+#define GOLDBERRY_ABI_VERSION 7u
 
 GOLDBERRY_EXPORT uint32_t goldberry_abi_version(void) {
     return GOLDBERRY_ABI_VERSION;
@@ -179,6 +199,217 @@ static const goldberry_layout_entry_t GOLDBERRY_LAYOUTS[] = {
     /* Surface formats the CPU present path accepts. */
     GB_CONSTANT("SDL_PIXELFORMAT_XRGB8888", SDL_PIXELFORMAT_XRGB8888),
     GB_CONSTANT("SDL_PIXELFORMAT_ARGB8888", SDL_PIXELFORMAT_ARGB8888),
+
+    /*
+     * Yoga's enumerators (ADR-0029).
+     *
+     * All of them, not just the ones a widget is likely to use: the Java enums
+     * are the complete C enums, and a Java constant nothing checks is exactly
+     * the constant that will be wrong. They are all small and non-negative, so
+     * the uint32_t the table carries loses nothing.
+     *
+     * These are the values that decide what a layout looks like. YGAlignCenter
+     * is 2 and YGJustifyCenter is 1; getting that pair backwards produces a
+     * layout that is merely wrong, never an error, on every platform at once.
+     */
+    GB_CONSTANT("YGAlignAuto", YGAlignAuto),
+    GB_CONSTANT("YGAlignFlexStart", YGAlignFlexStart),
+    GB_CONSTANT("YGAlignCenter", YGAlignCenter),
+    GB_CONSTANT("YGAlignFlexEnd", YGAlignFlexEnd),
+    GB_CONSTANT("YGAlignStretch", YGAlignStretch),
+    GB_CONSTANT("YGAlignBaseline", YGAlignBaseline),
+    GB_CONSTANT("YGAlignSpaceBetween", YGAlignSpaceBetween),
+    GB_CONSTANT("YGAlignSpaceAround", YGAlignSpaceAround),
+    GB_CONSTANT("YGAlignSpaceEvenly", YGAlignSpaceEvenly),
+
+    GB_CONSTANT("YGDirectionInherit", YGDirectionInherit),
+    GB_CONSTANT("YGDirectionLTR", YGDirectionLTR),
+    GB_CONSTANT("YGDirectionRTL", YGDirectionRTL),
+
+    GB_CONSTANT("YGDisplayFlex", YGDisplayFlex),
+    GB_CONSTANT("YGDisplayNone", YGDisplayNone),
+
+    GB_CONSTANT("YGEdgeLeft", YGEdgeLeft),
+    GB_CONSTANT("YGEdgeTop", YGEdgeTop),
+    GB_CONSTANT("YGEdgeRight", YGEdgeRight),
+    GB_CONSTANT("YGEdgeBottom", YGEdgeBottom),
+    GB_CONSTANT("YGEdgeStart", YGEdgeStart),
+    GB_CONSTANT("YGEdgeEnd", YGEdgeEnd),
+    GB_CONSTANT("YGEdgeHorizontal", YGEdgeHorizontal),
+    GB_CONSTANT("YGEdgeVertical", YGEdgeVertical),
+    GB_CONSTANT("YGEdgeAll", YGEdgeAll),
+
+    GB_CONSTANT("YGFlexDirectionColumn", YGFlexDirectionColumn),
+    GB_CONSTANT("YGFlexDirectionColumnReverse", YGFlexDirectionColumnReverse),
+    GB_CONSTANT("YGFlexDirectionRow", YGFlexDirectionRow),
+    GB_CONSTANT("YGFlexDirectionRowReverse", YGFlexDirectionRowReverse),
+
+    GB_CONSTANT("YGGutterColumn", YGGutterColumn),
+    GB_CONSTANT("YGGutterRow", YGGutterRow),
+    GB_CONSTANT("YGGutterAll", YGGutterAll),
+
+    GB_CONSTANT("YGJustifyFlexStart", YGJustifyFlexStart),
+    GB_CONSTANT("YGJustifyCenter", YGJustifyCenter),
+    GB_CONSTANT("YGJustifyFlexEnd", YGJustifyFlexEnd),
+    GB_CONSTANT("YGJustifySpaceBetween", YGJustifySpaceBetween),
+    GB_CONSTANT("YGJustifySpaceAround", YGJustifySpaceAround),
+    GB_CONSTANT("YGJustifySpaceEvenly", YGJustifySpaceEvenly),
+
+    GB_CONSTANT("YGMeasureModeUndefined", YGMeasureModeUndefined),
+    GB_CONSTANT("YGMeasureModeExactly", YGMeasureModeExactly),
+    GB_CONSTANT("YGMeasureModeAtMost", YGMeasureModeAtMost),
+
+    GB_CONSTANT("YGOverflowVisible", YGOverflowVisible),
+    GB_CONSTANT("YGOverflowHidden", YGOverflowHidden),
+    GB_CONSTANT("YGOverflowScroll", YGOverflowScroll),
+
+    GB_CONSTANT("YGPositionTypeStatic", YGPositionTypeStatic),
+    GB_CONSTANT("YGPositionTypeRelative", YGPositionTypeRelative),
+    GB_CONSTANT("YGPositionTypeAbsolute", YGPositionTypeAbsolute),
+
+    GB_CONSTANT("YGWrapNoWrap", YGWrapNoWrap),
+    GB_CONSTANT("YGWrapWrap", YGWrapWrap),
+    GB_CONSTANT("YGWrapWrapReverse", YGWrapWrapReverse),
+
+    /*
+     * Blend2D (ADR-0031).
+     *
+     * BLObjectDetail is the whole object model: every core object is exactly one
+     * of these, static payload and dynamic Impl pointer overlapped in 16 bytes.
+     * The Java side allocates BLImageCore and BLContextCore by this size, so the
+     * three rows below are the assertion that they really are the same shape --
+     * an assumption that costs a segment too small for Blend2D to initialise if
+     * it is ever wrong.
+     */
+    GB_STRUCT(BLObjectDetail),
+    GB_STRUCT(BLImageCore),
+    GB_STRUCT(BLContextCore),
+
+    /* The out-parameter of bl_image_get_data: where the pixels actually are. */
+    GB_STRUCT(BLImageData),
+    GB_FIELD(BLImageData, pixel_data),
+    GB_FIELD(BLImageData, stride),
+    GB_FIELD(BLImageData, size),
+    GB_FIELD(BLImageData, format),
+    GB_FIELD(BLImageData, flags),
+
+    /* Passed by pointer to bl_context_init_as. Zeroed means synchronous. */
+    GB_STRUCT(BLContextCreateInfo),
+    GB_FIELD(BLContextCreateInfo, flags),
+    GB_FIELD(BLContextCreateInfo, thread_count),
+    GB_FIELD(BLContextCreateInfo, cpu_features),
+    GB_FIELD(BLContextCreateInfo, command_queue_limit),
+    GB_FIELD(BLContextCreateInfo, saved_state_limit),
+    GB_FIELD(BLContextCreateInfo, pixel_origin),
+
+    /* Geometry. BLRect is doubles -- Blend2D's coordinate space is real-valued,
+     * which is what lets a logical coordinate land between physical pixels and
+     * be antialiased rather than snapped. */
+    GB_STRUCT(BLRect),
+    GB_FIELD(BLRect, x),
+    GB_FIELD(BLRect, y),
+    GB_FIELD(BLRect, w),
+    GB_FIELD(BLRect, h),
+
+    GB_STRUCT(BLRectI),
+    GB_FIELD(BLRectI, x),
+    GB_FIELD(BLRectI, y),
+    GB_FIELD(BLRectI, w),
+    GB_FIELD(BLRectI, h),
+
+    GB_STRUCT(BLSizeI),
+    GB_FIELD(BLSizeI, w),
+    GB_FIELD(BLSizeI, h),
+
+    GB_STRUCT(BLPointI),
+    GB_FIELD(BLPointI, x),
+    GB_FIELD(BLPointI, y),
+
+    /* Which Blend2D is linked in. A build fact, like SDL's version. */
+    GB_STRUCT(BLRuntimeBuildInfo),
+    GB_FIELD(BLRuntimeBuildInfo, major_version),
+    GB_FIELD(BLRuntimeBuildInfo, minor_version),
+    GB_FIELD(BLRuntimeBuildInfo, patch_version),
+    GB_FIELD(BLRuntimeBuildInfo, build_type),
+    GB_FIELD(BLRuntimeBuildInfo, baseline_cpu_features),
+    GB_FIELD(BLRuntimeBuildInfo, supported_cpu_features),
+    GB_FIELD(BLRuntimeBuildInfo, max_image_size),
+    GB_FIELD(BLRuntimeBuildInfo, max_thread_count),
+    GB_FIELD(BLRuntimeBuildInfo, compiler_info),
+
+    /* Pixel formats. PRGB32 is the one that matters: premultiplied BGRA in
+     * memory on a little-endian target, which is what PixelBuffer normalises to
+     * and what a compositor expects. */
+    GB_CONSTANT("BL_FORMAT_NONE", BL_FORMAT_NONE),
+    GB_CONSTANT("BL_FORMAT_PRGB32", BL_FORMAT_PRGB32),
+    GB_CONSTANT("BL_FORMAT_XRGB32", BL_FORMAT_XRGB32),
+    GB_CONSTANT("BL_FORMAT_A8", BL_FORMAT_A8),
+
+    /*
+     * Result codes the bindings name. Blend2D exports no result-to-string
+     * function -- blend2d-debug.h is header-only -- so the names live in Java,
+     * which makes them exactly the kind of hard-coded constant that has to be
+     * checked. The error range starts at 0x00010000, well outside a plausible
+     * accidental value.
+     */
+    GB_CONSTANT("BL_SUCCESS", BL_SUCCESS),
+    GB_CONSTANT("BL_ERROR_OUT_OF_MEMORY", BL_ERROR_OUT_OF_MEMORY),
+    GB_CONSTANT("BL_ERROR_INVALID_VALUE", BL_ERROR_INVALID_VALUE),
+    GB_CONSTANT("BL_ERROR_INVALID_STATE", BL_ERROR_INVALID_STATE),
+    GB_CONSTANT("BL_ERROR_NOT_INITIALIZED", BL_ERROR_NOT_INITIALIZED),
+    GB_CONSTANT("BL_ERROR_NOT_IMPLEMENTED", BL_ERROR_NOT_IMPLEMENTED),
+
+    /* How the display scale reaches the rasterizer. */
+    GB_CONSTANT("BL_TRANSFORM_OP_RESET", BL_TRANSFORM_OP_RESET),
+    GB_CONSTANT("BL_TRANSFORM_OP_TRANSLATE", BL_TRANSFORM_OP_TRANSLATE),
+    GB_CONSTANT("BL_TRANSFORM_OP_SCALE", BL_TRANSFORM_OP_SCALE),
+
+    /* SRC_COPY overwrites rather than blends -- what clearing a frame means. */
+    GB_CONSTANT("BL_COMP_OP_SRC_OVER", BL_COMP_OP_SRC_OVER),
+    GB_CONSTANT("BL_COMP_OP_SRC_COPY", BL_COMP_OP_SRC_COPY),
+
+    /* Blend2D must be allowed to write the buffer it was handed. A bit set, so
+     * these values do not shift if Blend2D adds one. */
+    GB_CONSTANT("BL_DATA_ACCESS_NO_FLAGS", BL_DATA_ACCESS_NO_FLAGS),
+    GB_CONSTANT("BL_DATA_ACCESS_READ", BL_DATA_ACCESS_READ),
+    GB_CONSTANT("BL_DATA_ACCESS_WRITE", BL_DATA_ACCESS_WRITE),
+    GB_CONSTANT("BL_DATA_ACCESS_RW", BL_DATA_ACCESS_RW),
+
+    GB_CONSTANT("BL_RUNTIME_INFO_TYPE_BUILD", BL_RUNTIME_INFO_TYPE_BUILD),
+    GB_CONSTANT("BL_RUNTIME_INFO_TYPE_SYSTEM", BL_RUNTIME_INFO_TYPE_SYSTEM),
+    GB_CONSTANT("BL_RUNTIME_INFO_TYPE_RESOURCE", BL_RUNTIME_INFO_TYPE_RESOURCE),
+
+    /*
+     * HarfBuzz (ADR-0032).
+     *
+     * Shaping hands back two parallel arrays that Goldberry reads in place, so
+     * these two strides are load-bearing in a way most layout rows are not: get
+     * either wrong and glyph 0 is fine while every glyph after it is read from
+     * the middle of its neighbour. Both structs carry private `var` members that
+     * are part of the stride and must never be read, which is exactly why the
+     * size is registered rather than assumed from the public fields.
+     */
+    GB_STRUCT(hb_glyph_info_t),
+    GB_FIELD(hb_glyph_info_t, codepoint),
+    GB_FIELD(hb_glyph_info_t, cluster),
+
+    GB_STRUCT(hb_glyph_position_t),
+    GB_FIELD(hb_glyph_position_t, x_advance),
+    GB_FIELD(hb_glyph_position_t, y_advance),
+    GB_FIELD(hb_glyph_position_t, x_offset),
+    GB_FIELD(hb_glyph_position_t, y_offset),
+
+    /* Text direction. Not sequential -- LTR is 4, and the gap below it is why
+     * the values are declared rather than counted. */
+    GB_CONSTANT("HB_DIRECTION_INVALID", HB_DIRECTION_INVALID),
+    GB_CONSTANT("HB_DIRECTION_LTR", HB_DIRECTION_LTR),
+    GB_CONSTANT("HB_DIRECTION_RTL", HB_DIRECTION_RTL),
+    GB_CONSTANT("HB_DIRECTION_TTB", HB_DIRECTION_TTB),
+    GB_CONSTANT("HB_DIRECTION_BTT", HB_DIRECTION_BTT),
+
+    /* How HarfBuzz may treat a font's bytes. */
+    GB_CONSTANT("HB_MEMORY_MODE_DUPLICATE", HB_MEMORY_MODE_DUPLICATE),
+    GB_CONSTANT("HB_MEMORY_MODE_READONLY", HB_MEMORY_MODE_READONLY),
 };
 
 GOLDBERRY_EXPORT const goldberry_layout_entry_t *goldberry_layout_table(void) {

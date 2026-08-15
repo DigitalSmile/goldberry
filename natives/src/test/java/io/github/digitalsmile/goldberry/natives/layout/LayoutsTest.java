@@ -54,11 +54,17 @@ class LayoutsTest {
 
     /// Layouts modelled by extent alone, with no fields to compare.
     ///
-    /// `SDL_Event` is a union: Goldberry allocates one, hands SDL the pointer, and
-    /// reads the arms it understands through their own layouts. Its size and
-    /// alignment are the whole contract, and naming members of a union would
-    /// assert a structure it does not have.
-    private static final List<String> OPAQUE = List.of("SDL_Event");
+    /// Unions Goldberry allocates and hands over without ever reading a field.
+    ///
+    /// `SDL_Event` is one: Goldberry allocates it, hands SDL the pointer, and
+    /// reads the arms it understands through their own layouts. `BLObjectDetail`
+    /// is the other, and more so — it is Blend2D's entire object model, a static
+    /// payload and an `Impl` pointer overlapped in sixteen bytes, and its
+    /// contents are Blend2D's business alone.
+    ///
+    /// For both, the size and alignment are the whole contract. Naming members
+    /// of a union would assert a structure it does not have.
+    private static final List<String> OPAQUE = List.of("SDL_Event", "BLObjectDetail");
 
     @Test
     @DisplayName("every registered layout is named and non-empty")

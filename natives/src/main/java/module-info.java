@@ -23,6 +23,8 @@ module io.github.digitalsmile.goldberry.natives {
     // What is exported below traffics in Java types -- SdlWindowHandle wraps the
     // pointer, MeasureCallback wraps the stub, PixelBuffer arrives as a
     // ByteBuffer (ADR-0019).
+    exports io.github.digitalsmile.goldberry.natives.blend2d;
+    exports io.github.digitalsmile.goldberry.natives.harfbuzz;
     exports io.github.digitalsmile.goldberry.natives.sdl;
     exports io.github.digitalsmile.goldberry.natives.yoga;
 

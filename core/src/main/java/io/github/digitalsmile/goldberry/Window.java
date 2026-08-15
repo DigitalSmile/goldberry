@@ -199,7 +199,17 @@ public final class Window implements AutoCloseable {
         }
         var allocated = traced ? System.nanoTime() : 0L;
 
-        painter.accept(new Frame(target, window.scale()));
+        // Ended before the timestamp and before presenting, in that order: a
+        // Blend2D context may still have work in flight, and presenting pixels
+        // it has not finished with shows a half-drawn frame. The `finally` is
+        // what keeps a painter that throws from leaving the context attached to
+        // the platform's surface.
+        var frame = new Frame(target, window.scale());
+        try {
+            painter.accept(frame);
+        } finally {
+            frame.end();
+        }
         var painted = traced ? System.nanoTime() : 0L;
 
         var frameSize = size;

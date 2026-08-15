@@ -27,9 +27,11 @@ defaults:
     shell: bash
 
 env:
-  # Keep in step with gradle/libs.versions.toml.
-  BLEND2D_REF: master
-  ASMJIT_REF: master
+  # Keep in step with gradle/libs.versions.toml -- `./gradlew :natives:checkPinnedRefs`
+  # fails if these drift. Blend2D and AsmJit publish no release tags, so they are
+  # pinned by commit SHA (ADR-0030).
+  BLEND2D_REF: 6dbc2cefbc996379e07104e34519a440b49b15d7
+  ASMJIT_REF: 0bd5787b54b575ed94bf32ac452153b34385c514
   YOGA_REF: v3.1.0
   HARFBUZZ_REF: 8.5.0
   SDL3_REF: release-3.2.0

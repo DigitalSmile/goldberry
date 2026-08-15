@@ -44,9 +44,13 @@ include(FetchContent)
 include(ExternalProject)
 
 # Upstream refs are pinned in gradle/libs.versions.toml and passed in by Gradle.
-# Defaults exist only so a bare `cmake -S ...` is not immediately broken.
-set(GOLDBERRY_BLEND2D_REF "master" CACHE STRING "Blend2D git ref")
-set(GOLDBERRY_ASMJIT_REF "master" CACHE STRING "AsmJit git ref (must suit the Blend2D ref)")
+# Defaults exist only so a bare `cmake -S ...` is not immediately broken, and
+# `./gradlew :natives:checkPinnedRefs` fails if they drift from the catalog.
+#
+# Blend2D and AsmJit publish no release tags, so they are pinned by commit SHA
+# (ADR-0030). Everything else has a tag to point at.
+set(GOLDBERRY_BLEND2D_REF "6dbc2cefbc996379e07104e34519a440b49b15d7" CACHE STRING "Blend2D git ref")
+set(GOLDBERRY_ASMJIT_REF "0bd5787b54b575ed94bf32ac452153b34385c514" CACHE STRING "AsmJit git ref (must suit the Blend2D ref)")
 set(GOLDBERRY_YOGA_REF "v3.1.0" CACHE STRING "Yoga git ref")
 set(GOLDBERRY_HARFBUZZ_REF "8.5.0" CACHE STRING "HarfBuzz git ref")
 set(GOLDBERRY_SDL3_REF "release-3.2.0" CACHE STRING "SDL3 git ref")
@@ -75,10 +79,20 @@ message(STATUS "Goldberry target: ${GOLDBERRY_TARGET_ID} (${CMAKE_SYSTEM_NAME}/$
 # FetchContent download asmjit without calling add_subdirectory() on it, leaving
 # Blend2D to add it exactly once, its own way. Declaring it normally produces a
 # rival asmjit subproject and duplicate targets.
+#
+# No GIT_SHALLOW here, and none on Blend2D below, because both are pinned to a
+# commit SHA (ADR-0030) and CMake's own documentation says GIT_SHALLOW "works
+# only with branch names and tags. A commit hash is not allowed."
+#
+# It would appear to work anyway today: a shallow clone fetches `--depth 1
+# --no-single-branch`, so it contains every branch *tip*, and these SHAs are the
+# tips of master right now. The checkout would start failing the day upstream
+# commits anything -- on a clean clone, in CI, with "Failed to checkout tag" and
+# nothing pointing at the cause. Paying for the full history is the cheaper of
+# the two.
 FetchContent_Declare(asmjit
     GIT_REPOSITORY https://github.com/asmjit/asmjit.git
     GIT_TAG ${GOLDBERRY_ASMJIT_REF}
-    GIT_SHALLOW TRUE
     SOURCE_SUBDIR goldberry-do-not-add-subdirectory)
 
 FetchContent_MakeAvailable(asmjit)
@@ -100,10 +114,10 @@ if(NOT EXISTS "${ASMJIT_DIR}/CMakeLists.txt")
 endif()
 message(STATUS "Goldberry: asmjit for Blend2D at ${ASMJIT_DIR}")
 
+# No GIT_SHALLOW -- see the note on asmjit above.
 FetchContent_Declare(blend2d
     GIT_REPOSITORY https://github.com/blend2d/blend2d.git
-    GIT_TAG ${GOLDBERRY_BLEND2D_REF}
-    GIT_SHALLOW TRUE)
+    GIT_TAG ${GOLDBERRY_BLEND2D_REF})
 
 set(BLEND2D_STATIC TRUE CACHE BOOL "" FORCE)
 set(BLEND2D_TEST FALSE CACHE BOOL "" FORCE)
@@ -175,6 +189,53 @@ set(SDL_INSTALL OFF CACHE BOOL "" FORCE)
 
 # asmjit is deliberately absent: it was populated above and is added by Blend2D.
 FetchContent_MakeAvailable(blend2d yoga harfbuzz sdl3)
+
+# Some upstreams must be compiled with DEFAULT symbol visibility (ADR-0031).
+#
+# This is ADR-0018's lesson in its third costume: a version script cannot
+# promote a symbol that is already hidden. There, --exclude-libs,ALL did the
+# hiding. Here it is the upstream headers, in two different ways.
+#
+# Blend2D:
+#     #if !defined(BL_STATIC)
+#       ... #define BL_API __attribute__((visibility("default")))
+#     #endif
+#     #ifndef BL_API
+#       #define BL_API          <-- a static build gets nothing at all
+#     #endif
+#
+# HarfBuzz, more bluntly still:
+#     #ifndef HB_EXTERN
+#     #define HB_EXTERN extern   <-- no visibility attribute, ever
+#     #endif
+#
+# Neither decorates its API when built statically, so the
+# CMAKE_CXX_VISIBILITY_PRESET=hidden set at the top of this file applies to
+# every one of their functions. The failure is quiet and specific: the symbols
+# link in perfectly well -- `-u` pulls each one out of its archive -- and arrive
+# in libgoldberry.so as LOCAL, where nothing can call them. `nm -D` shows none
+# of them while plain `nm` shows them all as lowercase `t`, and the exported
+# count silently sits below the length of the export list.
+#
+# Yoga and SDL do not have this problem: YG_EXPORT and SDL_DECLSPEC are
+# unconditionally visibility("default"), static build or not.
+#
+# Turning visibility back on for these targets does NOT leak their internals:
+# the version script's `local: *` still hides everything that is not on the
+# export list, which is the same argument ADR-0018 settled. asmjit is compiled
+# into the blend2d target rather than linked, so it is covered with it.
+foreach(_target IN ITEMS blend2d harfbuzz)
+    if(NOT TARGET ${_target})
+        message(FATAL_ERROR
+            "Expected a target named `${_target}`. Without it the visibility fix "
+            "below does not apply and its symbols fail to export -- silently, as "
+            "local symbols. See ADR-0031.")
+    endif()
+    set_target_properties(${_target} PROPERTIES
+        C_VISIBILITY_PRESET default
+        CXX_VISIBILITY_PRESET default
+        VISIBILITY_INLINES_HIDDEN OFF)
+endforeach()
 
 # ============================================================================
 # libxkbcommon -- keyboard translation (§3, §7.1)
