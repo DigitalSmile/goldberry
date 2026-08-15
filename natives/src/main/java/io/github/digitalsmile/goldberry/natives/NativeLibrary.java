@@ -1,6 +1,7 @@
 package io.github.digitalsmile.goldberry.natives;
 
 import io.github.digitalsmile.goldberry.natives.log.Logs;
+import io.github.digitalsmile.goldberry.natives.log.Startup;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
@@ -103,7 +104,9 @@ public final class NativeLibrary {
         // Arena.global(): the library stays mapped for the life of the JVM.
         // Unloading it would invalidate every downcall handle in the toolkit,
         // so this is deliberately not scoped.
-        var lookup = SymbolLookup.libraryLookup(libraryPath, Arena.global());
+        var lookup = Startup.time(
+                "libgoldberry mapped",
+                () -> SymbolLookup.libraryLookup(libraryPath, Arena.global()));
         // The first question asked of any bug report that starts "it works on my
         // machine": which library, from where.
         LOG.info("loaded libgoldberry for {} from {}", platform.classifier(), libraryPath);
@@ -125,6 +128,7 @@ public final class NativeLibrary {
             var target = Files.createTempDirectory("goldberry-natives")
                     .resolve(platform.libraryFileName());
             LOG.debug("unpacking {} to {}", resource, target);
+            Startup.mark("unpacking libgoldberry from the classifier jar");
             Files.copy(in, target, StandardCopyOption.REPLACE_EXISTING);
             target.toFile().deleteOnExit();
             target.getParent().toFile().deleteOnExit();

@@ -106,6 +106,17 @@ runtimeOnly 'ch.qos.logback:logback-classic:1.5.18'
 Add nothing and you get silence — including from SLF4J itself, which otherwise
 prints a "no providers were found" warning to stderr (ADR-0023).
 
+At `TRACE`, Goldberry reports a start-up timeline and per-frame timings — which is
+how to find out where a slow start or a slow frame went (ADR-0028):
+
+```text
+start-up timeline (866.6ms to here):
+     533.8ms    +533.8ms  runtime starting
+     559.6ms     +25.8ms  libgoldberry mapped (1.9ms)
+     722.6ms    +162.9ms  SDL video subsystem up (99.2ms)
+     866.6ms    +117.1ms  first frame presented
+```
+
 ## Documentation
 
 | Where | What |

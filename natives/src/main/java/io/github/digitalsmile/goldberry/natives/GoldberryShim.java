@@ -1,6 +1,7 @@
 package io.github.digitalsmile.goldberry.natives;
 
 import io.github.digitalsmile.goldberry.natives.log.Logs;
+import io.github.digitalsmile.goldberry.natives.log.Startup;
 import java.lang.foreign.FunctionDescriptor;
 import java.lang.foreign.Linker;
 import java.lang.foreign.MemorySegment;
@@ -85,6 +86,7 @@ public final class GoldberryShim {
         var version = shim.abiVersion();
         LOG.debug("libgoldberry reports ABI version {}, {} layout entries",
                 version, version == SUPPORTED_ABI_VERSION ? shim.layoutCount() : -1);
+        Startup.mark("libgoldberry ABI " + version + " verified");
         if (version != SUPPORTED_ABI_VERSION) {
             throw new UnsatisfiedLinkError(
                     "libgoldberry reports ABI version " + version + ", but this build of "

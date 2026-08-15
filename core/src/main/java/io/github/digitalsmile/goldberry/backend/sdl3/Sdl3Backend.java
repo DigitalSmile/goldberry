@@ -14,6 +14,7 @@ import io.github.digitalsmile.goldberry.natives.sdl.SdlSubsystem;
 import io.github.digitalsmile.goldberry.natives.sdl.SdlVideo;
 import io.github.digitalsmile.goldberry.natives.sdl.SdlWindowFlag;
 import io.github.digitalsmile.goldberry.natives.log.Logs;
+import io.github.digitalsmile.goldberry.natives.log.Startup;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.EnumSet;
@@ -60,7 +61,8 @@ public final class Sdl3Backend implements Backend {
     public Sdl3Backend() {
         try {
             selectVideoDriver();
-            Sdl.get().initialize(EnumSet.of(SdlSubsystem.VIDEO));
+            Startup.time("SDL video subsystem up",
+                    () -> Sdl.get().initialize(EnumSet.of(SdlSubsystem.VIDEO)));
             LOG.info("sdl3 backend started on SDL {}, video driver {}",
                     Sdl.get().version(), Sdl.get().videoDriver());
         } catch (SdlException e) {
@@ -160,6 +162,7 @@ public final class Sdl3Backend implements Backend {
 
         var window = new Sdl3Window(this, handle, spec.title());
         windowsById.put(handle.id(), window);
+        Startup.mark("SDL window " + handle.id() + " created");
         LOG.debug("created SDL window {} \"{}\" {} flags={}",
                 handle.id(), spec.title(), spec.size(), flags);
         return window;

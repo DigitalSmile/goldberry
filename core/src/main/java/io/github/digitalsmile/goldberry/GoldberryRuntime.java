@@ -7,6 +7,7 @@ import io.github.digitalsmile.goldberry.backend.BackendWindow;
 import io.github.digitalsmile.goldberry.backend.EventLoop;
 import io.github.digitalsmile.goldberry.backend.sdl3.Sdl3Backend;
 import io.github.digitalsmile.goldberry.natives.log.Logs;
+import io.github.digitalsmile.goldberry.natives.log.Startup;
 import java.util.IdentityHashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -40,7 +41,10 @@ final class GoldberryRuntime {
     static synchronized GoldberryRuntime get() {
         if (instance == null) {
             LOG.debug("starting the Goldberry runtime on {}", Thread.currentThread().getName());
-            instance = new GoldberryRuntime(new Sdl3Backend());
+            Startup.mark("runtime starting");
+            Startup.logModules();
+            instance = new GoldberryRuntime(Startup.time("backend ready", Sdl3Backend::new));
+            Startup.mark("event loop ready");
         }
         return instance;
     }

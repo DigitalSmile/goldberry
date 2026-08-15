@@ -27,7 +27,9 @@ exercised rather than assumed ([ADR-0023](adr/0023-logging-and-the-example-as-a-
 
 Every module logs through SLF4J and binds no implementation. An application that
 adds one gets the toolkit's diagnostics; one that adds none gets silence, SLF4J's
-own no-provider warning included.
+own no-provider warning included. At `TRACE` the toolkit reports a start-up
+timeline, the modules it resolved, and per-frame timings
+([ADR-0028](adr/0028-the-start-up-timeline.md)).
 
 Every module ships a `module-info.java`. That is not decoration: the module graph
 is what enforces the rule that raw `MemorySegment` never escapes `:natives`, and
@@ -102,6 +104,12 @@ block can be scheduled honestly.
   `SDL_AddEventWatch`, drawing from inside SDL's own callback, which is a
   different shape of frame loop and waits for a renderer worth driving from it. —
   [ADR-0024](adr/0024-a-repaint-must-wake-the-loop.md)
+- **"Starts in milliseconds" is still unproven.** The timeline exists and the
+  first numbers are in ADR-0028 — `SDL_Init(VIDEO)` is ~99ms and dominates, while
+  mapping `libgoldberry` is under 2ms — but they were measured under `gradle run`,
+  which adds a launcher and its own JVM. The headline claim needs the example
+  launched directly. —
+  [ADR-0028](adr/0028-the-start-up-timeline.md)
 - **Blend2D and AsmJit have no release tags**, so both are pinned by branch and
   the build is not reproducible. They must become commit SHAs before publishing.
 - **The layout registry has two entries.** The canary, the primitive widths, and

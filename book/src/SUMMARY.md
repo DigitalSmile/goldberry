@@ -33,6 +33,7 @@
 - [ADR-0025 Where Linker.critical is worth it](adr/0025-where-linker-critical-is-worth-it.md)
 - [ADR-0026 SDL picks the video driver (partly superseded)](adr/0026-sdl-picks-the-video-driver.md)
 - [ADR-0027 Prefer Wayland, fall back to X11](adr/0027-prefer-wayland-fall-back-to-x11.md)
+- [ADR-0028 The start-up timeline](adr/0028-the-start-up-timeline.md)
 
 ---
 

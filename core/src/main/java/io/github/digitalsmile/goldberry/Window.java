@@ -9,6 +9,7 @@ import io.github.digitalsmile.goldberry.backend.PixelBuffer;
 import io.github.digitalsmile.goldberry.backend.PixelFormat;
 import io.github.digitalsmile.goldberry.backend.WindowSpec;
 import io.github.digitalsmile.goldberry.natives.log.Logs;
+import io.github.digitalsmile.goldberry.natives.log.Startup;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.BooleanSupplier;
@@ -46,6 +47,10 @@ public final class Window implements AutoCloseable {
     private Consumer<DisplayScale> scaleHandler = scale -> {};
     private BooleanSupplier closeHandler = () -> true;
 
+    /// Whether this window has ever reached the screen. The first time is what
+    /// the start-up timeline is measuring.
+    private boolean everPresented;
+
     /// Reused between frames while the size holds. Repainting is the common case
     /// and a fresh multi-megabyte buffer per frame is a lot of garbage for
     /// something the backend copies out immediately.
@@ -74,6 +79,7 @@ public final class Window implements AutoCloseable {
         runtime.register(backendWindow, window);
         LOG.info("window \"{}\" opened: {} at {} -> {}",
                 spec.title(), backendWindow.size(), backendWindow.scale(), backendWindow.physicalSize());
+        Startup.mark("window \"" + spec.title() + "\" open");
         window.repaint();
         return window;
     }
@@ -199,6 +205,11 @@ public final class Window implements AutoCloseable {
         var frameSize = size;
         try {
             window.present(target, List.of(DamageRect.all(frameSize)));
+            if (!everPresented) {
+                everPresented = true;
+                Startup.mark("first frame presented");
+                Startup.summarize();
+            }
             if (traced) {
                 var done = System.nanoTime();
                 // Where a slow frame went. During a resize this is the difference
