@@ -81,6 +81,21 @@ def installDir = layout.buildDirectory.dir("native/${hostTarget.id}/install")
 ext.hostNativeLibrary = installDir.map { it.dir('lib').file(hostTarget.library) }
 ext.hostNativeTargetId = hostTarget.id
 
+// Where FetchContent clones the five upstreams -- roughly 330 MB, and several
+// minutes on a cold cache (ADR-0038).
+//
+// Deliberately OUTSIDE build/: `./gradlew clean` would otherwise discard every
+// byte of it, and the next build would re-clone from scratch. That is the whole
+// reason this is not just `build/native/<target>/cmake/_deps`, which is where
+// FetchContent puts it by default.
+//
+// Per target, because the base directory also holds the generator-specific
+// `<name>-build` and `<name>-subbuild` trees; two targets sharing one would
+// collide. `cleanNativeDeps` is the way to discard it on purpose.
+def depsDir = providers.gradleProperty('goldberry.depsDir')
+        .map { file(it) }
+        .orElse(layout.projectDirectory.dir(".deps/${hostTarget.id}").asFile)
+
 // Where CI drops the libraries downloaded from every runner, so one job can
 // assemble all six classifier jars. Locally only the host's directory exists.
 def artifactsDir = providers.gradleProperty('goldberry.artifactsDir')
@@ -326,9 +341,21 @@ def cmakeConfigure = tasks.register('cmakeConfigure', Exec) {
     inputs.dir cmakeSourceDir
     // The refs are not passed on the command line any more, so the catalog is
     // an input in its own right: bumping a pin has to reconfigure, or CMake
-    // would keep building the last ref out of its _deps.
+    // would keep building the last ref out of its cache. This is what the
+    // per-ref input properties used to do -- same guarantee, one input, and it
+    // covers a ref this build file does not know the name of (ADR-0035).
     inputs.file catalogFile
-    outputs.dir cmakeWorkDir
+    // These two change the generated configuration without changing a single
+    // input file, so without them a retarget would not re-configure.
+    inputs.property 'targetId', hostTarget.id
+    inputs.property 'depsDir', depsDir.map { it.absolutePath }
+
+    // Not `outputs.dir cmakeWorkDir`. That directory used to hold `_deps` as
+    // well -- 7,500-odd files and 350 MB -- and Gradle fingerprinted the lot on
+    // both sides of every run, which is its own several-second silent pause.
+    // These two files are what "configured" actually means.
+    outputs.file cmakeWorkDir.map { it.file('CMakeCache.txt') }
+    outputs.file cmakeWorkDir.map { it.file('build.ninja') }
 
     commandLine 'cmake',
             '-S', cmakeSourceDir.asFile.absolutePath,
@@ -336,9 +363,35 @@ def cmakeConfigure = tasks.register('cmakeConfigure', Exec) {
             '-G', 'Ninja',
             '-DCMAKE_BUILD_TYPE=Release',
             "-DCMAKE_INSTALL_PREFIX=${installDir.get().asFile.absolutePath}",
-            "-DGOLDBERRY_TARGET_ID=${hostTarget.id}"
+            "-DGOLDBERRY_TARGET_ID=${hostTarget.id}",
+            "-DFETCHCONTENT_BASE_DIR=${depsDir.get().absolutePath}"
             // No -DGOLDBERRY_*_REF: the superbuild reads gradle/libs.versions.toml
             // itself, which is the whole of ADR-0035.
+
+    // The first configure clones five repositories and prints nothing useful
+    // while it does. Say so before the silence rather than after it -- being
+    // told "this takes minutes" is the difference between waiting and killing
+    // the build (ADR-0038).
+    doFirst {
+        def cache = depsDir.get()
+        if (!new File(cache, 'harfbuzz-src').isDirectory()) {
+            logger.lifecycle("""\
+                Goldberry: first native configure for ${hostTarget.id}.
+
+                Cloning Blend2D, AsmJit, Yoga, HarfBuzz and SDL3 into
+                  ${cache}
+                -- about 330 MB, typically a few minutes on a warm connection.
+
+                The cache survives `./gradlew clean`; `./gradlew :natives:cleanNativeDeps`
+                is what discards it.""".stripIndent())
+        }
+    }
+}
+
+tasks.register('cleanNativeDeps', Delete) {
+    group = nativeGroup
+    description = 'Discards the cached upstream sources, forcing a fresh clone.'
+    delete depsDir
 }
 
 def cmakeBuild = tasks.register('cmakeBuild', Exec) {
@@ -347,6 +400,9 @@ def cmakeBuild = tasks.register('cmakeBuild', Exec) {
 
     dependsOn cmakeConfigure
     inputs.dir cmakeSourceDir
+    // The generated configuration, not just the CMake sources: a version bump
+    // re-configures, and re-configuring has to re-link.
+    inputs.files cmakeConfigure
     outputs.dir installDir
 
     commandLine 'cmake',

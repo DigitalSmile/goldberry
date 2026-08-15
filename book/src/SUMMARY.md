@@ -43,6 +43,8 @@
 - [ADR-0035 The catalog is the only place a ref lives](adr/0035-the-catalog-is-the-only-place-a-ref-lives.md)
 - [ADR-0036 The paragraph is shaped once and wrapped many times](adr/0036-the-paragraph-is-shaped-once-and-wrapped-many-times.md)
 - [ADR-0037 What the text path costs](adr/0037-what-the-text-path-costs.md)
+- [ADR-0038 The superbuild download is not a hang](adr/0038-the-superbuild-download-is-not-a-hang.md)
+- [ADR-0039 macOS needs the first thread](adr/0039-macos-needs-the-first-thread.md)
 
 ---
 

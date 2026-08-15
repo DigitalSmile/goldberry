@@ -116,6 +116,30 @@ set(GOLDBERRY_TARGET_ID "host" CACHE STRING "Distribution target id, e.g. linux-
 
 message(STATUS "Goldberry target: ${GOLDBERRY_TARGET_ID} (${CMAKE_SYSTEM_NAME}/${CMAKE_SYSTEM_PROCESSOR})")
 
+# --- The download phase must be audible (ADR-0029) ---------------------------
+#
+# FetchContent clones five repositories totalling roughly 330 MB. Left to its
+# defaults that is several silent minutes: FETCHCONTENT_QUIET swallows the
+# populate step's output, and git without --progress writes nothing at all when
+# stdout is not a terminal -- which it never is under Gradle's Exec. The build
+# was routinely reported as hung during exactly this window.
+#
+# So: unmute the populate step, and pass --progress to git (GIT_PROGRESS on each
+# declaration below) so it reports even into a pipe. The configure step gets
+# noisier; that is the point. A build that is doing something must look like it.
+set(FETCHCONTENT_QUIET FALSE)
+
+# Where the clones live. Gradle points this at natives/.deps/<target-id>, which
+# is OUTSIDE build/ on purpose -- see ADR-0029. Inside build/, `./gradlew clean`
+# discards all 330 MB and the next build re-clones it.
+#
+# Per target rather than one shared directory: FETCHCONTENT_BASE_DIR holds the
+# generator-specific `<name>-build` and `<name>-subbuild` trees beside the
+# sources, so two targets sharing one base directory would fight over them.
+if(FETCHCONTENT_BASE_DIR)
+    message(STATUS "Goldberry: upstream sources cached in ${FETCHCONTENT_BASE_DIR}")
+endif()
+
 # ============================================================================
 # Blend2D -- 2D vector rasterization (§3, ADR-0002)
 #
@@ -150,6 +174,9 @@ message(STATUS "Goldberry target: ${GOLDBERRY_TARGET_ID} (${CMAKE_SYSTEM_NAME}/$
 FetchContent_Declare(asmjit
     GIT_REPOSITORY https://github.com/asmjit/asmjit.git
     GIT_TAG ${GOLDBERRY_ASMJIT_REF}
+    # GIT_PROGRESS but NOT GIT_SHALLOW -- see the note above. Progress is the
+    # whole point of ADR-0038; shallow is what a SHA pin forbids (ADR-0030).
+    GIT_PROGRESS TRUE
     SOURCE_SUBDIR goldberry-do-not-add-subdirectory)
 
 FetchContent_MakeAvailable(asmjit)
@@ -174,7 +201,8 @@ message(STATUS "Goldberry: asmjit for Blend2D at ${ASMJIT_DIR}")
 # No GIT_SHALLOW -- see the note on asmjit above.
 FetchContent_Declare(blend2d
     GIT_REPOSITORY https://github.com/blend2d/blend2d.git
-    GIT_TAG ${GOLDBERRY_BLEND2D_REF})
+    GIT_TAG ${GOLDBERRY_BLEND2D_REF}
+    GIT_PROGRESS TRUE)
 
 set(BLEND2D_STATIC TRUE CACHE BOOL "" FORCE)
 set(BLEND2D_TEST FALSE CACHE BOOL "" FORCE)
@@ -203,6 +231,7 @@ FetchContent_Declare(yoga
     GIT_REPOSITORY https://github.com/facebook/yoga.git
     GIT_TAG ${GOLDBERRY_YOGA_REF}
     GIT_SHALLOW TRUE
+    GIT_PROGRESS TRUE
     SOURCE_SUBDIR yoga)
 
 # ============================================================================
@@ -215,7 +244,8 @@ FetchContent_Declare(yoga
 FetchContent_Declare(harfbuzz
     GIT_REPOSITORY https://github.com/harfbuzz/harfbuzz.git
     GIT_TAG ${GOLDBERRY_HARFBUZZ_REF}
-    GIT_SHALLOW TRUE)
+    GIT_SHALLOW TRUE
+    GIT_PROGRESS TRUE)
 
 set(HB_HAVE_FREETYPE OFF CACHE BOOL "" FORCE)
 set(HB_HAVE_GLIB OFF CACHE BOOL "" FORCE)
@@ -235,7 +265,8 @@ set(SKIP_INSTALL_ALL ON CACHE BOOL "" FORCE)
 FetchContent_Declare(sdl3
     GIT_REPOSITORY https://github.com/libsdl-org/SDL.git
     GIT_TAG ${GOLDBERRY_SDL3_REF}
-    GIT_SHALLOW TRUE)
+    GIT_SHALLOW TRUE
+    GIT_PROGRESS TRUE)
 
 set(SDL_STATIC ON CACHE BOOL "" FORCE)
 set(SDL_SHARED OFF CACHE BOOL "" FORCE)
@@ -308,6 +339,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
         GIT_REPOSITORY https://github.com/xkbcommon/libxkbcommon.git
         GIT_TAG ${GOLDBERRY_XKBCOMMON_REF}
         GIT_SHALLOW TRUE
+        GIT_PROGRESS TRUE
         # Core library only. `enable-x11` builds libxkbcommon-x11, which fetches a
         # keymap over an xcb connection, and `enable-wayland` builds an interactive
         # demo tool -- Goldberry needs neither. Per §7.1 it uses xkb_state and

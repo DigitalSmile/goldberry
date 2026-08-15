@@ -47,6 +47,10 @@ bin/
 ### Claude Code ###
 .idea/claudeCodeTabState.xml
 
+# The superbuild's cloned upstream sources. Outside build/ on purpose, so that
+# `clean` does not throw away a 330 MB download -- see ADR-0029.
+natives/.deps/
+
 # The example is a separate build with its own outputs.
 example/build/
 example/.gradle/

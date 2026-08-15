@@ -106,6 +106,18 @@ block can be scheduled honestly.
   are untried, and the driver is logged at start-up so a report can say which one
   it got. —
   [ADR-0027](adr/0027-prefer-wayland-fall-back-to-x11.md)
+- **The macOS window opens, and the CI leg still would not have caught it.**
+  `gradlew run` failed with "No available video device", which points at the
+  superbuild and was not the superbuild: macOS drives AppKit from the process's
+  first thread and the java launcher does not put `main` there. The showcase
+  passes `-XstartOnFirstThread` on macOS and `Sdl3Backend` appends the
+  explanation after SDL says no — as a diagnosis rather than a precondition,
+  since a JVM embedded on the real main thread would lack the launcher's
+  environment variable and would work anyway. The hole that hid it is still
+  open: the macOS leg links the library and runs the `:natives` tests, and never
+  opens a window. —
+  [ADR-0039](adr/0039-macos-needs-the-first-thread.md)
+
 - **Live resize stalls on Windows and macOS.** Both run a modal loop during a
   resize gesture, so SDL does not return from event pumping until the drag ends
   and frames stop with it. Wayland and X11 are prompt. The fix is
