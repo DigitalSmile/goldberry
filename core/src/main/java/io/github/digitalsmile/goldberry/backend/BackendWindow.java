@@ -1,6 +1,7 @@
 package io.github.digitalsmile.goldberry.backend;
 
 import java.util.List;
+import java.util.Optional;
 
 /// One window, as the platform sees it.
 ///
@@ -20,7 +21,28 @@ public interface BackendWindow extends AutoCloseable {
     /// [BackendEvent.ScaleChanged].
     DisplayScale scale();
 
+    /// Borrows the platform's own frame buffer to paint into, if it has one to
+    /// lend.
+    ///
+    /// The CPU path otherwise costs a full-frame copy: the toolkit rasterizes into
+    /// its own buffer and the backend copies that into the platform's. At 1080p
+    /// that copy measured 2–5 ms of every frame — on top of the paint itself and
+    /// the platform's own upload. Painting directly into the platform's memory
+    /// removes it.
+    ///
+    /// The returned buffer is valid until the matching [#present] and must be
+    /// handed straight back to it. A backend that has no such memory to lend —
+    /// `headless`, or a GPU path — returns empty, and the caller allocates.
+    ///
+    /// @return the platform's buffer, already the right size, or empty
+    default Optional<PixelBuffer> acquireFrame() {
+        return Optional.empty();
+    }
+
     /// Hands a rasterized frame to the platform.
+    ///
+    /// Passing back exactly the buffer [#acquireFrame] returned tells the backend
+    /// the pixels are already where they need to be, and the copy is skipped.
     ///
     /// `damage` lists the regions that changed, in physical pixels. An empty list
     /// means nothing changed and the backend may present nothing at all; to

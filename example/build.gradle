@@ -60,9 +60,17 @@ tasks.named('run') {
     }
 
     // Lets CI open a window, confirm it, and exit without a human closing it.
-    def frames = providers.gradleProperty('goldberry.example.frames')
+    var showcaseArgs = []
+    var frames = providers.gradleProperty('goldberry.example.frames')
     if (frames.present) {
-        args = ['--frames=' + frames.get()]
+        showcaseArgs += '--frames=' + frames.get()
+    }
+    var size = providers.gradleProperty('goldberry.example.size')
+    if (size.present) {
+        showcaseArgs += '--size=' + size.get()
+    }
+    if (!showcaseArgs.isEmpty()) {
+        args = showcaseArgs
     }
 
     doFirst {

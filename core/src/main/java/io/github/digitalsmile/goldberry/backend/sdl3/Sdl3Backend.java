@@ -192,17 +192,21 @@ public final class Sdl3Backend implements Backend {
         } else if (type == SdlEventType.WINDOW_EXPOSED.value()) {
             out.add(new BackendEvent.Exposed(window));
         } else if (type == SdlEventType.WINDOW_RESIZED.value()) {
-            window.invalidateSurface();
             out.add(new BackendEvent.Resized(window, window.size(), window.physicalSize()));
         } else if (type == SdlEventType.WINDOW_PIXEL_SIZE_CHANGED.value()) {
             // The backing store moved without the logical size necessarily
-            // moving. No event of its own -- the resize or scale change that
-            // caused it carries the news -- but the surface is now stale.
-            window.invalidateSurface();
+            // moving. No event of its own: the resize or scale change that
+            // caused it carries the news.
         } else if (type == SdlEventType.WINDOW_DISPLAY_SCALE_CHANGED.value()) {
-            window.invalidateSurface();
             out.add(new BackendEvent.ScaleChanged(window, window.scale(), window.physicalSize()));
         }
+
+        // Nothing here destroys the window surface. SDL invalidates it itself on
+        // resize and SDL_GetWindowSurface -- which every present calls -- hands
+        // back one of the right size. Destroying it eagerly meant a full surface
+        // reallocation for every resize event a compositor sends, which during a
+        // drag is per pointer motion, and left the window with no buffer to show
+        // in between (ADR-0024).
     }
 
     private static boolean alreadyAskedToClose(List<BackendEvent> out, Sdl3Window window) {

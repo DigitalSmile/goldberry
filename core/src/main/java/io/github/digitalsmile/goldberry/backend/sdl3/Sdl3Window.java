@@ -10,8 +10,10 @@ import io.github.digitalsmile.goldberry.backend.PixelBuffer;
 import io.github.digitalsmile.goldberry.natives.sdl.SdlException;
 import io.github.digitalsmile.goldberry.natives.sdl.SdlVideo;
 import io.github.digitalsmile.goldberry.natives.sdl.SdlWindowHandle;
+import io.github.digitalsmile.goldberry.backend.PixelFormat;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 
 /// An SDL window behind the SPI.
 final class Sdl3Window implements BackendWindow {
@@ -23,6 +25,10 @@ final class Sdl3Window implements BackendWindow {
     private boolean open = true;
     private boolean framePending;
     private boolean shown;
+
+    /// The buffer handed out by the last [#acquireFrame()], so [#present] can
+    /// recognise it coming back and skip the copy.
+    private PixelBuffer acquired;
 
     Sdl3Window(Sdl3Backend backend, SdlWindowHandle handle, String title) {
         this.backend = backend;
@@ -51,6 +57,27 @@ final class Sdl3Window implements BackendWindow {
     public DisplayScale scale() {
         backend.requireUiThread();
         return new DisplayScale(video().displayScale(handle));
+    }
+
+    @Override
+    public Optional<PixelBuffer> acquireFrame() {
+        backend.requireUiThread();
+        requireOpen();
+        try {
+            var surface = video().acquireSurface(handle);
+            acquired = new PixelBuffer(
+                    new PhysicalSize(surface.width(), surface.height()),
+                    PixelFormat.BGRA32_PREMULTIPLIED,
+                    surface.stride(),
+                    surface.pixels());
+            return Optional.of(acquired);
+        } catch (SdlException e) {
+            // A surface SDL will not give us is not a failure: the caller
+            // allocates its own and present() copies, which is the path every
+            // other backend takes anyway.
+            acquired = null;
+            return Optional.empty();
+        }
     }
 
     @Override
@@ -83,14 +110,24 @@ final class Sdl3Window implements BackendWindow {
         }
 
         try {
-            video().present(
-                    handle,
-                    frame.pixels().duplicate(),
-                    frame.stride(),
-                    new SdlVideo.SdlSize(expected.width(), expected.height()),
-                    rects);
+            if (frame == acquired) {
+                // Painted straight into SDL's surface. Nothing to copy -- just
+                // tell SDL which parts changed.
+                video().presentAcquired(
+                        handle, new SdlVideo.SdlSize(expected.width(), expected.height()), rects);
+            } else {
+                video().present(
+                        handle,
+                        frame.pixels().duplicate(),
+                        frame.stride(),
+                        new SdlVideo.SdlSize(expected.width(), expected.height()),
+                        rects);
+            }
         } catch (SdlException e) {
             throw new BackendException("presenting a frame failed", e);
+        } finally {
+            // SDL's memory is only ours between acquire and present.
+            acquired = null;
         }
 
         // Shown only once there is something to look at. A window mapped before
@@ -163,13 +200,6 @@ final class Sdl3Window implements BackendWindow {
         }
         framePending = false;
         return true;
-    }
-
-    /// Drops SDL's cached surface, so the next present gets one at the new size.
-    void invalidateSurface() {
-        if (open) {
-            video().invalidateSurface(handle);
-        }
     }
 
     int handleId() {

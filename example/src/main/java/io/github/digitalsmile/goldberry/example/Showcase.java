@@ -35,7 +35,7 @@ public final class Showcase {
 
         LOG.info("Goldberry {} — showcase starting", Goldberry.version());
 
-        var window = Window.open("Goldberry — showcase", 960, 640);
+        var window = Window.open("Goldberry — showcase", widthOf(args), heightOf(args));
 
         window.onPaint(frame -> {
             frame.fill(BACKGROUND);
@@ -85,11 +85,37 @@ public final class Showcase {
     /// `--frames=N` paints N frames and exits, so CI can prove a window opened
     /// without a human to close it. Absent, the window stays until closed.
     private static int frameLimit(String[] args) {
+        return intArgument(args, "--frames=", 0);
+    }
+
+    /// `--size=WxH` opens at a size other than the default — for looking at what
+    /// a frame costs when there are two million pixels of it.
+    private static float widthOf(String[] args) {
+        return sizeArgument(args, 0, 960);
+    }
+
+    private static float heightOf(String[] args) {
+        return sizeArgument(args, 1, 640);
+    }
+
+    private static float sizeArgument(String[] args, int index, float fallback) {
         for (var arg : args) {
-            if (arg.startsWith("--frames=")) {
-                return Integer.parseInt(arg.substring("--frames=".length()));
+            if (arg.startsWith("--size=")) {
+                var parts = arg.substring("--size=".length()).split("x");
+                if (parts.length == 2) {
+                    return Float.parseFloat(parts[index]);
+                }
             }
         }
-        return 0;
+        return fallback;
+    }
+
+    private static int intArgument(String[] args, String prefix, int fallback) {
+        for (var arg : args) {
+            if (arg.startsWith(prefix)) {
+                return Integer.parseInt(arg.substring(prefix.length()));
+            }
+        }
+        return fallback;
     }
 }

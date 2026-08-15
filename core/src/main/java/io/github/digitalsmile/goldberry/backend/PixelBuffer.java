@@ -63,7 +63,11 @@ public record PixelBuffer(PhysicalSize size, PixelFormat format, int stride, Byt
     public static PixelBuffer allocate(PhysicalSize size, PixelFormat format) {
         var stride = format.minimumStride(size.width());
         var bytes = Math.multiplyExact(stride, size.height());
-        return new PixelBuffer(size, format, stride, ByteBuffer.allocate(bytes));
+        // Direct, not heap. This buffer's whole purpose is to be handed to native
+        // code, and a heap buffer makes that a copy through a bounds-checked
+        // segment rather than a memcpy. At 1080p the difference is milliseconds
+        // per frame, every frame.
+        return new PixelBuffer(size, format, stride, ByteBuffer.allocateDirect(bytes));
     }
 
     /// Whether rows are contiguous, with no padding between them.

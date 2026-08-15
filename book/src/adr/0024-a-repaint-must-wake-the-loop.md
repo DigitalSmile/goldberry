@@ -81,6 +81,37 @@ Blend2D replaces it in M1, so optimising it is work with a short life. It is
 twenty lines, it removed a visible stall today, and the row-copy shape is what the
 Blend2D path will want anyway.
 
+## Addendum, same day: the copy nobody needed
+
+The latency fixes above made the frame *rate* right and the resize still felt
+poor, so the next step was measurement rather than more reasoning. With
+`-Dgoldberry.log.level=TRACE` the frame path reports its own stages, and at 1080p
+they were:
+
+| stage | cost |
+|---|---|
+| paint (fill 8.3 MB) | 2–4 ms |
+| copy (our buffer → SDL's surface) | 2–5 ms |
+| update (SDL → compositor) | 3–8 ms |
+
+Three full-frame copies per frame, and the middle one existed only because the SPI
+said the toolkit owns the buffer and the backend copies it.
+
+So `BackendWindow.acquireFrame()` was added: the backend lends its own buffer when
+it has one, the toolkit paints directly into it, and passing that same buffer back
+to `present` skips the copy. `headless` returns empty and nothing changes for it;
+`sdl3` returns `SDL_GetWindowSurface`'s memory as a `ByteBuffer`, which keeps the
+`MemorySegment` inside `:natives` where §3.1 wants it.
+
+Measured after: present 2.6–5 ms, total frame 4.3–9.6 ms against 10–14 ms before.
+Two things did **not** help and are recorded so nobody tries them again: making
+the frame buffer direct rather than heap, and collapsing the row-by-row copy into
+one bulk copy when the strides match. Both are correct and neither moved the
+number, because the cost was never the memcpy — it was doing it at all.
+
+What remains is SDL's own upload to the compositor, which the surface API does not
+let us avoid.
+
 ## Consequences
 
 Repaints are prompt: frame-to-frame is 2–3 ms in the showcase where it was up to

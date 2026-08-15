@@ -2,6 +2,7 @@ package io.github.digitalsmile.goldberry.natives.sdl;
 
 import io.github.digitalsmile.goldberry.natives.NativeLibrary;
 import io.github.digitalsmile.goldberry.natives.layout.Layouts;
+import io.github.digitalsmile.goldberry.natives.log.Logs;
 import java.lang.foreign.Arena;
 import java.lang.foreign.FunctionDescriptor;
 import java.lang.foreign.Linker;
@@ -12,6 +13,7 @@ import java.lang.invoke.MethodHandle;
 import java.nio.ByteBuffer;
 import java.util.Collection;
 import java.util.List;
+import org.slf4j.Logger;
 
 /// SDL3's windowing, event and CPU presentation calls.
 ///
@@ -25,6 +27,8 @@ import java.util.List;
 /// that inside this module — so `:core` hands over a [ByteBuffer] and this class
 /// does the blit.
 public final class SdlVideo {
+
+    private static final Logger LOG = Logs.of(SdlVideo.class);
 
     private static final Linker LINKER = Linker.nativeLinker();
 
@@ -172,6 +176,9 @@ public final class SdlVideo {
     public void present(
             SdlWindowHandle window, ByteBuffer source, int sourceStride, SdlSize size, int[] damage) {
 
+        var traced = LOG.isTraceEnabled();
+        var started = traced ? System.nanoTime() : 0L;
+
         var surface = (MemorySegment) invoke(getWindowSurface, "SDL_GetWindowSurface", window.pointer());
         if (MemorySegment.NULL.equals(surface)) {
             throw new SdlException("SDL_GetWindowSurface", Sdl.get().lastError());
@@ -203,9 +210,67 @@ public final class SdlVideo {
             throw new SdlException("SDL_GetWindowSurface", "the surface has no pixels to write to");
         }
 
+        var gotSurface = traced ? System.nanoTime() : 0L;
+
         copyRows(source, sourceStride, resizePixels(pixels, (long) pitch * surfaceHeight),
                 pitch, size, format);
+        var copied = traced ? System.nanoTime() : 0L;
 
+        updateRects(window, damage, size);
+
+        if (traced) {
+            var done = System.nanoTime();
+            LOG.trace("present {}x{}: getSurface {}us, copy {}us (stride {} -> {}), update {}us",
+                    size.width(), size.height(),
+                    (gotSurface - started) / 1_000,
+                    (copied - gotSurface) / 1_000,
+                    sourceStride, pitch,
+                    (done - copied) / 1_000);
+        }
+    }
+
+    /// The window's own drawing surface, as a buffer that can be painted into
+    /// directly.
+    ///
+    /// This is the CPU path without the middle copy: instead of rasterizing into
+    /// a buffer of our own and copying it here, the caller paints straight into
+    /// the memory SDL is going to upload. The buffer is SDL's, valid until the
+    /// window is resized or presented, and must not be kept.
+    ///
+    /// @throws SdlException if the surface is unavailable or in a format
+    ///         Goldberry cannot paint into
+    public SurfaceBuffer acquireSurface(SdlWindowHandle window) {
+        var surface = (MemorySegment) invoke(getWindowSurface, "SDL_GetWindowSurface", window.pointer());
+        if (MemorySegment.NULL.equals(surface)) {
+            throw new SdlException("SDL_GetWindowSurface", Sdl.get().lastError());
+        }
+        var view = reinterpretSurface(surface);
+
+        var format = view.get(ValueLayout.JAVA_INT, SURFACE_FORMAT);
+        if (!SdlPixelFormat.isBlittable(format)) {
+            throw new SdlException(
+                    "SDL_GetWindowSurface",
+                    "the window surface is format 0x" + Integer.toHexString(format)
+                            + ", which is not a 32-bit BGRA-order format Goldberry can paint into");
+        }
+
+        var width = view.get(ValueLayout.JAVA_INT, SURFACE_WIDTH);
+        var height = view.get(ValueLayout.JAVA_INT, SURFACE_HEIGHT);
+        var pitch = view.get(ValueLayout.JAVA_INT, SURFACE_PITCH);
+        var pixels = view.get(ValueLayout.ADDRESS, SURFACE_PIXELS);
+        if (MemorySegment.NULL.equals(pixels)) {
+            throw new SdlException("SDL_GetWindowSurface", "the surface has no pixels to paint into");
+        }
+
+        // A ByteBuffer over SDL's memory, not a copy of it -- and a ByteBuffer
+        // rather than the segment itself, because a MemorySegment must not leave
+        // this module (sec. 3.1).
+        return new SurfaceBuffer(
+                resizePixels(pixels, (long) pitch * height).asByteBuffer(), width, height, pitch);
+    }
+
+    /// Presents a surface that was painted into directly, with no copy.
+    public void presentAcquired(SdlWindowHandle window, SdlSize size, int[] damage) {
         updateRects(window, damage, size);
     }
 
@@ -296,21 +361,30 @@ public final class SdlVideo {
         rects.set(ValueLayout.JAVA_INT, base + 12, h);
     }
 
-    /// Copies the frame row by row.
+    /// Copies the frame into the surface.
     ///
-    /// Row-wise rather than one bulk copy because the two strides rarely match:
-    /// SDL pads surface rows to its own alignment, and Blend2D pads to its own.
+    /// One copy when the strides agree, row by row when they do not. They usually
+    /// do — both sides are `width * 4` for a tightly packed 32-bit image — and the
+    /// difference is one memcpy against a thousand of them, which at 1080p is
+    /// worth several milliseconds of every frame. SDL is entitled to pad its rows
+    /// and Blend2D is entitled to pad its own, so the slow path stays.
     private static void copyRows(
             ByteBuffer source, int sourceStride, MemorySegment target, int targetStride,
             SdlSize size, int format) {
 
         var rowBytes = Math.multiplyExact(size.width(), 4);
         var sourceSegment = MemorySegment.ofBuffer(source);
-        for (var row = 0; row < size.height(); row++) {
+
+        if (sourceStride == targetStride && sourceStride == rowBytes) {
             MemorySegment.copy(
-                    sourceSegment, (long) row * sourceStride,
-                    target, (long) row * targetStride,
-                    rowBytes);
+                    sourceSegment, 0, target, 0, (long) rowBytes * size.height());
+        } else {
+            for (var row = 0; row < size.height(); row++) {
+                MemorySegment.copy(
+                        sourceSegment, (long) row * sourceStride,
+                        target, (long) row * targetStride,
+                        rowBytes);
+            }
         }
         // XRGB8888 ignores the fourth byte; ARGB8888 reads it as alpha. Blend2D
         // produces premultiplied alpha, which is what a compositor expects, so
@@ -350,6 +424,13 @@ public final class SdlVideo {
                 "libgoldberry does not export " + symbol
                         + " — is it listed in natives/src/main/cmake/exports/goldberry.symbols?"));
         return LINKER.downcallHandle(address, descriptor);
+    }
+
+    /// SDL's own drawing surface, borrowed.
+    ///
+    /// `pixels` is SDL's memory, not a copy. It stops being valid when the window
+    /// is resized or presented.
+    public record SurfaceBuffer(ByteBuffer pixels, int width, int height, int stride) {
     }
 
     /// A size in SDL's terms. Deliberately not `:core`'s `PhysicalSize` — this

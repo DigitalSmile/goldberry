@@ -168,16 +168,48 @@ public final class Window implements AutoCloseable {
             // is nothing to draw into and nothing to show.
             return;
         }
-        if (cached == null || !cached.size().equals(size)) {
-            LOG.debug("allocating a {} frame buffer", size);
-            cached = PixelBuffer.allocate(size, PixelFormat.BGRA32_PREMULTIPLIED);
+        var traced = LOG.isTraceEnabled();
+        var started = traced ? System.nanoTime() : 0L;
+
+        // Paint into the platform's own buffer when it lends one. Otherwise
+        // rasterize into ours and let the backend copy -- which is a full frame of
+        // memory traffic per frame, so it is the fallback rather than the plan.
+        var borrowed = window.acquireFrame();
+        PixelBuffer target;
+        if (borrowed.isPresent()) {
+            target = borrowed.get();
+            if (!target.size().equals(size)) {
+                // The platform's buffer disagrees with the size just read: a
+                // resize landed between the two. Its size is the authoritative
+                // one, since it is what will be shown.
+                size = target.size();
+            }
+        } else {
+            if (cached == null || !cached.size().equals(size)) {
+                LOG.debug("allocating a {} frame buffer", size);
+                cached = PixelBuffer.allocate(size, PixelFormat.BGRA32_PREMULTIPLIED);
+            }
+            target = cached;
         }
-        LOG.trace("painting {}", size);
+        var allocated = traced ? System.nanoTime() : 0L;
 
-        painter.accept(new Frame(cached, window.scale()));
+        painter.accept(new Frame(target, window.scale()));
+        var painted = traced ? System.nanoTime() : 0L;
 
+        var frameSize = size;
         try {
-            window.present(cached, List.of(DamageRect.all(size)));
+            window.present(target, List.of(DamageRect.all(frameSize)));
+            if (traced) {
+                var done = System.nanoTime();
+                // Where a slow frame went. During a resize this is the difference
+                // between "the toolkit is slow" and "the platform is".
+                LOG.trace("frame {} in {}us: buffer {}, paint {}, present {}",
+                        frameSize,
+                        (done - started) / 1_000,
+                        (allocated - started) / 1_000,
+                        (painted - allocated) / 1_000,
+                        (done - painted) / 1_000);
+            }
         } catch (RuntimeException e) {
             // A window can be resized between the size being read above and the
             // frame reaching the platform -- which during a drag is common, not
@@ -185,9 +217,10 @@ public final class Window implements AutoCloseable {
             // surface, and rightly: a mismatched blit is corruption. But that is
             // a dropped frame, not a failure, and letting it out of here would
             // end the event loop mid-resize.
-            var current = window.isOpen() ? window.physicalSize() : size;
-            if (!current.equals(size)) {
-                LOG.debug("dropped a {} frame: the window became {} while it was painted", size, current);
+            var current = window.isOpen() ? window.physicalSize() : frameSize;
+            if (!current.equals(frameSize)) {
+                LOG.debug("dropped a {} frame: the window became {} while it was painted",
+                        frameSize, current);
                 repaint();
                 return;
             }
