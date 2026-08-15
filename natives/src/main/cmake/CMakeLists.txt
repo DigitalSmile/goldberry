@@ -11,10 +11,11 @@
 # the glibc floor at 2.28. A library built outside that container links against
 # the host's glibc and is therefore NOT the publishable artifact.
 #
-# STATUS: builds and links on linux-x64. The upstream refs, CMake target names,
-# and the export model below are all confirmed against the pinned revisions on
-# that target. Windows, macOS, and linux-aarch64 have not been built yet -- the
-# MSVC and Mach-O branches of the export machinery are still unexercised.
+# STATUS: builds and links on both Linux targets and both macOS targets, so the
+# upstream refs, the CMake target names, and the ELF version-script and Mach-O
+# -exported_symbols_list branches of the export model below are all confirmed
+# against the pinned revisions. Windows has not been built yet -- the MSVC branch
+# (/INCLUDE:, .def) is still unexercised.
 
 cmake_minimum_required(VERSION 3.28)
 

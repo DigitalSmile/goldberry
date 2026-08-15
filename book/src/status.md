@@ -5,7 +5,7 @@ Tracked against the milestone ladder in `docs/ARCHITECTURE.md` §16.
 | Milestone | State | |
 |---|---|---|
 | Foundation | **done** | Multi-module Gradle (Groovy DSL), version catalog, convention plugins, JPMS module graph, JDK 25 toolchain, JUnit 6, licence disclosure, decision log |
-| M0 — Skeleton | **in progress** | **The superbuild links on both Linux targets.** Blend2D, AsmJit, SDL3, Yoga, HarfBuzz and libxkbcommon statically combine into one `libgoldberry.so` exporting exactly the three symbols on the export list and nothing else — built locally on x64, and in CI's manylinux containers on x64 and aarch64. The layout probe passes against the real library, so the hand-written binding mechanism is proven end to end. Still to come: the Windows and macOS targets, SDL3 bindings, the backend SPI, `headless`, and a blank window at correct fractional DPI |
+| M0 — Skeleton | **in progress** | **The superbuild links on four of six targets.** Blend2D, AsmJit, SDL3, Yoga, HarfBuzz and libxkbcommon statically combine into one `libgoldberry` exporting exactly the symbols on the export list and nothing else — both Linux targets in CI's manylinux containers, both macOS targets on an Apple Silicon runner. The layout probe passes against the real library, and Yoga's measure callback crosses in both directions including the `YGSize` struct-by-value return ([ADR-0017](adr/0017-proving-the-struct-by-value-upcall.md)), so the hand-written binding mechanism is proven end to end. Still to come: the two Windows targets, Yoga's node API, SDL3 bindings, the backend SPI, `headless`, and a blank window at correct fractional DPI |
 | M1 — Vertical slice | not started | Styled wrapped paragraph, resized at 60 fps; paragraph cache + upcall benchmarks |
 | M2 — Widgets & style | not started | CSS engine, KDL inflater + hot reload, core controls, Nord light/dark, golden-image CI |
 | M3 — Shell | not started | Menus, popups, tray, dialogs, scroll, forms, CSD, charts, widget showcase |
@@ -61,9 +61,14 @@ block can be scheduled honestly.
 - **KDL 2.0 Java parser.** KDL is the stable contract, but whether a suitable
   Java parser exists at the required maturity is unverified. Blocks M2. —
   [ADR-0005](adr/0005-css-subset-and-kdl-as-the-contracts.md)
-- **`YGSize` struct-by-value upcall returns.** The fiddliest corner of FFM, and it
-  sits on the layout engine's hot path. Should be proven first in M0. —
-  [ADR-0010](adr/0010-hand-written-ffm-bindings.md)
+- ~~**`YGSize` struct-by-value upcall returns.**~~ **Answered.** A Java upcall
+  returning `YGSize` by value is called from C and arrives intact; the return
+  segment is allocated once per callback rather than per call, and an exception
+  thrown by a measure function is held and rethrown in Java instead of taking the
+  process with it. Proven on linux-x64; the check runs on every target in CI, so
+  the other five are answered by the next run rather than by argument. What
+  remains is binding Yoga's node API so the callback is driven by a real layout
+  pass. — [ADR-0017](adr/0017-proving-the-struct-by-value-upcall.md)
 - **Only the Linux targets have ever been built.** Both link, x64 locally and in
   the manylinux container and aarch64 in the container, so the ELF version-script
   branch of the export machinery and the container's X11/Wayland header list are
@@ -78,9 +83,11 @@ block can be scheduled honestly.
   [ADR-0016](adr/0016-verify-the-artifact-and-never-skip-the-check.md)
 - **Blend2D and AsmJit have no release tags**, so both are pinned by branch and
   the build is not reproducible. They must become commit SHAs before publishing.
-- **The layout registry has one entry.** The probe mechanism is proven, but it
-  only covers the canary struct and the primitive widths so far. Its value
-  arrives as `YGSize`, `SDL_Event` and the rest are bound. —
+- **The layout registry has two entries.** The canary, the primitive widths, and
+  now `YGSize`. Its value keeps arriving as `SDL_Event` and the rest are bound —
+  and `YGSize` is a reminder of the limit: identical on all six targets, so its
+  row proves nothing the round trip in
+  [ADR-0017](adr/0017-proving-the-struct-by-value-upcall.md) does not. —
   [ADR-0010](adr/0010-hand-written-ffm-bindings.md)
 - **CMake arguments live in two places** — `natives/build.gradle` for local builds
   and the CI workflows — because the manylinux container has no JDK. They must be

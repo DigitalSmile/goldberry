@@ -22,6 +22,7 @@
 - [ADR-0014 One widgets module, charts included](adr/0014-single-widgets-module.md)
 - [ADR-0015 Licensing and third-party disclosure](adr/0015-licensing-and-third-party-disclosure.md)
 - [ADR-0016 Verify the artifact, never skip the check](adr/0016-verify-the-artifact-and-never-skip-the-check.md)
+- [ADR-0017 Proving the struct-by-value upcall](adr/0017-proving-the-struct-by-value-upcall.md)
 
 ---
 

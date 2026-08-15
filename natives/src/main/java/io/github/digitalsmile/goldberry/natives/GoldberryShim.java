@@ -16,7 +16,9 @@ import java.lang.invoke.MethodHandle;
 public final class GoldberryShim {
 
     /// The ABI this Java code was written against. `goldberry_shim.c` must agree.
-    public static final int SUPPORTED_ABI_VERSION = 1;
+    ///
+    /// 2 added `goldberry_probe_measure` (ADR-0017).
+    public static final int SUPPORTED_ABI_VERSION = 2;
 
     private static final Linker LINKER = Linker.nativeLinker();
 

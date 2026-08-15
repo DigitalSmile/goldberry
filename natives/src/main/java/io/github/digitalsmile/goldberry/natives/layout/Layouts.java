@@ -63,14 +63,37 @@ public final class Layouts {
             ValueLayout.JAVA_INT.withName("alignment"),
             MemoryLayout.paddingLayout(4));
 
+    /// Yoga's measured size — what a measure callback returns *by value*.
+    ///
+    /// Two floats and no padding, which is what makes it awkward: on SysV x86-64
+    /// the pair returns packed in XMM0, on AArch64 as a homogeneous float
+    /// aggregate in `s0`/`s1`, on Win64 folded into RAX. Sizes and offsets are
+    /// the same everywhere, so this row cannot catch a wrong return convention —
+    /// only [io.github.digitalsmile.goldberry.natives.yoga.MeasureCallback]'s
+    /// round trip through C can. It is registered because the layout is what the
+    /// upcall's [java.lang.foreign.FunctionDescriptor] is built from, and that
+    /// much is checkable.
+    ///
+    /// ```c
+    /// typedef struct YGSize {
+    ///     float width;
+    ///     float height;
+    /// } YGSize;
+    /// ```
+    public static final NativeStructLayout YG_SIZE = new NativeStructLayout(
+            "YGSize",
+            MemoryLayout.structLayout(
+                    ValueLayout.JAVA_FLOAT.withName("width"),
+                    ValueLayout.JAVA_FLOAT.withName("height")));
+
     private Layouts() {
     }
 
     /// Every layout that must agree with the compiled library.
     ///
-    /// Upstream structs join this list as they are bound — `YGSize` and
-    /// `SDL_Event` first, for the measure callback and the M0 window.
+    /// Upstream structs join this list as they are bound — `SDL_Event` next, for
+    /// the M0 window.
     public static List<NativeStructLayout> registry() {
-        return List.of(PROBE_SELF);
+        return List.of(PROBE_SELF, YG_SIZE);
     }
 }

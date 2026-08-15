@@ -26,6 +26,10 @@ goldberry_abi_version
 goldberry_layout_table
 goldberry_layout_count
 
+# Calls a YGMeasureFunc upcall stub and reports what the struct-by-value return
+# delivered. See sec. 3.1 and ADR-0017.
+goldberry_probe_measure
+
 # --- SDL3 (sec. 4, backend SPI) ----------------------------------------------
 # Added as they are bound, starting with the M0 blank window.
 
