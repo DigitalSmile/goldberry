@@ -30,6 +30,7 @@
 - [ADR-0022 Window is the front door](adr/0022-window-is-the-front-door.md)
 - [ADR-0023 Logging, and the example as a subproject](adr/0023-logging-and-the-example-as-a-subproject.md)
 - [ADR-0024 A repaint must wake the loop](adr/0024-a-repaint-must-wake-the-loop.md)
+- [ADR-0025 Where Linker.critical is worth it](adr/0025-where-linker-critical-is-worth-it.md)
 
 ---
 
