@@ -6,7 +6,7 @@ Tracked against the milestone ladder in `docs/ARCHITECTURE.md` §16.
 |---|---|---|
 | Foundation | **done** | Multi-module Gradle (Groovy DSL), version catalog, convention plugins, JPMS module graph, JDK 25 toolchain, JUnit 6, licence disclosure, decision log |
 | M0 — Skeleton | **all but Windows** | **The superbuild links on four of six targets.** Blend2D, AsmJit, SDL3, Yoga, HarfBuzz and libxkbcommon statically combine into one `libgoldberry` exporting exactly the symbols on the export list and nothing else — both Linux targets in CI's manylinux containers, both macOS targets on an Apple Silicon runner. The layout probe passes against the real library, and Yoga's measure callback crosses in both directions including the `YGSize` struct-by-value return ([ADR-0017](adr/0017-proving-the-struct-by-value-upcall.md)), so the hand-written binding mechanism is proven end to end. **Yoga's node API is bound**, and the callback is now driven by real layout passes rather than by a C probe written for the purpose ([ADR-0029](adr/0029-yogas-node-api-and-who-owns-a-node.md)). SDL3's lifecycle, error and version calls are bound and tested against the real library ([ADR-0018](adr/0018-sdl-conventions-stop-at-the-boundary.md)). The backend SPI, the `headless` backend and the `sdl3` backend are in `:core`, with fractional DPI correct by construction ([ADR-0019](adr/0019-the-backend-spis-first-cut.md)) and background work on virtual threads that completes on the UI thread ([ADR-0020](adr/0020-one-ui-thread-and-virtual-threads-behind-it.md)). **The showcase opens a window and presents frames** ([ADR-0021](adr/0021-the-example-is-a-separate-build.md)), through a `Window` front door that names no backend and builds no event loop ([ADR-0022](adr/0022-window-is-the-front-door.md)). Still to come: the two Windows targets |
-| M1 — Vertical slice | **started** | **Blend2D rasterizes the frame, HarfBuzz shapes the text.** `Frame` no longer writes pixels by hand: it wraps the platform's own buffer in a `BLImage` without copying it, scales the context by the display factor so coordinates stay logical and fractional edges antialias rather than snap, and blends with alpha that now means something ([ADR-0031](adr/0031-blend2d-and-the-borrowed-buffer.md)). The showcase paints through it. Shaping takes UTF-16 straight from a Java `String`, so the cluster indices point back into the caller's own text ([ADR-0032](adr/0032-shaping-is-utf16-in-glyphs-out.md)). All three pieces of the slice are bound; what is missing is the paragraph that joins them — a measure function that shapes at the width Yoga proposes, and a paint step that turns a `GlyphRun` into Blend2D glyph runs — plus the paragraph cache and upcall benchmarks. **Yoga and Blend2D now meet**: `BoxPainter` lays a flexbox tree out and fills the result, setting Yoga's point scale factor from the display scale so computed edges land on physical pixels — the first code for which the fractional-DPI claim is a mechanism rather than an intention. Inter, JetBrains Mono, OpenMoji and Lucide's 1544 icons are fetched at build time, pinned by checksum, and packaged into `goldberry-core` ([ADR-0033](adr/0033-assets-are-fetched-and-compiled-not-committed.md)) |
+| M1 — Vertical slice | **started** | **Blend2D rasterizes the frame, HarfBuzz shapes the text.** `Frame` no longer writes pixels by hand: it wraps the platform's own buffer in a `BLImage` without copying it, scales the context by the display factor so coordinates stay logical and fractional edges antialias rather than snap, and blends with alpha that now means something ([ADR-0031](adr/0031-blend2d-and-the-borrowed-buffer.md)). The showcase paints through it. Shaping takes UTF-16 straight from a Java `String`, so the cluster indices point back into the caller's own text ([ADR-0032](adr/0032-shaping-is-utf16-in-glyphs-out.md)). **Text draws.** Blend2D's font chain is bound and a `GlyphRun` reaches the rasterizer: `Font` in `:core` owns a HarfBuzz font and a Blend2D one over the same bytes, shapes in design units and puts the size on the Blend2D font alone, so the font matrix is the only thing that converts ([ADR-0034](adr/0034-one-size-and-the-design-unit-crossing.md)). The showcase draws two lines of Inter, and the tests assert *where* the ink landed — the inked span matches the measured width, which fails by a factor of 128 if either side of that crossing is wrong. **And text takes part in layout.** A `Paragraph` shapes once and wraps with arithmetic over that one `GlyphRun`, so its measure function answers Yoga from inside a layout pass without shaping again ([ADR-0036](adr/0036-the-paragraph-is-shaped-once-and-wrapped-many-times.md)). A `Box` with text is a measured leaf: the showcase's body wraps to whatever width the sidebar leaves it, and its siblings are positioned against the height that comes back. Two numbers are written down in that layout — the bar's height and the padding — and everything else comes from content. **The cache and the benchmarks are done** ([ADR-0037](adr/0037-what-the-text-path-costs.md)): `./gradlew benchmark` measures the text path, and the numbers say the upcall crossing is ~0.3 µs, a memoised wrap 0.02 µs, and shaping 56 µs — so `ParagraphCache` caches shaping and nothing else. **What remains is the 60 fps claim itself.** A 960×640 frame with a wrapped paragraph runs at a 7.86 ms median and a 14.18 ms p95, which fits the budget with a factor of two in hand on the median and none at the tail — measured on one machine, and that machine is a VirtualBox VM on X11. The milestone asks for a Mac, a ThinkPad and a Scarlet compositor. **Yoga and Blend2D now meet**: `BoxPainter` lays a flexbox tree out and fills the result, setting Yoga's point scale factor from the display scale so computed edges land on physical pixels — the first code for which the fractional-DPI claim is a mechanism rather than an intention. Inter, JetBrains Mono, OpenMoji and Lucide's 1544 icons are fetched at build time, pinned by checksum, and packaged into `goldberry-core` ([ADR-0033](adr/0033-assets-are-fetched-and-compiled-not-committed.md)) |
 | M2 — Widgets & style | not started | CSS engine, KDL inflater + hot reload, core controls, Nord light/dark, golden-image CI |
 | M3 — Shell | not started | Menus, popups, tray, dialogs, scroll, forms, CSD, charts, widget showcase |
 | M4 — GPU | not started | `canvas3d`, GPU composition, dmabuf on Scarlet |
@@ -186,12 +186,102 @@ block can be scheduled honestly.
   written down because the failure is far from its cause. —
   [ADR-0033](adr/0033-assets-are-fetched-and-compiled-not-committed.md)
 
-- **Nothing draws a glyph or an icon yet.** Shaping produces a `GlyphRun` and the
-  icon table holds path data, and neither reaches the screen: that needs
-  Blend2D's path API and `bl_font_*`/`bl_context_fill_glyph_run_*` bound. Both
-  inputs are now in the jar, which is what makes this the next piece of work
-  rather than a dependency of it. —
-  [ADR-0033](adr/0033-assets-are-fetched-and-compiled-not-committed.md)
+- ~~**Nothing draws a glyph or an icon yet.**~~ **Glyphs do; icons still do not.**
+  `bl_font_*` and `bl_context_fill_glyph_run_d_rgba32` are bound, and a shaped
+  run reaches the screen. The icon half is untouched: the Lucide table holds SVG
+  path data and Blend2D's path API — `bl_path_*` and `bl_context_fill_path_*` —
+  is not bound. It was scoped out on purpose, because it shares nothing with the
+  font chain except the context. —
+  [ADR-0034](adr/0034-one-size-and-the-design-unit-crossing.md)
+
+- **The units between the two text libraries are a convention, not a checked
+  fact.** HarfBuzz reports positions in whatever scale its font was set to;
+  Blend2D multiplies them by `size / units-per-em`. Both are right, and applying
+  a size on both sides applies it twice — 128&times; for Inter at 16 points —
+  which draws text off the edge of the window and returns `BL_SUCCESS`. The
+  layout table cannot catch this: it is an agreement *between* two libraries, not
+  a fact about either. What holds it is `Font` owning both objects and never
+  scaling the shaper, plus a test that compares the inked span against the
+  measured width. Anything that builds a `ShapedFont` and a `BlendFont` by hand
+  can still get it wrong. —
+  [ADR-0034](adr/0034-one-size-and-the-design-unit-crossing.md)
+
+- **A `Font` costs two copies of the font file, and there is one per size.**
+  `docs/ARCHITECTURE.md` §6 says "one font buffer feeds both `hb_face_t` and
+  `BLFontFace`", and today it does not: HarfBuzz copies the bytes and Blend2D is
+  pointed at a second copy, because each library owns its own. The guarantee
+  behind that sentence still holds — the two are byte-identical, so their metrics
+  cannot disagree — but the memory does not. Inter costs about a megabyte and a
+  half per `Font`, and the showcase's two sizes cost three megabytes of outlines.
+  A shared face cache is the fix; nothing above depends on its absence, so it can
+  land whenever the size count starts to matter. —
+  [ADR-0034](adr/0034-one-size-and-the-design-unit-crossing.md)
+
+- ~~**Nothing measures text for layout yet.**~~ **It does.** A `Paragraph` shapes
+  once and wraps with arithmetic, and its measure function reports a height to
+  Yoga through the `YGSize` upcall. What is still ahead is bidi run splitting —
+  right-to-left text is **refused at construction** rather than mis-wrapped,
+  because HarfBuzz returns those glyphs in visual order and prefix sums taken in
+  logical order would measure the wrong ones — and font fallback between the UI
+  and emoji slots, which makes a paragraph several runs rather than one. —
+  [ADR-0036](adr/0036-the-paragraph-is-shaped-once-and-wrapped-many-times.md)
+
+- **A line boundary keeps a kern it should drop.** Each line is a slice of the
+  whole paragraph's single shaping, so the kern between the last character of one
+  line and the first of the next is included where a per-line shaping would drop
+  it. A fraction of a pixel at the end of a line, in exchange for wrapping that
+  costs no shaping at all. Re-shaping only the final lines, and only for painting,
+  is the fix if it ever shows. —
+  [ADR-0036](adr/0036-the-paragraph-is-shaped-once-and-wrapped-many-times.md)
+
+- ~~**The paragraph cache is a one-entry memo.**~~ **Both caches exist, and the
+  numbers say why.** `ParagraphCache` holds shaped paragraphs keyed by
+  `(font, text)`; the width memo stays inside each `Paragraph`. Shaping is 56 µs
+  and a cache hit is 0.05 µs, while a memoised wrap is already 0.02 µs — so
+  shaping is the only part worth a cache, and caching layouts would save nothing.
+  The cache has **no consumer yet**, because nothing rebuilds a widget tree; it
+  exists because the measurement says it will be needed the moment something does.
+  §6's third key component, the width bucket, is the per-paragraph memo, and the
+  "resolved text style" is a `Font` until the CSS engine has something better. —
+  [ADR-0037](adr/0037-what-the-text-path-costs.md)
+
+- **A fresh upcall stub per text box per frame is the largest cost of text in a
+  layout pass.** One paragraph takes a pass from 12.5 µs to 40.4 µs, and 11 µs of
+  that is `MeasureCallback.of` — an `Arena` and a `MethodHandle` bound into native
+  code — because `BoxPainter` rebuilds the Yoga tree every frame. The crossing
+  itself is ~0.3 µs, so the stub costs forty times what calling through it does.
+  The retained render tree removes this by keeping the node; this is the first
+  measurement that makes ADR-0004 a performance argument as well as a design one. —
+  [ADR-0037](adr/0037-what-the-text-path-costs.md),
+  [ADR-0004](adr/0004-three-tree-retained-declarative-model.md)
+
+- **Painting now dominates a frame, and half of that reversal is a driver change.**
+  Over 119 frames at 960×640 with text: buffer 0.18 ms, **paint 5.10 ms**, present
+  1.92 ms, total 7.86 ms median, 14.18 ms at p95, and 3 frames of 119 over the
+  16.67 ms budget. ADR-0031 had paint at ~1.3 ms and present at ~10 ms and
+  concluded present dominated by an order of magnitude. Text is what moved paint;
+  **X11 rather than Wayland is what moved present**, since these frames were
+  measured on X11 after the Wayland run crashed the compositor. The like-for-like
+  Wayland measurement is still owed, and nothing here made present faster.
+  Blend2D's `thread_count` was parked in ADR-0031 as "only matters if paint ever
+  becomes the bottleneck"; on these numbers it has. —
+  [ADR-0037](adr/0037-what-the-text-path-costs.md),
+  [ADR-0031](adr/0031-blend2d-and-the-borrowed-buffer.md)
+
+- **The toolkit never shut SDL down, and a compositor died of it.**
+  `Sdl3Backend.close()` destroys every window and calls `SDL_Quit`; nothing called
+  it. `Goldberry.run()` returning does not shut the runtime down — its contract
+  says so — and `Goldberry.stop()` ends the loop with the window still open, so
+  the showcase exited with a live Wayland surface and let the socket close. GNOME
+  46's Mutter then crashed unwinding the connection, in
+  `wl_client_destroy` → its destroy listener → `g_signal_handler_disconnect`, on a
+  GObject already freed. **That is a compositor bug** — every killed process
+  disconnects abruptly and a compositor has to survive it — but disconnecting
+  properly is right regardless, and the showcase now calls `Goldberry.shutdown()`.
+  Open: whether `run()` should shut down on return, which would change a
+  documented contract. Seen once, on GNOME 46.0 under VirtualBox/vmwgfx, after
+  SDL3 moved from `release-3.2.0` to `release-3.4.14` in the same session. —
+  [ADR-0022](adr/0022-window-is-the-front-door.md)
 
 - **Every frame damages the whole window.** `Window.paint` presents
   `DamageRect.all(...)`, so nothing exploits partial repaint yet. At 960×640
@@ -206,14 +296,16 @@ block can be scheduled honestly.
   `pthread_jit_write_protect_np`. Nothing triggered it until now, because
   nothing created a rendering context. The first frame the macOS build paints is
   the test. — [ADR-0031](adr/0031-blend2d-and-the-borrowed-buffer.md)
-- **CMake arguments live in five places** — `natives/build.gradle` for local
-  builds, the CMake defaults, and the three CI workflows — because the manylinux
-  container has no JDK to read the version catalog with. The *pinned refs* half of
-  that is now checked: `./gradlew :natives:checkPinnedRefs` fails when the copies
-  disagree, and runs as part of `check`. The rest of the argument list — build
-  type, install prefix, target id — is still kept in step by hand. —
-  [ADR-0012](adr/0012-native-ci-runners-with-a-pinned-glibc.md),
-  [ADR-0030](adr/0030-pin-blend2d-and-asmjit-by-commit-sha.md)
+- ~~**CMake arguments live in five places.**~~ **The refs do not any more.**
+  `CMakeLists.txt` reads `gradle/libs.versions.toml` itself, so a ref bump is one
+  edit and there is no default to drift from; a floating ref is refused at
+  configure time. The manylinux container never needed a JDK to read the catalog,
+  only something that can parse a text file. `checkPinnedRefs` is inverted — it
+  asserts no copy has come back, across *every* workflow rather than three, which
+  is what would have caught `example.yml` pinning Blend2D to a floating `master`.
+  The rest of the argument list — build type, install prefix, target id — is
+  still kept in step by hand. —
+  [ADR-0035](adr/0035-the-catalog-is-the-only-place-a-ref-lives.md)
 - **No licence text is vendored yet.** Every file in `licenses/` is a placeholder.
   `./gradlew checkLicenses -Pgoldberry.releaseCheck=true` fails until they are
   copied verbatim from the pinned upstream revisions. —

@@ -2,19 +2,26 @@ package io.github.digitalsmile.goldberry.example;
 
 import io.github.digitalsmile.goldberry.Goldberry;
 import io.github.digitalsmile.goldberry.Window;
+import io.github.digitalsmile.goldberry.assets.BundledFont;
 import io.github.digitalsmile.goldberry.layout.Box;
 import io.github.digitalsmile.goldberry.layout.BoxPainter;
+import io.github.digitalsmile.goldberry.natives.yoga.Align;
 import io.github.digitalsmile.goldberry.natives.yoga.FlexDirection;
 import io.github.digitalsmile.goldberry.natives.yoga.StyleLength;
+import io.github.digitalsmile.goldberry.text.Font;
+import io.github.digitalsmile.goldberry.text.Paragraph;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /// Goldberry's showcase.
 ///
-/// Today it opens a window and paints it. That is the whole of M0: the superbuild
-/// links, the bindings are right, the SPI holds, and a window appears at the
-/// display's real pixel density. The widget catalog, the CSS engine and the text
-/// stack arrive on top of this file, not beside it.
+/// It opens a window, lays a flexbox tree out with Yoga, and draws it with
+/// Blend2D — including a paragraph HarfBuzz shaped, whose height is what the
+/// layout is built around. That is M0 and the whole of M1's vertical slice: the
+/// superbuild links, the bindings are right, the SPI holds, a window appears at
+/// the display's real pixel density, and the text in it re-wraps as the window is
+/// dragged. The widget catalog and the CSS engine arrive on top of this file,
+/// not beside it.
 ///
 /// It is also where logging is configured — `logback.xml` beside this class,
 /// because binding a logging implementation is an application's decision and
@@ -31,32 +38,66 @@ public final class Showcase {
     private static final int ACCENT = 0xFF88C0D0;
     private static final int PANEL = 0xFF3B4252;
     private static final int MUTED = 0xFF4C566A;
+    private static final int ON_ACCENT = 0xFF2E3440;
+    private static final int ON_PANEL = 0xFFECEFF4;
+
+    /// The bar's height and the body's padding, in points. These are the only
+    /// sizes written down: everything else comes from the content, which is what
+    /// having a measure function buys.
+    private static final float BAR_HEIGHT = 32;
+    private static final float PADDING = 16;
+
+    /// The prose the body wraps. Long on purpose: the point of the window is to
+    /// be resized, and wrapping is the thing to watch while it is.
+    private static final String BODY_TEXT =
+            "Yoga proposes a width and this paragraph answers with a height, which is the only"
+                    + " thing a flexbox algorithm needs to know about text. The answer comes back"
+                    + " through a Java method called from C returning a struct by value — the"
+                    + " fiddliest thing the toolkit asks of the Foreign Function & Memory API, and"
+                    + " the reason ADR-0017 exists.\n\n"
+                    + "Drag the window's edge. The text is shaped once, when this paragraph is"
+                    + " built; every re-wrap after that is arithmetic over the glyphs that shaping"
+                    + " already produced.";
+
+    private Showcase() {
+    }
 
     /// The layout the window paints, built once and reused every frame.
     ///
-    /// Flexbox through Yoga, filled through Blend2D, in logical coordinates
-    /// throughout — the two engines meeting (ADR-0033). It is a value, so
-    /// building it outside the paint callback is not an optimisation but the
-    /// natural thing to do.
-    private static final Box LAYOUT = Box.of()
-            .direction(FlexDirection.COLUMN)
-            .background(BACKGROUND)
-            .children(
-                    // A 32-point bar across the top, whatever the display scale.
-                    Box.filled(ACCENT).size(StyleLength.UNDEFINED, StyleLength.points(32)),
-                    Box.of()
-                            .grow(1)
-                            .direction(FlexDirection.ROW)
-                            .padding(StyleLength.points(16))
-                            .gap(StyleLength.points(16))
-                            .children(
-                                    // A quarter-width sidebar and a body that
-                                    // takes what is left.
-                                    Box.filled(PANEL).size(
-                                            StyleLength.percent(25), StyleLength.UNDEFINED),
-                                    Box.filled(MUTED).grow(1)));
-
-    private Showcase() {
+    /// Flexbox through Yoga, filled and drawn through Blend2D, in logical
+    /// coordinates throughout. The body is a **measured leaf**: its height is
+    /// whatever its text wraps to at the width the sidebar leaves it, so the
+    /// layout is decided by the content rather than by a number written here
+    /// (ADR-0036).
+    private static Box layout(Paragraph title, Paragraph body) {
+        return Box.of()
+                .direction(FlexDirection.COLUMN)
+                .background(BACKGROUND)
+                .children(
+                        // A 32-point bar across the top, whatever the display
+                        // scale, with its title centred in it.
+                        Box.of()
+                                .background(ACCENT)
+                                .size(StyleLength.UNDEFINED, StyleLength.points(BAR_HEIGHT))
+                                .alignItems(Align.CENTER)
+                                .padding(StyleLength.points(PADDING))
+                                .children(Box.text(title, ON_ACCENT)),
+                        Box.of()
+                                .grow(1)
+                                .direction(FlexDirection.ROW)
+                                .padding(StyleLength.points(PADDING))
+                                .gap(StyleLength.points(PADDING))
+                                .children(
+                                        // A quarter-width sidebar and a body
+                                        // that takes what is left.
+                                        Box.filled(PANEL).size(
+                                                StyleLength.percent(25), StyleLength.UNDEFINED),
+                                        Box.of()
+                                                .grow(1)
+                                                .direction(FlexDirection.COLUMN)
+                                                .background(MUTED)
+                                                .padding(StyleLength.points(PADDING))
+                                                .children(Box.text(body, ON_PANEL))));
     }
 
     public static void main(String[] args) {
@@ -67,13 +108,30 @@ public final class Showcase {
 
         var window = Window.open("Goldberry — showcase", widthOf(args), heightOf(args));
 
+        // On the UI thread, and it has to stay there: a Font owns native objects
+        // from two libraries and is confined to the thread that built it. This
+        // is that thread — Window.open runs on it, and so does every paint.
+        //
+        // One Font per size, held for the life of the window. Building one per
+        // frame would parse the face and copy a megabyte of outlines sixty times
+        // a second; a font cache is what will make several sizes affordable.
+        var titleFont = Font.bundled(BundledFont.UI, 16);
+        var bodyFont = Font.bundled(BundledFont.UI, 14);
+
+        // Shaped once, here, and re-wrapped on every resize without being shaped
+        // again (ADR-0036). Building these in the paint callback would put font
+        // parsing and shaping on the frame path.
+        var layout = layout(
+                Paragraph.of(titleFont, "Goldberry"),
+                Paragraph.of(bodyFont, BODY_TEXT));
+
         window.onPaint(frame -> {
-            // Yoga lays the tree out at the frame's logical size and Blend2D
-            // fills the result. Logical coordinates throughout: the bar is 32
-            // points tall and the sidebar a quarter of the width on every
-            // display, and nothing here knows whether the screen runs at 100%
-            // or 150%.
-            BoxPainter.paint(frame, LAYOUT);
+            // Yoga lays the tree out at the frame's logical size, asking the
+            // paragraphs how tall they came out, and Blend2D draws the result.
+            // Logical coordinates throughout: the bar is 32 points tall and the
+            // sidebar a quarter of the width on every display, and nothing here
+            // knows whether the screen runs at 100% or 150%.
+            BoxPainter.paint(frame, layout);
 
             painted[0]++;
             LOG.info("painted frame {} at {}", painted[0], frame.pixelSize());
@@ -100,7 +158,30 @@ public final class Showcase {
         Goldberry.async(Showcase::describeEnvironment)
                 .thenAccept(text -> window.title("Goldberry — " + text));
 
-        Goldberry.run();
+        try {
+            Goldberry.run();
+        } finally {
+            // After the loop, not in a try-with-resources around it: the paint
+            // callback holds both fonts and runs until `run` returns.
+            bodyFont.close();
+            titleFont.close();
+
+            // And then hand the window back before the process goes away.
+            //
+            // This is not tidiness. `Goldberry.stop()` ends the loop with the
+            // window still open, so without this the process exits with a live
+            // Wayland surface and SDL never quit: no xdg_toplevel.destroy, no
+            // wl_surface.destroy, no SDL_Quit. The compositor finds out its
+            // client is gone when the socket closes, and has to unwind a
+            // connection that never said goodbye.
+            //
+            // A compositor must survive that -- every killed process does it --
+            // and GNOME 46's Mutter does not always: it crashed in
+            // wl_client_destroy -> its destroy listener -> g_signal_handler_disconnect
+            // while cleaning up after exactly this exit. Disconnecting properly
+            // is right regardless of whose bug that is.
+            Goldberry.shutdown();
+        }
         LOG.info("showcase finished");
     }
 

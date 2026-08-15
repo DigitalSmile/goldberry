@@ -21,8 +21,9 @@ API. No JNI, no bundled web engine, no platform widget wrapping.
 - **Cross-platform from the first commit.** Linux (Wayland/X11), Windows, macOS 
   are peer backends behind one SPI.
 
-> **Pre-release.** A window opens, Blend2D rasterizes its frames, and Yoga lays
-> out a tree behind the boundary; there are no widgets yet.
+> **Pre-release.** A window opens, Blend2D rasterizes its frames, Yoga lays out
+> a tree behind the boundary, and HarfBuzz-shaped text draws into it; there are
+> no widgets yet, and nothing measures a paragraph for layout.
 > See [Status](book/src/status.md) for what works and what is still open.
 
 ## Quick start
@@ -122,13 +123,66 @@ fiddliest thing the toolkit asks of FFM and the reason
 [ADR-0017](book/src/adr/0017-proving-the-struct-by-value-upcall.md) exists.
 
 ```java
-paragraph.setMeasureFunction((width, widthMode, height, heightMode) ->
-        shape(text, width));                    // runs during calculateLayout
+node.setMeasureFunction(paragraph.measureFunction());   // runs during calculateLayout
 ```
+
+`Box.text(...)` wires that up for you — see [Text](#text) below.
 
 The point scale factor is what makes fractional DPI land correctly: at 1× a row
 of 101 points splits 51/50, and at 2× it splits 50.5/50.5 — the same tree on a
 different pixel grid.
+
+## Text
+
+**HarfBuzz** shapes, **Blend2D** draws, and `Font` is what holds the two
+together. Inter, JetBrains Mono and OpenMoji ship inside `goldberry-core`, so
+text renders identically on every machine without asking what fonts are
+installed ([ADR-0033](book/src/adr/0033-assets-are-fetched-and-compiled-not-committed.md)).
+
+```java
+try (var font = Font.bundled(BundledFont.UI, 16)) {   // 16 logical points
+    var width = font.widthOf("Goldberry");            // what layout will ask
+
+    window.onPaint(frame ->
+            font.draw(frame, 16, 16 + font.ascent(), "Goldberry", 0xFFECEFF4));
+}
+```
+
+The `y` is the **baseline**, not the top of the line: an `a` sits above it and a
+`g` hangs below, so the top of a line is `baseline - ascent()`.
+
+A `Paragraph` wraps, and that is what lets text take part in layout rather than
+being drawn over it. It is shaped **once**; every re-wrap after that is arithmetic
+over the glyphs shaping already produced, which is what makes it affordable to
+answer Yoga from inside a layout pass
+([ADR-0036](book/src/adr/0036-the-paragraph-is-shaped-once-and-wrapped-many-times.md)):
+
+```java
+var body = Paragraph.of(font, "…prose that has to fit somewhere…");
+
+Box.of().direction(FlexDirection.COLUMN).children(
+        Box.filled(0xFF88C0D0).size(UNDEFINED, StyleLength.points(32)),
+        Box.text(body, 0xFFECEFF4),          // as tall as its text wrapped
+        Box.filled(0xFF3B4252).grow(1));     // …and this starts below it
+```
+
+A box with text is a **measured leaf**: Yoga proposes a width, the paragraph wraps
+at it and reports a height, and the flexbox algorithm sizes everything around that
+answer. A box may therefore have text or children, not both — Yoga asks a measured
+node for its size and never lays its children out.
+
+One thing is worth knowing even from the outside. Shaping happens in the font's
+own **design units**, and the size lives on the Blend2D side alone — so a shaped
+run is correct at every size, and the font matrix is the only thing that ever
+converts. Applying a size on both sides applies it twice, which for Inter at 16
+points draws the text 128× too wide and reports no error at all. `Font` exists to
+make that unrepresentable
+([ADR-0034](book/src/adr/0034-one-size-and-the-design-unit-crossing.md)).
+
+Not yet: bidirectional runs — right-to-left text is refused at construction rather
+than wrapped wrongly — fallback between the UI and emoji faces, and style runs
+within a paragraph. Icons are in the jar as path data and do not draw; Blend2D's
+path API is unbound.
 
 ## Run the showcase
 

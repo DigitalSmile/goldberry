@@ -39,6 +39,10 @@
 - [ADR-0031 Blend2D, and painting into a borrowed buffer](adr/0031-blend2d-and-the-borrowed-buffer.md)
 - [ADR-0032 Shaping is UTF-16 in, glyphs out](adr/0032-shaping-is-utf16-in-glyphs-out.md)
 - [ADR-0033 Assets are fetched and compiled, not committed](adr/0033-assets-are-fetched-and-compiled-not-committed.md)
+- [ADR-0034 One size, and the design-unit crossing](adr/0034-one-size-and-the-design-unit-crossing.md)
+- [ADR-0035 The catalog is the only place a ref lives](adr/0035-the-catalog-is-the-only-place-a-ref-lives.md)
+- [ADR-0036 The paragraph is shaped once and wrapped many times](adr/0036-the-paragraph-is-shaped-once-and-wrapped-many-times.md)
+- [ADR-0037 What the text path costs](adr/0037-what-the-text-path-costs.md)
 
 ---
 
