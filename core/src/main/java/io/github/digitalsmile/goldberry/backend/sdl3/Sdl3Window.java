@@ -99,7 +99,11 @@ final class Sdl3Window implements BackendWindow {
             shown = true;
             video().showWindow(handle);
         }
-        framePending = false;
+
+        // Deliberately does NOT clear framePending. The request was consumed when
+        // its FrameDue was emitted; clearing it here would also discard a request
+        // made by the painter *during* this frame, which is how an animation stops
+        // after one frame.
     }
 
     @Override

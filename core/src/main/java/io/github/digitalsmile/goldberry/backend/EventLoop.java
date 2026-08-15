@@ -107,6 +107,16 @@ public final class EventLoop implements AutoCloseable {
         return running;
     }
 
+    /// Throws if the loop is already running.
+    ///
+    /// Lets a caller refuse before doing setup work that would be wasted, rather
+    /// than discovering it inside [#run].
+    public void requireNotRunning() {
+        if (running) {
+            throw new BackendException("the event loop is already running");
+        }
+    }
+
     /// Runs `work` on a virtual thread and completes the result on the UI thread.
     ///
     /// The returned future's callbacks therefore run where they can touch

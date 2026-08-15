@@ -1,6 +1,7 @@
 package io.github.digitalsmile.goldberry.backend;
 
 import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.util.Objects;
 
 /// A rasterized frame, ready to hand to a backend.
@@ -24,6 +25,16 @@ public record PixelBuffer(PhysicalSize size, PixelFormat format, int stride, Byt
         Objects.requireNonNull(size, "size");
         Objects.requireNonNull(format, "format");
         Objects.requireNonNull(pixels, "pixels");
+
+        // Viewed little-endian, whatever the caller handed over.
+        //
+        // The format is BGRA in *memory order*, so writing a 0xAARRGGBB int lands
+        // as B,G,R,A only on a little-endian view. Both ByteBuffer.allocate() and
+        // MemorySegment.asByteBuffer() default to BIG_ENDIAN, so leaving this to
+        // callers means every one of them writes the channels backwards --
+        // silently, because the result is a plausible colour rather than a
+        // crash. Normalising here makes that impossible to get wrong.
+        pixels = pixels.duplicate().order(ByteOrder.LITTLE_ENDIAN);
 
         var minimumStride = format.minimumStride(size.width());
         if (stride < minimumStride) {

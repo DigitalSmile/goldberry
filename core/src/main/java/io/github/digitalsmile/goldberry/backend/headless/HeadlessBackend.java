@@ -119,6 +119,12 @@ public final class HeadlessBackend implements Backend {
             batch.add(pending.poll());
         }
         for (var event : batch) {
+            // A frame request is satisfied by its event being delivered, so a
+            // repaint asked for inside the handler survives into the next pump.
+            if (event instanceof BackendEvent.FrameDue frame
+                    && frame.window() instanceof HeadlessWindow window) {
+                window.frameDelivered();
+            }
             sink.accept(event);
         }
         return batch.size();

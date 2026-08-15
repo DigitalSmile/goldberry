@@ -84,7 +84,10 @@ public final class HeadlessWindow implements BackendWindow {
         this.lastFrame = copyOf(frame);
         this.lastDamage = List.copyOf(damage);
         this.presentCount++;
-        this.framePending = false;
+
+        // Deliberately does NOT clear framePending -- see frameDelivered(). A
+        // painter that asks for the next frame while painting this one must keep
+        // its request, or an animation runs exactly once.
     }
 
     @Override
@@ -151,6 +154,17 @@ public final class HeadlessWindow implements BackendWindow {
     public boolean isFramePending() {
         backend.requireUiThread();
         return framePending;
+    }
+
+    /// Marks the outstanding request as consumed, at the moment its `FrameDue` is
+    /// handed to the sink.
+    ///
+    /// Delivery, not presentation, is what satisfies a request — the same rule
+    /// the sdl3 backend follows, where `takeFrameRequest()` clears the flag as the
+    /// event is emitted. Clearing on present instead would discard a request the
+    /// painter made while painting.
+    void frameDelivered() {
+        framePending = false;
     }
 
     /// Resizes the window as the platform would, and queues the event.

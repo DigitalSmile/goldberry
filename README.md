@@ -62,6 +62,25 @@ Supplying a library is also what tells the build not to build its own. Adding
 which is how CI verifies that the artifact it just built actually loads — see
 [ADR-0016](book/src/adr/0016-verify-the-artifact-and-never-skip-the-check.md).
 
+## Hello, window
+
+```java
+var window = Window.open("Hello", 960, 640);
+window.onPaint(frame -> frame.fill(0xFF2E3440));
+Goldberry.run();
+```
+
+That is the whole API for a window: no backend to name, no event loop to build,
+no `switch` over platform events (ADR-0022). Painting takes **logical**
+coordinates, so the same code is correct at 100%, 125% and 150%.
+
+Work that is not instant goes off the UI thread and comes back on it:
+
+```java
+Goldberry.async(() -> loadTheThing())
+         .thenAccept(thing -> window.title(thing.name()));   // on the UI thread
+```
+
 ## Run the showcase
 
 `example/` is a separate build that consumes Goldberry the way an application
@@ -69,7 +88,7 @@ would — through published coordinates, on the module path (ADR-0021).
 
 ```sh
 ./gradlew :natives:cmakeBuild     # once, to build libgoldberry
-cd example && ./gradlew run
+./gradlew run                     # or: cd example && ./gradlew run
 ```
 
 A window opens. `-Pgoldberry.example.frames=3` paints three frames and exits,

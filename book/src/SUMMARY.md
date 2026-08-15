@@ -27,6 +27,7 @@
 - [ADR-0019 The backend SPI's first cut](adr/0019-the-backend-spis-first-cut.md)
 - [ADR-0020 One UI thread, virtual threads behind it](adr/0020-one-ui-thread-and-virtual-threads-behind-it.md)
 - [ADR-0021 The example is a separate build](adr/0021-the-example-is-a-separate-build.md)
+- [ADR-0022 Window is the front door](adr/0022-window-is-the-front-door.md)
 
 ---
 

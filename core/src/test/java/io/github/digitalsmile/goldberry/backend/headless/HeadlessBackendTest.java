@@ -138,18 +138,44 @@ class HeadlessBackendTest {
     }
 
     @Test
-    @DisplayName("a frame request is satisfied by presenting")
-    void presentingClearsTheRequest() {
+    @DisplayName("a frame request is satisfied by its event being delivered")
+    void deliveryClearsTheRequest() {
         var window = (HeadlessWindow) backend.createWindow(SPEC);
         window.requestFrame();
 
-        window.present(
-                PixelBuffer.allocate(window.physicalSize(), PixelFormat.BGRA32_PREMULTIPLIED),
-                List.of());
+        backend.pumpEvents(event -> {}, Duration.ZERO);
 
         assertFalse(window.isFramePending());
         window.requestFrame();
-        assertTrue(window.isFramePending(), "a new frame can be requested once the last was drawn");
+        assertTrue(window.isFramePending(), "a new frame can be requested once the last was delivered");
+    }
+
+    @Test
+    @DisplayName("a repaint asked for while painting survives the present that follows")
+    void repaintDuringPaintSurvives() {
+        // The bug this exists for: present() used to clear the pending flag, so a
+        // painter that asked for the next frame while drawing this one had its
+        // request wiped by the present immediately after. Every animation stopped
+        // after exactly one frame, and nothing in the SPI's own tests noticed
+        // because they never repainted from inside a frame.
+        var window = (HeadlessWindow) backend.createWindow(SPEC);
+        var painted = new int[1];
+        window.requestFrame();
+
+        for (var pump = 0; pump < 3; pump++) {
+            backend.pumpEvents(event -> {
+                if (event instanceof BackendEvent.FrameDue frame) {
+                    var target = (HeadlessWindow) frame.window();
+                    target.present(
+                            PixelBuffer.allocate(target.physicalSize(), PixelFormat.BGRA32_PREMULTIPLIED),
+                            List.of());
+                    painted[0]++;
+                    target.requestFrame();
+                }
+            }, Duration.ZERO);
+        }
+
+        assertEquals(3, painted[0], "a self-scheduling repaint must keep producing frames");
     }
 
     @Test
