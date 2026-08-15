@@ -1,6 +1,7 @@
 package io.github.digitalsmile.goldberry.natives.sdl;
 
 import io.github.digitalsmile.goldberry.natives.NativeLibrary;
+import java.lang.foreign.Arena;
 import java.lang.foreign.FunctionDescriptor;
 import java.lang.foreign.Linker;
 import java.lang.foreign.MemorySegment;
@@ -52,6 +53,8 @@ public final class Sdl {
     private final MethodHandle clearError;
     private final MethodHandle getVersion;
     private final MethodHandle getRevision;
+    private final MethodHandle getCurrentVideoDriver;
+    private final MethodHandle setHint;
 
     private Sdl(SymbolLookup lookup) {
         // `bool` is C's _Bool -- one byte, not the four an int would take.
@@ -72,6 +75,10 @@ public final class Sdl {
                 FunctionDescriptor.of(ValueLayout.JAVA_INT));
         this.getRevision = downcall(lookup, "SDL_GetRevision",
                 FunctionDescriptor.of(ValueLayout.ADDRESS));
+        this.getCurrentVideoDriver = downcall(lookup, "SDL_GetCurrentVideoDriver",
+                FunctionDescriptor.of(ValueLayout.ADDRESS));
+        this.setHint = downcall(lookup, "SDL_SetHint",
+                FunctionDescriptor.of(ValueLayout.JAVA_BOOLEAN, ValueLayout.ADDRESS, ValueLayout.ADDRESS));
     }
 
     /// The SDL bindings, loading `libgoldberry` on first call.
@@ -91,6 +98,43 @@ public final class Sdl {
     /// rather than a checkout.
     public String revision() {
         return readString(callPointer(getRevision, "SDL_GetRevision"));
+    }
+
+    /// The hint naming the video driver to use — `SDL_VIDEO_DRIVER`.
+    ///
+    /// Must be set before video is initialized.
+    public static final String VIDEO_DRIVER_HINT = "SDL_VIDEO_DRIVER";
+
+    /// Sets an SDL hint.
+    ///
+    /// Hints are SDL's configuration channel; most must be set before the
+    /// subsystem they affect is initialized.
+    ///
+    /// @return whether SDL accepted it
+    public boolean setHint(String name, String value) {
+        try (var arena = Arena.ofConfined()) {
+            return invokeHint(setHint, arena.allocateFrom(name), arena.allocateFrom(value));
+        }
+    }
+
+    private static boolean invokeHint(MethodHandle handle, MemorySegment name, MemorySegment value) {
+        try {
+            return (boolean) handle.invokeExact(name, value);
+        } catch (Throwable t) {
+            throw new IllegalStateException("SDL_SetHint() failed", t);
+        }
+    }
+
+    /// The video driver SDL chose — `wayland`, `x11`, `windows`, `cocoa`.
+    ///
+    /// Worth logging at startup, and worth checking before believing anything
+    /// about windowing behaviour: a Wayland session running an application
+    /// through XWayland behaves like X11, including its resize characteristics,
+    /// and nothing else in the process gives that away.
+    ///
+    /// Empty until video is initialized.
+    public String videoDriver() {
+        return readString(callPointer(getCurrentVideoDriver, "SDL_GetCurrentVideoDriver"));
     }
 
     /// Initializes SDL.

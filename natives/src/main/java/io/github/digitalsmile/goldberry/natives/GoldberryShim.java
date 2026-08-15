@@ -20,8 +20,9 @@ public final class GoldberryShim {
     /// The ABI this Java code was written against. `goldberry_shim.c` must agree.
     ///
     /// 2 added `goldberry_probe_measure` (ADR-0017); 3 added SDL3's windowing and
-    /// event surface, and the constant rows in the layout table (ADR-0020).
-    public static final int SUPPORTED_ABI_VERSION = 3;
+    /// event surface, and the constant rows in the layout table (ADR-0020); 4
+    /// added `SDL_GetCurrentVideoDriver` and `SDL_SetHint` (ADR-0026).
+    public static final int SUPPORTED_ABI_VERSION = 4;
 
     private static final Logger LOG = Logs.of(GoldberryShim.class);
 

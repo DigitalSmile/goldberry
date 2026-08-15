@@ -37,6 +37,9 @@ public final class Sdl3Backend implements Backend {
 
     private static final Logger LOG = Logs.of(Sdl3Backend.class);
 
+    /// Overrides SDL's own choice of video driver. See [#selectVideoDriver()].
+    public static final String VIDEO_DRIVER_PROPERTY = "goldberry.backend.videoDriver";
+
     private final SdlVideo video = SdlVideo.get();
     private final Thread uiThread = Thread.currentThread();
     private final Map<Integer, Sdl3Window> windowsById = new LinkedHashMap<>();
@@ -51,8 +54,10 @@ public final class Sdl3Backend implements Backend {
     /// @throws BackendException if SDL cannot start — no display, no driver
     public Sdl3Backend() {
         try {
+            selectVideoDriver();
             Sdl.get().initialize(EnumSet.of(SdlSubsystem.VIDEO));
-            LOG.info("sdl3 backend started on SDL {}", Sdl.get().version());
+            LOG.info("sdl3 backend started on SDL {}, video driver {}",
+                    Sdl.get().version(), Sdl.get().videoDriver());
         } catch (SdlException e) {
             eventBuffer.close();
             throw new BackendException("SDL could not initialize its video subsystem", e);
@@ -63,6 +68,32 @@ public final class Sdl3Backend implements Backend {
                             + " Add the goldberry-natives artifact for this platform,"
                             + " or set -Dgoldberry.native.library=<path>.",
                     e);
+        }
+    }
+
+    /// Names the video driver, when asked to.
+    ///
+    /// SDL picks for itself and its choice is informed: on Linux it uses Wayland
+    /// only when the compositor advertises `wp_fifo_manager_v1`, and falls back to
+    /// X11 otherwise, because without that protocol its Wayland presentation has
+    /// no reliable frame pacing. On a Wayland session whose compositor lacks it —
+    /// GNOME, at the time of writing — that means an XWayland window, which
+    /// resizes visibly worse than a native one.
+    ///
+    /// Goldberry does not override that judgement: SDL knows more about its own
+    /// backends than we do, and forcing Wayland everywhere would trade one
+    /// stutter for another on every machine. But the choice is worth being able
+    /// to make, so `-Dgoldberry.backend.videoDriver=wayland` makes it, and the
+    /// driver actually chosen is logged either way (ADR-0026).
+    private static void selectVideoDriver() {
+        var requested = System.getProperty(VIDEO_DRIVER_PROPERTY);
+        if (requested == null || requested.isBlank()) {
+            return;
+        }
+        if (Sdl.get().setHint(Sdl.VIDEO_DRIVER_HINT, requested)) {
+            LOG.info("asked SDL for the {} video driver", requested);
+        } else {
+            LOG.warn("SDL refused the video driver hint {}={}", Sdl.VIDEO_DRIVER_HINT, requested);
         }
     }
 

@@ -89,6 +89,12 @@ block can be scheduled honestly.
   and fail rather than skip when it is absent — has been tested locally against
   every path but has not itself been through CI. —
   [ADR-0016](adr/0016-verify-the-artifact-and-never-skip-the-check.md)
+- **On a Wayland session, SDL may choose XWayland.** It prefers Wayland only when
+  the compositor advertises `wp_fifo_manager_v1`, which GNOME's Mutter does not,
+  so the window resizes like the X11 window it is. The driver is logged at
+  start-up and `-Dgoldberry.backend.videoDriver=wayland` overrides it; the real
+  answer is a renderer-backed present rather than the window-surface API. —
+  [ADR-0026](adr/0026-sdl-picks-the-video-driver.md)
 - **Live resize stalls on Windows and macOS.** Both run a modal loop during a
   resize gesture, so SDL does not return from event pumping until the drag ends
   and frames stop with it. Wayland and X11 are prompt. The fix is

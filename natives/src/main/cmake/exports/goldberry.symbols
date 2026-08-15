@@ -42,6 +42,8 @@ SDL_GetError
 SDL_ClearError
 SDL_GetVersion
 SDL_GetRevision
+SDL_GetCurrentVideoDriver
+SDL_SetHint
 
 # Windowing and the CPU present path (sec. 4, sec. 5).
 SDL_CreateWindow
