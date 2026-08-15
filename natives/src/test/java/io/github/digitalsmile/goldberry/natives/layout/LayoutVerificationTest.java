@@ -41,10 +41,11 @@ class LayoutVerificationTest {
     }
 
     @Test
-    @DisplayName("every hand-written layout agrees with the compiled library")
+    @DisplayName("every hand-written layout and constant agrees with the compiled library")
     void handWrittenLayoutsAgreeWithC() {
         var platform = NativePlatform.current();
-        var mismatches = LayoutVerifier.verify(platform, Layouts.registry(), LayoutProbe.read());
+        var mismatches = LayoutVerifier.verify(
+                platform, Layouts.registry(), NativeConstants.registry(), LayoutProbe.read());
 
         assertEquals(
                 java.util.List.of(),

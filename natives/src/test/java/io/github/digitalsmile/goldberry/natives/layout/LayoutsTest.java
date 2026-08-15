@@ -52,6 +52,14 @@ class LayoutsTest {
         assertEquals(8, Layouts.LAYOUT_ENTRY.byteAlignment());
     }
 
+    /// Layouts modelled by extent alone, with no fields to compare.
+    ///
+    /// `SDL_Event` is a union: Goldberry allocates one, hands SDL the pointer, and
+    /// reads the arms it understands through their own layouts. Its size and
+    /// alignment are the whole contract, and naming members of a union would
+    /// assert a structure it does not have.
+    private static final List<String> OPAQUE = List.of("SDL_Event");
+
     @Test
     @DisplayName("every registered layout is named and non-empty")
     void registryIsWellFormed() {
@@ -61,7 +69,32 @@ class LayoutsTest {
         for (var struct : registry) {
             assertFalse(struct.name().isBlank(), "struct name must not be blank");
             assertTrue(struct.byteSize() > 0, () -> struct.name() + " has zero size");
-            assertFalse(struct.fieldNames().isEmpty(), () -> struct.name() + " has no named fields");
+            if (!OPAQUE.contains(struct.name())) {
+                assertFalse(
+                        struct.fieldNames().isEmpty(), () -> struct.name() + " has no named fields");
+            }
         }
+    }
+
+    @Test
+    @DisplayName("the event union is 8-aligned, not byte-aligned")
+    void eventUnionIsAligned() {
+        // Modelling 128 bytes as a byte array would declare alignment 1. SDL
+        // fills it with types up to 8 bytes wide, so an under-aligned allocation
+        // is a fault on targets less forgiving than x86.
+        assertEquals(128, Layouts.SDL_EVENT.byteSize());
+        assertEquals(8, Layouts.SDL_EVENT.byteAlignment());
+    }
+
+    @Test
+    @DisplayName("the window event's fields sit where SDL puts them")
+    void windowEventLayout() {
+        var event = Layouts.SDL_WINDOW_EVENT;
+
+        assertEquals(0, event.offsetOf("type"));
+        assertEquals(8, event.offsetOf("timestamp"));
+        assertEquals(16, event.offsetOf("windowID"));
+        assertEquals(20, event.offsetOf("data1"));
+        assertEquals(24, event.offsetOf("data2"));
     }
 }

@@ -3,6 +3,7 @@
 [![Linux](https://github.com/digitalsmile/goldberry/actions/workflows/linux.yml/badge.svg)](https://github.com/digitalsmile/goldberry/actions/workflows/linux.yml)
 [![Windows](https://github.com/digitalsmile/goldberry/actions/workflows/windows.yml/badge.svg)](https://github.com/digitalsmile/goldberry/actions/workflows/windows.yml)
 [![macOS](https://github.com/digitalsmile/goldberry/actions/workflows/macos.yml/badge.svg)](https://github.com/digitalsmile/goldberry/actions/workflows/macos.yml)
+[![Example](https://github.com/digitalsmile/goldberry/actions/workflows/example.yml/badge.svg)](https://github.com/digitalsmile/goldberry/actions/workflows/example.yml)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 
 **A fast and modern UI toolkit for Java.**
@@ -20,8 +21,8 @@ API. No JNI, no bundled web engine, no platform widget wrapping.
 - **Cross-platform from the first commit.** Linux (Wayland/X11), Windows, macOS 
   are peer backends behind one SPI.
 
-> **Pre-release.** Nothing renders yet — see [Status](book/src/status.md) for what
-> works and what is still open.
+> **Pre-release.** A window opens and presents frames; there are no widgets yet.
+> See [Status](book/src/status.md) for what works and what is still open.
 
 ## Quick start
 
@@ -60,6 +61,19 @@ Supplying a library is also what tells the build not to build its own. Adding
 `goldberry.native.required=true` turns "no library, skip quietly" into a failure,
 which is how CI verifies that the artifact it just built actually loads — see
 [ADR-0016](book/src/adr/0016-verify-the-artifact-and-never-skip-the-check.md).
+
+## Run the showcase
+
+`example/` is a separate build that consumes Goldberry the way an application
+would — through published coordinates, on the module path (ADR-0021).
+
+```sh
+./gradlew :natives:cmakeBuild     # once, to build libgoldberry
+cd example && ./gradlew run
+```
+
+A window opens. `-Pgoldberry.example.frames=3` paints three frames and exits,
+which is what CI runs under Xvfb.
 
 ## Documentation
 

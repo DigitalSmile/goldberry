@@ -28,15 +28,31 @@ public final class LayoutVerifier {
     /// @return one human-readable message per disagreement; empty means agreement
     public static List<String> verify(
             NativePlatform platform, List<NativeStructLayout> registry, List<LayoutEntry> entries) {
+        return verify(platform, registry, List.of(), entries);
+    }
+
+    /// Verifies every registered layout and constant, plus the primitive widths.
+    ///
+    /// @return one human-readable message per disagreement; empty means agreement
+    public static List<String> verify(
+            NativePlatform platform,
+            List<NativeStructLayout> registry,
+            List<NativeConstant> constants,
+            List<LayoutEntry> entries) {
 
         var mismatches = new ArrayList<String>();
 
+        var describesLayout = (java.util.function.Predicate<LayoutEntry>)
+                entry -> !entry.describesScalar() && !entry.describesConstant();
+
         var structRows = entries.stream()
-                .filter(entry -> !entry.describesScalar() && entry.describesStruct())
+                .filter(describesLayout)
+                .filter(LayoutEntry::describesStruct)
                 .collect(Collectors.toMap(LayoutEntry::structName, entry -> entry, (a, b) -> a));
 
         var fieldRows = entries.stream()
-                .filter(entry -> !entry.describesScalar() && !entry.describesStruct())
+                .filter(describesLayout)
+                .filter(entry -> !entry.describesStruct())
                 .collect(Collectors.toMap(
                         entry -> entry.structName() + "." + entry.fieldName(), entry -> entry, (a, b) -> a));
 
@@ -77,8 +93,36 @@ public final class LayoutVerifier {
             }
         }
 
+        mismatches.addAll(verifyConstants(constants, entries));
         mismatches.addAll(verifyScalars(platform, entries));
         return List.copyOf(mismatches);
+    }
+
+    /// Checks the C constants the Java side hard-codes.
+    ///
+    /// The value travels in the row's `size` field, which is unsigned on the C
+    /// side, so it is widened here rather than compared as a signed `int`.
+    private static List<String> verifyConstants(
+            List<NativeConstant> constants, List<LayoutEntry> entries) {
+
+        var reported = entries.stream()
+                .filter(LayoutEntry::describesConstant)
+                .collect(Collectors.toMap(
+                        LayoutEntry::fieldName, entry -> Integer.toUnsignedLong(entry.size()), (a, b) -> a));
+
+        var mismatches = new ArrayList<String>();
+        for (var constant : constants) {
+            var value = reported.get(constant.name());
+            if (value == null) {
+                mismatches.add(constant.name()
+                        + " is declared in Java but not registered in goldberry_shim.c,"
+                        + " so nothing verifies it");
+            } else if (value != constant.value()) {
+                mismatches.add(constant.name() + ": Java says " + constant.value()
+                        + ", C says " + value);
+            }
+        }
+        return mismatches;
     }
 
     /// Checks the primitive widths Goldberry's bindings assume.

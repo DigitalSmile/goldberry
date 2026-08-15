@@ -46,3 +46,8 @@ bin/
 .DS_Store
 ### Claude Code ###
 .idea/claudeCodeTabState.xml
+
+# The example is a separate build with its own outputs.
+example/build/
+example/.gradle/
+example/run.log

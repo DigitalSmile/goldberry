@@ -32,6 +32,14 @@
  */
 #include <yoga/Yoga.h>
 
+/*
+ * For SDL_Event, SDL_Surface, and the SDL_EVENT_* values. Same reasoning as
+ * Yoga: these are the real declarations, so a Java constant that disagrees with
+ * the SDL that was actually compiled in fails the verification test rather than
+ * dispatching on an event number nothing sends.
+ */
+#include <SDL3/SDL.h>
+
 #if defined(_WIN32)
 #define GOLDBERRY_EXPORT __declspec(dllexport)
 #else
@@ -39,7 +47,7 @@
 #endif
 
 /* Bumped whenever the exported surface changes shape. */
-#define GOLDBERRY_ABI_VERSION 2u
+#define GOLDBERRY_ABI_VERSION 3u
 
 GOLDBERRY_EXPORT uint32_t goldberry_abi_version(void) {
     return GOLDBERRY_ABI_VERSION;
@@ -72,6 +80,16 @@ typedef struct {
  */
 #define GB_SCALAR(name, type) \
     { "<scalar>", name, (uint32_t) sizeof(type), 0u, (uint32_t) _Alignof(type) }
+
+/*
+ * Constant rows carry a value rather than a size. Enumerator values are exactly
+ * as easy to get wrong as struct offsets and exactly as silent when wrong: a Java
+ * constant for SDL_EVENT_WINDOW_CLOSE_REQUESTED that is off by one dispatches on
+ * an event nothing sends, and the window simply never closes. Reporting them here
+ * means the C compiler's value is what the test compares against.
+ */
+#define GB_CONSTANT(name, value) \
+    { "<constant>", name, (uint32_t) (value), 0u, 0u }
 
 /*
  * Canary struct. Its fields are chosen so that padding, not just field order,
@@ -109,6 +127,58 @@ static const goldberry_layout_entry_t GOLDBERRY_LAYOUTS[] = {
     GB_STRUCT(YGSize),
     GB_FIELD(YGSize, width),
     GB_FIELD(YGSize, height),
+
+    /*
+     * SDL_Event is a union. Only its size and alignment are modelled -- Goldberry
+     * allocates one and reads the arms it understands, so the union's own extent
+     * is what has to be right. Reading it as too small a segment is a buffer
+     * overflow every time SDL fills in a large arm.
+     */
+    GB_STRUCT(SDL_Event),
+    GB_STRUCT(SDL_CommonEvent),
+    GB_FIELD(SDL_CommonEvent, type),
+    GB_FIELD(SDL_CommonEvent, timestamp),
+    GB_STRUCT(SDL_WindowEvent),
+    GB_FIELD(SDL_WindowEvent, type),
+    GB_FIELD(SDL_WindowEvent, timestamp),
+    GB_FIELD(SDL_WindowEvent, windowID),
+    GB_FIELD(SDL_WindowEvent, data1),
+    GB_FIELD(SDL_WindowEvent, data2),
+
+    GB_STRUCT(SDL_Surface),
+    GB_FIELD(SDL_Surface, flags),
+    GB_FIELD(SDL_Surface, format),
+    GB_FIELD(SDL_Surface, w),
+    GB_FIELD(SDL_Surface, h),
+    GB_FIELD(SDL_Surface, pitch),
+    GB_FIELD(SDL_Surface, pixels),
+    GB_FIELD(SDL_Surface, refcount),
+    GB_FIELD(SDL_Surface, reserved),
+
+    GB_STRUCT(SDL_Rect),
+    GB_FIELD(SDL_Rect, x),
+    GB_FIELD(SDL_Rect, y),
+    GB_FIELD(SDL_Rect, w),
+    GB_FIELD(SDL_Rect, h),
+
+    /* Event types Goldberry dispatches on. */
+    GB_CONSTANT("SDL_EVENT_QUIT", SDL_EVENT_QUIT),
+    GB_CONSTANT("SDL_EVENT_WINDOW_EXPOSED", SDL_EVENT_WINDOW_EXPOSED),
+    GB_CONSTANT("SDL_EVENT_WINDOW_RESIZED", SDL_EVENT_WINDOW_RESIZED),
+    GB_CONSTANT("SDL_EVENT_WINDOW_PIXEL_SIZE_CHANGED", SDL_EVENT_WINDOW_PIXEL_SIZE_CHANGED),
+    GB_CONSTANT("SDL_EVENT_WINDOW_DISPLAY_SCALE_CHANGED", SDL_EVENT_WINDOW_DISPLAY_SCALE_CHANGED),
+    GB_CONSTANT("SDL_EVENT_WINDOW_CLOSE_REQUESTED", SDL_EVENT_WINDOW_CLOSE_REQUESTED),
+    GB_CONSTANT("SDL_EVENT_USER", SDL_EVENT_USER),
+
+    /* Window creation flags. */
+    GB_CONSTANT("SDL_WINDOW_RESIZABLE", SDL_WINDOW_RESIZABLE),
+    GB_CONSTANT("SDL_WINDOW_BORDERLESS", SDL_WINDOW_BORDERLESS),
+    GB_CONSTANT("SDL_WINDOW_HIGH_PIXEL_DENSITY", SDL_WINDOW_HIGH_PIXEL_DENSITY),
+    GB_CONSTANT("SDL_WINDOW_HIDDEN", SDL_WINDOW_HIDDEN),
+
+    /* Surface formats the CPU present path accepts. */
+    GB_CONSTANT("SDL_PIXELFORMAT_XRGB8888", SDL_PIXELFORMAT_XRGB8888),
+    GB_CONSTANT("SDL_PIXELFORMAT_ARGB8888", SDL_PIXELFORMAT_ARGB8888),
 };
 
 GOLDBERRY_EXPORT const goldberry_layout_entry_t *goldberry_layout_table(void) {

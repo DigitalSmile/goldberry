@@ -26,3 +26,10 @@ sourceSets {
         resources.srcDir(generateBuildInfo.map { buildInfoDir.get() })
     }
 }
+
+// :core requires :natives for the sdl3 backend. The module graph is what keeps
+// that honest: :natives exports only its wrapper packages, so nothing here can
+// reach a MemorySegment even by accident (ADR-0007, §3.1).
+dependencies {
+    api project(':natives')
+}

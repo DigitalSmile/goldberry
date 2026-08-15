@@ -25,6 +25,8 @@
 - [ADR-0017 Proving the struct-by-value upcall](adr/0017-proving-the-struct-by-value-upcall.md)
 - [ADR-0018 SDL's conventions stop at the boundary](adr/0018-sdl-conventions-stop-at-the-boundary.md)
 - [ADR-0019 The backend SPI's first cut](adr/0019-the-backend-spis-first-cut.md)
+- [ADR-0020 One UI thread, virtual threads behind it](adr/0020-one-ui-thread-and-virtual-threads-behind-it.md)
+- [ADR-0021 The example is a separate build](adr/0021-the-example-is-a-separate-build.md)
 
 ---
 

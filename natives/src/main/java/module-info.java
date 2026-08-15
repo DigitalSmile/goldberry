@@ -12,4 +12,13 @@
 /// warns on restricted native access from the unnamed module, and a later
 /// release makes it an error.
 module io.github.digitalsmile.goldberry.natives {
+
+    // The wrapper packages, and only those. The `natives` package itself stays
+    // unexported: NativeLibrary hands out a SymbolLookup, and a foreign type in
+    // the public surface of this module is the boundary leaking by another name.
+    // What is exported below traffics in Java types -- SdlWindowHandle wraps the
+    // pointer, MeasureCallback wraps the stub, PixelBuffer arrives as a
+    // ByteBuffer (ADR-0019).
+    exports io.github.digitalsmile.goldberry.natives.sdl;
+    exports io.github.digitalsmile.goldberry.natives.yoga;
 }

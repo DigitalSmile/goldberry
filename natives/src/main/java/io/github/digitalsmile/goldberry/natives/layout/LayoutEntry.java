@@ -12,6 +12,9 @@ public record LayoutEntry(String structName, String fieldName, int size, int off
     /// Struct name used by rows describing primitive C types.
     public static final String SCALAR = "<scalar>";
 
+    /// Struct name used by rows carrying a constant's value rather than a size.
+    public static final String CONSTANT = "<constant>";
+
     public LayoutEntry {
         Objects.requireNonNull(structName, "structName");
         if (size < 0 || offset < 0 || alignment < 0) {
@@ -28,5 +31,10 @@ public record LayoutEntry(String structName, String fieldName, int size, int off
     /// Whether this row describes a primitive C type.
     public boolean describesScalar() {
         return SCALAR.equals(structName);
+    }
+
+    /// Whether this row carries a constant's value in [#size()].
+    public boolean describesConstant() {
+        return CONSTANT.equals(structName);
     }
 }

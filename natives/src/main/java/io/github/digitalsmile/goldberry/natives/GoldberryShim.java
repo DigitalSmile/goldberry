@@ -17,8 +17,9 @@ public final class GoldberryShim {
 
     /// The ABI this Java code was written against. `goldberry_shim.c` must agree.
     ///
-    /// 2 added `goldberry_probe_measure` (ADR-0017).
-    public static final int SUPPORTED_ABI_VERSION = 2;
+    /// 2 added `goldberry_probe_measure` (ADR-0017); 3 added SDL3's windowing and
+    /// event surface, and the constant rows in the layout table (ADR-0020).
+    public static final int SUPPORTED_ABI_VERSION = 3;
 
     private static final Linker LINKER = Linker.nativeLinker();
 

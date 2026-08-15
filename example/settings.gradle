@@ -1,0 +1,43 @@
+// The example is its own build, not a module of the toolkit.
+//
+// That is the point of it: it consumes Goldberry the way an application would,
+// through published coordinates rather than project paths, so a mistake in what
+// the modules export or what the jars contain shows up here and not after a
+// release. A `:example` module inside the main build would compile against the
+// source tree and prove nothing.
+//
+// `includeBuild` makes it a composite: `io.github.digitalsmile:goldberry-core`
+// resolves to the local source tree when it is there, and could resolve from
+// Maven Central when it is not. The dependency is written the same way either
+// way.
+pluginManagement {
+    repositories {
+        gradlePluginPortal()
+        mavenCentral()
+    }
+}
+
+dependencyResolutionManagement {
+    repositories {
+        mavenCentral()
+    }
+}
+
+rootProject.name = 'goldberry-example'
+
+// The substitution is spelled out because Gradle's automatic version does not
+// apply here. A composite exposes an included project as `group:projectName`,
+// which is `io.github.digitalsmile:core` -- while the published artifact is
+// `goldberry-core` (§15). `base.archivesName` renames the jar, not the module
+// coordinates, so without this the example asks for a module the composite does
+// not think it has, and Gradle goes looking on Maven Central for a version that
+// has never been released.
+//
+// Writing it out keeps the example's build file stating the real published
+// coordinates, which is what an application would write.
+includeBuild('..') {
+    dependencySubstitution {
+        substitute module('io.github.digitalsmile:goldberry-core') using project(':core')
+        substitute module('io.github.digitalsmile:goldberry-natives') using project(':natives')
+    }
+}

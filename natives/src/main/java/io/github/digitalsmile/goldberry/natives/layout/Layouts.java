@@ -86,14 +86,115 @@ public final class Layouts {
                     ValueLayout.JAVA_FLOAT.withName("width"),
                     ValueLayout.JAVA_FLOAT.withName("height")));
 
+    /// SDL's event union.
+    ///
+    /// Only the extent is modelled. Goldberry allocates one of these, hands SDL
+    /// the pointer, and reads the arms it understands — so what has to be right is
+    /// how much memory SDL is entitled to fill. Model it too small and every event
+    /// with a large arm overflows the buffer.
+    ///
+    /// SDL pads the union to a fixed 128 bytes explicitly, precisely so MSVC and
+    /// GCC agree, which is why this is one of the few upstream structs whose size
+    /// is the same everywhere.
+    /// Modelled as sixteen longs rather than 128 bytes: the union's alignment is
+    /// its widest member's, which is 8, and a byte array would declare 1. An
+    /// under-aligned allocation is the kind of thing that works on x86 and faults
+    /// on other targets — and the layout probe says so on every one of them.
+    public static final NativeStructLayout SDL_EVENT = new NativeStructLayout(
+            "SDL_Event",
+            MemoryLayout.structLayout(
+                    MemoryLayout.sequenceLayout(16, ValueLayout.JAVA_LONG)));
+
+    /// The header every SDL event arm starts with.
+    ///
+    /// ```c
+    /// typedef struct SDL_CommonEvent {
+    ///     Uint32 type;
+    ///     Uint32 reserved;
+    ///     Uint64 timestamp;
+    /// } SDL_CommonEvent;
+    /// ```
+    public static final NativeStructLayout SDL_COMMON_EVENT = new NativeStructLayout(
+            "SDL_CommonEvent",
+            MemoryLayout.structLayout(
+                    ValueLayout.JAVA_INT.withName("type"),
+                    MemoryLayout.paddingLayout(4),
+                    ValueLayout.JAVA_LONG.withName("timestamp")));
+
+    /// A window event.
+    ///
+    /// ```c
+    /// typedef struct SDL_WindowEvent {
+    ///     SDL_EventType type;
+    ///     Uint32        reserved;
+    ///     Uint64        timestamp;
+    ///     SDL_WindowID  windowID;
+    ///     Sint32        data1;
+    ///     Sint32        data2;
+    /// } SDL_WindowEvent;
+    /// ```
+    public static final NativeStructLayout SDL_WINDOW_EVENT = new NativeStructLayout(
+            "SDL_WindowEvent",
+            MemoryLayout.structLayout(
+                    ValueLayout.JAVA_INT.withName("type"),
+                    MemoryLayout.paddingLayout(4),
+                    ValueLayout.JAVA_LONG.withName("timestamp"),
+                    ValueLayout.JAVA_INT.withName("windowID"),
+                    ValueLayout.JAVA_INT.withName("data1"),
+                    ValueLayout.JAVA_INT.withName("data2"),
+                    MemoryLayout.paddingLayout(4)));
+
+    /// A window's CPU-side surface — where the present path writes pixels.
+    ///
+    /// ```c
+    /// struct SDL_Surface {
+    ///     SDL_SurfaceFlags flags;
+    ///     SDL_PixelFormat  format;
+    ///     int   w, h, pitch;
+    ///     void *pixels;
+    ///     int   refcount;
+    ///     void *reserved;
+    /// };
+    /// ```
+    public static final NativeStructLayout SDL_SURFACE = new NativeStructLayout(
+            "SDL_Surface",
+            MemoryLayout.structLayout(
+                    ValueLayout.JAVA_INT.withName("flags"),
+                    ValueLayout.JAVA_INT.withName("format"),
+                    ValueLayout.JAVA_INT.withName("w"),
+                    ValueLayout.JAVA_INT.withName("h"),
+                    ValueLayout.JAVA_INT.withName("pitch"),
+                    MemoryLayout.paddingLayout(4),
+                    ValueLayout.ADDRESS.withName("pixels"),
+                    ValueLayout.JAVA_INT.withName("refcount"),
+                    MemoryLayout.paddingLayout(4),
+                    ValueLayout.ADDRESS.withName("reserved")));
+
+    /// ```c
+    /// typedef struct SDL_Rect { int x, y, w, h; } SDL_Rect;
+    /// ```
+    ///
+    /// How damage rectangles reach `SDL_UpdateWindowSurfaceRects`.
+    public static final NativeStructLayout SDL_RECT = new NativeStructLayout(
+            "SDL_Rect",
+            MemoryLayout.structLayout(
+                    ValueLayout.JAVA_INT.withName("x"),
+                    ValueLayout.JAVA_INT.withName("y"),
+                    ValueLayout.JAVA_INT.withName("w"),
+                    ValueLayout.JAVA_INT.withName("h")));
+
     private Layouts() {
     }
 
     /// Every layout that must agree with the compiled library.
-    ///
-    /// Upstream structs join this list as they are bound — `SDL_Event` next, for
-    /// the M0 window.
     public static List<NativeStructLayout> registry() {
-        return List.of(PROBE_SELF, YG_SIZE);
+        return List.of(
+                PROBE_SELF,
+                YG_SIZE,
+                SDL_EVENT,
+                SDL_COMMON_EVENT,
+                SDL_WINDOW_EVENT,
+                SDL_SURFACE,
+                SDL_RECT);
     }
 }

@@ -43,6 +43,25 @@ SDL_ClearError
 SDL_GetVersion
 SDL_GetRevision
 
+# Windowing and the CPU present path (sec. 4, sec. 5).
+SDL_CreateWindow
+SDL_DestroyWindow
+SDL_ShowWindow
+SDL_SetWindowTitle
+SDL_GetWindowSize
+SDL_GetWindowSizeInPixels
+SDL_GetWindowDisplayScale
+SDL_GetWindowID
+SDL_GetWindowSurface
+SDL_UpdateWindowSurfaceRects
+SDL_DestroyWindowSurface
+
+# Event pumping, and SDL_PushEvent for the cross-thread wakeup.
+SDL_PollEvent
+SDL_WaitEventTimeout
+SDL_PushEvent
+SDL_PumpEvents
+
 # --- Blend2D (sec. 5, paint & raster) ----------------------------------------
 
 # --- Yoga (sec. 5, layout) ---------------------------------------------------

@@ -1,0 +1,89 @@
+# Example CI (ADR-0021)
+#
+# The showcase is a separate Gradle build that consumes Goldberry through its
+# published coordinates, so this workflow answers a question the toolkit's own
+# builds cannot: does an application outside this repository actually work? A
+# module that forgets to export a package, a jar that ships without its native
+# library, an --enable-native-access argument that names the wrong module -- each
+# of those passes every test in the main build and fails here.
+#
+# And it runs the thing. A window opens under Xvfb, a frame is presented, and the
+# process exits on its own. "It compiled" is not the claim being made.
+
+name: Example
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+  workflow_dispatch:
+
+defaults:
+  run:
+    shell: bash
+
+env:
+  # Keep in step with gradle/libs.versions.toml.
+  BLEND2D_REF: master
+  ASMJIT_REF: master
+  YOGA_REF: v3.1.0
+  HARFBUZZ_REF: 8.5.0
+  SDL3_REF: release-3.2.0
+  XKBCOMMON_REF: xkbcommon-1.6.0
+
+jobs:
+  showcase:
+    name: Open a window (linux-x64)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '25'
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      # Built on the runner rather than in the manylinux container used for
+      # releases: this library is under test, not for distribution, and a
+      # container without a JDK cannot run the example anyway. The glibc floor is
+      # the release workflow's problem (ADR-0012).
+      - name: Install build tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            cmake ninja-build meson \
+            libx11-dev libxext-dev libxrandr-dev libxcursor-dev libxi-dev \
+            libxfixes-dev libxss-dev libwayland-dev wayland-protocols \
+            libxkbcommon-dev xkb-data libegl1-mesa-dev libgles2-mesa-dev \
+            libasound2-dev libpulse-dev libdbus-1-dev libudev-dev \
+            xvfb
+
+      - name: Build libgoldberry
+        run: ./gradlew :natives:cmakeBuild --no-daemon
+
+      - name: Build the example
+        working-directory: example
+        run: ./gradlew build --no-daemon
+
+      # Xvfb gives SDL a real X display to open a real window on. Without it SDL
+      # has no video driver and the backend fails at startup -- which is the
+      # correct behaviour, and not what this job is trying to find out.
+      - name: Open a window
+        working-directory: example
+        run: |
+          xvfb-run -a --server-args="-screen 0 1280x1024x24" \
+            ./gradlew run --no-daemon -Pgoldberry.example.frames=3 --console=plain \
+            | tee run.log
+          # The build succeeding is not enough: `run` exits 0 if main() returns
+          # without drawing anything at all.
+          grep -q "painted 3 frame(s); exiting" run.log \
+            || { echo "::error::the showcase did not present three frames"; exit 1; }
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: example-run-log
+          path: example/run.log
+          if-no-files-found: warn
