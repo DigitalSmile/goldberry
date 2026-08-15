@@ -114,10 +114,25 @@ set(BLEND2D_TEST FALSE CACHE BOOL "" FORCE)
 # Hidden behind an internal interface on the Java side so Taffy or a grid engine
 # stays swappable later.
 # ============================================================================
+# SOURCE_SUBDIR yoga, so only the library is configured.
+#
+# Yoga's top-level CMakeLists.txt calls add_subdirectory(tests) unconditionally
+# -- there is no option to turn it off -- which fetches googletest, builds
+# yogatests, and then runs gtest_discover_tests. That last step EXECUTES the test
+# binary at configure time, which is fatal on a cross-targeting runner: MSVC
+# building ARM64 on an x64 host produces a yogatests.exe the host cannot run, and
+# CMake reports it as "Error running test executable ... Result: unknown error"
+# after five minutes of compiling.
+#
+# yoga/CMakeLists.txt is self-contained: it defines yogacore, includes Yoga's own
+# project-defaults, and exports the include directory that makes <yoga/Yoga.h>
+# resolve. Pointing at it skips the tests, the googletest dependency, and the
+# gtest/gmock archives that were being built on every target for nothing.
 FetchContent_Declare(yoga
     GIT_REPOSITORY https://github.com/facebook/yoga.git
     GIT_TAG ${GOLDBERRY_YOGA_REF}
-    GIT_SHALLOW TRUE)
+    GIT_SHALLOW TRUE
+    SOURCE_SUBDIR yoga)
 
 # ============================================================================
 # HarfBuzz -- text shaping (§6)

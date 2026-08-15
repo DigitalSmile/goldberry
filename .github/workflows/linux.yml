@@ -121,6 +121,11 @@ jobs:
   verify:
     name: Verify layouts (${{ matrix.target }})
     needs: natives
+    # A matrix job fails if any leg does, so without this one broken target
+    # skips verification of every other target's library -- including ones that
+    # built fine. A leg whose artifact really is missing fails at the download
+    # step, loudly, which is what ADR-0016 asks for.
+    if: ${{ !cancelled() }}
     strategy:
       fail-fast: false
       matrix:

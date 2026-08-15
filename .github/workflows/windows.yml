@@ -90,6 +90,13 @@ jobs:
   verify:
     name: Verify layouts (windows-x64)
     needs: natives
+    # `needs` waits for the whole matrix, and a matrix job fails if ANY leg does.
+    # Without this, an unrelated windows-aarch64 failure skips the verification of
+    # a windows-x64 library that built perfectly -- and this is the job that
+    # checks Win64's 4-byte `long`, which nothing else does. If the x64 artifact
+    # really is missing, the download step below fails loudly, which is the
+    # outcome we want rather than a silent skip (ADR-0016).
+    if: ${{ !cancelled() }}
     runs-on: windows-2022
     steps:
       - uses: actions/checkout@v4

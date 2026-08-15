@@ -85,6 +85,10 @@ jobs:
   verify:
     name: Verify layouts (macos-aarch64)
     needs: natives
+    # A matrix job fails if any leg does, so a macos-x64 failure would otherwise
+    # skip verification of the aarch64 library it has nothing to do with. A
+    # genuinely missing artifact fails at the download step (ADR-0016).
+    if: ${{ !cancelled() }}
     runs-on: macos-14
     steps:
       - uses: actions/checkout@v4
