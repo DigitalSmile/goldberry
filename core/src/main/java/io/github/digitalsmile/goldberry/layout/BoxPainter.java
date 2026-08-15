@@ -50,6 +50,15 @@ public final class BoxPainter {
                         layout.left(), layout.top(), layout.width(), layout.height(),
                         box.background());
             }
+            if (box.text() != null) {
+                // Wrapped at the width the layout pass settled on -- the same
+                // width the measure function was last asked about, so the
+                // paragraph's memo answers without re-wrapping and the lines
+                // drawn are exactly the lines that were measured.
+                box.text().paragraph().paint(
+                        frame, layout.left(), layout.top(), layout.width(),
+                        box.text().argb());
+            }
         });
     }
 
@@ -93,6 +102,13 @@ public final class BoxPainter {
         node.setPadding(Edge.ALL, box.padding());
         node.setGap(Gutter.ALL, box.gap());
         node.setFlexGrow((float) box.flexGrow());
+
+        // Text makes the node a measured leaf. Yoga calls this back from C,
+        // several times per pass as it tries widths (ADR-0017), and the callback
+        // is owned by the node -- closing the tree closes it.
+        if (box.text() != null) {
+            node.setMeasureFunction(box.text().paragraph().measureFunction());
+        }
 
         for (var child : box.children()) {
             node.addChild(build(config, child, order));
