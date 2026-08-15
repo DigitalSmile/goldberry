@@ -1,0 +1,13 @@
+plugins {
+    id 'goldberry.java-conventions'
+}
+
+description = 'Goldberry widgets: the widget catalog, charts included'
+
+dependencies {
+    api project(':core')
+}
+
+// Deliberately no dependency on :gpu. The gallery module this replaced had one,
+// but a published widget library must not drag SDL_GPU into every consumer --
+// the canvas3d showcase belongs in :gpu itself. See ADR-0014.

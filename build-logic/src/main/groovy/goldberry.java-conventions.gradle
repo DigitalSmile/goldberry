@@ -1,0 +1,65 @@
+import org.gradle.api.artifacts.VersionCatalogsExtension
+
+plugins {
+    id 'java-library'
+}
+
+// Precompiled Groovy script plugins do not get the generated `libs` accessors
+// that a module build script has, so the catalog is read through its extension.
+// This is the one place the Groovy DSL costs something real -- see ADR-0013.
+def catalog = extensions.getByType(VersionCatalogsExtension).named('libs')
+def javaVersion = catalog.findVersion('java').get().requiredVersion as int
+
+group = 'io.github.digitalsmile'
+version = providers.gradleProperty('goldberryVersion').get()
+
+// Published artifact names are `goldberry-core`, `goldberry-widgets`, ...
+// See docs/ARCHITECTURE.md §15.
+base {
+    archivesName = "goldberry-${project.name}"
+}
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(javaVersion)
+    }
+    // Every module ships a module-info. The module graph is what actually
+    // enforces §3.1's "raw MemorySegment never escapes :natives" -- without it
+    // that rule is convention, not a boundary. It is also what makes
+    // `--enable-native-access=<module>` targetable under JEP 472.
+    modularity.inferModulePath = true
+    withSourcesJar()
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+    options.release = javaVersion
+    options.compilerArgs.addAll([
+            '-Xlint:all,-serial',
+            '-Werror',
+    ])
+}
+
+dependencies {
+    testImplementation platform(catalog.findLibrary('junit-bom').get())
+    testImplementation catalog.findLibrary('junit-jupiter').get()
+    testRuntimeOnly catalog.findLibrary('junit-platform-launcher').get()
+}
+
+tasks.withType(Test).configureEach {
+    useJUnitPlatform()
+    testLogging {
+        events 'failed', 'skipped'
+        exceptionFormat = 'full'
+    }
+}
+
+// Apache-2.0 §4(a) and §4(d): a redistributor must receive the licence, and the
+// NOTICE file if one exists. Putting both in META-INF means every consumer of a
+// Goldberry jar has them whether or not they ever see the repository.
+tasks.withType(Jar).configureEach {
+    from(rootProject.file('LICENSE')) { into 'META-INF' }
+    from(rootProject.file('NOTICE')) { into 'META-INF' }
+    from(rootProject.file('THIRD-PARTY-NOTICES.md')) { into 'META-INF' }
+    from(rootProject.file('licenses')) { into 'META-INF/licenses' }
+}

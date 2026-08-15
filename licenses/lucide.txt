@@ -1,0 +1,25 @@
+Lucide
+SPDX-License-Identifier: ISC
+Upstream:      https://github.com/lucide-icons/lucide
+Licence file:  LICENSE
+Bundled as:    icon paths compiled into goldberry-core at build time
+
+NOT-VENDORED: the verbatim upstream licence file, including its exact
+copyright lines, must be copied here from the pinned revision before
+Goldberry is published. Run './gradlew checkLicenses -Pgoldberry.releaseCheck=true'
+to fail the build while this marker is present.
+
+--- Reference text of ISC (informational until vendored; the upstream
+    copyright line governs and is not reproduced here) ---
+
+Permission to use, copy, modify, and/or distribute this software for any
+purpose with or without fee is hereby granted, provided that the above
+copyright notice and this permission notice appear in all copies.
+
+THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES WITH
+REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
+AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT,
+INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
+LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR
+OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
+PERFORMANCE OF THIS SOFTWARE.

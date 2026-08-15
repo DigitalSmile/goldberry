@@ -1,0 +1,38 @@
+Goldberry
+Copyright 2026 The Goldberry Authors
+
+This product includes software developed as part of the Goldberry project
+(https://github.com/digitalsmile/goldberry).
+
+Licensed under the Apache License, Version 2.0. See the LICENSE file.
+
+--------------------------------------------------------------------------------
+
+This product bundles third-party software and assets under their own licenses.
+
+The native library `libgoldberry` STATICALLY LINKS the following, so their
+code is present in every binary artifact Goldberry distributes:
+
+  Blend2D        Zlib license      https://blend2d.com
+  AsmJit         Zlib license      https://asmjit.com          (via Blend2D)
+  SDL3           Zlib license      https://www.libsdl.org
+  Yoga           MIT license       https://www.yogalayout.dev
+  HarfBuzz       MIT license       https://harfbuzz.github.io
+  libxkbcommon   MIT license       https://xkbcommon.org       (Linux builds only)
+
+The following assets are embedded in the published jars:
+
+  Inter                SIL Open Font License 1.1   https://rsms.me/inter/
+  JetBrains Mono       SIL Open Font License 1.1   https://www.jetbrains.com/lp/mono/
+  Lucide               ISC license                 https://lucide.dev
+  OpenMoji (derived)   CC BY-SA 4.0                https://openmoji.org
+
+The OpenMoji emoji font shipped with Goldberry is a MODIFIED version of the
+original: its COLRv0 colour palette has been re-themed toward the Nord palette.
+Under CC BY-SA 4.0 that derivative is itself licensed CC BY-SA 4.0, and this
+modification is disclosed here as the licence requires. The Apache-2.0 licence
+of Goldberry's own code is unaffected — the font is an embedded asset, not
+linked code.
+
+Full licence texts and per-component attribution are in THIRD-PARTY-NOTICES.md
+and the licenses/ directory.

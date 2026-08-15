@@ -1,0 +1,30 @@
+# Exported symbols of libgoldberry -- the complete native surface.
+#
+# Everything is compiled with hidden visibility and the statically linked
+# upstreams are excluded from re-export, so a symbol reaches Java only by being
+# listed here. The build turns this file into a linker version script on Linux,
+# an -exported_symbols_list on macOS, and a .def on Windows, and forces each
+# symbol to be pulled out of its static archive with -u.
+#
+# This file is the mirror of the Java binding registry: a symbol bound in Java
+# but missing here fails at load time with an unresolved-symbol error, and a
+# symbol here that nothing binds is dead weight. Keeping the two in step is the
+# same discipline ADR-0010 applies to struct layouts.
+#
+# Blank lines and #-comments are ignored. One symbol per line.
+
+# --- libgoldberry's own surface ---------------------------------------------
+goldberry_abi_version
+goldberry_layout_table
+goldberry_layout_count
+
+# --- SDL3 (§4 backend SPI) ---------------------------------------------------
+# Added as they are bound, starting with the M0 blank window.
+
+# --- Blend2D (§5 paint & raster) ---------------------------------------------
+
+# --- Yoga (§5 layout) --------------------------------------------------------
+
+# --- HarfBuzz (§6 text) ------------------------------------------------------
+
+# --- libxkbcommon (Linux/Scarlet only, §7.1) ---------------------------------

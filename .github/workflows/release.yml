@@ -1,0 +1,66 @@
+# Release: all six artifacts, packaged into the §15 classifier jars.
+#
+# The per-OS workflows are reused via `workflow_call` rather than duplicated, so
+# there is exactly one definition of how each platform builds. Because a called
+# workflow shares the caller's run, the artifacts it uploads are visible to the
+# package job below.
+#
+# STATUS: never run.
+
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+jobs:
+  linux:
+    uses: ./.github/workflows/linux.yml
+
+  windows:
+    uses: ./.github/workflows/windows.yml
+
+  macos:
+    uses: ./.github/workflows/macos.yml
+
+  package:
+    name: Classifier jars
+    needs: [linux, windows, macos]
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '25'
+      - uses: gradle/actions/setup-gradle@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: native-*
+          path: native-artifacts
+
+      - name: Flatten into the layout :natives expects
+        run: |
+          mkdir -p artifacts
+          for dir in native-artifacts/native-*; do
+            target="${dir#native-artifacts/native-}"
+            mkdir -p "artifacts/$target"
+            cp "$dir"/* "artifacts/$target/"
+          done
+          find artifacts -type f | sort
+
+      # Every licence file must carry its verbatim upstream text before anything
+      # is published. This is the check that makes forgetting that impossible.
+      - name: Verify licence disclosure
+        run: ./gradlew checkLicenses -Pgoldberry.releaseCheck=true --no-daemon
+
+      - name: Build classifier jars
+        run: ./gradlew :natives:nativeJars --no-daemon -Pgoldberry.artifactsDir=$PWD/artifacts
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: goldberry-natives-jars
+          path: natives/build/libs/goldberry-natives-*.jar
+          if-no-files-found: error

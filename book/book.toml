@@ -1,0 +1,11 @@
+[book]
+title = "Goldberry"
+description = "A fast and modern UI toolkit for Java"
+authors = ["digitalsmile"]
+language = "en"
+src = "src"
+
+[output.html]
+default-theme = "navy"
+preferred-dark-theme = "navy"
+git-repository-url = "https://github.com/digitalsmile/goldberry"

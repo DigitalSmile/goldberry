@@ -1,0 +1,21 @@
+HarfBuzz
+SPDX-License-Identifier: MIT
+Upstream:      https://github.com/harfbuzz/harfbuzz
+Licence file:  COPYING
+Bundled as:    statically linked into libgoldberry
+
+NOT-VENDORED: the verbatim upstream licence file, including its exact
+copyright lines, must be copied here from the pinned revision before
+Goldberry is published. Run './gradlew checkLicenses -Pgoldberry.releaseCheck=true'
+to fail the build while this marker is present.
+
+--- No reference text ---
+
+HarfBuzz does NOT use the standard MIT text. It uses its own permissive
+licence, commonly called "Old MIT", and its COPYING file carries a long list
+of distinct copyright holders (Behdad Esfahbod, Google, Red Hat, Mozilla,
+Codethink, and others) accumulated over the project's history.
+
+For that reason no reference text is reproduced here: paraphrasing it, or
+substituting standard MIT, would misstate the licence. Copy COPYING verbatim
+from the pinned revision.

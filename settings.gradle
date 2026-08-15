@@ -1,0 +1,26 @@
+pluginManagement {
+    includeBuild 'build-logic'
+    repositories {
+        gradlePluginPortal()
+        mavenCentral()
+    }
+}
+
+dependencyResolutionManagement {
+    repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+    repositories {
+        mavenCentral()
+    }
+}
+
+rootProject.name = 'goldberry'
+
+// Module map -- see docs/ARCHITECTURE.md §15.
+//   :natives  FFM bindings + the CMake superbuild that produces libgoldberry
+//   :core     widgets, style, layout, text, paint, backend SPI
+//   :widgets  the widget catalog, charts included (ADR-0014)
+//   :gpu      canvas3d and the GPU composition path
+include ':natives',
+        ':core',
+        ':widgets',
+        ':gpu'

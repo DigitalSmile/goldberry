@@ -1,0 +1,27 @@
+# Summary
+
+[Introduction](introduction.md)
+[Status](status.md)
+
+# Architecture decisions
+
+- [About these records](adr/index.md)
+- [ADR-0001 Record architecture decisions](adr/0001-record-architecture-decisions.md)
+- [ADR-0002 CPU rasterization with Blend2D](adr/0002-cpu-rasterization-with-blend2d.md)
+- [ADR-0003 SDL3 as the only desktop backend](adr/0003-sdl3-as-the-only-desktop-backend.md)
+- [ADR-0004 Three-tree retained declarative model](adr/0004-three-tree-retained-declarative-model.md)
+- [ADR-0005 CSS subset and KDL as the contracts](adr/0005-css-subset-and-kdl-as-the-contracts.md)
+- [ADR-0006 FFM bindings via jextract (superseded)](adr/0006-ffm-bindings-via-jextract.md)
+- [ADR-0007 JPMS modules enforce the native boundary](adr/0007-jpms-modules-enforce-the-native-boundary.md)
+- [ADR-0008 Superbuild before the vertical slice](adr/0008-superbuild-before-the-vertical-slice.md)
+- [ADR-0009 Publish under io.github.digitalsmile](adr/0009-publish-under-io-github-digitalsmile.md)
+- [ADR-0010 Hand-written FFM bindings](adr/0010-hand-written-ffm-bindings.md)
+- [ADR-0011 Zig cross-compilation toolchain (superseded)](adr/0011-zig-cross-compilation-toolchain.md)
+- [ADR-0012 Native CI runners, with a pinned glibc](adr/0012-native-ci-runners-with-a-pinned-glibc.md)
+- [ADR-0013 Groovy DSL for the build](adr/0013-groovy-dsl-for-the-build.md)
+- [ADR-0014 One widgets module, charts included](adr/0014-single-widgets-module.md)
+- [ADR-0015 Licensing and third-party disclosure](adr/0015-licensing-and-third-party-disclosure.md)
+
+---
+
+[Template](adr/0000-template.md)

@@ -1,0 +1,9 @@
+plugins {
+    id 'goldberry.java-conventions'
+}
+
+description = 'Goldberry GPU: the canvas3d widget and the GPU composition path'
+
+dependencies {
+    api project(':core')
+}

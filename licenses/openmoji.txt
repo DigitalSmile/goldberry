@@ -1,0 +1,36 @@
+OpenMoji (modified)
+SPDX-License-Identifier: CC-BY-SA-4.0
+Upstream:      https://github.com/hfg-gmuend/openmoji
+Licence file:  LICENSE.txt
+Bundled as:    embedded in goldberry-core as the emoji font; MODIFIED (see below)
+
+NOT-VENDORED: the verbatim upstream licence file, including its exact
+copyright lines, must be copied here from the pinned revision before
+Goldberry is published. Run './gradlew checkLicenses -Pgoldberry.releaseCheck=true'
+to fail the build while this marker is present.
+
+--- No reference text ---
+
+MODIFICATION DISCLOSURE, required by CC BY-SA 4.0 section 3(a)(1)(B):
+
+  Goldberry ships a derivative of OpenMoji. The COLRv0 colour variant's CPAL
+  palette has been re-themed toward the Nord palette (docs/ARCHITECTURE.md
+  §6.2). The monochrome (Black) variant is shipped unmodified.
+
+OBLIGATIONS this creates, which are stricter than every other licence here:
+
+  1. ATTRIBUTION -- credit the OpenMoji project, link the licence, and state
+     that changes were made. Satisfied by NOTICE and this file, and it must
+     also appear in any About dialog Goldberry ships.
+  2. SHARE-ALIKE -- the re-themed font is itself licensed CC BY-SA 4.0 and must
+     be distributed under those terms. It cannot be relicensed Apache-2.0.
+  3. NO ADDITIONAL RESTRICTIONS -- Goldberry's own terms must not restrict
+     what CC BY-SA permits for the font.
+
+Share-alike reaches the derivative FONT only. It does not reach Goldberry's
+Java or native code: the font is an embedded asset, and CC BY-SA has no
+linking or combination clause of the kind copyleft software licences use.
+
+The full legal code is roughly 7,000 words and is deliberately not reproduced
+from memory. Vendor it verbatim from:
+  https://creativecommons.org/licenses/by-sa/4.0/legalcode.txt

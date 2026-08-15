@@ -1,0 +1,23 @@
+[versions]
+# Java 25 LTS is the floor: FFM is final, and the blur path needs the Vector API.
+# See docs/ARCHITECTURE.md §3.2.
+java = "25"
+junit = "6.0.0"
+
+# --- Native dependencies (docs/ARCHITECTURE.md §3) ---------------------------
+# Git refs consumed by the CMake superbuild. These are pins, not ranges: a
+# floating ref would make the artifact irreproducible.
+#
+# VERIFY ON FIRST BUILD: these refs have not yet been resolved against upstream.
+# Blend2D in particular has historically had no release tags, so it is pinned by
+# branch here and must become a commit SHA before anything is published.
+blend2d = "master"
+yoga = "v3.1.0"
+harfbuzz = "8.5.0"
+sdl3 = "release-3.2.0"
+xkbcommon = "xkbcommon-1.6.0"
+
+[libraries]
+junit-bom = { module = "org.junit:junit-bom", version.ref = "junit" }
+junit-jupiter = { module = "org.junit.jupiter:junit-jupiter" }
+junit-platform-launcher = { module = "org.junit.platform:junit-platform-launcher" }

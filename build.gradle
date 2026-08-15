@@ -1,0 +1,76 @@
+// The root project is a container only. Shared configuration lives in the
+// `goldberry.java-conventions` precompiled script plugin under `build-logic/`,
+// which each module applies explicitly -- no cross-project `subprojects {}`
+// configuration, so modules stay independently understandable and the build
+// stays compatible with Gradle's project-isolation direction.
+
+description = 'Goldberry -- a fast and modern UI toolkit for Java'
+
+// ============================================================================
+// Licence disclosure (ADR-0015)
+//
+// Keeps THIRD-PARTY-NOTICES.md and licenses/ from drifting apart. A dependency
+// added to one and not the other is a build failure rather than something
+// noticed at release time -- the same discipline the native symbol list and the
+// struct layout probe apply elsewhere.
+// ============================================================================
+tasks.register('checkLicenses') {
+    group = 'verification'
+    description = 'Verifies that THIRD-PARTY-NOTICES.md and licenses/ agree.'
+
+    def noticesFile = file('THIRD-PARTY-NOTICES.md')
+    def licensesDir = file('licenses')
+    def releaseCheck = providers.gradleProperty('goldberry.releaseCheck')
+            .map { Boolean.parseBoolean(it) }
+            .getOrElse(false)
+
+    inputs.file noticesFile
+    inputs.dir licensesDir
+    inputs.property 'releaseCheck', releaseCheck
+
+    doLast {
+        def problems = []
+
+        // Every licences/<name>.txt referenced by the notices must exist...
+        def referenced = (noticesFile.text =~ /licenses\/([A-Za-z0-9._-]+\.txt)/)
+                .collect { it[1] } as Set
+        def present = licensesDir.listFiles()
+                .findAll { it.name.endsWith('.txt') }
+                .collect { it.name } as Set
+
+        (referenced - present).each {
+            problems << "THIRD-PARTY-NOTICES.md references licenses/${it}, which does not exist"
+        }
+        // ...and every file present must be referenced, so nothing rots unnoticed.
+        (present - referenced).each {
+            problems << "licenses/${it} exists but THIRD-PARTY-NOTICES.md never references it"
+        }
+
+        if (!problems.isEmpty()) {
+            throw new GradleException(
+                    "Licence disclosure is inconsistent:\n  " + problems.join('\n  '))
+        }
+
+        // Files still carrying the marker have no verbatim upstream text. That is
+        // expected until the component is actually vendored, and unacceptable at
+        // release -- so it warns by default and fails under -Pgoldberry.releaseCheck.
+        def notVendored = licensesDir.listFiles()
+                .findAll { it.name.endsWith('.txt') && it.text.contains('NOT-VENDORED') }
+                .collect { it.name }
+                .sort()
+
+        if (notVendored.isEmpty()) {
+            logger.lifecycle("Licence disclosure OK: ${present.size()} components, all vendored.")
+            return
+        }
+
+        def message = "${notVendored.size()} of ${present.size()} licence files still " +
+                "need their verbatim upstream text:\n  " + notVendored.join('\n  ')
+        if (releaseCheck) {
+            throw new GradleException(
+                    message + "\n\nVendor them from the pinned upstream revisions before publishing.")
+        }
+        logger.warn("WARNING: ${message}\n" +
+                "  (fails the build under -Pgoldberry.releaseCheck=true)")
+    }
+}

@@ -1,0 +1,231 @@
+plugins {
+    id 'goldberry.java-conventions'
+}
+
+description = 'Goldberry native layer: hand-written FFM bindings and the libgoldberry superbuild'
+
+// ============================================================================
+// Native build (ADR-0012)
+//
+// Every artifact is built on a native runner; there is no cross-compilation.
+// The tasks here build libgoldberry for the HOST only -- they are the local
+// development path. CI invokes CMake directly on each runner, because the Linux
+// legs build inside a manylinux container that has no JDK.
+//
+// Consequence worth remembering: a locally built library links against this
+// machine's glibc, so it is NOT the published artifact. Only the container build
+// is shippable. See ADR-0012.
+//
+// Nothing here runs as part of `./gradlew build` -- the native build needs CMake,
+// Ninja, a C/C++ toolchain, and network access, and Java-only contributors should
+// not need any of them.
+// ============================================================================
+
+// One row of the §15 distribution matrix.
+def nativeTargets = [
+        [id: 'linux-x64', library: 'libgoldberry.so'],
+        [id: 'linux-aarch64', library: 'libgoldberry.so'],
+        [id: 'windows-x64', library: 'goldberry.dll'],
+        [id: 'windows-aarch64', library: 'goldberry.dll'],
+        [id: 'macos-x64', library: 'libgoldberry.dylib'],
+        [id: 'macos-aarch64', library: 'libgoldberry.dylib'],
+]
+
+// `linux-x64` -> `LinuxX64`, for task names.
+def taskSuffix = { String id -> id.split('-').collect { it.capitalize() }.join('') }
+
+// The target this machine builds natively. Mirrors `NativePlatform` on the Java
+// side; the two are asserted to agree by `NativeLibraryTest`.
+def hostTarget = {
+    def osName = System.getProperty('os.name', '').toLowerCase()
+    def osArch = System.getProperty('os.arch', '').toLowerCase()
+
+    def osToken
+    if (osName.contains('linux')) {
+        osToken = 'linux'
+    } else if (osName.contains('mac') || osName.contains('darwin')) {
+        osToken = 'macos'
+    } else if (osName.contains('windows')) {
+        osToken = 'windows'
+    } else {
+        throw new GradleException("Goldberry has no native target for os.name=\"${osName}\"")
+    }
+
+    def archToken
+    if (osArch in ['amd64', 'x86_64', 'x64']) {
+        archToken = 'x64'
+    } else if (osArch in ['aarch64', 'arm64']) {
+        archToken = 'aarch64'
+    } else {
+        throw new GradleException("Goldberry has no native target for os.arch=\"${osArch}\"")
+    }
+
+    def id = "${osToken}-${archToken}"
+    def target = nativeTargets.find { it.id == id }
+    if (target == null) {
+        throw new GradleException("No native target declared for ${id}")
+    }
+    return target
+}()
+
+def nativeGroup = 'native'
+def cmakeSourceDir = layout.projectDirectory.dir('src/main/cmake')
+def cmakeWorkDir = layout.buildDirectory.dir("native/${hostTarget.id}/cmake")
+def installDir = layout.buildDirectory.dir("native/${hostTarget.id}/install")
+
+// Where CI drops the libraries downloaded from every runner, so one job can
+// assemble all six classifier jars. Locally only the host's directory exists.
+def artifactsDir = providers.gradleProperty('goldberry.artifactsDir')
+        .map { file(it) }
+        .orElse(layout.buildDirectory.dir('native-artifacts').map { it.asFile })
+
+// --- Toolchain check ---------------------------------------------------------
+// Fails with instructions rather than with a cryptic CMake error 200 lines into
+// a configure run.
+def checkToolchain = tasks.register('checkToolchain') {
+    group = nativeGroup
+    description = 'Verifies that the native build tools are installed and usable.'
+
+    def needsMeson = hostTarget.id.startsWith('linux')
+
+    doLast {
+        def probe = { String tool, String... args ->
+            try {
+                def process = new ProcessBuilder([tool, *args])
+                        .redirectErrorStream(true)
+                        .start()
+                def output = process.inputStream.text.trim()
+                return process.waitFor() == 0 ? output.readLines().first().trim() : null
+            } catch (Exception ignored) {
+                return null
+            }
+        }
+
+        def required = [['cmake', '--version'], ['ninja', '--version']]
+        // libxkbcommon is meson-built upstream, and is Linux-only (§7.1).
+        if (needsMeson) {
+            required << ['meson', '--version']
+        }
+
+        def missing = required.findAll { probe(it[0], it[1]) == null }.collect { it[0] }
+        if (!missing.isEmpty()) {
+            throw new GradleException("""\
+                Missing native build tools: ${missing.join(', ')}
+
+                The superbuild needs CMake >= 3.28, Ninja, and (on Linux) Meson.
+                On Debian/Ubuntu: sudo apt install cmake ninja-build meson""".stripIndent())
+        }
+
+        logger.lifecycle("Native toolchain OK; host target is ${hostTarget.id}.")
+    }
+}
+
+// --- Host build --------------------------------------------------------------
+
+def cmakeConfigure = tasks.register('cmakeConfigure', Exec) {
+    group = nativeGroup
+    description = "Configures the libgoldberry superbuild for ${hostTarget.id}."
+
+    dependsOn checkToolchain
+    inputs.dir cmakeSourceDir
+    outputs.dir cmakeWorkDir
+
+    commandLine 'cmake',
+            '-S', cmakeSourceDir.asFile.absolutePath,
+            '-B', cmakeWorkDir.get().asFile.absolutePath,
+            '-G', 'Ninja',
+            '-DCMAKE_BUILD_TYPE=Release',
+            "-DCMAKE_INSTALL_PREFIX=${installDir.get().asFile.absolutePath}",
+            "-DGOLDBERRY_TARGET_ID=${hostTarget.id}",
+            // Pinned upstream refs; see gradle/libs.versions.toml. CI passes the
+            // same set -- ADR-0012 notes these now live in two places.
+            "-DGOLDBERRY_BLEND2D_REF=${libs.versions.blend2d.get()}",
+            "-DGOLDBERRY_YOGA_REF=${libs.versions.yoga.get()}",
+            "-DGOLDBERRY_HARFBUZZ_REF=${libs.versions.harfbuzz.get()}",
+            "-DGOLDBERRY_SDL3_REF=${libs.versions.sdl3.get()}",
+            "-DGOLDBERRY_XKBCOMMON_REF=${libs.versions.xkbcommon.get()}"
+}
+
+def cmakeBuild = tasks.register('cmakeBuild', Exec) {
+    group = nativeGroup
+    description = "Builds libgoldberry for ${hostTarget.id}."
+
+    dependsOn cmakeConfigure
+    inputs.dir cmakeSourceDir
+    outputs.dir installDir
+
+    commandLine 'cmake',
+            '--build', cmakeWorkDir.get().asFile.absolutePath,
+            '--target', 'install'
+}
+
+// --- Packaging (§15 classifier jars) ----------------------------------------
+
+nativeTargets.each { target ->
+    tasks.register("nativeJar${taskSuffix(target.id)}", Jar) {
+        group = nativeGroup
+        description = "Packages libgoldberry for ${target.id} as a classifier jar."
+
+        archiveBaseName = 'goldberry-natives'
+        archiveClassifier = target.id
+
+        def sourceDir = artifactsDir.map { new File(it, target.id) }
+        // The layout here is what NativeLibrary.resourcePath() looks for;
+        // NativeLibraryTest asserts the same literal from the Java side.
+        from(sourceDir) {
+            include target.library
+            into "io/github/digitalsmile/goldberry/natives/${target.id}"
+        }
+
+        // An empty natives jar is worse than a missing one: it fails at load time
+        // on a user's machine instead of here.
+        doFirst {
+            def library = new File(sourceDir.get(), target.library)
+            if (!library.isFile()) {
+                throw new GradleException(
+                        "No ${target.library} for ${target.id} in ${sourceDir.get()}.\n" +
+                                "Build it on a ${target.id} runner and download it there, " +
+                                "or pass -Pgoldberry.artifactsDir=<dir>.")
+            }
+        }
+    }
+}
+
+tasks.register('nativeJars') {
+    group = nativeGroup
+    description = 'Packages all six classifier jars from -Pgoldberry.artifactsDir.'
+    dependsOn nativeTargets.collect { "nativeJar${taskSuffix(it.id)}" }
+}
+
+// Staging step so a local `cmakeBuild` feeds the host's classifier jar without
+// a manual copy.
+tasks.register('stageHostArtifact', Copy) {
+    group = nativeGroup
+    description = 'Copies the locally built library into the artifacts directory.'
+
+    dependsOn cmakeBuild
+    from(installDir.map { it.dir('lib') }) {
+        include hostTarget.library
+    }
+    into artifactsDir.map { new File(it, hostTarget.id) }
+}
+
+// --- Tests -------------------------------------------------------------------
+// JEP 472: restricted native access is a warning from the unnamed module in
+// Java 25 and an error in a later release.
+//
+// ALL-UNNAMED rather than the module name, because Gradle runs whitebox tests on
+// the classpath -- the test classes need package-private access to the code under
+// test, so they are not loaded as the named module. Consumers of the published
+// artifact use --enable-native-access=io.github.digitalsmile.goldberry.natives,
+// which is why the module descriptor exists (ADR-0007).
+tasks.named('test') {
+    jvmArgs '--enable-native-access=ALL-UNNAMED'
+
+    // Lets the layout-verification test find a locally built library instead of
+    // one unpacked from a classifier jar.
+    def localLibrary = installDir.get().dir('lib').file(hostTarget.library).asFile
+    if (localLibrary.exists()) {
+        systemProperty 'goldberry.native.library', localLibrary.absolutePath
+    }
+}

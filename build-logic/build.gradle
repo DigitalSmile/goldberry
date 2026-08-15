@@ -1,0 +1,13 @@
+plugins {
+    id 'groovy-gradle-plugin'
+}
+
+java {
+    // The same toolchain the toolkit itself uses, read from the version catalog
+    // so there is one place to change it. Declared explicitly rather than left
+    // to the Gradle daemon's JVM, so the convention plugin compiles identically
+    // whatever JDK happens to be running the build.
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(libs.versions.java.get() as int)
+    }
+}

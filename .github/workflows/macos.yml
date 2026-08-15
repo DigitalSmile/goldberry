@@ -1,0 +1,98 @@
+# macOS CI (ADR-0012)
+#
+# Both architectures build on an Apple Silicon runner: Xcode targets x86_64 via
+# CMAKE_OSX_ARCHITECTURES. This is also the leg that made ADR-0011 untenable and
+# ADR-0012 necessary -- SDL3's macOS backend needs the Cocoa, Metal, and CoreText
+# frameworks, whose headers ship only in Apple's SDK, and that SDK's licence
+# restricts it to Apple hardware. On a real macOS runner the question does not
+# arise.
+#
+# `workflow_call` is what lets release.yml reuse this without duplicating it.
+#
+# STATUS: never run.
+
+name: macOS
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+  workflow_call:
+  workflow_dispatch:
+
+env:
+  # Keep in step with gradle/libs.versions.toml.
+  BLEND2D_REF: master
+  YOGA_REF: v3.1.0
+  HARFBUZZ_REF: 8.5.0
+  SDL3_REF: release-3.2.0
+
+jobs:
+  java:
+    name: Java
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '25'
+      - uses: gradle/actions/setup-gradle@v4
+      - run: ./gradlew build --no-daemon
+
+  natives:
+    name: libgoldberry (${{ matrix.target }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: macos-aarch64
+            arch-args: -DCMAKE_OSX_ARCHITECTURES=arm64
+          - target: macos-x64
+            arch-args: -DCMAKE_OSX_ARCHITECTURES=x86_64
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Ninja
+        run: brew install ninja
+
+      - name: Configure
+        run: |
+          cmake -S natives/src/main/cmake -B build/native \
+            -G Ninja ${{ matrix.arch-args }} \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_INSTALL_PREFIX="$PWD/build/install" \
+            -DGOLDBERRY_TARGET_ID=${{ matrix.target }} \
+            -DGOLDBERRY_BLEND2D_REF=$BLEND2D_REF \
+            -DGOLDBERRY_YOGA_REF=$YOGA_REF \
+            -DGOLDBERRY_HARFBUZZ_REF=$HARFBUZZ_REF \
+            -DGOLDBERRY_SDL3_REF=$SDL3_REF
+
+      - name: Build
+        run: cmake --build build/native --target install
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: native-${{ matrix.target }}
+          path: build/install/lib/libgoldberry.dylib
+          if-no-files-found: error
+
+  verify:
+    name: Verify layouts (macos-aarch64)
+    needs: natives
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '25'
+      - uses: gradle/actions/setup-gradle@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: native-macos-aarch64
+          path: native-lib
+      - run: |
+          ./gradlew :natives:test --no-daemon \
+            -Dgoldberry.native.library="$PWD/native-lib/libgoldberry.dylib"

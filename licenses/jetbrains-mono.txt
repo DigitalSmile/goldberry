@@ -1,0 +1,27 @@
+JetBrains Mono
+SPDX-License-Identifier: OFL-1.1
+Upstream:      https://github.com/JetBrains/JetBrainsMono
+Licence file:  OFL.txt
+Bundled as:    embedded in goldberry-core as the default monospace font
+
+NOT-VENDORED: the verbatim upstream licence file, including its exact
+copyright lines, must be copied here from the pinned revision before
+Goldberry is published. Run './gradlew checkLicenses -Pgoldberry.releaseCheck=true'
+to fail the build while this marker is present.
+
+--- No reference text ---
+
+The SIL Open Font License 1.1 is a long text with specific reserved-font-name
+provisions. It is not reproduced from memory here, because an inaccurate licence
+text is worse than an absent one.
+
+Vendor it verbatim from the upstream OFL.txt at the pinned revision. The
+canonical text is also published at https://openfontlicense.org.
+
+OFL obligations that affect Goldberry:
+  - The font may be bundled and redistributed with software.
+  - The font may NOT be sold on its own.
+  - This licence and its copyright notice must accompany the font.
+  - If a Reserved Font Name is declared upstream, a modified version must be
+    renamed. Goldberry ships these fonts unmodified, so this does not currently
+    apply -- but it would if the fonts were ever subset or re-hinted.
