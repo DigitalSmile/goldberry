@@ -56,12 +56,49 @@ dependencies {
     testRuntimeOnly catalog.findLibrary('junit-platform-launcher').get()
 }
 
+// Benchmarks are JUnit classes tagged `benchmark`, and they are NOT tests: they
+// print numbers and assert almost nothing, because a timing assertion on shared
+// CI hardware fails for reasons that have nothing to do with the code. ADR-0028
+// and ADR-0031 both took their numbers this way -- measured, written down, and
+// argued about in prose rather than pinned by a threshold nobody can tune.
+//
+// So `check` never runs them and `./gradlew benchmark` does.
 tasks.withType(Test).configureEach {
-    useJUnitPlatform()
+    // Guarded by name, because this configures the `benchmark` task below as
+    // well: include and exclude accumulate rather than replace, so an
+    // unconditional exclude here leaves that task both including and excluding
+    // the tag, and silently running nothing at all.
+    def isBenchmark = name == 'benchmark'
+    useJUnitPlatform {
+        if (!isBenchmark) {
+            excludeTags 'benchmark'
+        }
+    }
     testLogging {
         events 'failed', 'skipped'
         exceptionFormat = 'full'
     }
+}
+
+tasks.register('benchmark', Test) {
+    group = 'verification'
+    description = 'Runs the benchmarks, which print measurements rather than asserting them.'
+
+    testClassesDirs = sourceSets.test.output.classesDirs
+    classpath = sourceSets.test.runtimeClasspath
+
+    useJUnitPlatform {
+        includeTags 'benchmark'
+    }
+    // The numbers are the whole output, so they have to reach the console.
+    testLogging {
+        events 'started', 'passed', 'failed'
+        showStandardStreams = true
+        exceptionFormat = 'full'
+    }
+    // Never up to date: a benchmark whose result is cached from last week is
+    // worse than no benchmark.
+    outputs.upToDateWhen { false }
 }
 
 // Apache-2.0 §4(a) and §4(d): a redistributor must receive the licence, and the
