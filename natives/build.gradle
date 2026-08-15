@@ -135,8 +135,47 @@ def checkToolchain = tasks.register('checkToolchain') {
             throw new GradleException("""\
                 Missing native build tools: ${missing.join(', ')}
 
-                The superbuild needs CMake >= 3.28, Ninja, and (on Linux) Meson.
+                The superbuild needs CMake >= 3.28, Ninja, and (on Linux) Meson >= 1.4.
                 On Debian/Ubuntu: sudo apt install cmake ninja-build meson""".stripIndent())
+        }
+
+        // Version floors, not just presence. An upstream that needs a newer tool
+        // than the distribution ships is not hypothetical: libxkbcommon 1.13
+        // requires Meson >= 1.4 and Ubuntu 24.04 ships 1.3.2, which fails ninety
+        // seconds into the build, from inside meson, naming neither Goldberry
+        // nor the pin that raised the requirement.
+        def versionOf = { String tool ->
+            def line = probe(tool, '--version')
+            def match = line =~ /(\d+)\.(\d+)(?:\.(\d+))?/
+            return match ? [match[0][1], match[0][2], match[0][3] ?: '0']*.toInteger() : null
+        }
+        def atLeast = { List actual, List floor ->
+            if (actual == null) {
+                return true    // unparseable: not this check's business to guess
+            }
+            for (var i = 0; i < 3; i++) {
+                if (actual[i] != floor[i]) {
+                    return actual[i] > floor[i]
+                }
+            }
+            return true
+        }
+
+        // tool, floor, why, how
+        def floors = [['cmake', [3, 28, 0], 'the superbuild', 'pip install --upgrade cmake']]
+        if (needsMeson) {
+            floors << ['meson', [1, 4, 0],
+                       "libxkbcommon ${libs.versions.xkbcommon.get()}",
+                       'pip install --upgrade meson  (Ubuntu 24.04 ships 1.3.2)']
+        }
+
+        def tooOld = floors.findAll { !atLeast(versionOf(it[0]), it[1]) }
+        if (!tooOld.isEmpty()) {
+            def detail = tooOld.collect { row ->
+                "  ${row[0]} ${versionOf(row[0]).join('.')} -- ${row[2]} needs"
+                        + " >= ${row[1].join('.')}\n    ${row[3]}"
+            }.join('\n')
+            throw new GradleException("Native build tools are too old:\n" + detail + "\n")
         }
 
         // Development headers. Without this check a missing one surfaces minutes
@@ -194,74 +233,84 @@ def checkToolchain = tasks.register('checkToolchain') {
 
 // --- Pinned upstream refs ----------------------------------------------------
 //
-// The refs live in four places: this file's source of truth
-// (gradle/libs.versions.toml), the CMake defaults so a bare `cmake -S` is not
-// broken, and the three CI workflows, which cannot read the catalog because the
-// manylinux container has no JDK to run Gradle with (ADR-0012).
+// Every ref lives in gradle/libs.versions.toml and nowhere else. CMake reads it
+// directly (ADR-0035), so nothing here passes refs to the superbuild and the CI
+// workflows do not either -- the manylinux container never needed a JDK to read
+// the catalog, only something that can parse a text file, and CMake can.
 //
-// That duplication is survivable only if something notices when it drifts.
-// Nothing did, which is how Blend2D stayed on a floating `master` through four
-// ADRs: every copy agreed, and all four were wrong together. Now that the pins
-// are commit SHAs (ADR-0030), a stale copy would mean CI silently building a
-// different Blend2D than the one that was tested -- so this check exists.
+// The copies used to be four, and drifting was survivable only if something
+// noticed. Nothing did, which is how Blend2D stayed on a floating `master`
+// through four ADRs: every copy agreed, and all four were wrong together. This
+// check now guards the property that replaced them -- that there is no second
+// copy to drift.
 
-def pinnedRefs = [
-        BLEND2D: libs.versions.blend2d.get(),
-        ASMJIT: libs.versions.asmjit.get(),
-        YOGA: libs.versions.yoga.get(),
-        HARFBUZZ: libs.versions.harfbuzz.get(),
-        SDL3: libs.versions.sdl3.get(),
-        XKBCOMMON: libs.versions.xkbcommon.get(),
-]
-
+def catalogFile = rootProject.layout.projectDirectory.file('gradle/libs.versions.toml')
 def workflowsDir = rootProject.layout.projectDirectory.dir('.github/workflows')
+
+def refNames = ['BLEND2D', 'ASMJIT', 'YOGA', 'HARFBUZZ', 'SDL3', 'XKBCOMMON']
 
 tasks.register('checkPinnedRefs') {
     group = 'verification'
-    description = 'Fails if the CMake defaults or the CI workflows disagree with the version catalog.'
+    description = 'Fails if an upstream ref has been written down anywhere but the version catalog.'
 
     def cmakeLists = cmakeSourceDir.file('CMakeLists.txt')
-    def workflows = ['linux.yml', 'macos.yml', 'windows.yml'].collect { workflowsDir.file(it) }
+    def workflows = workflowsDir.asFile.listFiles()
+            ?.findAll { it.name.endsWith('.yml') || it.name.endsWith('.yaml') }
+            ?.sort { it.name } ?: []
 
     inputs.file cmakeLists
+    inputs.file catalogFile
     inputs.files workflows
-    inputs.property 'refs', pinnedRefs
 
     doLast {
         def problems = []
 
-        // `set(GOLDBERRY_BLEND2D_REF "<ref>" CACHE STRING "...")`
-        def cmakeText = cmakeLists.asFile.text
-        pinnedRefs.each { name, expected ->
-            def match = cmakeText =~ /set\(GOLDBERRY_${name}_REF\s+"([^"]*)"/
+        // The catalog has to say something for each of them, since CMake now
+        // fails hard rather than falling back to a default.
+        def catalogText = catalogFile.asFile.text
+        refNames.each { name ->
+            def key = name.toLowerCase()
+            def match = catalogText =~ /(?m)^\s*${key}\s*=\s*"([^"]*)"/
             if (!match) {
-                problems << "CMakeLists.txt declares no GOLDBERRY_${name}_REF default"
-            } else if (match[0][1] != expected) {
-                problems << "CMakeLists.txt has GOLDBERRY_${name}_REF=${match[0][1]}, catalog says ${expected}"
+                problems << "the catalog has no `${key} = \"...\"` under [versions]"
+            } else if (match[0][1] ==~ /master|main|HEAD|latest|trunk/) {
+                problems << "the catalog pins ${key} to '${match[0][1]}', which floats (ADR-0030)"
             }
         }
 
-        // `  BLEND2D_REF: <ref>` in the workflow's env block. A workflow that
-        // does not mention a ref is not at fault -- macos.yml has no
-        // XKBCOMMON_REF because libxkbcommon is Linux-only.
+        // `set(GOLDBERRY_YOGA_REF "v3.2.1" ...)` -- a default that came back.
+        def cmakeText = cmakeLists.asFile.text
+        refNames.each { name ->
+            if (cmakeText =~ /set\(GOLDBERRY_${name}_REF\s+"/) {
+                problems << "CMakeLists.txt hard-codes GOLDBERRY_${name}_REF;"
+                        + " it should read the catalog instead"
+            }
+        }
+
+        // Every workflow, not just the three that build natively: example.yml
+        // was pinning Blend2D to a floating `master` precisely because nothing
+        // looked at it.
         workflows.each { workflow ->
-            def text = workflow.asFile.text
-            pinnedRefs.each { name, expected ->
-                def match = text =~ /(?m)^\s*${name}_REF:\s*(\S+)\s*$/
-                if (match && match[0][1] != expected) {
-                    problems << "${workflow.asFile.name} has ${name}_REF=${match[0][1]}, catalog says ${expected}"
+            def text = workflow.text
+            refNames.each { name ->
+                if (text =~ /(?m)^\s*${name}_REF:/) {
+                    problems << "${workflow.name} sets ${name}_REF; the superbuild reads the catalog"
+                }
+                if (text.contains("GOLDBERRY_${name}_REF")) {
+                    problems << "${workflow.name} passes -DGOLDBERRY_${name}_REF; it no longer needs to"
                 }
             }
         }
 
         if (problems) {
             throw new GradleException(
-                    "Pinned upstream refs disagree across the build:\n  "
-                            + problems.join('\n  ')
-                            + "\n\ngradle/libs.versions.toml is the source of truth."
-                            + " A stale copy means CI builds something other than what was tested.")
+                    "Upstream refs must live only in gradle/libs.versions.toml:\n  "
+                            + problems.unique().join('\n  ')
+                            + "\n\nA second copy is a copy that can drift, and a build that"
+                            + " fetches something other than what was tested. See ADR-0035.")
         }
-        logger.lifecycle("Pinned refs agree across the catalog, CMake and ${workflows.size()} workflows.")
+        logger.lifecycle(
+                "Upstream refs live only in the catalog; checked CMake and ${workflows.size()} workflows.")
     }
 }
 
@@ -275,6 +324,10 @@ def cmakeConfigure = tasks.register('cmakeConfigure', Exec) {
 
     dependsOn checkToolchain
     inputs.dir cmakeSourceDir
+    // The refs are not passed on the command line any more, so the catalog is
+    // an input in its own right: bumping a pin has to reconfigure, or CMake
+    // would keep building the last ref out of its _deps.
+    inputs.file catalogFile
     outputs.dir cmakeWorkDir
 
     commandLine 'cmake',
@@ -283,15 +336,9 @@ def cmakeConfigure = tasks.register('cmakeConfigure', Exec) {
             '-G', 'Ninja',
             '-DCMAKE_BUILD_TYPE=Release',
             "-DCMAKE_INSTALL_PREFIX=${installDir.get().asFile.absolutePath}",
-            "-DGOLDBERRY_TARGET_ID=${hostTarget.id}",
-            // Pinned upstream refs; see gradle/libs.versions.toml. CI passes the
-            // same set -- ADR-0012 notes these now live in two places.
-            "-DGOLDBERRY_BLEND2D_REF=${libs.versions.blend2d.get()}",
-            "-DGOLDBERRY_ASMJIT_REF=${libs.versions.asmjit.get()}",
-            "-DGOLDBERRY_YOGA_REF=${libs.versions.yoga.get()}",
-            "-DGOLDBERRY_HARFBUZZ_REF=${libs.versions.harfbuzz.get()}",
-            "-DGOLDBERRY_SDL3_REF=${libs.versions.sdl3.get()}",
-            "-DGOLDBERRY_XKBCOMMON_REF=${libs.versions.xkbcommon.get()}"
+            "-DGOLDBERRY_TARGET_ID=${hostTarget.id}"
+            // No -DGOLDBERRY_*_REF: the superbuild reads gradle/libs.versions.toml
+            // itself, which is the whole of ADR-0035.
 }
 
 def cmakeBuild = tasks.register('cmakeBuild', Exec) {
@@ -398,6 +445,21 @@ tasks.named('test') {
             externalLibrary.getOrElse(
                     installDir.get().dir('lib').file(hostTarget.library).asFile.absolutePath)
     systemProperty 'goldberry.native.required', nativeRequired
+
+    // The library is an INPUT, not merely something built first. `dependsOn
+    // cmakeBuild` orders the two and nothing more, so a rebuilt libgoldberry
+    // left these tests UP-TO-DATE -- which is the worst possible outcome for the
+    // one check the hand-written bindings rest on (ADR-0010). Bumping an
+    // upstream would have reported a green layout verification that had not run
+    // against the library it was verifying.
+    //
+    // Optional, because the file legitimately does not exist on a machine with
+    // no native toolchain; the tests skip cleanly there.
+    inputs.files(providers.provider {
+        var library = file(externalLibrary.getOrElse(
+                installDir.get().dir('lib').file(hostTarget.library).asFile.absolutePath))
+        library.isFile() ? [library] : []
+    }).withPropertyName('nativeLibrary').optional()
 }
 
 // --- Wiring into the root build ----------------------------------------------

@@ -43,18 +43,75 @@ set(CMAKE_VISIBILITY_INLINES_HIDDEN ON)
 include(FetchContent)
 include(ExternalProject)
 
-# Upstream refs are pinned in gradle/libs.versions.toml and passed in by Gradle.
-# Defaults exist only so a bare `cmake -S ...` is not immediately broken, and
-# `./gradlew :natives:checkPinnedRefs` fails if they drift from the catalog.
+# ============================================================================
+# Pinned upstream refs (ADR-0030, ADR-0035)
 #
-# Blend2D and AsmJit publish no release tags, so they are pinned by commit SHA
-# (ADR-0030). Everything else has a tag to point at.
-set(GOLDBERRY_BLEND2D_REF "6dbc2cefbc996379e07104e34519a440b49b15d7" CACHE STRING "Blend2D git ref")
-set(GOLDBERRY_ASMJIT_REF "0bd5787b54b575ed94bf32ac452153b34385c514" CACHE STRING "AsmJit git ref (must suit the Blend2D ref)")
-set(GOLDBERRY_YOGA_REF "v3.1.0" CACHE STRING "Yoga git ref")
-set(GOLDBERRY_HARFBUZZ_REF "8.5.0" CACHE STRING "HarfBuzz git ref")
-set(GOLDBERRY_SDL3_REF "release-3.2.0" CACHE STRING "SDL3 git ref")
-set(GOLDBERRY_XKBCOMMON_REF "xkbcommon-1.6.0" CACHE STRING "libxkbcommon git ref")
+# Read straight out of gradle/libs.versions.toml, which is the ONLY place a ref
+# is written down. They used to be duplicated here and in every CI workflow,
+# because the manylinux container has no JDK to read the catalog with -- but the
+# JDK was never the thing that could read it. CMake can, and already parses a
+# text file this way for the export list below.
+#
+# So there is no default to drift: a ref this build does not find in the catalog
+# is a hard error rather than a stale copy that quietly builds something else.
+# `./gradlew :natives:checkPinnedRefs` now checks that no copy has come back.
+# ============================================================================
+set(GOLDBERRY_VERSION_CATALOG "${CMAKE_CURRENT_SOURCE_DIR}/../../../../gradle/libs.versions.toml"
+    CACHE FILEPATH "gradle/libs.versions.toml -- the one place upstream refs are pinned")
+
+if(NOT EXISTS "${GOLDBERRY_VERSION_CATALOG}")
+    message(FATAL_ERROR
+        "The version catalog is not at '${GOLDBERRY_VERSION_CATALOG}'.\n"
+        "Every upstream ref is pinned there and nowhere else (ADR-0035). Configuring "
+        "from outside a full checkout needs -DGOLDBERRY_VERSION_CATALOG=<path>.")
+endif()
+
+# Editing the catalog re-runs configure, so a bumped ref is re-fetched rather
+# than silently kept from the last build's _deps.
+set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${GOLDBERRY_VERSION_CATALOG}")
+
+file(STRINGS "${GOLDBERRY_VERSION_CATALOG}" _catalog_lines)
+
+# Reads `key = "value"` out of the catalog's [versions] table.
+#
+# Anchored at the start of the line and requiring a quoted scalar, so a
+# [libraries] entry that merely mentions the same word -- `version.ref = "yoga"`
+# inside a braced table -- cannot match.
+function(goldberry_pin _key _out)
+    foreach(_line IN LISTS _catalog_lines)
+        if(_line MATCHES "^[ \t]*${_key}[ \t]*=[ \t]*\"([^\"]*)\"")
+            set(_value "${CMAKE_MATCH_1}")
+
+            # A pin, not a range (ADR-0030). A floating ref makes the artifact
+            # irreproducible, and it is invisible: the build succeeds, against
+            # whatever upstream happened to have committed that morning.
+            if(_value MATCHES "^(master|main|HEAD|latest|trunk)$")
+                message(FATAL_ERROR
+                    "gradle/libs.versions.toml pins ${_key} to '${_value}', which floats.\n"
+                    "Upstream refs must be a tag or a commit SHA so the artifact is "
+                    "reproducible. See ADR-0030.")
+            endif()
+
+            set(${_out} "${_value}" PARENT_SCOPE)
+            return()
+        endif()
+    endforeach()
+    message(FATAL_ERROR
+        "gradle/libs.versions.toml has no `${_key} = \"...\"` under [versions].\n"
+        "Every upstream this build fetches is pinned there (ADR-0035).")
+endfunction()
+
+goldberry_pin(blend2d GOLDBERRY_BLEND2D_REF)
+goldberry_pin(asmjit GOLDBERRY_ASMJIT_REF)
+goldberry_pin(yoga GOLDBERRY_YOGA_REF)
+goldberry_pin(harfbuzz GOLDBERRY_HARFBUZZ_REF)
+goldberry_pin(sdl3 GOLDBERRY_SDL3_REF)
+goldberry_pin(xkbcommon GOLDBERRY_XKBCOMMON_REF)
+
+message(STATUS "Goldberry pins: blend2d ${GOLDBERRY_BLEND2D_REF}, asmjit ${GOLDBERRY_ASMJIT_REF}, "
+    "yoga ${GOLDBERRY_YOGA_REF}, harfbuzz ${GOLDBERRY_HARFBUZZ_REF}, "
+    "sdl3 ${GOLDBERRY_SDL3_REF}, xkbcommon ${GOLDBERRY_XKBCOMMON_REF}")
+
 set(GOLDBERRY_TARGET_ID "host" CACHE STRING "Distribution target id, e.g. linux-x64")
 
 message(STATUS "Goldberry target: ${GOLDBERRY_TARGET_ID} (${CMAKE_SYSTEM_NAME}/${CMAKE_SYSTEM_PROCESSOR})")

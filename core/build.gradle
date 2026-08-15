@@ -109,7 +109,9 @@ evaluationDependsOn(':natives')
 
 def hostNativeLibrary = project(':natives').ext.hostNativeLibrary
 
-tasks.named('test') {
+// Every Test task, not just `test`: `benchmark` is one too, and it needs the
+// same native library and the same JEP 472 grant to measure anything at all.
+tasks.withType(Test).configureEach {
     jvmArgs '--enable-native-access=ALL-UNNAMED'
 
     // Set unconditionally, existence decided at execution time -- testing for
@@ -120,6 +122,17 @@ tasks.named('test') {
             providers.systemProperty('goldberry.native.library')
                     .orElse(hostNativeLibrary.map { it.asFile.absolutePath })
                     .get()
+
+    // And an input, so a rebuilt library re-runs the tests that paint through
+    // it. `dependsOn` only orders them: without this, bumping an upstream left
+    // every rendering test UP-TO-DATE and green against a library they had not
+    // seen. :natives makes the same declaration for the same reason.
+    inputs.files(providers.provider {
+        var library = file(providers.systemProperty('goldberry.native.library')
+                .orElse(hostNativeLibrary.map { it.asFile.absolutePath })
+                .get())
+        library.isFile() ? [library] : []
+    }).withPropertyName('nativeLibrary').optional()
 }
 
 // `./gradlew build` should exercise the frame path, not just compile it. Same
@@ -131,5 +144,5 @@ def skipNative = providers.gradleProperty('goldberry.skipNative')
 def externalLibrary = providers.systemProperty('goldberry.native.library').isPresent()
 
 if (!skipNative && !externalLibrary) {
-    tasks.named('test') { dependsOn ':natives:cmakeBuild' }
+    tasks.withType(Test).configureEach { dependsOn ':natives:cmakeBuild' }
 }

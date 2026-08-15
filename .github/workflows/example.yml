@@ -20,14 +20,11 @@ defaults:
   run:
     shell: bash
 
-env:
-  # Keep in step with gradle/libs.versions.toml.
-  BLEND2D_REF: master
-  ASMJIT_REF: master
-  YOGA_REF: v3.1.0
-  HARFBUZZ_REF: 8.5.0
-  SDL3_REF: release-3.2.0
-  XKBCOMMON_REF: xkbcommon-1.6.0
+# Upstream refs are deliberately absent. The superbuild reads them straight out
+# of gradle/libs.versions.toml, which is the only place any of them is written
+# down (ADR-0035). They used to be duplicated here because the manylinux
+# container has no JDK -- but reading the catalog never needed a JDK, only
+# something that can parse a text file, and CMake can.
 
 jobs:
   showcase:
@@ -51,12 +48,18 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y \
-            cmake ninja-build meson \
+            cmake ninja-build \
             libx11-dev libxext-dev libxrandr-dev libxcursor-dev libxi-dev \
             libxfixes-dev libxss-dev libwayland-dev wayland-protocols \
             libxkbcommon-dev xkb-data libegl1-mesa-dev libgles2-mesa-dev \
             libasound2-dev libpulse-dev libdbus-1-dev libudev-dev \
             xvfb
+
+          # Meson from pip, not from apt: libxkbcommon needs >= 1.4 and Ubuntu
+          # 24.04 ships 1.3.2. `:natives:checkToolchain` fails on this before the
+          # build starts, which is how it was found.
+          pipx install meson || pip install --user --break-system-packages meson
+          meson --version
 
       - name: Build libgoldberry
         run: ./gradlew :natives:cmakeBuild --no-daemon
