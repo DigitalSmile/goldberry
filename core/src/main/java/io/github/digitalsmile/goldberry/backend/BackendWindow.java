@@ -71,6 +71,22 @@ public interface BackendWindow extends AutoCloseable {
     /// frame arrives coalesce into one — asking twice does not draw twice.
     void requestFrame();
 
+    /// Sets the shape the pointer takes over this window (§7.3).
+    ///
+    /// Called from pointer motion, so it is asked the same question for every
+    /// pixel of a drag: an implementation must make repeating a shape free rather
+    /// than talking to the platform each time.
+    ///
+    /// A shape the platform has no cursor for is the implementation's business,
+    /// and the answer is to leave the pointer as it is. `grab` has no system
+    /// cursor anywhere and falls back to `move`; a stripped-down cursor theme can
+    /// be missing others. None of that is a failure worth propagating to a
+    /// caller who only wanted a hand instead of an arrow.
+    ///
+    /// Default: does nothing, which is right for a backend with no pointer at all.
+    default void setCursor(Cursor cursor) {
+    }
+
     /// Sets the window title.
     void setTitle(String title);
 

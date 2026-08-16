@@ -203,6 +203,46 @@ public final class Layouts {
                     MemoryLayout.paddingLayout(4)));
 
     /// ```c
+    /// typedef struct SDL_MouseWheelEvent {
+    ///     SDL_EventType type; Uint32 reserved; Uint64 timestamp;
+    ///     SDL_WindowID windowID; SDL_MouseID which;
+    ///     float x, y;
+    ///     SDL_MouseWheelDirection direction;
+    ///     float mouse_x, mouse_y;
+    ///     Sint32 integer_x, integer_y;
+    /// } SDL_MouseWheelEvent;
+    /// ```
+    ///
+    /// `x` and `y` are **floats and not whole numbers** — a precision touchpad
+    /// reports fractions of a detent, and rounding them to integers is what makes
+    /// a trackpad scroll in jerks. The `integer_*` pair is SDL accumulating those
+    /// fractions into whole clicks for callers that want detents; Goldberry reads
+    /// the floats, because a scroll view wants the fine-grained number.
+    ///
+    /// `direction` is the reason this struct is read rather than assumed: on a
+    /// system with "natural" scrolling SDL sets it to `SDL_MOUSEWHEEL_FLIPPED`
+    /// and leaves `x` and `y` inverted, so a reader that ignores the field scrolls
+    /// the wrong way on exactly the machines whose owners chose that setting.
+    public static final NativeStructLayout SDL_MOUSE_WHEEL_EVENT = new NativeStructLayout(
+            "SDL_MouseWheelEvent",
+            MemoryLayout.structLayout(
+                    ValueLayout.JAVA_INT.withName("type"),
+                    MemoryLayout.paddingLayout(4),
+                    ValueLayout.JAVA_LONG.withName("timestamp"),
+                    ValueLayout.JAVA_INT.withName("windowID"),
+                    ValueLayout.JAVA_INT.withName("which"),
+                    ValueLayout.JAVA_FLOAT.withName("x"),
+                    ValueLayout.JAVA_FLOAT.withName("y"),
+                    ValueLayout.JAVA_INT.withName("direction"),
+                    ValueLayout.JAVA_FLOAT.withName("mouse_x"),
+                    ValueLayout.JAVA_FLOAT.withName("mouse_y"),
+                    ValueLayout.JAVA_INT.withName("integer_x"),
+                    ValueLayout.JAVA_INT.withName("integer_y"),
+                    // The Uint64 timestamp aligns the struct to 8, so its 52
+                    // bytes of content round up to 56.
+                    MemoryLayout.paddingLayout(4)));
+
+    /// ```c
     /// typedef struct SDL_KeyboardEvent {
     ///     SDL_EventType type; Uint32 reserved; Uint64 timestamp;
     ///     SDL_WindowID windowID; SDL_KeyboardID which;
@@ -646,6 +686,7 @@ public final class Layouts {
                 SDL_WINDOW_EVENT,
                 SDL_MOUSE_MOTION_EVENT,
                 SDL_MOUSE_BUTTON_EVENT,
+                SDL_MOUSE_WHEEL_EVENT,
                 SDL_KEYBOARD_EVENT,
                 SDL_TEXT_INPUT_EVENT,
                 SDL_SURFACE,

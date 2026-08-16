@@ -1,10 +1,15 @@
 package io.github.digitalsmile.goldberry.input;
 
+import io.github.digitalsmile.goldberry.backend.Cursor;
 import io.github.digitalsmile.goldberry.css.Selector.PseudoClass;
 import io.github.digitalsmile.goldberry.widget.Element;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.function.Consumer;
 
 /// Turns pointer positions into events, pseudo-classes and focus.
 ///
@@ -27,6 +32,22 @@ public final class PointerRouter {
     private Element focused;
     private boolean focusFromKeyboard;
 
+    /// Who is receiving pointer events regardless of where the pointer is.
+    ///
+    /// §7.1 asks for pointer capture on drag, and a drag is exactly the case
+    /// where the pointer leaves the thing it is dragging: a slider whose thumb
+    /// stops moving when the pointer wanders off the track is the bug this
+    /// prevents, and so is a button that never learns the press it started ended
+    /// somewhere else.
+    private Element captured;
+
+    /// Whether [#captured] was taken by the press rather than asked for.
+    ///
+    /// An implicit capture is released by the matching release; an explicit one
+    /// is not, because the widget that asked for it is the only thing that knows
+    /// when its gesture is over.
+    private boolean capturedImplicitly;
+
     /// Whether anything changed that a stylesheet could react to.
     private boolean stylesDirty;
 
@@ -47,6 +68,25 @@ public final class PointerRouter {
         return focused;
     }
 
+    /// The shape the pointer is currently showing.
+    private Cursor cursor = Cursor.DEFAULT;
+    private Consumer<Cursor> cursorSink = c -> { };
+
+    /// Where to send the cursor shape when it changes (§7.3).
+    ///
+    /// A callback rather than a backend window, so the router still knows nothing
+    /// about the platform — [io.github.digitalsmile.goldberry.Window] wires this
+    /// to the backend, and a test wires it to a list.
+    public void onCursorChange(Consumer<Cursor> sink) {
+        this.cursorSink = Objects.requireNonNull(sink, "sink");
+        sink.accept(cursor);
+    }
+
+    /// What the pointer currently looks like.
+    public Cursor cursor() {
+        return cursor;
+    }
+
     /// Whether a pseudo-class changed since this was last asked.
     ///
     /// §8 makes invalidation coarse: a pseudo-class change recomputes the
@@ -61,16 +101,23 @@ public final class PointerRouter {
 
     /// The pointer moved to a logical position.
     public void pointerMoved(float x, float y) {
-        var target = elementAt(x, y);
-        updateHover(target, x, y);
+        var under = elementAt(x, y);
+        updateHover(under, x, y);
+        updateCursor(x, y);
+        var target = captured != null ? captured : under;
         if (target != null) {
             dispatch(new PointerEvent(PointerEvent.Kind.MOVED, x, y, null, 0, target));
         }
     }
 
     /// The pointer left the window entirely.
+    ///
+    /// Capture survives it. A drag that leaves the window and comes back is one
+    /// gesture, and the platform keeps sending the motion — releasing here would
+    /// drop the second half of every drag that overshoots an edge.
     public void pointerExited() {
         updateHover(null, Float.NaN, Float.NaN);
+        setCursor(Cursor.DEFAULT);
     }
 
     /// A button went down.
@@ -85,6 +132,12 @@ public final class PointerRouter {
         }
 
         setPressed(target);
+        if (captured == null) {
+            // Implicit capture: from here until the button comes up, this
+            // element gets the pointer wherever it goes (§7.1).
+            captured = target;
+            capturedImplicitly = true;
+        }
         // §7.2: focus travels by pointer press -- and it lands on the nearest
         // focusable ancestor, not only on a directly focusable target, so
         // clicking the label inside a button focuses the button.
@@ -93,13 +146,57 @@ public final class PointerRouter {
     }
 
     /// A button came up.
+    ///
+    /// The release goes to whoever captured the press, not to whatever happens to
+    /// be under the pointer now. A button pressed and then released 200 pixels
+    /// away has not been clicked, but it has certainly stopped being pressed, and
+    /// it is the only thing that can know the difference.
     public void pointerReleased(float x, float y, PointerEvent.Button button, int clickCount) {
-        var target = elementAt(x, y);
-        updateHover(target, x, y);
+        var under = elementAt(x, y);
+        var target = captured != null ? captured : under;
+        updateHover(under, x, y);
         setPressed(null);
+        if (capturedImplicitly) {
+            releasePointer();
+        }
+        updateCursor(x, y);
         if (target != null) {
             dispatch(new PointerEvent(PointerEvent.Kind.RELEASED, x, y, button, clickCount, target));
         }
+    }
+
+    /// The wheel turned, or a touchpad scrolled, at a logical position.
+    ///
+    /// Deltas are in lines and positive is down and right — see
+    /// [PointerEvent#deltaY()]. It travels the same capture/bubble path as every
+    /// other pointer event, so a scroll view consumes it and an ancestor scroll
+    /// view does not also scroll.
+    public void pointerWheel(float x, float y, float deltaX, float deltaY) {
+        var target = captured != null ? captured : elementAt(x, y);
+        if (target != null) {
+            dispatch(PointerEvent.wheel(x, y, deltaX, deltaY, target));
+        }
+    }
+
+    /// Sends every pointer event to `element` until [#releasePointer()].
+    ///
+    /// What a slider asks for when its thumb is grabbed. A press already takes
+    /// capture implicitly, so this is for a widget that wants to keep it past the
+    /// release — a drag that continues until Escape, say.
+    public void capturePointer(Element element) {
+        captured = Objects.requireNonNull(element, "element");
+        capturedImplicitly = false;
+    }
+
+    /// Ends capture. Harmless when nothing has it.
+    public void releasePointer() {
+        captured = null;
+        capturedImplicitly = false;
+    }
+
+    /// Who has the pointer, or null.
+    public Element captured() {
+        return captured;
     }
 
     /// Moves focus, recording whether it came from the keyboard.
@@ -150,10 +247,55 @@ public final class PointerRouter {
         if (event.isConsumed()) {
             return true;
         }
+        // Accelerators come after the focused chain has declined the key, which
+        // is what lets a text field keep Ctrl+A for "select all" while the window
+        // binds it to something else (§7.2).
+        var action = shortcuts.get(new Shortcut(key, modifiers));
+        if (action != null) {
+            action.run();
+            return true;
+        }
         if (key == Key.TAB && !modifiers.control() && !modifiers.alt() && !modifiers.meta()) {
             return moveFocus(modifiers.shift() ? -1 : 1);
         }
         return false;
+    }
+
+    /// The window's accelerators (§7.2).
+    ///
+    /// Per window rather than per application, because that is the scope a user
+    /// means: `Ctrl+W` closes *this* window, and a dialog's Escape is not the main
+    /// window's.
+    private final Map<Shortcut, Runnable> shortcuts = new LinkedHashMap<>();
+
+    /// Binds an accelerator, replacing any binding for the same combination.
+    ///
+    /// `Ctrl+S` does not fire on `Ctrl+Shift+S` — the modifiers must match
+    /// exactly — so the two can be bound to different things, which applications
+    /// do.
+    public PointerRouter shortcut(Shortcut shortcut, Runnable action) {
+        shortcuts.put(
+                Objects.requireNonNull(shortcut, "shortcut"),
+                Objects.requireNonNull(action, "action"));
+        return this;
+    }
+
+    /// Binds an accelerator written the way a menu prints it — `"Ctrl+S"`.
+    ///
+    /// @throws IllegalArgumentException if the text names no key this toolkit has
+    public PointerRouter shortcut(String shortcut, Runnable action) {
+        return shortcut(Shortcut.of(shortcut), action);
+    }
+
+    /// Unbinds an accelerator. Harmless when nothing was bound.
+    public void removeShortcut(Shortcut shortcut) {
+        shortcuts.remove(Objects.requireNonNull(shortcut, "shortcut"));
+    }
+
+    /// Every accelerator bound here, in the order they were bound — which is what
+    /// a menu or a keyboard-shortcut sheet wants to print.
+    public Map<Shortcut, Runnable> shortcuts() {
+        return Collections.unmodifiableMap(new LinkedHashMap<>(shortcuts));
     }
 
     /// A key came up.
@@ -277,6 +419,27 @@ public final class PointerRouter {
             }
         }
         hovered = next;
+    }
+
+    /// Recomputes the cursor from the rectangles under the pointer.
+    ///
+    /// **Frozen during a capture.** A drag decides what the pointer looks like
+    /// when it starts, and a cursor that flickered as the pointer crossed the
+    /// widgets underneath would be telling the user about things they cannot
+    /// currently interact with.
+    private void updateCursor(float x, float y) {
+        if (captured != null) {
+            return;
+        }
+        setCursor(HitTest.cursorAt(regions, x, y));
+    }
+
+    private void setCursor(Cursor next) {
+        if (cursor == next) {
+            return;
+        }
+        cursor = next;
+        cursorSink.accept(next);
     }
 
     private void setPressed(Element next) {

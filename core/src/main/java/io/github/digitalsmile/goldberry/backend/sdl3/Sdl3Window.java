@@ -2,6 +2,7 @@ package io.github.digitalsmile.goldberry.backend.sdl3;
 
 import io.github.digitalsmile.goldberry.backend.BackendException;
 import io.github.digitalsmile.goldberry.backend.BackendWindow;
+import io.github.digitalsmile.goldberry.backend.Cursor;
 import io.github.digitalsmile.goldberry.backend.DamageRect;
 import io.github.digitalsmile.goldberry.backend.DisplayScale;
 import io.github.digitalsmile.goldberry.backend.LogicalSize;
@@ -9,6 +10,7 @@ import io.github.digitalsmile.goldberry.backend.PhysicalSize;
 import io.github.digitalsmile.goldberry.backend.PixelBuffer;
 import io.github.digitalsmile.goldberry.natives.log.Logs;
 import io.github.digitalsmile.goldberry.natives.sdl.SdlException;
+import io.github.digitalsmile.goldberry.natives.sdl.SdlSystemCursor;
 import io.github.digitalsmile.goldberry.natives.sdl.SdlVideo;
 import io.github.digitalsmile.goldberry.natives.sdl.SdlWindowHandle;
 import io.github.digitalsmile.goldberry.backend.PixelFormat;
@@ -170,6 +172,39 @@ final class Sdl3Window implements BackendWindow {
         // event handler was drawn up to a second later, and a window being
         // resized showed black where it had not caught up yet.
         backend.wakeup();
+    }
+
+    @Override
+    public void setCursor(Cursor cursor) {
+        backend.requireUiThread();
+        if (!open) {
+            return;
+        }
+        backend.setCursor(toSdl(Objects.requireNonNull(cursor, "cursor")));
+    }
+
+    /// The platform shape for a toolkit one.
+    ///
+    /// Two of §7.3's shapes have no system cursor anywhere: `grab` and `grabbing`
+    /// are a CSS invention that X11's cursor font, Win32's `IDC_*` set and
+    /// `SDL_SystemCursor` all lack. They fall back to `move`, which says "this can
+    /// be dragged" less precisely rather than saying nothing — until custom image
+    /// cursors ship and the fallback can become the real thing.
+    private static SdlSystemCursor toSdl(Cursor cursor) {
+        return switch (cursor) {
+            case DEFAULT -> SdlSystemCursor.DEFAULT;
+            case POINTER -> SdlSystemCursor.POINTER;
+            case TEXT -> SdlSystemCursor.TEXT;
+            case MOVE, GRAB, GRABBING -> SdlSystemCursor.MOVE;
+            case WAIT -> SdlSystemCursor.WAIT;
+            case PROGRESS -> SdlSystemCursor.PROGRESS;
+            case CROSSHAIR -> SdlSystemCursor.CROSSHAIR;
+            case NOT_ALLOWED -> SdlSystemCursor.NOT_ALLOWED;
+            case EW_RESIZE -> SdlSystemCursor.EW_RESIZE;
+            case NS_RESIZE -> SdlSystemCursor.NS_RESIZE;
+            case NESW_RESIZE -> SdlSystemCursor.NESW_RESIZE;
+            case NWSE_RESIZE -> SdlSystemCursor.NWSE_RESIZE;
+        };
     }
 
     @Override

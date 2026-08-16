@@ -3,6 +3,7 @@ package io.github.digitalsmile.goldberry.backend.headless;
 import io.github.digitalsmile.goldberry.backend.BackendEvent;
 import io.github.digitalsmile.goldberry.backend.BackendException;
 import io.github.digitalsmile.goldberry.backend.BackendWindow;
+import io.github.digitalsmile.goldberry.backend.Cursor;
 import io.github.digitalsmile.goldberry.backend.DamageRect;
 import io.github.digitalsmile.goldberry.backend.DisplayScale;
 import io.github.digitalsmile.goldberry.backend.LogicalSize;
@@ -31,6 +32,8 @@ public final class HeadlessWindow implements BackendWindow {
     private PixelBuffer lastFrame;
     private List<DamageRect> lastDamage = List.of();
     private int presentCount;
+    private Cursor cursor = Cursor.DEFAULT;
+    private int cursorChanges;
 
     HeadlessWindow(HeadlessBackend backend, WindowSpec spec, DisplayScale scale) {
         this.backend = backend;
@@ -221,6 +224,14 @@ public final class HeadlessWindow implements BackendWindow {
         backend.post(new BackendEvent.PointerReleased(this, x, y, button, clickCount));
     }
 
+    /// Queues a wheel turn. Deltas are in lines, positive down and right —
+    /// already normalized, as a real backend delivers them.
+    public void scrollPointer(float x, float y, float deltaX, float deltaY) {
+        backend.requireUiThread();
+        requireOpen();
+        backend.post(new BackendEvent.PointerWheel(this, x, y, deltaX, deltaY));
+    }
+
     /// Queues the pointer leaving the window.
     public void exitPointer() {
         backend.requireUiThread();
@@ -254,6 +265,33 @@ public final class HeadlessWindow implements BackendWindow {
         backend.requireUiThread();
         requireOpen();
         backend.post(new BackendEvent.Exposed(this));
+    }
+
+    @Override
+    public void setCursor(Cursor next) {
+        backend.requireUiThread();
+        Objects.requireNonNull(next, "cursor");
+        if (cursor == next) {
+            // The SPI says repeating a shape must be free, so the backend that
+            // exists to check the SPI's rules counts what a real one would do.
+            return;
+        }
+        cursor = next;
+        cursorChanges++;
+    }
+
+    /// The shape the pointer would be showing.
+    public Cursor cursor() {
+        backend.requireUiThread();
+        return cursor;
+    }
+
+    /// How many times the cursor actually changed — not how many times it was
+    /// set. A router that told the platform on every pointer move would show up
+    /// here as a number that climbs with the mouse.
+    public int cursorChanges() {
+        backend.requireUiThread();
+        return cursorChanges;
     }
 
     private static PixelBuffer copyOf(PixelBuffer frame) {

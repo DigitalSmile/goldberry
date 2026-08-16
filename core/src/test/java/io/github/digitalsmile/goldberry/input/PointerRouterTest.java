@@ -92,8 +92,8 @@ class PointerRouterTest {
         // outer covers 0,0 100x100; inner sits inside it at 20,20 40x40.
         // Parent first, as a paint would record them.
         router.updateRegions(List.of(
-                new HitTest.Region(outer, 0, 0, 100, 100),
-                new HitTest.Region(inner, 20, 20, 40, 40)));
+                HitTest.Region.of(outer, 0, 0, 100, 100),
+                HitTest.Region.of(inner, 20, 20, 40, 40)));
     }
 
     @Nested
@@ -218,8 +218,8 @@ class PointerRouterTest {
             var localOuter = localTree.root();
             var localInner = localOuter.children().getFirst();
             router.updateRegions(List.of(
-                    new HitTest.Region(localOuter, 0, 0, 100, 100),
-                    new HitTest.Region(localInner, 20, 20, 40, 40)));
+                    HitTest.Region.of(localOuter, 0, 0, 100, 100),
+                    HitTest.Region.of(localInner, 20, 20, 40, 40)));
 
             router.pointerMoved(30, 30);
 
@@ -268,7 +268,7 @@ class PointerRouterTest {
                 }
             };
             var localTree = new ElementTree(recorder);
-            router.updateRegions(List.of(new HitTest.Region(localTree.root(), 0, 0, 50, 50)));
+            router.updateRegions(List.of(HitTest.Region.of(localTree.root(), 0, 0, 50, 50)));
 
             router.pointerPressed(10, 10, PointerEvent.Button.SECONDARY, 2);
 
@@ -301,8 +301,8 @@ class PointerRouterTest {
             var buttonElement = localTree.root();
             var labelElement = buttonElement.children().getFirst();
             router.updateRegions(List.of(
-                    new HitTest.Region(buttonElement, 0, 0, 80, 30),
-                    new HitTest.Region(labelElement, 5, 5, 70, 20)));
+                    HitTest.Region.of(buttonElement, 0, 0, 80, 30),
+                    HitTest.Region.of(labelElement, 5, 5, 70, 20)));
 
             router.pointerPressed(10, 10, PointerEvent.Button.PRIMARY, 1);
 

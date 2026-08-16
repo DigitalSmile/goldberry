@@ -97,14 +97,19 @@ jobs:
             -Dgoldberry.native.library="$PWD/native-lib/libgoldberry.dylib" \
             -Dgoldberry.native.required=true
 
-      # The rendered output, compared against committed images (ADR-0050, §14).
-      # No display, no compositor, no Xvfb: Frame paints into memory, so this is
+      # The whole `:core` suite against the real library, not just the golden
+      # images. Everything that needs a rasterizer skips in the `java` job by
+      # design -- it builds no native library -- so this is the only place those
+      # tests run at all: the frame loop, pointer plumbing, damage, text metrics
+      # and the golden images together.
+      #
+      # No display, no compositor, no Xvfb: Frame paints into memory, so it is
       # the same check on every platform. The point of running it on all three is
       # that Blend2D JITs its pipelines per CPU -- if AVX2 and NEON ever disagree
       # by more than a rounding step, this is where it surfaces.
-      - name: Golden images
+      - name: Core tests and golden images
         run: |
-          ./gradlew :core:test --no-daemon --tests "*GoldenImageTest*" \
+          ./gradlew :core:test --no-daemon \
             -Dgoldberry.native.library="$PWD/native-lib/libgoldberry.dylib" \
             -Dgoldberry.native.required=true
 

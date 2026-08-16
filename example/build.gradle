@@ -78,8 +78,20 @@ def runtimeOnlyModules = ['ch.qos.logback.classic']
 
 def imageDir = layout.buildDirectory.dir("jlink/goldberry-showcase-${hostTarget}")
 
+// `.exe` on Windows, and this is the same lesson ADR-0040 records for cmake and
+// ninja: an absolute path is what `Exec` can be trusted with, but on Windows a
+// file without an extension is not an executable at all. `bin/jlink` resolves on
+// Linux and macOS and is simply not a file on Windows, which is why the showcase
+// image built on two platforms and not the third.
+def jlinkExecutable = hostTarget.startsWith('windows') ? 'bin/jlink.exe' : 'bin/jlink'
 def jlinkTool = javaToolchains.launcherFor(java.toolchain).map {
-    it.metadata.installationPath.file('bin/jlink').asFile.absolutePath
+    def tool = it.metadata.installationPath.file(jlinkExecutable).asFile
+    if (!tool.isFile()) {
+        throw new GradleException(
+                "the JDK toolchain at ${it.metadata.installationPath} has no ${jlinkExecutable}."
+                        + " jlink ships with every JDK; a JRE-only installation is the usual cause.")
+    }
+    tool.absolutePath
 }
 
 tasks.register('jlinkImage', Exec) {

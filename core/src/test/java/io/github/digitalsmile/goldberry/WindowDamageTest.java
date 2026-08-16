@@ -35,6 +35,10 @@ class WindowDamageTest {
 
     @BeforeEach
     void installBackend() {
+        // These drive the real frame loop, and `Window.paint` builds a `Frame`
+        // whatever the backend is -- so a machine with no libgoldberry has no
+        // rasterizer to paint into and this is a skip rather than a failure.
+        RendererRequirement.enforce();
         backend = new HeadlessBackend(SCALE);
         GoldberryRuntime.install(backend);
     }

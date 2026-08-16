@@ -66,6 +66,14 @@ SDL_WaitEventTimeout
 SDL_PushEvent
 SDL_PumpEvents
 
+# Cursors (sec. 7.3). Process-global in SDL: SDL_SetCursor changes what the mouse
+# looks like, and the pointer is over one window at a time.
+SDL_CreateSystemCursor
+SDL_SetCursor
+SDL_DestroyCursor
+SDL_ShowCursor
+SDL_HideCursor
+
 # --- Blend2D (sec. 5, paint & raster) ----------------------------------------
 # The image and context surface: enough to rasterize a frame into the buffer the
 # platform lends us. Paths, gradients, strokes and text follow. See ADR-0031.

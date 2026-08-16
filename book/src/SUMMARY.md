@@ -61,6 +61,9 @@
 - [ADR-0053 The render tree is a box tree, for now](adr/0053-the-render-tree-is-a-box-tree-for-now.md)
 - [ADR-0054 Hit testing runs against the painted frame](adr/0054-hit-testing-runs-against-the-painted-frame.md)
 - [ADR-0055 SDL owns keyboard translation](adr/0055-sdl-owns-keyboard-translation.md)
+- [ADR-0056 The wheel is lines, and the sign is ours](adr/0056-the-wheel-is-lines-and-the-sign-is-ours.md)
+- [ADR-0057 The cursor rides on the painted box](adr/0057-the-cursor-rides-on-the-painted-box.md)
+- [ADR-0058 A press captures the pointer](adr/0058-a-press-captures-the-pointer.md)
 
 ---
 

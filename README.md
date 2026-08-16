@@ -23,7 +23,9 @@ API. No JNI, no bundled web engine, no platform widget wrapping.
 
 > **Pre-release.** A window opens, Blend2D rasterizes its frames across worker
 > threads, Yoga lays out a tree behind the boundary, HarfBuzz-shaped text takes
-> part in that layout, and Lucide's icons draw. There are no widgets yet.
+> part in that layout, Lucide's icons draw, stylesheets and KDL markup hot-reload,
+> and pointer, wheel and keyboard input route to a widget tree. The widget catalog
+> itself is five primitives — there are no controls yet.
 > See [Status](book/src/status.md) for what works and what is still open.
 
 ## Quick start
@@ -244,6 +246,77 @@ An icon is not a `Box` yet — the showcase draws them over its sidebar rather t
 laying them out in it — because nothing decides an icon's intrinsic size until
 the widget model does
 ([ADR-0004](book/src/adr/0004-three-tree-retained-declarative-model.md)).
+
+## Input
+
+Pointer, wheel and keyboard events route through a `PointerRouter`, which holds
+what input needs to remember between frames — who is hovered, who is pressed, who
+has focus — and holds it against **elements**, because a widget is rebuilt
+constantly and could not remember any of it.
+
+Hit testing runs against the **snapshot taken while painting**, not a fresh
+layout pass. A pointer event is about what the user can see, and what they can
+see is the last frame that was drawn
+([ADR-0054](book/src/adr/0054-hit-testing-runs-against-the-painted-frame.md)).
+
+```java
+var router = new PointerRouter();
+window.pointerRouter(router);
+
+window.onPaint(frame -> {
+    var boxes = renderer.render(tree);
+    BoxPainter.paint(frame, boxes);
+    router.updateRegions(HitTest.capture(frame, boxes));   // what was just drawn
+});
+```
+
+Dispatch is capture → target → bubble with `consume()`. A **press captures the
+pointer** until the release, so a drag that leaves a widget still reaches it and
+`:active` cannot get stuck — which is what makes a slider work
+([ADR-0058](book/src/adr/0058-a-press-captures-the-pointer.md)).
+
+Wheel deltas are in **lines**, fractional, positive down and right. SDL exposes
+no pixel-precise axis; what a touchpad sends is a fraction of a detent per frame,
+and that fraction is preserved. "Natural scrolling" and SDL's away-from-the-user
+sign are both undone at the boundary, so a widget never sees either
+([ADR-0056](book/src/adr/0056-the-wheel-is-lines-and-the-sign-is-ours.md)):
+
+```java
+@Override
+public void onPointer(PointerEvent event) {
+    if (event.kind() == PointerEvent.Kind.WHEEL) {
+        scrollBy(event.deltaY() * lineHeight);
+        event.consume();          // and the page behind does not lurch
+    }
+}
+```
+
+Keys and committed text are separate, per §7.1 — one character can take several
+keystrokes, and the platform's own compose and IME handling is what produces it
+(ADR-0055). Accelerators are per window and fire **after** the focused widget has
+declined the key, so a text field keeps its own `Ctrl+A`:
+
+```java
+router.shortcut("Ctrl+S", this::save)
+      .shortcut("Ctrl+Shift+Z", this::redo);
+```
+
+The cursor is a property of the painted rectangle, set from CSS or from code, and
+inherits down the stack of rectangles — so `cursor: pointer` on a button covers
+the label inside it ([ADR-0057](book/src/adr/0057-the-cursor-rides-on-the-painted-box.md)):
+
+```css
+button { cursor: pointer; }
+.splitter { cursor: ew-resize; }
+```
+
+```java
+window.cursor(Cursor.WAIT);       // or decide it yourself
+```
+
+Not yet: arrow-key group navigation inside composites, custom image cursors
+(`grab` and `grabbing` fall back to `move`, which no platform provides), and
+menu items registering their own accelerators — that one waits for menus.
 
 ## Painting across threads
 

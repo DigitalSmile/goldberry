@@ -12,9 +12,18 @@
 #
 # `workflow_call` is what lets release.yml reuse this without duplicating it.
 #
-# STATUS: the natives jobs pass on x64 and aarch64 -- the dependency list below
-# was the open question and it turned out to be right. The verify jobs failed on
-# the first run and were reworked; see ADR-0016.
+# STATUS: the natives jobs pass on x64 and aarch64. The dependency list below is
+# where this workflow keeps breaking: SDL treats several X11 extensions as hard
+# dependencies and stops the configure at the first one it cannot find, so each
+# missing package hides the next. Reproduce a change to it in the container
+# rather than in CI:
+#
+#   docker run --rm -v "$PWD:/src:ro" -w /tmp quay.io/pypa/manylinux_2_28_x86_64 \
+#     bash -c 'dnf install -y <list> && /opt/python/cp312-cp312/bin/pip install cmake ninja \
+#       && PATH=/opt/python/cp312-cp312/bin:$PATH cmake -S /src/natives/src/main/cmake \
+#          -B /tmp/b -G Ninja -DGOLDBERRY_TARGET_ID=linux-x64'
+#
+# The verify jobs failed on the first run and were reworked; see ADR-0016.
 
 name: Linux
 
@@ -73,13 +82,21 @@ jobs:
             libxml2-devel wayland-devel wayland-protocols-devel \
             libX11-devel libxcb-devel libXext-devel libXrandr-devel \
             libXcursor-devel libXi-devel libXfixes-devel libXtst-devel \
-            libxkbcommon-devel libxkbfile-devel \
+            libXScrnSaver-devel libxkbcommon-devel libxkbfile-devel \
             alsa-lib-devel pulseaudio-libs-devel
-          # libXtst-devel is a hard dependency of SDL's X11 driver, not an
-          # optional one: CheckX11 stops the configure with "Couldn't find
-          # dependency package for XTEST" rather than skipping it. Same reason
-          # as example.yml -- kept on rather than -DSDL_X11_XTEST=OFF, because it
-          # is what SDL warps the pointer with on X11.
+          # libXtst-devel and libXScrnSaver-devel are hard dependencies of SDL's
+          # X11 driver, not optional ones: CheckX11 stops the configure with
+          # "Couldn't find dependency package for XTEST" / "... for XSCRNSAVER"
+          # rather than skipping either. They come in that order, so adding the
+          # first only moved the failure one line down -- which is what happened.
+          #
+          # RHEL names them differently from Debian: `libXScrnSaver-devel` is
+          # `libxss-dev` on the Ubuntu runners in example.yml and showcase.yml,
+          # and grepping this file for the name that failed there finds nothing.
+          #
+          # Kept on rather than -DSDL_X11_XTEST=OFF / -DSDL_X11_XSCRNSAVER=OFF:
+          # XTEST is what SDL warps the pointer with, and XScrnSaver is how it
+          # keeps a screensaver off a window that is playing something.
           /opt/python/cp312-cp312/bin/pip install --upgrade cmake ninja
           echo /opt/python/cp312-cp312/bin >> $GITHUB_PATH
 
@@ -150,14 +167,19 @@ jobs:
             -Dgoldberry.native.library="$PWD/native-lib/libgoldberry.so" \
             -Dgoldberry.native.required=true
 
-      # The rendered output, compared against committed images (ADR-0050, §14).
-      # No display, no compositor, no Xvfb: Frame paints into memory, so this is
+      # The whole `:core` suite against the real library, not just the golden
+      # images. Everything that needs a rasterizer skips in the `java` job by
+      # design -- it builds no native library -- so this is the only place those
+      # tests run at all: the frame loop, pointer plumbing, damage, text metrics
+      # and the golden images together.
+      #
+      # No display, no compositor, no Xvfb: Frame paints into memory, so it is
       # the same check on every platform. The point of running it on all three is
       # that Blend2D JITs its pipelines per CPU -- if AVX2 and NEON ever disagree
       # by more than a rounding step, this is where it surfaces.
-      - name: Golden images
+      - name: Core tests and golden images
         run: |
-          ./gradlew :core:test --no-daemon --tests "*GoldenImageTest*" \
+          ./gradlew :core:test --no-daemon \
             -Dgoldberry.native.library="$PWD/native-lib/libgoldberry.so" \
             -Dgoldberry.native.required=true
 

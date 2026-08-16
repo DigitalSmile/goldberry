@@ -22,7 +22,10 @@ public final class PointerEvent {
         /// pointer flow rather than sent by the platform (§7.1).
         ENTERED,
         /// The pointer left. Synthetic.
-        EXITED
+        EXITED,
+        /// The wheel turned, or a touchpad scrolled — see [#deltaX] and
+        /// [#deltaY].
+        WHEEL
     }
 
     /// Which button, for [Kind#PRESSED] and [Kind#RELEASED].
@@ -35,15 +38,29 @@ public final class PointerEvent {
     private final float y;
     private final Button button;
     private final int clickCount;
+    private final float deltaX;
+    private final float deltaY;
     private final Element target;
     private boolean consumed;
 
     public PointerEvent(Kind kind, float x, float y, Button button, int clickCount, Element target) {
+        this(kind, x, y, button, clickCount, 0, 0, target);
+    }
+
+    /// A wheel event, which is the only kind that carries a delta.
+    public static PointerEvent wheel(float x, float y, float deltaX, float deltaY, Element target) {
+        return new PointerEvent(Kind.WHEEL, x, y, null, 0, deltaX, deltaY, target);
+    }
+
+    private PointerEvent(Kind kind, float x, float y, Button button, int clickCount,
+            float deltaX, float deltaY, Element target) {
         this.kind = Objects.requireNonNull(kind, "kind");
         this.x = x;
         this.y = y;
         this.button = button;
         this.clickCount = clickCount;
+        this.deltaX = deltaX;
+        this.deltaY = deltaY;
         this.target = target;
     }
 
@@ -71,6 +88,26 @@ public final class PointerEvent {
         return clickCount;
     }
 
+    /// How far this scrolled horizontally, in **lines**. Zero for every other
+    /// kind.
+    ///
+    /// Positive is to the right, which is the direction the content should move
+    /// *under* the viewport — the CSS convention, and the opposite of SDL's.
+    public float deltaX() {
+        return deltaX;
+    }
+
+    /// How far this scrolled vertically, in lines. Positive is **down**.
+    ///
+    /// Lines rather than pixels, because that is the only unit SDL reports:
+    /// there is no pixel-precise delta on the other side of this API to pass on.
+    /// It is a `float` and it is routinely fractional — a touchpad reports
+    /// fractions of a detent, and a scroll view that rounds them scrolls in
+    /// jerks. Multiply by whatever a line is worth in the thing being scrolled.
+    public float deltaY() {
+        return deltaY;
+    }
+
     /// The node the event was aimed at — the deepest one under the pointer.
     ///
     /// Stays the same through capture and bubble, so a handler on an ancestor
@@ -95,6 +132,7 @@ public final class PointerEvent {
     @Override
     public String toString() {
         return kind + " at " + x + "," + y + (button == null ? "" : " " + button)
+                + (kind == Kind.WHEEL ? " by " + deltaX + "," + deltaY : "")
                 + (consumed ? " (consumed)" : "");
     }
 }

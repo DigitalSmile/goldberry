@@ -44,6 +44,9 @@ public enum SdlEventType {
     /// A mouse button came up.
     MOUSE_BUTTON_UP(0x402),
 
+    /// The wheel turned, or a touchpad scrolled. `SDL_MouseWheelEvent`.
+    MOUSE_WHEEL(0x403),
+
     /// A key went down. `SDL_KeyboardEvent`.
     KEY_DOWN(0x300),
 

@@ -163,18 +163,19 @@ Backend-neutral event types; backends translate.
 
 - **Pointer:** enter/leave/move/down/up/wheel, with button, modifiers, click count, logical position; hit-testing against the render tree respects clips and transforms. Pointer capture on drag.
 - **Keyboard:** `KeyEvent{ key, physicalCode, modifiers, repeat }` — separated from **text input**: `TextEvent{ committedText }`. The translation is SDL's on all three platforms: it uses libxkbcommon on Linux (`xkb_state` + `xkb_compose` for dead keys) and the platform's own on Windows/macOS, and delivers the result as `SDL_EVENT_TEXT_INPUT`. Goldberry binds no xkbcommon of its own (ADR-0055). This split keeps the door open for IME preedit later.
-- **Wheel/scroll:** pixel-precise deltas with line-based fallback.
+- **Wheel/scroll:** deltas in **lines**, fractional, positive down and right. SDL exposes no pixel-precise axis, so the original "pixel-precise with a line-based fallback" is not reachable through it; the fractions a touchpad sends are what precision there is. The "natural scrolling" inversion and SDL's away-from-the-user sign are both undone at the boundary, so a widget never sees them (ADR-0056).
 - Dispatch: capture → target → bubble, `consume()` stops propagation. Synthetic events (`:hover` enter/leave) derive from pointer flow.
+- **Pointer capture:** a press takes it implicitly and the release gives it back, so a drag that leaves a widget still reaches it; `capturePointer` takes one that outlives the release. `:hover` keeps following the pointer regardless — capture decides who is told, not what is highlighted (ADR-0058).
 
 ### 7.2 Focus
 
 - One focus owner per window; focus travels by pointer press, `Tab`/`Shift+Tab` traversal (document order, `focusable`/`tab-index` overridable), and arrow-key group navigation inside composites (radio groups, menus, lists).
 - `:focus` and `:focus-visible` are distinct — the **focus ring** (2 px, `--gb-focus`, offset 2 px) renders only for keyboard focus, per the design system.
-- Keyboard shortcuts: a per-window accelerator map (`Shortcut.of("Ctrl+S", action)`); menu items declare accelerators and register automatically.
+- Keyboard shortcuts: a per-window accelerator map (`router.shortcut("Ctrl+S", action)`), fired **after** the focused chain declines the key so a text field keeps its own `Ctrl+A`; menu items will declare accelerators and register automatically. `Cmd` is not remapped to `Ctrl` (ADR-0058).
 
 ### 7.3 Cursor
 
-Standard shape set (`default, pointer, text, move, resize-*, wait, crosshair, not-allowed, grab/grabbing`) mapped to native cursors by the backend; custom image cursors supported. Widgets set cursor via CSS (`cursor: pointer`) or code.
+Standard shape set (`default, pointer, text, move, ew/ns/nesw/nwse-resize, wait, progress, crosshair, not-allowed, grab/grabbing`) mapped to native cursors by the backend; custom image cursors still to come, and `grab`/`grabbing` fall back to `move` until they arrive because no platform has a system cursor for them. Widgets set the cursor via CSS (`cursor: pointer`) or code. The shape is carried on the **painted box** and read off the rectangle under the pointer, so inheritance is the stack of rectangles rather than the element tree, and it freezes during a drag (ADR-0057).
 
 ## 8. CSS subset
 

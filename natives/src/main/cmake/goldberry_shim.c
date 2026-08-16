@@ -188,6 +188,19 @@ static const goldberry_layout_entry_t GOLDBERRY_LAYOUTS[] = {
     GB_FIELD(SDL_MouseButtonEvent, x),
     GB_FIELD(SDL_MouseButtonEvent, y),
 
+    GB_STRUCT(SDL_MouseWheelEvent),
+    GB_FIELD(SDL_MouseWheelEvent, type),
+    GB_FIELD(SDL_MouseWheelEvent, timestamp),
+    GB_FIELD(SDL_MouseWheelEvent, windowID),
+    GB_FIELD(SDL_MouseWheelEvent, which),
+    GB_FIELD(SDL_MouseWheelEvent, x),
+    GB_FIELD(SDL_MouseWheelEvent, y),
+    GB_FIELD(SDL_MouseWheelEvent, direction),
+    GB_FIELD(SDL_MouseWheelEvent, mouse_x),
+    GB_FIELD(SDL_MouseWheelEvent, mouse_y),
+    GB_FIELD(SDL_MouseWheelEvent, integer_x),
+    GB_FIELD(SDL_MouseWheelEvent, integer_y),
+
     GB_STRUCT(SDL_KeyboardEvent),
     GB_FIELD(SDL_KeyboardEvent, type),
     GB_FIELD(SDL_KeyboardEvent, timestamp),
@@ -241,6 +254,7 @@ static const goldberry_layout_entry_t GOLDBERRY_LAYOUTS[] = {
     GB_CONSTANT("SDL_EVENT_MOUSE_MOTION", SDL_EVENT_MOUSE_MOTION),
     GB_CONSTANT("SDL_EVENT_MOUSE_BUTTON_DOWN", SDL_EVENT_MOUSE_BUTTON_DOWN),
     GB_CONSTANT("SDL_EVENT_MOUSE_BUTTON_UP", SDL_EVENT_MOUSE_BUTTON_UP),
+    GB_CONSTANT("SDL_EVENT_MOUSE_WHEEL", SDL_EVENT_MOUSE_WHEEL),
     GB_CONSTANT("SDL_EVENT_WINDOW_EXPOSED", SDL_EVENT_WINDOW_EXPOSED),
     GB_CONSTANT("SDL_EVENT_WINDOW_RESIZED", SDL_EVENT_WINDOW_RESIZED),
     GB_CONSTANT("SDL_EVENT_WINDOW_PIXEL_SIZE_CHANGED", SDL_EVENT_WINDOW_PIXEL_SIZE_CHANGED),
@@ -253,6 +267,32 @@ static const goldberry_layout_entry_t GOLDBERRY_LAYOUTS[] = {
     GB_CONSTANT("SDL_WINDOW_BORDERLESS", SDL_WINDOW_BORDERLESS),
     GB_CONSTANT("SDL_WINDOW_HIGH_PIXEL_DENSITY", SDL_WINDOW_HIGH_PIXEL_DENSITY),
     GB_CONSTANT("SDL_WINDOW_HIDDEN", SDL_WINDOW_HIDDEN),
+
+    /*
+     * Which way round a wheel event's values are. FLIPPED is what "natural
+     * scrolling" sets, and a reader that ignores it scrolls backwards.
+     */
+    GB_CONSTANT("SDL_MOUSEWHEEL_NORMAL", SDL_MOUSEWHEEL_NORMAL),
+    GB_CONSTANT("SDL_MOUSEWHEEL_FLIPPED", SDL_MOUSEWHEEL_FLIPPED),
+
+    /*
+     * The system cursor shapes §7.3 names. Every one is an ordinal in an enum
+     * upstream is free to extend in the middle -- SDL_SYSTEM_CURSOR_POINTER is
+     * 11 today and was not in SDL2 at all -- so these are values to check, not
+     * values to copy once and trust.
+     */
+    GB_CONSTANT("SDL_SYSTEM_CURSOR_DEFAULT", SDL_SYSTEM_CURSOR_DEFAULT),
+    GB_CONSTANT("SDL_SYSTEM_CURSOR_TEXT", SDL_SYSTEM_CURSOR_TEXT),
+    GB_CONSTANT("SDL_SYSTEM_CURSOR_WAIT", SDL_SYSTEM_CURSOR_WAIT),
+    GB_CONSTANT("SDL_SYSTEM_CURSOR_CROSSHAIR", SDL_SYSTEM_CURSOR_CROSSHAIR),
+    GB_CONSTANT("SDL_SYSTEM_CURSOR_PROGRESS", SDL_SYSTEM_CURSOR_PROGRESS),
+    GB_CONSTANT("SDL_SYSTEM_CURSOR_NWSE_RESIZE", SDL_SYSTEM_CURSOR_NWSE_RESIZE),
+    GB_CONSTANT("SDL_SYSTEM_CURSOR_NESW_RESIZE", SDL_SYSTEM_CURSOR_NESW_RESIZE),
+    GB_CONSTANT("SDL_SYSTEM_CURSOR_EW_RESIZE", SDL_SYSTEM_CURSOR_EW_RESIZE),
+    GB_CONSTANT("SDL_SYSTEM_CURSOR_NS_RESIZE", SDL_SYSTEM_CURSOR_NS_RESIZE),
+    GB_CONSTANT("SDL_SYSTEM_CURSOR_MOVE", SDL_SYSTEM_CURSOR_MOVE),
+    GB_CONSTANT("SDL_SYSTEM_CURSOR_NOT_ALLOWED", SDL_SYSTEM_CURSOR_NOT_ALLOWED),
+    GB_CONSTANT("SDL_SYSTEM_CURSOR_POINTER", SDL_SYSTEM_CURSOR_POINTER),
 
     /* Surface formats the CPU present path accepts. */
     GB_CONSTANT("SDL_PIXELFORMAT_XRGB8888", SDL_PIXELFORMAT_XRGB8888),

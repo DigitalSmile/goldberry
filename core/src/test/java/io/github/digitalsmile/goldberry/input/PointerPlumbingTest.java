@@ -60,12 +60,17 @@ class PointerPlumbingTest {
 
     @BeforeEach
     void setUp() {
+        // Driving the backend means running the frame loop, and every frame is
+        // painted through Blend2D whatever the backend is -- so with no
+        // libgoldberry there is nothing to rasterize into. A skip, not a failure:
+        // the `java` CI job builds no native library on purpose.
+        io.github.digitalsmile.goldberry.RendererRequirement.enforce();
         backend = new HeadlessBackend(new DisplayScale(1.5f));
         io.github.digitalsmile.goldberry.GoldberryTestAccess.install(backend);
         router = new PointerRouter();
         var tree = new ElementTree(new Target());
         element = tree.root();
-        router.updateRegions(List.of(new HitTest.Region(element, 0, 0, 200, 100)));
+        router.updateRegions(List.of(HitTest.Region.of(element, 0, 0, 200, 100)));
     }
 
     @AfterEach

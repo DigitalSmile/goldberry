@@ -1,5 +1,6 @@
 package io.github.digitalsmile.goldberry.css;
 
+import io.github.digitalsmile.goldberry.backend.Cursor;
 import io.github.digitalsmile.goldberry.natives.log.Logs;
 import io.github.digitalsmile.goldberry.natives.yoga.Align;
 import io.github.digitalsmile.goldberry.natives.yoga.FlexDirection;
@@ -25,6 +26,10 @@ import org.slf4j.Logger;
 /// Yoga**, while [#background()], [#color()] and [#opacity()] are **resolved for
 /// paint**. Nothing here does both, and nothing here is a string.
 ///
+/// [#cursor()] belongs to neither half, which is the one thing §8's split did not
+/// anticipate. It compiles to no engine: it rides along to the box tree so that
+/// hit testing can read it off whichever rectangle the pointer is over (§7.3).
+///
 /// ## What is not here yet
 ///
 /// §8's full list also has `flex-wrap`, `margin`, `min/max`, `position`, `inset`,
@@ -49,7 +54,9 @@ public record ComputedStyle(
         // --- paint: resolved into pixels ---
         int background,
         int color,
-        double opacity) {
+        double opacity,
+        // --- neither: read by input, not by either engine ---
+        Cursor cursor) {
 
     private static final Logger LOG = Logs.of(ComputedStyle.class);
 
@@ -70,7 +77,8 @@ public record ComputedStyle(
             0,
             CssColor.TRANSPARENT,
             0xFF000000,
-            1.0);
+            1.0,
+            Cursor.DEFAULT);
 
     public ComputedStyle {
         Objects.requireNonNull(direction, "direction");
@@ -80,6 +88,7 @@ public record ComputedStyle(
         Objects.requireNonNull(height, "height");
         Objects.requireNonNull(padding, "padding");
         Objects.requireNonNull(gap, "gap");
+        Objects.requireNonNull(cursor, "cursor");
     }
 
     /// Builds a style from resolved declarations.
@@ -109,59 +118,68 @@ public record ComputedStyle(
         return switch (property) {
             case "flex-direction" -> keyword(value, FlexDirection.class)
                     .map(v -> new ComputedStyle(v, justifyContent, alignItems, width, height,
-                            padding, gap, flexGrow, background, color, opacity))
+                            padding, gap, flexGrow, background, color, opacity, cursor))
                     .orElseGet(() -> dropped(property, value));
 
             case "justify-content" -> keyword(value, Justify.class)
                     .map(v -> new ComputedStyle(direction, v, alignItems, width, height,
-                            padding, gap, flexGrow, background, color, opacity))
+                            padding, gap, flexGrow, background, color, opacity, cursor))
                     .orElseGet(() -> dropped(property, value));
 
             case "align-items" -> keyword(value, Align.class)
                     .map(v -> new ComputedStyle(direction, justifyContent, v, width, height,
-                            padding, gap, flexGrow, background, color, opacity))
+                            padding, gap, flexGrow, background, color, opacity, cursor))
                     .orElseGet(() -> dropped(property, value));
 
             case "width" -> length(value, context)
                     .map(v -> new ComputedStyle(direction, justifyContent, alignItems, v, height,
-                            padding, gap, flexGrow, background, color, opacity))
+                            padding, gap, flexGrow, background, color, opacity, cursor))
                     .orElseGet(() -> dropped(property, value));
 
             case "height" -> length(value, context)
                     .map(v -> new ComputedStyle(direction, justifyContent, alignItems, width, v,
-                            padding, gap, flexGrow, background, color, opacity))
+                            padding, gap, flexGrow, background, color, opacity, cursor))
                     .orElseGet(() -> dropped(property, value));
 
             case "padding" -> length(value, context)
                     .map(v -> new ComputedStyle(direction, justifyContent, alignItems, width, height,
-                            v, gap, flexGrow, background, color, opacity))
+                            v, gap, flexGrow, background, color, opacity, cursor))
                     .orElseGet(() -> dropped(property, value));
 
             case "gap" -> length(value, context)
                     .map(v -> new ComputedStyle(direction, justifyContent, alignItems, width, height,
-                            padding, v, flexGrow, background, color, opacity))
+                            padding, v, flexGrow, background, color, opacity, cursor))
                     .orElseGet(() -> dropped(property, value));
 
             case "flex-grow" -> number(value)
                     .filter(v -> v >= 0)
                     .map(v -> new ComputedStyle(direction, justifyContent, alignItems, width, height,
-                            padding, gap, v, background, color, opacity))
+                            padding, gap, v, background, color, opacity, cursor))
                     .orElseGet(() -> dropped(property, value));
 
             case "background", "background-color" -> colour(value)
                     .map(v -> new ComputedStyle(direction, justifyContent, alignItems, width, height,
-                            padding, gap, flexGrow, v, color, opacity))
+                            padding, gap, flexGrow, v, color, opacity, cursor))
                     .orElseGet(() -> dropped(property, value));
 
             case "color" -> colour(value)
                     .map(v -> new ComputedStyle(direction, justifyContent, alignItems, width, height,
-                            padding, gap, flexGrow, background, v, opacity))
+                            padding, gap, flexGrow, background, v, opacity, cursor))
                     .orElseGet(() -> dropped(property, value));
 
             case "opacity" -> number(value)
                     .map(v -> Math.max(0, Math.min(1, v)))
                     .map(v -> new ComputedStyle(direction, justifyContent, alignItems, width, height,
-                            padding, gap, flexGrow, background, color, v))
+                            padding, gap, flexGrow, background, color, v, cursor))
+                    .orElseGet(() -> dropped(property, value));
+
+            // Resolved here and read by neither engine: the cursor is carried
+            // through the cascade to the box tree, where hit testing picks it up
+            // (§7.3). The enum's names are CSS's, so `ew-resize` maps onto
+            // `EW_RESIZE` by the same rule `space-between` maps onto Yoga.
+            case "cursor" -> keyword(value, Cursor.class)
+                    .map(v -> new ComputedStyle(direction, justifyContent, alignItems, width, height,
+                            padding, gap, flexGrow, background, color, opacity, v))
                     .orElseGet(() -> dropped(property, value));
 
             // Not an error. §8's property list is longer than this record, and a

@@ -1,5 +1,6 @@
 package io.github.digitalsmile.goldberry.layout;
 
+import io.github.digitalsmile.goldberry.backend.Cursor;
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
 import io.github.digitalsmile.goldberry.natives.yoga.Align;
 import io.github.digitalsmile.goldberry.natives.yoga.FlexDirection;
@@ -23,6 +24,7 @@ import java.util.Objects;
 /// what the eventual widget tree will also be.
 public record Box(
         int background,
+        Cursor cursor,
         FlexDirection direction,
         Justify justifyContent,
         Align alignItems,
@@ -59,6 +61,7 @@ public record Box(
     public static final int TRANSPARENT = 0x00000000;
 
     public Box {
+        Objects.requireNonNull(cursor, "cursor");
         Objects.requireNonNull(direction, "direction");
         Objects.requireNonNull(justifyContent, "justifyContent");
         Objects.requireNonNull(alignItems, "alignItems");
@@ -86,6 +89,7 @@ public record Box(
     public static Box of() {
         return new Box(
                 TRANSPARENT,
+                Cursor.DEFAULT,
                 FlexDirection.ROW,
                 Justify.FLEX_START,
                 Align.STRETCH,
@@ -112,7 +116,7 @@ public record Box(
     }
 
     public Box text(Text value) {
-        return new Box(background, direction, justifyContent, alignItems, width, height,
+        return new Box(background, cursor, direction, justifyContent, alignItems, width, height,
                 padding, gap, flexGrow, value, children, owner);
     }
 
@@ -122,44 +126,55 @@ public record Box(
         return of().background(argb);
     }
 
+    /// The shape the pointer takes over this box (§7.3).
+    ///
+    /// A property of the painted rectangle rather than of the widget, for the
+    /// same reason hit testing is: what the cursor should be is a question about
+    /// what is on screen, and the box tree is what is on screen (ADR-0054).
+    public Box cursor(Cursor value) {
+        return new Box(background, Objects.requireNonNull(value, "cursor"), direction,
+                justifyContent, alignItems, width, height,
+                padding, gap, flexGrow, text, children, owner);
+    }
+
     public Box background(int argb) {
-        return new Box(argb, direction, justifyContent, alignItems, width, height,
+        return new Box(argb, cursor, direction, justifyContent, alignItems, width, height,
                 padding, gap, flexGrow, text, children, owner);
     }
 
     public Box direction(FlexDirection value) {
-        return new Box(background, value, justifyContent, alignItems, width, height,
+        return new Box(background, cursor, value, justifyContent, alignItems, width, height,
                 padding, gap, flexGrow, text, children, owner);
     }
 
     public Box justifyContent(Justify value) {
-        return new Box(background, direction, value, alignItems, width, height,
+        return new Box(background, cursor, direction, value, alignItems, width, height,
                 padding, gap, flexGrow, text, children, owner);
     }
 
     public Box alignItems(Align value) {
-        return new Box(background, direction, justifyContent, value, width, height,
+        return new Box(background, cursor, direction, justifyContent, value, width, height,
                 padding, gap, flexGrow, text, children, owner);
     }
 
     public Box size(StyleLength w, StyleLength h) {
-        return new Box(background, direction, justifyContent, alignItems, w, h,
+        return new Box(background, cursor, direction, justifyContent, alignItems, w, h,
                 padding, gap, flexGrow, text, children, owner);
     }
 
     public Box padding(StyleLength value) {
-        return new Box(background, direction, justifyContent, alignItems, width, height,
+        return new Box(background, cursor, direction, justifyContent, alignItems, width, height,
                 value, gap, flexGrow, text, children, owner);
     }
 
     public Box gap(StyleLength value) {
-        return new Box(background, direction, justifyContent, alignItems, width, height,
+        return new Box(background, cursor, direction, justifyContent, alignItems, width, height,
                 padding, value, flexGrow, text, children, owner);
     }
 
     /// Share of the free space this box takes along its parent's main axis.
     public Box grow(double value) {
-        return new Box(background, direction, justifyContent, alignItems, width, height,
+        return new Box(background, cursor, direction, justifyContent, alignItems, width, height,
                 padding, gap, value, text, children, owner);
     }
 
@@ -168,12 +183,12 @@ public record Box(
     /// Set by the renderer; read by hit testing. Nothing between the two looks
     /// at it.
     public Box owner(Object value) {
-        return new Box(background, direction, justifyContent, alignItems, width, height,
+        return new Box(background, cursor, direction, justifyContent, alignItems, width, height,
                 padding, gap, flexGrow, text, children, value);
     }
 
     public Box children(Box... value) {
-        return new Box(background, direction, justifyContent, alignItems, width, height,
+        return new Box(background, cursor, direction, justifyContent, alignItems, width, height,
                 padding, gap, flexGrow, text, List.of(value), owner);
     }
 
@@ -196,6 +211,7 @@ public record Box(
         var styledText = text == null ? null : new Text(text.paragraph(), style.color());
         return new Box(
                 style.background(),
+                style.cursor(),
                 style.direction(),
                 style.justifyContent(),
                 style.alignItems(),

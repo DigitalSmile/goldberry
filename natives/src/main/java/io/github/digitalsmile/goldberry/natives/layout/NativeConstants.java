@@ -4,6 +4,8 @@ import io.github.digitalsmile.goldberry.natives.blend2d.BlendEnum;
 import io.github.digitalsmile.goldberry.natives.harfbuzz.HarfBuzzEnum;
 import io.github.digitalsmile.goldberry.natives.sdl.SdlEventType;
 import io.github.digitalsmile.goldberry.natives.sdl.SdlPixelFormat;
+import io.github.digitalsmile.goldberry.natives.sdl.SdlSystemCursor;
+import io.github.digitalsmile.goldberry.natives.sdl.SdlWheelDirection;
 import io.github.digitalsmile.goldberry.natives.sdl.SdlWindowFlag;
 import io.github.digitalsmile.goldberry.natives.yoga.YogaEnum;
 import java.util.ArrayList;
@@ -30,6 +32,13 @@ public final class NativeConstants {
         }
         for (var format : SdlPixelFormat.values()) {
             constants.add(new NativeConstant(format.nativeName(), format.value()));
+        }
+        for (var direction : SdlWheelDirection.values()) {
+            constants.add(new NativeConstant(direction.nativeName(), direction.value()));
+        }
+        // Ordinals in an enum SDL has already inserted into the middle of once.
+        for (var cursor : SdlSystemCursor.values()) {
+            constants.add(new NativeConstant(cursor.nativeName(), cursor.value()));
         }
         // Every enumerator of every Yoga enum the bindings model. The list comes
         // from the sealed interface rather than from here, so an enum added to

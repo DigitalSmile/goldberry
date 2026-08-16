@@ -109,17 +109,26 @@ jobs:
       # executable bit -- which would land the user an image whose `bin/java`
       # cannot be run. Windows does not have the problem and does not have tar
       # semantics worth fighting, so it gets a zip.
+      #
+      # `run: |` and not a bare `run:` with a line continuation. YAML folds a
+      # plain scalar's newline into a space and keeps the backslash, so the shell
+      # saw `... \ "goldberry-showcase-linux-x64"` -- an escaped space, making one
+      # argument out of a space and the directory name. tar reported
+      # "` goldberry-showcase-linux-x64`: Cannot stat", with a leading space
+      # nobody reads, on both unix legs.
       - name: Package (unix)
         if: runner.os != 'Windows'
         working-directory: example/build/jlink
-        run: tar -czf "$GITHUB_WORKSPACE/goldberry-showcase-${{ matrix.target }}.tar.gz" \
-             "goldberry-showcase-${{ matrix.target }}"
+        run: |
+          tar -czf "$GITHUB_WORKSPACE/goldberry-showcase-${{ matrix.target }}.tar.gz" \
+            "goldberry-showcase-${{ matrix.target }}"
 
       - name: Package (windows)
         if: runner.os == 'Windows'
         working-directory: example/build/jlink
-        run: 7z a "$GITHUB_WORKSPACE/goldberry-showcase-${{ matrix.target }}.zip" \
-             "goldberry-showcase-${{ matrix.target }}"
+        run: |
+          7z a "$GITHUB_WORKSPACE/goldberry-showcase-${{ matrix.target }}.zip" \
+            "goldberry-showcase-${{ matrix.target }}"
 
       - uses: actions/upload-artifact@v4
         with:

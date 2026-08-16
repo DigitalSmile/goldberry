@@ -7,10 +7,12 @@ import io.github.digitalsmile.goldberry.backend.BackendWindow;
 import io.github.digitalsmile.goldberry.backend.EventSink;
 import io.github.digitalsmile.goldberry.backend.WindowSpec;
 import io.github.digitalsmile.goldberry.natives.sdl.Sdl;
+import io.github.digitalsmile.goldberry.natives.sdl.SdlCursors;
 import io.github.digitalsmile.goldberry.natives.sdl.SdlEventBuffer;
 import io.github.digitalsmile.goldberry.natives.sdl.SdlEventType;
 import io.github.digitalsmile.goldberry.natives.sdl.SdlException;
 import io.github.digitalsmile.goldberry.natives.sdl.SdlSubsystem;
+import io.github.digitalsmile.goldberry.natives.sdl.SdlSystemCursor;
 import io.github.digitalsmile.goldberry.natives.sdl.SdlVideo;
 import io.github.digitalsmile.goldberry.natives.sdl.SdlWindowFlag;
 import io.github.digitalsmile.goldberry.natives.log.Logs;
@@ -64,6 +66,15 @@ public final class Sdl3Backend implements Backend {
     private final Map<Integer, Sdl3Window> windowsById = new LinkedHashMap<>();
     private final SdlEventBuffer eventBuffer = new SdlEventBuffer();
     private final FramePacer pacer = FramePacer.fromProperties();
+
+    /// The system cursors, created on first use.
+    ///
+    /// Lazy and optional, for the reason `SdlVideo.optionalDowncall` is: a
+    /// `libgoldberry` built before the cursor symbols were exported would
+    /// otherwise stop opening windows at all, to enable a nicety. An application
+    /// that never sets a cursor never creates one either.
+    private SdlCursors cursors;
+    private boolean cursorsUnavailable;
 
     private boolean closed;
 
@@ -435,6 +446,14 @@ public final class Sdl3Backend implements Backend {
         } else if (type == SdlEventType.MOUSE_BUTTON_UP.value()) {
             out.add(new BackendEvent.PointerReleased(window, eventBuffer.pointerX(), eventBuffer.pointerY(),
                     eventBuffer.mouseButton(), eventBuffer.clickCount()));
+        } else if (type == SdlEventType.MOUSE_WHEEL.value()) {
+            // The buffer has already undone SDL's "natural scrolling" inversion.
+            // What is left is the sign convention: SDL's y is positive *away from
+            // the user*, and the SPI's is positive *down the document*, which is
+            // CSS's and every scroll view's. One negation, at the boundary, once.
+            out.add(new BackendEvent.PointerWheel(window,
+                    eventBuffer.wheelPointerX(), eventBuffer.wheelPointerY(),
+                    eventBuffer.wheelX(), -eventBuffer.wheelY()));
         } else if (type == SdlEventType.WINDOW_DISPLAY_SCALE_CHANGED.value()) {
             // Usually the window moving to another monitor, which is also the one
             // case where the cached refresh rate can be wrong -- and wrong for the
@@ -481,12 +500,38 @@ public final class Sdl3Backend implements Backend {
             window.close();
         }
         windowsById.clear();
+        if (cursors != null) {
+            cursors.close();
+            cursors = null;
+        }
         eventBuffer.close();
         Sdl.get().quit();
     }
 
     SdlVideo video() {
         return video;
+    }
+
+    /// Shows a system cursor.
+    ///
+    /// SDL's cursor is process-global — one pointer, one shape — so this lives on
+    /// the backend rather than on a window, and the window that asks is by
+    /// definition the one the pointer is in.
+    void setCursor(SdlSystemCursor shape) {
+        if (cursorsUnavailable) {
+            return;
+        }
+        if (cursors == null) {
+            try {
+                cursors = new SdlCursors();
+            } catch (UnsatisfiedLinkError e) {
+                cursorsUnavailable = true;
+                LOG.debug("libgoldberry exports no cursor calls; the pointer keeps its"
+                        + " default shape", e);
+                return;
+            }
+        }
+        cursors.set(shape);
     }
 
     void forget(Sdl3Window window) {

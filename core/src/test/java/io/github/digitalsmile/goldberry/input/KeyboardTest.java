@@ -267,9 +267,29 @@ class KeyboardTest {
         @Test
         @DisplayName("an unnamed key is UNKNOWN rather than null")
         void unknownKey() {
-            // A letter key is not named here on purpose: what was typed arrives
-            // as text, so the keycode is not the interesting part.
-            assertEquals(Key.UNKNOWN, Key.fromSdl('a'));
+            // A bracket types a character and nothing binds it, so it stays
+            // unnamed: what was typed arrives as text.
+            assertEquals(Key.UNKNOWN, Key.fromSdl('['));
+            assertEquals(Key.UNKNOWN, Key.fromSdl(0x4000003a - 1), "F13 is not named");
+        }
+
+        @Test
+        @DisplayName("letters and digits are named, because accelerators need them")
+        void letters() {
+            // Ctrl+S produces no text event on any platform, so the letter has to
+            // come from the key event or a shortcut could not be expressed.
+            assertEquals(Key.S, Key.fromSdl('s'));
+            assertEquals(Key.DIGIT_7, Key.fromSdl('7'));
+            assertEquals(Key.COMMA, Key.fromSdl(','));
+        }
+
+        @Test
+        @DisplayName("an uppercase keycode folds to the same key as its lowercase")
+        void caseFolding() {
+            // SDL reports the unmodified keycode, but documents platforms that
+            // only ever give modified ones -- where Shift+S arrives as 'S'.
+            assertEquals(Key.S, Key.fromSdl('S'));
+            assertEquals(Key.fromSdl('s'), Key.fromSdl('S'));
         }
 
         @Test

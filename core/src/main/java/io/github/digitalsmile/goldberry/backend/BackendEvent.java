@@ -10,8 +10,9 @@ import java.util.Objects;
 /// (`docs/ARCHITECTURE.md` §7), and when they arrive every exhaustive switch
 /// should stop compiling until it says what it does with them.
 ///
-/// Pointer and keyboard events are here, split the way §7.1 asks: a key is a
-/// key, and committed text is separate. Wheel and cursor are not.
+/// Pointer, wheel and keyboard events are here, split the way §7.1 asks: a key
+/// is a key, and committed text is separate. The cursor travels the other way and
+/// so is a method on [BackendWindow] rather than an event.
 public sealed interface BackendEvent {
 
     /// The window this concerns.
@@ -95,6 +96,26 @@ public sealed interface BackendEvent {
 
     /// A pointer button came up.
     record PointerReleased(BackendWindow window, float x, float y, int button, int clickCount)
+            implements BackendEvent {
+    }
+
+    /// The wheel turned, or a touchpad scrolled.
+    ///
+    /// Carries its own position: a wheel event can be the first thing a window
+    /// hears after the pointer entered it, and scrolling whatever was under the
+    /// pointer last time would be wrong.
+    ///
+    /// The deltas are in **lines**, positive down and right — normalized here so
+    /// that no two backends have to agree on anything harder. SDL reports the
+    /// opposite sign vertically and inverts both axes when the platform is set to
+    /// "natural" scrolling; that is undone at the boundary, because a toolkit
+    /// whose scroll direction depends on a system preference is broken for
+    /// exactly the users who changed it.
+    ///
+    /// Lines, not pixels, because SDL reports no pixel-precise delta. They are
+    /// fractional on a touchpad, which is what stops a trackpad scrolling in
+    /// jerks.
+    record PointerWheel(BackendWindow window, float x, float y, float deltaX, float deltaY)
             implements BackendEvent {
     }
 

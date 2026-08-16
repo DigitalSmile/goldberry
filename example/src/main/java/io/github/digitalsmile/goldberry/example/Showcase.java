@@ -3,6 +3,7 @@ package io.github.digitalsmile.goldberry.example;
 import io.github.digitalsmile.goldberry.Goldberry;
 import io.github.digitalsmile.goldberry.Window;
 import io.github.digitalsmile.goldberry.assets.BundledFont;
+import io.github.digitalsmile.goldberry.backend.Cursor;
 import io.github.digitalsmile.goldberry.icon.Icon;
 import io.github.digitalsmile.goldberry.layout.Box;
 import io.github.digitalsmile.goldberry.layout.BoxPainter;
@@ -115,6 +116,13 @@ public final class Showcase {
         LOG.info("Goldberry {} — showcase starting", Goldberry.version());
 
         var window = Window.open("Goldberry — showcase", widthOf(args), heightOf(args));
+
+        // A crosshair over the whole window, which is not decoration: it is the
+        // only thing in this repository that makes SDL_CreateSystemCursor and
+        // SDL_SetCursor actually run. CI drives this showcase under Xvfb on all
+        // three platforms, so the cursor path is exercised there rather than left
+        // as a binding nothing has ever called (ADR-0057).
+        window.cursor(Cursor.CROSSHAIR);
 
         // On the UI thread, and it has to stay there: these own native objects
         // from two libraries and are confined to the thread that built them.

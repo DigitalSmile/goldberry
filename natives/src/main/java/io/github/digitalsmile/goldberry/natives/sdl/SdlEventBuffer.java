@@ -39,6 +39,16 @@ public final class SdlEventBuffer implements AutoCloseable {
             Layouts.SDL_MOUSE_BUTTON_EVENT.offsetOf("button");
     private static final long BUTTON_CLICKS_OFFSET =
             Layouts.SDL_MOUSE_BUTTON_EVENT.offsetOf("clicks");
+    private static final long WHEEL_X_OFFSET =
+            Layouts.SDL_MOUSE_WHEEL_EVENT.offsetOf("x");
+    private static final long WHEEL_Y_OFFSET =
+            Layouts.SDL_MOUSE_WHEEL_EVENT.offsetOf("y");
+    private static final long WHEEL_DIRECTION_OFFSET =
+            Layouts.SDL_MOUSE_WHEEL_EVENT.offsetOf("direction");
+    private static final long WHEEL_MOUSE_X_OFFSET =
+            Layouts.SDL_MOUSE_WHEEL_EVENT.offsetOf("mouse_x");
+    private static final long WHEEL_MOUSE_Y_OFFSET =
+            Layouts.SDL_MOUSE_WHEEL_EVENT.offsetOf("mouse_y");
     private static final long KEY_SCANCODE_OFFSET =
             Layouts.SDL_KEYBOARD_EVENT.offsetOf("scancode");
     private static final long KEY_KEYCODE_OFFSET =
@@ -111,6 +121,44 @@ public final class SdlEventBuffer implements AutoCloseable {
 
     private boolean isMotion() {
         return type() == SdlEventType.MOUSE_MOTION.value();
+    }
+
+    /// How far the wheel turned horizontally, **already un-flipped**.
+    ///
+    /// Positive is to the right. SDL's own value is negated first where
+    /// `direction` says the platform inverted it, so callers never see the
+    /// distinction — see [SdlWheelDirection].
+    public float wheelX() {
+        return direction() * event.get(ValueLayout.JAVA_FLOAT, WHEEL_X_OFFSET);
+    }
+
+    /// How far the wheel turned vertically, un-flipped.
+    ///
+    /// Positive is **away from the user**, which is SDL's convention and the
+    /// opposite of the one a document scrolls in. The backend inverts it; this
+    /// stays in SDL's terms, because a binding that silently redefines a field is
+    /// a binding nobody can check against the header.
+    public float wheelY() {
+        return direction() * event.get(ValueLayout.JAVA_FLOAT, WHEEL_Y_OFFSET);
+    }
+
+    /// Where the pointer was when the wheel turned, window-relative.
+    ///
+    /// A wheel event carries its own position rather than reusing the last
+    /// motion: scrolling with the pointer parked over a window that has never
+    /// seen a move — which is what a fresh scroll after an alt-tab is — otherwise
+    /// hits whatever was under the pointer last time.
+    public float wheelPointerX() {
+        return event.get(ValueLayout.JAVA_FLOAT, WHEEL_MOUSE_X_OFFSET);
+    }
+
+    /// Where the pointer was when the wheel turned.
+    public float wheelPointerY() {
+        return event.get(ValueLayout.JAVA_FLOAT, WHEEL_MOUSE_Y_OFFSET);
+    }
+
+    private float direction() {
+        return SdlWheelDirection.sign(event.get(ValueLayout.JAVA_INT, WHEEL_DIRECTION_OFFSET));
     }
 
     /// The virtual keycode — what the layout says the key means.

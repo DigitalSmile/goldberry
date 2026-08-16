@@ -290,6 +290,22 @@ public final class Window implements AutoCloseable {
     /// box tree it painted.
     public Window pointerRouter(io.github.digitalsmile.goldberry.input.PointerRouter router) {
         this.router = router;
+        if (router != null) {
+            // The router decides the shape and knows nothing about the platform;
+            // this is the one wire between the two (§7.3).
+            router.onCursorChange(window::setCursor);
+        }
+        return this;
+    }
+
+    /// Sets the shape of the pointer over this window (§7.3).
+    ///
+    /// For an application that decides for itself. A window with a
+    /// [#pointerRouter] has this set from the widget under the pointer on every
+    /// move, so the two do not mix: whichever spoke last wins, and the router
+    /// speaks on the next pointer motion.
+    public Window cursor(io.github.digitalsmile.goldberry.backend.Cursor cursor) {
+        window.setCursor(Objects.requireNonNull(cursor, "cursor"));
         return this;
     }
 
@@ -308,6 +324,12 @@ public final class Window implements AutoCloseable {
     void handlePointerReleased(float x, float y, int button, int clickCount) {
         if (router != null) {
             router.pointerReleased(x, y, toButton(button), clickCount);
+        }
+    }
+
+    void handlePointerWheel(float x, float y, float deltaX, float deltaY) {
+        if (router != null) {
+            router.pointerWheel(x, y, deltaX, deltaY);
         }
     }
 
