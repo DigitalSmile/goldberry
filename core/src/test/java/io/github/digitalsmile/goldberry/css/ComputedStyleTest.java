@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import io.github.digitalsmile.goldberry.natives.yoga.Align;
 import io.github.digitalsmile.goldberry.natives.yoga.FlexDirection;
 import io.github.digitalsmile.goldberry.natives.yoga.Justify;
+import io.github.digitalsmile.goldberry.natives.yoga.Insets;
 import io.github.digitalsmile.goldberry.natives.yoga.StyleLength;
 import java.util.List;
 import org.junit.jupiter.api.DisplayName;
@@ -78,7 +79,7 @@ class ComputedStyleTest {
 
             assertEquals(StyleLength.points(120), style.width());
             assertEquals(StyleLength.percent(50), style.height());
-            assertEquals(StyleLength.points(8), style.padding());
+            assertEquals(Insets.all(StyleLength.points(8)), style.padding());
         }
 
         @Test
@@ -107,7 +108,7 @@ class ComputedStyleTest {
             var declarations = new StyleResolver(List.of(sheet)).resolve(root.descend(1));
 
             var style = ComputedStyle.of(declarations, new CssLength.Context(20, 16));
-            assertEquals(StyleLength.points(30), style.padding());
+            assertEquals(Insets.all(StyleLength.points(30)), style.padding());
         }
 
         @Test
@@ -120,13 +121,13 @@ class ComputedStyleTest {
 
             // Local 20, root 16 -- rem must ignore the 20.
             var style = ComputedStyle.of(declarations, new CssLength.Context(20, 16));
-            assertEquals(StyleLength.points(32), style.padding());
+            assertEquals(Insets.all(StyleLength.points(32)), style.padding());
         }
 
         @Test
         @DisplayName("a unitless zero is a length; any other unitless number is not")
         void unitlessZero() {
-            assertEquals(StyleLength.points(0), compute("button { padding: 0 }").padding());
+            assertEquals(Insets.all(StyleLength.points(0)), compute("button { padding: 0 }").padding());
             // "padding: 8" is an author error, and guessing px would hide it.
             assertEquals(ComputedStyle.INITIAL.padding(), compute("button { padding: 8 }").padding());
         }
@@ -227,8 +228,74 @@ class ComputedStyleTest {
             var style = ComputedStyle.of(declarations, CssLength.Context.DEFAULT);
 
             assertEquals(0xFF2E3440, style.background());
-            assertEquals(StyleLength.points(8), style.padding());
+            assertEquals(Insets.all(StyleLength.points(8)), style.padding());
             assertEquals(FlexDirection.COLUMN, style.direction());
+        }
+    }
+
+    @Nested
+    @DisplayName("padding")
+    class Padding {
+
+        @Test
+        @DisplayName("one value is every edge")
+        void one() {
+            assertEquals(Insets.all(StyleLength.points(12)),
+                    compute("button { padding: 12px }").padding());
+        }
+
+        @Test
+        @DisplayName("two values are vertical then horizontal")
+        void two() {
+            // The form a control is written in: `padding: 0 12px` is the button's
+            // own metric, and supporting only one value would mean no control
+            // could state it.
+            assertEquals(new Insets(StyleLength.points(0), StyleLength.points(12),
+                            StyleLength.points(0), StyleLength.points(12)),
+                    compute("button { padding: 0 12px }").padding());
+        }
+
+        @Test
+        @DisplayName("three values give the bottom its own, and the sides share")
+        void three() {
+            assertEquals(new Insets(StyleLength.points(1), StyleLength.points(2),
+                            StyleLength.points(3), StyleLength.points(2)),
+                    compute("button { padding: 1px 2px 3px }").padding());
+        }
+
+        @Test
+        @DisplayName("four values run clockwise from the top, as CSS does")
+        void four() {
+            // CSS's order, not a reading order. Two orders for one concept is how
+            // a padding lands on the wrong pair of edges.
+            assertEquals(new Insets(StyleLength.points(1), StyleLength.points(2),
+                            StyleLength.points(3), StyleLength.points(4)),
+                    compute("button { padding: 1px 2px 3px 4px }").padding());
+        }
+
+        @Test
+        @DisplayName("a longhand overrides one edge of the shorthand before it")
+        void longhand() {
+            var style = compute("button { padding: 4px; padding-left: 16px }");
+
+            assertEquals(new Insets(StyleLength.points(4), StyleLength.points(4),
+                    StyleLength.points(4), StyleLength.points(16)), style.padding());
+        }
+
+        @Test
+        @DisplayName("a shorthand with one bad part is dropped whole")
+        void partiallyBad() {
+            // Half a shorthand is harder to see than none of it: two edges would
+            // move and two would not, which reads as a layout bug.
+            assertEquals(ComputedStyle.INITIAL.padding(),
+                    compute("button { padding: 8px nonsense }").padding());
+        }
+
+        @Test
+        @DisplayName("five values are not a shorthand CSS has")
+        void tooMany() {
+            assertEquals(ComputedStyle.INITIAL.padding(),
+                    compute("button { padding: 1px 2px 3px 4px 5px }").padding());
         }
     }
 }

@@ -64,6 +64,7 @@
 - [ADR-0056 The wheel is lines, and the sign is ours](adr/0056-the-wheel-is-lines-and-the-sign-is-ours.md)
 - [ADR-0057 The cursor rides on the painted box](adr/0057-the-cursor-rides-on-the-painted-box.md)
 - [ADR-0058 A press captures the pointer](adr/0058-a-press-captures-the-pointer.md)
+- [ADR-0059 A control is a record, a node and a rule](adr/0059-a-control-is-a-record-a-node-and-a-rule.md)
 
 ---
 

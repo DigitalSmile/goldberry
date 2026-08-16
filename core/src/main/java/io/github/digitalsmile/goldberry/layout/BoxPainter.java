@@ -99,7 +99,14 @@ public final class BoxPainter {
         node.setAlignItems(box.alignItems());
         node.setWidth(box.width());
         node.setHeight(box.height());
-        node.setPadding(Edge.ALL, box.padding());
+        // Per edge rather than Edge.ALL, because `padding: 0 12px` is what a
+        // control wants and Yoga resolves the more specific edge over ALL only if
+        // both are set. Setting the four is one call more and no ambiguity.
+        var padding = box.padding();
+        node.setPadding(Edge.TOP, padding.top());
+        node.setPadding(Edge.RIGHT, padding.right());
+        node.setPadding(Edge.BOTTOM, padding.bottom());
+        node.setPadding(Edge.LEFT, padding.left());
         node.setGap(Gutter.ALL, box.gap());
         node.setFlexGrow((float) box.flexGrow());
 

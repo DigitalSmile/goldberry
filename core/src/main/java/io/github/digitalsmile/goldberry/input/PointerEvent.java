@@ -23,6 +23,14 @@ public final class PointerEvent {
         ENTERED,
         /// The pointer left. Synthetic.
         EXITED,
+        /// A press and its release both landed on this node. Synthetic, and the
+        /// one every control actually wants.
+        ///
+        /// Not the same as a release: a press that is dragged away and let go
+        /// elsewhere still releases — the captor is told, so it can stop looking
+        /// pressed — but it was not a click, and the user cancelling a click by
+        /// dragging off is a gesture people rely on (§7.1).
+        CLICKED,
         /// The wheel turned, or a touchpad scrolled — see [#deltaX] and
         /// [#deltaY].
         WHEEL

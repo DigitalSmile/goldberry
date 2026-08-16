@@ -154,14 +154,32 @@ public final class PointerRouter {
     public void pointerReleased(float x, float y, PointerEvent.Button button, int clickCount) {
         var under = elementAt(x, y);
         var target = captured != null ? captured : under;
+        // Read before `setPressed(null)` clears it: whether this was a click is a
+        // question about who the press went to.
+        var wasPressed = pressed;
         updateHover(under, x, y);
         setPressed(null);
         if (capturedImplicitly) {
             releasePointer();
         }
         updateCursor(x, y);
-        if (target != null) {
-            dispatch(new PointerEvent(PointerEvent.Kind.RELEASED, x, y, button, clickCount, target));
+        if (target == null) {
+            return;
+        }
+        dispatch(new PointerEvent(PointerEvent.Kind.RELEASED, x, y, button, clickCount, target));
+
+        // A click is a press and a release on the same node, which is not the
+        // same thing as a release: dragging off a button and letting go is how a
+        // user cancels, and every control would otherwise have to work that out
+        // for itself from a release it cannot locate. Synthesized here, from
+        // pointer flow, exactly as §7.1 says the synthetic events are.
+        //
+        // "On the same node" means the release landed on the pressed element or
+        // inside it -- releasing on a button's own label is a click on the
+        // button.
+        if (button == PointerEvent.Button.PRIMARY && wasPressed != null
+                && chain(under).contains(wasPressed)) {
+            dispatch(new PointerEvent(PointerEvent.Kind.CLICKED, x, y, button, clickCount, wasPressed));
         }
     }
 

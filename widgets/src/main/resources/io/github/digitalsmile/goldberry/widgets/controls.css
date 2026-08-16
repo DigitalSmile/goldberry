@@ -1,0 +1,87 @@
+/*
+ * What the controls ship with -- the toolkit-base layer (ARCHITECTURE.md §8).
+ *
+ * Bottom of the four fixed layers, so a theme's custom properties and then an
+ * application's own rules both win over anything here without either having to
+ * fight specificity. Every colour is a `var(--gb-*)`: this file names no palette
+ * value, which is what lets switching a theme restyle a button whose rules never
+ * mention a colour (§10).
+ *
+ * The numbers are the design system's (docs/design-system.md §3, "Component
+ * metrics"), which pins button at height 32, padding-x 12, gap 6.
+ *
+ * Not expressible yet, and therefore absent rather than approximated: the 8px
+ * corner radius, the 1px border on `ghost`, the `body-strong` weight, and the
+ * 2px `--gb-focus` ring at 2px offset. `Box` carries no border, radius, font
+ * weight or outline, so each of those arrives with the thing that paints it.
+ * `:focus-visible` is styled with a background change in the meantime, so
+ * keyboard focus is at least visible.
+ */
+
+button {
+  height: 32px;
+  padding: 0 12px;
+  gap: 6px;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+
+  background: var(--gb-button-bg);
+  color: var(--gb-button-text);
+}
+
+button:hover {
+  background: var(--gb-button-bg-hover);
+}
+
+button:active {
+  background: var(--gb-button-bg-active);
+}
+
+/* Stands in for the focus ring until Box can draw an outline. Deliberately the
+   same colour as :hover would give, plus the accent, so a keyboard user can see
+   where they are. */
+button:focus-visible {
+  background: var(--gb-button-bg-focus);
+}
+
+button.primary {
+  background: var(--gb-button-primary-bg);
+  color: var(--gb-button-primary-text);
+}
+
+button.primary:hover {
+  background: var(--gb-button-primary-bg-hover);
+}
+
+button.primary:active {
+  background: var(--gb-button-primary-bg-active);
+}
+
+button.danger {
+  background: var(--gb-button-danger-bg);
+  color: var(--gb-button-danger-text);
+}
+
+button.danger:hover {
+  background: var(--gb-button-danger-bg-hover);
+}
+
+button.danger:active {
+  background: var(--gb-button-danger-bg-active);
+}
+
+/* Transparent until touched. The overlay tokens are a white or black wash
+   depending on the theme, which is how a ghost button sits on any surface. */
+button.ghost {
+  background: transparent;
+  color: var(--gb-text);
+}
+
+button.ghost:hover {
+  background: var(--gb-overlay-hover);
+}
+
+button.ghost:active {
+  background: var(--gb-overlay-active);
+}

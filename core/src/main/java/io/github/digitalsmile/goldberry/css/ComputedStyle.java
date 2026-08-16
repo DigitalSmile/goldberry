@@ -4,6 +4,7 @@ import io.github.digitalsmile.goldberry.backend.Cursor;
 import io.github.digitalsmile.goldberry.natives.log.Logs;
 import io.github.digitalsmile.goldberry.natives.yoga.Align;
 import io.github.digitalsmile.goldberry.natives.yoga.FlexDirection;
+import io.github.digitalsmile.goldberry.natives.yoga.Insets;
 import io.github.digitalsmile.goldberry.natives.yoga.Justify;
 import io.github.digitalsmile.goldberry.natives.yoga.StyleLength;
 import java.util.List;
@@ -48,7 +49,7 @@ public record ComputedStyle(
         Align alignItems,
         StyleLength width,
         StyleLength height,
-        StyleLength padding,
+        Insets padding,
         StyleLength gap,
         double flexGrow,
         // --- paint: resolved into pixels ---
@@ -72,7 +73,7 @@ public record ComputedStyle(
             Align.STRETCH,
             StyleLength.UNDEFINED,
             StyleLength.UNDEFINED,
-            StyleLength.points(0),
+            Insets.ZERO,
             StyleLength.points(0),
             0,
             CssColor.TRANSPARENT,
@@ -141,10 +142,22 @@ public record ComputedStyle(
                             padding, gap, flexGrow, background, color, opacity, cursor))
                     .orElseGet(() -> dropped(property, value));
 
-            case "padding" -> length(value, context)
+            // CSS's 1-4 value shorthand: one is every edge, two is
+            // vertical/horizontal, three adds a bottom, four is clockwise from
+            // the top. `padding: 0 12px` is the form a control is written in, so
+            // supporting only the one-value form would mean no button could
+            // state its own metrics.
+            case "padding" -> insets(value, context)
                     .map(v -> new ComputedStyle(direction, justifyContent, alignItems, width, height,
                             v, gap, flexGrow, background, color, opacity, cursor))
                     .orElseGet(() -> dropped(property, value));
+
+            case "padding-top", "padding-right", "padding-bottom", "padding-left" ->
+                    length(value, context)
+                            .map(v -> new ComputedStyle(direction, justifyContent, alignItems,
+                                    width, height, edge(padding, property, v), gap, flexGrow,
+                                    background, color, opacity, cursor))
+                            .orElseGet(() -> dropped(property, value));
 
             case "gap" -> length(value, context)
                     .map(v -> new ComputedStyle(direction, justifyContent, alignItems, width, height,
@@ -204,6 +217,59 @@ public record ComputedStyle(
 
     private static java.util.Optional<StyleLength> length(List<Token> value, CssLength.Context context) {
         return java.util.Optional.ofNullable(CssLength.parse(value, context));
+    }
+
+    /// CSS's 1-4 value edge shorthand.
+    ///
+    /// Empty if any part fails to parse, so `padding: 8px nonsense` is dropped
+    /// whole rather than applied to two edges out of four — a half-applied
+    /// shorthand is harder to see than one that did nothing.
+    private static java.util.Optional<Insets> insets(List<Token> value, CssLength.Context context) {
+        var parts = new java.util.ArrayList<StyleLength>();
+        for (var token : split(value)) {
+            var length = CssLength.parse(token, context);
+            if (length == null) {
+                return java.util.Optional.empty();
+            }
+            parts.add(length);
+        }
+        return java.util.Optional.ofNullable(switch (parts.size()) {
+            case 1 -> Insets.all(parts.getFirst());
+            case 2 -> Insets.symmetric(parts.get(0), parts.get(1));
+            case 3 -> new Insets(parts.get(0), parts.get(1), parts.get(2), parts.get(1));
+            case 4 -> new Insets(parts.get(0), parts.get(1), parts.get(2), parts.get(3));
+            default -> null;
+        });
+    }
+
+    /// Splits a value on whitespace into the component values of a shorthand.
+    private static List<List<Token>> split(List<Token> value) {
+        var parts = new java.util.ArrayList<List<Token>>();
+        var current = new java.util.ArrayList<Token>();
+        for (var token : value) {
+            if (token.is(TokenType.WHITESPACE)) {
+                if (!current.isEmpty()) {
+                    parts.add(List.copyOf(current));
+                    current.clear();
+                }
+            } else {
+                current.add(token);
+            }
+        }
+        if (!current.isEmpty()) {
+            parts.add(List.copyOf(current));
+        }
+        return parts;
+    }
+
+    /// One edge of an existing set replaced, for the longhand properties.
+    private static Insets edge(Insets base, String property, StyleLength value) {
+        return switch (property) {
+            case "padding-top" -> new Insets(value, base.right(), base.bottom(), base.left());
+            case "padding-right" -> new Insets(base.top(), value, base.bottom(), base.left());
+            case "padding-bottom" -> new Insets(base.top(), base.right(), value, base.left());
+            default -> new Insets(base.top(), base.right(), base.bottom(), value);
+        };
     }
 
     private static java.util.Optional<Double> number(List<Token> value) {

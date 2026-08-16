@@ -4,6 +4,7 @@ import io.github.digitalsmile.goldberry.backend.Cursor;
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
 import io.github.digitalsmile.goldberry.natives.yoga.Align;
 import io.github.digitalsmile.goldberry.natives.yoga.FlexDirection;
+import io.github.digitalsmile.goldberry.natives.yoga.Insets;
 import io.github.digitalsmile.goldberry.natives.yoga.Justify;
 import io.github.digitalsmile.goldberry.natives.yoga.StyleLength;
 import io.github.digitalsmile.goldberry.text.Paragraph;
@@ -30,7 +31,7 @@ public record Box(
         Align alignItems,
         StyleLength width,
         StyleLength height,
-        StyleLength padding,
+        Insets padding,
         StyleLength gap,
         double flexGrow,
         Text text,
@@ -95,7 +96,7 @@ public record Box(
                 Align.STRETCH,
                 StyleLength.UNDEFINED,
                 StyleLength.UNDEFINED,
-                StyleLength.points(0),
+                Insets.ZERO,
                 StyleLength.points(0),
                 0,
                 null,
@@ -162,7 +163,13 @@ public record Box(
                 padding, gap, flexGrow, text, children, owner);
     }
 
+    /// The same padding on every edge — the common case, and what most of the
+    /// toolkit's own boxes want.
     public Box padding(StyleLength value) {
+        return padding(Insets.all(value));
+    }
+
+    public Box padding(Insets value) {
         return new Box(background, cursor, direction, justifyContent, alignItems, width, height,
                 value, gap, flexGrow, text, children, owner);
     }

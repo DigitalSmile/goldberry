@@ -52,6 +52,31 @@
   /* nord10 at 40%. */
   --gb-selection: #5e81ac66;
 
+  /* Component tokens (design-system.md §3). A control's *metrics* are in the
+     toolkit-base layer, which is theme-invariant; its *colours* are here,
+     because only a theme knows what a hover looks like on its own background.
+     An application overriding a component token restyles every button without
+     touching a rule. */
+  --gb-button-bg: var(--nord2);
+  --gb-button-bg-hover: var(--nord3);
+  --gb-button-bg-active: var(--nord1);
+  --gb-button-bg-focus: #4c566a;
+  --gb-button-text: var(--nord6);
+
+  --gb-button-primary-bg: var(--nord8);
+  --gb-button-primary-bg-hover: #97cad9;
+  --gb-button-primary-bg-active: #74b3c6;
+  --gb-button-primary-text: var(--nord0);
+
+  --gb-button-danger-bg: var(--nord11);
+  --gb-button-danger-bg-hover: #cb717a;
+  --gb-button-danger-bg-active: #ab545d;
+  --gb-button-danger-text: var(--nord6);
+
+  /* A white wash, for controls that have no surface of their own. */
+  --gb-overlay-hover: #ffffff14;
+  --gb-overlay-active: #ffffff29;
+
   /* Typography (§10.1) is theme-invariant: only colour changes between themes. */
   --gb-font-display: 28px;
   --gb-font-title: 20px;

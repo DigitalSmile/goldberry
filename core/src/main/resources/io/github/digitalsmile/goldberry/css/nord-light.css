@@ -58,6 +58,30 @@
      entry it derives from stays visible in the value. */
   --gb-selection: #88c0d04d;
 
+  /* Component tokens (design-system.md §3). See nord-dark for why they are a
+     theme's business rather than the base layer's. The hover here *darkens*
+     where the dark theme's lightens, which is the whole reason these are two
+     files and not one shared rule. */
+  --gb-button-bg: var(--nord5);
+  --gb-button-bg-hover: var(--nord4);
+  --gb-button-bg-active: #ccd3df;
+  --gb-button-bg-focus: var(--nord4);
+  --gb-button-text: var(--nord0);
+
+  --gb-button-primary-bg: var(--nord10);
+  --gb-button-primary-bg-hover: #54749c;
+  --gb-button-primary-bg-active: #4a678b;
+  --gb-button-primary-text: var(--nord6);
+
+  --gb-button-danger-bg: var(--nord11);
+  --gb-button-danger-bg-hover: #b0555e;
+  --gb-button-danger-bg-active: #9d4b53;
+  --gb-button-danger-text: var(--nord6);
+
+  /* A black wash, because a light theme's surfaces are already bright. */
+  --gb-overlay-hover: #00000012;
+  --gb-overlay-active: #00000024;
+
   /* Typography (§10.1). Sizes are logical px. */
   --gb-font-display: 28px;
   --gb-font-title: 20px;

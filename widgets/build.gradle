@@ -11,3 +11,38 @@ dependencies {
 // Deliberately no dependency on :gpu. The gallery module this replaced had one,
 // but a published widget library must not drag SDL_GPU into every consumer --
 // the canvas3d showcase belongs in :gpu itself. See ADR-0014.
+
+// A control's tests shape text, and shaping is HarfBuzz. Same wiring :core has
+// and for the same reason: the tests must run against the library this build
+// just produced, not a stale one and not none. Without it every test that
+// touches a font skips quietly, which looks exactly like passing.
+evaluationDependsOn(':natives')
+
+def hostNativeLibrary = project(':natives').ext.hostNativeLibrary
+
+tasks.withType(Test).configureEach {
+    jvmArgs '--enable-native-access=ALL-UNNAMED'
+
+    systemProperty 'goldberry.native.library',
+            providers.systemProperty('goldberry.native.library')
+                    .orElse(hostNativeLibrary.map { it.asFile.absolutePath })
+                    .get()
+
+    // An input, so a rebuilt library re-runs them rather than leaving them
+    // UP-TO-DATE and green against a library they never saw.
+    inputs.files(providers.provider {
+        var library = file(providers.systemProperty('goldberry.native.library')
+                .orElse(hostNativeLibrary.map { it.asFile.absolutePath })
+                .get())
+        library.isFile() ? [library] : []
+    }).withPropertyName('nativeLibrary').optional()
+}
+
+def skipNative = providers.gradleProperty('goldberry.skipNative')
+        .map { Boolean.parseBoolean(it) }
+        .getOrElse(false)
+def externalLibrary = providers.systemProperty('goldberry.native.library').isPresent()
+
+if (!skipNative && !externalLibrary) {
+    tasks.withType(Test).configureEach { dependsOn ':natives:cmakeBuild' }
+}

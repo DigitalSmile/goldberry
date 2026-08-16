@@ -10,4 +10,8 @@
 /// with no pixel coverage. Populated from M2.
 module io.github.digitalsmile.goldberry.widgets {
     requires transitive io.github.digitalsmile.goldberry.core;
+
+    /// The catalog itself. One package rather than one per group (ADR-0014): a
+    /// `button` and a `line-chart` are the same kind of thing to an importer.
+    exports io.github.digitalsmile.goldberry.widgets;
 }

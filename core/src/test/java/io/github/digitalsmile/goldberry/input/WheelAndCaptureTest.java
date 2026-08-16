@@ -223,6 +223,79 @@ class WheelAndCaptureTest {
     }
 
     @Nested
+    @DisplayName("click")
+    class Click {
+
+        @Test
+        @DisplayName("a press and a release on the same node is a click")
+        void click() {
+            router.pointerPressed(30, 30, PointerEvent.Button.PRIMARY, 1);
+            router.pointerReleased(30, 30, PointerEvent.Button.PRIMARY, 1);
+
+            assertTrue(log.contains("inner:CLICKED at 30.0,30.0"), () -> "log was " + log);
+        }
+
+        @Test
+        @DisplayName("dragging off and letting go is not a click")
+        void draggedOff() {
+            router.pointerPressed(30, 30, PointerEvent.Button.PRIMARY, 1);
+            router.pointerReleased(90, 90, PointerEvent.Button.PRIMARY, 1);
+
+            // Cancelling a click by dragging off the button is a gesture people
+            // rely on, and a control that fired on release could not tell.
+            assertTrue(log.stream().noneMatch(entry -> entry.contains("CLICKED")),
+                    () -> "log was " + log);
+            assertTrue(log.contains("inner:RELEASED at 90.0,90.0"),
+                    () -> "but the release still arrives: " + log);
+        }
+
+        @Test
+        @DisplayName("releasing on a child counts as a click on the parent that was pressed")
+        void releaseOnDescendant() {
+            // Pressing a button's own label and releasing on its padding is one
+            // click, not none.
+            router.pointerPressed(30, 30, PointerEvent.Button.PRIMARY, 1);
+            log.clear();
+            router.pointerReleased(30, 30, PointerEvent.Button.PRIMARY, 1);
+
+            assertTrue(log.contains("outer:CLICKED at 30.0,30.0"),
+                    () -> "the click should bubble to the ancestor too: " + log);
+        }
+
+        @Test
+        @DisplayName("a click bubbles, and the target is what was pressed")
+        void bubbles() {
+            router.pointerPressed(30, 30, PointerEvent.Button.PRIMARY, 1);
+            log.clear();
+            router.pointerReleased(30, 30, PointerEvent.Button.PRIMARY, 1);
+
+            var clicks = log.stream().filter(entry -> entry.contains("CLICKED")).toList();
+            assertEquals(List.of("inner:CLICKED at 30.0,30.0", "outer:CLICKED at 30.0,30.0"), clicks);
+        }
+
+        @Test
+        @DisplayName("only the primary button clicks")
+        void secondaryDoesNotClick() {
+            // A right-click opens a context menu; it is not an activation, and a
+            // button that fired on one would be a menu that also pressed itself.
+            router.pointerPressed(30, 30, PointerEvent.Button.SECONDARY, 1);
+            router.pointerReleased(30, 30, PointerEvent.Button.SECONDARY, 1);
+
+            assertTrue(log.stream().noneMatch(entry -> entry.contains("CLICKED")),
+                    () -> "log was " + log);
+        }
+
+        @Test
+        @DisplayName("a release with no press before it is not a click")
+        void releaseWithoutPress() {
+            router.pointerReleased(30, 30, PointerEvent.Button.PRIMARY, 1);
+
+            assertTrue(log.stream().noneMatch(entry -> entry.contains("CLICKED")),
+                    () -> "log was " + log);
+        }
+    }
+
+    @Nested
     @DisplayName("through the backend")
     class Plumbing {
 

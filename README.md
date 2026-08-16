@@ -247,6 +247,71 @@ laying them out in it — because nothing decides an icon's intrinsic size until
 the widget model does
 ([ADR-0004](book/src/adr/0004-three-tree-retained-declarative-model.md)).
 
+## Widgets
+
+Widgets are immutable records. The element tree behind them persists across
+rebuilds, which is what lets `:hover` survive a parent re-describing its child
+and what `setState` mutates ([ADR-0052](book/src/adr/0052-state-lives-on-the-element-and-rebuilds-are-deferred.md)).
+
+Every widget exists three ways — a Java record, a KDL node, and a CSS type — and
+a test asserts the first two produce equal values
+([ADR-0059](book/src/adr/0059-a-control-is-a-record-a-node-and-a-rule.md)):
+
+```java
+var ui = new Widgets.Column(
+        new Widgets.Text("Delete this file?"),
+        new Widgets.Row(
+                new Widgets.Spacer(),
+                new Button("Cancel", this::dismiss),
+                new Button("Delete", this::delete).styled("danger")));
+```
+
+```kdl
+column {
+    text "Delete this file?"
+    row {
+        spacer
+        button press="dismiss" "Cancel"
+        button class="danger" press="delete" "Delete"
+    }
+}
+```
+
+Markup **names** an action and cannot be one — `press="delete"` resolves against
+an `Actions` registry, which is what keeps a reloaded document wired to the
+handlers the old one had:
+
+```java
+var actions = Actions.strict()
+        .bind("delete", this::delete)
+        .bind("dismiss", this::dismiss);
+
+var tree = Controls.inflater(actions).inflateAll(KdlParser.parse(markup));
+```
+
+A registry is strict by default: `press="delte"` fails at inflation rather than
+producing a button that silently does nothing.
+
+Nothing visual lives in a widget. `:widgets` ships `controls.css` for the
+toolkit-base layer, which sets the design system's metrics and reads
+`var(--gb-*)` for every colour, so switching a theme restyles controls whose
+rules never mention one:
+
+```java
+var renderer = new WidgetRenderer(
+        List.of(Controls.baseStylesheet(), Theme.NORD_DARK.load(), appStyles), font);
+```
+
+Variants are classes — `primary`, `danger`, `ghost` — because that is the one
+spelling Java, KDL and CSS can all use. A button is focusable, activates on a
+click and on `Space`/`Enter`, and does **not** activate when a press is dragged
+off it and released elsewhere.
+
+So far the catalog is the five primitives (`text`, `row`, `column`, `panel`,
+`spacer`) and `button`. Radii, borders, font weights and the focus ring are not
+drawable yet, so `controls.css` states what it cannot express rather than
+approximating it.
+
 ## Input
 
 Pointer, wheel and keyboard events route through a `PointerRouter`, which holds

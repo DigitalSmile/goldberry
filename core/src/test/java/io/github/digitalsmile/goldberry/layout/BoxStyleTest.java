@@ -12,6 +12,7 @@ import io.github.digitalsmile.goldberry.css.Stylesheet;
 import io.github.digitalsmile.goldberry.natives.yoga.Align;
 import io.github.digitalsmile.goldberry.natives.yoga.FlexDirection;
 import io.github.digitalsmile.goldberry.natives.yoga.Justify;
+import io.github.digitalsmile.goldberry.natives.yoga.Insets;
 import io.github.digitalsmile.goldberry.natives.yoga.StyleLength;
 import java.util.List;
 import java.util.Map;
@@ -75,7 +76,7 @@ class BoxStyleTest {
         assertEquals(Align.CENTER, box.alignItems());
         assertEquals(StyleLength.points(320), box.width());
         assertEquals(StyleLength.percent(50), box.height());
-        assertEquals(StyleLength.points(8), box.padding());
+        assertEquals(Insets.all(StyleLength.points(8)), box.padding());
         assertEquals(StyleLength.points(4), box.gap());
         assertEquals(2.0, box.flexGrow());
     }
