@@ -13,6 +13,7 @@ import java.lang.invoke.MethodHandle;
 import java.nio.ByteBuffer;
 import java.util.Collection;
 import java.util.List;
+import java.util.Objects;
 import org.slf4j.Logger;
 
 /// SDL3's windowing, event and CPU presentation calls.
@@ -351,6 +352,20 @@ public final class SdlVideo {
             event.set(ValueLayout.JAVA_INT, 0, SdlEventType.USER.value());
             invoke(pushEvent, "SDL_PushEvent", event);
         }
+    }
+
+    /// Pushes a fabricated event onto SDL's queue.
+    ///
+    /// The event comes back out of [#pollEvent] and [#waitEvent] like any other,
+    /// and reaches every event watch on the way in — so what it drives is the
+    /// shipping event path rather than a test's imitation of it. Fill the buffer
+    /// with [SdlEventBuffer#writeWheel] or
+    /// [SdlEventBuffer#writeWindowEvent] first.
+    ///
+    /// @return whether SDL accepted it; an event watch may refuse one
+    public boolean push(SdlEventBuffer buffer) {
+        return (boolean) invoke(pushEvent, "SDL_PushEvent",
+                Objects.requireNonNull(buffer, "buffer").segment());
     }
 
     private SdlSize readSize(MethodHandle handle, String name, SdlWindowHandle window) {

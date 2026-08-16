@@ -43,6 +43,10 @@ final class Sdl3Window implements BackendWindow {
     /// 0 = not asked yet, [#UNAVAILABLE] = asked and refused. See [#refreshRate()].
     private float refreshRate;
 
+    /// The sizes the last reported resize carried. See [#resizedTo].
+    private LogicalSize reportedSize;
+    private PhysicalSize reportedPhysicalSize;
+
     Sdl3Window(Sdl3Backend backend, SdlWindowHandle handle, String title) {
         this.backend = backend;
         this.handle = handle;
@@ -275,6 +279,26 @@ final class Sdl3Window implements BackendWindow {
     /// monitor would otherwise persist for the life of the window.
     void forgetRefreshRate() {
         refreshRate = 0f;
+    }
+
+    /// Records a resize and says whether it is news.
+    ///
+    /// SDL sends `WINDOW_RESIZED` liberally, and since ADR-0060 the same one
+    /// arrives twice by design: the event watch handles it while the platform is
+    /// still inside its resize loop, and the queue hands the copy over when the
+    /// loop ends. A resize to the size the window already has costs a layout pass
+    /// and a frame and changes nothing, so it is reported once.
+    ///
+    /// Both sizes are compared. On a fractional scale the logical size can stay
+    /// put while the backing store moves by a pixel, and that is a real resize as
+    /// far as anything that rasterizes is concerned.
+    boolean resizedTo(LogicalSize logical, PhysicalSize physical) {
+        if (logical.equals(reportedSize) && physical.equals(reportedPhysicalSize)) {
+            return false;
+        }
+        reportedSize = logical;
+        reportedPhysicalSize = physical;
+        return true;
     }
 
     /// Consumes an outstanding frame request. Coalescing is implicit: the flag is

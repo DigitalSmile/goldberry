@@ -224,7 +224,7 @@ window title="Settings" width=720 height=480 {
 
 - **Inflater:** a runtime registry `widget name → factory`. Built-ins and app widgets register identically; unknown nodes are hard errors with source positions.
 - **Wiring:** `id` lookup + `action` names bound against a controller object explicitly (`Kdl.inflate(doc).bind(controller)`); no reflective `#handler` magic.
-- **`bind`** is one/two-way binding against an observable model (small built-in `Property<T>` type; no framework dependency).
+- **`bind`** is **one-way** binding against an observable model (small built-in `Property<T>` type; no framework dependency): data flows down into the tree, and what the user did flows back up as an `action`. Markup is handed the read-only `Observable` half, so a control cannot write to the model — `checkbox bind="prefs.frost" change="toggleFrost"` (ADR-0063, amending this bullet's original "one/two-way"). A `bind` value is a **dotted path and nothing else** — `frost`, `prefs.frost` — resolved against a `Bindings` registry, the same way `action` is resolved against a controller (ADR-0062).
 - **Parity invariant (enforced by test):** every built-in widget is constructible in all three forms — Java builder, KDL, and styleable via CSS. A widget that can't is a build failure.
 
 ## 10. Theming — Nord by default
@@ -332,4 +332,5 @@ Deliberately *not* in v1, with the seams that keep them addable:
 - **Drag & drop** (in-app first, platform DnD later — SPI gains two methods).
 - **List virtualization** (recycling for 10k+ rows; `scroll` is designed to host it).
 - **Tables/trees**, rich text display, notifications API, multi-window state management beyond the basics.
-- **Open:** KDL `bind` expression scope (dotted paths only vs. mini-expressions); whether `--gb-selection` alpha compositing forces a color-mix() subset; whether client-side decorations are the default on Linux or opt-in everywhere.
+- ~~**Open:** KDL `bind` expression scope (dotted paths only vs. mini-expressions)~~ — **settled: dotted paths only**, enforced by the registry, so an expression fails at inflation rather than resolving to nothing (ADR-0062). Negation and formatting stay in Java.
+- **Open:** whether `--gb-selection` alpha compositing forces a color-mix() subset; whether client-side decorations are the default on Linux or opt-in everywhere.

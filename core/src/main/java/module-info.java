@@ -36,6 +36,11 @@ module io.github.digitalsmile.goldberry.core {
     // state hang off.
     exports io.github.digitalsmile.goldberry.widget;
 
+    // Observable values and the paths markup binds to (§9, ADR-0062). Exported
+    // because the properties are the application's: it declares them, writes to
+    // them, and registers the paths a markup file may name.
+    exports io.github.digitalsmile.goldberry.bind;
+
     // Pointer input: hit testing against the painted frame, and the dispatch
     // that turns it into events, pseudo-classes and focus (§7, ADR-0054).
     exports io.github.digitalsmile.goldberry.input;

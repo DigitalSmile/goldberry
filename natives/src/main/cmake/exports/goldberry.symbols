@@ -66,6 +66,13 @@ SDL_WaitEventTimeout
 SDL_PushEvent
 SDL_PumpEvents
 
+# The event watch (ADR-0060). Windows and macOS run a modal loop while a window
+# is being resized and do not return from event pumping until the drag ends; a
+# watch is called from inside that pump, and is the only place a frame can be
+# drawn while it is running.
+SDL_AddEventWatch
+SDL_RemoveEventWatch
+
 # Cursors (sec. 7.3). Process-global in SDL: SDL_SetCursor changes what the mouse
 # looks like, and the pointer is over one window at a time.
 SDL_CreateSystemCursor

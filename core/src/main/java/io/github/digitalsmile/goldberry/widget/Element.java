@@ -1,5 +1,6 @@
 package io.github.digitalsmile.goldberry.widget;
 
+import io.github.digitalsmile.goldberry.bind.Subscription;
 import io.github.digitalsmile.goldberry.css.Selector;
 import io.github.digitalsmile.goldberry.css.StyleElement;
 import java.util.ArrayList;
@@ -35,6 +36,9 @@ public final class Element implements BuildContext, StyleElement {
     private boolean mounted = true;
     private final Set<Selector.PseudoClass> states = new LinkedHashSet<>();
 
+    /// Live for as long as this element describes a widget with a [Widget#binding].
+    private Subscription binding;
+
     Element(ElementTree tree, Element parent, Widget widget) {
         this.tree = tree;
         this.parent = parent;
@@ -43,6 +47,7 @@ public final class Element implements BuildContext, StyleElement {
             this.state = stateful.createState();
             this.state.mount(this, widget);
         }
+        subscribeToBinding(null);
     }
 
     /// The widget currently describing this element.
@@ -95,11 +100,42 @@ public final class Element implements BuildContext, StyleElement {
 
     /// Replaces this element's widget, if it can, and rebuilds.
     void update(Widget next) {
+        var previous = widget;
         widget = next;
+        subscribeToBinding(previous);
         if (state != null) {
             state.update(next);
         }
         rebuild();
+    }
+
+    /// Follows the widget's [Widget#binding] — §9's `bind`.
+    ///
+    /// The subscription belongs to the element rather than to the widget, because
+    /// the widget is a value that is thrown away and rebuilt while the element is
+    /// what persists ([ADR-0004]). An element that re-subscribed on every rebuild
+    /// would accumulate one listener per frame; one that never re-subscribed would
+    /// keep listening to the property a *previous* widget named.
+    ///
+    /// Identity, not equality: two properties holding the same value are two
+    /// places a value can change.
+    ///
+    /// @param previous the widget being replaced, or null when mounting
+    private void subscribeToBinding(Widget previous) {
+        var property = widget.binding();
+        if (previous != null && previous.binding() == property) {
+            return;
+        }
+        if (binding != null) {
+            binding.close();
+            binding = null;
+        }
+        if (property != null) {
+            // markNeedsBuild rather than an immediate rebuild, for the reason
+            // setState defers: a property that several widgets watch would
+            // otherwise rebuild each of them separately, mid-change.
+            binding = property.subscribe(value -> markNeedsBuild());
+        }
     }
 
     /// Rebuilds this element's subtree from its widget.
@@ -188,6 +224,14 @@ public final class Element implements BuildContext, StyleElement {
         // Depth first, so a child's dispose() still sees a live parent chain.
         children.forEach(Element::unmount);
         children = List.of();
+        if (binding != null) {
+            // Before the state's dispose(), and unconditionally: a property
+            // outlives the tree it was bound into -- it is the application's --
+            // and a listener left on it would keep this whole subtree alive and
+            // rebuild something nobody can see.
+            binding.close();
+            binding = null;
+        }
         if (state != null) {
             state.unmount();
         }

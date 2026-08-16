@@ -1,5 +1,6 @@
 package io.github.digitalsmile.goldberry.widgets;
 
+import io.github.digitalsmile.goldberry.bind.Bindings;
 import io.github.digitalsmile.goldberry.css.CascadeLayer;
 import io.github.digitalsmile.goldberry.css.Stylesheet;
 import io.github.digitalsmile.goldberry.kdl.KdlInflater;
@@ -64,7 +65,20 @@ public final class Controls {
     /// @param icons   what an `icon="plus"` attribute resolves against — see
     ///                [Icons]
     public static KdlInflater<Widget> inflater(Actions actions, Icons icons) {
-        var inflater = Widgets.inflater();
+        return inflater(actions, icons, Bindings.none());
+    }
+
+    /// An inflater with actions, icons **and** bindings bound.
+    ///
+    /// The three registries §9 asks for, and they are three rather than one
+    /// because they answer three different questions: what a name *does*, what a
+    /// name *draws*, and where a value *lives*. An application that uses one and
+    /// not the others says so by passing [Actions#none()] and friends.
+    ///
+    /// @param bindings what a `bind="prefs.frost"` attribute resolves against —
+    ///                 see [io.github.digitalsmile.goldberry.bind.Bindings]
+    public static KdlInflater<Widget> inflater(Actions actions, Icons icons, Bindings bindings) {
+        var inflater = Widgets.inflater(bindings);
         inflater.register("button", (node, children) -> new Button(
                 node.argument().map(v -> v.asString()).orElse(""),
                 // Markup names an icon; it cannot build one. An `Icon` owns

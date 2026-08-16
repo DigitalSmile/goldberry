@@ -1,5 +1,6 @@
 package io.github.digitalsmile.goldberry.widget;
 
+import io.github.digitalsmile.goldberry.bind.Observable;
 import java.util.List;
 
 /// An immutable description of a piece of user interface.
@@ -36,6 +37,30 @@ public interface Widget {
     ///
     /// Compared with `equals`, so a `String`, an `Integer` or a record all work.
     default Object key() {
+        return null;
+    }
+
+    /// The value this widget's content comes from, or null for the usual case.
+    ///
+    /// §9's `bind`. A widget that returns one is subscribed by its element for as
+    /// long as that element lives, and a change marks the element as needing a
+    /// build — so the value reaches the screen by the same route a `setState`
+    /// does ([ADR-0062]).
+    ///
+    /// An [Observable] and not a `Property`: a widget reads and watches, and
+    /// **cannot write**. What the user does travels back up as an action, and the
+    /// application decides what it means ([ADR-0063]).
+    ///
+    /// Deliberately on the widget rather than on a wrapper. A `Bound` widget
+    /// wrapping the real one would put an extra element between a node and its
+    /// parent, and `panel > text` would then match an unbound `text` and miss a
+    /// bound one — the same node, styled differently for a reason no stylesheet
+    /// can see.
+    ///
+    /// **What the value means is the widget's own business.** For `text` it is the
+    /// content; for a future `checkbox` it will be the checked state, which that
+    /// control also writes back to. The framework only knows when to rebuild.
+    default Observable<?> binding() {
         return null;
     }
 

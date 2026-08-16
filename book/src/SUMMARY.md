@@ -65,6 +65,10 @@
 - [ADR-0057 The cursor rides on the painted box](adr/0057-the-cursor-rides-on-the-painted-box.md)
 - [ADR-0058 A press captures the pointer](adr/0058-a-press-captures-the-pointer.md)
 - [ADR-0059 A control is a record, a node and a rule](adr/0059-a-control-is-a-record-a-node-and-a-rule.md)
+- [ADR-0060 A resize draws from inside SDL's event watch](adr/0060-a-resize-draws-from-inside-sdls-event-watch.md)
+- [ADR-0061 The events a test cannot produce are pushed](adr/0061-the-events-a-test-cannot-produce-are-pushed.md)
+- [ADR-0062 `bind` is a path, and nothing else](adr/0062-bind-is-a-path-and-nothing-else.md)
+- [ADR-0063 Data flows down, events flow up](adr/0063-data-flows-down-events-flow-up.md)
 
 ---
 

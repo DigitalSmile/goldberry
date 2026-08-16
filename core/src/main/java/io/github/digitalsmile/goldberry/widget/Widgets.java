@@ -1,5 +1,7 @@
 package io.github.digitalsmile.goldberry.widget;
 
+import io.github.digitalsmile.goldberry.bind.Bindings;
+import io.github.digitalsmile.goldberry.bind.Observable;
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
 import io.github.digitalsmile.goldberry.kdl.KdlInflater;
 import io.github.digitalsmile.goldberry.kdl.KdlNode;
@@ -57,15 +59,49 @@ public final class Widgets {
     }
 
     /// A run of text. `text "Hello"` in KDL.
-    public record Text(String content, Attributes attributes)
+    ///
+    /// The content is either written down or bound. `source` is §9's `bind`: when
+    /// it is set, the text shown is whatever the property holds *now*, and
+    /// `content` is what it falls back to before anything is bound — which is what
+    /// a lenient inflater produces for a path nothing answers
+    /// ([ADR-0062]).
+    public record Text(String content, Observable<?> source, Attributes attributes)
             implements Widget.Leaf, Styled, Paints {
 
         public Text(String content) {
-            this(content, Attributes.NONE);
+            this(content, null, Attributes.NONE);
+        }
+
+        public Text(String content, Attributes attributes) {
+            this(content, null, attributes);
+        }
+
+        /// Text that follows a property. Equivalent to `text bind="…"`.
+        public static Text of(Observable<?> source, Attributes attributes) {
+            return new Text("", Objects.requireNonNull(source, "source"), attributes);
         }
 
         public Text {
             Objects.requireNonNull(content, "content");
+        }
+
+        /// What this text says right now — the bound value, or the literal.
+        ///
+        /// Read at render rather than captured at build, so a change that arrives
+        /// between a build and a frame is shown by that frame rather than the one
+        /// after it. `null` in a property reads as the empty string: a value that
+        /// has not loaded yet is nothing to draw, not the word "null".
+        public String resolved() {
+            if (source == null) {
+                return content;
+            }
+            var value = source.get();
+            return value == null ? "" : String.valueOf(value);
+        }
+
+        @Override
+        public Observable<?> binding() {
+            return source;
         }
 
         @Override
@@ -92,7 +128,7 @@ public final class Widgets {
         public Box render(ComputedStyle style, List<Box> children, Context context) {
             // A measured leaf: Yoga proposes a width, the paragraph wraps at it,
             // and the height that comes back is what sizes the box (ADR-0036).
-            return Box.text(Paragraph.of(context.font(), content), style.color()).style(style);
+            return Box.text(Paragraph.of(context.font(), resolved()), style.color()).style(style);
         }
     }
 
@@ -246,14 +282,34 @@ public final class Widgets {
         }
     }
 
-    /// An inflater that knows every primitive above.
+    /// An inflater that knows every primitive above, with nothing bound.
     ///
     /// §9: built-ins and application widgets register identically — this is just
     /// the first caller of [KdlInflater#register], not a privileged path.
     public static KdlInflater<Widget> inflater() {
+        return inflater(Bindings.none());
+    }
+
+    /// An inflater whose `bind=` paths resolve against `bindings`.
+    ///
+    /// The `bind` half of §9, and the same shape as the `action` half: markup
+    /// names a path, the registry says what it means, and a document reloaded at
+    /// runtime re-resolves every path against the properties the application
+    /// already holds (ADR-0062).
+    public static KdlInflater<Widget> inflater(Bindings bindings) {
+        Objects.requireNonNull(bindings, "bindings");
         var inflater = new KdlInflater<Widget>();
-        inflater.register("text", (node, children) ->
-                new Text(node.argument().map(v -> v.asString()).orElse(""), Attributes.of(node)));
+        inflater.register("text", (node, children) -> {
+            var source = bindings.resolve(node.stringProperty("bind"));
+            var literal = node.argument().map(v -> v.asString()).orElse("");
+            // A bound node keeps its argument as the fallback rather than
+            // refusing it: `text bind="user.name" "…"` is what a lenient
+            // registry shows for a path nothing answers yet, and it is what a
+            // designer laying out a screen wants to see.
+            return source == null
+                    ? new Text(literal, Attributes.of(node))
+                    : new Text(literal, source, Attributes.of(node));
+        });
         inflater.register("row", (node, children) -> new Row(children, Attributes.of(node)));
         inflater.register("column", (node, children) -> new Column(children, Attributes.of(node)));
         inflater.register("panel", (node, children) -> new Panel(children, Attributes.of(node)));

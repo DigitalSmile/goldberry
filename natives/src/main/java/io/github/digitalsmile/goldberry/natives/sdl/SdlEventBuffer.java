@@ -5,6 +5,7 @@ import java.lang.foreign.Arena;
 import java.lang.foreign.MemoryLayout;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.ValueLayout;
+import java.util.Objects;
 
 /// Scratch space for one `SDL_Event`, reused for the life of the event loop.
 ///
@@ -49,6 +50,11 @@ public final class SdlEventBuffer implements AutoCloseable {
             Layouts.SDL_MOUSE_WHEEL_EVENT.offsetOf("mouse_x");
     private static final long WHEEL_MOUSE_Y_OFFSET =
             Layouts.SDL_MOUSE_WHEEL_EVENT.offsetOf("mouse_y");
+    /// The wheel arm's own `windowID`. At the same offset as the window arm's,
+    /// because both structs start with the same three fields — but taken from the
+    /// layout that actually applies, so the coincidence is not what holds it up.
+    private static final long WHEEL_WINDOW_ID_OFFSET =
+            Layouts.SDL_MOUSE_WHEEL_EVENT.offsetOf("windowID");
     private static final long KEY_SCANCODE_OFFSET =
             Layouts.SDL_KEYBOARD_EVENT.offsetOf("scancode");
     private static final long KEY_KEYCODE_OFFSET =
@@ -62,12 +68,32 @@ public final class SdlEventBuffer implements AutoCloseable {
     private static final long DATA2_OFFSET =
             Layouts.SDL_WINDOW_EVENT.offsetOf("data2");
 
+    /// Null for a borrowed view — see [#borrowing].
     private final Arena arena;
     private final MemorySegment event;
 
     public SdlEventBuffer() {
         this.arena = Arena.ofConfined();
         this.event = arena.allocate(Layouts.SDL_EVENT.layout());
+    }
+
+    private SdlEventBuffer(Arena arena, MemorySegment event) {
+        this.arena = arena;
+        this.event = event;
+    }
+
+    /// A read-only view over an event SDL owns.
+    ///
+    /// What [SdlEventWatch] hands its callback: SDL passes a pointer to the event
+    /// it is about to queue, and that memory belongs to SDL for the duration of
+    /// the call and no longer. Nothing here copies it, so a view must not outlive
+    /// the callback it was handed to.
+    ///
+    /// Restricted: the pointer arrives with no size, and the extent given is the
+    /// one the layout probe has already checked `SDL_Event` against.
+    @SuppressWarnings("restricted")
+    static SdlEventBuffer borrowing(MemorySegment event) {
+        return new SdlEventBuffer(null, event.reinterpret(byteSize()));
     }
 
     /// The event type — an `SDL_EventType`, or a user event above
@@ -206,13 +232,63 @@ public final class SdlEventBuffer implements AutoCloseable {
         event.fill((byte) 0);
     }
 
+    /// Fills this buffer with a mouse-wheel event, the way SDL fills one.
+    ///
+    /// Synthesizing input is what `SDL_PushEvent` is for, and here it is the only
+    /// way to reach a code path a test cannot otherwise run: nothing in a test
+    /// suite can turn a wheel. Pushed with [SdlVideo#push], the event comes back
+    /// out of the ordinary pump and takes the ordinary route, so what runs is the
+    /// shipping translation rather than a copy of it (ADR-0061).
+    ///
+    /// `direction` is SDL's own, un-inverted: the point of pushing a flipped event
+    /// is to check that [#wheelY()] un-flips it.
+    ///
+    /// @param x        horizontal detents, positive to the right
+    /// @param y        vertical detents, positive **away from the user** — SDL's
+    ///                 sign, not the toolkit's
+    /// @param pointerX where the pointer was, window-relative
+    public void writeWheel(
+            int windowId, float x, float y, SdlWheelDirection direction,
+            float pointerX, float pointerY) {
+
+        Objects.requireNonNull(direction, "direction");
+        clear();
+        event.set(ValueLayout.JAVA_INT, TYPE_OFFSET, SdlEventType.MOUSE_WHEEL.value());
+        event.set(ValueLayout.JAVA_INT, WHEEL_WINDOW_ID_OFFSET, windowId);
+        event.set(ValueLayout.JAVA_FLOAT, WHEEL_X_OFFSET, x);
+        event.set(ValueLayout.JAVA_FLOAT, WHEEL_Y_OFFSET, y);
+        event.set(ValueLayout.JAVA_INT, WHEEL_DIRECTION_OFFSET, direction.value());
+        event.set(ValueLayout.JAVA_FLOAT, WHEEL_MOUSE_X_OFFSET, pointerX);
+        event.set(ValueLayout.JAVA_FLOAT, WHEEL_MOUSE_Y_OFFSET, pointerY);
+    }
+
+    /// Fills this buffer with a window event — a resize, an expose, a close
+    /// request. The counterpart of [#writeWheel] for the events a modal resize
+    /// loop delivers, which a test cannot produce by dragging anything either.
+    ///
+    /// `data1` and `data2` are the arm's two payload fields; for a resize they are
+    /// the new width and height, which Goldberry reads back off the window rather
+    /// than out of the event.
+    public void writeWindowEvent(SdlEventType type, int windowId, int data1, int data2) {
+        Objects.requireNonNull(type, "type");
+        clear();
+        event.set(ValueLayout.JAVA_INT, TYPE_OFFSET, type.value());
+        event.set(ValueLayout.JAVA_INT, WINDOW_ID_OFFSET, windowId);
+        event.set(ValueLayout.JAVA_INT, DATA1_OFFSET, data1);
+        event.set(ValueLayout.JAVA_INT, DATA2_OFFSET, data2);
+    }
+
     MemorySegment segment() {
         return event;
     }
 
+    /// Releases the buffer's memory. A no-op for a borrowed view, whose memory
+    /// belongs to SDL.
     @Override
     public void close() {
-        arena.close();
+        if (arena != null) {
+            arena.close();
+        }
     }
 
     /// The size SDL is entitled to write, for the assertion in [SdlVideo].

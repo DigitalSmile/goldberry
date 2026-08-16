@@ -10,6 +10,7 @@ import io.github.digitalsmile.goldberry.natives.sdl.Sdl;
 import io.github.digitalsmile.goldberry.natives.sdl.SdlCursors;
 import io.github.digitalsmile.goldberry.natives.sdl.SdlEventBuffer;
 import io.github.digitalsmile.goldberry.natives.sdl.SdlEventType;
+import io.github.digitalsmile.goldberry.natives.sdl.SdlEventWatch;
 import io.github.digitalsmile.goldberry.natives.sdl.SdlException;
 import io.github.digitalsmile.goldberry.natives.sdl.SdlSubsystem;
 import io.github.digitalsmile.goldberry.natives.sdl.SdlSystemCursor;
@@ -76,6 +77,19 @@ public final class Sdl3Backend implements Backend {
     private SdlCursors cursors;
     private boolean cursorsUnavailable;
 
+    /// Draws while the platform is holding the thread. See [#drawDuringModalLoop]
+    /// and ADR-0060. Null when `libgoldberry` does not export the watch calls.
+    private SdlEventWatch resizeWatch;
+
+    /// Where a watched event goes — non-null only for the duration of a
+    /// [#pumpEvents] call, which is the only time there is anywhere to send one.
+    private EventSink activeSink;
+
+    /// Guards against the watch re-entering itself. Painting pushes events —
+    /// [Sdl3Window#requestFrame] wakes the loop — and every push runs the watch
+    /// again, on this thread, from inside the paint it would restart.
+    private boolean inWatch;
+
     private boolean closed;
 
     /// Initializes SDL's video subsystem.
@@ -94,6 +108,7 @@ public final class Sdl3Backend implements Backend {
             if (pacer.isPacing()) {
                 LOG.info("frame loop paced to one frame per {}", pacer.interval());
             }
+            installResizeWatch();
         } catch (SdlException e) {
             eventBuffer.close();
             throw new BackendException(videoFailureMessage(), e);
@@ -313,50 +328,137 @@ public final class Sdl3Backend implements Backend {
         // One blocking wait, then drain whatever else is queued. Waiting per
         // event would sleep between two events that arrived together.
         var millis = (int) Math.min(wait.toMillis(), Integer.MAX_VALUE);
-        var hasEvent = wait.isZero() || millis == 0
-                ? video.pollEvent(eventBuffer)
-                : video.waitEvent(eventBuffer, millis);
-        while (hasEvent) {
-            translate(eventBuffer.type(), eventBuffer.windowId(), translated);
-            hasEvent = video.pollEvent(eventBuffer);
-        }
 
-        for (var event : translated) {
-            sink.accept(event);
-        }
+        // Published for the event watch, which runs *inside* the calls below --
+        // including the ones the platform makes for itself during a resize drag,
+        // when they do not return for as long as the drag lasts (ADR-0060).
+        activeSink = sink;
+        try {
+            var hasEvent = wait.isZero() || millis == 0
+                    ? video.pollEvent(eventBuffer)
+                    : video.waitEvent(eventBuffer, millis);
+            while (hasEvent) {
+                translate(eventBuffer.type(), eventBuffer.windowId(), translated);
+                hasEvent = video.pollEvent(eventBuffer);
+            }
 
-        // Frames AFTER the events that caused them.
-        //
-        // Collecting requests before dispatching would miss every repaint asked
-        // for by a handler -- which is most of them: a resize, an expose and a
-        // scale change all end in repaint(). Those frames would then wait for the
-        // next pump, and during an interactive resize that reads as the window
-        // lagging a step behind the pointer with black where it has not caught
-        // up.
-        //
-        // Requests made while handling a FrameDue below are deliberately left for
-        // the next pump: draining until empty here would let a self-scheduling
-        // animation hold the loop and starve input.
-        // Held back when the display cannot have wanted a frame yet. The request
-        // stays pending rather than being dropped, so the next pump -- woken by
-        // the shortened wait above -- emits it.
-        var frames = new ArrayList<BackendEvent>();
+            for (var event : translated) {
+                sink.accept(event);
+            }
+
+            // Frames AFTER the events that caused them.
+            //
+            // Collecting requests before dispatching would miss every repaint
+            // asked for by a handler -- which is most of them: a resize, an
+            // expose and a scale change all end in repaint(). Those frames would
+            // then wait for the next pump, and during an interactive resize that
+            // reads as the window lagging a step behind the pointer with black
+            // where it has not caught up.
+            //
+            // Requests made while handling a FrameDue are deliberately left for
+            // the next pump: draining until empty here would let a
+            // self-scheduling animation hold the loop and starve input.
+            return translated.size() + emitDueFrames(sink);
+        } finally {
+            activeSink = null;
+        }
+    }
+
+    /// Hands over a frame for every window that asked for one and may have it now.
+    ///
+    /// Held back when the display cannot have wanted a frame yet. The request
+    /// stays pending rather than being dropped, so the next pump — woken by the
+    /// shortened wait in [#pumpEvents] — emits it.
+    ///
+    /// Called from the pump, and from the event watch during a resize drag, where
+    /// it is the only thing that draws. The pacer applies in both: a drag that
+    /// outran the display would be spending frames nobody sees (ADR-0047), and a
+    /// frame held back during a drag is emitted by the next resize event, of which
+    /// there are many.
+    ///
+    /// @return how many frames were emitted
+    private int emitDueFrames(EventSink sink) {
         var now = System.nanoTime();
-        if (pacer.isDue(now)) {
-            for (var window : windowsById.values()) {
-                if (window.takeFrameRequest()) {
-                    frames.add(new BackendEvent.FrameDue(window));
-                }
-            }
-            if (!frames.isEmpty()) {
-                pacer.frameEmitted(now);
+        if (!pacer.isDue(now)) {
+            return 0;
+        }
+        var frames = new ArrayList<BackendEvent>();
+        for (var window : windowsById.values()) {
+            if (window.takeFrameRequest()) {
+                frames.add(new BackendEvent.FrameDue(window));
             }
         }
+        if (frames.isEmpty()) {
+            return 0;
+        }
+        pacer.frameEmitted(now);
         for (var event : frames) {
             sink.accept(event);
         }
+        return frames.size();
+    }
 
-        return translated.size() + frames.size();
+    /// Installs the watch that keeps frames coming during a resize drag.
+    ///
+    /// Optional, for the same reason the cursors are: a `libgoldberry` built
+    /// before these symbols were exported should lose live resize, not the
+    /// ability to open a window.
+    private void installResizeWatch() {
+        try {
+            resizeWatch = SdlEventWatch.install(this::drawDuringModalLoop);
+        } catch (UnsatisfiedLinkError | SdlException e) {
+            LOG.debug("no event watch, so a resize drag on Windows or macOS will not"
+                    + " redraw until it ends", e);
+        }
+    }
+
+    /// Draws while the platform is holding the thread.
+    ///
+    /// Windows and macOS run a modal loop for the duration of a resize gesture:
+    /// SDL keeps pumping events inside it, but does not return from the pump, so
+    /// the frame loop does not iterate and the window shows stale content until
+    /// the drag ends (ADR-0024). SDL calls an event watch from inside that pump —
+    /// so this is the one place a frame can be produced while it runs.
+    ///
+    /// Everything here is a guard except the last four lines:
+    ///
+    /// - **off the UI thread** — [#wakeup()] pushes from background threads, and
+    ///   every push runs the watch on the pushing thread;
+    /// - **no active sink** — an event pushed between pumps has nowhere to go, and
+    ///   the queue will deliver it in the ordinary way anyway;
+    /// - **already inside the watch** — painting asks for the next frame, which
+    ///   pushes a wakeup, which runs the watch again;
+    /// - **not a window event** — input is handled by the pump, which is not
+    ///   starved: what a modal loop withholds is frames.
+    ///
+    /// The duplicate this creates is expected. The queue still gets the event, and
+    /// the pump still translates it when the drag ends; [Sdl3Window#resizedTo] is
+    /// what keeps that from being a second layout pass.
+    private void drawDuringModalLoop(SdlEventBuffer event) {
+        if (closed || inWatch || activeSink == null || Thread.currentThread() != uiThread) {
+            return;
+        }
+        var type = event.type();
+        if (type != SdlEventType.WINDOW_RESIZED.value()
+                && type != SdlEventType.WINDOW_EXPOSED.value()) {
+            return;
+        }
+
+        inWatch = true;
+        try {
+            var translated = new ArrayList<BackendEvent>(1);
+            translate(type, event.windowId(), translated);
+            for (var backendEvent : translated) {
+                activeSink.accept(backendEvent);
+            }
+            emitDueFrames(activeSink);
+        } catch (RuntimeException e) {
+            // The alternative is an exception unwinding into the platform's own
+            // resize loop, which loses the window rather than a frame.
+            LOG.warn("drawing during a resize failed", e);
+        } finally {
+            inWatch = false;
+        }
     }
 
     /// Paces the loop to the fastest display any open window is on.
@@ -423,7 +525,15 @@ public final class Sdl3Backend implements Backend {
         } else if (type == SdlEventType.WINDOW_EXPOSED.value()) {
             out.add(new BackendEvent.Exposed(window));
         } else if (type == SdlEventType.WINDOW_RESIZED.value()) {
-            out.add(new BackendEvent.Resized(window, window.size(), window.physicalSize()));
+            // The sizes are read off the window rather than out of the event, and
+            // reported only when they are news: since ADR-0060 the same resize
+            // arrives twice by design -- once in the event watch while the drag is
+            // still running, once from the queue when it ends.
+            var logical = window.size();
+            var physical = window.physicalSize();
+            if (window.resizedTo(logical, physical)) {
+                out.add(new BackendEvent.Resized(window, logical, physical));
+            }
         } else if (type == SdlEventType.WINDOW_PIXEL_SIZE_CHANGED.value()) {
             // The backing store moved without the logical size necessarily
             // moving. No event of its own: the resize or scale change that
@@ -496,6 +606,12 @@ public final class Sdl3Backend implements Backend {
         requireUiThread();
         closed = true;
         LOG.debug("closing the sdl3 backend and its {} window(s)", windowsById.size());
+        // Before the windows: the watch is a native callback into this object, and
+        // SDL must stop calling it while there is still something to call.
+        if (resizeWatch != null) {
+            resizeWatch.close();
+            resizeWatch = null;
+        }
         for (var window : List.copyOf(windowsById.values())) {
             window.close();
         }

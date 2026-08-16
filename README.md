@@ -27,7 +27,8 @@ API. No JNI, no bundled web engine, no platform widget wrapping.
 > **Pre-release.** A window opens, Blend2D rasterizes its frames across worker
 > threads, Yoga lays out a tree behind the boundary, HarfBuzz-shaped text takes
 > part in that layout, Lucide's icons draw, stylesheets and KDL markup hot-reload,
-> and pointer, wheel and keyboard input route to a widget tree. The catalog is
+> pointer, wheel and keyboard input route to a widget tree, and markup wires both
+> halves of §9 — an `action` to call and a value to `bind` to. The catalog is
 > five primitives and one control — `button`, with variants, icons, a disabled
 > state and golden images — so twelve controls are still to come.
 > See [Status](book/src/status.md) for what works and what is still open.
@@ -330,6 +331,56 @@ var icons = Icons.strict().bind("plus", plusIcon);
 Controls.inflater(actions, icons).inflateAll(KdlParser.parse(markup));
 ```
 
+### Values: `bind`
+
+The other half of §9's wiring. `action` names something to do; `bind` names a
+value to follow, and resolves against a third registry of the same shape:
+
+```java
+var status = Property.of("checking…");
+var bindings = Bindings.strict().bind("app.status", status);
+
+Controls.inflater(actions, icons, bindings).inflateAll(KdlParser.parse("""
+        text bind="app.status" "…"
+        """));
+
+status.set("linux-x64, Wayland");   // every bound node redraws
+```
+
+A `Property<T>` is a cell with listeners — `get`, `set`, `subscribe` — and
+nothing more: no computed values, no dependency graph, no streams. Setting the
+value it already holds notifies nobody, which is what makes two properties
+mirroring each other settle rather than recurse.
+
+**A `bind` value is a dotted path and nothing else** — `frost`, `prefs.frost`.
+`bind="!prefs.frost"` is refused at inflation with the text quoted, rather than
+resolving to nothing and leaving a control that never updates
+([ADR-0062](book/src/adr/0062-bind-is-a-path-and-nothing-else.md)); negation and
+formatting stay in Java, where they are already testable. The argument stays as
+the fallback, so a lenient registry — what a preview or a golden image uses —
+draws `text bind="user.name" "Name here"` as *Name here*.
+
+The binding lives on the widget and the subscription on its **element**, so a
+bound node introduces no wrapper and `panel > text` styles it exactly like an
+unbound one. A change marks that element as needing a build, by the same route
+`setState` takes, so three changes in one frame cost one build.
+
+**Binding is one-way, and the types enforce it.** What a widget is handed is an
+`Observable` — a `Property` with no `set` on it — so markup can read a value and
+watch it and cannot write it. What the user did travels back up the way it
+already does, as an action:
+
+```kdl
+checkbox bind="prefs.frost" change="toggleFrost" "Enable frost"
+```
+
+The value flows down, the intent flows up, and the one line that mutates anything
+is Java the application wrote. A control is therefore *controlled*: clicking a
+checkbox does not move the tick, it raises a change, and the tick moves when the
+handler sets the property — so a control that will not move means the state did
+not change, which is where the bug is
+([ADR-0063](book/src/adr/0063-data-flows-down-events-flow-up.md)).
+
 So far the catalog is the five primitives (`text`, `row`, `column`, `panel`,
 `spacer`) and `button`. Radii, borders, font weights and the focus ring are not
 drawable yet, so `controls.css` states what it cannot express rather than
@@ -378,6 +429,12 @@ public void onPointer(PointerEvent event) {
     }
 }
 ```
+
+That path is driven end to end in CI on all three platforms, under SDL's `dummy`
+video driver: a test cannot turn a wheel, so a fabricated `SDL_MouseWheelEvent` is
+pushed onto SDL's own queue with `SDL_PushEvent` and comes back out of the
+ordinary pump
+([ADR-0061](book/src/adr/0061-the-events-a-test-cannot-produce-are-pushed.md)).
 
 Keys and committed text are separate, per §7.1 — one character can take several
 keystrokes, and the platform's own compose and IME handling is what produces it
@@ -446,6 +503,23 @@ A display that will not report a rate leaves the loop unpaced rather than
 guessing — capping a 144 Hz panel at an assumed 60 is worse than painting too
 many frames. `-Dgoldberry.frame.rate=N` overrides, and `0` measures the
 unthrottled loop.
+
+### Resizing, where the platform takes the thread
+
+Windows and macOS run a **modal loop** while a window is being dragged by its
+edge: the platform keeps pumping events and does not return from the pump until
+the drag ends, so a frame loop built around `SDL_WaitEventTimeout` does not
+iterate and the window shows stale content for the length of the gesture. Wayland
+and X11 have no such loop, which is why this is invisible on the platform the
+toolkit is developed on.
+
+SDL calls an **event watch** from inside whatever pump is running, so that is
+where Goldberry draws: a resize arriving during a drag is translated, dispatched
+and painted before the callback returns, and the copy the queue delivers when the
+drag ends is coalesced away rather than laid out twice
+([ADR-0060](book/src/adr/0060-a-resize-draws-from-inside-sdls-event-watch.md)).
+Nothing in an application changes, and a `libgoldberry` built before the two
+symbols were exported loses live resize rather than the ability to open a window.
 
 ## Run the showcase
 

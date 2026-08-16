@@ -3,6 +3,8 @@ package io.github.digitalsmile.goldberry.example;
 import io.github.digitalsmile.goldberry.Goldberry;
 import io.github.digitalsmile.goldberry.Window;
 import io.github.digitalsmile.goldberry.assets.BundledFont;
+import io.github.digitalsmile.goldberry.bind.Observable;
+import io.github.digitalsmile.goldberry.bind.Property;
 import io.github.digitalsmile.goldberry.css.CascadeLayer;
 import io.github.digitalsmile.goldberry.css.Stylesheet;
 import io.github.digitalsmile.goldberry.css.Theme;
@@ -106,7 +108,12 @@ public final class Showcase {
     /// is rebuilt on every `setState` and thrown away, and an `Icon` owns native
     /// memory that has to be closed exactly once. `main` owns them
     /// ([ADR-0043](../../../../../../book/src/adr/0043-icons-are-stroked-paths.md)).
-    record Screen(Icon palette, Icon plus, Runnable onChanged) implements Widget.Stateful {
+    /// @param status what the sidebar's last line follows — §9's `bind`, in its
+    ///               Java form. Nothing in this tree writes it; the environment
+    ///               probe does, from a virtual thread, and the line updates
+    ///               itself (ADR-0062)
+    record Screen(Icon palette, Icon plus, Observable<String> status, Runnable onChanged)
+            implements Widget.Stateful {
         @Override
         public State<?> createState() {
             return new ScreenState();
@@ -145,7 +152,12 @@ public final class Showcase {
                     List.of(
                             new Widgets.Text(theme == Theme.NORD_DARK ? "Nord dark" : "Nord light",
                                     styled("theme-name", "caption")),
-                            new Widgets.Text("Clicks: " + clicks, styled("count", "caption"))),
+                            new Widgets.Text("Clicks: " + clicks, styled("count", "caption")),
+                            // Bound rather than built: this line has no state
+                            // here and is never passed a value. It follows a
+                            // property, and the element subscribes for as long as
+                            // it is mounted.
+                            Widgets.Text.of(widget().status(), styled("status", "caption"))),
                     id("sidebar"));
 
             var actions = new Widgets.Row(
@@ -239,8 +251,16 @@ public final class Showcase {
         var renderer = new WidgetRenderer[1];
         var renderedTheme = new Theme[1];
 
+        // The one value in this window that nothing in the widget tree owns. A
+        // markup document would name it `bind="app.status"`; here it is passed in
+        // directly, which is the same property either way (ADR-0062).
+        var status = Property.of("checking the environment…");
+        // A change marks the bound element dirty; asking for a frame is still the
+        // application's job, exactly as it is for setState.
+        status.subscribe(value -> window.repaint());
+
         var tree = new ElementTree(
-                new Showcase.Screen(paletteIcon, plusIcon, window::repaint));
+                new Showcase.Screen(paletteIcon, plusIcon, status, window::repaint));
         var state = (ScreenState) tree.root().state().orElseThrow();
 
         var router = new PointerRouter();
@@ -295,7 +315,12 @@ public final class Showcase {
         // Work that is not instant belongs off the UI thread. It comes back on
         // it automatically, so touching the window here is safe (ADR-0020).
         Goldberry.async(Showcase::describeEnvironment)
-                .thenAccept(text -> window.title("Goldberry — " + text));
+                .thenAccept(text -> {
+                    window.title("Goldberry — " + text);
+                    // Nothing here reaches into the tree: the property is set, and
+                    // the sidebar line bound to it redraws itself.
+                    status.set(text);
+                });
 
         try {
             Goldberry.run();
