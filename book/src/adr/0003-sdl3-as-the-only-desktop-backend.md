@@ -24,13 +24,16 @@ tray icons, and SDL_GPU — the full set the backend SPI needs — and it is a
 permanent dependency, not a bootstrapping shortcut to be replaced later.
 
 The `Backend` SPI (§4) exists, but not as an invitation to grow desktop backends.
-It has exactly three implementations, and that is the complete list:
+It has exactly two implementations, and that is the complete list:
 
 - `sdl3` — every desktop OS
 - `headless` — renders to a `BLImage` for golden-image tests
-- `scarlet` — the Scarlet Macaw compositor, via shm buffers and later dmabuf
 
 No hand-written Win32, Cocoa, or Wayland backend. No AWT bridge, ever.
+
+> **Amended by [ADR-0041](0041-three-platforms-four-artifacts-two-backends.md).**
+> This ADR originally listed a third implementation, an OS-compositor backend.
+> It was cut with the platform scope; the list above is the current one.
 
 ## Alternatives considered
 
@@ -54,8 +57,8 @@ No hand-written Win32, Cocoa, or Wayland backend. No AWT bridge, ever.
 - SDL3 is a hard runtime dependency of every desktop app built on Goldberry. It
   is statically linked into `libgoldberry` (ADR-0008), so this is a build-time
   fact rather than a deployment one, but it is not optional.
-- `headless` and `scarlet` keep the SPI honest — an abstraction with one
-  implementation rots, and these two ensure it does not.
+- `headless` keeps the SPI honest — an abstraction with one implementation rots,
+  and a second one that must pass the same tests is what stops it.
 - The software present path is a clean fit: `SDL_GetWindowSurface` plus
   `SDL_UpdateWindowSurfaceRects` maps directly onto
   `present(PixelBuffer, List<DamageRect>)` with no renderer and no GPU context,

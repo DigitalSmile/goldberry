@@ -1,0 +1,135 @@
+# Runnable showcase images (ADR-0048)
+#
+# Produces a self-contained showcase for each desktop platform: a trimmed JDK
+# from jlink, the application modules, libgoldberry, and a launcher. Nothing on
+# the machine that unpacks it -- no JDK, no Gradle, no arguments to remember.
+#
+# One job per platform rather than one job cross-linking three images. jlink can
+# cross-target given the other platform's jmods, but the libgoldberry inside each
+# image has to be built on that platform anyway (ADR-0041), so the runner is
+# already committed.
+
+name: Showcase image
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+  workflow_dispatch:
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  image:
+    name: ${{ matrix.target }}
+    runs-on: ${{ matrix.runs-on }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: linux-x64
+            runs-on: ubuntu-24.04
+          - target: macos-aarch64
+            runs-on: macos-14
+          - target: windows-x64
+            runs-on: windows-2022
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '25'
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      # SDL's X11 driver treats XTest as a hard dependency: without libxtst-dev
+      # the configure stops with "Couldn't find dependency package for XTEST"
+      # rather than skipping it, which is how it was found.
+      - name: Install build tools (linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            cmake ninja-build \
+            libx11-dev libxext-dev libxrandr-dev libxcursor-dev libxi-dev \
+            libxfixes-dev libxss-dev libxtst-dev libwayland-dev wayland-protocols \
+            libxkbcommon-dev xkb-data libegl1-mesa-dev libgles2-mesa-dev \
+            libasound2-dev libpulse-dev libdbus-1-dev libudev-dev \
+            xvfb
+
+      - name: Install build tools (macos)
+        if: runner.os == 'macOS'
+        run: brew install ninja
+
+      # Windows needs nothing: the runner image already carries MSVC, CMake and
+      # Ninja, and the Wayland/X11 dependencies do not exist there.
+
+      - name: Build libgoldberry
+        run: ./gradlew :natives:cmakeBuild --no-daemon
+
+      - name: Build the runnable image
+        run: ./gradlew :example:showcaseImage --no-daemon
+
+      # The image is what is being tested, so the image is what runs -- not
+      # `gradlew run`, which would prove only that the source tree still works.
+      # A missing module, an --enable-native-access naming something jlink left
+      # out, a libgoldberry the launcher cannot find: each of those builds
+      # cleanly and fails here.
+      - name: Run it (linux)
+        if: runner.os == 'Linux'
+        run: |
+          xvfb-run -a --server-args="-screen 0 1280x1024x24" \
+            ./example/build/jlink/goldberry-showcase-${{ matrix.target }}/bin/showcase \
+            --frames=3 | tee run.log
+          grep -q "painted 3 frame(s); exiting" run.log \
+            || { echo "::error::the packaged showcase did not present three frames"; exit 1; }
+
+      - name: Run it (macos)
+        if: runner.os == 'macOS'
+        run: |
+          ./example/build/jlink/goldberry-showcase-${{ matrix.target }}/bin/showcase \
+            --frames=3 | tee run.log
+          grep -q "painted 3 frame(s); exiting" run.log \
+            || { echo "::error::the packaged showcase did not present three frames"; exit 1; }
+
+      - name: Run it (windows)
+        if: runner.os == 'Windows'
+        run: |
+          ./example/build/jlink/goldberry-showcase-${{ matrix.target }}/bin/showcase.bat \
+            --frames=3 | tee run.log
+          grep -q "painted 3 frame(s); exiting" run.log \
+            || { echo "::error::the packaged showcase did not present three frames"; exit 1; }
+
+      # Tarred, not handed to upload-artifact as a directory. The action zips
+      # what it is given and the zip format it writes does not carry the
+      # executable bit -- which would land the user an image whose `bin/java`
+      # cannot be run. Windows does not have the problem and does not have tar
+      # semantics worth fighting, so it gets a zip.
+      - name: Package (unix)
+        if: runner.os != 'Windows'
+        working-directory: example/build/jlink
+        run: tar -czf "$GITHUB_WORKSPACE/goldberry-showcase-${{ matrix.target }}.tar.gz" \
+             "goldberry-showcase-${{ matrix.target }}"
+
+      - name: Package (windows)
+        if: runner.os == 'Windows'
+        working-directory: example/build/jlink
+        run: 7z a "$GITHUB_WORKSPACE/goldberry-showcase-${{ matrix.target }}.zip" \
+             "goldberry-showcase-${{ matrix.target }}"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: goldberry-showcase-${{ matrix.target }}
+          path: goldberry-showcase-${{ matrix.target }}.*
+          if-no-files-found: error
+
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: showcase-run-log-${{ matrix.target }}
+          path: run.log
+          if-no-files-found: warn

@@ -17,7 +17,8 @@ import java.util.stream.Stream;
 /// The interface is sealed so the permitted list and [#all()] sit together.
 public sealed interface BlendEnum
         permits BlendCompOp, BlendDataAccess, BlendFormat, BlendGlyphPlacementType,
-                BlendResultCode, BlendRuntimeInfoType, BlendTransformOp {
+                BlendResultCode, BlendRuntimeInfoType, BlendStrokeCap, BlendStrokeJoin,
+                BlendTransformOp {
 
     /// The value Blend2D's header gives this constant.
     int nativeValue();
@@ -34,6 +35,8 @@ public sealed interface BlendEnum
                         BlendGlyphPlacementType.values(),
                         BlendResultCode.values(),
                         BlendRuntimeInfoType.values(),
+                        BlendStrokeCap.values(),
+                        BlendStrokeJoin.values(),
                         BlendTransformOp.values())
                 .flatMap(Arrays::stream)
                 .toList();

@@ -7,6 +7,7 @@ import io.github.digitalsmile.goldberry.backend.DisplayScale;
 import io.github.digitalsmile.goldberry.backend.LogicalSize;
 import io.github.digitalsmile.goldberry.backend.PhysicalSize;
 import io.github.digitalsmile.goldberry.backend.PixelBuffer;
+import io.github.digitalsmile.goldberry.natives.log.Logs;
 import io.github.digitalsmile.goldberry.natives.sdl.SdlException;
 import io.github.digitalsmile.goldberry.natives.sdl.SdlVideo;
 import io.github.digitalsmile.goldberry.natives.sdl.SdlWindowHandle;
@@ -14,9 +15,16 @@ import io.github.digitalsmile.goldberry.backend.PixelFormat;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import org.slf4j.Logger;
 
 /// An SDL window behind the SPI.
 final class Sdl3Window implements BackendWindow {
+
+    private static final Logger LOG = Logs.of(Sdl3Window.class);
+
+    /// Distinguishes "asked, and SDL would not say" from "not asked yet", so a
+    /// display that has no refresh rate is not re-queried every pump.
+    private static final float UNAVAILABLE = -1f;
 
     private final Sdl3Backend backend;
     private final SdlWindowHandle handle;
@@ -29,6 +37,9 @@ final class Sdl3Window implements BackendWindow {
     /// The buffer handed out by the last [#acquireFrame()], so [#present] can
     /// recognise it coming back and skip the copy.
     private PixelBuffer acquired;
+
+    /// 0 = not asked yet, [#UNAVAILABLE] = asked and refused. See [#refreshRate()].
+    private float refreshRate;
 
     Sdl3Window(Sdl3Backend backend, SdlWindowHandle handle, String title) {
         this.backend = backend;
@@ -190,6 +201,45 @@ final class Sdl3Window implements BackendWindow {
         framePending = false;
         backend.forget(this);
         video().destroyWindow(handle);
+    }
+
+    /// Whether a frame has been asked for and not yet handed out. Read by the
+    /// pacer, which must not consume the request while deciding how long to wait.
+    boolean isFramePending() {
+        return framePending && open;
+    }
+
+    /// How many times a second this window's display refreshes, or 0 if the
+    /// platform will not say.
+    ///
+    /// Cached, because it is read once per pump and a native call per pump for a
+    /// number that changes only when the window moves monitors is waste. Dropped
+    /// by [#forgetRefreshRate()] when it might have changed.
+    float refreshRate() {
+        if (!open) {
+            return 0f;
+        }
+        if (refreshRate == 0f) {
+            try {
+                refreshRate = video().refreshRate(handle);
+            } catch (SdlException e) {
+                // Not fatal, and not worth retrying every pump: an unknowable
+                // refresh rate means an unpaced loop, which is what the loop did
+                // before it could ask at all.
+                LOG.debug("SDL would not report a refresh rate for \"{}\"", title, e);
+                refreshRate = UNAVAILABLE;
+            }
+        }
+        return refreshRate == UNAVAILABLE ? 0f : refreshRate;
+    }
+
+    /// Forgets the cached refresh rate, so the next [#refreshRate()] asks again.
+    ///
+    /// Called when the window may have moved to another display — which is what
+    /// a scale change usually is, and the case where a 60 Hz pace on a 144 Hz
+    /// monitor would otherwise persist for the life of the window.
+    void forgetRefreshRate() {
+        refreshRate = 0f;
     }
 
     /// Consumes an outstanding frame request. Coalescing is implicit: the flag is

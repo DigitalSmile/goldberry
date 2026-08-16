@@ -8,6 +8,9 @@ import io.github.digitalsmile.goldberry.natives.blend2d.BlendContext;
 import io.github.digitalsmile.goldberry.natives.blend2d.BlendFont;
 import io.github.digitalsmile.goldberry.natives.blend2d.BlendGlyphBuffer;
 import io.github.digitalsmile.goldberry.natives.blend2d.BlendImage;
+import io.github.digitalsmile.goldberry.natives.blend2d.BlendPath;
+import io.github.digitalsmile.goldberry.natives.blend2d.BlendStrokeCap;
+import io.github.digitalsmile.goldberry.natives.blend2d.BlendStrokeJoin;
 
 /// The surface a [Window] paints into.
 ///
@@ -41,6 +44,10 @@ public final class Frame {
     private boolean ended;
 
     Frame(PixelBuffer buffer, DisplayScale scale) {
+        this(buffer, scale, PaintThreads.forSurface(buffer.size()));
+    }
+
+    Frame(PixelBuffer buffer, DisplayScale scale, int threadCount) {
         this.buffer = buffer;
         this.scale = scale;
 
@@ -50,7 +57,7 @@ public final class Frame {
         this.image = BlendImage.wrapping(
                 buffer.pixels(), buffer.size().width(), buffer.size().height(), buffer.stride());
         try {
-            this.context = BlendContext.on(image, scale.factor());
+            this.context = BlendContext.on(image, scale.factor(), threadCount);
         } catch (RuntimeException | Error e) {
             image.close();
             throw e;
@@ -70,6 +77,16 @@ public final class Frame {
     /// The display scale this frame is being rasterized at.
     public DisplayScale scale() {
         return scale;
+    }
+
+    /// How many Blend2D workers are rasterizing this frame; zero for synchronous
+    /// painting on the calling thread.
+    ///
+    /// What [PaintThreads] asked for and what Blend2D gave can differ, and this
+    /// is the second of the two — so a diagnostic reports what happened rather
+    /// than what was intended.
+    public int threadCount() {
+        return context.threadCount();
     }
 
     /// Fills the whole frame, **replacing** whatever is there.
@@ -117,6 +134,33 @@ public final class Frame {
             double x, double baseline, BlendFont font, BlendGlyphBuffer glyphs, int argb) {
         requireOpen();
         context.fillGlyphRun(x, baseline, font, glyphs, argb);
+    }
+
+    /// Fills `path`, with the path's own origin placed at logical `(x, y)`.
+    ///
+    /// @param argb a colour as `0xAARRGGBB`, not premultiplied
+    public void fillPath(double x, double y, BlendPath path, int argb) {
+        requireOpen();
+        context.fillPath(x, y, path, argb);
+    }
+
+    /// Strokes `path`, with the path's own origin placed at logical `(x, y)`.
+    ///
+    /// The stroke style travels with the call rather than being frame state.
+    /// Blend2D's is context state, so a frame that set it once would leak the
+    /// last icon's weight into whatever drew next — and the bug would be a
+    /// hairline somewhere else entirely.
+    ///
+    /// @param width the stroke width in logical pixels
+    /// @param argb  a colour as `0xAARRGGBB`, not premultiplied
+    public void strokePath(
+            double x, double y, BlendPath path, double width,
+            BlendStrokeCap cap, BlendStrokeJoin join, int argb) {
+        requireOpen();
+        context.strokeWidth(width);
+        context.strokeCaps(cap);
+        context.strokeJoin(join);
+        context.strokePath(x, y, path, argb);
     }
 
     /// Finishes the frame, so the pixels are complete before anything presents

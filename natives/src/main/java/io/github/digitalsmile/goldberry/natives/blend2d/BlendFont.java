@@ -46,54 +46,63 @@ public final class BlendFont implements AutoCloseable {
     private final Blend2D blend2d = Blend2D.get();
     private final Thread owner = Thread.currentThread();
     private final Arena arena;
-    private final MemorySegment fontData;
-    private final MemorySegment face;
+    private final BlendFontFace face;
+    private final boolean ownsFace;
     private final MemorySegment font;
     private final float size;
 
     private boolean closed;
 
-    private BlendFont(byte[] data, int faceIndex, float size) {
+    private BlendFont(BlendFontFace face, boolean ownsFace, float size) {
+        this.face = face;
+        this.ownsFace = ownsFace;
         this.size = size;
         this.arena = Arena.ofConfined();
 
-        // Allocated one step at a time, and unwound one step at a time, because
-        // each `create` can fail and a half-built chain still holds native
-        // objects that have to be destroyed in the right order.
-        var stage = 0;
-        MemorySegment stagedData = null;
-        MemorySegment stagedFace = null;
         MemorySegment stagedFont = null;
+        var created = false;
         try {
-            var bytes = arena.allocate(ValueLayout.JAVA_BYTE, data.length);
-            MemorySegment.copy(data, 0, bytes, ValueLayout.JAVA_BYTE, 0, data.length);
-
-            stagedData = arena.allocate(Layouts.BL_OBJECT_DETAIL.layout());
-            blend2d.fontDataInit(stagedData);
-            stage = 1;
-            blend2d.fontDataCreate(stagedData, bytes, data.length);
-
-            stagedFace = arena.allocate(Layouts.BL_OBJECT_DETAIL.layout());
-            blend2d.fontFaceInit(stagedFace);
-            stage = 2;
-            blend2d.fontFaceCreate(stagedFace, stagedData, faceIndex);
-
             stagedFont = arena.allocate(Layouts.BL_OBJECT_DETAIL.layout());
             blend2d.fontInit(stagedFont);
-            stage = 3;
-            blend2d.fontCreate(stagedFont, stagedFace, size);
+            created = true;
+            blend2d.fontCreate(stagedFont, face.pointer(), size);
         } catch (RuntimeException | Error e) {
-            unwind(stage, stagedData, stagedFace, stagedFont);
+            // An object that was `init`ed but whose `create` failed still holds
+            // Blend2D's default instance and has to be destroyed.
+            if (created) {
+                var initialised = stagedFont;
+                BlendFontFace.destroyQuietly(() -> blend2d.fontDestroy(initialised));
+            }
             arena.close();
+            if (ownsFace) {
+                face.close();
+            }
             throw e;
         }
 
-        this.fontData = stagedData;
-        this.face = stagedFace;
         this.font = stagedFont;
     }
 
+    /// A font at `size` over a face somebody else owns.
+    ///
+    /// **The face must outlive this font.** That is the whole point — one face,
+    /// many sizes, one copy of the bytes (ADR-0044) — and it is also the way to
+    /// get it wrong: closing the face first leaves this reading unmapped memory.
+    /// Closing *this* leaves the face untouched.
+    ///
+    /// @param face the typeface, which is not closed by [#close()]
+    /// @param size the em size, in the rendering context's units
+    public static BlendFont on(BlendFontFace face, double size) {
+        Objects.requireNonNull(face, "face");
+        requireUsableSize(size);
+        return new BlendFont(face, false, (float) size);
+    }
+
     /// Loads a font from the bytes of a font file, at `size` units per em.
+    ///
+    /// Parses a face of its own and closes it with the font. Use
+    /// [#on(BlendFontFace, double)] when more than one size is wanted from the
+    /// same file, which is what a UI at more than one text size is.
     ///
     /// @param data      a font file's contents, copied rather than referenced
     /// @param faceIndex which face, for a collection; 0 for an ordinary font
@@ -101,24 +110,23 @@ public final class BlendFont implements AutoCloseable {
     /// @throws BlendException if the bytes are not a font Blend2D can read —
     ///         unlike HarfBuzz, which hands back an empty face instead
     public static BlendFont fromBytes(byte[] data, int faceIndex, double size) {
-        Objects.requireNonNull(data, "data");
-        if (data.length == 0) {
-            throw new IllegalArgumentException("a font file with no bytes in it is not a font");
-        }
-        if (faceIndex < 0) {
-            throw new IllegalArgumentException("face index must not be negative: " + faceIndex);
-        }
-        if (!Double.isFinite(size) || size <= 0) {
-            throw new IllegalArgumentException(
-                    "a font size must be a positive, finite number of units per em, and "
-                            + size + " is not");
-        }
-        return new BlendFont(data, faceIndex, (float) size);
+        requireUsableSize(size);
+        // The face is validated by BlendFontFace, so the argument checks that
+        // belong to it live there and are not repeated here.
+        return new BlendFont(BlendFontFace.fromBytes(data, faceIndex), true, (float) size);
     }
 
     /// @see #fromBytes(byte[], int, double)
     public static BlendFont fromBytes(byte[] data, double size) {
         return fromBytes(data, 0, size);
+    }
+
+    private static void requireUsableSize(double size) {
+        if (!Double.isFinite(size) || size <= 0) {
+            throw new IllegalArgumentException(
+                    "a font size must be a positive, finite number of units per em, and "
+                            + size + " is not");
+        }
     }
 
     /// The em size this font was created at.
@@ -136,10 +144,15 @@ public final class BlendFont implements AutoCloseable {
         return closed;
     }
 
-    /// Releases all three objects, then the bytes they were reading.
+    /// The face this font was created over.
+    public BlendFontFace face() {
+        return face;
+    }
+
+    /// Releases the font object, and the face too if this one made it.
     ///
-    /// Order matters: the bytes are freed by closing the arena, and Blend2D's
-    /// font data still points at them until it is destroyed.
+    /// A font created by [#on(BlendFontFace, double)] leaves its face alone:
+    /// other sizes are using it.
     @Override
     public void close() {
         if (closed) {
@@ -148,9 +161,15 @@ public final class BlendFont implements AutoCloseable {
         requireOwner();
         closed = true;
         try {
-            unwind(3, fontData, face, font);
+            BlendFontFace.destroyQuietly(() -> blend2d.fontDestroy(font));
         } finally {
-            arena.close();
+            try {
+                arena.close();
+            } finally {
+                if (ownsFace) {
+                    face.close();
+                }
+            }
         }
     }
 
@@ -160,41 +179,6 @@ public final class BlendFont implements AutoCloseable {
             throw new IllegalStateException("this BlendFont has been closed");
         }
         return font;
-    }
-
-    /// Destroys whichever of the three objects were successfully created,
-    /// innermost first.
-    ///
-    /// `stage` is how far construction got: 1 means the data was initialised, 2
-    /// that the face was too, 3 that all three were. An object that was `init`ed
-    /// but whose `create` failed still holds Blend2D's default instance and must
-    /// be destroyed — which is why the stage counter is incremented before the
-    /// create rather than after it.
-    private void unwind(
-            int stage, MemorySegment fontData, MemorySegment face, MemorySegment font) {
-        if (stage >= 3) {
-            destroyQuietly(() -> blend2d.fontDestroy(font));
-        }
-        if (stage >= 2) {
-            destroyQuietly(() -> blend2d.fontFaceDestroy(face));
-        }
-        if (stage >= 1) {
-            destroyQuietly(() -> blend2d.fontDataDestroy(fontData));
-        }
-    }
-
-    /// Releases one object without letting its failure hide another's.
-    ///
-    /// A destroy that fails leaves nothing a caller could do about it, and
-    /// throwing here would skip the two objects below it in the chain — trading
-    /// a report for a leak.
-    private static void destroyQuietly(Runnable destroy) {
-        try {
-            destroy.run();
-        } catch (RuntimeException | Error ignored) {
-            // Nothing above can act on this, and stopping here would leak the
-            // rest of the chain.
-        }
     }
 
     private void requireOwner() {

@@ -105,6 +105,20 @@ public final class Sdl {
     /// Must be set before video is initialized.
     public static final String VIDEO_DRIVER_HINT = "SDL_VIDEO_DRIVER";
 
+    /// The hint deciding whether a renderer's `present` waits for vertical blank
+    /// — `SDL_RENDER_VSYNC`.
+    ///
+    /// Goldberry creates no renderer, so this looks like it should not matter.
+    /// It does: on a platform whose SDL video driver implements no window
+    /// surface — Wayland is one — `SDL_GetWindowSurface` falls back to a hidden
+    /// `SDL_Renderer`, and every `SDL_UpdateWindowSurfaceRects` ends in that
+    /// renderer's `SDL_RenderPresent` (ADR-0046). This is the only channel that
+    /// reaches it.
+    ///
+    /// Must be set before the surface is first acquired, which is when SDL
+    /// builds the renderer.
+    public static final String RENDER_VSYNC_HINT = "SDL_RENDER_VSYNC";
+
     /// Sets an SDL hint.
     ///
     /// Hints are SDL's configuration channel; most must be set before the

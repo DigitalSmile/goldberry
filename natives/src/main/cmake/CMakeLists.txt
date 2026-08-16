@@ -106,11 +106,10 @@ goldberry_pin(asmjit GOLDBERRY_ASMJIT_REF)
 goldberry_pin(yoga GOLDBERRY_YOGA_REF)
 goldberry_pin(harfbuzz GOLDBERRY_HARFBUZZ_REF)
 goldberry_pin(sdl3 GOLDBERRY_SDL3_REF)
-goldberry_pin(xkbcommon GOLDBERRY_XKBCOMMON_REF)
 
 message(STATUS "Goldberry pins: blend2d ${GOLDBERRY_BLEND2D_REF}, asmjit ${GOLDBERRY_ASMJIT_REF}, "
     "yoga ${GOLDBERRY_YOGA_REF}, harfbuzz ${GOLDBERRY_HARFBUZZ_REF}, "
-    "sdl3 ${GOLDBERRY_SDL3_REF}, xkbcommon ${GOLDBERRY_XKBCOMMON_REF}")
+    "sdl3 ${GOLDBERRY_SDL3_REF}")
 
 set(GOLDBERRY_TARGET_ID "host" CACHE STRING "Distribution target id, e.g. linux-x64")
 
@@ -325,46 +324,6 @@ foreach(_target IN ITEMS blend2d harfbuzz)
         VISIBILITY_INLINES_HIDDEN OFF)
 endforeach()
 
-# ============================================================================
-# libxkbcommon -- keyboard translation (§3, §7.1)
-#
-# Linux and Scarlet backends only, and an implementation detail behind the
-# Backend SPI -- it is never part of Goldberry's public input model.
-#
-# Upstream builds with meson rather than CMake, so it is an ExternalProject.
-# The build is native, so meson needs no cross file.
-# ============================================================================
-if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
-    ExternalProject_Add(xkbcommon
-        GIT_REPOSITORY https://github.com/xkbcommon/libxkbcommon.git
-        GIT_TAG ${GOLDBERRY_XKBCOMMON_REF}
-        GIT_SHALLOW TRUE
-        GIT_PROGRESS TRUE
-        # Core library only. `enable-x11` builds libxkbcommon-x11, which fetches a
-        # keymap over an xcb connection, and `enable-wayland` builds an interactive
-        # demo tool -- Goldberry needs neither. Per §7.1 it uses xkb_state and
-        # xkb_compose to translate keys from a keymap the backend hands it: SDL3
-        # owns the X11 connection, and the Scarlet compositor delivers its keymap
-        # as an fd. Turning these off also drops the xcb-xkb and wayland-protocols
-        # build dependencies, which is a consequence rather than the reason.
-        CONFIGURE_COMMAND meson setup <BINARY_DIR> <SOURCE_DIR>
-            --prefix <INSTALL_DIR>
-            # Meson's default libdir is arch-qualified (lib/x86_64-linux-gnu on
-            # Debian-ish hosts, lib64 on others), so the install path would vary
-            # by distribution. Pin it so the link line below is always right.
-            --libdir lib
-            --default-library static
-            -Denable-x11=false
-            -Denable-wayland=false
-            -Denable-docs=false
-            -Denable-tools=false
-        BUILD_COMMAND meson compile -C <BINARY_DIR>
-        INSTALL_COMMAND meson install -C <BINARY_DIR>
-        BUILD_BYPRODUCTS <INSTALL_DIR>/lib/libxkbcommon.a)
-
-    ExternalProject_Get_Property(xkbcommon INSTALL_DIR)
-    set(XKBCOMMON_INSTALL_DIR "${INSTALL_DIR}")
-endif()
 
 # ============================================================================
 # The one artifact
@@ -390,12 +349,6 @@ target_link_libraries(goldberry PRIVATE
     yogacore
     harfbuzz
     SDL3::SDL3-static)
-
-if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
-    add_dependencies(goldberry xkbcommon)
-    target_include_directories(goldberry PRIVATE "${XKBCOMMON_INSTALL_DIR}/include")
-    target_link_libraries(goldberry PRIVATE "${XKBCOMMON_INSTALL_DIR}/lib/libxkbcommon.a")
-endif()
 
 # ============================================================================
 # Exported surface

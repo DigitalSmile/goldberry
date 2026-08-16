@@ -21,14 +21,21 @@ public interface BackendWindow extends AutoCloseable {
     /// [BackendEvent.ScaleChanged].
     DisplayScale scale();
 
-    /// Borrows the platform's own frame buffer to paint into, if it has one to
+    /// Borrows a frame buffer from the backend to paint into, if it has one to
     /// lend.
     ///
     /// The CPU path otherwise costs a full-frame copy: the toolkit rasterizes into
     /// its own buffer and the backend copies that into the platform's. At 1080p
     /// that copy measured 2–5 ms of every frame — on top of the paint itself and
-    /// the platform's own upload. Painting directly into the platform's memory
-    /// removes it.
+    /// the platform's own upload. Painting into the buffer the backend hands out
+    /// removes that one.
+    ///
+    /// It does **not** promise the platform's own memory, and on the sdl3 backend
+    /// it is not: SDL's Wayland driver has no window-surface implementation, so
+    /// `SDL_GetWindowSurface` falls back to a heap buffer that SDL copies into a
+    /// texture on every present. What this buys is one copy instead of two, not
+    /// zero (ADR-0046). A backend that can lend genuinely mapped memory is
+    /// free to, and callers cannot tell the difference.
     ///
     /// The returned buffer is valid until the matching [#present] and must be
     /// handed straight back to it. A backend that has no such memory to lend —

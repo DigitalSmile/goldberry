@@ -23,13 +23,13 @@ description = 'Goldberry native layer: hand-written FFM bindings and the libgold
 // not need any of them.
 // ============================================================================
 
-// One row of the §15 distribution matrix.
+// One row of the §15 distribution matrix. Four rows, not six: Windows on ARM and
+// macOS on Intel are not built (ADR-0041), and `NativePlatform` refuses those two
+// pairs on the Java side so the two lists cannot drift into disagreement.
 def nativeTargets = [
         [id: 'linux-x64', library: 'libgoldberry.so'],
         [id: 'linux-aarch64', library: 'libgoldberry.so'],
         [id: 'windows-x64', library: 'goldberry.dll'],
-        [id: 'windows-aarch64', library: 'goldberry.dll'],
-        [id: 'macos-x64', library: 'libgoldberry.dylib'],
         [id: 'macos-aarch64', library: 'libgoldberry.dylib'],
 ]
 
@@ -99,7 +99,7 @@ def depsDir = providers.gradleProperty('goldberry.depsDir')
         .orElse(layout.projectDirectory.dir(".deps/${hostTarget.id}").asFile)
 
 // Where CI drops the libraries downloaded from every runner, so one job can
-// assemble all six classifier jars. Locally only the host's directory exists.
+// assemble all four classifier jars. Locally only the host's directory exists.
 def artifactsDir = providers.gradleProperty('goldberry.artifactsDir')
         .map { file(it) }
         .orElse(layout.buildDirectory.dir('native-artifacts').map { it.asFile })
@@ -154,7 +154,6 @@ def resolveTool = { String name ->
 // owns that error, and it says considerably more than a NullPointerException.
 def cmakeExecutable = resolveTool('cmake')
 def ninjaExecutable = resolveTool('ninja')
-def mesonExecutable = resolveTool('meson')
 
 // --- Toolchain check ---------------------------------------------------------
 // Fails with instructions rather than with a cryptic CMake error 200 lines into
@@ -163,7 +162,9 @@ def checkToolchain = tasks.register('checkToolchain') {
     group = nativeGroup
     description = 'Verifies that the native build tools are installed and usable.'
 
-    def needsMeson = hostTarget.id.startsWith('linux')
+    // Linux is where SDL has X11 and Wayland backends to satisfy; the header
+    // checks below are all about those.
+    def onLinux = hostTarget.id.startsWith('linux')
 
     doLast {
         def probe = { String tool, String... args ->
@@ -194,11 +195,7 @@ def checkToolchain = tasks.register('checkToolchain') {
         }
 
         // Name -> resolved executable, or null if the search found nothing.
-        // libxkbcommon is meson-built upstream, and is Linux-only (§7.1).
         def required = [cmake: cmakeExecutable, ninja: ninjaExecutable]
-        if (needsMeson) {
-            required.meson = mesonExecutable
-        }
 
         // Absent, or present and not runnable -- a stale symlink into a Homebrew
         // Cellar that `brew cleanup` removed passes an existence check and fails
@@ -212,7 +209,7 @@ def checkToolchain = tasks.register('checkToolchain') {
             def hint = switch (ToolResolver.familyOf(System.getProperty('os.name', ''))) {
                 case ToolResolver.Family.MACOS -> 'brew install cmake ninja'
                 case ToolResolver.Family.WINDOWS -> 'winget install Kitware.CMake Ninja-build.Ninja'
-                default -> 'sudo apt install cmake ninja-build meson    (Debian/Ubuntu)'
+                default -> 'sudo apt install cmake ninja-build    (Debian/Ubuntu)'
             }
             // An override that points at nothing is a different problem from a
             // tool that is not installed, and deserves a different sentence.
@@ -231,17 +228,18 @@ def checkToolchain = tasks.register('checkToolchain') {
             throw new GradleException("""\
                 Missing native build tools: ${missing.join(', ')}
 
-                The superbuild needs CMake >= 3.28, Ninja, and (on Linux) Meson >= 1.4.
+                The superbuild needs CMake >= 3.28 and Ninja.
                   ${hint}
 
                 """.stripIndent() + where)
         }
 
         // Version floors, not just presence. An upstream that needs a newer tool
-        // than the distribution ships is not hypothetical: libxkbcommon 1.13
-        // requires Meson >= 1.4 and Ubuntu 24.04 ships 1.3.2, which fails ninety
-        // seconds into the build, from inside meson, naming neither Goldberry
-        // nor the pin that raised the requirement.
+        // than the distribution ships is not hypothetical -- libxkbcommon used to
+        // force Meson >= 1.4 here, against the 1.3.2 Ubuntu 24.04 ships, and
+        // failed ninety seconds into the build from inside meson (ADR-0055).
+        // That dependency is gone; the mechanism stays, because the next one
+        // will not announce itself either.
         def versionOf = { String tool ->
             // Through `required`, so this runs the same executable the build will,
             // rather than whichever copy a bare-name lookup happens to reach.
@@ -263,26 +261,26 @@ def checkToolchain = tasks.register('checkToolchain') {
 
         // tool, floor, why, how
         def floors = [['cmake', [3, 28, 0], 'the superbuild', 'pip install --upgrade cmake']]
-        if (needsMeson) {
-            floors << ['meson', [1, 4, 0],
-                       "libxkbcommon ${libs.versions.xkbcommon.get()}",
-                       'pip install --upgrade meson  (Ubuntu 24.04 ships 1.3.2)']
-        }
 
         def tooOld = floors.findAll { !atLeast(versionOf(it[0]), it[1]) }
         if (!tooOld.isEmpty()) {
+            // The `+` stays at the END of the line. Moved to the start of the
+            // next one, Groovy closes the statement at the first string and reads
+            // the continuation as unary plus -- `String.positive()`, which does
+            // not exist. It only fires when a tool really is too old, so it hides
+            // in exactly the path that was meant to produce a helpful message.
             def detail = tooOld.collect { row ->
-                "  ${row[0]} ${versionOf(row[0]).join('.')} -- ${row[2]} needs"
-                        + " >= ${row[1].join('.')}\n    ${row[3]}"
+                "  ${row[0]} ${versionOf(row[0]).join('.')} -- ${row[2]} needs" +
+                        " >= ${row[1].join('.')}\n    ${row[3]}"
             }.join('\n')
             throw new GradleException("Native build tools are too old:\n" + detail + "\n")
         }
 
         // Development headers. Without this check a missing one surfaces minutes
-        // into the build, from inside meson or SDL3's CMake, naming a pkg-config
+        // into the build, from inside SDL3's CMake, naming a pkg-config
         // module rather than a package -- so the error tells you what is absent
         // but not what to install.
-        if (needsMeson) {
+        if (onLinux) {
             // module, apt package, dnf package, required, what it is for
             def headers = [
                     ['x11', 'libx11-dev', 'libX11-devel', true, 'SDL3 X11 backend'],
@@ -294,7 +292,12 @@ def checkToolchain = tasks.register('checkToolchain') {
                     ['wayland-client', 'libwayland-dev', 'wayland-devel', true, 'SDL3 Wayland backend'],
                     ['wayland-cursor', 'libwayland-dev', 'wayland-devel', true, 'SDL3 Wayland cursors'],
                     ['wayland-egl', 'libwayland-dev', 'wayland-devel', true, 'SDL3 Wayland backend'],
-                    ['xkeyboard-config', 'xkb-data', 'xkeyboard-config', true, 'libxkbcommon keymaps'],
+                    // Goldberry binds no xkbcommon: SDL owns keyboard translation
+                    // and loads libxkbcommon itself (ADR-0055). Its headers are
+                    // still needed to BUILD SDL's Wayland backend, and the keymap
+                    // data at run time.
+                    ['xkbcommon', 'libxkbcommon-dev', 'libxkbcommon-devel', true, 'SDL3 keyboard translation'],
+                    ['xkeyboard-config', 'xkb-data', 'xkeyboard-config', true, 'SDL3 keymaps'],
                     ['xss', 'libxss-dev', 'libXScrnSaver-devel', false, 'SDL3 screensaver inhibition'],
                     ['alsa', 'libasound2-dev', 'alsa-lib-devel', false, 'SDL3 audio'],
                     ['libpulse', 'libpulse-dev', 'pulseaudio-libs-devel', false, 'SDL3 audio'],
@@ -357,7 +360,7 @@ def checkToolchain = tasks.register('checkToolchain') {
 def catalogFile = rootProject.layout.projectDirectory.file('gradle/libs.versions.toml')
 def workflowsDir = rootProject.layout.projectDirectory.dir('.github/workflows')
 
-def refNames = ['BLEND2D', 'ASMJIT', 'YOGA', 'HARFBUZZ', 'SDL3', 'XKBCOMMON']
+def refNames = ['BLEND2D', 'ASMJIT', 'YOGA', 'HARFBUZZ', 'SDL3']
 
 tasks.register('checkPinnedRefs') {
     group = 'verification'
@@ -556,7 +559,7 @@ nativeTargets.each { target ->
 
 tasks.register('nativeJars') {
     group = nativeGroup
-    description = 'Packages all six classifier jars from -Pgoldberry.artifactsDir.'
+    description = 'Packages all four classifier jars from -Pgoldberry.artifactsDir.'
     dependsOn nativeTargets.collect { "nativeJar${taskSuffix(it.id)}" }
 }
 

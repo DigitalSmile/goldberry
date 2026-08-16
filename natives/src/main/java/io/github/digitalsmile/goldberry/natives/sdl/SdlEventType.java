@@ -35,6 +35,27 @@ public enum SdlEventType {
 
     /// The base of the user-defined event range. Goldberry's cross-thread wakeup
     /// is pushed as one of these.
+    /// The pointer moved. `SDL_MouseMotionEvent` carries the position.
+    MOUSE_MOTION(0x400),
+
+    /// A mouse button went down. `SDL_MouseButtonEvent`.
+    MOUSE_BUTTON_DOWN(0x401),
+
+    /// A mouse button came up.
+    MOUSE_BUTTON_UP(0x402),
+
+    /// A key went down. `SDL_KeyboardEvent`.
+    KEY_DOWN(0x300),
+
+    /// A key came up.
+    KEY_UP(0x301),
+
+    /// Committed text, already translated by the platform. `SDL_TextInputEvent`.
+    ///
+    /// Separate from [#KEY_DOWN] on purpose (§7.1): a key is a key and text is
+    /// text, and on a compose or IME sequence several keys produce one character.
+    TEXT_INPUT(0x303),
+
     USER(0x8000);
 
     private final int value;

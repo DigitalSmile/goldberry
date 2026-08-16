@@ -18,10 +18,8 @@ class NativeLibraryTest {
     @CsvSource({
         "Linux,    amd64,   /io/github/digitalsmile/goldberry/natives/linux-x64/libgoldberry.so",
         "Linux,    aarch64, /io/github/digitalsmile/goldberry/natives/linux-aarch64/libgoldberry.so",
-        "Mac OS X, x86_64,  /io/github/digitalsmile/goldberry/natives/macos-x64/libgoldberry.dylib",
         "Mac OS X, aarch64, /io/github/digitalsmile/goldberry/natives/macos-aarch64/libgoldberry.dylib",
         "Windows,  amd64,   /io/github/digitalsmile/goldberry/natives/windows-x64/goldberry.dll",
-        "Windows,  aarch64, /io/github/digitalsmile/goldberry/natives/windows-aarch64/goldberry.dll",
     })
     @DisplayName("resource path matches where the classifier jars put the library")
     void resourcePathMatchesPackaging(String osName, String osArch, String expected) {

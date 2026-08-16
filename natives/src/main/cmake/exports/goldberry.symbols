@@ -53,6 +53,8 @@ SDL_SetWindowTitle
 SDL_GetWindowSize
 SDL_GetWindowSizeInPixels
 SDL_GetWindowDisplayScale
+SDL_GetDisplayForWindow
+SDL_GetCurrentDisplayMode
 SDL_GetWindowID
 SDL_GetWindowSurface
 SDL_UpdateWindowSurfaceRects
@@ -116,6 +118,35 @@ bl_font_get_metrics
 
 # The call the whole font chain exists for.
 bl_context_fill_glyph_run_d_rgba32
+
+# Paths, and the icons drawn with them (sec. 6.3, ADR-0043). Lucide's 1544 icons
+# are SVG path data in a 24x24 box, so what is bound is the set of path commands
+# SVG has and no more: the curve constructors, the elliptic arc that `A` maps
+# onto directly, and the two "smooth" forms that `S` and `T` map onto. Binding
+# fewer would mean reimplementing them in Java against Blend2D's own conventions
+# for the reflected control point, which is exactly the arithmetic a rasterizer
+# should be trusted with.
+bl_path_init
+bl_path_destroy
+bl_path_reset
+bl_path_get_size
+bl_path_move_to
+bl_path_line_to
+bl_path_quad_to
+bl_path_cubic_to
+bl_path_smooth_quad_to
+bl_path_smooth_cubic_to
+bl_path_elliptic_arc_to
+bl_path_close
+
+# An icon is stroked, not filled: Lucide draws 2px round strokes rather than
+# filled shapes, so the stroke options are as much a part of the icon path as
+# the geometry is. Fill is bound too, for the shapes that are filled.
+bl_context_set_stroke_width
+bl_context_set_stroke_caps
+bl_context_set_stroke_join
+bl_context_fill_path_d_rgba32
+bl_context_stroke_path_d_rgba32
 
 # --- Yoga (sec. 5, layout) ---------------------------------------------------
 # The node API, bound in the `yoga` package. YGSize and the measure callback are
@@ -245,4 +276,3 @@ hb_language_from_string
 # The one call the rest of it exists for.
 hb_shape
 
-# --- libxkbcommon (Linux/Scarlet only, sec. 7.1) -----------------------------

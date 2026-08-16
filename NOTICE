@@ -18,7 +18,6 @@ code is present in every binary artifact Goldberry distributes:
   SDL3           Zlib license      https://www.libsdl.org
   Yoga           MIT license       https://www.yogalayout.dev
   HarfBuzz       MIT license       https://harfbuzz.github.io
-  libxkbcommon   MIT license       https://xkbcommon.org       (Linux builds only)
 
 The following assets are embedded in the published jars:
 

@@ -59,8 +59,8 @@ evidence across several compositors rather than one.
 
 **Ship our own Wayland backend.** ADR-0003 closed that door on purpose: SDL3 is
 the permanent desktop windowing layer, and the SPI exists to serve `headless` and
-`scarlet`, not to grow hand-written platform backends. Resize smoothness on one
-compositor is not the thing that reopens it.
+to keep the platform boundary in one place, not to grow hand-written platform
+backends. Resize smoothness on one compositor is not the thing that reopens it.
 
 **Use `SDL_Renderer` with a streaming texture instead of the window surface.**
 This is the real technical alternative and it is not dismissed — it would move the

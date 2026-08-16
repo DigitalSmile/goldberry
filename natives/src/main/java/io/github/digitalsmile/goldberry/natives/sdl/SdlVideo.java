@@ -37,6 +37,8 @@ public final class SdlVideo {
     private static final long SURFACE_HEIGHT = Layouts.SDL_SURFACE.offsetOf("h");
     private static final long SURFACE_PITCH = Layouts.SDL_SURFACE.offsetOf("pitch");
     private static final long SURFACE_PIXELS = Layouts.SDL_SURFACE.offsetOf("pixels");
+    private static final long DISPLAY_MODE_REFRESH_RATE =
+            Layouts.SDL_DISPLAY_MODE.offsetOf("refresh_rate");
 
     private static final long RECT_SIZE = Layouts.SDL_RECT.byteSize();
 
@@ -51,6 +53,8 @@ public final class SdlVideo {
     private final MethodHandle getWindowSize;
     private final MethodHandle getWindowSizeInPixels;
     private final MethodHandle getWindowDisplayScale;
+    private final MethodHandle getDisplayForWindow;
+    private final MethodHandle getCurrentDisplayMode;
     private final MethodHandle getWindowId;
     private final MethodHandle getWindowSurface;
     private final MethodHandle updateWindowSurfaceRects;
@@ -75,6 +79,10 @@ public final class SdlVideo {
                 ValueLayout.JAVA_BOOLEAN, ValueLayout.ADDRESS, ValueLayout.ADDRESS, ValueLayout.ADDRESS));
         this.getWindowDisplayScale = downcall(lookup, "SDL_GetWindowDisplayScale",
                 FunctionDescriptor.of(ValueLayout.JAVA_FLOAT, ValueLayout.ADDRESS));
+        this.getDisplayForWindow = optionalDowncall(lookup, "SDL_GetDisplayForWindow",
+                FunctionDescriptor.of(ValueLayout.JAVA_INT, ValueLayout.ADDRESS));
+        this.getCurrentDisplayMode = optionalDowncall(lookup, "SDL_GetCurrentDisplayMode",
+                FunctionDescriptor.of(ValueLayout.ADDRESS, ValueLayout.JAVA_INT));
         this.getWindowId = downcall(lookup, "SDL_GetWindowID",
                 FunctionDescriptor.of(ValueLayout.JAVA_INT, ValueLayout.ADDRESS));
         this.getWindowSurface = downcall(lookup, "SDL_GetWindowSurface",
@@ -163,6 +171,38 @@ public final class SdlVideo {
             throw new SdlException("SDL_GetWindowDisplayScale", Sdl.get().lastError());
         }
         return scale;
+    }
+
+    /// How many times a second the display this window is on refreshes.
+    ///
+    /// What the frame loop needs to stop painting frames that are never scanned
+    /// out (ADR-0047). Read from the *current* mode rather than the desktop one,
+    /// so a window on a second monitor is paced to that monitor.
+    ///
+    /// Zero is a legitimate answer, not a failure: SDL documents `refresh_rate`
+    /// as `0.0f` when unspecified, and some drivers never fill it in. So is a
+    /// null mode, which is what SDL returns for a display that has gone away
+    /// mid-call. Both mean "no number to pace against", and the caller treats
+    /// them the same — throwing here would turn an unknowable refresh rate into
+    /// a window that will not open.
+    ///
+    /// @return the refresh rate in Hz, or 0 if the platform will not say
+    public float refreshRate(SdlWindowHandle window) {
+        if (getDisplayForWindow == null || getCurrentDisplayMode == null) {
+            // A libgoldberry built before these were exported. See
+            // optionalDowncall(): an unpaced loop, not a dead window.
+            return 0f;
+        }
+        var displayId = (int) invoke(getDisplayForWindow, "SDL_GetDisplayForWindow", window.pointer());
+        if (displayId == 0) {
+            return 0f;
+        }
+        var mode = (MemorySegment) invoke(getCurrentDisplayMode, "SDL_GetCurrentDisplayMode", displayId);
+        if (MemorySegment.NULL.equals(mode)) {
+            return 0f;
+        }
+        var rate = resizeDisplayMode(mode).get(ValueLayout.JAVA_FLOAT, DISPLAY_MODE_REFRESH_RATE);
+        return rate > 0f ? rate : 0f;
     }
 
     /// Copies a frame into the window's surface and presents the damaged parts.
@@ -400,6 +440,14 @@ public final class SdlVideo {
         return surface.reinterpret(Layouts.SDL_SURFACE.byteSize());
     }
 
+    // Restricted: same obligation as the surface above. SDL owns the mode and
+    // keeps it alive for the display's lifetime; the extent is the struct's own
+    // size, verified against C by the layout probe.
+    @SuppressWarnings("restricted")
+    private static MemorySegment resizeDisplayMode(MemorySegment mode) {
+        return mode.reinterpret(Layouts.SDL_DISPLAY_MODE.byteSize());
+    }
+
     // Restricted: same, for the pixel store. The extent comes from the surface's
     // own pitch and height, which is exactly the region SDL owns.
     @SuppressWarnings("restricted")
@@ -424,6 +472,29 @@ public final class SdlVideo {
                 "libgoldberry does not export " + symbol
                         + " — is it listed in natives/src/main/cmake/exports/goldberry.symbols?"));
         return LINKER.downcallHandle(address, descriptor);
+    }
+
+    /// Binds a symbol the toolkit can do without.
+    ///
+    /// Everything else here is bound with [#downcall], which fails loudly,
+    /// because a missing symbol there means a window cannot open and the export
+    /// list is simply wrong. The display-mode calls are different: they feed the
+    /// frame pacer, which already has a defined answer for "the platform will not
+    /// say" — do not pace (ADR-0047). Making them mandatory would mean a
+    /// `libgoldberry` built before they were added stops opening windows at all,
+    /// to enable an optimization.
+    ///
+    /// @return the handle, or null if this library does not export it
+    @SuppressWarnings("restricted")
+    private static MethodHandle optionalDowncall(
+            SymbolLookup lookup, String symbol, FunctionDescriptor descriptor) {
+        return lookup.find(symbol)
+                .map(address -> LINKER.downcallHandle(address, descriptor))
+                .orElseGet(() -> {
+                    LOG.debug("libgoldberry does not export {}; the frame loop will not be paced"
+                            + " to the display", symbol);
+                    return null;
+                });
     }
 
     /// SDL's own drawing surface, borrowed.

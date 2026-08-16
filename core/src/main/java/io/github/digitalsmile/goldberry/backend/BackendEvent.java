@@ -10,11 +10,8 @@ import java.util.Objects;
 /// (`docs/ARCHITECTURE.md` §7), and when they arrive every exhaustive switch
 /// should stop compiling until it says what it does with them.
 ///
-/// **Pointer and keyboard events are deliberately absent from this cut.** They
-/// need the dispatch model in §7 — capture/target/bubble, pointer capture, the
-/// `KeyEvent`/`TextEvent` split that keeps IME preedit possible — and designing
-/// them against nothing but a blank window would be guesswork. What is here is
-/// what a window needs to exist, resize, and close.
+/// Pointer and keyboard events are here, split the way §7.1 asks: a key is a
+/// key, and committed text is separate. Wheel and cursor are not.
 public sealed interface BackendEvent {
 
     /// The window this concerns.
@@ -76,5 +73,59 @@ public sealed interface BackendEvent {
         public FrameDue {
             Objects.requireNonNull(window, "window");
         }
+    }
+
+    /// The pointer moved to a position inside the window.
+    ///
+    /// `x` and `y` are **logical**, window-relative — the same space an
+    /// application lays out in, because SDL reports window coordinates and the
+    /// display scale is applied when the frame is rasterized (ADR-0031).
+    record PointerMoved(BackendWindow window, float x, float y) implements BackendEvent {
+    }
+
+    /// A pointer button went down.
+    ///
+    /// @param button SDL's index, 1-based and left-first; translated to a
+    ///               toolkit button by the layer that dispatches
+    /// @param clickCount 1 for a single click, 2 for a double — counted by the
+    ///                   platform, so the toolkit keeps no timer of its own
+    record PointerPressed(BackendWindow window, float x, float y, int button, int clickCount)
+            implements BackendEvent {
+    }
+
+    /// A pointer button came up.
+    record PointerReleased(BackendWindow window, float x, float y, int button, int clickCount)
+            implements BackendEvent {
+    }
+
+    /// The pointer left the window.
+    ///
+    /// Separate from a move, because there is no position to report and `:hover`
+    /// has to clear on the whole chain (§7.1).
+    record PointerExited(BackendWindow window) implements BackendEvent {
+    }
+
+    /// A key went down.
+    ///
+    /// @param keycode  the platform's virtual keycode — translated to a [Key] by
+    ///                 the layer that dispatches, so the SPI stays free of the
+    ///                 toolkit's own naming
+    /// @param modifiers the platform's modifier bitmask
+    /// @param repeat   whether the platform is repeating a held key
+    record KeyPressed(BackendWindow window, int keycode, int modifiers, boolean repeat)
+            implements BackendEvent {
+    }
+
+    /// A key came up.
+    record KeyReleased(BackendWindow window, int keycode, int modifiers) implements BackendEvent {
+    }
+
+    /// Text the platform has finished translating.
+    ///
+    /// Deliberately separate from [KeyPressed] (§7.1). One character can take
+    /// several keys — a compose sequence, a dead key, an IME conversion — and a
+    /// toolkit that derived text from keystrokes would be wrong in every language
+    /// that needs one. The platform already knows the answer; this carries it.
+    record TextInput(BackendWindow window, String text) implements BackendEvent {
     }
 }

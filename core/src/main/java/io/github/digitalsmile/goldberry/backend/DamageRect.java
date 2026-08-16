@@ -4,8 +4,8 @@ package io.github.digitalsmile.goldberry.backend;
 /// window's top-left.
 ///
 /// Damage is what makes a repaint cheap: the frame loop re-rasterizes dirty
-/// layers and blits the rest, and the backend uploads only these rectangles. The
-/// Scarlet compositor consumes them directly (`docs/ARCHITECTURE.md` §5).
+/// layers and blits the rest, and the backend uploads only these rectangles
+/// (`docs/ARCHITECTURE.md` §5).
 ///
 /// Physical rather than logical, because this describes a region of a pixel
 /// buffer. Converting at the boundary is [DisplayScale]'s job, and doing it

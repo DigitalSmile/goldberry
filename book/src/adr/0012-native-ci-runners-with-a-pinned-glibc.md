@@ -37,19 +37,24 @@ pinned", and Zig was only one answer to it.
 ## Decision
 
 Build every artifact on a native runner, and pin the Linux glibc floor with a
-container rather than with a cross-compiler. Four runners produce six artifacts:
+container rather than with a cross-compiler. Four runners produce four artifacts:
 
 | Runner | Container | Produces |
 |---|---|---|
 | `ubuntu-24.04` | `manylinux_2_28_x86_64` | `linux-x64` |
 | `ubuntu-24.04-arm` | `manylinux_2_28_aarch64` | `linux-aarch64` |
-| `windows-2022` | — | `windows-x64`, `windows-aarch64` |
-| `macos-14` | — | `macos-aarch64`, `macos-x64` |
+| `windows-2022` | — | `windows-x64` |
+| `macos-14` | — | `macos-aarch64` |
 
-Two of those runners produce two artifacts each, using cross-targeting that is
-first-class in the *native* toolchain rather than bolted on: MSVC targets ARM64
-from an x64 host with `-A ARM64`, and Xcode on Apple Silicon targets x86_64 with
-`CMAKE_OSX_ARCHITECTURES`. Neither needs a foreign SDK.
+One runner per artifact, and no cross-targeting: every leg builds for the machine
+it is running on.
+
+> **Amended by [ADR-0041](0041-three-platforms-four-artifacts-two-backends.md).**
+> This ADR originally had the same four runners produce six artifacts, with two
+> of them cross-targeting inside their own native toolchain — MSVC at `-A ARM64`
+> and Xcode at `CMAKE_OSX_ARCHITECTURES=x86_64`. Those two rows were cut. The
+> mechanism is unchanged and is what either row would come back through; what
+> changed is the matrix, not the decision.
 
 The `manylinux_2_28` images are the mechanism for the glibc floor: glibc 2.28
 headers — the RHEL 8 baseline — with a modern GCC on top. This is the same
@@ -79,8 +84,8 @@ Zig is removed entirely.
   risks ADR-0011 named — AsmJit under mingw-w64, HarfBuzz under Zig — disappear.
 - Linux artifacts run on anything from RHEL 8 onward, and this is enforced by
   the build environment rather than by discipline.
-- `windows-aarch64` can leave experimental status sooner: MSVC cross-targeting
-  ARM64 is well-travelled, unlike Zig's mingw path for the same target.
+- Should Windows on ARM come back, MSVC cross-targeting ARM64 from the same x64
+  runner is well-travelled, unlike Zig's mingw path for the same target.
 - **Local cross-building is gone.** A developer on Linux builds `linux-x64` and
   must push to find out about the rest. This is the cost ADR-0011 was trying to
   avoid, and it is accepted deliberately: the alternative paid for that feedback

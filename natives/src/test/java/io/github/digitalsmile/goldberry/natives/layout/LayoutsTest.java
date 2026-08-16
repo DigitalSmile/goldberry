@@ -64,7 +64,11 @@ class LayoutsTest {
     ///
     /// For both, the size and alignment are the whole contract. Naming members
     /// of a union would assert a structure it does not have.
-    private static final List<String> OPAQUE = List.of("SDL_Event", "BLObjectDetail");
+    ///
+    /// `BLPathCore` is the same union again under its own name, registered
+    /// separately because `BlendPath` allocates by it (ADR-0043).
+    private static final List<String> OPAQUE =
+            List.of("SDL_Event", "BLObjectDetail", "BLPathCore");
 
     @Test
     @DisplayName("every registered layout is named and non-empty")

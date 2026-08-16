@@ -50,16 +50,20 @@ jobs:
           sudo apt-get install -y \
             cmake ninja-build \
             libx11-dev libxext-dev libxrandr-dev libxcursor-dev libxi-dev \
-            libxfixes-dev libxss-dev libwayland-dev wayland-protocols \
+            libxfixes-dev libxss-dev libxtst-dev libwayland-dev wayland-protocols \
             libxkbcommon-dev xkb-data libegl1-mesa-dev libgles2-mesa-dev \
             libasound2-dev libpulse-dev libdbus-1-dev libudev-dev \
             xvfb
 
-          # Meson from pip, not from apt: libxkbcommon needs >= 1.4 and Ubuntu
-          # 24.04 ships 1.3.2. `:natives:checkToolchain` fails on this before the
-          # build starts, which is how it was found.
-          pipx install meson || pip install --user --break-system-packages meson
-          meson --version
+          # libxtst-dev is not optional. SDL's CheckX11 treats XTest as a hard
+          # dependency of the X11 driver and stops the configure with
+          # "Couldn't find dependency package for XTEST" -- it is not skipped the
+          # way a missing optional header is. Installing it rather than passing
+          # -DSDL_X11_XTEST=OFF because XTest is what SDL warps the pointer with
+          # on X11, and a toolkit that grows a slider or a drag-to-resize will
+          # want that (§7.3) -- switching it off would remove the capability
+          # silently and only on Linux.
+
 
       - name: Build libgoldberry
         run: ./gradlew :natives:cmakeBuild --no-daemon

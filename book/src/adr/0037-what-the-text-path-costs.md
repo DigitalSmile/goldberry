@@ -152,7 +152,7 @@ has.
 
 **M1's remaining criterion is the 60 fps claim itself.** These frames come from
 one machine, and it is a VirtualBox VM with software rasterization on X11. The
-milestone asks for a Mac, a ThinkPad and a Scarlet compositor. What can be said
+milestone asks for Linux, macOS and Windows. What can be said
 from here is that a 960×640 frame with a wrapped paragraph fits in the budget with
 a factor of two in hand on the median and not on the p95, and that the next thing
 to measure is Wayland on real hardware.

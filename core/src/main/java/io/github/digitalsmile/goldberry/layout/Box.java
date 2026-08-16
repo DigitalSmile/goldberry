@@ -1,5 +1,6 @@
 package io.github.digitalsmile.goldberry.layout;
 
+import io.github.digitalsmile.goldberry.css.ComputedStyle;
 import io.github.digitalsmile.goldberry.natives.yoga.Align;
 import io.github.digitalsmile.goldberry.natives.yoga.FlexDirection;
 import io.github.digitalsmile.goldberry.natives.yoga.Justify;
@@ -31,7 +32,14 @@ public record Box(
         StyleLength gap,
         double flexGrow,
         Text text,
-        List<Box> children) {
+        List<Box> children,
+        Object owner) {
+
+    // `owner` is an opaque tag, not a field the layout or the paint reads.
+    // Hit testing needs to get from a rectangle on screen back to whatever put
+    // it there -- an Element, in the widget stack -- and the box tree is the
+    // only thing that knows both. Typed as Object so `layout` keeps knowing
+    // nothing about widgets (ADR-0054).
 
     /// Text filling a box, and the colour to draw it in.
     ///
@@ -87,7 +95,8 @@ public record Box(
                 StyleLength.points(0),
                 0,
                 null,
-                List.of());
+                List.of(),
+                null);
     }
 
     /// A box whose size comes from the text in it.
@@ -104,7 +113,7 @@ public record Box(
 
     public Box text(Text value) {
         return new Box(background, direction, justifyContent, alignItems, width, height,
-                padding, gap, flexGrow, value, children);
+                padding, gap, flexGrow, value, children, owner);
     }
 
     /// A box filled with `argb` — `0xAARRGGBB`, not premultiplied, exactly as
@@ -115,47 +124,88 @@ public record Box(
 
     public Box background(int argb) {
         return new Box(argb, direction, justifyContent, alignItems, width, height,
-                padding, gap, flexGrow, text, children);
+                padding, gap, flexGrow, text, children, owner);
     }
 
     public Box direction(FlexDirection value) {
         return new Box(background, value, justifyContent, alignItems, width, height,
-                padding, gap, flexGrow, text, children);
+                padding, gap, flexGrow, text, children, owner);
     }
 
     public Box justifyContent(Justify value) {
         return new Box(background, direction, value, alignItems, width, height,
-                padding, gap, flexGrow, text, children);
+                padding, gap, flexGrow, text, children, owner);
     }
 
     public Box alignItems(Align value) {
         return new Box(background, direction, justifyContent, value, width, height,
-                padding, gap, flexGrow, text, children);
+                padding, gap, flexGrow, text, children, owner);
     }
 
     public Box size(StyleLength w, StyleLength h) {
         return new Box(background, direction, justifyContent, alignItems, w, h,
-                padding, gap, flexGrow, text, children);
+                padding, gap, flexGrow, text, children, owner);
     }
 
     public Box padding(StyleLength value) {
         return new Box(background, direction, justifyContent, alignItems, width, height,
-                value, gap, flexGrow, text, children);
+                value, gap, flexGrow, text, children, owner);
     }
 
     public Box gap(StyleLength value) {
         return new Box(background, direction, justifyContent, alignItems, width, height,
-                padding, value, flexGrow, text, children);
+                padding, value, flexGrow, text, children, owner);
     }
 
     /// Share of the free space this box takes along its parent's main axis.
     public Box grow(double value) {
         return new Box(background, direction, justifyContent, alignItems, width, height,
-                padding, gap, value, text, children);
+                padding, gap, value, text, children, owner);
+    }
+
+    /// This box tagged with whatever produced it.
+    ///
+    /// Set by the renderer; read by hit testing. Nothing between the two looks
+    /// at it.
+    public Box owner(Object value) {
+        return new Box(background, direction, justifyContent, alignItems, width, height,
+                padding, gap, flexGrow, text, children, value);
     }
 
     public Box children(Box... value) {
         return new Box(background, direction, justifyContent, alignItems, width, height,
-                padding, gap, flexGrow, text, List.of(value));
+                padding, gap, flexGrow, text, List.of(value), owner);
+    }
+
+    /// This box with every property a [ComputedStyle] carries applied to it.
+    ///
+    /// The join between the CSS engine and the two rendering engines, and the
+    /// reason §8's property split is worth stating as an invariant: the layout
+    /// half of the style lands on the fields Yoga reads, and the paint half on
+    /// the ones Blend2D does. Nothing here interprets a string.
+    ///
+    /// `text` and `children` are **not** taken from the style — a stylesheet
+    /// decides how a node looks, not what it contains. But [ComputedStyle#color]
+    /// does reach the text, because that is what `color` means.
+    ///
+    /// [ComputedStyle#opacity] is dropped: `Box` cannot express it, and the
+    /// group opacity CSS specifies needs a layer to composite through rather than
+    /// a colour to multiply into (§8's paint list, still to come).
+    public Box style(ComputedStyle style) {
+        Objects.requireNonNull(style, "style");
+        var styledText = text == null ? null : new Text(text.paragraph(), style.color());
+        return new Box(
+                style.background(),
+                style.direction(),
+                style.justifyContent(),
+                style.alignItems(),
+                style.width(),
+                style.height(),
+                style.padding(),
+                style.gap(),
+                style.flexGrow(),
+                styledText,
+                children,
+                owner);
     }
 }

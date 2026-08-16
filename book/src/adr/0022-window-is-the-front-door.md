@@ -16,9 +16,8 @@ Worse, that surface exposes decisions an application has no business making. Whi
 backend? What size should the buffer be — logical or physical? Who clears the
 frame request? Each has one right answer and no reason to be asked.
 
-The SPI is not wrong; it is aimed at the wrong reader. It exists so `headless`,
-`sdl3` and `scarlet` can be peers (ADR-0003), which is a toolkit-implementer's
-concern.
+The SPI is not wrong; it is aimed at the wrong reader. It exists so `headless`
+and `sdl3` can be peers (ADR-0003), which is a toolkit-implementer's concern.
 
 ## Decision
 

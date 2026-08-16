@@ -36,7 +36,6 @@ asmjit = "0bd5787b54b575ed94bf32ac452153b34385c514"
 yoga = "v3.2.1"
 harfbuzz = "14.3.1"
 sdl3 = "release-3.4.14"
-xkbcommon = "xkbcommon-1.13.2"
 
 [libraries]
 slf4j-api = { module = "org.slf4j:slf4j-api", version.ref = "slf4j" }

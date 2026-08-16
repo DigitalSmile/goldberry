@@ -205,9 +205,12 @@ public final class Window implements AutoCloseable {
         // what keeps a painter that throws from leaving the context attached to
         // the platform's surface.
         var frame = new Frame(target, window.scale());
+        var built = traced ? System.nanoTime() : 0L;
+        long drawn;
         try {
             painter.accept(frame);
         } finally {
+            drawn = traced ? System.nanoTime() : 0L;
             frame.end();
         }
         var painted = traced ? System.nanoTime() : 0L;
@@ -224,11 +227,19 @@ public final class Window implements AutoCloseable {
                 var done = System.nanoTime();
                 // Where a slow frame went. During a resize this is the difference
                 // between "the toolkit is slow" and "the platform is".
-                LOG.trace("frame {} in {}us: buffer {}, paint {}, present {}",
+                // Paint is split three ways because the split is what said where
+                // a frame's time actually goes: attaching the context, the
+                // painter's own work, and `end` waiting for Blend2D's workers
+                // (ADR-0042, ADR-0045).
+                LOG.trace("frame {} in {}us: buffer {}, paint {} (begin {}, draw {}, end {}),"
+                                + " present {}",
                         frameSize,
                         (done - started) / 1_000,
                         (allocated - started) / 1_000,
                         (painted - allocated) / 1_000,
+                        (built - allocated) / 1_000,
+                        (drawn - built) / 1_000,
+                        (painted - drawn) / 1_000,
                         (done - painted) / 1_000);
             }
         } catch (RuntimeException e) {
@@ -263,6 +274,81 @@ public final class Window implements AutoCloseable {
         LOG.info("window moved to a {} display -> {}", scale, window.physicalSize());
         scaleHandler.accept(scale);
         repaint();
+    }
+
+    /// Where pointer events go.
+    ///
+    /// Null until an application asks for one. A window with no router does the
+    /// hit testing work of nothing at all, which is what a window painting with
+    /// a plain `onPaint` callback should cost.
+    private io.github.digitalsmile.goldberry.input.PointerRouter router;
+
+    /// Routes this window's pointer events through `router`.
+    ///
+    /// The window feeds it positions; keeping the hit-test snapshot up to date
+    /// after each paint is the caller's job, because only the caller knows what
+    /// box tree it painted.
+    public Window pointerRouter(io.github.digitalsmile.goldberry.input.PointerRouter router) {
+        this.router = router;
+        return this;
+    }
+
+    void handlePointerMoved(float x, float y) {
+        if (router != null) {
+            router.pointerMoved(x, y);
+        }
+    }
+
+    void handlePointerPressed(float x, float y, int button, int clickCount) {
+        if (router != null) {
+            router.pointerPressed(x, y, toButton(button), clickCount);
+        }
+    }
+
+    void handlePointerReleased(float x, float y, int button, int clickCount) {
+        if (router != null) {
+            router.pointerReleased(x, y, toButton(button), clickCount);
+        }
+    }
+
+    void handlePointerExited() {
+        if (router != null) {
+            router.pointerExited();
+        }
+    }
+
+    /// SDL numbers buttons from 1, left first. Anything past the three the
+    /// toolkit names is dropped rather than guessed at.
+    private static io.github.digitalsmile.goldberry.input.PointerEvent.Button toButton(int sdlButton) {
+        return switch (sdlButton) {
+            case 1 -> io.github.digitalsmile.goldberry.input.PointerEvent.Button.PRIMARY;
+            case 2 -> io.github.digitalsmile.goldberry.input.PointerEvent.Button.MIDDLE;
+            case 3 -> io.github.digitalsmile.goldberry.input.PointerEvent.Button.SECONDARY;
+            default -> null;
+        };
+    }
+
+    void handleKeyPressed(int keycode, int modifiers, boolean repeat) {
+        if (router != null) {
+            router.keyPressed(
+                    io.github.digitalsmile.goldberry.input.Key.fromSdl(keycode),
+                    io.github.digitalsmile.goldberry.input.Modifiers.fromSdl(modifiers),
+                    repeat);
+        }
+    }
+
+    void handleKeyReleased(int keycode, int modifiers) {
+        if (router != null) {
+            router.keyReleased(
+                    io.github.digitalsmile.goldberry.input.Key.fromSdl(keycode),
+                    io.github.digitalsmile.goldberry.input.Modifiers.fromSdl(modifiers));
+        }
+    }
+
+    void handleTextInput(String text) {
+        if (router != null) {
+            router.textInput(text);
+        }
     }
 
     void handleCloseRequest() {

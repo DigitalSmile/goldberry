@@ -1,0 +1,63 @@
+/*
+ * Nord dark (ARCHITECTURE.md §10).
+ *
+ * The raw palette is identical to nord-light on purpose — nord8 is a fact about
+ * Nord, not about a theme. Everything that differs between the two files is a
+ * semantic token, which is the whole reason widgets consume those and never the
+ * palette directly.
+ *
+ * https://www.nordtheme.com
+ */
+
+:root {
+  /* Polar Night */
+  --nord0: #2e3440;
+  --nord1: #3b4252;
+  --nord2: #434c5e;
+  --nord3: #4c566a;
+
+  /* Snow Storm */
+  --nord4: #d8dee9;
+  --nord5: #e5e9f0;
+  --nord6: #eceff4;
+
+  /* Frost */
+  --nord7: #8fbcbb;
+  --nord8: #88c0d0;
+  --nord9: #81a1c1;
+  --nord10: #5e81ac;
+
+  /* Aurora */
+  --nord11: #bf616a;
+  --nord12: #d08770;
+  --nord13: #ebcb8b;
+  --nord14: #a3be8c;
+  --nord15: #b48ead;
+
+  /* Semantic tokens. Background and text swap ends of the palette; the accent
+     lightens, because nord10 on nord0 does not carry enough contrast. */
+  --gb-bg: var(--nord0);
+  --gb-surface: var(--nord1);
+  --gb-surface-2: var(--nord2);
+  --gb-text: var(--nord6);
+  --gb-text-muted: var(--nord4);
+  --gb-border: var(--nord3);
+  --gb-accent: var(--nord8);
+  --gb-focus: var(--nord8);
+  --gb-danger: var(--nord11);
+  --gb-warning: var(--nord13);
+  --gb-success: var(--nord14);
+  --gb-info: var(--nord9);
+
+  /* nord10 at 40%. */
+  --gb-selection: #5e81ac66;
+
+  /* Typography (§10.1) is theme-invariant: only colour changes between themes. */
+  --gb-font-display: 28px;
+  --gb-font-title: 20px;
+  --gb-font-heading: 16px;
+  --gb-font-body: 14px;
+  --gb-font-label: 12px;
+  --gb-font-caption: 11px;
+  --gb-font-code: 13px;
+}

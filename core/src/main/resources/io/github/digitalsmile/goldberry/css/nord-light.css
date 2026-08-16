@@ -1,0 +1,69 @@
+/*
+ * Nord light — the default theme (ARCHITECTURE.md §10).
+ *
+ * A theme is a custom-property layer and nothing else: there is not one selector
+ * here that is not `:root`, and not one property that a widget rule reads
+ * directly. That is what makes switching themes a single stylesheet swap rather
+ * than a restyle of every rule in the toolkit.
+ *
+ * Two tiers, and the distinction matters. The raw palette is theme-INVARIANT —
+ * nord8 is the same colour in both files, because it is a fact about Nord. The
+ * semantic tokens are what widgets consume, and they are what differs: a widget
+ * asks for --gb-bg, never for --nord6, so it needs no knowledge of which theme
+ * is loaded.
+ *
+ * https://www.nordtheme.com
+ */
+
+:root {
+  /* Polar Night */
+  --nord0: #2e3440;
+  --nord1: #3b4252;
+  --nord2: #434c5e;
+  --nord3: #4c566a;
+
+  /* Snow Storm */
+  --nord4: #d8dee9;
+  --nord5: #e5e9f0;
+  --nord6: #eceff4;
+
+  /* Frost */
+  --nord7: #8fbcbb;
+  --nord8: #88c0d0;
+  --nord9: #81a1c1;
+  --nord10: #5e81ac;
+
+  /* Aurora */
+  --nord11: #bf616a;
+  --nord12: #d08770;
+  --nord13: #ebcb8b;
+  --nord14: #a3be8c;
+  --nord15: #b48ead;
+
+  /* Semantic tokens: what widgets actually consume. */
+  --gb-bg: var(--nord6);
+  --gb-surface: #ffffff;
+  --gb-surface-2: var(--nord5);
+  --gb-text: var(--nord0);
+  --gb-text-muted: var(--nord3);
+  --gb-border: var(--nord4);
+  --gb-accent: var(--nord10);
+  --gb-focus: var(--nord8);
+  --gb-danger: var(--nord11);
+  --gb-warning: var(--nord13);
+  --gb-success: var(--nord14);
+  --gb-info: var(--nord9);
+
+  /* nord8 at 30%. Written as #rrggbbaa rather than rgba() so that the palette
+     entry it derives from stays visible in the value. */
+  --gb-selection: #88c0d04d;
+
+  /* Typography (§10.1). Sizes are logical px. */
+  --gb-font-display: 28px;
+  --gb-font-title: 20px;
+  --gb-font-heading: 16px;
+  --gb-font-body: 14px;
+  --gb-font-label: 12px;
+  --gb-font-caption: 11px;
+  --gb-font-code: 13px;
+}

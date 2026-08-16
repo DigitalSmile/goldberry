@@ -28,7 +28,6 @@ permission notices to travel with it.
 | [SDL3](licenses/sdl3.txt) | Zlib | <https://www.libsdl.org> | Windowing, input, DPI, GPU |
 | [Yoga](licenses/yoga.txt) | MIT | <https://www.yogalayout.dev> | Flexbox layout |
 | [HarfBuzz](licenses/harfbuzz.txt) | MIT ("Old MIT") | <https://harfbuzz.github.io> | Text shaping |
-| [libxkbcommon](licenses/libxkbcommon.txt) | MIT | <https://xkbcommon.org> | Keyboard translation; **Linux artifacts only** |
 
 Zlib imposes no notice requirement on binary distribution — only that the origin
 is not misrepresented and altered *source* is marked. The notices are included

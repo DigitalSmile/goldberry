@@ -1,15 +1,17 @@
 # macOS CI (ADR-0012)
 #
-# Both architectures build on an Apple Silicon runner: Xcode targets x86_64 via
-# CMAKE_OSX_ARCHITECTURES. This is also the leg that made ADR-0011 untenable and
-# ADR-0012 necessary -- SDL3's macOS backend needs the Cocoa, Metal, and CoreText
-# frameworks, whose headers ship only in Apple's SDK, and that SDK's licence
-# restricts it to Apple hardware. On a real macOS runner the question does not
-# arise.
+# One target, `macos-aarch64`, on an Apple Silicon runner. Intel Macs were
+# dropped from the matrix (ADR-0041); Xcode would still cross-target them with
+# CMAKE_OSX_ARCHITECTURES=x86_64 from this same runner if that changes.
+#
+# This is also the leg that made ADR-0011 untenable and ADR-0012 necessary --
+# SDL3's macOS backend needs the Cocoa, Metal, and CoreText frameworks, whose
+# headers ship only in Apple's SDK, and that SDK's licence restricts it to Apple
+# hardware. On a real macOS runner the question does not arise.
 #
 # `workflow_call` is what lets release.yml reuse this without duplicating it.
 #
-# STATUS: green. Both architectures build and the layout check passes against the
+# STATUS: green. The library builds and the layout check passes against the
 # downloaded dylib, so the Mach-O branch of the export machinery
 # (-exported_symbols_list, -u _symbol) is exercised rather than assumed.
 
@@ -42,15 +44,7 @@ jobs:
       - run: ./gradlew build -Pgoldberry.skipNative=true --no-daemon
 
   natives:
-    name: libgoldberry (${{ matrix.target }})
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - target: macos-aarch64
-            arch-args: -DCMAKE_OSX_ARCHITECTURES=arm64
-          - target: macos-x64
-            arch-args: -DCMAKE_OSX_ARCHITECTURES=x86_64
+    name: libgoldberry (macos-aarch64)
     runs-on: macos-14
     steps:
       - uses: actions/checkout@v4
@@ -61,26 +55,25 @@ jobs:
       - name: Configure
         run: |
           cmake -S natives/src/main/cmake -B build/native \
-            -G Ninja ${{ matrix.arch-args }} \
+            -G Ninja -DCMAKE_OSX_ARCHITECTURES=arm64 \
             -DCMAKE_BUILD_TYPE=Release \
             -DCMAKE_INSTALL_PREFIX="$PWD/build/install" \
-            -DGOLDBERRY_TARGET_ID=${{ matrix.target }}
+            -DGOLDBERRY_TARGET_ID=macos-aarch64
 
       - name: Build
         run: cmake --build build/native --target install
 
       - uses: actions/upload-artifact@v4
         with:
-          name: native-${{ matrix.target }}
+          name: native-macos-aarch64
           path: build/install/lib/libgoldberry.dylib
           if-no-files-found: error
 
   verify:
     name: Verify layouts (macos-aarch64)
     needs: natives
-    # A matrix job fails if any leg does, so a macos-x64 failure would otherwise
-    # skip verification of the aarch64 library it has nothing to do with. A
-    # genuinely missing artifact fails at the download step (ADR-0016).
+    # Runs even if the build job failed, so that a missing artifact fails at the
+    # download step below rather than skipping this job silently (ADR-0016).
     if: ${{ !cancelled() }}
     runs-on: macos-14
     steps:
@@ -103,3 +96,22 @@ jobs:
           ./gradlew :natives:test --no-daemon \
             -Dgoldberry.native.library="$PWD/native-lib/libgoldberry.dylib" \
             -Dgoldberry.native.required=true
+
+      # The rendered output, compared against committed images (ADR-0050, §14).
+      # No display, no compositor, no Xvfb: Frame paints into memory, so this is
+      # the same check on every platform. The point of running it on all three is
+      # that Blend2D JITs its pipelines per CPU -- if AVX2 and NEON ever disagree
+      # by more than a rounding step, this is where it surfaces.
+      - name: Golden images
+        run: |
+          ./gradlew :core:test --no-daemon --tests "*GoldenImageTest*" \
+            -Dgoldberry.native.library="$PWD/native-lib/libgoldberry.dylib" \
+            -Dgoldberry.native.required=true
+
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: golden-failures-macos-aarch64
+          path: core/build/golden-failures
+          if-no-files-found: ignore
+

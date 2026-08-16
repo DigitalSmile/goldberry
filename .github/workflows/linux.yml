@@ -66,13 +66,21 @@ jobs:
       - name: Install build tools
         run: |
           # AlmaLinux 8's cmake is older than the 3.28 the superbuild requires,
-          # so cmake/ninja/meson come from pip instead of dnf.
+          # so cmake and ninja come from pip instead of dnf. Meson is no longer
+          # needed: libxkbcommon was the only meson-built dependency and it is
+          # gone (ADR-0055).
           dnf install -y \
             libxml2-devel wayland-devel wayland-protocols-devel \
             libX11-devel libxcb-devel libXext-devel libXrandr-devel \
-            libXcursor-devel libXi-devel libXfixes-devel \
+            libXcursor-devel libXi-devel libXfixes-devel libXtst-devel \
+            libxkbcommon-devel libxkbfile-devel \
             alsa-lib-devel pulseaudio-libs-devel
-          /opt/python/cp312-cp312/bin/pip install --upgrade cmake ninja meson
+          # libXtst-devel is a hard dependency of SDL's X11 driver, not an
+          # optional one: CheckX11 stops the configure with "Couldn't find
+          # dependency package for XTEST" rather than skipping it. Same reason
+          # as example.yml -- kept on rather than -DSDL_X11_XTEST=OFF, because it
+          # is what SDL warps the pointer with on X11.
+          /opt/python/cp312-cp312/bin/pip install --upgrade cmake ninja
           echo /opt/python/cp312-cp312/bin >> $GITHUB_PATH
 
       - name: Configure
@@ -141,3 +149,22 @@ jobs:
           ./gradlew :natives:test --no-daemon \
             -Dgoldberry.native.library="$PWD/native-lib/libgoldberry.so" \
             -Dgoldberry.native.required=true
+
+      # The rendered output, compared against committed images (ADR-0050, §14).
+      # No display, no compositor, no Xvfb: Frame paints into memory, so this is
+      # the same check on every platform. The point of running it on all three is
+      # that Blend2D JITs its pipelines per CPU -- if AVX2 and NEON ever disagree
+      # by more than a rounding step, this is where it surfaces.
+      - name: Golden images
+        run: |
+          ./gradlew :core:test --no-daemon --tests "*GoldenImageTest*" \
+            -Dgoldberry.native.library="$PWD/native-lib/libgoldberry.so" \
+            -Dgoldberry.native.required=true
+
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: golden-failures-${{ matrix.target }}
+          path: core/build/golden-failures
+          if-no-files-found: ignore
+

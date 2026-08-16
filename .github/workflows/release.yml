@@ -1,4 +1,4 @@
-# Release: all six artifacts, packaged into the §15 classifier jars.
+# Release: all four artifacts, packaged into the §15 classifier jars.
 #
 # The per-OS workflows are reused via `workflow_call` rather than duplicated, so
 # there is exactly one definition of how each platform builds. Because a called

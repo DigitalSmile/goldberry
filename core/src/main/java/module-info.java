@@ -18,10 +18,37 @@ module io.github.digitalsmile.goldberry.core {
     // pack, needs to name what it is replacing.
     exports io.github.digitalsmile.goldberry.assets;
 
+    // The CSS engine (ADR-0049): stylesheets, the cascade, and the ComputedStyle
+    // a render object is styled by (§8, ADR-0004). Exported because loading a
+    // stylesheet and choosing a theme are things an application does.
+    exports io.github.digitalsmile.goldberry.css;
+
+    // KDL 2.0 markup and the inflater registry (§9, ADR-0051). Exported
+    // because an application registers its own widgets in the same registry the
+    // built-ins use.
+    exports io.github.digitalsmile.goldberry.kdl;
+
+    // Hot reload of stylesheets and markup (§1, §8, ADR-0051).
+    exports io.github.digitalsmile.goldberry.reload;
+
+    // The widget and element trees (ADR-0004, ADR-0052). The declarative layer
+    // an application writes in, and the persistent tree the cascade, focus and
+    // state hang off.
+    exports io.github.digitalsmile.goldberry.widget;
+
+    // Pointer input: hit testing against the painted frame, and the dispatch
+    // that turns it into events, pseudo-classes and focus (§7, ADR-0054).
+    exports io.github.digitalsmile.goldberry.input;
+
     // Where Yoga's layout meets Blend2D's painting (ADR-0033). Not the widget
     // model -- that is still open (ADR-0004) -- but the join between the two
     // engines, so the seam is exercised before a widget tree lands on it.
     exports io.github.digitalsmile.goldberry.layout;
+
+    // Icons: the bundled Lucide set and the SVG path reader that gets it onto a
+    // Blend2D path (ADR-0043). Separate from `text` because an icon shares
+    // nothing with the font chain except the context it is drawn into.
+    exports io.github.digitalsmile.goldberry.icon;
 
     // Where HarfBuzz's shaping meets Blend2D's rasterizer (ADR-0034). The two
     // libraries know nothing of each other, and this package is what holds them

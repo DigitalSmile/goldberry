@@ -165,6 +165,47 @@ static const goldberry_layout_entry_t GOLDBERRY_LAYOUTS[] = {
     GB_FIELD(SDL_WindowEvent, data1),
     GB_FIELD(SDL_WindowEvent, data2),
 
+    GB_STRUCT(SDL_MouseMotionEvent),
+    GB_FIELD(SDL_MouseMotionEvent, type),
+    GB_FIELD(SDL_MouseMotionEvent, timestamp),
+    GB_FIELD(SDL_MouseMotionEvent, windowID),
+    GB_FIELD(SDL_MouseMotionEvent, which),
+    GB_FIELD(SDL_MouseMotionEvent, state),
+    GB_FIELD(SDL_MouseMotionEvent, x),
+    GB_FIELD(SDL_MouseMotionEvent, y),
+    GB_FIELD(SDL_MouseMotionEvent, xrel),
+    GB_FIELD(SDL_MouseMotionEvent, yrel),
+
+    GB_STRUCT(SDL_MouseButtonEvent),
+    GB_FIELD(SDL_MouseButtonEvent, type),
+    GB_FIELD(SDL_MouseButtonEvent, timestamp),
+    GB_FIELD(SDL_MouseButtonEvent, windowID),
+    GB_FIELD(SDL_MouseButtonEvent, which),
+    GB_FIELD(SDL_MouseButtonEvent, button),
+    GB_FIELD(SDL_MouseButtonEvent, down),
+    GB_FIELD(SDL_MouseButtonEvent, clicks),
+    GB_FIELD(SDL_MouseButtonEvent, padding),
+    GB_FIELD(SDL_MouseButtonEvent, x),
+    GB_FIELD(SDL_MouseButtonEvent, y),
+
+    GB_STRUCT(SDL_KeyboardEvent),
+    GB_FIELD(SDL_KeyboardEvent, type),
+    GB_FIELD(SDL_KeyboardEvent, timestamp),
+    GB_FIELD(SDL_KeyboardEvent, windowID),
+    GB_FIELD(SDL_KeyboardEvent, which),
+    GB_FIELD(SDL_KeyboardEvent, scancode),
+    GB_FIELD(SDL_KeyboardEvent, key),
+    GB_FIELD(SDL_KeyboardEvent, mod),
+    GB_FIELD(SDL_KeyboardEvent, raw),
+    GB_FIELD(SDL_KeyboardEvent, down),
+    GB_FIELD(SDL_KeyboardEvent, repeat),
+
+    GB_STRUCT(SDL_TextInputEvent),
+    GB_FIELD(SDL_TextInputEvent, type),
+    GB_FIELD(SDL_TextInputEvent, timestamp),
+    GB_FIELD(SDL_TextInputEvent, windowID),
+    GB_FIELD(SDL_TextInputEvent, text),
+
     GB_STRUCT(SDL_Surface),
     GB_FIELD(SDL_Surface, flags),
     GB_FIELD(SDL_Surface, format),
@@ -175,6 +216,17 @@ static const goldberry_layout_entry_t GOLDBERRY_LAYOUTS[] = {
     GB_FIELD(SDL_Surface, refcount),
     GB_FIELD(SDL_Surface, reserved),
 
+    GB_STRUCT(SDL_DisplayMode),
+    GB_FIELD(SDL_DisplayMode, displayID),
+    GB_FIELD(SDL_DisplayMode, format),
+    GB_FIELD(SDL_DisplayMode, w),
+    GB_FIELD(SDL_DisplayMode, h),
+    GB_FIELD(SDL_DisplayMode, pixel_density),
+    GB_FIELD(SDL_DisplayMode, refresh_rate),
+    GB_FIELD(SDL_DisplayMode, refresh_rate_numerator),
+    GB_FIELD(SDL_DisplayMode, refresh_rate_denominator),
+    GB_FIELD(SDL_DisplayMode, internal),
+
     GB_STRUCT(SDL_Rect),
     GB_FIELD(SDL_Rect, x),
     GB_FIELD(SDL_Rect, y),
@@ -183,6 +235,12 @@ static const goldberry_layout_entry_t GOLDBERRY_LAYOUTS[] = {
 
     /* Event types Goldberry dispatches on. */
     GB_CONSTANT("SDL_EVENT_QUIT", SDL_EVENT_QUIT),
+    GB_CONSTANT("SDL_EVENT_KEY_DOWN", SDL_EVENT_KEY_DOWN),
+    GB_CONSTANT("SDL_EVENT_KEY_UP", SDL_EVENT_KEY_UP),
+    GB_CONSTANT("SDL_EVENT_TEXT_INPUT", SDL_EVENT_TEXT_INPUT),
+    GB_CONSTANT("SDL_EVENT_MOUSE_MOTION", SDL_EVENT_MOUSE_MOTION),
+    GB_CONSTANT("SDL_EVENT_MOUSE_BUTTON_DOWN", SDL_EVENT_MOUSE_BUTTON_DOWN),
+    GB_CONSTANT("SDL_EVENT_MOUSE_BUTTON_UP", SDL_EVENT_MOUSE_BUTTON_UP),
     GB_CONSTANT("SDL_EVENT_WINDOW_EXPOSED", SDL_EVENT_WINDOW_EXPOSED),
     GB_CONSTANT("SDL_EVENT_WINDOW_RESIZED", SDL_EVENT_WINDOW_RESIZED),
     GB_CONSTANT("SDL_EVENT_WINDOW_PIXEL_SIZE_CHANGED", SDL_EVENT_WINDOW_PIXEL_SIZE_CHANGED),
@@ -388,6 +446,29 @@ static const goldberry_layout_entry_t GOLDBERRY_LAYOUTS[] = {
     GB_FIELD(BLFontMetrics, underline_thickness),
     GB_FIELD(BLFontMetrics, strikethrough_position),
     GB_FIELD(BLFontMetrics, strikethrough_thickness),
+
+    /*
+     * Paths and strokes (ADR-0043).
+     *
+     * BLPathCore is BLObjectDetail-shaped like every other core object, so this
+     * row says what BLImageCore's does: the Java side allocates one by this
+     * size.
+     *
+     * The stroke enumerators matter more than they look. Both enumerate
+     * positionally and neither is alphabetical -- BL_STROKE_JOIN_ROUND is 4 and
+     * BL_STROKE_CAP_ROUND is 2, with a "reversed round" at 3 that no icon wants.
+     * A Java constant that drifted from either would draw every icon in the set
+     * with the wrong corners, on every platform at once, and return BL_SUCCESS.
+     */
+    GB_STRUCT(BLPathCore),
+
+    GB_CONSTANT("BL_STROKE_CAP_BUTT", BL_STROKE_CAP_BUTT),
+    GB_CONSTANT("BL_STROKE_CAP_SQUARE", BL_STROKE_CAP_SQUARE),
+    GB_CONSTANT("BL_STROKE_CAP_ROUND", BL_STROKE_CAP_ROUND),
+
+    GB_CONSTANT("BL_STROKE_JOIN_MITER_CLIP", BL_STROKE_JOIN_MITER_CLIP),
+    GB_CONSTANT("BL_STROKE_JOIN_BEVEL", BL_STROKE_JOIN_BEVEL),
+    GB_CONSTANT("BL_STROKE_JOIN_ROUND", BL_STROKE_JOIN_ROUND),
 
     /* Which Blend2D is linked in. A build fact, like SDL's version. */
     GB_STRUCT(BLRuntimeBuildInfo),

@@ -69,6 +69,24 @@ final class Blend2D {
     private final MethodHandle contextFillAllRgba32;
     private final MethodHandle contextFillRectDRgba32;
     private final MethodHandle contextFillGlyphRunDRgba32;
+    private final MethodHandle contextSetStrokeWidth;
+    private final MethodHandle contextSetStrokeCaps;
+    private final MethodHandle contextSetStrokeJoin;
+    private final MethodHandle contextFillPathDRgba32;
+    private final MethodHandle contextStrokePathDRgba32;
+
+    private final MethodHandle pathInit;
+    private final MethodHandle pathDestroy;
+    private final MethodHandle pathReset;
+    private final MethodHandle pathGetSize;
+    private final MethodHandle pathMoveTo;
+    private final MethodHandle pathLineTo;
+    private final MethodHandle pathQuadTo;
+    private final MethodHandle pathCubicTo;
+    private final MethodHandle pathSmoothQuadTo;
+    private final MethodHandle pathSmoothCubicTo;
+    private final MethodHandle pathEllipticArcTo;
+    private final MethodHandle pathClose;
 
     private final MethodHandle fontDataInit;
     private final MethodHandle fontDataCreateFromData;
@@ -134,6 +152,73 @@ final class Blend2D {
         this.contextFillGlyphRunDRgba32 = downcall(lookup, "bl_context_fill_glyph_run_d_rgba32",
                 resultOf(ValueLayout.ADDRESS, ValueLayout.ADDRESS, ValueLayout.ADDRESS,
                         ValueLayout.ADDRESS, ValueLayout.JAVA_INT));
+
+        // Stroke state (ADR-0043). Width is in the context's own units, so a
+        // scaled context strokes in logical pixels like everything else.
+        this.contextSetStrokeWidth = downcall(lookup, "bl_context_set_stroke_width",
+                resultOf(ValueLayout.ADDRESS, ValueLayout.JAVA_DOUBLE));
+        // `_caps`, plural: it sets both ends at once. The singular
+        // bl_context_set_stroke_cap takes a BLStrokeCapPosition as well, and
+        // nothing wants a path capped differently at each end.
+        this.contextSetStrokeCaps = downcall(lookup, "bl_context_set_stroke_caps",
+                resultOf(ValueLayout.ADDRESS, ValueLayout.JAVA_INT));
+        this.contextSetStrokeJoin = downcall(lookup, "bl_context_set_stroke_join",
+                resultOf(ValueLayout.ADDRESS, ValueLayout.JAVA_INT));
+        // BLResult bl_context_{fill,stroke}_path_d_rgba32(BLContextCore*,
+        //     const BLPoint* origin, const BLPathCore*, uint32_t)
+        //
+        // The origin translates the path without transforming the context, which
+        // is what lets one 24x24 icon path be drawn at several places in a frame
+        // without being rebuilt or the context's transform being saved.
+        this.contextFillPathDRgba32 = downcall(lookup, "bl_context_fill_path_d_rgba32",
+                resultOf(ValueLayout.ADDRESS, ValueLayout.ADDRESS, ValueLayout.ADDRESS,
+                        ValueLayout.JAVA_INT));
+        this.contextStrokePathDRgba32 = downcall(lookup, "bl_context_stroke_path_d_rgba32",
+                resultOf(ValueLayout.ADDRESS, ValueLayout.ADDRESS, ValueLayout.ADDRESS,
+                        ValueLayout.JAVA_INT));
+
+        // Paths. Every command is (BLPathCore*, doubles...) and returns BLResult,
+        // which is what makes this a long list of near-identical rows rather than
+        // a design.
+        this.pathInit = downcall(lookup, "bl_path_init", resultOf(ValueLayout.ADDRESS));
+        this.pathDestroy = downcall(lookup, "bl_path_destroy", resultOf(ValueLayout.ADDRESS));
+        this.pathReset = downcall(lookup, "bl_path_reset", resultOf(ValueLayout.ADDRESS));
+        // size_t, not BLResult -- the one path call that is not an operation.
+        this.pathGetSize = downcall(lookup, "bl_path_get_size",
+                FunctionDescriptor.of(ValueLayout.JAVA_LONG, ValueLayout.ADDRESS));
+        this.pathMoveTo = downcall(lookup, "bl_path_move_to",
+                resultOf(ValueLayout.ADDRESS, ValueLayout.JAVA_DOUBLE, ValueLayout.JAVA_DOUBLE));
+        this.pathLineTo = downcall(lookup, "bl_path_line_to",
+                resultOf(ValueLayout.ADDRESS, ValueLayout.JAVA_DOUBLE, ValueLayout.JAVA_DOUBLE));
+        this.pathQuadTo = downcall(lookup, "bl_path_quad_to",
+                resultOf(ValueLayout.ADDRESS, ValueLayout.JAVA_DOUBLE, ValueLayout.JAVA_DOUBLE,
+                        ValueLayout.JAVA_DOUBLE, ValueLayout.JAVA_DOUBLE));
+        this.pathCubicTo = downcall(lookup, "bl_path_cubic_to",
+                resultOf(ValueLayout.ADDRESS, ValueLayout.JAVA_DOUBLE, ValueLayout.JAVA_DOUBLE,
+                        ValueLayout.JAVA_DOUBLE, ValueLayout.JAVA_DOUBLE,
+                        ValueLayout.JAVA_DOUBLE, ValueLayout.JAVA_DOUBLE));
+        // SVG's `S` and `T`: the first control point is the reflection of the
+        // previous one. Blend2D does that reflection itself, against the command
+        // it actually recorded -- which is the definition SVG gives, and not the
+        // one a caller tracking "the last control point" in Java would arrive at
+        // after a `Z` or a bare `M`.
+        this.pathSmoothQuadTo = downcall(lookup, "bl_path_smooth_quad_to",
+                resultOf(ValueLayout.ADDRESS, ValueLayout.JAVA_DOUBLE, ValueLayout.JAVA_DOUBLE));
+        this.pathSmoothCubicTo = downcall(lookup, "bl_path_smooth_cubic_to",
+                resultOf(ValueLayout.ADDRESS, ValueLayout.JAVA_DOUBLE, ValueLayout.JAVA_DOUBLE,
+                        ValueLayout.JAVA_DOUBLE, ValueLayout.JAVA_DOUBLE));
+        // BLResult bl_path_elliptic_arc_to(BLPathCore*, double rx, double ry,
+        //     double x_axis_rotation, bool large_arc, bool sweep, double x1, double y1)
+        //
+        // SVG's `A` command, argument for argument and flag for flag. The two
+        // `bool`s are C `_Bool`, one byte -- JAVA_BOOLEAN, not JAVA_INT, which
+        // would put four bytes where the ABI expects one and shift every
+        // argument after them.
+        this.pathEllipticArcTo = downcall(lookup, "bl_path_elliptic_arc_to",
+                resultOf(ValueLayout.ADDRESS, ValueLayout.JAVA_DOUBLE, ValueLayout.JAVA_DOUBLE,
+                        ValueLayout.JAVA_DOUBLE, ValueLayout.JAVA_BOOLEAN, ValueLayout.JAVA_BOOLEAN,
+                        ValueLayout.JAVA_DOUBLE, ValueLayout.JAVA_DOUBLE));
+        this.pathClose = downcall(lookup, "bl_path_close", resultOf(ValueLayout.ADDRESS));
 
         // The three font objects. Each `create` REPLACES what the handle holds,
         // so each one has to be `init`ed first -- Blend2D releases the previous
@@ -351,6 +436,160 @@ final class Blend2D {
         } catch (Throwable t) {
             throw failure("bl_context_fill_glyph_run_d_rgba32", t);
         }
+    }
+
+    // --- paths and strokes (ADR-0043) -----------------------------------------
+
+    void contextSetStrokeWidth(MemorySegment context, double width) {
+        int result;
+        try {
+            result = (int) contextSetStrokeWidth.invokeExact(context, width);
+        } catch (Throwable t) {
+            throw failure("bl_context_set_stroke_width", t);
+        }
+        check("bl_context_set_stroke_width", result);
+    }
+
+    void contextSetStrokeCaps(MemorySegment context, BlendStrokeCap cap) {
+        int result;
+        try {
+            result = (int) contextSetStrokeCaps.invokeExact(context, cap.nativeValue());
+        } catch (Throwable t) {
+            throw failure("bl_context_set_stroke_caps", t);
+        }
+        check("bl_context_set_stroke_caps", result);
+    }
+
+    void contextSetStrokeJoin(MemorySegment context, BlendStrokeJoin join) {
+        int result;
+        try {
+            result = (int) contextSetStrokeJoin.invokeExact(context, join.nativeValue());
+        } catch (Throwable t) {
+            throw failure("bl_context_set_stroke_join", t);
+        }
+        check("bl_context_set_stroke_join", result);
+    }
+
+    void contextFillPath(MemorySegment context, MemorySegment origin, MemorySegment path, int argb) {
+        int result;
+        try {
+            result = (int) contextFillPathDRgba32.invokeExact(context, origin, path, argb);
+        } catch (Throwable t) {
+            throw failure("bl_context_fill_path_d_rgba32", t);
+        }
+        check("bl_context_fill_path_d_rgba32", result);
+    }
+
+    void contextStrokePath(
+            MemorySegment context, MemorySegment origin, MemorySegment path, int argb) {
+        int result;
+        try {
+            result = (int) contextStrokePathDRgba32.invokeExact(context, origin, path, argb);
+        } catch (Throwable t) {
+            throw failure("bl_context_stroke_path_d_rgba32", t);
+        }
+        check("bl_context_stroke_path_d_rgba32", result);
+    }
+
+    void pathInit(MemorySegment path) {
+        check("bl_path_init", invoke(pathInit, path));
+    }
+
+    void pathDestroy(MemorySegment path) {
+        check("bl_path_destroy", invoke(pathDestroy, path));
+    }
+
+    void pathReset(MemorySegment path) {
+        check("bl_path_reset", invoke(pathReset, path));
+    }
+
+    /// How many vertices the path holds. Used by the tests, which is how "the
+    /// parser really issued the commands" becomes a number rather than a claim.
+    long pathSize(MemorySegment path) {
+        try {
+            return (long) pathGetSize.invokeExact(path);
+        } catch (Throwable t) {
+            throw failure("bl_path_get_size", t);
+        }
+    }
+
+    void pathMoveTo(MemorySegment path, double x, double y) {
+        int result;
+        try {
+            result = (int) pathMoveTo.invokeExact(path, x, y);
+        } catch (Throwable t) {
+            throw failure("bl_path_move_to", t);
+        }
+        check("bl_path_move_to", result);
+    }
+
+    void pathLineTo(MemorySegment path, double x, double y) {
+        int result;
+        try {
+            result = (int) pathLineTo.invokeExact(path, x, y);
+        } catch (Throwable t) {
+            throw failure("bl_path_line_to", t);
+        }
+        check("bl_path_line_to", result);
+    }
+
+    void pathQuadTo(MemorySegment path, double x1, double y1, double x2, double y2) {
+        int result;
+        try {
+            result = (int) pathQuadTo.invokeExact(path, x1, y1, x2, y2);
+        } catch (Throwable t) {
+            throw failure("bl_path_quad_to", t);
+        }
+        check("bl_path_quad_to", result);
+    }
+
+    void pathCubicTo(
+            MemorySegment path,
+            double x1, double y1, double x2, double y2, double x3, double y3) {
+        int result;
+        try {
+            result = (int) pathCubicTo.invokeExact(path, x1, y1, x2, y2, x3, y3);
+        } catch (Throwable t) {
+            throw failure("bl_path_cubic_to", t);
+        }
+        check("bl_path_cubic_to", result);
+    }
+
+    void pathSmoothQuadTo(MemorySegment path, double x2, double y2) {
+        int result;
+        try {
+            result = (int) pathSmoothQuadTo.invokeExact(path, x2, y2);
+        } catch (Throwable t) {
+            throw failure("bl_path_smooth_quad_to", t);
+        }
+        check("bl_path_smooth_quad_to", result);
+    }
+
+    void pathSmoothCubicTo(MemorySegment path, double x2, double y2, double x3, double y3) {
+        int result;
+        try {
+            result = (int) pathSmoothCubicTo.invokeExact(path, x2, y2, x3, y3);
+        } catch (Throwable t) {
+            throw failure("bl_path_smooth_cubic_to", t);
+        }
+        check("bl_path_smooth_cubic_to", result);
+    }
+
+    void pathEllipticArcTo(
+            MemorySegment path,
+            double rx, double ry, double rotation, boolean largeArc, boolean sweep,
+            double x, double y) {
+        int result;
+        try {
+            result = (int) pathEllipticArcTo.invokeExact( path, rx, ry, rotation, largeArc, sweep, x, y);
+        } catch (Throwable t) {
+            throw failure("bl_path_elliptic_arc_to", t);
+        }
+        check("bl_path_elliptic_arc_to", result);
+    }
+
+    void pathClose(MemorySegment path) {
+        check("bl_path_close", invoke(pathClose, path));
     }
 
     // --- fonts ---------------------------------------------------------------

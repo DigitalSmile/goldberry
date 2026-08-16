@@ -3,13 +3,16 @@ package io.github.digitalsmile.goldberry.example;
 import io.github.digitalsmile.goldberry.Goldberry;
 import io.github.digitalsmile.goldberry.Window;
 import io.github.digitalsmile.goldberry.assets.BundledFont;
+import io.github.digitalsmile.goldberry.icon.Icon;
 import io.github.digitalsmile.goldberry.layout.Box;
 import io.github.digitalsmile.goldberry.layout.BoxPainter;
 import io.github.digitalsmile.goldberry.natives.yoga.Align;
 import io.github.digitalsmile.goldberry.natives.yoga.FlexDirection;
 import io.github.digitalsmile.goldberry.natives.yoga.StyleLength;
 import io.github.digitalsmile.goldberry.text.Font;
+import io.github.digitalsmile.goldberry.text.FontFace;
 import io.github.digitalsmile.goldberry.text.Paragraph;
+import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -46,6 +49,11 @@ public final class Showcase {
     /// having a measure function buys.
     private static final float BAR_HEIGHT = 32;
     private static final float PADDING = 16;
+
+    /// The icons in the sidebar, in logical pixels. A third number, and the only
+    /// one added since ADR-0036 — an icon has no intrinsic size to take from
+    /// content the way a paragraph does.
+    private static final float ICON_SIZE = 24;
 
     /// The prose the body wraps. Long on purpose: the point of the window is to
     /// be resized, and wrapping is the thing to watch while it is.
@@ -108,15 +116,18 @@ public final class Showcase {
 
         var window = Window.open("Goldberry — showcase", widthOf(args), heightOf(args));
 
-        // On the UI thread, and it has to stay there: a Font owns native objects
-        // from two libraries and is confined to the thread that built it. This
-        // is that thread — Window.open runs on it, and so does every paint.
+        // On the UI thread, and it has to stay there: these own native objects
+        // from two libraries and are confined to the thread that built them.
+        // This is that thread — Window.open runs on it, and so does every paint.
         //
-        // One Font per size, held for the life of the window. Building one per
-        // frame would parse the face and copy a megabyte of outlines sixty times
-        // a second; a font cache is what will make several sizes affordable.
-        var titleFont = Font.bundled(BundledFont.UI, 16);
-        var bodyFont = Font.bundled(BundledFont.UI, 14);
+        // One face, two sizes. Inter is parsed once and its bytes are held once
+        // per library rather than once per size, which is three megabytes here
+        // instead of six (ADR-0044). Everything is held for the life of the
+        // window: building any of it per frame would put font parsing on the
+        // frame path.
+        var uiFace = FontFace.bundled(BundledFont.UI);
+        var titleFont = Font.on(uiFace, 16);
+        var bodyFont = Font.on(uiFace, 14);
 
         // Shaped once, here, and re-wrapped on every resize without being shaped
         // again (ADR-0036). Building these in the paint callback would put font
@@ -124,6 +135,14 @@ public final class Showcase {
         var layout = layout(
                 Paragraph.of(titleFont, "Goldberry"),
                 Paragraph.of(bodyFont, BODY_TEXT));
+
+        // One icon per size, for the same reason there is one Font per size: the
+        // path is built scaled, so nothing is transformed at draw time
+        // (ADR-0043). Three of Lucide's 1544, down the sidebar.
+        var icons = List.of(
+                Icon.bundled("layout-dashboard", ICON_SIZE),
+                Icon.bundled("type", ICON_SIZE),
+                Icon.bundled("palette", ICON_SIZE));
 
         window.onPaint(frame -> {
             // Yoga lays the tree out at the frame's logical size, asking the
@@ -133,8 +152,26 @@ public final class Showcase {
             // knows whether the screen runs at 100% or 150%.
             BoxPainter.paint(frame, layout);
 
+            // Drawn over the sidebar rather than laid out in it: an icon is not
+            // a box yet, because nothing decides what its intrinsic size is
+            // until the widget model does (ADR-0004). Positioned against the
+            // same two numbers the layout uses, so it moves with the bar.
+            for (var i = 0; i < icons.size(); i++) {
+                icons.get(i).draw(
+                        frame,
+                        PADDING * 2,
+                        BAR_HEIGHT + PADDING * 2 + i * (ICON_SIZE + PADDING),
+                        ON_PANEL);
+            }
+
             painted[0]++;
-            LOG.info("painted frame {} at {}", painted[0], frame.pixelSize());
+            // Not every frame. This runs *inside* the paint callback, so it is
+            // inside what `Window` reports as paint time — at 300 frames a
+            // console write per frame was 0.4 ms of the measurement, which is
+            // the instrument changing the reading (ADR-0045).
+            if (painted[0] <= 3 || painted[0] % 50 == 0) {
+                LOG.info("painted frame {} at {}", painted[0], frame.pixelSize());
+            }
 
             if (frameLimit > 0) {
                 if (painted[0] >= frameLimit) {
@@ -162,9 +199,14 @@ public final class Showcase {
             Goldberry.run();
         } finally {
             // After the loop, not in a try-with-resources around it: the paint
-            // callback holds both fonts and runs until `run` returns.
+            // callback holds both fonts and the icons, and runs until `run`
+            // returns.
+            icons.forEach(Icon::close);
+            // Sizes first, then the face they share: closing the face while a
+            // font still holds it leaves Blend2D reading unmapped memory.
             bodyFont.close();
             titleFont.close();
+            uiFace.close();
 
             // And then hand the window back before the process goes away.
             //

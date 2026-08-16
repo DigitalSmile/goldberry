@@ -54,6 +54,125 @@ application {
 // Not published: it is a demonstration, not an artifact (§15).
 tasks.withType(PublishToMavenRepository).configureEach { enabled = false }
 
+// --- Runnable image (ADR-0048) -------------------------------------------
+//
+// A self-contained showcase: a trimmed JDK from jlink, the application modules,
+// libgoldberry, and a launcher. No JDK on the machine, no Gradle, no arguments
+// to remember.
+//
+// jlink and not jpackage: jpackage produces a .deb/.dmg/.msi, which means code
+// signing on two of the three platforms and a notarization story on one. The
+// showcase is something to double-click from a CI artifact, not something to
+// install -- and jlink needs no signing identity to produce it.
+//
+// Cross-compiling an image is possible (jlink takes the target's jmods) but not
+// done here: each platform's image is built on its own runner, because the
+// libgoldberry that goes inside it has to be built there anyway.
+
+def appModule = 'io.github.digitalsmile.goldberry.example'
+
+// Runtime-only, so nothing `requires` it and module resolution would leave it
+// out of the image. Named explicitly, which is also what binds SLF4J's
+// ServiceLoader provider (ADR-0023).
+def runtimeOnlyModules = ['ch.qos.logback.classic']
+
+def imageDir = layout.buildDirectory.dir("jlink/goldberry-showcase-${hostTarget}")
+
+def jlinkTool = javaToolchains.launcherFor(java.toolchain).map {
+    it.metadata.installationPath.file('bin/jlink').asFile.absolutePath
+}
+
+tasks.register('jlinkImage', Exec) {
+    group = 'distribution'
+    description = 'Builds a self-contained runnable showcase for the host platform'
+    dependsOn tasks.named('jar')
+
+    def runtimeClasspath = configurations.runtimeClasspath
+    def appJar = tasks.named('jar').flatMap { it.archiveFile }
+    def target = imageDir
+
+    inputs.files(runtimeClasspath).withPathSensitivity(PathSensitivity.RELATIVE)
+    inputs.files(appJar)
+    outputs.dir(target)
+
+    doFirst {
+        // jlink refuses to write into a directory that exists, so the task owns
+        // clearing it rather than the caller remembering to.
+        target.get().asFile.deleteDir()
+
+        def modulePath = (runtimeClasspath.files.toList() + [appJar.get().asFile])
+                .collect { it.absolutePath }
+                .join(File.pathSeparator)
+
+        commandLine jlinkTool.get(),
+                '--module-path', modulePath,
+                '--add-modules', ([appModule] + runtimeOnlyModules).join(','),
+                '--output', target.get().asFile.absolutePath,
+                // Smaller image. `--strip-debug` removes debug attributes from
+                // the JDK's own classes, not from the application's.
+                '--strip-debug',
+                '--no-header-files',
+                '--no-man-pages',
+                '--compress', 'zip-6'
+    }
+}
+
+// The library and the launcher, which jlink cannot produce itself: its
+// `--launcher` writes a fixed command line, and the path to libgoldberry is only
+// known relative to wherever the image is unpacked.
+tasks.register('showcaseImage') {
+    group = 'distribution'
+    description = 'jlink image plus libgoldberry and a launcher script'
+    dependsOn tasks.named('jlinkImage')
+
+    def target = imageDir
+    def library = hostLibrary
+    def macos = hostTarget.startsWith('macos')
+    def windows = hostTarget.startsWith('windows')
+    outputs.dir(target)
+
+    doLast {
+        def image = target.get().asFile
+        def libDir = new File(image, 'lib/goldberry')
+        libDir.mkdirs()
+        if (!library.isFile()) {
+            throw new GradleException(
+                    "no libgoldberry at ${library}. Build it first: ./gradlew :natives:cmakeBuild")
+        }
+        def packagedLibrary = new File(libDir, library.name)
+        packagedLibrary.bytes = library.bytes
+
+        // JEP 472 again: the image runs on the module path like `run` does, so
+        // the same module has to be named here or every downcall is refused.
+        def vmArgs = ['--enable-native-access=io.github.digitalsmile.goldberry.natives']
+        if (macos) {
+            vmArgs += '-XstartOnFirstThread'  // ADR-0039
+        }
+
+        if (windows) {
+            new File(image, 'bin/showcase.bat').text = """\
+@echo off
+setlocal
+set APP_HOME=%~dp0..
+"%APP_HOME%\\bin\\java.exe" ${vmArgs.join(' ')} ^
+  -Dgoldberry.native.library="%APP_HOME%\\lib\\goldberry\\${library.name}" ^
+  -m ${appModule}/io.github.digitalsmile.goldberry.example.Showcase %*
+"""
+        } else {
+            def launcher = new File(image, 'bin/showcase')
+            launcher.text = """\
+#!/bin/sh
+# Resolved at run time, not baked in: the image is moved by whoever unpacks it.
+APP_HOME=\$(cd "\$(dirname "\$0")/.." && pwd)
+exec "\$APP_HOME/bin/java" ${vmArgs.join(' ')} \\
+  -Dgoldberry.native.library="\$APP_HOME/lib/goldberry/${library.name}" \\
+  -m ${appModule}/io.github.digitalsmile.goldberry.example.Showcase "\$@"
+"""
+            launcher.setExecutable(true, false)
+        }
+    }
+}
+
 tasks.named('run') {
     // An explicitly supplied path wins, so CI can point at a downloaded
     // artifact. Otherwise fall back to whatever the local superbuild produced.
@@ -74,6 +193,15 @@ tasks.named('run') {
             .orElse(providers.gradleProperty('goldberry.log.level'))
     if (logLevel.present) {
         systemProperty 'goldberry.log.level', logLevel.get()
+    }
+
+    // Same forwarding, for the paint knobs. Without it these reach the Gradle
+    // daemon and stop there.
+    ['goldberry.paint.threads', 'goldberry.backend.vsync', 'goldberry.frame.rate'].each { name ->
+        var value = providers.systemProperty(name).orElse(providers.gradleProperty(name))
+        if (value.present) {
+            systemProperty name, value.get()
+        }
     }
 
     // Lets CI open a window, confirm it, and exit without a human closing it.

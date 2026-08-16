@@ -196,6 +196,59 @@ public final class HeadlessWindow implements BackendWindow {
         backend.post(new BackendEvent.CloseRequested(this));
     }
 
+    /// Queues a pointer move, as the platform would.
+    ///
+    /// The headless backend exists so the SPI's rules can be tested without a
+    /// display (ADR-0019); pointer events are no different, and a test that had
+    /// to open a window to check a hover would not run in CI.
+    public void movePointer(float x, float y) {
+        backend.requireUiThread();
+        requireOpen();
+        backend.post(new BackendEvent.PointerMoved(this, x, y));
+    }
+
+    /// Queues a pointer press. `button` is SDL's numbering: 1 is primary.
+    public void pressPointer(float x, float y, int button, int clickCount) {
+        backend.requireUiThread();
+        requireOpen();
+        backend.post(new BackendEvent.PointerPressed(this, x, y, button, clickCount));
+    }
+
+    /// Queues a pointer release.
+    public void releasePointer(float x, float y, int button, int clickCount) {
+        backend.requireUiThread();
+        requireOpen();
+        backend.post(new BackendEvent.PointerReleased(this, x, y, button, clickCount));
+    }
+
+    /// Queues the pointer leaving the window.
+    public void exitPointer() {
+        backend.requireUiThread();
+        requireOpen();
+        backend.post(new BackendEvent.PointerExited(this));
+    }
+
+    /// Queues a key press. `keycode` is SDL's virtual keycode.
+    public void pressKey(int keycode, int modifiers, boolean repeat) {
+        backend.requireUiThread();
+        requireOpen();
+        backend.post(new BackendEvent.KeyPressed(this, keycode, modifiers, repeat));
+    }
+
+    /// Queues a key release.
+    public void releaseKey(int keycode, int modifiers) {
+        backend.requireUiThread();
+        requireOpen();
+        backend.post(new BackendEvent.KeyReleased(this, keycode, modifiers));
+    }
+
+    /// Queues committed text, as the platform's own translation would produce.
+    public void inputText(String text) {
+        backend.requireUiThread();
+        requireOpen();
+        backend.post(new BackendEvent.TextInput(this, Objects.requireNonNull(text, "text")));
+    }
+
     /// Queues an expose, as an uncovered or restored window would.
     public void expose() {
         backend.requireUiThread();

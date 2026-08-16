@@ -114,6 +114,17 @@ def hostNativeLibrary = project(':natives').ext.hostNativeLibrary
 tasks.withType(Test).configureEach {
     jvmArgs '--enable-native-access=ALL-UNNAMED'
 
+    // Forwarded to the forked test JVM, because that is where the tests run.
+    // Without this the flag reaches the Gradle daemon and stops there, and
+    // `-Dgoldberry.golden.update=true` looks like it does nothing -- which is
+    // exactly how it behaved the first time it was tried.
+    ['goldberry.golden.update', 'goldberry.native.required'].each { name ->
+        var value = providers.systemProperty(name).orElse(providers.gradleProperty(name))
+        if (value.present) {
+            systemProperty name, value.get()
+        }
+    }
+
     // Set unconditionally, existence decided at execution time -- testing for
     // the file here would read the filesystem during configuration, before
     // cmakeBuild has had a chance to run. RendererRequirement is what turns a

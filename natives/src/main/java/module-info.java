@@ -1,5 +1,5 @@
 /// Goldberry native layer: hand-written FFM bindings for Blend2D, Yoga,
-/// HarfBuzz, SDL3, and libxkbcommon (ADR-0010), plus the thin owning wrappers
+/// HarfBuzz and SDL3 (ADR-0010), plus the thin owning wrappers
 /// around them.
 ///
 /// This module exports nothing yet, and that is the point. Per

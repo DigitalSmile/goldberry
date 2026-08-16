@@ -195,3 +195,37 @@ good toolchain installed, which is the failure this record is about;
 configure time. Moving Ninja now needs a reconfigure rather than being picked up
 silently — which is the same trade the absolute `cmake` makes, and the same
 answer: a build that changes tools without saying so is the harder problem.
+
+## Addendum, 2026-08-16: the superbuild ran a different meson
+
+This record's own failure mode survived one layer below where it was fixed.
+`checkToolchain` resolved meson to an absolute path, checked its version against
+libxkbcommon's floor, and printed it — and the superbuild then ran a bare
+`meson`, because `CMakeLists.txt` spelled the `ExternalProject` commands that
+way. Three processes down from Gradle, through CMake and Ninja, that resolves
+against whatever `PATH` the chain happens to carry.
+
+The symptom was the shape this record describes: `checkToolchain` printing
+"meson 1.9.1 /home/…/meson19" immediately followed by the build failing on meson
+1.3.2's build directory. The check and the use were asking different things.
+
+Fixed the same way as Ninja: Gradle passes `-DGOLDBERRY_MESON=<absolute path>`
+at configure time, and the `ExternalProject` uses it, falling back to a bare
+`meson` only for a CI leg that drives CMake directly. **The general lesson is
+narrower than "use absolute paths": it is that any tool named inside a
+*generated* build — a CMake command, a Ninja rule, a script — is outside the
+reach of a check that only looks at what Gradle itself will spawn.**
+
+Two other things were found while getting there and are worth writing down:
+
+- The message this check produces when a tool *is* too old had never run.
+  `checkToolchain` built it with a `+` at the start of a continuation line,
+  which Groovy reads as unary plus on a `String` — so the branch that was meant
+  to say "meson 1.3.2 is too old, here is how to upgrade" threw
+  `No signature of method: java.lang.String.positive()` instead. A helpful
+  error path that nothing exercises is not a helpful error path.
+- Upgrading meson is not enough on its own: an `ExternalProject` build directory
+  configured by an older meson has to be removed, because meson refuses a
+  `build.dat` written by a version it does not recognise. That is upstream
+  behaviour and correct; it is recorded because the error names a file rather
+  than a cause.

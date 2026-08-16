@@ -144,6 +144,111 @@ public final class Layouts {
                     ValueLayout.JAVA_INT.withName("data2"),
                     MemoryLayout.paddingLayout(4)));
 
+    /// ```c
+    /// typedef struct SDL_MouseMotionEvent {
+    ///     SDL_EventType type; Uint32 reserved; Uint64 timestamp;
+    ///     SDL_WindowID windowID; SDL_MouseID which; SDL_MouseButtonFlags state;
+    ///     float x, y, xrel, yrel;
+    /// } SDL_MouseMotionEvent;
+    /// ```
+    ///
+    /// Read for `x` and `y`, which are **window-relative and already logical** —
+    /// SDL reports pointer positions in window coordinates, which is the space
+    /// §7 dispatches in.
+    public static final NativeStructLayout SDL_MOUSE_MOTION_EVENT = new NativeStructLayout(
+            "SDL_MouseMotionEvent",
+            MemoryLayout.structLayout(
+                    ValueLayout.JAVA_INT.withName("type"),
+                    MemoryLayout.paddingLayout(4),
+                    ValueLayout.JAVA_LONG.withName("timestamp"),
+                    ValueLayout.JAVA_INT.withName("windowID"),
+                    ValueLayout.JAVA_INT.withName("which"),
+                    ValueLayout.JAVA_INT.withName("state"),
+                    ValueLayout.JAVA_FLOAT.withName("x"),
+                    ValueLayout.JAVA_FLOAT.withName("y"),
+                    ValueLayout.JAVA_FLOAT.withName("xrel"),
+                    ValueLayout.JAVA_FLOAT.withName("yrel"),
+                    MemoryLayout.paddingLayout(4)));
+
+    /// ```c
+    /// typedef struct SDL_MouseButtonEvent {
+    ///     SDL_EventType type; Uint32 reserved; Uint64 timestamp;
+    ///     SDL_WindowID windowID; SDL_MouseID which;
+    ///     Uint8 button; bool down; Uint8 clicks; Uint8 padding;
+    ///     float x, y;
+    /// } SDL_MouseButtonEvent;
+    /// ```
+    ///
+    /// The three `Uint8`s packed against a `bool` are why this one is worth the
+    /// probe: `clicks` sits at an offset no reader would guess, and getting it
+    /// wrong turns every click into a double-click.
+    public static final NativeStructLayout SDL_MOUSE_BUTTON_EVENT = new NativeStructLayout(
+            "SDL_MouseButtonEvent",
+            MemoryLayout.structLayout(
+                    ValueLayout.JAVA_INT.withName("type"),
+                    MemoryLayout.paddingLayout(4),
+                    ValueLayout.JAVA_LONG.withName("timestamp"),
+                    ValueLayout.JAVA_INT.withName("windowID"),
+                    ValueLayout.JAVA_INT.withName("which"),
+                    ValueLayout.JAVA_BYTE.withName("button"),
+                    ValueLayout.JAVA_BOOLEAN.withName("down"),
+                    ValueLayout.JAVA_BYTE.withName("clicks"),
+                    ValueLayout.JAVA_BYTE.withName("padding"),
+                    ValueLayout.JAVA_FLOAT.withName("x"),
+                    ValueLayout.JAVA_FLOAT.withName("y"),
+                    // Trailing padding. The Uint64 timestamp gives the struct an
+                    // alignment of 8, so its 36 bytes of content round up to 40 --
+                    // which the layout probe reported rather than leaving to be
+                    // discovered as a short read of the next event.
+                    MemoryLayout.paddingLayout(4)));
+
+    /// ```c
+    /// typedef struct SDL_KeyboardEvent {
+    ///     SDL_EventType type; Uint32 reserved; Uint64 timestamp;
+    ///     SDL_WindowID windowID; SDL_KeyboardID which;
+    ///     SDL_Scancode scancode; SDL_Keycode key; SDL_Keymod mod;
+    ///     Uint16 raw; bool down; bool repeat;
+    /// } SDL_KeyboardEvent;
+    /// ```
+    ///
+    /// `key` is the virtual keycode — what the layout says the key means — and
+    /// `scancode` is the physical position. §7.1 keeps both, because a shortcut
+    /// wants the letter and a game wants the position.
+    public static final NativeStructLayout SDL_KEYBOARD_EVENT = new NativeStructLayout(
+            "SDL_KeyboardEvent",
+            MemoryLayout.structLayout(
+                    ValueLayout.JAVA_INT.withName("type"),
+                    MemoryLayout.paddingLayout(4),
+                    ValueLayout.JAVA_LONG.withName("timestamp"),
+                    ValueLayout.JAVA_INT.withName("windowID"),
+                    ValueLayout.JAVA_INT.withName("which"),
+                    ValueLayout.JAVA_INT.withName("scancode"),
+                    ValueLayout.JAVA_INT.withName("key"),
+                    ValueLayout.JAVA_SHORT.withName("mod"),
+                    ValueLayout.JAVA_SHORT.withName("raw"),
+                    ValueLayout.JAVA_BOOLEAN.withName("down"),
+                    ValueLayout.JAVA_BOOLEAN.withName("repeat"),
+                    MemoryLayout.paddingLayout(2)));
+
+    /// ```c
+    /// typedef struct SDL_TextInputEvent {
+    ///     SDL_EventType type; Uint32 reserved; Uint64 timestamp;
+    ///     SDL_WindowID windowID; const char *text;
+    /// } SDL_TextInputEvent;
+    /// ```
+    ///
+    /// `text` points into SDL's own memory and is valid only until the next
+    /// pump, so it is copied out immediately rather than held.
+    public static final NativeStructLayout SDL_TEXT_INPUT_EVENT = new NativeStructLayout(
+            "SDL_TextInputEvent",
+            MemoryLayout.structLayout(
+                    ValueLayout.JAVA_INT.withName("type"),
+                    MemoryLayout.paddingLayout(4),
+                    ValueLayout.JAVA_LONG.withName("timestamp"),
+                    ValueLayout.JAVA_INT.withName("windowID"),
+                    MemoryLayout.paddingLayout(4),
+                    ValueLayout.ADDRESS.withName("text")));
+
     /// A window's CPU-side surface — where the present path writes pixels.
     ///
     /// ```c
@@ -169,6 +274,40 @@ public final class Layouts {
                     ValueLayout.JAVA_INT.withName("refcount"),
                     MemoryLayout.paddingLayout(4),
                     ValueLayout.ADDRESS.withName("reserved")));
+
+    /// ```c
+    /// typedef struct SDL_DisplayMode {
+    ///     SDL_DisplayID displayID;
+    ///     SDL_PixelFormat format;
+    ///     int w;
+    ///     int h;
+    ///     float pixel_density;
+    ///     float refresh_rate;
+    ///     int refresh_rate_numerator;
+    ///     int refresh_rate_denominator;
+    ///     SDL_DisplayModeData *internal;
+    /// };
+    /// ```
+    ///
+    /// Read for one field. `refresh_rate` is what tells the frame loop how often
+    /// the display can actually show a frame, and without it the loop paints
+    /// frames that are never scanned out (ADR-0047).
+    ///
+    /// `refresh_rate` is a float and may be `0.0f` for "unspecified" — which is
+    /// not an error, and is why the caller treats it as "do not pace" rather than
+    /// as a failure.
+    public static final NativeStructLayout SDL_DISPLAY_MODE = new NativeStructLayout(
+            "SDL_DisplayMode",
+            MemoryLayout.structLayout(
+                    ValueLayout.JAVA_INT.withName("displayID"),
+                    ValueLayout.JAVA_INT.withName("format"),
+                    ValueLayout.JAVA_INT.withName("w"),
+                    ValueLayout.JAVA_INT.withName("h"),
+                    ValueLayout.JAVA_FLOAT.withName("pixel_density"),
+                    ValueLayout.JAVA_FLOAT.withName("refresh_rate"),
+                    ValueLayout.JAVA_INT.withName("refresh_rate_numerator"),
+                    ValueLayout.JAVA_INT.withName("refresh_rate_denominator"),
+                    ValueLayout.ADDRESS.withName("internal")));
 
     /// ```c
     /// typedef struct SDL_Rect { int x, y, w, h; } SDL_Rect;
@@ -198,6 +337,18 @@ public final class Layouts {
     /// allocates it, hands over the pointer, and never reads a field.
     public static final NativeStructLayout BL_OBJECT_DETAIL = new NativeStructLayout(
             "BLObjectDetail",
+            MemoryLayout.structLayout(
+                    MemoryLayout.sequenceLayout(2, ValueLayout.JAVA_LONG)));
+
+    /// `BLPathCore`, which is [#BL_OBJECT_DETAIL] again.
+    ///
+    /// A row of its own rather than a comment, because `BlendPath` allocates by
+    /// this size and a path is the first Blend2D object Goldberry builds
+    /// *incrementally* — hundreds of `bl_path_*` calls against one segment. An
+    /// undersized allocation would be written past on the first `move_to`
+    /// (ADR-0043).
+    public static final NativeStructLayout BL_PATH_CORE = new NativeStructLayout(
+            "BLPathCore",
             MemoryLayout.structLayout(
                     MemoryLayout.sequenceLayout(2, ValueLayout.JAVA_LONG)));
 
@@ -493,9 +644,15 @@ public final class Layouts {
                 SDL_EVENT,
                 SDL_COMMON_EVENT,
                 SDL_WINDOW_EVENT,
+                SDL_MOUSE_MOTION_EVENT,
+                SDL_MOUSE_BUTTON_EVENT,
+                SDL_KEYBOARD_EVENT,
+                SDL_TEXT_INPUT_EVENT,
                 SDL_SURFACE,
+                SDL_DISPLAY_MODE,
                 SDL_RECT,
                 BL_OBJECT_DETAIL,
+                BL_PATH_CORE,
                 BL_IMAGE_DATA,
                 BL_CONTEXT_CREATE_INFO,
                 BL_RECT,

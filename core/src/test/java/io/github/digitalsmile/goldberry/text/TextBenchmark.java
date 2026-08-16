@@ -149,6 +149,24 @@ class TextBenchmark {
                 return loaded.unitsPerEm();
             }
         });
+
+        // And what a second size costs once the face already exists. The
+        // difference between these two rows is what ADR-0044 bought: the parse
+        // and the two copies of the file happen once per face rather than once
+        // per size.
+        report("FontFace.bundled (the parse on its own)", 50, 200, () -> {
+            try (var face = FontFace.bundled(BundledFont.UI)) {
+                return face.unitsPerEm();
+            }
+        });
+
+        try (var face = FontFace.bundled(BundledFont.UI)) {
+            report("Font.on (another size over a face that exists)", 50, 2_000, () -> {
+                try (var loaded = Font.on(face, 14)) {
+                    return loaded.unitsPerEm();
+                }
+            });
+        }
     }
 
     @Test

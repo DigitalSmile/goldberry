@@ -46,6 +46,21 @@
 - [ADR-0038 The superbuild download is not a hang](adr/0038-the-superbuild-download-is-not-a-hang.md)
 - [ADR-0039 macOS needs the first thread](adr/0039-macos-needs-the-first-thread.md)
 - [ADR-0040 Find the native tools by absolute path](adr/0040-find-the-native-tools-by-absolute-path.md)
+- [ADR-0041 Three platforms, four artifacts, two backends](adr/0041-three-platforms-four-artifacts-two-backends.md)
+- [ADR-0042 Blend2D's workers, and how many](adr/0042-blend2ds-workers-and-how-many.md)
+- [ADR-0043 Icons are stroked paths, and SVG is the format](adr/0043-icons-are-stroked-paths.md)
+- [ADR-0044 One face, many sizes](adr/0044-one-face-many-sizes.md)
+- [ADR-0045 A frame is not a benchmark iteration](adr/0045-a-frame-is-not-a-benchmark-iteration.md)
+- [ADR-0046 What `present` actually does](adr/0046-what-present-actually-does.md)
+- [ADR-0047 A frame nobody sees costs full price](adr/0047-a-frame-nobody-sees-costs-full-price.md)
+- [ADR-0048 The showcase ships as a runtime image](adr/0048-the-showcase-ships-as-a-runtime-image.md)
+- [ADR-0049 The CSS engine stops at ComputedStyle](adr/0049-the-css-engine-stops-at-computedstyle.md)
+- [ADR-0050 Golden images have a tolerance](adr/0050-golden-images-have-a-tolerance.md)
+- [ADR-0051 KDL is parsed here, and reloading is forgiving](adr/0051-kdl-is-parsed-here-and-reloading-is-forgiving.md)
+- [ADR-0052 State lives on the element, and rebuilds are deferred](adr/0052-state-lives-on-the-element-and-rebuilds-are-deferred.md)
+- [ADR-0053 The render tree is a box tree, for now](adr/0053-the-render-tree-is-a-box-tree-for-now.md)
+- [ADR-0054 Hit testing runs against the painted frame](adr/0054-hit-testing-runs-against-the-painted-frame.md)
+- [ADR-0055 SDL owns keyboard translation](adr/0055-sdl-owns-keyboard-translation.md)
 
 ---
 

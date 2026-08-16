@@ -18,12 +18,12 @@ API. No JNI, no bundled web engine, no platform widget wrapping.
   records or as KDL markup. Markup and stylesheets hot-reload at runtime.
 - **Real layout and real styling.** Flexbox via Yoga, and a genuine CSS subset
   with variables, cascade, and transitions — not a proprietary styling DSL.
-- **Cross-platform from the first commit.** Linux (Wayland/X11), Windows, macOS 
-  are peer backends behind one SPI.
+- **Cross-platform from the first commit.** Linux (Wayland/X11), Windows and
+  macOS are peer platforms behind one SPI.
 
-> **Pre-release.** A window opens, Blend2D rasterizes its frames, Yoga lays out
-> a tree behind the boundary, and HarfBuzz-shaped text draws into it; there are
-> no widgets yet, and nothing measures a paragraph for layout.
+> **Pre-release.** A window opens, Blend2D rasterizes its frames across worker
+> threads, Yoga lays out a tree behind the boundary, HarfBuzz-shaped text takes
+> part in that layout, and Lucide's icons draw. There are no widgets yet.
 > See [Status](book/src/status.md) for what works and what is still open.
 
 ## Quick start
@@ -36,9 +36,9 @@ Requires a **JDK 25** toolchain. Gradle provisions one if it cannot find one.
 
 That builds and tests every Java module and, if it is missing or out of date,
 the native library `libgoldberry` for this machine. Building the native library
-needs CMake ≥ 3.28, Ninja, a C/C++ toolchain, and — on Linux, for libxkbcommon —
-Meson. `./gradlew :natives:checkToolchain` verifies all of it up front, prints
-the absolute path and version of each tool it will use, and names the packages to
+needs CMake ≥ 3.28, Ninja and a C/C++ toolchain.
+`./gradlew :natives:checkToolchain` verifies all of it up front, prints the
+absolute path and version of each tool it will use, and names the packages to
 install if anything is absent.
 
 The tools are searched for on the `PATH` first and then in the usual install
@@ -47,8 +47,10 @@ toolchain is found even from a Gradle daemon that an IDE started with a bare
 `PATH` (ADR-0040). To point at one somewhere else:
 
 ```sh
-./gradlew build -Pgoldberry.cmake=/path/to/cmake    # also -Pgoldberry.ninja, -Pgoldberry.meson
+./gradlew build -Pgoldberry.cmake=/path/to/cmake    # also -Pgoldberry.ninja
 ```
+
+
 
 **The first native build downloads about 330 MB** — Blend2D, AsmJit, Yoga,
 HarfBuzz and SDL3, cloned by the superbuild — which typically takes a few
@@ -106,8 +108,11 @@ actually covers — the same code is correct at 100%, 125% and 150%
 ([ADR-0031](book/src/adr/0031-blend2d-and-the-borrowed-buffer.md)). Colours are
 `0xAARRGGBB` and are **not** premultiplied; the rasterizer handles that.
 
-When the platform lends its own surface — SDL does — Blend2D draws straight into
-it. A frame costs no copy at all.
+When the backend lends a surface — SDL does — Blend2D draws straight into it,
+so the toolkit never copies a frame. SDL still does: on Wayland it has no
+window-surface implementation, so the buffer it lends is its own heap memory and
+it copies that into a texture on every present. One copy instead of two, not
+zero ([ADR-0046](book/src/adr/0046-what-present-actually-does.md)).
 
 Work that is not instant goes off the UI thread and comes back on it:
 
@@ -164,16 +169,27 @@ text renders identically on every machine without asking what fonts are
 installed ([ADR-0033](book/src/adr/0033-assets-are-fetched-and-compiled-not-committed.md)).
 
 ```java
-try (var font = Font.bundled(BundledFont.UI, 16)) {   // 16 logical points
-    var width = font.widthOf("Goldberry");            // what layout will ask
+try (var face = FontFace.bundled(BundledFont.UI);     // parsed once
+        var title = Font.on(face, 24);                // …and shared by
+        var body = Font.on(face, 16)) {               //    every size
+
+    var width = body.widthOf("Goldberry");            // what layout will ask
 
     window.onPaint(frame ->
-            font.draw(frame, 16, 16 + font.ascent(), "Goldberry", 0xFFECEFF4));
+            body.draw(frame, 16, 16 + body.ascent(), "Goldberry", 0xFFECEFF4));
 }
 ```
 
 The `y` is the **baseline**, not the top of the line: an `a` sits above it and a
 `g` hangs below, so the top of a line is `baseline - ascent()`.
+
+A `FontFace` is the typeface and a `Font` is one size of it. The split matters
+because each library keeps its own copy of the file — Inter is a megabyte and a
+half — so sharing the face makes a second size cost 4 µs and no extra memory
+instead of 680 µs and three more megabytes
+([ADR-0044](book/src/adr/0044-one-face-many-sizes.md)). `Font.bundled(UI, 16)`
+still works and parses a face of its own, which is the right shape for exactly
+one size. **The face must outlive every font over it.**
 
 A `Paragraph` wraps, and that is what lets text take part in layout rather than
 being drawn over it. It is shaped **once**; every re-wrap after that is arithmetic
@@ -205,8 +221,70 @@ make that unrepresentable
 
 Not yet: bidirectional runs — right-to-left text is refused at construction rather
 than wrapped wrongly — fallback between the UI and emoji faces, and style runs
-within a paragraph. Icons are in the jar as path data and do not draw; Blend2D's
-path API is unbound.
+within a paragraph.
+
+## Icons
+
+Lucide's 1544 icons ship in `goldberry-core` as path data in a 24×24 box. They
+are **strokes**, not fills — 2px round-capped outlines, most of them not closed —
+so an `Icon` carries a stroke width as well as a shape
+([ADR-0043](book/src/adr/0043-icons-are-stroked-paths.md)):
+
+```java
+try (var icon = Icon.bundled("layout-dashboard", 24)) {   // 24 logical points
+    window.onPaint(frame -> icon.draw(frame, 16, 16, 0xFFECEFF4));
+}
+```
+
+Like a `Font`, an `Icon` belongs to a size: the path is built pre-scaled, so
+nothing is transformed at draw time and a 48px icon strokes at 4px rather than 2.
+`BundledAssets.iconNames()` lists the set.
+
+An icon is not a `Box` yet — the showcase draws them over its sidebar rather than
+laying them out in it — because nothing decides an icon's intrinsic size until
+the widget model does
+([ADR-0004](book/src/adr/0004-three-tree-retained-declarative-model.md)).
+
+## Painting across threads
+
+Blend2D rasterizes a frame by splitting it into horizontal bands, and Goldberry
+uses up to four workers on any surface bigger than 400×300
+([ADR-0042](book/src/adr/0042-blend2ds-workers-and-how-many.md)). Nothing in an
+application changes: `Frame.end()` already ran before the frame was presented,
+and that is where the bands are waited for.
+
+On a real 960×640 frame that is 2.86 ms down to 2.15 ms; at 3840×2160 the
+benchmark shows 6.0 ms down to 2.3 ms. `-Dgoldberry.paint.threads=0` restores
+synchronous painting, and any other number pins the worker count.
+
+Those are two different numbers on purpose. A frame painted in a benchmark loop
+costs about a quarter of the same frame painted in a running window, because
+`present` leaves the next paint's caches cold — so a figure from
+`./gradlew :core:benchmark` compares options against each other, and only a
+figure from a live window says what a frame costs
+([ADR-0045](book/src/adr/0045-a-frame-is-not-a-benchmark-iteration.md)).
+
+`present` is the larger half of a frame, and most of it is not Goldberry's. At
+960×640 it is ~6.4 ms: 43 µs of this repo's code, ~1.05 ms of SDL copying the
+frame into a texture, ~0.7 ms of render-and-present, and ~4.8 ms of blocking on
+the swapchain ([ADR-0046](book/src/adr/0046-what-present-actually-does.md)).
+
+Most of that block is the loop running ahead of the display. Goldberry asks SDL
+to hold each present until vertical blank, which is the whole fix wherever the
+GL stack honours it; `-Dgoldberry.backend.vsync=false` turns the request off.
+Where it is ignored — a virtualized driver, `llvmpipe`, a deep swapchain — the
+loop paces itself to the refresh rate it reads off the window's current display,
+re-reading it whenever the window changes monitor and taking the fastest display
+when several windows are open. Paced, present falls from 5.51 ms to 1.20 ms,
+paint follows it down from 2.25 ms to 1.61 ms, and the UI thread spends 165 ms of
+each second in the frame path instead of 862 — a fifth of the work, showing the
+user the same frames, because the ~50 fps that vanished were never scanned out
+([ADR-0047](book/src/adr/0047-a-frame-nobody-sees-costs-full-price.md)).
+
+A display that will not report a rate leaves the loop unpaced rather than
+guessing — capping a 144 Hz panel at an assumed 60 is worse than painting too
+many frames. `-Dgoldberry.frame.rate=N` overrides, and `0` measures the
+unthrottled loop.
 
 ## Run the showcase
 

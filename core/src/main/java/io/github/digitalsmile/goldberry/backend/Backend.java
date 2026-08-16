@@ -6,10 +6,11 @@ import java.util.List;
 /// The only platform-facing interface. Everything above it is platform-agnostic
 /// (`docs/ARCHITECTURE.md` §4).
 ///
-/// Three implementations are planned and that is the complete list: `sdl3` for
-/// desktop, `headless` for tests, and `scarlet` for the Scarlet Macaw
-/// compositor. The SPI exists to serve those two non-desktop cases — it is not an
-/// invitation to grow hand-written Win32, Cocoa or Wayland backends (ADR-0003).
+/// Two implementations are planned and that is the complete list: `sdl3` for
+/// desktop — Linux, Windows and macOS alike — and `headless` for tests. The SPI
+/// exists to serve `headless` and to keep the platform boundary in one place; it
+/// is not an invitation to grow hand-written Win32, Cocoa or Wayland backends
+/// (ADR-0003, ADR-0041).
 ///
 /// ## Threading
 ///
@@ -30,7 +31,7 @@ import java.util.List;
 /// interface that gets designed twice (ADR-0019).
 public interface Backend extends AutoCloseable {
 
-    /// A name for logs and diagnostics: `sdl3`, `headless`, `scarlet`.
+    /// A name for logs and diagnostics: `sdl3`, `headless`.
     String name();
 
     /// Creates a window.

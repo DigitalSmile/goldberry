@@ -9,6 +9,11 @@ import java.util.Objects;
 /// Gradle target ids in `:natives`, the classifier jars published per
 /// `docs/ARCHITECTURE.md` §15, and the resource path [NativeLibrary] searches at
 /// runtime.
+///
+/// **Not every pair is a row.** Four are: `linux-x64`, `linux-aarch64`,
+/// `windows-x64` and `macos-aarch64`. Windows on ARM and macOS on Intel are not
+/// built, so constructing them is rejected here rather than deferred to an
+/// `UnsatisfiedLinkError` at load time (ADR-0041).
 public record NativePlatform(OperatingSystem os, Architecture arch) {
 
     /// The operating systems Goldberry ships a native artifact for.
@@ -28,6 +33,24 @@ public record NativePlatform(OperatingSystem os, Architecture arch) {
     public NativePlatform {
         Objects.requireNonNull(os, "os");
         Objects.requireNonNull(arch, "arch");
+        if (!isPublished(os, arch)) {
+            throw new UnsupportedOperationException(
+                    "Goldberry publishes no native artifact for " + token(os) + "-" + token(arch)
+                            + ". The matrix is linux-x64, linux-aarch64, windows-x64 and"
+                            + " macos-aarch64 (ADR-0041).");
+        }
+    }
+
+    /// Whether an artifact is built for this pair.
+    ///
+    /// Exhaustive over [OperatingSystem], so adding one is a compile error here
+    /// rather than a silent `false`.
+    private static boolean isPublished(OperatingSystem os, Architecture arch) {
+        return switch (os) {
+            case LINUX -> true;
+            case MACOS -> arch == Architecture.AARCH64;
+            case WINDOWS -> arch == Architecture.X64;
+        };
     }
 
     /// The platform this JVM is running on.
@@ -72,6 +95,14 @@ public record NativePlatform(OperatingSystem os, Architecture arch) {
     }
 
     private String osToken() {
+        return token(os);
+    }
+
+    private String archToken() {
+        return token(arch);
+    }
+
+    private static String token(OperatingSystem os) {
         return switch (os) {
             case LINUX -> "linux";
             case MACOS -> "macos";
@@ -79,7 +110,7 @@ public record NativePlatform(OperatingSystem os, Architecture arch) {
         };
     }
 
-    private String archToken() {
+    private static String token(Architecture arch) {
         return switch (arch) {
             case X64 -> "x64";
             case AARCH64 -> "aarch64";

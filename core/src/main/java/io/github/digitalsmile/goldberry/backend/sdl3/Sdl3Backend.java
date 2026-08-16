@@ -46,6 +46,9 @@ public final class Sdl3Backend implements Backend {
     /// X11 behind it, resolved inside SDL.
     private static final String PREFERRED_LINUX_DRIVERS = "wayland,x11";
 
+    /// Turns the frame loop's pacing off. See [#pacePresentToTheDisplay()].
+    public static final String VSYNC_PROPERTY = "goldberry.backend.vsync";
+
     /// The macOS `java` launcher sets `JAVA_STARTED_ON_FIRST_THREAD_<pid>=1` in
     /// the environment when it is given `-XstartOnFirstThread`. It is the only
     /// way to ask, from Java, whether `main` is running on the process's first
@@ -60,6 +63,7 @@ public final class Sdl3Backend implements Backend {
     private final Thread uiThread = Thread.currentThread();
     private final Map<Integer, Sdl3Window> windowsById = new LinkedHashMap<>();
     private final SdlEventBuffer eventBuffer = new SdlEventBuffer();
+    private final FramePacer pacer = FramePacer.fromProperties();
 
     private boolean closed;
 
@@ -71,10 +75,14 @@ public final class Sdl3Backend implements Backend {
     public Sdl3Backend() {
         try {
             selectVideoDriver();
+            pacePresentToTheDisplay();
             Startup.time("SDL video subsystem up",
                     () -> Sdl.get().initialize(EnumSet.of(SdlSubsystem.VIDEO)));
             LOG.info("sdl3 backend started on SDL {}, video driver {}",
                     Sdl.get().version(), Sdl.get().videoDriver());
+            if (pacer.isPacing()) {
+                LOG.info("frame loop paced to one frame per {}", pacer.interval());
+            }
         } catch (SdlException e) {
             eventBuffer.close();
             throw new BackendException(videoFailureMessage(), e);
@@ -126,6 +134,41 @@ public final class Sdl3Backend implements Backend {
         var waylandSession = System.getenv("WAYLAND_DISPLAY");
         if (linux && waylandSession != null && !waylandSession.isBlank()) {
             applyVideoDriver(PREFERRED_LINUX_DRIVERS, "a Wayland session is running");
+        }
+    }
+
+    /// Asks SDL to hold each `present` until the display is ready for it.
+    ///
+    /// Goldberry creates no renderer, so at first glance this hint belongs to
+    /// somebody else. It does not. Where the video driver implements no window
+    /// surface — Wayland — `SDL_GetWindowSurface` falls back to a hidden
+    /// `SDL_Renderer` and every present ends in its `SDL_RenderPresent`
+    /// (ADR-0046). Left alone, that renderer does not wait for the display, and
+    /// the frame loop runs as fast as the swapchain will take frames: measured
+    /// at ~105 fps into a 59.96 Hz panel, so two frames in five were rasterized,
+    /// uploaded, and thrown away.
+    ///
+    /// Painting a frame nobody will see costs its paint *and* its present, which
+    /// is the largest single saving available in the loop — larger than anything
+    /// left inside either half.
+    ///
+    /// Set before `SDL_Init`, and well before the first [Sdl3Window#acquireFrame],
+    /// which is when SDL actually builds the renderer.
+    ///
+    /// `-Dgoldberry.backend.vsync=false` turns it off, for measuring the
+    /// unthrottled loop or for a benchmark that wants every frame it can get.
+    private static void pacePresentToTheDisplay() {
+        if (!Boolean.parseBoolean(System.getProperty(VSYNC_PROPERTY, "true"))) {
+            LOG.debug("leaving present unpaced ({}=false)", VSYNC_PROPERTY);
+            return;
+        }
+        if (Sdl.get().setHint(Sdl.RENDER_VSYNC_HINT, "1")) {
+            LOG.debug("pacing present to the display ({}=1)", Sdl.RENDER_VSYNC_HINT);
+        } else {
+            // Not fatal: an unpaced loop draws the same pixels, just more of them
+            // than anyone will look at.
+            LOG.warn("SDL refused {}; the frame loop will not be paced to the display",
+                    Sdl.RENDER_VSYNC_HINT);
         }
     }
 
@@ -250,10 +293,18 @@ public final class Sdl3Backend implements Backend {
 
         var translated = new ArrayList<BackendEvent>();
 
+        adoptDisplayRate();
+
+        // Shortened when a frame is being held back, so the wait ends when that
+        // frame comes due rather than at the loop's one-second heartbeat.
+        var wait = pacer.capWait(timeout, anyFramePending(), System.nanoTime());
+
         // One blocking wait, then drain whatever else is queued. Waiting per
         // event would sleep between two events that arrived together.
-        var millis = (int) Math.min(timeout.toMillis(), Integer.MAX_VALUE);
-        var hasEvent = timeout.isZero() ? video.pollEvent(eventBuffer) : video.waitEvent(eventBuffer, millis);
+        var millis = (int) Math.min(wait.toMillis(), Integer.MAX_VALUE);
+        var hasEvent = wait.isZero() || millis == 0
+                ? video.pollEvent(eventBuffer)
+                : video.waitEvent(eventBuffer, millis);
         while (hasEvent) {
             translate(eventBuffer.type(), eventBuffer.windowId(), translated);
             hasEvent = video.pollEvent(eventBuffer);
@@ -275,10 +326,19 @@ public final class Sdl3Backend implements Backend {
         // Requests made while handling a FrameDue below are deliberately left for
         // the next pump: draining until empty here would let a self-scheduling
         // animation hold the loop and starve input.
+        // Held back when the display cannot have wanted a frame yet. The request
+        // stays pending rather than being dropped, so the next pump -- woken by
+        // the shortened wait above -- emits it.
         var frames = new ArrayList<BackendEvent>();
-        for (var window : windowsById.values()) {
-            if (window.takeFrameRequest()) {
-                frames.add(new BackendEvent.FrameDue(window));
+        var now = System.nanoTime();
+        if (pacer.isDue(now)) {
+            for (var window : windowsById.values()) {
+                if (window.takeFrameRequest()) {
+                    frames.add(new BackendEvent.FrameDue(window));
+                }
+            }
+            if (!frames.isEmpty()) {
+                pacer.frameEmitted(now);
             }
         }
         for (var event : frames) {
@@ -286,6 +346,40 @@ public final class Sdl3Backend implements Backend {
         }
 
         return translated.size() + frames.size();
+    }
+
+    /// Paces the loop to the fastest display any open window is on.
+    ///
+    /// The fastest rather than the first: two windows on a 60 Hz and a 144 Hz
+    /// monitor share one loop, and pacing that loop to 60 would starve the window
+    /// on the faster one. Overshooting costs the slower window a discarded frame;
+    /// undershooting costs the faster one a missed refresh, and the second is
+    /// what the user sees.
+    ///
+    /// Each window caches its own rate, so this is a field read per pump rather
+    /// than a native call. Does nothing when `goldberry.frame.rate` was set.
+    private void adoptDisplayRate() {
+        if (pacer.isExplicit()) {
+            return;
+        }
+        var fastest = 0f;
+        for (var window : windowsById.values()) {
+            fastest = Math.max(fastest, window.refreshRate());
+        }
+        if (pacer.useDisplayRate(fastest)) {
+            LOG.info("pacing the frame loop to {} Hz, one frame per {}", fastest, pacer.interval());
+        }
+    }
+
+    /// Whether any window is waiting for a frame. Only asked when pacing, and
+    /// only to decide how long the next wait may be.
+    private boolean anyFramePending() {
+        for (var window : windowsById.values()) {
+            if (window.isFramePending()) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private void translate(int type, int windowId, List<BackendEvent> out) {
@@ -323,7 +417,29 @@ public final class Sdl3Backend implements Backend {
             // The backing store moved without the logical size necessarily
             // moving. No event of its own: the resize or scale change that
             // caused it carries the news.
+        } else if (type == SdlEventType.KEY_DOWN.value()) {
+            out.add(new BackendEvent.KeyPressed(window, eventBuffer.keycode(),
+                    eventBuffer.keyModifiers(), eventBuffer.isRepeat()));
+        } else if (type == SdlEventType.KEY_UP.value()) {
+            out.add(new BackendEvent.KeyReleased(window, eventBuffer.keycode(),
+                    eventBuffer.keyModifiers()));
+        } else if (type == SdlEventType.TEXT_INPUT.value()) {
+            // Copied out of SDL's memory here, while the event is still the
+            // current one -- the pointer dies at the next pump.
+            out.add(new BackendEvent.TextInput(window, eventBuffer.committedText()));
+        } else if (type == SdlEventType.MOUSE_MOTION.value()) {
+            out.add(new BackendEvent.PointerMoved(window, eventBuffer.pointerX(), eventBuffer.pointerY()));
+        } else if (type == SdlEventType.MOUSE_BUTTON_DOWN.value()) {
+            out.add(new BackendEvent.PointerPressed(window, eventBuffer.pointerX(), eventBuffer.pointerY(),
+                    eventBuffer.mouseButton(), eventBuffer.clickCount()));
+        } else if (type == SdlEventType.MOUSE_BUTTON_UP.value()) {
+            out.add(new BackendEvent.PointerReleased(window, eventBuffer.pointerX(), eventBuffer.pointerY(),
+                    eventBuffer.mouseButton(), eventBuffer.clickCount()));
         } else if (type == SdlEventType.WINDOW_DISPLAY_SCALE_CHANGED.value()) {
+            // Usually the window moving to another monitor, which is also the one
+            // case where the cached refresh rate can be wrong -- and wrong for the
+            // life of the window if it is not dropped here.
+            window.forgetRefreshRate();
             out.add(new BackendEvent.ScaleChanged(window, window.scale(), window.physicalSize()));
         }
 

@@ -27,6 +27,28 @@ public final class SdlEventBuffer implements AutoCloseable {
             Layouts.SDL_WINDOW_EVENT.offsetOf("windowID");
     private static final long DATA1_OFFSET =
             Layouts.SDL_WINDOW_EVENT.offsetOf("data1");
+    private static final long MOTION_X_OFFSET =
+            Layouts.SDL_MOUSE_MOTION_EVENT.offsetOf("x");
+    private static final long MOTION_Y_OFFSET =
+            Layouts.SDL_MOUSE_MOTION_EVENT.offsetOf("y");
+    private static final long BUTTON_X_OFFSET =
+            Layouts.SDL_MOUSE_BUTTON_EVENT.offsetOf("x");
+    private static final long BUTTON_Y_OFFSET =
+            Layouts.SDL_MOUSE_BUTTON_EVENT.offsetOf("y");
+    private static final long BUTTON_INDEX_OFFSET =
+            Layouts.SDL_MOUSE_BUTTON_EVENT.offsetOf("button");
+    private static final long BUTTON_CLICKS_OFFSET =
+            Layouts.SDL_MOUSE_BUTTON_EVENT.offsetOf("clicks");
+    private static final long KEY_SCANCODE_OFFSET =
+            Layouts.SDL_KEYBOARD_EVENT.offsetOf("scancode");
+    private static final long KEY_KEYCODE_OFFSET =
+            Layouts.SDL_KEYBOARD_EVENT.offsetOf("key");
+    private static final long KEY_MOD_OFFSET =
+            Layouts.SDL_KEYBOARD_EVENT.offsetOf("mod");
+    private static final long KEY_REPEAT_OFFSET =
+            Layouts.SDL_KEYBOARD_EVENT.offsetOf("repeat");
+    private static final long TEXT_POINTER_OFFSET =
+            Layouts.SDL_TEXT_INPUT_EVENT.offsetOf("text");
     private static final long DATA2_OFFSET =
             Layouts.SDL_WINDOW_EVENT.offsetOf("data2");
 
@@ -62,6 +84,76 @@ public final class SdlEventBuffer implements AutoCloseable {
     /// Zeroes the buffer. Not required by SDL, which overwrites what it fills,
     /// but it means a stale `windowID` cannot survive into an event type that
     /// does not set one.
+    /// The pointer's window-relative x, for a mouse motion or button event.
+    ///
+    /// Motion and button events put `x` at different offsets, so which arm this
+    /// is has to be decided by [#type()] first -- reading the wrong one is a
+    /// pointer that lands somewhere plausible but wrong.
+    public float pointerX() {
+        return event.get(ValueLayout.JAVA_FLOAT, isMotion() ? MOTION_X_OFFSET : BUTTON_X_OFFSET);
+    }
+
+    /// The pointer's window-relative y.
+    public float pointerY() {
+        return event.get(ValueLayout.JAVA_FLOAT, isMotion() ? MOTION_Y_OFFSET : BUTTON_Y_OFFSET);
+    }
+
+    /// The mouse button index: SDL numbers them from 1, left first.
+    public int mouseButton() {
+        return event.get(ValueLayout.JAVA_BYTE, BUTTON_INDEX_OFFSET) & 0xFF;
+    }
+
+    /// 1 for a single click, 2 for a double, and so on -- SDL counts them so the
+    /// toolkit does not have to keep a timer.
+    public int clickCount() {
+        return event.get(ValueLayout.JAVA_BYTE, BUTTON_CLICKS_OFFSET) & 0xFF;
+    }
+
+    private boolean isMotion() {
+        return type() == SdlEventType.MOUSE_MOTION.value();
+    }
+
+    /// The virtual keycode — what the layout says the key means.
+    public int keycode() {
+        return event.get(ValueLayout.JAVA_INT, KEY_KEYCODE_OFFSET);
+    }
+
+    /// The physical key position, independent of layout.
+    public int scancode() {
+        return event.get(ValueLayout.JAVA_INT, KEY_SCANCODE_OFFSET);
+    }
+
+    /// The modifier bitmask in force when the key was pressed.
+    public int keyModifiers() {
+        return event.get(ValueLayout.JAVA_SHORT, KEY_MOD_OFFSET) & 0xFFFF;
+    }
+
+    /// Whether this is the platform repeating a held key.
+    public boolean isRepeat() {
+        return event.get(ValueLayout.JAVA_BOOLEAN, KEY_REPEAT_OFFSET);
+    }
+
+    /// The committed text of a text-input event.
+    ///
+    /// **Copied immediately.** SDL owns the string and it is valid only until
+    /// the next pump, so holding the pointer would be a use-after-free that
+    /// shows up as mojibake rather than a crash.
+    public String committedText() {
+        var pointer = event.get(ValueLayout.ADDRESS, TEXT_POINTER_OFFSET);
+        if (MemorySegment.NULL.equals(pointer)) {
+            return "";
+        }
+        return readCString(pointer);
+    }
+
+    // Restricted: the string's extent is not known until it is walked, which is
+    // what reinterpret with an unbounded size is for. SDL guarantees NUL
+    // termination for this field.
+    @SuppressWarnings("restricted")
+    private static String readCString(MemorySegment pointer) {
+        return pointer.reinterpret(Long.MAX_VALUE).getString(0);
+    }
+
     public void clear() {
         event.fill((byte) 0);
     }

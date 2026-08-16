@@ -50,4 +50,13 @@ public final class TestFrames {
                 new PhysicalSize(width, height), PixelFormat.BGRA32_PREMULTIPLIED);
         return new Target(new Frame(buffer, new DisplayScale(scale)), buffer);
     }
+
+    /// The same, with the Blend2D worker count pinned rather than left to
+    /// [PaintThreads]. The paint benchmark sweeps it; a correctness test that
+    /// cares whether threading changes the pixels asks for both.
+    public static Target of(int width, int height, float scale, int threadCount) {
+        var buffer = PixelBuffer.allocate(
+                new PhysicalSize(width, height), PixelFormat.BGRA32_PREMULTIPLIED);
+        return new Target(new Frame(buffer, new DisplayScale(scale), threadCount), buffer);
+    }
 }

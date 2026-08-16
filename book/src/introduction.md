@@ -1,7 +1,6 @@
 # Goldberry
 
-**A fast and modern UI toolkit for Java.** Part of [Scarlet Macaw OS](https://scarletmacaw.org),
-usable standalone on Linux, Windows, and macOS from day 1.
+**A fast and modern UI toolkit for Java.** Linux, Windows, and macOS from day 1.
 
 This book is the project's decision log and developer documentation. It is not the
 design document — that lives at [`docs/ARCHITECTURE.md`](https://github.com/digitalsmile/goldberry/blob/main/docs/ARCHITECTURE.md)

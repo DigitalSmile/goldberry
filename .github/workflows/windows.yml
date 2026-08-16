@@ -1,8 +1,8 @@
 # Windows CI (ADR-0012)
 #
-# Both architectures build on an x64 runner: MSVC cross-targets ARM64 with
-# `-A ARM64`, which is first-class in the native toolchain rather than bolted on.
-# No foreign SDK is involved.
+# One target, `windows-x64`. Windows on ARM was dropped from the matrix
+# (ADR-0041); MSVC would cross-target it with `-A ARM64` from this same runner if
+# it ever comes back.
 #
 # `workflow_call` is what lets release.yml reuse this without duplicating it.
 #
@@ -46,15 +46,7 @@ jobs:
       - run: ./gradlew build -Pgoldberry.skipNative=true --no-daemon
 
   natives:
-    name: libgoldberry (${{ matrix.target }})
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - target: windows-x64
-            arch-args: -A x64
-          - target: windows-aarch64
-            arch-args: -A ARM64
+    name: libgoldberry (windows-x64)
     runs-on: windows-2022
     steps:
       - uses: actions/checkout@v4
@@ -62,10 +54,10 @@ jobs:
       - name: Configure
         run: |
           cmake -S natives/src/main/cmake -B build/native \
-            -G "Visual Studio 17 2022" ${{ matrix.arch-args }} \
+            -G "Visual Studio 17 2022" -A x64 \
             -DCMAKE_BUILD_TYPE=Release \
             -DCMAKE_INSTALL_PREFIX="$PWD/build/install" \
-            -DGOLDBERRY_TARGET_ID=${{ matrix.target }}
+            -DGOLDBERRY_TARGET_ID=windows-x64
 
       - name: Build
         # --config matters for the multi-config Visual Studio generator.
@@ -73,7 +65,7 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: native-${{ matrix.target }}
+          name: native-windows-x64
           path: build/install/lib/goldberry.dll
           if-no-files-found: error
 
@@ -83,12 +75,8 @@ jobs:
   verify:
     name: Verify layouts (windows-x64)
     needs: natives
-    # `needs` waits for the whole matrix, and a matrix job fails if ANY leg does.
-    # Without this, an unrelated windows-aarch64 failure skips the verification of
-    # a windows-x64 library that built perfectly -- and this is the job that
-    # checks Win64's 4-byte `long`, which nothing else does. If the x64 artifact
-    # really is missing, the download step below fails loudly, which is the
-    # outcome we want rather than a silent skip (ADR-0016).
+    # Runs even if the build job failed, so that a missing artifact fails at the
+    # download step below rather than skipping this job silently (ADR-0016).
     if: ${{ !cancelled() }}
     runs-on: windows-2022
     steps:
@@ -111,3 +99,22 @@ jobs:
           ./gradlew :natives:test --no-daemon \
             -Dgoldberry.native.library="$PWD/native-lib/goldberry.dll" \
             -Dgoldberry.native.required=true
+
+      # The rendered output, compared against committed images (ADR-0050, §14).
+      # No display, no compositor, no Xvfb: Frame paints into memory, so this is
+      # the same check on every platform. The point of running it on all three is
+      # that Blend2D JITs its pipelines per CPU -- if AVX2 and NEON ever disagree
+      # by more than a rounding step, this is where it surfaces.
+      - name: Golden images
+        run: |
+          ./gradlew :core:test --no-daemon --tests "*GoldenImageTest*" \
+            -Dgoldberry.native.library="$PWD/native-lib/goldberry.dll" \
+            -Dgoldberry.native.required=true
+
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: golden-failures-windows-x64
+          path: core/build/golden-failures
+          if-no-files-found: ignore
+

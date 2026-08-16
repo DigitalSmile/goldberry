@@ -44,14 +44,23 @@ import java.util.Objects;
 ///
 /// ## Cost
 ///
-/// The font's bytes are copied twice — once into HarfBuzz, once into Blend2D —
-/// because each library owns its own. For Inter that is about a megabyte and a
-/// half per `Font`, and a `Font` per size, so an application that wants six
-/// sizes of one family currently pays for six copies. A shared face cache is the
-/// obvious fix and is not built yet; nothing above this depends on it not being.
+/// A typeface is still two copies of the file — once into HarfBuzz, once into
+/// Blend2D, because each library owns its own — but it is two copies per
+/// **face**, not per size. [FontFace] is the shared part, and [#on(FontFace,
+/// double)] is how several sizes take it: four sizes of Inter cost three
+/// megabytes rather than twelve (ADR-0044).
+///
+/// [#bundled(BundledFont, double)] and [#of(byte[], double)] still parse a face
+/// of their own and close it with the font, which is the right shape for one
+/// size and the wrong one for four.
 ///
 /// Confined to the thread that created it, and must be closed.
 public final class Font implements AutoCloseable {
+
+    private final FontFace face;
+
+    /// Whether this font parsed its own face and therefore has to close it.
+    private final boolean ownsFace;
 
     private final ShapedFont shaper;
     private final BlendFont painter;
@@ -67,25 +76,30 @@ public final class Font implements AutoCloseable {
 
     private boolean closed;
 
-    private Font(byte[] data, double size) {
+    private Font(FontFace face, boolean ownsFace, double size) {
+        this.face = face;
+        this.ownsFace = ownsFace;
         this.size = size;
 
         // Built in order and unwound in reverse: each of these owns native
         // memory, and a failure partway through must not leak what came before.
-        this.shaper = ShapedFont.fromBytes(data);
+        //
+        // The shaper and the units per em come from the face and are shared with
+        // every other size over it. Deliberately NOT scaled -- see the invariant
+        // above.
+        this.shaper = face.shaper();
+        this.unitsPerEm = face.unitsPerEm();
         try {
-            // Deliberately NOT scaled. See the invariant above.
-            this.unitsPerEm = shaper.unitsPerEm();
-            this.painter = BlendFont.fromBytes(data, size);
+            this.painter = BlendFont.on(face.painter(), size);
         } catch (RuntimeException | Error e) {
-            shaper.close();
+            closeFaceIfOwned();
             throw e;
         }
         try {
             this.text = ShapingBuffer.create();
         } catch (RuntimeException | Error e) {
             painter.close();
-            shaper.close();
+            closeFaceIfOwned();
             throw e;
         }
         try {
@@ -93,29 +107,68 @@ public final class Font implements AutoCloseable {
         } catch (RuntimeException | Error e) {
             text.close();
             painter.close();
-            shaper.close();
+            closeFaceIfOwned();
             throw e;
         }
     }
 
-    /// Loads a font from the bytes of a font file.
+    /// A font at `size` over a face somebody else owns.
+    ///
+    /// **The face must outlive this font**, and closing this one leaves the face
+    /// alone: other sizes are using it. This is the constructor to reach for
+    /// when an application wants more than one size of a family, which is every
+    /// application (ADR-0044).
+    ///
+    /// @param face the typeface, which is not closed by [#close()]
+    /// @param size the em size, in logical units
+    public static Font on(FontFace face, double size) {
+        Objects.requireNonNull(face, "face");
+        requireUsableSize(size);
+        return new Font(face, false, size);
+    }
+
+    /// Loads a font from the bytes of a font file, parsing a face of its own.
+    ///
+    /// The face is closed with the font. For more than one size of the same
+    /// file, [FontFace] and [#on(FontFace, double)] share the parse and the
+    /// bytes instead.
     ///
     /// @param data a font file's contents
     /// @param size the em size, in logical units
     public static Font of(byte[] data, double size) {
         Objects.requireNonNull(data, "data");
+        requireUsableSize(size);
+        return new Font(FontFace.of("<bytes>", data), true, size);
+    }
+
+    /// One of the faces bundled in `goldberry-core`, at one size.
+    ///
+    /// Parses its own face, so two sizes are two parses and two copies of the
+    /// file. `FontFace.bundled(font)` plus [#on(FontFace, double)] is the pair
+    /// that does not.
+    public static Font bundled(BundledFont font, double size) {
+        Objects.requireNonNull(font, "font");
+        requireUsableSize(size);
+        return new Font(FontFace.bundled(font), true, size);
+    }
+
+    /// The typeface this font draws with, shared with every other size over it.
+    public FontFace face() {
+        return face;
+    }
+
+    private static void requireUsableSize(double size) {
         if (!Double.isFinite(size) || size <= 0) {
             throw new IllegalArgumentException(
                     "a font size must be a positive, finite number of logical units, and "
                             + size + " is not");
         }
-        return new Font(data, size);
     }
 
-    /// One of the faces bundled in `goldberry-core`.
-    public static Font bundled(BundledFont font, double size) {
-        Objects.requireNonNull(font, "font");
-        return of(BundledAssets.font(font), size);
+    private void closeFaceIfOwned() {
+        if (ownsFace) {
+            face.close();
+        }
     }
 
     /// Shapes `text` into glyphs.
@@ -276,7 +329,9 @@ public final class Font implements AutoCloseable {
                 try {
                     painter.close();
                 } finally {
-                    shaper.close();
+                    // The shaper belongs to the face, not to this font: closing
+                    // it here would break every other size over the same face.
+                    closeFaceIfOwned();
                 }
             }
         }

@@ -58,7 +58,7 @@ animation; the render tree is what layout and paint operate on.
   distinction is the main thing new contributors have to learn.
 - Java records give immutable widgets with no boilerplate, which is what makes
   this model pleasant in Java rather than merely possible.
-- **Open, and the largest gap in the current design:** the state and rebuild API.
+- **~~Open, and the largest gap in the current design:~~ Closed by [ADR-0052](0052-state-lives-on-the-element-and-rebuilds-are-deferred.md):** the state and rebuild API.
   `docs/ARCHITECTURE.md` says elements hold state and mentions a `Property<T>` in
   §9, but the stateful-widget lifecycle, the rebuild scheduling, and how a state
   change marks the tree dirty are not specified. This is the API every user
