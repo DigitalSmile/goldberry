@@ -85,3 +85,17 @@ button.ghost:hover {
 button.ghost:active {
   background: var(--gb-overlay-active);
 }
+
+/* Disabled wins over every variant and every state, which is why it is both written with the
+   variant classes -- so it matches `button.primary:hover`'s specificity -- and
+   placed last, so equal specificity resolves in its favour.
+   A disabled control still lays out, paints and hit-tests -- it just does not
+   act -- so it has to look unavailable rather than disappear. */
+button:disabled,
+button.primary:disabled,
+button.danger:disabled,
+button.ghost:disabled {
+  background: var(--gb-button-disabled-bg);
+  color: var(--gb-button-disabled-text);
+  cursor: not-allowed;
+}

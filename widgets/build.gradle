@@ -6,6 +6,11 @@ description = 'Goldberry widgets: the widget catalog, charts included'
 
 dependencies {
     api project(':core')
+
+    // The golden comparator and the rasterizer guard, shared rather than copied:
+    // two tolerances would drift, and the tolerance is the whole argument of
+    // ADR-0050.
+    testImplementation testFixtures(project(':core'))
 }
 
 // Deliberately no dependency on :gpu. The gallery module this replaced had one,
@@ -22,6 +27,17 @@ def hostNativeLibrary = project(':natives').ext.hostNativeLibrary
 
 tasks.withType(Test).configureEach {
     jvmArgs '--enable-native-access=ALL-UNNAMED'
+
+    // Forwarded to the forked test JVM, because that is where the tests run.
+    // Without this `-Dgoldberry.golden.update=true` reaches the Gradle daemon
+    // and stops there, and the flag looks like it does nothing -- which is
+    // exactly how it behaved in :core the first time it was tried.
+    ['goldberry.golden.update', 'goldberry.native.required'].each { name ->
+        var value = providers.systemProperty(name).orElse(providers.gradleProperty(name))
+        if (value.present) {
+            systemProperty name, value.get()
+        }
+    }
 
     systemProperty 'goldberry.native.library',
             providers.systemProperty('goldberry.native.library')

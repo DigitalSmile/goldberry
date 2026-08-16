@@ -58,6 +58,21 @@ public record KdlNode(
         return value == null ? null : value.asString();
     }
 
+    /// A boolean property, `false` when absent.
+    ///
+    /// KDL 2.0 writes booleans `#true` / `#false`, and §9's own examples use them
+    /// for exactly this — `default=#true`, `disabled=#true`. A **bare** attribute
+    /// is not a KDL thing: `disabled` on its own is an argument, not a property,
+    /// so it is not accepted here.
+    ///
+    /// A value that is not a boolean is `false` rather than an error, for the
+    /// same reason an unparseable declaration is dropped rather than fatal
+    /// (ADR-0051): a document being edited is broken more often than it is
+    /// whole.
+    public boolean booleanProperty(String key) {
+        return properties.get(key) instanceof KdlValue.Bool bool && bool.value();
+    }
+
     /// Child nodes with this name.
     public List<KdlNode> childrenNamed(String name) {
         return children.stream().filter(child -> child.name().equals(name)).toList();

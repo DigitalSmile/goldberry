@@ -27,8 +27,9 @@ API. No JNI, no bundled web engine, no platform widget wrapping.
 > **Pre-release.** A window opens, Blend2D rasterizes its frames across worker
 > threads, Yoga lays out a tree behind the boundary, HarfBuzz-shaped text takes
 > part in that layout, Lucide's icons draw, stylesheets and KDL markup hot-reload,
-> and pointer, wheel and keyboard input route to a widget tree. The widget catalog
-> itself is five primitives — there are no controls yet.
+> and pointer, wheel and keyboard input route to a widget tree. The catalog is
+> five primitives and one control — `button`, with variants, icons, a disabled
+> state and golden images — so twelve controls are still to come.
 > See [Status](book/src/status.md) for what works and what is still open.
 
 ## Quick start
@@ -128,9 +129,9 @@ Goldberry.async(() -> loadTheThing())
 
 ## Layout
 
-Flexbox comes from **Yoga**, bound directly rather than reimplemented. There are
-no widgets to style yet, so this is the layer beneath them rather than an API to
-build against — but it is what the CSS subset compiles to
+Flexbox comes from **Yoga**, bound directly rather than reimplemented. Widgets
+sit on top of this — most applications never touch it — but it is what the CSS
+subset compiles to, and what a `canvas` widget will hand out
 ([ADR-0029](book/src/adr/0029-yogas-node-api-and-who-owns-a-node.md)):
 
 ```java
@@ -310,6 +311,25 @@ spelling Java, KDL and CSS can all use. A button is focusable, activates on a
 click and on `Space`/`Enter`, and does **not** activate when a press is dragged
 off it and released elsewhere.
 
+A button takes a label, an icon, or both, and can be disabled — which refuses
+every route to its action, drops it out of the Tab order, and matches
+`:disabled`:
+
+```java
+new Button("New", plusIcon, this::create, false, attributes)
+new Button("Undo", null, this::undo, clicks == 0, attributes)
+```
+
+The icon is **borrowed**, not owned: a widget is a value that gets rebuilt every
+frame and must not hold something with a `close()`, so the application builds its
+icons once and keeps them, exactly as it keeps a `Font`. In markup an icon is
+named rather than built, and resolves against a registry for the same reason:
+
+```java
+var icons = Icons.strict().bind("plus", plusIcon);
+Controls.inflater(actions, icons).inflateAll(KdlParser.parse(markup));
+```
+
 So far the catalog is the five primitives (`text`, `row`, `column`, `panel`,
 `spacer`) and `button`. Radii, borders, font weights and the focus ring are not
 drawable yet, so `controls.css` states what it cannot express rather than
@@ -437,8 +457,34 @@ catches an unexported package or a wrong `--enable-native-access` (ADR-0023).
 ./gradlew run
 ```
 
-A window opens. `-Pgoldberry.example.frames=3` paints three frames and exits,
-which is what CI runs under Xvfb.
+A window opens. It is a widget tree — a bar, a sidebar, wrapped prose, and a row
+of buttons — styled by the cascade and driven by the input router, so hovering,
+clicking, `Tab`, `Space` and `Ctrl+T` all do what they should.
+`-Pgoldberry.example.frames=3` paints three frames and exits, which is what CI
+runs under Xvfb.
+
+### A self-contained image
+
+For handing to someone with no JDK, no Gradle and nothing to remember
+([ADR-0048](book/src/adr/0048-the-showcase-ships-as-a-runtime-image.md)):
+
+```sh
+./gradlew :example:showcaseImage
+./example/build/jlink/goldberry-showcase-linux-x64/bin/showcase
+```
+
+That is a trimmed JDK from jlink, the application modules, `libgoldberry` and a
+launcher — about 31 MB, and it runs from wherever it is unpacked. The directory
+is named for the host target, so it is `goldberry-showcase-macos-aarch64` on a
+Mac and `…-windows-x64\bin\showcase.bat` on Windows.
+
+CI builds the same image on all three platforms and attaches it to the run: open
+the **Showcase image** workflow, pick a run, and the artifacts are
+`goldberry-showcase-linux-x64.tar.gz`, `-macos-aarch64.tar.gz` and
+`-windows-x64.zip`. Unpack and run `bin/showcase`. (A tarball on the two Unix
+platforms rather than a zip, because the zip format `upload-artifact` writes does
+not carry the executable bit — an image whose `bin/java` cannot be run is not an
+image.)
 
 **On macOS**, AppKit has to be driven from the process's first thread, so any
 Goldberry application needs `-XstartOnFirstThread`. `./gradlew run` passes it for

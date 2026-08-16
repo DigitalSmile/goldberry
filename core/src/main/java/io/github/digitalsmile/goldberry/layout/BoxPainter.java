@@ -59,6 +59,14 @@ public final class BoxPainter {
                         frame, layout.left(), layout.top(), layout.width(),
                         box.text().argb());
             }
+            if (box.icon() != null) {
+                // At the box's own origin, not centred in it: the box was sized
+                // to the icon by `Box.icon`, so they are the same rectangle
+                // unless a stylesheet said otherwise -- and if it did, the icon
+                // stays put rather than drifting to a centre nobody asked for.
+                box.icon().icon().draw(
+                        frame, layout.left(), layout.top(), box.icon().argb());
+            }
         });
     }
 

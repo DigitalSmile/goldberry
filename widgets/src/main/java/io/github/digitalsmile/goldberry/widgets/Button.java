@@ -4,6 +4,7 @@ import io.github.digitalsmile.goldberry.css.ComputedStyle;
 import io.github.digitalsmile.goldberry.input.Handles;
 import io.github.digitalsmile.goldberry.input.Key;
 import io.github.digitalsmile.goldberry.input.KeyEvent;
+import io.github.digitalsmile.goldberry.icon.Icon;
 import io.github.digitalsmile.goldberry.input.PointerEvent;
 import io.github.digitalsmile.goldberry.layout.Box;
 import io.github.digitalsmile.goldberry.text.Paragraph;
@@ -37,26 +38,58 @@ import java.util.Set;
 /// what an author changing it intends. Nothing here remembers a press: the press
 /// is the router's, on the element ([ADR-0052], [ADR-0054]).
 ///
-/// @param label      the text on the button
+/// @param label      the text on the button; empty for an icon-only button
+/// @param icon       the icon before the label, or null. Built at the size it
+///                   draws at, and **not** closed by the button — the
+///                   application owns it, because a widget is a value that gets
+///                   rebuilt and a value must not own a native resource
 /// @param onPress    what activating it does; may be null for a button that is
 ///                   there to be styled and not yet wired
+/// @param disabled   whether it refuses activation and matches `:disabled`
 /// @param attributes `id` and `class`, exactly as on the primitives
-public record Button(String label, Runnable onPress, Widgets.Attributes attributes)
+public record Button(
+        String label, Icon icon, Runnable onPress, boolean disabled,
+        Widgets.Attributes attributes)
         implements Widget.Leaf, Styled, Paints, Handles {
 
     public Button {
         Objects.requireNonNull(label, "label");
+        if (label.isEmpty() && icon == null) {
+            throw new IllegalArgumentException(
+                    "a button with neither a label nor an icon has nothing to click on"
+                            + " and nothing to read out (§13)");
+        }
         attributes = attributes == null ? Widgets.Attributes.NONE : attributes;
     }
 
     /// A button with a label and an action.
     public Button(String label, Runnable onPress) {
-        this(label, onPress, Widgets.Attributes.NONE);
+        this(label, null, onPress, false, Widgets.Attributes.NONE);
     }
 
     /// A button that does nothing yet.
     public Button(String label) {
-        this(label, null, Widgets.Attributes.NONE);
+        this(label, null, null, false, Widgets.Attributes.NONE);
+    }
+
+    /// This button with an icon before its label (§11: "label, icon, or both").
+    ///
+    /// The icon is **borrowed**. A widget is a value that is rebuilt every frame
+    /// and thrown away, so it must not own something with a `close()`; the
+    /// application builds the icon once and keeps it, exactly as it keeps a
+    /// `Font` ([ADR-0043](../../../../../../../book/src/adr/0043-icons-are-stroked-paths.md)).
+    public Button withIcon(Icon icon) {
+        return new Button(label, Objects.requireNonNull(icon, "icon"), onPress, disabled, attributes);
+    }
+
+    /// This button, disabled or not.
+    ///
+    /// A disabled button still lays out, still paints, and still hit-tests —
+    /// what it does not do is activate. That is deliberate: a control that
+    /// vanished from hit testing would let a click land on whatever is behind
+    /// it, which is worse than a click that does nothing.
+    public Button disabled(boolean value) {
+        return new Button(label, icon, onPress, value, attributes);
     }
 
     /// This button with a class added — `button.primary` from Java.
@@ -66,7 +99,7 @@ public record Button(String label, Runnable onPress, Widgets.Attributes attribut
     /// variant `class="primary"`. An enum would be a second vocabulary that only
     /// one of the two could use.
     public Button styled(String... classes) {
-        return new Button(label, onPress,
+        return new Button(label, icon, onPress, disabled,
                 new Widgets.Attributes(attributes.id(), Set.of(classes), attributes.key()));
     }
 
@@ -91,10 +124,18 @@ public record Button(String label, Runnable onPress, Widgets.Attributes attribut
     }
 
     /// Focusable, which is what puts it in the Tab order and lets `:focus-visible`
-    /// mean something (§7.2).
+    /// mean something (§7.2) — unless it is disabled, in which case Tab skips it.
+    ///
+    /// A disabled control that could still be focused would strand a keyboard
+    /// user on something that does not respond.
     @Override
     public boolean isFocusable() {
-        return true;
+        return !disabled;
+    }
+
+    @Override
+    public boolean isDisabled() {
+        return disabled;
     }
 
     /// Activates on a click — not on a release.
@@ -128,16 +169,28 @@ public record Button(String label, Runnable onPress, Widgets.Attributes attribut
 
     @Override
     public Box render(ComputedStyle style, List<Box> children, Context context) {
-        // The label is a child box rather than text on the button's own box: a
+        // The content is child boxes rather than text on the button's own box: a
         // box with text is a measured leaf and Yoga never lays a measured node's
-        // children out, so a button that held its own text could never also hold
-        // an icon (§11: "content = label, icon, or both").
-        var text = Box.text(Paragraph.of(context.font(), label), style.color());
-        return Box.of().style(style).children(text);
+        // children out, so a button that held its own text could not also hold
+        // an icon (§11: "content = label, icon, or both"). The gap between them
+        // is the stylesheet's -- 6 points, per the design system.
+        var content = new java.util.ArrayList<Box>(2);
+        if (icon != null) {
+            content.add(Box.icon(icon, style.color()));
+        }
+        if (!label.isEmpty()) {
+            content.add(Box.text(Paragraph.of(context.font(), label), style.color()));
+        }
+        return Box.of().style(style).children(content.toArray(Box[]::new));
     }
 
+    /// Runs the action, unless disabled.
+    ///
+    /// Checked here rather than at every call site, so a control cannot be
+    /// activated by a route that forgot — a keyboard shortcut, a synthetic event
+    /// from a test, an accessibility action later.
     private void activate() {
-        if (onPress != null) {
+        if (!disabled && onPress != null) {
             onPress.run();
         }
     }

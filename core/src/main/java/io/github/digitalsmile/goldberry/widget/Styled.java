@@ -44,4 +44,19 @@ public interface Styled extends Widget {
     default Set<String> classes() {
         return Set.of();
     }
+
+    /// Whether this node is disabled, for `:disabled`.
+    ///
+    /// The one pseudo-class a **widget** owns rather than the router. `:hover`,
+    /// `:active` and `:focus` are facts about the pointer and the keyboard, and
+    /// input derives them; `:disabled` is a fact about the description, and only
+    /// the widget knows it.
+    ///
+    /// Mirrored onto the element by [WidgetRenderer] on every render, so it
+    /// survives a rebuild the same way the router's states do — and so a
+    /// stylesheet, a hit test and an activation all agree about it without three
+    /// of them asking the widget separately.
+    default boolean isDisabled() {
+        return false;
+    }
 }

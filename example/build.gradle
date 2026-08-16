@@ -7,6 +7,7 @@ description = 'Goldberry showcase: what the toolkit looks like from an applicati
 
 dependencies {
     implementation project(':core')
+    implementation project(':widgets')
 
     // Logback only here, and only at runtime. The toolkit binds no SLF4J
     // provider, so choosing one is the application's call -- this is what making

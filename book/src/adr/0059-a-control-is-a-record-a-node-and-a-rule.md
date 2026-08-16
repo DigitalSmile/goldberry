@@ -111,10 +111,13 @@ that dependency mutual for one record.
   variants cost four rules and a dozen tokens, and they are what proves classes
   are the right mechanism. What is genuinely missing is stated below rather than
   approximated.
-- **Golden-image the button now.** Deferred, not rejected. §14 ties the visual
-  regression corpus to the showcase screens in `:widgets`, and those do not
-  exist; the button's appearance is asserted as values — height, padding, resolved
-  colour per state — which is what the cascade actually produces.
+- **Assert the appearance only as values.** Height, padding and resolved colour
+  per state are what the cascade produces, and checking them is cheap and exact —
+  but they cannot catch a padding applied to the wrong *edge* or an icon drawn at
+  the wrong origin, because both resolve to the values asked for. So there are
+  golden images as well. §14 ties the corpus to showcase screens, and those still
+  do not exist; a control's own images are the smaller thing that can be built
+  first.
 
 ## Consequences
 
@@ -127,13 +130,40 @@ that dependency mutual for one record.
   them can be drawn. `controls.css` says so in a comment rather than
   approximating them, and `:focus-visible` stands in with a background change so
   keyboard focus is at least visible. Each arrives with the thing that paints it.
-- **`Button` has no icon yet**, though §11 says content is "label, icon, or both".
-  The label is deliberately a *child* box rather than text on the button's own
-  box — a box with text is a measured leaf and Yoga never lays a measured node's
-  children out — so the icon has somewhere to go when `Icon` becomes a widget.
-- **`disabled` is not modelled.** `:disabled` is in the cascade's pseudo-class
-  set and nothing sets it, because no widget has the flag yet. It belongs with
-  `bind`, which is the other half of §9 and is not here.
+- **An icon is a `Box` now**, which closes what
+  [ADR-0043](0043-icons-are-stroked-paths.md) left open — "nothing decides an
+  icon's intrinsic size until the widget model does". The answer turned out
+  simpler than the question: an icon is built at a size and that size *is* its
+  intrinsic one, so unlike text it needs no measure function and no callback into
+  C. `Button` takes a label, an icon, or both. The icon is **borrowed**: a widget
+  is a value rebuilt every frame and must not own something with a `close()`, so
+  markup names an icon against a registry rather than building one — a document
+  reloaded on every keystroke would otherwise leak one per reload.
+- **`:disabled` is the one pseudo-class a widget owns.** `:hover`, `:active` and
+  `:focus` are facts about the pointer and the keyboard and the router derives
+  them; `disabled` is a fact about the description. `WidgetRenderer` mirrors
+  `Styled.isDisabled()` onto the element before the cascade is asked, so the
+  stylesheet, the hit test and the activation cannot disagree. A disabled control
+  still lays out, paints and hit-tests — it just does not act, and it leaves the
+  Tab order, because a focusable control that never responds strands a keyboard
+  user on it.
+- **Four golden images.** The variants on both themes, the five states side by
+  side, and the icon layout. Value assertions check what the cascade *resolved*;
+  these check what Blend2D *drew*, which is a different question and the one that
+  catches a padding applied to the wrong edge. `GoldenImage`, `TestFrames` and
+  `RendererRequirement` moved into `:core`'s test fixtures to get there — shared
+  rather than copied, because two golden comparators would drift on the
+  tolerance and the tolerance is the whole argument of
+  [ADR-0050](0050-golden-images-have-a-tolerance.md).
+- **The showcase is a widget tree.** It was hand-built `Box`es; it is now a
+  stateful widget with a bar, a sidebar, wrapped prose and a row of buttons —
+  which is what makes `setState`, reconciliation, theme switching, focus
+  traversal and `:hover` repaints run outside a test at all. `Window` now
+  repaints itself when input changes a pseudo-class, because otherwise every
+  application would have to remember and the one that forgot would have buttons
+  that never light up.
+- **`bind` is still missing** — the read half of §9. `action` is here; a control
+  that shows a value rather than triggering one needs the other.
 - **Two more themes' worth of tokens.** Every control that ships adds component
   tokens to both Nord files. That is the cost of the split above, and it is paid
   per control rather than per theme.

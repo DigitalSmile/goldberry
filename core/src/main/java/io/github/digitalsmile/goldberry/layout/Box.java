@@ -2,6 +2,7 @@ package io.github.digitalsmile.goldberry.layout;
 
 import io.github.digitalsmile.goldberry.backend.Cursor;
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
+import io.github.digitalsmile.goldberry.icon.Icon;
 import io.github.digitalsmile.goldberry.natives.yoga.Align;
 import io.github.digitalsmile.goldberry.natives.yoga.FlexDirection;
 import io.github.digitalsmile.goldberry.natives.yoga.Insets;
@@ -35,6 +36,7 @@ public record Box(
         StyleLength gap,
         double flexGrow,
         Text text,
+        Glyph icon,
         List<Box> children,
         Object owner) {
 
@@ -58,6 +60,21 @@ public record Box(
         }
     }
 
+    /// An icon filling a box, and the colour to stroke it in.
+    ///
+    /// The same shape as [Text] and for the same reason: an icon with no colour
+    /// cannot be drawn. Unlike text it needs no measure function — an icon knows
+    /// its own size, which is why it can be a box at all
+    /// ([ADR-0043](../../../../../../book/src/adr/0043-icons-are-stroked-paths.md)).
+    ///
+    /// @param icon the icon, already built at the size it will draw at
+    /// @param argb `0xAARRGGBB`, not premultiplied
+    public record Glyph(Icon icon, int argb) {
+        public Glyph {
+            Objects.requireNonNull(icon, "icon");
+        }
+    }
+
     /// Fully transparent — a box that lays out and paints nothing.
     public static final int TRANSPARENT = 0x00000000;
 
@@ -78,6 +95,11 @@ public record Box(
         // out, so a box that is both would silently lose them. Refused here
         // rather than at layout time, where the box that caused it is harder to
         // find. Text beside other content is a child box holding the text.
+        if (icon != null && (text != null || !children.isEmpty())) {
+            throw new IllegalArgumentException(
+                    "a box with an icon may not also have text or children: it is sized by the"
+                            + " icon. Put them side by side in a row.");
+        }
         if (text != null && !children.isEmpty()) {
             throw new IllegalArgumentException(
                     "a box with text may not also have " + children.size() + " child(ren):"
@@ -100,6 +122,7 @@ public record Box(
                 StyleLength.points(0),
                 0,
                 null,
+                null,
                 List.of(),
                 null);
     }
@@ -118,7 +141,26 @@ public record Box(
 
     public Box text(Text value) {
         return new Box(background, cursor, direction, justifyContent, alignItems, width, height,
-                padding, gap, flexGrow, value, children, owner);
+                padding, gap, flexGrow, value, icon, children, owner);
+    }
+
+    /// A box that is one icon, sized by it.
+    ///
+    /// The answer to the question ADR-0043 left open — "an icon is not a `Box`,
+    /// because nothing decides an icon's intrinsic size until the widget model
+    /// does". The widget model is here, and the answer turned out to be simpler
+    /// than expected: an icon is built at a size and that size *is* its
+    /// intrinsic one, so it needs no measure function and no callback into C.
+    ///
+    /// @param argb `0xAARRGGBB`, not premultiplied
+    public static Box icon(Icon icon, int argb) {
+        var size = StyleLength.points((float) icon.size());
+        return of().icon(new Glyph(icon, argb)).size(size, size);
+    }
+
+    public Box icon(Glyph value) {
+        return new Box(background, cursor, direction, justifyContent, alignItems, width, height,
+                padding, gap, flexGrow, text, value, children, owner);
     }
 
     /// A box filled with `argb` — `0xAARRGGBB`, not premultiplied, exactly as
@@ -135,32 +177,32 @@ public record Box(
     public Box cursor(Cursor value) {
         return new Box(background, Objects.requireNonNull(value, "cursor"), direction,
                 justifyContent, alignItems, width, height,
-                padding, gap, flexGrow, text, children, owner);
+                padding, gap, flexGrow, text, icon, children, owner);
     }
 
     public Box background(int argb) {
         return new Box(argb, cursor, direction, justifyContent, alignItems, width, height,
-                padding, gap, flexGrow, text, children, owner);
+                padding, gap, flexGrow, text, icon, children, owner);
     }
 
     public Box direction(FlexDirection value) {
         return new Box(background, cursor, value, justifyContent, alignItems, width, height,
-                padding, gap, flexGrow, text, children, owner);
+                padding, gap, flexGrow, text, icon, children, owner);
     }
 
     public Box justifyContent(Justify value) {
         return new Box(background, cursor, direction, value, alignItems, width, height,
-                padding, gap, flexGrow, text, children, owner);
+                padding, gap, flexGrow, text, icon, children, owner);
     }
 
     public Box alignItems(Align value) {
         return new Box(background, cursor, direction, justifyContent, value, width, height,
-                padding, gap, flexGrow, text, children, owner);
+                padding, gap, flexGrow, text, icon, children, owner);
     }
 
     public Box size(StyleLength w, StyleLength h) {
         return new Box(background, cursor, direction, justifyContent, alignItems, w, h,
-                padding, gap, flexGrow, text, children, owner);
+                padding, gap, flexGrow, text, icon, children, owner);
     }
 
     /// The same padding on every edge — the common case, and what most of the
@@ -171,18 +213,18 @@ public record Box(
 
     public Box padding(Insets value) {
         return new Box(background, cursor, direction, justifyContent, alignItems, width, height,
-                value, gap, flexGrow, text, children, owner);
+                value, gap, flexGrow, text, icon, children, owner);
     }
 
     public Box gap(StyleLength value) {
         return new Box(background, cursor, direction, justifyContent, alignItems, width, height,
-                padding, value, flexGrow, text, children, owner);
+                padding, value, flexGrow, text, icon, children, owner);
     }
 
     /// Share of the free space this box takes along its parent's main axis.
     public Box grow(double value) {
         return new Box(background, cursor, direction, justifyContent, alignItems, width, height,
-                padding, gap, value, text, children, owner);
+                padding, gap, value, text, icon, children, owner);
     }
 
     /// This box tagged with whatever produced it.
@@ -191,12 +233,12 @@ public record Box(
     /// at it.
     public Box owner(Object value) {
         return new Box(background, cursor, direction, justifyContent, alignItems, width, height,
-                padding, gap, flexGrow, text, children, value);
+                padding, gap, flexGrow, text, icon, children, value);
     }
 
     public Box children(Box... value) {
         return new Box(background, cursor, direction, justifyContent, alignItems, width, height,
-                padding, gap, flexGrow, text, List.of(value), owner);
+                padding, gap, flexGrow, text, icon, List.of(value), owner);
     }
 
     /// This box with every property a [ComputedStyle] carries applied to it.
@@ -228,6 +270,10 @@ public record Box(
                 style.gap(),
                 style.flexGrow(),
                 styledText,
+                // `color` reaches an icon exactly as it reaches text: Lucide's
+                // set is drawn to be tinted, and a stylesheet saying `color`
+                // means the same thing to both.
+                icon == null ? null : new Glyph(icon.icon(), style.color()),
                 children,
                 owner);
     }

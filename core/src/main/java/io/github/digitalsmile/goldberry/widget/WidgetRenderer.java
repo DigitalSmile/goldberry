@@ -68,6 +68,16 @@ public final class WidgetRenderer {
             children.addAll(render(child));
         }
 
+        // The one pseudo-class a widget owns rather than the router: `:disabled`
+        // is a fact about the description, so it is mirrored onto the element
+        // here, before the cascade is asked. Every other state on an element was
+        // put there by input.
+        if (element.widget() instanceof Styled styled) {
+            element.setPseudoClass(
+                    io.github.digitalsmile.goldberry.css.Selector.PseudoClass.DISABLED,
+                    styled.isDisabled());
+        }
+
         if (!(element.widget() instanceof Paints paints)) {
             // A composition node: it has no box of its own, so its children
             // become its parent's directly.

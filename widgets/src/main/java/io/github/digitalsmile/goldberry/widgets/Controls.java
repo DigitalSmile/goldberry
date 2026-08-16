@@ -61,22 +61,36 @@ public final class Controls {
     ///
     /// @param actions what a `press="save"` attribute resolves against — see
     ///                [Actions]
-    public static KdlInflater<Widget> inflater(Actions actions) {
+    /// @param icons   what an `icon="plus"` attribute resolves against — see
+    ///                [Icons]
+    public static KdlInflater<Widget> inflater(Actions actions, Icons icons) {
         var inflater = Widgets.inflater();
         inflater.register("button", (node, children) -> new Button(
                 node.argument().map(v -> v.asString()).orElse(""),
+                // Markup names an icon; it cannot build one. An `Icon` owns
+                // native memory and has to be closed, and a document reloaded
+                // every keystroke would leak one per reload — so the icons a
+                // markup file may use are the ones the application registered.
+                icons.resolve(node.stringProperty("icon")),
                 actions.resolve(node.stringProperty("press")),
+                node.booleanProperty("disabled"),
                 Widgets.Attributes.of(node)));
         return inflater;
     }
 
-    /// An inflater with no actions bound: every `press=` resolves to nothing.
+    /// An inflater with actions bound and no icons.
+    public static KdlInflater<Widget> inflater(Actions actions) {
+        return inflater(actions, Icons.none());
+    }
+
+    /// An inflater with nothing bound: every `press=` and `icon=` resolves to
+    /// nothing.
     ///
     /// What a golden image or a layout preview wants — the markup is about what
     /// the window looks like, and a preview that had to supply a handler for
     /// every button in it would be unusable.
     public static KdlInflater<Widget> inflater() {
-        return inflater(Actions.none());
+        return inflater(Actions.none(), Icons.none());
     }
 
     /// The CSS type names this module adds, which is what the parity test checks

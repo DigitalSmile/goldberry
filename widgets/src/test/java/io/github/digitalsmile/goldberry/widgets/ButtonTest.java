@@ -12,6 +12,7 @@ import io.github.digitalsmile.goldberry.css.Selector;
 import io.github.digitalsmile.goldberry.css.StyleResolver;
 import io.github.digitalsmile.goldberry.css.Stylesheet;
 import io.github.digitalsmile.goldberry.css.Theme;
+import io.github.digitalsmile.goldberry.icon.Icon;
 import io.github.digitalsmile.goldberry.input.Handles;
 import io.github.digitalsmile.goldberry.input.Key;
 import io.github.digitalsmile.goldberry.input.KeyEvent;
@@ -22,10 +23,13 @@ import io.github.digitalsmile.goldberry.natives.yoga.Insets;
 import io.github.digitalsmile.goldberry.natives.yoga.StyleLength;
 import io.github.digitalsmile.goldberry.widget.Element;
 import io.github.digitalsmile.goldberry.widget.ElementTree;
+import io.github.digitalsmile.goldberry.widget.WidgetRenderer;
 import io.github.digitalsmile.goldberry.widget.Widgets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -40,7 +44,7 @@ class ButtonTest {
         @Test
         @DisplayName("the Java-built and KDL-built buttons are equal values")
         void javaAndKdlAgree() {
-            var fromJava = new Button("Save", null,
+            var fromJava = new Button("Save", null, null, false,
                     new Widgets.Attributes("save", Set.of("primary"), "save"));
 
             var nodes = KdlParser.parse("""
@@ -57,7 +61,7 @@ class ButtonTest {
         @Test
         @DisplayName("a button is CSS-selectable by type, id and class")
         void selectable() {
-            var button = new Button("Save", null,
+            var button = new Button("Save", null, null, false,
                     new Widgets.Attributes("save", Set.of("primary"), null));
 
             assertEquals("button", button.cssType());
@@ -206,7 +210,7 @@ class ButtonTest {
             if (appCss != null) {
                 sheets.add(Stylesheet.parse(CascadeLayer.APPLICATION, appCss));
             }
-            var element = new ElementTree(new Button("Save", null,
+            var element = new ElementTree(new Button("Save", null, null, false,
                     new Widgets.Attributes(null, Set.of(classes), null))).root();
             return ComputedStyle.of(new StyleResolver(sheets).resolve(element),
                     CssLength.Context.DEFAULT);
@@ -342,6 +346,139 @@ class ButtonTest {
 
             assertThrows(IllegalStateException.class, () -> actions.bind("save", () -> { }));
             actions.rebind("save", () -> { });
+        }
+    }
+
+    @Nested
+    @DisplayName("icon and disabled")
+    class IconAndDisabled {
+
+        private Icon icon;
+
+        @BeforeEach
+        void buildIcon() {
+            TestFont.get();   // skips the whole nest when there is no library
+            icon = Icon.bundled("plus", 16);
+        }
+
+        @AfterEach
+        void closeIcon() {
+            if (icon != null) {
+                icon.close();
+            }
+        }
+
+        @Test
+        @DisplayName("an icon is a box beside the label, not a decoration over it")
+        void iconIsABox() {
+            // The answer to what ADR-0043 left open. An icon is built at a size
+            // and that size is its intrinsic one, so it needs no measure
+            // function and no callback into C.
+            var box = new Button("Save").withIcon(icon)
+                    .render(ComputedStyle.INITIAL, List.of(), TestFont::get);
+
+            assertEquals(2, box.children().size());
+            assertEquals(icon, box.children().getFirst().icon().icon());
+            assertEquals(StyleLength.points(16), box.children().getFirst().width());
+            assertEquals("Save", box.children().get(1).text().paragraph().text());
+        }
+
+        @Test
+        @DisplayName("an icon-only button is legal; an empty one is not")
+        void iconOnly() {
+            var box = new Button("", icon, null, false, Widgets.Attributes.NONE)
+                    .render(ComputedStyle.INITIAL, List.of(), TestFont::get);
+            assertEquals(1, box.children().size());
+
+            // Nothing to click on and nothing to read out (§13).
+            assertThrows(IllegalArgumentException.class,
+                    () -> new Button("", null, null, false, Widgets.Attributes.NONE));
+        }
+
+        @Test
+        @DisplayName("markup names an icon and the registry resolves it")
+        void iconFromMarkup() {
+            var icons = Icons.strict().bind("plus", icon);
+
+            var button = (Button) Controls.inflater(Actions.none(), icons)
+                    .inflateAll(KdlParser.parse("button icon=\"plus\" \"New\"")).getFirst();
+
+            assertEquals(icon, button.icon());
+        }
+
+        @Test
+        @DisplayName("a strict icon registry refuses a name nobody registered")
+        void unknownIcon() {
+            // Markup cannot build an icon, because nothing would ever close it.
+            assertThrows(IllegalArgumentException.class,
+                    () -> Controls.inflater(Actions.none(), Icons.strict())
+                            .inflateAll(KdlParser.parse("button icon=\"plus\" \"New\"")));
+        }
+    }
+
+    @Nested
+    @DisplayName("disabled")
+    class Disabled {
+
+        private final List<String> fired = new ArrayList<>();
+
+        @Test
+        @DisplayName("a disabled button refuses every route to its action")
+        void refusesActivation() {
+            var button = new Button("Save", () -> fired.add("pressed")).disabled(true);
+            var element = new ElementTree(button).root();
+
+            button.onPointer(new PointerEvent(
+                    PointerEvent.Kind.CLICKED, 10, 10, PointerEvent.Button.PRIMARY, 1, element));
+            button.onKey(new KeyEvent(
+                    KeyEvent.Kind.PRESSED, Key.SPACE, Modifiers.NONE, false, element));
+
+            assertTrue(fired.isEmpty(), () -> "fired was " + fired);
+        }
+
+        @Test
+        @DisplayName("Tab skips it, rather than stranding a keyboard user on it")
+        void notFocusable() {
+            assertTrue(!new Button("Save").disabled(true).isFocusable());
+        }
+
+        @Test
+        @DisplayName("`disabled=#true` in markup is the same value as in Java")
+        void fromMarkup() {
+            var fromKdl = (Button) Controls.inflater()
+                    .inflateAll(KdlParser.parse("button disabled=#true \"Save\"")).getFirst();
+
+            assertEquals(new Button("Save").disabled(true), fromKdl);
+        }
+
+        @Test
+        @DisplayName("the renderer mirrors it onto the element, so the cascade sees it")
+        void mirroredToTheElement() {
+            // The one pseudo-class a widget owns rather than the router. Without
+            // this the stylesheet and the widget would disagree about the same
+            // button.
+            var tree = new ElementTree(new Button("Save").disabled(true));
+            new WidgetRenderer(List.of(Controls.baseStylesheet(), Theme.NORD_DARK.load()),
+                    TestFont.get()).render(tree);
+
+            assertTrue(tree.root().hasState(Selector.PseudoClass.DISABLED));
+        }
+
+        @Test
+        @DisplayName("a disabled button beats its own variant's hover")
+        void beatsTheVariant() {
+            var sheets = List.of(Controls.baseStylesheet(), Theme.NORD_DARK.load());
+            var element = new ElementTree(new Button("Save").styled("primary").disabled(true)).root();
+            element.setPseudoClass(Selector.PseudoClass.DISABLED, true);
+            element.setPseudoClass(Selector.PseudoClass.HOVER, true);
+
+            var style = ComputedStyle.of(new StyleResolver(sheets).resolve(element),
+                    CssLength.Context.DEFAULT);
+
+            // Equal specificity, so the disabled rule wins by being last -- which
+            // is why it is written where it is.
+            assertEquals(0xFF3B4252, style.background(), "nord1, the disabled surface");
+            assertEquals(io.github.digitalsmile.goldberry.backend.Cursor.NOT_ALLOWED, style.cursor());
         }
     }
 }

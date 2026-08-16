@@ -68,6 +68,9 @@
   --gb-button-bg-focus: var(--nord4);
   --gb-button-text: var(--nord0);
 
+  --gb-button-disabled-bg: var(--nord5);
+  --gb-button-disabled-text: var(--nord4);
+
   --gb-button-primary-bg: var(--nord10);
   --gb-button-primary-bg-hover: #54749c;
   --gb-button-primary-bg-active: #4a678b;

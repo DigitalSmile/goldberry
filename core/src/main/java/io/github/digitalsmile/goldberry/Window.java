@@ -312,18 +312,38 @@ public final class Window implements AutoCloseable {
     void handlePointerMoved(float x, float y) {
         if (router != null) {
             router.pointerMoved(x, y);
+            repaintIfRestyled();
+        }
+    }
+
+    /// Repaints when input changed something a stylesheet reacts to.
+    ///
+    /// `:hover` moving is the ordinary case, and it happens on pointer motion —
+    /// which arrives whether or not anything asked for a frame. Without this
+    /// every application would have to remember to ask after every event, and
+    /// the one that forgot would have a window whose buttons never light up.
+    ///
+    /// Coalesced by [#repaint()], so a drag across a row of buttons costs one
+    /// frame per frame rather than one per event. Costs nothing when nothing
+    /// changed: `takeStylesDirty` clears on read, so the question it answers is
+    /// exactly "did a pseudo-class change since the last time anyone asked".
+    private void repaintIfRestyled() {
+        if (router.takeStylesDirty()) {
+            repaint();
         }
     }
 
     void handlePointerPressed(float x, float y, int button, int clickCount) {
         if (router != null) {
             router.pointerPressed(x, y, toButton(button), clickCount);
+            repaintIfRestyled();
         }
     }
 
     void handlePointerReleased(float x, float y, int button, int clickCount) {
         if (router != null) {
             router.pointerReleased(x, y, toButton(button), clickCount);
+            repaintIfRestyled();
         }
     }
 
@@ -336,6 +356,7 @@ public final class Window implements AutoCloseable {
     void handlePointerExited() {
         if (router != null) {
             router.pointerExited();
+            repaintIfRestyled();
         }
     }
 
@@ -356,6 +377,7 @@ public final class Window implements AutoCloseable {
                     io.github.digitalsmile.goldberry.input.Key.fromSdl(keycode),
                     io.github.digitalsmile.goldberry.input.Modifiers.fromSdl(modifiers),
                     repeat);
+            repaintIfRestyled();
         }
     }
 

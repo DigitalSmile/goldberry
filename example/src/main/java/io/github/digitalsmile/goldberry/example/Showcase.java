@@ -3,111 +3,217 @@ package io.github.digitalsmile.goldberry.example;
 import io.github.digitalsmile.goldberry.Goldberry;
 import io.github.digitalsmile.goldberry.Window;
 import io.github.digitalsmile.goldberry.assets.BundledFont;
-import io.github.digitalsmile.goldberry.backend.Cursor;
+import io.github.digitalsmile.goldberry.css.CascadeLayer;
+import io.github.digitalsmile.goldberry.css.Stylesheet;
+import io.github.digitalsmile.goldberry.css.Theme;
 import io.github.digitalsmile.goldberry.icon.Icon;
-import io.github.digitalsmile.goldberry.layout.Box;
+import io.github.digitalsmile.goldberry.input.HitTest;
+import io.github.digitalsmile.goldberry.input.PointerRouter;
 import io.github.digitalsmile.goldberry.layout.BoxPainter;
-import io.github.digitalsmile.goldberry.natives.yoga.Align;
-import io.github.digitalsmile.goldberry.natives.yoga.FlexDirection;
-import io.github.digitalsmile.goldberry.natives.yoga.StyleLength;
 import io.github.digitalsmile.goldberry.text.Font;
 import io.github.digitalsmile.goldberry.text.FontFace;
-import io.github.digitalsmile.goldberry.text.Paragraph;
+import io.github.digitalsmile.goldberry.widget.BuildContext;
+import io.github.digitalsmile.goldberry.widget.ElementTree;
+import io.github.digitalsmile.goldberry.widget.State;
+import io.github.digitalsmile.goldberry.widget.Widget;
+import io.github.digitalsmile.goldberry.widget.WidgetRenderer;
+import io.github.digitalsmile.goldberry.widget.Widgets;
+import io.github.digitalsmile.goldberry.widgets.Button;
+import io.github.digitalsmile.goldberry.widgets.Controls;
 import java.util.List;
+import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /// Goldberry's showcase.
 ///
-/// It opens a window, lays a flexbox tree out with Yoga, and draws it with
-/// Blend2D — including a paragraph HarfBuzz shaped, whose height is what the
-/// layout is built around. That is M0 and the whole of M1's vertical slice: the
-/// superbuild links, the bindings are right, the SPI holds, a window appears at
-/// the display's real pixel density, and the text in it re-wraps as the window is
-/// dragged. The widget catalog and the CSS engine arrive on top of this file,
-/// not beside it.
+/// A window whose contents are a **widget tree**, styled by the cascade and
+/// driven by the input router — the toolkit as an application actually uses it.
+/// It was hand-built `Box`es until the widget model existed; the boxes are still
+/// down there, one layer below, built by `WidgetRenderer` from the element tree
+/// every frame.
+///
+/// What it exercises, and why each is here rather than only in a test:
+///
+/// - **The three trees.** Widgets are values, the element tree persists across
+///   rebuilds, the box tree is materialized per frame (ADR-0052, ADR-0053).
+/// - **`setState`.** Every button ends in one, and the element tree reconciles
+///   the new description against the old — so the focus ring stays where it was
+///   through a rebuild that replaced every widget in the window.
+/// - **The cascade, with a theme in it.** The theme button swaps one stylesheet
+///   in the `THEME` layer; everything restyles, including rules that name no
+///   colour (§10).
+/// - **Input, end to end.** Hover, press, click, focus, `Tab`, `Space`/`Enter`,
+///   and a `Ctrl+T` accelerator — through a router fed by the frame that was
+///   painted rather than a fresh layout (ADR-0054, ADR-0058).
+/// - **A cursor and an icon in a box**, which is what makes
+///   `SDL_CreateSystemCursor` and the icon-as-a-box path run outside a unit test
+///   (ADR-0043, ADR-0057).
 ///
 /// It is also where logging is configured — `logback.xml` beside this class,
 /// because binding a logging implementation is an application's decision and
 /// never a library's (ADR-0023).
 ///
-/// Run it with `./gradlew run` from the repository root.
+/// Run it with `./gradlew run` from the repository root, or build the
+/// self-contained image with `./gradlew :example:showcaseImage` (ADR-0048).
 public final class Showcase {
 
     private static final Logger LOG = LoggerFactory.getLogger(Showcase.class);
 
-    /// Nord `nord0` and `nord8` (`docs/ARCHITECTURE.md` §10) — so the first
-    /// window Goldberry ever draws is already the right colour.
-    private static final int BACKGROUND = 0xFF2E3440;
-    private static final int ACCENT = 0xFF88C0D0;
-    private static final int PANEL = 0xFF3B4252;
-    private static final int MUTED = 0xFF4C566A;
-    private static final int ON_ACCENT = 0xFF2E3440;
-    private static final int ON_PANEL = 0xFFECEFF4;
+    /// The showcase's own stylesheet: the layout of *this* window, and nothing
+    /// about how a button looks.
+    ///
+    /// In the `APPLICATION` layer, so it wins over the toolkit's base rules —
+    /// and every colour in it is a `var(--gb-*)`, which is what lets the theme
+    /// button work without this file knowing a theme exists.
+    private static final String STYLES = """
+            #root      { flex-direction: column; background: var(--gb-bg) }
 
-    /// The bar's height and the body's padding, in points. These are the only
-    /// sizes written down: everything else comes from the content, which is what
-    /// having a measure function buys.
-    private static final float BAR_HEIGHT = 32;
-    private static final float PADDING = 16;
+            #bar       { height: 44px; padding: 0 16px; gap: 12px;
+                         align-items: center; background: var(--gb-surface) }
+            #title     { color: var(--gb-text) }
 
-    /// The icons in the sidebar, in logical pixels. A third number, and the only
-    /// one added since ADR-0036 — an icon has no intrinsic size to take from
-    /// content the way a paragraph does.
-    private static final float ICON_SIZE = 24;
+            #body      { flex-grow: 1; padding: 16px; gap: 16px }
+            #sidebar   { width: 30%; padding: 12px; gap: 8px;
+                         flex-direction: column; background: var(--gb-surface) }
+            #content   { flex-grow: 1; padding: 16px; gap: 16px;
+                         flex-direction: column; background: var(--gb-surface-2) }
+            #prose     { color: var(--gb-text) }
+            #actions   { gap: 8px; align-items: center }
+            .caption   { color: var(--gb-text-muted) }
+            """;
 
-    /// The prose the body wraps. Long on purpose: the point of the window is to
-    /// be resized, and wrapping is the thing to watch while it is.
     private static final String BODY_TEXT =
             "Yoga proposes a width and this paragraph answers with a height, which is the only"
                     + " thing a flexbox algorithm needs to know about text. The answer comes back"
                     + " through a Java method called from C returning a struct by value — the"
                     + " fiddliest thing the toolkit asks of the Foreign Function & Memory API, and"
                     + " the reason ADR-0017 exists.\n\n"
-                    + "Drag the window's edge. The text is shaped once, when this paragraph is"
-                    + " built; every re-wrap after that is arithmetic over the glyphs that shaping"
-                    + " already produced.";
+                    + "Drag the window's edge and the text re-wraps without being shaped again."
+                    + " Click a button, or press Tab until one has the focus and then Space."
+                    + " Ctrl+T switches the theme from the keyboard.";
+
+    private static final float ICON_SIZE = 20;
 
     private Showcase() {
     }
 
-    /// The layout the window paints, built once and reused every frame.
+    // --- the widget tree -----------------------------------------------------
+
+    /// The whole window, as one stateful widget.
     ///
-    /// Flexbox through Yoga, filled and drawn through Blend2D, in logical
-    /// coordinates throughout. The body is a **measured leaf**: its height is
-    /// whatever its text wraps to at the width the sidebar leaves it, so the
-    /// layout is decided by the content rather than by a number written here
-    /// (ADR-0036).
-    private static Box layout(Paragraph title, Paragraph body) {
-        return Box.of()
-                .direction(FlexDirection.COLUMN)
-                .background(BACKGROUND)
-                .children(
-                        // A 32-point bar across the top, whatever the display
-                        // scale, with its title centred in it.
-                        Box.of()
-                                .background(ACCENT)
-                                .size(StyleLength.UNDEFINED, StyleLength.points(BAR_HEIGHT))
-                                .alignItems(Align.CENTER)
-                                .padding(StyleLength.points(PADDING))
-                                .children(Box.text(title, ON_ACCENT)),
-                        Box.of()
-                                .grow(1)
-                                .direction(FlexDirection.ROW)
-                                .padding(StyleLength.points(PADDING))
-                                .gap(StyleLength.points(PADDING))
-                                .children(
-                                        // A quarter-width sidebar and a body
-                                        // that takes what is left.
-                                        Box.filled(PANEL).size(
-                                                StyleLength.percent(25), StyleLength.UNDEFINED),
-                                        Box.of()
-                                                .grow(1)
-                                                .direction(FlexDirection.COLUMN)
-                                                .background(MUTED)
-                                                .padding(StyleLength.points(PADDING))
-                                                .children(Box.text(body, ON_PANEL))));
+    /// The icons are handed in rather than built here: a widget is a value that
+    /// is rebuilt on every `setState` and thrown away, and an `Icon` owns native
+    /// memory that has to be closed exactly once. `main` owns them
+    /// ([ADR-0043](../../../../../../book/src/adr/0043-icons-are-stroked-paths.md)).
+    record Screen(Icon palette, Icon plus, Runnable onChanged) implements Widget.Stateful {
+        @Override
+        public State<?> createState() {
+            return new ScreenState();
+        }
     }
+
+    /// Everything the window remembers between builds.
+    ///
+    /// On the *element*, not on the widget — which is the point of ADR-0052:
+    /// `Screen` is rebuilt constantly and could remember nothing, while this
+    /// object is created once when the element is mounted and outlives every
+    /// rebuild.
+    static final class ScreenState extends State<Screen> {
+
+        private Theme theme = Theme.NORD_DARK;
+        private int clicks;
+
+        /// Which theme the window is showing, read by `main` to choose the
+        /// stylesheets. The state owns it because the button that changes it
+        /// lives in this tree.
+        Theme theme() {
+            return theme;
+        }
+
+        @Override
+        public Widget build(BuildContext context) {
+            var bar = new Widgets.Row(
+                    List.of(
+                            new Widgets.Text("Goldberry", id("title")),
+                            new Widgets.Spacer(),
+                            new Button("Theme", widget().palette(), this::toggleTheme, false,
+                                    styled("theme", "ghost"))),
+                    id("bar"));
+
+            var sidebar = new Widgets.Column(
+                    List.of(
+                            new Widgets.Text(theme == Theme.NORD_DARK ? "Nord dark" : "Nord light",
+                                    styled("theme-name", "caption")),
+                            new Widgets.Text("Clicks: " + clicks, styled("count", "caption"))),
+                    id("sidebar"));
+
+            var actions = new Widgets.Row(
+                    List.of(
+                            new Button("Click me", widget().plus(), this::click, false,
+                                    styled("click", "primary")),
+                            // Disabled until there is something to undo, which is
+                            // what `:disabled` is for -- and what makes it worth
+                            // having in a window rather than only in a test.
+                            new Button("Undo", null, this::undo, clicks == 0, id("undo")),
+                            new Button("Reset", null, this::reset, clicks == 0,
+                                    styled("reset", "danger"))),
+                    id("actions"));
+
+            var content = new Widgets.Column(
+                    List.of(new Widgets.Text(BODY_TEXT, id("prose")), actions),
+                    id("content"));
+
+            return new Widgets.Column(
+                    List.of(bar, new Widgets.Row(List.of(sidebar, content), id("body"))),
+                    id("root"));
+        }
+
+        /// `setState` mutates immediately and defers the rebuild, so these read
+        /// like ordinary methods and still cost one build per frame however many
+        /// of them run (ADR-0052).
+        void toggleTheme() {
+            changed(() -> theme = theme == Theme.NORD_DARK ? Theme.NORD_LIGHT : Theme.NORD_DARK);
+            LOG.info("theme is now {}", theme);
+        }
+
+        void click() {
+            changed(() -> clicks++);
+        }
+
+        void undo() {
+            changed(() -> clicks = Math.max(0, clicks - 1));
+        }
+
+        void reset() {
+            changed(() -> clicks = 0);
+        }
+
+        /// `setState`, and then a repaint.
+        ///
+        /// `setState` marks the element dirty; it does not ask for a frame,
+        /// because the framework does not know whether the change is visible.
+        /// An application does, and this is where it says so — once, rather than
+        /// at the end of four handlers.
+        private void changed(Runnable mutation) {
+            setState(mutation);
+            widget().onChanged().run();
+        }
+
+        /// An id, which is also the key. Keying by id is what lets the element
+        /// tree match a rebuilt description to the element that already exists —
+        /// so the focused button keeps its focus across a `setState` that
+        /// replaced every widget in the window.
+        private static Widgets.Attributes id(String id) {
+            return new Widgets.Attributes(id, Set.of(), id);
+        }
+
+        private static Widgets.Attributes styled(String id, String cssClass) {
+            return new Widgets.Attributes(id, Set.of(cssClass), id);
+        }
+    }
+
+    // --- the application -----------------------------------------------------
 
     public static void main(String[] args) {
         var frameLimit = frameLimit(args);
@@ -117,66 +223,54 @@ public final class Showcase {
 
         var window = Window.open("Goldberry — showcase", widthOf(args), heightOf(args));
 
-        // A crosshair over the whole window, which is not decoration: it is the
-        // only thing in this repository that makes SDL_CreateSystemCursor and
-        // SDL_SetCursor actually run. CI drives this showcase under Xvfb on all
-        // three platforms, so the cursor path is exercised there rather than left
-        // as a binding nothing has ever called (ADR-0057).
-        window.cursor(Cursor.CROSSHAIR);
-
         // On the UI thread, and it has to stay there: these own native objects
         // from two libraries and are confined to the thread that built them.
-        // This is that thread — Window.open runs on it, and so does every paint.
-        //
-        // One face, two sizes. Inter is parsed once and its bytes are held once
-        // per library rather than once per size, which is three megabytes here
-        // instead of six (ADR-0044). Everything is held for the life of the
-        // window: building any of it per frame would put font parsing on the
-        // frame path.
+        // Held for the life of the window, because building any of it per frame
+        // would put font parsing and SVG parsing on the frame path.
         var uiFace = FontFace.bundled(BundledFont.UI);
-        var titleFont = Font.on(uiFace, 16);
-        var bodyFont = Font.on(uiFace, 14);
+        var font = Font.on(uiFace, 14);
+        var paletteIcon = Icon.bundled("palette", ICON_SIZE);
+        var plusIcon = Icon.bundled("plus", ICON_SIZE);
 
-        // Shaped once, here, and re-wrapped on every resize without being shaped
-        // again (ADR-0036). Building these in the paint callback would put font
-        // parsing and shaping on the frame path.
-        var layout = layout(
-                Paragraph.of(titleFont, "Goldberry"),
-                Paragraph.of(bodyFont, BODY_TEXT));
+        var appStyles = Stylesheet.parse(CascadeLayer.APPLICATION, STYLES);
 
-        // One icon per size, for the same reason there is one Font per size: the
-        // path is built scaled, so nothing is transformed at draw time
-        // (ADR-0043). Three of Lucide's 1544, down the sidebar.
-        var icons = List.of(
-                Icon.bundled("layout-dashboard", ICON_SIZE),
-                Icon.bundled("type", ICON_SIZE),
-                Icon.bundled("palette", ICON_SIZE));
+        // A theme change is a different stylesheet, so the renderer is rebuilt --
+        // and only then. Everything else a rebuild changes is inside the tree.
+        var renderer = new WidgetRenderer[1];
+        var renderedTheme = new Theme[1];
+
+        var tree = new ElementTree(
+                new Showcase.Screen(paletteIcon, plusIcon, window::repaint));
+        var state = (ScreenState) tree.root().state().orElseThrow();
+
+        var router = new PointerRouter();
+        router.focusRoot(tree.root());
+        // Ctrl+T switches the theme from the keyboard, which is what a per-window
+        // accelerator map is for (§7.2, ADR-0058).
+        router.shortcut("Ctrl+T", state::toggleTheme);
+        window.pointerRouter(router);
 
         window.onPaint(frame -> {
-            // Yoga lays the tree out at the frame's logical size, asking the
-            // paragraphs how tall they came out, and Blend2D draws the result.
-            // Logical coordinates throughout: the bar is 32 points tall and the
-            // sidebar a quarter of the width on every display, and nothing here
-            // knows whether the screen runs at 100% or 150%.
-            BoxPainter.paint(frame, layout);
-
-            // Drawn over the sidebar rather than laid out in it: an icon is not
-            // a box yet, because nothing decides what its intrinsic size is
-            // until the widget model does (ADR-0004). Positioned against the
-            // same two numbers the layout uses, so it moves with the bar.
-            for (var i = 0; i < icons.size(); i++) {
-                icons.get(i).draw(
-                        frame,
-                        PADDING * 2,
-                        BAR_HEIGHT + PADDING * 2 + i * (ICON_SIZE + PADDING),
-                        ON_PANEL);
+            // Every setState since the last frame settles here, once, however
+            // many of them there were (ADR-0052).
+            if (tree.needsBuild()) {
+                tree.flush();
+            }
+            if (renderedTheme[0] != state.theme()) {
+                renderer[0] = new WidgetRenderer(
+                        List.of(Controls.baseStylesheet(), state.theme().load(), appStyles), font);
+                renderedTheme[0] = state.theme();
             }
 
+            var boxes = renderer[0].render(tree);
+            BoxPainter.paint(frame, boxes);
+
+            // What the pointer is tested against is the frame that was just
+            // painted -- not a fresh layout, which would be one frame ahead of
+            // what the user can see (ADR-0054).
+            router.updateRegions(HitTest.capture(frame, boxes));
+
             painted[0]++;
-            // Not every frame. This runs *inside* the paint callback, so it is
-            // inside what `Window` reports as paint time — at 300 frames a
-            // console write per frame was 0.4 ms of the measurement, which is
-            // the instrument changing the reading (ADR-0045).
             if (painted[0] <= 3 || painted[0] % 50 == 0) {
                 LOG.info("painted frame {} at {}", painted[0], frame.pixelSize());
             }
@@ -207,13 +301,14 @@ public final class Showcase {
             Goldberry.run();
         } finally {
             // After the loop, not in a try-with-resources around it: the paint
-            // callback holds both fonts and the icons, and runs until `run`
+            // callback holds the font and the icons, and runs until `run`
             // returns.
-            icons.forEach(Icon::close);
-            // Sizes first, then the face they share: closing the face while a
+            tree.unmount();
+            plusIcon.close();
+            paletteIcon.close();
+            // The size first, then the face it shares: closing the face while a
             // font still holds it leaves Blend2D reading unmapped memory.
-            bodyFont.close();
-            titleFont.close();
+            font.close();
             uiFace.close();
 
             // And then hand the window back before the process goes away.

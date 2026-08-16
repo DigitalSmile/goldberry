@@ -71,8 +71,21 @@ jobs:
       - name: Build libgoldberry
         run: ./gradlew :natives:cmakeBuild --no-daemon
 
+      # `--stacktrace`, because this step has failed twice on Windows and job
+      # logs are not readable without admin rights on the repository -- so the
+      # only diagnosis available was inference. The first guess (jlink needs its
+      # `.exe` on Windows, ADR-0040's lesson) was right about the rule and did
+      # not fix it, which means the cause is further in. A stack trace names it.
       - name: Build the runnable image
-        run: ./gradlew :example:showcaseImage --no-daemon
+        run: ./gradlew :example:showcaseImage --no-daemon --stacktrace
+
+      # What the image actually contains, when it contained something. A missing
+      # module or a library in the wrong directory is visible here and invisible
+      # in a green tick.
+      - name: What was built
+        if: always()
+        run: |
+          ls -R "example/build/jlink" || echo "::warning::no image was produced"
 
       # The image is what is being tested, so the image is what runs -- not
       # `gradlew run`, which would prove only that the source tree still works.

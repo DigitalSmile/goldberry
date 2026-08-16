@@ -6,5 +6,6 @@
 /// Building this on the classpath instead would leave that untested.
 module io.github.digitalsmile.goldberry.example {
     requires io.github.digitalsmile.goldberry.core;
+    requires io.github.digitalsmile.goldberry.widgets;
     requires org.slf4j;
 }

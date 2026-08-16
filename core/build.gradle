@@ -1,5 +1,10 @@
 plugins {
     id 'goldberry.java-conventions'
+    // GoldenImage, TestFrames and RendererRequirement are shared with :widgets,
+    // which needs the same rasterizer guard and the same golden comparison.
+    // Fixtures rather than a copy: two golden comparators would drift on the
+    // tolerance, and the tolerance is the whole argument of ADR-0050.
+    id 'java-test-fixtures'
 }
 
 description = 'Goldberry core: widgets, style, layout, text, paint, and the backend SPI'
@@ -105,6 +110,14 @@ tasks.register('vendorLicences', JavaExec) {
 // a target cannot leave :core testing a different library than the one that was
 // just built. An explicitly supplied path still wins, which is how CI verifies a
 // downloaded artifact (ADR-0016).
+// The fixtures are JUnit-facing: RendererRequirement aborts a test and
+// GoldenImage raises an AssertionFailedError, so they need the same JUnit the
+// tests do.
+dependencies {
+    testFixturesImplementation platform(libs.junit.bom)
+    testFixturesImplementation libs.junit.jupiter
+}
+
 evaluationDependsOn(':natives')
 
 def hostNativeLibrary = project(':natives').ext.hostNativeLibrary

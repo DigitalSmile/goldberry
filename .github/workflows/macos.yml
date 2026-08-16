@@ -97,19 +97,19 @@ jobs:
             -Dgoldberry.native.library="$PWD/native-lib/libgoldberry.dylib" \
             -Dgoldberry.native.required=true
 
-      # The whole `:core` suite against the real library, not just the golden
-      # images. Everything that needs a rasterizer skips in the `java` job by
-      # design -- it builds no native library -- so this is the only place those
-      # tests run at all: the frame loop, pointer plumbing, damage, text metrics
-      # and the golden images together.
+      # The whole `:core` and `:widgets` suites against the real library, not
+      # just the golden images. Everything that needs a rasterizer skips in the
+      # `java` job by design -- it builds no native library -- so this is the
+      # only place those tests run at all: the frame loop, pointer plumbing,
+      # damage, text metrics, and every golden image including the controls'.
       #
       # No display, no compositor, no Xvfb: Frame paints into memory, so it is
       # the same check on every platform. The point of running it on all three is
       # that Blend2D JITs its pipelines per CPU -- if AVX2 and NEON ever disagree
       # by more than a rounding step, this is where it surfaces.
-      - name: Core tests and golden images
+      - name: Core and widget tests, and the golden images
         run: |
-          ./gradlew :core:test --no-daemon \
+          ./gradlew :core:test :widgets:test --no-daemon \
             -Dgoldberry.native.library="$PWD/native-lib/libgoldberry.dylib" \
             -Dgoldberry.native.required=true
 
@@ -117,6 +117,8 @@ jobs:
         if: failure()
         with:
           name: golden-failures-macos-aarch64
-          path: core/build/golden-failures
+          path: |
+            core/build/golden-failures
+            widgets/build/golden-failures
           if-no-files-found: ignore
 
