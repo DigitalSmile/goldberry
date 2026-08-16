@@ -1,3 +1,5 @@
+import io.github.digitalsmile.goldberry.build.ToolResolver
+
 plugins {
     id 'goldberry.java-conventions'
 }
@@ -102,6 +104,58 @@ def artifactsDir = providers.gradleProperty('goldberry.artifactsDir')
         .map { file(it) }
         .orElse(layout.buildDirectory.dir('native-artifacts').map { it.asFile })
 
+// --- Locating the tools ------------------------------------------------------
+//
+// Every tool below is invoked by ABSOLUTE path. Never by bare name, and this is
+// not tidiness -- `Exec` cannot be trusted to find one (ADR-0040).
+//
+// Gradle passes an explicit environment map to every process it starts, which
+// makes the JDK resolve the executable through `execvpe` against a snapshot of
+// the JVM's *native* PATH taken at start-up, rather than through `execvp`
+// against the PATH the build can see. The Gradle daemon outlives the shell that
+// started it, so Gradle rewrites what `System.getenv()` reports to match the
+// current client -- but not the native environ underneath, and not the snapshot.
+//
+// A daemon first started by an IDE therefore carries launchd's
+// `PATH=/usr/bin:/bin:/usr/sbin:/sbin` forever. `checkToolchain` used to probe
+// with a plain ProcessBuilder, find cmake, and print "Native toolchain OK"; the
+// very next task then failed with `Exec failed, error: 2 (No such file or
+// directory)` naming the cmake it had just run. The check and the use were
+// asking different layers of the JDK. Now they both ask this.
+def toolPath = providers.environmentVariable('PATH')
+        .orElse(providers.environmentVariable('Path'))    // Windows spells it differently
+        .getOrElse('')
+
+// Which tools were pointed at explicitly, so a failure can say "the path you
+// gave me is wrong" rather than "I searched everywhere" -- which would be a lie
+// when an override was set.
+def toolOverrides = [:]
+
+// `-Pgoldberry.cmake=/path/to/cmake` (or `-D`) overrides the search, for a
+// toolchain in a place no convention covers. Taken at its word: an override that
+// quietly fell back to something found on the PATH would be an override that
+// does not override.
+def resolveTool = { String name ->
+    def override = providers.gradleProperty("goldberry.${name}")
+            .orElse(providers.systemProperty("goldberry.${name}"))
+    if (override.present) {
+        toolOverrides[name] = override.get()
+    }
+    var found = ToolResolver.resolve(
+            override.getOrElse(name),
+            toolPath,
+            System.getProperty('os.name', ''),
+            System.getProperty('user.home', ''))
+    return found.isPresent() ? found.get().toFile() : null
+}
+
+// Resolved at configuration time because `Exec.commandLine` needs a value then.
+// A tool that is absent resolves to null rather than failing here -- checkToolchain
+// owns that error, and it says considerably more than a NullPointerException.
+def cmakeExecutable = resolveTool('cmake')
+def ninjaExecutable = resolveTool('ninja')
+def mesonExecutable = resolveTool('meson')
+
 // --- Toolchain check ---------------------------------------------------------
 // Fails with instructions rather than with a cryptic CMake error 200 lines into
 // a configure run.
@@ -139,19 +193,48 @@ def checkToolchain = tasks.register('checkToolchain') {
             }
         }
 
-        def required = [['cmake', '--version'], ['ninja', '--version']]
+        // Name -> resolved executable, or null if the search found nothing.
         // libxkbcommon is meson-built upstream, and is Linux-only (§7.1).
+        def required = [cmake: cmakeExecutable, ninja: ninjaExecutable]
         if (needsMeson) {
-            required << ['meson', '--version']
+            required.meson = mesonExecutable
         }
 
-        def missing = required.findAll { probe(it[0], it[1]) == null }.collect { it[0] }
+        // Absent, or present and not runnable -- a stale symlink into a Homebrew
+        // Cellar that `brew cleanup` removed passes an existence check and fails
+        // to exec, which is precisely the class of error this task exists to
+        // catch early.
+        def missing = required.findAll { name, executable ->
+            executable == null || probe(executable.absolutePath, '--version') == null
+        }.keySet()
+
         if (!missing.isEmpty()) {
+            def hint = switch (ToolResolver.familyOf(System.getProperty('os.name', ''))) {
+                case ToolResolver.Family.MACOS -> 'brew install cmake ninja'
+                case ToolResolver.Family.WINDOWS -> 'winget install Kitware.CMake Ninja-build.Ninja'
+                default -> 'sudo apt install cmake ninja-build meson    (Debian/Ubuntu)'
+            }
+            // An override that points at nothing is a different problem from a
+            // tool that is not installed, and deserves a different sentence.
+            def overridden = missing.findAll { toolOverrides.containsKey(it) }
+            // Concatenated rather than interpolated: `stripIndent` runs after
+            // interpolation, so a multi-line insert would take the indentation
+            // of every other line down with it.
+            def where = overridden.isEmpty()
+                    ? 'Searched the PATH and the usual install directories. If it is installed\n' +
+                      'somewhere else, point at it directly:\n' +
+                      '  ./gradlew build -Pgoldberry.cmake=/path/to/cmake'
+                    : 'Not an executable file:\n' + overridden.collect {
+                        "  -Pgoldberry.${it}=${toolOverrides[it]}"
+                    }.join('\n')
+
             throw new GradleException("""\
                 Missing native build tools: ${missing.join(', ')}
 
                 The superbuild needs CMake >= 3.28, Ninja, and (on Linux) Meson >= 1.4.
-                On Debian/Ubuntu: sudo apt install cmake ninja-build meson""".stripIndent())
+                  ${hint}
+
+                """.stripIndent() + where)
         }
 
         // Version floors, not just presence. An upstream that needs a newer tool
@@ -160,7 +243,9 @@ def checkToolchain = tasks.register('checkToolchain') {
         // seconds into the build, from inside meson, naming neither Goldberry
         // nor the pin that raised the requirement.
         def versionOf = { String tool ->
-            def line = probe(tool, '--version')
+            // Through `required`, so this runs the same executable the build will,
+            // rather than whichever copy a bare-name lookup happens to reach.
+            def line = probe(required[tool].absolutePath, '--version')
             def match = line =~ /(\d+)\.(\d+)(?:\.(\d+))?/
             return match ? [match[0][1], match[0][2], match[0][3] ?: '0']*.toInteger() : null
         }
@@ -242,7 +327,17 @@ def checkToolchain = tasks.register('checkToolchain') {
             }
         }
 
-        logger.lifecycle("Native toolchain OK; host target is ${hostTarget.id}.")
+        // Naming the executables, not just saying OK. When a machine has two
+        // CMakes -- a system one and a Homebrew one, or a pip upgrade shadowing
+        // both -- "which one did it use" is the first question, and printing the
+        // answer costs a line.
+        logger.lifecycle("Native toolchain OK; host target is ${hostTarget.id}.\n" +
+                required.collect { name, executable ->
+                    // `versionOf` returns null for output it cannot parse, which
+                    // is tolerated above and must not become an NPE here.
+                    def version = versionOf(name)?.join('.') ?: '?'
+                    "  ${name.padRight(6)} ${version.padRight(8)} ${executable}"
+                }.join('\n'))
     }
 }
 
@@ -331,6 +426,12 @@ tasks.register('checkPinnedRefs') {
 
 tasks.named('check') { dependsOn 'checkPinnedRefs' }
 
+// `ToolResolver` decides which cmake this module runs, and it lives in
+// build-logic -- a separate build, whose tests do not run just because this one
+// does. Wired in here rather than left to `./gradlew -p build-logic test`,
+// because a test nobody runs is a test that does not hold.
+tasks.named('check') { dependsOn gradle.includedBuild('build-logic').task(':test') }
+
 // --- Host build --------------------------------------------------------------
 
 def cmakeConfigure = tasks.register('cmakeConfigure', Exec) {
@@ -357,16 +458,27 @@ def cmakeConfigure = tasks.register('cmakeConfigure', Exec) {
     outputs.file cmakeWorkDir.map { it.file('CMakeCache.txt') }
     outputs.file cmakeWorkDir.map { it.file('build.ninja') }
 
-    commandLine 'cmake',
+    // Absolute cmake, and an absolute CMAKE_MAKE_PROGRAM. Handing CMake the Ninja
+    // this build resolved keeps the two agreeing: `checkToolchain` would
+    // otherwise pass on a Ninja found in a conventional directory that CMake,
+    // searching only the PATH, then failed to find (ADR-0040).
+    def configureArguments = [
             '-S', cmakeSourceDir.asFile.absolutePath,
             '-B', cmakeWorkDir.get().asFile.absolutePath,
             '-G', 'Ninja',
             '-DCMAKE_BUILD_TYPE=Release',
-            "-DCMAKE_INSTALL_PREFIX=${installDir.get().asFile.absolutePath}",
-            "-DGOLDBERRY_TARGET_ID=${hostTarget.id}",
-            "-DFETCHCONTENT_BASE_DIR=${depsDir.get().absolutePath}"
+            "-DCMAKE_INSTALL_PREFIX=${installDir.get().asFile.absolutePath}".toString(),
+            "-DGOLDBERRY_TARGET_ID=${hostTarget.id}".toString(),
+            "-DFETCHCONTENT_BASE_DIR=${depsDir.get().absolutePath}".toString(),
             // No -DGOLDBERRY_*_REF: the superbuild reads gradle/libs.versions.toml
             // itself, which is the whole of ADR-0035.
+    ]
+    if (ninjaExecutable != null) {
+        configureArguments << "-DCMAKE_MAKE_PROGRAM=${ninjaExecutable.absolutePath}".toString()
+    }
+    // `?: 'cmake'` only to keep configuration from failing when no toolchain is
+    // installed at all -- checkToolchain runs first and reports it properly.
+    commandLine([cmakeExecutable?.absolutePath ?: 'cmake'] + configureArguments)
 
     // The first configure clones five repositories and prints nothing useful
     // while it does. Say so before the silence rather than after it -- being
@@ -405,7 +517,7 @@ def cmakeBuild = tasks.register('cmakeBuild', Exec) {
     inputs.files cmakeConfigure
     outputs.dir installDir
 
-    commandLine 'cmake',
+    commandLine cmakeExecutable?.absolutePath ?: 'cmake',
             '--build', cmakeWorkDir.get().asFile.absolutePath,
             '--target', 'install'
 }

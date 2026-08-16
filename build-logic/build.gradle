@@ -11,3 +11,21 @@ java {
         languageVersion = JavaLanguageVersion.of(libs.versions.java.get() as int)
     }
 }
+
+// `ToolResolver` is ordinary Java rather than a closure in `natives/build.gradle`
+// for the same reason `:assets` is a module and not a script: locating a build
+// tool across three platforms is real logic, and the bug it fixes is one nobody
+// reproduces by reading (ADR-0040).
+dependencies {
+    testImplementation platform(libs.junit.bom)
+    testImplementation libs.junit.jupiter
+    testRuntimeOnly libs.junit.platform.launcher
+}
+
+tasks.named('test') {
+    useJUnitPlatform()
+    testLogging {
+        events 'failed', 'skipped'
+        exceptionFormat = 'full'
+    }
+}

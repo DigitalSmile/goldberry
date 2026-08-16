@@ -37,8 +37,18 @@ Requires a **JDK 25** toolchain. Gradle provisions one if it cannot find one.
 That builds and tests every Java module and, if it is missing or out of date,
 the native library `libgoldberry` for this machine. Building the native library
 needs CMake ≥ 3.28, Ninja, a C/C++ toolchain, and — on Linux, for libxkbcommon —
-Meson. `./gradlew :natives:checkToolchain` verifies all of it up front and names
-the packages to install if anything is absent.
+Meson. `./gradlew :natives:checkToolchain` verifies all of it up front, prints
+the absolute path and version of each tool it will use, and names the packages to
+install if anything is absent.
+
+The tools are searched for on the `PATH` first and then in the usual install
+directories, so a Homebrew, MacPorts, `CMake.app` or `pip install --user`
+toolchain is found even from a Gradle daemon that an IDE started with a bare
+`PATH` (ADR-0040). To point at one somewhere else:
+
+```sh
+./gradlew build -Pgoldberry.cmake=/path/to/cmake    # also -Pgoldberry.ninja, -Pgoldberry.meson
+```
 
 **The first native build downloads about 330 MB** — Blend2D, AsmJit, Yoga,
 HarfBuzz and SDL3, cloned by the superbuild — which typically takes a few

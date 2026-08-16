@@ -45,6 +45,7 @@
 - [ADR-0037 What the text path costs](adr/0037-what-the-text-path-costs.md)
 - [ADR-0038 The superbuild download is not a hang](adr/0038-the-superbuild-download-is-not-a-hang.md)
 - [ADR-0039 macOS needs the first thread](adr/0039-macos-needs-the-first-thread.md)
+- [ADR-0040 Find the native tools by absolute path](adr/0040-find-the-native-tools-by-absolute-path.md)
 
 ---
 
