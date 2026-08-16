@@ -1,4 +1,7 @@
-# Goldberry
+<p align="center">
+  <img src=".github/assets/goldberry-banner-1600x500.webp"
+       alt="Goldberry — Modern Java UI toolkit" width="100%">
+</p>
 
 [![Linux](https://github.com/digitalsmile/goldberry/actions/workflows/linux.yml/badge.svg)](https://github.com/digitalsmile/goldberry/actions/workflows/linux.yml)
 [![Windows](https://github.com/digitalsmile/goldberry/actions/workflows/windows.yml/badge.svg)](https://github.com/digitalsmile/goldberry/actions/workflows/windows.yml)
