@@ -210,7 +210,19 @@ tasks.named('run') {
 
     // Same forwarding, for the paint knobs. Without it these reach the Gradle
     // daemon and stop there.
-    ['goldberry.paint.threads', 'goldberry.backend.vsync', 'goldberry.frame.rate'].each { name ->
+    //
+    // `goldberry.backend.videoDriver` is on this list for a reason worth writing
+    // down: it is the *only* way to run the showcase without touching the real
+    // compositor, and without the forwarding it silently did nothing. Reaching
+    // for `SDL_VIDEODRIVER=dummy` in the environment instead does not work
+    // either -- a JavaExec fork inherits the **daemon's** environment, not the
+    // one the `gradlew` client was invoked with, so the setting applies or does
+    // not depending on how the daemon happened to be started. Both of the
+    // obvious ways to ask for a headless run were therefore unreliable, which is
+    // how a run intended to be headless opened a real Wayland surface and took
+    // GNOME Shell down with it (see book/src/status.md).
+    ['goldberry.paint.threads', 'goldberry.backend.vsync', 'goldberry.frame.rate',
+     'goldberry.backend.videoDriver'].each { name ->
         var value = providers.systemProperty(name).orElse(providers.gradleProperty(name))
         if (value.present) {
             systemProperty name, value.get()

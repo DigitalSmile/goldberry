@@ -48,4 +48,37 @@ public interface Handles extends Widget {
     default boolean isFocusable() {
         return false;
     }
+
+    /// Whether this widget's descendants are **one** Tab stop with arrow-key
+    /// focus inside — a radio group, a tab list, a menu, a toolbar.
+    ///
+    /// `docs/design-system.md` §7.2: "composites are one Tab stop with roving
+    /// arrow-key focus inside". A group of six radios that took six Tab presses
+    /// to cross is the thing this prevents, and it is a property of the *group*
+    /// rather than of any radio in it — which is why it is asked here and
+    /// answered by the router, exactly as Tab is
+    /// ([ADR-0073](../../../../../../book/src/adr/0073-a-composite-is-one-tab-stop.md)).
+    ///
+    /// Where the traversal **enters** is not remembered: it is the focusable
+    /// descendant matching `:checked`, or the first one if none does. So the
+    /// selection is the roving position, and there is no second piece of state
+    /// that can disagree with it.
+    default boolean focusScope() {
+        return false;
+    }
+
+    /// Focus arrived at this widget, or left it.
+    ///
+    /// What "selection follows focus" is spelled with: a radio raises its change
+    /// when an arrow key brings focus to it, so the arrow does not move the tick
+    /// directly — the application sets the value and the tick follows it back
+    /// down ([ADR-0063]).
+    ///
+    /// @param focused      whether this widget now has focus
+    /// @param fromKeyboard whether the move came from the keyboard, which is the
+    ///                     same distinction `:focus-visible` draws — a control
+    ///                     that acted on a *mouse* focus would fire twice for one
+    ///                     click, once here and once on the click itself
+    default void onFocusChanged(boolean focused, boolean fromKeyboard) {
+    }
 }

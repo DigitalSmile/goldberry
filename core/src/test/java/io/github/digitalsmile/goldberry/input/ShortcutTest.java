@@ -125,6 +125,27 @@ class ShortcutTest {
         }
 
         @Test
+        @DisplayName("an unnamed key is skipped, not looked up")
+        void unnamedKeyDoesNotThrow() {
+            // This took the window down. `Shortcut` refuses to hold `Key.UNKNOWN`
+            // -- an accelerator on it could never fire, so the constructor is
+            // right to say so -- but the router built one anyway to use as a map
+            // key, on the UI thread, with no handler above it.
+            //
+            // Not an edge case: `Key` names the keys a *shortcut* might use, so
+            // every letter, digit and punctuation mark that arrives as text is
+            // `UNKNOWN`. The crash was one keystroke away at all times, and the
+            // accelerator tests never saw it because they only ever pressed keys
+            // that had names.
+            router.shortcut("Ctrl+S", () -> fired.add("save"));
+
+            assertFalse(router.keyPressed(Key.UNKNOWN, Modifiers.NONE, false));
+            assertFalse(router.keyPressed(
+                    Key.UNKNOWN, new Modifiers(false, true, false, false), false));
+            assertTrue(fired.isEmpty());
+        }
+
+        @Test
         @DisplayName("an unbound combination is left alone")
         void unbound() {
             router.shortcut("Ctrl+S", () -> fired.add("save"));

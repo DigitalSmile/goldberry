@@ -105,7 +105,41 @@ public final class Controls {
                 actions.resolve(node.stringProperty("change")),
                 node.booleanProperty("disabled"),
                 Widgets.Attributes.of(node)));
+        inflater.register("radio-group", (node, children) -> new RadioGroup(
+                node.stringProperty("value"),
+                children,
+                bindings.resolve(node.stringProperty("bind")),
+                // The first action that has to say which one -- a group's handler
+                // is useless without the value picked, and one action per option
+                // would make adding an option an edit in Java too (ADR-0073).
+                actions.resolveValued(node.stringProperty("change")),
+                node.booleanProperty("disabled"),
+                Widgets.Attributes.of(node)));
+        inflater.register("radio", (node, children) -> new Radio(
+                // The value is what the group reports and what it matches on, so
+                // an option without one cannot be picked or shown as picked.
+                // Refused here rather than defaulting to the label: two options
+                // sharing a defaulted value would select together, which looks
+                // like a bug in the toolkit rather than in the document.
+                requiredValue(node.stringProperty("value")),
+                node.argument().map(v -> v.asString()).orElse(""),
+                // `selected` and the action are the group's to supply on every
+                // build, which is why neither is an attribute: a document that
+                // could mark two options selected would break the one invariant a
+                // group exists to hold.
+                false, null,
+                node.booleanProperty("disabled"),
+                Widgets.Attributes.of(node)));
         return inflater;
+    }
+
+    private static String requiredValue(String value) {
+        if (value == null || value.isEmpty()) {
+            throw new IllegalArgumentException(
+                    "a radio needs a value= for its group to report and match on;"
+                            + " `radio value=\"dark\" \"Dark\"`");
+        }
+        return value;
     }
 
     /// An inflater with actions bound and no icons.
@@ -126,12 +160,14 @@ public final class Controls {
     /// The CSS type names this module adds, which is what the parity test checks
     /// the other two forms against.
     ///
-    /// **Controls only.** `check-indicator` is styled by the same stylesheet and
-    /// is not here, because it is a part rather than a widget: it is
+    /// **Controls only.** The four parts — `check-indicator`, `check-mark`,
+    /// `radio-indicator` and `radio-dot` — are styled by the same stylesheet and
+    /// are not here, because they are parts rather than widgets: they are
     /// CSS-selectable and deliberately not KDL-constructible, and asking the
-    /// parity test to inflate it would be asking for a node with no meaning
-    /// outside its parent (see [CheckIndicator]).
+    /// parity test to inflate one would be asking for a node with no meaning
+    /// outside its parent (see [CheckIndicator], [CheckMark], [RadioIndicator],
+    /// [RadioDot]).
     public static List<String> controlTypes() {
-        return List.of("button", "checkbox");
+        return List.of("button", "checkbox", "radio-group", "radio");
     }
 }

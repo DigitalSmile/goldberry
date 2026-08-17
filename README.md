@@ -29,10 +29,11 @@ API. No JNI, no bundled web engine, no platform widget wrapping.
 > part in that layout, Lucide's icons draw, stylesheets and KDL markup hot-reload,
 > pointer, wheel and keyboard input route to a widget tree, and markup wires both
 > halves of §9 — an `action` to call and a value to `bind` to. The catalog is
-> five primitives and two controls — `button` and a tri-state `checkbox`, both
+> five primitives and four controls — `button`, a tri-state `checkbox`, and
+> `radio` / `radio-group`, which is one Tab stop with arrow keys inside it — all
 > drawn to the design system's metrics with rounded corners, a real focus ring,
 > the §1.4 type scale in two real weights, CSS transitions on a frame clock and
-> golden images — so eleven controls are still to come.
+> golden images — so nine controls are still to come.
 > See [Status](book/src/status.md) for what works and what is still open.
 
 ## Quick start
@@ -417,6 +418,76 @@ selector is the whole of
 check-indicator:checked { background: var(--gb-accent); color: var(--gb-checkbox-mark-checked) }
 ```
 
+### `radio` and `radio-group`
+
+The first **composite** — a widget that is a set rather than a control:
+
+```kdl
+radio-group bind="prefs.theme" change="pickTheme" {
+    radio value="light" "Light"
+    radio value="dark"  "Dark"
+    radio value="system" "Follow the system"
+}
+```
+
+"Exactly one of these is on" is a fact about the set, so the **group** holds it:
+`children()` rewrites each option with whether its `value` matches, on every
+build. Nothing is stored, so there is no path by which two are on at once — and
+`selected` is deliberately not an attribute, since a document that could mark one
+option selected could mark two. A value no option carries selects **nothing**,
+which is exactly right for a model that has not loaded.
+
+A group of six options is **one Tab stop**, with arrow keys moving inside it
+(`docs/design-system.md` §7.2). That is `Handles.focusScope()`, and both halves
+are the router's rather than the widget's — which node an arrow reaches is a
+property of the group's shape, and the radio the focus is on cannot see its
+siblings. Arrows are handled after the focused chain declines the key, so a
+slider or a text field inside a group keeps its own.
+
+Tab **re-enters at the selected option**, and that entry point is derived from
+`:checked` rather than remembered. The distinction is the whole design: a stored
+roving position is a second piece of state beside the selection, and the two
+disagree the first time the application sets the value itself — Tab would return
+you to the option you last looked at rather than the one that is on. Derived,
+**the selection is the roving position** and there is nothing to keep in step
+([ADR-0073](book/src/adr/0073-a-composite-is-one-tab-stop.md)).
+
+Selection follows focus, the controlled way: an arrow key raises the change and
+does not move the tick, so a group whose handler does nothing moves the ring and
+stays where it is. A `change` here has to say *which one*, which is the first
+action in the toolkit that takes an argument:
+
+```java
+var actions = Actions.strict()
+        .bind("pickTheme", (String value) -> theme.set(value));
+```
+
+A plain `Runnable` still resolves against it, for a handler that reads the model
+itself. The glyph is `radio-indicator`, a circle because `border-radius: 8px` on
+a 16px box is one, drawn by the same four cubics as every other corner — so no
+native symbol was added for it.
+
+### Why the dot inside it is a separate node
+
+The design system asks the check and the dot to *scale* 0.6→1 as they appear, and
+that turned out not to be about `transform` at all. A mark is drawn **onto** the
+box that carries it, so scaling the indicator scales the 16px ring along with the
+tick — the ring grows with the dot, which is not the animation. The unit of
+independent movement is a cascade node, so `check-mark` and `radio-dot` are
+elements and the stylesheet does the rest:
+
+```css
+check-mark, radio-dot        { opacity: 0; transform: scale(0.6) }
+radio-indicator:checked radio-dot { opacity: 1; transform: scale(1) }
+```
+
+They exist in **every** state, not only when checked. A node that appears along
+with the value has no previous style to move from, and a newly built element
+deliberately starts no transition — a control appearing is not a control
+changing — so a mark that came into existence checked would snap. Unchecked
+therefore costs one fully transparent box, which is what the specified animation
+costs.
+
 ### What the controls are drawn with
 
 `border-radius`, `border`, `outline` and `opacity` reach the box tree, so the
@@ -436,7 +507,20 @@ checkbox:focus-visible { outline: 2px solid var(--gb-focus); outline-offset: 2px
 
 `:focus-visible` and not `:focus`, so a control clicked with a mouse gets no ring.
 An outline is drawn outside the border box and takes no space, so a ring cannot
-move a control by existing.
+move a control by existing, and it follows whatever radius the control has.
+
+`:hover` and `:active` both reach the **whole ancestor chain**, which is what
+lets a control state its own pressed appearance:
+
+```css
+checkbox:active check-indicator { background: var(--gb-checkbox-bg-active) }
+```
+
+`:active` did not, until `radio` needed it — it was set on the single deepest
+element the press landed on, so pressing a checkbox's 16px glyph lit up the glyph
+and pressing its label lit up the label, while the checkbox itself matched only
+in the sliver of padding between them. A control whose pressed state depends on
+which of its own parts you hit does not have one.
 
 `:disabled` is **45% opacity and never a colour remap**, which is one number
 instead of eight muted tokens and leaves a disabled `danger` button still reading
@@ -828,9 +912,25 @@ button { cursor: pointer; }
 window.cursor(Cursor.WAIT);       // or decide it yourself
 ```
 
-Not yet: arrow-key group navigation inside composites, custom image cursors
-(`grab` and `grabbing` fall back to `move`, which no platform provides), and
-menu items registering their own accelerators — that one waits for menus.
+A **composite is one Tab stop** — a radio group, and later a tab list, a menu or
+a toolbar — with the arrow keys roving inside it. A widget opts in with one
+method, and the router does both halves:
+
+```java
+@Override
+public boolean focusScope() {
+    return true;      // Tab enters once; Left/Up/Right/Down/Home/End move within
+}
+```
+
+Both arrow pairs move, because the group's direction is the stylesheet's
+(`flex-direction` on `radio-group`, which `.inline` flips) and input cannot know
+which pair the user is looking at. A composite with a real axis — a menu bar,
+where `Down` should open a menu — will have to say so, and does not exist yet.
+
+Not yet: custom image cursors (`grab` and `grabbing` fall back to `move`, which
+no platform provides), and menu items registering their own accelerators — that
+one waits for menus.
 
 ## Painting across threads
 
@@ -900,11 +1000,24 @@ catches an unexported package or a wrong `--enable-native-access` (ADR-0023).
 ./gradlew run
 ```
 
-A window opens. It is a widget tree — a bar, a sidebar, wrapped prose, and a row
-of buttons — styled by the cascade and driven by the input router, so hovering,
-clicking, `Tab`, `Space` and `Ctrl+T` all do what they should.
-`-Pgoldberry.example.frames=3` paints three frames and exits, which is what CI
-runs under Xvfb.
+A window opens. It is a widget tree — a bar, a sidebar, wrapped prose, a theme
+radio group and a row of buttons — styled by the cascade and driven by the input
+router, so hovering, clicking, `Tab`, the arrow keys, `Space` and `Ctrl+T` all do
+what they should. `-Pgoldberry.example.frames=3` paints three frames and exits,
+which is what CI runs under Xvfb.
+
+To drive it **without touching the real compositor**:
+
+```sh
+./gradlew run -Pgoldberry.example.frames=3 -Pgoldberry.backend.videoDriver=dummy
+```
+
+Worth knowing rather than discovering: `SDL_VIDEODRIVER=dummy` in the environment
+does **not** reliably reach the application, because a Gradle `JavaExec` fork
+inherits the daemon's environment rather than the shell's. Use the property. It
+matters more than tidiness — GNOME Shell 46 segfaults in its own
+`wl_client_destroy` path when this client disconnects, so an accidental real run
+costs a desktop session (see [Status](book/src/status.md)).
 
 ### A self-contained image
 

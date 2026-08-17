@@ -20,6 +20,8 @@ import io.github.digitalsmile.goldberry.widget.WidgetRenderer;
 import io.github.digitalsmile.goldberry.widget.Widgets;
 import io.github.digitalsmile.goldberry.widgets.Button;
 import io.github.digitalsmile.goldberry.widgets.Checkbox;
+import io.github.digitalsmile.goldberry.widgets.Radio;
+import io.github.digitalsmile.goldberry.widgets.RadioGroup;
 import io.github.digitalsmile.goldberry.widgets.Controls;
 import java.util.List;
 import java.util.Set;
@@ -93,7 +95,12 @@ public final class Showcase {
                     + " the reason ADR-0017 exists.\n\n"
                     + "Drag the window's edge and the text re-wraps without being shaped again."
                     + " Click a button, or press Tab until one has the focus and then Space."
-                    + " Ctrl+T switches the theme from the keyboard.";
+                    + " Ctrl+T switches the theme from the keyboard.\n\n"
+                    + "The theme radios are one Tab stop, not two: Tab reaches the group and the"
+                    + " arrow keys move inside it. Tab away and back and you land on whichever is"
+                    + " selected — including after Ctrl+T has changed it from outside the group,"
+                    + " because the selection is the position rather than something remembered"
+                    + " beside it.";
 
     private static final float ICON_SIZE = 20;
 
@@ -128,7 +135,15 @@ public final class Showcase {
     /// rebuild.
     static final class ScreenState extends State<Screen> {
 
-        private Theme theme = Theme.NORD_DARK;
+        /// Which theme the window is showing, as a **value** rather than a field.
+        ///
+        /// A `Property<String>` because the radio group below binds to it, and a
+        /// group's options are named by strings the document could have written.
+        /// The theme was a plain field until a control needed to follow it, which
+        /// is the ordinary way a value becomes bindable — nothing else about the
+        /// theme changed.
+        private final Property<String> themeName = Property.of("dark");
+
         private int clicks;
 
         /// What the checkbox below is bound to.
@@ -140,11 +155,20 @@ public final class Showcase {
         /// working — which is the behaviour, not a bug.
         private final Property<Boolean> showProse = Property.of(true);
 
+        /// The tri-state one, starting partial.
+        ///
+        /// A `Property<Checkbox.Value>` rather than a `Boolean`, because `MIXED`
+        /// is a real state and a boolean cannot hold it. `Checkbox.resolved()`
+        /// accepts either, so an application with an ordinary binary preference
+        /// never has to import the enum — this one does, because it has three
+        /// states to be in.
+        private final Property<Checkbox.Value> partly = Property.of(Checkbox.Value.MIXED);
+
         /// Which theme the window is showing, read by `main` to choose the
-        /// stylesheets. The state owns it because the button that changes it
-        /// lives in this tree.
+        /// stylesheets. The state owns it because the controls that change it
+        /// live in this tree.
         Theme theme() {
-            return theme;
+            return "light".equals(themeName.get()) ? Theme.NORD_LIGHT : Theme.NORD_DARK;
         }
 
         @Override
@@ -159,8 +183,7 @@ public final class Showcase {
 
             var sidebar = new Widgets.Column(
                     List.of(
-                            new Widgets.Text(theme == Theme.NORD_DARK ? "Nord dark" : "Nord light",
-                                    styled("theme-name", "caption")),
+                            themes(),
                             new Widgets.Text("Clicks: " + clicks, styled("count", "caption")),
                             // Bound rather than built: this line has no state
                             // here and is never passed a value. It follows a
@@ -197,22 +220,53 @@ public final class Showcase {
                     id("root"));
         }
 
+        /// The composite, doing the most visible thing in the window.
+        ///
+        /// Two options bound to `themeName`, so picking one restyles everything —
+        /// which is what makes it worth having in a window rather than only in a
+        /// golden image. **Tab reaches it once**, not twice, and the arrow keys
+        /// move between the options from there; Tab back into it later lands on
+        /// whichever is selected, including after `Ctrl+T` has changed it from
+        /// outside the group entirely ([ADR-0073]).
+        ///
+        /// An arrow key does not move the tick. It raises the change, `pickTheme`
+        /// sets the property, and the tick follows — set `pickTheme` aside and the
+        /// group stops working, exactly as the checkbox does (ADR-0063).
+        /// No `class="caption"` on it, deliberately: `controls.css` sets
+        /// `font-size` on `radio` itself, and a rule that matches beats a value
+        /// that was inherited — so the class would look like it did something and
+        /// would not. A theme moves these labels by moving `--gb-font-body`.
+        private Widget themes() {
+            return new RadioGroup(null, List.of(
+                            new Radio("dark", "Nord dark"),
+                            new Radio("light", "Nord light")),
+                    themeName, this::pickTheme, false, id("themes"));
+        }
+
         /// The three states a checkbox has, and the one route to changing one.
         ///
         /// The first is bound and wired, and clicking it really does remove the
         /// paragraph: data flows down through `showProse` and the click travels
-        /// back up through `toggleProse` ([ADR-0063]). The second is `MIXED` — a
-        /// state the application can describe and the user cannot reach, which is
-        /// why it is here rather than only in a golden image. The third is
-        /// disabled, so a window shows what 45% opacity looks like on a control
-        /// that is not a button.
+        /// back up through `toggleProse` ([ADR-0063]).
+        ///
+        /// The second **starts** `MIXED` and is wired, which is the interesting
+        /// one: it is bound to a property holding a tri-state [Checkbox.Value],
+        /// and clicking it applies [Checkbox.Value#toggled()] — so a partial
+        /// selection goes to `CHECKED` ("all of them") and never back to mixed.
+        /// It used to be built with a literal `MIXED` and a null handler, which
+        /// made it inert; a control that cannot move is indistinguishable from a
+        /// broken one, and a showcase is the wrong place to demonstrate that.
+        ///
+        /// The third is disabled, so a window shows what 45% opacity looks like
+        /// on a control that is not a button — and what an *actually* inert
+        /// control looks like beside two that work.
         private Widget options() {
             return new Widgets.Column(
                     List.of(
                             new Checkbox("Show the prose", Checkbox.Value.UNCHECKED,
                                     showProse, this::toggleProse, false, id("prose-toggle")),
-                            new Checkbox("Partly applied", Checkbox.Value.MIXED,
-                                    null, null, false, id("partly")),
+                            new Checkbox("Partly applied", Checkbox.Value.UNCHECKED,
+                                    partly, this::togglePartly, false, id("partly")),
                             new Checkbox("Not available here", Checkbox.Value.CHECKED,
                                     null, null, true, id("unavailable"))),
                     id("options"));
@@ -222,8 +276,19 @@ public final class Showcase {
         /// like ordinary methods and still cost one build per frame however many
         /// of them run (ADR-0052).
         void toggleTheme() {
-            changed(() -> theme = theme == Theme.NORD_DARK ? Theme.NORD_LIGHT : Theme.NORD_DARK);
-            LOG.info("theme is now {}", theme);
+            pickTheme("light".equals(themeName.get()) ? "dark" : "light");
+        }
+
+        /// What the radio group asks for, and what `Ctrl+T` and the bar's button
+        /// go through as well.
+        ///
+        /// One route for three controls, which is the point of the value being a
+        /// property: the group is bound to it, so a theme changed from the
+        /// keyboard moves the tick without the shortcut knowing a radio group
+        /// exists.
+        void pickTheme(String name) {
+            changed(() -> themeName.set(name));
+            LOG.info("theme is now {}", theme());
         }
 
         /// The other half of the loop, and the reason the checkbox is controlled.
@@ -233,6 +298,17 @@ public final class Showcase {
         /// the `Observable` half, which has no `set`.
         void toggleProse() {
             changed(() -> showProse.set(!Boolean.TRUE.equals(showProse.get())));
+        }
+
+        /// The tri-state half of the same loop.
+        ///
+        /// [Checkbox.Value#toggled()] is what an application applies, and it is
+        /// the reason the rule "clicking a partial selection asks for all of
+        /// them" lives on the enum rather than in each handler: from `MIXED` this
+        /// goes to `CHECKED`, and the user can never get back to mixed by
+        /// clicking — only the application can put it there.
+        void togglePartly() {
+            changed(() -> partly.set(partly.get().toggled()));
         }
 
         void click() {

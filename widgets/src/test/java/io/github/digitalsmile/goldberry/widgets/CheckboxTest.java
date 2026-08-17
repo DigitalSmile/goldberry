@@ -2,6 +2,7 @@ package io.github.digitalsmile.goldberry.widgets;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -69,7 +70,7 @@ class CheckboxTest {
         @DisplayName("the registry lists it beside button")
         void registered() {
             assertTrue(Controls.inflater().registered().contains("checkbox"));
-            assertEquals(List.of("button", "checkbox"), Controls.controlTypes());
+            assertTrue(Controls.controlTypes().contains("checkbox"));
         }
 
         @Test
@@ -408,15 +409,32 @@ class CheckboxTest {
         }
 
         @Test
-        @DisplayName("the mark is the state's, and unchecked draws none")
+        @DisplayName("the mark is the state's, and it is drawn in every state")
         void marks() {
-            assertEquals(null, mark(Checkbox.Value.UNCHECKED));
+            // Unchecked draws a tick too, at zero opacity. A node that came into
+            // existence checked would have no previous style to transition from
+            // and would snap, so §3.1's "scale 0.6->1 + opacity" needs the mark
+            // present throughout and hidden by the stylesheet (ADR-0073).
+            assertEquals(Box.Mark.Kind.CHECK, mark(Checkbox.Value.UNCHECKED).kind());
             assertEquals(Box.Mark.Kind.CHECK, mark(Checkbox.Value.CHECKED).kind());
             assertEquals(Box.Mark.Kind.DASH, mark(Checkbox.Value.MIXED).kind());
         }
 
+        @Test
+        @DisplayName("the mark is a node of its own, so it can scale without the glyph")
+        void markIsANode() {
+            var indicator = new CheckIndicator(Checkbox.Value.CHECKED, false, 2);
+
+            assertEquals(1, indicator.children().size());
+            assertEquals("check-mark",
+                    ((CheckMark) indicator.children().getFirst()).cssType());
+            assertNull(indicator.render(ComputedStyle.INITIAL, List.of(), TestFont.context()).mark(),
+                    "the glyph carries no mark itself: scaling this box would scale the"
+                            + " 16px square with it, which is not the animation §3.1 asks for");
+        }
+
         private Box.Mark mark(Checkbox.Value value) {
-            return new CheckIndicator(value, false, 2)
+            return ((CheckMark) new CheckIndicator(value, false, 2).children().getFirst())
                     .render(ComputedStyle.INITIAL, List.of(), TestFont.context())
                     .mark();
         }

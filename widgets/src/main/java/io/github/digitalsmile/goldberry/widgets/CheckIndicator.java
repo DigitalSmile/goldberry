@@ -75,21 +75,19 @@ record CheckIndicator(Checkbox.Value state, boolean disabled, double thickness)
         return state == Checkbox.Value.MIXED;
     }
 
+    /// The mark, always — see [CheckMark] for why it is a node rather than a mark
+    /// on this box, and why it is built in every state including `UNCHECKED`.
+    ///
+    /// The colour still comes from `style.color()` and still **inherits**, so
+    /// `check-indicator:checked { color: … }` is the one rule that moves it and
+    /// nothing has to name the mark's node to recolour it.
+    @Override
+    public List<Widget> children() {
+        return List.of(new CheckMark(state, disabled, thickness));
+    }
+
     @Override
     public Box render(ComputedStyle style, List<Box> children, Context context) {
-        var box = Box.of().style(style);
-        // Unchecked draws no mark at all rather than a transparent one: an empty
-        // box is one fewer path for Blend2D to stroke, and a mark whose colour
-        // happened to resolve to something visible would be a tick nobody asked
-        // for.
-        return switch (state) {
-            case UNCHECKED -> box;
-            // `style.color()` rather than a colour of its own: the mark is the
-            // foreground of this node, exactly as text is the foreground of a
-            // `text` node, so `check-indicator:checked { color: … }` is the one
-            // rule that moves it.
-            case CHECKED -> box.mark(new Box.Mark(Box.Mark.Kind.CHECK, style.color(), thickness));
-            case MIXED -> box.mark(new Box.Mark(Box.Mark.Kind.DASH, style.color(), thickness));
-        };
+        return Box.of().style(style).children(children.toArray(Box[]::new));
     }
 }

@@ -11,12 +11,11 @@
  * metrics"). Nothing in this file is a value someone picked: if a metric is not
  * in that table, the table gets extended first (Principle 3, "token or extend").
  *
- * Still not expressible, and therefore absent rather than approximated: the
- * `transform` half of §1.7's whitelist, which `checkbox`'s specified check
- * animation ("scale 0.6->1 + opacity") needs for its scale. `Box` carries no
- * transform, and hit testing would need its inverse to keep routing clicks
- * correctly -- a correctness trap worth arriving on its own. The opacity half
- * ships. See book/src/status.md.
+ * §3.1 is now satisfied for every control in this file. The last gap was the
+ * "scale 0.6->1" half of the check/dot row, which needed `transform` (ADR-0068)
+ * *and* needed the mark to stop being a mark: a Box.Mark is drawn onto its box,
+ * so scaling it scaled the 16px glyph too. `check-mark` and `radio-dot` are
+ * nodes for that reason (ADR-0073).
  */
 
 /* ---------------------------------------------------------------- motion --
@@ -32,7 +31,8 @@
  * transition and a stutter.
  */
 button,
-checkbox {
+checkbox,
+radio {
   transition: background-color var(--gb-motion-fast) ease-enter,
               color var(--gb-motion-fast) ease-enter,
               opacity var(--gb-motion-fast) ease-enter;
@@ -47,17 +47,53 @@ checkbox {
    It matters more than it looks: a press that faded in would make every button
    in the toolkit feel disconnected from the finger that pressed it. */
 button:active,
-checkbox:active {
+checkbox:active,
+radio:active {
   transition: background-color 0ms;
 }
 
-/* The glyph's fill and mark on `base`, its border on `fast` -- §3.1's "check:
-   ... base, color fast" for the half that is expressible. The scale is the
-   half that is not; see the header. */
-check-indicator {
+/* The glyph's fill on `base` and its border on `fast` -- §3.1's "check/dot:
+   ... base, color fast". One rule for both controls, because §3.1 gives
+   `checkbox` and `radio` one row. */
+check-indicator,
+radio-indicator {
   transition: background-color var(--gb-motion-base) ease-enter,
               border-color var(--gb-motion-fast) ease-enter,
               color var(--gb-motion-base) ease-enter;
+}
+
+/* §3.1's "check/dot: **scale 0.6->1** + opacity, base" -- the half that could
+   not be written until the mark became a node of its own.
+
+   The mark is drawn *onto* whatever box carries it, so while it lived on the
+   indicator, scaling it scaled the 16px glyph with it: the ring grew with the
+   tick, which is not the animation. `check-mark` and `radio-dot` are elements,
+   so they carry their own transform (see CheckMark, RadioDot).
+
+   They are present in every state and hidden with `opacity`, not built only
+   when checked. A node that appears with the value has no previous style to
+   move from, and a newly built element deliberately starts no transition
+   (ADR-0067) -- so a mark that came into existence checked would snap. The cost
+   is one fully transparent box per unchecked control, which is what the
+   specified animation costs. */
+check-mark,
+radio-dot {
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  transform: scale(0.6);
+  transition: opacity var(--gb-motion-base) ease-enter,
+              transform var(--gb-motion-base) ease-enter,
+              color var(--gb-motion-fast) ease-enter;
+}
+
+/* Mixed is "this control has a value" exactly as checked is, so the dash grows
+   in the same way the tick does -- the two differ in shape and in nothing else. */
+check-indicator:checked check-mark,
+check-indicator:indeterminate check-mark,
+radio-indicator:checked radio-dot {
+  opacity: 1;
+  transform: scale(1);
 }
 
 /* ------------------------------------------------------------ typography --
@@ -129,7 +165,8 @@ check-indicator {
  * (ADR-0054) precisely so this rule can.
  */
 button:focus-visible,
-checkbox:focus-visible {
+checkbox:focus-visible,
+radio:focus-visible {
   outline: 2px solid var(--gb-focus);
   outline-offset: 2px;
 }
@@ -145,9 +182,20 @@ checkbox:focus-visible {
    A disabled control still lays out, paints and hit-tests. It just does not act,
    and it looks unavailable rather than disappearing. */
 button:disabled,
-checkbox:disabled {
+checkbox:disabled,
+radio:disabled,
+radio-group:disabled {
   opacity: 0.45;
   cursor: not-allowed;
+}
+
+/* A disabled group already fades as a whole, and it passes `disabled` down to
+   every option -- so without this the fade would apply twice and land at 20%.
+   The group is the one that keeps it, because it also covers a heading or a
+   caption written between the options, which is not a radio and would otherwise
+   stay at full strength inside a group that is unavailable. */
+radio-group:disabled radio:disabled {
+  opacity: 1;
 }
 
 /* ---------------------------------------------------------------- button --
@@ -241,6 +289,11 @@ checkbox {
   align-items: center;
   cursor: pointer;
   color: var(--gb-text);
+  /* §1.5's "4 -- inputs, small controls". The control paints no background, so
+     this is invisible until it is focused -- and then it is the whole point:
+     §2.2 says the ring follows the control's radius, and a square ring around a
+     row sitting beside an 8px button reads as an unfinished one. */
+  border-radius: 4px;
 }
 
 /* The glyph. A part, not a widget -- see CheckIndicator for why it is
@@ -259,8 +312,47 @@ check-indicator {
   color: var(--gb-checkbox-mark);
 }
 
+/* §2.1: hover changes surface by one step, and never the text colour. The glyph
+   *is* the control's surface at this size, so the step lands on its background
+   and its border together -- a border-only hover is a weaker signal than the
+   rule asks for. */
 checkbox:hover check-indicator {
+  background: var(--gb-checkbox-bg-hover);
   border-color: var(--gb-checkbox-border-hover);
+}
+
+/* §2.1's "pressed states darken". This is written against `checkbox:active`
+   rather than `check-indicator:active`, which is what makes it work at all:
+   `:active` reaches the whole ancestor chain (ADR-0073), so pressing the label,
+   the glyph or the gap between them all darken the same thing. It did not,
+   until that was fixed -- the press landed on whichever part was under the
+   pointer. */
+checkbox:active check-indicator {
+  background: var(--gb-checkbox-bg-active);
+  border-color: var(--gb-checkbox-border-hover);
+}
+
+/* A checked control keeps the accent under the pointer and moves *along* it.
+   Without these two rules the plain hover above wins on specificity -- two type
+   selectors and a pseudo-class beats one of each -- so hovering a ticked box
+   replaced the accent fill with the grey hover surface, and the mark, which is
+   drawn in a colour chosen to read on the accent, vanished into it. "I can
+   barely tell what's inside when hovered" is exactly what that looks like.
+
+   The tokens are `button.primary`'s, because this is the same question: what
+   does an accent-filled surface do under the pointer. */
+checkbox:hover check-indicator:checked,
+checkbox:hover check-indicator:indeterminate {
+  background: var(--gb-checkbox-bg-checked-hover);
+  border-color: var(--gb-checkbox-bg-checked-hover);
+}
+
+/* Later than the hover pair and at equal specificity, so a press wins while
+   both are set -- which is always, since a press implies a hover. */
+checkbox:active check-indicator:checked,
+checkbox:active check-indicator:indeterminate {
+  background: var(--gb-checkbox-bg-checked-active);
+  border-color: var(--gb-checkbox-bg-checked-active);
 }
 
 /* Checked and mixed look the same apart from the mark they carry: both are
@@ -277,3 +369,115 @@ check-indicator:indeterminate {
    checkbox above already fades the glyph, the border and the mark together,
    because the painter multiplies opacity down the subtree. A second rule here
    would fade it twice. */
+
+/* ----------------------------------------------------------- radio-group --
+ *
+ * A column by default, and `radio-group.inline` for a row. §3 gives no axis for
+ * a radio group, and both readings are common -- two options side by side, six
+ * stacked -- so the widget names the semantics and the stylesheet names the
+ * axis. That is the opposite of `row` and `column`, which *are* their axis.
+ *
+ * The gap is 4: options are one control, and the 8 that separates a glyph from
+ * its label would make a group read as a list of unrelated rows.
+ */
+radio-group {
+  flex-direction: column;
+  /* §1.3's "gap between related controls 8". Options are related controls, and
+     stacked ones are unambiguous at 8 -- each occupies its own line. */
+  gap: 8px;
+  /* Options are as wide as their content, not as wide as the group. A flex
+     child stretches on the cross axis by default, which in a column means every
+     option reaches the far edge -- so the focus ring would run out across empty
+     space and the click target with it, while `.inline` (a row, whose cross axis
+     is height) would keep hugging its label. The same widget would then have two
+     different hit targets depending on a class. `checkbox` is content-sized for
+     the same reason, and §3 gives these a hit *height* and no width. */
+  align-items: flex-start;
+}
+
+/* §1.3's "between groups 16", and that is the right half of the ramp rather
+   than a bigger number picked by eye: side by side, each glyph-plus-label is a
+   unit, and at 8 the previous option's label sits as close to the next glyph as
+   that glyph is to its own label -- so the label reads as belonging to the
+   wrong one. Stacked, no such ambiguity exists, which is why the two directions
+   legitimately take different ramp values. */
+radio-group.inline {
+  flex-direction: row;
+  gap: 16px;
+}
+
+/* ---------------------------------------------------------------- radio --
+ *
+ * glyph 16, hit >= 32, label gap 8 -- §3's `checkbox / radio` row, which is one
+ * row for both because they are the same metrics with a different glyph. The
+ * height is the hit target (§1.3) and the click target includes the label,
+ * exactly as on a checkbox.
+ */
+radio {
+  height: 32px;
+  gap: 8px;
+  font-size: var(--gb-font-body);
+  line-height: var(--gb-line-body);
+  font-weight: var(--gb-weight-regular);
+  align-items: center;
+  cursor: pointer;
+  color: var(--gb-text);
+  /* §1.5's small-control radius, for the focus ring to follow (§2.2) -- the
+     same reason `checkbox` carries one. */
+  border-radius: 4px;
+}
+
+/* The glyph. A part -- see RadioIndicator for why it is CSS-selectable and not
+   KDL-constructible, which is the second time that argument is made and the
+   first time it is a pattern rather than a case.
+
+   `border-radius: 8px` on a 16px box is a circle. Nothing in Java draws one:
+   the four cubics that round every other corner in the toolkit round this one
+   the whole way (ADR-0064), which is why a theme can square a radio off without
+   a code change. */
+radio-indicator {
+  width: 16px;
+  height: 16px;
+  border-radius: 8px;
+  border: 1px solid var(--gb-border);
+  background: var(--gb-radio-bg);
+  color: var(--gb-radio-dot);
+}
+
+/* §2.1's one surface step on hover, and its darkening press. Both are written
+   against the *control* rather than the glyph, so pressing the label does what
+   pressing the glyph does -- which only works because `:active` reaches the
+   whole ancestor chain (ADR-0073). */
+radio:hover radio-indicator {
+  background: var(--gb-radio-bg-hover);
+  border-color: var(--gb-radio-border-hover);
+}
+
+radio:active radio-indicator {
+  background: var(--gb-radio-bg-active);
+  border-color: var(--gb-radio-border-hover);
+}
+
+/* A selected option keeps the accent under the pointer, for the reason the
+   checkbox's pair above spells out: the plain hover rule outranks
+   `radio-indicator:checked`, so without this the fill went grey and the dot --
+   drawn in a colour picked to read on the accent -- disappeared. */
+radio:hover radio-indicator:checked {
+  background: var(--gb-radio-bg-checked-hover);
+  border-color: var(--gb-radio-bg-checked-hover);
+}
+
+radio:active radio-indicator:checked {
+  background: var(--gb-radio-bg-checked-active);
+  border-color: var(--gb-radio-bg-checked-active);
+}
+
+/* Selected fills with the accent and draws the dot in `color`, the same shape
+   as `check-indicator:checked`. There is no mixed state: a radio group's
+   "nothing selected yet" is *no* option matching, not an option in a third
+   state, which is why `:indeterminate` appears nowhere here. */
+radio-indicator:checked {
+  background: var(--gb-radio-bg-checked);
+  border-color: var(--gb-radio-bg-checked);
+  color: var(--gb-radio-dot-checked);
+}

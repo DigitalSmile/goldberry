@@ -230,6 +230,7 @@ public final class PointerRouter {
         if (focused == element && focusFromKeyboard == fromKeyboard) {
             return;
         }
+        var lost = focused;
         if (focused != null) {
             mark(focused, PseudoClass.FOCUS, false);
             mark(focused, PseudoClass.FOCUS_VISIBLE, false);
@@ -241,6 +242,22 @@ public final class PointerRouter {
             if (fromKeyboard) {
                 mark(focused, PseudoClass.FOCUS_VISIBLE, true);
             }
+        }
+        // After both pseudo-classes are settled, because a handler may look at
+        // them -- and after `focused` is reassigned, because a handler that
+        // raises a change will have this router asked about focus again before
+        // it returns.
+        if (lost != null && lost != focused) {
+            notifyFocus(lost, false, fromKeyboard);
+        }
+        if (focused != null) {
+            notifyFocus(focused, true, fromKeyboard);
+        }
+    }
+
+    private static void notifyFocus(Element element, boolean gained, boolean fromKeyboard) {
+        if (element.widget() instanceof Handles handles) {
+            handles.onFocusChanged(gained, fromKeyboard);
         }
     }
 
@@ -269,15 +286,91 @@ public final class PointerRouter {
         // Accelerators come after the focused chain has declined the key, which
         // is what lets a text field keep Ctrl+A for "select all" while the window
         // binds it to something else (§7.2).
-        var action = shortcuts.get(new Shortcut(key, modifiers));
-        if (action != null) {
-            action.run();
-            return true;
+        //
+        // An unnamed key is skipped rather than looked up. `Shortcut` refuses to
+        // hold `Key.UNKNOWN` -- an accelerator on it could never fire, so the
+        // constructor is right to say so -- and building one here to use as a map
+        // key threw that exception on the UI thread and took the window with it.
+        // This is not an edge case: `Key` names the keys a *shortcut* might use,
+        // so every letter, digit and punctuation mark that arrives as text is
+        // `UNKNOWN`, and the crash was one keystroke away at all times.
+        if (key != Key.UNKNOWN) {
+            var action = shortcuts.get(new Shortcut(key, modifiers));
+            if (action != null) {
+                action.run();
+                return true;
+            }
         }
         if (key == Key.TAB && !modifiers.control() && !modifiers.alt() && !modifiers.meta()) {
             return moveFocus(modifiers.shift() ? -1 : 1);
         }
+        // Roving focus inside a composite (§7.2), by the same argument that puts
+        // Tab here: which node an arrow key reaches is a property of the group's
+        // shape, and the radio it is currently on cannot see its siblings.
+        //
+        // After the focused chain has declined the key, so a widget that means
+        // something else by an arrow -- a slider stepping its value, a text field
+        // moving its caret -- keeps it by consuming it, and never has to know it
+        // is inside a group.
+        if (modifiers.none()) {
+            return switch (key) {
+                case LEFT, UP -> moveFocusWithinScope(-1, false);
+                case RIGHT, DOWN -> moveFocusWithinScope(1, false);
+                case HOME -> moveFocusWithinScope(-1, true);
+                case END -> moveFocusWithinScope(1, true);
+                default -> false;
+            };
+        }
         return false;
+    }
+
+    /// Moves focus within the composite the focused node is in, wrapping.
+    ///
+    /// Both axes rove, and that is ARIA's rule for a radio group rather than
+    /// laziness: a group's direction is the stylesheet's — `flex-direction` on
+    /// `radio-group` — so input cannot know which pair of arrows a user is
+    /// looking at, and answering to only one pair would be wrong half the time.
+    /// A composite that genuinely has an axis (a tab list along the top, a menu
+    /// bar) will have to say so; nothing needs that yet.
+    ///
+    /// @param direction -1 for the previous, 1 for the next
+    /// @param toEnd     whether to go all the way (Home/End) rather than one step
+    /// @return whether focus moved
+    private boolean moveFocusWithinScope(int direction, boolean toEnd) {
+        var scope = enclosingScope(focused);
+        if (scope == null) {
+            return false;
+        }
+        var within = new ArrayList<Element>();
+        for (var child : scope.children()) {
+            collectFocusable(child, within);
+        }
+        if (within.isEmpty()) {
+            return false;
+        }
+        var current = within.indexOf(focused);
+        var next = toEnd
+                ? (direction > 0 ? within.size() - 1 : 0)
+                : Math.floorMod((current < 0 ? 0 : current) + direction, within.size());
+        focus(within.get(next), true);
+        return true;
+    }
+
+    /// The nearest ancestor of `element` that is a composite, or null.
+    ///
+    /// Strictly an ancestor: a scope is not itself one of the things its arrow
+    /// keys move between, and a focusable widget that also declared itself a
+    /// scope would otherwise rove within its own children from outside them.
+    private static Element enclosingScope(Element element) {
+        if (element == null) {
+            return null;
+        }
+        for (var current = parentOf(element); current != null; current = parentOf(current)) {
+            if (isFocusScope(current)) {
+                return current;
+            }
+        }
+        return null;
     }
 
     /// The window's accelerators (§7.2).
@@ -367,13 +460,61 @@ public final class PointerRouter {
         return true;
     }
 
+    /// Every Tab stop under `element`, in document order — with a composite
+    /// contributing exactly **one** (§7.2).
     private static void collectFocusable(Element element, List<Element> out) {
+        // The scope is asked *before* the node itself, so a widget that is both
+        // focusable and a composite contributes one stop rather than two -- its
+        // entry, which is the node an arrow key can then move away from. Asked
+        // the other way round it would be reachable twice by Tab and the second
+        // arrival would have no arrows, because `enclosingScope` looks strictly
+        // upwards.
+        if (isFocusScope(element)) {
+            var entry = scopeEntry(element);
+            // A composite with nothing focusable inside it falls back to itself
+            // when it is focusable, and is skipped entirely when it is not.
+            if (entry == null) {
+                entry = isFocusable(element) ? element : null;
+            }
+            if (entry != null) {
+                out.add(entry);
+            }
+            return;
+        }
         if (isFocusable(element)) {
             out.add(element);
         }
         for (var child : element.children()) {
             collectFocusable(child, out);
         }
+    }
+
+    /// Where Tab lands when it enters a composite.
+    ///
+    /// The focusable descendant matching `:checked`, or the first one. That is
+    /// ARIA's rule for a radio group — Tab returns you to the option that is
+    /// selected, not to the top of the list — and it is deliberately **derived**
+    /// rather than remembered: a stored roving position would be a second piece
+    /// of state beside the selection, and the two would disagree the first time
+    /// an application set the value itself ([ADR-0073]).
+    ///
+    /// A composite whose items are not selectable — a toolbar — therefore always
+    /// enters at the first, which is the right answer for it too.
+    private static Element scopeEntry(Element scope) {
+        var within = new ArrayList<Element>();
+        for (var child : scope.children()) {
+            collectFocusable(child, within);
+        }
+        for (var candidate : within) {
+            if (candidate.hasState(PseudoClass.CHECKED)) {
+                return candidate;
+            }
+        }
+        return within.isEmpty() ? null : within.getFirst();
+    }
+
+    private static boolean isFocusScope(Element element) {
+        return element.widget() instanceof Handles handles && handles.focusScope();
     }
 
     /// Capture root-first, then bubble from the focused node up.
@@ -461,17 +602,38 @@ public final class PointerRouter {
         cursorSink.accept(next);
     }
 
+    /// Moves `:active` from one chain to another.
+    ///
+    /// **The whole ancestor chain, exactly as `:hover` is** — and it was not,
+    /// which made `checkbox:active` and `radio:active` very nearly dead rules.
+    /// `:active` was set on the deepest element the press hit, so pressing a
+    /// checkbox's 16px glyph lit up `check-indicator` and pressing its label lit
+    /// up `text`, and the control itself matched only in the sliver of padding
+    /// between them. `docs/design-system.md` §2.1 requires every control to render
+    /// a pressed state, and a control whose pressed state depends on which of its
+    /// own parts you happened to hit does not have one.
+    ///
+    /// Chains rather than elements, so a press that moves within one widget does
+    /// not invalidate its ancestors — the same reason [#updateHover] compares
+    /// them.
     private void setPressed(Element next) {
         if (pressed == next) {
             return;
         }
-        if (pressed != null) {
-            mark(pressed, PseudoClass.ACTIVE, false);
+        var before = chain(pressed);
+        var after = chain(next);
+
+        for (var element : before) {
+            if (!after.contains(element)) {
+                mark(element, PseudoClass.ACTIVE, false);
+            }
+        }
+        for (var element : after) {
+            if (!before.contains(element)) {
+                mark(element, PseudoClass.ACTIVE, true);
+            }
         }
         pressed = next;
-        if (pressed != null) {
-            mark(pressed, PseudoClass.ACTIVE, true);
-        }
     }
 
     /// Sets or clears one of the router's own pseudo-classes, and never lights up

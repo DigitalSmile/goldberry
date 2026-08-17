@@ -311,6 +311,25 @@ class PointerRouterTest {
         }
 
         @Test
+        @DisplayName(":active reaches the whole ancestor chain, exactly as :hover does")
+        void activeIsTheChain() {
+            // It did not, and that made `checkbox:active` and `radio:active`
+            // very nearly dead rules: the press landed on whichever part was
+            // under the pointer -- the 16px glyph, or the label -- so the
+            // control itself matched only in the sliver of padding between them.
+            // §2.1 requires every control to render a pressed state, and one
+            // that depends on which of its own parts you hit does not have one.
+            router.pointerPressed(30, 30, PointerEvent.Button.PRIMARY, 1);
+
+            assertTrue(inner.hasState(PseudoClass.ACTIVE));
+            assertTrue(outer.hasState(PseudoClass.ACTIVE),
+                    "pressing a part presses the control that contains it");
+
+            router.pointerReleased(30, 30, PointerEvent.Button.PRIMARY, 1);
+            assertFalse(outer.hasState(PseudoClass.ACTIVE));
+        }
+
+        @Test
         @DisplayName("the button and click count reach the handler")
         void buttonAndCount() {
             var seen = new ArrayList<PointerEvent>();

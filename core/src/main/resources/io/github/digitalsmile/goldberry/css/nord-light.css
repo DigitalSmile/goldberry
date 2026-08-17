@@ -77,15 +77,45 @@
   --gb-button-danger-bg-active: #9d4b53;
   --gb-button-danger-text: var(--nord6);
 
-  /* White, so an unchecked box is a well in a light surface rather than a tint
-     of it. The checked fill is nord10 -- a dark enough blue that the tick is
-     drawn in nord6 and clears 4.5:1, which is the mirror of the dark theme's
-     choice and the reason both are tokens rather than one shared value. */
-  --gb-checkbox-bg: #ffffff;
+  /* The button's ramp, exactly as on the dark theme and for the same reason:
+     the glyph was `#ffffff`, which is `--gb-surface`, so an unchecked box was
+     invisible on the white panel a control normally sits on. A white well is the
+     conventional light-theme look and it is the one that cannot be seen on a
+     card, so the ramp wins.
+
+     nord5 at rest, nord4 hovered, and the same darkened step the button presses
+     to. On the nord6 window nord5 is a subtle step and the nord4 border is what
+     carries the edge; on a white surface it is unmistakable.
+
+     The checked fill is nord10 -- a dark enough blue that the tick is drawn in
+     nord6 and clears 4.5:1, the mirror of the dark theme's choice and the reason
+     both are tokens rather than one shared value. */
+  --gb-checkbox-bg: var(--nord5);
+  --gb-checkbox-bg-hover: var(--nord4);
+  --gb-checkbox-bg-active: #ccd3df;
   --gb-checkbox-border-hover: var(--nord3);
+  /* The accent's own ramp, shared with `button.primary` -- a checked control
+     stays accent-coloured under the pointer and darkens, because the mark inside
+     it is drawn for an accent background and would disappear on a pale one. */
   --gb-checkbox-bg-checked: var(--gb-accent);
+  --gb-checkbox-bg-checked-hover: var(--gb-button-primary-bg-hover);
+  --gb-checkbox-bg-checked-active: var(--gb-button-primary-bg-active);
   --gb-checkbox-mark: transparent;
   --gb-checkbox-mark-checked: var(--nord6);
+
+  /* The radio's glyph -- the checkbox's with a round corner and a dot, and its
+     own tokens for the reason the dark theme's block gives: a theme that wanted
+     an outlined radio beside a filled checkbox should not have to redefine the
+     checkbox to get one. */
+  --gb-radio-bg: var(--nord5);
+  --gb-radio-bg-hover: var(--nord4);
+  --gb-radio-bg-active: #ccd3df;
+  --gb-radio-border-hover: var(--nord3);
+  --gb-radio-bg-checked: var(--gb-accent);
+  --gb-radio-bg-checked-hover: var(--gb-button-primary-bg-hover);
+  --gb-radio-bg-checked-active: var(--gb-button-primary-bg-active);
+  --gb-radio-dot: transparent;
+  --gb-radio-dot-checked: var(--nord6);
 
   /* A black wash, because a light theme's surfaces are already bright. */
   --gb-overlay-hover: #00000012;
