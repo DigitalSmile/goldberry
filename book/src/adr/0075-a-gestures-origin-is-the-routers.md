@@ -135,36 +135,56 @@ padding, so changing the track width fails the test that says why.
 together**)" and elsewhere "anything not listed does not animate". The thumb's
 *background* is not listed, and it is animated anyway.
 
-It has to be. The thumb is a different colour on the two tracks — see below — so
-a thumb whose colour snapped would arrive before the thumb did, breaking the one
-thing that row actually states. Listing it is what makes §3.1 self-consistent
-here, and it costs nothing: `background-color` is already on §1.7's whitelist and
-already running on this duration.
+It has to be, for any theme whose thumb differs between the two states — see
+below. `nord-light`'s does, so a thumb whose colour snapped would arrive before
+the thumb did and break the one thing that row actually states. `nord-dark`'s
+does not, and pays nothing for the declaration. Listing it is what makes §3.1
+self-consistent here, and it costs nothing either way: `background-color` is
+already on §1.7's whitelist and already running on this duration.
 
-### Two thumb colours, and neither may be the window's
-
-The dark theme's off pill is `nord2` and its on pill is `nord8` — a dark grey and
-a light frost blue. **No single colour clears §1.2 against both**, so a thumb that
-tried would be legible in one state and lost in the other. Two tokens, and the
-light theme mirrors it in the opposite direction.
+### 2px of pill is the whole colour problem, and it moved the accent
 
 A thumb has **two** constraints where the checkbox's mark has one. It must read
-against its own pill, *and* it must differ from the window: only 2px of pill
-separates it from whatever is behind the control, where a mark is surrounded by
-its fill on every side. The first attempt took the checkbox's
-`--gb-checkbox-mark-checked` value, `nord0`, which is also `--gb-bg` — so the
-checked thumb read as **a hole punched through the switch** rather than a disc
-sitting in it. It is `nord3` now, and the light theme's is `#ffffff` rather than
-`nord6` for the same reason from the other end.
+against its own pill, *and* it must differ from the window — because only **2px
+of pill**, partly antialiased, separates a 16px disc from whatever is behind the
+control, where a mark is surrounded by its fill on every side.
 
-That is the third time this exact defect has been found — `--gb-checkbox-bg` was
-`--gb-surface` (ADR-0073), and now this — and all three times it was **the golden
-image and not a test**. A colour that equals another colour is a passing
-assertion.
+This took two attempts and both failures looked like the same bug: **the thumb
+appeared to be breaking out of the pill.** It never was. Measured off the golden
+image, the disc is exactly concentric with the pill's cap and 2px inside it all
+the way round; what the eye was reading was the thumb merging with the window
+*across* those 2px.
+
+- The first attempt took `--gb-checkbox-mark-checked`, which is `nord0`, which is
+  also `--gb-bg`. Identical to the window.
+- The second took `nord3`, which is merely *near* it — better, and still read as
+  a hole punched through the switch.
+
+Every dark value in Nord is near `--gb-bg`, so on a **light** accent pill there is
+no dark thumb that works. The fix is therefore not a thumb colour at all: on the
+dark theme the on pill is **`nord10` rather than `--gb-accent`**, and the thumb is
+the same near-white in both states.
+
+That is the one place a control here departs from the shared accent ramp, and the
+switch's geometry is what earns it: a checkbox can use a light accent because
+nothing sits inside its fill, and a toggle cannot because something does. `nord10`
+is the same frost family and is exactly what the light theme already uses for its
+primary.
+
+Both thumb tokens survive and both hold `nord6` on the dark theme. Two tokens
+because a *theme* may need two — `nord-light` does, `nord3` off and `#ffffff` on —
+not because this one does. Identical values are the Nord answer and not the
+mechanism, which is what the radio's block already says of the checkbox's.
 
 The light theme's off switch therefore has a *dark* thumb, which is not what iOS
 looks like. §1.2 decides it: a white thumb on `nord5` is 1.4:1 and cannot be
 seen, and looking conventional is not one of the principles.
+
+**Every one of these was caught by looking at a golden image, never by a test**,
+and that is now three separate occasions — `--gb-checkbox-bg` was `--gb-surface`
+(ADR-0073), then the thumb twice. A colour that equals another colour is a
+passing assertion, and a disc that is provably inside its container can still
+look like it is not.
 
 ### `--gb-button-height` and friends
 
@@ -191,6 +211,11 @@ sentence rules out.
   checkboxes, so dragging the switch moves the checkbox's tick. Two controls on
   one value is ADR-0063 made visible: neither owns the state and both are showing
   what the property says.
+- **A disc can be provably inside its container and still look like it is not.**
+  The clearance is 2px of antialiased pill, which is not enough to separate two
+  similar tones — so a colour that would be fine on a larger surface reads as a
+  containment bug here. Worth remembering the next time a part sits inside
+  another part: `slider`'s thumb on its track is the same geometry.
 - **Open: the thumb does not follow the pointer during the drag.** It slides to
   its new position when the gesture ends rather than tracking the finger, so a
   drag reads as a switch-with-a-threshold rather than as a thing being pushed.

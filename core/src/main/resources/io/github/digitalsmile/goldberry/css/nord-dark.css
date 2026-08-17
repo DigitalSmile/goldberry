@@ -123,27 +123,34 @@
      -- and the on state takes the accent ramp `button.primary` and the checkbox
      already share.
 
-     The thumb is two tokens rather than one, and that is forced by §1.2 rather
-     than chosen. The off pill is nord2 and the on pill is nord8, a dark grey and
-     a light frost blue: no single thumb colour clears contrast against both, so
-     one that tried would be legible in one state and lost in the other.
+     **The on pill is nord10 and not the accent**, which is the one place a
+     control here departs from the shared accent ramp, and it is the switch's
+     geometry that forces it. A checkbox's tick is drawn *inside* its fill and
+     surrounded by it on every side; a thumb is a 16px disc with **2px of pill**
+     between it and the window, and 2px of an antialiased edge is not enough
+     separation for two similar tones. On nord8 -- a light frost blue -- the
+     thumb has to be dark to be seen, every dark in this palette is near
+     `--gb-bg`, and the result read as a hole punched through the switch rather
+     than a disc sitting in it. nord10 is the same frost family, is what the
+     light theme already uses for its primary, and is dark enough that the thumb
+     can be the *same* near-white in both states.
 
-     A thumb has **two** constraints where the checkbox's mark has one. It must
-     read against its own pill, and it must not be the window's colour -- only
-     2px of pill separates it from whatever is behind the control, where a mark
-     is surrounded by its fill on every side. The checked thumb is therefore
-     nord3 and *not* nord0: nord0 is what `--gb-checkbox-mark-checked` takes and
-     it is also `--gb-bg`, so a nord0 thumb read as a hole punched through the
-     switch rather than as a disc sitting in it. Caught by looking at the golden
-     image, which is the only thing that could have (ADR-0075). */
+     So both thumb tokens hold nord6 here. Two tokens because a theme may need
+     two -- nord-light does -- not because this one does; identical values are
+     the Nord answer, not the mechanism, exactly as the radio's block says of the
+     checkbox's. Found by looking at the golden image, which is the only thing
+     that could have (ADR-0075). */
   --gb-toggle-track-bg: var(--nord2);
   --gb-toggle-track-bg-hover: var(--nord3);
   --gb-toggle-track-bg-active: var(--nord1);
-  --gb-toggle-track-bg-checked: var(--gb-accent);
-  --gb-toggle-track-bg-checked-hover: var(--gb-button-primary-bg-hover);
-  --gb-toggle-track-bg-checked-active: var(--gb-button-primary-bg-active);
+  --gb-toggle-track-bg-checked: var(--nord10);
+  /* Hover lightens, as everything on this theme does: nord9 is literally the
+     next step up the frost ramp. The press darkens nord10 by the same amount the
+     primary button's does. */
+  --gb-toggle-track-bg-checked-hover: var(--nord9);
+  --gb-toggle-track-bg-checked-active: #52719a;
   --gb-toggle-thumb-bg: var(--nord6);
-  --gb-toggle-thumb-bg-checked: var(--nord3);
+  --gb-toggle-thumb-bg-checked: var(--nord6);
 
   /* A white wash, for controls that have no surface of their own. */
   --gb-overlay-hover: #ffffff14;
