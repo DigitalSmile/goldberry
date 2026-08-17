@@ -48,20 +48,31 @@ public final class PointerEvent {
     private final int clickCount;
     private final float deltaX;
     private final float deltaY;
+    private final float pressX;
+    private final float pressY;
     private final Element target;
     private boolean consumed;
 
     public PointerEvent(Kind kind, float x, float y, Button button, int clickCount, Element target) {
-        this(kind, x, y, button, clickCount, 0, 0, target);
+        this(kind, x, y, button, clickCount, 0, 0, Float.NaN, Float.NaN, target);
+    }
+
+    /// An event delivered while a button is held, carrying where it went down.
+    ///
+    /// The router is the only caller, because it is the only thing that knows —
+    /// see [#dragX()].
+    public PointerEvent(Kind kind, float x, float y, Button button, int clickCount,
+            float pressX, float pressY, Element target) {
+        this(kind, x, y, button, clickCount, 0, 0, pressX, pressY, target);
     }
 
     /// A wheel event, which is the only kind that carries a delta.
     public static PointerEvent wheel(float x, float y, float deltaX, float deltaY, Element target) {
-        return new PointerEvent(Kind.WHEEL, x, y, null, 0, deltaX, deltaY, target);
+        return new PointerEvent(Kind.WHEEL, x, y, null, 0, deltaX, deltaY, Float.NaN, Float.NaN, target);
     }
 
     private PointerEvent(Kind kind, float x, float y, Button button, int clickCount,
-            float deltaX, float deltaY, Element target) {
+            float deltaX, float deltaY, float pressX, float pressY, Element target) {
         this.kind = Objects.requireNonNull(kind, "kind");
         this.x = x;
         this.y = y;
@@ -69,6 +80,8 @@ public final class PointerEvent {
         this.clickCount = clickCount;
         this.deltaX = deltaX;
         this.deltaY = deltaY;
+        this.pressX = pressX;
+        this.pressY = pressY;
         this.target = target;
     }
 
@@ -114,6 +127,42 @@ public final class PointerEvent {
     /// jerks. Multiply by whatever a line is worth in the thing being scrolled.
     public float deltaY() {
         return deltaY;
+    }
+
+    /// Where the button went down, or `NaN` if none is held.
+    public float pressX() {
+        return pressX;
+    }
+
+    /// The other half of [#pressX()].
+    public float pressY() {
+        return pressY;
+    }
+
+    /// How far the pointer has travelled since the button went down, positive to
+    /// the right — **`NaN` when no button is held**.
+    ///
+    /// A gesture is a sequence of events and a widget is a value rebuilt every
+    /// frame, so a widget cannot remember where a drag started. The router can:
+    /// it already takes an implicit capture on the press
+    /// ([ADR-0058](../../../../../../book/src/adr/0058-a-press-captures-the-pointer.md)),
+    /// which is the same span this is defined over, and it is the only thing in
+    /// the toolkit that sees both ends. The argument is the one already written
+    /// on Tab and on arrow keys: the router owns what the widget cannot see.
+    ///
+    /// `NaN` rather than zero for "no press", because zero is a real answer —
+    /// it is what a press with no movement gives — and a widget comparing
+    /// `Math.abs(dragX()) >= threshold` against `NaN` gets `false`, which is
+    /// "this was not a drag". The wrong reading of the wrong value is the right
+    /// behaviour, which is not true of zero.
+    public float dragX() {
+        return x - pressX;
+    }
+
+    /// How far the pointer has travelled since the button went down, positive
+    /// **down**. `NaN` when no button is held — see [#dragX()].
+    public float dragY() {
+        return y - pressY;
     }
 
     /// The node the event was aimed at — the deepest one under the pointer.

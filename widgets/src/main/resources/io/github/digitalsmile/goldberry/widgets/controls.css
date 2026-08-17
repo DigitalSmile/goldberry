@@ -41,6 +41,18 @@
   --gb-density: regular;
   --gb-control-height: 32px;
   --gb-list-row-height: 32px;
+
+  /* §3's preamble: "metrics ship as component-token defaults
+     (`--gb-button-height` etc.); app stylesheets may override component tokens,
+     never structure". Each defaults to the density's value, so a density moves
+     all of them at once and an application can still pin one control without
+     writing `button { height: … }` -- which would be overriding structure, the
+     thing that sentence rules out. Two levels rather than one because §1.3 and
+     §3 are each asking for something the other cannot give. */
+  --gb-button-height: var(--gb-control-height);
+  --gb-checkbox-height: var(--gb-control-height);
+  --gb-radio-height: var(--gb-control-height);
+  --gb-toggle-height: var(--gb-control-height);
 }
 
 /* ---------------------------------------------------------------- motion --
@@ -57,7 +69,8 @@
  */
 button,
 checkbox,
-radio {
+radio,
+toggle {
   transition: background-color var(--gb-motion-fast) ease-enter,
               color var(--gb-motion-fast) ease-enter,
               opacity var(--gb-motion-fast) ease-enter;
@@ -73,7 +86,8 @@ radio {
    in the toolkit feel disconnected from the finger that pressed it. */
 button:active,
 checkbox:active,
-radio:active {
+radio:active,
+toggle:active {
   transition: background-color 0ms;
 }
 
@@ -191,7 +205,8 @@ radio-indicator:checked radio-dot {
  */
 button:focus-visible,
 checkbox:focus-visible,
-radio:focus-visible {
+radio:focus-visible,
+toggle:focus-visible {
   outline: 2px solid var(--gb-focus);
   outline-offset: 2px;
 }
@@ -209,6 +224,7 @@ radio:focus-visible {
 button:disabled,
 checkbox:disabled,
 radio:disabled,
+toggle:disabled,
 radio-group:disabled {
   opacity: 0.45;
   cursor: not-allowed;
@@ -230,7 +246,7 @@ radio-group:disabled radio:disabled {
  * nothing else.
  */
 button {
-  height: var(--gb-control-height);
+  height: var(--gb-button-height);
   padding: 0 12px;
   gap: 6px;
   /* `body-strong` -- §3's typography column for this row. Written out rather
@@ -311,7 +327,7 @@ button.ghost:active {
  * ADR-0074 for which one gives and why.
  */
 checkbox {
-  height: var(--gb-control-height);
+  height: var(--gb-checkbox-height);
   gap: 8px;
   /* `body`, not `body-strong`: §1.4 puts the strong weight on buttons and
      headings, and a checkbox's label is running text beside a control. */
@@ -448,7 +464,7 @@ radio-group.inline {
  * the same divergence ADR-0073 spent a section closing.
  */
 radio {
-  height: var(--gb-control-height);
+  height: var(--gb-radio-height);
   gap: 8px;
   font-size: var(--gb-font-body);
   line-height: var(--gb-line-body);
@@ -515,3 +531,116 @@ radio-indicator:checked {
   border-color: var(--gb-radio-bg-checked);
   color: var(--gb-radio-dot-checked);
 }
+
+/* --------------------------------------------------------------- toggle --
+ *
+ * §3's row: track 36x20, thumb 16, travel 16. Those four numbers are one
+ * arithmetic statement -- 2 + 16 + 2 = 20 vertically, and 2 + 16 + travel 16 +
+ * 2 = 36 horizontally -- which is why the padding below is 2 rather than a
+ * number chosen to look right. Change the track width and the travel is wrong.
+ *
+ * The control is the whole row, as on a checkbox: the height is §1.3's hit
+ * target and the click target includes the label (docs/core-widgets.md §3).
+ */
+toggle {
+  height: var(--gb-toggle-height);
+  gap: 8px;
+  /* `body`, not `body-strong`: a switch's label is running text beside a
+     control, which is the line §1.4 draws and the one `checkbox` takes. */
+  font-size: var(--gb-font-body);
+  line-height: var(--gb-line-body);
+  font-weight: var(--gb-weight-regular);
+  align-items: center;
+  cursor: pointer;
+  color: var(--gb-text);
+  /* §1.5's small-control radius, for the focus ring to follow (§2.2). */
+  border-radius: 4px;
+}
+
+/* The pill. A part -- see ToggleTrack for why it is CSS-selectable and not
+   KDL-constructible, which is the third time that argument is made.
+
+   `border-radius: 10px` on a 20px-tall box is §3's `full`: the four cubics that
+   round every other corner in the toolkit round this one the whole way
+   (ADR-0064), so no native symbol and no new drawing code. */
+toggle-track {
+  width: 36px;
+  height: 20px;
+  padding: 2px;
+  border-radius: 10px;
+  align-items: center;
+  background: var(--gb-toggle-track-bg);
+}
+
+toggle-track:checked {
+  background: var(--gb-toggle-track-bg-checked);
+}
+
+/* §2.1's one surface step on hover and its darkening press, written against the
+   *control* rather than the pill -- so pressing the label does what pressing the
+   pill does, which only works because `:active` reaches the whole ancestor chain
+   (ADR-0073). */
+toggle:hover toggle-track {
+  background: var(--gb-toggle-track-bg-hover);
+}
+
+toggle:active toggle-track {
+  background: var(--gb-toggle-track-bg-active);
+}
+
+/* An on switch keeps the accent under the pointer, for the reason the
+   checkbox's pair spells out: the plain hover rule outranks
+   `toggle-track:checked`, so without this the pill went grey while the thumb --
+   drawn in a colour picked to read on the accent -- disappeared into it. */
+toggle:hover toggle-track:checked {
+  background: var(--gb-toggle-track-bg-checked-hover);
+}
+
+toggle:active toggle-track:checked {
+  background: var(--gb-toggle-track-bg-checked-active);
+}
+
+/* The thumb. §3's travel 16, applied as a transform because §3.1 asks for
+   `translate` and because a transform costs no layout -- animating a margin
+   would run Yoga on every frame of every switch (§1.7's whitelist exists for
+   exactly this).
+
+   Where it travels to is a stylesheet's decision rather than Java's: nothing in
+   ToggleThumb knows it moves. */
+toggle-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 8px;
+  background: var(--gb-toggle-thumb-bg);
+  transform: translate(0);
+}
+
+toggle-track:checked toggle-thumb {
+  transform: translate(16px);
+  background: var(--gb-toggle-thumb-bg-checked);
+}
+
+/* §3.1: "thumb `translate` base; track color base (**same clock -- they arrive
+   together**)". Both durations are `base` for that reason, and it is the clause
+   rather than the two properties that is load-bearing.
+
+   The thumb's *background* is on that clock too, which §3.1 does not list. It
+   has to be: the thumb is a different colour on the two tracks (§1.2 -- no one
+   colour clears 4.5:1 against both a dark grey pill and a light accent one), so
+   a thumb whose colour snapped would arrive before the thumb did and break the
+   one thing the row does say. Listing it is what makes §3.1 self-consistent
+   here; it costs nothing, since `background-color` is already on §1.7's
+   whitelist and already running on this duration (ADR-0075). */
+toggle-track {
+  transition: background-color var(--gb-motion-base) ease-enter;
+}
+
+toggle-thumb {
+  transition: transform var(--gb-motion-base) ease-enter,
+              background-color var(--gb-motion-base) ease-enter;
+}
+
+/* No `toggle-track:disabled` rule, deliberately: the 45% on the control above
+   already fades the pill, the thumb and the label together, because the painter
+   multiplies opacity down the subtree. A second rule would fade it twice --
+   the trap `radio-group` had to undo by hand. */

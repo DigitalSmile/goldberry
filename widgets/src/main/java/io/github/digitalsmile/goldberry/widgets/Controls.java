@@ -132,6 +132,31 @@ public final class Controls {
                 actions.resolve(node.stringProperty("change")),
                 node.booleanProperty("disabled"),
                 Widgets.Attributes.of(node)));
+        inflater.register("toggle", (node, children) -> {
+            // A **valued** action, the second in the toolkit: what the user
+            // asked for is `true` or `false` rather than "the other one",
+            // because a drag is a request for a particular state and dragging
+            // right on a switch already on asks for on (ADR-0075).
+            //
+            // It crosses as a `String` through the one valued shape the registry
+            // has, rather than as a `Consumer<Boolean>` through a second one.
+            // Erasure would make `bind(name, Consumer<String>)` and
+            // `bind(name, Consumer<Boolean>)` ambiguous for every implicitly
+            // typed lambda, so a second shape costs an awkwardly named method or
+            // a bespoke interface -- and ADR-0073 already wrote the rule for
+            // this: the value crosses as the string a document would have
+            // written, and an application that wants another type parses it in
+            // Java, where a bad value is a bug it can see. `slider` and `knob`
+            // arrive at the same door.
+            var change = actions.resolveValued(node.stringProperty("change"));
+            return new Toggle(
+                    node.argument().map(v -> v.asString()).orElse(""),
+                    node.booleanProperty("on"),
+                    bindings.resolve(node.stringProperty("bind")),
+                    change == null ? null : value -> change.accept(String.valueOf(value)),
+                    node.booleanProperty("disabled"),
+                    Widgets.Attributes.of(node));
+        });
         inflater.register("radio-group", (node, children) -> new RadioGroup(
                 node.stringProperty("value"),
                 children,
@@ -187,14 +212,15 @@ public final class Controls {
     /// The CSS type names this module adds, which is what the parity test checks
     /// the other two forms against.
     ///
-    /// **Controls only.** The four parts — `check-indicator`, `check-mark`,
-    /// `radio-indicator` and `radio-dot` — are styled by the same stylesheet and
-    /// are not here, because they are parts rather than widgets: they are
-    /// CSS-selectable and deliberately not KDL-constructible, and asking the
-    /// parity test to inflate one would be asking for a node with no meaning
-    /// outside its parent (see [CheckIndicator], [CheckMark], [RadioIndicator],
-    /// [RadioDot]).
+    /// **Controls only.** The six parts — `check-indicator`, `check-mark`,
+    /// `radio-indicator`, `radio-dot`, `toggle-track` and `toggle-thumb` — are
+    /// styled by the same stylesheet and are not here, because they are parts
+    /// rather than widgets: they are CSS-selectable and deliberately not
+    /// KDL-constructible, and asking the parity test to inflate one would be
+    /// asking for a node with no meaning outside its parent (see
+    /// [CheckIndicator], [CheckMark], [RadioIndicator], [RadioDot],
+    /// [ToggleTrack], [ToggleThumb]).
     public static List<String> controlTypes() {
-        return List.of("button", "checkbox", "radio-group", "radio");
+        return List.of("button", "checkbox", "toggle", "radio-group", "radio");
     }
 }

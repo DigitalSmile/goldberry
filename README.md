@@ -29,11 +29,12 @@ API. No JNI, no bundled web engine, no platform widget wrapping.
 > part in that layout, Lucide's icons draw, stylesheets and KDL markup hot-reload,
 > pointer, wheel and keyboard input route to a widget tree, and markup wires both
 > halves of §9 — an `action` to call and a value to `bind` to. The catalog is
-> five primitives and four controls — `button`, a tri-state `checkbox`, and
-> `radio` / `radio-group`, which is one Tab stop with arrow keys inside it — all
-> drawn to the design system's metrics with rounded corners, a real focus ring,
-> the §1.4 type scale in two real weights, CSS transitions on a frame clock and
-> golden images — so nine controls are still to come.
+> five primitives and five controls — `button`, a tri-state `checkbox`, a
+> `toggle` you can drag, and `radio` / `radio-group`, which is one Tab stop with
+> arrow keys inside it — all drawn to the design system's metrics with rounded
+> corners, a real focus ring, the §1.4 type scale in two real weights, a
+> `regular`/`compact` density that no widget mentions, CSS transitions on a frame
+> clock and golden images — so eight controls are still to come.
 > See [Status](book/src/status.md) for what works and what is still open.
 
 ## Quick start
@@ -417,6 +418,63 @@ selector is the whole of
 ```css
 check-indicator:checked { background: var(--gb-accent); color: var(--gb-checkbox-mark-checked) }
 ```
+
+### `toggle`
+
+A switch, and the first widget with a **gesture**:
+
+```kdl
+toggle bind="prefs.frost" change="setFrost" "Frosted sidebar"
+```
+
+Everything before it responded to a click, a key or a focus change — all single
+events. A drag is a sequence, and a widget is a value rebuilt every frame with
+nowhere to keep one: the `Toggle` that sees the release is a different object
+from the one that saw the press. So **the router reports where the gesture
+started**, which is the argument already written on Tab and on arrow keys — the
+router owns what the widget cannot see — and it is the component whose lifetime
+already matches, since the interval a drag is defined over is exactly the
+implicit capture a press already takes.
+
+```java
+public void onPointer(PointerEvent event) {
+    var drag = event.dragX();
+    ask(Math.abs(drag) >= 8 ? drag > 0 : !resolved());
+}
+```
+
+`dragX()` is **`NaN` and not zero** when no button is held. Zero is a real
+answer — it is what a press that did not move gives — so a widget reading zero
+could not tell "did not move" from "no gesture". With `NaN`,
+`Math.abs(drag) >= 8` is `false`, so an event with no gesture reads as *not a
+drag* through the arithmetic rather than through a guard: forgetting to check
+gives the safe answer.
+
+Eight is half of the design system's travel 16 — the point at which the thumb has
+passed the middle. Past it the value asked for is **the direction dragged**, so
+dragging right on a switch that is already on asks for *on*, not for off; a drag
+is a request for a particular state. Under it, the gesture was a click and the
+value flips.
+
+It is also the one control that acts on a **release** rather than a click. Every
+other one treats a press dragged away and let go as a cancellation; for a switch,
+dragging *is* the interaction, and a drag that ends far away is still a drag in
+that direction.
+
+The pill and the disc are the fifth and sixth parts. The disc is a node of its
+own for the reason the check mark is: a `transform` applies down its whole
+subtree, so a thumb drawn onto the track would slide the track with it — and
+where it travels to is the stylesheet's decision, not Java's.
+
+```css
+toggle-track { width: 36px; height: 20px; padding: 2px; border-radius: 10px }
+toggle-thumb { width: 16px; height: 16px; transform: translate(0) }
+toggle-track:checked toggle-thumb { transform: translate(16px) }
+```
+
+Those numbers are one arithmetic statement — `2 + 16 + 16 + 2 = 36` — so the
+padding is 2 because that is what makes the travel 16, and the test asserts the
+leftover rather than the padding.
 
 ### `radio` and `radio-group`
 

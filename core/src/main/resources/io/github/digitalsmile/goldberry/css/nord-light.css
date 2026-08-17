@@ -117,6 +117,34 @@
   --gb-radio-dot: transparent;
   --gb-radio-dot-checked: var(--nord6);
 
+  /* The switch. The button's ramp off, the accent's on -- see nord-dark for why
+     the thumb is two tokens and not one.
+
+     The two themes reach opposite answers here, which is the whole reason these
+     are tokens: on dark the thumb goes light-on-grey to dark-on-accent, and on
+     light it goes dark-on-grey to light-on-accent, because nord10 is a dark
+     enough blue that a pale thumb is the legible one. That is the same mirror
+     the checkbox's mark already makes (nord0 on dark, nord6 on light).
+
+     It also means a light theme's off switch has a *dark* thumb, which is not
+     what iOS looks like. §1.2 is what decides it: a white thumb on nord5 is
+     1.4:1 and cannot be seen, and looking conventional is not one of the
+     principles.
+
+     The checked thumb is `#ffffff` rather than nord6 for the reason nord-dark's
+     block gives from the other end: nord6 is this theme's `--gb-bg`, and a thumb
+     the colour of the window reads as a hole rather than as a disc. White is a
+     step past the window in the direction the palette does not otherwise go,
+     which is exactly what is wanted 2px from it. */
+  --gb-toggle-track-bg: var(--nord5);
+  --gb-toggle-track-bg-hover: var(--nord4);
+  --gb-toggle-track-bg-active: #ccd3df;
+  --gb-toggle-track-bg-checked: var(--gb-accent);
+  --gb-toggle-track-bg-checked-hover: var(--gb-button-primary-bg-hover);
+  --gb-toggle-track-bg-checked-active: var(--gb-button-primary-bg-active);
+  --gb-toggle-thumb-bg: var(--nord3);
+  --gb-toggle-thumb-bg-checked: #ffffff;
+
   /* A black wash, because a light theme's surfaces are already bright. */
   --gb-overlay-hover: #00000012;
   --gb-overlay-active: #00000024;

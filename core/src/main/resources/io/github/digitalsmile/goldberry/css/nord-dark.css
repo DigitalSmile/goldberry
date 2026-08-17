@@ -117,6 +117,34 @@
   --gb-radio-dot: transparent;
   --gb-radio-dot-checked: var(--nord0);
 
+  /* The switch (§3: track 36x20, thumb 16, travel 16). The pill takes the
+     button's ramp for the reason ADR-0073 gives -- an unchecked control whose
+     rest colour is `--gb-surface` is invisible on the panel it normally sits on
+     -- and the on state takes the accent ramp `button.primary` and the checkbox
+     already share.
+
+     The thumb is two tokens rather than one, and that is forced by §1.2 rather
+     than chosen. The off pill is nord2 and the on pill is nord8, a dark grey and
+     a light frost blue: no single thumb colour clears contrast against both, so
+     one that tried would be legible in one state and lost in the other.
+
+     A thumb has **two** constraints where the checkbox's mark has one. It must
+     read against its own pill, and it must not be the window's colour -- only
+     2px of pill separates it from whatever is behind the control, where a mark
+     is surrounded by its fill on every side. The checked thumb is therefore
+     nord3 and *not* nord0: nord0 is what `--gb-checkbox-mark-checked` takes and
+     it is also `--gb-bg`, so a nord0 thumb read as a hole punched through the
+     switch rather than as a disc sitting in it. Caught by looking at the golden
+     image, which is the only thing that could have (ADR-0075). */
+  --gb-toggle-track-bg: var(--nord2);
+  --gb-toggle-track-bg-hover: var(--nord3);
+  --gb-toggle-track-bg-active: var(--nord1);
+  --gb-toggle-track-bg-checked: var(--gb-accent);
+  --gb-toggle-track-bg-checked-hover: var(--gb-button-primary-bg-hover);
+  --gb-toggle-track-bg-checked-active: var(--gb-button-primary-bg-active);
+  --gb-toggle-thumb-bg: var(--nord6);
+  --gb-toggle-thumb-bg-checked: var(--nord3);
+
   /* A white wash, for controls that have no surface of their own. */
   --gb-overlay-hover: #ffffff14;
   --gb-overlay-active: #ffffff29;

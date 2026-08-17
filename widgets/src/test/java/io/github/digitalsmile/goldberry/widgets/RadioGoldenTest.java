@@ -273,6 +273,11 @@ class RadioGoldenTest {
         var content = new Widgets.Column(
                 List.of(
                         new Checkbox("A checkbox at rest", Checkbox.Value.UNCHECKED),
+                        // The toggle joins this scene rather than getting one of
+                        // its own: the axis is "on --gb-surface", and a control
+                        // added to the catalog without being added here is one
+                        // more control CI has never drawn where it is used.
+                        new Toggle("A switch at rest", false),
                         new RadioGroup("dark",
                                 List.of(new Radio("light", "Unselected"),
                                         new Radio("dark", "Selected")),
@@ -293,7 +298,7 @@ class RadioGoldenTest {
                                     """)),
                     TestFont.get());
 
-            GoldenImage.assertMatches(name, 300, 132, 1.0f,
+            GoldenImage.assertMatches(name, 300, 172, 1.0f,
                     frame -> BoxPainter.paint(frame, renderer.render(tree)));
         }
     }

@@ -24,6 +24,7 @@ import io.github.digitalsmile.goldberry.widgets.Radio;
 import io.github.digitalsmile.goldberry.widgets.RadioGroup;
 import io.github.digitalsmile.goldberry.widgets.Controls;
 import io.github.digitalsmile.goldberry.widgets.Density;
+import io.github.digitalsmile.goldberry.widgets.Toggle;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -295,8 +296,26 @@ public final class Showcase {
                             new Checkbox("Partly applied", Checkbox.Value.UNCHECKED,
                                     partly, this::togglePartly, false, id("partly")),
                             new Checkbox("Not available here", Checkbox.Value.CHECKED,
-                                    null, null, true, id("unavailable"))),
+                                    null, null, true, id("unavailable")),
+                            // The switch, bound to the same property the first
+                            // checkbox reads. Two controls on one value is the
+                            // point: drag the switch and the checkbox's tick
+                            // moves, because neither owns the state and both are
+                            // showing what `showProse` says (ADR-0063).
+                            new Toggle("Show the prose (as a switch)", false,
+                                    showProse, this::setProse, false, id("prose-switch"))),
                     id("options"));
+        }
+
+        /// What the switch asks for, and the reason it is not `toggleProse`.
+        ///
+        /// A drag is a request for a **particular** state rather than for the
+        /// other one — dragging right on a switch already on asks for on — so the
+        /// value comes up with the event and this sets exactly it (ADR-0075).
+        /// Flipping here instead would turn the prose off when the user dragged
+        /// towards on.
+        void setProse(boolean value) {
+            changed(() -> showProse.set(value));
         }
 
         /// `setState` mutates immediately and defers the rebuild, so these read

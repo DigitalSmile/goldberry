@@ -105,7 +105,11 @@ class RadioTest {
                     "a part is CSS-selectable and not KDL-constructible (ADR-0065)");
             assertFalse(registered.contains("radio-dot"), "and so is the dot inside it");
             assertFalse(registered.contains("check-mark"), "and the checkbox's mark");
-            assertEquals(List.of("button", "checkbox", "radio-group", "radio"),
+            assertFalse(registered.contains("toggle-track"), "and the switch's pill");
+            assertFalse(registered.contains("toggle-thumb"), "and the disc inside it");
+            // Pinned rather than counted: a control reaching the catalog is a
+            // deliberate act, and this failing is what makes it one.
+            assertEquals(List.of("button", "checkbox", "toggle", "radio-group", "radio"),
                     Controls.controlTypes());
         }
 

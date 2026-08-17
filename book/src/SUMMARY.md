@@ -80,6 +80,7 @@
 - [ADR-0072 A partial repaint needs a promise](adr/0072-a-partial-repaint-needs-a-promise.md)
 - [ADR-0073 A composite is one Tab stop](adr/0073-a-composite-is-one-tab-stop.md)
 - [ADR-0074 Density is a token swap, and regular is no stylesheet](adr/0074-density-is-a-token-swap-and-regular-is-no-stylesheet.md)
+- [ADR-0075 A gesture's origin is the router's](adr/0075-a-gestures-origin-is-the-routers.md)
 
 ---
 

@@ -49,6 +49,18 @@ public final class PointerRouter {
     /// when its gesture is over.
     private boolean capturedImplicitly;
 
+    /// Where the button went down, or `NaN` between presses.
+    ///
+    /// A drag gesture needs its origin and a widget cannot hold one: widgets are
+    /// values rebuilt every frame, so there is nowhere on a `toggle` for "the
+    /// press started here" to live. The router already spans exactly that
+    /// interval — it takes an implicit capture on the press and drops it on the
+    /// release ([ADR-0058]) — so it is both the only thing that can know and the
+    /// thing whose lifetime already matches. Read through
+    /// [PointerEvent#dragX()].
+    private float pressOriginX = Float.NaN;
+    private float pressOriginY = Float.NaN;
+
     /// Whether anything changed that a stylesheet could react to.
     private boolean stylesDirty;
 
@@ -107,7 +119,8 @@ public final class PointerRouter {
         updateCursor(x, y);
         var target = captured != null ? captured : under;
         if (target != null) {
-            dispatch(new PointerEvent(PointerEvent.Kind.MOVED, x, y, null, 0, target));
+            dispatch(new PointerEvent(PointerEvent.Kind.MOVED, x, y, null, 0,
+                    pressOriginX, pressOriginY, target));
         }
     }
 
@@ -133,6 +146,11 @@ public final class PointerRouter {
         }
 
         setPressed(target);
+        // Recorded before the dispatch, so the PRESSED event itself already
+        // reports a zero drag rather than NaN -- a handler that reads dragX on
+        // every pointer event should not have to special-case the first one.
+        pressOriginX = x;
+        pressOriginY = y;
         if (captured == null) {
             // Implicit capture: from here until the button comes up, this
             // element gets the pointer wherever it goes (§7.1).
@@ -143,7 +161,8 @@ public final class PointerRouter {
         // focusable ancestor, not only on a directly focusable target, so
         // clicking the label inside a button focuses the button.
         focus(nearestFocusable(target), false);
-        dispatch(new PointerEvent(PointerEvent.Kind.PRESSED, x, y, button, clickCount, target));
+        dispatch(new PointerEvent(PointerEvent.Kind.PRESSED, x, y, button, clickCount,
+                pressOriginX, pressOriginY, target));
     }
 
     /// A button came up.
@@ -164,10 +183,19 @@ public final class PointerRouter {
             releasePointer();
         }
         updateCursor(x, y);
+        // Read into locals and cleared at the end: the release and the click are
+        // the last two events of the gesture and both want its origin, and a
+        // handler that fires another press from inside one -- which
+        // `Actions`-driven code does -- must not have this overwritten under it.
+        var originX = pressOriginX;
+        var originY = pressOriginY;
+        pressOriginX = Float.NaN;
+        pressOriginY = Float.NaN;
         if (target == null) {
             return;
         }
-        dispatch(new PointerEvent(PointerEvent.Kind.RELEASED, x, y, button, clickCount, target));
+        dispatch(new PointerEvent(PointerEvent.Kind.RELEASED, x, y, button, clickCount,
+                originX, originY, target));
 
         // A click is a press and a release on the same node, which is not the
         // same thing as a release: dragging off a button and letting go is how a
@@ -180,7 +208,8 @@ public final class PointerRouter {
         // button.
         if (button == PointerEvent.Button.PRIMARY && wasPressed != null
                 && chain(under).contains(wasPressed)) {
-            dispatch(new PointerEvent(PointerEvent.Kind.CLICKED, x, y, button, clickCount, wasPressed));
+            dispatch(new PointerEvent(PointerEvent.Kind.CLICKED, x, y, button, clickCount,
+                    originX, originY, wasPressed));
         }
     }
 
