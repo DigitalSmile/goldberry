@@ -98,7 +98,26 @@ public final class Showcase {
                          flex-direction: column; background: var(--gb-surface-2) }
             #prose     { color: var(--gb-text) }
             #actions   { gap: 8px; align-items: center }
-            #options   { flex-direction: column; gap: 4px }
+            /* §1.3's 8 for related controls. It was 4, which is tighter than the
+               design system's own scale and which the progress bar was the first
+               thing to show: a 4px line sitting 4px from a control above it and a
+               spinner below it reads as one crowded lump rather than as three
+               things. */
+            #options   { flex-direction: column; gap: 8px }
+            /* The bar and the spinner are one group and the options above them
+               are another, so §1.3's 16 separates them -- as a `padding-top` on
+               top of the column's 8, because a gap is one number for every child
+               and this is a boundary rather than a spacing. */
+            #task      { flex-direction: column; gap: 8px; padding-top: 8px }
+            /* The spinner and its label are a glyph and its text, so they take the
+               same 8px gap and the same centred alignment a `checkbox` gives its
+               own -- and without `align-items` the label would stretch to the
+               row's height and sit off the ring's centre. */
+            #busy      { gap: 8px; align-items: center }
+            /* `body`, not `caption`: this is a status line beside a control, which
+               is the line §1.4 draws -- `caption` is for secondary text under one.
+               Muted, because what it says is a state and not content. */
+            #busy-label { color: var(--gb-text-muted) }
             .caption   { color: var(--gb-text-muted) }
             """;
 
@@ -335,18 +354,31 @@ public final class Showcase {
                             // gain caption used to demonstrate: drag the slider
                             // and this follows, because neither owns the value
                             // (ADR-0063).
-                            new Progress(100, gain),
-                            // The eighth control, and the reason this window no
-                            // longer goes idle: a spinner asks for another frame
-                            // for as long as it is mounted, which is what
-                            // `renderer.isAnimating()` means and is exactly the
-                            // cost of having something on screen that moves
-                            // (ADR-0081).
-                            new Widgets.Row(
+                            // A group of its own, because it reports rather than
+                            // asks: the bar follows the same property the slider
+                            // sets -- two widgets on one value, which is what the
+                            // gain caption used to demonstrate (ADR-0063) -- and
+                            // the spinner is the reason this window no longer
+                            // goes idle. A mounted spinner asks for another frame
+                            // for as long as it is there, which is what
+                            // `renderer.isAnimating()` means and is exactly what
+                            // something moving on screen costs (ADR-0081).
+                            new Widgets.Column(
                                     List.of(
-                                            new Spinner(),
-                                            new Widgets.Text("Working", styled("busy", "caption"))),
-                                    id("busy"))),
+                                            new Widgets.Row(
+                                                    List.of(
+                                                            new Spinner(),
+                                                            new Widgets.Text("Working",
+                                                                    styled("busy-label", "body"))),
+                                                    id("busy")),
+                                            // Under the line that names it, which
+                                            // is the arrangement that reads: a bar
+                                            // stacked *above* a spinner is two
+                                            // indicators of one thing competing,
+                                            // and 4px of line under 16px of ring
+                                            // has nowhere to breathe.
+                                            new Progress(100, gain)),
+                                    id("task"))),
                     id("options"));
         }
 
