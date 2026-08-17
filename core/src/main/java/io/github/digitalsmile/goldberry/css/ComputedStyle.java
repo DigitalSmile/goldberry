@@ -57,6 +57,7 @@ public record ComputedStyle(
         Insets padding,
         StyleLength gap,
         double flexGrow,
+        double flexShrink,
         // --- paint: resolved into pixels ---
         int background,
         int color,
@@ -90,6 +91,9 @@ public record ComputedStyle(
             Insets.ZERO,
             StyleLength.points(0),
             0,
+            // CSS's default and Yoga's under `useWebDefaults`: a width is a
+            // preferred width, and a cramped row may take it back.
+            1,
             CssColor.TRANSPARENT,
             0xFF000000,
             1.0,
@@ -224,6 +228,14 @@ public record ComputedStyle(
             case "flex-grow" -> number(value)
                     .filter(v -> v >= 0)
                     .map(this::flexGrow)
+                    .orElseGet(() -> dropped(property, value));
+
+            // §8 lists `flex-grow/shrink/basis` and only grow was implemented, so
+            // every fixed-size part in the catalog was negotiable and a narrow
+            // window squashed it (ADR-0076).
+            case "flex-shrink" -> number(value)
+                    .filter(v -> v >= 0)
+                    .map(this::flexShrink)
                     .orElseGet(() -> dropped(property, value));
 
             case "background", "background-color" -> colour(value)
@@ -373,82 +385,90 @@ public record ComputedStyle(
 
     public ComputedStyle direction(FlexDirection v) {
         return new ComputedStyle(v, justifyContent, alignItems, width, height, padding, gap,
-                flexGrow, background, color, opacity, decoration, typography, transitions, transform, cursor);
+                flexGrow, flexShrink, background, color, opacity, decoration, typography, transitions, transform, cursor);
     }
 
     public ComputedStyle justifyContent(Justify v) {
         return new ComputedStyle(direction, v, alignItems, width, height, padding, gap,
-                flexGrow, background, color, opacity, decoration, typography, transitions, transform, cursor);
+                flexGrow, flexShrink, background, color, opacity, decoration, typography, transitions, transform, cursor);
     }
 
     public ComputedStyle alignItems(Align v) {
         return new ComputedStyle(direction, justifyContent, v, width, height, padding, gap,
-                flexGrow, background, color, opacity, decoration, typography, transitions, transform, cursor);
+                flexGrow, flexShrink, background, color, opacity, decoration, typography, transitions, transform, cursor);
     }
 
     public ComputedStyle width(StyleLength v) {
         return new ComputedStyle(direction, justifyContent, alignItems, v, height, padding, gap,
-                flexGrow, background, color, opacity, decoration, typography, transitions, transform, cursor);
+                flexGrow, flexShrink, background, color, opacity, decoration, typography, transitions, transform, cursor);
     }
 
     public ComputedStyle height(StyleLength v) {
         return new ComputedStyle(direction, justifyContent, alignItems, width, v, padding, gap,
-                flexGrow, background, color, opacity, decoration, typography, transitions, transform, cursor);
+                flexGrow, flexShrink, background, color, opacity, decoration, typography, transitions, transform, cursor);
     }
 
     public ComputedStyle padding(Insets v) {
         return new ComputedStyle(direction, justifyContent, alignItems, width, height, v, gap,
-                flexGrow, background, color, opacity, decoration, typography, transitions, transform, cursor);
+                flexGrow, flexShrink, background, color, opacity, decoration, typography, transitions, transform, cursor);
     }
 
     public ComputedStyle gap(StyleLength v) {
         return new ComputedStyle(direction, justifyContent, alignItems, width, height, padding, v,
-                flexGrow, background, color, opacity, decoration, typography, transitions, transform, cursor);
+                flexGrow, flexShrink, background, color, opacity, decoration, typography, transitions, transform, cursor);
     }
 
     public ComputedStyle flexGrow(double v) {
         return new ComputedStyle(direction, justifyContent, alignItems, width, height, padding, gap,
-                v, background, color, opacity, decoration, typography, transitions, transform, cursor);
+                v, flexShrink, background, color, opacity, decoration, typography, transitions,
+                transform, cursor);
+    }
+
+    public ComputedStyle flexShrink(double v) {
+        return new ComputedStyle(direction, justifyContent, alignItems, width, height, padding, gap,
+                flexGrow, v, background, color, opacity, decoration, typography, transitions,
+                transform, cursor);
     }
 
     public ComputedStyle background(int v) {
         return new ComputedStyle(direction, justifyContent, alignItems, width, height, padding, gap,
-                flexGrow, v, color, opacity, decoration, typography, transitions, transform, cursor);
+                flexGrow, flexShrink, v, color, opacity, decoration, typography, transitions,
+                transform, cursor);
     }
 
     public ComputedStyle color(int v) {
         return new ComputedStyle(direction, justifyContent, alignItems, width, height, padding, gap,
-                flexGrow, background, v, opacity, decoration, typography, transitions, transform, cursor);
+                flexGrow, flexShrink, background, v, opacity, decoration, typography, transitions, transform, cursor);
     }
 
     public ComputedStyle opacity(double v) {
         return new ComputedStyle(direction, justifyContent, alignItems, width, height, padding, gap,
-                flexGrow, background, color, v, decoration, typography, transitions, transform, cursor);
+                flexGrow, flexShrink, background, color, v, decoration, typography, transitions, transform, cursor);
     }
 
     public ComputedStyle decoration(Decoration v) {
         return new ComputedStyle(direction, justifyContent, alignItems, width, height, padding, gap,
-                flexGrow, background, color, opacity, v, typography, transitions, transform, cursor);
+                flexGrow, flexShrink, background, color, opacity, v, typography, transitions, transform, cursor);
     }
 
     public ComputedStyle typography(Typography v) {
         return new ComputedStyle(direction, justifyContent, alignItems, width, height, padding, gap,
-                flexGrow, background, color, opacity, decoration, v, transitions, transform, cursor);
+                flexGrow, flexShrink, background, color, opacity, decoration, v, transitions, transform, cursor);
     }
 
     public ComputedStyle transitions(Transitions v) {
         return new ComputedStyle(direction, justifyContent, alignItems, width, height, padding, gap,
-                flexGrow, background, color, opacity, decoration, typography, v, transform, cursor);
+                flexGrow, flexShrink, background, color, opacity, decoration, typography, v, transform, cursor);
     }
 
     public ComputedStyle transform(Transform v) {
         return new ComputedStyle(direction, justifyContent, alignItems, width, height, padding, gap,
-                flexGrow, background, color, opacity, decoration, typography, transitions, v, cursor);
+                flexGrow, flexShrink, background, color, opacity, decoration, typography, transitions, v, cursor);
     }
 
     public ComputedStyle cursor(Cursor v) {
         return new ComputedStyle(direction, justifyContent, alignItems, width, height, padding, gap,
-                flexGrow, background, color, opacity, decoration, typography, transitions, transform, v);
+                flexGrow, flexShrink, background, color, opacity, decoration, typography, transitions, transform, v);
     }
 
     // --- value parsing -----------------------------------------------------

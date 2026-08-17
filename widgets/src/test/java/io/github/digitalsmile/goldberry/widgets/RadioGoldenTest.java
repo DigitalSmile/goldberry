@@ -62,6 +62,10 @@ class RadioGoldenTest {
         }
     }
 
+    /// The scene sizes are **content plus padding and nothing spare**, and they
+    /// have to be: a control no longer shrinks to fit (ADR-0076), so a frame 4px
+    /// too short now clips the last option instead of quietly squashing all
+    /// three. Three options are 3x32 + 2x8 of gap + 2x12 of padding = 136.
     private void paint(
             String name, Theme theme, int width, int height, Widget group, PseudoState... states) {
 
@@ -97,7 +101,7 @@ class RadioGoldenTest {
         // The image that says the glyph is round and the dot is solid. A stroked
         // dot would read as a ring at 16px and as an obvious mistake at 48, which
         // is why the painter fills this mark rather than stroking it.
-        paint("radio-group-dark", Theme.NORD_DARK, 300, 132, group("dark"));
+        paint("radio-group-dark", Theme.NORD_DARK, 300, 140, group("dark"));
     }
 
     @Test
@@ -106,7 +110,7 @@ class RadioGoldenTest {
         // The dot is nord0 on dark and nord6 on light, mirroring the checkbox's
         // tick for the same 4.5:1 reason (§1.2) -- and through its own tokens, so
         // a theme can distinguish a radio from a checkbox without redefining both.
-        paint("radio-group-light", Theme.NORD_LIGHT, 300, 132, group("dark"));
+        paint("radio-group-light", Theme.NORD_LIGHT, 300, 140, group("dark"));
     }
 
     @Test
@@ -114,7 +118,7 @@ class RadioGoldenTest {
     void nothingSelected() {
         // A model that has not loaded, or a value from a newer document. Three
         // empty circles rather than a guess at the first one.
-        paint("radio-group-empty", Theme.NORD_DARK, 300, 132, group(null));
+        paint("radio-group-empty", Theme.NORD_DARK, 300, 140, group(null));
     }
 
     @Test
@@ -123,7 +127,7 @@ class RadioGoldenTest {
         // The ring is around the *option*, not the group: focus lands on the
         // thing the user is about to pick, so a group of six does not draw a
         // rectangle around all of them.
-        paint("radio-group-interaction", Theme.NORD_DARK, 300, 132,
+        paint("radio-group-interaction", Theme.NORD_DARK, 300, 140,
                 new RadioGroup("dark",
                         List.of(
                                 new Radio("light", "Hover"),
@@ -197,7 +201,7 @@ class RadioGoldenTest {
         assertNotEquals(Transform.NONE, dot.transform(), "and the dot does");
         assertNotEquals(settledDotTransform(), dot.transform(), "caught before it arrived");
 
-        GoldenImage.assertMatches("radio-group-scaling", 300, 132, 1.0f,
+        GoldenImage.assertMatches("radio-group-scaling", 300, 140, 1.0f,
                 frame -> BoxPainter.paint(frame, midway));
     }
 
@@ -298,7 +302,7 @@ class RadioGoldenTest {
                                     """)),
                     TestFont.get());
 
-            GoldenImage.assertMatches(name, 300, 172, 1.0f,
+            GoldenImage.assertMatches(name, 300, 180, 1.0f,
                     frame -> BoxPainter.paint(frame, renderer.render(tree)));
         }
     }

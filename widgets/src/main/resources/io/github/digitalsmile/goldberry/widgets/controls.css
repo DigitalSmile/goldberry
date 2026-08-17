@@ -55,6 +55,43 @@
   --gb-toggle-height: var(--gb-control-height);
 }
 
+/* ------------------------------------------------------------- no shrink --
+ *
+ * Every number in §3 is a size, not an opening offer -- and until this rule
+ * existed every one of them was negotiable, because Yoga runs with CSS's
+ * defaults and CSS's default is `flex-shrink: 1`. A `width: 36px` was a
+ * *preferred* width that a cramped row was free to take back.
+ *
+ * What that looked like: at 40px of room a switch's pill went 36 -> 16 while
+ * the 16px thumb inside it did not, so the disc hung over the end; a checkbox's
+ * glyph went 16 -> 10; a radio's went with it and drew an ellipse, since
+ * `border-radius` follows the box; and in a short column a control's 32px hit
+ * target went to 13. Reported as "the knob is out of its container on resize",
+ * which is the one symptom of four that is visible at a glance (ADR-0076).
+ *
+ * Written once over a type list rather than beside each `width`, because the
+ * rule is "a control's metrics are fixed" and a copy is how that stops being
+ * true -- the same argument as the focus ring below. A control added to the
+ * catalog joins this list.
+ *
+ * The label is deliberately absent and still shrinks: text is the one thing in
+ * a control that *should* give, and a `text` that refused would push the glyph
+ * out of the window instead of ellipsing. §3 sizes the glyph and says nothing
+ * about the label.
+ */
+button,
+checkbox,
+radio,
+toggle,
+check-indicator,
+check-mark,
+radio-indicator,
+radio-dot,
+toggle-track,
+toggle-thumb {
+  flex-shrink: 0;
+}
+
 /* ---------------------------------------------------------------- motion --
  *
  * §3.1's table, for the controls that exist. Every duration is a token and every

@@ -155,6 +155,9 @@ public final class RenderObject implements AutoCloseable {
         if (previous == null || previous.flexGrow() != box.flexGrow()) {
             node.setFlexGrow((float) box.flexGrow());
         }
+        if (previous == null || previous.flexShrink() != box.flexShrink()) {
+            node.setFlexShrink((float) box.flexShrink());
+        }
 
         applyMeasure(box);
     }

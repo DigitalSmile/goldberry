@@ -476,6 +476,24 @@ Those numbers are one arithmetic statement — `2 + 16 + 16 + 2 = 36` — so the
 padding is 2 because that is what makes the travel 16, and the test asserts the
 leftover rather than the padding.
 
+They are also **fixed**, which took a second rule to be true. Yoga runs with
+CSS's defaults, so every node has `flex-shrink: 1` and a `width: 36px` is a
+*preferred* width a cramped row may take back. Narrow the window far enough and
+the pill went 36 → 16 while the 16px thumb inside it did not, a checkbox's glyph
+went 16 → 10, a radio's drew an ellipse, and a control's 32px hit target became
+13. Every control and every part now declares `flex-shrink: 0`, written once over
+a type list rather than beside each `width`
+([ADR-0076](book/src/adr/0076-a-glyph-does-not-negotiate.md)):
+
+```css
+button, checkbox, radio, toggle,
+check-indicator, radio-indicator, toggle-track, toggle-thumb { flex-shrink: 0 }
+```
+
+The **label is deliberately absent** and still shrinks. Text is the one thing in
+a control that should give: a label that refused would push the glyph out of the
+window rather than ellipsing.
+
 ### `radio` and `radio-group`
 
 The first **composite** — a widget that is a set rather than a control:
