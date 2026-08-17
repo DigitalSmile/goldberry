@@ -64,6 +64,12 @@ public record ComputedStyle(
         Decoration decoration,
         Typography typography,
         Transitions transitions,
+        // Not finished when the cascade produces it, unlike everything above.
+        // `transform: translate(50%)` and the `transform-origin` default of
+        // `50% 50%` are proportions of the box, and the box has no size until
+        // Yoga has run -- so what is carried is the functions, and the painter
+        // resolves them (ADR-0068).
+        Transform transform,
         // --- neither: read by input, not by either engine ---
         Cursor cursor) {
 
@@ -90,6 +96,7 @@ public record ComputedStyle(
             Decoration.NONE,
             Typography.INITIAL,
             Transitions.NONE,
+            Transform.NONE,
             Cursor.DEFAULT);
 
     public ComputedStyle {
@@ -103,6 +110,7 @@ public record ComputedStyle(
         Objects.requireNonNull(decoration, "decoration");
         Objects.requireNonNull(typography, "typography");
         Objects.requireNonNull(transitions, "transitions");
+        Objects.requireNonNull(transform, "transform");
         Objects.requireNonNull(cursor, "cursor");
     }
 
@@ -311,6 +319,26 @@ public record ComputedStyle(
                     .map(v -> transitions(v))
                     .orElseGet(() -> dropped(property, value));
 
+            // Unlike every other property here, these two are resolved but not
+            // finished: what lands is the function list and the origin, and the
+            // matrix comes out of them once Yoga has given the box a size.
+            //
+            // `transform-origin` is applied to whatever transform is already
+            // there and vice versa, so the two declarations commute -- which
+            // matters because CSS puts no ordering on them and an author writing
+            // the origin first should not lose it.
+            case "transform" -> {
+                var parsed = Transform.parse(value, transform.origin());
+                yield parsed == null ? dropped(property, value) : transform(parsed);
+            }
+
+            case "transform-origin" -> {
+                var parsed = Transform.parseOrigin(value);
+                yield parsed == null
+                        ? dropped(property, value)
+                        : transform(transform.origin(parsed));
+            }
+
             // Resolved here and read by neither engine: the cursor is carried
             // through the cascade to the box tree, where hit testing picks it up
             // (§7.3). The enum's names are CSS's, so `ew-resize` maps onto
@@ -345,77 +373,82 @@ public record ComputedStyle(
 
     public ComputedStyle direction(FlexDirection v) {
         return new ComputedStyle(v, justifyContent, alignItems, width, height, padding, gap,
-                flexGrow, background, color, opacity, decoration, typography, transitions, cursor);
+                flexGrow, background, color, opacity, decoration, typography, transitions, transform, cursor);
     }
 
     public ComputedStyle justifyContent(Justify v) {
         return new ComputedStyle(direction, v, alignItems, width, height, padding, gap,
-                flexGrow, background, color, opacity, decoration, typography, transitions, cursor);
+                flexGrow, background, color, opacity, decoration, typography, transitions, transform, cursor);
     }
 
     public ComputedStyle alignItems(Align v) {
         return new ComputedStyle(direction, justifyContent, v, width, height, padding, gap,
-                flexGrow, background, color, opacity, decoration, typography, transitions, cursor);
+                flexGrow, background, color, opacity, decoration, typography, transitions, transform, cursor);
     }
 
     public ComputedStyle width(StyleLength v) {
         return new ComputedStyle(direction, justifyContent, alignItems, v, height, padding, gap,
-                flexGrow, background, color, opacity, decoration, typography, transitions, cursor);
+                flexGrow, background, color, opacity, decoration, typography, transitions, transform, cursor);
     }
 
     public ComputedStyle height(StyleLength v) {
         return new ComputedStyle(direction, justifyContent, alignItems, width, v, padding, gap,
-                flexGrow, background, color, opacity, decoration, typography, transitions, cursor);
+                flexGrow, background, color, opacity, decoration, typography, transitions, transform, cursor);
     }
 
     public ComputedStyle padding(Insets v) {
         return new ComputedStyle(direction, justifyContent, alignItems, width, height, v, gap,
-                flexGrow, background, color, opacity, decoration, typography, transitions, cursor);
+                flexGrow, background, color, opacity, decoration, typography, transitions, transform, cursor);
     }
 
     public ComputedStyle gap(StyleLength v) {
         return new ComputedStyle(direction, justifyContent, alignItems, width, height, padding, v,
-                flexGrow, background, color, opacity, decoration, typography, transitions, cursor);
+                flexGrow, background, color, opacity, decoration, typography, transitions, transform, cursor);
     }
 
     public ComputedStyle flexGrow(double v) {
         return new ComputedStyle(direction, justifyContent, alignItems, width, height, padding, gap,
-                v, background, color, opacity, decoration, typography, transitions, cursor);
+                v, background, color, opacity, decoration, typography, transitions, transform, cursor);
     }
 
     public ComputedStyle background(int v) {
         return new ComputedStyle(direction, justifyContent, alignItems, width, height, padding, gap,
-                flexGrow, v, color, opacity, decoration, typography, transitions, cursor);
+                flexGrow, v, color, opacity, decoration, typography, transitions, transform, cursor);
     }
 
     public ComputedStyle color(int v) {
         return new ComputedStyle(direction, justifyContent, alignItems, width, height, padding, gap,
-                flexGrow, background, v, opacity, decoration, typography, transitions, cursor);
+                flexGrow, background, v, opacity, decoration, typography, transitions, transform, cursor);
     }
 
     public ComputedStyle opacity(double v) {
         return new ComputedStyle(direction, justifyContent, alignItems, width, height, padding, gap,
-                flexGrow, background, color, v, decoration, typography, transitions, cursor);
+                flexGrow, background, color, v, decoration, typography, transitions, transform, cursor);
     }
 
     public ComputedStyle decoration(Decoration v) {
         return new ComputedStyle(direction, justifyContent, alignItems, width, height, padding, gap,
-                flexGrow, background, color, opacity, v, typography, transitions, cursor);
+                flexGrow, background, color, opacity, v, typography, transitions, transform, cursor);
     }
 
     public ComputedStyle typography(Typography v) {
         return new ComputedStyle(direction, justifyContent, alignItems, width, height, padding, gap,
-                flexGrow, background, color, opacity, decoration, v, transitions, cursor);
+                flexGrow, background, color, opacity, decoration, v, transitions, transform, cursor);
     }
 
     public ComputedStyle transitions(Transitions v) {
         return new ComputedStyle(direction, justifyContent, alignItems, width, height, padding, gap,
-                flexGrow, background, color, opacity, decoration, typography, v, cursor);
+                flexGrow, background, color, opacity, decoration, typography, v, transform, cursor);
+    }
+
+    public ComputedStyle transform(Transform v) {
+        return new ComputedStyle(direction, justifyContent, alignItems, width, height, padding, gap,
+                flexGrow, background, color, opacity, decoration, typography, transitions, v, cursor);
     }
 
     public ComputedStyle cursor(Cursor v) {
         return new ComputedStyle(direction, justifyContent, alignItems, width, height, padding, gap,
-                flexGrow, background, color, opacity, decoration, typography, transitions, v);
+                flexGrow, background, color, opacity, decoration, typography, transitions, transform, v);
     }
 
     // --- value parsing -----------------------------------------------------

@@ -2,8 +2,10 @@ package io.github.digitalsmile.goldberry.input;
 
 import io.github.digitalsmile.goldberry.Frame;
 import io.github.digitalsmile.goldberry.backend.Cursor;
+import io.github.digitalsmile.goldberry.css.Affine;
 import io.github.digitalsmile.goldberry.layout.Box;
 import io.github.digitalsmile.goldberry.layout.BoxPainter;
+import io.github.digitalsmile.goldberry.layout.RenderTree;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -24,27 +26,66 @@ public final class HitTest {
 
     /// One node's rectangle on screen, in logical coordinates.
     ///
-    /// @param owner what the renderer tagged the box with — an
-    ///              `Element` in the widget stack, or null for a box nobody
-    ///              claimed
-    /// @param cursor the shape the pointer takes over this rectangle (§7.3),
-    ///               recorded here rather than looked up later because the
-    ///               style that decided it is gone by the next frame
+    /// ## Why the *inverse* is stored and not the transform
+    ///
+    /// A transformed box is drawn by mapping its rectangle forward through a
+    /// matrix. Asking whether a pointer is inside it is the opposite question, and
+    /// the opposite question has the cleaner answer: map the **pointer** backward
+    /// into the box's own coordinates and test it against the plain rectangle. The
+    /// alternative — mapping the four corners forward and testing point-in-polygon
+    /// — is more arithmetic, is wrong for a box that has been sheared into a
+    /// non-convex screen region under nested transforms, and would be a second
+    /// implementation of geometry the painter already did.
+    ///
+    /// So the inverse is computed **once, while painting**, from the very matrix
+    /// that was handed to Blend2D. Not recomputed on the input path from the same
+    /// inputs by different code: two inversions that have to agree exactly is how
+    /// a pointer starts landing where the ink is not, and the failure is silent —
+    /// the control looks right and simply does not respond where it looks like it
+    /// should
+    /// ([ADR-0068](../../../../../../book/src/adr/0068-the-transform-stack-is-java-side.md)).
+    ///
+    /// Null for an untransformed box, which is almost all of them, and the test
+    /// then costs the four comparisons it always did.
+    ///
+    /// @param owner   what the renderer tagged the box with — an `Element` in the
+    ///                widget stack, or null for a box nobody claimed
+    /// @param cursor  the shape the pointer takes over this rectangle (§7.3),
+    ///                recorded here rather than looked up later because the style
+    ///                that decided it is gone by the next frame
+    /// @param inverse undoes the transform this box was painted with, or null if
+    ///                it was painted where it was laid out
     public record Region(
-            Object owner, Cursor cursor, float left, float top, float width, float height) {
+            Object owner, Cursor cursor, float left, float top, float width, float height,
+            Affine inverse) {
 
         public Region {
             Objects.requireNonNull(cursor, "cursor");
         }
 
+        /// An untransformed rectangle.
+        public Region(
+                Object owner, Cursor cursor,
+                float left, float top, float width, float height) {
+            this(owner, cursor, left, top, width, height, null);
+        }
+
         /// A rectangle that asks for no particular cursor — which is most of
         /// them.
         public static Region of(Object owner, float left, float top, float width, float height) {
-            return new Region(owner, Cursor.DEFAULT, left, top, width, height);
+            return new Region(owner, Cursor.DEFAULT, left, top, width, height, null);
         }
 
         public boolean contains(float x, float y) {
-            return x >= left && x < left + width && y >= top && y < top + height;
+            if (inverse == null) {
+                return x >= left && x < left + width && y >= top && y < top + height;
+            }
+            // Back into the coordinates the box was laid out in, where it is
+            // still the axis-aligned rectangle Yoga produced.
+            var localX = inverse.mapX(x, y);
+            var localY = inverse.mapY(x, y);
+            return localX >= left && localX < left + width
+                    && localY >= top && localY < top + height;
         }
     }
 
@@ -52,14 +93,46 @@ public final class HitTest {
     ///
     /// In paint order — parents before children — which is what makes
     /// [#at] able to take the last match as the topmost.
+    ///
+    /// A box whose transform cannot be inverted is **dropped**. That is
+    /// `scale(0)` and the handful of matrices like it: they collapse the box to a
+    /// line or a point, so there is nothing on screen for a pointer to be inside
+    /// of, and every point in the plane would otherwise map into it.
     public static List<Region> capture(Frame frame, Box root) {
         Objects.requireNonNull(frame, "frame");
         Objects.requireNonNull(root, "root");
         var regions = new ArrayList<Region>();
-        BoxPainter.forEachBox(frame, root, (box, layout) ->
-                regions.add(new Region(box.owner(), box.cursor(), layout.left(), layout.top(),
-                        layout.width(), layout.height())));
+        BoxPainter.forEachPlacedBox(frame, root, placed -> collect(regions, placed));
         return List.copyOf(regions);
+    }
+
+    /// The rectangles of the tree `tree` last laid out.
+    ///
+    /// **This is the form an application wants.** The `(Frame, Box)` overload
+    /// lays the tree out again to answer, so a window using it pays for two full
+    /// layout passes per frame — one to paint and one to know where it painted.
+    /// A [RenderTree] has already done the pass, and both questions read the same
+    /// answer ([ADR-0069](../../../../../../book/src/adr/0069-the-render-tree-is-retained.md)).
+    ///
+    /// @throws IllegalStateException if the tree has never been updated
+    public static List<Region> capture(RenderTree tree) {
+        Objects.requireNonNull(tree, "tree");
+        var regions = new ArrayList<Region>();
+        tree.forEachPlacedBox(placed -> collect(regions, placed));
+        return List.copyOf(regions);
+    }
+
+    private static void collect(List<Region> regions, BoxPainter.Placed placed) {
+        var layout = placed.layout();
+        Affine inverse = null;
+        if (!placed.isPlain()) {
+            inverse = placed.transform().invert();
+            if (inverse == null) {
+                return;
+            }
+        }
+        regions.add(new Region(placed.box().owner(), placed.box().cursor(),
+                layout.left(), layout.top(), layout.width(), layout.height(), inverse));
     }
 
     /// The topmost node containing `(x, y)`, in logical coordinates.

@@ -2,7 +2,9 @@ package io.github.digitalsmile.goldberry.widget;
 
 import io.github.digitalsmile.goldberry.bind.Subscription;
 import io.github.digitalsmile.goldberry.css.Selector;
+import io.github.digitalsmile.goldberry.css.ComputedStyle;
 import io.github.digitalsmile.goldberry.css.StyleElement;
+import io.github.digitalsmile.goldberry.css.StyleResolver;
 import io.github.digitalsmile.goldberry.motion.Animations;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
@@ -53,6 +55,70 @@ public final class Element implements BuildContext, StyleElement {
     /// Lazily created: most nodes never animate, and an `Animations` per element
     /// per frame for a static tree is an allocation for nothing.
     private Animations animations;
+
+    // --- the style cache ---------------------------------------------------
+    //
+    // `docs/ARCHITECTURE.md` §5's frame loop says "style resolution (invalidated
+    // nodes)", and until this existed it resolved *every* node every frame:
+    // selector matching, right-to-left with backtracking, against every rule in
+    // every stylesheet, plus a walk to the root per node to collect custom
+    // properties. Once layout was retained (ADR-0069) that was 135 us of a 148 us
+    // frame -- the largest single term by a wide margin (ADR-0070).
+
+    /// What the cascade last resolved for this node, or null if it must be asked
+    /// again.
+    private ComputedStyle style;
+
+    /// The resolver that produced [#style].
+    ///
+    /// Compared by identity, which is what makes a theme swap or a hot reload
+    /// invalidate everything for free: an application builds a new renderer over
+    /// the new stylesheets, and every cached style was resolved by the old one.
+    private StyleResolver styleResolver;
+
+    /// The inherited style [#style] was resolved against.
+    ///
+    /// Also identity. Because a parent's style is cached too, an unchanged parent
+    /// hands down the *same instance* every frame — so a parent that did change
+    /// hands down a different one and its children re-resolve without anything
+    /// having to tell them to. That is inheritance invalidating itself.
+    private ComputedStyle styleInherited;
+
+    /// The style the cascade resolved for this node last frame, if it is still
+    /// good for `resolver` and `inherited`. Null means ask again.
+    ComputedStyle cachedStyle(StyleResolver resolver, ComputedStyle inherited) {
+        return styleResolver == resolver && styleInherited == inherited ? style : null;
+    }
+
+    void cacheStyle(StyleResolver resolver, ComputedStyle inherited, ComputedStyle resolved) {
+        this.styleResolver = resolver;
+        this.styleInherited = inherited;
+        this.style = resolved;
+    }
+
+    /// Throws away this node's cached style **and its whole subtree's**.
+    ///
+    /// The subtree, not just this node, and that is the load-bearing part. A
+    /// descendant combinator means a node's own match depends on an ancestor's
+    /// state: `checkbox:hover check-indicator { border-color: … }` restyles the
+    /// *indicator* when the checkbox is hovered, and the checkbox's own resolved
+    /// style may not change at all — so the inherited-identity check above would
+    /// not catch it and the indicator would keep a stale style forever.
+    ///
+    /// Conservative on purpose. Working out which descendants a rule could reach
+    /// is real machinery, and this walk is pointer-chasing against a cascade pass
+    /// that costs hundreds of times more.
+    void invalidateStyle() {
+        // Not short-circuited on `style == null`: a composition node never caches
+        // one -- the renderer passes its ancestor's straight through -- so a null
+        // here says nothing about the subtree below it.
+        style = null;
+        styleResolver = null;
+        styleInherited = null;
+        for (var child : children) {
+            child.invalidateStyle();
+        }
+    }
 
     Element(ElementTree tree, Element parent, Widget widget) {
         this.tree = tree;
@@ -117,6 +183,13 @@ public final class Element implements BuildContext, StyleElement {
     void update(Widget next) {
         var previous = widget;
         widget = next;
+        // A new widget can carry different classes or a different id, so what
+        // selectors match this node -- and, through descendant combinators, what
+        // matches anything under it -- may have changed. Invalidated wholesale
+        // rather than by comparing attributes: a rebuild is already the expensive
+        // path, and a comparison that missed a case would produce a node styled
+        // by a rule that no longer applies to it.
+        invalidateStyle();
         subscribeToBinding(previous);
         if (state != null) {
             state.update(next);
@@ -350,7 +423,17 @@ public final class Element implements BuildContext, StyleElement {
     ///         invalidation it does not need
     public boolean setPseudoClass(Selector.PseudoClass pseudoClass, boolean active) {
         Objects.requireNonNull(pseudoClass, "pseudoClass");
-        return active ? states.add(pseudoClass) : states.remove(pseudoClass);
+        var changed = active ? states.add(pseudoClass) : states.remove(pseudoClass);
+        if (changed) {
+            // The one hook the style cache needs from input. Every route that can
+            // change what a selector matches goes through here -- `:hover` and
+            // `:active` from the router, `:focus` from focus traversal,
+            // `:disabled`, `:checked` and `:indeterminate` mirrored from the
+            // widget by the renderer -- so this is the single place that has to
+            // remember to invalidate, rather than six.
+            invalidateStyle();
+        }
+        return changed;
     }
 
     @Override

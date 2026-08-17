@@ -3,12 +3,14 @@ package io.github.digitalsmile.goldberry.motion;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
 import io.github.digitalsmile.goldberry.css.CssColor;
+import io.github.digitalsmile.goldberry.css.Transform;
 import io.github.digitalsmile.goldberry.css.Transitions;
 import io.github.digitalsmile.goldberry.css.Transitions.Animatable;
 import io.github.digitalsmile.goldberry.css.Transitions.Timing;
@@ -354,6 +356,92 @@ class MotionTest {
 
             assertSame(target, animations.apply(target, 0),
                     "a static tree must not allocate a style per node per frame");
+        }
+    }
+
+    @Nested
+    @DisplayName("animating a transform")
+    class TransformOverlay {
+
+        /// A style that transitions its transform over 100 ms, linearly.
+        private static ComputedStyle moving(Transform transform) {
+            return ComputedStyle.INITIAL
+                    .transform(transform)
+                    .transitions(Transitions.NONE.with(Animatable.TRANSFORM, FAST));
+        }
+
+        private static Transform scale(double factor) {
+            return Transform.of(new Transform.Function.Scale(factor, factor));
+        }
+
+        @Test
+        @DisplayName("a scale moves through the numbers, not through the matrix")
+        void scales() {
+            // The checkbox tick's specified `scale 0.6 -> 1`. Halfway is 0.8,
+            // which is the value an author would predict -- and the reason
+            // interpolation happens on the function list rather than on the six
+            // matrix entries it multiplies out to.
+            var animations = new Animations();
+            animations.observe(moving(scale(0.6)), 0);
+            animations.observe(moving(scale(1.0)), 0);
+
+            var halfway = animations.apply(moving(scale(1.0)), 50);
+            assertEquals(
+                    java.util.List.of(new Transform.Function.Scale(0.8, 0.8)),
+                    halfway.transform().functions());
+        }
+
+        @Test
+        @DisplayName("the target style is never mutated, exactly as for a colour")
+        void doesNotWriteBack() {
+            // The sentence the whole overlay design hangs off. A transform
+            // written back would be diffed against the target on the next frame
+            // and would start again from where it had got to -- a control that
+            // approaches its scale and never arrives.
+            var animations = new Animations();
+            animations.observe(moving(scale(0.6)), 0);
+            animations.observe(moving(scale(1.0)), 0);
+
+            var target = moving(scale(1.0));
+            animations.apply(target, 50);
+            assertEquals(scale(1.0), target.transform());
+        }
+
+        @Test
+        @DisplayName("retargeting starts from where the transform actually is")
+        void retargets() {
+            // §1.7's "values never jump". A control whose hover scale is reversed
+            // halfway must shrink from 1.2, not from the 1.4 it never reached.
+            var animations = new Animations();
+            animations.observe(moving(scale(1.0)), 0);
+            animations.observe(moving(scale(1.4)), 0);
+            // Halfway: 1.2. Now reverse.
+            animations.observe(moving(scale(1.0)), 50);
+
+            var immediately = animations.apply(moving(scale(1.0)), 50);
+            var scaled = (Transform.Function.Scale) immediately.transform().functions().getFirst();
+            assertEquals(1.2, scaled.x(), 1e-9, "it resumes from where it was");
+        }
+
+        @Test
+        @DisplayName("a transform transition ends and stops asking for frames")
+        void settles() {
+            var animations = new Animations();
+            animations.observe(moving(scale(0.6)), 0);
+            animations.observe(moving(scale(1.0)), 0);
+
+            assertTrue(animations.isAnimating());
+            assertTrue(animations.settle(50), "still moving at halfway");
+            assertFalse(animations.settle(100), "done at the end");
+            assertEquals(0, animations.runningCount());
+        }
+
+        @Test
+        @DisplayName("`transition: transform` parses, where `transition: width` still does not")
+        void parses() {
+            assertEquals(Animatable.TRANSFORM, Animatable.parse("transform"));
+            assertNull(Animatable.parse("width"),
+                    "layout properties never transition (§1.7)");
         }
     }
 

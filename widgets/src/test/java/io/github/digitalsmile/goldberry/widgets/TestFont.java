@@ -50,4 +50,28 @@ final class TestFont {
     static Font one() {
         return get().of(BundledFont.UI, 13);
     }
+
+    /// A paint context over [#one()], for a test that calls `render` by hand.
+    ///
+    /// It carries a real [io.github.digitalsmile.goldberry.text.ParagraphCache]
+    /// rather than shaping directly, because the cache is what makes a paragraph
+    /// the *same instance* across calls — and a test that skipped it would not
+    /// exercise the identity the retained render tree reads to keep a measure
+    /// callback (ADR-0069).
+    static io.github.digitalsmile.goldberry.widget.Paints.Context context() {
+        var cache = io.github.digitalsmile.goldberry.text.ParagraphCache.create();
+        return new io.github.digitalsmile.goldberry.widget.Paints.Context() {
+
+            @Override
+            public Font font(io.github.digitalsmile.goldberry.css.ComputedStyle style) {
+                return one();
+            }
+
+            @Override
+            public io.github.digitalsmile.goldberry.text.Paragraph paragraph(
+                    io.github.digitalsmile.goldberry.css.ComputedStyle style, String text) {
+                return cache.paragraph(one(), text);
+            }
+        };
+    }
 }

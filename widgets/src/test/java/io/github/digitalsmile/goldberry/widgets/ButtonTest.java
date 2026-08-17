@@ -351,7 +351,7 @@ class ButtonTest {
             // node's children out, so a button holding its own text could never
             // also hold an icon.
             var style = ComputedStyle.INITIAL;
-            var box = new Button("Save").render(style, List.of(), ignored -> TestFont.one());
+            var box = new Button("Save").render(style, List.of(), TestFont.context());
 
             assertEquals(1, box.children().size());
             assertEquals(null, box.text());
@@ -432,7 +432,7 @@ class ButtonTest {
             // and that size is its intrinsic one, so it needs no measure
             // function and no callback into C.
             var box = new Button("Save").withIcon(icon)
-                    .render(ComputedStyle.INITIAL, List.of(), ignored -> TestFont.one());
+                    .render(ComputedStyle.INITIAL, List.of(), TestFont.context());
 
             assertEquals(2, box.children().size());
             assertEquals(icon, box.children().getFirst().icon().icon());
@@ -444,7 +444,7 @@ class ButtonTest {
         @DisplayName("an icon-only button is legal; an empty one is not")
         void iconOnly() {
             var box = new Button("", icon, null, false, Widgets.Attributes.NONE)
-                    .render(ComputedStyle.INITIAL, List.of(), ignored -> TestFont.one());
+                    .render(ComputedStyle.INITIAL, List.of(), TestFont.context());
             assertEquals(1, box.children().size());
 
             // Nothing to click on and nothing to read out (§13).

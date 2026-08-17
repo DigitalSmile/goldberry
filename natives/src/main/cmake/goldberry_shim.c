@@ -430,6 +430,20 @@ static const goldberry_layout_entry_t GOLDBERRY_LAYOUTS[] = {
     GB_FIELD(BLPoint, x),
     GB_FIELD(BLPoint, y),
 
+    /* The operand of BL_TRANSFORM_OP_ASSIGN, which crosses as void* -- so these
+     * six offsets are the only thing standing between a CSS transform and a
+     * frame that is skewed and reports BL_SUCCESS. The named members live in an
+     * anonymous struct inside a union with a double[6], and the upstream header
+     * carries a TODO to remove that union; if the order ever changes these rows
+     * are what says so. */
+    GB_STRUCT(BLMatrix2D),
+    GB_FIELD(BLMatrix2D, m00),
+    GB_FIELD(BLMatrix2D, m01),
+    GB_FIELD(BLMatrix2D, m10),
+    GB_FIELD(BLMatrix2D, m11),
+    GB_FIELD(BLMatrix2D, m20),
+    GB_FIELD(BLMatrix2D, m21),
+
     /*
      * Fonts and glyph runs (ADR-0034).
      *
@@ -546,6 +560,7 @@ static const goldberry_layout_entry_t GOLDBERRY_LAYOUTS[] = {
 
     /* How the display scale reaches the rasterizer. */
     GB_CONSTANT("BL_TRANSFORM_OP_RESET", BL_TRANSFORM_OP_RESET),
+    GB_CONSTANT("BL_TRANSFORM_OP_ASSIGN", BL_TRANSFORM_OP_ASSIGN),
     GB_CONSTANT("BL_TRANSFORM_OP_TRANSLATE", BL_TRANSFORM_OP_TRANSLATE),
     GB_CONSTANT("BL_TRANSFORM_OP_SCALE", BL_TRANSFORM_OP_SCALE),
 

@@ -217,6 +217,76 @@ class GoldenImageTest {
     }
 
     @Test
+    @DisplayName("transforms, applied through the cascade")
+    void transforms() {
+        // Four panels in a row, laid out identically, each moved by a different
+        // `transform`. The value of this as an image rather than as pixel
+        // assertions is that the three shapes are visibly different kinds of
+        // wrong when they are wrong: a rotation about the corner rather than the
+        // centre, a scale that grew the wrong way, a skew on the wrong axis.
+        //
+        // It is also the first golden to rest on BL_TRANSFORM_OP_ASSIGN, whose
+        // operand crosses as `void*` -- so this is what would catch a target
+        // where BLMatrix2D is not six consecutive doubles in that order.
+        var css = Stylesheet.parse(CascadeLayer.APPLICATION, """
+                root {
+                  background: #2e3440;
+                  flex-direction: row;
+                  padding: 20px;
+                  gap: 16px;
+                }
+                panel { background: #88c0d0; width: 40px; height: 40px }
+                panel.turned { transform: rotate(20deg) }
+                panel.grown { transform: scale(1.4) }
+                panel.leaned { transform: skewX(-20deg); background: #ebcb8b }
+                /* The origin is what makes the difference between growing from
+                   the middle and swinging out of the corner, so one panel says
+                   so explicitly. */
+                panel.cornered { transform: scale(1.4); transform-origin: left top }
+                """);
+        var tree = new Node("root").with(
+                new Node("panel", "turned"),
+                new Node("panel", "grown"),
+                new Node("panel", "leaned"),
+                new Node("panel", "cornered"));
+
+        GoldenImage.assertMatches("transforms", 280, 80, 1.0f,
+                frame -> BoxPainter.paint(frame, build(tree, List.of(css))));
+    }
+
+    @Test
+    @DisplayName("group opacity composites the subtree once, not each child")
+    void groupOpacity() {
+        // ADR-0064 said the difference between CSS group opacity and multiplying
+        // alpha per box "differs exactly where two children overlap", and
+        // predicted `stack` would be what made it visible. This is that scene
+        // built by hand: two opaque squares that overlap, under a parent at 50%.
+        //
+        // Through a layer -- what ships now -- the overlap is the *top* square at
+        // 50% over the backdrop, and the lower square is invisible there.
+        // Multiplying alpha per box, the lower one would show through the upper,
+        // and the overlap would be a third colour that is in neither end state.
+        var css = Stylesheet.parse(CascadeLayer.APPLICATION, """
+                root { background: #2e3440; padding: 16px }
+                panel.faded { opacity: 0.5 }
+                panel.lower { background: #bf616a; width: 70px; height: 70px }
+                panel.upper {
+                  background: #a3be8c;
+                  width: 70px;
+                  height: 70px;
+                  transform: translate(-40px, 24px);
+                }
+                """);
+        var tree = new Node("root").with(
+                new Node("panel", "faded").with(
+                        new Node("panel", "lower"),
+                        new Node("panel", "upper")));
+
+        GoldenImage.assertMatches("group-opacity", 200, 130, 1.0f,
+                frame -> BoxPainter.paint(frame, build(tree, List.of(css))));
+    }
+
+    @Test
     @DisplayName("a widget tree, inflated from KDL and styled by CSS")
     void widgetTreeFromKdl() {
         // The whole stack in one image: KDL -> widgets -> element tree ->

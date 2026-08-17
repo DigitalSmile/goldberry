@@ -504,9 +504,9 @@ from the current animated value, so a pointer leaving a button halfway through a
 fade returns from where the colour is.
 
 The whitelist is closed — `opacity`, `background-color`, `border-color`,
-`color` — and `transition: width 200ms` is a **dropped declaration with a
-warning naming it**, not a rule that silently never fires: animating a width
-would run Yoga on every frame of every transition. Colours interpolate in
+`color`, `transform` — and `transition: width 200ms` is a **dropped declaration
+with a warning naming it**, not a rule that silently never fires: animating a
+width would run Yoga on every frame of every transition. Colours interpolate in
 OKLCH, which is measurable rather than decorative — Nord's danger red and
 success green have a channel spread of 54 at their sRGB midpoint and 109 at
 their OKLCH one.
@@ -516,7 +516,8 @@ something is moving:
 
 ```java
 window.onPaint(frame -> {
-    BoxPainter.paint(frame, renderer.render(tree));
+    render.update(frame, renderer.render(tree));
+    render.paint(frame);
     if (renderer.isAnimating()) {
         window.repaint();
     }
@@ -530,11 +531,229 @@ the test would have to sleep, and would then be asserting on whatever the
 scheduler gave it
 ([ADR-0067](book/src/adr/0067-motion-is-an-overlay-on-a-frame-clock.md)).
 
-Still **absent rather than approximated**: `transform`, which is in the design
-system's whitelist and which a checkbox's tick needs for its scale — `Box`
-carries no transform, and hit testing would need its inverse to keep routing
-clicks. Layer promotion goes with it, and is the same mechanism group opacity
-and damage tracking want.
+### Transforms
+
+`transform` and `transform-origin` are CSS's, the 2D subset:
+
+```css
+panel.turned   { transform: rotate(20deg) }
+panel.grown    { transform: scale(1.4) }
+panel.cornered { transform: scale(1.4); transform-origin: left top }
+```
+
+Layout runs first and the matrix moves the result, which is CSS's rule and the
+reason a transform is cheap enough to animate: a control that scales on hover
+moves no sibling and costs no layout pass. The effect reaches the whole subtree,
+the way `opacity` does.
+
+The part worth stating is what happens to **input**. A transform the painter
+applies and hit testing ignores produces no error and no wrong pixel — the
+control is drawn exactly where the stylesheet asked and simply does not respond
+where it looks like it should. So the inverse is computed **once, while
+painting, from the very matrix handed to Blend2D**, and `HitTest` maps the
+pointer backward through it rather than mapping the box's corners forward. Not
+re-derived on the input path: two inversions that must agree exactly is how that
+silent failure gets in.
+
+```java
+// The pointer is over the ink, not over the rectangle Yoga produced.
+assertEquals("target", HitTest.at(regions, 120, 120).orElseThrow());
+```
+
+**No new native symbol crosses the boundary.** Blend2D's `save`/`restore` are
+not on the export list, so there is no push and pop — but
+`bl_context_apply_transform_op` was already exported for the display scale, and
+`BL_TRANSFORM_OP_ASSIGN` *replaces* the context's matrix. So the stack is
+accumulated in Java, each box states its whole matrix, and that is also what
+makes it invertible. A computed `transform` is the **function list** rather than
+a matrix, because `translate(50%)` is a proportion of a box that has no size
+until Yoga has run — and because halfway between `rotate(0)` and `rotate(180deg)`,
+interpolated entry by entry, is a box collapsed to a point rather than a right
+angle ([ADR-0068](book/src/adr/0068-the-transform-stack-is-java-side.md)).
+
+Still **absent rather than approximated**: **layer promotion**, which is what
+would make an animating frame cost a composite instead of a full window repaint,
+and is the same mechanism CSS group opacity and damage tracking want. Unlike
+`transform`, it does need the native boundary opened — `bl_context_blit_image_d`
+and `bl_context_set_global_alpha` — so it is scheduled as its own change. The
+**checkbox tick's `scale 0.6→1`** is also still missing its scale half: the mark
+is drawn onto `check-indicator`'s box, so it needs a cascade node of its own,
+which is a second *part* and a decision in its own right.
+
+## The render tree
+
+Three trees, Flutter-style: immutable **widgets** describe, **elements** persist
+and hold state, and **render objects** own the Yoga nodes and are kept between
+frames.
+
+Hold one `RenderTree` for the life of a window and hand it each frame's
+description:
+
+```java
+try (var render = RenderTree.create()) {
+    window.onPaint(frame -> {
+        render.update(frame, renderer.render(tree));   // reconcile + lay out
+        render.paint(frame);
+    });
+    Goldberry.run();
+}
+```
+
+A widget still returns an immutable `Box`, and the render tree is **reconciled
+against** that description rather than mutated by widgets. Not one widget changed
+when this landed. An immutable tree is the ideal thing to diff, it keeps a
+widget's job "describe yourself", and it means the retained path can be asserted
+to lay out *identically* to a thrown-away one — which is the first test in the
+file.
+
+The measurement, on a showcase-shaped tree with seven measured leaves at 960×640:
+
+| layout + walk | median |
+|---|---|
+| tree rebuilt every frame | **190 µs** |
+| retained, nothing changed | **9.1 µs** |
+| retained, **a fresh box tree every frame** | **7.2 µs** |
+
+The third row is the one that had to be won. A real application rebuilds its
+boxes constantly, and it costs the same as changing nothing — because **Yoga
+dirties a node when a style is *set on it*, not when the value differs**. Every
+setter is guarded by a comparison against the box already applied; without those
+guards a retained tree costs exactly what a thrown-away one costs, plus the
+memory management ([ADR-0069](book/src/adr/0069-the-render-tree-is-retained.md)).
+
+Two things stopped being rebuilt: the Yoga measure callbacks — an `Arena` and a
+native upcall stub, 11 µs each against 0.3 µs to call through one — and the
+shaping behind every paragraph, at 56 µs. `Paints.Context.paragraph` shapes
+through a cache, which saves the 56 µs *and* returns the same instance each
+frame; the render tree reads that identity to decide the callback it already
+bound is still correct. The cache is a precondition for retention, not an
+optimisation beside it.
+
+And retention introduced this repository's first keep-state bug, caught by its own
+equivalence test: **Yoga does not dirty a node when its measure function is
+replaced.** Text is not a style, so a paragraph swapped for longer text reported
+the height cached for the old one — six lines of prose laid out as one, with no
+error anywhere. One `markDirty` call, and a standing reminder of what keeping
+state costs.
+
+### The cascade resolves invalidated nodes
+
+With layout retained, the cascade was the whole frame — every node re-matched
+against every selector in every stylesheet, plus a walk to the root per node for
+custom properties. A node's resolved style is now cached on its element and
+checked by identity against two things:
+
+- **the resolver**, so a theme swap or a hot reload — which builds a new one —
+  invalidates every entry at once, with no event anyone has to remember to fire;
+- **the inherited style**, so a parent that re-resolved hands its children a
+  different instance and they re-resolve without being told. Inheritance
+  invalidates itself.
+
+Invalidation is a **subtree**, and that is not caution for its own sake. A
+descendant combinator makes a node's own match depend on an ancestor's state:
+
+```css
+checkbox:hover check-indicator { border-color: var(--gb-checkbox-border-hover) }
+```
+
+Hovering the checkbox restyles the *indicator*, while the checkbox's own style
+need not change at all — so the inherited-identity check cannot see it, and only
+the subtree walk saves it. That rule is in `controls.css` today.
+
+| frame CPU, everything but rasterization | median |
+|---|---|
+| before any of this | 354 µs |
+| with the paragraph cache | 260 µs |
+| with the retained render tree | 148 µs |
+| with the invalidation-driven cascade | **3.5 µs** |
+
+Rasterization is untouched by all of it and is now essentially the whole frame —
+about 320 µs at 960×640 on one thread, spread over four workers in practice.
+Damage tracking and layer promotion are what would move it
+([ADR-0070](book/src/adr/0070-the-cascade-resolves-invalidated-nodes.md)).
+
+### Layers, and what a frame uploads
+
+`opacity` is CSS's now. A node that is translucent **and has children** is
+rendered into a raster of its own at full strength and composited once:
+
+```css
+panel.faded { opacity: 0.5 }
+```
+
+That is not the same as fading each box as it is drawn, and the difference shows
+exactly where two children overlap — faded separately, the lower one shows
+through the upper. Through a layer it does not:
+
+```java
+// The overlapping pixel and the non-overlapping one are the same colour.
+assertEquals(target.pixel(75, 30), target.pixel(45, 30));
+```
+
+A translucent **leaf** keeps the cheap path deliberately: its own background,
+border and text can overlap each other too, but by a fraction of a level along an
+antialiased edge, and an allocation and a blit for every faded label is a poor
+trade. The three golden images with a disabled control at 45% moved when this
+landed, and the diff is confined to that control — the correction, reviewed
+rather than accepted.
+
+The subtree goes into the layer **untransformed** and at full strength, so its
+alpha and matrix are applied to the blit — which means a group that is only
+**fading or moving keeps its raster**. A frame of a fade costs 199 µs instead of
+554 µs. That distinction needed three flags where there had been one: does the
+screen differ (damage), does an *ancestor's* raster differ (yes — it bakes in
+this node's finished blit), does *this* raster differ (no). A descendant's
+opacity **is** baked in, which is why it could not be fixed by dropping one
+property from one comparison. And the
+layer's bounds are the subtree's, not the border box: a focus ring, a
+transformed child and an overflowing child all reach outside it, and a layer
+sized to the box would clip each of them away.
+
+Two symbols were added to the export list for this — `bl_context_blit_image_d`
+and `bl_context_set_global_alpha` — the first since it caught its third
+local-symbol bug. The offscreen pixels needed none: they are allocated in Java
+and wrapped with the constructor that was already exported.
+
+Damage rides on the same retained tree. Each render object remembers where it
+was, and a node that changed damages the union of where it **was** and where it
+**is** — both, because damaging only the new position leaves the old drawing on
+screen:
+
+```java
+render.update(frame, renderer.render(tree));
+render.paint(frame);
+window.damaged(render.damage(frame));   // empty means "upload nothing"
+```
+
+And the frame is painted only inside that damage — but only where it is safe to,
+which is a promise the backend has to make:
+
+```java
+var damage = render.damage(frame);
+if (window.canRepaintPartially()) {
+    render.paint(frame, damage);      // empty damage draws nothing at all
+} else {
+    render.paint(frame);              // first frame, resize, or no promise
+}
+window.damaged(damage);
+```
+
+`BackendWindow.retainsFrameContents()` is **false by default**, so a backend that
+says nothing gets a full repaint. `Window` checks three things that fail
+independently: the promise, the buffer's *identity* — a backend may retain and
+still rotate between two — and the size.
+
+| one small box changed, 960×640 | median |
+|---|---|
+| repaint the whole frame | 367 µs |
+| **repaint only the damage** | **117 µs** |
+
+Read that carefully: the damaged area was 0.23% of the window and the saving is
+3.1×, not 400×. The clip saves *rasterization*; the tree walk still visits every
+box for Blend2D to clip away cheaply. A clipped repaint is asserted
+pixel-identical to a full one across a whole frame, because otherwise damage is
+a rendering bug with a performance excuse
+([ADR-0072](book/src/adr/0072-a-partial-repaint-needs-a-promise.md)).
 
 ## Input
 
@@ -553,9 +772,9 @@ var router = new PointerRouter();
 window.pointerRouter(router);
 
 window.onPaint(frame -> {
-    var boxes = renderer.render(tree);
-    BoxPainter.paint(frame, boxes);
-    router.updateRegions(HitTest.capture(frame, boxes));   // what was just drawn
+    render.update(frame, renderer.render(tree));           // one layout pass
+    render.paint(frame);
+    router.updateRegions(HitTest.capture(render));         // read by both
 });
 ```
 

@@ -163,6 +163,110 @@ public final class Frame {
         context.strokePath(x, y, path, argb);
     }
 
+    /// Replaces the frame's transform with `[a b c d e f]`, in logical
+    /// coordinates.
+    ///
+    /// ```
+    ///   x' = a·x + c·y + e
+    ///   y' = b·x + d·y + f
+    /// ```
+    ///
+    /// Six doubles rather than the toolkit's own matrix type, and deliberately:
+    /// that type is the *computed value of a CSS property* and lives in the
+    /// cascade, while a `Frame` is the surface underneath everything and knows
+    /// nothing about stylesheets. What crosses is the numbers, the same way they
+    /// cross into Blend2D one layer further down.
+    ///
+    /// **There is no push and no pop.** Each call states the whole transform, so
+    /// a caller drawing a transformed subtree accumulates the stack itself and
+    /// sets an absolute matrix per node. That is not a limitation worked around —
+    /// it is what lets hit testing invert the same matrix the painter used,
+    /// rather than a second one built from the same inputs by different code
+    /// ([ADR-0068](../../../book/src/adr/0068-the-transform-stack-is-java-side.md)).
+    ///
+    /// The display scale is **not** the caller's to apply: it is already on the
+    /// context and is composed with this. A frame at 150% given `translate(10, 0)`
+    /// moves by ten logical pixels, which is fifteen device ones, exactly as
+    /// every other call on this class behaves.
+    public void transform(double a, double b, double c, double d, double e, double f) {
+        requireOpen();
+        context.transform(a, b, c, d, e, f);
+    }
+
+    /// Back to untransformed logical coordinates.
+    public void resetTransform() {
+        requireOpen();
+        context.resetTransform();
+    }
+
+    /// Composites `layer` with its top-left corner at logical `(x, y)`, faded to
+    /// `alpha`.
+    ///
+    /// **This is what makes `opacity` a group.** The layer was rasterized at full
+    /// strength; fading happens once, here, to the finished raster. Fading each
+    /// shape as it was drawn gives a different answer wherever two of them
+    /// overlap — the lower one shows through the upper — and CSS specifies this
+    /// one ([ADR-0071](../../../book/src/adr/0071-a-layer-is-a-subtrees-raster.md)).
+    ///
+    /// The layer's pixels are its own; this reads them and copies. Nothing here
+    /// takes ownership, so the same layer can be composited into several frames
+    /// and kept across them, which is the point of it having a lifetime at all.
+    ///
+    /// @param alpha 0 to 1
+    public void drawLayer(double x, double y, Layer layer, double alpha) {
+        requireOpen();
+        java.util.Objects.requireNonNull(layer, "layer");
+        if (alpha <= 0) {
+            // Nothing to show, and a blit is a full copy of the layer's area.
+            return;
+        }
+        var size = layer.size();
+        // A view over the layer's pixels, made and dropped here. An image is a
+        // view and views are cheap; holding one across frames would mean holding
+        // a native handle to a buffer whose lifetime is the layer's, not this
+        // frame's.
+        try (var image = BlendImage.wrapping(
+                layer.pixels().pixels(), size.width(), size.height(),
+                layer.pixels().stride())) {
+            var faded = alpha < 1;
+            if (faded) {
+                context.globalAlpha(alpha);
+            }
+            try {
+                context.blit(x, y, image);
+            } finally {
+                if (faded) {
+                    // Context state, so it must go back: the next thing drawn on
+                    // this frame did not ask to be faded, and the bug would show
+                    // up somewhere else entirely.
+                    context.globalAlpha(1);
+                }
+            }
+        }
+    }
+
+    /// Restricts everything drawn afterwards to `(x, y, width, height)`, in
+    /// logical coordinates.
+    ///
+    /// What makes a **partial repaint** possible: a frame clipped to the region
+    /// that changed rasterizes only that region, and the rest of the buffer keeps
+    /// the pixels the last frame left there. That last clause is the whole
+    /// correctness condition, and it is not this class's to promise — see
+    /// [io.github.digitalsmile.goldberry.backend.BackendWindow#retainsFrameContents()]
+    /// ([ADR-0072](../../../book/src/adr/0072-a-partial-repaint-needs-a-promise.md)).
+    ///
+    /// Intersected with any clip already in force. [#resetClip()] undoes it.
+    public void clipTo(double x, double y, double width, double height) {
+        requireOpen();
+        context.clipTo(x, y, width, height);
+    }
+
+    /// Back to the whole frame.
+    public void resetClip() {
+        requireOpen();
+        context.resetClip();
+    }
+
     /// Finishes the frame, so the pixels are complete before anything presents
     /// them.
     ///

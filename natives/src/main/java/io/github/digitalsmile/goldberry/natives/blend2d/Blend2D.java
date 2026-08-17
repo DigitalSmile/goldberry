@@ -74,6 +74,10 @@ final class Blend2D {
     private final MethodHandle contextSetStrokeJoin;
     private final MethodHandle contextFillPathDRgba32;
     private final MethodHandle contextStrokePathDRgba32;
+    private final MethodHandle contextBlitImageD;
+    private final MethodHandle contextSetGlobalAlpha;
+    private final MethodHandle contextClipToRectD;
+    private final MethodHandle contextRestoreClipping;
 
     private final MethodHandle pathInit;
     private final MethodHandle pathDestroy;
@@ -176,6 +180,24 @@ final class Blend2D {
         this.contextStrokePathDRgba32 = downcall(lookup, "bl_context_stroke_path_d_rgba32",
                 resultOf(ValueLayout.ADDRESS, ValueLayout.ADDRESS, ValueLayout.ADDRESS,
                         ValueLayout.JAVA_INT));
+
+        // Compositing a layer back onto its parent (ADR-0071). The last argument
+        // is a `const BLRectI*` naming a sub-rectangle of the source, and it is
+        // always NULL here -- Blend2D reads that as the whole image, which is
+        // what a layer always wants -- so no BLRectI ever crosses.
+        this.contextBlitImageD = downcall(lookup, "bl_context_blit_image_d",
+                resultOf(ValueLayout.ADDRESS, ValueLayout.ADDRESS, ValueLayout.ADDRESS,
+                        ValueLayout.ADDRESS));
+        this.contextSetGlobalAlpha = downcall(lookup, "bl_context_set_global_alpha",
+                resultOf(ValueLayout.ADDRESS, ValueLayout.JAVA_DOUBLE));
+
+        // Restricting a frame to the region that changed (ADR-0072). The rect is
+        // a BLRect -- four doubles, in the context's own units, so a clip is
+        // stated in logical coordinates like every other call on the context.
+        this.contextClipToRectD = downcall(lookup, "bl_context_clip_to_rect_d",
+                resultOf(ValueLayout.ADDRESS, ValueLayout.ADDRESS));
+        this.contextRestoreClipping = downcall(lookup, "bl_context_restore_clipping",
+                resultOf(ValueLayout.ADDRESS));
 
         // Paths. Every command is (BLPathCore*, doubles...) and returns BLResult,
         // which is what makes this a long list of near-identical rows rather than
@@ -384,6 +406,23 @@ final class Blend2D {
         }
     }
 
+    /// Replaces the context's transform with the matrix in `matrix`.
+    ///
+    /// `matrix` must be a [io.github.digitalsmile.goldberry.natives.layout.Layouts#BL_MATRIX2D]
+    /// the caller owns and keeps alive for the call. Passed in rather than
+    /// allocated here because this runs once per transformed box per frame, and a
+    /// confined arena per call to hold forty-eight bytes Blend2D reads and does
+    /// not keep is the same trade [BlendContext] already made for `BLRect`.
+    void contextTransform(MemorySegment context, MemorySegment matrix) {
+        try {
+            check("bl_context_apply_transform_op",
+                    (int) contextApplyTransformOp.invokeExact(
+                            context, BlendTransformOp.ASSIGN.nativeValue(), matrix));
+        } catch (Throwable t) {
+            throw failure("bl_context_apply_transform_op", t);
+        }
+    }
+
     void contextCompOp(MemorySegment context, BlendCompOp compOp) {
         try {
             check("bl_context_set_comp_op",
@@ -489,6 +528,63 @@ final class Blend2D {
             throw failure("bl_context_stroke_path_d_rgba32", t);
         }
         check("bl_context_stroke_path_d_rgba32", result);
+    }
+
+    /// Draws `image` with its top-left corner at the `BLPoint` in `origin`.
+    ///
+    /// The whole image: `img_area` crosses as NULL, which Blend2D reads as the
+    /// full source rectangle.
+    void contextBlitImage(MemorySegment context, MemorySegment origin, MemorySegment image) {
+        int result;
+        try {
+            result = (int) contextBlitImageD.invokeExact(
+                    context, origin, image, MemorySegment.NULL);
+        } catch (Throwable t) {
+            throw failure("bl_context_blit_image_d", t);
+        }
+        check("bl_context_blit_image_d", result);
+    }
+
+    /// Scales the alpha of everything drawn after it, including a blitted image.
+    ///
+    /// This is what makes a layer a *group*: the subtree is rasterized at full
+    /// strength into its own image and the whole result is faded once, rather
+    /// than each shape in it being faded separately.
+    void contextGlobalAlpha(MemorySegment context, double alpha) {
+        int result;
+        try {
+            result = (int) contextSetGlobalAlpha.invokeExact(context, alpha);
+        } catch (Throwable t) {
+            throw failure("bl_context_set_global_alpha", t);
+        }
+        check("bl_context_set_global_alpha", result);
+    }
+
+    /// Restricts drawing to the `BLRect` in `rect`, intersected with whatever
+    /// clip is already in force.
+    void contextClipToRect(MemorySegment context, MemorySegment rect) {
+        int result;
+        try {
+            result = (int) contextClipToRectD.invokeExact(context, rect);
+        } catch (Throwable t) {
+            throw failure("bl_context_clip_to_rect_d", t);
+        }
+        check("bl_context_clip_to_rect_d", result);
+    }
+
+    /// Back to the whole image.
+    ///
+    /// `bl_context_restore_clipping` rather than a save/restore pair around the
+    /// clip: Blend2D's `bl_context_save` is not exported and does not need to be,
+    /// because there is only ever one clip depth in this frame path.
+    void contextRestoreClipping(MemorySegment context) {
+        int result;
+        try {
+            result = (int) contextRestoreClipping.invokeExact(context);
+        } catch (Throwable t) {
+            throw failure("bl_context_restore_clipping", t);
+        }
+        check("bl_context_restore_clipping", result);
     }
 
     void pathInit(MemorySegment path) {

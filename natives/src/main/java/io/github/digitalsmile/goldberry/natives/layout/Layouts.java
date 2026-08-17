@@ -502,6 +502,37 @@ public final class Layouts {
                     ValueLayout.JAVA_DOUBLE.withName("x"),
                     ValueLayout.JAVA_DOUBLE.withName("y")));
 
+    /// An affine transform, as `BL_TRANSFORM_OP_ASSIGN` reads one.
+    ///
+    /// ```c
+    /// struct BLMatrix2D {
+    ///     union {
+    ///         double m[6];
+    ///         struct { double m00, m01, m10, m11, m20, m21; };
+    ///     };
+    /// };
+    /// ```
+    ///
+    /// Six consecutive doubles in exactly the order `matrix(a, b, c, d, e, f)`
+    /// writes them, which is what lets
+    /// [io.github.digitalsmile.goldberry.natives.blend2d.BlendContext#transform]
+    /// copy a CSS transform across field for field. That agreement is the whole
+    /// reason this row is here: the operand crosses as `const void*`, so a
+    /// Blend2D that reordered the union — or a target where a `double` is not
+    /// eight bytes — would produce a skewed frame and `BL_SUCCESS`, on every
+    /// platform at once and with nothing to catch it. The union is named in the
+    /// upstream header as something to remove, which makes the check a live
+    /// concern rather than a ceremonial one.
+    public static final NativeStructLayout BL_MATRIX2D = new NativeStructLayout(
+            "BLMatrix2D",
+            MemoryLayout.structLayout(
+                    ValueLayout.JAVA_DOUBLE.withName("m00"),
+                    ValueLayout.JAVA_DOUBLE.withName("m01"),
+                    ValueLayout.JAVA_DOUBLE.withName("m10"),
+                    ValueLayout.JAVA_DOUBLE.withName("m11"),
+                    ValueLayout.JAVA_DOUBLE.withName("m20"),
+                    ValueLayout.JAVA_DOUBLE.withName("m21")));
+
     /// A run of positioned glyphs, as Blend2D reads one — `BLGlyphRun`.
     ///
     /// A **descriptor**, not a container: two pointers into memory the caller
@@ -700,6 +731,7 @@ public final class Layouts {
                 BL_SIZE_I,
                 BL_POINT_I,
                 BL_POINT,
+                BL_MATRIX2D,
                 BL_GLYPH_RUN,
                 BL_GLYPH_PLACEMENT,
                 BL_FONT_METRICS,

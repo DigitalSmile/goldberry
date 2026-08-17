@@ -73,6 +73,11 @@
 - [ADR-0065 A part is styleable and not constructible](adr/0065-a-part-is-styleable-and-not-constructible.md)
 - [ADR-0066 A weight is a face, and `color` inherits](adr/0066-a-weight-is-a-face-and-color-inherits.md)
 - [ADR-0067 Motion is an overlay on a frame clock](adr/0067-motion-is-an-overlay-on-a-frame-clock.md)
+- [ADR-0068 The transform stack is Java-side](adr/0068-the-transform-stack-is-java-side.md)
+- [ADR-0069 The render tree is retained](adr/0069-the-render-tree-is-retained.md)
+- [ADR-0070 The cascade resolves invalidated nodes](adr/0070-the-cascade-resolves-invalidated-nodes.md)
+- [ADR-0071 A layer is a subtree's raster](adr/0071-a-layer-is-a-subtrees-raster.md)
+- [ADR-0072 A partial repaint needs a promise](adr/0072-a-partial-repaint-needs-a-promise.md)
 
 ---
 

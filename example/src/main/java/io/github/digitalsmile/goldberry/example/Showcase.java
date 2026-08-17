@@ -10,7 +10,7 @@ import io.github.digitalsmile.goldberry.css.Theme;
 import io.github.digitalsmile.goldberry.icon.Icon;
 import io.github.digitalsmile.goldberry.input.HitTest;
 import io.github.digitalsmile.goldberry.input.PointerRouter;
-import io.github.digitalsmile.goldberry.layout.BoxPainter;
+import io.github.digitalsmile.goldberry.layout.RenderTree;
 import io.github.digitalsmile.goldberry.text.Fonts;
 import io.github.digitalsmile.goldberry.widget.BuildContext;
 import io.github.digitalsmile.goldberry.widget.ElementTree;
@@ -312,6 +312,12 @@ public final class Showcase {
                 new Showcase.Screen(paletteIcon, plusIcon, status, window::repaint));
         var state = (ScreenState) tree.root().state().orElseThrow();
 
+        // Held for the life of the window, which is the whole point of it: the
+        // Yoga nodes, their layout cache and the measure callbacks behind every
+        // paragraph survive from one frame to the next, and a frame where nothing
+        // changed re-lays out nothing at all (ADR-0069).
+        var render = RenderTree.create();
+
         var router = new PointerRouter();
         router.focusRoot(tree.root());
         // Ctrl+T switches the theme from the keyboard, which is what a per-window
@@ -335,13 +341,34 @@ public final class Showcase {
                 renderedTheme[0] = state.theme();
             }
 
-            var boxes = renderer[0].render(tree);
-            BoxPainter.paint(frame, boxes);
+            // One layout pass, two readers. `update` reconciles the retained
+            // render tree against this frame's description and lays it out; the
+            // paint and the hit-test snapshot both read that one result. Doing
+            // this with `BoxPainter.paint` and `HitTest.capture(frame, boxes)`
+            // built and laid out the Yoga tree *twice* per frame (ADR-0069).
+            render.update(frame, renderer[0].render(tree));
+
+            // What actually differs from the last frame. Computed before
+            // painting, because the clip has to be in place before anything is
+            // drawn (ADR-0072).
+            var damage = render.damage(frame);
+            if (window.canRepaintPartially()) {
+                // Only the region that changed is rasterized; the rest of the
+                // buffer still holds what the last frame put there. An empty list
+                // means nothing changed and nothing is drawn at all.
+                render.paint(frame, damage);
+            } else {
+                // A first frame, a resize, or a backend that promises nothing.
+                render.paint(frame);
+            }
+            // And the backend uploads only these rectangles where the platform
+            // lets it (ADR-0071).
+            window.damaged(damage);
 
             // What the pointer is tested against is the frame that was just
             // painted -- not a fresh layout, which would be one frame ahead of
             // what the user can see (ADR-0054).
-            router.updateRegions(HitTest.capture(frame, boxes));
+            router.updateRegions(HitTest.capture(render));
 
             // The whole of §1.7's "the frame loop is fully idle when no
             // animation is active": ask for another frame *only* while something
@@ -389,6 +416,9 @@ public final class Showcase {
             // callback holds the font and the icons, and runs until `run`
             // returns.
             tree.unmount();
+            // Before the fonts: a render object holds a Yoga measure callback
+            // that closes over a paragraph, and a paragraph over a font.
+            render.close();
             plusIcon.close();
             paletteIcon.close();
             // Every font, then every face it shares -- which is the ordering the

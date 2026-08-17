@@ -9,6 +9,7 @@ import io.github.digitalsmile.goldberry.layout.Box;
 import io.github.digitalsmile.goldberry.motion.Clock;
 import io.github.digitalsmile.goldberry.text.Font;
 import io.github.digitalsmile.goldberry.text.Fonts;
+import io.github.digitalsmile.goldberry.text.ParagraphCache;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -54,7 +55,7 @@ public final class WidgetRenderer {
         this.resolver = new StyleResolver(Objects.requireNonNull(stylesheets, "stylesheets"));
         this.lengths = Objects.requireNonNull(lengths, "lengths");
         Objects.requireNonNull(fonts, "fonts");
-        this.paintContext = style -> fonts.of(style.typography());
+        this.paintContext = context(style -> fonts.of(style.typography()));
     }
 
     /// A renderer that draws every node with one font, whatever the cascade said.
@@ -67,7 +68,34 @@ public final class WidgetRenderer {
         this.resolver = new StyleResolver(Objects.requireNonNull(stylesheets, "stylesheets"));
         this.lengths = Objects.requireNonNull(lengths, "lengths");
         Objects.requireNonNull(font, "font");
-        this.paintContext = style -> font;
+        this.paintContext = context(style -> font);
+    }
+
+    /// A paint context over `fonts`, with a shaping cache behind it.
+    ///
+    /// One cache per renderer rather than one global one: it holds `GlyphRun`s,
+    /// which are six `int[]`s the length of the text, and its entries are only
+    /// useful to trees drawn with the same fonts. A renderer is what owns both.
+    ///
+    /// The cache is what makes a paragraph the **same instance** frame to frame,
+    /// which is not only about the 56 µs of shaping it saves — the retained
+    /// render tree reads that identity to decide it can keep the measure callback
+    /// it already bound (ADR-0069).
+    private static Paints.Context context(java.util.function.Function<ComputedStyle, Font> fonts) {
+        var cache = ParagraphCache.create();
+        return new Paints.Context() {
+
+            @Override
+            public Font font(ComputedStyle style) {
+                return fonts.apply(style);
+            }
+
+            @Override
+            public io.github.digitalsmile.goldberry.text.Paragraph paragraph(
+                    ComputedStyle style, String text) {
+                return cache.paragraph(fonts.apply(style), text);
+            }
+        };
     }
 
     /// See [#WidgetRenderer(List, Font, CssLength.Context)].
@@ -95,6 +123,16 @@ public final class WidgetRenderer {
     public WidgetRenderer reducedMotion(boolean value) {
         this.reducedMotion = value;
         return this;
+    }
+
+    /// The resolver this renderer styles with.
+    ///
+    /// Package-private, and it exists for one reader: the style-cache test, which
+    /// asks an element whether it still holds a style *this* resolver produced.
+    /// That is the mechanism ADR-0070 rests on, and asserting on it directly beats
+    /// inferring it from a colour that would also be right for the wrong reason.
+    StyleResolver resolver() {
+        return resolver;
     }
 
     /// Whether anything in the last rendered tree is still moving.
@@ -171,9 +209,22 @@ public final class WidgetRenderer {
         // `Paints` has no type, no id and no classes, so no selector names it and
         // resolving it would produce the inherited values it was handed anyway --
         // at the cost of a full cascade walk per composition node per frame.
-        var self = element.widget() instanceof Styled || element.widget() instanceof Paints
-                ? ComputedStyle.of(resolver.resolve(element), lengths, inherited)
-                : inherited;
+        ComputedStyle self;
+        if (element.widget() instanceof Styled || element.widget() instanceof Paints) {
+            // §5's "style resolution (invalidated nodes)". The cache is checked
+            // against the resolver *and* the inherited style, both by identity:
+            // a theme swap builds a new renderer and therefore a new resolver, so
+            // every entry misses at once; and a parent that re-resolved hands
+            // down a different instance, so its children re-resolve without
+            // anything having to tell them to (ADR-0070).
+            self = element.cachedStyle(resolver, inherited);
+            if (self == null) {
+                self = ComputedStyle.of(resolver.resolve(element), lengths, inherited);
+                element.cacheStyle(resolver, inherited, self);
+            }
+        } else {
+            self = inherited;
+        }
 
         // The target the cascade just produced, and the values actually in
         // flight. `self` stays the target -- it is what the next frame diffs

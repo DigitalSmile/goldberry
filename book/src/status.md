@@ -107,13 +107,17 @@ disabled container disabling its descendants.
   not what the architecture document originally promised — reaching the real thing
   means going around SDL to the platform. —
   [ADR-0056](adr/0056-the-wheel-is-lines-and-the-sign-is-ours.md)
-- **Group opacity is a multiply, not a layer.** `opacity` multiplies alpha down
-  the box subtree rather than compositing the subtree through a layer, which
-  differs from CSS exactly where two children overlap — and nothing in the canon
-  overlaps, because a control is a mark, an icon and a label placed side by side
-  by Yoga. `stack` (§11, z-layering) is the widget that makes the difference
-  visible, and the layer it needs is the same one damage tracking and §1.7's
-  "layer promotion" want. —
+- ~~**Group opacity is a multiply, not a layer.**~~ **Answered: it is a layer.**
+  A node with `opacity < 1` **and children** is composited through an offscreen
+  raster drawn at full strength and faded once, which is what CSS specifies.
+  `group-opacity.png` is two overlapping squares under a parent at 50%, and the
+  test asserts the overlapping pixel *equals* the non-overlapping one — true for
+  a layer, false for a multiply. A translucent **leaf** keeps the cheap path
+  deliberately: its own shapes can overlap each other, but by a fraction of a
+  level on an antialiased edge, and an allocation and a blit per faded label is a
+  poor trade. Three goldens with a `:disabled` control at 45% moved, and the diff
+  is confined to that control — the correction, reviewed rather than accepted. —
+  [ADR-0071](adr/0071-a-layer-is-a-subtrees-raster.md),
   [ADR-0064](adr/0064-a-rounded-rectangle-is-four-cubics.md)
 - ~~**`body-strong` is not drawn, and no control uses a weight.**~~ **Answered:
   a weight is a face.** `Inter-SemiBold.ttf` is extracted beside the variable
@@ -140,21 +144,95 @@ disabled container disabling its descendants.
   motion all ship, and the frame loop goes idle the frame after a transition
   ends. What is left of §1.7 is listed below rather than here. —
   [ADR-0067](adr/0067-motion-is-an-overlay-on-a-frame-clock.md)
-- **`transform` is in §1.7's whitelist and is not implemented.** It is what
-  `checkbox`'s specified check animation — "scale 0.6→1 + opacity" — needs for
-  its scale; the opacity half ships and the scale does not. `Box` carries no
-  transform, and adding one means the painter **and** hit testing, which needs
-  the inverse to map a pointer back through it and silently mis-routes clicks if
-  it does not. A correctness trap worth arriving on its own. —
-  [ADR-0067](adr/0067-motion-is-an-overlay-on-a-frame-clock.md)
-- **Layer promotion does not exist, so every animating frame repaints the
-  window.** §1.7 promotes a node animating `opacity`/`transform` to a
-  repaint-boundary layer so the per-frame cost is compositing only. That is the
-  same mechanism group opacity needs ([ADR-0064](adr/0064-a-rounded-rectangle-is-four-cubics.md))
-  and the same one damage tracking wants — three features, one layer, and they
-  should arrive together. At 960×640 a repaint per animating frame is
-  affordable; at 4K it will not be. —
-  [ADR-0067](adr/0067-motion-is-an-overlay-on-a-frame-clock.md)
+- ~~**`transform` is in §1.7's whitelist and is not implemented.**~~
+  **Answered, and the trap it named is what the change is about.** `transform`
+  and `transform-origin` parse, cascade, apply down the box subtree the way
+  `opacity` does, animate through the overlay, and — the part worth the separate
+  record — **route input through the inverse of the matrix the painter used**,
+  computed once while painting rather than re-derived on the input path. A
+  transform the painter applies and hit testing ignores produces no error and no
+  wrong pixel: the control is drawn where the stylesheet asked and simply does
+  not respond where it looks like it should. **No new native symbol crosses the
+  boundary**: `bl_context_apply_transform_op` was already exported for the
+  display scale, and `BL_TRANSFORM_OP_ASSIGN` replaces the context's matrix
+  rather than composing onto it — so the stack is accumulated in Java, which is
+  also what makes it invertible. Blend2D's `save`/`restore` are not exported and
+  turned out not to be needed. A computed `transform` is the **function list**,
+  not a matrix, because `translate(50%)` and the `50% 50%` origin default are
+  proportions of a box that has no size until Yoga has run — and because halfway
+  between `rotate(0)` and `rotate(180deg)`, interpolated entry by entry, is a
+  collapsed box rather than a right angle. —
+  [ADR-0068](adr/0068-the-transform-stack-is-java-side.md)
+- **The check mark still does not scale.** §1.7 specifies the checkbox tick as
+  "scale 0.6→1 + opacity"; the opacity half shipped with ADR-0067 and the scale
+  did not arrive with `transform`. The mark is drawn *onto* `check-indicator`'s
+  box, so scaling that box scales the 16px square with it — the tick needs a
+  cascade node of its own, which is a **second part** and therefore a decision
+  ADR-0065 should be asked again rather than a side effect of something else. —
+  [ADR-0068](adr/0068-the-transform-stack-is-java-side.md),
+  [ADR-0065](adr/0065-a-part-is-styleable-and-not-constructible.md)
+- ~~**Layer promotion does not exist, so every animating frame repaints the
+  window.**~~ **Answered.** A promoted subtree is rasterized at full strength and
+  untransformed, so its alpha and matrix apply to the *blit* — and a group that is
+  only fading or moving now **keeps its raster**, which is the case §1.7 wanted
+  promotion for and which ADR-0071 shipped without. One flag had been answering
+  three questions: does the screen differ (damage), does an *ancestor's* raster
+  differ (yes, it bakes in this node's finished blit), does *this* raster differ
+  (no, alpha and matrix are the composite's). A descendant's opacity **is** baked
+  in, which is why it could not be fixed by dropping `opacity` from one
+  comparison. Measured on the showcase's tree at 45%: **a frame of the fade is
+  199 µs against 554 µs**, 2.8×. `RenderTree.layersRepainted()` is public because
+  a cached raster and a fresh one produce the same image, so no pixel assertion
+  can tell them apart — which is exactly how the bug survived a test file written
+  about layer caching. —
+  [ADR-0072](adr/0072-a-partial-repaint-needs-a-promise.md),
+  [ADR-0071](adr/0071-a-layer-is-a-subtrees-raster.md)
+
+- ~~**Damage tracking says what to upload, not what to paint.**~~ **It paints
+  what changed now.** `bl_context_clip_to_rect_d` and
+  `bl_context_restore_clipping` are the third and fourth new exports, and
+  `RenderTree.paint(frame, damage)` clips to the damage — **367 µs to 117 µs** on
+  a frame where one small box changed. Read that carefully: the damaged area was
+  0.23% of the window and the saving is 3.1×, not 400×, because the clip saves
+  *rasterization* while the tree walk still visits every box for Blend2D to clip
+  away. Skipping the traversal too is a further change and is not made.
+  Correctness rests on a **promise the SPI now makes**:
+  `BackendWindow.retainsFrameContents()`, false by default so a backend that says
+  nothing gets a full repaint. `Window` checks three things that fail
+  independently — the promise, the buffer's *identity* (a backend may retain and
+  still rotate between two), and the size — plus a fourth case where the backend
+  lends nothing and the buffer is `Window`'s own, which retains by construction. A
+  clipped repaint is asserted **pixel-identical** to a full one across a whole
+  frame, because otherwise damage is a rendering bug with a performance excuse. —
+  [ADR-0072](adr/0072-a-partial-repaint-needs-a-promise.md)
+
+- **How damage is computed, and the bug a resize found in it.** Each render
+  object remembers where it was, and a node that changed damages the union of
+  where it **was** and where it **is** — both, because damaging only the new
+  position leaves the old drawing on screen. It reads the node's *own* changed
+  flag rather than its subtree's, or a parent whose child moved would report the
+  whole window. **A resize broke it in the field**: a remembered rectangle
+  belongs to the previous frame, so the union fits neither when a window is
+  dragged a pixel narrower, and the backend refused the frame mid-drag. Damage is
+  now clamped on the way out rather than only where each rectangle is computed —
+  and the regression test resizes by **one pixel**, because that is what a drag
+  produces and a test that jumped by fifty would have passed against a fix that
+  only handled large changes. Every damage test had used a single frame size,
+  which is the natural thing to write and the one case that cannot fail. —
+  [ADR-0071](adr/0071-a-layer-is-a-subtrees-raster.md),
+  [ADR-0072](adr/0072-a-partial-repaint-needs-a-promise.md)
+
+- **Four symbols were added to the export list**, the first since it caught its
+  third local-symbol bug: `bl_context_blit_image_d` and
+  `bl_context_set_global_alpha` for layers, then `bl_context_clip_to_rect_d` and
+  `bl_context_restore_clipping` for the partial repaint. Nothing else was needed — the offscreen pixels
+  are a `PixelBuffer` allocated in Java and wrapped with the already-exported
+  `bl_image_init_as_from_data`, which is the principle the export list states in
+  its own comment. `BlendLayerTest` is seven pixel assertions that cannot pass
+  unless both really exported, and the ELF, MSVC `.def` and Mach-O branches are
+  answered by the next CI run rather than by argument. —
+  [ADR-0071](adr/0071-a-layer-is-a-subtrees-raster.md),
+  [ADR-0018](adr/0018-sdl-conventions-stop-at-the-boundary.md)
 - **The overlay enter/exit lifecycle and the imperative `AnimationController`
   are specifications without subjects.** `opening → open → closing → removed`
   applies to menus, popovers, tooltips, dialogs and toasts; the controller drives
@@ -170,11 +248,17 @@ disabled container disabling its descendants.
   to the parts it builds itself, which is enough for `checkbox` and will not be
   enough for `form` or `group-box`. —
   [ADR-0065](adr/0065-a-part-is-styleable-and-not-constructible.md)
-- **The rounded corners have only been rasterized on linux-x64.** Blend2D JITs
-  its pipelines per CPU, so the four cubics on AVX-512, on Apple Silicon's NEON
-  path and under MSVC are answered by the next CI run rather than by argument —
-  which is what the golden images' per-channel *and* area tolerance is for. —
+- **The rounded corners and the transforms have only been rasterized on
+  linux-x64.** Blend2D JITs its pipelines per CPU, so the four cubics and the
+  eleventh golden's rotations and skews on AVX-512, on Apple Silicon's NEON path
+  and under MSVC are answered by the next CI run rather than by argument — which
+  is what the golden images' per-channel *and* area tolerance is for. The
+  transform half also rests on `BLMatrix2D` being six consecutive doubles in the
+  order `matrix(a, b, c, d, e, f)` writes them, which the layout probe now checks
+  against the compiled library on every target because the operand crosses as
+  `void*` and a reordered union would produce a skewed frame and `BL_SUCCESS`. —
   [ADR-0064](adr/0064-a-rounded-rectangle-is-four-cubics.md),
+  [ADR-0068](adr/0068-the-transform-stack-is-java-side.md),
   [ADR-0050](adr/0050-golden-images-have-a-tolerance.md)
 - **Nothing recomputes the cursor when the tree changes under a still pointer.**
   A widget that becomes disabled without the pointer moving keeps the shape it
@@ -414,15 +498,65 @@ disabled container disabling its descendants.
   "resolved text style" is a `Font` until the CSS engine has something better. —
   [ADR-0037](adr/0037-what-the-text-path-costs.md)
 
-- **A fresh upcall stub per text box per frame is the largest cost of text in a
-  layout pass.** One paragraph takes a pass from 12.5 µs to 40.4 µs, and 11 µs of
-  that is `MeasureCallback.of` — an `Arena` and a `MethodHandle` bound into native
-  code — because `BoxPainter` rebuilds the Yoga tree every frame. The crossing
-  itself is ~0.3 µs, so the stub costs forty times what calling through it does.
-  The retained render tree removes this by keeping the node; this is the first
-  measurement that makes ADR-0004 a performance argument as well as a design one. —
+- ~~**A fresh upcall stub per text box per frame is the largest cost of text in a
+  layout pass.**~~ **Answered: the render tree is retained.** `RenderObject` owns
+  a `YGNode` that survives the frame and keeps its measure callback for as long as
+  the paragraph behind it is the same instance. Measured on a showcase-shaped tree
+  with seven measured leaves at 960×640: **layout and walk fall from 190 µs to
+  7.2 µs**, and a whole frame from **354 µs to 148 µs**. The 7.2 µs row is the one
+  that had to be won — it hands over a *fresh box tree every frame*, as a real
+  application produces, and it matches the do-nothing case because every Yoga
+  setter is guarded by a comparison against the box already applied. Yoga dirties
+  a node when a style is **set**, not when it changes, so an unguarded retained
+  tree would cost exactly what a thrown-away one costs plus the memory management.
+  Retention also introduced this repository's first keep-state bug, caught by its
+  own equivalence test: **Yoga does not dirty a node when its measure function is
+  replaced**, so a paragraph swapped for longer text reported the height cached
+  for the old one — six lines of prose laid out as one, with no error anywhere. —
+  [ADR-0069](adr/0069-the-render-tree-is-retained.md),
   [ADR-0037](adr/0037-what-the-text-path-costs.md),
   [ADR-0004](adr/0004-three-tree-retained-declarative-model.md)
+
+- **A window was laying its tree out twice per frame**, once to paint and once to
+  find out where it had painted, and nobody had noticed. `HitTest.capture` took a
+  frame and a box tree and built a whole second Yoga tree to answer.
+  `HitTest.capture(RenderTree)` reads the pass `update` already ran. —
+  [ADR-0069](adr/0069-the-render-tree-is-retained.md),
+  [ADR-0054](adr/0054-hit-testing-runs-against-the-painted-frame.md)
+
+- ~~**The cascade is now the largest term in a frame.**~~ **Answered: it resolves
+  invalidated nodes, which is what §5 always said it did.** A node's resolved
+  style is cached on its element and checked by identity against two things — the
+  **resolver**, so a theme swap or a hot reload invalidates everything at once
+  with no event to remember to fire; and the **inherited style**, so a parent that
+  re-resolved hands its children a different instance and they re-resolve without
+  being told. Invalidation is a **subtree**, because a descendant combinator means
+  a node's own match depends on an ancestor's state:
+  `checkbox:hover check-indicator` restyles the indicator while the checkbox's own
+  style need not change at all, and that rule is in `controls.css` today. One
+  hook — `setPseudoClass` — covers `:hover`, `:active`, `:focus`, `:disabled`,
+  `:checked` and `:indeterminate`, and fires only on an actual change, which
+  matters because the renderer mirrors three of them onto every styled element
+  every frame. **The CPU a frame spends before rasterizing falls from 148 µs to
+  3.5 µs** — 354 µs to 3.5 µs taken with the retained render tree, a factor of a
+  hundred. —
+  [ADR-0070](adr/0070-the-cascade-resolves-invalidated-nodes.md),
+  [ADR-0052](adr/0052-state-lives-on-the-element-and-rebuilds-are-deferred.md)
+
+- **Rasterization is now the frame, and there is nothing else of consequence
+  left.** With Blend2D pinned to one thread a 960×640 frame is about 320 µs,
+  essentially all of it painting; threaded, it spreads over four workers. Two
+  rounds of removing CPU work have made damage tracking and layer promotion the
+  honest next target rather than one option among several. —
+  [ADR-0070](adr/0070-the-cascade-resolves-invalidated-nodes.md),
+  [ADR-0069](adr/0069-the-render-tree-is-retained.md)
+
+- **`customPropertiesFor` still walks to the root**, re-running the whole cascade
+  at every ancestor, so it is *O(depth × rules)* where it could be *O(rules)*. The
+  style cache amortises it almost to nothing, but a first frame and every
+  invalidated subtree still pay it. Worth doing when a deep tree makes a first
+  frame visible. —
+  [ADR-0070](adr/0070-the-cascade-resolves-invalidated-nodes.md)
 
 - **Painting now dominates a frame, and half of that reversal is a driver change.**
   Over 119 frames at 960×640 with text: buffer 0.18 ms, **paint 5.10 ms**, present
@@ -479,11 +613,12 @@ disabled container disabling its descendants.
   SDL3 moved from `release-3.2.0` to `release-3.4.14` in the same session. —
   [ADR-0022](adr/0022-window-is-the-front-door.md)
 
-- **Every frame damages the whole window.** `Window.paint` presents
-  `DamageRect.all(...)`, so nothing exploits partial repaint yet. At 960×640
-  that is affordable; at 4K it will not be. The damage rects already flow
-  through the SPI — what is missing is anything that knows which parts changed,
-  which is the same thing the state and rebuild API is blocked on. —
+- ~~**Every frame damages the whole window.**~~ **Answered for the upload.**
+  Something now knows which parts changed: the retained render tree remembers
+  each node's rectangle and reports the union of old and new for whatever moved.
+  What is still true is that the *painting* is full-frame — see the damage entry
+  above for why that needs an SPI change rather than more code here. —
+  [ADR-0071](adr/0071-a-layer-is-a-subtrees-raster.md),
   [ADR-0004](adr/0004-three-tree-retained-declarative-model.md)
 
 - **AsmJit's W^X handling on Apple Silicon is now reachable.**

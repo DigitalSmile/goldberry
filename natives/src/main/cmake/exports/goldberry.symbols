@@ -163,6 +163,28 @@ bl_context_set_stroke_join
 bl_context_fill_path_d_rgba32
 bl_context_stroke_path_d_rgba32
 
+# Layers (sec. 5, ADR-0071). A subtree rendered into an offscreen image and
+# composited back is what makes CSS group opacity mean what CSS means, and what
+# lets an animating node re-blit a raster instead of repainting itself. These
+# are the first two symbols added to this list since it caught its third
+# local-symbol bug, and they are the only two the feature needs: the offscreen
+# pixels are a direct ByteBuffer allocated in Java and wrapped with
+# bl_image_init_as_from_data above, because Goldberry never asks Blend2D to
+# allocate pixels.
+#
+# `img_area` is passed as NULL, which Blend2D reads as the whole image, so no
+# BLRectI crosses and no layout row is needed for one.
+bl_context_blit_image_d
+bl_context_set_global_alpha
+
+# Damage-driven painting (sec. 5, ADR-0072). Clipping the rasterizer to the
+# region that changed is the half of damage tracking that saves the ~320us of
+# rasterization rather than the upload. `restore_clipping` rather than a
+# save/restore pair, because there is only ever one clip depth here and
+# bl_context_save is still not exported.
+bl_context_clip_to_rect_d
+bl_context_restore_clipping
+
 # --- Yoga (sec. 5, layout) ---------------------------------------------------
 # The node API, bound in the `yoga` package. YGSize and the measure callback are
 # above -- they were proven first (ADR-0017), and this is what finally drives

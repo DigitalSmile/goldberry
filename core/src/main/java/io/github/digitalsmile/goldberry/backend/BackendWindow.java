@@ -46,6 +46,31 @@ public interface BackendWindow extends AutoCloseable {
         return Optional.empty();
     }
 
+    /// Whether the buffer [#acquireFrame] lends back still holds the pixels of
+    /// the frame before it.
+    ///
+    /// **The precondition for a partial repaint**, and the reason it is a
+    /// question the backend answers rather than something the frame loop assumes.
+    /// Damage tracking can say precisely which region changed; repainting only
+    /// that region is correct *only* if everything outside it is still on the
+    /// buffer. Against a backend that hands over a fresh or recycled buffer it
+    /// would draw one control on a field of whatever was there before
+    /// ([ADR-0072](../../../../../../book/src/adr/0072-a-partial-repaint-needs-a-promise.md)).
+    ///
+    /// **False by default**, which is the safe answer: a backend that says
+    /// nothing gets a full repaint, exactly as every backend did before this
+    /// existed. A backend saying `true` is promising something specific — that
+    /// consecutive `acquireFrame` calls at an unchanged size return a buffer whose
+    /// contents were not disturbed between them.
+    ///
+    /// It says nothing about the buffer being the *same* buffer: a backend may
+    /// legitimately rotate between two and copy. The caller checks identity
+    /// separately, because a buffer that changed underneath is a repaint whatever
+    /// this returns.
+    default boolean retainsFrameContents() {
+        return false;
+    }
+
     /// Hands a rasterized frame to the platform.
     ///
     /// Passing back exactly the buffer [#acquireFrame] returned tells the backend

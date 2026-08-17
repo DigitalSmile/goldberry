@@ -1,6 +1,7 @@
 package io.github.digitalsmile.goldberry.motion;
 
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
+import io.github.digitalsmile.goldberry.css.Transform;
 import io.github.digitalsmile.goldberry.css.Transitions;
 import io.github.digitalsmile.goldberry.css.Transitions.Animatable;
 import java.util.EnumMap;
@@ -45,11 +46,27 @@ public final class Animations {
 
     /// One property, in flight.
     ///
+    /// ## Why the value is an `Object`
+    ///
+    /// It was a `double` while every animatable property was a number or a colour
+    /// — and a colour is a number, because a `double` holds every 32-bit integer
+    /// exactly, so `0xAARRGGBB` round-trips through one. `transform` is the first
+    /// that is not: it is a list of functions, and there is no encoding of one in
+    /// a `double` that is not a lie.
+    ///
+    /// The alternative was a second map, keyed by the same enum, holding
+    /// transforms — and then `observe`, `apply`, `settle` and `currentOr` each
+    /// grow a second half that must stay in step with the first. One map with a
+    /// boxed value and a dispatch at the two points that read it is less code and
+    /// has one place to be wrong. The boxing costs an allocation per property per
+    /// frame *while something is moving*, which is a handful of objects on a
+    /// frame that is already rasterizing.
+    ///
     /// @param from        the value it started at — the *current animated* value
     ///                    when this replaced an earlier transition
     /// @param to          the target the cascade resolved
     /// @param startMillis when it began, on the frame clock
-    private record Running(double from, double to, double startMillis, Transitions.Timing timing) {
+    private record Running(Object from, Object to, double startMillis, Transitions.Timing timing) {
 
         /// Where this is at `now`, in `0..1` of eased progress.
         double progressAt(double now) {
@@ -116,7 +133,7 @@ public final class Animations {
             if (sameValue(property, from, to)) {
                 // Already there, or never left. Clearing here is what makes a
                 // finished transition stop costing a frame.
-                if (running.containsKey(property) && running.get(property).to() == to) {
+                if (running.containsKey(property) && running.get(property).to().equals(to)) {
                     continue;
                 }
                 running.remove(property);
@@ -129,7 +146,7 @@ public final class Animations {
                 continue;
             }
             var current = running.get(property);
-            if (current != null && current.to() == to) {
+            if (current != null && current.to().equals(to)) {
                 // Already heading there. Restarting would reset the clock every
                 // frame and the value would never arrive.
                 continue;
@@ -185,7 +202,7 @@ public final class Animations {
     }
 
     /// The value a property is at right now, or `fallback` if it is not running.
-    private double currentOr(Animatable property, double fallback, double now) {
+    private Object currentOr(Animatable property, Object fallback, double now) {
         var animation = running.get(property);
         if (animation == null) {
             return fallback;
@@ -194,32 +211,44 @@ public final class Animations {
         return interpolate(property, animation.from(), animation.to(), animation.progressAt(now));
     }
 
-    /// A property's value read off a style, as a number.
+    /// A property's value read off a style.
     ///
-    /// Colours are carried as their `0xAARRGGBB` bits in a `double`, which is
-    /// exact — a double holds every 32-bit integer — and keeps one code path for
-    /// both kinds of animatable value rather than two parallel maps.
-    private static double valueOf(ComputedStyle style, Animatable property) {
+    /// Colours are carried as their `0xAARRGGBB` bits in a `Double`, which is
+    /// exact — a double holds every 32-bit integer — so the four numeric
+    /// properties share one representation. `transform` is the [Transform]
+    /// itself; see [Running] for why that is worth a boxed value.
+    private static Object valueOf(ComputedStyle style, Animatable property) {
         return switch (property) {
             case OPACITY -> style.opacity();
-            case BACKGROUND_COLOR -> style.background();
-            case BORDER_COLOR -> style.decoration().borderColor();
-            case COLOR -> style.color();
+            case BACKGROUND_COLOR -> (double) style.background();
+            case BORDER_COLOR -> (double) style.decoration().borderColor();
+            case COLOR -> (double) style.color();
+            case TRANSFORM -> style.transform();
         };
     }
 
-    private static ComputedStyle withValue(ComputedStyle style, Animatable property, double value) {
+    private static ComputedStyle withValue(ComputedStyle style, Animatable property, Object value) {
         return switch (property) {
-            case OPACITY -> style.opacity(value);
-            case BACKGROUND_COLOR -> style.background((int) Math.round(value));
-            case BORDER_COLOR ->
-                    style.decoration(style.decoration().borderColor((int) Math.round(value)));
-            case COLOR -> style.color((int) Math.round(value));
+            case OPACITY -> style.opacity((Double) value);
+            case BACKGROUND_COLOR -> style.background(argb(value));
+            case BORDER_COLOR -> style.decoration(style.decoration().borderColor(argb(value)));
+            case COLOR -> style.color(argb(value));
+            case TRANSFORM -> style.transform((Transform) value);
         };
     }
 
-    private static boolean sameValue(Animatable property, double a, double b) {
-        return property == Animatable.OPACITY ? Math.abs(a - b) < 1e-6 : a == b;
+    private static int argb(Object value) {
+        return (int) Math.round((Double) value);
+    }
+
+    private static boolean sameValue(Animatable property, Object a, Object b) {
+        // Opacity is the one that arrives from arithmetic rather than from a
+        // literal -- `45%` of an inherited value -- so two "equal" opacities can
+        // differ in the last bit and a transition would restart every frame.
+        if (property == Animatable.OPACITY) {
+            return Math.abs((Double) a - (Double) b) < 1e-6;
+        }
+        return a.equals(b);
     }
 
     /// Where a property is at eased progress `t`.
@@ -227,12 +256,16 @@ public final class Animations {
     /// Numbers move linearly; colours move through **OKLCH**, because the sRGB
     /// midpoint of two saturated colours is a muddy grey that is neither of them
     /// (§1.7, and the reason the space is specified rather than left to the
-    /// implementation).
-    private static double interpolate(Animatable property, double from, double to, double t) {
-        if (property == Animatable.OPACITY) {
-            return from + (to - from) * t;
-        }
-        return io.github.digitalsmile.goldberry.css.CssColor.mix(
-                (int) Math.round(from), (int) Math.round(to), t);
+    /// implementation); a transform moves function by function, which is what
+    /// makes halfway between `rotate(0)` and `rotate(180deg)` a rotation rather
+    /// than a collapsed box.
+    private static Object interpolate(Animatable property, Object from, Object to, double t) {
+        return switch (property) {
+            case OPACITY -> (Double) from + ((Double) to - (Double) from) * t;
+            case BACKGROUND_COLOR, BORDER_COLOR, COLOR ->
+                    (double) io.github.digitalsmile.goldberry.css.CssColor.mix(
+                            argb(from), argb(to), t);
+            case TRANSFORM -> ((Transform) from).mix((Transform) to, t);
+        };
     }
 }

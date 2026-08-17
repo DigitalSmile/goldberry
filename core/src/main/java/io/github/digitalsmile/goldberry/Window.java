@@ -164,6 +164,75 @@ public final class Window implements AutoCloseable {
         cached = null;
     }
 
+    /// What the painter reported as changed since the last frame, or empty for
+    /// "assume everything".
+    ///
+    /// Set from inside the paint callback by an application that keeps a
+    /// `RenderTree` — it is the only thing that knows what moved. Cleared after
+    /// every present, so a frame that says nothing gets the whole window, which
+    /// is the safe answer and the one every caller had before this existed.
+    /// Null, not empty. An **empty** list is a caller saying "nothing changed,
+    /// upload nothing", which is what a still window reports and is the whole
+    /// point; null is a caller that has not said anything, which has to mean the
+    /// whole frame.
+    private List<DamageRect> damage;
+
+    /// Reports which regions of this frame differ from the last one.
+    ///
+    /// Call inside `onPaint`, after painting:
+    ///
+    /// ```java
+    /// render.update(frame, renderer.render(tree));
+    /// render.paint(frame);
+    /// window.damaged(render.damage(frame));
+    /// ```
+    ///
+    /// The backend uploads only these rectangles where the platform lets it. It
+    /// is advisory in the strict sense — the pixels outside them are still
+    /// whatever was painted — so a caller that gets it wrong shows a stale
+    /// region rather than a corrupt one.
+    public Window damaged(List<DamageRect> regions) {
+        this.damage = List.copyOf(Objects.requireNonNull(regions, "regions"));
+        return this;
+    }
+
+    /// The buffer the previous frame was painted into, by identity.
+    ///
+    /// A backend may promise it retains contents and still hand back a *different*
+    /// buffer — rotating between two, or reallocating after a resize. Identity is
+    /// what catches that, and it is checked separately from the promise because
+    /// they fail independently.
+    private PixelBuffer lastTarget;
+
+    /// Whether the frame currently being painted may be repainted in part.
+    private boolean partialRepaint;
+
+    /// Whether only the damaged region of this frame needs repainting.
+    ///
+    /// **Valid only inside the paint callback.** Three things have to hold, and
+    /// they fail independently:
+    ///
+    /// 1. the backend promises the buffer keeps its contents
+    ///    ([io.github.digitalsmile.goldberry.backend.BackendWindow#retainsFrameContents()]);
+    /// 2. it is the *same* buffer as last frame, not a rotated or reallocated one;
+    /// 3. there was a last frame at this size at all.
+    ///
+    /// When it is false the answer is a full repaint, which is what every frame
+    /// did before this existed:
+    ///
+    /// ```java
+    /// var damage = render.damage(frame);
+    /// if (window.canRepaintPartially()) {
+    ///     render.paint(frame, damage);
+    /// } else {
+    ///     render.paint(frame);
+    /// }
+    /// window.damaged(damage);
+    /// ```
+    public boolean canRepaintPartially() {
+        return partialRepaint;
+    }
+
     void paint() {
         if (!window.isOpen()) {
             return;
@@ -197,6 +266,19 @@ public final class Window implements AutoCloseable {
             }
             target = cached;
         }
+        // Decided before the painter runs, because the clip has to be in place
+        // before anything is drawn -- and recorded on the window rather than
+        // passed, because the painter is an application's lambda and this is one
+        // more argument it should not have to thread through.
+        // Two sources, two answers. A buffer the backend lent is the backend's
+        // to promise about. The fallback buffer is *this* window's -- allocated
+        // here, reused here, and disturbed by nothing between frames -- so it
+        // retains by construction, whatever the backend says about its own.
+        partialRepaint = (borrowed.isEmpty() || window.retainsFrameContents())
+                && target == lastTarget
+                && target.size().equals(size);
+        lastTarget = target;
+
         var allocated = traced ? System.nanoTime() : 0L;
 
         // Ended before the timestamp and before presenting, in that order: a
@@ -217,7 +299,9 @@ public final class Window implements AutoCloseable {
 
         var frameSize = size;
         try {
-            window.present(target, List.of(DamageRect.all(frameSize)));
+            window.present(target,
+                    damage == null ? List.of(DamageRect.all(frameSize)) : damage);
+            damage = null;
             if (!everPresented) {
                 everPresented = true;
                 Startup.mark("first frame presented");

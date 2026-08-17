@@ -76,6 +76,22 @@ final class Sdl3Window implements BackendWindow {
         return new DisplayScale(video().displayScale(handle));
     }
 
+    /// SDL keeps one window surface and hands the same one back until the window
+    /// is resized, so what was painted last frame is still there.
+    ///
+    /// True on both branches of `SDL_GetWindowSurface`: where the platform lends
+    /// mapped memory it is the platform's own surface, and where SDL falls back
+    /// to a heap buffer and copies into a texture on present (its Wayland driver,
+    /// ADR-0046) that heap buffer is equally persistent. What SDL does *after*
+    /// present does not disturb it.
+    ///
+    /// A resize invalidates it, and the caller notices by the size changing
+    /// rather than by anything said here.
+    @Override
+    public boolean retainsFrameContents() {
+        return true;
+    }
+
     @Override
     public Optional<PixelBuffer> acquireFrame() {
         backend.requireUiThread();

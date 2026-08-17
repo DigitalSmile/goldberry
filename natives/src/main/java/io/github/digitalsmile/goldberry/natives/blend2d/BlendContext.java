@@ -57,6 +57,7 @@ public final class BlendContext implements AutoCloseable {
     private final MemorySegment context;
     private final MemorySegment rect;
     private final MemorySegment origin;
+    private final MemorySegment matrix;
     private final Thread owner = Thread.currentThread();
     private final BlendImage image;
     private final double scale;
@@ -72,6 +73,13 @@ public final class BlendContext implements AutoCloseable {
     private static final long POINT_X = Layouts.BL_POINT.offsetOf("x");
     private static final long POINT_Y = Layouts.BL_POINT.offsetOf("y");
 
+    private static final long MATRIX_M00 = Layouts.BL_MATRIX2D.offsetOf("m00");
+    private static final long MATRIX_M01 = Layouts.BL_MATRIX2D.offsetOf("m01");
+    private static final long MATRIX_M10 = Layouts.BL_MATRIX2D.offsetOf("m10");
+    private static final long MATRIX_M11 = Layouts.BL_MATRIX2D.offsetOf("m11");
+    private static final long MATRIX_M20 = Layouts.BL_MATRIX2D.offsetOf("m20");
+    private static final long MATRIX_M21 = Layouts.BL_MATRIX2D.offsetOf("m21");
+
     private BlendContext(BlendImage image, double scale, int requestedThreads) {
         this.image = image;
         this.scale = scale;
@@ -86,6 +94,10 @@ public final class BlendContext implements AutoCloseable {
             this.rect = arena.allocate(Layouts.BL_RECT.layout());
             // One BLPoint, reused for every glyph run, for the same reason.
             this.origin = arena.allocate(Layouts.BL_POINT.layout());
+            // One BLMatrix2D, reused for every transformed box. A frame with an
+            // animating control sets this on the way into the subtree and back
+            // on the way out, twice per box per frame.
+            this.matrix = arena.allocate(Layouts.BL_MATRIX2D.layout());
 
             started = begin(requestedThreads);
         } catch (RuntimeException | Error e) {
@@ -292,6 +304,114 @@ public final class BlendContext implements AutoCloseable {
         origin.set(ValueLayout.JAVA_DOUBLE, POINT_X, x);
         origin.set(ValueLayout.JAVA_DOUBLE, POINT_Y, y);
         blend2d.contextFillGlyphRun(context, origin, font.pointer(), glyphs.pointer(), argb);
+    }
+
+    /// Replaces the context's transform with `[a b c d e f]`, on top of the
+    /// display scale this context was created at.
+    ///
+    /// Six doubles rather than a matrix type, because a matrix type belongs to
+    /// the caller: `:core` has one, this module must not depend on `:core`, and
+    /// inventing a second here would be a second place for the field order to be
+    /// wrong. What crosses is the numbers.
+    ///
+    /// **Absolute, not relative.** There is no push and no pop — Blend2D's
+    /// `bl_context_save` and `bl_context_restore` are not exported — so every
+    /// call states the whole transform, and [#resetTransform()] is what a caller
+    /// uses to get back to plain scaled user space. The scale is folded in here
+    /// rather than left to the caller so that a transform set through this method
+    /// is in the same logical coordinates as every other drawing call on the
+    /// context ([ADR-0068](../../../../../../book/src/adr/0068-the-transform-stack-is-java-side.md)).
+    public void transform(double a, double b, double c, double d, double e, double f) {
+        requireUsable();
+        if (!Double.isFinite(a) || !Double.isFinite(b) || !Double.isFinite(c)
+                || !Double.isFinite(d) || !Double.isFinite(e) || !Double.isFinite(f)) {
+            throw new IllegalArgumentException(
+                    "a transform must be six finite numbers, not [" + a + " " + b + " " + c
+                            + " " + d + " " + e + " " + f + "]");
+        }
+        // Scale first, then the caller's matrix: the caller works in logical
+        // pixels, and the display scale is what turns those into device ones.
+        // Written as a pre-multiply here rather than as a second call because
+        // ASSIGN replaces, so two calls would leave whichever came last.
+        matrix.set(ValueLayout.JAVA_DOUBLE, MATRIX_M00, a * scale);
+        matrix.set(ValueLayout.JAVA_DOUBLE, MATRIX_M01, b * scale);
+        matrix.set(ValueLayout.JAVA_DOUBLE, MATRIX_M10, c * scale);
+        matrix.set(ValueLayout.JAVA_DOUBLE, MATRIX_M11, d * scale);
+        matrix.set(ValueLayout.JAVA_DOUBLE, MATRIX_M20, e * scale);
+        matrix.set(ValueLayout.JAVA_DOUBLE, MATRIX_M21, f * scale);
+        blend2d.contextTransform(context, matrix);
+    }
+
+    /// Draws `layer` with its top-left corner at logical `(x, y)`.
+    ///
+    /// The whole image, composited with the current [#globalAlpha(double)] and
+    /// the current transform. This is how a subtree rendered into its own image
+    /// gets back onto the frame (ADR-0071).
+    ///
+    /// @throws IllegalArgumentException if the origin is not drawable
+    public void blit(double x, double y, BlendImage layer) {
+        requireUsable();
+        Objects.requireNonNull(layer, "layer");
+        requireDrawableOrigin(x, y);
+        origin.set(ValueLayout.JAVA_DOUBLE, POINT_X, x);
+        origin.set(ValueLayout.JAVA_DOUBLE, POINT_Y, y);
+        blend2d.contextBlitImage(context, origin, layer.pointer());
+    }
+
+    /// Scales the alpha of everything drawn after this call.
+    ///
+    /// **This is what makes a layer a group.** A subtree is rasterized into its
+    /// own image at full strength, and then the whole result is faded once by
+    /// this — which is what CSS `opacity` means, and differs from fading each
+    /// shape separately exactly where two of them overlap
+    /// ([ADR-0064](../../../../../../book/src/adr/0064-a-rounded-rectangle-is-four-cubics.md)
+    /// stated that difference as an open question; ADR-0071 is the answer).
+    ///
+    /// Context state, not a per-call argument, because Blend2D's is — so a caller
+    /// that sets it must set it back, and [BlendContext] does not do that for
+    /// anyone.
+    ///
+    /// @param alpha 0 to 1
+    public void globalAlpha(double alpha) {
+        requireUsable();
+        if (!(alpha >= 0) || !(alpha <= 1)) {
+            throw new IllegalArgumentException(
+                    "a global alpha is between 0 and 1, and " + alpha + " is not");
+        }
+        blend2d.contextGlobalAlpha(context, alpha);
+    }
+
+    /// Restricts drawing to `(x, y, width, height)` in logical coordinates.
+    ///
+    /// Intersected with whatever clip is in force, which is Blend2D's behaviour
+    /// and is why [#resetClip()] exists rather than a second `clipTo` undoing the
+    /// first.
+    public void clipTo(double x, double y, double width, double height) {
+        requireUsable();
+        if (!Double.isFinite(x) || !Double.isFinite(y)
+                || !(width > 0) || !(height > 0)) {
+            throw new IllegalArgumentException(
+                    "a clip needs a finite origin and a positive size, and "
+                            + width + "x" + height + "+" + x + "+" + y + " is not");
+        }
+        rect.set(ValueLayout.JAVA_DOUBLE, RECT_X, x);
+        rect.set(ValueLayout.JAVA_DOUBLE, RECT_Y, y);
+        rect.set(ValueLayout.JAVA_DOUBLE, RECT_W, width);
+        rect.set(ValueLayout.JAVA_DOUBLE, RECT_H, height);
+        blend2d.contextClipToRect(context, rect);
+    }
+
+    /// Back to the whole surface.
+    public void resetClip() {
+        requireUsable();
+        blend2d.contextRestoreClipping(context);
+    }
+
+    /// Back to plain scaled user space — what every box that has no transform of
+    /// its own is drawn in.
+    public void resetTransform() {
+        requireUsable();
+        transform(1, 0, 0, 1, 0, 0);
     }
 
     /// Fills `path`, offset so its own origin lands at `(x, y)`.

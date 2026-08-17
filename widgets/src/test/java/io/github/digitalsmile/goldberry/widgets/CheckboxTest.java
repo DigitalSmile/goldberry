@@ -417,7 +417,7 @@ class CheckboxTest {
 
         private Box.Mark mark(Checkbox.Value value) {
             return new CheckIndicator(value, false, 2)
-                    .render(ComputedStyle.INITIAL, List.of(), ignored -> TestFont.one())
+                    .render(ComputedStyle.INITIAL, List.of(), TestFont.context())
                     .mark();
         }
 

@@ -1,18 +1,14 @@
 package io.github.digitalsmile.goldberry.layout;
 
 import io.github.digitalsmile.goldberry.Frame;
+import io.github.digitalsmile.goldberry.css.Affine;
 import io.github.digitalsmile.goldberry.natives.blend2d.BlendPath;
 import io.github.digitalsmile.goldberry.natives.blend2d.BlendStrokeCap;
 import io.github.digitalsmile.goldberry.natives.blend2d.BlendStrokeJoin;
 import io.github.digitalsmile.goldberry.natives.yoga.ComputedLayout;
-import io.github.digitalsmile.goldberry.natives.yoga.Edge;
-import io.github.digitalsmile.goldberry.natives.yoga.Gutter;
-import io.github.digitalsmile.goldberry.natives.yoga.YogaConfig;
-import io.github.digitalsmile.goldberry.natives.yoga.YogaNode;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Objects;
 import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 
 /// Lays a [Box] tree out with Yoga and paints it with Blend2D.
 ///
@@ -42,17 +38,61 @@ public final class BoxPainter {
     private BoxPainter() {
     }
 
-    /// Lays `root` out to fill `frame` and paints it.
+    /// Lays `root` out to fill `frame` and paints it, keeping nothing.
+    ///
+    /// The **one-shot** form: it builds a [RenderTree], uses it once and closes
+    /// it. Right for a golden image, a test or anything else that paints a tree a
+    /// single time, and wrong for a window — an application that paints sixty
+    /// times a second wants one `RenderTree` held for the life of the window, so
+    /// that Yoga's nodes, its layout cache and the measure callbacks survive
+    /// between frames
+    /// ([ADR-0069](../../../../../../book/src/adr/0069-the-render-tree-is-retained.md)).
+    ///
+    /// There is one implementation and two lifetimes, rather than two
+    /// implementations — which is what ADR-0053 rejected and what would otherwise
+    /// leave the goldens testing a path applications do not take.
     public static void paint(Frame frame, Box root) {
         Objects.requireNonNull(frame, "frame");
         Objects.requireNonNull(root, "root");
+        try (var tree = RenderTree.create()) {
+            tree.update(frame, root);
+            tree.paint(frame);
+        }
+    }
 
+    /// Draws whatever `walk` hands over, in the order it hands it over.
+    ///
+    /// The drawing routine itself, separated from where the boxes came from so
+    /// that a retained tree and a throwaway one share it.
+    static void paintPlaced(Frame frame, Consumer<Consumer<Placed>> walk) {
         // One path, reset between shapes, rather than one per rounded corner per
         // box per frame. A `BlendPath` is a native allocation and an `Arena`; a
         // window of forty rounded controls would otherwise make eighty of them
         // every frame, to draw the same four arcs.
         try (var path = BlendPath.create()) {
-            forEachBox(frame, root, (box, layout) -> paintOne(frame, path, box, layout));
+            // What the frame's transform is currently set to, so a run of
+            // untransformed boxes -- which is every box in an ordinary frame --
+            // costs no calls at all rather than a reset each. Held in a
+            // one-element array because the visitor is a lambda and this is the
+            // one piece of state the walk cannot carry as a parameter: the
+            // context is shared by every box, not scoped to one subtree.
+            var current = new Affine[] {Affine.IDENTITY};
+            walk.accept(placed -> {
+                var matrix = placed.transform();
+                if (!matrix.equals(current[0])) {
+                    frame.transform(matrix.a(), matrix.b(), matrix.c(),
+                            matrix.d(), matrix.e(), matrix.f());
+                    current[0] = matrix;
+                }
+                paintOne(frame, path, placed.box(), placed.layout());
+            });
+            if (!current[0].isIdentity()) {
+                // A painter that left the last subtree's matrix on the context
+                // would hand it to whatever draws next -- an application's own
+                // `onPaint` work, or the next paint on the same frame -- which is
+                // a bug that would show up somewhere else.
+                frame.resetTransform();
+            }
         }
     }
 
@@ -63,7 +103,7 @@ public final class BoxPainter {
     /// survive whatever the box itself drew — and it is drawn per box rather than
     /// once at the end because a box tree has no z-order yet, so "last" and "on
     /// top" are the same thing only within a box (ADR-0053).
-    private static void paintOne(Frame frame, BlendPath path, Box box, ComputedLayout layout) {
+    static void paintOne(Frame frame, BlendPath path, Box box, ComputedLayout layout) {
         var decoration = box.decoration();
         var x = layout.left();
         var y = layout.top();
@@ -174,6 +214,30 @@ public final class BoxPainter {
                 BlendStrokeCap.ROUND, BlendStrokeJoin.ROUND, mark.argb());
     }
 
+    /// One box, where it ended up, and what moves it.
+    ///
+    /// @param box       the box, with every ancestor's `opacity` already applied
+    ///                  to its colours
+    /// @param layout    its **absolute** rectangle in logical coordinates, before
+    ///                  any transform — which is what CSS means by a transform:
+    ///                  layout runs first and the matrix moves the result
+    /// @param transform every ancestor's transform and its own, composed, in the
+    ///                  frame's coordinates; [Affine#IDENTITY] for the
+    ///                  overwhelming majority of boxes
+    public record Placed(Box box, ComputedLayout layout, Affine transform) {
+
+        public Placed {
+            Objects.requireNonNull(box, "box");
+            Objects.requireNonNull(layout, "layout");
+            Objects.requireNonNull(transform, "transform");
+        }
+
+        /// Whether this box is drawn where it was laid out.
+        public boolean isPlain() {
+            return transform.isIdentity();
+        }
+    }
+
     /// Lays `root` out to fill `frame` and hands each box its **absolute**
     /// position, in logical coordinates.
     ///
@@ -181,92 +245,27 @@ public final class BoxPainter {
     /// almost nothing wants that: painting, hit-testing and damage all work in
     /// the frame's own coordinates. Accumulating it here means each caller does
     /// not.
+    ///
+    /// The transform is dropped. Callers that need it — the painter, which sets
+    /// it on the context, and hit testing, which inverts it — use
+    /// [#forEachPlacedBox]; callers that only want rectangles keep the simpler
+    /// signature.
     public static void forEachBox(Frame frame, Box root, BiConsumer<Box, ComputedLayout> visitor) {
+        Objects.requireNonNull(visitor, "visitor");
+        forEachPlacedBox(frame, root, placed -> visitor.accept(placed.box(), placed.layout()));
+    }
+
+    /// The same walk, with each box's accumulated transform.
+    ///
+    /// One-shot, like [#paint(Frame, Box)]: the Yoga tree it builds is freed
+    /// before this returns. A caller doing this every frame wants a [RenderTree].
+    public static void forEachPlacedBox(Frame frame, Box root, Consumer<Placed> visitor) {
         Objects.requireNonNull(frame, "frame");
         Objects.requireNonNull(root, "root");
         Objects.requireNonNull(visitor, "visitor");
-
-        var size = frame.size();
-        try (var config = YogaConfig.create()) {
-            // The whole point of the config, and the reason fractional DPI works
-            // at all on the layout side.
-            config.setPointScaleFactor(frame.scale().factor());
-
-            var boxes = new ArrayList<Box>();
-            try (var tree = build(config, root, boxes)) {
-                tree.calculateLayout(size.width(), size.height());
-                visit(tree, boxes, 0, 0, 0, 1.0, visitor);
-            }
+        try (var tree = RenderTree.create()) {
+            tree.update(frame, root);
+            tree.forEachPlacedBox(visitor);
         }
-    }
-
-    /// Builds the Yoga tree, recording each box in the same order the nodes are
-    /// created so the two can be walked together afterwards.
-    private static YogaNode build(YogaConfig config, Box box, List<Box> order) {
-        var node = YogaNode.create(config);
-        order.add(box);
-
-        node.setFlexDirection(box.direction());
-        node.setJustifyContent(box.justifyContent());
-        node.setAlignItems(box.alignItems());
-        node.setWidth(box.width());
-        node.setHeight(box.height());
-        // Per edge rather than Edge.ALL, because `padding: 0 12px` is what a
-        // control wants and Yoga resolves the more specific edge over ALL only if
-        // both are set. Setting the four is one call more and no ambiguity.
-        var padding = box.padding();
-        node.setPadding(Edge.TOP, padding.top());
-        node.setPadding(Edge.RIGHT, padding.right());
-        node.setPadding(Edge.BOTTOM, padding.bottom());
-        node.setPadding(Edge.LEFT, padding.left());
-        node.setGap(Gutter.ALL, box.gap());
-        node.setFlexGrow((float) box.flexGrow());
-
-        // Text makes the node a measured leaf. Yoga calls this back from C,
-        // several times per pass as it tries widths (ADR-0017), and the callback
-        // is owned by the node -- closing the tree closes it.
-        if (box.text() != null) {
-            node.setMeasureFunction(box.text().paragraph().measureFunction());
-        }
-
-        for (var child : box.children()) {
-            node.addChild(build(config, child, order));
-        }
-        return node;
-    }
-
-    /// Walks node and box tree in step, turning Yoga's parent-relative positions
-    /// into absolute ones and accumulating `opacity` down the tree.
-    ///
-    /// The visitor is handed a box whose colours **already include** every
-    /// opacity above it, so nothing downstream has to know that `opacity`
-    /// inherits its effect. A box at 1.0 under a parent at 1.0 is handed through
-    /// unchanged and allocates nothing, which is every box in an ordinary frame.
-    ///
-    /// @param alpha the product of every ancestor's opacity and this box's own
-    /// @return the index after this subtree, so siblings stay aligned with the
-    ///         list built during construction
-    private static int visit(
-            YogaNode node, List<Box> order, int index,
-            double parentLeft, double parentTop, double parentAlpha,
-            BiConsumer<Box, ComputedLayout> visitor) {
-
-        var box = order.get(index);
-        var layout = node.layout();
-        var left = parentLeft + layout.left();
-        var top = parentTop + layout.top();
-        var alpha = parentAlpha * box.opacity();
-
-        visitor.accept(box.fade(alpha), new ComputedLayout(
-                (float) left, (float) top, layout.width(), layout.height()));
-
-        var next = index + 1;
-        for (var child : node.children()) {
-            // The *unfaded* box is what the children were built from, so the
-            // accumulated alpha travels as a number rather than being applied
-            // twice on the way down.
-            next = visit(child, order, next, left, top, alpha, visitor);
-        }
-        return next;
     }
 }

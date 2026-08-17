@@ -4,6 +4,7 @@ import io.github.digitalsmile.goldberry.backend.Cursor;
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
 import io.github.digitalsmile.goldberry.css.CssColor;
 import io.github.digitalsmile.goldberry.css.Decoration;
+import io.github.digitalsmile.goldberry.css.Transform;
 import io.github.digitalsmile.goldberry.icon.Icon;
 import io.github.digitalsmile.goldberry.natives.yoga.Align;
 import io.github.digitalsmile.goldberry.natives.yoga.FlexDirection;
@@ -30,6 +31,7 @@ public record Box(
         int background,
         Decoration decoration,
         double opacity,
+        Transform transform,
         Cursor cursor,
         FlexDirection direction,
         Justify justifyContent,
@@ -136,6 +138,7 @@ public record Box(
 
     public Box {
         Objects.requireNonNull(decoration, "decoration");
+        Objects.requireNonNull(transform, "transform");
         Objects.requireNonNull(cursor, "cursor");
         Objects.requireNonNull(direction, "direction");
         Objects.requireNonNull(justifyContent, "justifyContent");
@@ -183,6 +186,7 @@ public record Box(
                 TRANSPARENT,
                 Decoration.NONE,
                 1.0,
+                Transform.NONE,
                 Cursor.DEFAULT,
                 FlexDirection.ROW,
                 Justify.FLEX_START,
@@ -212,7 +216,7 @@ public record Box(
     }
 
     public Box text(Text value) {
-        return new Box(background, decoration, opacity, cursor, direction, justifyContent, alignItems,
+        return new Box(background, decoration, opacity, transform, cursor, direction, justifyContent, alignItems,
                 width, height, padding, gap, flexGrow, value, icon, mark, children, owner);
     }
 
@@ -231,7 +235,7 @@ public record Box(
     }
 
     public Box icon(Glyph value) {
-        return new Box(background, decoration, opacity, cursor, direction, justifyContent, alignItems,
+        return new Box(background, decoration, opacity, transform, cursor, direction, justifyContent, alignItems,
                 width, height, padding, gap, flexGrow, text, value, mark, children, owner);
     }
 
@@ -242,7 +246,7 @@ public record Box(
     /// that number — a 16px glyph (§3) — in a stylesheet where an application can
     /// override it.
     public Box mark(Mark value) {
-        return new Box(background, decoration, opacity, cursor, direction, justifyContent, alignItems,
+        return new Box(background, decoration, opacity, transform, cursor, direction, justifyContent, alignItems,
                 width, height, padding, gap, flexGrow, text, icon, value, children, owner);
     }
 
@@ -258,13 +262,13 @@ public record Box(
     /// same reason hit testing is: what the cursor should be is a question about
     /// what is on screen, and the box tree is what is on screen (ADR-0054).
     public Box cursor(Cursor value) {
-        return new Box(background, decoration, opacity, Objects.requireNonNull(value, "cursor"), direction,
+        return new Box(background, decoration, opacity, transform, Objects.requireNonNull(value, "cursor"), direction,
                 justifyContent, alignItems, width, height, padding, gap, flexGrow, text, icon,
                 mark, children, owner);
     }
 
     public Box background(int argb) {
-        return new Box(argb, decoration, opacity, cursor, direction, justifyContent, alignItems,
+        return new Box(argb, decoration, opacity, transform, cursor, direction, justifyContent, alignItems,
                 width, height, padding, gap, flexGrow, text, icon, mark, children, owner);
     }
 
@@ -274,35 +278,54 @@ public record Box(
     /// which is what `opacity` means in CSS: it is not an inherited property, but
     /// its effect is, because it applies to the rendered subtree.
     public Box opacity(double value) {
-        return new Box(background, decoration, value, cursor, direction, justifyContent,
+        return new Box(background, decoration, value, transform, cursor, direction, justifyContent,
                 alignItems, width, height, padding, gap, flexGrow, text, icon, mark, children,
                 owner);
     }
 
+    /// How this box **and everything under it** is moved from where Yoga put it.
+    ///
+    /// Like `opacity`, and for the same reason: CSS's `transform` is not an
+    /// inherited property, but its *effect* is — a transformed box takes its whole
+    /// subtree with it. The painter accumulates the matrices down the tree exactly
+    /// as it accumulates alpha.
+    ///
+    /// **It changes nothing about layout.** Yoga lays the tree out first and the
+    /// transform is applied to the result, which is CSS's rule and the reason
+    /// `transform` is cheap enough to animate at all: a control that scales on
+    /// hover moves no sibling. It is also why `transition: width` is refused
+    /// ([ADR-0067](../../../../../../book/src/adr/0067-motion-is-an-overlay-on-a-frame-clock.md))
+    /// and `transition: transform` is not.
+    public Box transform(Transform value) {
+        return new Box(background, decoration, opacity, Objects.requireNonNull(value, "transform"),
+                cursor, direction, justifyContent, alignItems, width, height, padding, gap,
+                flexGrow, text, icon, mark, children, owner);
+    }
+
     /// The radius, border and focus ring drawn around this box.
     public Box decoration(Decoration value) {
-        return new Box(background, Objects.requireNonNull(value, "decoration"), opacity, cursor, direction,
+        return new Box(background, Objects.requireNonNull(value, "decoration"), opacity, transform, cursor, direction,
                 justifyContent, alignItems, width, height, padding, gap, flexGrow, text, icon,
                 mark, children, owner);
     }
 
     public Box direction(FlexDirection value) {
-        return new Box(background, decoration, opacity, cursor, value, justifyContent, alignItems,
+        return new Box(background, decoration, opacity, transform, cursor, value, justifyContent, alignItems,
                 width, height, padding, gap, flexGrow, text, icon, mark, children, owner);
     }
 
     public Box justifyContent(Justify value) {
-        return new Box(background, decoration, opacity, cursor, direction, value, alignItems,
+        return new Box(background, decoration, opacity, transform, cursor, direction, value, alignItems,
                 width, height, padding, gap, flexGrow, text, icon, mark, children, owner);
     }
 
     public Box alignItems(Align value) {
-        return new Box(background, decoration, opacity, cursor, direction, justifyContent, value,
+        return new Box(background, decoration, opacity, transform, cursor, direction, justifyContent, value,
                 width, height, padding, gap, flexGrow, text, icon, mark, children, owner);
     }
 
     public Box size(StyleLength w, StyleLength h) {
-        return new Box(background, decoration, opacity, cursor, direction, justifyContent, alignItems,
+        return new Box(background, decoration, opacity, transform, cursor, direction, justifyContent, alignItems,
                 w, h, padding, gap, flexGrow, text, icon, mark, children, owner);
     }
 
@@ -313,18 +336,18 @@ public record Box(
     }
 
     public Box padding(Insets value) {
-        return new Box(background, decoration, opacity, cursor, direction, justifyContent, alignItems,
+        return new Box(background, decoration, opacity, transform, cursor, direction, justifyContent, alignItems,
                 width, height, value, gap, flexGrow, text, icon, mark, children, owner);
     }
 
     public Box gap(StyleLength value) {
-        return new Box(background, decoration, opacity, cursor, direction, justifyContent, alignItems,
+        return new Box(background, decoration, opacity, transform, cursor, direction, justifyContent, alignItems,
                 width, height, padding, value, flexGrow, text, icon, mark, children, owner);
     }
 
     /// Share of the free space this box takes along its parent's main axis.
     public Box grow(double value) {
-        return new Box(background, decoration, opacity, cursor, direction, justifyContent, alignItems,
+        return new Box(background, decoration, opacity, transform, cursor, direction, justifyContent, alignItems,
                 width, height, padding, gap, value, text, icon, mark, children, owner);
     }
 
@@ -333,12 +356,12 @@ public record Box(
     /// Set by the renderer; read by hit testing. Nothing between the two looks
     /// at it.
     public Box owner(Object value) {
-        return new Box(background, decoration, opacity, cursor, direction, justifyContent, alignItems,
+        return new Box(background, decoration, opacity, transform, cursor, direction, justifyContent, alignItems,
                 width, height, padding, gap, flexGrow, text, icon, mark, children, value);
     }
 
     public Box children(Box... value) {
-        return new Box(background, decoration, opacity, cursor, direction, justifyContent, alignItems,
+        return new Box(background, decoration, opacity, transform, cursor, direction, justifyContent, alignItems,
                 width, height, padding, gap, flexGrow, text, icon, mark, List.of(value), owner);
     }
 
@@ -371,6 +394,11 @@ public record Box(
                 // Applied, so it must not be applied again: the painter accumulates
                 // down the tree and fades each box exactly once.
                 1.0,
+                // Kept. Unlike alpha, a transform cannot be folded into the box's
+                // values -- there is nothing on a `Box` to fold it into -- so the
+                // painter carries the accumulated matrix alongside the box and
+                // this field stays what the style asked for.
+                transform,
                 cursor, direction, justifyContent, alignItems, width, height, padding, gap,
                 flexGrow,
                 text == null ? null : new Text(text.paragraph(), CssColor.fade(text.argb(), alpha)),
@@ -406,6 +434,7 @@ public record Box(
                 style.background(),
                 style.decoration(),
                 style.opacity(),
+                style.transform(),
                 style.cursor(),
                 style.direction(),
                 style.justifyContent(),

@@ -40,13 +40,13 @@ public record Transitions(Map<Animatable, Timing> byProperty) {
 
     /// The properties a transition may name.
     ///
-    /// `transform` is **absent and would be in this list**: §1.7 whitelists it,
-    /// and `checkbox`'s specified check animation is "scale 0.6→1 + opacity".
-    /// `Box` carries no transform, and adding one means the painter *and* hit
-    /// testing — which would need the inverse to map a pointer back through it,
-    /// and silently mis-routes clicks if it does not. That is a correctness trap
-    /// worth arriving on its own rather than inside this
-    /// ([ADR-0067](../../../../../../book/src/adr/0067-motion-is-an-overlay-on-a-frame-clock.md)).
+    /// Five, and the fifth arrived last: `transform` was named here as absent for
+    /// as long as `Box` carried no matrix and hit testing could not invert one.
+    /// Both now exist, and the reason it was worth waiting for is that a
+    /// transform the painter applies and hit testing does not would produce a
+    /// control that looks right and does not respond where it looks like it
+    /// should — a failure with no error and no wrong pixel
+    /// ([ADR-0068](../../../../../../book/src/adr/0068-the-transform-stack-is-java-side.md)).
     public enum Animatable {
 
         /// Fades. The one every control uses for `:disabled`.
@@ -59,7 +59,13 @@ public record Transitions(Map<Animatable, Timing> byProperty) {
         BORDER_COLOR("border-color"),
 
         /// The foreground: text, icons, and a checkbox's mark.
-        COLOR("color");
+        COLOR("color"),
+
+        /// Position, scale, rotation and skew — the compositor-cheap way to move
+        /// something, and the reason §1.7 can forbid animating a width without
+        /// forbidding movement. The checkbox tick's specified `scale 0.6→1` is
+        /// this one.
+        TRANSFORM("transform");
 
         private final String cssName;
 
