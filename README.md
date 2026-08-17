@@ -566,6 +566,38 @@ try (var fonts = Fonts.bundled()) {
 }
 ```
 
+### Density
+
+A control's height is the one metric that is a token rather than a literal,
+because the design system says a user preference moves it:
+
+```java
+var renderer = new WidgetRenderer(
+        Controls.stylesheets(Theme.NORD_DARK, Density.COMPACT), fonts);
+```
+
+Every control is now 28 tall instead of 32, and **nothing in the widget tree
+mentions a height** — that is the whole of "token-conformant apps adapt with zero
+code". `density-compact.css` is three custom properties on `:root` and no rules
+at all, in the same cascade layer a theme goes into, because that layer is
+defined by what it holds rather than by what it is called.
+
+`Density.REGULAR` ships **no stylesheet**. Regular is not something an
+application applies, it is what the toolkit already is, so applying it is
+applying nothing — and a `density-regular.css` restating 32 beside `controls.css`
+would be one number in two files, which is how the two stop agreeing. An
+application that never mentions density gets regular for free.
+
+Padding, gap and radius stay literal and there is a test that keeps them that
+way: the design system's density row names control heights and list rows, so
+tokenising the rest "for symmetry" would invent a scale it does not define.
+
+Compact is deliberately **below the design system's own 32×32 hit-target floor**,
+which is the trade a density preference *is* rather than an oversight. It is
+bounded: the 16px glyph inside a checkbox or a radio does not shrink with the row
+around it, so compact costs margin around the target and not a smaller target
+([ADR-0074](book/src/adr/0074-density-is-a-token-swap-and-regular-is-no-stylesheet.md)).
+
 ### Motion
 
 Transitions are CSS, resolved by the cascade like any other property:

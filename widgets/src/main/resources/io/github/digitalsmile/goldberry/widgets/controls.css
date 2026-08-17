@@ -18,6 +18,31 @@
  * nodes for that reason (ADR-0073).
  */
 
+/* --------------------------------------------------------------- density --
+ *
+ * §1.3's density row, and this `:root` block is its `regular` column. There is
+ * no `density-regular.css` beside `density-compact.css`, because regular is not
+ * something an application applies -- it is what the toolkit already is, and
+ * writing 32 in two files is how the two stop agreeing (ADR-0074).
+ *
+ * A control's height is the only §3 metric that is a token rather than a
+ * literal, and it is one because §1.3 says a density moves it. Padding, gap and
+ * radius stay literal: the density row names control heights and list rows and
+ * nothing else, and turning every number into a token "in case" is inventing a
+ * scale the design system does not have (Principle 3).
+ *
+ * `--gb-density` is a marker rather than a mechanism. §1.3 names the property,
+ * and a keyword cannot select a number in §8's subset -- there is no
+ * `@container style()` here and there is not going to be one -- so the tokens
+ * below are what actually switch and this says which set is in force. Custom
+ * properties inherit, so any element can be asked.
+ */
+:root {
+  --gb-density: regular;
+  --gb-control-height: 32px;
+  --gb-list-row-height: 32px;
+}
+
 /* ---------------------------------------------------------------- motion --
  *
  * §3.1's table, for the controls that exist. Every duration is a token and every
@@ -200,10 +225,12 @@ radio-group:disabled radio:disabled {
 
 /* ---------------------------------------------------------------- button --
  *
- * height 32, padding-x 12, gap 6, radius 8 (§3).
+ * height 32, padding-x 12, gap 6, radius 8 (§3). The height is §1.3's density
+ * token; the rest are literal, because a density moves control heights and
+ * nothing else.
  */
 button {
-  height: 32px;
+  height: var(--gb-control-height);
   padding: 0 12px;
   gap: 6px;
   /* `body-strong` -- §3's typography column for this row. Written out rather
@@ -277,9 +304,14 @@ button.ghost:active {
  * height is the hit target (§1.3, "hit targets >= 32x32 even when the visual is
  * smaller"), and the click target includes the label because
  * docs/core-widgets.md §3 asks for it.
+ *
+ * The glyph stays 16 at either density and only the row around it shrinks, so
+ * compact costs 4px of hit target rather than a smaller thing to aim at. §1.3
+ * asks for both >= 32 and a 28px compact control, which cannot both hold; see
+ * ADR-0074 for which one gives and why.
  */
 checkbox {
-  height: 32px;
+  height: var(--gb-control-height);
   gap: 8px;
   /* `body`, not `body-strong`: §1.4 puts the strong weight on buttons and
      headings, and a checkbox's label is running text beside a control. */
@@ -411,10 +443,12 @@ radio-group.inline {
  * glyph 16, hit >= 32, label gap 8 -- §3's `checkbox / radio` row, which is one
  * row for both because they are the same metrics with a different glyph. The
  * height is the hit target (§1.3) and the click target includes the label,
- * exactly as on a checkbox.
+ * exactly as on a checkbox -- including the density token, since §3 gives the
+ * two controls one row and a density that moved one and not the other would be
+ * the same divergence ADR-0073 spent a section closing.
  */
 radio {
-  height: 32px;
+  height: var(--gb-control-height);
   gap: 8px;
   font-size: var(--gb-font-body);
   line-height: var(--gb-line-body);

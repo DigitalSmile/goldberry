@@ -3,6 +3,7 @@ package io.github.digitalsmile.goldberry.widgets;
 import io.github.digitalsmile.goldberry.bind.Bindings;
 import io.github.digitalsmile.goldberry.css.CascadeLayer;
 import io.github.digitalsmile.goldberry.css.Stylesheet;
+import io.github.digitalsmile.goldberry.css.Theme;
 import io.github.digitalsmile.goldberry.kdl.KdlInflater;
 import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widget.Widgets;
@@ -11,6 +12,8 @@ import java.io.InputStream;
 import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Objects;
+import java.util.stream.Stream;
 
 /// The catalog: what `:widgets` adds to `:core`'s primitives, and how it is
 /// registered and styled.
@@ -52,6 +55,30 @@ public final class Controls {
         } catch (IOException e) {
             throw new UncheckedIOException("could not read " + resource, e);
         }
+    }
+
+    /// Everything the toolkit itself contributes to the cascade, in order.
+    ///
+    /// The base rules, then the theme's colours, then the density's metrics —
+    /// the last two both being custom-property stylesheets in the
+    /// [CascadeLayer#THEME] slot, and both meaning nothing until a base rule
+    /// reads them. An application adds its own sheets after these.
+    ///
+    /// Assembled here for the reason the rest of this class exists: the order
+    /// matters, getting it wrong is silent rather than loud, and an application
+    /// should not have to know that a density goes above a theme in a list.
+    public static List<Stylesheet> stylesheets(Theme theme, Density density) {
+        Objects.requireNonNull(theme, "theme");
+        Objects.requireNonNull(density, "density");
+        return Stream.concat(
+                        Stream.of(baseStylesheet(), theme.load()),
+                        density.stylesheets().stream())
+                .toList();
+    }
+
+    /// The toolkit's stylesheets at [Density#REGULAR], which is §1.3's default.
+    public static List<Stylesheet> stylesheets(Theme theme) {
+        return stylesheets(theme, Density.REGULAR);
     }
 
     /// An inflater that knows `:core`'s primitives *and* the controls here.

@@ -23,6 +23,8 @@ import io.github.digitalsmile.goldberry.widgets.Checkbox;
 import io.github.digitalsmile.goldberry.widgets.Radio;
 import io.github.digitalsmile.goldberry.widgets.RadioGroup;
 import io.github.digitalsmile.goldberry.widgets.Controls;
+import io.github.digitalsmile.goldberry.widgets.Density;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import org.slf4j.Logger;
@@ -95,7 +97,9 @@ public final class Showcase {
                     + " the reason ADR-0017 exists.\n\n"
                     + "Drag the window's edge and the text re-wraps without being shaped again."
                     + " Click a button, or press Tab until one has the focus and then Space."
-                    + " Ctrl+T switches the theme from the keyboard.\n\n"
+                    + " Ctrl+T switches the theme from the keyboard, and Ctrl+D switches the"
+                    + " density — every control gets 4px shorter, and nothing in this file"
+                    + " mentions a height.\n\n"
                     + "The theme radios are one Tab stop, not two: Tab reaches the group and the"
                     + " arrow keys move inside it. Tab away and back and you land on whichever is"
                     + " selected — including after Ctrl+T has changed it from outside the group,"
@@ -164,11 +168,34 @@ public final class Showcase {
         /// states to be in.
         private final Property<Checkbox.Value> partly = Property.of(Checkbox.Value.MIXED);
 
+        /// §1.3's density preference, and it is a plain field rather than a
+        /// `Property` because nothing in this tree binds to it — no control shows
+        /// which density is on, the way the radio group shows the theme. It moves
+        /// every control's height and is named by no widget, which is exactly
+        /// what "token-conformant apps adapt with zero code" means (ADR-0074).
+        private Density density = Density.REGULAR;
+
         /// Which theme the window is showing, read by `main` to choose the
         /// stylesheets. The state owns it because the controls that change it
         /// live in this tree.
         Theme theme() {
             return "light".equals(themeName.get()) ? Theme.NORD_LIGHT : Theme.NORD_DARK;
+        }
+
+        /// Which density the window is showing, read by `main` for the same
+        /// reason and through the same door.
+        Density density() {
+            return density;
+        }
+
+        /// `Ctrl+D`. There is no button for it and deliberately so: a density is
+        /// an application-wide user preference, so the showcase changes it the
+        /// way an application would — from a menu or a settings screen, neither
+        /// of which exists yet — rather than putting a control for it in the
+        /// tree it is resizing.
+        void toggleDensity() {
+            changed(() -> density = density == Density.REGULAR ? Density.COMPACT : Density.REGULAR);
+            LOG.info("density is now {}", density);
         }
 
         @Override
@@ -375,6 +402,7 @@ public final class Showcase {
         // and only then. Everything else a rebuild changes is inside the tree.
         var renderer = new WidgetRenderer[1];
         var renderedTheme = new Theme[1];
+        var renderedDensity = new Density[1];
 
         // The one value in this window that nothing in the widget tree owns. A
         // markup document would name it `bind="app.status"`; here it is passed in
@@ -399,6 +427,10 @@ public final class Showcase {
         // Ctrl+T switches the theme from the keyboard, which is what a per-window
         // accelerator map is for (§7.2, ADR-0058).
         router.shortcut("Ctrl+T", state::toggleTheme);
+        // Ctrl+D switches the density, and the interesting part is what does not
+        // happen: not one widget in this file mentions a height, and every
+        // control still resizes (§1.3, ADR-0074).
+        router.shortcut("Ctrl+D", state::toggleDensity);
         window.pointerRouter(router);
 
         window.onPaint(frame -> {
@@ -407,14 +439,21 @@ public final class Showcase {
             if (tree.needsBuild()) {
                 tree.flush();
             }
-            if (renderedTheme[0] != state.theme()) {
+            if (renderedTheme[0] != state.theme() || renderedDensity[0] != state.density()) {
                 // A new renderer means new `Animations`? No -- those live on the
                 // elements, which the theme swap does not touch, so a transition
                 // in flight when the theme changes carries on into the new
                 // colours rather than snapping (ADR-0067).
-                renderer[0] = new WidgetRenderer(
-                        List.of(Controls.baseStylesheet(), state.theme().load(), appStyles), fonts);
+                //
+                // The theme and the density are one check because they are one
+                // stylesheet list: both are custom-property sheets in the same
+                // cascade slot, and `Controls.stylesheets` is what knows the
+                // order they go in (ADR-0074).
+                var sheets = new ArrayList<>(Controls.stylesheets(state.theme(), state.density()));
+                sheets.add(appStyles);
+                renderer[0] = new WidgetRenderer(sheets, fonts);
                 renderedTheme[0] = state.theme();
+                renderedDensity[0] = state.density();
             }
 
             // One layout pass, two readers. `update` reconciles the retained

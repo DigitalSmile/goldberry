@@ -1,0 +1,37 @@
+/*
+ * The compact density (design-system.md §1.3).
+ *
+ * A custom-property stylesheet and nothing else, in the THEME layer -- the same
+ * shape and the same slot as nord-light and nord-dark, because that layer is
+ * defined by what it holds rather than by what it is called: custom properties
+ * that the toolkit-base rules read. Density is a user preference applied
+ * app-wide, expressed as tokens, which is what a theme is. A fifth cascade layer
+ * for it would differ from the fourth in nothing but its name (ADR-0074).
+ *
+ * There is no `density-compact` rule anywhere and there is no `.compact` class:
+ * that is the point of §1.3's "token-conformant apps adapt with zero code". A
+ * control that reads `var(--gb-control-height)` is already compact-aware, and
+ * one that hard-codes 32 cannot be made so by anything written here.
+ *
+ * The regular column lives in controls.css, where every other §3 metric does.
+ * It is not restated here, and there is deliberately no `density-regular.css`:
+ * regular is the toolkit's own value, so applying it is applying nothing.
+ */
+
+:root {
+  /* §1.3 names the property, so it is declared; nothing in the toolkit reads
+     it. It is what an application asks when it wants to know which density is
+     in force -- custom properties inherit, so any element answers. */
+  --gb-density: compact;
+
+  /* "control heights 32 / 28". This is the one number that makes a control
+     compact; everything else about it is unchanged, because §1.3's density row
+     moves heights and nothing else. */
+  --gb-control-height: 28px;
+
+  /* "list rows 32 / 26". No widget reads this yet -- `list` is M3 -- and it
+     ships now because the density that a `list` will have to honour is decided
+     here, not there, and an application building its own rows today has the
+     token it would otherwise hard-code. */
+  --gb-list-row-height: 26px;
+}
