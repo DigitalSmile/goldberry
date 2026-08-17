@@ -84,6 +84,7 @@
 - [ADR-0076 A glyph does not negotiate](adr/0076-a-glyph-does-not-negotiate.md)
 - [ADR-0077 Disabled propagates for input and not for paint](adr/0077-disabled-propagates-for-input-and-not-for-paint.md)
 - [ADR-0078 A focus scope has an axis](adr/0078-a-focus-scope-has-an-axis.md)
+- [ADR-0079 A continuous value is placed by ratio](adr/0079-a-continuous-value-is-placed-by-ratio.md)
 
 ---
 

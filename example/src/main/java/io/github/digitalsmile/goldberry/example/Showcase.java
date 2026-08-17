@@ -21,6 +21,7 @@ import io.github.digitalsmile.goldberry.widget.Widgets;
 import io.github.digitalsmile.goldberry.widgets.Button;
 import io.github.digitalsmile.goldberry.widgets.Checkbox;
 import io.github.digitalsmile.goldberry.widgets.Radio;
+import io.github.digitalsmile.goldberry.widgets.Slider;
 import io.github.digitalsmile.goldberry.widgets.RadioGroup;
 import io.github.digitalsmile.goldberry.widgets.Controls;
 import io.github.digitalsmile.goldberry.widgets.Density;
@@ -303,8 +304,44 @@ public final class Showcase {
                             // moves, because neither owns the state and both are
                             // showing what `showProse` says (ADR-0063).
                             new Toggle("Show the prose (as a switch)", false,
-                                    showProse, this::setProse, false, id("prose-switch"))),
+                                    showProse, this::setProse, false, id("prose-switch")),
+                            // The sixth control, and the first whose value is a
+                            // number. Drag it and the caption under it follows the
+                            // pointer 1:1 -- `bind` down, `change` up, and no
+                            // arithmetic in this file at all (ADR-0079).
+                            new Slider(0, 100, 0, 5, gain, this::setGain, false,
+                                    id("gain")),
+                            new Widgets.Text("Gain", gainLabel, id("gain-label"))),
                     id("options"));
+        }
+
+        /// The slider's model, and the label's.
+        ///
+        /// A `Property<Number>` because that is what §9's `bind` reads and what a
+        /// slider is handed the read-only half of. **Two widgets read one
+        /// property** — the slider and the caption below it — which is the whole
+        /// of ADR-0063 in a window: neither owns the value, and dragging one
+        /// moves the other because both are showing what the property says.
+        private final Property<Number> gain = Property.of(40);
+
+        /// The caption's text, derived from the same property.
+        ///
+        /// A second `Property` rather than a formatted string built during
+        /// `build()`, because a widget's `bind` takes an `Observable` and this is
+        /// what one looks like when the value shown is not the value stored.
+        private final Property<String> gainLabel = Property.of("Gain 40%");
+
+        /// What the slider asks for, already snapped and clamped by the control.
+        ///
+        /// The application does no arithmetic at all, which is the point: the
+        /// range, the step and the pointer-to-value mapping are the slider's, so
+        /// an application that wanted a different range would change one number
+        /// in one place (ADR-0079).
+        void setGain(double value) {
+            changed(() -> {
+                gain.set(value);
+                gainLabel.set("Gain " + Math.round(value) + "%");
+            });
         }
 
         /// What the switch asks for, and the reason it is not `toggleProse`.

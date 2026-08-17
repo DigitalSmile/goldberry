@@ -157,6 +157,24 @@ public final class Controls {
                     node.booleanProperty("disabled"),
                     Widgets.Attributes.of(node));
         });
+        inflater.register("slider", (node, children) -> {
+            // The third valued action, and the first whose value is a *number*.
+            // It still crosses as the string a document would have written, for
+            // the reason ADR-0073 set and ADR-0075 reused: one valued shape in
+            // the registry, and an application that wants a double parses it in
+            // Java where a bad value is a bug it can see.
+            var change = actions.resolveValued(node.stringProperty("change"));
+            var min = node.numberProperty("min", 0);
+            var max = node.numberProperty("max", 1);
+            return new Slider(
+                    min, max,
+                    node.numberProperty("value", min),
+                    node.numberProperty("step", 0),
+                    bindings.resolve(node.stringProperty("bind")),
+                    change == null ? null : value -> change.accept(String.valueOf(value)),
+                    node.booleanProperty("disabled"),
+                    Widgets.Attributes.of(node));
+        });
         inflater.register("radio-group", (node, children) -> new RadioGroup(
                 node.stringProperty("value"),
                 children,
@@ -221,6 +239,6 @@ public final class Controls {
     /// [CheckIndicator], [CheckMark], [RadioIndicator], [RadioDot],
     /// [ToggleTrack], [ToggleThumb]).
     public static List<String> controlTypes() {
-        return List.of("button", "checkbox", "toggle", "radio-group", "radio");
+        return List.of("button", "checkbox", "toggle", "slider", "radio-group", "radio");
     }
 }

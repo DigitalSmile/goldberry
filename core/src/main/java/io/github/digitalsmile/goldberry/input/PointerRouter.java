@@ -787,7 +787,7 @@ public final class PointerRouter {
     }
 
     /// Capture down the chain, then bubble back up (§7.1).
-    private static void dispatch(PointerEvent event) {
+    private void dispatch(PointerEvent event) {
         // One choke point for every control, present and future -- the same
         // argument that put the `:hover` refusal in `mark` rather than in each
         // widget. A control's own `disabled` check is then a second line of
@@ -805,6 +805,7 @@ public final class PointerRouter {
                 return;
             }
             if (chain.get(i).widget() instanceof Handles handles) {
+                event.localTo(localTo(chain.get(i), event));
                 handles.onPointerCapture(event);
             }
         }
@@ -813,8 +814,35 @@ public final class PointerRouter {
                 return;
             }
             if (element.widget() instanceof Handles handles) {
+                // Re-pointed per handler, not once per event: dispatch bubbles,
+                // and a press on a slider's thumb targets the thumb while the
+                // slider handling it wants the position along *itself*
+                // (ADR-0079).
+                event.localTo(localTo(element, event));
                 handles.onPointer(event);
             }
         }
+    }
+
+    /// Where `event` happened inside `element`, from the hit-test snapshot.
+    ///
+    /// A linear scan of the regions, once per handler on the chain. The snapshot
+    /// is a per-frame list and pointer events arrive at pointer rates, so this is
+    /// far below anything a frame notices — and a map rebuilt every frame to
+    /// avoid it would cost more than it saved.
+    ///
+    /// Falls back to [PointerEvent.Local#UNKNOWN] for an element that has no
+    /// rectangle, which is a widget poked directly by a test or one whose box has
+    /// not been painted yet. Zero-sized rather than null, so a widget reading
+    /// `fractionX()` gets 0 instead of an exception.
+    private PointerEvent.Local localTo(Element element, PointerEvent event) {
+        for (var region : regions) {
+            if (region.owner() == element) {
+                return new PointerEvent.Local(
+                        event.x() - region.left(), event.y() - region.top(),
+                        region.width(), region.height());
+            }
+        }
+        return PointerEvent.Local.UNKNOWN;
     }
 }

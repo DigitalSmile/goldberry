@@ -29,12 +29,13 @@ API. No JNI, no bundled web engine, no platform widget wrapping.
 > part in that layout, Lucide's icons draw, stylesheets and KDL markup hot-reload,
 > pointer, wheel and keyboard input route to a widget tree, and markup wires both
 > halves of §9 — an `action` to call and a value to `bind` to. The catalog is
-> five primitives and five controls — `button`, a tri-state `checkbox`, a
-> `toggle` you can drag, and `radio` / `radio-group`, which is one Tab stop with
-> arrow keys inside it — all drawn to the design system's metrics with rounded
-> corners, a real focus ring, the §1.4 type scale in two real weights, a
-> `regular`/`compact` density that no widget mentions, CSS transitions on a frame
-> clock and golden images — so eight controls are still to come.
+> five primitives and six controls — `button`, a tri-state `checkbox`, a
+> `toggle` you can drag, a `slider` (and its vertical `fader`), and `radio` /
+> `radio-group`, which is one Tab stop with arrow keys inside it — all drawn to
+> the design system's metrics with rounded corners, a real focus ring, the §1.4
+> type scale in two real weights, a `regular`/`compact` density that no widget
+> mentions, CSS transitions on a frame clock and golden images — so seven
+> controls are still to come.
 > See [Status](book/src/status.md) for what works and what is still open.
 
 ## Quick start
@@ -493,6 +494,54 @@ check-indicator, radio-indicator, toggle-track, toggle-thumb { flex-shrink: 0 }
 The **label is deliberately absent** and still shrinks. Text is the one thing in
 a control that should give: a label that refused would push the glyph out of the
 window rather than ellipsing.
+
+### `slider`
+
+The first control whose value is **a number rather than a state**:
+
+```kdl
+slider min=0 max=100 value=40 step=5 bind="audio.gain" change="setGain"
+```
+
+Every control before it has a value a stylesheet can name — a switch's thumb
+moves because `toggle-track:checked toggle-thumb { transform: translate(16px) }`
+says so. That stops working the moment the value is 37.4, so the thumb is placed
+by **flex ratio** instead:
+
+```
+[ slider-fill grow=f ][ slider-thumb 16 ][ slider-rest grow=1-f ]
+```
+
+Yoga hands free space out in proportion to the grow factors, so the thumb lands
+`f` of the way along whatever width the track turned out to be — and nothing in
+Java ever learns that width. `transform` is not merely awkward here but *unable*:
+CSS percentages inside `translate` are a proportion of the **moving box**, so
+`translate(50%)` moves the thumb by half a thumb rather than to the middle of the
+track. The ratio yields the filled portion for free, as a box the cascade can
+reach.
+
+Dragging needs the other half — where the pointer is along the control, which a
+widget cannot work out for itself:
+
+```java
+public void onPointer(PointerEvent event) {
+    ask(min + event.local().fractionX() * (max - min));
+}
+```
+
+`local()` is the direct sibling of the toggle's `dragX()`, and it is relative to
+**the widget currently handling** the event rather than to the target: dispatch
+bubbles, so a press on the thumb targets the thumb while the slider wants the
+position along itself.
+
+The control snaps and clamps so no application has to, and each rule is a choice:
+steps count from `min` (so a 1–10 slider stepping by 2 can reach 1), an arrow
+offers the next *reachable* value rather than the current plus a step, and the
+ends are always reachable even when the range is not a whole number of steps.
+
+`fader` is `slider.vertical` — a class, for the reason `radio-group.inline` is
+one: the widget names the semantics and the stylesheet names the axis
+([ADR-0079](book/src/adr/0079-a-continuous-value-is-placed-by-ratio.md)).
 
 ### `radio` and `radio-group`
 

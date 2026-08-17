@@ -73,6 +73,23 @@ public record KdlNode(
         return properties.get(key) instanceof KdlValue.Bool bool && bool.value();
     }
 
+    /// A numeric property, or `fallback` when absent.
+    ///
+    /// The third kind an attribute comes in, and the first widget to need it is
+    /// `slider` — `min`, `max`, `value` and `step` are numbers in a way that
+    /// `class` and `disabled` are not.
+    ///
+    /// A value that is not a number is `fallback` rather than an error, for the
+    /// reason [#booleanProperty] gives: reload is deliberately forgiving, and a
+    /// document being edited is broken more often than it is whole. A `min` that
+    /// was mistyped therefore renders a usable control rather than refusing the
+    /// window — and the *structural* mistakes a slider can make, `max <= min` and
+    /// a negative `step`, are still refused at construction, because those are
+    /// not a half-typed number but a contradiction.
+    public double numberProperty(String key, double fallback) {
+        return properties.get(key) instanceof KdlValue.Num number ? number.value() : fallback;
+    }
+
     /// Child nodes with this name.
     public List<KdlNode> childrenNamed(String name) {
         return children.stream().filter(child -> child.name().equals(name)).toList();

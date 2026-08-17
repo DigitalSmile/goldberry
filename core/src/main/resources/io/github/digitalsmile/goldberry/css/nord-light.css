@@ -145,6 +145,20 @@
   --gb-toggle-thumb-bg: var(--nord3);
   --gb-toggle-thumb-bg-checked: #ffffff;
 
+  /* The slider. The groove is nord4 -- a step *down* from the button's nord5 --
+     for the reason nord-dark's block gives: a groove is cut into the surface
+     rather than sitting on it.
+
+     The thumb is white and **darkens** on hover, which is this theme's direction
+     and the opposite of nord-dark's. It is white rather than nord6 because nord6
+     is `--gb-bg`, and a thumb the colour of the window reads as a hole -- the
+     lesson ADR-0075 paid for twice on the switch, applied here for free. */
+  --gb-slider-track-bg: var(--nord4);
+  --gb-slider-fill-bg: var(--gb-accent);
+  --gb-slider-thumb-bg: #ffffff;
+  --gb-slider-thumb-bg-hover: var(--nord5);
+  --gb-slider-thumb-bg-active: var(--nord4);
+
   /* A black wash, because a light theme's surfaces are already bright. */
   --gb-overlay-hover: #00000012;
   --gb-overlay-active: #00000024;

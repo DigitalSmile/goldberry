@@ -83,12 +83,14 @@ button,
 checkbox,
 radio,
 toggle,
+slider,
 check-indicator,
 check-mark,
 radio-indicator,
 radio-dot,
 toggle-track,
-toggle-thumb {
+toggle-thumb,
+slider-thumb {
   flex-shrink: 0;
 }
 
@@ -243,7 +245,8 @@ radio-indicator:checked radio-dot {
 button:focus-visible,
 checkbox:focus-visible,
 radio:focus-visible,
-toggle:focus-visible {
+toggle:focus-visible,
+slider:focus-visible {
   outline: 2px solid var(--gb-focus);
   outline-offset: 2px;
 }
@@ -262,6 +265,7 @@ button:disabled,
 checkbox:disabled,
 radio:disabled,
 toggle:disabled,
+slider:disabled,
 radio-group:disabled {
   opacity: 0.45;
   cursor: not-allowed;
@@ -679,3 +683,102 @@ toggle-thumb {
    already fades the pill, the thumb and the label together, because the painter
    multiplies opacity down the subtree. A second rule would fade it twice --
    the trap `radio-group` had to undo by hand. */
+
+/* --------------------------------------------------------------- slider --
+ *
+ * §3's row: track 4, thumb 16 (`full` radius), hit >= 32 cross-axis. The control
+ * is the whole 32-tall row -- §1.3's hit target -- and the 4px groove sits
+ * centred inside it, so the thing to aim at is eight times what you can see.
+ *
+ * `slider` is deliberately **absent from the shared transition rule at the top
+ * of this file.** §3.1: "slider/knob/fader -- drag: **1:1, no animation**". A
+ * thumb that eased toward the pointer would lag the finger, and lag is the one
+ * thing a control being dragged must not have. What may move is the *thumb's*
+ * surface under the pointer, which is a hover and not a value.
+ */
+slider {
+  height: var(--gb-control-height);
+  align-items: center;
+  cursor: pointer;
+}
+
+/* The groove. Its children are the fill, the thumb and the rest -- see
+   SliderTrack for why the thumb is positioned by their flex ratio rather than by
+   a transform, which is the one thing a transform cannot express. */
+slider-track {
+  width: 100%;
+  height: 4px;
+  border-radius: 2px;
+  align-items: center;
+  background: var(--gb-slider-track-bg);
+}
+
+/* Behind the thumb: the value, drawn in the accent. `flex-grow` comes from the
+   widget, because it *is* the value -- everything else about it is the theme's. */
+slider-fill {
+  height: 4px;
+  border-radius: 2px;
+  background: var(--gb-slider-fill-bg);
+}
+
+/* Ahead of the thumb. Paints nothing: the groove behind it already carries the
+   unfilled colour, and a second surface would double the alpha on it. It is a
+   node so that Yoga has something to give the remaining space to. */
+slider-rest {
+  height: 4px;
+}
+
+/* §3's thumb 16 at `full` radius -- `border-radius: 8px` on a 16px box, through
+   the four cubics ADR-0064 already ships, so no native symbol and no new drawing
+   code. It carries no transform at all, which is the whole difference from
+   `toggle-thumb`: a switch has two positions a stylesheet can name and a slider
+   has a continuum it cannot. */
+slider-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 8px;
+  background: var(--gb-slider-thumb-bg);
+}
+
+/* §2.1's one surface step on hover and its darkening press, on the thumb rather
+   than the groove -- the thumb is the thing being pointed at. Written against
+   the *control*, so hovering anywhere on the 32px row lights it, which is what
+   the hit target means. `:active` reaches the whole ancestor chain (ADR-0073),
+   so the press works from anywhere on the row too. */
+slider:hover slider-thumb {
+  background: var(--gb-slider-thumb-bg-hover);
+}
+
+slider:active slider-thumb {
+  background: var(--gb-slider-thumb-bg-active);
+}
+
+/* The thumb's own surface may fade -- that is a hover, not a value, and §3.1's
+   "no animation" is about the drag. Nothing here names `transform` or a layout
+   property, so a moving thumb still moves instantly. */
+slider-thumb {
+  transition: background-color var(--gb-motion-fast) ease-enter;
+}
+
+/* `slider.vertical` is §3's `fader`, and it is a class for the reason
+   `radio-group.inline` is: the widget names the semantics and the stylesheet
+   names the axis. `column-reverse` is what puts the minimum at the bottom, where
+   a fader's minimum belongs -- the widget inverts the pointer fraction to match
+   (see Slider.fractionOf). */
+slider.vertical {
+  height: 100%;
+  width: 32px;
+  justify-content: center;
+}
+
+slider.vertical slider-track {
+  flex-direction: column-reverse;
+  width: 4px;
+  height: 100%;
+}
+
+slider.vertical slider-fill,
+slider.vertical slider-rest {
+  width: 4px;
+  height: auto;
+}

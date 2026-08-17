@@ -152,6 +152,21 @@
   --gb-toggle-thumb-bg: var(--nord6);
   --gb-toggle-thumb-bg-checked: var(--nord6);
 
+  /* The slider (§3: track 4, thumb 16, hit >= 32 cross-axis). The groove is a
+     recessed surface rather than a raised one -- nord1 is a step *down* from
+     nord2, which is where the button's ramp starts -- because a groove reads as
+     something cut into the surface and a control reads as something on it.
+
+     The thumb takes the button's ramp, so it lightens under the pointer the way
+     everything on this theme does, and the fill takes the accent. That pair is
+     the same question the checkbox's glyph answers and it gets the same answer:
+     what reads on a dark surface, and what says "this much". */
+  --gb-slider-track-bg: var(--nord1);
+  --gb-slider-fill-bg: var(--gb-accent);
+  --gb-slider-thumb-bg: var(--nord6);
+  --gb-slider-thumb-bg-hover: #ffffff;
+  --gb-slider-thumb-bg-active: var(--nord4);
+
   /* A white wash, for controls that have no surface of their own. */
   --gb-overlay-hover: #ffffff14;
   --gb-overlay-active: #ffffff29;

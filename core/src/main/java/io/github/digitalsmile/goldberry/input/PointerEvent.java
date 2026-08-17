@@ -52,6 +52,69 @@ public final class PointerEvent {
     private final float pressY;
     private final Element target;
     private boolean consumed;
+    private Local local = Local.UNKNOWN;
+
+    /// Where an event happened **inside the widget currently handling it**, and
+    /// how big that widget is.
+    ///
+    /// The other half of [#dragX()], and the router owns it for the same reason:
+    /// a widget is a value with no idea where it was laid out, and the router is
+    /// holding the hit-test snapshot that says. A slider asking "how far along me
+    /// is the pointer" cannot answer it any other way.
+    ///
+    /// **Relative to the handler, not to [#target()].** Dispatch bubbles, so one
+    /// event is delivered to a chain of widgets and each needs its own answer: a
+    /// press on a slider's thumb targets the thumb, and the slider handling that
+    /// press wants the position along *itself*. The router re-points this before
+    /// each handler runs.
+    ///
+    /// @param x      distance from the handler's left edge, in logical pixels
+    /// @param y      distance from its top edge
+    /// @param width  the handler's own width
+    /// @param height its height
+    public record Local(float x, float y, float width, float height) {
+
+        /// What a widget that was never laid out gets — a widget built and
+        /// poked directly by a test, or one whose box is not in the snapshot
+        /// yet. Zero-sized, so [#fractionX()] is 0 rather than a division by
+        /// zero.
+        public static final Local UNKNOWN = new Local(0, 0, 0, 0);
+
+        /// [#x()] as a fraction of [#width()], clamped to `0..1`.
+        ///
+        /// What a horizontal slider reads off a press: the value the user is
+        /// pointing at, before any step is applied.
+        public double fractionX() {
+            return width <= 0 ? 0 : clamp(x / width);
+        }
+
+        /// [#y()] as a fraction of [#height()], clamped to `0..1` — a vertical
+        /// slider's, and **not** inverted. Zero is the top, because that is where
+        /// zero is on a screen; a widget whose maximum is at the top inverts it,
+        /// which is a fact about the widget rather than about the pointer.
+        public double fractionY() {
+            return height <= 0 ? 0 : clamp(y / height);
+        }
+
+        private static double clamp(double value) {
+            return value < 0 ? 0 : value > 1 ? 1 : value;
+        }
+    }
+
+    /// See [Local].
+    public Local local() {
+        return local;
+    }
+
+    /// Re-points [#local()] at the widget about to handle this.
+    ///
+    /// **The router's, in an application.** It is the only thing holding the
+    /// hit-test snapshot, and it re-points this before each handler on the chain.
+    /// Public because a test that builds an event by hand has to say where it
+    /// landed, exactly as it has to be able to call [#consume()].
+    public void localTo(Local value) {
+        this.local = value == null ? Local.UNKNOWN : value;
+    }
 
     public PointerEvent(Kind kind, float x, float y, Button button, int clickCount, Element target) {
         this(kind, x, y, button, clickCount, 0, 0, Float.NaN, Float.NaN, target);
