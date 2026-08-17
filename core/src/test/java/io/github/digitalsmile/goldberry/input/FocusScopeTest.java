@@ -61,11 +61,17 @@ class FocusScopeTest {
         }
     }
 
-    /// A composite: one Tab stop, arrows inside.
+    /// A composite: one Tab stop, arrows inside. `scope` is which arrows.
     private static class Group implements Widget.Leaf, Styled, Handles {
         private final List<Widget> children;
+        private final FocusScope scope;
 
         Group(Widget... children) {
+            this(FocusScope.BOTH, children);
+        }
+
+        Group(FocusScope scope, Widget... children) {
+            this.scope = scope;
             this.children = List.of(children);
         }
 
@@ -80,8 +86,8 @@ class FocusScopeTest {
         }
 
         @Override
-        public boolean focusScope() {
-            return true;
+        public FocusScope focusScope() {
+            return scope;
         }
     }
 
@@ -348,6 +354,112 @@ class FocusScopeTest {
             log.clear();
             router.focus(option(0), true);
             assertEquals(List.of(), log);
+        }
+    }
+
+    @Nested
+    @DisplayName("a scope has an axis (ADR-0078)")
+    class Axis {
+
+        /// Builds `before | group(one two three) | after` with a scope of `scope`,
+        /// and puts focus on the middle option.
+        private PointerRouter scoped(FocusScope scope) {
+            var tree = new ElementTree(new Item("root", false) {
+                @Override
+                public List<Widget> children() {
+                    return List.of(
+                            new Item("before"),
+                            new Group(scope, new Item("one"), new Item("two"), new Item("three")),
+                            new Item("after"));
+                }
+            });
+            var router = new PointerRouter();
+            router.focusRoot(tree.root());
+            // Tab twice: onto `before`, then into the group at its first option.
+            router.keyPressed(Key.TAB, Modifiers.NONE, false);
+            router.keyPressed(Key.TAB, Modifiers.NONE, false);
+            return router;
+        }
+
+        private String focusedName(PointerRouter router) {
+            return router.focused() == null ? null : router.focused().type();
+        }
+
+        @Test
+        @DisplayName("a horizontal scope roves on Left/Right and ignores Up/Down")
+        void horizontal() {
+            var router = scoped(FocusScope.HORIZONTAL);
+
+            assertTrue(router.keyPressed(Key.RIGHT, Modifiers.NONE, false));
+            assertEquals("two", focusedName(router));
+
+            // The key is *unhandled*, which is the point: the focused chain has
+            // already declined it, so nothing happens at all. A menu bar's `Down`
+            // is free to mean "open the menu" precisely because the scope does not
+            // quietly consume it to move along the bar.
+            assertFalse(router.keyPressed(Key.DOWN, Modifiers.NONE, false));
+            assertEquals("two", focusedName(router));
+            assertFalse(router.keyPressed(Key.UP, Modifiers.NONE, false));
+            assertEquals("two", focusedName(router));
+        }
+
+        @Test
+        @DisplayName("a vertical scope roves on Up/Down and ignores Left/Right")
+        void vertical() {
+            var router = scoped(FocusScope.VERTICAL);
+
+            assertTrue(router.keyPressed(Key.DOWN, Modifiers.NONE, false));
+            assertEquals("two", focusedName(router));
+
+            // The case that motivates the whole change: a menu item with no
+            // submenu declines `Right`, and a both-axes scope would then slide
+            // focus to the next item rather than doing nothing.
+            assertFalse(router.keyPressed(Key.RIGHT, Modifiers.NONE, false));
+            assertEquals("two", focusedName(router));
+            assertFalse(router.keyPressed(Key.LEFT, Modifiers.NONE, false));
+            assertEquals("two", focusedName(router));
+        }
+
+        @Test
+        @DisplayName("both axes rove in a BOTH scope, which is a radio group")
+        void both() {
+            var router = scoped(FocusScope.BOTH);
+
+            assertTrue(router.keyPressed(Key.RIGHT, Modifiers.NONE, false));
+            assertEquals("two", focusedName(router));
+            assertTrue(router.keyPressed(Key.DOWN, Modifiers.NONE, false));
+            assertEquals("three", focusedName(router));
+        }
+
+        /// Home and End name a position in the set rather than a direction on
+        /// screen, so they reach the ends of a scope on either axis.
+        @Test
+        @DisplayName("Home and End work on a scope of any axis")
+        void homeAndEndIgnoreTheAxis() {
+            for (var scope : List.of(FocusScope.HORIZONTAL, FocusScope.VERTICAL, FocusScope.BOTH)) {
+                var router = scoped(scope);
+
+                assertTrue(router.keyPressed(Key.END, Modifiers.NONE, false), "End in " + scope);
+                assertEquals("three", focusedName(router), "End in " + scope);
+                assertTrue(router.keyPressed(Key.HOME, Modifiers.NONE, false), "Home in " + scope);
+                assertEquals("one", focusedName(router), "Home in " + scope);
+            }
+        }
+
+        /// `NONE` is the default, and it has to mean "not a composite at all"
+        /// rather than "a composite that roves on nothing" — otherwise every
+        /// focusable node in it would stop being its own Tab stop.
+        @Test
+        @DisplayName("NONE is not a scope, so its children are separate Tab stops")
+        void noneIsNotAScope() {
+            var router = scoped(FocusScope.NONE);
+
+            assertFalse(router.keyPressed(Key.RIGHT, Modifiers.NONE, false));
+            assertFalse(router.keyPressed(Key.DOWN, Modifiers.NONE, false));
+            // Two more Tabs reach the second and third items individually, which
+            // a real scope would have crossed in one.
+            router.keyPressed(Key.TAB, Modifiers.NONE, false);
+            assertEquals("two", focusedName(router));
         }
     }
 }

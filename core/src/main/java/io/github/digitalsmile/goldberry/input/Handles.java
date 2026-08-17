@@ -50,7 +50,8 @@ public interface Handles extends Widget {
     }
 
     /// Whether this widget's descendants are **one** Tab stop with arrow-key
-    /// focus inside — a radio group, a tab list, a menu, a toolbar.
+    /// focus inside — a radio group, a tab list, a menu, a toolbar — and if so,
+    /// **which arrows** move between them.
     ///
     /// `docs/design-system.md` §7.2: "composites are one Tab stop with roving
     /// arrow-key focus inside". A group of six radios that took six Tab presses
@@ -59,12 +60,19 @@ public interface Handles extends Widget {
     /// answered by the router, exactly as Tab is
     /// ([ADR-0073](../../../../../../book/src/adr/0073-a-composite-is-one-tab-stop.md)).
     ///
+    /// The axis is the widget's because only it knows what it means by the other
+    /// pair: a vertical menu's `Right` opens a submenu, and a scope that roved on
+    /// it would move focus down the list whenever an item had none
+    /// ([ADR-0078](../../../../../../book/src/adr/0078-a-focus-scope-has-an-axis.md)).
+    /// `radio-group` answers [FocusScope#BOTH], because its direction is its
+    /// stylesheet's rather than its own.
+    ///
     /// Where the traversal **enters** is not remembered: it is the focusable
     /// descendant matching `:checked`, or the first one if none does. So the
     /// selection is the roving position, and there is no second piece of state
     /// that can disagree with it.
-    default boolean focusScope() {
-        return false;
+    default FocusScope focusScope() {
+        return FocusScope.NONE;
     }
 
     /// Focus arrived at this widget, or left it.

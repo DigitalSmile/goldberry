@@ -343,10 +343,14 @@ public final class PointerRouter {
         // is inside a group.
         if (modifiers.none()) {
             return switch (key) {
-                case LEFT, UP -> moveFocusWithinScope(-1, false);
-                case RIGHT, DOWN -> moveFocusWithinScope(1, false);
-                case HOME -> moveFocusWithinScope(-1, true);
-                case END -> moveFocusWithinScope(1, true);
+                case LEFT -> moveFocusWithinScope(-1, false, FocusScope.Axis.HORIZONTAL);
+                case RIGHT -> moveFocusWithinScope(1, false, FocusScope.Axis.HORIZONTAL);
+                case UP -> moveFocusWithinScope(-1, false, FocusScope.Axis.VERTICAL);
+                case DOWN -> moveFocusWithinScope(1, false, FocusScope.Axis.VERTICAL);
+                // Null axis: Home and End name a position in the set rather than
+                // a direction on screen, so they reach the ends of any scope.
+                case HOME -> moveFocusWithinScope(-1, true, null);
+                case END -> moveFocusWithinScope(1, true, null);
                 default -> false;
             };
         }
@@ -365,9 +369,13 @@ public final class PointerRouter {
     /// @param direction -1 for the previous, 1 for the next
     /// @param toEnd     whether to go all the way (Home/End) rather than one step
     /// @return whether focus moved
-    private boolean moveFocusWithinScope(int direction, boolean toEnd) {
+    private boolean moveFocusWithinScope(int direction, boolean toEnd, FocusScope.Axis axis) {
         var scope = enclosingScope(focused);
-        if (scope == null) {
+        // A scope that does not answer to this axis leaves the key alone, and
+        // "alone" is the whole point: the focused chain has already declined it,
+        // so nothing happens -- which is what a menu item with no submenu should
+        // do about `Right`, rather than sliding focus down the list (ADR-0078).
+        if (scope == null || !scopeOf(scope).roves(axis)) {
             return false;
         }
         var within = new ArrayList<Element>();
@@ -542,8 +550,13 @@ public final class PointerRouter {
         return within.isEmpty() ? null : within.getFirst();
     }
 
+    /// What kind of composite `element` is, if any.
+    private static FocusScope scopeOf(Element element) {
+        return element.widget() instanceof Handles handles ? handles.focusScope() : FocusScope.NONE;
+    }
+
     private static boolean isFocusScope(Element element) {
-        return element.widget() instanceof Handles handles && handles.focusScope();
+        return scopeOf(element) != FocusScope.NONE;
     }
 
     /// Capture root-first, then bubble from the focused node up.
@@ -687,7 +700,7 @@ public final class PointerRouter {
     /// ([ADR-0059]), and a tooltip explaining *why* something is disabled is the
     /// case that needs the event.
     private void mark(Element element, PseudoClass pseudoClass, boolean active) {
-        if (active && element.widget() instanceof Styled styled && styled.isDisabled()) {
+        if (active && isDisabled(element)) {
             active = false;
         }
         if (element.isMounted() && element.setPseudoClass(pseudoClass, active)) {
@@ -709,7 +722,53 @@ public final class PointerRouter {
     }
 
     private static boolean isFocusable(Element element) {
-        return element.widget() instanceof Handles handles && handles.isFocusable();
+        return element.widget() instanceof Handles handles && handles.isFocusable()
+                && !isDisabled(element);
+    }
+
+    /// Whether `element` is disabled — **by itself or by any ancestor**.
+    ///
+    /// `docs/core-widgets.md`: "disabled state propagates down the tree; a
+    /// disabled container disables its descendants for input and semantics". A
+    /// button inside a disabled `form` says `isDisabled() == false` about itself
+    /// and is unavailable all the same, and it is not the button's business to
+    /// know that.
+    ///
+    /// **Derived by walking up, not stored and not mirrored onto the element.**
+    /// The alternative is a flag pushed down the tree on every build, which is a
+    /// second copy of a fact the tree already holds — and ADR-0073 has already
+    /// been through what happens when a derived thing is remembered instead: the
+    /// two disagree the first time something changes without telling the thing
+    /// that cached it. Nothing to invalidate, nothing to leak, and it costs a
+    /// walk up the ancestors on input events only.
+    ///
+    /// It deliberately does **not** feed `:disabled`. See
+    /// [ADR-0077](../../../../../../book/src/adr/0077-disabled-propagates-for-input-and-not-for-paint.md):
+    /// the container's own 45% already fades everything under it, because opacity
+    /// multiplies down a subtree, and a descendant that also matched `:disabled`
+    /// would be faded twice.
+    static boolean isDisabled(Element element) {
+        for (var current = element; current != null; current = parentOf(current)) {
+            if (current.widget() instanceof Styled styled && styled.isDisabled()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /// Whether this kind of event is the user *doing* something, as opposed to
+    /// the pointer merely being somewhere.
+    ///
+    /// The line a disabled subtree is cut along. Observation still arrives —
+    /// which is what keeps ADR-0059's two cases working: a disabled control still
+    /// hit-tests so a click cannot fall through to whatever is behind it, still
+    /// resolves `cursor: not-allowed`, and still gets the enter/exit a tooltip
+    /// explaining *why* it is unavailable would need.
+    private static boolean isInput(PointerEvent.Kind kind) {
+        return switch (kind) {
+            case PRESSED, RELEASED, CLICKED, WHEEL -> true;
+            case MOVED, ENTERED, EXITED -> false;
+        };
     }
 
     private static Element nearestFocusable(Element element) {
@@ -729,6 +788,14 @@ public final class PointerRouter {
 
     /// Capture down the chain, then bubble back up (§7.1).
     private static void dispatch(PointerEvent event) {
+        // One choke point for every control, present and future -- the same
+        // argument that put the `:hover` refusal in `mark` rather than in each
+        // widget. A control's own `disabled` check is then a second line of
+        // defence rather than the only one, and a control that forgets to write
+        // it is still unavailable inside a disabled container.
+        if (isInput(event.kind()) && isDisabled(event.target())) {
+            return;
+        }
         var chain = chain(event.target());
 
         // Capture is root-first, so the chain -- which is deepest-first -- is

@@ -303,22 +303,27 @@ disabled container disabling its descendants.
   because the next three users will look nothing like a radio. —
   [ADR-0073](adr/0073-a-composite-is-one-tab-stop.md)
 
-- **A focus scope has no axis.** Both arrow pairs rove, which is right for a
-  radio group — its direction is the stylesheet's, and `.inline` flips it — and
-  will be wrong for a menu bar, where `Down` should open a menu rather than move
-  along the bar. A composite that genuinely has an axis will have to say so, and
-  that is a decision for `menu` rather than a second mechanism beside this one. —
+- ~~**A focus scope has no axis.**~~ **Answered.** `Handles.focusScope()` returns
+  a `FocusScope` — `NONE`, `HORIZONTAL`, `VERTICAL` or `BOTH` — and `radio-group`
+  is the one composite in the catalog that legitimately answers `BOTH`, because
+  its direction is its stylesheet's and `.inline` flips it. The **axis is the
+  widget's** even though traversal stays the router's: the router cannot know
+  what a widget means by the other pair, and the widget cannot see its own
+  siblings. It only matters on the path where the widget **declines** the key,
+  which is why a boolean survived four controls — arrows reach the focused chain
+  first, so a menu bar that handles `Down` itself works either way. The failure it
+  prevents is a menu item with no submenu declining `Right` and a `BOTH` scope
+  quietly sliding focus to the next item: the user asked to open something and
+  the selection moved instead, with no error anywhere. `Home` and `End` belong to
+  no axis and reach the ends of any scope, because they name a position in the
+  set rather than a direction on screen. Four widgets unblocked by an enum. —
+  [ADR-0078](adr/0078-a-focus-scope-has-an-axis.md),
   [ADR-0073](adr/0073-a-composite-is-one-tab-stop.md)
 
-- **A disabled group fades correctly only by an explicit undo.** A disabled
-  `radio-group` is 45% *and* passes `disabled` down to every option, so without
-  `radio-group:disabled radio:disabled { opacity: 1 }` in `controls.css` the fade
-  would apply twice and land at 20%. It is written that way round because the
-  group's rule also covers a heading between the options, which is not a radio.
-  The general fix is the one below — a disabled container disabling its
-  descendants — and `form` and `group-box` are where it has to be faced. —
-  [ADR-0073](adr/0073-a-composite-is-one-tab-stop.md),
-  [ADR-0065](adr/0065-a-part-is-styleable-and-not-constructible.md)
+- ~~**A disabled group fades correctly only by an explicit undo.**~~ **Answered,
+  and the undo is deleted rather than generalised.** A rule whose only job was to
+  undo its own mechanism was the mechanism saying it was the wrong one. —
+  [ADR-0077](adr/0077-disabled-propagates-for-input-and-not-for-paint.md)
 - ~~**Layer promotion does not exist, so every animating frame repaints the
   window.**~~ **Answered.** A promoted subtree is rasterized at full strength and
   untransformed, so its alpha and matrix apply to the *blit* — and a group that is
@@ -391,13 +396,29 @@ disabled container disabling its descendants.
   collapses every transition; nothing reads the OS setting, because SDL exposes
   no query for it. An application that knows sets it. —
   [ADR-0067](adr/0067-motion-is-an-overlay-on-a-frame-clock.md)
-- **A disabled container does not disable its descendants.**
-  `docs/core-widgets.md` says it should. What works is a control passing the flag
-  to the parts and children it builds itself, which is enough for `checkbox` and
-  for `radio-group` — the group hands `disabled` to every option — and will not
-  be enough for `form` or `group-box`, which contain widgets they did not build. —
-  [ADR-0065](adr/0065-a-part-is-styleable-and-not-constructible.md),
-  [ADR-0073](adr/0073-a-composite-is-one-tab-stop.md)
+- ~~**A disabled container does not disable its descendants.**~~ **Answered, and
+  the sentence turned out to have two halves that pull apart.**
+  `docs/core-widgets.md` says "disables its descendants for **input and
+  semantics**" — and deliberately not for paint, which is where the double-fade
+  came from. **Input propagates**: no press, click, wheel, focus or key reaches a
+  descendant of a disabled container. **Paint does not**: `:disabled` stays on the
+  node that declared it, because the container's own 45% already fades everything
+  under it (opacity multiplies down a subtree) and a descendant that also matched
+  would land at 20%. It costs nothing in expressiveness, since §2.1 requires
+  disabled to be opacity and never a colour remap. The effective value is
+  **derived by walking up the ancestors, not stored** — ADR-0073's lesson applied
+  again: a second copy of a fact the tree already holds disagrees the first time
+  something changes without telling the thing that cached it. The **router is the
+  choke point**, one guard in `dispatch` plus `isFocusable`, so a control written
+  without its own `disabled` check is still unavailable — and the **keyboard
+  needed no guard at all**, because focus is the only route a key has, so one line
+  about focus covers `onKey`, `onKeyCapture` and `onText` together. The cut is
+  input versus **observation**: enter, exit, motion, hit testing and the cursor
+  all still work, which is what keeps ADR-0059's two cases — a click that must not
+  fall through, and a tooltip explaining *why* something is unavailable. `form`,
+  `group-box` and a `dialog` in its `closing` phase all get this for free. —
+  [ADR-0077](adr/0077-disabled-propagates-for-input-and-not-for-paint.md),
+  [ADR-0059](adr/0059-a-control-is-a-record-a-node-and-a-rule.md)
 - **The rounded corners and the transforms have only been rasterized on
   linux-x64.** Blend2D JITs its pipelines per CPU, so the four cubics and the
   eleventh golden's rotations and skews on AVX-512, on Apple Silicon's NEON path

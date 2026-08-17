@@ -267,14 +267,12 @@ radio-group:disabled {
   cursor: not-allowed;
 }
 
-/* A disabled group already fades as a whole, and it passes `disabled` down to
-   every option -- so without this the fade would apply twice and land at 20%.
-   The group is the one that keeps it, because it also covers a heading or a
-   caption written between the options, which is not a radio and would otherwise
-   stay at full strength inside a group that is unavailable. */
-radio-group:disabled radio:disabled {
-  opacity: 1;
-}
+/* There is no `radio-group:disabled radio:disabled { opacity: 1 }` undo here any
+   more, and its absence is the point of ADR-0077. A disabled container fades its
+   whole subtree by itself, because opacity multiplies down -- so `:disabled`
+   stays on the node that *declared* it and does not propagate, while the
+   unavailability propagates for input through the router. A rule whose job was
+   to undo its own mechanism was the mechanism saying it was the wrong one. */
 
 /* ---------------------------------------------------------------- button --
  *

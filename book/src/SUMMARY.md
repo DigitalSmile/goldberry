@@ -82,6 +82,8 @@
 - [ADR-0074 Density is a token swap, and regular is no stylesheet](adr/0074-density-is-a-token-swap-and-regular-is-no-stylesheet.md)
 - [ADR-0075 A gesture's origin is the router's](adr/0075-a-gestures-origin-is-the-routers.md)
 - [ADR-0076 A glyph does not negotiate](adr/0076-a-glyph-does-not-negotiate.md)
+- [ADR-0077 Disabled propagates for input and not for paint](adr/0077-disabled-propagates-for-input-and-not-for-paint.md)
+- [ADR-0078 A focus scope has an axis](adr/0078-a-focus-scope-has-an-axis.md)
 
 ---
 

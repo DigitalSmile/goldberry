@@ -2,6 +2,7 @@ package io.github.digitalsmile.goldberry.widgets;
 
 import io.github.digitalsmile.goldberry.bind.Observable;
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
+import io.github.digitalsmile.goldberry.input.FocusScope;
 import io.github.digitalsmile.goldberry.input.Handles;
 import io.github.digitalsmile.goldberry.layout.Box;
 import io.github.digitalsmile.goldberry.widget.Paints;
@@ -158,15 +159,23 @@ public record RadioGroup(
         return attributes.key();
     }
 
-    /// One Tab stop, with arrow keys inside it (§7.2, [ADR-0073]).
+    /// One Tab stop, with **both** arrow pairs roving inside it (§7.2, [ADR-0073]).
     ///
-    /// True even when the group is disabled: a disabled group has no focusable
+    /// [FocusScope#BOTH] rather than an axis, and this is the one composite in
+    /// the catalog for which that is right: a group's direction is its
+    /// *stylesheet's* — `flex-direction` on `radio-group`, which `.inline` flips
+    /// — so input cannot know which pair a user is looking at, and answering to
+    /// only one would be wrong half the time. It is also ARIA's rule for a radio
+    /// group. A `menu` or a `tabs` will name an axis, because theirs is theirs
+    /// ([ADR-0078](../../../../../../../book/src/adr/0078-a-focus-scope-has-an-axis.md)).
+    ///
+    /// A scope even when the group is disabled: a disabled group has no focusable
     /// options left, so the traversal contributes nothing and skips it either
     /// way — and saying "not a composite" while disabled would make the answer
     /// depend on state that has nothing to do with the group's shape.
     @Override
-    public boolean focusScope() {
-        return true;
+    public FocusScope focusScope() {
+        return FocusScope.BOTH;
     }
 
     /// Not focusable itself. The focus lands on an option, so the ring is drawn
@@ -196,7 +205,15 @@ public record RadioGroup(
                 out.add(option.within(
                         option.value().equals(selected),
                         onChange == null ? null : () -> onChange.accept(option.value()),
-                        disabled));
+                        // The group's own `disabled` is deliberately **not**
+                        // pushed down. It propagates for input by itself -- the
+                        // router walks up the ancestors (ADR-0077) -- and pushing
+                        // it would make every option match `:disabled` too, so the
+                        // 45% would apply once for the group and again for each
+                        // option and land at 20%. An option's own flag is kept,
+                        // because a document may disable one option in a group
+                        // that is otherwise available.
+                        option.disabled()));
             } else {
                 // A heading, a caption, a separator. Left exactly as written: a
                 // group that silently dropped what it did not recognise would be

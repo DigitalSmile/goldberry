@@ -16,6 +16,7 @@ import io.github.digitalsmile.goldberry.css.Selector;
 import io.github.digitalsmile.goldberry.css.StyleResolver;
 import io.github.digitalsmile.goldberry.css.Theme;
 import io.github.digitalsmile.goldberry.layout.Box;
+import io.github.digitalsmile.goldberry.input.FocusScope;
 import io.github.digitalsmile.goldberry.input.Key;
 import io.github.digitalsmile.goldberry.input.KeyEvent;
 import io.github.digitalsmile.goldberry.input.Modifiers;
@@ -503,12 +504,31 @@ class RadioTest {
         }
 
         @Test
-        @DisplayName("a disabled group disables every option in it")
-        void groupDisablesOptions() {
+        @DisplayName("a disabled group does not mark its options, and does not need to")
+        void groupDoesNotPushDisabledDown() {
             var group = new RadioGroup("light", picked::add,
                     new Radio("light", "Light"), new Radio("dark", "Dark")).disabled(true);
 
-            assertTrue(options(group).stream().allMatch(Radio::disabled));
+            // The flag stays on the node that declared it. Pushing it down would
+            // make every option match `:disabled` as well, and 45% applied twice
+            // lands at 20% -- which is why this used to need an `opacity: 1` undo
+            // rule in controls.css. Unavailability propagates through the router
+            // instead, and the fade propagates by itself because opacity
+            // multiplies down a subtree (ADR-0077).
+            assertTrue(options(group).stream().noneMatch(Radio::disabled),
+                    "a group's disabled is the group's, not each option's");
+        }
+
+        @Test
+        @DisplayName("an option that disabled itself keeps it, inside an available group")
+        void anOptionMayDisableItself() {
+            var group = new RadioGroup("light", picked::add,
+                    new Radio("light", "Light"),
+                    new Radio("dark", "Dark", false, null, true, null));
+
+            assertFalse(options(group).getFirst().disabled());
+            assertTrue(options(group).get(1).disabled(),
+                    "a document may disable one option in a group that is otherwise available");
         }
 
         @Test
@@ -644,7 +664,11 @@ class RadioTest {
         void groupShape() {
             var group = new RadioGroup("dark", new Radio("dark", "Dark"));
 
-            assertTrue(group.focusScope());
+            // BOTH rather than an axis, and it is the one composite in the
+            // catalog for which that is right: a group's direction is its
+            // stylesheet's, and `.inline` flips it, so input cannot know which
+            // pair the user is looking at (ADR-0078).
+            assertEquals(FocusScope.BOTH, group.focusScope());
             assertFalse(group.isFocusable(),
                     "the ring belongs on the option the user is about to pick");
             assertNotNull(group.children());
