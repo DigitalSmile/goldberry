@@ -21,7 +21,9 @@ import io.github.digitalsmile.goldberry.widget.Widgets;
 import io.github.digitalsmile.goldberry.widgets.Button;
 import io.github.digitalsmile.goldberry.widgets.Checkbox;
 import io.github.digitalsmile.goldberry.widgets.Radio;
+import io.github.digitalsmile.goldberry.widgets.Progress;
 import io.github.digitalsmile.goldberry.widgets.Slider;
+import io.github.digitalsmile.goldberry.widgets.Spinner;
 import io.github.digitalsmile.goldberry.widgets.RadioGroup;
 import io.github.digitalsmile.goldberry.widgets.Controls;
 import io.github.digitalsmile.goldberry.widgets.Density;
@@ -328,7 +330,23 @@ public final class Showcase {
                             // what makes a scale worth drawing rather than
                             // decoration.
                             new Slider(0, 100, 0, 5, 5, "%.0f%%", null,
-                                    gain, this::setGain, false, id("gain"))),
+                                    gain, this::setGain, false, id("gain")),
+                            // Two widgets on one property, which is what the
+                            // gain caption used to demonstrate: drag the slider
+                            // and this follows, because neither owns the value
+                            // (ADR-0063).
+                            new Progress(100, gain),
+                            // The eighth control, and the reason this window no
+                            // longer goes idle: a spinner asks for another frame
+                            // for as long as it is mounted, which is what
+                            // `renderer.isAnimating()` means and is exactly the
+                            // cost of having something on screen that moves
+                            // (ADR-0081).
+                            new Widgets.Row(
+                                    List.of(
+                                            new Spinner(),
+                                            new Widgets.Text("Working", styled("busy", "caption"))),
+                                    id("busy"))),
                     id("options"));
         }
 

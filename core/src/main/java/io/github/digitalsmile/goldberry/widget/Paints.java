@@ -57,6 +57,47 @@ public interface Paints extends Widget {
         /// @throws UnsupportedOperationException if the text is right-to-left,
         ///         which [io.github.digitalsmile.goldberry.text.Paragraph] refuses
         Paragraph paragraph(ComputedStyle style, String text);
+
+        /// What time this frame is, on the renderer's clock — §1.7's "animations
+        /// are functions of the frame timestamp, not frame counts".
+        ///
+        /// For the widgets whose motion **cannot be a transition**. A transition
+        /// interpolates between two styles the cascade resolved, which is every
+        /// state change in the catalog; a spinner and an indeterminate progress
+        /// bar have no two states to move between, and §8's subset has no
+        /// `@keyframes` to express a loop with. So they are drawn as a function
+        /// of this
+        /// ([ADR-0081](../../../../../../book/src/adr/0081-a-perpetual-loop-has-no-state.md)).
+        ///
+        /// Read **once per frame** by the renderer and handed to every node, so
+        /// two spinners in one window are on the same tick rather than a few
+        /// microseconds apart.
+        double nowMillis();
+
+        /// Whether the user asked for less movement (§1.7).
+        ///
+        /// A widget that animates itself has to ask, because there is no
+        /// declaration for the renderer to collapse: `reducedMotion` turns every
+        /// *transition* instant, and a loop has no duration to zero. §3.1 gives
+        /// both looping controls the same answer — an opacity pulse instead of
+        /// movement — which is a different drawing rather than a slower one.
+        boolean reducedMotion();
+    }
+
+    /// Whether this widget will want another frame after this one.
+    ///
+    /// False for everything that moves by CSS: a transition is the renderer's to
+    /// track, and it already reports itself through
+    /// [WidgetRenderer#isAnimating()]. This is for a widget that draws itself
+    /// from [Context#nowMillis()] — without it, §1.7's idle frame loop would
+    /// paint a spinner once and stop, which is a still picture of a spinner
+    /// ([ADR-0081]).
+    ///
+    /// A **property of the description** rather than a running state: a progress
+    /// bar is indeterminate because it was built that way, and one that has been
+    /// given a value stops asking. Nothing has to be started or stopped.
+    default boolean isAnimating() {
+        return false;
     }
 
     /// Builds this widget's box.

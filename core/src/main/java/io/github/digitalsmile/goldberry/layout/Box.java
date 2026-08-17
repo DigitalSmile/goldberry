@@ -117,7 +117,15 @@ public record Box(
 
             /// A filled circle — `:checked` on a radio, which is why this is here
             /// before `radio` is.
-            DOT
+            DOT,
+
+            /// A three-quarter ring — a `spinner`, and the only mark that is not
+            /// an indicator of a value.
+            ///
+            /// Three quarters rather than a full circle because a spinning circle
+            /// is a circle: the gap is the whole of what makes the rotation
+            /// visible ([ADR-0081]).
+            ARC
         }
 
         public Mark {

@@ -163,6 +163,13 @@
      thing you have to be able to read. */
   --gb-slider-tick-bg: var(--gb-border);
 
+  /* Progress, on the same argument as this theme's slider groove: nord4 is a
+     step down from the surface, which is what a channel cut into one looks
+     like. The fill is the accent on both themes -- a value is the accent
+     wherever it appears. */
+  --gb-progress-track-bg: var(--nord4);
+  --gb-progress-fill-bg: var(--gb-accent);
+
   /* A black wash, because a light theme's surfaces are already bright. */
   --gb-overlay-hover: #00000012;
   --gb-overlay-active: #00000024;

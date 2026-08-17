@@ -72,6 +72,22 @@ final class TestFont {
                     io.github.digitalsmile.goldberry.css.ComputedStyle style, String text) {
                 return cache.paragraph(one(), text);
             }
+
+            /// A stopped clock, which is what a test calling `render` by hand
+            /// wants: the frame it gets is the frame at zero, every time. A test
+            /// that needs a moving one drives a [WidgetRenderer] with
+            /// [io.github.digitalsmile.goldberry.motion.Clock#virtual()] instead
+            /// — which is also the only way to see a widget's own loop, since
+            /// the renderer is what reads the clock once per frame (ADR-0081).
+            @Override
+            public double nowMillis() {
+                return 0;
+            }
+
+            @Override
+            public boolean reducedMotion() {
+                return false;
+            }
         };
     }
 }

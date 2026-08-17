@@ -81,7 +81,7 @@ public final class WidgetRenderer {
     /// which is not only about the 56 µs of shaping it saves — the retained
     /// render tree reads that identity to decide it can keep the measure callback
     /// it already bound (ADR-0069).
-    private static Paints.Context context(java.util.function.Function<ComputedStyle, Font> fonts) {
+    private Paints.Context context(java.util.function.Function<ComputedStyle, Font> fonts) {
         var cache = ParagraphCache.create();
         return new Paints.Context() {
 
@@ -95,8 +95,26 @@ public final class WidgetRenderer {
                     ComputedStyle style, String text) {
                 return cache.paragraph(fonts.apply(style), text);
             }
+
+            /// This frame's time, read once in `render` -- not `clock.nowMillis()`
+            /// again here. A widget asking the clock directly would get a slightly
+            /// later answer than the transitions running beside it, and two
+            /// spinners in one window would each be on their own tick.
+            @Override
+            public double nowMillis() {
+                return frameNow;
+            }
+
+            @Override
+            public boolean reducedMotion() {
+                return reducedMotion;
+            }
         };
     }
+
+    /// The time the current frame is being rendered at — see
+    /// [Paints.Context#nowMillis()].
+    private double frameNow;
 
     /// See [#WidgetRenderer(List, Font, CssLength.Context)].
     public WidgetRenderer(List<Stylesheet> stylesheets, Font font) {
@@ -164,6 +182,7 @@ public final class WidgetRenderer {
         // or two properties that §3.1 says "arrive together" -- a toggle's thumb
         // and its track -- would arrive microseconds apart and drift.
         var now = clock.nowMillis();
+        frameNow = now;
         animating = false;
         var boxes = render(tree.root(), null, now);
         if (boxes.isEmpty()) {
@@ -255,6 +274,12 @@ public final class WidgetRenderer {
             // become its parent's directly.
             return children;
         }
+
+        // A widget that draws itself from the frame clock keeps the loop awake.
+        // §1.7's idle loop stops the frame after the last transition settles, and
+        // a spinner has no transition to settle -- so without this it would be
+        // painted once and left there (ADR-0081).
+        animating |= paints.isAnimating();
 
         // Tagged with the element that produced it, which is how a pointer
         // event gets from a rectangle on screen back to a node (ADR-0054).

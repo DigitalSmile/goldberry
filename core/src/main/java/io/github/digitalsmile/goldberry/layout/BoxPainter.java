@@ -198,6 +198,15 @@ public final class BoxPainter {
                 path.moveTo(width * 0.24, height * 0.5);
                 path.lineTo(width * 0.76, height * 0.5);
             }
+            case ARC -> {
+                // Three quarters of a circle, inset by half the stroke so the
+                // ring's *outer* edge is the box rather than its centre line --
+                // a 16px spinner that stroked on the box's edge would draw 1px
+                // outside it all the way round.
+                Arc.addTo(path, width / 2, height / 2,
+                        Math.min(width, height) / 2 - mark.thickness() / 2,
+                        -Math.PI / 2, 1.5 * Math.PI);
+            }
             case DOT -> {
                 // Filled rather than stroked, so a radio's dot is solid at any
                 // size instead of becoming a ring as the box grows.

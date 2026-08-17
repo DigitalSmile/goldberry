@@ -288,9 +288,20 @@ class RadioGoldenTest {
                                              background: var(--gb-surface) }
                                     #group { gap: 8px }
                                     """)),
-                    TestFont.get());
+                    TestFont.get())
+                    // **A virtual clock, and this scene needs one now.** Every
+                    // golden here was deterministic under the system clock while
+                    // nothing in it moved on its own; a `spinner` draws itself
+                    // from the frame time, so under a wall clock this image is a
+                    // different ring on every run -- which it duly was, 84 pixels
+                    // apart, the first time it was regenerated (ADR-0081).
+                    .clock(io.github.digitalsmile.goldberry.motion.Clock.virtual());
 
-            GoldenImage.assertMatches(name, 300, 220, 1.0f,
+            // Grown from 220 when `progress` and `spinner` joined the scene. A
+            // frame that fitted only because the last two controls were falling
+            // off the bottom is the same defect ADR-0076 found in six scenes at
+            // once: an image is not evidence of a control it clipped away.
+            GoldenImage.assertMatches(name, 300, 290, 1.0f,
                     frame -> BoxPainter.paint(frame, renderer.render(tree)));
         }
     }
@@ -317,7 +328,15 @@ class RadioGoldenTest {
                         new RadioGroup("dark",
                                 List.of(new Radio("light", "Unselected"),
                                         new Radio("dark", "Selected")),
-                                null, null, false, id("group"))),
+                                null, null, false, id("group")),
+                        // A progress bar's track is the same 4px groove the
+                        // slider's is, and takes the same token -- so it is the
+                        // same defect waiting, and this is where it is caught.
+                        new Progress(0.4),
+                        // A spinner has no surface at all: it is a stroke, and a
+                        // stroke that matched the panel would be a control that
+                        // vanished on it as completely as the checkbox did.
+                        new Spinner()),
                 id("panel"));
     }
 

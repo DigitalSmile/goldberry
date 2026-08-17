@@ -29,15 +29,15 @@ API. No JNI, no bundled web engine, no platform widget wrapping.
 > part in that layout, Lucide's icons draw, stylesheets and KDL markup hot-reload,
 > pointer, wheel and keyboard input route to a widget tree, and markup wires both
 > halves of §9 — an `action` to call and a value to `bind` to. The catalog is
-> five primitives and six controls — `button`, a tri-state `checkbox`, a
+> five primitives and eight controls — `button`, a tri-state `checkbox`, a
 > `toggle` you can drag, a `slider` (and its vertical `fader`, with tick marks, a
-> value readout and a decibel taper), and `radio` /
-> `radio-group`, which is one Tab stop with arrow keys inside it — all drawn to
+> value readout and a decibel taper), `radio` / `radio-group`, which is one Tab
+> stop with arrow keys inside it, and a `progress` bar and a `spinner` that
+> animate on the frame clock — all drawn to
 > the design system's metrics with rounded corners, a real focus ring, the §1.4
 > type scale in two real weights, a `regular`/`compact` density that no widget
-> mentions, CSS transitions on a frame clock and golden images — so five
-> controls are still to come: `knob`, `select`, `progress`, `spinner` and
-> `badge`.
+> mentions, CSS transitions on a frame clock and golden images — so three
+> controls are still to come: `knob`, `select` and `badge`.
 > See [Status](book/src/status.md) for what works and what is still open.
 
 ## Quick start
@@ -594,6 +594,68 @@ A `format` is a pattern rather than a function, because two records are compared
 for equality and two lambdas never are, and it is checked when the slider is
 built — so `format="%d"` against a double fails at inflation rather than on
 whichever frame first has a value to draw.
+
+### `progress` and `spinner`
+
+The seventh and eighth controls, and the first two that are not controls at all:
+they report, and take nothing back.
+
+```kdl
+progress value=0.4
+progress indeterminate=#true
+spinner
+```
+
+A determinate bar's fill is a plain `width: 40%` — worth noticing beside the
+slider, which cannot do that, because its fill shares a track with a 16px thumb.
+The two states are **one widget**, and the selector that tells them apart is one
+the checkbox already introduced:
+
+```css
+progress-fill                        { background: var(--gb-progress-fill-bg) }
+progress:indeterminate progress-fill { background: var(--gb-accent) }
+```
+
+What is new is **motion that is not a transition**. Everything that moved before
+these moved between two styles the cascade resolved; a sweep and a rotation have
+no two styles, and the CSS subset has no `@keyframes`. §1.7 names an
+`AnimationController` for exactly this case, and it is **not** what shipped:
+
+```java
+static double phaseAt(double now) {
+    return (now % PERIOD) / PERIOD;      // and that is the whole mechanism
+}
+```
+
+A loop that never ends has nothing to remember. There is no controller to start,
+stop, dispose or leak, the widgets stay values with no state, and **two spinners
+in one window are in step by construction** — which a controller started at mount
+would get wrong in a way that looks odd without looking broken. The controller's
+real subjects are the ones with a lifecycle, like a toast reflowing its
+neighbours, and none of those exist yet
+([ADR-0081](book/src/adr/0081-a-perpetual-loop-has-no-state.md)).
+
+A widget that draws itself from the clock says so, and that is what keeps §1.7's
+idle frame loop awake in front of it:
+
+```java
+@Override
+public boolean isAnimating() {
+    return indeterminate;      // a bar with a value is a still picture
+}
+```
+
+The sweeping bar moves by `transform`, because animating a width would run Yoga
+on every frame of a loop that never ends. It **turns at the ends** rather than
+running off them: the usual drawing needs `overflow: hidden` to hide both the
+overhang and the wrap, and nothing here clips a box.
+
+A spinner's ring is a `Box.Mark` like a tick or a dot — not an `Icon`, which owns
+native memory a widget must not hold — and its arc is three cubics through the
+already-exported path call, so no symbol was added for it. Three quarters of a
+circle, because a spinning circle is a circle.
+
+Under reduced motion both stop moving rather than moving slowly.
 
 ### `radio` and `radio-group`
 

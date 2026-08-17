@@ -185,6 +185,17 @@ public final class Controls {
                     node.booleanProperty("disabled"),
                     Widgets.Attributes.of(node));
         });
+        inflater.register("progress", (node, children) -> new Progress(
+                node.numberProperty("value", 0),
+                node.numberProperty("max", 1),
+                node.booleanProperty("indeterminate"),
+                bindings.resolve(node.stringProperty("bind")),
+                Widgets.Attributes.of(node)));
+        // The one widget in the catalog with no attributes of its own: a spinner
+        // has no value, no state and nothing to say. It still takes an id and
+        // classes, because everything CSS-selectable does (§11).
+        inflater.register("spinner", (node, children) -> new Spinner(
+                Widgets.Attributes.of(node)));
         inflater.register("radio-group", (node, children) -> new RadioGroup(
                 node.stringProperty("value"),
                 children,
@@ -243,7 +254,8 @@ public final class Controls {
     /// **Controls only.** The parts — `check-indicator`, `check-mark`,
     /// `radio-indicator`, `radio-dot`, `toggle-track`, `toggle-thumb`,
     /// `slider-track`, `slider-groove`, `slider-fill`, `slider-thumb`,
-    /// `slider-rest`, `slider-ticks`, `slider-tick` and `slider-value` — are
+    /// `slider-rest`, `slider-ticks`, `slider-tick`, `slider-value` and
+    /// `progress-fill` — are
     /// styled by the same stylesheet and are not here, because they are parts
     /// rather than widgets: they are CSS-selectable and deliberately not
     /// KDL-constructible, and asking the parity test to inflate one would be
@@ -252,6 +264,7 @@ public final class Controls {
     /// [ToggleTrack], [ToggleThumb], [SliderTrack], [SliderGroove],
     /// [SliderTicks], [SliderTick], [SliderValue]).
     public static List<String> controlTypes() {
-        return List.of("button", "checkbox", "toggle", "slider", "radio-group", "radio");
+        return List.of("button", "checkbox", "toggle", "slider", "radio-group", "radio",
+                "progress", "spinner");
     }
 }

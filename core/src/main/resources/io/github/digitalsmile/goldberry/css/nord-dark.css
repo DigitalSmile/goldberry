@@ -181,6 +181,14 @@
      a panel would be the fifth instance of ADR-0073's defect. */
   --gb-slider-tick-bg: var(--gb-border);
 
+  /* Progress (§3: track 4, radius full). The track is `--gb-border` for the
+     reason the slider's groove is: it is a channel cut into a surface, and the
+     one token in this theme that reads as an edge on both `--gb-bg` and
+     `--gb-surface` is the one named for edges. The fill is the accent, which is
+     what "this much" is drawn in everywhere in the catalog. */
+  --gb-progress-track-bg: var(--gb-border);
+  --gb-progress-fill-bg: var(--gb-accent);
+
   /* A white wash, for controls that have no surface of their own. */
   --gb-overlay-hover: #ffffff14;
   --gb-overlay-active: #ffffff29;
