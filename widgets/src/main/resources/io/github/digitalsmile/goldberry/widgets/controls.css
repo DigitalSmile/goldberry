@@ -7,42 +7,179 @@
  * value, which is what lets switching a theme restyle a button whose rules never
  * mention a colour (§10).
  *
- * The numbers are the design system's (docs/design-system.md §3, "Component
- * metrics"), which pins button at height 32, padding-x 12, gap 6.
+ * Every number here is the design system's (docs/design-system.md §3, "Component
+ * metrics"). Nothing in this file is a value someone picked: if a metric is not
+ * in that table, the table gets extended first (Principle 3, "token or extend").
  *
- * Not expressible yet, and therefore absent rather than approximated: the 8px
- * corner radius, the 1px border on `ghost`, the `body-strong` weight, and the
- * 2px `--gb-focus` ring at 2px offset. `Box` carries no border, radius, font
- * weight or outline, so each of those arrives with the thing that paints it.
- * `:focus-visible` is styled with a background change in the meantime, so
- * keyboard focus is at least visible.
+ * Still not expressible, and therefore absent rather than approximated: the
+ * `transform` half of §1.7's whitelist, which `checkbox`'s specified check
+ * animation ("scale 0.6->1 + opacity") needs for its scale. `Box` carries no
+ * transform, and hit testing would need its inverse to keep routing clicks
+ * correctly -- a correctness trap worth arriving on its own. The opacity half
+ * ships. See book/src/status.md.
  */
 
+/* ---------------------------------------------------------------- motion --
+ *
+ * §3.1's table, for the controls that exist. Every duration is a token and every
+ * curve is one of §1.7's three keywords: a design system where a screen can
+ * invent its own curve has no motion language, only motion.
+ *
+ * Layout properties are absent because they cannot be here -- `transition` only
+ * accepts the compositor-cheap set, and a declaration naming `width` is refused
+ * with a warning rather than ignored. Animating a width would run Yoga every
+ * frame of every transition, which on a CPU renderer is the difference between a
+ * transition and a stutter.
+ */
+button,
+checkbox {
+  transition: background-color var(--gb-motion-fast) ease-enter,
+              color var(--gb-motion-fast) ease-enter,
+              opacity var(--gb-motion-fast) ease-enter;
+}
+
+/* "Press states apply in 0ms; release fades out in fast" (§1.7 rule 1, §3.1).
+   The pressed rule declares a zero duration and the resting rule declares the
+   fade, so entering `:active` snaps and leaving it eases -- because the timing
+   that applies is the one on the style being moved *to*. That is CSS's own
+   idiom for an asymmetric transition and needs nothing added to the engine.
+
+   It matters more than it looks: a press that faded in would make every button
+   in the toolkit feel disconnected from the finger that pressed it. */
+button:active,
+checkbox:active {
+  transition: background-color 0ms;
+}
+
+/* The glyph's fill and mark on `base`, its border on `fast` -- §3.1's "check:
+   ... base, color fast" for the half that is expressible. The scale is the
+   half that is not; see the header. */
+check-indicator {
+  transition: background-color var(--gb-motion-base) ease-enter,
+              border-color var(--gb-motion-fast) ease-enter,
+              color var(--gb-motion-base) ease-enter;
+}
+
+/* ------------------------------------------------------------ typography --
+ *
+ * §1.4's scale, as classes, so `text class="heading"` picks a token rather than
+ * a size. In the base layer because the *mapping* is theme-invariant -- a
+ * heading is `heading` in every theme -- while the numbers behind it are the
+ * theme's, which is what lets a large-text or high-contrast theme move all of
+ * them at once without touching a rule (§10.1, §4).
+ *
+ * `display`, `title` and `heading` are 600 by the table; `body`, `caption` and
+ * `mono` are 400. `body-strong` is `body` at 600, which is why it is spelled as
+ * a class beside it rather than as a seventh size.
+ *
+ * These inherit, so a class on a container reaches every label under it.
+ */
+.display {
+  font-size: var(--gb-font-display);
+  line-height: var(--gb-line-display);
+  font-weight: var(--gb-weight-strong);
+}
+
+.title {
+  font-size: var(--gb-font-title);
+  line-height: var(--gb-line-title);
+  font-weight: var(--gb-weight-strong);
+}
+
+.heading {
+  font-size: var(--gb-font-heading);
+  line-height: var(--gb-line-heading);
+  font-weight: var(--gb-weight-strong);
+}
+
+.body {
+  font-size: var(--gb-font-body);
+  line-height: var(--gb-line-body);
+  font-weight: var(--gb-weight-regular);
+}
+
+.body-strong {
+  font-size: var(--gb-font-body);
+  line-height: var(--gb-line-body);
+  font-weight: var(--gb-weight-strong);
+}
+
+.caption {
+  font-size: var(--gb-font-caption);
+  line-height: var(--gb-line-caption);
+  font-weight: var(--gb-weight-regular);
+}
+
+.mono {
+  font-family: "JetBrains Mono";
+  font-size: var(--gb-font-code);
+  line-height: var(--gb-line-code);
+  font-weight: var(--gb-weight-regular);
+}
+
+/* ---------------------------------------------------------------- states --
+ *
+ * The focus ring, once, for every control (§2.2): 2px `--gb-focus` at a 2px
+ * offset, following whatever radius the control has. Written as one rule over a
+ * type list rather than copied per control, because "the ring is the same
+ * everywhere" is the actual requirement and a copy is how it stops being true.
+ *
+ * `:focus-visible` and not `:focus` -- the ring is for keyboard focus, and a
+ * control clicked with a mouse gets none. The router keeps the two distinct
+ * (ADR-0054) precisely so this rule can.
+ */
+button:focus-visible,
+checkbox:focus-visible {
+  outline: 2px solid var(--gb-focus);
+  outline-offset: 2px;
+}
+
+/* Disabled is 45% opacity on the whole control and *never* a colour remap
+   (§2.1). Two reasons it is written this way rather than as a pair of muted
+   tokens: a remap has to be redefined for every variant and every theme -- four
+   variants times two themes is eight tokens that can each be wrong on their own
+   -- and it destroys the variant's identity, so a disabled danger button stops
+   looking dangerous. Opacity is one number, applies to the label and the icon
+   and the border at once, and cannot disagree with itself.
+
+   A disabled control still lays out, paints and hit-tests. It just does not act,
+   and it looks unavailable rather than disappearing. */
+button:disabled,
+checkbox:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* ---------------------------------------------------------------- button --
+ *
+ * height 32, padding-x 12, gap 6, radius 8 (§3).
+ */
 button {
   height: 32px;
   padding: 0 12px;
   gap: 6px;
+  /* `body-strong` -- §3's typography column for this row. Written out rather
+     than as `class="body-strong"`, because a button is that weight by being a
+     button and an author should not have to say so. */
+  font-size: var(--gb-font-body);
+  line-height: var(--gb-line-body);
+  font-weight: var(--gb-weight-strong);
   align-items: center;
   justify-content: center;
+  border-radius: 8px;
   cursor: pointer;
 
   background: var(--gb-button-bg);
   color: var(--gb-button-text);
 }
 
+/* Hover changes the surface by one step and never the text colour (§2.1). */
 button:hover {
   background: var(--gb-button-bg-hover);
 }
 
 button:active {
   background: var(--gb-button-bg-active);
-}
-
-/* Stands in for the focus ring until Box can draw an outline. Deliberately the
-   same colour as :hover would give, plus the accent, so a keyboard user can see
-   where they are. */
-button:focus-visible {
-  background: var(--gb-button-bg-focus);
 }
 
 button.primary {
@@ -86,16 +223,57 @@ button.ghost:active {
   background: var(--gb-overlay-active);
 }
 
-/* Disabled wins over every variant and every state, which is why it is both written with the
-   variant classes -- so it matches `button.primary:hover`'s specificity -- and
-   placed last, so equal specificity resolves in its favour.
-   A disabled control still lays out, paints and hit-tests -- it just does not
-   act -- so it has to look unavailable rather than disappear. */
-button:disabled,
-button.primary:disabled,
-button.danger:disabled,
-button.ghost:disabled {
-  background: var(--gb-button-disabled-bg);
-  color: var(--gb-button-disabled-text);
-  cursor: not-allowed;
+/* -------------------------------------------------------------- checkbox --
+ *
+ * glyph 16, hit >= 32, label gap 8 (§3). The control is the whole row: the
+ * height is the hit target (§1.3, "hit targets >= 32x32 even when the visual is
+ * smaller"), and the click target includes the label because
+ * docs/core-widgets.md §3 asks for it.
+ */
+checkbox {
+  height: 32px;
+  gap: 8px;
+  /* `body`, not `body-strong`: §1.4 puts the strong weight on buttons and
+     headings, and a checkbox's label is running text beside a control. */
+  font-size: var(--gb-font-body);
+  line-height: var(--gb-line-body);
+  font-weight: var(--gb-weight-regular);
+  align-items: center;
+  cursor: pointer;
+  color: var(--gb-text);
 }
+
+/* The glyph. A part, not a widget -- see CheckIndicator for why it is
+   CSS-selectable and not KDL-constructible.
+
+   `radius 4` is the design system's small-control corner (§1.5), which is the
+   same one `text-input` and `select` take. The border makes an unchecked box
+   visible on a surface it would otherwise match; `--gb-border` is the token for
+   exactly that and is why this is not an invented colour. */
+check-indicator {
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  border: 1px solid var(--gb-border);
+  background: var(--gb-checkbox-bg);
+  color: var(--gb-checkbox-mark);
+}
+
+checkbox:hover check-indicator {
+  border-color: var(--gb-checkbox-border-hover);
+}
+
+/* Checked and mixed look the same apart from the mark they carry: both are
+   "this control has a value", and the accent fill is what says so. The mark is
+   drawn in `color`, which is why the two rules set one. */
+check-indicator:checked,
+check-indicator:indeterminate {
+  background: var(--gb-checkbox-bg-checked);
+  border-color: var(--gb-checkbox-bg-checked);
+  color: var(--gb-checkbox-mark-checked);
+}
+
+/* No `check-indicator:disabled` rule, deliberately: the 45% opacity on the
+   checkbox above already fades the glyph, the border and the mark together,
+   because the painter multiplies opacity down the subtree. A second rule here
+   would fade it twice. */

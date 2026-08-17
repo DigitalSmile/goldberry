@@ -34,6 +34,7 @@ class PointerRouterTest {
         private final boolean focusable;
         private PointerEvent.Kind consumeOn;
         private PointerEvent.Kind consumeOnCapture;
+        private boolean disabled;
 
         Node(String name, boolean focusable, Widget... children) {
             this.name = name;
@@ -54,6 +55,11 @@ class PointerRouterTest {
         @Override
         public boolean isFocusable() {
             return focusable;
+        }
+
+        @Override
+        public boolean isDisabled() {
+            return disabled;
         }
 
         @Override
@@ -126,6 +132,53 @@ class PointerRouterTest {
             assertEquals(
                     List.of("bubble:inner:EXITED"),
                     log.stream().filter(e -> e.endsWith("ENTERED") || e.endsWith("EXITED")).toList());
+        }
+
+        @Test
+        @DisplayName("a disabled node never lights up, and its ancestors still do")
+        void disabledNeverHovers() {
+            // docs/design-system.md §2.1 gives :disabled one appearance. A
+            // control that still lightened under the pointer would be saying it
+            // can be used. Enforced in the router rather than per variant per
+            // state in a stylesheet -- CSS would write `:not(:disabled):hover`,
+            // and `:not()` is not in §8's subset.
+            innerWidget.disabled = true;
+            router.pointerMoved(30, 30);
+
+            assertFalse(inner.hasState(PseudoClass.HOVER));
+            assertTrue(outer.hasState(PseudoClass.HOVER),
+                    "the chain above it is not disabled and still hovers");
+
+            // The *events* still arrive: a disabled node hit-tests, so a click
+            // cannot fall through to whatever is behind it, and a tooltip saying
+            // why something is disabled needs the enter.
+            assertTrue(log.contains("bubble:inner:ENTERED"));
+        }
+
+        @Test
+        @DisplayName("a node disabled while hovered loses the state")
+        void disabledWhileHovered() {
+            // The real sequence: a button disables itself in its own press
+            // handler, with the pointer still over it. Only *setting* is
+            // suppressed, so the next move clears what was already there.
+            router.pointerMoved(30, 30);
+            assertTrue(inner.hasState(PseudoClass.HOVER));
+
+            innerWidget.disabled = true;
+            router.pointerExited();
+            router.pointerMoved(30, 30);
+
+            assertFalse(inner.hasState(PseudoClass.HOVER));
+        }
+
+        @Test
+        @DisplayName("a disabled node never looks pressed either")
+        void disabledNeverActive() {
+            innerWidget.disabled = true;
+            router.pointerMoved(30, 30);
+            router.pointerPressed(30, 30, PointerEvent.Button.PRIMARY, 1);
+
+            assertFalse(inner.hasState(PseudoClass.ACTIVE));
         }
 
         @Test

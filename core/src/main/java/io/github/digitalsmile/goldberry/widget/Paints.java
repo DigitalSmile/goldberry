@@ -22,10 +22,19 @@ public interface Paints extends Widget {
     /// Currently the font, because text is the only thing that needs one. It is
     /// an interface rather than a parameter so that adding the display scale, an
     /// icon catalog or a text-measurement cache does not change every widget.
+    @FunctionalInterface
     interface Context {
 
-        /// The font to shape text with.
-        Font font();
+        /// The font for a node's **own** resolved typography.
+        ///
+        /// Takes the style rather than answering one font for the window, because
+        /// `font-family`, `font-size` and `font-weight` are per node and inherit:
+        /// a button's label is Inter 600 and the paragraph beside it is Inter 400,
+        /// and both are resolved by the cascade rather than chosen by the widget.
+        ///
+        /// Backed by a [io.github.digitalsmile.goldberry.text.Fonts] book, so
+        /// asking again for a size already open is a map lookup and not a parse.
+        Font font(ComputedStyle style);
     }
 
     /// Builds this widget's box.

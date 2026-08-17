@@ -58,8 +58,14 @@ public interface Widget {
     /// can see.
     ///
     /// **What the value means is the widget's own business.** For `text` it is the
-    /// content; for a future `checkbox` it will be the checked state, which that
-    /// control also writes back to. The framework only knows when to rebuild.
+    /// content; for `checkbox` it is the checked state. The framework only knows
+    /// when to rebuild.
+    ///
+    /// No widget writes to it. This is an [Observable] and not a `Property` on
+    /// purpose — there is no `set` to call, so a control built from markup cannot
+    /// reach the application's model, and what the user did travels back up as an
+    /// action instead
+    /// ([ADR-0063](../../../../../../book/src/adr/0063-data-flows-down-events-flow-up.md)).
     default Observable<?> binding() {
         return null;
     }

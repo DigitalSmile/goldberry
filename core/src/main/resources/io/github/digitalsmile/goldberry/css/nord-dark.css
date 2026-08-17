@@ -60,11 +60,7 @@
   --gb-button-bg: var(--nord2);
   --gb-button-bg-hover: var(--nord3);
   --gb-button-bg-active: var(--nord1);
-  --gb-button-bg-focus: #4c566a;
   --gb-button-text: var(--nord6);
-
-  --gb-button-disabled-bg: var(--nord1);
-  --gb-button-disabled-text: var(--nord3);
 
   --gb-button-primary-bg: var(--nord8);
   --gb-button-primary-bg-hover: #97cad9;
@@ -76,16 +72,49 @@
   --gb-button-danger-bg-active: #ab545d;
   --gb-button-danger-text: var(--nord6);
 
+  /* The glyph's own surface, one step up from the window so an unchecked box
+     reads as a well rather than as a hole. Checked fills with the accent, and
+     the mark is drawn in the darkest thing the palette has -- nord8 is a light
+     frost blue, so a white tick on it would not carry 4.5:1 (§1.2). */
+  --gb-checkbox-bg: var(--nord1);
+  --gb-checkbox-border-hover: var(--nord4);
+  --gb-checkbox-bg-checked: var(--gb-accent);
+  --gb-checkbox-mark: transparent;
+  --gb-checkbox-mark-checked: var(--nord0);
+
   /* A white wash, for controls that have no surface of their own. */
   --gb-overlay-hover: #ffffff14;
   --gb-overlay-active: #ffffff29;
 
-  /* Typography (§10.1) is theme-invariant: only colour changes between themes. */
+  /* Typography (design-system.md §1.4). Theme-invariant: only colour changes
+     between themes, so these are identical in both files -- and they are here
+     rather than in the base layer because §10.1 puts the scale in the theme, so
+     a high-contrast or large-text theme is still an alias swap and not a code
+     path.
+
+     Sizes and line heights are §1.4's table exactly: display 28/34, title 20/26,
+     heading 15/20, body 13/18, caption 11/14, mono 13/18. Two weights, 400 and
+     600, which is the whole of what the system ships. */
   --gb-font-display: 28px;
+  --gb-line-display: 34px;
   --gb-font-title: 20px;
-  --gb-font-heading: 16px;
-  --gb-font-body: 14px;
-  --gb-font-label: 12px;
+  --gb-line-title: 26px;
+  --gb-font-heading: 15px;
+  --gb-line-heading: 20px;
+  --gb-font-body: 13px;
+  --gb-line-body: 18px;
   --gb-font-caption: 11px;
+  --gb-line-caption: 14px;
   --gb-font-code: 13px;
+  --gb-line-code: 18px;
+
+  --gb-weight-regular: 400;
+  --gb-weight-strong: 600;
+
+  /* Motion (design-system.md §1.7). Theme-invariant like the type scale, and
+     here rather than in the base layer for the same reason: a reduced-motion or
+     a deliberately-slower theme is then an alias swap and not a code path. */
+  --gb-motion-fast: 100ms;
+  --gb-motion-base: 160ms;
+  --gb-motion-overlay: 240ms;
 }

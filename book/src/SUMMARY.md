@@ -69,6 +69,10 @@
 - [ADR-0061 The events a test cannot produce are pushed](adr/0061-the-events-a-test-cannot-produce-are-pushed.md)
 - [ADR-0062 `bind` is a path, and nothing else](adr/0062-bind-is-a-path-and-nothing-else.md)
 - [ADR-0063 Data flows down, events flow up](adr/0063-data-flows-down-events-flow-up.md)
+- [ADR-0064 A rounded rectangle is four cubics, and opacity is a multiply](adr/0064-a-rounded-rectangle-is-four-cubics.md)
+- [ADR-0065 A part is styleable and not constructible](adr/0065-a-part-is-styleable-and-not-constructible.md)
+- [ADR-0066 A weight is a face, and `color` inherits](adr/0066-a-weight-is-a-face-and-color-inherits.md)
+- [ADR-0067 Motion is an overlay on a frame clock](adr/0067-motion-is-an-overlay-on-a-frame-clock.md)
 
 ---
 

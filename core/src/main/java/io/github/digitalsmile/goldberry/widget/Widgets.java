@@ -128,7 +128,7 @@ public final class Widgets {
         public Box render(ComputedStyle style, List<Box> children, Context context) {
             // A measured leaf: Yoga proposes a width, the paragraph wraps at it,
             // and the height that comes back is what sizes the box (ADR-0036).
-            return Box.text(Paragraph.of(context.font(), resolved()), style.color()).style(style);
+            return Box.text(Paragraph.of(context.font(style), resolved()), style.color()).style(style);
         }
     }
 

@@ -45,6 +45,13 @@ module io.github.digitalsmile.goldberry.core {
     // that turns it into events, pseudo-classes and focus (§7, ADR-0054).
     exports io.github.digitalsmile.goldberry.input;
 
+    // The frame clock, the three easing curves, and the per-node animation
+    // overlay CSS transitions run through (design-system.md §1.7, ADR-0067).
+    // Exported because an application supplies the clock -- a test drives a
+    // virtual one so a golden image can snapshot a mid-animation frame -- and
+    // because `Easing` is named by a `transition` a stylesheet writes.
+    exports io.github.digitalsmile.goldberry.motion;
+
     // Where Yoga's layout meets Blend2D's painting (ADR-0033). Not the widget
     // model -- that is still open (ADR-0004) -- but the join between the two
     // engines, so the seam is exercised before a widget tree lands on it.

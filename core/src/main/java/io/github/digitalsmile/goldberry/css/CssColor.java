@@ -50,6 +50,41 @@ public final class CssColor {
             Map.entry("teal", 0xFF008080),
             Map.entry("aqua", 0xFF00FFFF));
 
+    /// `argb` with its alpha multiplied by `alpha`.
+    ///
+    /// The whole of what `opacity` does to a colour. Multiplied rather than
+    /// replaced, so a token that is already translucent — `--gb-selection` is
+    /// nord10 at 40% — fades from where it was rather than jumping to full
+    /// opacity on the way down.
+    ///
+    /// @param argb  `0xAARRGGBB`, not premultiplied
+    /// @param alpha 0 to 1; values outside are clamped
+    /// @return the same colour with a scaled alpha
+    public static int fade(int argb, double alpha) {
+        if (alpha >= 1) {
+            return argb;
+        }
+        if (alpha <= 0) {
+            return argb & 0x00FFFFFF;
+        }
+        var faded = (int) Math.round(((argb >>> 24) & 0xFF) * alpha);
+        return (faded << 24) | (argb & 0x00FFFFFF);
+    }
+
+    /// `from` and `to` mixed, with `t` in `0..1`, **in OKLCH**.
+    ///
+    /// The space is not an implementation detail: averaging two colours in sRGB
+    /// passes through a grey dead zone, so a hover fading between two accent
+    /// tokens goes muddy halfway. `docs/design-system.md` §1.7 specifies OKLCH
+    /// for exactly that reason, and [Oklch] is where the arithmetic and its
+    /// caveats live.
+    ///
+    /// @param from `0xAARRGGBB`, not premultiplied
+    /// @param to   `0xAARRGGBB`, not premultiplied
+    public static int mix(int from, int to, double t) {
+        return Oklch.mix(from, to, t);
+    }
+
     /// Parses a colour from a declaration's value tokens.
     ///
     /// @return the colour as `0xAARRGGBB`, or null if these tokens are not one

@@ -98,6 +98,18 @@ public record Selector(List<Part> parts) {
         DISABLED,
         CHECKED,
 
+        /// A tri-state control whose value is neither on nor off — CSS's own
+        /// `:indeterminate`, and the eighth of a set `docs/core-widgets.md` lists
+        /// as seven.
+        ///
+        /// Added with `checkbox`, because a mixed checkbox has to be
+        /// *distinguishable* from a checked one and from an unchecked one, and
+        /// two pseudo-classes cannot describe three states. It is deliberately
+        /// not "checked plus a modifier": a stylesheet that wrote
+        /// `checkbox:checked` and meant "the tick is showing" would otherwise be
+        /// wrong for the mixed case, silently.
+        INDETERMINATE,
+
         /// The root element — `:root { --gb-accent: … }`.
         ///
         /// Structural rather than a state: it never changes for an element, so

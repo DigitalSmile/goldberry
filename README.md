@@ -29,8 +29,10 @@ API. No JNI, no bundled web engine, no platform widget wrapping.
 > part in that layout, Lucide's icons draw, stylesheets and KDL markup hot-reload,
 > pointer, wheel and keyboard input route to a widget tree, and markup wires both
 > halves of §9 — an `action` to call and a value to `bind` to. The catalog is
-> five primitives and one control — `button`, with variants, icons, a disabled
-> state and golden images — so twelve controls are still to come.
+> five primitives and two controls — `button` and a tri-state `checkbox`, both
+> drawn to the design system's metrics with rounded corners, a real focus ring,
+> the §1.4 type scale in two real weights, CSS transitions on a frame clock and
+> golden images — so eleven controls are still to come.
 > See [Status](book/src/status.md) for what works and what is still open.
 
 ## Quick start
@@ -381,10 +383,158 @@ handler sets the property — so a control that will not move means the state di
 not change, which is where the bug is
 ([ADR-0063](book/src/adr/0063-data-flows-down-events-flow-up.md)).
 
-So far the catalog is the five primitives (`text`, `row`, `column`, `panel`,
-`spacer`) and `button`. Radii, borders, font weights and the focus ring are not
-drawable yet, so `controls.css` states what it cannot express rather than
-approximating it.
+### `checkbox`
+
+The second control, and the first whose *value* comes from outside it:
+
+```kdl
+checkbox bind="prefs.frost" change="toggleFrost" "Frosted sidebar"
+```
+
+Binary or tri-state. `MIXED` is a real state — a "select all" over a partial
+selection is neither on nor off — and it matches `:indeterminate` rather than
+`:checked`, because two pseudo-classes cannot describe three states and folding
+mixed into `:checked` makes every rule that meant *the tick is showing* silently
+wrong. Toggling never *produces* mixed: clicking a partial selection asks for all
+of them.
+
+The click target is the whole control, label included, which matters because a
+16px glyph is a small target and the label is usually five times as wide. `Space`
+toggles; `Enter` deliberately does not, since it belongs to a dialog's default
+action and a checkbox that swallowed it would leave a form with no keyboard route
+to submit.
+
+Its glyph is the toolkit's first **part**: `check-indicator` is a CSS type
+selector and is **not** registered in the KDL inflater. One `ComputedStyle`
+carries one background and one radius, and a checkbox needs two — the 32px
+control and the 16px glyph — so the glyph gets a cascade node of its own. It is
+not a widget: a `check-indicator` outside a `checkbox` is a square that means
+nothing, and what an author wants from a part is to restyle it, which a type
+selector is the whole of
+([ADR-0065](book/src/adr/0065-a-part-is-styleable-and-not-constructible.md)).
+
+```css
+check-indicator:checked { background: var(--gb-accent); color: var(--gb-checkbox-mark-checked) }
+```
+
+### What the controls are drawn with
+
+`border-radius`, `border`, `outline` and `opacity` reach the box tree, so the
+design system's numbers are drawn rather than described. A rounded rectangle is
+built from four cubic Béziers through the already-exported `bl_path_cubic_to`
+rather than from a new Blend2D symbol — the export list has caught the same class
+of bug three times, and a corner that needs no new symbol works on every target
+on the first CI run
+([ADR-0064](book/src/adr/0064-a-rounded-rectangle-is-four-cubics.md)).
+
+The focus ring is one rule for every control, not one per control:
+
+```css
+button:focus-visible,
+checkbox:focus-visible { outline: 2px solid var(--gb-focus); outline-offset: 2px }
+```
+
+`:focus-visible` and not `:focus`, so a control clicked with a mouse gets no ring.
+An outline is drawn outside the border box and takes no space, so a ring cannot
+move a control by existing.
+
+`:disabled` is **45% opacity and never a colour remap**, which is one number
+instead of eight muted tokens and leaves a disabled `danger` button still reading
+as dangerous. Because the remap is gone, a disabled control would otherwise still
+lighten under the pointer; CSS would spell the fix `:not(:disabled):hover` and
+`:not()` is not in the subset, so the router refuses to *set* `:hover` or
+`:active` on a disabled widget — one choke point, every control.
+
+### Typography
+
+The cascade inherits, which is what makes a type scale work at all: `color`,
+`font-family`, `font-size`, `font-weight` and `line-height` pass down the element
+tree, so a class on a container reaches every label under it. `cursor`
+deliberately does **not** — it already inherits through the stack of painted
+rectangles, and two mechanisms for one property disagree the first time a box has
+no element behind it.
+
+The design system's seven tokens ship as classes, with the numbers in the theme
+so a large-text theme moves all of them at once:
+
+```kdl
+text class="heading" "Preferences"
+text class="caption" "Applied on next launch"
+```
+
+**A weight is a face, not an axis.** Inter ships as a variable file *and* as its
+SemiBold static instance, because §1.4 specifies exactly two weights and
+instancing `wght` at runtime needs symbols in both HarfBuzz and Blend2D — three
+new export branches, answered only by CI across four targets. A CSS weight no
+file provides resolves to the nearer one that does, the way CSS's own font
+matching works, so `font-weight: bold` gets SemiBold rather than nothing
+([ADR-0066](book/src/adr/0066-a-weight-is-a-face-and-color-inherits.md)).
+
+A `Fonts` book joins a resolved style to a `Font`, caching faces by family and
+weight and fonts by (face, size) — a widget tree is re-rendered every frame, and
+a heading at 20px would otherwise re-parse Inter sixty times a second. It is
+owned and closed by the application, never global: these hold native memory and
+are confined to one thread.
+
+```java
+try (var fonts = Fonts.bundled()) {
+    var renderer = new WidgetRenderer(stylesheets, fonts);
+}
+```
+
+### Motion
+
+Transitions are CSS, resolved by the cascade like any other property:
+
+```css
+button { transition: background-color var(--gb-motion-fast) ease-enter }
+button:active { transition: background-color 0ms }
+```
+
+Those two lines are the design system's "press applies in 0ms, release fades
+out". No new mechanism was needed — the timing that applies is the one on the
+style being moved **to**, so entering `:active` snaps and leaving it eases.
+
+Animated values live in a **per-node overlay applied at paint, and are never
+written back into computed style**. That is the whole design rather than an
+implementation detail: a cascade that saw the halfway colour as the node's real
+one would diff *that* against the target and start again from it, giving a
+control that approaches its hover colour and never arrives. Retargeting starts
+from the current animated value, so a pointer leaving a button halfway through a
+fade returns from where the colour is.
+
+The whitelist is closed — `opacity`, `background-color`, `border-color`,
+`color` — and `transition: width 200ms` is a **dropped declaration with a
+warning naming it**, not a rule that silently never fires: animating a width
+would run Yoga on every frame of every transition. Colours interpolate in
+OKLCH, which is measurable rather than decorative — Nord's danger red and
+success green have a channel spread of 54 at their sRGB midpoint and 109 at
+their OKLCH one.
+
+The frame loop stays idle. An application asks for another frame only while
+something is moving:
+
+```java
+window.onPaint(frame -> {
+    BoxPainter.paint(frame, renderer.render(tree));
+    if (renderer.isAnimating()) {
+        window.repaint();
+    }
+});
+```
+
+And a **virtual clock** is what makes it testable: `clock.advance(50)` gives
+exactly the frame at 50 ms of a 100 ms transition, on every machine and in CI.
+A golden image of a mid-animation frame is impossible against a wall clock —
+the test would have to sleep, and would then be asserting on whatever the
+scheduler gave it
+([ADR-0067](book/src/adr/0067-motion-is-an-overlay-on-a-frame-clock.md)).
+
+Still **absent rather than approximated**: `transform`, which is in the design
+system's whitelist and which a checkbox's tick needs for its scale — `Box`
+carries no transform, and hit testing would need its inverse to keep routing
+clicks. Layer promotion goes with it, and is the same mechanism group opacity
+and damage tracking want.
 
 ## Input
 

@@ -179,7 +179,7 @@ public record Button(
             content.add(Box.icon(icon, style.color()));
         }
         if (!label.isEmpty()) {
-            content.add(Box.text(Paragraph.of(context.font(), label), style.color()));
+            content.add(Box.text(Paragraph.of(context.font(style), label), style.color()));
         }
         return Box.of().style(style).children(content.toArray(Box[]::new));
     }

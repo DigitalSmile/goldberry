@@ -59,4 +59,27 @@ public interface Styled extends Widget {
     default boolean isDisabled() {
         return false;
     }
+
+    /// Whether this node is on, for `:checked`.
+    ///
+    /// A widget's own fact for the same reason [#isDisabled()] is: nothing about
+    /// the pointer or the keyboard says whether a checkbox is ticked, only the
+    /// value it was described with. Mirrored onto the element by [WidgetRenderer]
+    /// on the same pass and by the same argument — the stylesheet and the
+    /// semantics must not be able to disagree about it.
+    ///
+    /// False for a control in the mixed state: see [#isIndeterminate()].
+    default boolean isChecked() {
+        return false;
+    }
+
+    /// Whether this node is in the mixed state, for `:indeterminate`.
+    ///
+    /// Mutually exclusive with [#isChecked()] — three states, two flags, and the
+    /// third is both false. A control answering true to both would match
+    /// `checkbox:checked` and `checkbox:indeterminate` at once and paint whichever
+    /// rule the cascade happened to prefer.
+    default boolean isIndeterminate() {
+        return false;
+    }
 }

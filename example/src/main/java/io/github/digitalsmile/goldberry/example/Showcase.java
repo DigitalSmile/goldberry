@@ -2,7 +2,6 @@ package io.github.digitalsmile.goldberry.example;
 
 import io.github.digitalsmile.goldberry.Goldberry;
 import io.github.digitalsmile.goldberry.Window;
-import io.github.digitalsmile.goldberry.assets.BundledFont;
 import io.github.digitalsmile.goldberry.bind.Observable;
 import io.github.digitalsmile.goldberry.bind.Property;
 import io.github.digitalsmile.goldberry.css.CascadeLayer;
@@ -12,8 +11,7 @@ import io.github.digitalsmile.goldberry.icon.Icon;
 import io.github.digitalsmile.goldberry.input.HitTest;
 import io.github.digitalsmile.goldberry.input.PointerRouter;
 import io.github.digitalsmile.goldberry.layout.BoxPainter;
-import io.github.digitalsmile.goldberry.text.Font;
-import io.github.digitalsmile.goldberry.text.FontFace;
+import io.github.digitalsmile.goldberry.text.Fonts;
 import io.github.digitalsmile.goldberry.widget.BuildContext;
 import io.github.digitalsmile.goldberry.widget.ElementTree;
 import io.github.digitalsmile.goldberry.widget.State;
@@ -21,6 +19,7 @@ import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widget.WidgetRenderer;
 import io.github.digitalsmile.goldberry.widget.Widgets;
 import io.github.digitalsmile.goldberry.widgets.Button;
+import io.github.digitalsmile.goldberry.widgets.Checkbox;
 import io.github.digitalsmile.goldberry.widgets.Controls;
 import java.util.List;
 import java.util.Set;
@@ -82,6 +81,7 @@ public final class Showcase {
                          flex-direction: column; background: var(--gb-surface-2) }
             #prose     { color: var(--gb-text) }
             #actions   { gap: 8px; align-items: center }
+            #options   { flex-direction: column; gap: 4px }
             .caption   { color: var(--gb-text-muted) }
             """;
 
@@ -131,6 +131,15 @@ public final class Showcase {
         private Theme theme = Theme.NORD_DARK;
         private int clicks;
 
+        /// What the checkbox below is bound to.
+        ///
+        /// A `Property` rather than a plain boolean, because that is what §9's
+        /// `bind` reads and what ADR-0063's loop needs: the checkbox is handed the
+        /// read-only half and cannot write to this, so the tick moves only when
+        /// `toggleProse` moves it. Set the handler aside and the control stops
+        /// working — which is the behaviour, not a bug.
+        private final Property<Boolean> showProse = Property.of(true);
+
         /// Which theme the window is showing, read by `main` to choose the
         /// stylesheets. The state owns it because the button that changes it
         /// lives in this tree.
@@ -157,7 +166,8 @@ public final class Showcase {
                             // here and is never passed a value. It follows a
                             // property, and the element subscribes for as long as
                             // it is mounted.
-                            Widgets.Text.of(widget().status(), styled("status", "caption"))),
+                            Widgets.Text.of(widget().status(), styled("status", "caption")),
+                            options()),
                     id("sidebar"));
 
             var actions = new Widgets.Row(
@@ -172,13 +182,40 @@ public final class Showcase {
                                     styled("reset", "danger"))),
                     id("actions"));
 
-            var content = new Widgets.Column(
-                    List.of(new Widgets.Text(BODY_TEXT, id("prose")), actions),
-                    id("content"));
+            // The prose is in the tree only when the checkbox says so, which is
+            // what makes the binding worth looking at in a window: the control is
+            // not decorating a boolean, it is deciding what gets built.
+            var body = new java.util.ArrayList<Widget>(2);
+            if (Boolean.TRUE.equals(showProse.get())) {
+                body.add(new Widgets.Text(BODY_TEXT, id("prose")));
+            }
+            body.add(actions);
+            var content = new Widgets.Column(List.copyOf(body), id("content"));
 
             return new Widgets.Column(
                     List.of(bar, new Widgets.Row(List.of(sidebar, content), id("body"))),
                     id("root"));
+        }
+
+        /// The three states a checkbox has, and the one route to changing one.
+        ///
+        /// The first is bound and wired, and clicking it really does remove the
+        /// paragraph: data flows down through `showProse` and the click travels
+        /// back up through `toggleProse` ([ADR-0063]). The second is `MIXED` — a
+        /// state the application can describe and the user cannot reach, which is
+        /// why it is here rather than only in a golden image. The third is
+        /// disabled, so a window shows what 45% opacity looks like on a control
+        /// that is not a button.
+        private Widget options() {
+            return new Widgets.Column(
+                    List.of(
+                            new Checkbox("Show the prose", Checkbox.Value.UNCHECKED,
+                                    showProse, this::toggleProse, false, id("prose-toggle")),
+                            new Checkbox("Partly applied", Checkbox.Value.MIXED,
+                                    null, null, false, id("partly")),
+                            new Checkbox("Not available here", Checkbox.Value.CHECKED,
+                                    null, null, true, id("unavailable"))),
+                    id("options"));
         }
 
         /// `setState` mutates immediately and defers the rebuild, so these read
@@ -187,6 +224,15 @@ public final class Showcase {
         void toggleTheme() {
             changed(() -> theme = theme == Theme.NORD_DARK ? Theme.NORD_LIGHT : Theme.NORD_DARK);
             LOG.info("theme is now {}", theme);
+        }
+
+        /// The other half of the loop, and the reason the checkbox is controlled.
+        ///
+        /// This sets the property; the checkbox reads it back on the next build.
+        /// Nothing in the widget tree could have done this — a widget is handed
+        /// the `Observable` half, which has no `set`.
+        void toggleProse() {
+            changed(() -> showProse.set(!Boolean.TRUE.equals(showProse.get())));
         }
 
         void click() {
@@ -239,8 +285,11 @@ public final class Showcase {
         // from two libraries and are confined to the thread that built them.
         // Held for the life of the window, because building any of it per frame
         // would put font parsing and SVG parsing on the frame path.
-        var uiFace = FontFace.bundled(BundledFont.UI);
-        var font = Font.on(uiFace, 14);
+        // A book rather than one font: the cascade resolves `font-family`,
+        // `font-size` and `font-weight` per node, so a button's SemiBold label
+        // and the Regular prose beside it are two faces the renderer asks for by
+        // style. It opens each on first use and closes them all at the end.
+        var fonts = Fonts.bundled();
         var paletteIcon = Icon.bundled("palette", ICON_SIZE);
         var plusIcon = Icon.bundled("plus", ICON_SIZE);
 
@@ -277,8 +326,12 @@ public final class Showcase {
                 tree.flush();
             }
             if (renderedTheme[0] != state.theme()) {
+                // A new renderer means new `Animations`? No -- those live on the
+                // elements, which the theme swap does not touch, so a transition
+                // in flight when the theme changes carries on into the new
+                // colours rather than snapping (ADR-0067).
                 renderer[0] = new WidgetRenderer(
-                        List.of(Controls.baseStylesheet(), state.theme().load(), appStyles), font);
+                        List.of(Controls.baseStylesheet(), state.theme().load(), appStyles), fonts);
                 renderedTheme[0] = state.theme();
             }
 
@@ -289,6 +342,13 @@ public final class Showcase {
             // painted -- not a fresh layout, which would be one frame ahead of
             // what the user can see (ADR-0054).
             router.updateRegions(HitTest.capture(frame, boxes));
+
+            // The whole of §1.7's "the frame loop is fully idle when no
+            // animation is active": ask for another frame *only* while something
+            // is moving. A window at rest costs nothing and nothing polls.
+            if (renderer[0].isAnimating()) {
+                window.repaint();
+            }
 
             painted[0]++;
             if (painted[0] <= 3 || painted[0] % 50 == 0) {
@@ -331,10 +391,10 @@ public final class Showcase {
             tree.unmount();
             plusIcon.close();
             paletteIcon.close();
-            // The size first, then the face it shares: closing the face while a
-            // font still holds it leaves Blend2D reading unmapped memory.
-            font.close();
-            uiFace.close();
+            // Every font, then every face it shares -- which is the ordering the
+            // book does for us: closing a face while a font still holds it
+            // leaves Blend2D reading unmapped memory.
+            fonts.close();
 
             // And then hand the window back before the process goes away.
             //

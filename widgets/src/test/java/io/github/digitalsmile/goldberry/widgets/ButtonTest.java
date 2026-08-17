@@ -8,6 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import io.github.digitalsmile.goldberry.css.CascadeLayer;
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
 import io.github.digitalsmile.goldberry.css.CssLength;
+import io.github.digitalsmile.goldberry.css.Decoration;
 import io.github.digitalsmile.goldberry.css.Selector;
 import io.github.digitalsmile.goldberry.css.StyleResolver;
 import io.github.digitalsmile.goldberry.css.Stylesheet;
@@ -19,6 +20,7 @@ import io.github.digitalsmile.goldberry.input.KeyEvent;
 import io.github.digitalsmile.goldberry.input.Modifiers;
 import io.github.digitalsmile.goldberry.input.PointerEvent;
 import io.github.digitalsmile.goldberry.kdl.KdlParser;
+import io.github.digitalsmile.goldberry.layout.Box;
 import io.github.digitalsmile.goldberry.natives.yoga.Insets;
 import io.github.digitalsmile.goldberry.natives.yoga.StyleLength;
 import io.github.digitalsmile.goldberry.widget.Element;
@@ -75,7 +77,12 @@ class ButtonTest {
             assertTrue(Controls.inflater().registered().contains("button"));
             assertTrue(Controls.inflater().registered().contains("column"),
                     "the primitives come along, so markup can mix the two");
-            assertEquals(List.of("button"), Controls.controlTypes());
+            assertTrue(Controls.controlTypes().contains("button"));
+
+            // A part is not a control: `check-indicator` is CSS-selectable and
+            // deliberately not KDL-constructible, so it is in neither list.
+            assertTrue(!Controls.controlTypes().contains("check-indicator"));
+            assertTrue(!Controls.inflater().registered().contains("check-indicator"));
         }
 
         @Test
@@ -221,11 +228,61 @@ class ButtonTest {
         void metrics() {
             var style = style(null);
 
-            // docs/design-system.md §3: height 32, padding-x 12, gap 6.
+            // docs/design-system.md §3: height 32, padding-x 12, gap 6, radius 8.
             assertEquals(StyleLength.points(32), style.height());
             assertEquals(new Insets(StyleLength.points(0), StyleLength.points(12),
                     StyleLength.points(0), StyleLength.points(12)), style.padding());
             assertEquals(StyleLength.points(6), style.gap());
+            assertEquals(8, style.decoration().radius(), 1e-9);
+
+            // And no border, because §3's button row does not have one. The
+            // machinery exists -- the checkbox's glyph uses it -- and using it
+            // here anyway would be improvising a metric the system has not
+            // agreed to (Principle 3).
+            assertTrue(!style.decoration().hasBorder());
+        }
+
+        @Test
+        @DisplayName("the label is `body-strong`, which is §3's typography column")
+        void bodyStrong() {
+            var typography = style(null).typography();
+
+            // §1.4: body-strong is Inter 600 at 13/18. The last of the four
+            // things `controls.css` used to say it could not express.
+            assertEquals("Inter", typography.family());
+            assertEquals(13, typography.size(), 1e-9);
+            assertEquals(18, typography.resolvedLineHeight(), 1e-9);
+            assertEquals(io.github.digitalsmile.goldberry.assets.BundledFont.Weight.SEMI_BOLD,
+                    typography.weight());
+
+            // And it is a real second face rather than a synthetic smear: the
+            // weight picks a different file, which is the whole of ADR-0066.
+            assertEquals(io.github.digitalsmile.goldberry.assets.BundledFont.UI_STRONG,
+                    typography.face());
+        }
+
+        @Test
+        @DisplayName("the focus ring is the design system's, and only for the keyboard")
+        void focusRing() {
+            var sheets = List.of(Controls.baseStylesheet(), Theme.NORD_DARK.load());
+            var element = new ElementTree(new Button("Save")).root();
+            var resolver = new StyleResolver(sheets);
+
+            // §2.2: ":focus is not :focus-visible" -- a button clicked with a
+            // mouse is focused and gets no ring. The router keeps the two apart
+            // (ADR-0054) exactly so this rule can.
+            element.setPseudoClass(Selector.PseudoClass.FOCUS, true);
+            var clicked = ComputedStyle.of(resolver.resolve(element), CssLength.Context.DEFAULT);
+            assertTrue(!clicked.decoration().hasOutline(), "a mouse focus draws no ring");
+
+            element.setPseudoClass(Selector.PseudoClass.FOCUS_VISIBLE, true);
+            var tabbed = ComputedStyle.of(resolver.resolve(element), CssLength.Context.DEFAULT);
+
+            // 2px --gb-focus at a 2px offset, following the control's radius.
+            assertEquals(2, tabbed.decoration().outlineWidth(), 1e-9);
+            assertEquals(2, tabbed.decoration().outlineOffset(), 1e-9);
+            assertEquals(0xFF88C0D0, tabbed.decoration().outlineColor(), "nord8, --gb-focus");
+            assertEquals(8, tabbed.decoration().radius(), 1e-9, "the ring follows the radius");
         }
 
         @Test
@@ -294,7 +351,7 @@ class ButtonTest {
             // node's children out, so a button holding its own text could never
             // also hold an icon.
             var style = ComputedStyle.INITIAL;
-            var box = new Button("Save").render(style, List.of(), () -> TestFont.get());
+            var box = new Button("Save").render(style, List.of(), ignored -> TestFont.one());
 
             assertEquals(1, box.children().size());
             assertEquals(null, box.text());
@@ -375,7 +432,7 @@ class ButtonTest {
             // and that size is its intrinsic one, so it needs no measure
             // function and no callback into C.
             var box = new Button("Save").withIcon(icon)
-                    .render(ComputedStyle.INITIAL, List.of(), TestFont::get);
+                    .render(ComputedStyle.INITIAL, List.of(), ignored -> TestFont.one());
 
             assertEquals(2, box.children().size());
             assertEquals(icon, box.children().getFirst().icon().icon());
@@ -387,7 +444,7 @@ class ButtonTest {
         @DisplayName("an icon-only button is legal; an empty one is not")
         void iconOnly() {
             var box = new Button("", icon, null, false, Widgets.Attributes.NONE)
-                    .render(ComputedStyle.INITIAL, List.of(), TestFont::get);
+                    .render(ComputedStyle.INITIAL, List.of(), ignored -> TestFont.one());
             assertEquals(1, box.children().size());
 
             // Nothing to click on and nothing to read out (§13).
@@ -465,20 +522,38 @@ class ButtonTest {
         }
 
         @Test
-        @DisplayName("a disabled button beats its own variant's hover")
-        void beatsTheVariant() {
+        @DisplayName("disabled fades the control and keeps its variant's colour")
+        void fadesRatherThanRemaps() {
             var sheets = List.of(Controls.baseStylesheet(), Theme.NORD_DARK.load());
-            var element = new ElementTree(new Button("Save").styled("primary").disabled(true)).root();
+            var element = new ElementTree(new Button("Save").styled("danger").disabled(true)).root();
             element.setPseudoClass(Selector.PseudoClass.DISABLED, true);
-            element.setPseudoClass(Selector.PseudoClass.HOVER, true);
 
             var style = ComputedStyle.of(new StyleResolver(sheets).resolve(element),
                     CssLength.Context.DEFAULT);
 
-            // Equal specificity, so the disabled rule wins by being last -- which
-            // is why it is written where it is.
-            assertEquals(0xFF3B4252, style.background(), "nord1, the disabled surface");
+            // docs/design-system.md §2.1: "disabled is 45% opacity on the whole
+            // control, never color-remapped". The variant survives, which is the
+            // point -- a disabled danger button still reads as dangerous, and a
+            // remap to one grey surface would have made every disabled button
+            // look alike whatever it does.
+            assertEquals(0.45, style.opacity(), 1e-9);
+            assertEquals(0xFFBF616A, style.background(), "nord11: still the danger colour");
             assertEquals(io.github.digitalsmile.goldberry.backend.Cursor.NOT_ALLOWED, style.cursor());
+        }
+
+        @Test
+        @DisplayName("the fade reaches the label and the border, not just the surface")
+        void fadeReachesTheSubtree() {
+            // The reason opacity is worth having as a property rather than eight
+            // muted tokens: one number fades the fill, the text and the ring
+            // together, and they cannot drift apart.
+            var faded = Box.filled(0xFF804020)
+                    .decoration(Decoration.NONE.border(1, 0xFF102030))
+                    .opacity(0.45)
+                    .fade(0.45);
+
+            assertEquals(0x73804020, faded.background());
+            assertEquals(0x73102030, faded.decoration().borderColor());
         }
     }
 }

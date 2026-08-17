@@ -3,6 +3,7 @@ package io.github.digitalsmile.goldberry.input;
 import io.github.digitalsmile.goldberry.backend.Cursor;
 import io.github.digitalsmile.goldberry.css.Selector.PseudoClass;
 import io.github.digitalsmile.goldberry.widget.Element;
+import io.github.digitalsmile.goldberry.widget.Styled;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -473,7 +474,31 @@ public final class PointerRouter {
         }
     }
 
+    /// Sets or clears one of the router's own pseudo-classes, and never lights up
+    /// a disabled control.
+    ///
+    /// `docs/design-system.md` §2.1 gives `:disabled` one appearance — 45%
+    /// opacity, no colour remap — and a control that still lightened under the
+    /// pointer or darkened under a press would be telling the user it can be used.
+    /// Enforced here rather than in a stylesheet because the alternative is a rule
+    /// per variant per state per control: `button.danger:disabled:hover` and its
+    /// dozen siblings, each able to be wrong on its own. CSS would spell it
+    /// `:not(:disabled):hover`, and `:not()` is not in §8's subset.
+    ///
+    /// Only *setting* is suppressed. Clearing always goes through, so a control
+    /// that was hovered before it became disabled does not keep the state — which
+    /// is a real sequence, because a button commonly disables itself in its own
+    /// press handler while the pointer is still over it.
+    ///
+    /// The `ENTERED` and `EXITED` events are **not** suppressed: this is about
+    /// what a control looks like, not about what it is told. A disabled node still
+    /// hit-tests, so that a click cannot fall through to whatever is behind it
+    /// ([ADR-0059]), and a tooltip explaining *why* something is disabled is the
+    /// case that needs the event.
     private void mark(Element element, PseudoClass pseudoClass, boolean active) {
+        if (active && element.widget() instanceof Styled styled && styled.isDisabled()) {
+            active = false;
+        }
         if (element.isMounted() && element.setPseudoClass(pseudoClass, active)) {
             stylesDirty = true;
         }

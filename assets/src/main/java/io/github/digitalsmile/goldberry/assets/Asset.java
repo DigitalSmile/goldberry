@@ -73,15 +73,29 @@ public record Asset(
 
     /// Inter — the embedded UI face.
     ///
-    /// One variable font rather than the static family: it covers every weight
-    /// the design system uses at roughly a tenth of the size, and a variable
-    /// axis is what makes an intermediate weight possible at all.
+    /// The variable file **and** the SemiBold static instance, which is two
+    /// weights rather than one axis.
+    ///
+    /// Instancing `wght` at runtime would be the smaller download and the more
+    /// general answer, and it needs symbols bound in *both* libraries —
+    /// HarfBuzz's `hb_font_set_variations` and Blend2D's variation settings —
+    /// which means a new struct layout and three export branches, the ELF version
+    /// script, the MSVC `.def` and the Mach-O list. That machinery has caught the
+    /// same class of local-symbol bug three times and is only ever answered by a
+    /// CI run across four targets.
+    ///
+    /// `docs/design-system.md` §1.4 ships **exactly two weights**, 400 and 600,
+    /// and Principle 3 says a screen that needs a third extends the system rather
+    /// than improvising one. Two static instances therefore cover the whole
+    /// shipped scale for 400 KB and no native change, and the axis stays a real
+    /// optimisation for the day an intermediate weight is actually specified.
     public static final Asset INTER = new Asset(
             "inter",
             "4.1",
             "https://github.com/rsms/inter/releases/download/v4.1/Inter-4.1.zip",
             "9883fdd4a49d4fb66bd8177ba6625ef9a64aa45899767dde3d36aa425756b11e",
-            Map.of("InterVariable.ttf", "fonts/InterVariable.ttf"),
+            Map.of("InterVariable.ttf", "fonts/InterVariable.ttf",
+                    "extras/ttf/Inter-SemiBold.ttf", "fonts/Inter-SemiBold.ttf"),
             Map.of("LICENSE.txt", "inter.txt"),
             null,
             null);

@@ -3,7 +3,10 @@ package io.github.digitalsmile.goldberry.css;
 import static io.github.digitalsmile.goldberry.css.TestElement.element;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import io.github.digitalsmile.goldberry.assets.BundledFont;
+import io.github.digitalsmile.goldberry.motion.Easing;
 import io.github.digitalsmile.goldberry.natives.yoga.Align;
 import io.github.digitalsmile.goldberry.natives.yoga.FlexDirection;
 import io.github.digitalsmile.goldberry.natives.yoga.Justify;
@@ -296,6 +299,297 @@ class ComputedStyleTest {
         void tooMany() {
             assertEquals(ComputedStyle.INITIAL.padding(),
                     compute("button { padding: 1px 2px 3px 4px 5px }").padding());
+        }
+    }
+
+    @Nested
+    @DisplayName("typography (§1.4)")
+    class Typography {
+
+        @Test
+        @DisplayName("size, family and weight resolve")
+        void resolves() {
+            var style = compute("""
+                    button { font-family: "JetBrains Mono"; font-size: 20px; font-weight: 600 }
+                    """);
+
+            assertEquals("JetBrains Mono", style.typography().family());
+            assertEquals(20, style.typography().size(), 1e-9);
+            assertEquals(BundledFont.Weight.SEMI_BOLD, style.typography().weight());
+        }
+
+        @Test
+        @DisplayName("a weight no face ships resolves to the nearer one it does")
+        void nearestWeight() {
+            // CSS's own matching, in the only form two faces need. `bold` and 900
+            // both land on SemiBold, which is the honest answer -- the
+            // alternative is a heading that silently renders at 400.
+            assertEquals(BundledFont.Weight.SEMI_BOLD,
+                    compute("button { font-weight: bold }").typography().weight());
+            assertEquals(BundledFont.Weight.SEMI_BOLD,
+                    compute("button { font-weight: 900 }").typography().weight());
+            assertEquals(BundledFont.Weight.REGULAR,
+                    compute("button { font-weight: 500 }").typography().weight());
+            assertEquals(BundledFont.Weight.REGULAR,
+                    compute("button { font-weight: normal }").typography().weight());
+        }
+
+        @Test
+        @DisplayName("only the first family of a list is taken")
+        void noFallbackChain() {
+            // §6.1 is explicit that there is no fallback cascade in v1: a
+            // character outside the bundled faces is .notdef on purpose.
+            // Honouring the rest of the list would pretend to a mechanism that
+            // does not exist.
+            assertEquals("Inter",
+                    compute("button { font-family: Inter, sans-serif }").typography().family());
+        }
+
+        @Test
+        @DisplayName("a bare line-height is a multiple of the size")
+        void lineHeightRatio() {
+            // The form that survives a font-size change on a descendant: 1.4
+            // gives a 20px heading a 28px line box and an 11px caption a 15px
+            // one, where an inherited absolute 18px would give both the same.
+            var style = compute("button { font-size: 20px; line-height: 1.4 }");
+
+            assertEquals(28, style.typography().resolvedLineHeight(), 1e-9);
+        }
+
+        @Test
+        @DisplayName("an absolute line-height is used as written")
+        void lineHeightLength() {
+            assertEquals(18,
+                    compute("button { line-height: 18px }").typography().resolvedLineHeight(), 1e-9);
+        }
+
+        @Test
+        @DisplayName("the default is §1.4's body: Inter 400 at 13/18")
+        void initial() {
+            // Deliberately the specified default rather than something neutral:
+            // a window with no stylesheet should read as the design system.
+            var body = ComputedStyle.INITIAL.typography();
+
+            assertEquals("Inter", body.family());
+            assertEquals(13, body.size(), 1e-9);
+            assertEquals(18, body.resolvedLineHeight(), 1e-9);
+            assertEquals(BundledFont.Weight.REGULAR, body.weight());
+        }
+
+        @Test
+        @DisplayName("a size that is not a positive length is dropped")
+        void badSize() {
+            assertEquals(ComputedStyle.INITIAL.typography().size(),
+                    compute("button { font-size: 0 }").typography().size(), 1e-9);
+            assertEquals(ComputedStyle.INITIAL.typography().size(),
+                    compute("button { font-size: 50% }").typography().size(), 1e-9);
+        }
+    }
+
+    @Nested
+    @DisplayName("transitions (§1.7)")
+    class TransitionParsing {
+
+        @Test
+        @DisplayName("property, duration, easing and delay")
+        void full() {
+            var timing = compute("button { transition: background-color 100ms ease-exit 20ms }")
+                    .transitions().get(Transitions.Animatable.BACKGROUND_COLOR);
+
+            assertEquals(100, timing.durationMillis(), 1e-9);
+            assertEquals(Easing.EASE_EXIT, timing.easing());
+            assertEquals(20, timing.delayMillis(), 1e-9);
+        }
+
+        @Test
+        @DisplayName("seconds and milliseconds both work; a bare number does not")
+        void units() {
+            assertEquals(160, compute("button { transition: opacity 0.16s }")
+                    .transitions().get(Transitions.Animatable.OPACITY).durationMillis(), 1e-9);
+
+            // `transition: color 200` almost certainly means milliseconds, and
+            // guessing would make the one stylesheet that meant seconds silently
+            // wrong.
+            assertTrue(compute("button { transition: color 200 }").transitions().isEmpty());
+
+            // Zero is the exception, because it has no duration to be wrong
+            // about -- the same allowance a length gets.
+            assertEquals(0, compute("button { transition: color 0 }")
+                    .transitions().get(Transitions.Animatable.COLOR).durationMillis(), 1e-9);
+        }
+
+        @Test
+        @DisplayName("a comma-separated list is several transitions")
+        void list() {
+            var transitions = compute("""
+                    button { transition: background-color 100ms ease-enter,
+                                         color 160ms linear }
+                    """).transitions();
+
+            assertEquals(2, transitions.byProperty().size());
+            assertEquals(Easing.LINEAR,
+                    transitions.get(Transitions.Animatable.COLOR).easing());
+        }
+
+        @Test
+        @DisplayName("a layout property is refused, not ignored")
+        void layoutPropertyRefused() {
+            // §1.7: "layout properties never transition". Animating a width would
+            // run Yoga every frame of every transition. An author who asked for
+            // one is asking for something the system deliberately will not do,
+            // and needs to be told rather than left with a rule that never fires.
+            assertTrue(compute("button { transition: width 200ms }").transitions().isEmpty());
+            assertTrue(compute("button { transition: padding 200ms }").transitions().isEmpty());
+        }
+
+        @Test
+        @DisplayName("one bad entry drops the whole declaration")
+        void allOrNothing() {
+            // Half a list is worse than none: the author sees two of their three
+            // properties moving and has nothing to say which one was refused.
+            assertTrue(compute("""
+                    button { transition: color 100ms, width 100ms }
+                    """).transitions().isEmpty());
+        }
+
+        @Test
+        @DisplayName("`none` turns off what an earlier rule declared")
+        void none() {
+            assertTrue(compute("""
+                    button { transition: color 100ms }
+                    button { transition: none }
+                    """).transitions().isEmpty());
+        }
+
+        @Test
+        @DisplayName("`background` is accepted as the colour, since that is all there is")
+        void backgroundSynonym() {
+            assertEquals(100, compute("button { transition: background 100ms }")
+                    .transitions().get(Transitions.Animatable.BACKGROUND_COLOR)
+                    .durationMillis(), 1e-9);
+        }
+
+        @Test
+        @DisplayName("a curve CSS has and this system does not is refused")
+        void unknownEasing() {
+            assertTrue(compute("button { transition: color 100ms ease-in-out }")
+                    .transitions().isEmpty());
+        }
+
+        @Test
+        @DisplayName("the default curve is ease-enter")
+        void defaultEasing() {
+            assertEquals(Easing.EASE_ENTER, compute("button { transition: color 100ms }")
+                    .transitions().get(Transitions.Animatable.COLOR).easing());
+        }
+    }
+
+    @Nested
+    @DisplayName("inheritance")
+    class Inheritance {
+
+        /// A parent and a child, each resolved against the same sheet, with the
+        /// parent's computed style handed to the child — which is what
+        /// `WidgetRenderer` does on the way down the element tree.
+        private ComputedStyle child(String css) {
+            var sheet = Stylesheet.parse(CascadeLayer.APPLICATION, css);
+            var root = element("panel");
+            root.with(element("text"));
+            var resolver = new StyleResolver(List.of(sheet));
+
+            var parent = ComputedStyle.of(
+                    resolver.resolve(root), CssLength.Context.DEFAULT);
+            return ComputedStyle.of(
+                    resolver.resolve(root.descend(1)), CssLength.Context.DEFAULT, parent);
+        }
+
+        @Test
+        @DisplayName("`color` inherits")
+        void colorInherits() {
+            // The bug this closed: a checkbox sets `color` and its label is a
+            // `text` child element that no rule names, so without inheritance it
+            // resolved to INITIAL's black -- invisible on a dark theme.
+            assertEquals(0xFFAABBCC, child("panel { color: #abc }").color());
+        }
+
+        @Test
+        @DisplayName("a child's own declaration wins over what it inherits")
+        void ownWins() {
+            assertEquals(0xFF112233,
+                    child("panel { color: #abc } text { color: #123 }").color());
+        }
+
+        @Test
+        @DisplayName("the typography inherits, which is what a class on a container is for")
+        void typographyInherits() {
+            var style = child("panel { font-size: 20px; font-weight: 600 }");
+
+            assertEquals(20, style.typography().size(), 1e-9);
+            assertEquals(BundledFont.Weight.SEMI_BOLD, style.typography().weight());
+        }
+
+        @Test
+        @DisplayName("`transition` does not inherit")
+        void transitionsDoNot() {
+            // CSS does not inherit it, and a panel that faded its background
+            // must not make every label inside it fade too. A control declares
+            // what *it* animates.
+            assertTrue(child("panel { transition: color 100ms }").transitions().isEmpty());
+        }
+
+        @Test
+        @DisplayName("`background` does not inherit")
+        void backgroundDoesNot() {
+            // The half of CSS's split that matters most here: a child inheriting
+            // its parent's background would paint it a second time, and a
+            // transparent child is what makes a tree of boxes cheap.
+            assertEquals(ComputedStyle.INITIAL.background(),
+                    child("panel { background: #abc }").background());
+        }
+
+        @Test
+        @DisplayName("layout properties do not inherit either")
+        void layoutDoesNot() {
+            var style = child("panel { padding: 12px; height: 32px; gap: 8px }");
+
+            assertEquals(ComputedStyle.INITIAL.padding(), style.padding());
+            assertEquals(ComputedStyle.INITIAL.height(), style.height());
+            assertEquals(ComputedStyle.INITIAL.gap(), style.gap());
+        }
+
+        @Test
+        @DisplayName("`opacity` does not inherit, because its effect already does")
+        void opacityDoesNot() {
+            // The painter accumulates opacity down the box tree (ADR-0064).
+            // Inheriting the value here as well would apply it once per level:
+            // a label under a control at 45% would be drawn at 20%.
+            assertEquals(1.0, child("panel { opacity: 0.45 }").opacity(), 1e-9);
+        }
+
+        @Test
+        @DisplayName("`cursor` does not inherit here, because it inherits elsewhere")
+        void cursorDoesNot() {
+            // ADR-0057: the cursor rides on the painted box and hit testing reads
+            // it off whichever rectangle the pointer is over. A second mechanism
+            // would disagree with the first the moment a box had no element.
+            assertEquals(ComputedStyle.INITIAL.cursor(),
+                    child("panel { cursor: pointer }").cursor());
+        }
+
+        @Test
+        @DisplayName("the decoration does not inherit")
+        void decorationDoesNot() {
+            var style = child("panel { border-radius: 8px; border: 1px solid #abc }");
+
+            assertEquals(0, style.decoration().radius(), 1e-9);
+            assertEquals(false, style.decoration().hasBorder());
+        }
+
+        @Test
+        @DisplayName("a null parent is the root, and inherits nothing")
+        void rootInheritsNothing() {
+            assertSame(ComputedStyle.INITIAL,
+                    ComputedStyle.of(java.util.Map.of(), CssLength.Context.DEFAULT, null));
         }
     }
 }

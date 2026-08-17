@@ -3,6 +3,7 @@ package io.github.digitalsmile.goldberry.widget;
 import io.github.digitalsmile.goldberry.bind.Subscription;
 import io.github.digitalsmile.goldberry.css.Selector;
 import io.github.digitalsmile.goldberry.css.StyleElement;
+import io.github.digitalsmile.goldberry.motion.Animations;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -38,6 +39,20 @@ public final class Element implements BuildContext, StyleElement {
 
     /// Live for as long as this element describes a widget with a [Widget#binding].
     private Subscription binding;
+
+    /// This node's running transitions, created the first time it is styled.
+    ///
+    /// On the **element** for the same reason state and the pseudo-classes are:
+    /// a widget is rebuilt constantly and could remember nothing, so a transition
+    /// held by one would restart on every `setState` and never finish. Held here,
+    /// it survives every rebuild that keeps this element and dies with the
+    /// element itself — which is exactly the lifetime an animation should have,
+    /// because one that outlived its node would be animating something nobody can
+    /// see ([ADR-0067](../../../../../../book/src/adr/0067-motion-is-an-overlay-on-a-frame-clock.md)).
+    ///
+    /// Lazily created: most nodes never animate, and an `Animations` per element
+    /// per frame for a static tree is an allocation for nothing.
+    private Animations animations;
 
     Element(ElementTree tree, Element parent, Widget widget) {
         this.tree = tree;
@@ -299,6 +314,24 @@ public final class Element implements BuildContext, StyleElement {
     @Override
     public StyleElement parent() {
         return parent;
+    }
+
+    /// This node's running transitions, created on first use.
+    ///
+    /// Package-private: `WidgetRenderer` is the only caller, because starting a
+    /// transition means diffing a style the cascade just produced against the one
+    /// it produced last frame, and the renderer is the only thing that has both.
+    Animations animations() {
+        if (animations == null) {
+            animations = new Animations();
+        }
+        return animations;
+    }
+
+    /// Whether this node is animating — read without creating the state, so
+    /// asking does not allocate.
+    boolean isAnimating() {
+        return animations != null && animations.isAnimating();
     }
 
     @Override

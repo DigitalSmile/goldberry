@@ -89,6 +89,22 @@ public final class Controls {
                 actions.resolve(node.stringProperty("press")),
                 node.booleanProperty("disabled"),
                 Widgets.Attributes.of(node)));
+        inflater.register("checkbox", (node, children) -> new Checkbox(
+                node.argument().map(v -> v.asString()).orElse(""),
+                // `indeterminate` wins over `checked`, because a document that
+                // says both has said something contradictory and the mixed state
+                // is the one that cannot be reached any other way -- resolving it
+                // to "checked" would silently discard the more specific claim.
+                node.booleanProperty("indeterminate")
+                        ? Checkbox.Value.MIXED
+                        : Checkbox.Value.of(node.booleanProperty("checked")),
+                // Read-only by construction: the registry hands out the
+                // `Observable` half, so markup can name where a value comes from
+                // and has no way to name where it goes (ADR-0063).
+                bindings.resolve(node.stringProperty("bind")),
+                actions.resolve(node.stringProperty("change")),
+                node.booleanProperty("disabled"),
+                Widgets.Attributes.of(node)));
         return inflater;
     }
 
@@ -109,7 +125,13 @@ public final class Controls {
 
     /// The CSS type names this module adds, which is what the parity test checks
     /// the other two forms against.
+    ///
+    /// **Controls only.** `check-indicator` is styled by the same stylesheet and
+    /// is not here, because it is a part rather than a widget: it is
+    /// CSS-selectable and deliberately not KDL-constructible, and asking the
+    /// parity test to inflate it would be asking for a node with no meaning
+    /// outside its parent (see [CheckIndicator]).
     public static List<String> controlTypes() {
-        return List.of("button");
+        return List.of("button", "checkbox");
     }
 }
