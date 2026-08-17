@@ -138,6 +138,33 @@ fader at 25% is what says they do.
 because that is where zero is on a screen; a control whose maximum is at the top
 is a fact about the control.
 
+### The groove was `--gb-surface`, for the fourth time
+
+It shipped as `nord1` on the dark theme — chosen as "a step down from the button's
+`nord2`", because a groove reads as something cut into a surface. `nord1` **is**
+`--gb-surface`, so the unfilled part of the groove was invisible on any panel.
+
+A slider hides this better than anything before it: the fill and the thumb still
+show, so the control looks like a control and merely appears to have no track. It
+is `--gb-border` now — a 4px groove *is* an edge, which is the same question the
+checkbox's border answers, and a theme that moved its border colour would want
+this to follow.
+
+That is the fourth instance of one defect: the checkbox's glyph
+([ADR-0073](0073-a-composite-is-one-tab-stop.md)) and the switch's thumb twice
+([ADR-0075](0075-a-gestures-origin-is-the-routers.md)). What is different this
+time is **the golden that exists for it already existed**:
+`controls-on-surface-{dark,light}` was added by ADR-0073 precisely so a control
+could not vanish against a panel, and it had simply not been extended to the new
+control. The axis was covered and the control was not.
+
+So `everySurfacelessControlIsCovered` now asserts that every entry in
+`Controls.controlTypes()` appears in that scene, with `button` exempt and saying
+why — it paints its own opaque surface in every variant, so there is no panel it
+can disappear against. The scene is extracted into one helper the golden and the
+guard share, because two lists of what is in a scene is the shape of the mistake
+the scene exists to catch.
+
 ## Consequences
 
 - `slider` ships: a record, a node, a CSS type, `bind` + a valued `change`, drag,
@@ -151,6 +178,10 @@ is a fact about the control.
 - `slider` is deliberately **absent from the shared `transition` rule**, asserted
   by a test. §3.1's "drag: 1:1, no animation" is a requirement a stylesheet can
   break silently, and a thumb that eased toward the finger would lag it.
+- **A control joining the catalog now has to join the surface scene**, or a test
+  fails naming it. Three of the four instances of the invisible-control defect
+  were found by a human looking at a window; this is the first mechanical guard
+  against the fourth.
 - **Open: no tick marks and no value label.** §3 asks for both as optional. The
   label is the awkward one: it would sit inside the control's own box, so the
   pointer-to-value mapping would stop being "along the control" and would need

@@ -274,19 +274,7 @@ class RadioGoldenTest {
         // `--gb-surface` -- so it was the exact colour of the panel a control
         // normally sits on, and CI never once drew it there. Both themes, both
         // controls, on the surface they are actually used on.
-        var content = new Widgets.Column(
-                List.of(
-                        new Checkbox("A checkbox at rest", Checkbox.Value.UNCHECKED),
-                        // The toggle joins this scene rather than getting one of
-                        // its own: the axis is "on --gb-surface", and a control
-                        // added to the catalog without being added here is one
-                        // more control CI has never drawn where it is used.
-                        new Toggle("A switch at rest", false),
-                        new RadioGroup("dark",
-                                List.of(new Radio("light", "Unselected"),
-                                        new Radio("dark", "Selected")),
-                                null, null, false, id("group"))),
-                id("panel"));
+        var content = surfaceScene();
 
         for (var theme : List.of(Theme.NORD_DARK, Theme.NORD_LIGHT)) {
             var name = theme == Theme.NORD_DARK ? "controls-on-surface-dark" : "controls-on-surface-light";
@@ -302,9 +290,71 @@ class RadioGoldenTest {
                                     """)),
                     TestFont.get());
 
-            GoldenImage.assertMatches(name, 300, 180, 1.0f,
+            GoldenImage.assertMatches(name, 300, 220, 1.0f,
                     frame -> BoxPainter.paint(frame, renderer.render(tree)));
         }
+    }
+
+    /// One of every control that paints no background of its own, on a panel.
+    ///
+    /// Extracted so the golden and the coverage guard below cannot disagree about
+    /// what is in it — which is the shape of the mistake this whole scene exists
+    /// to catch.
+    private static Widget surfaceScene() {
+        return new Widgets.Column(
+                List.of(
+                        new Checkbox("A checkbox at rest", Checkbox.Value.UNCHECKED),
+                        // The toggle joins this scene rather than getting one of
+                        // its own: the axis is "on --gb-surface", and a control
+                        // added to the catalog without being added here is one
+                        // more control CI has never drawn where it is used.
+                        new Toggle("A switch at rest", false),
+                        // The slider joins for the same reason, and it is the
+                        // control that most needed it: its groove is the only
+                        // surface in the catalog thin enough to vanish without
+                        // anything else looking wrong.
+                        new Slider(0, 100, 40, 0, null, null, false, id("gain")),
+                        new RadioGroup("dark",
+                                List.of(new Radio("light", "Unselected"),
+                                        new Radio("dark", "Selected")),
+                                null, null, false, id("group"))),
+                id("panel"));
+    }
+
+    /// Every control that paints no background of its own appears in that scene,
+    /// and this is what makes it true tomorrow.
+    ///
+    /// The gap it closes is a real one, twice over. `controls-on-surface-*` exists
+    /// because a checkbox's glyph was invisible on `--gb-surface` and every golden
+    /// in the repository painted on `--gb-bg` ([ADR-0073]). Then `slider` shipped
+    /// with a groove whose colour **was** `--gb-surface`, and the scene that
+    /// exists for exactly that had simply not been extended to it — so the axis
+    /// was covered and the control was not.
+    ///
+    /// `button` is exempt and says why: it paints its own opaque surface in every
+    /// variant, so there is no panel it can disappear against.
+    @Test
+    @DisplayName("every control without a background of its own is in the surface scene")
+    void everySurfacelessControlIsCovered() {
+        var exempt = List.of("button");
+        var inScene = new java.util.ArrayList<String>();
+        collectTypes(new ElementTree(surfaceScene()).root(), inScene);
+
+        for (var type : Controls.controlTypes()) {
+            if (exempt.contains(type)) {
+                continue;
+            }
+            org.junit.jupiter.api.Assertions.assertTrue(inScene.contains(type),
+                    type + " is not in controls-on-surface-*, so CI has never drawn it on"
+                            + " --gb-surface. Add it to surfaceScene() or exempt it with a reason.");
+        }
+    }
+
+    private static void collectTypes(Element element, List<String> into) {
+        if (element.type() != null) {
+            into.add(element.type());
+        }
+        element.children().forEach(child -> collectTypes(child, into));
     }
 
     @Test

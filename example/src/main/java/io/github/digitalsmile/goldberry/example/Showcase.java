@@ -74,7 +74,16 @@ public final class Showcase {
     /// and every colour in it is a `var(--gb-*)`, which is what lets the theme
     /// button work without this file knowing a theme exists.
     private static final String STYLES = """
-            #root      { flex-direction: column; background: var(--gb-bg) }
+            /* `color` on the root, so nothing in this window can resolve to
+               ComputedStyle.INITIAL's black. That default is deliberate --
+               ADR-0066 keeps it unthemed so a missing stylesheet looks missing --
+               which means an application has to say what its text colour is
+               somewhere, and the root is the one place that covers everything.
+               A control gets away with saying nothing because `controls.css` sets
+               `color` on `checkbox`, `radio`, `toggle` and `slider` themselves; a
+               bare `text` does not. */
+            #root      { flex-direction: column; background: var(--gb-bg);
+                         color: var(--gb-text) }
 
             #bar       { height: 44px; padding: 0 16px; gap: 12px;
                          align-items: center; background: var(--gb-surface) }
@@ -311,7 +320,17 @@ public final class Showcase {
                             // arithmetic in this file at all (ADR-0079).
                             new Slider(0, 100, 0, 5, gain, this::setGain, false,
                                     id("gain")),
-                            new Widgets.Text("Gain", gainLabel, id("gain-label"))),
+                            // `caption`, and not decoration: a bare `text` with no
+                            // colour anywhere above it resolves to
+                            // ComputedStyle.INITIAL's **black**, which on this
+                            // theme is a label you cannot read. `color` inherits
+                            // (ADR-0066) and `#options` sets none, so the class is
+                            // what supplies one -- exactly as every other line in
+                            // this sidebar does. The controls beside it get away
+                            // with saying nothing because `controls.css` sets
+                            // `color` on `checkbox`, `radio` and `toggle`
+                            // themselves.
+                            new Widgets.Text("Gain", gainLabel, styled("gain-label", "caption"))),
                     id("options"));
         }
 

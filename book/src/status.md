@@ -268,6 +268,31 @@ disabled container disabling its descendants.
   unexamined for `spacer`, which presumably wants to keep a fixed size. —
   [ADR-0076](adr/0076-a-glyph-does-not-negotiate.md)
 
+- ~~**A slider's groove was invisible on a surface.**~~ **Fixed, and it is the
+  fourth instance of one defect.** `--gb-slider-track-bg` was `nord1` on the dark
+  theme, which **is** `--gb-surface` — so the unfilled groove vanished on any
+  panel, which is where the showcase's options live. A slider hides this better
+  than anything before it: the fill and the thumb still show, so the control looks
+  like a control and merely appears to have no track. It is `--gb-border` now,
+  because a 4px groove *is* an edge. What is different this time is that
+  **`controls-on-surface-{dark,light}` already existed** — ADR-0073 added it for
+  exactly this — and had not been extended to the new control, so the axis was
+  covered and the control was not. `everySurfacelessControlIsCovered` now asserts
+  every entry in `Controls.controlTypes()` is in that scene, with `button` exempt
+  and saying why, and the scene is one helper the golden and the guard share.
+  Verified by deleting the slider from the scene and watching it fail by name. —
+  [ADR-0079](adr/0079-a-continuous-value-is-placed-by-ratio.md),
+  [ADR-0073](adr/0073-a-composite-is-one-tab-stop.md)
+
+- **A bare `text` with no ancestor setting `color` renders black**, which is
+  ADR-0066's deliberate `INITIAL` and a trap all the same: the showcase's new gain
+  label was unreadable on the dark theme. A control gets away with saying nothing
+  because `controls.css` sets `color` on `checkbox`, `radio`, `toggle` and
+  `slider` themselves; a primitive does not. The showcase now sets
+  `color: var(--gb-text)` on its root, which is what an application should do —
+  but nothing warns one that has not. —
+  [ADR-0066](adr/0066-a-weight-is-a-face-and-color-inherits.md)
+
 - **A slider has no tick marks and no value label.** §3 asks for both as
   optional. The label is the awkward one: it would sit inside the control's own
   box, so the pointer-to-value mapping would stop being "along the control" and
