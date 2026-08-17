@@ -85,6 +85,7 @@
 - [ADR-0077 Disabled propagates for input and not for paint](adr/0077-disabled-propagates-for-input-and-not-for-paint.md)
 - [ADR-0078 A focus scope has an axis](adr/0078-a-focus-scope-has-an-axis.md)
 - [ADR-0079 A continuous value is placed by ratio](adr/0079-a-continuous-value-is-placed-by-ratio.md)
+- [ADR-0080 A value is measured along a part](adr/0080-a-value-is-measured-along-a-part.md)
 
 ---
 

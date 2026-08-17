@@ -5,39 +5,31 @@ import io.github.digitalsmile.goldberry.layout.Box;
 import io.github.digitalsmile.goldberry.widget.Paints;
 import io.github.digitalsmile.goldberry.widget.Styled;
 import io.github.digitalsmile.goldberry.widget.Widget;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
-/// The 4px groove a slider's thumb runs along — a **part** of [Slider], and the
-/// seventh.
+/// The full-height box a slider's value is measured along — a **part** of
+/// [Slider], and the seventh.
 ///
-/// ADR-0065's argument a fourth time and unchanged: the control is 32 tall
-/// because §1.3 wants a hit target, the groove is 4 because §3 says so, and one
-/// [ComputedStyle] carries one background.
+/// It paints nothing. What it is, is a **rectangle**: the groove is 4px tall and
+/// the control is 32, and between them the thing the pointer is mapped along has
+/// to be one specific box. Until §3's value label there was no difference — the
+/// track was the control — and a label at the end of the row is exactly what
+/// makes them different, by its own width
+/// ([ADR-0080](../../../../../../book/src/adr/0080-a-value-is-measured-along-a-part.md)).
+/// [Slider#localPart()] names this part, and the router measures against it.
 ///
-/// ## How the thumb is placed, which is the interesting part
+/// It is also what gives the groove and the tick marks somewhere to be *stacked*:
+/// the slider's own axis is taken by the value, and a scale under a groove is the
+/// cross axis of a control that has no cross axis left.
 ///
-/// Its three children are a **fill**, the **thumb**, and a spacer — and they are
-/// positioned by `flex-grow` rather than by a transform:
-///
-/// ```
-/// [ fill grow=f ][ thumb 16 ][ rest grow=1-f ]
-/// ```
-///
-/// Yoga hands free space out in proportion to the grow factors, so the thumb
-/// lands exactly `f` of the way along whatever width the track turned out to be —
-/// and **nothing in Java ever learns that width.** That matters because the
-/// obvious implementation is `transform: translate`, and a transform cannot
-/// express it: CSS percentages in `translate` are a proportion of *the moving
-/// box*, so `translate(50%)` moves the thumb by half a thumb, not to the middle
-/// of the track ([ADR-0079]).
-///
-/// It also produces the filled portion for free, as a box the cascade can reach.
-///
-/// @param fraction where the thumb sits, `0..1`
+/// @param fraction where the thumb sits, `0..1`, passed to the groove
+/// @param ticks    how many marks to draw under it; `0` for none
 /// @param disabled inherited from the slider, so a part is selectable without a
 ///                 descendant combinator
-record SliderTrack(double fraction, boolean disabled) implements Widget.Leaf, Styled, Paints {
+record SliderTrack(double fraction, int ticks, boolean disabled)
+        implements Widget.Leaf, Styled, Paints {
 
     @Override
     public String cssType() {
@@ -56,10 +48,12 @@ record SliderTrack(double fraction, boolean disabled) implements Widget.Leaf, St
 
     @Override
     public List<Widget> children() {
-        return List.of(
-                new SliderFill(fraction, disabled),
-                new SliderThumb(disabled),
-                new SliderRest(1 - fraction));
+        var children = new ArrayList<Widget>(2);
+        children.add(new SliderGroove(fraction, disabled));
+        if (ticks >= 2) {
+            children.add(new SliderTicks(ticks, disabled));
+        }
+        return List.copyOf(children);
     }
 
     @Override

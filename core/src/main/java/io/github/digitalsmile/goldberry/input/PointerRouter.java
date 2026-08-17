@@ -805,7 +805,7 @@ public final class PointerRouter {
                 return;
             }
             if (chain.get(i).widget() instanceof Handles handles) {
-                event.localTo(localTo(chain.get(i), event));
+                event.localTo(localFor(chain.get(i), handles, event));
                 handles.onPointerCapture(event);
             }
         }
@@ -817,11 +817,51 @@ public final class PointerRouter {
                 // Re-pointed per handler, not once per event: dispatch bubbles,
                 // and a press on a slider's thumb targets the thumb while the
                 // slider handling it wants the position along *itself*
-                // (ADR-0079).
-                event.localTo(localTo(element, event));
+                // (ADR-0079) -- or along one named part of itself (ADR-0080).
+                event.localTo(localFor(element, handles, event));
                 handles.onPointer(event);
             }
         }
+    }
+
+    /// Where `event` happened inside the box `handles` measures against — its own,
+    /// or the part it names ([Handles#localPart()]).
+    ///
+    /// Resolved here rather than in the widget because the widget cannot see its
+    /// own elements, which is the same reason the router carries a drag's origin
+    /// (ADR-0075) and decides where Tab goes (ADR-0073).
+    ///
+    /// The fallback is on the **rectangle** and not on the element, which is the
+    /// case that actually happens: a part is in the tree from the first build and
+    /// has no region until the first paint, so a widget asking for one before
+    /// then would be handed [PointerEvent.Local#UNKNOWN] — a zero-sized box whose
+    /// every fraction is 0, which for a slider is "the user asked for the
+    /// minimum". Falling back to the control's own box is slightly wrong; that
+    /// answer is wrong in a way that moves a value.
+    private PointerEvent.Local localFor(Element element, Handles handles, PointerEvent event) {
+        var name = handles.localPart();
+        if (name != null && partOf(element, name) instanceof Element part) {
+            var local = localTo(part, event);
+            if (local != PointerEvent.Local.UNKNOWN) {
+                return local;
+            }
+        }
+        return localTo(element, event);
+    }
+
+    /// The first descendant of `element` whose CSS type is `cssType`, in document
+    /// order.
+    private static Element partOf(Element element, String cssType) {
+        for (var child : element.children()) {
+            if (child.widget() instanceof Styled styled && cssType.equals(styled.cssType())) {
+                return child;
+            }
+            var found = partOf(child, cssType);
+            if (found != null) {
+                return found;
+            }
+        }
+        return null;
     }
 
     /// Where `event` happened inside `element`, from the hit-test snapshot.

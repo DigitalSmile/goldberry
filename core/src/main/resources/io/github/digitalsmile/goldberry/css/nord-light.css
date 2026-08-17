@@ -158,6 +158,10 @@
   --gb-slider-thumb-bg: #ffffff;
   --gb-slider-thumb-bg-hover: var(--nord5);
   --gb-slider-thumb-bg-active: var(--nord4);
+  /* The marks take `--gb-border` rather than the groove's nord4: they sit on the
+     control's background, where nord4 is a step too quiet, and a scale is a
+     thing you have to be able to read. */
+  --gb-slider-tick-bg: var(--gb-border);
 
   /* A black wash, because a light theme's surfaces are already bright. */
   --gb-overlay-hover: #00000012;

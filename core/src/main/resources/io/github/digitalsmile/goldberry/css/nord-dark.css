@@ -175,6 +175,11 @@
   --gb-slider-thumb-bg: var(--nord6);
   --gb-slider-thumb-bg-hover: #ffffff;
   --gb-slider-thumb-bg-active: var(--nord4);
+  /* A tick mark is a groove one step long, so it is the groove's own colour --
+     and `--gb-border` again for the same reason, since the marks sit on the
+     control's background rather than in the groove and a scale that vanished on
+     a panel would be the fifth instance of ADR-0073's defect. */
+  --gb-slider-tick-bg: var(--gb-border);
 
   /* A white wash, for controls that have no surface of their own. */
   --gb-overlay-hover: #ffffff14;

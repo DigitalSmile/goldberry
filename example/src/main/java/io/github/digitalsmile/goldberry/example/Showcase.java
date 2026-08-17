@@ -315,52 +315,41 @@ public final class Showcase {
                             new Toggle("Show the prose (as a switch)", false,
                                     showProse, this::setProse, false, id("prose-switch")),
                             // The sixth control, and the first whose value is a
-                            // number. Drag it and the caption under it follows the
-                            // pointer 1:1 -- `bind` down, `change` up, and no
-                            // arithmetic in this file at all (ADR-0079).
-                            new Slider(0, 100, 0, 5, gain, this::setGain, false,
-                                    id("gain")),
-                            // `caption`, and not decoration: a bare `text` with no
-                            // colour anywhere above it resolves to
-                            // ComputedStyle.INITIAL's **black**, which on this
-                            // theme is a label you cannot read. `color` inherits
-                            // (ADR-0066) and `#options` sets none, so the class is
-                            // what supplies one -- exactly as every other line in
-                            // this sidebar does. The controls beside it get away
-                            // with saying nothing because `controls.css` sets
-                            // `color` on `checkbox`, `radio` and `toggle`
-                            // themselves.
-                            new Widgets.Text("Gain", gainLabel, styled("gain-label", "caption"))),
+                            // number. Drag it and the readout follows the pointer
+                            // 1:1 -- `bind` down, `change` up, and no arithmetic
+                            // in this file at all (ADR-0079).
+                            //
+                            // The marks and the readout are §3's two optional
+                            // halves, and they are the reason there is no longer
+                            // a `text` under this line: the application used to
+                            // format "Gain 40%" into a second property, and the
+                            // control says it now (ADR-0080). Five marks, so the
+                            // thumb lands on one at every quarter -- which is
+                            // what makes a scale worth drawing rather than
+                            // decoration.
+                            new Slider(0, 100, 0, 5, 5, "%.0f%%", null,
+                                    gain, this::setGain, false, id("gain"))),
                     id("options"));
         }
 
         /// The slider's model, and the label's.
         ///
         /// A `Property<Number>` because that is what §9's `bind` reads and what a
-        /// slider is handed the read-only half of. **Two widgets read one
-        /// property** — the slider and the caption below it — which is the whole
-        /// of ADR-0063 in a window: neither owns the value, and dragging one
-        /// moves the other because both are showing what the property says.
+        /// slider is handed the read-only half of. Nothing here owns the value:
+        /// the control shows what the property says, and the property changes
+        /// because the handler below sets it (ADR-0063).
         private final Property<Number> gain = Property.of(40);
-
-        /// The caption's text, derived from the same property.
-        ///
-        /// A second `Property` rather than a formatted string built during
-        /// `build()`, because a widget's `bind` takes an `Observable` and this is
-        /// what one looks like when the value shown is not the value stored.
-        private final Property<String> gainLabel = Property.of("Gain 40%");
 
         /// What the slider asks for, already snapped and clamped by the control.
         ///
         /// The application does no arithmetic at all, which is the point: the
-        /// range, the step and the pointer-to-value mapping are the slider's, so
-        /// an application that wanted a different range would change one number
-        /// in one place (ADR-0079).
+        /// range, the step, the pointer-to-value mapping **and now the readout's
+        /// text** are the slider's, so an application that wanted a different
+        /// range would change one number in one place (ADR-0079, ADR-0080). This
+        /// method formatted "Gain 40%" into a second property until the control
+        /// grew a `format`.
         void setGain(double value) {
-            changed(() -> {
-                gain.set(value);
-                gainLabel.set("Gain " + Math.round(value) + "%");
-            });
+            changed(() -> gain.set(value));
         }
 
         /// What the switch asks for, and the reason it is not `toggleProse`.

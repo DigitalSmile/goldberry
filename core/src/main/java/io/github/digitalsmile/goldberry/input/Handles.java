@@ -24,6 +24,30 @@ public interface Handles extends Widget {
     default void onPointer(PointerEvent event) {
     }
 
+    /// The **part** this widget's [PointerEvent#local()] is measured against,
+    /// or null for the widget's own box.
+    ///
+    /// A control whose hit target is bigger than the thing being pointed *along*
+    /// needs these to be two different rectangles. A slider showing its value is
+    /// the first: `[ track ──────── ] 40` is one control, and the value is a
+    /// position along the **track** — measuring it along the whole control would
+    /// make the far end of the track read as 88% rather than 100%, silently, by
+    /// exactly the width of the label
+    /// ([ADR-0080](../../../../../../book/src/adr/0080-a-value-is-measured-along-a-part.md)).
+    ///
+    /// Named as a **CSS type**, which is the vocabulary a part already has
+    /// ([ADR-0065]): the first descendant whose [Styled#cssType()] matches, in
+    /// document order. The router resolves it, because it is the one that holds
+    /// the painted rectangles and the widget cannot see its own elements — the
+    /// argument already written for `dragX()` and for Tab.
+    ///
+    /// A part that is not there — not built, or not painted yet — falls back to
+    /// this widget's own box rather than to nothing, so a control keeps working
+    /// while its scale or its label is absent.
+    default String localPart() {
+        return null;
+    }
+
     /// Called during the keyboard capture phase, root-first.
     ///
     /// Where a dialog swallows Escape before the thing inside it sees it.

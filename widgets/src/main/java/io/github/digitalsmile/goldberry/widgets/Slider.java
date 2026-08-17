@@ -11,7 +11,9 @@ import io.github.digitalsmile.goldberry.widget.Paints;
 import io.github.digitalsmile.goldberry.widget.Styled;
 import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widget.Widgets;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.DoubleConsumer;
@@ -63,15 +65,46 @@ import java.util.function.DoubleConsumer;
 /// range — a widget that reported a raw fraction would make every application
 /// repeat the same arithmetic, and get it slightly differently wrong each time.
 ///
+/// ## The two optional halves of §3, and the scale
+///
+/// §3 asks for "optional **tick marks** and **value label**", and for a fader's
+/// "optional **dB scale** mapping". All three land here
+/// ([ADR-0080](../../../../../../../book/src/adr/0080-a-value-is-measured-along-a-part.md)):
+///
+/// ```kdl
+/// slider min=0 max=100 value=40 step=5 ticks=5 format="%.0f%%"
+/// slider class="vertical" scale="db" max=1 format="%.2f" bind="audio.gain"
+/// ```
+///
+/// - [#ticks()] is a **count**, and the marks are evenly spaced along the
+///   *travel* rather than along the value — which is the same thing on a linear
+///   slider and the only useful thing on a scaled one.
+/// - [#format()] is a format **string** rather than a function, because §11's
+///   parity invariant compares two records for equality and two lambdas are never
+///   equal. It is validated when the slider is built, so a `%d` against a double
+///   fails at inflation rather than on the frame that first draws it.
+/// - [#scale()] is the curve between the value and the position — see [Scale].
+///
+/// The label sits **at the end of the control, beside the track**, so the value
+/// is no longer a position along the slider: it is a position along the
+/// [SliderTrack], which is what [#localPart()] tells the router.
+///
 /// @param min      the value at the start of the track
 /// @param max      the value at the end; must be greater than `min`
 /// @param value    where the thumb is, when nothing is bound
 /// @param step     what the value snaps to, and what an arrow key moves by. `0`
 ///                 means continuous
+/// @param ticks    how many marks to draw along the travel, both ends included.
+///                 `0` is none, and one mark is refused as meaningless
+/// @param format   a [java.util.Formatter] pattern for the value label, or null
+///                 for no label
+/// @param scale    the curve between the value and the position; [Scale#LINEAR]
+///                 unless a fader says otherwise
 /// @param source   §9's `bind`, read-only — see [#resolved()]
 /// @param onChange what the user asked for, already snapped and clamped
 public record Slider(
         double min, double max, double value, double step,
+        int ticks, String format, Scale scale,
         Observable<?> source, DoubleConsumer onChange,
         boolean disabled, Widgets.Attributes attributes)
         implements Widget.Leaf, Styled, Paints, Handles {
@@ -84,7 +117,30 @@ public record Slider(
         if (!Double.isFinite(step) || step < 0) {
             throw new IllegalArgumentException("step must be zero or positive, not " + step);
         }
+        if (ticks == 1 || ticks < 0) {
+            throw new IllegalArgumentException(
+                    "tick marks are the ends and what is between them, so there are none or at"
+                            + " least two — not " + ticks);
+        }
+        scale = scale == null ? Scale.LINEAR : scale;
+        scale.validate(min, max);
+        // Formatted once here so a bad pattern is an inflation error naming the
+        // document, rather than an IllegalFormatConversionException thrown out
+        // of a paint on whichever frame first has a value to draw. It costs one
+        // more `format` per build of a labelled slider, which is nothing beside
+        // the one the label already does.
+        if (format != null) {
+            label(format, min);
+        }
         attributes = attributes == null ? Widgets.Attributes.NONE : attributes;
+    }
+
+    /// The eight-argument form every unlabelled, unticked, linear slider wants —
+    /// which is most of them.
+    public Slider(double min, double max, double value, double step,
+            Observable<?> source, DoubleConsumer onChange,
+            boolean disabled, Widgets.Attributes attributes) {
+        this(min, max, value, step, 0, null, Scale.LINEAR, source, onChange, disabled, attributes);
     }
 
     /// A `0..1` slider, which is what most bindings want.
@@ -119,10 +175,30 @@ public record Slider(
         return clamp(raw);
     }
 
-    /// Where the thumb sits, `0..1`. What [SliderTrack] positions by.
+    /// Where the thumb sits, `0..1`. What [SliderGroove] positions by.
+    ///
+    /// Through the [Scale], which is the whole of what a dB fader changes: the
+    /// value is still a gain and the position is still a fraction of the travel,
+    /// and only the curve between them differs.
     public double fraction() {
-        return (resolved() - min) / (max - min);
+        return scale.toFraction(resolved(), min, max);
     }
+
+    /// The value label's text, or null when there is no label.
+    ///
+    /// Formatted with [java.util.Locale#ROOT] rather than the default locale.
+    /// That is not tidiness: a golden image rendered on a machine set to `de_DE`
+    /// would draw `0,5` where CI drew `0.5`, and the failure would be a pixel
+    /// diff on a developer's machine that nobody could reproduce on another.
+    /// A locale-aware label is the application's to pass in already formatted.
+    public String text() {
+        return format == null ? null : label(format, resolved());
+    }
+
+    private static String label(String format, double value) {
+        return String.format(Locale.ROOT, format, value);
+    }
+
 
     /// What `PageUp` and `PageDown` move by — ten steps, or a tenth of the range
     /// when the slider is continuous.
@@ -130,6 +206,11 @@ public record Slider(
     /// Not in §3, and derived rather than invented: "large step" has to be a
     /// multiple of the small one or the two disagree about where the value can
     /// land, and a tenth is what a continuous slider has instead of a step.
+    ///
+    /// The continuous answer is the range's, and is what a `PageUp` moves by only
+    /// on a **linear** slider: with a scale, a page is a tenth of the travel
+    /// rather than a tenth of the range, and the two coincide exactly when the
+    /// scale is [Scale#LINEAR].
     public double largeStep() {
         return step > 0 ? step * 10 : (max - min) / 10;
     }
@@ -169,9 +250,32 @@ public record Slider(
         return disabled;
     }
 
+    /// The track, and — beside it, on the control's main axis — the value.
+    ///
+    /// The track holds the groove and the tick marks, which is what makes it the
+    /// box the value is measured along even when a label has taken a chunk of the
+    /// control's width ([#localPart()]).
     @Override
     public List<Widget> children() {
-        return List.of(new SliderTrack(fraction(), disabled));
+        var children = new ArrayList<Widget>(2);
+        children.add(new SliderTrack(fraction(), ticks, disabled));
+        if (format != null) {
+            children.add(new SliderValue(text(), disabled));
+        }
+        return List.copyOf(children);
+    }
+
+    /// The value is a position along the **track**, not along the control.
+    ///
+    /// The two are the same box until a label is added, and then they are not:
+    /// the label takes its width off the end of the track, so a pointer at the
+    /// right-hand end of a labelled control is at 100% of the track and 88% of
+    /// the slider. Measuring along the slider would put the value 12% short at
+    /// that end, in a way that draws perfectly and reports no error at all
+    /// ([ADR-0080]).
+    @Override
+    public String localPart() {
+        return "slider-track";
     }
 
     /// A press jumps, and every move until the release follows — §3.1's "1:1".
@@ -194,7 +298,7 @@ public record Slider(
         if (!dragging) {
             return;
         }
-        ask(min + fractionOf(event) * (max - min));
+        ask(scale.toValue(fractionOf(event), min, max));
         // Consumed so an ancestor -- a scroll view, a list row -- does not also
         // act on a drag that is plainly this control's.
         event.consume();
@@ -227,10 +331,10 @@ public record Slider(
         // holding Space on a checkbox to flutter it is not.
         var current = resolved();
         var moved = switch (event.key()) {
-            case LEFT, DOWN -> stepFrom(current, -1);
-            case RIGHT, UP -> stepFrom(current, 1);
-            case PAGE_DOWN -> current - largeStep();
-            case PAGE_UP -> current + largeStep();
+            case LEFT, DOWN -> stepFrom(current, -1, 0.01);
+            case RIGHT, UP -> stepFrom(current, 1, 0.01);
+            case PAGE_DOWN -> stepFrom(current, -1, 0.1);
+            case PAGE_UP -> stepFrom(current, 1, 0.1);
             case HOME -> min;
             case END -> max;
             default -> Double.NaN;
@@ -255,9 +359,21 @@ public record Slider(
     /// showing 40, and `Right` should offer **50**: the next value that is
     /// actually reachable, not `40 + 25 = 65` rounded to 75. Both readings agree
     /// whenever the value is already on the grid, which is every other time.
-    private double stepFrom(double current, int direction) {
+    ///
+    /// A **continuous** slider has no grid, so it moves by `share` of the travel
+    /// rather than of the range — a hundredth for an arrow, a tenth for a page.
+    /// On a linear scale those are the same number; on a fader they are not, and
+    /// stepping by a hundredth of the *gain* would move the thumb by a hair at
+    /// the top of the travel and by a third of it at the bottom. A slider that
+    /// does have a grid keeps it, because a grid is what the author asked for and
+    /// the values on it are theirs rather than the screen's.
+    private double stepFrom(double current, int direction, double share) {
         if (step <= 0) {
-            return current + direction * (max - min) / 100;
+            return scale.toValue(
+                    scale.toFraction(current, min, max) + direction * share, min, max);
+        }
+        if (share >= 0.1) {
+            return current + direction * largeStep();
         }
         // The epsilon keeps a value that is *on* the grid from being read as
         // fractionally off it by floating-point, which would make one arrow press

@@ -130,4 +130,64 @@ class SliderGoldenTest {
                         new Slider(0, 100, 75, 0, null, null, false, id("b", "vertical"))),
                 id("row")));
     }
+
+    /// §3's tick marks, and the image that says the arithmetic behind them is
+    /// right ([ADR-0080]).
+    ///
+    /// The marks are placed by a ratio and the thumb is placed by a *different*
+    /// ratio — the marks' row is inset by half a thumb and the thumb's is not —
+    /// so every way of getting the inset wrong still lays out, still draws five
+    /// evenly spaced marks, and puts the thumb between two of them instead of on
+    /// one. Three sliders at 0%, 50% and 100% is what catches it: the thumb has
+    /// to cover the first mark, the middle one and the last.
+    @Test
+    @DisplayName("the thumb sits on a tick mark at both ends and in the middle")
+    void ticks() {
+        paint("slider-ticks", Theme.NORD_DARK, 300, 140, new Widgets.Column(
+                List.of(ticked(0, 5, "a"), ticked(0.5, 5, "b"), ticked(1, 5, "c")),
+                id("scene")));
+    }
+
+    /// §3's value label, and the two things it changes about the control.
+    ///
+    /// The track is shorter by the label's width — that is what makes the value a
+    /// position along the *track* rather than along the control (ADR-0080) — and
+    /// the label's own width is fixed, so 9 and 100 leave the track the same
+    /// length. The three rows here are one slider at three values, and the thumb
+    /// positions must still step evenly across.
+    @Test
+    @DisplayName("a value label takes its width off the track and never moves it")
+    void valueLabel() {
+        paint("slider-value", Theme.NORD_DARK, 300, 140, new Widgets.Column(
+                List.of(labelled(0.09, "a"), labelled(0.5, "b"), labelled(1, "c")),
+                id("scene")));
+    }
+
+    /// The picture the decibel scale exists for.
+    ///
+    /// Both faders hold **the same gain**, 0.5. The linear one puts its thumb
+    /// half way up; the dB one puts it at 90%, because −6 dB is a small step down
+    /// from unity and a mixing desk's whole working range is in the top third of
+    /// the travel. A scale that reached only one of the two directions — the
+    /// thumb but not the pointer, or the reverse — draws exactly this image and
+    /// is still wrong, which is what [SliderTest] holds down instead.
+    @Test
+    @DisplayName("the same gain, linear and in decibels")
+    void decibelFader() {
+        paint("slider-fader-db", Theme.NORD_DARK, 200, 200, new Widgets.Row(
+                List.of(
+                        new Slider(0, 1, 0.5, 0, 5, null, Scale.LINEAR, null, null, false,
+                                id("a", "vertical")),
+                        new Slider(0, 1, 0.5, 0, 5, null, Scale.decibels(), null, null, false,
+                                id("b", "vertical"))),
+                id("row")));
+    }
+
+    private static Slider ticked(double fraction, int ticks, String id) {
+        return new Slider(0, 100, fraction * 100, 0, ticks, null, null, null, null, false, id(id));
+    }
+
+    private static Slider labelled(double fraction, String id) {
+        return new Slider(0, 100, fraction * 100, 0, 0, "%.0f%%", null, null, null, false, id(id));
+    }
 }

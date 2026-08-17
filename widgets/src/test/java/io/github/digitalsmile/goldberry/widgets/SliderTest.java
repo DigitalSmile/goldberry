@@ -2,8 +2,10 @@ package io.github.digitalsmile.goldberry.widgets;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import io.github.digitalsmile.goldberry.bind.Bindings;
 import io.github.digitalsmile.goldberry.bind.Property;
@@ -20,6 +22,7 @@ import io.github.digitalsmile.goldberry.input.PointerEvent;
 import io.github.digitalsmile.goldberry.kdl.KdlParser;
 import io.github.digitalsmile.goldberry.natives.yoga.StyleLength;
 import io.github.digitalsmile.goldberry.widget.ElementTree;
+import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widget.Widgets;
 import java.util.ArrayList;
 import java.util.List;
@@ -41,6 +44,23 @@ class SliderTest {
 
     private Slider slider(double min, double max, double value, double step) {
         return new Slider(min, max, value, step, null, asked::add, false, Widgets.Attributes.NONE);
+    }
+
+    /// The groove inside a slider's track, which is where the fill, the thumb and
+    /// the rest live ([ADR-0080] moved them one level down).
+    private static SliderGroove groove(Slider slider) {
+        return (SliderGroove) ((SliderTrack) slider.children().getFirst()).children().getFirst();
+    }
+
+    /// The resolved style of a node reached by child indices from a widget's own
+    /// element — `styleOf(slider, 0, 0, 1)` is the thumb.
+    private static ComputedStyle styleOf(Widget widget, int... path) {
+        var resolver = new StyleResolver(Controls.stylesheets(Theme.NORD_DARK));
+        var element = new ElementTree(widget).root();
+        for (var index : path) {
+            element = element.children().get(index);
+        }
+        return ComputedStyle.of(resolver.resolve(element), CssLength.Context.DEFAULT);
     }
 
     @Nested
@@ -77,11 +97,12 @@ class SliderTest {
         }
 
         @Test
-        @DisplayName("slider is a control type and its four parts are not")
+        @DisplayName("slider is a control type and its parts are not")
         void partsAreNotConstructible() {
             var registered = Controls.inflater().registered();
             assertTrue(Controls.controlTypes().contains("slider"));
-            for (var part : List.of("slider-track", "slider-fill", "slider-rest", "slider-thumb")) {
+            for (var part : List.of("slider-track", "slider-groove", "slider-fill", "slider-rest",
+                    "slider-thumb", "slider-ticks", "slider-tick", "slider-value")) {
                 assertFalse(registered.contains(part), part + " is a part, not a widget (ADR-0065)");
                 assertFalse(Controls.controlTypes().contains(part));
             }
@@ -384,13 +405,25 @@ class SliderTest {
     class Parts {
 
         @Test
-        @DisplayName("the fill and the rest split the track in the value's proportion")
+        @DisplayName("the fill and the rest split the groove in the value's proportion")
         void fillAndRestSplit() {
-            var track = (SliderTrack) slider(0, 100, 25, 0).children().getFirst();
-            var parts = track.children();
+            var parts = groove(slider(0, 100, 25, 0)).children();
 
             assertEquals(0.25, ((SliderFill) parts.get(0)).fraction(), 1e-9);
             assertEquals(0.75, ((SliderRest) parts.get(2)).fraction(), 1e-9);
+        }
+
+        /// The groove is inside the track, and the track is what the value is
+        /// measured along — which is the whole of ADR-0080's structural half.
+        @Test
+        @DisplayName("the track holds the groove, and the slider holds the track")
+        void anatomy() {
+            var track = (SliderTrack) slider(0, 100, 25, 0).children().getFirst();
+
+            assertEquals("slider-track", track.cssType());
+            assertEquals("slider-groove", ((SliderGroove) track.children().getFirst()).cssType());
+            assertEquals("slider-track", slider(0, 100, 25, 0).localPart(),
+                    "the value is a position along the track, not along the control");
         }
 
         /// The thumb is placed by that ratio and by nothing else. This is what
@@ -399,33 +432,53 @@ class SliderTest {
         @Test
         @DisplayName("the thumb carries no transform of its own")
         void thumbHasNoTransform() {
-            var resolver = new StyleResolver(Controls.stylesheets(Theme.NORD_DARK));
-            var tree = new ElementTree(slider(0, 100, 25, 0));
-            var thumb = tree.root().children().getFirst().children().get(1);
-
-            var style = ComputedStyle.of(resolver.resolve(thumb), CssLength.Context.DEFAULT);
+            var style = styleOf(slider(0, 100, 25, 0), 0, 0, 1);
 
             assertTrue(style.transform().isNone(),
                     "a slider's thumb is placed by layout; a transform could not express it");
         }
 
         @Test
-        @DisplayName("§3's metrics: track 4, thumb 16, hit target 32")
+        @DisplayName("§3's metrics: groove 4, thumb 16, hit target 32")
         void metrics() {
-            var resolver = new StyleResolver(Controls.stylesheets(Theme.NORD_DARK));
-            var tree = new ElementTree(slider(0, 100, 25, 0));
+            var slider = slider(0, 100, 25, 0);
 
-            var control = ComputedStyle.of(resolver.resolve(tree.root()), CssLength.Context.DEFAULT);
-            var track = ComputedStyle.of(resolver.resolve(tree.root().children().getFirst()),
-                    CssLength.Context.DEFAULT);
-            var thumb = ComputedStyle.of(
-                    resolver.resolve(tree.root().children().getFirst().children().get(1)),
-                    CssLength.Context.DEFAULT);
+            var control = styleOf(slider);
+            var track = styleOf(slider, 0);
+            var groove = styleOf(slider, 0, 0);
+            var thumb = styleOf(slider, 0, 0, 1);
 
             assertEquals(StyleLength.points(32), control.height(), "§1.3's hit target");
-            assertEquals(StyleLength.points(4), track.height(), "§3's groove");
+            assertEquals(StyleLength.points(32), track.height(),
+                    "the track is the whole hit target: it is what the pointer is mapped along");
+            assertEquals(StyleLength.points(4), groove.height(), "§3's groove");
             assertEquals(StyleLength.points(16), thumb.width());
             assertEquals(StyleLength.points(16), thumb.height());
+        }
+
+        /// The marks name the positions the thumb's **centre** reaches, and that
+        /// centre stops half a thumb short of each end. The padding is therefore
+        /// not decoration: it is the same 16 the thumb is, halved, and a scale
+        /// without it points at values the thumb can never sit on.
+        @Test
+        @DisplayName("the tick row is inset by half a thumb at each end")
+        void ticksAreInsetByHalfAThumb() {
+            var slider = new Slider(0, 100, 25, 0, 5, null, Scale.LINEAR, null, null, false, null);
+
+            var ticks = styleOf(slider, 0, 1);
+            var thumb = styleOf(slider, 0, 0, 1);
+
+            // The relation rather than the number: 8 is half of 16 because the
+            // marks name where the thumb's centre can be, so a theme that moved
+            // the thumb would have to move this with it.
+            if (thumb.width() instanceof StyleLength.Points(var width)
+                    && ticks.padding().left() instanceof StyleLength.Points(var left)
+                    && ticks.padding().right() instanceof StyleLength.Points(var right)) {
+                assertEquals(width / 2, left, 1e-6, "the scale starts under the thumb's centre");
+                assertEquals(width / 2, right, 1e-6, "and ends under it");
+            } else {
+                fail("§3's metrics are points, not percentages");
+            }
         }
 
         /// §3.1: "slider — drag: **1:1, no animation**". A thumb that eased
@@ -441,6 +494,190 @@ class SliderTest {
 
             assertTrue(style.transitions().isEmpty(),
                     "a slider must not animate its own value");
+        }
+    }
+
+    /// §3's "optional tick marks and value label", and a fader's "optional dB
+    /// scale mapping" — the three things `slider` shipped without
+    /// ([ADR-0080]).
+    @Nested
+    @DisplayName("the scale, the marks and the readout")
+    class Optional {
+
+        private Slider slider(int ticks, String format, Scale scale) {
+            return new Slider(0, 100, 25, 0, ticks, format, scale, null, asked::add, false, null);
+        }
+
+        @Test
+        @DisplayName("no label and no marks unless asked for, which is what most sliders are")
+        void absentByDefault() {
+            var plain = SliderTest.this.slider(0, 100, 25, 0);
+            var track = (SliderTrack) plain.children().getFirst();
+
+            assertEquals(1, plain.children().size(), "the track, and nothing beside it");
+            assertEquals(1, track.children().size(), "the groove, and nothing under it");
+            assertNull(plain.text());
+        }
+
+        @Test
+        @DisplayName("a format turns the value into a label, in Locale.ROOT")
+        void formatMakesALabel() {
+            assertEquals("25%", slider(0, "%.0f%%", null).text());
+            // The locale is pinned, not inherited: a machine set to de_DE would
+            // otherwise draw `0,5` where CI drew `0.5`, and the golden that
+            // failed would be unreproducible anywhere else.
+            assertEquals("0.5", new Slider(0, 1, 0.5, 0, 0, "%.1f", null, null, null, false, null)
+                    .text());
+        }
+
+        @Test
+        @DisplayName("the label is a part beside the track, so the track is what is measured")
+        void labelIsAPartBesideTheTrack() {
+            var children = slider(0, "%.0f", null).children();
+
+            assertEquals(2, children.size());
+            assertEquals("slider-value", ((SliderValue) children.get(1)).cssType());
+            assertEquals("25", ((SliderValue) children.get(1)).text());
+        }
+
+        /// A pattern a double cannot satisfy is a document bug, and it is found
+        /// where every other document bug is found — at inflation, with the text
+        /// quoted — rather than on whichever frame first has a value to draw
+        /// (ADR-0062's rule, applied to a format string).
+        @Test
+        @DisplayName("a format a double cannot satisfy is refused when the slider is built")
+        void badFormatRefused() {
+            assertThrows(java.util.IllegalFormatException.class, () -> slider(0, "%d", null));
+        }
+
+        @Test
+        @DisplayName("marks are the ends and what is between them, so one is refused")
+        void oneMarkIsRefused() {
+            assertThrows(IllegalArgumentException.class, () -> slider(1, null, null));
+            assertThrows(IllegalArgumentException.class, () -> slider(-2, null, null));
+        }
+
+        @Test
+        @DisplayName("the marks hang under the groove, inside the track")
+        void marksAreUnderTheGroove() {
+            var track = (SliderTrack) slider(5, null, null).children().getFirst();
+
+            assertEquals(2, track.children().size(), "the groove and the scale");
+            var ticks = (SliderTicks) track.children().get(1);
+            assertEquals(5, ticks.count());
+            assertEquals(5, ticks.children().size());
+        }
+
+        @Test
+        @DisplayName("a decibel fader puts half gain near the top, where an ear puts it")
+        void decibelsArePerceptual() {
+            var scale = Scale.decibels();
+
+            // -6 dB is 90% of the way up a 60 dB travel, and half way up a linear
+            // one. That difference *is* the feature: placed linearly, everything
+            // a mixing desk does happens in the top inch of the fader.
+            assertEquals(0.9, scale.toFraction(0.5, 0, 1), 0.005);
+            assertEquals(2.0 / 3, scale.toFraction(0.1, 0, 1), 0.005);
+            assertEquals(1.0, scale.toFraction(1, 0, 1), 1e-9);
+            assertEquals(0.0, scale.toFraction(0, 0, 1), 1e-9);
+        }
+
+        @Test
+        @DisplayName("the bottom of a fader is silence, and only the bottom")
+        void theBottomIsSilence() {
+            var scale = Scale.decibels();
+
+            assertEquals(0, scale.toValue(0, 0, 1), 1e-12, "a fader that must go silent, does");
+            // One pixel up is -60 dB rather than silence, which is the
+            // discontinuity that buys it: 0.001 of full scale, at one end.
+            assertEquals(0.001, scale.toValue(1e-6, 0, 1), 1e-4);
+        }
+
+        @Test
+        @DisplayName("value and position are inverses of each other")
+        void roundTrips() {
+            for (var scale : List.of(Scale.LINEAR, Scale.decibels(), Scale.decibels(-96))) {
+                for (var fraction : List.of(0.1, 0.25, 0.5, 0.75, 1.0)) {
+                    assertEquals(fraction,
+                            scale.toFraction(scale.toValue(fraction, 0, 1), 0, 1), 1e-9,
+                            scale + " at " + fraction);
+                }
+            }
+        }
+
+        /// A press maps through the scale, so the value a decibel fader reports is
+        /// the gain the position means — not the fraction, which is what a
+        /// control that forgot its scale on one of the two paths would report.
+        @Test
+        @DisplayName("the pointer maps through the scale, in both directions")
+        void pointerMapsThroughTheScale() {
+            var fader = new Slider(0, 1, 0, 0, 0, null, Scale.decibels(), null, asked::add, false,
+                    new Widgets.Attributes(null, Set.of(), null));
+
+            fader.onPointer(pressAt(0.9f, 100));
+
+            assertEquals(1, asked.size());
+            assertEquals(0.5, asked.getFirst(), 0.02, "90% up a 60 dB travel is half gain");
+        }
+
+        /// A continuous slider has no grid, so an arrow moves a hundredth of the
+        /// **travel**. On a linear scale that is the range's hundredth and
+        /// nothing changes; on a fader, a hundredth of the *gain* would be a hair
+        /// at the top of the travel and a third of it at the bottom.
+        @Test
+        @DisplayName("an arrow steps a hundredth of the travel, which a scale bends")
+        void arrowsStepAlongTheTravel() {
+            new Slider(0, 100, 40, 0, 0, null, null, null, asked::add, false, null)
+                    .onKey(press(Key.RIGHT));
+            assertEquals(41.0, asked.getFirst(), 1e-9, "linear: a hundredth of the range");
+
+            asked.clear();
+            new Slider(0, 1, 0.5, 0, 0, null, Scale.decibels(), null, asked::add, false, null)
+                    .onKey(press(Key.RIGHT));
+
+            // 0.5 is 90% of the way up; 91% is 0.6 dB louder, which is 0.536.
+            assertEquals(0.536, asked.getFirst(), 0.002);
+        }
+
+        @Test
+        @DisplayName("a scale a document names is resolved strictly")
+        void scaleIsStrict() {
+            assertEquals(Scale.LINEAR, Scale.of(null));
+            assertEquals(Scale.LINEAR, Scale.of("linear"));
+            assertEquals(Scale.decibels(), Scale.of("db"));
+            // Two `decibels()` are the same value, which is what §11's parity
+            // test needs and what a lambda could never give.
+            assertEquals(Scale.decibels(-60), Scale.decibels(-60));
+            assertThrows(IllegalArgumentException.class, () -> Scale.of("dB"));
+            assertThrows(IllegalArgumentException.class, () -> Scale.of("log"));
+        }
+
+        @Test
+        @DisplayName("a decibel scale over a range it cannot express is refused")
+        void decibelsNeedAGainRange() {
+            assertThrows(IllegalArgumentException.class,
+                    () -> new Slider(-1, 1, 0, 0, 0, null, Scale.decibels(), null, null, false, null));
+            assertThrows(IllegalArgumentException.class, () -> Scale.decibels(0));
+        }
+
+        @Test
+        @DisplayName("the Java-built and KDL-built forms agree on all three")
+        void parity() {
+            var fromJava = new Slider(0, 1, 0, 0, 5, "%.2f", Scale.decibels(), null, null, false,
+                    new Widgets.Attributes("gain", Set.of("vertical"), "gain"));
+
+            var fromKdl = Controls.inflater().inflateAll(KdlParser.parse("""
+                    slider id="gain" class="vertical" min=0 max=1 ticks=5 format="%.2f" scale="db"
+                    """)).getFirst();
+
+            assertEquals(fromJava, fromKdl);
+        }
+
+        private PointerEvent pressAt(float fraction, float width) {
+            var event = new PointerEvent(PointerEvent.Kind.PRESSED, fraction * width, 16,
+                    PointerEvent.Button.PRIMARY, 1, 0, 16, null);
+            event.localTo(new PointerEvent.Local(fraction * width, 16, width, 32));
+            return event;
         }
     }
 

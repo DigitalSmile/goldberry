@@ -30,12 +30,14 @@ API. No JNI, no bundled web engine, no platform widget wrapping.
 > pointer, wheel and keyboard input route to a widget tree, and markup wires both
 > halves of §9 — an `action` to call and a value to `bind` to. The catalog is
 > five primitives and six controls — `button`, a tri-state `checkbox`, a
-> `toggle` you can drag, a `slider` (and its vertical `fader`), and `radio` /
+> `toggle` you can drag, a `slider` (and its vertical `fader`, with tick marks, a
+> value readout and a decibel taper), and `radio` /
 > `radio-group`, which is one Tab stop with arrow keys inside it — all drawn to
 > the design system's metrics with rounded corners, a real focus ring, the §1.4
 > type scale in two real weights, a `regular`/`compact` density that no widget
-> mentions, CSS transitions on a frame clock and golden images — so seven
-> controls are still to come.
+> mentions, CSS transitions on a frame clock and golden images — so five
+> controls are still to come: `knob`, `select`, `progress`, `spinner` and
+> `badge`.
 > See [Status](book/src/status.md) for what works and what is still open.
 
 ## Quick start
@@ -542,6 +544,56 @@ ends are always reachable even when the range is not a whole number of steps.
 `fader` is `slider.vertical` — a class, for the reason `radio-group.inline` is
 one: the widget names the semantics and the stylesheet names the axis
 ([ADR-0079](book/src/adr/0079-a-continuous-value-is-placed-by-ratio.md)).
+
+§3's three optional halves ship with it — **tick marks**, a **value label**, and
+a **scale**:
+
+```kdl
+slider min=0 max=100 step=5 ticks=5 format="%.0f%%" bind="audio.gain"
+slider class="vertical" scale="db" max=1 format="%.2f" bind="audio.gain"
+```
+
+The label is what makes "the control is the track" stop being true. `[ track
+──────── ] 40` is one control and two boxes, and the value lives along the
+shorter one — so a widget can name the **part** its pointer position is measured
+against, and the router answers it:
+
+```java
+@Override
+public String localPart() {
+    return "slider-track";     // the value is a position along this, not along me
+}
+```
+
+Named as a CSS type because that is the vocabulary a part already has, and
+resolved by the router because a widget cannot see its own elements — the
+argument already written for `dragX()` and for Tab. Without it the far end of a
+labelled track reads as 88%, drawn perfectly and reported nowhere.
+
+Tick marks are counted along the **travel** rather than per `step`, and each one
+sits in a **zero-sized cell** it overflows out of. That is not fussiness: spread
+five 2px marks across the free space directly and every centre lands a pixel off
+the thumb centre it is supposed to name, because a mark's own width has no
+business being in the spacing arithmetic. The row is inset by half a thumb at
+each end, which is one arithmetic statement with the thumb the way the toggle's
+`2 + 16 + 16 + 2 = 36` is one with its travel.
+
+The marks also have to clear the thumb *and* leave the groove where it was — two
+sliders in one settings list, one with a scale, must not sit at different heights
+— so the tick row is `height: 0` and the marks are moved down by a `transform`,
+which costs no layout.
+
+`scale="db"` is a fader's dB taper: it places a **linear gain** at a position
+that is linear in decibels, so half gain sits 90% of the way up rather than half
+way. That difference is the whole point — placed linearly, everything a fader is
+used for happens in its top inch. The bottom of the travel is silence exactly,
+because the thing a fader must be able to do is go silent
+([ADR-0080](book/src/adr/0080-a-value-is-measured-along-a-part.md)).
+
+A `format` is a pattern rather than a function, because two records are compared
+for equality and two lambdas never are, and it is checked when the slider is
+built — so `format="%d"` against a double fails at inflation rather than on
+whichever frame first has a value to draw.
 
 ### `radio` and `radio-group`
 

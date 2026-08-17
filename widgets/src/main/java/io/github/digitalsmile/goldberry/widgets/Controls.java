@@ -170,6 +170,16 @@ public final class Controls {
                     min, max,
                     node.numberProperty("value", min),
                     node.numberProperty("step", 0),
+                    // §3's two optional halves. `ticks` is a count and `format`
+                    // is a pattern, so both are values a document can carry --
+                    // unlike an action or an icon, neither names anything the
+                    // application has to have registered (ADR-0080).
+                    (int) node.numberProperty("ticks", 0),
+                    node.stringProperty("format"),
+                    // Strict, like every other name in a document: `scale="dB"`
+                    // is refused rather than resolved quietly to linear, which
+                    // would be a fader that works and is wrong.
+                    Scale.of(node.stringProperty("scale")),
                     bindings.resolve(node.stringProperty("bind")),
                     change == null ? null : value -> change.accept(String.valueOf(value)),
                     node.booleanProperty("disabled"),
@@ -230,14 +240,17 @@ public final class Controls {
     /// The CSS type names this module adds, which is what the parity test checks
     /// the other two forms against.
     ///
-    /// **Controls only.** The six parts — `check-indicator`, `check-mark`,
-    /// `radio-indicator`, `radio-dot`, `toggle-track` and `toggle-thumb` — are
+    /// **Controls only.** The parts — `check-indicator`, `check-mark`,
+    /// `radio-indicator`, `radio-dot`, `toggle-track`, `toggle-thumb`,
+    /// `slider-track`, `slider-groove`, `slider-fill`, `slider-thumb`,
+    /// `slider-rest`, `slider-ticks`, `slider-tick` and `slider-value` — are
     /// styled by the same stylesheet and are not here, because they are parts
     /// rather than widgets: they are CSS-selectable and deliberately not
     /// KDL-constructible, and asking the parity test to inflate one would be
     /// asking for a node with no meaning outside its parent (see
     /// [CheckIndicator], [CheckMark], [RadioIndicator], [RadioDot],
-    /// [ToggleTrack], [ToggleThumb]).
+    /// [ToggleTrack], [ToggleThumb], [SliderTrack], [SliderGroove],
+    /// [SliderTicks], [SliderTick], [SliderValue]).
     public static List<String> controlTypes() {
         return List.of("button", "checkbox", "toggle", "slider", "radio-group", "radio");
     }

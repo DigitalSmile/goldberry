@@ -90,7 +90,11 @@ radio-indicator,
 radio-dot,
 toggle-track,
 toggle-thumb,
-slider-thumb {
+slider-groove,
+slider-thumb,
+slider-ticks,
+slider-tick,
+slider-value {
   flex-shrink: 0;
 }
 
@@ -699,13 +703,31 @@ toggle-thumb {
 slider {
   height: var(--gb-control-height);
   align-items: center;
+  gap: 8px;
   cursor: pointer;
 }
 
-/* The groove. Its children are the fill, the thumb and the rest -- see
-   SliderTrack for why the thumb is positioned by their flex ratio rather than by
-   a transform, which is the one thing a transform cannot express. */
+/* The rectangle the **value** is measured along, and the reason it is a box of
+   its own rather than the control itself: a value label takes its width off the
+   end of the row, and a pointer mapped along the control would then be short by
+   exactly that width (SliderTrack, ADR-0080). `flex-grow: 1` is what makes it
+   "whatever is left after the label", and equals the whole control when there is
+   no label -- one rule for both cases rather than a `width: 100%` that would
+   overflow the moment something else joined the row.
+
+   It paints nothing. The groove inside it is what you can see. */
 slider-track {
+  flex-grow: 1;
+  height: var(--gb-control-height);
+  flex-direction: column;
+  justify-content: center;
+  align-items: stretch;
+}
+
+/* The groove. Its children are the fill, the thumb and the rest -- see
+   SliderGroove for why the thumb is positioned by their flex ratio rather than by
+   a transform, which is the one thing a transform cannot express. */
+slider-groove {
   width: 100%;
   height: 4px;
   border-radius: 2px;
@@ -760,18 +782,87 @@ slider-thumb {
   transition: background-color var(--gb-motion-fast) ease-enter;
 }
 
+/* The scale (§3: "optional tick marks"). §3 pins no metric for a mark, so it
+   takes the groove's own 4 and half its 2px radius -- a tick is a groove one
+   step long.
+
+   The padding is **half of §3's thumb 16**, and it is the whole reason the marks
+   line up: a mark names a position the thumb's *centre* can reach, and that
+   centre stops 8px short of each end because the thumb is 16 wide. It is one
+   arithmetic statement with the thumb above it, exactly as the toggle's
+   2 + 16 + 16 + 2 = 36 is one with its travel -- change the thumb and this
+   follows. */
+slider-ticks {
+  /* **Zero-height, and that is the load-bearing number.** The track centres its
+     column, so anything the scale contributes to that column pushes the groove
+     up -- and a slider with a scale would then sit a few pixels off a slider
+     without one, in the same settings list, for no reason a reader could see.
+     At zero it takes no part in the centring: the groove is where it always was
+     and the marks hang out of the bottom, which nothing clips.
+
+     The 10 is what clears the thumb: the marks straddle their own line, so the
+     top of a mark is 10 - 2 = 8 below the groove, and the thumb reaches 8 below
+     the groove's centre and 6 below its edge. Two pixels of air. */
+  height: 0;
+  padding: 0 8px;
+  justify-content: space-between;
+  align-items: center;
+}
+
+slider-tick {
+  width: 2px;
+  height: 4px;
+  border-radius: 1px;
+  background: var(--gb-slider-tick-bg);
+  /* What moves the scale clear of the thumb, and it is a `transform` because a
+     transform costs no layout (ADR-0068): the mark hangs 10px below its line
+     without the line itself taking up a pixel, which is the whole reason the
+     groove above it has not moved. Ten is half the thumb's 16 plus the two the
+     mark straddles its own line by. */
+  transform: translate(0, 10px);
+}
+
+/* The value label (§3: "optional value label"), in `caption` because it is a
+   readout beside a control rather than running text (§1.4).
+
+   The **width is fixed and that is the point**: a label that sized itself to its
+   content would take three pixels off the track between 9 and 10, which moves
+   the value under the finger that is setting it. 40 is `caption` wide enough for
+   four digits and a sign, which is what the formats a slider is given produce.
+
+   It is left-aligned because §8's subset has no `text-align` (ARCHITECTURE
+   §8.1), which is the one thing here that is a gap rather than a decision. */
+slider-value {
+  width: 40px;
+  font-size: var(--gb-font-caption);
+  line-height: var(--gb-line-caption);
+  color: var(--gb-text-muted);
+}
+
 /* `slider.vertical` is §3's `fader`, and it is a class for the reason
    `radio-group.inline` is: the widget names the semantics and the stylesheet
    names the axis. `column-reverse` is what puts the minimum at the bottom, where
    a fader's minimum belongs -- the widget inverts the pointer fraction to match
-   (see Slider.fractionOf). */
+   (see Slider.fractionOf).
+
+   Every rule below is one axis swapped for the other, and there is nothing in
+   Java to match it: the ticks' cells are 0x0 rather than 0-wide precisely so
+   that this file can flip a row to a column on its own. */
 slider.vertical {
+  flex-direction: column;
   height: 100%;
   width: 32px;
-  justify-content: center;
+  align-items: center;
 }
 
 slider.vertical slider-track {
+  flex-direction: row;
+  justify-content: center;
+  width: 32px;
+  height: auto;
+}
+
+slider.vertical slider-groove {
   flex-direction: column-reverse;
   width: 4px;
   height: 100%;
@@ -781,4 +872,17 @@ slider.vertical slider-fill,
 slider.vertical slider-rest {
   width: 4px;
   height: auto;
+}
+
+slider.vertical slider-ticks {
+  flex-direction: column-reverse;
+  width: 0;
+  height: 100%;
+  padding: 8px 0;
+}
+
+slider.vertical slider-tick {
+  width: 4px;
+  height: 2px;
+  transform: translate(10px, 0);
 }
