@@ -375,10 +375,14 @@ public final class Sdl3Backend implements Backend {
         // describing.
         var flags = EnumSet.of(SdlWindowFlag.HIGH_PIXEL_DENSITY, SdlWindowFlag.HIDDEN);
         switch (spec.kind()) {
-            case MENU -> flags.add(SdlWindowFlag.POPUP_MENU);
+            case MENU -> {
+                flags.add(SdlWindowFlag.POPUP_MENU);
+                flags.add(SdlWindowFlag.TRANSPARENT);
+            }
             case TOOLTIP -> {
                 flags.add(SdlWindowFlag.TOOLTIP);
                 flags.add(SdlWindowFlag.NOT_FOCUSABLE);
+                flags.add(SdlWindowFlag.TRANSPARENT);
             }
         }
 

@@ -1404,7 +1404,7 @@ popover button {
  * tighter than a `popover`, because it is a label rather than a surface.
  */
 tooltip {
-  padding: 4px 8px;
+  padding: 6px 10px;
   border-radius: 6px;
   background: var(--gb-hud-bg);
   border: 1px solid var(--gb-hud-border);
@@ -1493,9 +1493,14 @@ tabs {
   flex-direction: column;
 }
 
+/* `center` rather than `stretch`, and it is what puts the `+` on the same line
+   as the labels: every header has an explicit height, so nothing here stretches
+   anyway, and a child shorter than the row would otherwise sit at the top of it.
+   §8's subset has no `align-self` — the per-child companion of this — so the row
+   says it once for everything in it (ADR-0111). */
 tab-list {
   flex-direction: row;
-  align-items: stretch;
+  align-items: center;
   gap: 2px;
 }
 
@@ -1519,7 +1524,7 @@ tab {
   padding: 0 12px;
   flex-shrink: 0;
   color: var(--gb-text-muted);
-  transition: color var(--gb-motion-fast) ease-out;
+  transition: color var(--gb-motion-fast) ease-enter;
 }
 
 tab:hover {
@@ -1542,7 +1547,7 @@ tab:checked {
 tab-indicator {
   height: 2px;
   background: transparent;
-  transition: background var(--gb-motion-fast) ease-out;
+  transition: background-color var(--gb-motion-fast) ease-enter;
 }
 
 tab-indicator:checked {
@@ -1579,7 +1584,6 @@ tab-close:hover {
 tab-new {
   width: 24px;
   height: 24px;
-  align-self: center;
   flex-shrink: 0;
   border-radius: 4px;
   color: var(--gb-text-muted);

@@ -224,6 +224,10 @@ public final class Popup implements AutoCloseable {
             tree.flush();
         }
         var current = renderer.get();
+        // Transparent, not a colour: a popup's panel has rounded corners, and
+        // what is outside them is nothing rather than black. It also stops a
+        // shrinking popup leaving the previous frame in the margin.
+        frame.fill(0x00000000);
         render.update(frame, current.render(tree));
         // Full-frame, unlike the owner window's: a popup is small, it is repainted
         // only when something in it changed, and damage tracking would be

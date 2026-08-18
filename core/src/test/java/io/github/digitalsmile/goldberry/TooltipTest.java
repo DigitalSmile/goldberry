@@ -94,7 +94,7 @@ class TooltipTest {
         @Override
         public List<Stylesheet> stylesheets() {
             return List.of(Stylesheet.parse(CascadeLayer.APPLICATION, """
-                    target  { background: #204060 }
+                    target  { background: #204060; cursor: pointer }
                     tooltip { padding: 4px; background: #1c212a; color: #eceff4 }
                     """));
         }
@@ -211,6 +211,28 @@ class TooltipTest {
     /// Waiting on a virtual thread rather than on [io.github.digitalsmile.goldberry.backend.EventLoop#after],
     /// deliberately: the loop's own timer is what is under test here, and a test
     /// that measured it with itself would pass whatever it did.
+    /// The cursor the owner window is showing, and what it is hovering — the two
+    /// things a tooltip appearing must not disturb.
+    @org.junit.jupiter.api.Test
+    @Timeout(20)
+    @DisplayName("a tooltip appearing does not take the hover off what it describes")
+    void doesNotDisturbTheHover() {
+        var cursorAfter = new io.github.digitalsmile.goldberry.backend.Cursor[1];
+        var hoveredAfter = new boolean[1];
+        Goldberry.launch(new TestApp(
+                new Target(Attributes.NONE.tooltip("Save the document")).id("target"),
+                host -> hoverAfterTheFirstFrame(() ->
+                        later(900, () -> {
+                            cursorAfter[0] = ownerWindow().cursor();
+                            hoveredAfter[0] = tooltipWindow().isPresent();
+                            Goldberry.stop();
+                        }))));
+
+        assertTrue(hoveredAfter[0], "the tooltip is up");
+        assertEquals(io.github.digitalsmile.goldberry.backend.Cursor.POINTER, cursorAfter[0],
+                "and the pointer still shows what it is over");
+    }
+
     private static void later(long millis, Runnable action) {
         Goldberry.async(() -> {
             try {

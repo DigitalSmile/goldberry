@@ -458,6 +458,19 @@ public final class Window implements AutoCloseable {
         /// @return true when the key has been dealt with
         boolean keyPressed(io.github.digitalsmile.goldberry.input.Key key,
                 io.github.digitalsmile.goldberry.input.Modifiers modifiers, boolean repeat);
+
+        /// The pointer left this window — or the platform says it did.
+        ///
+        /// Returning `true` swallows it, and there is one caller and one reason:
+        /// **opening a window over the pointer makes X11 report that the pointer
+        /// left the window underneath**, which it did not. Delivered, that clears
+        /// the hover and the cursor of the very widget a tooltip is describing
+        /// ([ADR-0111]).
+        ///
+        /// @return true when the exit is the toolkit's own doing
+        default boolean exited() {
+            return false;
+        }
     }
 
     /// Where pointer events go.
@@ -547,6 +560,9 @@ public final class Window implements AutoCloseable {
     }
 
     void handlePointerExited() {
+        if (inputWatcher != null && inputWatcher.exited()) {
+            return;
+        }
         if (router != null) {
             router.pointerExited();
             repaintIfRestyled();

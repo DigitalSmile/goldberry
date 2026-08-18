@@ -5,6 +5,7 @@ import io.github.digitalsmile.goldberry.css.Affine;
 import io.github.digitalsmile.goldberry.natives.blend2d.BlendPath;
 import io.github.digitalsmile.goldberry.natives.blend2d.BlendStrokeCap;
 import io.github.digitalsmile.goldberry.natives.blend2d.BlendStrokeJoin;
+import io.github.digitalsmile.goldberry.natives.yoga.StyleLength;
 import io.github.digitalsmile.goldberry.natives.yoga.ComputedLayout;
 import java.util.Objects;
 import java.util.function.BiConsumer;
@@ -138,11 +139,25 @@ public final class BoxPainter {
         }
 
         if (box.text() != null) {
-            // Wrapped at the width the layout pass settled on -- the same
-            // width the measure function was last asked about, so the
-            // paragraph's memo answers without re-wrapping and the lines
-            // drawn are exactly the lines that were measured.
-            box.text().paragraph().paint(frame, x, y, width, box.text().argb());
+            // **Inside the padding.** Yoga sizes a measured leaf as its measured
+            // content *plus* its padding, so a box with `padding: 4px 8px` around
+            // text is 16px wider than its text -- and painting at the box's own
+            // origin puts every one of those pixels on the right and the bottom,
+            // with the text hanging off the top-left corner. A tooltip was the
+            // first widget in the catalog to put padding on a text box rather
+            // than on a container around one, and it looked exactly like that
+            // ([ADR-0111](../../../../../../book/src/adr/0111-a-text-box-is-painted-inside-its-padding.md)).
+            //
+            // Wrapped at the width the layout pass settled on, less the padding:
+            // the same width the measure function was last asked about, so the
+            // paragraph's memo answers without re-wrapping and the lines drawn
+            // are exactly the lines that were measured.
+            var left = resolve(box.padding().left(), width);
+            var top = resolve(box.padding().top(), height);
+            var right = resolve(box.padding().right(), width);
+            box.text().paragraph().paint(
+                    frame, x + left, y + top, Math.max(0, width - left - right),
+                    box.text().argb());
         }
 
         if (box.icon() != null) {
@@ -265,6 +280,21 @@ public final class BoxPainter {
     /// @param transform every ancestor's transform and its own, composed, in the
     ///                  frame's coordinates; [Affine#IDENTITY] for the
     ///                  overwhelming majority of boxes
+    /// A padding edge in pixels.
+    ///
+    /// Percentages are resolved against `base`, which is CSS's rule for padding —
+    /// *every* edge is a percentage of the containing block's **width**, and the
+    /// caller passes the right base rather than this guessing. Anything that is
+    /// not a number is nothing: `auto` padding does not exist and `undefined`
+    /// means none.
+    private static double resolve(StyleLength length, double base) {
+        return switch (length) {
+            case StyleLength.Points points -> points.value();
+            case StyleLength.Percent percent -> percent.value() / 100.0 * base;
+            case StyleLength.Keyword ignored -> 0;
+        };
+    }
+
     public record Placed(Box box, ComputedLayout layout, Affine transform) {
 
         public Placed {

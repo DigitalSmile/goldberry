@@ -1320,6 +1320,43 @@ second.
   system clock the image failed by 113 pixels and a channel delta of 144. The
   renderer takes a virtual clock now.
 
+### Five faults in one window, and none of them was the same bug
+
+Reported against the gallery, and worth listing because the interesting one had
+been there since text was first painted
+([ADR-0111](adr/0111-a-text-box-is-painted-inside-its-padding.md)).
+
+- **A text box was painted outside its padding.** `BoxPainter` drew a paragraph at
+  the box's own origin and wrapped it at the box's full width — but Yoga sizes a
+  measured leaf as its content **plus** its padding, so every one of those pixels
+  ended up on the right and the bottom with the text hanging off the top-left
+  corner. Magnified 3×, a tooltip's glyphs were visibly outside their own plate.
+  Nothing had hit it because every other widget in the catalog puts text in a
+  *child* box — `button`, `option`, `badge` — for `Option`'s reason: Yoga never
+  lays out a measured node's children, so a control holding its own text could not
+  also hold an icon. Every other golden image is byte-identical after the fix,
+  which is the evidence it touched exactly the case that was broken.
+- **A popup's rounded corners were black.** What is outside the radius is
+  *nothing*, and nothing was being presented as an opaque buffer nobody had
+  cleared. Popups are `SDL_WINDOW_TRANSPARENT` now and their frame is cleared to
+  transparent — the surface format was checked rather than assumed, and X11 hands
+  back `ARGB8888` for these windows, so the alpha survives the blit.
+- **The cursor changed the moment a tooltip appeared**, and it was not the router:
+  headlessly the same sequence keeps both the hover and the `pointer` cursor,
+  which is what pinned it on X11 — mapping a window near the pointer makes the
+  server report a *leave* for the window underneath. The launcher swallows an exit
+  that arrives within 250ms of opening a tooltip, bounded rather than flagged so
+  that a driver which sends no spurious exit does not have the user's real one
+  swallowed instead.
+- **Warning spam** — `ease-out` is not one of §1.7's easings (they are
+  `ease-enter` and `ease-exit`) and `background` is not transitionable
+  (`background-color` is). Two rules got both wrong and the engine said so once
+  per node per frame.
+- **`align-self` is not in §8's subset**, so the `+` in a tab strip sat at the top
+  of its row. The row centres its children instead; adding the property would be a
+  20-component record change in two records for one `+`, and is recorded rather
+  than done.
+
 ### Not started
 
 `menubar`, tray, dialogs, scroll, forms, client-side decorations and charts. The rest of §5 — `card`, `group-box`, `split-pane`, `collapse`,

@@ -313,6 +313,26 @@ disabled container disabling its descendants.
 
 ## Style, colour and motion
 
+- **`align-self` is not in §8's subset**, which a tab strip's `+` found: a child
+  shorter than its row sits at the top of it and there is no per-child way to say
+  otherwise. It is the companion of `align-items`, which *is* in the subset, and
+  Yoga's `setAlignSelf` is already bound — what it costs is a component in
+  `ComputedStyle` and one in `Box`, both of which are records whose every wither
+  would have to be revisited. —
+  [ADR-0111](adr/0111-a-text-box-is-painted-inside-its-padding.md)
+- **Nothing warns when a declaration is dropped for being unsupported.** A
+  property the subset does not have is logged at DEBUG and ignored, so
+  `border-bottom`, `currentColor`, `margin` and `max-width` were each written,
+  silently discarded, and found by looking at a picture. A stylesheet is data and
+  should not be fatal — but the four of them cost more to find than a warning
+  would have cost to read. —
+  [ADR-0109](adr/0109-a-tab-arrives-and-departs-on-the-frame-clock.md),
+  [ADR-0111](adr/0111-a-text-box-is-painted-inside-its-padding.md)
+- **A popup's transparent corners need a compositor**, and are unverified on
+  Windows and macOS. Without one the flag is ignored and the corners are whatever
+  the platform leaves there. The fallback that always works — filling the frame
+  with the panel's own colour, for square corners — is kept in reserve. —
+  [ADR-0111](adr/0111-a-text-box-is-painted-inside-its-padding.md)
 - **`Styled.restyle` is an escape hatch, and the honest risk is what goes into it.**
   What a widget writes there is unthemeable and unoverridable — right for a number
   nobody else can compute, wrong for anything else. It has one caller in the toolkit and

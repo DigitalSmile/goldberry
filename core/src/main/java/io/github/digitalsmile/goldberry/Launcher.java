@@ -152,6 +152,13 @@ final class Launcher implements Host {
                         && openContextMenu(x, y);
             }
 
+            /// An exit that arrives within a moment of the toolkit opening a
+            /// window over the pointer is the window, not the pointer.
+            @Override
+            public boolean exited() {
+                return swallowExit();
+            }
+
             @Override
             public boolean keyPressed(io.github.digitalsmile.goldberry.input.Key key,
                     io.github.digitalsmile.goldberry.input.Modifiers modifiers, boolean repeat) {
@@ -296,6 +303,29 @@ final class Launcher implements Host {
     /// The tooltip that is showing, or null.
     private Popup tooltip;
 
+    /// When the last tooltip was opened, in `System.nanoTime` units, or 0.
+    ///
+    /// **X11 reports that the pointer left a window when another window is mapped
+    /// over it**, which is exactly what opening a tooltip does — and delivering
+    /// that exit clears the hover and the cursor of the widget the tooltip is
+    /// describing. Headlessly the cursor survives, which is how this was pinned
+    /// on the platform rather than on the router ([ADR-0111]).
+    private long tooltipOpenedAt;
+
+    /// How long after opening a tooltip an exit is treated as the toolkit's own
+    /// doing.
+    ///
+    /// Bounded rather than a flag that waits for the next exit: on a driver that
+    /// sends no spurious exit at all, a flag would swallow the user's *real* one
+    /// whenever it eventually came.
+    private static final long SPURIOUS_EXIT_NANOS = java.time.Duration.ofMillis(250).toNanos();
+
+    /// Whether the exit that just arrived is the one opening a tooltip provokes.
+    private boolean swallowExit() {
+        return tooltipOpenedAt != 0
+                && System.nanoTime() - tooltipOpenedAt < SPURIOUS_EXIT_NANOS;
+    }
+
     /// The node it belongs to, so a hover that returns to the same widget does
     /// not close and reopen it.
     private io.github.digitalsmile.goldberry.widget.Element tooltipOwner;
@@ -378,6 +408,7 @@ final class Launcher implements Host {
                 new io.github.digitalsmile.goldberry.widget.TooltipPanel(text),
                 anchor.get())
                 .orElse(null);
+        tooltipOpenedAt = tooltip == null ? 0 : System.nanoTime();
     }
 
     private void hideTooltip() {
@@ -389,6 +420,7 @@ final class Launcher implements Host {
             tooltip.close();
             tooltip = null;
         }
+        tooltipOpenedAt = 0;
     }
 
     /// The painted rectangle of an element, by identity — [#anchor] by id, for
