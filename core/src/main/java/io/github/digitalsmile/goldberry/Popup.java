@@ -96,7 +96,11 @@ public final class Popup implements AutoCloseable {
         // is someone choosing an item, not dismissing the menu.
         window.inputWatcher(new Window.InputWatcher() {
             @Override
-            public void pressed() {
+            public boolean pressed(
+                    io.github.digitalsmile.goldberry.input.PointerEvent.Button button,
+                    float x, float y) {
+                // A press inside a popup is somebody choosing an item.
+                return false;
             }
 
             @Override

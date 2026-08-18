@@ -1199,6 +1199,28 @@ second.
   hover opens a submenu beside its row, a command inside the submenu closes both,
   and a disabled row does neither.
 
+### Context menus
+
+- **The two halves of one feature sit on opposite sides of the module boundary,
+  and the seam is one sentence wide.** Only `:core` can notice the right-click —
+  it has the router, which knows what is under the pointer, and the window, which
+  is where a popup goes — and only the catalog can turn a name into a menu, because
+  opening one means wrapping every item so that choosing it closes the stack. So
+  `Host.onContextMenu` hands over *the name and the point*, and
+  `Menus.contextMenus(host, map)` is the line an application writes
+  ([ADR-0108](adr/0108-a-context-menu-is-a-name-on-a-widget.md)).
+- **The name rides on `Attributes`**, beside `id`, `class`, the key and the
+  tooltip — which is what "any widget" has to mean, including one in an
+  application's own module.
+- **The press is taken.** `InputWatcher.pressed` returns a boolean now and learned
+  which button and where, so a right-click that opens a menu does not also reach
+  what it landed on: right-clicking a button opens its menu rather than pressing
+  it.
+- **Anchored to the pointer, not to the widget**, so two right-clicks in one list
+  open two menus in two places. An unregistered name is logged rather than thrown,
+  because a `press=` typo is found when the document loads and this one is found
+  on a right-click, where throwing takes the window down.
+
 ### `tabs`, the first widget of §5
 
 - **Adding and removing needed no API.** The strip reads its selection through
@@ -1237,8 +1259,7 @@ second.
 
 ### Not started
 
-`menubar`, context menus, tray, dialogs, scroll, forms, client-side decorations
-and charts. The rest of §5 — `card`, `group-box`, `split-pane`, `collapse`,
+`menubar`, tray, dialogs, scroll, forms, client-side decorations and charts. The rest of §5 — `card`, `group-box`, `split-pane`, `collapse`,
 `carousel`, `statistic`, `skeleton` — is untouched. `menu` and M2's
 leftover `select` are ordinary widget work now — each owns its
 model, its item semantics and its keyboard map, and none of them has to solve

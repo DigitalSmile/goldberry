@@ -434,7 +434,17 @@ public final class Window implements AutoCloseable {
     interface InputWatcher {
 
         /// A pointer button went down somewhere in this window.
-        void pressed();
+        ///
+        /// The button and the position, because the two things watching this want
+        /// different halves: light dismissal only needs to know *that* a press
+        /// happened, and a context menu needs to know it was the secondary button
+        /// and where it landed ([ADR-0108]).
+        ///
+        /// @return true when the press has been dealt with — a context menu
+        ///         opening takes it, so the press does not also travel to whatever
+        ///         it landed on
+        boolean pressed(io.github.digitalsmile.goldberry.input.PointerEvent.Button button,
+                float x, float y);
 
         /// A key went down somewhere in this window.
         ///
@@ -513,8 +523,9 @@ public final class Window implements AutoCloseable {
         // — it dispatches to the widget under the pointer, and a press on nothing
         // dispatches to nothing, which is precisely the case a menu has to close
         // on.
-        if (inputWatcher != null) {
-            inputWatcher.pressed();
+        if (inputWatcher != null && inputWatcher.pressed(toButton(button), x, y)) {
+            repaintIfRestyled();
+            return;
         }
         if (router != null) {
             router.pointerPressed(x, y, toButton(button), clickCount, Modifiers.fromSdl(modifiers));

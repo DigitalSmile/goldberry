@@ -46,6 +46,15 @@ public interface Attributed<W extends Widget> extends Widget {
         return withAttributes(attributes().tooltip(text));
     }
 
+    /// This widget with the name of a menu a right-click on it should open —
+    /// §8's `context-menu="menuId"`.
+    ///
+    /// The widget carries a name and nothing else: what the name means is a
+    /// registry's, and opening the menu is `Menus`' (ADR-0108).
+    default W contextMenu(String menuId) {
+        return withAttributes(attributes().contextMenu(menuId));
+    }
+
     /// This widget with an `id`, which is also its key — see [Attributes#id].
     default W id(String id) {
         return withAttributes(attributes().id(id));

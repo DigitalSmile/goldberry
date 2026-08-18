@@ -45,6 +45,9 @@ import java.util.Optional;
 /// items with submenus leaves one open rather than three.
 public final class Menus {
 
+    private static final org.slf4j.Logger LOG =
+            org.slf4j.LoggerFactory.getLogger(Menus.class);
+
     private Menus() {
     }
 
@@ -55,6 +58,37 @@ public final class Menus {
     /// tooltip which is a thing it happened to stop on. Long enough that
     /// travelling down a menu past three rows with submenus opens none of them.
     private static final java.time.Duration HOVER_INTENT = java.time.Duration.ofMillis(150);
+
+    /// Wires up §8's context menus: `context-menu="rowMenu"` on any widget opens
+    /// `menus.get("rowMenu")` where the pointer is.
+    ///
+    /// One line in an application, and the line is here rather than in `:core`
+    /// because the two halves of a context menu live on opposite sides of the
+    /// catalog boundary. The toolkit notices the right-click and knows which name
+    /// the widget carried; only the catalog can turn that name into a menu and
+    /// open it, which means wrapping every item so that choosing it closes the
+    /// stack ([ADR-0108](../../../../../../../book/src/adr/0108-a-context-menu-is-a-name-on-a-widget.md)).
+    ///
+    /// A name nobody registered is **logged and ignored**, not thrown: a right
+    /// click is not a request that can fail usefully, and taking a window down
+    /// because a menu is missing is worse than the menu being missing.
+    ///
+    /// @param host  the window the menus open on
+    /// @param menus what each name means. Read on every right-click, so a map that
+    ///              changes is a set of menus that changes
+    public static void contextMenus(Host host, java.util.Map<String, Menu> menus) {
+        Objects.requireNonNull(host, "host");
+        Objects.requireNonNull(menus, "menus");
+        host.onContextMenu((menuId, at) -> {
+            var menu = menus.get(menuId);
+            if (menu == null) {
+                LOG.warn("no context menu is registered as \"{}\"; known: {}",
+                        menuId, menus.keySet());
+                return;
+            }
+            open(host, at, menu);
+        });
+    }
 
     /// Opens `menu` under the node with `anchorId`, in the window's own tree.
     ///

@@ -157,6 +157,11 @@ public final class Showcase implements Application {
         // *during* a resize or a drag, when there is something to watch.
         host.shortcut(Mod.CTRL.and(Key.F), this::toggleHud);
 
+        // §8's other half: `context-menu="…"` on any widget, and one line to say
+        // what the names mean. The toolkit notices the right-click and finds the
+        // name; only the catalog can turn a name into a menu (ADR-0108).
+        Menus.contextMenus(host, java.util.Map.of("content", menuContent()));
+
         host.window().onResize(size -> LOG.info("resized to {}", size));
         host.window().onScaleChange(scale -> LOG.info("scale is now {}", scale));
         host.window().onCloseRequest(() -> {

@@ -140,8 +140,16 @@ final class Launcher implements Host {
         // rather than handled by one (ADR-0103).
         window.inputWatcher(new Window.InputWatcher() {
             @Override
-            public void pressed() {
+            public boolean pressed(
+                    io.github.digitalsmile.goldberry.input.PointerEvent.Button button,
+                    float x, float y) {
                 dismissPopups();
+                // The secondary button, on a widget that named a menu: the press
+                // is *taken*, so it does not also reach whatever it landed on —
+                // right-clicking a button should open its menu, not press it
+                // (ADR-0108).
+                return button == io.github.digitalsmile.goldberry.input.PointerEvent.Button.SECONDARY
+                        && openContextMenu(x, y);
             }
 
             @Override
@@ -236,6 +244,43 @@ final class Launcher implements Host {
                 window.repaint();
             }
         }
+    }
+
+    // --- context menus ------------------------------------------------------
+
+    /// What an application does when a widget that named a menu is right-clicked
+    /// — see [Host#onContextMenu].
+    private ContextMenuHandler contextMenus;
+
+    /// Finds the menu a right-click asked for, and asks for it to be opened.
+    ///
+    /// Walked upwards from what is under the pointer, for the tooltip's reason: a
+    /// right-click on a button's *label* is a right-click on the button.
+    ///
+    /// @return whether anything was opened
+    private boolean openContextMenu(float x, float y) {
+        if (contextMenus == null) {
+            return false;
+        }
+        for (var node = router.hovered(); node != null;
+                node = node.parent() instanceof io.github.digitalsmile.goldberry.widget.Element parent
+                        ? parent : null) {
+            var named = node.widget() instanceof io.github.digitalsmile.goldberry.widget.Attributed<?> a
+                    ? a.attributes().contextMenu()
+                    : null;
+            if (named != null) {
+                // A zero-sized rectangle at the pointer: a context menu is
+                // anchored to where the click was, not to the widget, which is
+                // what every desktop does and what makes two right-clicks in one
+                // list open two menus in two places.
+                contextMenus.open(named,
+                        new io.github.digitalsmile.goldberry.backend.LogicalRect(
+                                new io.github.digitalsmile.goldberry.backend.LogicalPoint(x, y),
+                                new io.github.digitalsmile.goldberry.backend.LogicalSize(0, 0)));
+                return true;
+            }
+        }
+        return false;
     }
 
     // --- tooltips -----------------------------------------------------------
@@ -636,6 +681,11 @@ final class Launcher implements Host {
                     io.github.digitalsmile.goldberry.backend.LogicalPoint.ZERO, window.size());
         }
         return area.get().offsetBy(-origin.get().x(), -origin.get().y());
+    }
+
+    @Override
+    public void onContextMenu(ContextMenuHandler handler) {
+        this.contextMenus = handler;
     }
 
     @Override

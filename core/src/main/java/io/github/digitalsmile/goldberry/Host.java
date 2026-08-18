@@ -172,6 +172,25 @@ public interface Host {
     /// nowhere to put it.
     java.util.Optional<Popup> popup(Widget content, String anchorId, Placement placement);
 
+    /// What to do when a widget carrying `context-menu="…"` is right-clicked.
+    ///
+    /// §8 attaches a context menu to **any** widget by name, and this is the seam
+    /// between the two halves of that: the toolkit notices the right-click, walks
+    /// up from what is under the pointer to find the name, and hands it over with
+    /// the point it happened at. What the name *means* — and the opening — is the
+    /// catalog's, because a menu is a widget and opening one needs `Menus`
+    /// ([ADR-0108](../../../../../book/src/adr/0108-a-context-menu-is-a-name-on-a-widget.md)).
+    ///
+    /// An application using the catalog writes one line:
+    ///
+    /// ```java
+    /// Menus.contextMenus(host, Map.of("row", rowMenu()));
+    /// ```
+    ///
+    /// One handler, not a list: two things deciding what a right-click means is
+    /// two menus opening.
+    void onContextMenu(ContextMenuHandler handler);
+
     /// Runs `action` on the UI thread after `delay`.
     ///
     /// The frame loop's own timer: it shortens its next wait so the action lands

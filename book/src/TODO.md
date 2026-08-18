@@ -21,14 +21,23 @@ disabled container disabling its descendants.
 
 ## Overlays, popups and windows
 
-- **`menubar` and context menus are not built, and both want the same missing
-  thing.** §8's in-window bar with `Alt` activation, and `context-menu="menuId"`
-  on any widget, each need a menu that exists for longer than one opening: a menu
-  model the window owns, rather than a widget tree built when the menu opens and
-  thrown away when it closes. That is also what makes an accelerator
-  *registrable* — §8 asks for one "displayed right-aligned **and** auto-registered
-  in the window's shortcut map", and only the display half is built. —
+- **`menubar` is not built, and it wants a menu that outlives one opening.** §8's
+  in-window bar with `Alt` activation needs a menu model the window owns, rather
+  than a widget tree built when the menu opens and thrown away when it closes.
+  That is the same thing that makes an accelerator *registrable*: §8 asks for one
+  "displayed right-aligned **and** auto-registered in the window's shortcut map",
+  and only the display half is built. —
   [ADR-0106](adr/0106-a-menu-is-a-widget-and-opening-one-is-not.md)
+- **The keyboard menu key does not open a context menu.** §8 asks for "right-click
+  **or** the keyboard menu key at the focused widget"; the key half needs
+  `Key.MENU` in the key map and an anchor from the *focused element's* rectangle,
+  which is `Host.anchor`'s element-wise form and does not exist. —
+  [ADR-0108](adr/0108-a-context-menu-is-a-name-on-a-widget.md)
+- **A right-click does not select what it is over.** Every file manager selects the
+  row you right-click before opening its menu; that is the application's to do in
+  its handler today, because the toolkit has no notion of what "select" means for
+  an arbitrary widget. —
+  [ADR-0108](adr/0108-a-context-menu-is-a-name-on-a-widget.md)
 - **A keyboard `Right` into a submenu waits 150ms**, because it goes through the
   same hover-intent path as a pointer. Wrong, and one line to fix once `Item` can
   tell a hover from a keypress. —

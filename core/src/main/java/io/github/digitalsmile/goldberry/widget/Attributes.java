@@ -25,11 +25,12 @@ import java.util.Set;
 ///
 /// [#of(KdlNode)] is here for the same reason: parsing `id` and `class` off a
 /// markup node is the inflater's contract, and the inflater is `:core`'s.
-public record Attributes(String id, Set<String> classes, Object key, String tooltip) {
+public record Attributes(
+        String id, Set<String> classes, Object key, String tooltip, String contextMenu) {
 
     /// No id, no classes, no key, no tooltip — what a widget built in Java gets
     /// unless it says otherwise.
-    public static final Attributes NONE = new Attributes(null, Set.of(), null, null);
+    public static final Attributes NONE = new Attributes(null, Set.of(), null, null, null);
 
     public Attributes {
         classes = Set.copyOf(classes == null ? Set.of() : classes);
@@ -42,7 +43,7 @@ public record Attributes(String id, Set<String> classes, Object key, String tool
     /// argument on all of them would be four hundred edits to say `null`
     /// ([ADR-0105](../../../../../../book/src/adr/0105-a-tooltip-is-an-attribute-not-a-widget.md)).
     public Attributes(String id, Set<String> classes, Object key) {
-        this(id, classes, key, null);
+        this(id, classes, key, null, null);
     }
 
     /// This, with the text a tooltip would show — `docs/core-widgets.md` §7's
@@ -52,7 +53,21 @@ public record Attributes(String id, Set<String> classes, Object key, String tool
     /// a tooltip is not a property of being a button, and a catalog where each
     /// control had to remember to carry one would have thirty chances to forget.
     public Attributes tooltip(String text) {
-        return new Attributes(id, classes, key, text == null || text.isBlank() ? null : text);
+        return new Attributes(id, classes, key,
+                text == null || text.isBlank() ? null : text, contextMenu);
+    }
+
+    /// This, with the name of the menu a right-click should open —
+    /// `docs/core-widgets.md` §8's `context-menu="menuId"`, which like a tooltip
+    /// attaches to **any** widget.
+    ///
+    /// A *name*, not a menu: what the name means is a registry's, exactly as it is
+    /// for `press=` and `icon=`. A widget holding a menu would be a widget holding
+    /// a thing that has to be opened, and opening needs a window
+    /// ([ADR-0108](../../../../../../book/src/adr/0108-a-context-menu-is-a-name-on-a-widget.md)).
+    public Attributes contextMenu(String menuId) {
+        return new Attributes(id, classes, key, tooltip,
+                menuId == null || menuId.isBlank() ? null : menuId);
     }
 
     /// This, with a different `id` — **and the same id as the key**.
@@ -63,18 +78,18 @@ public record Attributes(String id, Set<String> classes, Object key, String tool
     /// did not double as a key would be an id that looks like it identifies the
     /// node and does not, which is [#of(KdlNode)]'s rule too.
     public Attributes id(String id) {
-        return new Attributes(id, classes, id, tooltip);
+        return new Attributes(id, classes, id, tooltip, contextMenu);
     }
 
     /// This, with a different set of classes.
     public Attributes classes(String... names) {
-        return new Attributes(id, Set.of(names), key, tooltip);
+        return new Attributes(id, Set.of(names), key, tooltip, contextMenu);
     }
 
     /// This, with a key that is not the id — for a list item whose identity is a
     /// row of a model rather than a name in a document.
     public Attributes key(Object key) {
-        return new Attributes(id, classes, key, tooltip);
+        return new Attributes(id, classes, key, tooltip, contextMenu);
     }
 
     /// Parses `id` and `class` off a KDL node, `class` being space-separated as
@@ -94,6 +109,7 @@ public record Attributes(String id, Set<String> classes, Object key, String tool
                 }
             }
         }
-        return new Attributes(id, classes, id, node.stringProperty("tooltip"));
+        return new Attributes(id, classes, id, node.stringProperty("tooltip"),
+                node.stringProperty("context-menu"));
     }
 }

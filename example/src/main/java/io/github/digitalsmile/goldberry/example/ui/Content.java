@@ -84,8 +84,12 @@ public record Content(ShowcaseModel model, Icon plus) implements Widget.Stateles
                         .id("reset").styled("danger"))
                 .id("actions");
 
+        // `contextMenu` is an attribute like `id` is: any widget may carry one,
+        // and right-clicking anywhere in this pane opens the menu the application
+        // registered under that name (ADR-0108).
         return model.isProseShown()
-                ? new Column(new Text(PROSE).id("prose"), tabs(), actions).id("content")
-                : new Column(tabs(), actions).id("content");
+                ? new Column(new Text(PROSE).id("prose"), tabs(), actions)
+                        .id("content").contextMenu("content")
+                : new Column(tabs(), actions).id("content").contextMenu("content");
     }
 }
