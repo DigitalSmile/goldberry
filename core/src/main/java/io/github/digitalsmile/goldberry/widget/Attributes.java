@@ -25,14 +25,34 @@ import java.util.Set;
 ///
 /// [#of(KdlNode)] is here for the same reason: parsing `id` and `class` off a
 /// markup node is the inflater's contract, and the inflater is `:core`'s.
-public record Attributes(String id, Set<String> classes, Object key) {
+public record Attributes(String id, Set<String> classes, Object key, String tooltip) {
 
-    /// No id, no classes, no key — what a widget built in Java gets unless it
-    /// says otherwise.
-    public static final Attributes NONE = new Attributes(null, Set.of(), null);
+    /// No id, no classes, no key, no tooltip — what a widget built in Java gets
+    /// unless it says otherwise.
+    public static final Attributes NONE = new Attributes(null, Set.of(), null, null);
 
     public Attributes {
         classes = Set.copyOf(classes == null ? Set.of() : classes);
+    }
+
+    /// The three that every widget had before a tooltip was one of them.
+    ///
+    /// Kept because `new Attributes(id, classes, key)` appears in every widget in
+    /// the catalog and in most of its tests, and because a fourth positional
+    /// argument on all of them would be four hundred edits to say `null`
+    /// ([ADR-0105](../../../../../../book/src/adr/0105-a-tooltip-is-an-attribute-not-a-widget.md)).
+    public Attributes(String id, Set<String> classes, Object key) {
+        this(id, classes, key, null);
+    }
+
+    /// This, with the text a tooltip would show — `docs/core-widgets.md` §7's
+    /// `tooltip="…"`, which attaches to **any** widget.
+    ///
+    /// Here rather than on each widget because that is what "any widget" means:
+    /// a tooltip is not a property of being a button, and a catalog where each
+    /// control had to remember to carry one would have thirty chances to forget.
+    public Attributes tooltip(String text) {
+        return new Attributes(id, classes, key, text == null || text.isBlank() ? null : text);
     }
 
     /// This, with a different `id` — **and the same id as the key**.
@@ -43,18 +63,18 @@ public record Attributes(String id, Set<String> classes, Object key) {
     /// did not double as a key would be an id that looks like it identifies the
     /// node and does not, which is [#of(KdlNode)]'s rule too.
     public Attributes id(String id) {
-        return new Attributes(id, classes, id);
+        return new Attributes(id, classes, id, tooltip);
     }
 
     /// This, with a different set of classes.
     public Attributes classes(String... names) {
-        return new Attributes(id, Set.of(names), key);
+        return new Attributes(id, Set.of(names), key, tooltip);
     }
 
     /// This, with a key that is not the id — for a list item whose identity is a
     /// row of a model rather than a name in a document.
     public Attributes key(Object key) {
-        return new Attributes(id, classes, key);
+        return new Attributes(id, classes, key, tooltip);
     }
 
     /// Parses `id` and `class` off a KDL node, `class` being space-separated as
@@ -74,6 +94,6 @@ public record Attributes(String id, Set<String> classes, Object key) {
                 }
             }
         }
-        return new Attributes(id, classes, id);
+        return new Attributes(id, classes, id, node.stringProperty("tooltip"));
     }
 }

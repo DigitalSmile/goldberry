@@ -111,6 +111,10 @@ final class Launcher implements Host {
 
         router = new PointerRouter();
         window.pointerRouter(router);
+        // §7's tooltip: shown on hover *and* on keyboard focus, after a delay.
+        // The router knows when either moved and opens nothing; the launcher owns
+        // the window, so it is where the two meet (ADR-0105).
+        router.onPointingChanged(this::pointingChanged);
 
         // Before `root()`, so an application can open its icons and bind its
         // accelerators and then describe a tree that uses them.
@@ -234,6 +238,126 @@ final class Launcher implements Host {
         }
     }
 
+    // --- tooltips -----------------------------------------------------------
+
+    /// How long the pointer has to rest on something before its tooltip appears.
+    ///
+    /// Long enough not to fire while the pointer is crossing a toolbar on its way
+    /// somewhere, short enough that someone who stopped to read is not left
+    /// waiting. `docs/core-widgets.md` §7 says "after delay" and does not say how
+    /// long; this is the figure the desktop conventions agree on.
+    private static final java.time.Duration TOOLTIP_DELAY = java.time.Duration.ofMillis(500);
+
+    /// The tooltip that is showing, or null.
+    private Popup tooltip;
+
+    /// The node it belongs to, so a hover that returns to the same widget does
+    /// not close and reopen it.
+    private io.github.digitalsmile.goldberry.widget.Element tooltipOwner;
+
+    /// The delay in flight, cancelled by anything that moves.
+    private io.github.digitalsmile.goldberry.backend.EventLoop.Timer tooltipTimer;
+
+    /// The pointer moved to a different node, or focus did.
+    ///
+    /// Either can summon a tooltip and either can dismiss one, which is why there
+    /// is one handler: a keyboard user tabbing along a toolbar gets the same
+    /// tooltips a pointer user does, and §7 asks for exactly that.
+    private void pointingChanged() {
+        var target = tooltipTarget();
+        if (target == tooltipOwner) {
+            return;
+        }
+        hideTooltip();
+        tooltipOwner = target;
+        if (target == null) {
+            return;
+        }
+        // A fresh delay per node, cancelled by the next move. The pointer
+        // crossing five buttons on its way to a sixth schedules five timers and
+        // fires none of them.
+        tooltipTimer = GoldberryRuntime.get().loop().after(TOOLTIP_DELAY, this::showTooltip);
+    }
+
+    /// The node whose tooltip should show: what the pointer is on, or — when the
+    /// pointer is on nothing — what the keyboard is on.
+    ///
+    /// The pointer wins because it is the more recent statement of intent: a
+    /// keyboard user who reaches for the mouse is looking at where the mouse is.
+    private io.github.digitalsmile.goldberry.widget.Element tooltipTarget() {
+        var hovered = withTooltip(router.hovered());
+        return hovered != null ? hovered : withTooltip(router.focused());
+    }
+
+    /// `element`, or the nearest ancestor of it that has a tooltip.
+    ///
+    /// Walked upwards because a tooltip on a `button` has to survive the pointer
+    /// being over the button's *label*, which is a different element and the one a
+    /// hit test reports.
+    private io.github.digitalsmile.goldberry.widget.Element withTooltip(
+            io.github.digitalsmile.goldberry.widget.Element element) {
+        for (var node = element; node != null;
+                node = node.parent() instanceof io.github.digitalsmile.goldberry.widget.Element parent
+                        ? parent : null) {
+            if (tooltipTextOf(node) != null) {
+                return node;
+            }
+        }
+        return null;
+    }
+
+    private static String tooltipTextOf(io.github.digitalsmile.goldberry.widget.Element element) {
+        return element.widget() instanceof io.github.digitalsmile.goldberry.widget.Attributed<?> a
+                ? a.attributes().tooltip()
+                : null;
+    }
+
+    /// Opens the tooltip for whatever [#pointingChanged] last settled on.
+    private void showTooltip() {
+        tooltipTimer = null;
+        var target = tooltipOwner;
+        if (target == null || !target.isMounted()) {
+            return;
+        }
+        var text = tooltipTextOf(target);
+        var anchor = anchorOf(target);
+        if (text == null || anchor.isEmpty()) {
+            return;
+        }
+        // Above by preference and flipped below near the top of the screen, which
+        // is `Placement`'s to decide. Never focusable, and never light-dismissed
+        // by a press: a tooltip is dismissed by the pointer leaving, and a press
+        // that closed it would close it in the same gesture that opened whatever
+        // was clicked.
+        tooltip = tooltipPopup(
+                new io.github.digitalsmile.goldberry.widget.TooltipPanel(text),
+                anchor.get())
+                .orElse(null);
+    }
+
+    private void hideTooltip() {
+        if (tooltipTimer != null) {
+            tooltipTimer.cancel();
+            tooltipTimer = null;
+        }
+        if (tooltip != null) {
+            tooltip.close();
+            tooltip = null;
+        }
+    }
+
+    /// The painted rectangle of an element, by identity — [#anchor] by id, for
+    /// the case where the caller has the element itself.
+    private java.util.Optional<io.github.digitalsmile.goldberry.backend.LogicalRect> anchorOf(
+            io.github.digitalsmile.goldberry.widget.Element element) {
+        for (var region : regions) {
+            if (region.owner() == element) {
+                return java.util.Optional.of(region.bounds());
+            }
+        }
+        return java.util.Optional.empty();
+    }
+
     /// The popup on top: the last one opened that is still open.
     private Popup topmostPopup() {
         for (var i = popups.size() - 1; i >= 0; i--) {
@@ -265,6 +389,7 @@ final class Launcher implements Host {
     /// measure callback that closes over a paragraph, and a paragraph over a font
     /// — closing them the other way round leaves Blend2D reading unmapped memory.
     private void shutDown() {
+        hideTooltip();
         // Before the window's own trees: a popup holds a render tree of its own
         // over the same fonts, and the fonts go last.
         for (var popup : List.copyOf(popups)) {
@@ -413,6 +538,16 @@ final class Launcher implements Host {
     @Override
     public java.util.Optional<Popup> popup(Widget content,
             io.github.digitalsmile.goldberry.backend.LogicalRect anchor, Placement placement) {
+        return placed(content, anchor, placement,
+                io.github.digitalsmile.goldberry.backend.PopupKind.MENU);
+    }
+
+    /// Measure, place, open — the three steps `popover` is made of (ADR-0104),
+    /// shared by the menu form and the tooltip one because only the kind differs.
+    private java.util.Optional<Popup> placed(Widget content,
+            io.github.digitalsmile.goldberry.backend.LogicalRect anchor, Placement placement,
+            io.github.digitalsmile.goldberry.backend.PopupKind kind) {
+
         Objects.requireNonNull(content, "content");
         Objects.requireNonNull(anchor, "anchor");
         Objects.requireNonNull(placement, "placement");
@@ -425,9 +560,20 @@ final class Launcher implements Host {
         var size = measure(tree, render);
         var placed = placement.place(anchor, size, placeableArea());
         return open(tree, render,
-                new io.github.digitalsmile.goldberry.backend.PopupSpec(
-                        placed.at(), size,
-                        io.github.digitalsmile.goldberry.backend.PopupKind.MENU));
+                new io.github.digitalsmile.goldberry.backend.PopupSpec(placed.at(), size, kind));
+    }
+
+    /// A tooltip's popup: above by preference, never light-dismissed.
+    ///
+    /// Not light-dismissed because a tooltip is dismissed by the pointer leaving,
+    /// and a press that closed it would fire in the same gesture as the click on
+    /// whatever it is describing — closing it a moment before it was going to
+    /// close anyway, and taking the *next* tooltip's timer with it.
+    private java.util.Optional<Popup> tooltipPopup(Widget content,
+            io.github.digitalsmile.goldberry.backend.LogicalRect anchor) {
+        return placed(content, anchor, Placement.ABOVE.align(Placement.Align.CENTER),
+                io.github.digitalsmile.goldberry.backend.PopupKind.TOOLTIP)
+                .map(popup -> popup.lightDismiss(false));
     }
 
     @Override

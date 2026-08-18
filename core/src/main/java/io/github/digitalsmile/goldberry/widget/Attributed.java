@@ -36,6 +36,16 @@ public interface Attributed<W extends Widget> extends Widget {
     /// write, because only it knows its own components.
     W withAttributes(Attributes attributes);
 
+    /// This widget with a tooltip — `docs/core-widgets.md` §7's `tooltip="…"`,
+    /// which attaches to any widget and is shown by the toolkit after a delay, on
+    /// hover **and** on keyboard focus.
+    ///
+    /// The widget does not draw it, does not own it and never sees it opened: it
+    /// carries the text, and the launcher does the rest (ADR-0105).
+    default W tooltip(String text) {
+        return withAttributes(attributes().tooltip(text));
+    }
+
     /// This widget with an `id`, which is also its key — see [Attributes#id].
     default W id(String id) {
         return withAttributes(attributes().id(id));

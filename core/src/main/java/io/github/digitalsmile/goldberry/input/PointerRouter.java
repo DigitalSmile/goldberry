@@ -87,6 +87,30 @@ public final class PointerRouter {
         this.regions = List.copyOf(Objects.requireNonNull(regions, "regions"));
     }
 
+    /// Told when the hovered or the focused node changes — see [#onPointingChanged].
+    private Runnable pointingListener;
+
+    /// Called when the pointer moves to a different node, or focus does.
+    ///
+    /// **One listener, and it is the launcher's.** What needs this is the thing
+    /// that opens a `tooltip`: `docs/core-widgets.md` §7 attaches one by attribute
+    /// to any widget and shows it "on hover *and on keyboard focus* after delay",
+    /// so something above the router has to know when either moved and start a
+    /// timer. The router itself opens nothing — it has no window and no notion of
+    /// one ([ADR-0105]).
+    ///
+    /// Not a list: a second listener would be a second thing deciding what a
+    /// hover means, and there is exactly one.
+    public void onPointingChanged(Runnable listener) {
+        this.pointingListener = listener;
+    }
+
+    private void notifyPointing() {
+        if (pointingListener != null) {
+            pointingListener.run();
+        }
+    }
+
     public Element hovered() {
         return hovered;
     }
@@ -332,6 +356,7 @@ public final class PointerRouter {
         }
         focused = element;
         focusFromKeyboard = fromKeyboard;
+        notifyPointing();
         if (focused != null) {
             mark(focused, PseudoClass.FOCUS, true);
             if (fromKeyboard) {
@@ -696,7 +721,11 @@ public final class PointerRouter {
                 emit(element, PointerEvent.Kind.ENTERED, x, y);
             }
         }
+        var previous = hovered;
         hovered = next;
+        if (previous != next) {
+            notifyPointing();
+        }
     }
 
     /// Recomputes the cursor from the rectangles under the pointer.

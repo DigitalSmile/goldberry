@@ -2,6 +2,8 @@ package io.github.digitalsmile.goldberry.backend;
 
 import io.github.digitalsmile.goldberry.natives.log.Logs;
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
@@ -44,6 +46,11 @@ public final class EventLoop implements AutoCloseable {
     /// second of latency rather than a hang.
     private static final Duration IDLE_TIMEOUT = Duration.ofSeconds(1);
 
+    /// What [#after] has scheduled, in no particular order — there are never many,
+    /// and a heap would be machinery for a list that is usually empty and rarely
+    /// longer than one.
+    private final List<Timer> timers = new ArrayList<>();
+
     private final Backend backend;
     private final UiExecutor ui;
     private final ExecutorService background;
@@ -83,7 +90,12 @@ public final class EventLoop implements AutoCloseable {
                     break;
                 }
 
-                backend.pumpEvents(sink, IDLE_TIMEOUT);
+                // Shortened when a timer is due sooner than the heartbeat, so a
+                // 400ms tooltip delay does not wait a second for the pump to
+                // return on an otherwise idle desktop.
+                backend.pumpEvents(sink, nextTimeout());
+
+                fireDueTimers();
 
                 // After: handlers post work too, and it should not wait for the
                 // next platform event to arrive -- which, on an idle desktop, may
@@ -97,6 +109,113 @@ public final class EventLoop implements AutoCloseable {
         } finally {
             running = false;
             LOG.debug("event loop finished");
+        }
+    }
+
+    /// Runs `action` on the UI thread after `delay`.
+    ///
+    /// The loop's own timer, and it is the loop's because the loop is the thing
+    /// that is asleep: a delay implemented by sleeping somewhere else would fire
+    /// on time and then wait up to [#IDLE_TIMEOUT] for the pump to come back and
+    /// notice. This shortens the pump instead.
+    ///
+    /// Two consumers, both named in `docs/core-widgets.md`: a `tooltip` "shows on
+    /// hover *and on keyboard focus* **after delay**", and a submenu opens on
+    /// "hover-intent timing". A toast's timeout is the third.
+    ///
+    /// UI thread only. Work that arrives from elsewhere goes through [#ui()],
+    /// which is the one door in.
+    ///
+    /// @param delay  how long to wait; zero or negative fires on the next
+    ///               iteration rather than immediately, because "later" is the
+    ///               only thing a caller can mean by asking a loop
+    /// @param action what to run, on the UI thread
+    /// @return a handle that cancels it
+    public Timer after(Duration delay, Runnable action) {
+        ui.requireUiThread();
+        Objects.requireNonNull(delay, "delay");
+        Objects.requireNonNull(action, "action");
+        var timer = new Timer(System.nanoTime() + Math.max(0L, delay.toNanos()), action);
+        timers.add(timer);
+        // The loop may be parked in `pumpEvents` with a timeout longer than this
+        // delay -- which is the ordinary case, since the heartbeat is a second.
+        backend.wakeup();
+        return timer;
+    }
+
+    /// How long the next pump may block for: the heartbeat, or the wait until the
+    /// earliest timer, whichever is sooner.
+    private Duration nextTimeout() {
+        if (timers.isEmpty()) {
+            return IDLE_TIMEOUT;
+        }
+        var now = System.nanoTime();
+        var earliest = Long.MAX_VALUE;
+        for (var timer : timers) {
+            if (!timer.cancelled) {
+                earliest = Math.min(earliest, timer.dueNanos);
+            }
+        }
+        if (earliest == Long.MAX_VALUE) {
+            return IDLE_TIMEOUT;
+        }
+        var remaining = earliest - now;
+        return remaining <= 0
+                ? Duration.ZERO
+                : Duration.ofNanos(Math.min(remaining, IDLE_TIMEOUT.toNanos()));
+    }
+
+    /// Runs whatever is due, and drops it.
+    ///
+    /// Collected before running: a timer's action may schedule another, and a
+    /// tooltip's does — an action that added itself to the list being walked would
+    /// fire in the same iteration for ever.
+    private void fireDueTimers() {
+        if (timers.isEmpty()) {
+            return;
+        }
+        var now = System.nanoTime();
+        var due = new ArrayList<Timer>();
+        for (var iterator = timers.iterator(); iterator.hasNext();) {
+            var timer = iterator.next();
+            if (timer.cancelled) {
+                iterator.remove();
+            } else if (timer.dueNanos <= now) {
+                iterator.remove();
+                due.add(timer);
+            }
+        }
+        for (var timer : due) {
+            if (!timer.cancelled) {
+                timer.action.run();
+            }
+        }
+    }
+
+    /// One pending [#after].
+    ///
+    /// A class rather than a `Future`: the only thing a caller ever does with one
+    /// is cancel it, and a hover that ends before the delay is up cancels one on
+    /// every pointer move.
+    public static final class Timer {
+
+        private final long dueNanos;
+        private final Runnable action;
+        private boolean cancelled;
+
+        private Timer(long dueNanos, Runnable action) {
+            this.dueNanos = dueNanos;
+            this.action = action;
+        }
+
+        /// Stops it firing. Idempotent, and harmless after it already has.
+        public void cancel() {
+            cancelled = true;
+        }
+
+        /// Whether it is still going to fire.
+        public boolean isPending() {
+            return !cancelled;
         }
     }
 

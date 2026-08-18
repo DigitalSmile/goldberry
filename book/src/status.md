@@ -1140,10 +1140,35 @@ second.
   Placement.BELOW)`, and on X11 it comes out 125×108 — its own content's size —
   directly under the button that opened it.
 
+### `tooltip`, and the timer under it
+
+- **The event loop grew a timer.** `EventLoop.after(delay, action)` runs something
+  on the UI thread later and shortens the next pump so the loop wakes for it —
+  the loop's, because the loop is the thing that is asleep and a delay implemented
+  by sleeping elsewhere fires on time and then waits up to a second for the pump
+  to notice. Two consumers are named in the specification (a tooltip's delay, a
+  submenu's hover intent) and a toast's timeout is the third.
+- **A tooltip is an attribute, not a widget.** §7 attaches one to *any* widget, so
+  the text rides on `Attributes` beside `id`, `class` and the key — the three
+  things every widget carries and none decides. The router says when the hovered
+  or focused node moved and opens nothing; the launcher owns the window and does
+  the rest. The target is found by walking **up** from the hovered element,
+  because a tooltip on a `button` has to survive the pointer being over the
+  button's *label*, which is a different element and the one a hit test reports
+  ([ADR-0105](adr/0105-a-tooltip-is-an-attribute-not-a-widget.md)).
+- **Adding a component to `Attributes` broke every wither, silently.** `id()`,
+  `classes()` and `key()` each rebuilt the record and dropped the new field, so
+  `.tooltip("Save").id("save")` lost its tooltip — no error, nothing in a log, and
+  a test already written that failed for what looked like a timing reason.
+- **It is never light-dismissed.** A press would close it in the same gesture as
+  the click on the thing it describes, taking the next tooltip's timer with it. It
+  also cannot end up under the pointer, by construction: it is placed outside the
+  anchor's rectangle and the pointer is inside it, above or flipped below.
+
 ### Not started
 
-Tray, dialogs, scroll, forms, client-side decorations and charts. `menu`,
-`tooltip` and M2's leftover `select` are ordinary widget work now — each owns its
+Tray, dialogs, scroll, forms, client-side decorations and charts. `menu` and M2's
+leftover `select` are ordinary widget work now — each owns its
 model, its item semantics and its keyboard map, and none of them has to solve
 size, position or dismissal. The one thing between here and a `select` over a
 realistic option list is `scroll`. Everything outstanding is in

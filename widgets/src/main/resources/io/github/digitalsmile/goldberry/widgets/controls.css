@@ -1388,3 +1388,24 @@ popover {
 popover button {
   justify-content: flex-start;
 }
+
+/* --------------------------------------------------------------- tooltip --
+ *
+ * `docs/core-widgets.md` §7's `tooltip`, attached by attribute to any widget and
+ * opened by the toolkit rather than by a document — so the *type* is declared in
+ * `:core` beside the launcher that opens it, and its appearance is here with
+ * everything else that has one (ADR-0105).
+ *
+ * A dark plate on both themes, for `hud`'s reason: it lies over the
+ * application's own colours, which the toolkit does not know. Smaller and
+ * tighter than a `popover`, because it is a label rather than a surface.
+ */
+tooltip {
+  padding: 4px 8px;
+  border-radius: 6px;
+  background: var(--gb-hud-bg);
+  border: 1px solid var(--gb-hud-border);
+  color: var(--gb-hud-text);
+  font-size: var(--gb-font-caption);
+  line-height: var(--gb-line-caption);
+}

@@ -83,9 +83,15 @@ column id="sidebar" {
     // is clipped to the window and needs no cooperation from the platform.
     // Neither handler is the model's: they are facts about this window, so
     // `Showcase` binds them beside the generated registry.
+    // `tooltip=` attaches to **any** widget and is shown by the toolkit after a
+    // delay, on hover and on keyboard focus alike -- so tabbing to these buttons
+    // explains them too, which is the half §7 asks for and every toolkit forgets
+    // (ADR-0105).
     row id="overlays" {
-      button id="menu-button" press="app.open-menu" "Menu"
-      button id="hud-button" class="ghost" press="app.toggle-hud" "HUD"
+      button id="menu-button" press="app.open-menu" \
+             tooltip="Opens a platform popup window, free of this window's bounds" "Menu"
+      button id="hud-button" class="ghost" press="app.toggle-hud" \
+             tooltip="Floats a frame-rate readout in the window's own overlay layer" "HUD"
     }
 
     // Reports rather than asks: the bar follows the property the slider sets, and

@@ -111,6 +111,7 @@
 - [ADR-0102 A popup is a window the platform may refuse](adr/0102-a-popup-is-a-window-the-platform-may-refuse.md)
 - [ADR-0103 A popup is a second tree in a second window](adr/0103-a-popup-is-a-second-tree-in-a-second-window.md)
 - [ADR-0104 A popup is measured, then placed](adr/0104-a-popup-is-measured-then-placed.md)
+- [ADR-0105 A tooltip is an attribute, not a widget](adr/0105-a-tooltip-is-an-attribute-not-a-widget.md)
 
 ---
 

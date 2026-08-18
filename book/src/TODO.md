@@ -21,6 +21,17 @@ disabled container disabling its descendants.
 
 ## Overlays, popups and windows
 
+- **A tooltip is plain text, has no maximum width of its own and does not follow
+  the pointer.** All three as `docs/core-widgets.md` §7 specifies for v1, and all
+  three are what "rich content" would change. The 500ms delay is not configurable
+  either: §7 says "after delay" and does not say how long, so a
+  `--gb-tooltip-delay` token is a design-system question rather than an
+  implementation one. —
+  [ADR-0105](adr/0105-a-tooltip-is-an-attribute-not-a-widget.md)
+- **`PointerRouter` has one listener slot, not a list.** A second consumer of
+  "the hovered or focused node moved" needs a real listener list *and* a decision
+  about what it means for two things to react to one hover. —
+  [ADR-0105](adr/0105-a-tooltip-is-an-attribute-not-a-widget.md)
 - **A popup cannot scroll, so a long menu loses its bottom.** `Placement` clamps a
   popup taller than the work area to the near edge, which keeps the top of it
   visible and drops the rest. That is the honest thing to do with no viewport, and
