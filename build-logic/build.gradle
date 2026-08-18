@@ -24,6 +24,13 @@ dependencies {
 
 tasks.named('test') {
     useJUnitPlatform()
+
+    // `LinuxDependenciesTest` reads `.github/workflows` to assert the dependency
+    // table and CI still say the same thing. This build is included, so `rootDir`
+    // is `build-logic/` -- the repository is one level up. Handed over explicitly
+    // rather than derived from the working directory, which differs between
+    // Gradle and an IDE run (ADR-0082).
+    systemProperty 'goldberry.repoRoot', rootDir.parentFile.absolutePath
     testLogging {
         events 'failed', 'skipped'
         exceptionFormat = 'full'

@@ -51,6 +51,7 @@ jobs:
             cmake ninja-build \
             libx11-dev libxext-dev libxrandr-dev libxcursor-dev libxi-dev \
             libxfixes-dev libxss-dev libxtst-dev libwayland-dev wayland-protocols \
+            libdecor-0-dev \
             libxkbcommon-dev xkb-data libegl1-mesa-dev libgles2-mesa-dev \
             libasound2-dev libpulse-dev libdbus-1-dev libudev-dev \
             xvfb
@@ -63,6 +64,13 @@ jobs:
           # on X11, and a toolkit that grows a slider or a drag-to-resize will
           # want that (§7.3) -- switching it off would remove the capability
           # silently and only on Linux.
+          #
+          # libdecor-0-dev is the opposite case and worse for it: SDL configures
+          # and builds perfectly happily without it, and the result is a Wayland
+          # window with no titlebar, no close button and no resize edge. GNOME's
+          # compositor declines server-side decorations, so libdecor is not a
+          # fallback there -- it is the only implementation (ADR-0083). Nothing
+          # in a build log says it is missing; `checkToolchain` now does.
 
 
       - name: Build libgoldberry

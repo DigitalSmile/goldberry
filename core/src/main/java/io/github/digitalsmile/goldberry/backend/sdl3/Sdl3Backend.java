@@ -26,6 +26,7 @@ import java.util.Locale;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import org.slf4j.Logger;
 
 /// The desktop backend (ADR-0003).
@@ -45,9 +46,24 @@ public final class Sdl3Backend implements Backend {
     /// Overrides the video driver choice. See [#selectVideoDriver()].
     public static final String VIDEO_DRIVER_PROPERTY = "goldberry.backend.videoDriver";
 
-    /// What Goldberry asks for on a Linux Wayland session: a preference, with
-    /// X11 behind it, resolved inside SDL.
-    private static final String PREFERRED_LINUX_DRIVERS = "wayland,x11";
+    /// What Goldberry asks for on a Linux Wayland session.
+    ///
+    /// **X11 first, deliberately and for now** (ADR-0086). On Wayland the window
+    /// manager draws nothing, so decorations come from libdecor, and libdecor's
+    /// default plugin cannot run in a stock-launched JVM
+    /// ([ADR-0084](../../../../../../book/src/adr/0084-the-gtk-plugin-cannot-decorate-a-jvms-window.md)).
+    /// Under XWayland the window manager decorates the window itself, which is
+    /// the only way to get a titlebar that matches the desktop today.
+    ///
+    /// Wayland stays on the list behind X11 rather than being dropped: a session
+    /// without XWayland must still get a window, and an undecorated one beats
+    /// `SDL_Init` failing outright.
+    ///
+    /// This gives up what ADR-0027 measured and bought — an XWayland window
+    /// resizes visibly worse, and fractional scaling is blurrier. The trade is
+    /// revisited when Goldberry draws its own decorations, or when libdecor's
+    /// out-of-process GTK plugin ships.
+    private static final String PREFERRED_LINUX_DRIVERS = "x11,wayland";
 
     /// Turns the frame loop's pacing off. See [#pacePresentToTheDisplay()].
     public static final String VSYNC_PROPERTY = "goldberry.backend.vsync";
@@ -90,6 +106,15 @@ public final class Sdl3Backend implements Backend {
     /// again, on this thread, from inside the paint it would restart.
     private boolean inWatch;
 
+    /// Why a Wayland window here will have no decorations, when it will not.
+    ///
+    /// Worked out once at start-up, because it is a property of the machine rather
+    /// than of a window, and reported at the first window that actually asked to
+    /// be decorated — a borderless one is not affected and should not be warned
+    /// about. See [WaylandDecorations] and ADR-0084.
+    private Optional<String> undecoratedWarning = Optional.empty();
+    private boolean undecoratedWarningLogged;
+
     private boolean closed;
 
     /// Initializes SDL's video subsystem.
@@ -108,6 +133,10 @@ public final class Sdl3Backend implements Backend {
             if (pacer.isPacing()) {
                 LOG.info("frame loop paced to one frame per {}", pacer.interval());
             }
+            // Asked once the driver is known, since it is only a question on
+            // Wayland, and answered here rather than at window creation so the
+            // filesystem is read once per process rather than once per window.
+            undecoratedWarning = WaylandDecorations.diagnose(Sdl.get().videoDriver());
             installResizeWatch();
         } catch (SdlException e) {
             eventBuffer.close();
@@ -130,18 +159,25 @@ public final class Sdl3Backend implements Backend {
     /// Wayland presentation to have no reliable frame pacing. GNOME's Mutter does
     /// not advertise it, so on the most common Linux desktop SDL chooses XWayland.
     ///
-    /// Goldberry asks for Wayland first anyway, because what SDL is protecting
+    /// Goldberry used to ask for Wayland first, because what SDL is protecting
     /// against is less bad than what it falls back to: an XWayland window resizes
     /// visibly worse than a native one. Measured on GNOME, the Wayland path
     /// reports *higher* per-frame numbers and looks better, because the extra time
     /// is the compositor pacing the client rather than work (ADR-0027).
     ///
+    /// **It now asks for X11 first, for now** (ADR-0086). Decorations outrank
+    /// resize quality: on Wayland the window manager draws none, libdecor is the
+    /// only source of them, and its default plugin cannot run in a stock-launched
+    /// JVM ([ADR-0084](../../../../../../book/src/adr/0084-the-gtk-plugin-cannot-decorate-a-jvms-window.md)).
+    /// Under XWayland the window manager decorates the window itself.
+    ///
     /// The hint takes a comma-separated list and SDL tries each in turn, so
-    /// `wayland,x11` is a preference and not a demand — a machine with no Wayland
-    /// gets X11 exactly as before, inside SDL, with no fallback logic here.
+    /// `x11,wayland` is a preference and not a demand — a session with no XWayland
+    /// still gets a window, inside SDL, with no fallback logic here.
     ///
     /// Three things override it, in order: `-Dgoldberry.backend.videoDriver`, an
-    /// `SDL_VIDEO_DRIVER` already in the environment, and not being on Linux.
+    /// `SDL_VIDEO_DRIVER` already in the environment, and not being on Linux. The
+    /// first is how to ask for Wayland anyway.
     private static void selectVideoDriver() {
         var requested = System.getProperty(VIDEO_DRIVER_PROPERTY);
         if (requested != null && !requested.isBlank()) {
@@ -158,9 +194,16 @@ public final class Sdl3Backend implements Backend {
 
         var linux = System.getProperty("os.name", "").toLowerCase(Locale.ROOT).contains("linux");
         var waylandSession = System.getenv("WAYLAND_DISPLAY");
-        if (linux && waylandSession != null && !waylandSession.isBlank()) {
-            applyVideoDriver(PREFERRED_LINUX_DRIVERS, "a Wayland session is running");
+        if (!linux || waylandSession == null || waylandSession.isBlank()) {
+            return;
         }
+
+        applyVideoDriver(PREFERRED_LINUX_DRIVERS,
+                "a Wayland session is running, and only X11 gets decorations here");
+        LOG.info("preferring X11 on this Wayland session: a Wayland window would be decorated"
+                + " by libdecor, whose default plugin cannot run in a stock-launched JVM."
+                + " Pin the driver with -D{}=wayland to use Wayland anyway.",
+                VIDEO_DRIVER_PROPERTY);
     }
 
     /// Asks SDL to hold each `present` until the display is ready for it.
@@ -292,6 +335,14 @@ public final class Sdl3Backend implements Backend {
                 Math.round(spec.size().width()),
                 Math.round(spec.size().height()),
                 flags);
+
+        // Only for a window that asked to be decorated, and only once: a
+        // borderless window is unaffected, and an application that opens twenty
+        // windows has one problem, not twenty.
+        if (spec.decorated() && !undecoratedWarningLogged && undecoratedWarning.isPresent()) {
+            undecoratedWarningLogged = true;
+            LOG.warn("{}", undecoratedWarning.get());
+        }
 
         var window = new Sdl3Window(this, handle, spec.title());
         windowsById.put(handle.id(), window);

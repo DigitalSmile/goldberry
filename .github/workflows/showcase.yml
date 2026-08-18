@@ -49,6 +49,11 @@ jobs:
       # SDL's X11 driver treats XTest as a hard dependency: without libxtst-dev
       # the configure stops with "Couldn't find dependency package for XTEST"
       # rather than skipping it, which is how it was found.
+      #
+      # libdecor-0-dev fails the other way and is harder to notice for it: the
+      # build succeeds and the Wayland window has no titlebar and cannot be
+      # resized, because GNOME does no server-side decorations and libdecor is
+      # the only other implementation (ADR-0083).
       - name: Install build tools (linux)
         if: runner.os == 'Linux'
         run: |
@@ -57,6 +62,7 @@ jobs:
             cmake ninja-build \
             libx11-dev libxext-dev libxrandr-dev libxcursor-dev libxi-dev \
             libxfixes-dev libxss-dev libxtst-dev libwayland-dev wayland-protocols \
+            libdecor-0-dev \
             libxkbcommon-dev xkb-data libegl1-mesa-dev libgles2-mesa-dev \
             libasound2-dev libpulse-dev libdbus-1-dev libudev-dev \
             xvfb

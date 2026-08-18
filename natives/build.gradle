@@ -1,3 +1,4 @@
+import io.github.digitalsmile.goldberry.build.LinuxDependencies
 import io.github.digitalsmile.goldberry.build.ToolResolver
 
 plugins {
@@ -280,53 +281,28 @@ def checkToolchain = tasks.register('checkToolchain') {
         // into the build, from inside SDL3's CMake, naming a pkg-config
         // module rather than a package -- so the error tells you what is absent
         // but not what to install.
+        //
+        // The table itself lives in `LinuxDependencies`, in build-logic, and is
+        // unit-tested there against the packages CI installs. It used to be a
+        // literal here, and it drifted: XScrnSaver was listed under the module
+        // name `xss`, which nothing ships a .pc file for, and marked optional --
+        // while SDL's CheckX11 treats it as a hard stop. The check therefore
+        // passed, and the build died two minutes later inside SDL. See ADR-0082.
         if (onLinux) {
-            // module, apt package, dnf package, required, what it is for
-            def headers = [
-                    ['x11', 'libx11-dev', 'libX11-devel', true, 'SDL3 X11 backend'],
-                    ['xext', 'libxext-dev', 'libXext-devel', true, 'SDL3 X11 backend'],
-                    ['xrandr', 'libxrandr-dev', 'libXrandr-devel', true, 'SDL3 per-monitor DPI'],
-                    ['xcursor', 'libxcursor-dev', 'libXcursor-devel', true, 'SDL3 cursors'],
-                    ['xi', 'libxi-dev', 'libXi-devel', true, 'SDL3 input'],
-                    ['xfixes', 'libxfixes-dev', 'libXfixes-devel', true, 'SDL3 pointer capture'],
-                    ['wayland-client', 'libwayland-dev', 'wayland-devel', true, 'SDL3 Wayland backend'],
-                    ['wayland-cursor', 'libwayland-dev', 'wayland-devel', true, 'SDL3 Wayland cursors'],
-                    ['wayland-egl', 'libwayland-dev', 'wayland-devel', true, 'SDL3 Wayland backend'],
-                    // Goldberry binds no xkbcommon: SDL owns keyboard translation
-                    // and loads libxkbcommon itself (ADR-0055). Its headers are
-                    // still needed to BUILD SDL's Wayland backend, and the keymap
-                    // data at run time.
-                    ['xkbcommon', 'libxkbcommon-dev', 'libxkbcommon-devel', true, 'SDL3 keyboard translation'],
-                    ['xkeyboard-config', 'xkb-data', 'xkeyboard-config', true, 'SDL3 keymaps'],
-                    ['xss', 'libxss-dev', 'libXScrnSaver-devel', false, 'SDL3 screensaver inhibition'],
-                    ['alsa', 'libasound2-dev', 'alsa-lib-devel', false, 'SDL3 audio'],
-                    ['libpulse', 'libpulse-dev', 'pulseaudio-libs-devel', false, 'SDL3 audio'],
-                    ['libdrm', 'libdrm-dev', 'libdrm-devel', false, 'SDL3 KMS/DRM'],
-                    ['gbm', 'libgbm-dev', 'mesa-libgbm-devel', false, 'SDL3 KMS/DRM'],
-                    ['libudev', 'libudev-dev', 'systemd-devel', false, 'SDL3 device hotplug'],
-                    ['dbus-1', 'libdbus-1-dev', 'dbus-devel', false, 'SDL3 desktop integration'],
-            ]
-
-            def absent = headers.findAll { !succeeds('pkg-config', '--exists', it[0]) }
-            def useDnf = succeeds('sh', '-c', 'command -v dnf')
-            def installCommand = { rows ->
-                def packages = rows.collect { useDnf ? it[2] : it[1] }.unique().sort()
-                (useDnf ? 'sudo dnf install -y ' : 'sudo apt install ') + packages.join(' ')
+            def absent = LinuxDependencies.ALL.findAll {
+                !succeeds('pkg-config', '--exists', it.module())
             }
+            def manager = LinuxDependencies.managerFor(succeeds('sh', '-c', 'command -v dnf'))
 
-            def absentRequired = absent.findAll { it[3] }
+            def absentRequired = absent.findAll { it.required() }
             if (!absentRequired.isEmpty()) {
-                def detail = absentRequired.collect { "  ${it[0]} -- ${it[4]}" }.join('\n')
                 throw new GradleException(
-                        "Missing development headers the superbuild needs:\n" + detail +
-                                "\n\n" + installCommand(absentRequired) + "\n")
+                        LinuxDependencies.missingRequiredMessage(absentRequired, manager))
             }
 
-            def absentOptional = absent.findAll { !it[3] }
+            def absentOptional = absent.findAll { !it.required() }
             if (!absentOptional.isEmpty()) {
-                logger.warn("WARNING: optional headers absent; SDL3 will build without these features:\n" +
-                        absentOptional.collect { "  ${it[0]} -- ${it[4]}" }.join('\n') +
-                        "\n  " + installCommand(absentOptional))
+                logger.warn(LinuxDependencies.missingOptionalMessage(absentOptional, manager))
             }
         }
 

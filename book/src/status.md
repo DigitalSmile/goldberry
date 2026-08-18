@@ -938,6 +938,96 @@ disabled container disabling its descendants.
   The rest of the argument list — build type, install prefix, target id — is
   still kept in step by hand. —
   [ADR-0035](adr/0035-the-catalog-is-the-only-place-a-ref-lives.md)
+- **What does the release container actually compile into its Wayland driver?**
+  Two dependencies decide it and `linux.yml` installs neither. `egl` is one of the
+  five specs in SDL's single `CheckWayland` `pkg_check_modules` — lose any one and
+  the entire Wayland driver is dropped *silently*, and the container has no
+  `mesa-libEGL-devel`. `libdecor-0` decides whether a Wayland window that does get
+  built has a titlebar and a resize edge, and whether `libdecor-devel` even exists
+  in AlmaLinux 8's repositories is unverified. The manylinux leg runs CMake
+  directly with no JDK, so `checkToolchain` never gets to ask either question, and
+  the drift guard deliberately holds that workflow only to the packages SDL
+  refuses to configure without. Answering it means reading
+  `SDL_VIDEO_DRIVER_WAYLAND` and `HAVE_LIBDECOR_H` out of a container build's
+  `SDL_build_config.h` — not another look at the table. —
+  [ADR-0082](adr/0082-a-preflight-check-that-cannot-fail-is-not-a-check.md),
+  [ADR-0083](adr/0083-on-gnome-wayland-libdecor-is-not-a-fallback.md)
+- ~~**Nothing warns at run time that a window came up undecorated.**~~
+  **Answered: `WaylandDecorations` warns, once, with the command that fixes it.**
+  Not by asking SDL, which cannot answer — `libdecor_new` succeeds even when every
+  plugin failed, so SDL marks the surface `WAYLAND_SHELL_SURFACE_TYPE_LIBDECOR`
+  and exposes nothing to say the frame is empty. It is inferred from which plugin
+  files are installed, which works because the GTK plugin is *guaranteed* to fail
+  in a JVM. The verdict is three-valued and stays silent when it cannot locate a
+  plugin directory: a warning that is sometimes wrong is worse than none. —
+  [ADR-0084](adr/0084-the-gtk-plugin-cannot-decorate-a-jvms-window.md)
+- **No CI leg exercises Wayland.** `example.yml` and `showcase.yml` both run under
+  `xvfb-run`, which is X11, where the window manager decorates the window and
+  libdecor is never reached — which is why two consecutive decoration bugs shipped
+  without a single red tick. A Wayland leg needs a headless compositor in CI
+  (`weston --backend=headless` or `sway --headless`), which is a job nobody has
+  written yet. —
+  [ADR-0084](adr/0084-the-gtk-plugin-cannot-decorate-a-jvms-window.md)
+- **Native decorations on Wayland need a launcher that embeds the VM.** The GTK
+  plugin is the only thing that draws decorations matching the desktop, and its
+  one requirement is `getpid() == gettid()`. The stock `java` launcher runs `main`
+  on a thread it creates and so fails it; a launcher whose own `main` calls
+  `JNI_CreateJavaVM` and then the Java `main` runs Java on the primordial thread,
+  and the plugin loads there — demonstrated with a throwaway C launcher against
+  the real showcase. `jpackage` does not help; it goes through the same
+  `ContinueInNewThread`. Shipping one is a distribution change (a native binary
+  per platform, VM argument handling, and a story for `./gradlew run` and
+  `java -jar`), so it is recorded as the answer and not yet taken. Two things
+  bound how much to invest in it: upstream is building an out-of-process GTK
+  plugin (libdecor MR 176) that dissolves the thread restriction entirely when it
+  ships, and the ecosystem's own answer on GNOME/Wayland is that every non-GTK
+  toolkit — Qt, Firefox, Chromium — draws its own decorations in-process, which is
+  the `SdlWindowFlag.BORDERLESS` design Goldberry has reserved but not built. —
+  [ADR-0084](adr/0084-the-gtk-plugin-cannot-decorate-a-jvms-window.md)
+- ~~**A Goldberry window on GNOME/Wayland has no titlebar out of the box.**~~
+  **Answered: X11 is the Linux default now.** On a Wayland session the backend asks
+  SDL for `x11,wayland`, unconditionally — under XWayland the window manager
+  decorates the window itself, which is the only configuration today that produces
+  a titlebar matching the desktop. Wayland stays behind X11 rather than being
+  dropped, so a session without XWayland still gets a window, and the
+  [ADR-0084](adr/0084-the-gtk-plugin-cannot-decorate-a-jvms-window.md) warning
+  still fires there. `-Dgoldberry.backend.videoDriver=wayland` asks for Wayland
+  anyway. The cost is
+  [ADR-0027](adr/0027-prefer-wayland-fall-back-to-x11.md)'s resize quality and
+  fractional scaling, given up for as long as decorations are unobtainable on the
+  better axis. —
+  [ADR-0086](adr/0086-x11-is-the-linux-default-for-now.md)
+- **A window on GNOME/Wayland needs two packages from two different phases.**
+  `libdecor-0-dev` at build time, or SDL compiles no libdecor support at all
+  ([ADR-0083](adr/0083-on-gnome-wayland-libdecor-is-not-a-fallback.md)), and
+  `libdecor-0-plugin-1-cairo` at run time, because the GTK plugin that libdecor
+  pulls in by default refuses to start off the process's initial thread and a JVM
+  is never on it ([ADR-0084](adr/0084-the-gtk-plugin-cannot-decorate-a-jvms-window.md)).
+  Installing either alone leaves the window bare. Whether Goldberry should carry
+  its own decorations instead — `SdlWindowFlag.BORDERLESS` already describes the
+  design — is the standing question behind both records.
+- ~~**A window on GNOME/Wayland had no titlebar and could not be resized.**~~
+  **Answered: SDL was built without libdecor.** Wayland has no decoration protocol
+  of its own, GNOME's compositor declines to draw them server-side, and every use
+  of the client-side path in SDL sits behind `#ifdef HAVE_LIBDECOR_H`. Without
+  `libdecor-0-dev` SDL builds a complete Wayland driver that opens an undecorated
+  toplevel — and since a Wayland resize is client-initiated from the decoration's
+  own edge, the same missing header removes resizing too. The Java side was never
+  involved: `WindowSpec.of` asks for decorated and resizable and
+  `Sdl3Backend.createWindow` passes exactly that. It only became visible when
+  ADR-0082 added `egl` and the Wayland driver started being built at all. —
+  [ADR-0083](adr/0083-on-gnome-wayland-libdecor-is-not-a-fallback.md)
+- ~~**`checkToolchain` passed and the build died two minutes later.**~~
+  **Answered: the table it checked had drifted from what SDL demands.** It probed
+  `pkg-config --exists xss`, a module no distribution ships — SDL's own spec is
+  `xscrnsaver` — so the row returned "absent" whether the package was installed or
+  not, and it was marked optional besides, while SDL's `CheckX11` treats
+  XScrnSaver as a `FATAL_ERROR`. XTest, the next hard stop in line, was not in the
+  table at all. Both CI workflows already knew all of this, in comments, written
+  by whoever hit it there twice. The table is now `LinuxDependencies` in
+  build-logic with a three-valued `Necessity`, and `LinuxDependenciesTest` asserts
+  it against the packages the workflows install — the invariant that broke. —
+  [ADR-0082](adr/0082-a-preflight-check-that-cannot-fail-is-not-a-check.md)
 - **No licence text is vendored yet.** Every file in `licenses/` is a placeholder.
   `./gradlew checkLicenses -Pgoldberry.releaseCheck=true` fails until they are
   copied verbatim from the pinned upstream revisions. —

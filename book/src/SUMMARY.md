@@ -87,6 +87,11 @@
 - [ADR-0079 A continuous value is placed by ratio](adr/0079-a-continuous-value-is-placed-by-ratio.md)
 - [ADR-0080 A value is measured along a part](adr/0080-a-value-is-measured-along-a-part.md)
 - [ADR-0081 A perpetual loop has no state](adr/0081-a-perpetual-loop-has-no-state.md)
+- [ADR-0082 A preflight check that cannot fail is not a check](adr/0082-a-preflight-check-that-cannot-fail-is-not-a-check.md)
+- [ADR-0083 On GNOME/Wayland, libdecor is not a fallback](adr/0083-on-gnome-wayland-libdecor-is-not-a-fallback.md)
+- [ADR-0084 The GTK plugin cannot decorate a JVM's window](adr/0084-the-gtk-plugin-cannot-decorate-a-jvms-window.md)
+- [ADR-0085 A window that closes beats a sharper one that cannot](adr/0085-a-window-that-closes-beats-a-sharper-one-that-cannot.md)
+- [ADR-0086 X11 is the Linux default, for now](adr/0086-x11-is-the-linux-default-for-now.md)
 
 ---
 
