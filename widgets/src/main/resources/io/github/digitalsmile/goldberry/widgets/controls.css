@@ -42,14 +42,6 @@
   --gb-control-height: 32px;
   --gb-list-row-height: 32px;
 
-  /* What one wheel line is worth. The wheel reports lines and a viewport moves
-     pixels, so this is the conversion, and it is a token because it is a feel
-     decision rather than a measurement -- ADR-0115 puts the number here rather
-     than in the event. Three of these is the conventional notch, which is why
-     the wheel's own delta is not simply a row: a list scrolling exactly one row
-     per notch is slower than every other application on the machine. */
-  --gb-scroll-line: 20px;
-
   /* §3's preamble: "metrics ship as component-token defaults
      (`--gb-button-height` etc.); app stylesheets may override component tokens,
      never structure". Each defaults to the density's value, so a density moves
@@ -1635,4 +1627,28 @@ item-chevron {
   height: 12px;
   flex-shrink: 0;
   color: var(--gb-text-muted);
+}
+
+/* --- scroll (§1) ------------------------------------------------------ */
+
+/* A viewport is scenery: no fill, no edge, no padding of its own. What makes
+   it a scroll view is the clip and the offset, and both are the widget's --
+   `overflow` is applied after the cascade for `row`'s reason, because a
+   `scroll` a stylesheet could un-clip would be a name that lies (ADR-0116).
+
+   `flex-grow: 1` is the one thing here that is a real decision. A viewport with
+   no height of its own is as tall as its content, which is a scroll view that
+   never has anything to scroll -- so the common case of "fill what is left of
+   this column" is the default, and an author who wants a fixed height writes
+   one. `min-height` would be the CSS answer and §8's subset has none. */
+scroll {
+  flex-grow: 1;
+  overflow: hidden;
+}
+
+/* The moving box. It has no appearance at all: it exists so that there is a
+   single node to translate, and giving it a padding here would put the padding
+   *inside* the scrolled area, which is almost never what anyone means. */
+scroll-content {
+  flex-shrink: 0;
 }

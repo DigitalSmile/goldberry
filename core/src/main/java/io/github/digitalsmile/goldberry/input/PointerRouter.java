@@ -304,23 +304,31 @@ public final class PointerRouter {
     /// [PointerEvent#deltaY()]. It travels the same capture/bubble path as every
     /// other pointer event, so a scroll view consumes it and an ancestor scroll
     /// view does not also scroll.
-    public void pointerWheel(float x, float y, float deltaX, float deltaY) {
-        pointerWheel(x, y, deltaX, deltaY, Modifiers.NONE);
+    public boolean pointerWheel(float x, float y, float deltaX, float deltaY) {
+        return pointerWheel(x, y, deltaX, deltaY, Modifiers.NONE);
     }
 
     /// The same, with modifiers — `Shift` for a fine step on a knob (§3).
-    public void pointerWheel(float x, float y, float deltaX, float deltaY, Modifiers modifiers) {
-        pointerWheel(x, y, deltaX, deltaY, (int) deltaX, (int) deltaY, modifiers);
+    public boolean pointerWheel(float x, float y, float deltaX, float deltaY, Modifiers modifiers) {
+        return pointerWheel(x, y, deltaX, deltaY, (int) deltaX, (int) deltaY, modifiers);
     }
 
     /// The same, stating the platform's accumulated detents — see
     /// [PointerEvent#ticksY()]. The backend's entry point.
-    public void pointerWheel(float x, float y, float deltaX, float deltaY,
+    /// Returns whether anything consumed it, which is what a caller needs to
+    /// know to scroll something else — the reason [#keyPressed] reports the same
+    /// thing. §2.4's scroll chaining is exactly this: an inner scroller consumes
+    /// until its edge and then stops, and what is above it takes over
+    /// ([ADR-0116]).
+    public boolean pointerWheel(float x, float y, float deltaX, float deltaY,
             int ticksX, int ticksY, Modifiers modifiers) {
         var target = captured != null ? captured : elementAt(x, y);
-        if (target != null) {
-            dispatch(PointerEvent.wheel(x, y, deltaX, deltaY, ticksX, ticksY, modifiers, target));
+        if (target == null) {
+            return false;
         }
+        var event = PointerEvent.wheel(x, y, deltaX, deltaY, ticksX, ticksY, modifiers, target);
+        dispatch(event);
+        return event.isConsumed();
     }
 
     /// Sends every pointer event to `element` until [#releasePointer()].
@@ -692,6 +700,7 @@ public final class PointerRouter {
                 return;
             }
             if (chain.get(i).widget() instanceof Handles handles) {
+                measure(chain.get(i), handles, event::measuredAs);
                 handles.onKeyCapture(event);
             }
         }
@@ -700,6 +709,7 @@ public final class PointerRouter {
                 return;
             }
             if (element.widget() instanceof Handles handles) {
+                measure(element, handles, event::measuredAs);
                 handles.onKey(event);
             }
         }
@@ -934,6 +944,7 @@ public final class PointerRouter {
             }
             if (chain.get(i).widget() instanceof Handles handles) {
                 event.localTo(localFor(chain.get(i), handles, event));
+                measure(chain.get(i), handles, event::measuredAs);
                 handles.onPointerCapture(event);
             }
         }
@@ -947,9 +958,43 @@ public final class PointerRouter {
                 // slider handling it wants the position along *itself*
                 // (ADR-0079) -- or along one named part of itself (ADR-0080).
                 event.localTo(localFor(element, handles, event));
+                measure(element, handles, event::measuredAs);
                 handles.onPointer(event);
             }
         }
+    }
+
+    /// Tells `sink` how big `element` and the part it names were last painted.
+    ///
+    /// The size half of what [#localFor] does for position, and separate from it
+    /// because a key event has the first and not the second. Both events are
+    /// re-measured per handler for the reason both are re-pointed per handler:
+    /// dispatch bubbles, and a scroll view handling a wheel that landed on a row
+    /// wants its **own** rectangle rather than the row's ([ADR-0116]).
+    private void measure(Element element, Handles handles, java.util.function.BiConsumer<Extent, Extent> sink) {
+        var own = extentOf(element);
+        var name = handles.localPart();
+        var part = own;
+        if (name != null && partOf(element, name) instanceof Element named) {
+            var namedExtent = extentOf(named);
+            // A part that has never been painted falls back to the whole, which
+            // is `localPart`'s own rule: a control keeps working while the thing
+            // it measures against is absent.
+            if (namedExtent != Extent.NONE) {
+                part = namedExtent;
+            }
+        }
+        sink.accept(own, part);
+    }
+
+    /// How big `element` was in the snapshot the last paint left behind.
+    private Extent extentOf(Element element) {
+        for (var region : regions) {
+            if (region.owner() == element) {
+                return new Extent(region.width(), region.height());
+            }
+        }
+        return Extent.NONE;
     }
 
     /// Where `event` happened inside the box `handles` measures against — its own,

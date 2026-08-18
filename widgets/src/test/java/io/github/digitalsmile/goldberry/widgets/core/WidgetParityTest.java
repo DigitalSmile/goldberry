@@ -1,9 +1,11 @@
 package io.github.digitalsmile.goldberry.widgets.core;
 
 import io.github.digitalsmile.goldberry.widget.Attributes;
+import io.github.digitalsmile.goldberry.widget.Element;
 import io.github.digitalsmile.goldberry.widget.ElementTree;
 import io.github.digitalsmile.goldberry.widget.Paints;
 import io.github.digitalsmile.goldberry.widget.Styled;
+import io.github.digitalsmile.goldberry.widget.Widget;
 
 import io.github.digitalsmile.goldberry.widgets.core.Primitives;
 import io.github.digitalsmile.goldberry.widgets.core.Row;
@@ -50,9 +52,59 @@ class WidgetParityTest {
         var widget = Primitives.inflater().inflate(KdlParser.parse(markup).getFirst());
 
         assertNotNull(widget);
-        assertInstanceOf(Styled.class, widget);
-        assertEquals(type, ((Styled) widget).cssType(),
+        var styled = styledNode(widget);
+        assertNotNull(styled, type + " describes nothing a stylesheet can select");
+        assertEquals(type, styled.cssType(),
                 "the KDL node name and the CSS type must be the same name");
+    }
+
+    /// The node a stylesheet actually selects, which is not always the node a
+    /// document writes.
+    ///
+    /// A **composite** — `scroll`, and `tabs` before it — is a stateful
+    /// composition node that styles nothing and builds the node carrying its CSS
+    /// type. That is deliberate and not an exception to parity: a stateful widget
+    /// that was also styled would put two nodes of the same type in the cascade,
+    /// one inside the other, and every rule would apply to both
+    /// ([ADR-0109], [ADR-0116]). So parity is checked against what the widget
+    /// *describes* rather than against the widget, which is what a stylesheet
+    /// sees either way.
+    ///
+    /// Returns the widget itself when it is styled, so the simple primitives are
+    /// checked exactly as before.
+    private static Styled styledNode(Widget widget) {
+        if (widget instanceof Styled styled) {
+            return styled;
+        }
+        return firstStyled(new ElementTree(widget).root());
+    }
+
+    /// The same walk, returning the element rather than the widget — because the
+    /// cascade resolves against an element and `id` and `class` are read off it.
+    private static Element styledElement(Element element) {
+        if (element.widget() instanceof Styled) {
+            return element;
+        }
+        for (var child : element.children()) {
+            var found = styledElement(child);
+            if (found != null) {
+                return found;
+            }
+        }
+        return null;
+    }
+
+    private static Styled firstStyled(Element element) {
+        if (element.widget() instanceof Styled styled) {
+            return styled;
+        }
+        for (var child : element.children()) {
+            var found = firstStyled(child);
+            if (found != null) {
+                return found;
+            }
+        }
+        return null;
     }
 
     @ParameterizedTest
@@ -61,7 +113,12 @@ class WidgetParityTest {
     void styleable(String type) {
         var markup = type.equals("text") ? "text id=\"x\" class=\"a\" \"hi\"" : type + " id=\"x\" class=\"a\"";
         var widget = Primitives.inflater().inflate(KdlParser.parse(markup).getFirst());
-        var element = new ElementTree(widget).root();
+        var root = new ElementTree(widget).root();
+        // For a composite, the styled node is the one it builds -- and `id` and
+        // `class` have to have travelled down to it, which is the half of this
+        // that a composition node can get wrong.
+        var element = widget instanceof Styled ? root : styledElement(root);
+        assertNotNull(element, type + " describes nothing a stylesheet can select");
 
         // The three selector forms §8 supports, against a widget built the KDL
         // way -- so `id` and `class` really did survive inflation.
@@ -84,7 +141,8 @@ class WidgetParityTest {
         // Not rendered here -- text needs a real font, which needs the native
         // library -- but the contract that makes rendering possible is checkable
         // without one.
-        assertInstanceOf(Paints.class, widget);
+        assertInstanceOf(Paints.class,
+                widget instanceof Paints ? widget : styledNode(widget));
     }
 
     @Test

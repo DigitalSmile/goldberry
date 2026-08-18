@@ -65,9 +65,12 @@ Every path that cannot know better truncates — a synthesized event, a headless
 `scrollPointer`, a test poking the router — so the pair is always populated and
 the honest value is available wherever a real accumulator exists.
 
-**Lines are not becoming pixels.** A line is worth `--gb-scroll-line` logical
-pixels, resolved by the widget doing the scrolling, and the token is where the
-number is argued rather than in the event.
+**Lines are not becoming pixels.** What a line is worth in pixels is the
+scrolling widget's to decide, and it is decided where that widget is rather than
+in the event. It is *not* a token today, and that is a gap rather than a choice:
+nothing lets a widget read a resolved custom property, so a `--gb-scroll-line`
+would be a number an author could set and no widget could see. ADR-0116 carries
+the constant and `book/src/TODO.md` carries the gap.
 
 ### Why not go to the platform for a real pixel axis
 

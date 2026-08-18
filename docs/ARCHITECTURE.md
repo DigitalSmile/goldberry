@@ -402,9 +402,9 @@ tracks them alongside the implementation's own gaps.
   axis and going around it to the platform is what ADR-0056 declined. What ships
   is **lines with the touchpad's fraction preserved, plus the platform's
   accumulated detents beside them** — which delivers what §2.4 wanted (scrolling
-  that does not quantize) without the mechanism it named. A line is worth
-  `--gb-scroll-line` pixels, which is the toolkit's number rather than the
-  compositor's. (§7.1)
+  that does not quantize) without the mechanism it named. What a line is worth in
+  pixels is the toolkit's number rather than the compositor's, and it lives on
+  the widget that scrolls. (§7.1)
 - **One module or two.** `core-widgets.md` says every built-in lives in a single
   `goldberry-core` module, separated by package. The build ships `:core` and
   `:widgets` as separate modules and artifacts (ADR-0014). The split is

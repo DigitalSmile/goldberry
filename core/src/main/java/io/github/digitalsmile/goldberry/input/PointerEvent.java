@@ -53,6 +53,8 @@ public final class PointerEvent {
     private final float deltaY;
     private final int ticksX;
     private final int ticksY;
+    private Extent bounds = Extent.NONE;
+    private Extent part = Extent.NONE;
     private final float pressX;
     private final float pressY;
     private final Element target;
@@ -109,6 +111,32 @@ public final class PointerEvent {
     /// See [Local].
     public Local local() {
         return local;
+    }
+
+    /// How big this widget's **own** box was when it was last painted.
+    ///
+    /// [#local()] answers where the pointer is; this answers how large the thing
+    /// it is inside is. Usually the same rectangle — but a widget that names a
+    /// [Handles#localPart()] has deliberately pointed `local()` at something
+    /// *other* than itself, and this is the half that was previously
+    /// unreachable. A scroll view needs both at once, because what it scrolls by
+    /// is the difference ([ADR-0116]).
+    public Extent bounds() {
+        return bounds;
+    }
+
+    /// How big the part named by [Handles#localPart()] was, or [#bounds()] for a
+    /// widget that names none.
+    public Extent part() {
+        return part;
+    }
+
+    /// Re-points [#bounds()] and [#part()] at the widget about to handle this.
+    ///
+    /// The router's, for [#localTo]'s reason and at the same moment.
+    public void measuredAs(Extent bounds, Extent part) {
+        this.bounds = bounds == null ? Extent.NONE : bounds;
+        this.part = part == null ? this.bounds : part;
     }
 
     /// Re-points [#local()] at the widget about to handle this.

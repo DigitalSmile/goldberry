@@ -67,12 +67,14 @@ the mechanism the sentence named.
   "the hovered or focused node moved" needs a real listener list *and* a decision
   about what it means for two things to react to one hover. —
   [ADR-0105](adr/0105-a-tooltip-is-an-attribute-not-a-widget.md)
-- **A popup cannot scroll, so a long menu loses its bottom.** `Placement` clamps a
-  popup taller than the work area to the near edge, which keeps the top of it
-  visible and drops the rest. That is the honest thing to do with no viewport, and
-  it is the one thing between here and a `select` over a realistic option list:
-  §1's `scroll` does not exist. —
-  [ADR-0104](adr/0104-a-popup-is-measured-then-placed.md)
+- **A popup still does not scroll, though the viewport now exists.** `Placement`
+  clamps a popup taller than the work area to the near edge, keeping the top and
+  dropping the rest. `scroll` is built, so what is left is `Placement` deciding to
+  *cap* the measured height at the work area and put the content in a viewport
+  rather than clamping the window — which is a change to how a popup is measured,
+  not a missing widget. —
+  [ADR-0104](adr/0104-a-popup-is-measured-then-placed.md),
+  [ADR-0116](adr/0116-a-scroll-view-is-a-clip-an-offset-and-two-extents.md)
 - **Nothing re-places an open popup.** Move or resize the window with a menu open
   and the menu stays where it was put; `Popup.move` exists and nothing calls it. A
   `popover` that follows a scrolling anchor is the case that needs it, and it
@@ -142,7 +144,14 @@ the mechanism the sentence named.
   with the touchpad's fractions preserved, which is honest but is not what the
   architecture document originally promised — reaching the real thing means going around
   SDL to the platform. — [ADR-0056](adr/0056-the-wheel-is-lines-and-the-sign-is-ours.md)
-- **`Kind.WHEEL` now has exactly one consumer, and no scroll view to test it against.**
+- **A knob inside a scroll view is still untested, though both now exist.** The
+  bubble path is built and `scroll` chains at its edge, so the two cases the
+  entry below has been waiting for — a knob turning without scrolling the list,
+  and a knob at its maximum letting the scroll through — are now writable. The
+  second one will fail: `Knob.wheel` consumes unconditionally. —
+  [ADR-0089](adr/0089-a-knobs-gesture-is-a-rate.md),
+  [ADR-0116](adr/0116-a-scroll-view-is-a-clip-an-offset-and-two-extents.md)
+- **`Kind.WHEEL` had exactly one consumer for a long time, and it showed.**
   The wheel route has been live and covered since ADR-0061 — a fabricated
   `SDL_MouseWheelEvent` pushed onto SDL's own queue, through the real `translate` and
   the real sink — and until `knob` nothing in the toolkit *handled* one. What that means
@@ -164,16 +173,63 @@ the mechanism the sentence named.
 
 ## The catalog: specified and unbuilt
 
-- **The gallery has no scroll**, so a screen taller than the window loses its
-  bottom — which is §1's `scroll` for the third time, after a menu taller than the
-  work area and a `select` over a realistic option list. It is now the single
-  missing widget behind three separate pieces of work. —
+- **`scroll` has no scrollbars.** §2.4 asks for an overlay thumb — 6px widening
+  to 10 with a visible track on hover, accent while dragging, fading after 800ms
+  idle, `full` radius — plus track-click paging and a drag. None of it is built.
+  It is the largest single piece left on this widget and it is a second commit
+  rather than a bigger first one: a thumb is a control with a hover state, an
+  idle timer and a capture, and none of that is the viewport. Until then a scroll
+  view gives no visual indication that there is more to see, which is a real
+  usability gap rather than a cosmetic one. —
+  [ADR-0116](adr/0116-a-scroll-view-is-a-clip-an-offset-and-two-extents.md)
+- **`scrollIntoView(widget)` is not built, and `tour` and `affix` both want it.**
+  §1 names it, §5's `tour` "scrolls the target into view and waits for the frame"
+  before positioning a popover, and the offset it would need is a fact about a
+  descendant's rectangle rather than about the viewport's. The extents on an
+  event answer "how big are these two boxes"; this needs "where is *that* box
+  inside me", which is a different question and one nothing asks yet. —
+  [ADR-0116](adr/0116-a-scroll-view-is-a-clip-an-offset-and-two-extents.md)
+- **The "always show scroll bars" gutter has nothing to switch it.** §2.4 wants a
+  reserved 12px gutter as an app or user setting, and §13 lists it among the
+  accessibility switches. There is no settings mechanism at all — the same
+  absence as reduced motion and density, both of which an application sets
+  directly — so this waits on scrollbars existing rather than on the setting. —
+  [ADR-0116](adr/0116-a-scroll-view-is-a-clip-an-offset-and-two-extents.md)
+- **Nested same-axis scrollers are banned in the canon and nothing enforces it.**
+  §2.4 says so outright. Chaining means a nested pair behaves reasonably rather
+  than badly, so the ban costs nothing today; what is missing is the diagnostic
+  that would tell an author they wrote something the design system rules out. —
+  [ADR-0116](adr/0116-a-scroll-view-is-a-clip-an-offset-and-two-extents.md)
+- **A widget cannot read a resolved custom property, so `scroll`'s line height is
+  a constant.** §3 says metrics ship as component-token defaults an application
+  may override; `StyleResolver` computes custom properties for `var()`
+  substitution and `ComputedStyle` does not carry them, so a widget has no way to
+  ask. `ScrollViewport.LINE` is 20 logical pixels and a `--gb-scroll-line` was
+  deliberately *not* shipped, because a token no widget can read is a number an
+  author sets and nothing honours. This is the same door
+  `--gb-list-row-height` is waiting behind from the other side, and one change
+  opens both. —
+  [ADR-0116](adr/0116-a-scroll-view-is-a-clip-an-offset-and-two-extents.md),
+  [ADR-0080](adr/0080-a-value-is-measured-along-a-part.md)
+- **`affix` is unbuilt and now has something to pin to.** §1 gives it `edge=`,
+  an `:affixed` pseudo-class and a same-sized hole left behind, all defined
+  against "the nearest `scroll`". It needs a descendant's position within the
+  viewport, which is `scrollIntoView`'s missing question asked the other way
+  round. —
+  [ADR-0116](adr/0116-a-scroll-view-is-a-clip-an-offset-and-two-extents.md)
+
+- **The gallery does not use the scroll view it was waiting for.** `scroll` is
+  built ([ADR-0116](adr/0116-a-scroll-view-is-a-clip-an-offset-and-two-extents.md)),
+  and the showcase's screens still overflow the window rather than scrolling in
+  it — wrapping each screen is a change to the gallery rather than to the widget,
+  and it is the first thing that should use it. —
   [ADR-0110](adr/0110-the-showcase-is-a-gallery-of-screens.md)
-- **A tab strip does not scroll, and neither does anything else.** Enough tabs and
-  the row overflows its window; a menu taller than the work area is clamped. §1's
-  `scroll` is the single missing widget behind both, and behind `select` over a
-  realistic option list. —
-  [ADR-0107](adr/0107-a-tab-strip-is-a-model-a-header-and-a-panel.md)
+- **A tab strip still does not scroll, though it now could.** Enough tabs and the
+  row overflows its window. `scroll` exists; what a strip wants is a *horizontal*
+  one around its headers plus the chevron affordances at each end that a tab bar
+  conventionally has, and neither of those is the viewport itself. —
+  [ADR-0107](adr/0107-a-tab-strip-is-a-model-a-header-and-a-panel.md),
+  [ADR-0116](adr/0116-a-scroll-view-is-a-clip-an-offset-and-two-extents.md)
 - **A tab's content is rebuilt when it is selected again.** That is the cost of
   §5's "lazy content instantiation" and is right — but it means a scroll position,
   a caret or a half-typed form in a background tab is gone, and the toolkit offers

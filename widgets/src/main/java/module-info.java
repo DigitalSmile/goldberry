@@ -42,6 +42,7 @@ module io.github.digitalsmile.goldberry.widgets {
     /// a catalog, and once there was one, `:core` was shipping five widgets it
     /// had no other use for.
     exports io.github.digitalsmile.goldberry.widgets.core;
+    exports io.github.digitalsmile.goldberry.widgets.core.scroll;
     exports io.github.digitalsmile.goldberry.widgets.text;
     exports io.github.digitalsmile.goldberry.widgets.panel;
 

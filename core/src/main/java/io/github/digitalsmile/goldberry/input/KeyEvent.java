@@ -20,6 +20,8 @@ public final class KeyEvent {
     private final Modifiers modifiers;
     private final boolean repeat;
     private final Element target;
+    private Extent bounds = Extent.NONE;
+    private Extent part = Extent.NONE;
     private boolean consumed;
 
     public KeyEvent(Kind kind, Key key, Modifiers modifiers, boolean repeat, Element target) {
@@ -53,6 +55,29 @@ public final class KeyEvent {
     }
 
     /// The focused node this was aimed at, or null if nothing had focus.
+    /// How big the widget about to handle this was when it was last painted.
+    ///
+    /// A key event carries no position, and for most controls that is the whole
+    /// story — `Space` on a button needs no geometry. A scroll view is where it
+    /// stops being true: `PageDown` moves by a viewport and stops at an edge, so
+    /// it needs exactly the two rectangles the wheel does while pointing at
+    /// nothing ([ADR-0116]).
+    public Extent bounds() {
+        return bounds;
+    }
+
+    /// The part named by [Handles#localPart()], or [#bounds()] for a widget that
+    /// names none.
+    public Extent part() {
+        return part;
+    }
+
+    /// Re-pointed per handler by the router, exactly as a pointer event's is.
+    public void measuredAs(Extent bounds, Extent part) {
+        this.bounds = bounds == null ? Extent.NONE : bounds;
+        this.part = part == null ? this.bounds : part;
+    }
+
     public Element target() {
         return target;
     }

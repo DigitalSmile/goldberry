@@ -13,7 +13,7 @@ page is the other half: it says what works and what it cost to find out.
 | [M0 — Skeleton](#m0--skeleton) | **done** | One native library on four targets, two backends, a window at the right fractional DPI |
 | [M1 — Vertical slice](#m1--vertical-slice) | **started** | Blend2D rasterizes, HarfBuzz shapes, text lays out, and a frame's cost is measured |
 | [M2 — Widgets & style](#m2--widgets--style) | **engines done, catalog complete but `select`** | CSS, KDL, the three trees, input, motion — and every §3 control except the one that needs a popup |
-| [M3 — Shell](#m3--shell) | **started** | Both places an overlay can go: the in-window layer with `hud`, and real popup windows with a tree in them |
+| [M3 — Shell](#m3--shell) | **started** | Both places an overlay can go — the in-window layer and real popup windows — plus `tabs` and the `scroll` viewport three other things were waiting on |
 | [M4 — GPU](#m4--gpu) | not started | `canvas3d`, GPU composition |
 | [M5 — Hardening](#m5--hardening) | not started | Text editing depth, AccessKit bridge, IME preedit, docs, 0.1 release |
 
@@ -1437,9 +1437,8 @@ So `PointerWheel` and `PointerEvent` now carry `ticksX`/`ticksY` beside the
 deltas — passed through from SDL rather than derived, negated on the same axis
 and for the same reason. A distance reads the float; a step reads the int. Every
 path with no accumulator of its own truncates, so the pair is always populated
-and never a lie. `--gb-scroll-line` is what a line is worth in pixels, 20 at the
-regular density and 17 at compact, which is where the conversion is argued rather
-than in the event.
+and never a lie. What a line is worth in pixels is the scrolling widget's, not
+the event's — and not a token, because nothing lets a widget read one.
 
 `Knob` was not changed. §3 calls its wheel a rate and ADR-0089 built it as one,
 so it is not a detent consumer; the reader of detents is `select`'s, when it
@@ -1448,15 +1447,68 @@ a detent whose sign disagreed with the fraction beside it would send a stepping
 control one way and a scroll view the other, and a detent arriving under a
 0.125 fraction is the case no function of one event's floats can produce.
 
+### `scroll`, and the geometry it needed
+
+The one widget `book/src/TODO.md` named three times in three unrelated entries: a
+menu taller than the work area loses its bottom, a tab strip wider than its
+window overflows it, and `select` over a realistic option list cannot be written
+at all. Built as three nodes, each one idea — a `scroll` viewport that clips and
+takes the input, a `scroll-content` that is translated, and whatever was written
+inside.
+
+The offset is a **transform**, not a layout property. §1.7 already refuses to
+transition width and height because animating them would run Yoga per frame, and
+an offset expressed as `top` would run Yoga over the whole subtree on every wheel
+notch to move a box that did not change size. The transform costs nothing, and
+two things then come out right for free: the router inverts the matrix, so a row
+scrolled up by 200px is clicked where it looks; and ADR-0114's clip is
+intersected in the same walk, so content moved out of the viewport is cut at its
+edge. `flex-shrink: 0` on the content is the whole difference between a scroll
+view and a squashed one — Yoga's default would have compressed the content to fit
+and left nothing to scroll.
+
+**The hard part was the geometry, and it is new machinery.** Scrolling is
+arithmetic on two rectangles and a widget can measure neither: `build` and
+`render` both run before Yoga, which is ADR-0080's finding and the wall ADR-0097
+hit from the other side. Both of those found ways to avoid needing the number.
+This one cannot — the clamp *is* the widget. So `PointerEvent` and `KeyEvent`
+each gained `bounds()` and `part()`, two `Extent`s the router resolves out of the
+snapshot the last paint left behind, reusing `Handles.localPart()`'s existing
+vocabulary: a scroll view names `scroll-content`, is handed its viewport and its
+content in one event, and the clamp is a subtraction. It is on `KeyEvent` too,
+because `PageDown` needs both extents while carrying no position at all, and a
+scroll view that only worked with a mouse would fail §1 outright. The
+measurements are one frame old, which is honest — the alternative is a widget
+that computes layout, and that is the thing three ADRs have now declined to
+build.
+
+At its edge it lets go. A wheel or a key is consumed only when something actually
+moved, so a scroll at the top of a list bubbles — §2.4's "inner scroller consumes
+until its edge, then chains to the ancestor", obtained from the router's ordinary
+bubble rather than from anything knowing an ancestor exists. `pointerWheel` now
+reports consumption, which `keyPressed` already did.
+
+Seventeen tests, and the shape of them is the point: every one needs a painted
+frame before it means anything, because a scroll view that was poked directly
+would be testing a calculation nobody performs. The first version of them failed
+uniformly — six rows of text came out 94 tall in a 100-tall viewport, so there
+was nothing to scroll, which is exactly the bug the widget exists to fix seen
+from the test's side.
+
+**No scrollbars yet.** §2.4's overlay thumb — hover-widening, idle fade, drag,
+track-click paging — is the largest piece left and wants a commit of its own; a
+thumb is a control with a hover state, a timer and a capture, and none of that is
+the viewport. `scrollIntoView`, the "always show" gutter and `affix` each want a
+decision first. All of it is in [TODO.md](TODO.md).
+
 ### Not started
 
-`menubar`, tray, dialogs, scroll, forms, client-side decorations and charts. The rest of §5 — `card`, `group-box`, `split-pane`, `collapse`,
-`carousel`, `statistic`, `skeleton` — is untouched. `menu` and M2's
-leftover `select` are ordinary widget work now — each owns its
-model, its item semantics and its keyboard map, and none of them has to solve
-size, position or dismissal. The one thing between here and a `select` over a
-realistic option list is `scroll`. Everything outstanding is in
-[TODO.md](TODO.md).
+`menubar`, tray, dialogs, forms, client-side decorations and charts. The rest of §5 — `card`, `group-box`, `split-pane`, `collapse`,
+`carousel`, `statistic`, `skeleton` — is untouched. M2's leftover `select` is ordinary widget
+work now — it owns its model, its item semantics and its keyboard map, and none
+of that has to solve size, position or dismissal. The one thing that stood
+between here and a `select` over a realistic option list was `scroll`, and it is
+built. Everything outstanding is in [TODO.md](TODO.md).
 
 ## M4 — GPU
 
