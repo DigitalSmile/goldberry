@@ -325,11 +325,11 @@ public final class Controls {
                 colour(node.stringProperty("colour"), node.stringProperty("color")),
                 node.booleanProperty("closable"),
                 children,
-                // `selected` and the two handlers are the strip's to supply on
-                // every build, which is why none of them is an attribute: a
-                // document that could mark two tabs selected would break the one
-                // invariant a strip exists to hold.
-                false, null, null,
+                // `selected`, the two handlers and the arrival phase are the
+                // strip's to supply on every build, which is why none of them is
+                // an attribute: a document that could mark two tabs selected would
+                // break the one invariant a strip exists to hold.
+                false, null, null, null, null,
                 Attributes.of(node)));
         // §8's menu, its rows and its rules. A document declares a menu; opening
         // one is `Menus.open(host, …)`, because that needs a `Host` and a widget

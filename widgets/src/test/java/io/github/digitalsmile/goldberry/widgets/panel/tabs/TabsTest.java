@@ -47,6 +47,46 @@ class TabsTest {
         return renderer().render(new ElementTree(widget));
     }
 
+    /// The headers a strip actually built, in order.
+    ///
+    /// Through the element tree rather than off the record: a strip is stateful
+    /// now — it has to remember which tabs are arriving and which are on their way
+    /// out (ADR-0109) — so what it *draws* is the state's answer and not its own
+    /// children list.
+    private static List<Tab> headersOf(Widget strip) {
+        var tree = new ElementTree(strip);
+        renderer().render(tree);
+        var found = new ArrayList<Tab>();
+        collectTabs(tree.root(), found);
+        return found;
+    }
+
+    private static void collectTabs(io.github.digitalsmile.goldberry.widget.Element element,
+            List<Tab> into) {
+        if (element.widget() instanceof Tab tab) {
+            into.add(tab);
+        }
+        element.children().forEach(child -> collectTabs(child, into));
+    }
+
+    /// Everything a strip built, by CSS type, so a test can say what the anatomy
+    /// is without knowing which level it lives at.
+    private static List<String> typesIn(Widget strip) {
+        var tree = new ElementTree(strip);
+        renderer().render(tree);
+        var found = new ArrayList<String>();
+        collectTypes(tree.root(), found);
+        return found;
+    }
+
+    private static void collectTypes(io.github.digitalsmile.goldberry.widget.Element element,
+            List<String> into) {
+        if (element.widget() instanceof Styled styled) {
+            into.add(styled.cssType());
+        }
+        element.children().forEach(child -> collectTypes(child, into));
+    }
+
     private static List<String> textIn(Box box) {
         var found = new ArrayList<String>();
         collect(box, found);
@@ -78,11 +118,16 @@ class TabsTest {
     @Test
     @DisplayName("a strip is a list and a panel, in that order")
     void anatomy() {
-        var children = strip("a").children();
+        var types = typesIn(strip("a"));
 
-        assertEquals(2, children.size());
-        assertEquals("tab-list", ((Styled) children.get(0)).cssType());
-        assertEquals("tab-panel", ((Styled) children.get(1)).cssType());
+        assertEquals("tabs", types.get(0), "the styled node is the one the state builds");
+        assertEquals("tab-list", types.get(1));
+        assertEquals("tab-rule", types.get(2), "the rule is drawn before the headers");
+        assertEquals(1, types.stream().filter("tabs"::equals).count(),
+                "one `tabs` node, not a stateful one wrapping a styled one");
+        assertTrue(types.contains("tab-panel"));
+        assertTrue(types.indexOf("tab-panel") > types.indexOf("tab"),
+                "the panel comes after the headers it belongs to");
     }
 
     /// The selected tab is marked with `:checked`, like every other exactly-one
@@ -90,10 +135,10 @@ class TabsTest {
     @Test
     @DisplayName("the selected tab is the checked one, and only it")
     void selection() {
-        var headers = ((TabList) strip("b").children().getFirst()).headers();
+        var headers = headersOf(strip("b"));
 
-        assertFalse(((Styled) headers.get(0)).isChecked());
-        assertTrue(((Styled) headers.get(1)).isChecked());
+        assertFalse(headers.get(0).isChecked());
+        assertTrue(headers.get(1).isChecked());
     }
 
     /// Read through `bind`, like every other value: the strip shows what the
@@ -116,9 +161,9 @@ class TabsTest {
     void picking() {
         var asked = new ArrayList<String>();
         var tabs = strip("a").onChange(asked::add);
-        var headers = ((TabList) tabs.children().getFirst()).headers();
+        var headers = headersOf(tabs);
 
-        ((Tab) headers.get(1)).onSelect().run();
+        headers.get(1).onSelect().run();
 
         assertEquals(List.of("b"), asked);
         assertEquals("a", tabs.selected(), "the strip did not select it — the application does");
@@ -134,13 +179,13 @@ class TabsTest {
                 new Tab("a", "First").closable(true),
                 new Tab("b", "Second"))
                 .onClose(asked::add);
-        var headers = ((TabList) tabs.children().getFirst()).headers();
+        var headers = headersOf(tabs);
 
         // Two parts: the underline every tab has, and the × only a closable one
         // does.
-        var closable = (Tab) headers.get(0);
+        var closable = headers.get(0);
         assertEquals(2, closable.children().size(), "a closable tab has a × as well as a rule");
-        assertEquals(1, ((Tab) headers.get(1)).children().size(), "and one that is not, has not");
+        assertEquals(1, headers.get(1).children().size(), "and one that is not, has not");
         assertInstanceOf(TabClose.class, closable.children().get(1));
 
         closable.onClose().run();
@@ -154,14 +199,11 @@ class TabsTest {
     @DisplayName("the add affordance appears only when a strip can gain tabs")
     void adding() {
         var added = new int[1];
-        var without = ((TabList) strip("a").children().getFirst()).headers();
-        var with = ((TabList) strip("a").onNew(() -> added[0]++).children().getFirst()).headers();
 
-        assertEquals(2, without.size());
-        assertEquals(3, with.size());
-        assertEquals("tab-new", ((Styled) with.get(2)).cssType());
+        assertFalse(typesIn(strip("a")).contains("tab-new"));
+        assertTrue(typesIn(strip("a").onNew(() -> added[0]++)).contains("tab-new"));
 
-        ((TabNew) with.get(2)).onNew().run();
+        new TabNew(() -> added[0]++).onNew().run();
         assertEquals(1, added[0]);
     }
 
@@ -203,7 +245,8 @@ class TabsTest {
     @Test
     @DisplayName("a strip is one Tab stop with a horizontal roving selection")
     void keyboard() {
-        assertEquals(FocusScope.HORIZONTAL, strip("a").focusScope());
+        assertEquals(FocusScope.HORIZONTAL,
+                new TabStrip(List.of(), List.of(), null).focusScope());
         assertTrue(new Tab("a", "First").isFocusable());
         assertFalse(new TabClose(() -> { }).isFocusable(),
                 "a closable tab would otherwise be two stops, and nine tabs nineteen");
@@ -223,7 +266,8 @@ class TabsTest {
                 """).getFirst());
 
         var tabs = assertInstanceOf(Tabs.class, widget);
-        assertEquals("views", tabs.id());
+        assertEquals("views", tabs.attributes().id(),
+                "the id rides on the model node and is passed to the node that draws");
         assertEquals("editor", tabs.selected());
 
         var log = (Tab) tabs.rawTabs().get(1);

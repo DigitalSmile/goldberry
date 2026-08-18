@@ -60,7 +60,7 @@ public record Content(ShowcaseModel model, Icon plus) implements Widget.Stateles
     /// change" (ADR-0063, ADR-0107).
     private Widget tabs() {
         var strip = new java.util.ArrayList<Widget>();
-        for (var name : model.tabs()) {
+        for (var name : model.tabs().get()) {
             strip.add(new Tab(name, name,
                     new Text("The " + name.toLowerCase(java.util.Locale.ROOT) + " tab."))
                     .closable(true)

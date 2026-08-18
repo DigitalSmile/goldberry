@@ -81,9 +81,13 @@ class TabsGoldenTest {
     /// are about whether input reaches it.
     private record PseudoState(int tab, Selector.PseudoClass pseudoClass) {
 
-        /// Through the `tab-list`, which is child 0 of the strip.
+        /// The strip is a composition node over a `tabs`, whose child 0 is the
+        /// `tab-list`, whose child 0 is the rule — so the headers start at 1.
         void applyTo(io.github.digitalsmile.goldberry.widget.Element strip) {
-            strip.children().getFirst().children().get(tab).setPseudoClass(pseudoClass, true);
+            strip.children().getFirst()   // tabs
+                    .children().getFirst() // tab-list
+                    .children().get(tab + 1)
+                    .setPseudoClass(pseudoClass, true);
         }
     }
 

@@ -57,6 +57,10 @@ public record Screen(ShowcaseModel model, KdlInflater<Widget> inflater, Icon plu
             // through a binding and needs no rebuild here.
             watching.add(widget().model().showProse().subscribe(value -> setState(() -> { })));
             watching.add(widget().model().clicks().subscribe(value -> setState(() -> { })));
+            // Which tabs exist is structure too: a tab added or closed is a
+            // different tree, not a different value, and nothing else would
+            // rebuild for it (ADR-0109).
+            watching.add(widget().model().tabs().subscribe(value -> setState(() -> { })));
         }
 
         /// A property outlives the tree — it is the application's — so a listener

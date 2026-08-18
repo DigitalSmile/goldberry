@@ -115,6 +115,7 @@
 - [ADR-0106 A menu is a widget, and opening one is not](adr/0106-a-menu-is-a-widget-and-opening-one-is-not.md)
 - [ADR-0107 A tab strip is a model, a header and a panel](adr/0107-a-tab-strip-is-a-model-a-header-and-a-panel.md)
 - [ADR-0108 A context menu is a name on a widget](adr/0108-a-context-menu-is-a-name-on-a-widget.md)
+- [ADR-0109 A tab arrives and departs on the frame clock](adr/0109-a-tab-arrives-and-departs-on-the-frame-clock.md)
 
 ---
 

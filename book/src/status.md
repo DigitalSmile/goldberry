@@ -1256,6 +1256,34 @@ second.
   logical pixels inside another control, an icon's metrics and lookup buy nothing.
 - The showcase's strip is dynamic, which is the third reason that pane is in Java:
   KDL can write three tabs, not "however many the model has".
+- **And then three things were wrong with it, each a different lesson**
+  ([ADR-0109](adr/0109-a-tab-arrives-and-departs-on-the-frame-clock.md)). A tab
+  added or closed **did not appear until the window was resized** — not a tab bug:
+  the showcase held its tabs in a plain `List`, and a plain list is not something a
+  widget can subscribe to. Everything else in that window is a *value* reaching a
+  bound widget and needs no rebuild; this is the first thing in it that changes the
+  **shape** of the tree, so it is a `Property` now and the pane that builds the
+  strip watches it, exactly as it already watched the two other structural changes.
+  The resize was a red herring twice: it made the tabs appear because it rebuilt
+  the tree for another reason, and it made the bug look like a layout problem.
+- **The `+` was 28 wide and 20 tall**, and a mark is drawn to fill its box — so the
+  cross had a long arm and a short one. One number now. The `margin` that would
+  have spaced it from the last tab is not in §8's subset either, which is the third
+  property this widget has reached for and not found.
+- **Tabs arrive and depart on the frame clock**, which is the toolkit's first
+  enter/exit animation and could not be a transition: an arriving tab has no two
+  styles to move between, because its element did not exist last frame; and a
+  departing one has already been dropped from the application's list, so without
+  something holding on there is nothing left to animate. So `Tabs` has state — which
+  tabs are arriving, which are leaving, and what the leaving ones last looked like
+  — and each tab is handed *are you animating* and *how visible are you now* as
+  functions, because `Tab` is public and its phase is not a type anyone outside the
+  module can name. Opacity and a 6px translation only: a tab that animated its own
+  width would run Yoga every frame and reflow the row beside it.
+- **Making `Tabs` stateful put two `tabs` nodes in the cascade**, one inside the
+  other, so every rule applied twice. The model node is a composition node now and
+  the node it builds carries the appearance, the CSS type, the attributes and the
+  focus scope.
 
 ### Not started
 

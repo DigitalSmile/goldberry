@@ -1,6 +1,7 @@
 package io.github.digitalsmile.goldberry.widgets.panel.tabs;
 
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
+import io.github.digitalsmile.goldberry.css.Transform;
 import io.github.digitalsmile.goldberry.icon.Icon;
 import io.github.digitalsmile.goldberry.input.Handles;
 import io.github.digitalsmile.goldberry.input.Key;
@@ -55,13 +56,23 @@ import java.util.Set;
 /// @param selected   supplied by [Tabs] on every build; not an attribute, for
 ///                   `radio`'s reason — a document that could mark two tabs
 ///                   selected would break the invariant the strip exists to hold
+/// @param animating  whether this tab is arriving or leaving, supplied by the
+///                   strip. A function rather than a phase object because the
+///                   phase is the strip's private business and this record is
+///                   public — a component of a package-private type would be a
+///                   type nobody outside the module could name
+/// @param visibility how visible this tab is at a given frame time, `0..1`,
+///                   supplied by the strip. Reading it is also what *starts* an
+///                   arrival, because `render` is the only place a widget is
+///                   given the clock (ADR-0109)
 /// @param onSelect   supplied by [Tabs]
 /// @param onClose    supplied by [Tabs]
 /// @param attributes `id` and `class`, exactly as on the primitives
 public record Tab(
         String value, String label, Icon icon, int colour, boolean closable,
         List<Widget> content, boolean selected, Runnable onSelect, Runnable onClose,
-        Attributes attributes)
+        java.util.function.BooleanSupplier animating,
+        java.util.function.DoubleUnaryOperator visibility, Attributes attributes)
         implements Widget.Leaf, Styled, Paints, Handles, Attributed<Tab> {
 
     public Tab {
@@ -78,19 +89,20 @@ public record Tab(
 
     /// A tab with a value and a label, and whatever it shows.
     public Tab(String value, String label, Widget... content) {
-        this(value, label, null, 0, false, List.of(content), false, null, null, Attributes.NONE);
+        this(value, label, null, 0, false, List.of(content), false, null, null, null, null,
+                Attributes.NONE);
     }
 
     /// This tab with an icon before its label.
     public Tab icon(Icon value) {
         return new Tab(this.value, label, value, colour, closable, content, selected, onSelect,
-                onClose, attributes);
+                onClose, animating, visibility, attributes);
     }
 
     /// This tab in a colour of its own — see the class note.
     public Tab colour(int argb) {
         return new Tab(value, label, icon, argb, closable, content, selected, onSelect, onClose,
-                attributes);
+                animating, visibility, attributes);
     }
 
     /// This tab with a close affordance in its header, which raises the strip's
@@ -98,13 +110,15 @@ public record Tab(
     /// application's list, and only the application may shorten it (ADR-0063).
     public Tab closable(boolean value) {
         return new Tab(this.value, label, icon, colour, value, content, selected, onSelect,
-                onClose, attributes);
+                onClose, animating, visibility, attributes);
     }
 
     /// Used by [Tabs] to tell a tab what it is and what it may ask for.
-    Tab wired(boolean isSelected, Runnable select, Runnable close) {
+    Tab wired(boolean isSelected, Runnable select, Runnable close,
+            java.util.function.BooleanSupplier isAnimating,
+            java.util.function.DoubleUnaryOperator howVisible) {
         return new Tab(value, label, icon, colour, closable, content, isSelected, select, close,
-                attributes);
+                isAnimating, howVisible, attributes);
     }
 
     @Override
@@ -125,7 +139,7 @@ public record Tab(
     @Override
     public Tab withAttributes(Attributes value) {
         return new Tab(this.value, label, icon, colour, closable, content, selected, onSelect,
-                onClose, value);
+                onClose, animating, visibility, value);
     }
 
     /// A tab takes the focus — it is what the strip's arrows rove between.
@@ -192,6 +206,16 @@ public record Tab(
         }
     }
 
+    /// Whether this tab is arriving or leaving, which is what keeps the frame
+    /// loop awake for the length of either (ADR-0109).
+    ///
+    /// A tab that has been there a while animates nothing and asks for nothing,
+    /// so a window full of tabs is as idle as a window with none.
+    @Override
+    public boolean isAnimating() {
+        return animating != null && animating.getAsBoolean();
+    }
+
     /// The indicator **first**, so it is painted under the label, then the icon,
     /// the label, and the close affordance last.
     @Override
@@ -207,6 +231,35 @@ public record Tab(
         }
         // Anything after the indicator is the close affordance.
         content.addAll(children.subList(1, children.size()));
-        return Box.of().style(style).children(content.toArray(Box[]::new));
+        return animated(Box.of().style(style).children(content.toArray(Box[]::new)), context);
+    }
+
+    /// The arrival or the departure, applied to the finished box.
+    ///
+    /// **Opacity and a translation, and nothing else** — §1.7's whitelist is the
+    /// compositor-cheap set, and a tab that animated its own *width* would run
+    /// Yoga on every frame of every arrival and reflow the row beside it
+    /// ([ADR-0068](../../../../../../../../book/src/adr/0068-the-transform-stack-is-java-side.md)).
+    /// So a tab appears in its final place and fades up into it, which is also
+    /// what makes an arrival and a departure the same animation backwards.
+    ///
+    /// Under reduced motion there is no animation at all: the tab is simply there,
+    /// or simply gone. §1.7 asks for movement to be removed rather than shortened.
+    private Box animated(Box box, Context context) {
+        if (visibility == null) {
+            return box;
+        }
+        // Reading it is what starts an arrival and what finishes a departure: the
+        // strip's phase is stamped from the frame clock on its first read, and
+        // `render` is the only place a widget has one.
+        var visible = context.reducedMotion()
+                ? 1
+                : visibility.applyAsDouble(context.nowMillis());
+        if (visible >= 1) {
+            return box;
+        }
+        return box.opacity(visible)
+                .transform(Transform.of(new Transform.Function.Translate(
+                        Transform.Length.ZERO, Transform.Length.px((1 - visible) * 6))));
     }
 }

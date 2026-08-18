@@ -161,9 +161,23 @@ disabled container disabling its descendants.
   nowhere to put it except the application's model. `collapse` will have the same
   trade. —
   [ADR-0107](adr/0107-a-tab-strip-is-a-model-a-header-and-a-panel.md)
-- **Nothing reorders tabs.** §5 does not ask for drag-to-reorder; the model shape
-  would take it without a change, since the strip draws the list it is given. —
-  [ADR-0107](adr/0107-a-tab-strip-is-a-model-a-header-and-a-panel.md)
+- **Nothing reorders tabs**, and a reorder would need a different animation from
+  an arrival: a tab that moves has two positions and nothing to interpolate between
+  them, which is ADR-0097's missing geometry again. §5 does not ask for
+  drag-to-reorder; the model shape would take it without a change, since the strip
+  draws the list it is given. —
+  [ADR-0107](adr/0107-a-tab-strip-is-a-model-a-header-and-a-panel.md),
+  [ADR-0109](adr/0109-a-tab-arrives-and-departs-on-the-frame-clock.md)
+- **The enter/exit lifecycle is a tab's own, not the toolkit's.** `TabPhase` is what
+  §1.7's "overlay enter/exit lifecycle" asks for, built for one widget: `toast`,
+  `dialog` and `popover` all want the same thing, and promoting it should wait for
+  the second consumer rather than be guessed at from the first. —
+  [ADR-0109](adr/0109-a-tab-arrives-and-departs-on-the-frame-clock.md)
+- **`margin` is not in §8's subset**, which `tab-new` found after `border-bottom`
+  and `currentColor`. Three properties a widget reached for and did not find, all
+  silently ignored — the subset is right to be small, and nothing warns when a
+  declaration is dropped. —
+  [ADR-0109](adr/0109-a-tab-arrives-and-departs-on-the-frame-clock.md)
 - **The catalog's specified surface roughly tripled, and none of it is built.**
   `docs/core-widgets.md` gained twenty-one widgets and four options in one pass —
   `link`, `affix`, `segmented`, `date-picker`, `time-picker`, `color-picker`,

@@ -51,10 +51,17 @@ public final class ShowcaseModel {
     @Bind("app.status")
     private final Property<String> status = Property.of("checking the environment…");
 
-    /// The tabs, and which of them is showing. A **list**, because §5's strip
-    /// reports what the user asked for and changes nothing itself — closing a tab
-    /// removes it from here or it does not close (ADR-0107).
-    private final List<String> tabs = new ArrayList<>(List.of("Notes", "Log"));
+    /// The tabs, and which of them is showing. The strip reports what the user
+    /// asked for and changes nothing itself — closing a tab removes it from here
+    /// or it does not close (ADR-0107).
+    ///
+    /// A **`Property`** and not a plain list, which is the difference between a
+    /// tab that appears when you add it and one that appears when you next resize
+    /// the window. Adding or removing a tab is a *structural* change: it does not
+    /// alter a value some widget is bound to, it alters which widgets exist. The
+    /// toolkit rebuilds a subtree when something it subscribes to changes, and a
+    /// list nobody can subscribe to changes nothing (ADR-0109).
+    private final Property<List<String>> tabs = Property.of(List.of("Notes", "Log"));
 
     private final Property<String> tab = Property.of("Notes");
 
@@ -102,9 +109,10 @@ public final class ShowcaseModel {
         return themeName;
     }
 
-    /// The tabs, in order.
-    public List<String> tabs() {
-        return List.copyOf(tabs);
+    /// The tabs, in order — subscribed to by whatever builds the strip, because a
+    /// change to this is a change to the shape of the tree.
+    public Observable<List<String>> tabs() {
+        return tabs;
     }
 
     /// Which tab is showing.
@@ -122,13 +130,17 @@ public final class ShowcaseModel {
     /// a strip whose selection has been removed shows nothing at all.
     public void closeTab(String value) {
         changed(() -> {
-            var index = tabs.indexOf(value);
+            var current = new ArrayList<>(tabs.get());
+            var index = current.indexOf(value);
             if (index < 0) {
                 return;
             }
-            tabs.remove(index);
+            current.remove(index);
+            // A new list rather than a mutation: a subscriber is subscribed to the
+            // *value*, and a list changed in place is the same value.
+            tabs.set(List.copyOf(current));
             if (value.equals(tab.get())) {
-                tab.set(tabs.isEmpty() ? null : tabs.get(Math.min(index, tabs.size() - 1)));
+                tab.set(current.isEmpty() ? null : current.get(Math.min(index, current.size() - 1)));
             }
         });
     }
@@ -137,7 +149,9 @@ public final class ShowcaseModel {
     public void newTab() {
         changed(() -> {
             var name = "Untitled " + (++added);
-            tabs.add(name);
+            var current = new ArrayList<>(tabs.get());
+            current.add(name);
+            tabs.set(List.copyOf(current));
             tab.set(name);
         });
     }

@@ -1,20 +1,13 @@
 package io.github.digitalsmile.goldberry.widgets.panel.tabs;
 
 import io.github.digitalsmile.goldberry.bind.Observable;
-import io.github.digitalsmile.goldberry.css.ComputedStyle;
-import io.github.digitalsmile.goldberry.input.FocusScope;
-import io.github.digitalsmile.goldberry.input.Handles;
-import io.github.digitalsmile.goldberry.layout.Box;
 import io.github.digitalsmile.goldberry.widget.Attributed;
 import io.github.digitalsmile.goldberry.widget.Attributes;
 import io.github.digitalsmile.goldberry.widget.Bindable;
-import io.github.digitalsmile.goldberry.widget.Paints;
-import io.github.digitalsmile.goldberry.widget.Styled;
+import io.github.digitalsmile.goldberry.widget.State;
 import io.github.digitalsmile.goldberry.widget.Widget;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import java.util.Set;
 import java.util.function.Consumer;
 
 /// A strip of tabs over one panel — `docs/core-widgets.md` §5's `tabs`.
@@ -40,6 +33,15 @@ import java.util.function.Consumer;
 /// A strip whose `close` handler does nothing keeps its tab, which is the visible
 /// form of "the model did not change" and is where the bug is when a tab will not
 /// close.
+///
+/// ## This node styles nothing
+///
+/// `tabs` as a **CSS type** is [TabStrip], the node this one builds. A stateful
+/// widget that was also styled would put two `tabs` nodes in the cascade, one
+/// inside the other, and every rule in `controls.css` would apply to both — which
+/// is a doubled padding and a doubled border waiting to happen. So this is a
+/// composition node: it holds the model, and what it builds holds the appearance
+/// ([ADR-0109](../../../../../../../../book/src/adr/0109-a-tab-arrives-and-departs-on-the-frame-clock.md)).
 ///
 /// ## Three parts, and only one of them is built twice
 ///
@@ -69,7 +71,7 @@ import java.util.function.Consumer;
 public record Tabs(
         String value, List<Widget> children, Observable<?> source, Consumer<String> onChange,
         Consumer<String> onClose, Runnable onNew, Attributes attributes)
-        implements Widget.Leaf, Styled, Paints, Handles, Attributed<Tabs>, Bindable<Tabs> {
+        implements Widget.Stateful, Attributed<Tabs>, Bindable<Tabs> {
 
     public Tabs {
         children = List.copyOf(children == null ? List.of() : children);
@@ -113,30 +115,8 @@ public record Tabs(
     }
 
     @Override
-    public String cssType() {
-        return "tabs";
-    }
-
-    @Override
-    public String id() {
-        return attributes.id();
-    }
-
-    @Override
-    public Set<String> classes() {
-        return attributes.classes();
-    }
-
-    @Override
     public Tabs withAttributes(Attributes value) {
         return new Tabs(this.value, children, source, onChange, onClose, onNew, value);
-    }
-
-    /// One Tab stop, arrows roving inside it, and the axis is the strip's own —
-    /// see the class note.
-    @Override
-    public FocusScope focusScope() {
-        return FocusScope.HORIZONTAL;
     }
 
     /// The tabs as written, before the strip rebuilt them with what only it knows
@@ -155,52 +135,28 @@ public record Tabs(
         return value;
     }
 
-    /// The header strip and the selected tab's panel, in that order.
+    /// **Stateful**, and the state is one thing: which tabs are arriving or
+    /// leaving.
     ///
-    /// Every [Tab] is rebuilt here with what only the strip knows — whether it is
-    /// the selected one, and what to call when it is picked or closed — which is
-    /// `radio-group`'s pattern applied to a second kind of set (ADR-0073).
+    /// A tab that has just been added has to fade up from nothing, and one that
+    /// has just been closed has to fade down — after the application has already
+    /// dropped it from its list, so something has to hold on to it for the length
+    /// of the animation. That is the whole of what [TabsState] does
+    /// ([ADR-0109](../../../../../../../../book/src/adr/0109-a-tab-arrives-and-departs-on-the-frame-clock.md)).
     @Override
-    public List<Widget> children() {
-        var current = selected();
-        var headers = new ArrayList<Widget>(children.size() + 1);
-        List<Widget> content = List.of();
-        for (var child : children) {
-            if (!(child instanceof Tab tab)) {
-                // Not a tab: drawn in the strip and left alone, so a `spacer` or
-                // a button can live in a tab bar.
-                headers.add(child);
-                continue;
-            }
-            var isSelected = tab.value().equals(current);
-            headers.add(tab.wired(
-                    isSelected,
-                    () -> select(tab.value()),
-                    () -> close(tab.value())));
-            if (isSelected) {
-                content = tab.content();
-            }
-        }
-        if (onNew != null) {
-            headers.add(new TabNew(onNew));
-        }
-        return List.of(new TabList(headers), new TabPanel(content));
-    }
-
-    @Override
-    public Box render(ComputedStyle style, List<Box> children, Context context) {
-        return Box.of().style(style).children(children.toArray(Box[]::new));
+    public State<?> createState() {
+        return new TabsState();
     }
 
     /// Asks for a tab. It does **not** select it — see the class note.
-    private void select(String picked) {
+    void select(String picked) {
         if (onChange != null) {
             onChange.accept(picked);
         }
     }
 
     /// Asks for a tab to close. Same rule: the list is the application's.
-    private void close(String picked) {
+    void close(String picked) {
         if (onClose != null) {
             onClose.accept(picked);
         }

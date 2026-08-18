@@ -1571,10 +1571,15 @@ tab-close:hover {
   opacity: 1;
 }
 
+/* Square, and it has to be: the `+` is a mark drawn to fill its box, so a box
+   28 wide and 20 tall draws a cross with a long arm and a short one. The two
+   numbers are one number for that reason. The list's own `gap` is what keeps it
+   off the last tab — §8's subset has no `margin`, which is the third property
+   this widget has reached for and not found (ADR-0107, ADR-0109). */
 tab-new {
-  width: 28px;
+  width: 24px;
+  height: 24px;
   align-self: center;
-  height: 20px;
   flex-shrink: 0;
   border-radius: 4px;
   color: var(--gb-text-muted);
