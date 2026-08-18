@@ -38,9 +38,22 @@
 #screen-text, #screen-tabs
            { flex-direction: column; gap: 16px; flex-grow: 1; padding-top: 16px }
 
-/* A group's heading. `body-strong` rather than a heading token: these label
-   groups inside one screen, not sections of a document. */
-.screen-title { color: var(--gb-text); font-weight: 600 }
+/* A group's heading. This used to be `font-weight: 600` and nothing else, which
+   made a screen title `body-strong` -- the same 13px as the prose under it, told
+   apart only by weight. On a 900px gallery screen that reads as a page with no
+   headings at all, which is what "the paragraph text looks tiny" actually is: not
+   a size that shrank, but a hierarchy that was never there.
+
+   §1.4's `heading` is the token for exactly this -- 15/20 at 600 -- and it is what
+   the class now uses. The comment it replaces argued these "label groups inside
+   one screen, not sections of a document"; a gallery screen *is* a document, and
+   the four other screens have the same headings for the same reason. */
+.screen-title {
+  color: var(--gb-text);
+  font-size: var(--gb-font-heading);
+  line-height: var(--gb-line-heading);
+  font-weight: var(--gb-weight-strong);
+}
 
 #overlay-note, #tabs-note { color: var(--gb-text-muted) }
 
@@ -59,7 +72,20 @@
 #fader-label { color: var(--gb-text-muted) }
 #demo-tabs { flex-grow: 0 }
 #tab-body  { color: var(--gb-text) }
-#prose     { color: var(--gb-text) }
+/* Prose is not UI. §1.4's `body` is 13/18 and is the right size for a label
+   beside a control; a paragraph set at it across the width of this window is
+   technically correct and hard to read, which is the difference between a type
+   scale for chrome and one for text.
+
+   `heading`'s 15/20 is the largest thing in the scale that is still body copy,
+   so the prose is set at it. Nothing about the toolkit changed to allow this --
+   the sizes were always right and always applied; what was missing was anyone
+   choosing between them here. */
+#prose {
+  color: var(--gb-text);
+  font-size: var(--gb-font-heading);
+  line-height: var(--gb-line-heading);
+}
 #actions   { gap: 8px; align-items: center }
 /* §1.3's 8 between related controls, and `align-items: center`
    because a chip's 20px is shorter than the row it sits in. */

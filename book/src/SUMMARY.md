@@ -124,6 +124,7 @@
 - [ADR-0115 A wheel reports a fraction and a detent](adr/0115-a-wheel-reports-a-fraction-and-a-detent.md)
 - [ADR-0116 A scroll view is a clip, an offset and two extents](adr/0116-a-scroll-view-is-a-clip-an-offset-and-two-extents.md)
 - [ADR-0117 A widget may be told what it measured](adr/0117-a-widget-may-be-told-what-it-measured.md)
+- [ADR-0118 A popup that does not fit scrolls, and so does everything else](adr/0118-a-popup-that-does-not-fit-scrolls.md)
 
 ---
 

@@ -78,10 +78,12 @@ record ScrollContent(List<Widget> children, ScrollAxis axis, double offsetX, dou
     @Override
     public Box render(ComputedStyle style, List<Box> boxes, Context context) {
         return Box.of().children(boxes.toArray(Box[]::new)).style(style)
-                // A column for the reason a `scroll`'s content is usually a
-                // document: several children written inside one stack rather
-                // than lining up in a row, which is what anyone typing two
-                // `text` nodes into a `scroll` means.
-                .direction(FlexDirection.COLUMN);
+                // Along the axis being scrolled. A column for a vertical
+                // viewport, because several children written inside one are a
+                // document and stack -- and a **row** for a horizontal one,
+                // where a column would be a single stack of items with nothing
+                // to scroll sideways past.
+                .direction(axis == ScrollAxis.HORIZONTAL
+                        ? FlexDirection.ROW : FlexDirection.COLUMN);
     }
 }

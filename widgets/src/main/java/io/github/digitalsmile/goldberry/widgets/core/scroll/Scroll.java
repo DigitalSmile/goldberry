@@ -55,7 +55,7 @@ import java.util.List;
 ///                   children stack the way they would in a `column`
 /// @param axis       which way it moves
 /// @param attributes `id` and `class`, exactly as on the primitives
-public record Scroll(List<Widget> children, ScrollAxis axis, Attributes attributes)
+public record Scroll(List<Widget> children, ScrollAxis axis, double height, Attributes attributes)
         implements Widget.Stateful, Attributed<Scroll> {
 
     public Scroll {
@@ -64,13 +64,31 @@ public record Scroll(List<Widget> children, ScrollAxis axis, Attributes attribut
         attributes = attributes == null ? Attributes.NONE : attributes;
     }
 
+    public Scroll(List<Widget> children, ScrollAxis axis, Attributes attributes) {
+        this(children, axis, Double.NaN, attributes);
+    }
+
     public Scroll(Widget... kids) {
         this(List.of(kids), ScrollAxis.VERTICAL, Attributes.NONE);
     }
 
+    /// This viewport with a height of `value` logical pixels.
+    ///
+    /// **For the caller that has a number a stylesheet cannot have.** A menu
+    /// capped at the screen's height is the case it was added for: nothing in
+    /// `controls.css` can know how tall the display is, and §8's subset has no
+    /// `max-height` to express "no taller than" with
+    /// ([ADR-0118](../../../../../../../../book/src/adr/0118-a-popup-that-does-not-fit-scrolls.md)).
+    ///
+    /// An ordinary `scroll` leaves this alone and takes its height from the
+    /// stylesheet, which is `flex-grow: 1` — fill what is left of the column.
+    public Scroll height(double value) {
+        return new Scroll(children, axis, value, attributes);
+    }
+
     @Override
     public Scroll withAttributes(Attributes attributes) {
-        return new Scroll(children, axis, attributes);
+        return new Scroll(children, axis, height, attributes);
     }
 
     @Override

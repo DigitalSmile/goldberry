@@ -4,7 +4,10 @@ import io.github.digitalsmile.goldberry.Host;
 import io.github.digitalsmile.goldberry.Placement;
 import io.github.digitalsmile.goldberry.Popup;
 import io.github.digitalsmile.goldberry.backend.LogicalRect;
+import io.github.digitalsmile.goldberry.widget.Attributes;
 import io.github.digitalsmile.goldberry.widget.Widget;
+import io.github.digitalsmile.goldberry.widgets.core.scroll.Scroll;
+import io.github.digitalsmile.goldberry.widgets.core.scroll.ScrollAxis;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -141,7 +144,8 @@ public final class Menus {
             children.add(prepare(host, menu.children().get(index), index, reserve, self, stack));
         }
 
-        var opened = host.popup(menu.withAttributes(menu.attributes()).children(children),
+        var opened = host.popup(
+                fitted(host, menu.withAttributes(menu.attributes()).children(children)),
                 anchor, placement);
         opened.ifPresent(popup -> {
             self[0] = popup;
@@ -149,6 +153,59 @@ public final class Menus {
         });
         return opened;
     }
+
+    /// The menu, in a viewport if it would otherwise be taller than the screen.
+    ///
+    /// Until `scroll` existed the answer was [Placement]'s: a popup taller than
+    /// the work area was clamped to the near edge, which keeps the top visible
+    /// and silently drops everything below it. A menu that loses its last three
+    /// commands with no indication that it has is the worst kind of wrong, and it
+    /// was the honest thing to do with no viewport
+    /// ([ADR-0104](../../../../../../../book/src/adr/0104-a-popup-is-measured-then-placed.md)).
+    ///
+    /// Now it becomes a menu of the screen's height with the items scrolling
+    /// inside it. The cap is applied **here** rather than in the popup facility
+    /// because `:core` has no widgets to wrap anything in
+    /// ([ADR-0092](../../../../../../../book/src/adr/0092-a-primitive-is-a-widget-like-any-other.md))
+    /// — and because whether long content should scroll or be clamped is a fact
+    /// about the *content*: a tooltip that scrolled would be absurd
+    /// ([ADR-0118](../../../../../../../book/src/adr/0118-a-popup-that-does-not-fit-scrolls.md)).
+    ///
+    /// **Nothing happens to a menu that fits**, which is nearly all of them: the
+    /// wrapper is added only when the height is actually exceeded, so an ordinary
+    /// menu has no viewport in it and no thumb to fade.
+    private static Widget fitted(Host host, Menu menu) {
+        var available = host.placeableArea().height() - MARGIN * 2;
+        // A conservative estimate rather than a measurement: `Menus` cannot lay
+        // anything out, and the popup facility that can does not know what a
+        // menu row costs. Erring towards wrapping is the safe direction -- a
+        // viewport over content that fits draws no thumb and takes no input.
+        var estimate = menu.children().size() * ROW_ESTIMATE + PANEL_CHROME;
+        if (estimate <= available) {
+            return menu;
+        }
+        return new Scroll(List.of(menu), ScrollAxis.VERTICAL,
+                Attributes.NONE.classes("menu-viewport")).height(available);
+    }
+
+    /// How much of the work area a menu leaves alone at each end.
+    ///
+    /// A menu flush against the top and bottom of the screen looks like a menu
+    /// that has been cut off even when it has not.
+    private static final float MARGIN = 8;
+
+    /// What one row is assumed to cost, for the estimate in [#fitted].
+    ///
+    /// `--gb-menu-item-height` is 32 at the regular density and this is not that
+    /// token, because a widget cannot read one — the same gap
+    /// [ADR-0117](../../../../../../../book/src/adr/0117-a-widget-may-be-told-what-it-measured.md)
+    /// records for a wheel line. Rounded **up**, so the estimate errs towards
+    /// wrapping a menu that would have fitted rather than clamping one that does
+    /// not.
+    private static final float ROW_ESTIMATE = 34;
+
+    /// The panel's own padding and border, on both edges.
+    private static final float PANEL_CHROME = 16;
 
     /// Rewrites one child of a menu so that it can do the two things only the
     /// opener can arrange: close the stack when it is chosen, and open its own

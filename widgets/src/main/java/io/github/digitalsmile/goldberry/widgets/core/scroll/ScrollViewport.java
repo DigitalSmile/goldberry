@@ -50,7 +50,7 @@ import java.util.Set;
 /// for free by the router's ordinary bubble path rather than by anything here
 /// knowing an ancestor exists.
 record ScrollViewport(
-        List<Widget> children, ScrollAxis axis, double offsetX, double offsetY,
+        List<Widget> children, ScrollAxis axis, double height, double offsetX, double offsetY,
         Extent viewport, Extent content, ScrollFade fade, ScrollTarget onScroll,
         Boolean draggingVertical, java.util.function.BiConsumer<Boolean, Boolean> onDrag,
         java.util.function.BiConsumer<Extent, Extent> onMeasured, Attributes attributes)
@@ -155,6 +155,18 @@ record ScrollViewport(
         return fade.isAnimating();
     }
 
+    /// The caller's height, when it gave one — see [Scroll#height(double)].
+    ///
+    /// Written after the cascade for the reason the clip is: it is a number no
+    /// stylesheet could have, and a rule that overrode it would uncap a menu the
+    /// screen cannot hold.
+    @Override
+    public ComputedStyle restyle(ComputedStyle resolved) {
+        return Double.isNaN(height) ? resolved
+                : resolved.height(io.github.digitalsmile.goldberry.natives.yoga.StyleLength
+                        .points((float) height));
+    }
+
     @Override
     public Box render(ComputedStyle style, List<Box> boxes, Context context) {
         // The only place a widget is handed a clock, and therefore the only place
@@ -162,7 +174,14 @@ record ScrollViewport(
         fade.stamp(context.nowMillis());
         var opacity = fade.opacity();
         return Box.of().children(fadeBars(boxes, opacity).toArray(Box[]::new)).style(style)
-                .direction(FlexDirection.COLUMN)
+                // Along the axis, and this is load-bearing rather than tidy. A
+                // horizontal viewport laid out as a column would **stretch** its
+                // content to the viewport's width, so the content's measured
+                // width would equal the viewport's, the overflow would be zero
+                // and nothing would ever scroll -- while the tabs inside it
+                // spilled out of a box that claimed to fit them.
+                .direction(axis == ScrollAxis.HORIZONTAL
+                        ? FlexDirection.ROW : FlexDirection.COLUMN)
                 // The one property a stylesheet must not be able to take back.
                 // Yoga reads it for sizing -- a child may exceed this box without
                 // it growing -- and the painter reads it as a clip (ADR-0114).

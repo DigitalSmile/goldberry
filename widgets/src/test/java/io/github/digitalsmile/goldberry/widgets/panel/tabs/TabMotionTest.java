@@ -114,7 +114,14 @@ class TabMotionTest {
     private static double opacityOf(Box box, String value, List<String> order) {
         var index = order.indexOf(value);
         // list → rule, then the headers.
-        return box.children().getFirst().children().get(index + 1).opacity();
+        // tab-list -> [tab-rule, scroll] -> scroll-content -> the headers. The
+        // viewport arrived with ADR-0118 so that a strip wider than its window
+        // scrolls; it paints nothing and moves no header.
+        return box.children().getFirst()      // tab-list
+                .children().get(1)            // scroll
+                .children().getFirst()        // scroll-content
+                .children().get(index)
+                .opacity();
     }
 
     /// Nothing animates on the first build: a window opening should show its tabs,

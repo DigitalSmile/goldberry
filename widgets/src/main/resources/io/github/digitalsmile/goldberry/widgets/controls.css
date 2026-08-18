@@ -1517,6 +1517,31 @@ tab-list {
   gap: 2px;
 }
 
+/* The headers' viewport. The gap moves here with them: the scroll view is now
+   the thing that holds the row, and a gap left on `tab-list` would space the
+   rule and the viewport apart rather than the tabs (ADR-0118).
+
+   Nothing sets `align-items` on the viewport itself. A horizontal one is laid
+   out as a row, so `align-items` there is the *vertical* alignment of the
+   content box — and centring a content box that is exactly as tall as the strip
+   does nothing, while a value that shrank it would take the tabs with it. The
+   centring that matters is on the content, where it aligns the headers. */
+scroll.tab-viewport {
+  flex-grow: 1;
+}
+
+scroll.tab-viewport > scroll-content {
+  align-items: center;
+  gap: 2px;
+}
+
+/* A strip is 40 tall and a horizontal bar is 10 of it, which would sit across
+   the bottom of the tabs themselves. Thinner here, and it fades like every other
+   overlay bar. */
+scroll.tab-viewport scrollbar.horizontal { height: 6px }
+scroll.tab-viewport scroll-thumb.horizontal { height: 4px }
+scroll.tab-viewport:hover scroll-thumb.horizontal { height: 6px }
+
 /* The rule under the headers, as a box: §8's subset has one `border` and no
    per-edge longhands, so `border-bottom` is not a declaration that exists
    (ADR-0107). Pinned across the bottom of the list, with the selected tab's
@@ -1720,3 +1745,9 @@ scroll:hover scroll-thumb.horizontal { height: 10px }
    moved by the bar around it rather than pressed itself, so the router's
    `:active` is on the wrong node. */
 scroll-thumb.dragging { background: var(--gb-accent) }
+
+/* A menu longer than the screen becomes a menu of the screen's height with its
+   items scrolling inside it, rather than a menu clamped to the near edge with
+   its last commands silently dropped (ADR-0118). The height is the opener's,
+   because nothing in a stylesheet knows how tall the display is. */
+scroll.menu-viewport { flex-grow: 0 }

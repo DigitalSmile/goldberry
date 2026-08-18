@@ -49,7 +49,7 @@ final class ScrollState extends State<Scroll> {
     public Widget build(BuildContext context) {
         var scroll = widget();
         return new ScrollViewport(
-                scroll.children(), scroll.axis(), offsetX, offsetY,
+                scroll.children(), scroll.axis(), scroll.height(), offsetX, offsetY,
                 viewport, content, fade, this::moveTo,
                 draggingVertical, this::drag, this::measured, scroll.attributes());
     }

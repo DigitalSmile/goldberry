@@ -217,13 +217,17 @@ class TabsTest {
         var plain = new Tab("b", "Second");
 
         var box = render(new Tabs("a", coloured, plain));
-        // Child 0 of the list is the rule, so the headers start at 1.
-        var headers = box.children().getFirst().children();
+        // The rule is the list's own child; the headers are inside the viewport
+        // beside it, so they start at 0 rather than at 1 (ADR-0118).
+        var headers = box.children().getFirst()   // tab-list
+                .children().get(1)                // the scroll viewport
+                .children().getFirst()            // scroll-content
+                .children();
 
-        assertEquals(red, labelColour(headers.get(1)),
+        assertEquals(red, labelColour(headers.getFirst()),
                 "the label is drawn in the tab's own colour");
         // The second tab is muted by `controls.css` and is emphatically not red.
-        assertFalse(labelColour(headers.get(2)) == red);
+        assertFalse(labelColour(headers.get(1)) == red);
     }
 
     /// The colour of the first text under `box` — a tab's label is a child box,

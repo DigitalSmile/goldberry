@@ -704,7 +704,8 @@ final class Launcher implements Host {
     /// is — a headless run, or a driver that does not know — the window's own
     /// bounds stand in. That is a worse answer and not a wrong one: a popup kept
     /// inside its owner is always on the screen.
-    private io.github.digitalsmile.goldberry.backend.LogicalRect placeableArea() {
+    @Override
+    public io.github.digitalsmile.goldberry.backend.LogicalRect placeableArea() {
         var backendWindow = window.backendWindow();
         var origin = backendWindow.position();
         var area = backendWindow.workArea();

@@ -67,14 +67,22 @@ the mechanism the sentence named.
   "the hovered or focused node moved" needs a real listener list *and* a decision
   about what it means for two things to react to one hover. —
   [ADR-0105](adr/0105-a-tooltip-is-an-attribute-not-a-widget.md)
-- **A popup still does not scroll, though the viewport now exists.** `Placement`
-  clamps a popup taller than the work area to the near edge, keeping the top and
-  dropping the rest. `scroll` is built, so what is left is `Placement` deciding to
-  *cap* the measured height at the work area and put the content in a viewport
-  rather than clamping the window — which is a change to how a popup is measured,
-  not a missing widget. —
+- **A menu caps itself by estimate, not by measurement.** `Menus` decides whether
+  a menu would be taller than the screen from rows times an assumed 34px, because
+  it cannot lay anything out and the popup facility that can does not know what a
+  menu row costs. It rounds up, so it errs towards wrapping a menu that would
+  have fitted — invisible — rather than clamping one that does not. A real
+  measurement would need the popup facility to hand back what it measured, which
+  is a change to a call that currently only takes content in. —
+  [ADR-0118](adr/0118-a-popup-that-does-not-fit-scrolls.md)
+- **`Placement` still clamps, and only menus have stopped asking it to.** A popup
+  taller than the work area is clamped to the near edge exactly as before; what
+  changed is that `Menus` caps its own content first. Any other caller that opens
+  an oversized popup gets the old behaviour, which is right for a facility that
+  cannot know what its content means — a tooltip that scrolled would be a
+  tooltip that should have been a dialog. —
   [ADR-0104](adr/0104-a-popup-is-measured-then-placed.md),
-  [ADR-0116](adr/0116-a-scroll-view-is-a-clip-an-offset-and-two-extents.md)
+  [ADR-0118](adr/0118-a-popup-that-does-not-fit-scrolls.md)
 - **Nothing re-places an open popup.** Move or resize the window with a menu open
   and the menu stays where it was put; `Popup.move` exists and nothing calls it. A
   `popover` that follows a scrolling anchor is the case that needs it, and it
@@ -173,6 +181,18 @@ the mechanism the sentence named.
 
 ## The catalog: specified and unbuilt
 
+- **The gallery goldens cannot see typography at all.** `GalleryGoldenTest` builds
+  its renderer with the single-font constructor — which ignores `font-family`,
+  `font-size` and `font-weight` by design, so that a golden image is not a test of
+  whichever Inter is on the machine — so every screenshot draws prose, headings
+  and button labels at one size. A screen with no typographic hierarchy looks
+  exactly like a screen with one, which is how a screen title and the paragraph
+  under it stayed the same 13px with nothing catching it. `ShowcaseTypographyTest`
+  asserts sizes through the cascade instead; what is still missing is any image
+  that would show a *layout* wrong because of a font size — text that clips at
+  150% scale is §1.4's explicit gallery-enforced requirement and nothing enforces
+  it. — [ADR-0118](adr/0118-a-popup-that-does-not-fit-scrolls.md)
+
 - **The "always show scroll bars" reserved gutter is not built.** §2.4 wants the
   overlay bar to swap for a classic 12px gutter — "layout, not overlay" — as an
   app or user setting, and §13 lists it among the accessibility switches. It is a
@@ -228,18 +248,18 @@ the mechanism the sentence named.
   round. —
   [ADR-0116](adr/0116-a-scroll-view-is-a-clip-an-offset-and-two-extents.md)
 
-- **The gallery does not use the scroll view it was waiting for.** `scroll` is
-  built ([ADR-0116](adr/0116-a-scroll-view-is-a-clip-an-offset-and-two-extents.md)),
-  and the showcase's screens still overflow the window rather than scrolling in
-  it — wrapping each screen is a change to the gallery rather than to the widget,
-  and it is the first thing that should use it. —
-  [ADR-0110](adr/0110-the-showcase-is-a-gallery-of-screens.md)
-- **A tab strip still does not scroll, though it now could.** Enough tabs and the
-  row overflows its window. `scroll` exists; what a strip wants is a *horizontal*
-  one around its headers plus the chevron affordances at each end that a tab bar
-  conventionally has, and neither of those is the viewport itself. —
-  [ADR-0107](adr/0107-a-tab-strip-is-a-model-a-header-and-a-panel.md),
-  [ADR-0116](adr/0116-a-scroll-view-is-a-clip-an-offset-and-two-extents.md)
+- **A tab strip scrolls, and has no chevrons at either end.** The headers are in
+  a horizontal viewport now, so a strip wider than its window can be reached —
+  by wheel or by dragging its thumb. A tab bar conventionally also has an arrow
+  at each end that pages the strip, and that is a different affordance from the
+  viewport: it needs to know it is at an edge, which is `scrollIntoView`'s
+  missing question again. —
+  [ADR-0118](adr/0118-a-popup-that-does-not-fit-scrolls.md)
+- **Selecting a tab does not scroll it into view.** `Ctrl+3` on a strip scrolled
+  past the third tab selects something the user cannot see. It is the smallest
+  real consumer of `scrollIntoView` and it is why that entry is the next thing on
+  this widget rather than a nicety. —
+  [ADR-0118](adr/0118-a-popup-that-does-not-fit-scrolls.md)
 - **A tab's content is rebuilt when it is selected again.** That is the cost of
   §5's "lazy content instantiation" and is right — but it means a scroll position,
   a caret or a half-typed form in a background tab is gone, and the toolkit offers

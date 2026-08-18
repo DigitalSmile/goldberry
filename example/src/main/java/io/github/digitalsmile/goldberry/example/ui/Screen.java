@@ -8,6 +8,8 @@ import io.github.digitalsmile.goldberry.widget.BuildContext;
 import io.github.digitalsmile.goldberry.widget.State;
 import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widgets.core.Column;
+import io.github.digitalsmile.goldberry.widgets.core.scroll.Scroll;
+import io.github.digitalsmile.goldberry.widgets.core.scroll.ScrollAxis;
 import io.github.digitalsmile.goldberry.widgets.panel.tabs.Tab;
 import io.github.digitalsmile.goldberry.widgets.panel.tabs.Tabs;
 import java.util.List;
@@ -87,6 +89,25 @@ public record Screen(ShowcaseModel model, KdlInflater<Widget> inflater, Icon plu
             watching.clear();
         }
 
+        /// One screen, in a viewport that can show more of it than the window is
+        /// tall.
+        ///
+        /// The gallery is what `scroll` was built for, and it is worth saying
+        /// which way round that went: the widget did not arrive and find a use
+        /// here, it was written *because* three separate things — this, a menu
+        /// taller than the work area, and `select` over a realistic option list —
+        /// were all the same missing viewport
+        /// ([ADR-0116](../../../../../../../book/src/adr/0116-a-scroll-view-is-a-clip-an-offset-and-two-extents.md)).
+        ///
+        /// Every screen, not just the tall ones. A viewport over content that
+        /// fits draws no thumb and takes no input, so the cost of wrapping a
+        /// short screen is one element — and a screen that is short at one window
+        /// size is tall at another, which is the case a per-screen decision would
+        /// get wrong.
+        private static Widget scrolled(Widget screen) {
+            return new Scroll(List.of(screen), ScrollAxis.VERTICAL, Attributes.NONE);
+        }
+
         @Override
         public Widget build(BuildContext context) {
             var model = widget().model();
@@ -94,11 +115,11 @@ public record Screen(ShowcaseModel model, KdlInflater<Widget> inflater, Icon plu
             // bound like every other control — `Ctrl+1`… and the strip itself are
             // two ways to set one property rather than two copies of a selection.
             var gallery = new Tabs(null, List.of(
-                    new Tab("controls", "Controls", controls),
-                    new Tab("values", "Values", values),
-                    new Tab("text", "Text", new Content(model, widget().plus())),
-                    new Tab("overlays", "Overlays", overlays),
-                    new Tab("tabs", "Tabs", new TabsDemo(model))),
+                    new Tab("controls", "Controls", scrolled(controls)),
+                    new Tab("values", "Values", scrolled(values)),
+                    new Tab("text", "Text", scrolled(new Content(model, widget().plus()))),
+                    new Tab("overlays", "Overlays", scrolled(overlays)),
+                    new Tab("tabs", "Tabs", scrolled(new TabsDemo(model)))),
                     model.screen(), model::pickScreen, null, null, Attributes.NONE)
                     .id("gallery");
 

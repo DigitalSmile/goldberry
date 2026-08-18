@@ -1495,11 +1495,54 @@ uniformly — six rows of text came out 94 tall in a 100-tall viewport, so there
 was nothing to scroll, which is exactly the bug the widget exists to fix seen
 from the test's side.
 
-**No scrollbars yet.** §2.4's overlay thumb — hover-widening, idle fade, drag,
-track-click paging — is the largest piece left and wants a commit of its own; a
-thumb is a control with a hover state, a timer and a capture, and none of that is
-the viewport. `scrollIntoView`, the "always show" gutter and `affix` each want a
-decision first. All of it is in [TODO.md](TODO.md).
+### The bars, and being told what you measured
+
+§2.4's overlay scrollbars, taken as written: a 6px thumb widening to 10 with a
+visible track on hover, `full` radius, accent while dragging, and a fade 800ms
+after the last movement. Dragging scrolls and a click on the track pages.
+
+The thumb needed something that did not exist. ADR-0116's extents arrive on the
+event that asks to move, which is enough to clamp and useless for drawing — a
+thumb whose length says what proportion of the document is visible has to be
+right *before anyone touches anything*. So `Measured` is the other direction:
+once per frame, only on a change, a widget is told what the last frame laid it
+out as.
+
+The obvious worry is the loop — a measurement causes a rebuild causes a frame
+causes a measurement — and the answer is that the bars are absolutely
+positioned, so nothing the rebuild draws can change what was measured. The
+second frame measures what the first did and the router notifies nobody. The
+first attempt avoided `setState` entirely on exactly that worry and was wrong
+the other way: without a rebuild the extents never reach a build and the thumb
+never appears. The tests assert the convergence rather than the argument.
+
+Two things that look like styling and are not. The bar has **no padding**,
+because the arithmetic runs against the viewport's length and an inset track
+would let the thumb overrun the bottom by exactly the padding. And the fade is a
+clock rather than a transition, because no selector can express *when* — so the
+wake is flagged and the next frame stamps it, the way a tab's arrival is.
+
+### Where it went
+
+Three entries closed by doing. Every gallery screen is in a viewport — including
+the short ones, because a viewport over content that fits costs an element and a
+screen that is short at one window size is tall at another. A menu longer than
+the screen becomes a menu of the screen's height with its items scrolling, capped
+by `Menus` rather than by the popup facility: `:core` has no widgets to wrap
+anything in, and more to the point a *tooltip* that scrolled would be a tooltip
+that should have been a dialog. And a tab strip scrolls its headers, with the
+rule left outside the viewport so a scrolled strip does not take its own
+underline with it.
+
+The tab strip is where a bug in the viewport surfaced. It laid its content out
+as a column regardless of axis, and a horizontal viewport doing that *stretches*
+its content to its own width — so the measured overflow is zero, nothing ever
+scrolls, and the tabs spill out of a box that claims to fit them. Only a real
+horizontal consumer could have found it.
+
+**Still owed:** `scrollIntoView` (which `affix`, `tour` and selecting an
+off-screen tab all want), the "always show scroll bars" reserved gutter, and the
+chevrons at the ends of a tab strip. All of it is in [TODO.md](TODO.md).
 
 ### Not started
 

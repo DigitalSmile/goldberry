@@ -82,11 +82,17 @@ class TabsGoldenTest {
     private record PseudoState(int tab, Selector.PseudoClass pseudoClass) {
 
         /// The strip is a composition node over a `tabs`, whose child 0 is the
-        /// `tab-list`, whose child 0 is the rule — so the headers start at 1.
+        /// `tab-list`, whose child 0 is the rule and whose child 1 is the
+        /// headers' viewport — so a header is two levels further down than it
+        /// looks. The viewport is there so a strip wider than its window scrolls
+        /// rather than overflowing (ADR-0118).
         void applyTo(io.github.digitalsmile.goldberry.widget.Element strip) {
-            strip.children().getFirst()   // tabs
-                    .children().getFirst() // tab-list
-                    .children().get(tab + 1)
+            strip.children().getFirst()     // tabs
+                    .children().getFirst()  // tab-list
+                    .children().get(1)      // Scroll, the composition node
+                    .children().getFirst()  // the scroll viewport it builds
+                    .children().getFirst()  // scroll-content
+                    .children().get(tab)
                     .setPseudoClass(pseudoClass, true);
         }
     }

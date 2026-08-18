@@ -164,6 +164,20 @@ public interface Host {
     java.util.Optional<Popup> popup(Widget content,
             io.github.digitalsmile.goldberry.backend.LogicalRect anchor, Placement placement);
 
+    /// Where a popup is allowed to be, in this window's coordinates.
+    ///
+    /// The display's work area, which [Placement] already places against. Exposed
+    /// because a caller may need to keep its **content** inside it rather than
+    /// leaving the placement to clamp: a menu longer than the screen wants to
+    /// become a menu of the screen's height with a scroll view in it, and only
+    /// the thing building the menu can decide that
+    /// ([ADR-0118](../../../../../../book/src/adr/0118-a-popup-that-does-not-fit-scrolls.md)).
+    ///
+    /// **A rectangle and not just a height**, because the same question arises
+    /// horizontally for a wide popup and answering half of it would mean
+    /// answering it twice.
+    io.github.digitalsmile.goldberry.backend.LogicalRect placeableArea();
+
     /// [#popup(Widget, LogicalRect, Placement)] against the node with this id —
     /// "open this under that button", in one call.
     ///
