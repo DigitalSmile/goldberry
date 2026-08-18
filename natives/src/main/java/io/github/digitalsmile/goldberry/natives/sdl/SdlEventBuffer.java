@@ -46,6 +46,10 @@ public final class SdlEventBuffer implements AutoCloseable {
             Layouts.SDL_MOUSE_WHEEL_EVENT.offsetOf("y");
     private static final long WHEEL_DIRECTION_OFFSET =
             Layouts.SDL_MOUSE_WHEEL_EVENT.offsetOf("direction");
+    private static final long WHEEL_INTEGER_X_OFFSET =
+            Layouts.SDL_MOUSE_WHEEL_EVENT.offsetOf("integer_x");
+    private static final long WHEEL_INTEGER_Y_OFFSET =
+            Layouts.SDL_MOUSE_WHEEL_EVENT.offsetOf("integer_y");
     private static final long WHEEL_MOUSE_X_OFFSET =
             Layouts.SDL_MOUSE_WHEEL_EVENT.offsetOf("mouse_x");
     private static final long WHEEL_MOUSE_Y_OFFSET =
@@ -168,6 +172,26 @@ public final class SdlEventBuffer implements AutoCloseable {
         return direction() * event.get(ValueLayout.JAVA_FLOAT, WHEEL_Y_OFFSET);
     }
 
+    /// The same turn, accumulated by SDL into **whole detents** — `integer_x`.
+    ///
+    /// Not a rounding of [#wheelX()]. SDL keeps the running fraction itself and
+    /// emits a whole click when it crosses one, so a touchpad dragged slowly
+    /// reports a long run of zeroes here and then a single 1 — where rounding
+    /// each fractional event separately would report nothing at all, forever.
+    /// That is the difference between a detent counter that works on a trackpad
+    /// and one that does not
+    /// ([ADR-0115](../../../../../../../book/src/adr/0115-a-wheel-reports-a-fraction-and-a-detent.md)).
+    ///
+    /// Un-flipped like the floats, and for the same reason.
+    public int wheelTicksX() {
+        return (int) (direction() * event.get(ValueLayout.JAVA_INT, WHEEL_INTEGER_X_OFFSET));
+    }
+
+    /// The vertical turn in whole detents — `integer_y`, in SDL's sign.
+    public int wheelTicksY() {
+        return (int) (direction() * event.get(ValueLayout.JAVA_INT, WHEEL_INTEGER_Y_OFFSET));
+    }
+
     /// Where the pointer was when the wheel turned, window-relative.
     ///
     /// A wheel event carries its own position rather than reusing the last
@@ -251,12 +275,30 @@ public final class SdlEventBuffer implements AutoCloseable {
             int windowId, float x, float y, SdlWheelDirection direction,
             float pointerX, float pointerY) {
 
+        // The detents SDL would have accumulated for a turn this size. Truncation
+        // and not rounding, because that is what an accumulator crossing whole
+        // numbers does: 0.5 has not reached one click yet.
+        writeWheel(windowId, x, y, (int) x, (int) y, direction, pointerX, pointerY);
+    }
+
+    /// The same, stating the accumulated detents rather than deriving them.
+    ///
+    /// What a test needs to reach the case the `integer_*` pair exists for: a
+    /// touchpad reporting a long run of fractions and SDL emitting a whole click
+    /// part-way through, which no function of one event's floats can produce
+    /// ([ADR-0115](../../../../../../../book/src/adr/0115-a-wheel-reports-a-fraction-and-a-detent.md)).
+    public void writeWheel(
+            int windowId, float x, float y, int ticksX, int ticksY,
+            SdlWheelDirection direction, float pointerX, float pointerY) {
+
         Objects.requireNonNull(direction, "direction");
         clear();
         event.set(ValueLayout.JAVA_INT, TYPE_OFFSET, SdlEventType.MOUSE_WHEEL.value());
         event.set(ValueLayout.JAVA_INT, WHEEL_WINDOW_ID_OFFSET, windowId);
         event.set(ValueLayout.JAVA_FLOAT, WHEEL_X_OFFSET, x);
         event.set(ValueLayout.JAVA_FLOAT, WHEEL_Y_OFFSET, y);
+        event.set(ValueLayout.JAVA_INT, WHEEL_INTEGER_X_OFFSET, ticksX);
+        event.set(ValueLayout.JAVA_INT, WHEEL_INTEGER_Y_OFFSET, ticksY);
         event.set(ValueLayout.JAVA_INT, WHEEL_DIRECTION_OFFSET, direction.value());
         event.set(ValueLayout.JAVA_FLOAT, WHEEL_MOUSE_X_OFFSET, pointerX);
         event.set(ValueLayout.JAVA_FLOAT, WHEEL_MOUSE_Y_OFFSET, pointerY);

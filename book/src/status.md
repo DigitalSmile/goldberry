@@ -1414,6 +1414,40 @@ Two faults in one menu, and they are opposite halves of one question
   drawn in a window of its own and appears in no other picture in the corpus. Both
   faults were visible the moment there was one.
 
+### The wheel, settled
+
+`docs/design-system.md` §2.4 has asked for "pixel-precise wheel/trackpad deltas
+with line fallback" since it was written, and `docs/ARCHITECTURE.md` §17.1 has
+carried it as an open disagreement for as long: SDL exposes no pixel axis, and
+going around it to Wayland and macOS is what ADR-0056 declined. `scroll` is the
+first widget that has to care, so the question came due, and reading the header
+again is what answered it — `SDL_MouseWheelEvent` carries **two** numbers per
+axis and the toolkit was reading one of them.
+
+`x`/`y` are fractional, which is where the smoothness is. `integer_x`/`integer_y`
+are SDL keeping the running fraction itself and emitting a whole click when it
+crosses one. Neither is derivable from the other, and the difference is not
+academic: a trackpad dragged slowly reports a long run of values that each
+truncate to zero, so a control that truncates per event **never moves at all**,
+however far the user scrolls. The `integer_*` pair is the fix for exactly that,
+and it has been declared in the layout probe and unread since the bindings
+landed.
+
+So `PointerWheel` and `PointerEvent` now carry `ticksX`/`ticksY` beside the
+deltas — passed through from SDL rather than derived, negated on the same axis
+and for the same reason. A distance reads the float; a step reads the int. Every
+path with no accumulator of its own truncates, so the pair is always populated
+and never a lie. `--gb-scroll-line` is what a line is worth in pixels, 20 at the
+regular density and 17 at compact, which is where the conversion is argued rather
+than in the event.
+
+`Knob` was not changed. §3 calls its wheel a rate and ADR-0089 built it as one,
+so it is not a detent consumer; the reader of detents is `select`'s, when it
+lands. The two tests worth having are the two that could not be written before:
+a detent whose sign disagreed with the fraction beside it would send a stepping
+control one way and a scroll view the other, and a detent arriving under a
+0.125 fraction is the case no function of one event's floats can produce.
+
 ### Not started
 
 `menubar`, tray, dialogs, scroll, forms, client-side decorations and charts. The rest of §5 — `card`, `group-box`, `split-pane`, `collapse`,

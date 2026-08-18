@@ -296,11 +296,22 @@ public sealed class HeadlessWindow implements BackendWindow permits HeadlessPopu
         scrollPointer(x, y, deltaX, deltaY, 0);
     }
 
-    /// The same, with modifiers.
+    /// The same, with modifiers. Detents are the truncation of the deltas.
     public void scrollPointer(float x, float y, float deltaX, float deltaY, int modifiers) {
+        scrollPointer(x, y, deltaX, deltaY, (int) deltaX, (int) deltaY, modifiers);
+    }
+
+    /// Queues a wheel turn stating its accumulated detents separately.
+    ///
+    /// What a test needs to reach the case the pair exists for: a trackpad
+    /// reporting fractions too small to truncate to anything, one of which
+    /// carries the click they added up to ([ADR-0115]).
+    public void scrollPointer(float x, float y, float deltaX, float deltaY,
+            int ticksX, int ticksY, int modifiers) {
         backend.requireUiThread();
         requireOpen();
-        backend.post(new BackendEvent.PointerWheel(this, x, y, deltaX, deltaY, modifiers));
+        backend.post(new BackendEvent.PointerWheel(
+                this, x, y, deltaX, deltaY, ticksX, ticksY, modifiers));
     }
 
     /// Queues the pointer leaving the window.

@@ -396,12 +396,15 @@ tracks them alongside the implementation's own gaps.
   compatible. The design system wins by default, which makes this a change to the
   code — but it should be an ADR, not a quiet edit, because the counter-argument
   is a real one and is currently the only thing written down. (§7.2)
-- **Pixel-precise wheel deltas.** `design-system.md` §2.4 asks for them "with line
-  fallback". SDL exposes no pixel axis at all — Wayland and macOS both have one
-  underneath and SDL does not surface it — so what ships is lines with a
-  touchpad's fractions preserved. Here the *implementation* is the newer finding
-  and the design system is the aspiration; reaching it means going around SDL to
-  the platform (ADR-0056). (§7.1)
+- **Pixel-precise wheel deltas.** *Settled by ADR-0115, and left here because
+  the resolution is a difference rather than an agreement.* §2.4 asks for
+  "pixel-precise wheel/trackpad deltas with line fallback"; SDL exposes no pixel
+  axis and going around it to the platform is what ADR-0056 declined. What ships
+  is **lines with the touchpad's fraction preserved, plus the platform's
+  accumulated detents beside them** — which delivers what §2.4 wanted (scrolling
+  that does not quantize) without the mechanism it named. A line is worth
+  `--gb-scroll-line` pixels, which is the toolkit's number rather than the
+  compositor's. (§7.1)
 - **One module or two.** `core-widgets.md` says every built-in lives in a single
   `goldberry-core` module, separated by package. The build ships `:core` and
   `:widgets` as separate modules and artifacts (ADR-0014). The split is

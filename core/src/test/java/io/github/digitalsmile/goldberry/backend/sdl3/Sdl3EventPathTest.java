@@ -93,6 +93,43 @@ class Sdl3EventPathTest {
     }
 
     @Test
+    @DisplayName("a detent crosses beside its fraction, with the same sign applied")
+    void detentsCrossBesideTheFraction() {
+        withBackend((backend, window) -> {
+            var events = pump(backend, sink -> push(buffer -> buffer.writeWheel(
+                    id(window), -1f, 1f, -1, 1, SdlWheelDirection.NORMAL, 10f, 10f)));
+
+            var wheel = only(events, BackendEvent.PointerWheel.class);
+            // The vertical axis is negated on both numbers or on neither. A
+            // detent that disagreed with the fraction beside it would send a
+            // stepping control one way and a scroll view the other.
+            assertEquals(-1f, wheel.deltaY());
+            assertEquals(-1, wheel.ticksY());
+            assertEquals(-1f, wheel.deltaX());
+            assertEquals(-1, wheel.ticksX());
+        });
+    }
+
+    @Test
+    @DisplayName("a detent SDL accumulated arrives under a fraction too small to hold one")
+    void anAccumulatedDetentIsNotTheFractionsTruncation() {
+        withBackend((backend, window) -> {
+            // The case the integer_* pair exists for, and the one no function of
+            // this event's floats can produce: a trackpad has been reporting
+            // eighths, each of which truncates to zero, and SDL's own running
+            // total has just crossed a whole click.
+            var events = pump(backend, sink -> push(buffer -> buffer.writeWheel(
+                    id(window), 0f, 0.125f, 0, 1, SdlWheelDirection.NORMAL, 10f, 10f)));
+
+            var wheel = only(events, BackendEvent.PointerWheel.class);
+            assertEquals(-0.125f, wheel.deltaY());
+            // Truncating the delta gives 0 here, which is a stepping control that
+            // never moves on a touchpad however long the user scrolls.
+            assertEquals(-1, wheel.ticksY());
+        });
+    }
+
+    @Test
     @DisplayName("a resize is drawn from inside the event watch, before the pump returns")
     void resizeIsHandledInsideTheWatch() {
         withBackend((backend, window) -> {

@@ -130,7 +130,8 @@ final class GoldberryRuntime {
                             released.button(), released.clickCount(), released.modifiers());
             case BackendEvent.PointerWheel wheel ->
                     window.handlePointerWheel(wheel.x(), wheel.y(),
-                            wheel.deltaX(), wheel.deltaY(), wheel.modifiers());
+                            wheel.deltaX(), wheel.deltaY(),
+                            wheel.ticksX(), wheel.ticksY(), wheel.modifiers());
             case BackendEvent.PointerExited ignored -> window.handlePointerExited();
             case BackendEvent.KeyPressed key ->
                     window.handleKeyPressed(key.keycode(), key.modifiers(), key.repeat());

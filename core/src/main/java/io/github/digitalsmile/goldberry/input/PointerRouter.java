@@ -310,9 +310,16 @@ public final class PointerRouter {
 
     /// The same, with modifiers — `Shift` for a fine step on a knob (§3).
     public void pointerWheel(float x, float y, float deltaX, float deltaY, Modifiers modifiers) {
+        pointerWheel(x, y, deltaX, deltaY, (int) deltaX, (int) deltaY, modifiers);
+    }
+
+    /// The same, stating the platform's accumulated detents — see
+    /// [PointerEvent#ticksY()]. The backend's entry point.
+    public void pointerWheel(float x, float y, float deltaX, float deltaY,
+            int ticksX, int ticksY, Modifiers modifiers) {
         var target = captured != null ? captured : elementAt(x, y);
         if (target != null) {
-            dispatch(PointerEvent.wheel(x, y, deltaX, deltaY, modifiers, target));
+            dispatch(PointerEvent.wheel(x, y, deltaX, deltaY, ticksX, ticksY, modifiers, target));
         }
     }
 

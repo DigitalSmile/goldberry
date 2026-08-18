@@ -34,6 +34,18 @@ class WheelAndCaptureTest {
 
     private final List<String> log = new ArrayList<>();
 
+    /// Every wheel event that reached a node, for the assertions that are about
+    /// the event itself rather than about where it went.
+    private final List<PointerEvent> wheels = new ArrayList<>();
+
+    /// The most recent wheel event any node saw.
+    private PointerEvent lastWheel() {
+        if (wheels.isEmpty()) {
+            throw new AssertionError("no wheel event reached any node; log was " + log);
+        }
+        return wheels.getLast();
+    }
+
     private class Node implements Widget.Leaf, Styled, Handles {
         private final String name;
         private final List<Widget> children;
@@ -57,6 +69,7 @@ class WheelAndCaptureTest {
         @Override
         public void onPointer(PointerEvent event) {
             if (event.kind() == PointerEvent.Kind.WHEEL) {
+                wheels.add(event);
                 log.add(name + ":wheel:" + event.deltaX() + "," + event.deltaY());
                 if (consumeWheel) {
                     event.consume();
@@ -134,6 +147,28 @@ class WheelAndCaptureTest {
             router.pointerWheel(30, 30, 0, 0.125f);
 
             assertTrue(log.contains("inner:wheel:0.0,0.125"), () -> "log was " + log);
+        }
+
+        @Test
+        @DisplayName("a router given no detents truncates rather than rounding")
+        void detentsDefaultToTruncation() {
+            // Half a click is not a click. Rounding here would give a stepping
+            // control two steps for one slow flick of a trackpad.
+            router.pointerWheel(30, 30, 0, 0.5f);
+
+            assertEquals(0, lastWheel().ticksY());
+            assertEquals(0.5f, lastWheel().deltaY());
+        }
+
+        @Test
+        @DisplayName("a detent the backend accumulated survives the fraction it arrived under")
+        void accumulatedDetentSurvives() {
+            // What SDL's integer_* pair means: the fraction is too small to hold
+            // a click and the platform's running total has just crossed one.
+            router.pointerWheel(30, 30, 0, 0.125f, 0, 1, Modifiers.NONE);
+
+            assertEquals(1, lastWheel().ticksY());
+            assertEquals(0.125f, lastWheel().deltaY());
         }
 
         @Test

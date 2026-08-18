@@ -553,9 +553,10 @@ public final class Window implements AutoCloseable {
         }
     }
 
-    void handlePointerWheel(float x, float y, float deltaX, float deltaY, int modifiers) {
+    void handlePointerWheel(float x, float y, float deltaX, float deltaY,
+            int ticksX, int ticksY, int modifiers) {
         if (router != null) {
-            router.pointerWheel(x, y, deltaX, deltaY, Modifiers.fromSdl(modifiers));
+            router.pointerWheel(x, y, deltaX, deltaY, ticksX, ticksY, Modifiers.fromSdl(modifiers));
         }
     }
 

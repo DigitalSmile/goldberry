@@ -115,9 +115,16 @@ public sealed interface BackendEvent {
     /// whose scroll direction depends on a system preference is broken for
     /// exactly the users who changed it.
     ///
-    /// Lines, not pixels, because SDL reports no pixel-precise delta. They are
-    /// fractional on a touchpad, which is what stops a trackpad scrolling in
-    /// jerks.
+    /// Lines, not pixels, because SDL reports no pixel-precise delta and
+    /// [ADR-0115](../../../../../../book/src/adr/0115-a-wheel-reports-a-fraction-and-a-detent.md)
+    /// declines to go around it for one. They are fractional on a touchpad, which
+    /// is what stops a trackpad scrolling in jerks.
+    ///
+    /// `ticksX` and `ticksY` are the same turn accumulated by the platform into
+    /// **whole detents**, for the consumers that want a discrete step rather than
+    /// a distance. Not a rounding of the deltas — the running fraction is kept
+    /// across events, so a slow trackpad eventually reports a click that no
+    /// single event's float is large enough to produce.
     /// @param modifiers the platform's modifier bitmask, as
     ///                  [io.github.digitalsmile.goldberry.input.Modifiers#fromSdl]
     ///                  reads it. Every pointer event carries it because §3 asks a
@@ -127,7 +134,14 @@ public sealed interface BackendEvent {
     ///                  latching it from the last key event leaves it stuck down
     ///                  when a window loses focus mid-chord ([ADR-0089])
     record PointerWheel(BackendWindow window, float x, float y, float deltaX, float deltaY,
-            int modifiers) implements BackendEvent {
+            int ticksX, int ticksY, int modifiers) implements BackendEvent {
+
+        /// A wheel turn whose detents are the truncation of its deltas — what a
+        /// backend with no accumulator of its own can honestly say.
+        public PointerWheel(BackendWindow window, float x, float y, float deltaX, float deltaY,
+                int modifiers) {
+            this(window, x, y, deltaX, deltaY, (int) deltaX, (int) deltaY, modifiers);
+        }
     }
 
     /// The pointer left the window.

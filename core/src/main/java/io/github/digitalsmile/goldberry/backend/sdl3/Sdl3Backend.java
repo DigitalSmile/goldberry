@@ -676,7 +676,12 @@ public final class Sdl3Backend implements Backend {
             // CSS's and every scroll view's. One negation, at the boundary, once.
             out.add(new BackendEvent.PointerWheel(window,
                     eventBuffer.wheelPointerX(), eventBuffer.wheelPointerY(),
-                    eventBuffer.wheelX(), -eventBuffer.wheelY(), Sdl.get().modifierState()));
+                    eventBuffer.wheelX(), -eventBuffer.wheelY(),
+                    // Negated on the same axis and for the same reason as the
+                    // float beside it. SDL accumulates these itself, so they are
+                    // passed on rather than derived (ADR-0115).
+                    eventBuffer.wheelTicksX(), -eventBuffer.wheelTicksY(),
+                    Sdl.get().modifierState()));
         } else if (type == SdlEventType.WINDOW_DISPLAY_SCALE_CHANGED.value()) {
             // Usually the window moving to another monitor, which is also the one
             // case where the cached refresh rate can be wrong -- and wrong for the

@@ -51,6 +51,8 @@ public final class PointerEvent {
     private final int clickCount;
     private final float deltaX;
     private final float deltaY;
+    private final int ticksX;
+    private final int ticksY;
     private final float pressX;
     private final float pressY;
     private final Element target;
@@ -143,15 +145,34 @@ public final class PointerEvent {
         return wheel(x, y, deltaX, deltaY, Modifiers.NONE, target);
     }
 
+    /// A wheel event stating its detents as well as its fraction.
+    ///
+    /// The backend's constructor. Everything else truncates, which is right for a
+    /// synthesized event and wrong for a real touchpad — see [#ticksY()].
+    public static PointerEvent wheel(float x, float y, float deltaX, float deltaY,
+            int ticksX, int ticksY, Modifiers modifiers, Element target) {
+        return new PointerEvent(Kind.WHEEL, x, y, null, 0, deltaX, deltaY, ticksX, ticksY,
+                Float.NaN, Float.NaN, modifiers, target);
+    }
+
     /// A wheel event with modifiers — `Shift` for a fine step, `Ctrl` for zoom.
     public static PointerEvent wheel(float x, float y, float deltaX, float deltaY,
             Modifiers modifiers, Element target) {
+        // Truncated rather than rounded: an accumulator has not reached one
+        // click at 0.5. A caller that knows better passes the detents in.
         return new PointerEvent(Kind.WHEEL, x, y, null, 0, deltaX, deltaY,
-                Float.NaN, Float.NaN, modifiers, target);
+                (int) deltaX, (int) deltaY, Float.NaN, Float.NaN, modifiers, target);
     }
 
     private PointerEvent(Kind kind, float x, float y, Button button, int clickCount,
             float deltaX, float deltaY, float pressX, float pressY,
+            Modifiers modifiers, Element target) {
+        this(kind, x, y, button, clickCount, deltaX, deltaY, (int) deltaX, (int) deltaY,
+                pressX, pressY, modifiers, target);
+    }
+
+    private PointerEvent(Kind kind, float x, float y, Button button, int clickCount,
+            float deltaX, float deltaY, int ticksX, int ticksY, float pressX, float pressY,
             Modifiers modifiers, Element target) {
         this.kind = Objects.requireNonNull(kind, "kind");
         this.x = x;
@@ -160,6 +181,8 @@ public final class PointerEvent {
         this.clickCount = clickCount;
         this.deltaX = deltaX;
         this.deltaY = deltaY;
+        this.ticksX = ticksX;
+        this.ticksY = ticksY;
         this.pressX = pressX;
         this.pressY = pressY;
         this.modifiers = modifiers == null ? Modifiers.NONE : modifiers;
@@ -268,13 +291,38 @@ public final class PointerEvent {
 
     /// How far this scrolled vertically, in lines. Positive is **down**.
     ///
-    /// Lines rather than pixels, because that is the only unit SDL reports:
-    /// there is no pixel-precise delta on the other side of this API to pass on.
-    /// It is a `float` and it is routinely fractional — a touchpad reports
-    /// fractions of a detent, and a scroll view that rounds them scrolls in
-    /// jerks. Multiply by whatever a line is worth in the thing being scrolled.
+    /// Lines rather than pixels, and that is settled rather than pending: SDL
+    /// reports no pixel axis, and ADR-0115 declines to go around it for one.
+    /// What §2.4 wanted from "pixel-precise" is smoothness, and the fraction is
+    /// where the smoothness is — this is a `float` and routinely not a whole
+    /// number, because a touchpad reports parts of a detent. **Multiply by a line
+    /// height**; a scroll view uses `--gb-scroll-line`.
+    ///
+    /// Round this and a slow trackpad scrolls in jerks or not at all. When whole
+    /// clicks are what is wanted — a `select` stepping options, a knob's detent —
+    /// read [#ticksY()] instead, which is accumulated rather than rounded.
     public float deltaY() {
         return deltaY;
+    }
+
+    /// [#deltaX()] accumulated into whole detents.
+    public int ticksX() {
+        return ticksX;
+    }
+
+    /// [#deltaY()] accumulated into whole detents — usually 0, occasionally ±1.
+    ///
+    /// **Not `(int) deltaY()`.** The accumulation is the platform's and it is
+    /// kept across events: a touchpad dragged slowly reports a long run of
+    /// fractions, each of which truncates to nothing, and one of them arrives
+    /// carrying the click those fractions added up to. Truncating per event
+    /// gives a control that never moves; this is a discrete counter that works
+    /// on a trackpad ([ADR-0115]).
+    ///
+    /// A mouse wheel reports ±1 here and ±1.0 in [#deltaY()], so a control
+    /// reading detents behaves the way it always has.
+    public int ticksY() {
+        return ticksY;
     }
 
     /// Where the button went down, or `NaN` if none is held.

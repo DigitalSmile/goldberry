@@ -42,6 +42,14 @@
   --gb-control-height: 32px;
   --gb-list-row-height: 32px;
 
+  /* What one wheel line is worth. The wheel reports lines and a viewport moves
+     pixels, so this is the conversion, and it is a token because it is a feel
+     decision rather than a measurement -- ADR-0115 puts the number here rather
+     than in the event. Three of these is the conventional notch, which is why
+     the wheel's own delta is not simply a row: a list scrolling exactly one row
+     per notch is slower than every other application on the machine. */
+  --gb-scroll-line: 20px;
+
   /* §3's preamble: "metrics ship as component-token defaults
      (`--gb-button-height` etc.); app stylesheets may override component tokens,
      never structure". Each defaults to the density's value, so a density moves

@@ -34,4 +34,9 @@
      here, not there, and an application building its own rows today has the
      token it would otherwise hard-code. */
   --gb-list-row-height: 26px;
+
+  /* A denser row means a line of it is shorter, so a notch covers about the
+     same three rows it does at the regular density rather than travelling
+     further down a shorter list. */
+  --gb-scroll-line: 17px;
 }

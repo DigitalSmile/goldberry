@@ -14,10 +14,14 @@ got out of it.
 **Where the documents disagree with each other** — as opposed to with the code —
 is listed in `docs/ARCHITECTURE.md` §17.1. `docs/design-system.md` and
 `docs/core-widgets.md` are the authority; the architecture document is a summary
-of them and records where it knowingly departs. The five open ones are the
-platform primary modifier for accelerators, pixel-precise wheel deltas, whether
-the catalog is one module or two, `text style=` against `text class=`, and a
-disabled container disabling its descendants.
+of them and records where it knowingly departs. The four open ones are the
+platform primary modifier for accelerators, whether the catalog is one module or
+two, `text style=` against `text class=`, and a disabled container disabling its
+descendants. **Pixel-precise wheel deltas left this list** —
+[ADR-0115](adr/0115-a-wheel-reports-a-fraction-and-a-detent.md) settled it as a
+difference rather than an agreement: what §2.4 wanted from "pixel-precise" is
+scrolling that does not quantize, and a fractional line delivers that without
+the mechanism the sentence named.
 
 ## Overlays, popups and windows
 
