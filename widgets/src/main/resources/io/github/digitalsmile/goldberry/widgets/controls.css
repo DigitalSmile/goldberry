@@ -1652,3 +1652,71 @@ scroll {
 scroll-content {
   flex-shrink: 0;
 }
+
+/* §2.4's overlay scrollbars. Absolutely positioned, so they cost the content no
+   width -- that is the difference between an overlay bar and the reserved 12px
+   gutter the same section describes for "always show scroll bars", which is not
+   built (ADR-0117).
+
+   The track is transparent until the pointer is over the viewport, which is what
+   "6px thumb -> 10px with visible track on hover" means: at rest there is a thumb
+   floating on the content and nothing else. */
+scrollbar {
+  position: absolute;
+  background: transparent;
+  transition: background var(--gb-motion-fast);
+}
+
+/* No padding, and that is load-bearing rather than a style choice. The widget
+   computes the thumb's length and travel against the **viewport's** length,
+   because that is the only measurement it is given (ADR-0117); a bar that inset
+   its track would have a track shorter than the number the arithmetic used, and
+   the thumb would overrun the bottom by exactly the padding. The thumb is
+   centred across the bar instead, which is what the padding was for. */
+scrollbar.vertical {
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 10px;
+  justify-content: flex-start;
+  align-items: center;
+}
+
+scrollbar.horizontal {
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 10px;
+  justify-content: flex-start;
+  align-items: center;
+}
+
+/* §2.4's numbers: 6px at rest, 10 on hover, `full` radius. The width is the
+   thumb's; its *length* is the widget's, because how long it is says what
+   proportion of the document is visible and no selector can know that
+   (ADR-0117). */
+scroll-thumb {
+  background: var(--gb-text-muted);
+  border-radius: 999px;
+  /* Only the colour. §1.7 keeps layout properties off the whitelist and
+     ADR-0067 refuses `transition: width` outright, so the 6->10 widening is a
+     jump rather than a slide -- which is what §1.7 asks for anyway: the
+     alternative is running Yoga per frame to grow a 4px rectangle. */
+  transition: background var(--gb-motion-fast);
+}
+
+scroll-thumb.vertical { width: 6px }
+scroll-thumb.horizontal { height: 6px }
+
+/* Widened from the viewport's hover rather than the thumb's, and deliberately:
+   a 6px target is hard to point at, so the bar has to grow *before* the pointer
+   is on the thumb or it can never be grabbed. §2.4 says "with visible track on
+   hover" for the same reason. */
+scroll:hover scrollbar { background: var(--gb-surface-2) }
+scroll:hover scroll-thumb.vertical { width: 10px }
+scroll:hover scroll-thumb.horizontal { height: 10px }
+
+/* "accent color while dragging". A class and not `:active`, because the thumb is
+   moved by the bar around it rather than pressed itself, so the router's
+   `:active` is on the wrong node. */
+scroll-thumb.dragging { background: var(--gb-accent) }

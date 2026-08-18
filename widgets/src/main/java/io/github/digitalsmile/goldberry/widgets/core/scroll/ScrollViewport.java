@@ -3,6 +3,7 @@ package io.github.digitalsmile.goldberry.widgets.core.scroll;
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
 import io.github.digitalsmile.goldberry.input.Extent;
 import io.github.digitalsmile.goldberry.input.Handles;
+import io.github.digitalsmile.goldberry.input.Measured;
 import io.github.digitalsmile.goldberry.input.Key;
 import io.github.digitalsmile.goldberry.input.KeyEvent;
 import io.github.digitalsmile.goldberry.input.PointerEvent;
@@ -50,8 +51,10 @@ import java.util.Set;
 /// knowing an ancestor exists.
 record ScrollViewport(
         List<Widget> children, ScrollAxis axis, double offsetX, double offsetY,
-        ScrollTarget onScroll, Attributes attributes)
-        implements Widget.Leaf, Styled, Paints, Handles {
+        Extent viewport, Extent content, ScrollFade fade, ScrollTarget onScroll,
+        Boolean draggingVertical, java.util.function.BiConsumer<Boolean, Boolean> onDrag,
+        java.util.function.BiConsumer<Extent, Extent> onMeasured, Attributes attributes)
+        implements Widget.Leaf, Styled, Paints, Handles, Measured {
 
     /// What one wheel line moves, in logical pixels.
     ///
@@ -97,7 +100,40 @@ record ScrollViewport(
 
     @Override
     public List<Widget> children() {
-        return List.of(new ScrollContent(children, axis, offsetX, offsetY));
+        var nodes = new java.util.ArrayList<Widget>(3);
+        nodes.add(new ScrollContent(children, axis, offsetX, offsetY));
+        // The bars are **last**, so they paint over the content -- §2.4 calls
+        // them overlay scrollbars, and paint order is the whole of what makes
+        // them one. They are absolutely positioned by the stylesheet, so being
+        // in the flow costs the content nothing.
+        if (axis.isVertical()) {
+            nodes.add(bar(true, viewport.height(), content.height(), offsetY));
+        }
+        if (axis.isHorizontal()) {
+            nodes.add(bar(false, viewport.width(), content.width(), offsetX));
+        }
+        return List.copyOf(nodes);
+    }
+
+    private ScrollBar bar(boolean vertical, double along, double contentAlong, double offset) {
+        return new ScrollBar(vertical, along, contentAlong, offset,
+                value -> {
+                    // A bar reports one axis; the other keeps what it had.
+                    if (vertical) {
+                        scrollTo(offsetX, value, viewport, content);
+                    } else {
+                        scrollTo(value, offsetY, viewport, content);
+                    }
+                },
+                Boolean.valueOf(vertical).equals(draggingVertical),
+                active -> onDrag.accept(vertical, active));
+    }
+
+    /// Told what the last frame laid this out as, so the bars can be drawn in
+    /// proportion to content nobody has touched ([ADR-0117]).
+    @Override
+    public void measured(Extent bounds, Extent part) {
+        onMeasured.accept(bounds, part);
     }
 
     /// The content, so [PointerEvent#part()] measures the thing being moved.
@@ -112,14 +148,42 @@ record ScrollViewport(
         return true;
     }
 
+    /// While the bars are on their way out — §1.7's idle loop would otherwise
+    /// paint them once at whatever opacity it caught and stop ([ADR-0081]).
+    @Override
+    public boolean isAnimating() {
+        return fade.isAnimating();
+    }
+
     @Override
     public Box render(ComputedStyle style, List<Box> boxes, Context context) {
-        return Box.of().children(boxes.toArray(Box[]::new)).style(style)
+        // The only place a widget is handed a clock, and therefore the only place
+        // "when did this move" can be answered.
+        fade.stamp(context.nowMillis());
+        var opacity = fade.opacity();
+        return Box.of().children(fadeBars(boxes, opacity).toArray(Box[]::new)).style(style)
                 .direction(FlexDirection.COLUMN)
                 // The one property a stylesheet must not be able to take back.
                 // Yoga reads it for sizing -- a child may exceed this box without
                 // it growing -- and the painter reads it as a clip (ADR-0114).
                 .overflow(Overflow.HIDDEN);
+    }
+
+    /// The children with the bars faded to `opacity` and the content left alone.
+    ///
+    /// Applied to the boxes rather than through the cascade because the opacity
+    /// is a function of the clock and no selector can express *when* — the same
+    /// reason `spinner` draws itself rather than declaring a transition.
+    private List<Box> fadeBars(List<Box> boxes, double opacity) {
+        if (opacity >= 1) {
+            return boxes;
+        }
+        var out = new java.util.ArrayList<Box>(boxes.size());
+        for (var i = 0; i < boxes.size(); i++) {
+            // The first child is the content; every one after it is a bar.
+            out.add(i == 0 ? boxes.get(i) : boxes.get(i).opacity(opacity));
+        }
+        return out;
     }
 
     @Override

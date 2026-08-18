@@ -123,6 +123,7 @@
 - [ADR-0114 A clip is a rectangle the painter carries](adr/0114-a-clip-is-a-rectangle-the-painter-carries.md)
 - [ADR-0115 A wheel reports a fraction and a detent](adr/0115-a-wheel-reports-a-fraction-and-a-detent.md)
 - [ADR-0116 A scroll view is a clip, an offset and two extents](adr/0116-a-scroll-view-is-a-clip-an-offset-and-two-extents.md)
+- [ADR-0117 A widget may be told what it measured](adr/0117-a-widget-may-be-told-what-it-measured.md)
 
 ---
 

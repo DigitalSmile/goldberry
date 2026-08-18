@@ -85,6 +85,61 @@ public final class PointerRouter {
     /// Replaces the hit-test snapshot, normally right after a frame is painted.
     public void updateRegions(List<HitTest.Region> regions) {
         this.regions = List.copyOf(Objects.requireNonNull(regions, "regions"));
+        notifyMeasured();
+    }
+
+    /// What each [Measured] widget was told last time, so an unchanging window
+    /// notifies nothing.
+    ///
+    /// Keyed by element identity and rebuilt from the regions each frame, which
+    /// also disposes of the entries for elements that left the tree — a map that
+    /// held them would be a leak of exactly the shape [Element#unmount] exists to
+    /// prevent.
+    private java.util.Map<Element, Measurement> measuredBounds = java.util.Map.of();
+
+    /// The pair a [Measured] widget was last told, so both halves are compared.
+    ///
+    /// Both, and not just the bounds: a scroll view whose viewport is unchanged
+    /// while its content grew is exactly the case a scrollbar has to redraw for,
+    /// and a check on the outer rectangle alone would miss every one of them.
+    private record Measurement(Extent bounds, Extent part) {
+    }
+
+    /// Tells every widget that asked what the frame just laid it out as.
+    ///
+    /// Here because this is the one place that holds the painted rectangles and
+    /// the one call every window makes once per frame — the same argument that
+    /// put [#localFor] here rather than in the widget ([ADR-0117]).
+    private void notifyMeasured() {
+        java.util.Map<Element, Measurement> next = null;
+        for (var region : regions) {
+            if (!(region.owner() instanceof Element element)
+                    || !(element.widget() instanceof Measured measured)) {
+                continue;
+            }
+            var bounds = new Extent(region.width(), region.height());
+            var part = bounds;
+            if (element.widget() instanceof Handles handles && handles.localPart() != null
+                    && partOf(element, handles.localPart()) instanceof Element named) {
+                var namedExtent = extentOf(named);
+                if (namedExtent != Extent.NONE) {
+                    part = namedExtent;
+                }
+            }
+            var measurement = new Measurement(bounds, part);
+            if (next == null) {
+                next = new java.util.IdentityHashMap<>();
+            }
+            next.put(element, measurement);
+            // Only on a change: a still window must notify nothing, or §1.7's
+            // idle frame loop would be woken every frame by a widget being told
+            // what it already knew.
+            if (measurement.equals(measuredBounds.get(element))) {
+                continue;
+            }
+            measured.measured(bounds, part);
+        }
+        measuredBounds = next == null ? java.util.Map.of() : next;
     }
 
     /// Told when the hovered or the focused node changes — see [#onPointingChanged].

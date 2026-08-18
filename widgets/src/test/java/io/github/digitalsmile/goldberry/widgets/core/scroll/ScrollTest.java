@@ -3,6 +3,7 @@ package io.github.digitalsmile.goldberry.widgets.core.scroll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.github.digitalsmile.goldberry.RendererRequirement;
@@ -11,6 +12,7 @@ import io.github.digitalsmile.goldberry.css.Theme;
 import io.github.digitalsmile.goldberry.input.HitTest;
 import io.github.digitalsmile.goldberry.input.Key;
 import io.github.digitalsmile.goldberry.input.Modifiers;
+import io.github.digitalsmile.goldberry.input.PointerEvent;
 import io.github.digitalsmile.goldberry.input.PointerRouter;
 import io.github.digitalsmile.goldberry.layout.RenderTree;
 import io.github.digitalsmile.goldberry.widget.Element;
@@ -131,6 +133,60 @@ class ScrollTest {
             router.keyPressed(key, Modifiers.NONE, false);
             frame();
         }
+
+        /// Where the thumb was drawn, or null when there is none.
+        ///
+        /// Read off the paint like everything else here: a thumb whose length is
+        /// right in the widget and wrong on screen is the bug this is looking
+        /// for.
+        Rect thumb() {
+            var found = new ArrayList<Rect>();
+            // Off the *paint*, not off the hit-test regions: a region carries the
+            // untransformed rectangle with the matrix beside it, and the thumb's
+            // travel is a translate. Reading the region alone would say the thumb
+            // never moves — and would have passed before any of it was built,
+            // which is the trap SegmentedTest hit first.
+            render.forEachPlacedBox(placed -> {
+                if (placed.box().owner() instanceof Element element
+                        && "scroll-thumb".equals(element.type())) {
+                    var matrix = placed.transform();
+                    var layout = placed.layout();
+                    found.add(new Rect(
+                            (float) (matrix.a() * layout.left() + matrix.c() * layout.top()
+                                    + matrix.e()),
+                            (float) (matrix.b() * layout.left() + matrix.d() * layout.top()
+                                    + matrix.f()),
+                            (float) (matrix.a() * layout.width()),
+                            (float) (matrix.d() * layout.height())));
+                }
+            });
+            return found.isEmpty() ? null : found.getFirst();
+        }
+
+        /// The `scrollbar` element, for pointing at.
+        Element bar() {
+            return find(tree.root(), "scrollbar");
+        }
+
+        void pressAt(float x, float y) {
+            router.pointerPressed(x, y, PointerEvent.Button.PRIMARY, 1);
+            frame();
+        }
+
+        void moveTo(float x, float y) {
+            router.pointerMoved(x, y);
+            frame();
+        }
+
+        void release(float x, float y) {
+            router.pointerReleased(x, y, PointerEvent.Button.PRIMARY, 1);
+            frame();
+        }
+    }
+
+    /// A painted rectangle, for the assertions that are about where something
+    /// ended up rather than about what it is.
+    private record Rect(float left, float top, float width, float height) {
     }
 
     private static Element find(Element from, String type) {
@@ -365,6 +421,117 @@ class ScrollTest {
             harness.frame();
 
             assertEquals(scrolled, harness.contentTop(), 0.01);
+        }
+    }
+
+    @Nested
+    @DisplayName("the scrollbar")
+    class Bars {
+
+        @Test
+        @DisplayName("a thumb appears once the viewport has been measured")
+        void thumbAppears() {
+            var harness = new Harness(tallContent());
+
+            // Not on the first frame, and that is the design rather than a
+            // defect: a thumb's length says what proportion of the document is
+            // visible, and nothing knows that until a frame has been laid out
+            // (ADR-0117). The second frame has it.
+            harness.frame();
+
+            assertNotNull(harness.thumb(), "no thumb after a measured frame");
+        }
+
+        @Test
+        @DisplayName("its length is the proportion of the document on screen")
+        void thumbLengthIsProportional() {
+            var harness = new Harness(tallContent());
+            harness.frame();
+
+            var thumb = harness.thumb();
+            // The content is a little over three viewports, so the thumb is a
+            // little under a third of the track. Asserted as a band rather than
+            // a number because the content's height is the test font's business.
+            assertTrue(thumb.height() > VIEWPORT_HEIGHT * 0.15
+                            && thumb.height() < VIEWPORT_HEIGHT * 0.5,
+                    "thumb was " + thumb.height() + " on a " + VIEWPORT_HEIGHT + " track");
+        }
+
+        @Test
+        @DisplayName("a very long document still gets a grabbable thumb")
+        void thumbHasAFloor() {
+            var rows = new ArrayList<Widget>();
+            for (var i = 0; i < 400; i++) {
+                rows.add(new Text("row " + i));
+            }
+            var harness = new Harness(new Scroll(new Column(rows.toArray(Widget[]::new))));
+            harness.frame();
+
+            // Proportionally this thumb would be about 1.5px. Every scrollbar
+            // ever written trades exactness for a target you can hit.
+            assertEquals(ScrollBar.MIN_LENGTH, harness.thumb().height(), 0.5);
+        }
+
+        @Test
+        @DisplayName("the thumb travels as the content scrolls, and reaches the end")
+        void thumbTravels() {
+            var harness = new Harness(tallContent());
+            harness.frame();
+            var atTop = harness.thumb();
+            assertEquals(0, atTop.top(), 0.5);
+
+            harness.press(Key.END);
+
+            var atEnd = harness.thumb();
+            // Level with the bottom of the track, not past it -- which is what
+            // the bar's missing padding is for.
+            assertEquals(VIEWPORT_HEIGHT, atEnd.top() + atEnd.height(), 0.5);
+        }
+
+        @Test
+        @DisplayName("content that fits has no thumb at all")
+        void noThumbWhenNothingOverflows() {
+            var harness = new Harness(new Scroll(new Text("one line")));
+            harness.frame();
+            harness.frame();
+
+            assertNull(harness.thumb(), "a viewport with nothing to scroll drew a thumb");
+        }
+
+        @Test
+        @DisplayName("clicking the track below the thumb pages down")
+        void trackClickPages() {
+            var harness = new Harness(tallContent());
+            harness.frame();
+            var before = harness.contentTop();
+
+            // Near the bottom of the bar, which is below a thumb parked at the
+            // top -- so §2.4's "track-click pages" means forward.
+            harness.pressAt(195, 90);
+
+            assertTrue(harness.contentTop() < before - 50,
+                    "a track click moved " + (before - harness.contentTop()));
+        }
+
+        @Test
+        @DisplayName("dragging the thumb scrolls, and the content follows the pointer")
+        void dragScrolls() {
+            var harness = new Harness(tallContent());
+            harness.frame();
+            var before = harness.contentTop();
+
+            // Press on the thumb itself -- which must *not* jump -- then drag.
+            var thumb = harness.thumb();
+            harness.pressAt(195, thumb.top() + thumb.height() / 2);
+            assertEquals(before, harness.contentTop(), 0.5,
+                    "grabbing the thumb moved the content before the drag began");
+
+            harness.moveTo(195, 60);
+
+            assertTrue(harness.contentTop() < before - 20,
+                    "the drag moved " + (before - harness.contentTop()));
+
+            harness.release(195, 60);
         }
     }
 

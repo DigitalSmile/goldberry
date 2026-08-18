@@ -173,15 +173,25 @@ the mechanism the sentence named.
 
 ## The catalog: specified and unbuilt
 
-- **`scroll` has no scrollbars.** §2.4 asks for an overlay thumb — 6px widening
-  to 10 with a visible track on hover, accent while dragging, fading after 800ms
-  idle, `full` radius — plus track-click paging and a drag. None of it is built.
-  It is the largest single piece left on this widget and it is a second commit
-  rather than a bigger first one: a thumb is a control with a hover state, an
-  idle timer and a capture, and none of that is the viewport. Until then a scroll
-  view gives no visual indication that there is more to see, which is a real
-  usability gap rather than a cosmetic one. —
-  [ADR-0116](adr/0116-a-scroll-view-is-a-clip-an-offset-and-two-extents.md)
+- **The "always show scroll bars" reserved gutter is not built.** §2.4 wants the
+  overlay bar to swap for a classic 12px gutter — "layout, not overlay" — as an
+  app or user setting, and §13 lists it among the accessibility switches. It is a
+  second drawing rather than a flag on the first, and it waits on a settings
+  mechanism that does not exist for reduced motion or density either. The overlay
+  bar itself is built. —
+  [ADR-0117](adr/0117-a-widget-may-be-told-what-it-measured.md)
+- **A scrollbar's thumb stops being proportional on a very long document.** It is
+  floored at 24px, so past about four screens the thumb no longer says how much
+  is visible — only that there is a lot. The trade every scrollbar makes, named
+  here because it is a place the widget knowingly stops telling the truth. —
+  [ADR-0117](adr/0117-a-widget-may-be-told-what-it-measured.md)
+- **`Measured` is a door every widget can now open and almost none should.** A
+  widget that sizes itself from last frame's measurement lags its own content,
+  and one that does so in a way that changes the measurement never settles.
+  Nothing enforces the rule that keeps it safe — read geometry to interpret an
+  input or to draw something that cannot affect layout, never to decide a size —
+  and the scroll view obeys it by construction rather than by check. —
+  [ADR-0117](adr/0117-a-widget-may-be-told-what-it-measured.md)
 - **`scrollIntoView(widget)` is not built, and `tour` and `affix` both want it.**
   §1 names it, §5's `tour` "scrolls the target into view and waits for the frame"
   before positioning a popover, and the offset it would need is a fact about a
