@@ -15,7 +15,7 @@ package io.github.digitalsmile.goldberry.assets;
 /// Blend2D and therefore three new export branches — the machinery that has
 /// caught the same local-symbol bug three times. `docs/design-system.md` §1.4
 /// ships exactly two weights, so the second one is a second face
-/// ([ADR-0066](../../../../../../book/src/adr/0066-a-weight-is-a-face.md)).
+/// ([ADR-0066](../../../../../../book/src/adr/0066-a-weight-is-a-face-and-color-inherits.md)).
 /// [Weight] is what a caller asks for; this enum is what answers.
 public enum BundledFont {
 

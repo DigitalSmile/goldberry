@@ -93,6 +93,36 @@ public final class Goldberry {
         return GoldberryRuntime.isStarted() && GoldberryRuntime.get().loop().ui().isUiThread();
     }
 
+    /// Opens a window for `application`, runs it, and takes it down again.
+    ///
+    /// The front door, and for most applications the only line of `main`:
+    ///
+    /// ```java
+    /// public static void main(String[] args) {
+    ///     Goldberry.launch(new MyApp(), args);
+    /// }
+    /// ```
+    ///
+    /// Everything between opening the window and closing the last font is the
+    /// launcher's — the element tree, the render tree, the renderer, the router,
+    /// the frame loop, damage, the hit-test snapshot and the shutdown ordering —
+    /// because none of it is a decision an application makes differently
+    /// ([ADR-0093](../../../../../book/src/adr/0093-an-application-is-a-root-widget.md)).
+    ///
+    /// Returns when the loop ends: the last window closed, or something called
+    /// [#stop()].
+    ///
+    /// @param args the process arguments, from which the launcher reads
+    ///             `--frames=N` and `--size=WxH` and ignores everything else
+    public static void launch(Application application, String[] args) {
+        new Launcher(application, Launcher.Options.of(args)).run();
+    }
+
+    /// The same, for an application with no arguments to give.
+    public static void launch(Application application) {
+        new Launcher(application, Launcher.Options.NONE).run();
+    }
+
     /// Closes every window and releases the backend.
     ///
     /// Rarely needed: [#run()] returns once the last window closes, and the

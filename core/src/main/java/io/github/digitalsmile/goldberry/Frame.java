@@ -182,7 +182,7 @@ public final class Frame {
     /// sets an absolute matrix per node. That is not a limitation worked around —
     /// it is what lets hit testing invert the same matrix the painter used,
     /// rather than a second one built from the same inputs by different code
-    /// ([ADR-0068](../../../book/src/adr/0068-the-transform-stack-is-java-side.md)).
+    /// ([ADR-0068](../../../../../book/src/adr/0068-the-transform-stack-is-java-side.md)).
     ///
     /// The display scale is **not** the caller's to apply: it is already on the
     /// context and is composed with this. A frame at 150% given `translate(10, 0)`
@@ -206,7 +206,7 @@ public final class Frame {
     /// strength; fading happens once, here, to the finished raster. Fading each
     /// shape as it was drawn gives a different answer wherever two of them
     /// overlap — the lower one shows through the upper — and CSS specifies this
-    /// one ([ADR-0071](../../../book/src/adr/0071-a-layer-is-a-subtrees-raster.md)).
+    /// one ([ADR-0071](../../../../../book/src/adr/0071-a-layer-is-a-subtrees-raster.md)).
     ///
     /// The layer's pixels are its own; this reads them and copies. Nothing here
     /// takes ownership, so the same layer can be composited into several frames
@@ -253,7 +253,7 @@ public final class Frame {
     /// the pixels the last frame left there. That last clause is the whole
     /// correctness condition, and it is not this class's to promise — see
     /// [io.github.digitalsmile.goldberry.backend.BackendWindow#retainsFrameContents()]
-    /// ([ADR-0072](../../../book/src/adr/0072-a-partial-repaint-needs-a-promise.md)).
+    /// ([ADR-0072](../../../../../book/src/adr/0072-a-partial-repaint-needs-a-promise.md)).
     ///
     /// Intersected with any clip already in force. [#resetClip()] undoes it.
     public void clipTo(double x, double y, double width, double height) {

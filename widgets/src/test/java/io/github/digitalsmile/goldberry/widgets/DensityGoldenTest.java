@@ -1,5 +1,8 @@
 package io.github.digitalsmile.goldberry.widgets;
 
+import io.github.digitalsmile.goldberry.widget.Attributes;
+import io.github.digitalsmile.goldberry.widgets.core.Row;
+
 import io.github.digitalsmile.goldberry.RendererRequirement;
 import io.github.digitalsmile.goldberry.css.CascadeLayer;
 import io.github.digitalsmile.goldberry.css.Stylesheet;
@@ -9,7 +12,10 @@ import io.github.digitalsmile.goldberry.layout.BoxPainter;
 import io.github.digitalsmile.goldberry.widget.ElementTree;
 import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widget.WidgetRenderer;
-import io.github.digitalsmile.goldberry.widget.Widgets;
+import io.github.digitalsmile.goldberry.widgets.controls.TestFont;
+import io.github.digitalsmile.goldberry.widgets.controls.button.Button;
+import io.github.digitalsmile.goldberry.widgets.controls.checkbox.Checkbox;
+import io.github.digitalsmile.goldberry.widgets.controls.radio.Radio;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -55,7 +61,7 @@ class DensityGoldenTest {
     /// One of each sized control, so a density that reached only some of them
     /// shows up as a ragged row rather than as a passing test.
     private Widget scene() {
-        return new Widgets.Row(
+        return new Row(
                 List.of(
                         new Button("Save", null, null, false, id("save")),
                         new Checkbox("Frost", Checkbox.Value.CHECKED, null, null, false, id("frost")),
@@ -63,8 +69,8 @@ class DensityGoldenTest {
                 id("scene"));
     }
 
-    private static Widgets.Attributes id(String id) {
-        return new Widgets.Attributes(id, Set.of(), id);
+    private static Attributes id(String id) {
+        return new Attributes(id, Set.of(), id);
     }
 
     @Test

@@ -147,7 +147,7 @@ Behavior and API live in `core-widgets.md`; GDS pins the numbers. Metrics ship a
 | `checkbox` / `radio` | glyph 16; hit ≥32; label gap 8 |
 | `toggle` | track 36×20; thumb 16; travel 16 |
 | `slider` | track 4; thumb 16 (`full` radius); hit ≥32 cross-axis |
-| `knob` | diameters 32 / 48; arc 270°; value drag 200px per full range, ×0.1 with fine modifier |
+| `knob` | diameters 32 / 48; arc 270° (travel starts at 7:30); dial inset 5 from the ring; pointer line 0.35→0.78 of the dial radius, 2px; value drag 200px per full range, ×0.1 with fine modifier; click on the ring positions the value, click on the dial grabs it — see ADR-0090 |
 | `menu` row | height 28 (24); padding-x 12; icon column 20; accelerator right-aligned `caption` |
 | `tooltip` | padding 6/8; radius 4; `caption`; delay 500ms show / 100ms move-between |
 | `dialog` | padding 24; title `title`; action bar gap 8, top margin 24; min width 320, max 80% window |
@@ -156,7 +156,29 @@ Behavior and API live in `core-widgets.md`; GDS pins the numbers. Metrics ship a
 | `panel` / `card` | padding 16; radius 8; card = elevation 1 |
 | `list` row | height 32 (26); padding-x 12; selection = `--gb-selection` full-row |
 | `progress` | track height 4; radius `full` |
+| `badge` | height 20; padding-x 8; radius `full`; `caption`; filled variants pin their own foreground per §1.2's 4.5:1 floor — see ADR-0087 |
 | `level-meter` (mic) | segment width 3, gap 1; peak-hold 1.5s |
+| `link` | `body`; underline on hover and always in `:focus-visible`; external icon 12 with gap 4 |
+| `segmented` | height 32 (28); segment padding-x 12; radius 8 outer, 0 between; 1px divider in `--gb-border`; `body-strong` |
+| `button.outlined` | 1px `--gb-border`; transparent fill; `button` metrics otherwise |
+| `button.square` / `.circle` | radius 0 / `full`; a circle is `--gb-button-height` square |
+| `button[float]` | offset 24 from both window edges; elevation 1; icon-only ⇒ 48 square |
+| `date-picker` / `time-picker` | field = `text-input`; popup radius 12, padding 8; day cell 32 square, radius `full` |
+| `calendar` | day cell 32 (28) square; header row `caption` in `--gb-text-muted`; grid gap 0; radius `full` on the selected day, range ends only |
+| `color-picker` | swatch 24, radius 4; plane 200×160; hue/alpha sliders `slider` metrics; preset swatch 20, gap 4 |
+| `code-input` | box 40×48 (36×44); gap 8; radius 4; `title`, centred; group gap 16 at the midpoint when `length` is even |
+| `breadcrumbs` | height 24; `body`; separator = `chevron-right` 16 in `--gb-text-muted`, gap 4; overflow menu after 4 crumbs |
+| `steps` | marker 24 (`full` radius); connector 2px; label `body-strong`, description `caption`; gap 12 horizontal / 8 vertical |
+| `wizard` | `steps` on top with 24 below; action bar = `dialog`'s (gap 8, top margin 24) |
+| `collapse` | header height 40 (36); padding-x 12; chevron 16; body padding 12; 1px `--gb-border` between siblings |
+| `carousel` | dot 8, gap 8, active `--gb-accent`; prev/next = `button.ghost.circle`; content padding 0 |
+| `statistic` | value `display`, label `caption` in `--gb-text-muted`, delta `body-strong`; gap 4; sparkline 64×24 |
+| `skeleton` | radius 4 (`full` for `circle`); text line height = its token's line-height, last line 60% width; pulse 1.2s `linear` |
+| `message` | padding 12/16; radius 8; icon 20 with gap 12; 1px border and a 4% tint of its `kind` colour |
+| `tour` | popover radius 12, padding 16, max width 320; veil per §1.5; target cut-out inset −4 with radius 8 |
+| `tree` row | `list` row metrics; indent 20 per level; chevron 16 in the indent gutter |
+| `timeline` | marker 12 (`full`); axis 2px in `--gb-border`; row gap 16; timestamp `caption` |
+| `affix` | no metrics of its own; `:affixed` adds elevation 1 |
 
 ---
 
@@ -184,6 +206,20 @@ Durations reference §1.7 tokens (`fast`/`base`/`overlay`); enters use `ease-ent
 | `split-pane` | drag: 1:1 · collapse/expand: instant in v1 |
 | frost surfaces | fade in/out as whole layers with their component; **blur radius never animates** |
 | `camera-view` / meters | live content is data, not motion — permission-state placeholders cross-fade fast |
+| `link` | underline: `opacity` fast — the underline is always laid out, so nothing reflows |
+| `segmented` | selection indicator `translate`+width between segments, base — `tabs`' effect, same controller |
+| `button[float]` | in: `opacity` + `scale` 0.9→1, base · out: reverse, fast |
+| `date-picker` / `color-picker` / autocomplete popup | as `popover` |
+| `calendar` | month change: content `opacity` cross-fade fast — **never a slide**, because the grid is the same shape and sliding it implies the days moved |
+| `code-input` | focus moves between boxes: ring is instant per §1.7 rule 3; no travel effect |
+| `steps` | state change: marker `background-color` + `color` fast; connector fill `transform: scaleX` base |
+| `collapse` | chevron `rotate` base; body **does not animate** — height is not on the whitelist (§1.7) and the body is unmounted while closed |
+| `carousel` | slide change: `translate` base, `ease-enter` · auto-advance suspended on hover, on focus within, and under reduced motion |
+| `skeleton` | opacity pulse 1.2s `linear` loop — the one decoration allowed to loop (§1.7 rule 4) · reduced-motion: holds at its dimmest |
+| `message` | in: `opacity` + 2px rise, base · out: `opacity` fast · siblings reflow via `translate`, like `toast` |
+| `tour` | stop change: veil cut-out `translate`+size base, popover as `popover`; the target scrolls into view *before* the popover moves |
+| `tree` | expand/collapse: chevron `rotate` base; rows do not animate in or out (as `list`) |
+| `affix` | detach/attach: `opacity` on the elevation shadow, fast — the child itself never animates position |
 
 ## 4. Accessibility baseline
 

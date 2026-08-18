@@ -1,0 +1,6 @@
+// A fixture for ResourceLoadingTest. The second child carries non-ASCII, which
+// is what proves the reader is UTF-8 and not the platform default.
+row id="sample" {
+  text "plain"
+  text "é—ü"
+}

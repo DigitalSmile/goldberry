@@ -9,6 +9,11 @@ dependencies {
     implementation project(':core')
     implementation project(':widgets')
 
+    // The registry generator (ADR-0096). Build-time only: it runs inside javac
+    // and nothing it produces references it, so it never reaches the runtime
+    // classpath or the module graph.
+    annotationProcessor project(':processor')
+
     // Logback only here, and only at runtime. The toolkit binds no SLF4J
     // provider, so choosing one is the application's call -- this is what making
     // that call looks like (ADR-0023).

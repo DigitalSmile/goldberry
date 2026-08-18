@@ -60,6 +60,43 @@ public final class KdlParser {
         return nodes;
     }
 
+    /// Parses a document from a resource beside `owner`.
+    ///
+    /// The markup half of [io.github.digitalsmile.goldberry.css.Stylesheet#resource],
+    /// and it exists for the same reason: a `.kdl` file next to the class that
+    /// inflates it is a document a designer can edit and a text block in Java is
+    /// not — which is most of the point of having markup at all
+    /// ([ADR-0093](../../../../../../book/src/adr/0093-an-application-is-a-root-widget.md)).
+    ///
+    /// UTF-8, and a missing resource is an error rather than an empty document:
+    /// a window that inflates nothing renders nothing, with no clue why.
+    ///
+    /// @throws IllegalStateException if the resource is not on the module path
+    /// @throws KdlSyntaxException if it does not parse, with the position in it
+    public static List<KdlNode> resource(Class<?> owner, String name) {
+        java.util.Objects.requireNonNull(owner, "owner");
+        java.util.Objects.requireNonNull(name, "name");
+        try (var in = owner.getResourceAsStream(name)) {
+            if (in == null) {
+                throw new IllegalStateException(
+                        "no markup resource \"" + name + "\" beside " + owner.getName()
+                                + ". Either it is missing from src/main/resources/"
+                                + owner.getPackageName().replace('.', '/') + "/, or "
+                                + (owner.getModule().isNamed()
+                                        && !owner.getModule().isOpen(owner.getPackageName())
+                                    ? "module " + owner.getModule().getName()
+                                            + " does not open the package: JPMS encapsulates"
+                                            + " resources, so add `opens "
+                                            + owner.getPackageName() + ";` to its module-info"
+                                    : "it is not on the module path"));
+            }
+            return parse(new String(
+                    in.readAllBytes(), java.nio.charset.StandardCharsets.UTF_8));
+        } catch (java.io.IOException e) {
+            throw new java.io.UncheckedIOException("could not read " + name, e);
+        }
+    }
+
     /// The spec preprocesses CR and CRLF into LF. Doing it once means no later
     /// rule has to know there are three spellings of a newline.
     private static String normalizeNewlines(String source) {

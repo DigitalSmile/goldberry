@@ -8,6 +8,7 @@ import io.github.digitalsmile.goldberry.backend.PhysicalSize;
 import io.github.digitalsmile.goldberry.backend.PixelBuffer;
 import io.github.digitalsmile.goldberry.backend.PixelFormat;
 import io.github.digitalsmile.goldberry.backend.WindowSpec;
+import io.github.digitalsmile.goldberry.input.Modifiers;
 import io.github.digitalsmile.goldberry.natives.log.Logs;
 import io.github.digitalsmile.goldberry.natives.log.Startup;
 import java.util.List;
@@ -393,9 +394,9 @@ public final class Window implements AutoCloseable {
         return this;
     }
 
-    void handlePointerMoved(float x, float y) {
+    void handlePointerMoved(float x, float y, int modifiers) {
         if (router != null) {
-            router.pointerMoved(x, y);
+            router.pointerMoved(x, y, Modifiers.fromSdl(modifiers));
             repaintIfRestyled();
         }
     }
@@ -417,23 +418,23 @@ public final class Window implements AutoCloseable {
         }
     }
 
-    void handlePointerPressed(float x, float y, int button, int clickCount) {
+    void handlePointerPressed(float x, float y, int button, int clickCount, int modifiers) {
         if (router != null) {
-            router.pointerPressed(x, y, toButton(button), clickCount);
+            router.pointerPressed(x, y, toButton(button), clickCount, Modifiers.fromSdl(modifiers));
             repaintIfRestyled();
         }
     }
 
-    void handlePointerReleased(float x, float y, int button, int clickCount) {
+    void handlePointerReleased(float x, float y, int button, int clickCount, int modifiers) {
         if (router != null) {
-            router.pointerReleased(x, y, toButton(button), clickCount);
+            router.pointerReleased(x, y, toButton(button), clickCount, Modifiers.fromSdl(modifiers));
             repaintIfRestyled();
         }
     }
 
-    void handlePointerWheel(float x, float y, float deltaX, float deltaY) {
+    void handlePointerWheel(float x, float y, float deltaX, float deltaY, int modifiers) {
         if (router != null) {
-            router.pointerWheel(x, y, deltaX, deltaY);
+            router.pointerWheel(x, y, deltaX, deltaY, Modifiers.fromSdl(modifiers));
         }
     }
 

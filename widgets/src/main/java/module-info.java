@@ -11,7 +11,47 @@
 module io.github.digitalsmile.goldberry.widgets {
     requires transitive io.github.digitalsmile.goldberry.core;
 
-    /// The catalog itself. One package rather than one per group (ADR-0014): a
-    /// `button` and a `line-chart` are the same kind of thing to an importer.
+    /// The module-level furniture: the KDL registry, the stylesheets, and the
+    /// three lookups a document resolves names against ([Controls], [Actions],
+    /// [Icons], [Density]). Not widgets — an application reaches for exactly one
+    /// of these to wire a window up, and then never again.
     exports io.github.digitalsmile.goldberry.widgets;
+
+    /// `docs/core-widgets.md` §3's `controls` group, **one package per control**.
+    ///
+    /// One module, packages by group — a change of mind about half of ADR-0014,
+    /// recorded as ADR-0091: the single *module* argument held, the single
+    /// *package* one did not survive the catalog reaching thirty types with
+    /// `form`, `panel`, `nav`, `overlay` and `collection` still to come.
+    ///
+    /// The per-control split is what makes ADR-0065's rule a boundary rather
+    /// than a convention. A part is CSS-selectable and deliberately not
+    /// constructible, which it expresses by being package-private — and with one
+    /// package that meant "visible to the whole catalog", so nothing stopped a
+    /// checkbox reaching into a slider's thumb. A `slider-thumb` is now invisible
+    /// outside `…controls.slider`, enforced by the compiler.
+    ///
+    /// Each line below therefore exports exactly one public widget (two for
+    /// `radio`) and hides its parts. `…controls` itself carries only [Scale],
+    /// which `slider` and a future `fader` share.
+    /// `core-widgets.md` §1, §2 and §5's structural widgets — `row`, `column`,
+    /// `spacer`, `text`, `panel` — and the registry that builds them. They were
+    /// nested records inside a `Widgets` class in `:core` until ADR-0092: the
+    /// engines needed something to prove the widget tree against before there was
+    /// a catalog, and once there was one, `:core` was shipping five widgets it
+    /// had no other use for.
+    exports io.github.digitalsmile.goldberry.widgets.core;
+    exports io.github.digitalsmile.goldberry.widgets.text;
+    exports io.github.digitalsmile.goldberry.widgets.panel;
+
+    exports io.github.digitalsmile.goldberry.widgets.controls;
+    exports io.github.digitalsmile.goldberry.widgets.controls.badge;
+    exports io.github.digitalsmile.goldberry.widgets.controls.button;
+    exports io.github.digitalsmile.goldberry.widgets.controls.checkbox;
+    exports io.github.digitalsmile.goldberry.widgets.controls.knob;
+    exports io.github.digitalsmile.goldberry.widgets.controls.progressbar;
+    exports io.github.digitalsmile.goldberry.widgets.controls.radio;
+    exports io.github.digitalsmile.goldberry.widgets.controls.slider;
+    exports io.github.digitalsmile.goldberry.widgets.controls.spinner;
+    exports io.github.digitalsmile.goldberry.widgets.controls.toggle;
 }

@@ -205,31 +205,52 @@ public final class HeadlessWindow implements BackendWindow {
     /// display (ADR-0019); pointer events are no different, and a test that had
     /// to open a window to check a hover would not run in CI.
     public void movePointer(float x, float y) {
+        movePointer(x, y, 0);
+    }
+
+    /// The same, with the platform's modifier bitmask — what a test driving a
+    /// knob's fine-adjustment drag needs (ADR-0089).
+    public void movePointer(float x, float y, int modifiers) {
         backend.requireUiThread();
         requireOpen();
-        backend.post(new BackendEvent.PointerMoved(this, x, y));
+        backend.post(new BackendEvent.PointerMoved(this, x, y, modifiers));
     }
 
     /// Queues a pointer press. `button` is SDL's numbering: 1 is primary.
     public void pressPointer(float x, float y, int button, int clickCount) {
+        pressPointer(x, y, button, clickCount, 0);
+    }
+
+    /// The same, with modifiers.
+    public void pressPointer(float x, float y, int button, int clickCount, int modifiers) {
         backend.requireUiThread();
         requireOpen();
-        backend.post(new BackendEvent.PointerPressed(this, x, y, button, clickCount));
+        backend.post(new BackendEvent.PointerPressed(this, x, y, button, clickCount, modifiers));
     }
 
     /// Queues a pointer release.
     public void releasePointer(float x, float y, int button, int clickCount) {
+        releasePointer(x, y, button, clickCount, 0);
+    }
+
+    /// The same, with modifiers.
+    public void releasePointer(float x, float y, int button, int clickCount, int modifiers) {
         backend.requireUiThread();
         requireOpen();
-        backend.post(new BackendEvent.PointerReleased(this, x, y, button, clickCount));
+        backend.post(new BackendEvent.PointerReleased(this, x, y, button, clickCount, modifiers));
     }
 
     /// Queues a wheel turn. Deltas are in lines, positive down and right —
     /// already normalized, as a real backend delivers them.
     public void scrollPointer(float x, float y, float deltaX, float deltaY) {
+        scrollPointer(x, y, deltaX, deltaY, 0);
+    }
+
+    /// The same, with modifiers.
+    public void scrollPointer(float x, float y, float deltaX, float deltaY, int modifiers) {
         backend.requireUiThread();
         requireOpen();
-        backend.post(new BackendEvent.PointerWheel(this, x, y, deltaX, deltaY));
+        backend.post(new BackendEvent.PointerWheel(this, x, y, deltaX, deltaY, modifiers));
     }
 
     /// Queues the pointer leaving the window.

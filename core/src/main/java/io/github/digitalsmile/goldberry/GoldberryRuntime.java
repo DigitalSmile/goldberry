@@ -120,16 +120,17 @@ final class GoldberryRuntime {
             case BackendEvent.Resized resized -> window.handleResize(resized.size());
             case BackendEvent.ScaleChanged rescaled -> window.handleScaleChange(rescaled.scale());
             case BackendEvent.CloseRequested ignored -> window.handleCloseRequest();
-            case BackendEvent.PointerMoved moved -> window.handlePointerMoved(moved.x(), moved.y());
+            case BackendEvent.PointerMoved moved ->
+                    window.handlePointerMoved(moved.x(), moved.y(), moved.modifiers());
             case BackendEvent.PointerPressed pressed ->
                     window.handlePointerPressed(pressed.x(), pressed.y(),
-                            pressed.button(), pressed.clickCount());
+                            pressed.button(), pressed.clickCount(), pressed.modifiers());
             case BackendEvent.PointerReleased released ->
                     window.handlePointerReleased(released.x(), released.y(),
-                            released.button(), released.clickCount());
+                            released.button(), released.clickCount(), released.modifiers());
             case BackendEvent.PointerWheel wheel ->
                     window.handlePointerWheel(wheel.x(), wheel.y(),
-                            wheel.deltaX(), wheel.deltaY());
+                            wheel.deltaX(), wheel.deltaY(), wheel.modifiers());
             case BackendEvent.PointerExited ignored -> window.handlePointerExited();
             case BackendEvent.KeyPressed key ->
                     window.handleKeyPressed(key.keycode(), key.modifiers(), key.repeat());

@@ -54,6 +54,18 @@
   --gb-success: var(--nord14);
   --gb-info: var(--nord9);
 
+  /* The hue, and the hue at a lightness that can carry text. See nord-dark for
+     the whole argument; what matters here is that **`--gb-danger-fill` is the
+     same value in both files and `--gb-accent-fill` is not**. `--nord11` is a
+     mid-tone on every theme, so the red that carries `--nord6` is one red; the
+     accent is `--nord8` on dark and `--nord10` here, so only this file has to
+     take it down (ADR-0087, ADR-0088). */
+  /* --nord10 at 40% lightness: 5.38:1 under --nord6, where --nord10 itself is
+     3.50:1. */
+  --gb-accent-fill: #456387;
+  /* --nord11 at 44% lightness: 5.44:1 under --nord6. */
+  --gb-danger-fill: #a0414a;
+
   /* nord8 at 30%. Written as #rrggbbaa rather than rgba() so that the palette
      entry it derives from stays visible in the value. */
   --gb-selection: #88c0d04d;
@@ -67,14 +79,24 @@
   --gb-button-bg-active: #ccd3df;
   --gb-button-text: var(--nord0);
 
-  --gb-button-primary-bg: var(--nord10);
-  --gb-button-primary-bg-hover: #54749c;
-  --gb-button-primary-bg-active: #4a678b;
+  /* **The whole ramp moved down two steps.** It was `--nord10` at rest, and
+     `--nord6` on `--nord10` is 3.50:1 -- below §1.2's floor, on the most-used
+     button in the toolkit, since the day it shipped. The value that was
+     `:active` is now roughly where rest sits, which is the shape of every fix in
+     ADR-0088: the darkest step of each ramp already passed, so the ramp did not
+     need redesigning, it needed sliding. */
+  --gb-button-primary-bg: var(--gb-accent-fill);
+  --gb-button-primary-bg-hover: #3e5979;
+  --gb-button-primary-bg-active: #384f6c;
   --gb-button-primary-text: var(--nord6);
 
-  --gb-button-danger-bg: var(--nord11);
-  --gb-button-danger-bg-hover: #b0555e;
-  --gb-button-danger-bg-active: #9d4b53;
+  /* The same slide, and the same three values the dark theme now uses -- because
+     the hue is the same and so is the text on it. A danger button looks
+     identical on both themes, which is not a coincidence to be tidied away: what
+     picks its colour is the fill, not the theme (ADR-0087). */
+  --gb-button-danger-bg: var(--gb-danger-fill);
+  --gb-button-danger-bg-hover: #913b43;
+  --gb-button-danger-bg-active: #83353c;
   --gb-button-danger-text: var(--nord6);
 
   /* The button's ramp, exactly as on the dark theme and for the same reason:
@@ -98,8 +120,16 @@
      stays accent-coloured under the pointer and darkens, because the mark inside
      it is drawn for an accent background and would disappear on a pale one. */
   --gb-checkbox-bg-checked: var(--gb-accent);
-  --gb-checkbox-bg-checked-hover: var(--gb-button-primary-bg-hover);
-  --gb-checkbox-bg-checked-active: var(--gb-button-primary-bg-active);
+  /* The accent's own ramp, and on this theme it is **no longer the button's**.
+     `button.primary` moved two steps darker so its label clears §1.2's 4.5:1;
+     a checked glyph carries a mark rather than text, which §1.2 asks 3:1 of, and
+     darkening it for a rule that does not apply to it would have moved every
+     checkbox, radio and switch in the toolkit for nothing. These are the values
+     the button's ramp used to hold (ADR-0088). */
+  --gb-accent-bg-hover: #54749c;
+  --gb-accent-bg-active: #4a678b;
+  --gb-checkbox-bg-checked-hover: var(--gb-accent-bg-hover);
+  --gb-checkbox-bg-checked-active: var(--gb-accent-bg-active);
   --gb-checkbox-mark: transparent;
   --gb-checkbox-mark-checked: var(--nord6);
 
@@ -112,8 +142,8 @@
   --gb-radio-bg-active: #ccd3df;
   --gb-radio-border-hover: var(--nord3);
   --gb-radio-bg-checked: var(--gb-accent);
-  --gb-radio-bg-checked-hover: var(--gb-button-primary-bg-hover);
-  --gb-radio-bg-checked-active: var(--gb-button-primary-bg-active);
+  --gb-radio-bg-checked-hover: var(--gb-accent-bg-hover);
+  --gb-radio-bg-checked-active: var(--gb-accent-bg-active);
   --gb-radio-dot: transparent;
   --gb-radio-dot-checked: var(--nord6);
 
@@ -140,8 +170,8 @@
   --gb-toggle-track-bg-hover: var(--nord4);
   --gb-toggle-track-bg-active: #ccd3df;
   --gb-toggle-track-bg-checked: var(--gb-accent);
-  --gb-toggle-track-bg-checked-hover: var(--gb-button-primary-bg-hover);
-  --gb-toggle-track-bg-checked-active: var(--gb-button-primary-bg-active);
+  --gb-toggle-track-bg-checked-hover: var(--gb-accent-bg-hover);
+  --gb-toggle-track-bg-checked-active: var(--gb-accent-bg-active);
   --gb-toggle-thumb-bg: var(--nord3);
   --gb-toggle-thumb-bg-checked: #ffffff;
 
@@ -169,6 +199,47 @@
      wherever it appears. */
   --gb-progress-track-bg: var(--nord4);
   --gb-progress-fill-bg: var(--gb-accent);
+
+  /* The knob. See nord-dark; the ramp darkens here where that one lightens,
+     which is the whole reason these are two files. */
+  --gb-knob-bg: var(--nord5);
+  --gb-knob-bg-hover: var(--nord4);
+  --gb-knob-bg-active: #ccd3df;
+  --gb-knob-track: var(--gb-border);
+  --gb-knob-arc: var(--gb-accent);
+  /* The pointer, on the dial rather than on the window -- `--gb-text` is what
+     reads on a *surface*, and the dial is one step off it. §1.2 asks 3:1 of a
+     stroke rather than 4.5:1 of text, and this clears it on the whole ramp. */
+  --gb-knob-pointer: var(--gb-text);
+
+  /* Badge (design-system.md §3's `badge` row). See nord-dark for the whole
+     argument; what matters here is that **the aurora pairings are identical**
+     to that file's. Those hues are theme-invariant, so the foreground a fill
+     needs is too, and `--gb-badge-warning-text` is `--nord0` in both files
+     because #ebcb8b is a light yellow in both (ADR-0087).
+
+     The two derived fills differ, because the two colours that fail differ:
+     `--gb-danger` fails on both themes and takes the same derived red, while
+     `--gb-accent` is `--nord10` here rather than `--nord8` and is the one that
+     needs taking down. Checked in CI by ContrastTest. */
+  --gb-badge-bg: var(--gb-surface-2);
+  --gb-badge-text: var(--gb-text);
+
+  --gb-badge-accent-bg: var(--gb-accent-fill);
+  --gb-badge-accent-text: var(--nord6);
+
+  /* Identical to the dark theme's: the hue is the same and so is the failure. */
+  --gb-badge-danger-bg: var(--gb-danger-fill);
+  --gb-badge-danger-text: var(--nord6);
+
+  --gb-badge-warning-bg: var(--gb-warning);
+  --gb-badge-warning-text: var(--nord0);
+
+  --gb-badge-success-bg: var(--gb-success);
+  --gb-badge-success-text: var(--nord0);
+
+  --gb-badge-info-bg: var(--gb-info);
+  --gb-badge-info-text: var(--nord0);
 
   /* A black wash, because a light theme's surfaces are already bright. */
   --gb-overlay-hover: #00000012;

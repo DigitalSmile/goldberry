@@ -1,0 +1,60 @@
+/*
+ * The showcase's own stylesheet: the layout of *this* window, and nothing about
+ * how a button looks.
+ *
+ * In the APPLICATION layer, so it wins over the toolkit's base rules -- and every
+ * colour in it is a var(--gb-*), which is what lets the theme button work without
+ * this file knowing a theme exists.
+ *
+ * A resource and not a text block in Showcase.java: the toolkit loads its own
+ * theme and control sheets this way, an application should be able to as well,
+ * and CSS wrapped in Java quotes is CSS no editor will highlight (ADR-0093).
+ */
+
+/* `color` on the root, so nothing in this window can resolve to
+   ComputedStyle.INITIAL's black. That default is deliberate --
+   ADR-0066 keeps it unthemed so a missing stylesheet looks missing --
+   which means an application has to say what its text colour is
+   somewhere, and the root is the one place that covers everything.
+   A control gets away with saying nothing because `controls.css` sets
+   `color` on `checkbox`, `radio`, `toggle` and `slider` themselves; a
+   bare `text` does not. */
+#root      { flex-direction: column; background: var(--gb-bg);
+             color: var(--gb-text) }
+
+#bar       { height: 44px; padding: 0 16px; gap: 12px;
+             align-items: center; background: var(--gb-surface) }
+#title     { color: var(--gb-text) }
+
+#body      { flex-grow: 1; padding: 16px; gap: 16px }
+#sidebar   { width: 30%; padding: 12px; gap: 8px;
+             flex-direction: column; background: var(--gb-surface) }
+#content   { flex-grow: 1; padding: 16px; gap: 16px;
+             flex-direction: column; background: var(--gb-surface-2) }
+#prose     { color: var(--gb-text) }
+#actions   { gap: 8px; align-items: center }
+/* §1.3's 8 between related controls, and `align-items: center`
+   because a chip's 20px is shorter than the row it sits in. */
+#badges    { gap: 8px; align-items: center }
+#knobs     { gap: 8px; align-items: center }
+/* §1.3's 8 for related controls. It was 4, which is tighter than the
+   design system's own scale and which the progress bar was the first
+   thing to show: a 4px line sitting 4px from a control above it and a
+   spinner below it reads as one crowded lump rather than as three
+   things. */
+#options   { flex-direction: column; gap: 8px }
+/* The bar and the spinner are one group and the options above them
+   are another, so §1.3's 16 separates them -- as a `padding-top` on
+   top of the column's 8, because a gap is one number for every child
+   and this is a boundary rather than a spacing. */
+#task      { flex-direction: column; gap: 8px; padding-top: 8px }
+/* The spinner and its label are a glyph and its text, so they take the
+   same 8px gap and the same centred alignment a `checkbox` gives its
+   own -- and without `align-items` the label would stretch to the
+   row's height and sit off the ring's centre. */
+#busy      { gap: 8px; align-items: center }
+/* `body`, not `caption`: this is a status line beside a control, which
+   is the line §1.4 draws -- `caption` is for secondary text under one.
+   Muted, because what it says is a state and not content. */
+#busy-label { color: var(--gb-text-muted) }
+.caption   { color: var(--gb-text-muted) }

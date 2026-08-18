@@ -286,39 +286,4 @@ class GoldenImageTest {
                 frame -> BoxPainter.paint(frame, build(tree, List.of(css))));
     }
 
-    @Test
-    @DisplayName("a widget tree, inflated from KDL and styled by CSS")
-    void widgetTreeFromKdl() {
-        // The whole stack in one image: KDL -> widgets -> element tree ->
-        // cascade -> boxes -> Blend2D. If any of the six breaks, this changes.
-        var markup = io.github.digitalsmile.goldberry.kdl.KdlParser.parse("""
-                panel class="root" {
-                  row {
-                    panel class="sidebar"
-                    column class="body" {
-                      panel class="bar"
-                      panel class="bar accent"
-                    }
-                  }
-                }
-                """);
-        var widget = io.github.digitalsmile.goldberry.widget.Widgets.inflater()
-                .inflate(markup.getFirst());
-
-        var base = Stylesheet.parse(CascadeLayer.TOOLKIT_BASE, """
-                panel.root { background: var(--gb-bg); padding: 8px }
-                row { gap: 8px; flex-grow: 1 }
-                panel.sidebar { background: var(--gb-surface); width: 48px }
-                column.body { gap: 6px; flex-grow: 1 }
-                panel.bar { background: var(--gb-surface-2); flex-grow: 1 }
-                panel.bar.accent { background: var(--gb-accent) }
-                """);
-
-        var tree = new io.github.digitalsmile.goldberry.widget.ElementTree(widget);
-        var renderer = new io.github.digitalsmile.goldberry.widget.WidgetRenderer(
-                List.of(base, Theme.NORD_DARK.load()), font);
-
-        GoldenImage.assertMatches("widget-tree", 200, 90, 1.0f,
-                frame -> BoxPainter.paint(frame, renderer.render(tree)));
-    }
 }

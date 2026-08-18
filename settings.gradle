@@ -29,9 +29,14 @@ rootProject.name = 'goldberry'
 // :example is the showcase. It is a subproject rather than a separate build so
 // that Gradle and every IDE see it -- see ADR-0023, which supersedes ADR-0021.
 // It is not published either.
+// :processor is a build-time tool too, and the same kind of thing :assets is: it
+// runs inside javac and never ships. It turns @Bind/@Action into the explicit
+// registry calls sec. 9 requires, rather than looking them up reflectively at
+// run time (ADR-0096).
 include ':natives',
         ':core',
         ':widgets',
         ':gpu',
         ':assets',
+        ':processor',
         ':example'

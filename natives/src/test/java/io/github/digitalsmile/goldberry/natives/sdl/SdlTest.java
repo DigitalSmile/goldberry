@@ -49,6 +49,25 @@ class SdlTest {
         assertEquals(3, version.major(), () -> "not SDL3: " + version);
     }
 
+    /// `SDL_GetModState` returns a `Uint16`, which is the whole reason this test
+    /// is worth having: a 16-bit return bound as `JAVA_INT` reads two bytes of
+    /// whatever else is in the return register, and on a machine with no keys
+    /// held the right answer and the wrong answer are both usually zero. Pressing
+    /// a key is not something a headless test can do, so what is checked is that
+    /// the call **crosses at all** — the symbol is on the export list, the
+    /// descriptor matches, and nothing above the low 16 bits leaks through
+    /// ([ADR-0089]).
+    @Test
+    @DisplayName("the modifier state crosses, and carries no bits above the mask")
+    void readsModifierState() {
+        var state = Sdl.get().modifierState();
+
+        assertEquals(0, state & ~0xFFFF,
+                () -> "SDL_Keymod is a Uint16 and this came back as 0x"
+                        + Integer.toHexString(state) + "; the descriptor is wrong");
+        assertTrue(state >= 0, "widened unsigned, so never negative");
+    }
+
     @Test
     @DisplayName("the revision string comes back as a string, not a dangling pointer")
     void readsRevision() {

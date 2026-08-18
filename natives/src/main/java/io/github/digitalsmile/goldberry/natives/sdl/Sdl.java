@@ -55,6 +55,7 @@ public final class Sdl {
     private final MethodHandle getRevision;
     private final MethodHandle getCurrentVideoDriver;
     private final MethodHandle setHint;
+    private final MethodHandle getModState;
 
     private Sdl(SymbolLookup lookup) {
         // `bool` is C's _Bool -- one byte, not the four an int would take.
@@ -79,6 +80,11 @@ public final class Sdl {
                 FunctionDescriptor.of(ValueLayout.ADDRESS));
         this.setHint = downcall(lookup, "SDL_SetHint",
                 FunctionDescriptor.of(ValueLayout.JAVA_BOOLEAN, ValueLayout.ADDRESS, ValueLayout.ADDRESS));
+        // `SDL_Keymod` is a Uint16, not an int -- the layout table's "Uint16"
+        // scalar row is what says so, and binding it as JAVA_INT would read two
+        // bytes of whatever follows it in the return register.
+        this.getModState = downcall(lookup, "SDL_GetModState",
+                FunctionDescriptor.of(ValueLayout.JAVA_SHORT));
     }
 
     /// The SDL bindings, loading `libgoldberry` on first call.
@@ -151,6 +157,26 @@ public final class Sdl {
         return readString(callPointer(getCurrentVideoDriver, "SDL_GetCurrentVideoDriver"));
     }
 
+    /// The modifier keys held **right now**, as SDL's `SDL_Keymod` bitmask.
+    ///
+    /// Polled rather than carried on the event, because SDL's mouse events do not
+    /// carry one -- `SDL_MouseMotionEvent` has no `mod` field where
+    /// `SDL_KeyboardEvent` does. Read at the moment an event is translated, which
+    /// is inside the same pump that produced it.
+    ///
+    /// The alternative was latching the modifiers from the last key event, which
+    /// needs no new symbol and is wrong in a way that lasts: a window that loses
+    /// focus while Shift is held never sees the key release, so the flag stays
+    /// down until the next time Shift is pressed and let go
+    /// ([ADR-0089](../../../../../../../book/src/adr/0089-a-knobs-gesture-is-a-rate.md)).
+    ///
+    /// Widened to an int here, because the mask is unsigned and Java's short is
+    /// not -- SDL's `SDL_KMOD_*` bits stop at 0x4000, but sign extension would
+    /// still be a bug waiting for the day one is added above it.
+    public int modifierState() {
+        return callShort(getModState, "SDL_GetModState") & 0xFFFF;
+    }
+
     /// Initializes SDL.
     ///
     /// @throws SdlException if SDL refuses
@@ -212,6 +238,14 @@ public final class Sdl {
     private static boolean callBoolean(MethodHandle handle, String name) {
         try {
             return (boolean) handle.invokeExact();
+        } catch (Throwable t) {
+            throw new IllegalStateException(name + "() failed", t);
+        }
+    }
+
+    private static short callShort(MethodHandle handle, String name) {
+        try {
+            return (short) handle.invokeExact();
         } catch (Throwable t) {
             throw new IllegalStateException(name + "() failed", t);
         }

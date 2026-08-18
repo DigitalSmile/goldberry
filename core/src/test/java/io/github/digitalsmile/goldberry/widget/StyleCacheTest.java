@@ -1,5 +1,7 @@
 package io.github.digitalsmile.goldberry.widget;
 
+
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
@@ -11,6 +13,7 @@ import io.github.digitalsmile.goldberry.assets.BundledFont;
 import io.github.digitalsmile.goldberry.css.CascadeLayer;
 import io.github.digitalsmile.goldberry.css.Selector.PseudoClass;
 import io.github.digitalsmile.goldberry.css.Stylesheet;
+import io.github.digitalsmile.goldberry.css.ComputedStyle;
 import io.github.digitalsmile.goldberry.layout.Box;
 import io.github.digitalsmile.goldberry.text.Font;
 import java.util.List;
@@ -35,6 +38,42 @@ import org.junit.jupiter.api.Test;
 /// inferring it from a colour.
 class StyleCacheTest {
 
+    /// A styled container, defined here rather than taken from the catalog.
+    ///
+    /// This test is about the **cascade cache** — when a resolved style may be
+    /// reused and when it must be thrown away — and it needs a node with a type,
+    /// classes and children to be wrong about. `panel` used to be that node, and
+    /// `:core` has no widgets since [ADR-0092]. A local one is also the more
+    /// honest fixture: nothing here is a fact about `panel`.
+    private record Group(List<Widget> children, Attributes attributes)
+            implements Widget.Leaf, Styled, Paints {
+
+        @Override
+        public List<Widget> children() {
+            return children;
+        }
+
+        @Override
+        public String id() {
+            return attributes.id();
+        }
+
+        @Override
+        public Set<String> classes() {
+            return attributes.classes();
+        }
+
+        @Override
+        public Object key() {
+            return attributes.key();
+        }
+
+        @Override
+        public Box render(ComputedStyle style, List<Box> boxes, Context context) {
+            return Box.of().children(boxes.toArray(Box[]::new)).style(style);
+        }
+    }
+
     private static final int RED = 0xFFFF0000;
     private static final int BLUE = 0xFF0000FF;
 
@@ -58,19 +97,19 @@ class StyleCacheTest {
                 List.of(Stylesheet.parse(CascadeLayer.APPLICATION, css)), font);
     }
 
-    private static Widgets.Attributes classed(String... names) {
-        return new Widgets.Attributes(null, Set.of(names), null);
+    private static Attributes classed(String... names) {
+        return new Attributes(null, Set.of(names), null);
     }
 
-    /// A panel holding a panel, so there is an ancestor and a descendant to be
+    /// A group holding a group, so there is an ancestor and a descendant to be
     /// wrong about.
     private static Widget nested() {
-        return new Widgets.Panel(
-                List.of(new Widgets.Panel(List.of(), classed("inner"))),
+        return new Group(
+                List.of(new Group(List.of(), classed("inner"))),
                 classed("outer"));
     }
 
-    /// The element the renderer styles for the inner panel.
+    /// The element the renderer styles for the inner group.
     private static Element inner(ElementTree tree) {
         return tree.root().children().getFirst();
     }
@@ -86,7 +125,7 @@ class StyleCacheTest {
         @Test
         @DisplayName("a second frame over an unchanged tree resolves nothing")
         void staticTreeIsCached() {
-            var renderer = renderer("panel.outer { background: red }");
+            var renderer = renderer("group.outer { background: red }");
             var tree = new ElementTree(nested());
 
             renderer.render(tree);
@@ -105,7 +144,7 @@ class StyleCacheTest {
             // cache is keyed on the *instance* it inherited from, so a parent
             // that re-resolved hands down a different one and its children
             // re-resolve without anything telling them to.
-            var renderer = renderer("panel.outer { color: red }");
+            var renderer = renderer("group.outer { color: red }");
             var tree = new ElementTree(nested());
 
             renderer.render(tree);
@@ -126,8 +165,8 @@ class StyleCacheTest {
         @DisplayName("a pseudo-class on the node restyles it")
         void ownPseudoClass() {
             var renderer = renderer("""
-                    panel.inner { background: #ff0000 }
-                    panel.inner:hover { background: #0000ff }
+                    group.inner { background: #ff0000 }
+                    group.inner:hover { background: #0000ff }
                     """);
             var tree = new ElementTree(nested());
 
@@ -142,13 +181,13 @@ class StyleCacheTest {
         @DisplayName("a pseudo-class on an ANCESTOR restyles the descendant")
         void ancestorPseudoClass() {
             // The case that makes invalidation a subtree walk rather than a
-            // single node. The outer panel has no rule of its own, so its own
+            // single node. The outer group has no rule of its own, so its own
             // resolved style does not change at all when it is hovered — the
             // inherited-identity check cannot see this, and only the subtree
             // walk saves it.
             var renderer = renderer("""
-                    panel.inner { background: #ff0000 }
-                    panel.outer:hover panel.inner { background: #0000ff }
+                    group.inner { background: #ff0000 }
+                    group.outer:hover group.inner { background: #0000ff }
                     """);
             var tree = new ElementTree(nested());
 
@@ -169,8 +208,8 @@ class StyleCacheTest {
             // `color` inherits (ADR-0066), so the child's style depends on the
             // parent's even though no rule names the child.
             var renderer = renderer("""
-                    panel.outer { color: #ff0000 }
-                    panel.outer:hover { color: #0000ff }
+                    group.outer { color: #ff0000 }
+                    group.outer:hover { color: #0000ff }
                     """);
             var tree = new ElementTree(nested());
 
@@ -192,10 +231,10 @@ class StyleCacheTest {
             // cached style was resolved by a resolver nobody is asking any more.
             // No explicit invalidation call anywhere, which is the point.
             var tree = new ElementTree(nested());
-            var light = renderer("panel.inner { background: #ff0000 }");
+            var light = renderer("group.inner { background: #ff0000 }");
             assertEquals(RED, innerBox(light.render(tree)).background());
 
-            var dark = renderer("panel.inner { background: #0000ff }");
+            var dark = renderer("group.inner { background: #0000ff }");
             assertEquals(BLUE, innerBox(dark.render(tree)).background(),
                     "the tree kept the style the previous renderer resolved");
         }
@@ -204,15 +243,15 @@ class StyleCacheTest {
         @DisplayName("a rebuild that changes a class restyles")
         void widgetChanged() {
             var renderer = renderer("""
-                    panel.inner { background: #ff0000 }
-                    panel.swapped { background: #0000ff }
+                    group.inner { background: #ff0000 }
+                    group.swapped { background: #0000ff }
                     """);
             var tree = new ElementTree(nested());
             assertEquals(RED, innerBox(renderer.render(tree)).background());
 
             // The same element, a different description of it.
-            tree.root().update(new Widgets.Panel(
-                    List.of(new Widgets.Panel(List.of(), classed("swapped"))),
+            tree.root().update(new Group(
+                    List.of(new Group(List.of(), classed("swapped"))),
                     classed("outer")));
             assertEquals(BLUE, innerBox(renderer.render(tree)).background());
         }
@@ -221,14 +260,14 @@ class StyleCacheTest {
         @DisplayName("a class change on an ancestor restyles the subtree under it")
         void ancestorClassChanged() {
             var renderer = renderer("""
-                    panel.inner { background: #ff0000 }
-                    panel.themed panel.inner { background: #0000ff }
+                    group.inner { background: #ff0000 }
+                    group.themed group.inner { background: #0000ff }
                     """);
             var tree = new ElementTree(nested());
             assertEquals(RED, innerBox(renderer.render(tree)).background());
 
-            tree.root().update(new Widgets.Panel(
-                    List.of(new Widgets.Panel(List.of(), classed("inner"))),
+            tree.root().update(new Group(
+                    List.of(new Group(List.of(), classed("inner"))),
                     classed("outer", "themed")));
             assertEquals(BLUE, innerBox(renderer.render(tree)).background());
         }
@@ -240,7 +279,7 @@ class StyleCacheTest {
             // `:indeterminate` onto every styled element on **every frame**. If a
             // no-op set invalidated, the cache would miss on every frame for
             // every control and this whole change would do nothing.
-            var renderer = renderer("panel.inner { background: red }");
+            var renderer = renderer("group.inner { background: red }");
             var tree = new ElementTree(nested());
             renderer.render(tree);
 
@@ -263,10 +302,10 @@ class StyleCacheTest {
             // short-circuit on null, and this is the test that would fail if it
             // did.
             var renderer = renderer("""
-                    panel.inner { background: #ff0000 }
-                    panel.outer:hover panel.inner { background: #0000ff }
+                    group.inner { background: #ff0000 }
+                    group.outer:hover group.inner { background: #0000ff }
                     """);
-            var tree = new ElementTree(new Widgets.Panel(
+            var tree = new ElementTree(new Group(
                     List.of(new Wrapper()), classed("outer")));
 
             var root = renderer.render(tree);
@@ -277,13 +316,13 @@ class StyleCacheTest {
                     "the invalidation stopped at the composition node");
         }
 
-        /// Composition and nothing else: it describes a panel and paints nothing
+        /// Composition and nothing else: it describes a group and paints nothing
         /// itself.
         private record Wrapper() implements Widget.Stateless {
 
             @Override
             public Widget build(BuildContext context) {
-                return new Widgets.Panel(List.of(), classed("inner"));
+                return new Group(List.of(), classed("inner"));
             }
         }
     }
@@ -300,9 +339,9 @@ class StyleCacheTest {
             // been running for ten frames and one seeing the tree for the first
             // time.
             var css = """
-                    panel.outer { color: #ff0000; padding: 4px }
-                    panel.inner { background: #0000ff; border-radius: 6px }
-                    panel.outer:hover panel.inner { background: #00ff00 }
+                    group.outer { color: #ff0000; padding: 4px }
+                    group.inner { background: #0000ff; border-radius: 6px }
+                    group.outer:hover group.inner { background: #00ff00 }
                     """;
             var warm = renderer(css);
             var tree = new ElementTree(nested());

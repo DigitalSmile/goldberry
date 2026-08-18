@@ -49,6 +49,27 @@
   --gb-success: var(--nord14);
   --gb-info: var(--nord9);
 
+  /* A semantic hue, and **the same hue at a lightness that can carry text**.
+     They are two tokens because they answer two questions: `--gb-danger` is what
+     danger *is*, and is what a label, an icon or a border is drawn in;
+     `--gb-danger-fill` is what you may put words on top of.
+
+     They differ because §1.2's aurora hues are mid-tones. `--nord11` under
+     `--nord6` is 3.55:1 and under `--nord0` is 3.05:1 -- it carries legible text
+     in neither direction, so a filled control that aliased it straight through
+     was below §1.2's 4.5:1 floor by construction, which is exactly what
+     `button.danger` did from the day it shipped (ADR-0088).
+
+     The `-fill` values are **identical in both theme files**, because the hue is:
+     `--nord13` is a pale yellow on a dark theme too. What a fill can carry is a
+     property of the fill, and the theme does not get a vote (ADR-0087).
+
+     `--gb-accent-fill` needs no derivation here -- `--nord8` carries `--nord0`
+     at 6.24:1 -- and does on the light theme, where the accent is `--nord10`. */
+  --gb-accent-fill: var(--gb-accent);
+  /* --nord11 at 44% lightness: 5.44:1 under --nord6. */
+  --gb-danger-fill: #a0414a;
+
   /* nord10 at 40%. */
   --gb-selection: #5e81ac66;
 
@@ -62,14 +83,25 @@
   --gb-button-bg-active: var(--nord1);
   --gb-button-text: var(--nord6);
 
-  --gb-button-primary-bg: var(--nord8);
+  /* Unchanged, and it is the one filled variant on this theme that never had a
+     problem: its text is `--nord0`, so lightening on hover moves the fill *away*
+     from the text and the ratio goes up (6.24 -> 7.00). That is the rule
+     ADR-0088 extracts -- a fill that carries text moves away from it. */
+  --gb-button-primary-bg: var(--gb-accent-fill);
   --gb-button-primary-bg-hover: #97cad9;
   --gb-button-primary-bg-active: #74b3c6;
   --gb-button-primary-text: var(--nord0);
 
-  --gb-button-danger-bg: var(--nord11);
-  --gb-button-danger-bg-hover: #cb717a;
-  --gb-button-danger-bg-active: #ab545d;
+  /* **The ramp now darkens on hover, against this theme's usual direction.**
+     Everything else on a dark theme lightens on hover because it is a surface
+     moving one step toward the light; a danger button is a saturated fill
+     carrying `--nord6`, and lightening moved it *toward* its own text. The old
+     hover was #cb717a at **2.95:1** -- the worst pair in the toolkit, and worse
+     than the resting state it was a step from. The rule is the fill's, not the
+     theme's: move away from the text (ADR-0088). */
+  --gb-button-danger-bg: var(--gb-danger-fill);
+  --gb-button-danger-bg-hover: #913b43;
+  --gb-button-danger-bg-active: #83353c;
   --gb-button-danger-text: var(--nord6);
 
   /* The glyph's own surface, and it takes **the button's ramp** -- nord2 at
@@ -91,13 +123,22 @@
   --gb-checkbox-bg-hover: var(--nord3);
   --gb-checkbox-bg-active: var(--nord1);
   --gb-checkbox-border-hover: var(--nord4);
-  /* The accent's own ramp, shared with `button.primary` -- a checked control
-     stays accent-coloured under the pointer and simply brightens, because the
-     mark inside it is drawn for an accent background and would disappear on a
-     grey one. */
+  /* The accent's own ramp -- a checked control stays accent-coloured under the
+     pointer and simply brightens, because the mark inside it is drawn for an
+     accent background and would disappear on a grey one.
+
+     It **used to alias `--gb-button-primary-bg-hover`**, and it no longer does,
+     because the two stopped being the same thing. A button's fill is chosen so
+     its *label* clears §1.2's 4.5:1; a checked glyph carries a mark rather than
+     text, which §1.2 asks 3:1 of. On this theme the two ramps still hold the
+     same values -- the light theme is where they part -- so this is the same
+     split the radio's block already argues for: identical values are the Nord
+     answer, not the mechanism (ADR-0088). */
+  --gb-accent-bg-hover: #97cad9;
+  --gb-accent-bg-active: #74b3c6;
   --gb-checkbox-bg-checked: var(--gb-accent);
-  --gb-checkbox-bg-checked-hover: var(--gb-button-primary-bg-hover);
-  --gb-checkbox-bg-checked-active: var(--gb-button-primary-bg-active);
+  --gb-checkbox-bg-checked-hover: var(--gb-accent-bg-hover);
+  --gb-checkbox-bg-checked-active: var(--gb-accent-bg-active);
   --gb-checkbox-mark: transparent;
   --gb-checkbox-mark-checked: var(--nord0);
 
@@ -112,8 +153,8 @@
   --gb-radio-bg-active: var(--nord1);
   --gb-radio-border-hover: var(--nord4);
   --gb-radio-bg-checked: var(--gb-accent);
-  --gb-radio-bg-checked-hover: var(--gb-button-primary-bg-hover);
-  --gb-radio-bg-checked-active: var(--gb-button-primary-bg-active);
+  --gb-radio-bg-checked-hover: var(--gb-accent-bg-hover);
+  --gb-radio-bg-checked-active: var(--gb-accent-bg-active);
   --gb-radio-dot: transparent;
   --gb-radio-dot-checked: var(--nord0);
 
@@ -188,6 +229,62 @@
      what "this much" is drawn in everywhere in the catalog. */
   --gb-progress-track-bg: var(--gb-border);
   --gb-progress-fill-bg: var(--gb-accent);
+
+  /* The knob (design-system.md §3: diameters 32/48, arc 270 deg). The body takes
+     the button's ramp, for the reason ADR-0073 gave the switch and the checkbox:
+     a control whose rest colour is `--gb-surface` is invisible on the panel it
+     normally sits on, and starting a step higher gives it somewhere to go in
+     both directions.
+
+     The track is `--gb-border` -- the one token in this theme named for an edge,
+     and the same choice `progress`'s track makes for the same reason: an unfilled
+     groove has to read as a channel on both `--gb-bg` and `--gb-surface`. The arc
+     is the accent, which is what "this much" is drawn in everywhere in the
+     catalog. */
+  --gb-knob-bg: var(--nord2);
+  --gb-knob-bg-hover: var(--nord3);
+  --gb-knob-bg-active: var(--nord1);
+  --gb-knob-track: var(--gb-border);
+  --gb-knob-arc: var(--gb-accent);
+  /* The pointer, on the dial rather than on the window -- `--gb-text` is what
+     reads on a *surface*, and the dial is one step off it. §1.2 asks 3:1 of a
+     stroke rather than 4.5:1 of text, and this clears it on the whole ramp. */
+  --gb-knob-pointer: var(--gb-text);
+
+  /* Badge (design-system.md §3's `badge` row). Every pairing here is checked in
+     CI by ContrastTest against §1.2's 4.5:1 floor -- these are not colours
+     somebody liked, they are colours that pass.
+
+     The **foreground is chosen by the fill, not by the theme**, which is why
+     `--gb-badge-warning-text` is `--nord0` on a dark theme where every other
+     text token is `--nord6`. §1.2's aurora hues are theme-invariant; white on
+     `--nord13` is 1.35:1 and unreadable on either theme, so the pairing follows
+     the hue across both files (ADR-0087).
+
+     Two fills are **derived rather than aliased**, because the hue itself
+     carries no legible small text at either end of the palette:
+     `--nord11` is 3.55:1 under `--nord6` and 3.05:1 under `--nord0`, and
+     `--gb-accent` on the light theme is 3.50/3.10 the same way. Each derived
+     value is that palette entry taken down in lightness until it clears the
+     floor, and it is written beside the entry it came from so the derivation
+     stays visible -- the same convention `--gb-button-primary-bg-hover` uses. */
+  --gb-badge-bg: var(--gb-surface-2);
+  --gb-badge-text: var(--gb-text);
+
+  --gb-badge-accent-bg: var(--gb-accent-fill);
+  --gb-badge-accent-text: var(--nord0);
+
+  --gb-badge-danger-bg: var(--gb-danger-fill);
+  --gb-badge-danger-text: var(--nord6);
+
+  --gb-badge-warning-bg: var(--gb-warning);
+  --gb-badge-warning-text: var(--nord0);
+
+  --gb-badge-success-bg: var(--gb-success);
+  --gb-badge-success-text: var(--nord0);
+
+  --gb-badge-info-bg: var(--gb-info);
+  --gb-badge-info-text: var(--nord0);
 
   /* A white wash, for controls that have no surface of their own. */
   --gb-overlay-hover: #ffffff14;

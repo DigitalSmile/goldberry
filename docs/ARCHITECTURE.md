@@ -364,7 +364,7 @@ Screen-reader bridging (UIA / NSAccessibility / AT-SPI) is planned via **AccessK
 
 - **M0 — Skeleton:** superbuild → `libgoldberry` on 3 OSes; FFM bindings + layout checks; SDL3 + headless backends; blank window at correct fractional DPI.
 - **M1 — Vertical slice:** styled wrapped paragraph, resized at 60 fps on Linux, macOS and Windows; paragraph cache + upcall benchmarks green.
-- **M2 — Widgets & style:** CSS engine, KDL inflater + hot reload, core controls, Nord light/dark, focus/cursor/shortcuts, golden-image CI. *Engines done; six of thirteen controls built, §7.2's roving arrow-key focus with an axis, §1.3's density, and disabled propagating through a subtree. `book/src/status.md` has the detail.*
+- **M2 — Widgets & style:** CSS engine, KDL inflater + hot reload, core controls, Nord light/dark, focus/cursor/shortcuts, golden-image CI. *Engines done; every control in `core-widgets.md` §3 is built except `select`, whose popup window belongs with M3's overlays. Plus §7.2's roving arrow-key focus with an axis, §1.3's density, disabled propagating through a subtree, §1.2's contrast floor now checked in CI, and a gesture anchor for controls whose drag is a rate. Custom image cursors are the other gap. `book/src/status.md` has the detail.*
 - **M3 — Shell:** menus/popups, tray, dialogs, scroll, forms, decorations opt-in CSD, charts, widget showcase.
 - **M4 — GPU:** `canvas3d`, GPU composition path.
 - **M5 — Hardening:** text editing depth, AccessKit bridge, IME preedit, docs, 0.1 release.

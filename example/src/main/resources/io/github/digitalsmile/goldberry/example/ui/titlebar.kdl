@@ -1,0 +1,20 @@
+// The window's title bar, as markup.
+//
+// Everything in it is declarative -- a label, a count, a button -- so none of it
+// belongs in Java. What makes it worth having as a document rather than as five
+// lines of `new Row(...)` is what it proves: `bind=` and `press=` and `icon=` are
+// resolved against the three registries the application supplies
+// (ShowcaseModel.bindings(), ShowcaseModel.actions(), Showcase's Icons), so a
+// designer can move the badge, rename an id or restyle a class without a
+// compiler -- and a name this file gets wrong fails at inflation with the line
+// and column, because all three registries are strict (sec. 9, ADR-0062).
+row id="bar" {
+  text id="title" "Goldberry"
+
+  // The count, bound rather than interpolated: nothing rebuilds this row when a
+  // click happens, the badge's own element hears the property and redraws.
+  badge id="clicks" class="accent" bind="app.clicks"
+
+  spacer
+  button id="theme" class="ghost" icon="palette" press="app.toggle-theme" "Theme"
+}

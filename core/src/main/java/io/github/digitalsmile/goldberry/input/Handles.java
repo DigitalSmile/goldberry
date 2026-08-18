@@ -48,6 +48,39 @@ public interface Handles extends Widget {
         return null;
     }
 
+    /// The value this widget wants remembered for the duration of a drag, or
+    /// `NaN` — which is the default and means "I have no gesture state".
+    ///
+    /// Asked **once, on the press**, and handed back on every event of that
+    /// gesture as [PointerEvent#anchor()]. The router asks the pressed element's
+    /// chain deepest-first and takes the first answer that is not `NaN`, which is
+    /// the same order it dispatches in — so a press that lands on a *part* is
+    /// still anchored by the control that will handle it.
+    ///
+    /// ## Why the router holds it and not the widget
+    ///
+    /// A control whose drag is a **rate** cannot compute anything from the
+    /// current value alone. A knob maps 200 logical pixels of vertical travel
+    /// onto its whole range (`docs/design-system.md` §3), so the value under the
+    /// pointer is `where it started + how far you have dragged` — and by the
+    /// second frame of the drag "where it started" is gone, because the value has
+    /// already moved and a widget is an immutable value rebuilt from it.
+    ///
+    /// A slider needs none of this: its value is a *position*, read fresh from
+    /// the pointer against the track on every event, with no history at all
+    /// ([ADR-0079]). That difference is the whole of why this exists.
+    ///
+    /// It is the router's for the reason [PointerEvent#pressX()] is
+    /// ([ADR-0075]): the implicit capture already spans exactly one gesture
+    /// ([ADR-0058]), so the router is both the only thing that can know and the
+    /// thing whose lifetime already matches. A `double` and not an `Object`
+    /// because the router must not start holding application values it cannot
+    /// reason about, and every gesture that has wanted one so far has wanted a
+    /// number ([ADR-0089]).
+    default double gestureAnchor() {
+        return Double.NaN;
+    }
+
     /// Called during the keyboard capture phase, root-first.
     ///
     /// Where a dialog swallows Escape before the thing inside it sees it.

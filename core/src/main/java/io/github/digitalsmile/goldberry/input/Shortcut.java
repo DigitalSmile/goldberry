@@ -26,6 +26,24 @@ public record Shortcut(Key key, Modifiers modifiers) {
         }
     }
 
+    /// A bare key with no modifiers — `F5`, `Escape`, `Delete`.
+    ///
+    /// The other end of [Mod#and(Key)]: with modifiers you start from the
+    /// modifier, and without them there is nothing to start from.
+    public static Shortcut of(Key key) {
+        return new Shortcut(key, Modifiers.NONE);
+    }
+
+    /// A key with exactly these modifiers.
+    ///
+    /// `Shortcut.of(Key.S, Mod.CTRL, Mod.SHIFT)` for code that has the modifiers
+    /// in an array already. [Mod#and(Key)] reads better when they are literals,
+    /// because it puts them in the order a menu prints them
+    /// ([ADR-0095](../../../../../../book/src/adr/0095-a-shortcut-is-built-from-enums.md)).
+    public static Shortcut of(Key key, Mod... mods) {
+        return new Shortcut(key, Modifiers.of(mods));
+    }
+
     /// Parses `Ctrl+Shift+S` and friends.
     ///
     /// Case-insensitive, and tolerant about which name a modifier goes by:
@@ -42,10 +60,7 @@ public record Shortcut(Key key, Modifiers modifiers) {
     public static Shortcut of(String text) {
         Objects.requireNonNull(text, "text");
         var parts = text.split("\\+", -1);
-        var shift = false;
-        var control = false;
-        var alt = false;
-        var meta = false;
+        var mods = Modifiers.NONE;
         Key key = null;
 
         for (var raw : parts) {
@@ -55,10 +70,10 @@ public record Shortcut(Key key, Modifiers modifiers) {
                         "\"" + text + "\" has an empty part; shortcuts read \"Ctrl+Shift+S\"");
             }
             switch (part.toLowerCase(Locale.ROOT)) {
-                case "shift" -> shift = true;
-                case "ctrl", "control" -> control = true;
-                case "alt", "opt", "option" -> alt = true;
-                case "meta", "cmd", "command", "super", "win" -> meta = true;
+                case "shift" -> mods = mods.and(Mod.SHIFT);
+                case "ctrl", "control" -> mods = mods.and(Mod.CTRL);
+                case "alt", "opt", "option" -> mods = mods.and(Mod.ALT);
+                case "meta", "cmd", "command", "super", "win" -> mods = mods.and(Mod.META);
                 default -> {
                     if (key != null) {
                         throw new IllegalArgumentException(
@@ -71,7 +86,7 @@ public record Shortcut(Key key, Modifiers modifiers) {
         if (key == null) {
             throw new IllegalArgumentException("\"" + text + "\" is all modifiers and no key");
         }
-        return new Shortcut(key, new Modifiers(shift, control, alt, meta));
+        return new Shortcut(key, mods);
     }
 
     /// Whether a key press matches.

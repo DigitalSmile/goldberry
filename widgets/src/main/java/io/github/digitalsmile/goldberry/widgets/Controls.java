@@ -6,7 +6,19 @@ import io.github.digitalsmile.goldberry.css.Stylesheet;
 import io.github.digitalsmile.goldberry.css.Theme;
 import io.github.digitalsmile.goldberry.kdl.KdlInflater;
 import io.github.digitalsmile.goldberry.widget.Widget;
-import io.github.digitalsmile.goldberry.widget.Widgets;
+import io.github.digitalsmile.goldberry.widget.Attributes;
+import io.github.digitalsmile.goldberry.widgets.core.Primitives;
+import io.github.digitalsmile.goldberry.widgets.controls.Scale;
+import io.github.digitalsmile.goldberry.widgets.controls.badge.Badge;
+import io.github.digitalsmile.goldberry.widgets.controls.button.Button;
+import io.github.digitalsmile.goldberry.widgets.controls.checkbox.Checkbox;
+import io.github.digitalsmile.goldberry.widgets.controls.knob.Knob;
+import io.github.digitalsmile.goldberry.widgets.controls.progressbar.Progress;
+import io.github.digitalsmile.goldberry.widgets.controls.radio.Radio;
+import io.github.digitalsmile.goldberry.widgets.controls.radio.RadioGroup;
+import io.github.digitalsmile.goldberry.widgets.controls.slider.Slider;
+import io.github.digitalsmile.goldberry.widgets.controls.spinner.Spinner;
+import io.github.digitalsmile.goldberry.widgets.controls.toggle.Toggle;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
@@ -15,8 +27,8 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Stream;
 
-/// The catalog: what `:widgets` adds to `:core`'s primitives, and how it is
-/// registered and styled.
+/// The catalog: every widget this module ships, and how it is registered and
+/// styled.
 ///
 /// Two things an application needs and should not have to assemble itself — the
 /// KDL registry and the default appearance — because a control that is registered
@@ -83,9 +95,9 @@ public final class Controls {
 
     /// An inflater that knows `:core`'s primitives *and* the controls here.
     ///
-    /// The primitives come from [Widgets#inflater()] rather than being repeated,
-    /// so a markup document can mix `column` and `button` without the caller
-    /// merging two registries.
+    /// The structural widgets come from [Primitives#inflater()] rather than being
+    /// repeated, so a markup document can mix `column` and `button` without the
+    /// caller merging two registries.
     ///
     /// @param actions what a `press="save"` attribute resolves against — see
     ///                [Actions]
@@ -105,7 +117,7 @@ public final class Controls {
     /// @param bindings what a `bind="prefs.frost"` attribute resolves against —
     ///                 see [io.github.digitalsmile.goldberry.bind.Bindings]
     public static KdlInflater<Widget> inflater(Actions actions, Icons icons, Bindings bindings) {
-        var inflater = Widgets.inflater(bindings);
+        var inflater = Primitives.inflater(bindings);
         inflater.register("button", (node, children) -> new Button(
                 node.argument().map(v -> v.asString()).orElse(""),
                 // Markup names an icon; it cannot build one. An `Icon` owns
@@ -115,7 +127,7 @@ public final class Controls {
                 icons.resolve(node.stringProperty("icon")),
                 actions.resolve(node.stringProperty("press")),
                 node.booleanProperty("disabled"),
-                Widgets.Attributes.of(node)));
+                Attributes.of(node)));
         inflater.register("checkbox", (node, children) -> new Checkbox(
                 node.argument().map(v -> v.asString()).orElse(""),
                 // `indeterminate` wins over `checked`, because a document that
@@ -131,7 +143,7 @@ public final class Controls {
                 bindings.resolve(node.stringProperty("bind")),
                 actions.resolve(node.stringProperty("change")),
                 node.booleanProperty("disabled"),
-                Widgets.Attributes.of(node)));
+                Attributes.of(node)));
         inflater.register("toggle", (node, children) -> {
             // A **valued** action, the second in the toolkit: what the user
             // asked for is `true` or `false` rather than "the other one",
@@ -155,7 +167,7 @@ public final class Controls {
                     bindings.resolve(node.stringProperty("bind")),
                     change == null ? null : value -> change.accept(String.valueOf(value)),
                     node.booleanProperty("disabled"),
-                    Widgets.Attributes.of(node));
+                    Attributes.of(node));
         });
         inflater.register("slider", (node, children) -> {
             // The third valued action, and the first whose value is a *number*.
@@ -183,19 +195,48 @@ public final class Controls {
                     bindings.resolve(node.stringProperty("bind")),
                     change == null ? null : value -> change.accept(String.valueOf(value)),
                     node.booleanProperty("disabled"),
-                    Widgets.Attributes.of(node));
+                    Attributes.of(node));
+        });
+        inflater.register("knob", (node, children) -> {
+            // The fourth valued action, and it crosses as a string like the other
+            // three (ADR-0073): one valued shape in the registry, and an
+            // application that wants a double parses it in Java where a bad value
+            // is a bug it can see.
+            var change = actions.resolveValued(node.stringProperty("change"));
+            var min = node.numberProperty("min", 0);
+            var max = node.numberProperty("max", 1);
+            return new Knob(
+                    min, max,
+                    node.numberProperty("value", min),
+                    node.numberProperty("step", 0),
+                    // A count, like `slider`'s `ticks` -- a value a document can
+                    // carry, naming nothing the application has to have
+                    // registered (ADR-0080).
+                    (int) node.numberProperty("detents", 0),
+                    bindings.resolve(node.stringProperty("bind")),
+                    change == null ? null : value -> change.accept(String.valueOf(value)),
+                    node.booleanProperty("disabled"),
+                    Attributes.of(node));
         });
         inflater.register("progress", (node, children) -> new Progress(
                 node.numberProperty("value", 0),
                 node.numberProperty("max", 1),
                 node.booleanProperty("indeterminate"),
                 bindings.resolve(node.stringProperty("bind")),
-                Widgets.Attributes.of(node)));
+                Attributes.of(node)));
         // The one widget in the catalog with no attributes of its own: a spinner
         // has no value, no state and nothing to say. It still takes an id and
         // classes, because everything CSS-selectable does (§11).
         inflater.register("spinner", (node, children) -> new Spinner(
-                Widgets.Attributes.of(node)));
+                Attributes.of(node)));
+        // §3's only entry that is not a control: no action, no state, nothing to
+        // resolve against a registry. A count is the archetypal bound value, so
+        // `bind` is the one wiring it takes, and the literal argument stays as
+        // the fallback the way `text`'s does.
+        inflater.register("badge", (node, children) -> new Badge(
+                node.argument().map(v -> v.asString()).orElse(""),
+                bindings.resolve(node.stringProperty("bind")),
+                Attributes.of(node)));
         inflater.register("radio-group", (node, children) -> new RadioGroup(
                 node.stringProperty("value"),
                 children,
@@ -205,7 +246,7 @@ public final class Controls {
                 // would make adding an option an edit in Java too (ADR-0073).
                 actions.resolveValued(node.stringProperty("change")),
                 node.booleanProperty("disabled"),
-                Widgets.Attributes.of(node)));
+                Attributes.of(node)));
         inflater.register("radio", (node, children) -> new Radio(
                 // The value is what the group reports and what it matches on, so
                 // an option without one cannot be picked or shown as picked.
@@ -220,7 +261,7 @@ public final class Controls {
                 // group exists to hold.
                 false, null,
                 node.booleanProperty("disabled"),
-                Widgets.Attributes.of(node)));
+                Attributes.of(node)));
         return inflater;
     }
 
@@ -254,17 +295,20 @@ public final class Controls {
     /// **Controls only.** The parts — `check-indicator`, `check-mark`,
     /// `radio-indicator`, `radio-dot`, `toggle-track`, `toggle-thumb`,
     /// `slider-track`, `slider-groove`, `slider-fill`, `slider-thumb`,
-    /// `slider-rest`, `slider-ticks`, `slider-tick`, `slider-value` and
-    /// `progress-fill` — are
+    /// `slider-rest`, `slider-ticks`, `slider-tick`, `slider-value`,
+    /// `progress-fill`, `knob-track` and `knob-arc` — are
     /// styled by the same stylesheet and are not here, because they are parts
     /// rather than widgets: they are CSS-selectable and deliberately not
     /// KDL-constructible, and asking the parity test to inflate one would be
     /// asking for a node with no meaning outside its parent (see
-    /// [CheckIndicator], [CheckMark], [RadioIndicator], [RadioDot],
-    /// [ToggleTrack], [ToggleThumb], [SliderTrack], [SliderGroove],
-    /// [SliderTicks], [SliderTick], [SliderValue]).
+    /// `CheckIndicator`, `CheckMark`, `RadioIndicator`, `RadioDot`,
+    /// `ToggleTrack`, `ToggleThumb`, `SliderTrack`, `SliderGroove`,
+    /// `SliderTicks`, `SliderTick`, `SliderValue`, `KnobTrack`, `KnobArc` and
+    /// `KnobDial` — code spans rather than links, because a part is
+    /// package-private inside `…widgets.controls` and this class is not in it
+    /// (ADR-0091). A link that cannot resolve is worse than a name).
     public static List<String> controlTypes() {
         return List.of("button", "checkbox", "toggle", "slider", "radio-group", "radio",
-                "progress", "spinner");
+                "progress", "spinner", "badge", "knob");
     }
 }

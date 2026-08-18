@@ -51,7 +51,7 @@ public final class Sdl3Backend implements Backend {
     /// **X11 first, deliberately and for now** (ADR-0086). On Wayland the window
     /// manager draws nothing, so decorations come from libdecor, and libdecor's
     /// default plugin cannot run in a stock-launched JVM
-    /// ([ADR-0084](../../../../../../book/src/adr/0084-the-gtk-plugin-cannot-decorate-a-jvms-window.md)).
+    /// ([ADR-0084](../../../../../../../book/src/adr/0084-the-gtk-plugin-cannot-decorate-a-jvms-window.md)).
     /// Under XWayland the window manager decorates the window itself, which is
     /// the only way to get a titlebar that matches the desktop today.
     ///
@@ -168,7 +168,7 @@ public final class Sdl3Backend implements Backend {
     /// **It now asks for X11 first, for now** (ADR-0086). Decorations outrank
     /// resize quality: on Wayland the window manager draws none, libdecor is the
     /// only source of them, and its default plugin cannot run in a stock-launched
-    /// JVM ([ADR-0084](../../../../../../book/src/adr/0084-the-gtk-plugin-cannot-decorate-a-jvms-window.md)).
+    /// JVM ([ADR-0084](../../../../../../../book/src/adr/0084-the-gtk-plugin-cannot-decorate-a-jvms-window.md)).
     /// Under XWayland the window manager decorates the window itself.
     ///
     /// The hint takes a comma-separated list and SDL tries each in turn, so
@@ -600,13 +600,18 @@ public final class Sdl3Backend implements Backend {
             // current one -- the pointer dies at the next pump.
             out.add(new BackendEvent.TextInput(window, eventBuffer.committedText()));
         } else if (type == SdlEventType.MOUSE_MOTION.value()) {
-            out.add(new BackendEvent.PointerMoved(window, eventBuffer.pointerX(), eventBuffer.pointerY()));
+            // The modifiers are **polled**, not read off the event: SDL's mouse
+            // events carry no `mod` field where its keyboard events do. Read here,
+            // inside the pump that produced the event, which is the closest to
+            // "when it happened" this layer can get (ADR-0089).
+            out.add(new BackendEvent.PointerMoved(window, eventBuffer.pointerX(), eventBuffer.pointerY(),
+                    Sdl.get().modifierState()));
         } else if (type == SdlEventType.MOUSE_BUTTON_DOWN.value()) {
             out.add(new BackendEvent.PointerPressed(window, eventBuffer.pointerX(), eventBuffer.pointerY(),
-                    eventBuffer.mouseButton(), eventBuffer.clickCount()));
+                    eventBuffer.mouseButton(), eventBuffer.clickCount(), Sdl.get().modifierState()));
         } else if (type == SdlEventType.MOUSE_BUTTON_UP.value()) {
             out.add(new BackendEvent.PointerReleased(window, eventBuffer.pointerX(), eventBuffer.pointerY(),
-                    eventBuffer.mouseButton(), eventBuffer.clickCount()));
+                    eventBuffer.mouseButton(), eventBuffer.clickCount(), Sdl.get().modifierState()));
         } else if (type == SdlEventType.MOUSE_WHEEL.value()) {
             // The buffer has already undone SDL's "natural scrolling" inversion.
             // What is left is the sign convention: SDL's y is positive *away from
@@ -614,7 +619,7 @@ public final class Sdl3Backend implements Backend {
             // CSS's and every scroll view's. One negation, at the boundary, once.
             out.add(new BackendEvent.PointerWheel(window,
                     eventBuffer.wheelPointerX(), eventBuffer.wheelPointerY(),
-                    eventBuffer.wheelX(), -eventBuffer.wheelY()));
+                    eventBuffer.wheelX(), -eventBuffer.wheelY(), Sdl.get().modifierState()));
         } else if (type == SdlEventType.WINDOW_DISPLAY_SCALE_CHANGED.value()) {
             // Usually the window moving to another monitor, which is also the one
             // case where the cached refresh rate can be wrong -- and wrong for the

@@ -34,14 +34,14 @@ import java.util.function.Consumer;
 /// [Observable] half of this — the same value with no `set` on it — so a control
 /// built from markup cannot write to the model, and data flows down while events
 /// flow back up
-/// ([ADR-0063](../../../../../../../book/src/adr/0063-data-flows-down-events-flow-up.md)).
+/// ([ADR-0063](../../../../../../book/src/adr/0063-data-flows-down-events-flow-up.md)).
 /// Keep the `Property` where the state belongs; hand out the path.
 ///
 /// ## Threads
 ///
 /// Confined to the UI thread, like everything a listener will touch: a listener
 /// rebuilds a widget, and the widget tree belongs to that thread
-/// ([ADR-0020](../../../../../../../book/src/adr/0020-one-ui-thread-and-virtual-threads-behind-it.md)).
+/// ([ADR-0020](../../../../../../book/src/adr/0020-one-ui-thread-and-virtual-threads-behind-it.md)).
 /// Background work reaches a property the same way it reaches anything else, by
 /// completing on the UI thread.
 ///

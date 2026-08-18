@@ -61,6 +61,24 @@ public final class PointerRouter {
     private float pressOriginX = Float.NaN;
     private float pressOriginY = Float.NaN;
 
+    /// What the pressed control's value was when the gesture began, or `NaN`.
+    ///
+    /// The third gesture-origin field, and it exists because two of the origins a
+    /// drag can have are not points. A slider reads a *position* off the pointer
+    /// and needs no history; a knob's drag is a **rate** — 200 logical pixels of
+    /// travel is its whole range (§3) — so where it lands depends on where it
+    /// started, and by the second frame the value has already moved.
+    ///
+    /// The router does not know or care what the number means: it asks
+    /// [Handles#gestureAnchor()] once on the press and hands the answer back on
+    /// every event of the gesture ([ADR-0089]). Read through
+    /// [PointerEvent#anchor()].
+    private double pressOriginValue = Double.NaN;
+
+    /// The modifiers held when the button went down — see
+    /// [PointerEvent#gestureModifiers()].
+    private Modifiers pressOriginModifiers = Modifiers.NONE;
+
     /// Whether anything changed that a stylesheet could react to.
     private boolean stylesDirty;
 
@@ -114,13 +132,18 @@ public final class PointerRouter {
 
     /// The pointer moved to a logical position.
     public void pointerMoved(float x, float y) {
+        pointerMoved(x, y, Modifiers.NONE);
+    }
+
+    /// The same, with the modifier keys the platform reported at the time.
+    public void pointerMoved(float x, float y, Modifiers modifiers) {
         var under = elementAt(x, y);
         updateHover(under, x, y);
         updateCursor(x, y);
         var target = captured != null ? captured : under;
         if (target != null) {
             dispatch(new PointerEvent(PointerEvent.Kind.MOVED, x, y, null, 0,
-                    pressOriginX, pressOriginY, target));
+                    pressOriginX, pressOriginY, modifiers, target));
         }
     }
 
@@ -136,6 +159,12 @@ public final class PointerRouter {
 
     /// A button went down.
     public void pointerPressed(float x, float y, PointerEvent.Button button, int clickCount) {
+        pointerPressed(x, y, button, clickCount, Modifiers.NONE);
+    }
+
+    /// The same, with modifiers.
+    public void pointerPressed(float x, float y, PointerEvent.Button button, int clickCount,
+            Modifiers modifiers) {
         var target = elementAt(x, y);
         updateHover(target, x, y);
         if (target == null) {
@@ -151,6 +180,8 @@ public final class PointerRouter {
         // every pointer event should not have to special-case the first one.
         pressOriginX = x;
         pressOriginY = y;
+        pressOriginValue = anchorFor(target);
+        pressOriginModifiers = modifiers;
         if (captured == null) {
             // Implicit capture: from here until the button comes up, this
             // element gets the pointer wherever it goes (§7.1).
@@ -162,7 +193,7 @@ public final class PointerRouter {
         // clicking the label inside a button focuses the button.
         focus(nearestFocusable(target), false);
         dispatch(new PointerEvent(PointerEvent.Kind.PRESSED, x, y, button, clickCount,
-                pressOriginX, pressOriginY, target));
+                pressOriginX, pressOriginY, modifiers, target));
     }
 
     /// A button came up.
@@ -172,6 +203,12 @@ public final class PointerRouter {
     /// away has not been clicked, but it has certainly stopped being pressed, and
     /// it is the only thing that can know the difference.
     public void pointerReleased(float x, float y, PointerEvent.Button button, int clickCount) {
+        pointerReleased(x, y, button, clickCount, Modifiers.NONE);
+    }
+
+    /// The same, with modifiers.
+    public void pointerReleased(float x, float y, PointerEvent.Button button, int clickCount,
+            Modifiers modifiers) {
         var under = elementAt(x, y);
         var target = captured != null ? captured : under;
         // Read before `setPressed(null)` clears it: whether this was a click is a
@@ -191,11 +228,15 @@ public final class PointerRouter {
         var originY = pressOriginY;
         pressOriginX = Float.NaN;
         pressOriginY = Float.NaN;
+        // Deliberately *not* cleared here. The release and the click are the last
+        // two events of the gesture and both are dispatched below, and a knob
+        // reads its anchor on the release to decide whether the drag moved at
+        // all. Cleared after them, beside the point origins it belongs with.
         if (target == null) {
             return;
         }
         dispatch(new PointerEvent(PointerEvent.Kind.RELEASED, x, y, button, clickCount,
-                originX, originY, target));
+                originX, originY, modifiers, target));
 
         // A click is a press and a release on the same node, which is not the
         // same thing as a release: dragging off a button and letting go is how a
@@ -209,8 +250,28 @@ public final class PointerRouter {
         if (button == PointerEvent.Button.PRIMARY && wasPressed != null
                 && chain(under).contains(wasPressed)) {
             dispatch(new PointerEvent(PointerEvent.Kind.CLICKED, x, y, button, clickCount,
-                    originX, originY, wasPressed));
+                    originX, originY, modifiers, wasPressed));
         }
+        pressOriginValue = Double.NaN;
+        pressOriginModifiers = Modifiers.NONE;
+    }
+
+    /// The first non-`NaN` [Handles#gestureAnchor()] on `target`'s chain.
+    ///
+    /// Deepest-first, which is dispatch order: a press that lands on a control's
+    /// *part* -- a knob's arc, a slider's thumb -- must be anchored by the
+    /// control that will handle it, and the part itself has no value to report
+    /// ([ADR-0089]).
+    private static double anchorFor(Element target) {
+        for (var element : chain(target)) {
+            if (element.widget() instanceof Handles handles) {
+                var anchor = handles.gestureAnchor();
+                if (!Double.isNaN(anchor)) {
+                    return anchor;
+                }
+            }
+        }
+        return Double.NaN;
     }
 
     /// The wheel turned, or a touchpad scrolled, at a logical position.
@@ -220,9 +281,14 @@ public final class PointerRouter {
     /// other pointer event, so a scroll view consumes it and an ancestor scroll
     /// view does not also scroll.
     public void pointerWheel(float x, float y, float deltaX, float deltaY) {
+        pointerWheel(x, y, deltaX, deltaY, Modifiers.NONE);
+    }
+
+    /// The same, with modifiers — `Shift` for a fine step on a knob (§3).
+    public void pointerWheel(float x, float y, float deltaX, float deltaY, Modifiers modifiers) {
         var target = captured != null ? captured : elementAt(x, y);
         if (target != null) {
-            dispatch(PointerEvent.wheel(x, y, deltaX, deltaY, target));
+            dispatch(PointerEvent.wheel(x, y, deltaX, deltaY, modifiers, target));
         }
     }
 
@@ -427,6 +493,16 @@ public final class PointerRouter {
                 Objects.requireNonNull(shortcut, "shortcut"),
                 Objects.requireNonNull(action, "action"));
         return this;
+    }
+
+    /// Binds an accelerator built from enums — `Mod.CTRL.and(Key.S)`.
+    ///
+    /// The form that cannot be misspelled, and the one an application should
+    /// reach for; [#shortcut(String, Runnable)] is for a menu table or a config
+    /// file, where the accelerator is text before it is anything
+    /// ([ADR-0095](../../../../../../book/src/adr/0095-a-shortcut-is-built-from-enums.md)).
+    public PointerRouter shortcut(Mod modifier, Key key, Runnable action) {
+        return shortcut(modifier.and(key), action);
     }
 
     /// Binds an accelerator written the way a menu prints it — `"Ctrl+S"`.
@@ -797,6 +873,11 @@ public final class PointerRouter {
             return;
         }
         var chain = chain(event.target());
+        // Every event of a gesture carries its origin, exactly as `dragX` does.
+        // Set here rather than at each call site so a kind added later cannot
+        // forget -- including CLICKED, which is synthesized after the release.
+        event.anchoredAt(pressOriginValue);
+        event.gestureStartedWith(pressOriginModifiers);
 
         // Capture is root-first, so the chain -- which is deepest-first -- is
         // walked backwards.

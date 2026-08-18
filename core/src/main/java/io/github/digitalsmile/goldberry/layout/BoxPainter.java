@@ -199,13 +199,31 @@ public final class BoxPainter {
                 path.lineTo(width * 0.76, height * 0.5);
             }
             case ARC -> {
-                // Three quarters of a circle, inset by half the stroke so the
-                // ring's *outer* edge is the box rather than its centre line --
-                // a 16px spinner that stroked on the box's edge would draw 1px
-                // outside it all the way round.
+                // Inset by half the stroke so the ring's *outer* edge is the box
+                // rather than its centre line -- a 16px spinner that stroked on
+                // the box's edge would draw 1px outside it all the way round.
+                //
+                // The angles are the mark's rather than this method's, because
+                // this is the one shape that has to show a value: a knob's arc
+                // indicator is the same ring as a spinner's, cut to a fraction
+                // (ADR-0089). A zero sweep draws nothing, which is what a knob at
+                // its minimum wants and is `Arc.addTo`'s own early return.
                 Arc.addTo(path, width / 2, height / 2,
                         Math.min(width, height) / 2 - mark.thickness() / 2,
-                        -Math.PI / 2, 1.5 * Math.PI);
+                        mark.start(), mark.sweep());
+            }
+            case POINTER -> {
+                // A line out from the middle at the mark's angle -- which way the
+                // knob is turned. The angles are the mark's for the same reason
+                // an arc's are: this is a shape whose geometry *is* a value
+                // (ADR-0089).
+                var radius = Math.min(width, height) / 2;
+                var cos = Math.cos(mark.start());
+                var sin = Math.sin(mark.start());
+                path.moveTo(width / 2 + radius * Box.Mark.POINTER_INNER * cos,
+                        height / 2 + radius * Box.Mark.POINTER_INNER * sin);
+                path.lineTo(width / 2 + radius * Box.Mark.POINTER_OUTER * cos,
+                        height / 2 + radius * Box.Mark.POINTER_OUTER * sin);
             }
             case DOT -> {
                 // Filled rather than stroked, so a radio's dot is solid at any

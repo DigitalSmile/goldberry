@@ -15,7 +15,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 /// Where a drag started, which only the router can answer
-/// ([ADR-0075](../../../../../../../book/src/adr/0075-a-gestures-origin-is-the-routers.md)).
+/// ([ADR-0075](../../../../../../book/src/adr/0075-a-gestures-origin-is-the-routers.md)).
 ///
 /// A gesture is a sequence of events; a widget is a value rebuilt every frame.
 /// The widget that sees the release is a different instance from the one that saw

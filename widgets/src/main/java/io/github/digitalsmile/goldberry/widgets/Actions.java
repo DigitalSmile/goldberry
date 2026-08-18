@@ -16,7 +16,7 @@ import java.util.function.Consumer;
 /// The indirection is what makes markup reloadable: a document reloaded at
 /// runtime re-resolves every name against the same registry, so the new tree's
 /// buttons are wired to the same handlers the old one had, without the
-/// application being asked to rebuild anything ([ADR-0051](../../../../../../../book/src/adr/0051-kdl-is-parsed-here-and-reloading-is-forgiving.md)).
+/// application being asked to rebuild anything ([ADR-0051](../../../../../../book/src/adr/0051-kdl-is-parsed-here-and-reloading-is-forgiving.md)).
 ///
 /// Confined to the UI thread, like everything a handler will touch.
 public final class Actions {
@@ -90,7 +90,7 @@ public final class Actions {
     /// there is not — the handler has to know whether the user picked `light` or
     /// `dark`, and a registry of six separate actions, one per option, would make
     /// adding an option an edit in Java as well as in markup
-    /// ([ADR-0073](../../../../../../../book/src/adr/0073-a-composite-is-one-tab-stop.md)).
+    /// ([ADR-0073](../../../../../../book/src/adr/0073-a-composite-is-one-tab-stop.md)).
     ///
     /// The argument is a `String` and stays one: it is the `value` attribute the
     /// document already wrote down, so it crosses no type boundary and needs no

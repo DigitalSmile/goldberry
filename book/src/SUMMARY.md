@@ -92,6 +92,16 @@
 - [ADR-0084 The GTK plugin cannot decorate a JVM's window](adr/0084-the-gtk-plugin-cannot-decorate-a-jvms-window.md)
 - [ADR-0085 A window that closes beats a sharper one that cannot](adr/0085-a-window-that-closes-beats-a-sharper-one-that-cannot.md)
 - [ADR-0086 X11 is the Linux default, for now](adr/0086-x11-is-the-linux-default-for-now.md)
+- [ADR-0087 A semantic fill brings its own foreground](adr/0087-a-semantic-fill-brings-its-own-foreground.md)
+- [ADR-0088 A fill that carries text moves away from it](adr/0088-a-fill-that-carries-text-moves-away-from-it.md)
+- [ADR-0089 A knob's gesture is a rate](adr/0089-a-knobs-gesture-is-a-rate.md)
+- [ADR-0090 A ring is a track and a dial is a grab](adr/0090-a-ring-is-a-track-and-a-dial-is-a-grab.md)
+- [ADR-0091 One module, a package per control](adr/0091-one-module-a-package-per-control.md)
+- [ADR-0092 A primitive is a widget like any other](adr/0092-a-primitive-is-a-widget-like-any-other.md)
+- [ADR-0093 An application is a root widget](adr/0093-an-application-is-a-root-widget.md)
+- [ADR-0094 Name the overload, not the allocation](adr/0094-name-the-overload-not-the-allocation.md)
+- [ADR-0095 A shortcut is built from enums](adr/0095-a-shortcut-is-built-from-enums.md)
+- [ADR-0096 A registry is generated, not reflected](adr/0096-a-registry-is-generated-not-reflected.md)
 
 ---
 

@@ -81,7 +81,10 @@ public sealed interface BackendEvent {
     /// `x` and `y` are **logical**, window-relative — the same space an
     /// application lays out in, because SDL reports window coordinates and the
     /// display scale is applied when the frame is rasterized (ADR-0031).
-    record PointerMoved(BackendWindow window, float x, float y) implements BackendEvent {
+    /// @param modifiers which modifier keys were held — see [#modifiers] on
+    ///                  [PointerWheel] for why every pointer event carries them
+    record PointerMoved(BackendWindow window, float x, float y, int modifiers)
+            implements BackendEvent {
     }
 
     /// A pointer button went down.
@@ -90,13 +93,13 @@ public sealed interface BackendEvent {
     ///               toolkit button by the layer that dispatches
     /// @param clickCount 1 for a single click, 2 for a double — counted by the
     ///                   platform, so the toolkit keeps no timer of its own
-    record PointerPressed(BackendWindow window, float x, float y, int button, int clickCount)
-            implements BackendEvent {
+    record PointerPressed(BackendWindow window, float x, float y, int button, int clickCount,
+            int modifiers) implements BackendEvent {
     }
 
     /// A pointer button came up.
-    record PointerReleased(BackendWindow window, float x, float y, int button, int clickCount)
-            implements BackendEvent {
+    record PointerReleased(BackendWindow window, float x, float y, int button, int clickCount,
+            int modifiers) implements BackendEvent {
     }
 
     /// The wheel turned, or a touchpad scrolled.
@@ -115,8 +118,16 @@ public sealed interface BackendEvent {
     /// Lines, not pixels, because SDL reports no pixel-precise delta. They are
     /// fractional on a touchpad, which is what stops a trackpad scrolling in
     /// jerks.
-    record PointerWheel(BackendWindow window, float x, float y, float deltaX, float deltaY)
-            implements BackendEvent {
+    /// @param modifiers the platform's modifier bitmask, as
+    ///                  [io.github.digitalsmile.goldberry.input.Modifiers#fromSdl]
+    ///                  reads it. Every pointer event carries it because §3 asks a
+    ///                  knob for a "modifier for fine adjustment" and §2.3 asks
+    ///                  for `Ctrl+click`, and because a backend is the only layer
+    ///                  that can read it *at the moment the event happened* —
+    ///                  latching it from the last key event leaves it stuck down
+    ///                  when a window loses focus mid-chord ([ADR-0089])
+    record PointerWheel(BackendWindow window, float x, float y, float deltaX, float deltaY,
+            int modifiers) implements BackendEvent {
     }
 
     /// The pointer left the window.

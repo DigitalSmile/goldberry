@@ -8,7 +8,7 @@ import java.util.function.Consumer;
 /// it is what the application keeps: data flows down into the tree and events
 /// flow back up, so a control reports what the user did and the application
 /// decides what that means
-/// ([ADR-0063](../../../../../../../book/src/adr/0063-data-flows-down-events-flow-up.md)).
+/// ([ADR-0063](../../../../../../book/src/adr/0063-data-flows-down-events-flow-up.md)).
 ///
 /// The split is types rather than discipline. `Bindings.resolve` hands back one of
 /// these, so a widget built from markup **cannot** write to the model even by

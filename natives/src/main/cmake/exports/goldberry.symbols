@@ -60,6 +60,13 @@ SDL_GetWindowSurface
 SDL_UpdateWindowSurfaceRects
 SDL_DestroyWindowSurface
 
+# The modifier keys, read at the moment a pointer event is translated rather
+# than latched from the last key event. A window that loses focus while Shift is
+# held never sees the key release, and a latched flag would stay stuck down.
+# sec. 3 asks a knob for a "modifier for fine adjustment"; sec. 2.3's Ctrl+click
+# and Shift+click want the same thing. See ADR-0089.
+SDL_GetModState
+
 # Event pumping, and SDL_PushEvent for the cross-thread wakeup.
 SDL_PollEvent
 SDL_WaitEventTimeout

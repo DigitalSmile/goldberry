@@ -320,7 +320,7 @@ public final class BlendContext implements AutoCloseable {
     /// uses to get back to plain scaled user space. The scale is folded in here
     /// rather than left to the caller so that a transform set through this method
     /// is in the same logical coordinates as every other drawing call on the
-    /// context ([ADR-0068](../../../../../../book/src/adr/0068-the-transform-stack-is-java-side.md)).
+    /// context ([ADR-0068](../../../../../../../book/src/adr/0068-the-transform-stack-is-java-side.md)).
     public void transform(double a, double b, double c, double d, double e, double f) {
         requireUsable();
         if (!Double.isFinite(a) || !Double.isFinite(b) || !Double.isFinite(c)
@@ -364,7 +364,7 @@ public final class BlendContext implements AutoCloseable {
     /// own image at full strength, and then the whole result is faded once by
     /// this — which is what CSS `opacity` means, and differs from fading each
     /// shape separately exactly where two of them overlap
-    /// ([ADR-0064](../../../../../../book/src/adr/0064-a-rounded-rectangle-is-four-cubics.md)
+    /// ([ADR-0064](../../../../../../../book/src/adr/0064-a-rounded-rectangle-is-four-cubics.md)
     /// stated that difference as an open question; ADR-0071 is the answer).
     ///
     /// Context state, not a per-call argument, because Blend2D's is — so a caller

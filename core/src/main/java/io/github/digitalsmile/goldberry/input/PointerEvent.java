@@ -42,6 +42,9 @@ public final class PointerEvent {
     }
 
     private final Kind kind;
+    private final Modifiers modifiers;
+    private double anchor = Double.NaN;
+    private Modifiers gestureModifiers = Modifiers.NONE;
     private final float x;
     private final float y;
     private final Button button;
@@ -117,7 +120,7 @@ public final class PointerEvent {
     }
 
     public PointerEvent(Kind kind, float x, float y, Button button, int clickCount, Element target) {
-        this(kind, x, y, button, clickCount, 0, 0, Float.NaN, Float.NaN, target);
+        this(kind, x, y, button, clickCount, 0, 0, Float.NaN, Float.NaN, Modifiers.NONE, target);
     }
 
     /// An event delivered while a button is held, carrying where it went down.
@@ -126,16 +129,30 @@ public final class PointerEvent {
     /// see [#dragX()].
     public PointerEvent(Kind kind, float x, float y, Button button, int clickCount,
             float pressX, float pressY, Element target) {
-        this(kind, x, y, button, clickCount, 0, 0, pressX, pressY, target);
+        this(kind, x, y, button, clickCount, 0, 0, pressX, pressY, Modifiers.NONE, target);
+    }
+
+    /// The same, with the modifier keys that were held.
+    public PointerEvent(Kind kind, float x, float y, Button button, int clickCount,
+            float pressX, float pressY, Modifiers modifiers, Element target) {
+        this(kind, x, y, button, clickCount, 0, 0, pressX, pressY, modifiers, target);
     }
 
     /// A wheel event, which is the only kind that carries a delta.
     public static PointerEvent wheel(float x, float y, float deltaX, float deltaY, Element target) {
-        return new PointerEvent(Kind.WHEEL, x, y, null, 0, deltaX, deltaY, Float.NaN, Float.NaN, target);
+        return wheel(x, y, deltaX, deltaY, Modifiers.NONE, target);
+    }
+
+    /// A wheel event with modifiers — `Shift` for a fine step, `Ctrl` for zoom.
+    public static PointerEvent wheel(float x, float y, float deltaX, float deltaY,
+            Modifiers modifiers, Element target) {
+        return new PointerEvent(Kind.WHEEL, x, y, null, 0, deltaX, deltaY,
+                Float.NaN, Float.NaN, modifiers, target);
     }
 
     private PointerEvent(Kind kind, float x, float y, Button button, int clickCount,
-            float deltaX, float deltaY, float pressX, float pressY, Element target) {
+            float deltaX, float deltaY, float pressX, float pressY,
+            Modifiers modifiers, Element target) {
         this.kind = Objects.requireNonNull(kind, "kind");
         this.x = x;
         this.y = y;
@@ -145,7 +162,75 @@ public final class PointerEvent {
         this.deltaY = deltaY;
         this.pressX = pressX;
         this.pressY = pressY;
+        this.modifiers = modifiers == null ? Modifiers.NONE : modifiers;
         this.target = target;
+    }
+
+    /// Which modifier keys were held when this happened.
+    ///
+    /// On the pointer and not only on the keyboard, because
+    /// `docs/design-system.md` §3 asks a knob for a "modifier for fine
+    /// adjustment" — and §2.3's `Ctrl+click` and `Shift+click` want the same
+    /// thing. Read from the platform at the moment the event was translated
+    /// rather than latched from the last key event: a window that loses focus
+    /// while Shift is held never sees the key release, and a latched flag would
+    /// stay stuck down
+    /// ([ADR-0089](../../../../../../book/src/adr/0089-a-knobs-gesture-is-a-rate.md)).
+    public Modifiers modifiers() {
+        return modifiers;
+    }
+
+    /// The value the handling widget reported when this gesture began, or `NaN`
+    /// when no button is held.
+    ///
+    /// [#dragX()] answers "how far has the pointer moved since the press"; this
+    /// answers "and what was the value then". A control whose drag is a **rate**
+    /// rather than a position needs both — a knob maps 200 logical pixels of
+    /// vertical travel onto its whole range (§3), so where it ends up depends
+    /// entirely on where it started, and a widget is a value rebuilt every frame
+    /// with nowhere to keep that.
+    ///
+    /// The router owns it for exactly the reason it owns [#pressX()]: its
+    /// implicit capture already spans the gesture ([ADR-0058]), so it is both the
+    /// only thing that can know and the thing whose lifetime already matches
+    /// ([ADR-0075], [ADR-0089]). What the number *means* is the widget's own
+    /// business — the router asks [Handles#gestureAnchor()] on the press and
+    /// hands the answer back unexamined.
+    ///
+    /// `NaN` rather than zero, the same convention [#dragX()] uses: arithmetic on
+    /// it produces `NaN` and a comparison against it is `false`, so "there is no
+    /// gesture" propagates instead of reading as "the gesture started at zero".
+    public double anchor() {
+        return anchor;
+    }
+
+    /// Sets [#anchor()]. **The router's**, exactly as [#localTo] is — public for
+    /// the same reason, that a test building an event by hand has to be able to
+    /// say what the gesture started from.
+    public void anchoredAt(double value) {
+        this.anchor = value;
+    }
+
+    /// The modifiers held when the button went **down**, as opposed to
+    /// [#modifiers()], which is what is held now.
+    ///
+    /// A gesture's meaning is decided when it starts. `Shift`-dragging a knob is
+    /// a fine adjustment (§3), and reading the live modifier instead would make
+    /// pressing Shift halfway through a drag **rescale the travel already
+    /// covered** — at 100 px down with the sensitivity going from 1 to 0.1, the
+    /// value jumps from half a range below where it started to a twentieth of
+    /// one. Drawn perfectly, reported nowhere, and it looks like the knob slipped
+    /// ([ADR-0089]).
+    ///
+    /// [Modifiers#NONE] when no button is held, which is the same "there is no
+    /// gesture" the `NaN`s report.
+    public Modifiers gestureModifiers() {
+        return gestureModifiers;
+    }
+
+    /// Sets [#gestureModifiers()]. The router's, like [#anchoredAt].
+    public void gestureStartedWith(Modifiers value) {
+        this.gestureModifiers = value == null ? Modifiers.NONE : value;
     }
 
     public Kind kind() {

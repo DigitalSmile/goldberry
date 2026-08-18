@@ -101,7 +101,11 @@ public record Box(
     /// @param kind      which shape
     /// @param argb      `0xAARRGGBB`, not premultiplied
     /// @param thickness the stroke width in logical pixels
-    public record Mark(Kind kind, int argb, double thickness) {
+    /// @param start     for [Kind#ARC], where the arc begins, in radians
+    ///                  clockwise from three o'clock; ignored by every other kind
+    /// @param sweep     for [Kind#ARC], how far it runs, in radians — negative
+    ///                  runs anticlockwise, and zero draws nothing
+    public record Mark(Kind kind, int argb, double thickness, double start, double sweep) {
 
         /// The shapes a control's indicator can be.
         public enum Kind {
@@ -119,14 +123,46 @@ public record Box(
             /// before `radio` is.
             DOT,
 
-            /// A three-quarter ring — a `spinner`, and the only mark that is not
-            /// an indicator of a value.
+            /// A ring, or any part of one — a `spinner`'s three quarters, and a
+            /// `knob`'s 270° track and the fraction of it the value fills.
             ///
-            /// Three quarters rather than a full circle because a spinning circle
-            /// is a circle: the gap is the whole of what makes the rotation
-            /// visible ([ADR-0081]).
-            ARC
+            /// The only mark whose geometry is not fixed by its kind, because it
+            /// is the only one that has to *show a number*: [#start] and [#sweep]
+            /// are what a knob's arc indicator is. Every other kind draws the
+            /// same shape at every size and ignores them
+            /// ([ADR-0089](../../../../../../book/src/adr/0089-a-knobs-gesture-is-a-rate.md)).
+            ARC,
+
+            /// A radial line — a `knob`'s pointer, saying which way the control
+            /// is turned.
+            ///
+            /// Uses [#start] as its angle and ignores [#sweep]: it is a line and
+            /// not an arc, so it has a direction and no length in radians. The
+            /// length it *does* have is radial, and it is a proportion of the box
+            /// like every other mark's geometry — see [POINTER_INNER].
+            POINTER
         }
+
+        /// Where a [Kind#POINTER] line begins, as a fraction of the box's radius.
+        ///
+        /// A proportion rather than a length, for the reason the tick and the dash
+        /// are proportions: the same drawing has to be right on §3's 32px knob and
+        /// on its 48px one, and on whatever size an application's stylesheet asks
+        /// for. It stops short of the centre because a line through the middle of
+        /// a dial reads as a diameter rather than as a direction.
+        public static final double POINTER_INNER = 0.35;
+
+        /// Where it ends. Short of the rim, so the pointer sits *on* the dial
+        /// rather than touching the ring outside it — two strokes meeting is a
+        /// join, and a join says the two are one thing.
+        public static final double POINTER_OUTER = 0.78;
+
+        /// The angle a ring starts at when nothing says otherwise — twelve
+        /// o'clock, which is `-π/2` because zero points right.
+        public static final double TOP = -Math.PI / 2;
+
+        /// Three quarters of a turn — a `spinner`'s sweep ([ADR-0081]).
+        public static final double THREE_QUARTERS = 1.5 * Math.PI;
 
         public Mark {
             Objects.requireNonNull(kind, "kind");
@@ -134,11 +170,22 @@ public record Box(
                 throw new IllegalArgumentException(
                         "a mark needs a positive stroke width, not " + thickness);
             }
+            if (!Double.isFinite(start) || !Double.isFinite(sweep)) {
+                throw new IllegalArgumentException(
+                        "an arc needs finite angles, not " + start + " and " + sweep);
+            }
+        }
+
+        /// A mark whose shape its kind decides — every kind but [Kind#ARC], and
+        /// an arc that wants the spinner's three quarters from the top.
+        public Mark(Kind kind, int argb, double thickness) {
+            this(kind, argb, thickness, TOP, THREE_QUARTERS);
         }
 
         /// This mark with its colour's alpha scaled — see [Box#fade(double)].
         Mark fade(double alpha) {
-            return alpha >= 1 ? this : new Mark(kind, CssColor.fade(argb, alpha), thickness);
+            return alpha >= 1 ? this
+                    : new Mark(kind, CssColor.fade(argb, alpha), thickness, start, sweep);
         }
     }
 
@@ -479,7 +526,9 @@ public record Box(
                 // set is drawn to be tinted, and a stylesheet saying `color`
                 // means the same thing to both.
                 icon == null ? null : new Glyph(icon.icon(), style.color()),
-                mark == null ? null : new Mark(mark.kind(), style.color(), mark.thickness()),
+                mark == null ? null
+                        : new Mark(mark.kind(), style.color(), mark.thickness(),
+                                mark.start(), mark.sweep()),
                 children,
                 owner);
     }
