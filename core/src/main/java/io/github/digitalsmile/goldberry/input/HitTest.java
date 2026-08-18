@@ -5,6 +5,7 @@ import io.github.digitalsmile.goldberry.backend.Cursor;
 import io.github.digitalsmile.goldberry.css.Affine;
 import io.github.digitalsmile.goldberry.layout.Box;
 import io.github.digitalsmile.goldberry.layout.BoxPainter;
+import io.github.digitalsmile.goldberry.layout.Clip;
 import io.github.digitalsmile.goldberry.layout.RenderTree;
 import java.util.ArrayList;
 import java.util.List;
@@ -55,19 +56,29 @@ public final class HitTest {
     ///                that decided it is gone by the next frame
     /// @param inverse undoes the transform this box was painted with, or null if
     ///                it was painted where it was laid out
+    /// @param clip    what an `overflow` above this box confines it to, in the
+    ///                frame's coordinates, or [Clip#NONE] when nothing does
     public record Region(
             Object owner, Cursor cursor, float left, float top, float width, float height,
-            Affine inverse) {
+            Affine inverse, Clip clip) {
 
         public Region {
             Objects.requireNonNull(cursor, "cursor");
+            Objects.requireNonNull(clip, "clip");
+        }
+
+        /// A rectangle nothing clips.
+        public Region(
+                Object owner, Cursor cursor, float left, float top, float width, float height,
+                Affine inverse) {
+            this(owner, cursor, left, top, width, height, inverse, Clip.NONE);
         }
 
         /// An untransformed rectangle.
         public Region(
                 Object owner, Cursor cursor,
                 float left, float top, float width, float height) {
-            this(owner, cursor, left, top, width, height, null);
+            this(owner, cursor, left, top, width, height, null, Clip.NONE);
         }
 
         /// A rectangle that asks for no particular cursor — which is most of
@@ -86,6 +97,17 @@ public final class HitTest {
         }
 
         public boolean contains(float x, float y) {
+            // The clip first, and in the **frame's** coordinates rather than the
+            // box's. A row scrolled out of its viewport is still laid out where
+            // it always was -- Yoga never saw the scroll, which is a transform
+            // on the content -- so its own rectangle happily contains a pointer
+            // that is nowhere near it on screen. Testing the clip is what makes
+            // "not visible" and "not clickable" the same thing, which is
+            // ARCHITECTURE §11's promise and was not true of anything before
+            // this (ADR-0114).
+            if (!clip.isNone() && !clip.contains(x, y)) {
+                return false;
+            }
             if (inverse == null) {
                 return x >= left && x < left + width && y >= top && y < top + height;
             }
@@ -141,7 +163,8 @@ public final class HitTest {
             }
         }
         regions.add(new Region(placed.box().owner(), placed.box().cursor(),
-                layout.left(), layout.top(), layout.width(), layout.height(), inverse));
+                layout.left(), layout.top(), layout.width(), layout.height(),
+                inverse, placed.clip()));
     }
 
     /// The topmost node containing `(x, y)`, in logical coordinates.

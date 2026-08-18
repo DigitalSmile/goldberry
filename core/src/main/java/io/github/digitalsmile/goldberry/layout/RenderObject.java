@@ -161,6 +161,14 @@ public final class RenderObject implements AutoCloseable {
         if (previous == null || previous.position() != box.position()) {
             node.setPositionType(box.position());
         }
+        // Yoga's half of `overflow`: a node that is not VISIBLE does not grow to
+        // contain a child that overruns it. Without this a viewport would simply
+        // stretch to its content and there would be nothing to scroll — the
+        // clip in the painter hides the overflow, and this is what *creates* it
+        // (ADR-0114).
+        if (previous == null || previous.overflow() != box.overflow()) {
+            node.setOverflow(box.overflow());
+        }
         var inset = box.inset();
         if (previous == null || !previous.inset().equals(inset)) {
             // Per edge, like padding, and for the same reason: Yoga resolves the

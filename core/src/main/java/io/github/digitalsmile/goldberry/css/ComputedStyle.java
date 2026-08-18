@@ -9,6 +9,7 @@ import io.github.digitalsmile.goldberry.natives.yoga.FlexDirection;
 import io.github.digitalsmile.goldberry.natives.yoga.Insets;
 import io.github.digitalsmile.goldberry.natives.yoga.PositionType;
 import io.github.digitalsmile.goldberry.natives.yoga.Justify;
+import io.github.digitalsmile.goldberry.natives.yoga.Overflow;
 import io.github.digitalsmile.goldberry.natives.yoga.StyleLength;
 import java.util.List;
 import java.util.Locale;
@@ -65,6 +66,13 @@ public record ComputedStyle(
         // indicator was a box beside another box (ADR-0099).
         PositionType position,
         Insets inset,
+        // §8 has listed `overflow` since the beginning and nothing had needed
+        // it: until `scroll`, no box in the catalog had content it was meant to
+        // hide rather than grow around. Yoga reads it for *sizing* — a HIDDEN
+        // parent does not stretch to fit a child — and the painter reads it for
+        // the clip, which are two different jobs from one keyword
+        // (ADR-0114).
+        Overflow overflow,
         // --- paint: resolved into pixels ---
         int background,
         int color,
@@ -108,6 +116,10 @@ public record ComputedStyle(
             // shows on an absolute node -- where zero would stretch it and
             // undefined leaves it where the alignment put it.
             Insets.all(StyleLength.UNDEFINED),
+            // CSS's initial value, and Yoga's: a box that says nothing lets its
+            // content spill rather than cutting it off, because a clip nobody
+            // asked for is content that vanishes with no rule to blame.
+            Overflow.VISIBLE,
             CssColor.TRANSPARENT,
             0xFF000000,
             1.0,
@@ -127,6 +139,7 @@ public record ComputedStyle(
         Objects.requireNonNull(gap, "gap");
         Objects.requireNonNull(position, "position");
         Objects.requireNonNull(inset, "inset");
+        Objects.requireNonNull(overflow, "overflow");
         Objects.requireNonNull(decoration, "decoration");
         Objects.requireNonNull(typography, "typography");
         Objects.requireNonNull(transitions, "transitions");
@@ -274,6 +287,16 @@ public record ComputedStyle(
                     length(value, context)
                             .map(v -> inset(edge(inset, edgeOf(property), v)))
                             .orElseGet(() -> dropped(property, value));
+
+            // Both of Yoga's non-visible values are admitted, and they size
+            // identically. What separates them is above the layout engine: a
+            // `scroll` offers scrollbars for `scroll` and `auto` and none for
+            // `hidden`, so the keyword is how a stylesheet says which of the
+            // two a box is (ADR-0114). `auto` resolves to SCROLL and is told
+            // apart by the widget, not by the box.
+            case "overflow" -> overflow(value)
+                    .map(this::overflow)
+                    .orElseGet(() -> dropped(property, value));
 
             case "background", "background-color" -> colour(value)
                     .map(this::background)
@@ -423,133 +446,140 @@ public record ComputedStyle(
     public ComputedStyle direction(FlexDirection v) {
         return new ComputedStyle(
                 v, justifyContent, alignItems, width, height, padding, gap, flexGrow, flexShrink,
-                position, inset, background, color, opacity, decoration, typography, transitions,
+                position, inset, overflow, background, color, opacity, decoration, typography, transitions,
                 transform, cursor);
     }
 
     public ComputedStyle justifyContent(Justify v) {
         return new ComputedStyle(
                 direction, v, alignItems, width, height, padding, gap, flexGrow, flexShrink,
-                position, inset, background, color, opacity, decoration, typography, transitions,
+                position, inset, overflow, background, color, opacity, decoration, typography, transitions,
                 transform, cursor);
     }
 
     public ComputedStyle alignItems(Align v) {
         return new ComputedStyle(
                 direction, justifyContent, v, width, height, padding, gap, flexGrow, flexShrink,
-                position, inset, background, color, opacity, decoration, typography, transitions,
+                position, inset, overflow, background, color, opacity, decoration, typography, transitions,
                 transform, cursor);
     }
 
     public ComputedStyle width(StyleLength v) {
         return new ComputedStyle(
                 direction, justifyContent, alignItems, v, height, padding, gap, flexGrow,
-                flexShrink, position, inset, background, color, opacity, decoration, typography,
+                flexShrink, position, inset, overflow, background, color, opacity, decoration, typography,
                 transitions, transform, cursor);
     }
 
     public ComputedStyle height(StyleLength v) {
         return new ComputedStyle(
                 direction, justifyContent, alignItems, width, v, padding, gap, flexGrow,
-                flexShrink, position, inset, background, color, opacity, decoration, typography,
+                flexShrink, position, inset, overflow, background, color, opacity, decoration, typography,
                 transitions, transform, cursor);
     }
 
     public ComputedStyle padding(Insets v) {
         return new ComputedStyle(
                 direction, justifyContent, alignItems, width, height, v, gap, flexGrow, flexShrink,
-                position, inset, background, color, opacity, decoration, typography, transitions,
+                position, inset, overflow, background, color, opacity, decoration, typography, transitions,
                 transform, cursor);
     }
 
     public ComputedStyle gap(StyleLength v) {
         return new ComputedStyle(
                 direction, justifyContent, alignItems, width, height, padding, v, flexGrow,
-                flexShrink, position, inset, background, color, opacity, decoration, typography,
+                flexShrink, position, inset, overflow, background, color, opacity, decoration, typography,
                 transitions, transform, cursor);
     }
 
     public ComputedStyle flexGrow(double v) {
         return new ComputedStyle(
                 direction, justifyContent, alignItems, width, height, padding, gap, v, flexShrink,
-                position, inset, background, color, opacity, decoration, typography, transitions,
+                position, inset, overflow, background, color, opacity, decoration, typography, transitions,
                 transform, cursor);
     }
 
     public ComputedStyle flexShrink(double v) {
         return new ComputedStyle(
                 direction, justifyContent, alignItems, width, height, padding, gap, flexGrow, v,
-                position, inset, background, color, opacity, decoration, typography, transitions,
+                position, inset, overflow, background, color, opacity, decoration, typography, transitions,
                 transform, cursor);
     }
 
     public ComputedStyle position(PositionType v) {
         return new ComputedStyle(
                 direction, justifyContent, alignItems, width, height, padding, gap, flexGrow,
-                flexShrink, v, inset, background, color, opacity, decoration, typography,
+                flexShrink, v, inset, overflow, background, color, opacity, decoration, typography,
                 transitions, transform, cursor);
     }
 
     public ComputedStyle inset(Insets v) {
         return new ComputedStyle(
                 direction, justifyContent, alignItems, width, height, padding, gap, flexGrow,
-                flexShrink, position, v, background, color, opacity, decoration, typography,
+                flexShrink, position, v, overflow, background, color, opacity, decoration, typography,
+                transitions, transform, cursor);
+    }
+
+    public ComputedStyle overflow(Overflow v) {
+        return new ComputedStyle(
+                direction, justifyContent, alignItems, width, height, padding, gap, flexGrow,
+                flexShrink, position, inset, v, background, color, opacity, decoration, typography,
                 transitions, transform, cursor);
     }
 
     public ComputedStyle background(int v) {
         return new ComputedStyle(
                 direction, justifyContent, alignItems, width, height, padding, gap, flexGrow,
-                flexShrink, position, inset, v, color, opacity, decoration, typography,
+                flexShrink, position, inset, overflow, v, color, opacity, decoration, typography,
                 transitions, transform, cursor);
     }
 
     public ComputedStyle color(int v) {
         return new ComputedStyle(
                 direction, justifyContent, alignItems, width, height, padding, gap, flexGrow,
-                flexShrink, position, inset, background, v, opacity, decoration, typography,
+                flexShrink, position, inset, overflow, background, v, opacity, decoration, typography,
                 transitions, transform, cursor);
     }
 
     public ComputedStyle opacity(double v) {
         return new ComputedStyle(
                 direction, justifyContent, alignItems, width, height, padding, gap, flexGrow,
-                flexShrink, position, inset, background, color, v, decoration, typography,
+                flexShrink, position, inset, overflow, background, color, v, decoration, typography,
                 transitions, transform, cursor);
     }
 
     public ComputedStyle decoration(Decoration v) {
         return new ComputedStyle(
                 direction, justifyContent, alignItems, width, height, padding, gap, flexGrow,
-                flexShrink, position, inset, background, color, opacity, v, typography,
+                flexShrink, position, inset, overflow, background, color, opacity, v, typography,
                 transitions, transform, cursor);
     }
 
     public ComputedStyle typography(Typography v) {
         return new ComputedStyle(
                 direction, justifyContent, alignItems, width, height, padding, gap, flexGrow,
-                flexShrink, position, inset, background, color, opacity, decoration, v,
+                flexShrink, position, inset, overflow, background, color, opacity, decoration, v,
                 transitions, transform, cursor);
     }
 
     public ComputedStyle transitions(Transitions v) {
         return new ComputedStyle(
                 direction, justifyContent, alignItems, width, height, padding, gap, flexGrow,
-                flexShrink, position, inset, background, color, opacity, decoration, typography, v,
+                flexShrink, position, inset, overflow, background, color, opacity, decoration, typography, v,
                 transform, cursor);
     }
 
     public ComputedStyle transform(Transform v) {
         return new ComputedStyle(
                 direction, justifyContent, alignItems, width, height, padding, gap, flexGrow,
-                flexShrink, position, inset, background, color, opacity, decoration, typography,
+                flexShrink, position, inset, overflow, background, color, opacity, decoration, typography,
                 transitions, v, cursor);
     }
 
     public ComputedStyle cursor(Cursor v) {
         return new ComputedStyle(
                 direction, justifyContent, alignItems, width, height, padding, gap, flexGrow,
-                flexShrink, position, inset, background, color, opacity, decoration, typography,
+                flexShrink, position, inset, overflow, background, color, opacity, decoration, typography,
                 transitions, transform, v);
     }
 
@@ -908,6 +938,24 @@ public record ComputedStyle(
         } catch (IllegalArgumentException e) {
             return java.util.Optional.empty();
         }
+    }
+
+    /// CSS's `overflow`, which has one more keyword than Yoga does.
+    ///
+    /// `auto` is not a `YGOverflow`, and it sizes exactly as `scroll` does — the
+    /// difference in CSS is whether the bars appear only when they are needed.
+    /// The design system routes that question elsewhere: §2.4 makes overlay
+    /// auto-hiding bars the default for *both* and gives the always-visible
+    /// gutter to an application setting rather than to a keyword. So `auto` maps
+    /// onto [Overflow#SCROLL] and nothing downstream has to carry a distinction
+    /// no rule in the canon can act on (ADR-0114).
+    private static java.util.Optional<Overflow> overflow(List<Token> value) {
+        var tokens = value.stream().filter(t -> !t.is(TokenType.WHITESPACE)).toList();
+        if (tokens.size() == 1 && tokens.getFirst().is(TokenType.IDENT)
+                && tokens.getFirst().text().equalsIgnoreCase("auto")) {
+            return java.util.Optional.of(Overflow.SCROLL);
+        }
+        return keyword(value, Overflow.class);
     }
 
     private static String text(List<Token> value) {

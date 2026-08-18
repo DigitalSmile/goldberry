@@ -120,6 +120,7 @@
 - [ADR-0111 A text box is painted inside its padding](adr/0111-a-text-box-is-painted-inside-its-padding.md)
 - [ADR-0112 A menu follows the pointer, and lights for the keyboard](adr/0112-a-menu-follows-the-pointer-and-lights-for-the-keyboard.md)
 - [ADR-0113 A submenu is placed beside its menu](adr/0113-a-submenu-is-placed-beside-its-menu.md)
+- [ADR-0114 A clip is a rectangle the painter carries](adr/0114-a-clip-is-a-rectangle-the-painter-carries.md)
 
 ---
 

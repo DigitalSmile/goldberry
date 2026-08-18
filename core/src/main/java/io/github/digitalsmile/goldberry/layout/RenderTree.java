@@ -9,6 +9,8 @@ import io.github.digitalsmile.goldberry.css.Affine;
 import io.github.digitalsmile.goldberry.natives.blend2d.BlendPath;
 import io.github.digitalsmile.goldberry.css.Transform;
 import io.github.digitalsmile.goldberry.natives.yoga.ComputedLayout;
+import io.github.digitalsmile.goldberry.natives.yoga.Overflow;
+import io.github.digitalsmile.goldberry.natives.yoga.StyleLength;
 import io.github.digitalsmile.goldberry.natives.yoga.YogaConfig;
 import java.util.Objects;
 import java.util.function.Consumer;
@@ -208,10 +210,16 @@ public final class RenderTree implements AutoCloseable {
         // Outward to whole logical pixels, because the clip is stated in logical
         // coordinates and a fractional edge would exclude the outermost row of
         // antialiasing inside the region that changed.
-        frame.clipTo(Math.floor(bounds.x() / scale), Math.floor(bounds.y() / scale),
+        var clip = Clip.of(
+                Math.floor(bounds.x() / scale), Math.floor(bounds.y() / scale),
                 Math.ceil(bounds.width() / scale) + 1, Math.ceil(bounds.height() / scale) + 1);
+        frame.clipTo(clip.left(), clip.top(), clip.width(), clip.height());
         try {
-            paint(frame);
+            // The damage is the *base* of the clip stack, not merely the first
+            // clip: a scroll view inside the damaged region narrows it further
+            // and must widen back to the damage when its subtree ends, rather
+            // than to the whole frame (ADR-0114).
+            paint(frame, clip);
         } finally {
             // Context state, so it goes back: the next thing drawn on this frame
             // did not ask to be clipped.
@@ -221,6 +229,11 @@ public final class RenderTree implements AutoCloseable {
 
     /// Paints the tree laid out by the last [#update].
     public void paint(Frame frame) {
+        paint(frame, Clip.NONE);
+    }
+
+    /// The same, confined to `base` — the damage rectangle when there is one.
+    private void paint(Frame frame, Clip base) {
         Objects.requireNonNull(frame, "frame");
         requireUsable();
         if (root == null) {
@@ -233,9 +246,15 @@ public final class RenderTree implements AutoCloseable {
         layersRepainted = 0;
         layersComposited = 0;
         try (var path = BlendPath.create()) {
-            var state = new Painting(frame, path);
-            paint(root, 0, 0, 1.0, Affine.IDENTITY, state);
+            var state = new Painting(frame, path, base);
+            paint(root, 0, 0, 1.0, Affine.IDENTITY, base, state);
             state.untransform();
+            // Back to the clip the frame arrived with, for the reason the
+            // transform goes back to identity: the next thing drawn on this
+            // frame -- an application's `onPaint`, or an overlay above the
+            // tree -- did not ask to be confined to the last scroll view the
+            // walk happened to end inside.
+            state.clipTo(state.base());
         }
     }
 
@@ -247,9 +266,23 @@ public final class RenderTree implements AutoCloseable {
         private final BlendPath path;
         private Affine current = Affine.IDENTITY;
 
-        Painting(Frame frame, BlendPath path) {
+        /// The clip the frame arrived with — the damage rectangle, or
+        /// [Clip#NONE] for a full repaint. Every restore goes back to *this*
+        /// rather than to no clip at all, because `resetClip` on the context
+        /// means the whole surface and a subtree that finished must not be able
+        /// to widen the damage it was painted inside (ADR-0114).
+        private final Clip base;
+
+        /// What the context is currently clipped to. Tracked here for the same
+        /// reason `current` tracks the transform: it is context state, Blend2D
+        /// offers no stack, and a run of unclipped boxes must cost no calls.
+        private Clip clip;
+
+        Painting(Frame frame, BlendPath path, Clip base) {
             this.frame = frame;
             this.path = path;
+            this.base = base;
+            this.clip = base;
         }
 
         void transform(Affine matrix) {
@@ -268,6 +301,36 @@ public final class RenderTree implements AutoCloseable {
                 current = Affine.IDENTITY;
             }
         }
+
+        /// Confines the context to `next`, whatever it was confined to before.
+        ///
+        /// Two native calls rather than one, and unavoidably so: `clipTo`
+        /// *intersects* with the clip in force, so narrowing and widening cannot
+        /// both be expressed by it, and `resetClip` is the only way back out.
+        /// The accumulated rectangle is therefore recomputed in Java and
+        /// assigned whole.
+        ///
+        /// **The transform goes to identity first.** Blend2D applies a clip in
+        /// the context's current user space, and `next` is in the frame's
+        /// coordinates — a clip set while a translated subtree's matrix was in
+        /// force would land at the translation twice over. The matrix the next
+        /// box needs is re-assigned by [#transform] on its way through, which
+        /// costs nothing it was not already paying.
+        void clipTo(Clip next) {
+            if (next.equals(clip)) {
+                return;
+            }
+            untransform();
+            frame.resetClip();
+            if (!next.isNone()) {
+                frame.clipTo(next.left(), next.top(), next.width(), next.height());
+            }
+            clip = next;
+        }
+
+        Clip base() {
+            return base;
+        }
     }
 
     /// Draws one node and everything under it.
@@ -278,7 +341,7 @@ public final class RenderTree implements AutoCloseable {
     /// order" is no longer one sequence.
     private void paint(
             RenderObject object, double parentLeft, double parentTop,
-            double parentAlpha, Affine parentTransform, Painting state) {
+            double parentAlpha, Affine parentTransform, Clip parentClip, Painting state) {
 
         var box = object.box();
         var layout = object.node().layout();
@@ -286,6 +349,13 @@ public final class RenderTree implements AutoCloseable {
         var top = parentTop + layout.top();
         var transform = compose(parentTransform, box.transform(), left, top,
                 layout.width(), layout.height());
+
+        // Before the promoted branch, not after it. A layer is rasterized whole
+        // and composited with one blit, and that blit is the only thing an
+        // enclosing scroll view can confine -- so a promoted node inside a
+        // viewport that had not set the clip yet would blit its whole raster
+        // straight over the viewport's edge (ADR-0114).
+        state.clipTo(parentClip);
 
         if (object.isPromoted()) {
             compositeThroughLayer(object, left, top, parentAlpha, transform, state);
@@ -297,9 +367,59 @@ public final class RenderTree implements AutoCloseable {
         BoxPainter.paintOne(state.frame, state.path, box.fade(alpha),
                 new ComputedLayout((float) left, (float) top, layout.width(), layout.height()));
 
-        for (var child : object.children()) {
-            paint(child, left, top, alpha, transform, state);
+        // The box itself is drawn under its *parent's* clip and the children
+        // under this one's. That order is what CSS means: `overflow: hidden`
+        // clips the content of a box, not the box -- so a viewport still paints
+        // its own background and its own border, and only what is inside it is
+        // cut off.
+        var clip = clipFor(box, transform, parentClip, left, top, layout);
+        if (clip.isEmpty()) {
+            // Scrolled entirely out of sight. Nothing under here can produce a
+            // pixel, so the walk stops -- which is the one place a clip saves
+            // the *traversal* as well as the rasterization (ADR-0114).
+            return;
         }
+        for (var child : object.children()) {
+            paint(child, left, top, alpha, transform, clip, state);
+        }
+        state.clipTo(parentClip);
+    }
+
+    /// The clip a box's children are painted under.
+    ///
+    /// The parent's unchanged for the overwhelming majority of boxes, which is
+    /// what keeps this free: an ordinary frame allocates nothing here and
+    /// changes no context state.
+    ///
+    /// The rectangle is the box's **padding box** rather than its border box,
+    /// which is CSS's rule — content scrolls under the border, not over it — and
+    /// is what makes a viewport with a 1px edge keep that edge crisp while the
+    /// rows inside it slide past.
+    private static Clip clipFor(
+            Box box, Affine transform, Clip parent,
+            double left, double top, ComputedLayout layout) {
+
+        if (box.overflow() == Overflow.VISIBLE) {
+            return parent;
+        }
+        var padding = box.padding();
+        var own = Clip.of(
+                left + edge(padding.left(), layout.width()),
+                top + edge(padding.top(), layout.height()),
+                layout.width() - edge(padding.left(), layout.width())
+                        - edge(padding.right(), layout.width()),
+                layout.height() - edge(padding.top(), layout.height())
+                        - edge(padding.bottom(), layout.height()));
+        return parent.intersect(own.map(transform));
+    }
+
+    /// One padding edge in logical pixels, against the box's own size.
+    private static double edge(StyleLength length, double base) {
+        return switch (length) {
+            case StyleLength.Points points -> points.value();
+            case StyleLength.Percent percent -> percent.value() / 100.0 * base;
+            case StyleLength.Keyword ignored -> 0;
+        };
     }
 
     /// Renders a promoted subtree into its own raster and composites it back.
@@ -334,7 +454,13 @@ public final class RenderTree implements AutoCloseable {
             // arithmetic a layer costs.
             layer.paint(scale, into -> {
                 try (var path = BlendPath.create()) {
-                    var inner = new Painting(into, path);
+                    // [Clip#NONE] and not the clip in force outside: the layer
+                    // is rasterized at full extent and it is the *blit* that
+                    // gets confined. A clip inside this subtree still applies,
+                    // and lands in the layer's own coordinates for free --
+                    // every rectangle below is derived from the shifted origin
+                    // passed here.
+                    var inner = new Painting(into, path, Clip.NONE);
                     paintIntoLayer(object, left - bounds.left(), top - bounds.top(),
                             1.0, Affine.IDENTITY, inner);
                     inner.untransform();
@@ -357,11 +483,18 @@ public final class RenderTree implements AutoCloseable {
         var box = object.box();
         var layout = object.node().layout();
         state.transform(transform);
-        BoxPainter.paintOne(state.frame, state.path, box.fade(alpha),
-                new ComputedLayout((float) left, (float) top, layout.width(), layout.height()));
+        var computed = new ComputedLayout((float) left, (float) top,
+                layout.width(), layout.height());
+        BoxPainter.paintOne(state.frame, state.path, box.fade(alpha), computed);
 
+        // The promoted node's own `overflow` still clips its children, inside
+        // the layer and in the layer's coordinates.
+        var clip = clipFor(box, transform, Clip.NONE, left, top, computed);
+        if (clip.isEmpty()) {
+            return;
+        }
         for (var child : object.children()) {
-            paint(child, left, top, alpha, transform, state);
+            paint(child, left, top, alpha, transform, clip, state);
         }
     }
 
@@ -461,7 +594,7 @@ public final class RenderTree implements AutoCloseable {
                     "this render tree has never been updated, so there is no layout to walk;"
                             + " call update(frame, box) first");
         }
-        visit(root, 0, 0, 1.0, Affine.IDENTITY, visitor);
+        visit(root, 0, 0, 1.0, Affine.IDENTITY, Clip.NONE, visitor);
     }
 
     /// Walks the tree, turning Yoga's parent-relative positions into absolute
@@ -479,7 +612,7 @@ public final class RenderTree implements AutoCloseable {
     /// no layout pass and move no sibling.
     private static void visit(
             RenderObject object, double parentLeft, double parentTop,
-            double parentAlpha, Affine parentTransform,
+            double parentAlpha, Affine parentTransform, Clip parentClip,
             Consumer<BoxPainter.Placed> visitor) {
 
         var box = object.box();
@@ -490,16 +623,24 @@ public final class RenderTree implements AutoCloseable {
         var transform = compose(parentTransform, box.transform(), left, top,
                 layout.width(), layout.height());
 
-        visitor.accept(new BoxPainter.Placed(
-                box.fade(alpha),
-                new ComputedLayout((float) left, (float) top, layout.width(), layout.height()),
-                transform));
+        var computed = new ComputedLayout((float) left, (float) top,
+                layout.width(), layout.height());
+        visitor.accept(new BoxPainter.Placed(box.fade(alpha), computed, transform, parentClip));
 
+        // Exactly the clip the painter computes, from the same inputs in the
+        // same order. Two walks that have to agree is how a pointer starts
+        // landing where the ink is not -- the argument HitTest already makes
+        // about the transform's inverse -- so the arithmetic is shared rather
+        // than repeated (ADR-0114).
+        var clip = clipFor(box, transform, parentClip, left, top, computed);
+        if (clip.isEmpty()) {
+            return;
+        }
         for (var child : object.children()) {
             // The *unfaded* box is what the children were built from, so the
             // accumulated alpha travels as a number rather than being applied
             // twice on the way down.
-            visit(child, left, top, alpha, transform, visitor);
+            visit(child, left, top, alpha, transform, clip, visitor);
         }
     }
 

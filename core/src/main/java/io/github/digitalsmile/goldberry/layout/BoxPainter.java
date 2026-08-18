@@ -302,12 +302,21 @@ public final class BoxPainter {
         };
     }
 
-    public record Placed(Box box, ComputedLayout layout, Affine transform) {
+    /// @param clip what an `overflow` above this box confines it to, or
+    ///             [Clip#NONE] when nothing does — which is every box in a tree
+    ///             with no scroll view in it
+    public record Placed(Box box, ComputedLayout layout, Affine transform, Clip clip) {
 
         public Placed {
             Objects.requireNonNull(box, "box");
             Objects.requireNonNull(layout, "layout");
             Objects.requireNonNull(transform, "transform");
+            Objects.requireNonNull(clip, "clip");
+        }
+
+        /// An unclipped box, which is what a caller building one by hand means.
+        public Placed(Box box, ComputedLayout layout, Affine transform) {
+            this(box, layout, transform, Clip.NONE);
         }
 
         /// Whether this box is drawn where it was laid out.
