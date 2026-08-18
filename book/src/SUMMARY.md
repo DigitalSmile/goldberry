@@ -107,6 +107,7 @@
 - [ADR-0099 An indicator travels on a grid](adr/0099-an-indicator-travels-on-a-grid.md)
 - [ADR-0100 A window has a layer above its application](adr/0100-a-window-has-a-layer-above-its-application.md)
 - [ADR-0101 A diagnostic must not be the thing it measures](adr/0101-a-diagnostic-must-not-be-the-thing-it-measures.md)
+- [ADR-0102 A popup is a window the platform may refuse](adr/0102-a-popup-is-a-window-the-platform-may-refuse.md)
 
 ---
 

@@ -3,15 +3,18 @@ package io.github.digitalsmile.goldberry.backend.headless;
 import io.github.digitalsmile.goldberry.backend.Backend;
 import io.github.digitalsmile.goldberry.backend.BackendEvent;
 import io.github.digitalsmile.goldberry.backend.BackendException;
+import io.github.digitalsmile.goldberry.backend.BackendPopup;
 import io.github.digitalsmile.goldberry.backend.BackendWindow;
 import io.github.digitalsmile.goldberry.backend.DisplayScale;
 import io.github.digitalsmile.goldberry.backend.EventSink;
+import io.github.digitalsmile.goldberry.backend.PopupSpec;
 import io.github.digitalsmile.goldberry.backend.WindowSpec;
 import io.github.digitalsmile.goldberry.natives.log.Logs;
 import java.time.Duration;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.Objects;
 import java.util.Queue;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -80,6 +83,34 @@ public final class HeadlessBackend implements Backend {
         return window;
     }
 
+    /// A popup, which this backend has because the SPI's rules need somewhere to
+    /// be checked without a display.
+    ///
+    /// Never empty, unlike a real driver's: a backend with no platform under it
+    /// has no driver to lack the capability. The `Optional` is still the SPI's,
+    /// and [io.github.digitalsmile.goldberry.backend.sdl3.Sdl3Backend] is where it
+    /// is genuinely empty — under SDL's `dummy` driver, which has no popups.
+    @Override
+    public Optional<BackendPopup> createPopup(BackendWindow owner, PopupSpec spec) {
+        requireUiThread();
+        requireOpen();
+        Objects.requireNonNull(owner, "owner");
+        Objects.requireNonNull(spec, "spec");
+        if (!(owner instanceof HeadlessWindow parent)) {
+            throw new IllegalArgumentException(
+                    "a popup's owner must be a window from this backend, and " + owner
+                            + " is not");
+        }
+        if (!parent.isOpen()) {
+            throw new IllegalStateException("cannot open a popup on a window that has closed");
+        }
+
+        var popup = new HeadlessPopup(this, parent, spec, scale);
+        windows.add(popup);
+        LOG.debug("created headless {} popup {} at {}", spec.kind(), spec.size(), spec.position());
+        return Optional.of(popup);
+    }
+
     @Override
     public List<BackendWindow> windows() {
         requireUiThread();
@@ -129,6 +160,12 @@ public final class HeadlessBackend implements Backend {
             if (event instanceof BackendEvent.FrameDue frame
                     && frame.window() instanceof HeadlessWindow window) {
                 window.frameDelivered();
+            }
+            // A popup's requested size becomes its actual size here, which is
+            // where a window manager's answer would arrive. See HeadlessPopup.
+            if (event instanceof BackendEvent.Resized resized
+                    && resized.window() instanceof HeadlessPopup popup) {
+                popup.resizeDelivered();
             }
             sink.accept(event);
         }

@@ -48,6 +48,9 @@ public final class SdlVideo {
     }
 
     private final MethodHandle createWindow;
+    private final MethodHandle createPopupWindow;
+    private final MethodHandle setWindowPosition;
+    private final MethodHandle setWindowSize;
     private final MethodHandle destroyWindow;
     private final MethodHandle showWindow;
     private final MethodHandle setWindowTitle;
@@ -68,6 +71,16 @@ public final class SdlVideo {
         this.createWindow = downcall(lookup, "SDL_CreateWindow", FunctionDescriptor.of(
                 ValueLayout.ADDRESS, ValueLayout.ADDRESS, ValueLayout.JAVA_INT,
                 ValueLayout.JAVA_INT, ValueLayout.JAVA_LONG));
+        this.createPopupWindow = downcall(lookup, "SDL_CreatePopupWindow", FunctionDescriptor.of(
+                ValueLayout.ADDRESS, ValueLayout.ADDRESS, ValueLayout.JAVA_INT,
+                ValueLayout.JAVA_INT, ValueLayout.JAVA_INT, ValueLayout.JAVA_INT,
+                ValueLayout.JAVA_LONG));
+        this.setWindowPosition = downcall(lookup, "SDL_SetWindowPosition", FunctionDescriptor.of(
+                ValueLayout.JAVA_BOOLEAN, ValueLayout.ADDRESS,
+                ValueLayout.JAVA_INT, ValueLayout.JAVA_INT));
+        this.setWindowSize = downcall(lookup, "SDL_SetWindowSize", FunctionDescriptor.of(
+                ValueLayout.JAVA_BOOLEAN, ValueLayout.ADDRESS,
+                ValueLayout.JAVA_INT, ValueLayout.JAVA_INT));
         this.destroyWindow = downcall(lookup, "SDL_DestroyWindow",
                 FunctionDescriptor.ofVoid(ValueLayout.ADDRESS));
         this.showWindow = downcall(lookup, "SDL_ShowWindow",
@@ -124,6 +137,72 @@ public final class SdlVideo {
         }
         var id = (int) invoke(getWindowId, "SDL_GetWindowID", pointer);
         return new SdlWindowHandle(pointer, id);
+    }
+
+    /// Creates a popup window parented to `parent`.
+    ///
+    /// A popup is a real platform window that is **positioned in its parent's
+    /// coordinates** and stays above it — which is what lets a menu or a
+    /// dropdown escape the bounds of the window that opened it, the one thing an
+    /// in-window overlay cannot do.
+    ///
+    /// `flags` must contain exactly one of [SdlWindowFlag#POPUP_MENU] and
+    /// [SdlWindowFlag#TOOLTIP]; SDL refuses the rest, because every window
+    /// manager treats the two differently. Add [SdlWindowFlag#NOT_FOCUSABLE] for
+    /// a tooltip: the tooltip flag alone does *not* stop a popup taking focus.
+    ///
+    /// **Empty when the video driver has no popups.** SDL's `dummy` driver has
+    /// none, which is the configuration most headless tests run in; the three
+    /// desktop drivers Goldberry ships against — x11, wayland, cocoa and the
+    /// Windows one — all do. A caller gets a refusal to handle rather than an
+    /// exception, because "this platform has no popup windows" is a fact about
+    /// the platform and not a failure ([ADR-0019]).
+    ///
+    /// @param parent  the window this popup belongs to
+    /// @param offsetX x, in the parent's logical coordinates
+    /// @param offsetY y, in the parent's logical coordinates
+    /// @param width   logical width
+    /// @param height  logical height
+    /// @param flags   the creation flags, including exactly one popup kind
+    /// @return the popup, or empty if the driver does not support popups
+    public java.util.Optional<SdlWindowHandle> createPopupWindow(
+            SdlWindowHandle parent, int offsetX, int offsetY, int width, int height,
+            Collection<SdlWindowFlag> flags) {
+
+        Objects.requireNonNull(parent, "parent");
+        var pointer = (MemorySegment) invoke(
+                createPopupWindow, "SDL_CreatePopupWindow",
+                parent.pointer(), offsetX, offsetY, width, height, SdlWindowFlag.mask(flags));
+        if (MemorySegment.NULL.equals(pointer)) {
+            var error = Sdl.get().lastError();
+            // SDL's own word for "the driver cannot do this", set by
+            // SDL_Unsupported(). Anything else — a null parent, conflicting type
+            // flags — is a caller's mistake and is thrown.
+            if (error != null && error.toLowerCase(java.util.Locale.ROOT).contains("not supported")) {
+                LOG.debug("this video driver has no popup windows: {}", error);
+                return java.util.Optional.empty();
+            }
+            throw new SdlException("SDL_CreatePopupWindow", error);
+        }
+        var id = (int) invoke(getWindowId, "SDL_GetWindowID", pointer);
+        return java.util.Optional.of(new SdlWindowHandle(pointer, id));
+    }
+
+    /// Moves a window. For a popup the coordinates are its parent's; for a
+    /// top-level one they are the display's.
+    public void setWindowPosition(SdlWindowHandle window, int x, int y) {
+        if (!(boolean) invoke(setWindowPosition, "SDL_SetWindowPosition",
+                window.pointer(), x, y)) {
+            throw new SdlException("SDL_SetWindowPosition", Sdl.get().lastError());
+        }
+    }
+
+    /// Resizes a window, in logical pixels.
+    public void setWindowSize(SdlWindowHandle window, int width, int height) {
+        if (!(boolean) invoke(setWindowSize, "SDL_SetWindowSize",
+                window.pointer(), width, height)) {
+            throw new SdlException("SDL_SetWindowSize", Sdl.get().lastError());
+        }
     }
 
     public void destroyWindow(SdlWindowHandle window) {

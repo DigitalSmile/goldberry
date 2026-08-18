@@ -19,7 +19,7 @@ import java.util.Optional;
 /// Presented frames are kept instead of shown, and every rule the SPI states is
 /// checked here rather than assumed — which is the point: a real backend that
 /// breaks one of them fails the same tests.
-public final class HeadlessWindow implements BackendWindow {
+public sealed class HeadlessWindow implements BackendWindow permits HeadlessPopup {
 
     private final HeadlessBackend backend;
 
@@ -36,11 +36,21 @@ public final class HeadlessWindow implements BackendWindow {
     private int cursorChanges;
 
     HeadlessWindow(HeadlessBackend backend, WindowSpec spec, DisplayScale scale) {
-        this.backend = backend;
-        this.size = spec.size();
-        this.scale = scale;
-        this.title = spec.title();
+        this(backend, spec.size(), scale, spec.title());
     }
+
+    HeadlessWindow(HeadlessBackend backend, LogicalSize size, DisplayScale scale, String title) {
+        this.backend = backend;
+        this.size = size;
+        this.scale = scale;
+        this.title = title;
+    }
+
+    /// The backend, for a subclass that has to reach it.
+    final HeadlessBackend backend() {
+        return backend;
+    }
+
 
     @Override
     public LogicalSize size() {
@@ -176,8 +186,17 @@ public final class HeadlessWindow implements BackendWindow {
     public void resizeTo(LogicalSize newSize) {
         backend.requireUiThread();
         requireOpen();
-        this.size = Objects.requireNonNull(newSize, "newSize");
+        applySize(newSize);
         backend.post(new BackendEvent.Resized(this, size, physicalSize()));
+    }
+
+    /// Changes the size this window reports, without announcing it.
+    ///
+    /// For [HeadlessPopup], which announces its own resize when it is *asked* for
+    /// and applies it when the event is delivered — which is the order a real
+    /// window manager does it in.
+    final void applySize(LogicalSize newSize) {
+        this.size = Objects.requireNonNull(newSize, "newSize");
     }
 
     /// Moves the window to a display with a different scale, and queues the

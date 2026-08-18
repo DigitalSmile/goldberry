@@ -108,7 +108,7 @@ public final class LayoutVerifier {
         var reported = entries.stream()
                 .filter(LayoutEntry::describesConstant)
                 .collect(Collectors.toMap(
-                        LayoutEntry::fieldName, entry -> Integer.toUnsignedLong(entry.size()), (a, b) -> a));
+                        LayoutEntry::fieldName, LayoutEntry::value, (a, b) -> a));
 
         var mismatches = new ArrayList<String>();
         for (var constant : constants) {

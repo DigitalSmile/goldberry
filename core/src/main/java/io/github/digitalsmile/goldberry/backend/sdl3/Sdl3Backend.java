@@ -3,8 +3,10 @@ package io.github.digitalsmile.goldberry.backend.sdl3;
 import io.github.digitalsmile.goldberry.backend.Backend;
 import io.github.digitalsmile.goldberry.backend.BackendEvent;
 import io.github.digitalsmile.goldberry.backend.BackendException;
+import io.github.digitalsmile.goldberry.backend.BackendPopup;
 import io.github.digitalsmile.goldberry.backend.BackendWindow;
 import io.github.digitalsmile.goldberry.backend.EventSink;
+import io.github.digitalsmile.goldberry.backend.PopupSpec;
 import io.github.digitalsmile.goldberry.backend.WindowSpec;
 import io.github.digitalsmile.goldberry.natives.sdl.Sdl;
 import io.github.digitalsmile.goldberry.natives.sdl.SdlCursors;
@@ -350,6 +352,57 @@ public final class Sdl3Backend implements Backend {
         LOG.debug("created SDL window {} \"{}\" {} flags={}",
                 handle.id(), spec.title(), spec.size(), flags);
         return window;
+    }
+
+    @Override
+    public Optional<BackendPopup> createPopup(BackendWindow owner, PopupSpec spec) {
+        requireUiThread();
+        requireOpen();
+        Objects.requireNonNull(owner, "owner");
+        Objects.requireNonNull(spec, "spec");
+        if (!(owner instanceof Sdl3Window parent)) {
+            throw new IllegalArgumentException(
+                    "a popup's owner must be a window from this backend, and " + owner
+                            + " is not");
+        }
+        if (!parent.isOpen()) {
+            throw new IllegalStateException("cannot open a popup on a window that has closed");
+        }
+
+        // Exactly one kind flag: SDL refuses a popup that claims to be both, and
+        // TOOLTIP alone does *not* stop a popup taking focus -- NOT_FOCUSABLE is
+        // a separate flag and is what keeps the caret in the field the tooltip is
+        // describing.
+        var flags = EnumSet.of(SdlWindowFlag.HIGH_PIXEL_DENSITY, SdlWindowFlag.HIDDEN);
+        switch (spec.kind()) {
+            case MENU -> flags.add(SdlWindowFlag.POPUP_MENU);
+            case TOOLTIP -> {
+                flags.add(SdlWindowFlag.TOOLTIP);
+                flags.add(SdlWindowFlag.NOT_FOCUSABLE);
+            }
+        }
+
+        var handle = video.createPopupWindow(
+                parent.handle(),
+                Math.round(spec.position().x()),
+                Math.round(spec.position().y()),
+                Math.round(spec.size().width()),
+                Math.round(spec.size().height()),
+                flags);
+        if (handle.isEmpty()) {
+            // The driver has no popups -- SDL's `dummy` is the one Goldberry's own
+            // tests run against. The caller falls back to the in-window overlay
+            // layer and is clipped to the window, which is a worse menu and not a
+            // failure (ADR-0102).
+            LOG.debug("the {} video driver has no popup windows", Sdl.get().videoDriver());
+            return Optional.empty();
+        }
+
+        var popup = new Sdl3Popup(this, handle.get(), parent, spec.kind(), spec.position());
+        windowsById.put(handle.get().id(), popup);
+        LOG.debug("created SDL popup {} {} at {} on window {} flags={}",
+                handle.get().id(), spec.size(), spec.position(), parent.handleId(), flags);
+        return Optional.of(popup);
     }
 
     @Override

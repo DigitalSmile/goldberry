@@ -60,6 +60,16 @@ SDL_GetWindowSurface
 SDL_UpdateWindowSurfaceRects
 SDL_DestroyWindowSurface
 
+# Popup windows (sec. 4, sec. 7). A popup is a real platform window parented to
+# another and positioned in its coordinates, which is what lets a menu, a
+# tooltip or a select's list escape the bounds of the window that opened it --
+# the thing the in-window overlay layer (ADR-0100) deliberately cannot do.
+# Position and size are here because every consumer needs them: a menu near a
+# screen edge flips, and an autocomplete's list narrows as it filters.
+SDL_CreatePopupWindow
+SDL_SetWindowPosition
+SDL_SetWindowSize
+
 # The modifier keys, read at the moment a pointer event is translated rather
 # than latched from the last key event. A window that loses focus while Shift is
 # held never sees the key release, and a latched flag would stay stuck down.

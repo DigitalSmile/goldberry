@@ -20,7 +20,14 @@ import java.util.Optional;
 import org.slf4j.Logger;
 
 /// An SDL window behind the SPI.
-final class Sdl3Window implements BackendWindow {
+///
+/// Not final, and [Sdl3Popup] is the one subclass: a popup **is** an SDL window —
+/// it acquires a frame, presents, paces and closes identically, and its events
+/// arrive through the same pump under its own id — and the two things it adds are
+/// an owner and a position. Sharing the class is also what keeps popups in
+/// [Sdl3Backend]'s window map without a second lookup path, so a popup's events
+/// find their way home by the code that was already there.
+sealed class Sdl3Window implements BackendWindow permits Sdl3Popup {
 
     private static final Logger LOG = Logs.of(Sdl3Window.class);
 
@@ -46,6 +53,16 @@ final class Sdl3Window implements BackendWindow {
     /// The sizes the last reported resize carried. See [#resizedTo].
     private LogicalSize reportedSize;
     private PhysicalSize reportedPhysicalSize;
+
+    /// The handle, for a subclass that has to make its own SDL calls.
+    final SdlWindowHandle handle() {
+        return handle;
+    }
+
+    /// The backend, for the same reason.
+    final Sdl3Backend backend() {
+        return backend;
+    }
 
     Sdl3Window(Sdl3Backend backend, SdlWindowHandle handle, String title) {
         this.backend = backend;
@@ -331,7 +348,7 @@ final class Sdl3Window implements BackendWindow {
         return handle.id();
     }
 
-    private SdlVideo video() {
+    SdlVideo video() {
         return backend.video();
     }
 
