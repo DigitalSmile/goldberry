@@ -32,7 +32,8 @@ module io.github.digitalsmile.goldberry.widgets {
     /// outside `…controls.slider`, enforced by the compiler.
     ///
     /// Each line below therefore exports exactly one public widget (two for
-    /// `radio`) and hides its parts. `…controls` itself carries only [Scale],
+    /// `radio` and for `segmented`, each of which is a set and its members) and
+    /// hides its parts. `…controls` itself carries only [Scale],
     /// which `slider` and a future `fader` share.
     /// `core-widgets.md` §1, §2 and §5's structural widgets — `row`, `column`,
     /// `spacer`, `text`, `panel` — and the registry that builds them. They were
@@ -51,6 +52,7 @@ module io.github.digitalsmile.goldberry.widgets {
     exports io.github.digitalsmile.goldberry.widgets.controls.knob;
     exports io.github.digitalsmile.goldberry.widgets.controls.progressbar;
     exports io.github.digitalsmile.goldberry.widgets.controls.radio;
+    exports io.github.digitalsmile.goldberry.widgets.controls.segmented;
     exports io.github.digitalsmile.goldberry.widgets.controls.slider;
     exports io.github.digitalsmile.goldberry.widgets.controls.spinner;
     exports io.github.digitalsmile.goldberry.widgets.controls.toggle;

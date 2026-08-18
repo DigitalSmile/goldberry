@@ -45,6 +45,46 @@ public interface Styled extends Widget {
         return Set.of();
     }
 
+    /// The widget's last word on its own style — the cascade's answer, with
+    /// whatever only the widget can know written into it.
+    ///
+    /// §8's cascade layers end with `inline`: "a `style=` on a single node. Last,
+    /// because it is the most specific statement anyone can make about one
+    /// element." This is that layer, typed. A stylesheet cannot say where the
+    /// **third of five** segments is, because it cannot count the segments; the
+    /// widget can, and this is where it says so.
+    ///
+    /// ## Why it is here and not in `render`
+    ///
+    /// [Paints#render] already receives a style and could change what it draws
+    /// with — and a value changed there would **snap**, because [WidgetRenderer]
+    /// has already observed the cascade's style and started whatever transitions
+    /// it declared. Applied here, a widget-computed value is part of what the
+    /// animation observes, so it moves under `transition` like any other
+    /// property: a segmented control's indicator translates between segments
+    /// because this method puts the translation where the transition can see it
+    /// ([ADR-0099](../../../../../../book/src/adr/0099-an-indicator-travels-on-a-grid.md)).
+    ///
+    /// ## What it is not
+    ///
+    /// Not a way around the stylesheet. It runs **after** the cascade, so
+    /// anything it sets is unthemeable and unoverridable — which is right for a
+    /// number nobody else can compute and wrong for everything else. The rule
+    /// that keeps it honest: a widget may write here only what a stylesheet
+    /// could not have written, and the toolkit's own use is exactly two values,
+    /// both of them derived from a count no selector can express.
+    ///
+    /// The style is also what this node's children inherit, so a widget that
+    /// changed `color` here would change theirs. That is CSS's rule for an
+    /// inline style and is the reason this returns a whole style rather than a
+    /// patch: the node has one style, and this is it.
+    ///
+    /// @param resolved what the cascade produced for this node
+    default io.github.digitalsmile.goldberry.css.ComputedStyle restyle(
+            io.github.digitalsmile.goldberry.css.ComputedStyle resolved) {
+        return resolved;
+    }
+
     /// Whether this node is disabled, for `:disabled`.
     ///
     /// The one pseudo-class a **widget** owns rather than the router. `:hover`,

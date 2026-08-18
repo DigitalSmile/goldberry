@@ -17,6 +17,16 @@ column id="sidebar" {
     radio value="light" "Nord light"
   }
 
+  // The eleventh control, on the **same property as the radios above** -- so
+  // picking a segment moves the radio and vice versa, and Ctrl+T moves both.
+  // It shares `radio-group`'s model exactly and is a different widget anyway:
+  // the arrows here answer only Left and Right, because a bar has an axis of its
+  // own where a group's is its stylesheet's (ADR-0078, ADR-0097).
+  segmented id="theme-bar" bind="app.theme" change="app.pick-theme" {
+    option value="dark" "Dark"
+    option value="light" "Light"
+  }
+
   // The five semantic variants, and the only place in the toolkit the aurora
   // hues appear at all: design-system.md sec. 1.2 admits them "only with
   // semantic meaning", and a status chip is the first widget whose whole job is

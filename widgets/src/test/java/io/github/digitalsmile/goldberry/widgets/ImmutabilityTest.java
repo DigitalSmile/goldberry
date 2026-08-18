@@ -46,6 +46,7 @@ class ImmutabilityTest {
             var markup = switch (type) {
                 case "text", "button", "badge" -> type + " \"x\"";
                 case "radio" -> "radio value=\"x\" \"X\"";
+                case "option" -> "option value=\"x\" \"X\"";
                 default -> type;
             };
             widgets.add(inflater.inflate(

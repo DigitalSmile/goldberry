@@ -130,6 +130,7 @@ class ChainingTest {
             var markup = switch (type) {
                 case "text", "button", "badge" -> type + " \"x\"";
                 case "radio" -> "radio value=\"x\" \"X\"";
+                case "option" -> "option value=\"x\" \"X\"";
                 default -> type;
             };
             Widget widget = inflater.inflate(KdlParser.parse(markup).getFirst());

@@ -37,17 +37,17 @@ import io.github.digitalsmile.goldberry.widgets.controls.checkbox.Checkbox;
 public final class ShowcaseModel {
 
     @Bind("app.clicks")
-    final Property<Integer> clicks = Property.of(0);
+    private final Property<Integer> clicks = Property.of(0);
     @Bind("app.prose")
-    final Property<Boolean> showProse = Property.of(true);
+    private final Property<Boolean> showProse = Property.of(true);
     @Bind("app.partly")
-    final Property<Checkbox.Value> partly = Property.of(Checkbox.Value.MIXED);
+    private final Property<Checkbox.Value> partly = Property.of(Checkbox.Value.MIXED);
     @Bind("app.gain")
-    final Property<Number> gain = Property.of(40);
+    private final Property<Number> gain = Property.of(40);
     @Bind("app.theme")
-    final Property<String> themeName = Property.of("dark");
+    private final Property<String> themeName = Property.of("dark");
     @Bind("app.status")
-    final Property<String> status = Property.of("checking the environment…");
+    private final Property<String> status = Property.of("checking the environment…");
 
     /// §1.3's density preference — a plain field, because nothing binds to it. No
     /// control shows which density is on, the way the theme radios show the
@@ -132,7 +132,7 @@ public final class ShowcaseModel {
     /// moves it. Set this aside and the control stops working — which is the
     /// behaviour, not a bug.
     @Action("app.toggle-prose")
-    public void toggleProse() {
+    private void toggleProse() {
         changed(() -> showProse.set(!isProseShown()));
     }
 
@@ -141,7 +141,7 @@ public final class ShowcaseModel {
     /// — dragging right on a switch already on asks for on — so the value comes
     /// up with the event and this sets exactly it (ADR-0075).
     @Action("app.set-prose")
-    public void setProse(boolean value) {
+    private void setProse(boolean value) {
         changed(() -> showProse.set(value));
     }
 
@@ -149,14 +149,14 @@ public final class ShowcaseModel {
     /// this goes to `CHECKED`, and a user can never get back to mixed by clicking
     /// — only the application can put it there.
     @Action("app.toggle-partly")
-    public void togglePartly() {
+    private void togglePartly() {
         changed(() -> partly.set(partly.get().toggled()));
     }
 
     /// Already snapped and clamped by whichever control asked. The application
     /// does no arithmetic at all, which is the point (ADR-0079).
     @Action("app.set-gain")
-    public void setGain(double value) {
+    private void setGain(double value) {
         changed(() -> gain.set(value));
     }
 
@@ -174,7 +174,7 @@ public final class ShowcaseModel {
     /// changed from the keyboard moves the tick without the shortcut knowing a
     /// radio group exists.
     @Action("app.pick-theme")
-    public void pickTheme(String name) {
+    private void pickTheme(String name) {
         themeName.set(name);
         onRestyle.run();
     }

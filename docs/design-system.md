@@ -159,7 +159,7 @@ Behavior and API live in `core-widgets.md`; GDS pins the numbers. Metrics ship a
 | `badge` | height 20; padding-x 8; radius `full`; `caption`; filled variants pin their own foreground per §1.2's 4.5:1 floor — see ADR-0087 |
 | `level-meter` (mic) | segment width 3, gap 1; peak-hold 1.5s |
 | `link` | `body`; underline on hover and always in `:focus-visible`; external icon 12 with gap 4 |
-| `segmented` | height 32 (28); segment padding-x 12; radius 8 outer, 0 between; 1px divider in `--gb-border`; `body-strong` |
+| `segmented` | height 32 (28); bar radius 8 with a 1px `--gb-border` edge and 2px of padding; **segments are equal — each exactly 1/n of the bar** — padding-x 12, indicator radius 4; `body-strong`. Two consequences worth stating: the bar **takes the width it is given** and fills its parent with none, because its cells are proportions; and there is **no divider and no square inner corner**, because "radius 8 outer, 0 between" needs per-corner radii that §8's subset does not have. See [ADR-0097](../book/src/adr/0097-a-selection-that-travels-needs-a-geometry.md) and [ADR-0099](../book/src/adr/0099-an-indicator-travels-on-a-grid.md) |
 | `button.outlined` | 1px `--gb-border`; transparent fill; `button` metrics otherwise |
 | `button.square` / `.circle` | radius 0 / `full`; a circle is `--gb-button-height` square |
 | `button[float]` | offset 24 from both window edges; elevation 1; icon-only ⇒ 48 square |
@@ -207,7 +207,7 @@ Durations reference §1.7 tokens (`fast`/`base`/`overlay`); enters use `ease-ent
 | frost surfaces | fade in/out as whole layers with their component; **blur radius never animates** |
 | `camera-view` / meters | live content is data, not motion — permission-state placeholders cross-fade fast |
 | `link` | underline: `opacity` fast — the underline is always laid out, so nothing reflows |
-| `segmented` | selection indicator `translate`+width between segments, base — `tabs`' effect, same controller |
+| `segmented` | selection indicator `translate` between segments, base · selected label `color`, base (**same clock — they arrive together**) · hover/press wash, fast. The `width` half of this row is gone and cannot come back: it is not on §1.7's whitelist, and on a grid every cell is the same size so there is nothing for a width to move ([ADR-0099](../book/src/adr/0099-an-indicator-travels-on-a-grid.md)) |
 | `button[float]` | in: `opacity` + `scale` 0.9→1, base · out: reverse, fast |
 | `date-picker` / `color-picker` / autocomplete popup | as `popover` |
 | `calendar` | month change: content `opacity` cross-fade fast — **never a slide**, because the grid is the same shape and sliding it implies the days moved |

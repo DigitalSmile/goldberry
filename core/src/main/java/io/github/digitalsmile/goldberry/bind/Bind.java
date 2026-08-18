@@ -30,10 +30,17 @@ import java.lang.annotation.Target;
 /// ## Rules the processor enforces
 ///
 /// - The field's type must be a [Property].
-/// - The field must not be `private`: generated code lives in the same package
-///   and cannot see one. Package-private is enough, and is what a model's fields
-///   should be anyway — the accessors are the API.
 /// - Two fields may not claim the same path.
+///
+/// ## `private` is fine
+///
+/// It was not, at first: generated code sits in the same package and cannot see
+/// a private field, so one was a compile error telling the author to widen it —
+/// which made a model's encapsulation a consequence of how the toolkit reads it.
+/// A private field is now read through a `VarHandle` looked up once in the
+/// generated class, by a name and type the processor already verified. Nothing
+/// scans and nothing is opened
+/// ([ADR-0098](../../../../../../book/src/adr/0098-a-private-member-is-reached-by-a-handle.md)).
 @Retention(RetentionPolicy.SOURCE)
 @Target(ElementType.FIELD)
 public @interface Bind {

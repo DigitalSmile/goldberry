@@ -212,6 +212,20 @@
      stroke rather than 4.5:1 of text, and this clears it on the whole ramp. */
   --gb-knob-pointer: var(--gb-text);
 
+  /* Segmented (design-system.md §3's `segmented` row). `--nord5` for the plate,
+     which is the same step `button` and `checkbox` rest on here: a subtle well
+     on the `--nord6` window and unmistakable on a white card.
+
+     The selected segment is `--gb-accent-fill` -- `--nord10` taken down until it
+     carries `--nord6`, which is the pairing ADR-0087 chose and ContrastTest
+     checks. It has no hover or press ramp: what a pointer does to a segment is
+     a wash from `--gb-overlay-*`, so the pill's colour is one value on each
+     theme rather than three (ADR-0099). */
+  --gb-segmented-bg: var(--nord5);
+  --gb-segmented-text: var(--gb-text);
+  --gb-segmented-selected-bg: var(--gb-accent-fill);
+  --gb-segmented-selected-text: var(--nord6);
+
   /* Badge (design-system.md §3's `badge` row). See nord-dark for the whole
      argument; what matters here is that **the aurora pairings are identical**
      to that file's. Those hues are theme-invariant, so the foreground a fill

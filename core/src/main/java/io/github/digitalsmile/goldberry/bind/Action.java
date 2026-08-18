@@ -29,8 +29,13 @@ import java.lang.annotation.Target;
 ///
 /// Like [Bind], and for §9's reason: this generates the explicit
 /// `Actions.strict().bind("app.click", target::click)` rather than looking a
-/// method up reflectively. The method must not be `private`, because generated
-/// code in the same package cannot see one.
+/// method up reflectively.
+///
+/// A `private` method is fine. It is bound through a `MethodHandle` looked up
+/// once in the generated class from the exact descriptor the processor verified,
+/// which is the same explicit registration with the *call* changed — an action
+/// only the markup calls has no reason to be part of a model's API
+/// ([ADR-0098](../../../../../../book/src/adr/0098-a-private-member-is-reached-by-a-handle.md)).
 @Retention(RetentionPolicy.SOURCE)
 @Target(ElementType.METHOD)
 public @interface Action {

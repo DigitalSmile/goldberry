@@ -7,6 +7,7 @@ import io.github.digitalsmile.goldberry.natives.log.Logs;
 import io.github.digitalsmile.goldberry.natives.yoga.Align;
 import io.github.digitalsmile.goldberry.natives.yoga.FlexDirection;
 import io.github.digitalsmile.goldberry.natives.yoga.Insets;
+import io.github.digitalsmile.goldberry.natives.yoga.PositionType;
 import io.github.digitalsmile.goldberry.natives.yoga.Justify;
 import io.github.digitalsmile.goldberry.natives.yoga.StyleLength;
 import java.util.List;
@@ -58,6 +59,12 @@ public record ComputedStyle(
         StyleLength gap,
         double flexGrow,
         double flexShrink,
+        // `position` and `inset` are the layout half's answer to a box that is
+        // not where the flow would put it. §8 listed them from the start and
+        // nothing had needed one: every widget until `segmented`'s travelling
+        // indicator was a box beside another box (ADR-0099).
+        PositionType position,
+        Insets inset,
         // --- paint: resolved into pixels ---
         int background,
         int color,
@@ -94,6 +101,13 @@ public record ComputedStyle(
             // CSS's default and Yoga's under `useWebDefaults`: a width is a
             // preferred width, and a cramped row may take it back.
             1,
+            PositionType.RELATIVE,
+            // Not `Insets.ZERO`: an inset of zero pins a node to its container's
+            // edge, and "no inset at all" is what a node that never mentions one
+            // must get. Yoga spells that `undefined`, and the difference only
+            // shows on an absolute node -- where zero would stretch it and
+            // undefined leaves it where the alignment put it.
+            Insets.all(StyleLength.UNDEFINED),
             CssColor.TRANSPARENT,
             0xFF000000,
             1.0,
@@ -111,6 +125,8 @@ public record ComputedStyle(
         Objects.requireNonNull(height, "height");
         Objects.requireNonNull(padding, "padding");
         Objects.requireNonNull(gap, "gap");
+        Objects.requireNonNull(position, "position");
+        Objects.requireNonNull(inset, "inset");
         Objects.requireNonNull(decoration, "decoration");
         Objects.requireNonNull(typography, "typography");
         Objects.requireNonNull(transitions, "transitions");
@@ -218,7 +234,7 @@ public record ComputedStyle(
 
             case "padding-top", "padding-right", "padding-bottom", "padding-left" ->
                     length(value, context)
-                            .map(v -> padding(edge(padding, property, v)))
+                            .map(v -> padding(edge(padding, edgeOf(property), v)))
                             .orElseGet(() -> dropped(property, value));
 
             case "gap" -> length(value, context)
@@ -237,6 +253,27 @@ public record ComputedStyle(
                     .filter(v -> v >= 0)
                     .map(this::flexShrink)
                     .orElseGet(() -> dropped(property, value));
+
+            // §8 has listed `position` since the beginning and nothing had
+            // needed it: a segmented control's indicator is the first box in
+            // the catalog that has to sit *over* its siblings rather than
+            // beside them. `static` is admitted as well as CSS's two, because it
+            // is how a container declines to be the thing an absolute
+            // descendant is placed against (ADR-0099).
+            case "position" -> keyword(value, PositionType.class)
+                    .map(this::position)
+                    .orElseGet(() -> dropped(property, value));
+
+            // The same 1-4 shorthand `padding` takes, over the same [Insets] --
+            // an inset is a padding measured from the outside.
+            case "inset" -> insets(value, context)
+                    .map(this::inset)
+                    .orElseGet(() -> dropped(property, value));
+
+            case "top", "right", "bottom", "left" ->
+                    length(value, context)
+                            .map(v -> inset(edge(inset, edgeOf(property), v)))
+                            .orElseGet(() -> dropped(property, value));
 
             case "background", "background-color" -> colour(value)
                     .map(this::background)
@@ -384,91 +421,136 @@ public record ComputedStyle(
     // exactly the mistake a fourteen-argument constructor invites.
 
     public ComputedStyle direction(FlexDirection v) {
-        return new ComputedStyle(v, justifyContent, alignItems, width, height, padding, gap,
-                flexGrow, flexShrink, background, color, opacity, decoration, typography, transitions, transform, cursor);
+        return new ComputedStyle(
+                v, justifyContent, alignItems, width, height, padding, gap, flexGrow, flexShrink,
+                position, inset, background, color, opacity, decoration, typography, transitions,
+                transform, cursor);
     }
 
     public ComputedStyle justifyContent(Justify v) {
-        return new ComputedStyle(direction, v, alignItems, width, height, padding, gap,
-                flexGrow, flexShrink, background, color, opacity, decoration, typography, transitions, transform, cursor);
+        return new ComputedStyle(
+                direction, v, alignItems, width, height, padding, gap, flexGrow, flexShrink,
+                position, inset, background, color, opacity, decoration, typography, transitions,
+                transform, cursor);
     }
 
     public ComputedStyle alignItems(Align v) {
-        return new ComputedStyle(direction, justifyContent, v, width, height, padding, gap,
-                flexGrow, flexShrink, background, color, opacity, decoration, typography, transitions, transform, cursor);
+        return new ComputedStyle(
+                direction, justifyContent, v, width, height, padding, gap, flexGrow, flexShrink,
+                position, inset, background, color, opacity, decoration, typography, transitions,
+                transform, cursor);
     }
 
     public ComputedStyle width(StyleLength v) {
-        return new ComputedStyle(direction, justifyContent, alignItems, v, height, padding, gap,
-                flexGrow, flexShrink, background, color, opacity, decoration, typography, transitions, transform, cursor);
+        return new ComputedStyle(
+                direction, justifyContent, alignItems, v, height, padding, gap, flexGrow,
+                flexShrink, position, inset, background, color, opacity, decoration, typography,
+                transitions, transform, cursor);
     }
 
     public ComputedStyle height(StyleLength v) {
-        return new ComputedStyle(direction, justifyContent, alignItems, width, v, padding, gap,
-                flexGrow, flexShrink, background, color, opacity, decoration, typography, transitions, transform, cursor);
+        return new ComputedStyle(
+                direction, justifyContent, alignItems, width, v, padding, gap, flexGrow,
+                flexShrink, position, inset, background, color, opacity, decoration, typography,
+                transitions, transform, cursor);
     }
 
     public ComputedStyle padding(Insets v) {
-        return new ComputedStyle(direction, justifyContent, alignItems, width, height, v, gap,
-                flexGrow, flexShrink, background, color, opacity, decoration, typography, transitions, transform, cursor);
+        return new ComputedStyle(
+                direction, justifyContent, alignItems, width, height, v, gap, flexGrow, flexShrink,
+                position, inset, background, color, opacity, decoration, typography, transitions,
+                transform, cursor);
     }
 
     public ComputedStyle gap(StyleLength v) {
-        return new ComputedStyle(direction, justifyContent, alignItems, width, height, padding, v,
-                flexGrow, flexShrink, background, color, opacity, decoration, typography, transitions, transform, cursor);
+        return new ComputedStyle(
+                direction, justifyContent, alignItems, width, height, padding, v, flexGrow,
+                flexShrink, position, inset, background, color, opacity, decoration, typography,
+                transitions, transform, cursor);
     }
 
     public ComputedStyle flexGrow(double v) {
-        return new ComputedStyle(direction, justifyContent, alignItems, width, height, padding, gap,
-                v, flexShrink, background, color, opacity, decoration, typography, transitions,
+        return new ComputedStyle(
+                direction, justifyContent, alignItems, width, height, padding, gap, v, flexShrink,
+                position, inset, background, color, opacity, decoration, typography, transitions,
                 transform, cursor);
     }
 
     public ComputedStyle flexShrink(double v) {
-        return new ComputedStyle(direction, justifyContent, alignItems, width, height, padding, gap,
-                flexGrow, v, background, color, opacity, decoration, typography, transitions,
+        return new ComputedStyle(
+                direction, justifyContent, alignItems, width, height, padding, gap, flexGrow, v,
+                position, inset, background, color, opacity, decoration, typography, transitions,
                 transform, cursor);
+    }
+
+    public ComputedStyle position(PositionType v) {
+        return new ComputedStyle(
+                direction, justifyContent, alignItems, width, height, padding, gap, flexGrow,
+                flexShrink, v, inset, background, color, opacity, decoration, typography,
+                transitions, transform, cursor);
+    }
+
+    public ComputedStyle inset(Insets v) {
+        return new ComputedStyle(
+                direction, justifyContent, alignItems, width, height, padding, gap, flexGrow,
+                flexShrink, position, v, background, color, opacity, decoration, typography,
+                transitions, transform, cursor);
     }
 
     public ComputedStyle background(int v) {
-        return new ComputedStyle(direction, justifyContent, alignItems, width, height, padding, gap,
-                flexGrow, flexShrink, v, color, opacity, decoration, typography, transitions,
-                transform, cursor);
+        return new ComputedStyle(
+                direction, justifyContent, alignItems, width, height, padding, gap, flexGrow,
+                flexShrink, position, inset, v, color, opacity, decoration, typography,
+                transitions, transform, cursor);
     }
 
     public ComputedStyle color(int v) {
-        return new ComputedStyle(direction, justifyContent, alignItems, width, height, padding, gap,
-                flexGrow, flexShrink, background, v, opacity, decoration, typography, transitions, transform, cursor);
+        return new ComputedStyle(
+                direction, justifyContent, alignItems, width, height, padding, gap, flexGrow,
+                flexShrink, position, inset, background, v, opacity, decoration, typography,
+                transitions, transform, cursor);
     }
 
     public ComputedStyle opacity(double v) {
-        return new ComputedStyle(direction, justifyContent, alignItems, width, height, padding, gap,
-                flexGrow, flexShrink, background, color, v, decoration, typography, transitions, transform, cursor);
+        return new ComputedStyle(
+                direction, justifyContent, alignItems, width, height, padding, gap, flexGrow,
+                flexShrink, position, inset, background, color, v, decoration, typography,
+                transitions, transform, cursor);
     }
 
     public ComputedStyle decoration(Decoration v) {
-        return new ComputedStyle(direction, justifyContent, alignItems, width, height, padding, gap,
-                flexGrow, flexShrink, background, color, opacity, v, typography, transitions, transform, cursor);
+        return new ComputedStyle(
+                direction, justifyContent, alignItems, width, height, padding, gap, flexGrow,
+                flexShrink, position, inset, background, color, opacity, v, typography,
+                transitions, transform, cursor);
     }
 
     public ComputedStyle typography(Typography v) {
-        return new ComputedStyle(direction, justifyContent, alignItems, width, height, padding, gap,
-                flexGrow, flexShrink, background, color, opacity, decoration, v, transitions, transform, cursor);
+        return new ComputedStyle(
+                direction, justifyContent, alignItems, width, height, padding, gap, flexGrow,
+                flexShrink, position, inset, background, color, opacity, decoration, v,
+                transitions, transform, cursor);
     }
 
     public ComputedStyle transitions(Transitions v) {
-        return new ComputedStyle(direction, justifyContent, alignItems, width, height, padding, gap,
-                flexGrow, flexShrink, background, color, opacity, decoration, typography, v, transform, cursor);
+        return new ComputedStyle(
+                direction, justifyContent, alignItems, width, height, padding, gap, flexGrow,
+                flexShrink, position, inset, background, color, opacity, decoration, typography, v,
+                transform, cursor);
     }
 
     public ComputedStyle transform(Transform v) {
-        return new ComputedStyle(direction, justifyContent, alignItems, width, height, padding, gap,
-                flexGrow, flexShrink, background, color, opacity, decoration, typography, transitions, v, cursor);
+        return new ComputedStyle(
+                direction, justifyContent, alignItems, width, height, padding, gap, flexGrow,
+                flexShrink, position, inset, background, color, opacity, decoration, typography,
+                transitions, v, cursor);
     }
 
     public ComputedStyle cursor(Cursor v) {
-        return new ComputedStyle(direction, justifyContent, alignItems, width, height, padding, gap,
-                flexGrow, flexShrink, background, color, opacity, decoration, typography, transitions, transform, v);
+        return new ComputedStyle(
+                direction, justifyContent, alignItems, width, height, padding, gap, flexGrow,
+                flexShrink, position, inset, background, color, opacity, decoration, typography,
+                transitions, transform, v);
     }
 
     // --- value parsing -----------------------------------------------------
@@ -779,13 +861,30 @@ public record ComputedStyle(
     }
 
     /// One edge of an existing set replaced, for the longhand properties.
-    private static Insets edge(Insets base, String property, StyleLength value) {
-        return switch (property) {
-            case "padding-top" -> new Insets(value, base.right(), base.bottom(), base.left());
-            case "padding-right" -> new Insets(base.top(), value, base.bottom(), base.left());
-            case "padding-bottom" -> new Insets(base.top(), base.right(), value, base.left());
-            default -> new Insets(base.top(), base.right(), base.bottom(), value);
+    ///
+    /// Keyed on the edge rather than on the property, because two shorthands now
+    /// have longhands over the same [Insets] — `padding-top` and `top` set the
+    /// same edge of different sets, and a switch over full property names would
+    /// have to list both spellings of each of the four.
+    private static Insets edge(Insets base, Edge edge, StyleLength value) {
+        return switch (edge) {
+            case TOP -> new Insets(value, base.right(), base.bottom(), base.left());
+            case RIGHT -> new Insets(base.top(), value, base.bottom(), base.left());
+            case BOTTOM -> new Insets(base.top(), base.right(), value, base.left());
+            case LEFT -> new Insets(base.top(), base.right(), base.bottom(), value);
         };
+    }
+
+    /// Which edge a longhand names: the last word of `padding-top`, or the whole
+    /// of `top`.
+    private static Edge edgeOf(String property) {
+        var name = property.substring(property.lastIndexOf('-') + 1);
+        return Edge.valueOf(name.toUpperCase(Locale.ROOT));
+    }
+
+    /// The four sides an [Insets] has, named once.
+    private enum Edge {
+        TOP, RIGHT, BOTTOM, LEFT
     }
 
     private static java.util.Optional<Double> number(List<Token> value) {

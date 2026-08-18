@@ -158,6 +158,20 @@ public final class RenderObject implements AutoCloseable {
         if (previous == null || previous.flexShrink() != box.flexShrink()) {
             node.setFlexShrink((float) box.flexShrink());
         }
+        if (previous == null || previous.position() != box.position()) {
+            node.setPositionType(box.position());
+        }
+        var inset = box.inset();
+        if (previous == null || !previous.inset().equals(inset)) {
+            // Per edge, like padding, and for the same reason: Yoga resolves the
+            // more specific edge over `Edge.ALL` only when both are set, so a
+            // node that named one edge and left the rest undefined would keep
+            // whichever ALL had been given.
+            node.setPosition(Edge.TOP, inset.top());
+            node.setPosition(Edge.RIGHT, inset.right());
+            node.setPosition(Edge.BOTTOM, inset.bottom());
+            node.setPosition(Edge.LEFT, inset.left());
+        }
 
         applyMeasure(box);
     }
@@ -445,6 +459,9 @@ public final class RenderObject implements AutoCloseable {
                 && a.padding().equals(b.padding())
                 && a.gap().equals(b.gap())
                 && a.flexGrow() == b.flexGrow()
+                && a.flexShrink() == b.flexShrink()
+                && a.position() == b.position()
+                && a.inset().equals(b.inset())
                 && java.util.Objects.equals(a.text(), b.text())
                 && java.util.Objects.equals(a.icon(), b.icon())
                 && java.util.Objects.equals(a.mark(), b.mark());

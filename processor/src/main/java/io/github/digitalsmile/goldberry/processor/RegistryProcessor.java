@@ -5,6 +5,7 @@ import java.io.PrintWriter;
 import java.io.UncheckedIOException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -39,9 +40,29 @@ import javax.tools.Diagnostic;
 ///
 /// Every rule below is checked here rather than left to fail at run time, because
 /// the whole point of moving the wiring to compile time is that the failures move
-/// with it: a `private` member the generated code cannot see, a `@Bind` on
-/// something that is not a `Property`, a duplicate path, an `@Action` taking more
-/// than one argument or an argument the toolkit cannot parse.
+/// with it: a `@Bind` on something that is not a `Property`, a duplicate path, an
+/// `@Action` taking more than one argument or an argument the toolkit cannot
+/// parse.
+///
+/// ## Private members, and why they are no longer refused
+///
+/// A `private` field is invisible to generated code in the same package, so the
+/// first cut refused one and told the author to widen it. That made a model's
+/// encapsulation a consequence of how the toolkit reads it, which is backwards.
+///
+/// A private member now gets a `VarHandle` or a `MethodHandle`, looked up once in
+/// the generated class's static initializer through
+/// `MethodHandles.privateLookupIn` — which needs no `opens` and no
+/// `setAccessible`, because the generated class is in the target's own package
+/// and a module always opens its packages to itself. **The name and the type are
+/// still resolved at compile time**: the processor checked the member exists, is
+/// a `Property`, and has a parameter it can parse, and it writes the exact
+/// descriptor it verified. The handle is *access*, not discovery — nothing scans,
+/// and there is still no reflection by name at run time
+/// ([ADR-0098](../../../../book/src/adr/0098-a-private-member-is-reached-by-a-handle.md)).
+///
+/// An accessible member is still read directly, because a handle it does not need
+/// is a line of generated code a reader has to understand for nothing.
 @SupportedAnnotationTypes({
         "io.github.digitalsmile.goldberry.bind.Registry",
         "io.github.digitalsmile.goldberry.bind.Bind",
@@ -109,16 +130,11 @@ public final class RegistryProcessor extends AbstractProcessor {
         write(type, binds, actions);
     }
 
-    /// A `@Bind` field has to be a `Property` the generated code can see.
+    /// A `@Bind` field has to be a `Property`, and it may be private — see the
+    /// class comment for how one is reached.
     private boolean checkBind(VariableElement field, Map<String, Element> paths) {
         var ok = true;
         var path = annotationValue(field, BIND);
-        if (field.getModifiers().contains(Modifier.PRIVATE)) {
-            error(field, "@Bind field " + field.getSimpleName() + " is private; the generated"
-                    + " registry is in the same package and cannot see it. Package-private is"
-                    + " enough — the accessors are the API, not the field");
-            ok = false;
-        }
         var type = processingEnv.getTypeUtils().erasure(field.asType()).toString();
         if (!type.equals("io.github.digitalsmile.goldberry.bind.Property")) {
             error(field, "@Bind field " + field.getSimpleName() + " is a " + type
@@ -136,11 +152,6 @@ public final class RegistryProcessor extends AbstractProcessor {
     private boolean checkAction(ExecutableElement method, Map<String, Element> paths) {
         var ok = true;
         var path = annotationValue(method, ACTION);
-        if (method.getModifiers().contains(Modifier.PRIVATE)) {
-            error(method, "@Action method " + method.getSimpleName() + " is private;"
-                    + " the generated registry is in the same package and cannot see it");
-            ok = false;
-        }
         if (method.getParameters().size() > 1) {
             error(method, "@Action method " + method.getSimpleName() + " takes "
                     + method.getParameters().size() + " arguments; a control reports either"
@@ -188,6 +199,7 @@ public final class RegistryProcessor extends AbstractProcessor {
         var named = annotationValue(type, REGISTRY);
         var name = named.isEmpty() ? target + "Registry" : named;
         var qualified = pkg.isEmpty() ? name : pkg + "." + name;
+        var handles = handleNames(binds, actions);
 
         try (var out = new PrintWriter(
                 processingEnv.getFiler().createSourceFile(qualified, type).openWriter())) {
@@ -201,6 +213,9 @@ public final class RegistryProcessor extends AbstractProcessor {
             out.println("/// for — the annotations move the copying, not the explicitness");
             out.println("/// (ADR-0096).");
             out.println("public final class " + name + " {");
+
+            writeHandles(out, target, binds, actions, handles);
+
             out.println();
             out.println("    private " + name + "() {");
             out.println("    }");
@@ -214,7 +229,7 @@ public final class RegistryProcessor extends AbstractProcessor {
                 for (var i = 0; i < binds.size(); i++) {
                     var field = binds.get(i);
                     out.print("                .bind(\"" + annotationValue(field, BIND)
-                            + "\", target." + field.getSimpleName() + ")");
+                            + "\", " + read(field, handles.get(field)) + ")");
                     out.println(i == binds.size() - 1 ? ";" : "");
                 }
                 out.println("    }");
@@ -229,10 +244,13 @@ public final class RegistryProcessor extends AbstractProcessor {
                 for (var i = 0; i < actions.size(); i++) {
                     var method = actions.get(i);
                     out.print("                .bind(\"" + annotationValue(method, ACTION) + "\", "
-                            + lambda(target, method) + ")");
+                            + lambda(method, handles.get(method)) + ")");
                     out.println(i == actions.size() - 1 ? ";" : "");
                 }
                 out.println("    }");
+            }
+            if (actions.stream().anyMatch(RegistryProcessor::isPrivate)) {
+                writeCallHelper(out);
             }
             out.println("}");
         } catch (IOException e) {
@@ -240,14 +258,181 @@ public final class RegistryProcessor extends AbstractProcessor {
         }
     }
 
+    /// A constant name for every **private** member, and nothing for the rest.
+    ///
+    /// Derived from the member's own name so the generated code reads as itself,
+    /// with an index appended only where two members would collide — two
+    /// overloads of one `@Action`, or a field and a method sharing a name.
+    private static Map<Element, String> handleNames(List<VariableElement> binds,
+            List<ExecutableElement> actions) {
+
+        var names = new HashMap<Element, String>();
+        var taken = new HashSet<String>();
+        var index = 0;
+        for (var member : concat(binds, actions)) {
+            index++;
+            if (!isPrivate(member)) {
+                continue;
+            }
+            var base = (member.getKind() == ElementKind.FIELD ? "BIND_" : "ACTION_")
+                    + screamingCase(member.getSimpleName().toString());
+            names.put(member, taken.add(base) ? base : base + "_" + index);
+        }
+        return names;
+    }
+
+    private static List<Element> concat(List<VariableElement> binds,
+            List<ExecutableElement> actions) {
+        var all = new ArrayList<Element>(binds.size() + actions.size());
+        all.addAll(binds);
+        all.addAll(actions);
+        return all;
+    }
+
+    /// `setGain` → `SET_GAIN`, so a constant looks like one.
+    private static String screamingCase(String name) {
+        var out = new StringBuilder(name.length() + 4);
+        for (var i = 0; i < name.length(); i++) {
+            var c = name.charAt(i);
+            if (Character.isUpperCase(c) && i > 0 && !out.isEmpty()
+                    && out.charAt(out.length() - 1) != '_') {
+                out.append('_');
+            }
+            out.append(Character.toUpperCase(c));
+        }
+        return out.toString();
+    }
+
+    /// The handle constants and the one static initializer that fills them.
+    ///
+    /// `privateLookupIn` needs no `opens` and no `setAccessible`: this class is
+    /// generated into the target's own package, and a module always opens its
+    /// packages to itself. Every name and descriptor below was verified by the
+    /// checks above, so the lookup can only fail if this class and its target
+    /// were compiled apart and drifted — the same failure a direct field
+    /// reference gives as `NoSuchFieldError`, arriving as an
+    /// `ExceptionInInitializerError` instead ([ADR-0098]).
+    private void writeHandles(PrintWriter out, String target, List<VariableElement> binds,
+            List<ExecutableElement> actions, Map<Element, String> handles) {
+
+        if (handles.isEmpty()) {
+            return;
+        }
+        out.println();
+        out.println("    // The private members, reached by handle rather than by name");
+        out.println("    // (ADR-0098). Looked up once, here, from descriptors the processor");
+        out.println("    // verified at compile time.");
+        for (var field : binds) {
+            if (isPrivate(field)) {
+                out.println("    private static final java.lang.invoke.VarHandle "
+                        + handles.get(field) + ";");
+            }
+        }
+        for (var method : actions) {
+            if (isPrivate(method)) {
+                out.println("    private static final java.lang.invoke.MethodHandle "
+                        + handles.get(method) + ";");
+            }
+        }
+        out.println();
+        out.println("    static {");
+        out.println("        try {");
+        out.println("            var lookup = java.lang.invoke.MethodHandles.privateLookupIn(");
+        out.println("                    " + target + ".class,"
+                + " java.lang.invoke.MethodHandles.lookup());");
+        for (var field : binds) {
+            if (isPrivate(field)) {
+                out.println("            " + handles.get(field) + " = lookup.findVarHandle("
+                        + target + ".class, \"" + field.getSimpleName() + "\",");
+                out.println("                    io.github.digitalsmile.goldberry.bind"
+                        + ".Property.class);");
+            }
+        }
+        for (var method : actions) {
+            if (isPrivate(method)) {
+                out.println("            " + handles.get(method) + " = lookup.findVirtual("
+                        + target + ".class, \"" + method.getSimpleName() + "\",");
+                out.println("                    java.lang.invoke.MethodType.methodType("
+                        + methodType(method) + "));");
+            }
+        }
+        out.println("        } catch (ReflectiveOperationException e) {");
+        out.println("            throw new ExceptionInInitializerError(e);");
+        out.println("        }");
+        out.println("    }");
+    }
+
+    /// The `MethodType` arguments for an `@Action` — its return type, then its
+    /// one parameter if it has one.
+    private String methodType(ExecutableElement method) {
+        var types = new ArrayList<String>(2);
+        types.add(classLiteral(method.getReturnType().toString()));
+        for (var parameter : method.getParameters()) {
+            types.add(classLiteral(
+                    processingEnv.getTypeUtils().erasure(parameter.asType()).toString()));
+        }
+        return String.join(", ", types);
+    }
+
+    /// `double` → `double.class`, `java.util.List<T>` → `java.util.List.class`.
+    private static String classLiteral(String type) {
+        var erased = type.contains("<") ? type.substring(0, type.indexOf('<')) : type;
+        return erased + ".class";
+    }
+
+    /// How a `@Bind` field is read: straight through, or off its handle.
+    private static String read(VariableElement field, String handle) {
+        return handle == null
+                ? "target." + field.getSimpleName()
+                : "(io.github.digitalsmile.goldberry.bind.Property<?>) " + handle + ".get(target)";
+    }
+
     /// A method reference for a bare action, and a parsing lambda for a valued
-    /// one — which is the boilerplate every application was writing by hand.
-    private static String lambda(String target, ExecutableElement method) {
+    /// one — which is the boilerplate every application was writing by hand. A
+    /// private action goes through its handle instead, which is the same two
+    /// shapes with the call replaced.
+    private static String lambda(ExecutableElement method, String handle) {
+        var name = method.getSimpleName().toString();
         if (method.getParameters().isEmpty()) {
-            return "target::" + method.getSimpleName();
+            return handle == null
+                    ? "target::" + name
+                    : "() -> call(" + handle + ", target)";
         }
         var type = method.getParameters().getFirst().asType().toString();
-        return "value -> target." + method.getSimpleName() + "(" + parse(type, "value") + ")";
+        return handle == null
+                ? "value -> target." + name + "(" + parse(type, "value") + ")"
+                : "value -> call(" + handle + ", target, " + parse(type, "value") + ")";
+    }
+
+    /// The one helper a private `@Action` needs, written only when there is one.
+    ///
+    /// `invokeWithArguments` rather than `invokeExact`, because the shapes differ
+    /// per action and the conversion it does — boxing the parsed value back to
+    /// the parameter's primitive — is exactly what the generated lambda would
+    /// otherwise have to spell out per type. An action runs on a user gesture, so
+    /// what it costs is not on any path that matters.
+    ///
+    /// Unchecked exceptions are rethrown as themselves: an action that throws
+    /// `IllegalArgumentException` must reach the application's handler looking
+    /// like the one it threw, not like a wrapper.
+    private static void writeCallHelper(PrintWriter out) {
+        out.println();
+        out.println("    /// Calls one of the handles above (ADR-0098).");
+        out.println("    private static void call(java.lang.invoke.MethodHandle handle,"
+                + " Object... arguments) {");
+        out.println("        try {");
+        out.println("            handle.invokeWithArguments(arguments);");
+        out.println("        } catch (RuntimeException | Error e) {");
+        out.println("            throw e;");
+        out.println("        } catch (Throwable e) {");
+        out.println("            throw new IllegalStateException("
+                + "\"the action threw a checked exception\", e);");
+        out.println("        }");
+        out.println("    }");
+    }
+
+    private static boolean isPrivate(Element member) {
+        return member.getModifiers().contains(Modifier.PRIVATE);
     }
 
     private static javax.lang.model.element.AnnotationMirror annotation(Element element,

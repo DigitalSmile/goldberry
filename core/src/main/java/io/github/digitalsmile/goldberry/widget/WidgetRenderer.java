@@ -241,6 +241,18 @@ public final class WidgetRenderer {
                 self = ComputedStyle.of(resolver.resolve(element), lengths, inherited);
                 element.cacheStyle(resolver, inherited, self);
             }
+            // §8's `inline` layer, typed: the widget's last word, applied after
+            // the cascade and **after** the cache — a widget-computed value
+            // changes when the widget does, and caching it would pin a segmented
+            // control's indicator to whichever segment was selected first.
+            //
+            // Before the animation below rather than inside `render`, which is
+            // the whole point: a value written here is part of what the
+            // transition observes and therefore moves, where the same value
+            // written in `render` would snap (ADR-0099).
+            if (element.widget() instanceof Styled styled) {
+                self = styled.restyle(self);
+            }
         } else {
             self = inherited;
         }

@@ -384,7 +384,14 @@ class RadioGoldenTest {
         // scene of its own, and it exists because the *default* chip is filled
         // with `--gb-surface-2`, which is one step from the panel under it --
         // the one distance worth having an image of (ADR-0087).
-        var exempt = List.of("button", "badge");
+        //
+        // `segmented` and `option` are exempt on the badge's terms and with the
+        // badge's image: the bar paints a plate one step off `--gb-surface`, and
+        // `segmented-on-surface.png` is that step. A segment has no fill of its
+        // own until it is selected, and what it would disappear against is the
+        // bar rather than a panel -- which is the axis every image in
+        // `SegmentedGoldenTest` is already on (ADR-0097).
+        var exempt = List.of("button", "badge", "segmented", "option");
         var inScene = new java.util.ArrayList<String>();
         collectTypes(new ElementTree(surfaceScene()).root(), inScene);
 

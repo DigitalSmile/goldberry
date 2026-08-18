@@ -53,6 +53,7 @@
   --gb-checkbox-height: var(--gb-control-height);
   --gb-radio-height: var(--gb-control-height);
   --gb-toggle-height: var(--gb-control-height);
+  --gb-segmented-height: var(--gb-control-height);
 }
 
 /* ------------------------------------------------------------- no shrink --
@@ -102,7 +103,11 @@ badge,
 knob,
 knob-track,
 knob-arc,
-knob-dial {
+knob-dial,
+segmented,
+segmented-track,
+segmented-indicator,
+option {
   flex-shrink: 0;
 }
 
@@ -117,6 +122,12 @@ knob-dial {
  * with a warning rather than ignored. Animating a width would run Yoga every
  * frame of every transition, which on a CPU renderer is the difference between a
  * transition and a stutter.
+ *
+ * `option` is on this list for its **label**: a selected segment's foreground is
+ * picked for the fill it sits on rather than for the theme (ADR-0088), so the
+ * colour has to move when the selection does. Its background is not on this list
+ * because it no longer has one — the fill is `segmented-indicator`, below, and
+ * that is what §3.1's row asks to move (ADR-0099).
  */
 button,
 checkbox,
@@ -124,6 +135,21 @@ radio,
 toggle {
   transition: background-color var(--gb-motion-fast) ease-enter,
               color var(--gb-motion-fast) ease-enter,
+              opacity var(--gb-motion-fast) ease-enter;
+}
+
+/* A segment's own motion, and its `color` is deliberately on a different clock
+   from everything above: `--gb-motion-base`, which is the pill's. §3.1 wrote
+   that rule for `toggle` -- "thumb `translate` base; track color base (**same
+   clock -- they arrive together**)" -- and it matters more here, because the
+   two are not on the same box. A label that darkened in `fast` would be dark on
+   the plate for 60 ms while the pill was still on its way, which is the one
+   frame of this animation where a label is hard to read. Its background is the
+   hover wash and stays on `fast`, because that is a pointer and not a
+   selection. */
+option {
+  transition: background-color var(--gb-motion-fast) ease-enter,
+              color var(--gb-motion-base) ease-enter,
               opacity var(--gb-motion-fast) ease-enter;
 }
 
@@ -253,13 +279,19 @@ radio-indicator:checked radio-dot {
  * `:focus-visible` and not `:focus` -- the ring is for keyboard focus, and a
  * control clicked with a mouse gets none. The router keeps the two distinct
  * (ADR-0054) precisely so this rule can.
+ *
+ * A composite puts the ring on its *member*: `radio` is here and `radio-group`
+ * is not, `option` is here and `segmented` is not. Focus lands on the thing the
+ * user is about to pick, which is also what makes a set one Tab stop legible
+ * (ADR-0073).
  */
 button:focus-visible,
 checkbox:focus-visible,
 radio:focus-visible,
 toggle:focus-visible,
 slider:focus-visible,
-knob:focus-visible {
+knob:focus-visible,
+option:focus-visible {
   outline: 2px solid var(--gb-focus);
   outline-offset: 2px;
 }
@@ -280,7 +312,9 @@ radio:disabled,
 toggle:disabled,
 slider:disabled,
 knob:disabled,
-radio-group:disabled {
+option:disabled,
+radio-group:disabled,
+segmented:disabled {
   opacity: 0.45;
   cursor: not-allowed;
 }
@@ -1145,3 +1179,139 @@ knob-track,
 knob-arc {
   transition: color var(--gb-motion-fast) ease-enter;
 }
+
+/* ------------------------------------------------------------- segmented --
+ *
+ * §3's row: "height 32 (28); segment padding-x 12; radius 8 outer, 0 between;
+ * 1px divider in `--gb-border`; `body-strong`", and §3.1's: "selection indicator
+ * `translate`+width between segments, base".
+ *
+ * The anatomy those two rows add up to:
+ *
+ *   segmented                 height, radius 8, 1px --gb-border, padding 2
+ *   `-- segmented-track       the grid: no padding of its own
+ *       |-- segmented-indicator   absolute, 1/n wide, translated n cells along
+ *       `-- option ...            each exactly 1/n, so the grid is regular
+ *
+ * **"radius 8 outer, 0 between" is still not what is drawn**, and ADR-0097 is
+ * still why: it describes per-corner radii, and §8's subset resolves one radius
+ * per box with no clipping to hide a square fill inside a round bar. The bar
+ * carries the 8, the pill is inset by the bar's 2 and takes §1.5's 4, and the
+ * divider goes with the joined drawing it belonged to.
+ *
+ * **The travelling indicator is drawn now**, which ADR-0097 deferred. What
+ * unblocked it was not geometry: `flex-basis: 0` makes every segment exactly
+ * 1/n of the track, so the distance to segment *k* is `k` times the pill's own
+ * width — a percentage in a `transform`, which the painter resolves after Yoga
+ * (ADR-0068, ADR-0099).
+ */
+segmented {
+  height: var(--gb-segmented-height);
+  flex-direction: row;
+  padding: 2px;
+  border-radius: 8px;
+  border: 1px solid var(--gb-border);
+  background: var(--gb-segmented-bg);
+}
+
+/* The grid the pill is measured against, and the reason the bar is not it: Yoga
+   resolves an in-flow child's percentage width against its parent's *content*
+   box and an absolute child's against the parent's *padding* box, so a pill
+   sized against a padded bar is 4px wider than the segment it covers and every
+   cell after the first is off by more. A track with no padding makes the two
+   the same box. `slider` grew a track for the same kind of reason (ADR-0080). */
+segmented-track {
+  flex-grow: 1;
+}
+
+/* The pill. Its width and its travel are the two numbers a selector cannot
+   write — a stylesheet cannot count the segments — so `SegmentedIndicator`
+   writes them through the `inline` seam, which is what makes them animatable
+   rather than merely correct (ADR-0099).
+
+   Everything here is what a theme *should* be able to change: the colour, the
+   radius, and how long the travel takes. */
+segmented-indicator {
+  border-radius: 4px;
+  background: var(--gb-segmented-selected-bg);
+  /* No pill until something is selected. Built in every state anyway, because a
+     node that appears cannot transition -- `radio-dot`'s rule (ADR-0065). */
+  opacity: 0;
+}
+
+segmented-indicator:checked {
+  opacity: 1;
+}
+
+/* §3.1: "selection indicator `translate` ... between segments, **base**", which
+   is §1.7's duration for a component transition. The `width` half of that row
+   does not appear and cannot: it is not on §1.7's whitelist, and on a grid it
+   never changes -- every cell is the same size, so there is nothing for a width
+   to animate (ADR-0099).
+
+   The fade is `fast` rather than `base`: a pill appearing because a model
+   finally loaded is a state change, not a movement. */
+segmented-indicator {
+  transition: transform var(--gb-motion-base) ease-enter,
+              opacity var(--gb-motion-fast) ease-enter;
+}
+
+/* The segment. A widget rather than a part (see `Option`): it is what a document
+   writes, it is what takes the focus, and `select` writes the same node.
+ *
+ * `body-strong` is §3's typography column for this row, written out rather than
+ * as `class="body-strong"` for the reason `button` gives -- a segment is that
+ * weight by being a segment.
+ *
+ * **The width is not here**, and it is the one metric of this control that is
+ * not. A cell is exactly 1/n of the track, n is the number of segments, and no
+ * selector can count them -- so `SegmentedTrack` sizes the cells and this rule
+ * says everything else about them. A row of content-sized cells is a row an
+ * indicator cannot travel along without measuring each one (ADR-0099).
+ *
+ * The cost is that a label longer than its cell overflows it, because nothing
+ * in this toolkit clips -- the same limit `progress`'s indeterminate sweep
+ * documents. */
+option {
+  padding: 0 12px;
+  gap: 6px;
+  font-size: var(--gb-font-body);
+  line-height: var(--gb-line-body);
+  font-weight: var(--gb-weight-strong);
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  cursor: pointer;
+  background: transparent;
+  color: var(--gb-segmented-text);
+}
+
+/* §2.1's hover and press, as a **wash** rather than as a surface step -- the
+   overlay tokens `button.ghost` uses, and for the same reason it uses them: a
+   segment has no surface of its own. It is also the only form that works on
+   both sides of this control. An opaque hover fill on a segment would paint
+   *over* the pill, because the segments are drawn after it -- so hovering the
+   selected one would cover the thing that just travelled to it, and clicking a
+   new segment would paint the destination fill instantly and beat the animation
+   to it. A wash lies on top of either background and changes neither. */
+option:hover {
+  background: var(--gb-overlay-hover);
+}
+
+option:active {
+  background: var(--gb-overlay-active);
+}
+
+/* The selected segment keeps its **foreground** and nothing else: the fill it
+   sits on is the indicator's, and the label has to be legible on it. The
+   foreground is the fill's rather than the theme's, which is why it is a token
+   of its own and why `--gb-segmented-selected-text` is `--nord0` on the dark
+   theme where every other text token is `--nord6` (ADR-0087). */
+option:checked {
+  color: var(--gb-segmented-selected-text);
+}
+
+/* No `segmented:disabled option { opacity: 1 }` undo, and no `option:disabled`
+   colour remap: the 45% in the states block above fades the bar, its pill, its
+   segments and their labels together, because the painter multiplies opacity
+   down the subtree (ADR-0077). */

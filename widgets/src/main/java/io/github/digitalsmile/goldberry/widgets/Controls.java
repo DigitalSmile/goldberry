@@ -16,6 +16,8 @@ import io.github.digitalsmile.goldberry.widgets.controls.knob.Knob;
 import io.github.digitalsmile.goldberry.widgets.controls.progressbar.Progress;
 import io.github.digitalsmile.goldberry.widgets.controls.radio.Radio;
 import io.github.digitalsmile.goldberry.widgets.controls.radio.RadioGroup;
+import io.github.digitalsmile.goldberry.widgets.controls.segmented.Option;
+import io.github.digitalsmile.goldberry.widgets.controls.segmented.Segmented;
 import io.github.digitalsmile.goldberry.widgets.controls.slider.Slider;
 import io.github.digitalsmile.goldberry.widgets.controls.spinner.Spinner;
 import io.github.digitalsmile.goldberry.widgets.controls.toggle.Toggle;
@@ -253,7 +255,7 @@ public final class Controls {
                 // Refused here rather than defaulting to the label: two options
                 // sharing a defaulted value would select together, which looks
                 // like a bug in the toolkit rather than in the document.
-                requiredValue(node.stringProperty("value")),
+                requiredValue("radio", node.stringProperty("value")),
                 node.argument().map(v -> v.asString()).orElse(""),
                 // `selected` and the action are the group's to supply on every
                 // build, which is why neither is an attribute: a document that
@@ -262,14 +264,39 @@ public final class Controls {
                 false, null,
                 node.booleanProperty("disabled"),
                 Attributes.of(node)));
+        inflater.register("segmented", (node, children) -> new Segmented(
+                node.stringProperty("value"),
+                children,
+                bindings.resolve(node.stringProperty("bind")),
+                // The same valued action `radio-group` takes, because §3 says
+                // this control shares that model exactly -- a set's handler is
+                // useless without the value picked (ADR-0073).
+                actions.resolveValued(node.stringProperty("change")),
+                node.booleanProperty("disabled"),
+                Attributes.of(node)));
+        inflater.register("option", (node, children) -> new Option(
+                // Required for the reason a `radio`'s is: the value is what the
+                // control reports and what it matches on, and two segments
+                // sharing a defaulted value would select together.
+                requiredValue("option", node.stringProperty("value")),
+                node.argument().map(v -> v.asString()).orElse(""),
+                // Named, not built -- the rule `button` set: an `Icon` owns
+                // native memory, so markup may only name one the application
+                // registered.
+                icons.resolve(node.stringProperty("icon")),
+                // `selected` and the action are the control's to supply on every
+                // build, which is why neither is an attribute.
+                false, null,
+                node.booleanProperty("disabled"),
+                Attributes.of(node)));
         return inflater;
     }
 
-    private static String requiredValue(String value) {
+    private static String requiredValue(String node, String value) {
         if (value == null || value.isEmpty()) {
             throw new IllegalArgumentException(
-                    "a radio needs a value= for its group to report and match on;"
-                            + " `radio value=\"dark\" \"Dark\"`");
+                    "a " + node + " needs a value= for its group to report and match on;"
+                            + " `" + node + " value=\"dark\" \"Dark\"`");
         }
         return value;
     }
@@ -296,19 +323,21 @@ public final class Controls {
     /// `radio-indicator`, `radio-dot`, `toggle-track`, `toggle-thumb`,
     /// `slider-track`, `slider-groove`, `slider-fill`, `slider-thumb`,
     /// `slider-rest`, `slider-ticks`, `slider-tick`, `slider-value`,
-    /// `progress-fill`, `knob-track` and `knob-arc` — are
+    /// `progress-fill`, `knob-track`, `knob-arc`, `segmented-track` and
+    /// `segmented-indicator` — are
     /// styled by the same stylesheet and are not here, because they are parts
     /// rather than widgets: they are CSS-selectable and deliberately not
     /// KDL-constructible, and asking the parity test to inflate one would be
     /// asking for a node with no meaning outside its parent (see
     /// `CheckIndicator`, `CheckMark`, `RadioIndicator`, `RadioDot`,
     /// `ToggleTrack`, `ToggleThumb`, `SliderTrack`, `SliderGroove`,
-    /// `SliderTicks`, `SliderTick`, `SliderValue`, `KnobTrack`, `KnobArc` and
-    /// `KnobDial` — code spans rather than links, because a part is
+    /// `SliderTicks`, `SliderTick`, `SliderValue`, `KnobTrack`, `KnobArc`,
+    /// `KnobDial`, `SegmentedTrack` and `SegmentedIndicator` — code spans rather
+    /// than links, because a part is
     /// package-private inside `…widgets.controls` and this class is not in it
     /// (ADR-0091). A link that cannot resolve is worse than a name).
     public static List<String> controlTypes() {
         return List.of("button", "checkbox", "toggle", "slider", "radio-group", "radio",
-                "progress", "spinner", "badge", "knob");
+                "segmented", "option", "progress", "spinner", "badge", "knob");
     }
 }

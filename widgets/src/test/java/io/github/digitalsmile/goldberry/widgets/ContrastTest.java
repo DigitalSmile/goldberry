@@ -15,6 +15,7 @@ import io.github.digitalsmile.goldberry.widget.ElementTree;
 import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widgets.controls.badge.Badge;
 import io.github.digitalsmile.goldberry.widgets.controls.button.Button;
+import io.github.digitalsmile.goldberry.widgets.controls.segmented.Option;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -107,6 +108,25 @@ class ContrastTest {
                                 + "-bg-" + state + ") }"));
             }
         }
+        // A segmented control has **two** fills that carry text, and they are
+        // picked by different rules: a resting label sits on the bar's plate, and
+        // the selected one sits on the indicator's saturated accent, whose
+        // foreground follows the fill rather than the theme (ADR-0087).
+        //
+        // The resting pair forces the bar's colour onto the segment, and that is
+        // not a convenience: a segment's own fill is `transparent`, so what a
+        // reader actually receives is the label over the *bar*. Measuring the
+        // segment as it computes would score `transparent` as black and pass
+        // spuriously -- the trap that keeps `button.ghost` out of this sweep.
+        all.add(new Pair("segmented option", new Option("grid", "Grid"),
+                "option { background: var(--gb-segmented-bg) }"));
+        all.add(new Pair("segmented option:checked", new Option("list", "List"),
+                selectedSegment("var(--gb-segmented-selected-bg)")));
+        // The hover and press pairs are deliberately absent, on `button.ghost`'s
+        // terms: a segment's feedback is a translucent wash over whichever
+        // background is behind it, and a translucent fill has no contrast ratio
+        // at all -- the answer depends on what it is composited over (ADR-0099).
+
         // The plain text pairs §1.2 names first: body text on each of the three
         // surfaces a window actually paints, and muted text on two of them.
         for (var surface : List.of("bg", "surface", "surface-2")) {
@@ -116,6 +136,23 @@ class ContrastTest {
                     "text { background: var(--gb-" + surface + "); color: var(--gb-text-muted) }"));
         }
         return all;
+    }
+
+    /// A selected segment's pair: the label's colour, over the fill the indicator
+    /// paints **behind** it.
+    ///
+    /// The two are on different boxes now — the pill travels and the label does
+    /// not — so the pair has to be assembled rather than read off one node. It is
+    /// still the pair a reader receives, which is the only version of §1.2's
+    /// claim worth checking.
+    ///
+    /// Written as a rule rather than reached through `:checked`, for the reason
+    /// the button states are: what is under test is a colour pair, not the route
+    /// that reaches it — and the pseudo-class is mirrored onto an element by
+    /// `WidgetRenderer`, which this test deliberately does not run.
+    private static String selectedSegment(String background) {
+        return "option { background: " + background
+                + "; color: var(--gb-segmented-selected-text) }";
     }
 
     @Test

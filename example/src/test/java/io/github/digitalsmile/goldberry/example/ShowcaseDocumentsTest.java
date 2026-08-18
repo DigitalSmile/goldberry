@@ -72,8 +72,8 @@ class ShowcaseDocumentsTest {
     void sidebarCoversTheCatalog() {
         var types = typesIn(Panes.sidebar(inflater()));
 
-        for (var control : List.of("radio-group", "radio", "badge", "text",
-                "checkbox", "toggle", "slider", "knob", "spinner", "progress")) {
+        for (var control : List.of("radio-group", "radio", "segmented", "option", "badge",
+                "text", "checkbox", "toggle", "slider", "knob", "spinner", "progress")) {
             assertTrue(types.contains(control),
                     () -> "sidebar.kdl no longer builds a " + control + ": " + types);
         }
@@ -202,6 +202,25 @@ class ShowcaseDocumentsTest {
         assertSame(model.status(), bindings.resolve("app.status"));
         assertNotNull(actions.resolve("app.toggle-theme"));
         assertNotNull(actions.resolveValued("app.set-gain"));
+    }
+
+    /// Every member the registry wires is **private** now, so this is also the
+    /// assertion that the handles ADR-0098 generates reach a real field and a
+    /// real method in a real application — the processor's own tests prove the
+    /// mechanism, and this proves the showcase uses it.
+    @Test
+    @DisplayName("the registry reaches the model's private members")
+    void privateMembersAreReachable() {
+        var bindings = ShowcaseModelRegistry.bindings(model);
+        var actions = ShowcaseModelRegistry.actions(model);
+
+        // Read through a VarHandle: the field is private and this is the same
+        // `Property` the accessor hands out.
+        assertSame(model.themeName(), bindings.resolve("app.theme"));
+
+        // Invoked through a MethodHandle, with the value parsed on the way in.
+        actions.resolveValued("app.pick-theme").accept("light");
+        assertEquals("light", model.themeName().get());
     }
 
     /// A valued action crosses as a `String` and the generated lambda parses it —

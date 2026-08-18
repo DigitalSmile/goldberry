@@ -123,11 +123,13 @@ class RadioTest {
             assertFalse(registered.contains("slider-track"), "and the slider's groove");
             assertFalse(registered.contains("slider-thumb"), "and the disc that runs along it");
             assertFalse(registered.contains("progress-fill"), "and the coloured part of a bar");
+            assertFalse(registered.contains("segmented-track"), "and the grid a pill runs along");
+            assertFalse(registered.contains("segmented-indicator"), "and the pill itself");
             // Pinned rather than counted: a control reaching the catalog is a
             // deliberate act, and this failing is what makes it one.
             assertEquals(
                     List.of("button", "checkbox", "toggle", "slider", "radio-group", "radio",
-                            "progress", "spinner", "badge", "knob"),
+                            "segmented", "option", "progress", "spinner", "badge", "knob"),
                     Controls.controlTypes());
         }
 

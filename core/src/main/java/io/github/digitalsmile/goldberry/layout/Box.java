@@ -9,6 +9,7 @@ import io.github.digitalsmile.goldberry.icon.Icon;
 import io.github.digitalsmile.goldberry.natives.yoga.Align;
 import io.github.digitalsmile.goldberry.natives.yoga.FlexDirection;
 import io.github.digitalsmile.goldberry.natives.yoga.Insets;
+import io.github.digitalsmile.goldberry.natives.yoga.PositionType;
 import io.github.digitalsmile.goldberry.natives.yoga.Justify;
 import io.github.digitalsmile.goldberry.natives.yoga.StyleLength;
 import io.github.digitalsmile.goldberry.text.Paragraph;
@@ -42,6 +43,8 @@ public record Box(
         StyleLength gap,
         double flexGrow,
         double flexShrink,
+        PositionType position,
+        Insets inset,
         Text text,
         Glyph icon,
         Mark mark,
@@ -259,6 +262,13 @@ public record Box(
                 // built here behaves exactly as one did before this field
                 // existed.
                 1,
+                // In flow, and no inset — Yoga's defaults and CSS's, so a box
+                // built here behaves exactly as one did before these existed.
+                // `Insets.ZERO` would be wrong: an inset of zero pins a node to
+                // its container's edge, which is not "no inset at all"
+                // (ADR-0099).
+                PositionType.RELATIVE,
+                Insets.all(StyleLength.UNDEFINED),
                 null,
                 null,
                 null,
@@ -280,7 +290,7 @@ public record Box(
 
     public Box text(Text value) {
         return new Box(background, decoration, opacity, transform, cursor, direction, justifyContent, alignItems,
-                width, height, padding, gap, flexGrow, flexShrink, value, icon, mark, children, owner);
+                width, height, padding, gap, flexGrow, flexShrink, position, inset, value, icon, mark, children, owner);
     }
 
     /// A box that is one icon, sized by it.
@@ -299,7 +309,7 @@ public record Box(
 
     public Box icon(Glyph value) {
         return new Box(background, decoration, opacity, transform, cursor, direction, justifyContent, alignItems,
-                width, height, padding, gap, flexGrow, flexShrink, text, value, mark, children, owner);
+                width, height, padding, gap, flexGrow, flexShrink, position, inset, text, value, mark, children, owner);
     }
 
     /// A box that is one indicator — a checkbox's tick, a radio's dot.
@@ -310,7 +320,7 @@ public record Box(
     /// override it.
     public Box mark(Mark value) {
         return new Box(background, decoration, opacity, transform, cursor, direction, justifyContent, alignItems,
-                width, height, padding, gap, flexGrow, flexShrink, text, icon, value, children, owner);
+                width, height, padding, gap, flexGrow, flexShrink, position, inset, text, icon, value, children, owner);
     }
 
     /// A box filled with `argb` — `0xAARRGGBB`, not premultiplied, exactly as
@@ -326,13 +336,13 @@ public record Box(
     /// what is on screen, and the box tree is what is on screen (ADR-0054).
     public Box cursor(Cursor value) {
         return new Box(background, decoration, opacity, transform, Objects.requireNonNull(value, "cursor"), direction,
-                justifyContent, alignItems, width, height, padding, gap, flexGrow, flexShrink, text, icon,
+                justifyContent, alignItems, width, height, padding, gap, flexGrow, flexShrink, position, inset, text, icon,
                 mark, children, owner);
     }
 
     public Box background(int argb) {
         return new Box(argb, decoration, opacity, transform, cursor, direction, justifyContent, alignItems,
-                width, height, padding, gap, flexGrow, flexShrink, text, icon, mark, children, owner);
+                width, height, padding, gap, flexGrow, flexShrink, position, inset, text, icon, mark, children, owner);
     }
 
     /// How opaque this box **and everything under it** is drawn.
@@ -342,7 +352,7 @@ public record Box(
     /// its effect is, because it applies to the rendered subtree.
     public Box opacity(double value) {
         return new Box(background, decoration, value, transform, cursor, direction, justifyContent,
-                alignItems, width, height, padding, gap, flexGrow, flexShrink, text, icon, mark, children,
+                alignItems, width, height, padding, gap, flexGrow, flexShrink, position, inset, text, icon, mark, children,
                 owner);
     }
 
@@ -362,34 +372,34 @@ public record Box(
     public Box transform(Transform value) {
         return new Box(background, decoration, opacity, Objects.requireNonNull(value, "transform"),
                 cursor, direction, justifyContent, alignItems, width, height, padding, gap,
-                flexGrow, flexShrink, text, icon, mark, children, owner);
+                flexGrow, flexShrink, position, inset, text, icon, mark, children, owner);
     }
 
     /// The radius, border and focus ring drawn around this box.
     public Box decoration(Decoration value) {
         return new Box(background, Objects.requireNonNull(value, "decoration"), opacity, transform, cursor, direction,
-                justifyContent, alignItems, width, height, padding, gap, flexGrow, flexShrink, text, icon,
+                justifyContent, alignItems, width, height, padding, gap, flexGrow, flexShrink, position, inset, text, icon,
                 mark, children, owner);
     }
 
     public Box direction(FlexDirection value) {
         return new Box(background, decoration, opacity, transform, cursor, value, justifyContent, alignItems,
-                width, height, padding, gap, flexGrow, flexShrink, text, icon, mark, children, owner);
+                width, height, padding, gap, flexGrow, flexShrink, position, inset, text, icon, mark, children, owner);
     }
 
     public Box justifyContent(Justify value) {
         return new Box(background, decoration, opacity, transform, cursor, direction, value, alignItems,
-                width, height, padding, gap, flexGrow, flexShrink, text, icon, mark, children, owner);
+                width, height, padding, gap, flexGrow, flexShrink, position, inset, text, icon, mark, children, owner);
     }
 
     public Box alignItems(Align value) {
         return new Box(background, decoration, opacity, transform, cursor, direction, justifyContent, value,
-                width, height, padding, gap, flexGrow, flexShrink, text, icon, mark, children, owner);
+                width, height, padding, gap, flexGrow, flexShrink, position, inset, text, icon, mark, children, owner);
     }
 
     public Box size(StyleLength w, StyleLength h) {
         return new Box(background, decoration, opacity, transform, cursor, direction, justifyContent, alignItems,
-                w, h, padding, gap, flexGrow, flexShrink, text, icon, mark, children, owner);
+                w, h, padding, gap, flexGrow, flexShrink, position, inset, text, icon, mark, children, owner);
     }
 
     /// The same padding on every edge — the common case, and what most of the
@@ -400,18 +410,48 @@ public record Box(
 
     public Box padding(Insets value) {
         return new Box(background, decoration, opacity, transform, cursor, direction, justifyContent, alignItems,
-                width, height, value, gap, flexGrow, flexShrink, text, icon, mark, children, owner);
+                width, height, value, gap, flexGrow, flexShrink, position, inset, text, icon, mark, children, owner);
+    }
+
+    /// Whether this box is laid out in flow, and what it is a containing block
+    /// for.
+    ///
+    /// The layout half's answer to a box that is not where the flow would put it
+    /// — everything in the catalog until `segmented`'s indicator was a box beside
+    /// another box. An absolute box is taken out of flow and placed against its
+    /// nearest ancestor that is not [PositionType#STATIC], so it can sit *over*
+    /// its siblings and move without disturbing them
+    /// ([ADR-0099](../../../../../../book/src/adr/0099-an-indicator-travels-on-a-grid.md)).
+    public Box position(PositionType value) {
+        return new Box(background, decoration, opacity, transform, cursor, direction, justifyContent,
+                alignItems, width, height, padding, gap, flexGrow, flexShrink,
+                Objects.requireNonNull(value, "position"), inset,
+                text, icon, mark, children, owner);
+    }
+
+    /// How far each edge sits from the containing block's — CSS's `inset`, and
+    /// its `top` / `right` / `bottom` / `left`.
+    ///
+    /// Meaningful on an absolute box and an offset on a relative one, which is
+    /// CSS's rule and Yoga's. An edge left [StyleLength#UNDEFINED] is not
+    /// constrained at all: an absolute box with no insets is placed by its
+    /// parent's alignment, and one with all four is stretched to fill.
+    public Box inset(Insets value) {
+        return new Box(background, decoration, opacity, transform, cursor, direction, justifyContent,
+                alignItems, width, height, padding, gap, flexGrow, flexShrink,
+                position, Objects.requireNonNull(value, "inset"),
+                text, icon, mark, children, owner);
     }
 
     public Box gap(StyleLength value) {
         return new Box(background, decoration, opacity, transform, cursor, direction, justifyContent, alignItems,
-                width, height, padding, value, flexGrow, flexShrink, text, icon, mark, children, owner);
+                width, height, padding, value, flexGrow, flexShrink, position, inset, text, icon, mark, children, owner);
     }
 
     /// Share of the free space this box takes along its parent's main axis.
     public Box grow(double value) {
         return new Box(background, decoration, opacity, transform, cursor, direction, justifyContent, alignItems,
-                width, height, padding, gap, value, flexShrink, text, icon, mark, children, owner);
+                width, height, padding, gap, value, flexShrink, position, inset, text, icon, mark, children, owner);
     }
 
     /// How much this box gives back when its parent runs out of room.
@@ -424,7 +464,7 @@ public record Box(
     /// ([ADR-0076](../../../../../../book/src/adr/0076-a-glyph-does-not-negotiate.md)).
     public Box shrink(double value) {
         return new Box(background, decoration, opacity, transform, cursor, direction, justifyContent, alignItems,
-                width, height, padding, gap, flexGrow, value, text, icon, mark, children, owner);
+                width, height, padding, gap, flexGrow, value, position, inset, text, icon, mark, children, owner);
     }
 
     /// This box tagged with whatever produced it.
@@ -433,12 +473,12 @@ public record Box(
     /// at it.
     public Box owner(Object value) {
         return new Box(background, decoration, opacity, transform, cursor, direction, justifyContent, alignItems,
-                width, height, padding, gap, flexGrow, flexShrink, text, icon, mark, children, value);
+                width, height, padding, gap, flexGrow, flexShrink, position, inset, text, icon, mark, children, value);
     }
 
     public Box children(Box... value) {
         return new Box(background, decoration, opacity, transform, cursor, direction, justifyContent, alignItems,
-                width, height, padding, gap, flexGrow, flexShrink, text, icon, mark, List.of(value), owner);
+                width, height, padding, gap, flexGrow, flexShrink, position, inset, text, icon, mark, List.of(value), owner);
     }
 
     /// This box with every colour it carries faded by `alpha`.
@@ -476,7 +516,7 @@ public record Box(
                 // this field stays what the style asked for.
                 transform,
                 cursor, direction, justifyContent, alignItems, width, height, padding, gap,
-                flexGrow, flexShrink,
+                flexGrow, flexShrink, position, inset,
                 text == null ? null : new Text(text.paragraph(), CssColor.fade(text.argb(), alpha)),
                 icon == null ? null : new Glyph(icon.icon(), CssColor.fade(icon.argb(), alpha)),
                 mark == null ? null : mark.fade(alpha),
@@ -521,6 +561,8 @@ public record Box(
                 style.gap(),
                 style.flexGrow(),
                 style.flexShrink(),
+                style.position(),
+                style.inset(),
                 text == null ? null : new Text(text.paragraph(), style.color()),
                 // `color` reaches an icon exactly as it reaches text: Lucide's
                 // set is drawn to be tinted, and a stylesheet saying `color`

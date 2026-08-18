@@ -102,6 +102,9 @@
 - [ADR-0094 Name the overload, not the allocation](adr/0094-name-the-overload-not-the-allocation.md)
 - [ADR-0095 A shortcut is built from enums](adr/0095-a-shortcut-is-built-from-enums.md)
 - [ADR-0096 A registry is generated, not reflected](adr/0096-a-registry-is-generated-not-reflected.md)
+- [ADR-0097 A selection that travels needs a geometry](adr/0097-a-selection-that-travels-needs-a-geometry.md)
+- [ADR-0098 A private member is reached by a handle](adr/0098-a-private-member-is-reached-by-a-handle.md)
+- [ADR-0099 An indicator travels on a grid](adr/0099-an-indicator-travels-on-a-grid.md)
 
 ---
 

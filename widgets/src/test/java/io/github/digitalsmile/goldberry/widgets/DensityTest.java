@@ -37,7 +37,14 @@ class DensityTest {
     /// The controls §3 gives a height to. `radio-group` is not among them: it is
     /// a container whose height is the sum of its options, and a density that
     /// pinned it would clip the group the moment an option moved.
-    private static final List<String> SIZED = List.of("button", "checkbox", "radio");
+    ///
+    /// `segmented` **is** among them and is the first container that is: its
+    /// height is §3's own number rather than a sum, because a bar is one row of
+    /// segments and its segments stretch to it. A density that moved every other
+    /// control and left a toolbar's segmented control 32 high would be the exact
+    /// divergence this list exists to catch.
+    private static final List<String> SIZED =
+            List.of("button", "checkbox", "radio", "segmented");
 
     @Nested
     @DisplayName("the tokens")

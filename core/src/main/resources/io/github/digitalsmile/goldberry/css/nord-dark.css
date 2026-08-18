@@ -251,6 +251,22 @@
      stroke rather than 4.5:1 of text, and this clears it on the whole ramp. */
   --gb-knob-pointer: var(--gb-text);
 
+  /* Segmented (design-system.md §3's `segmented` row). The bar is a plate, one
+     step up from the window and one up from a panel, so the control reads as a
+     control on `--gb-bg` and on `--gb-surface` alike -- the same `--nord2` every
+     other well in this file takes, for the same reason.
+
+     The selected segment is the accent **fill** rather than `--gb-accent`,
+     because it carries text: `--nord6` on `--nord8` is 1.9:1 and `--nord0` on it
+     is 12.6:1, so the pairing follows the fill and not the theme (ADR-0087).
+     There is no hover or press ramp for it: what a pointer does to a segment is
+     a wash from `--gb-overlay-*`, because an opaque fill would paint over the
+     pill that travelled there (ADR-0099). */
+  --gb-segmented-bg: var(--nord2);
+  --gb-segmented-text: var(--gb-text);
+  --gb-segmented-selected-bg: var(--gb-accent-fill);
+  --gb-segmented-selected-text: var(--nord0);
+
   /* Badge (design-system.md §3's `badge` row). Every pairing here is checked in
      CI by ContrastTest against §1.2's 4.5:1 floor -- these are not colours
      somebody liked, they are colours that pass.
