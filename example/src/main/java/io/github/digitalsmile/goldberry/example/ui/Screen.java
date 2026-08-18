@@ -3,33 +3,45 @@ package io.github.digitalsmile.goldberry.example.ui;
 import io.github.digitalsmile.goldberry.example.ShowcaseModel;
 import io.github.digitalsmile.goldberry.icon.Icon;
 import io.github.digitalsmile.goldberry.kdl.KdlInflater;
+import io.github.digitalsmile.goldberry.widget.Attributes;
 import io.github.digitalsmile.goldberry.widget.BuildContext;
 import io.github.digitalsmile.goldberry.widget.State;
 import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widgets.core.Column;
-import io.github.digitalsmile.goldberry.widgets.core.Row;
+import io.github.digitalsmile.goldberry.widgets.panel.tabs.Tab;
+import io.github.digitalsmile.goldberry.widgets.panel.tabs.Tabs;
+import java.util.List;
 
-/// The whole window: a title bar over a sidebar and a content pane.
+/// The whole window: a title bar, and a **gallery** of screens under it.
 ///
-/// Three children and a layout, which is all a screen should be. Two of them are
-/// documents ([Panes]) and one is Java ([Content], which says why).
+/// ## Why a gallery
 ///
-/// ## What it listens to, and what it does not
+/// `docs/core-widgets.md`'s cross-cutting notes ask for one — "a gallery app
+/// exercises every widget in every state in both themes… a widget isn't done
+/// until it's in the gallery" — and a single pane stopped being able to hold the
+/// catalog somewhere around the eleventh control. What was one sidebar of every
+/// widget in the toolkit is five screens, each about one thing
+/// ([ADR-0110](../../../../../../../book/src/adr/0110-the-showcase-is-a-gallery-of-screens.md)).
 ///
-/// Almost nothing needs this widget to rebuild. A bound `badge`, `slider` or
-/// `text` hears its own property and redraws itself, which is the point of §9's
-/// `bind=` — the count in the title bar changes without this class being
-/// involved at all.
+/// **Three of the five are documents and two are Java**, and which is which is
+/// the interesting part rather than an accident — see [Panes].
 ///
-/// The exception is **structure**: whether the prose is in the tree, and whether
-/// Undo is disabled, are decisions [Content] makes at build time rather than
-/// values a widget follows. So the state subscribes to exactly those two
-/// properties and rebuilds, and to nothing else
-/// ([ADR-0094](../../../../../../../book/src/adr/0094-name-the-overload-not-the-allocation.md)).
+/// ## What this widget rebuilds for
 ///
-/// @param model    what the panes read
-/// @param inflater the registry the documents resolve their names against
-/// @param plus     the icon on the primary button
+/// Almost nothing. Every *value* in this window reaches its widget through a
+/// binding and needs no rebuild here; the three subscriptions below are the three
+/// **structural** changes — whether the prose is in the tree, what the click
+/// count makes possible, and which tabs exist.
+///
+/// The gallery's own selection is not among them: the strip reads it through
+/// `bind` like any other control, and the screens are all built either way. That
+/// is the trade §5's lazy content makes — only the selected screen's widgets are
+/// built into elements — and it is why switching screens costs a rebuild of one
+/// screen rather than of the window.
+///
+/// @param model    the state every screen reads
+/// @param inflater what turns the three documents into widgets
+/// @param plus     the icon on [Content]'s primary button
 public record Screen(ShowcaseModel model, KdlInflater<Widget> inflater, Icon plus)
         implements Widget.Stateful {
 
@@ -38,28 +50,31 @@ public record Screen(ShowcaseModel model, KdlInflater<Widget> inflater, Icon plu
         return new ScreenState();
     }
 
-    /// The subscriptions, and the two things they exist for.
+    /// The subscriptions, the documents, and the gallery.
     static final class ScreenState extends State<Screen> {
 
         private final java.util.List<io.github.digitalsmile.goldberry.bind.Subscription> watching =
-                new java.util.ArrayList<>(2);
+                new java.util.ArrayList<>(3);
 
         /// The documents, inflated once — see [Panes].
         private Widget titleBar;
-        private Widget sidebar;
+        private Widget controls;
+        private Widget values;
+        private Widget overlays;
 
         @Override
         protected void initState() {
             titleBar = Panes.titleBar(widget().inflater());
-            sidebar = Panes.sidebar(widget().inflater());
+            controls = Panes.controls(widget().inflater());
+            values = Panes.values(widget().inflater());
+            overlays = Panes.overlays(widget().inflater());
 
             // Structure only. Every *value* in this window reaches its widget
             // through a binding and needs no rebuild here.
             watching.add(widget().model().showProse().subscribe(value -> setState(() -> { })));
             watching.add(widget().model().clicks().subscribe(value -> setState(() -> { })));
             // Which tabs exist is structure too: a tab added or closed is a
-            // different tree, not a different value, and nothing else would
-            // rebuild for it (ADR-0109).
+            // different tree, not a different value (ADR-0109).
             watching.add(widget().model().tabs().subscribe(value -> setState(() -> { })));
         }
 
@@ -74,11 +89,25 @@ public record Screen(ShowcaseModel model, KdlInflater<Widget> inflater, Icon plu
 
         @Override
         public Widget build(BuildContext context) {
-            return new Column(
-                    titleBar,
-                    new Row(sidebar, new Content(widget().model(), widget().plus()))
-                            .id("body"))
-                    .id("root");
+            var model = widget().model();
+            // The gallery: one strip, five screens, none of them closable. It is
+            // bound like every other control — `Ctrl+1`… and the strip itself are
+            // two ways to set one property rather than two copies of a selection.
+            var gallery = new Tabs(null, List.of(
+                    new Tab("controls", "Controls", controls),
+                    new Tab("values", "Values", values),
+                    new Tab("text", "Text", new Content(model, widget().plus())),
+                    new Tab("overlays", "Overlays", overlays),
+                    new Tab("tabs", "Tabs", new TabsDemo(model))),
+                    model.screen(), model::pickScreen, null, null, Attributes.NONE)
+                    .id("gallery");
+
+            return new Column(List.of(titleBar, gallery), Attributes.NONE)
+                    .id("root")
+                    // §8's `context-menu=` on any widget: right-clicking anywhere
+                    // in the window opens the menu the application registered
+                    // under this name (ADR-0108).
+                    .contextMenu("content");
         }
     }
 }

@@ -7,24 +7,21 @@ import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widgets.controls.button.Button;
 import io.github.digitalsmile.goldberry.widgets.core.Column;
 import io.github.digitalsmile.goldberry.widgets.core.Row;
-import io.github.digitalsmile.goldberry.widgets.panel.tabs.Tab;
-import io.github.digitalsmile.goldberry.widgets.panel.tabs.Tabs;
 import io.github.digitalsmile.goldberry.widgets.text.Text;
 
-/// The main pane — the prose and the three action buttons.
+/// The **Text** screen: §2's wrapped paragraph and the three buttons that act on
+/// the model.
 ///
-/// **The one pane that is not a document**, and it is worth knowing why. Two
-/// things here are conditional on the model rather than bound to it:
+/// **One of the two screens that is not a document**, and the reason is the
+/// instructive one: Undo and Reset are `disabled` when the click count is zero,
+/// and §8's markup has no expressions — `disabled=#true` is a constant, and a
+/// document cannot say "disabled when this property is zero". A document that
+/// could evaluate `clicks == 0` would be code in a data file, with no stack trace
+/// when it went wrong ([ADR-0062], [ADR-0110]).
 ///
-/// - the prose is *in the tree* only when the checkbox says so, which is a
-///   structural change and not a value one;
-/// - Undo and Reset are `disabled` when the click count is zero, and §8's markup
-///   has no expressions — `disabled=#true` is a constant, and a document cannot
-///   say "disabled when this property is zero".
-///
-/// Both are the ordinary reason a pane stays in Java, and neither is a gap in
-/// the markup: a document that could evaluate `clicks == 0` would be code in a
-/// data file, with no stack trace when it went wrong ([ADR-0062]).
+/// The prose is also *in the tree* only when the checkbox on the Controls screen
+/// says so, which is a structural change rather than a value one — the other
+/// half of why this pane stays in Java.
 ///
 /// @param model what it reads and what its buttons ask of
 /// @param plus  the icon on the primary button — handed in, because a widget is
@@ -48,32 +45,6 @@ public record Content(ShowcaseModel model, Icon plus) implements Widget.Stateles
             after Ctrl+T has changed it from outside the group, because the selection is the \
             position rather than something remembered beside it.""";
 
-    /// §5's strip, built here rather than in a document for the third reason this
-    /// pane is in Java: **the list is dynamic**. A tab can be closed and a new one
-    /// added, and KDL is data — it can write three tabs, not "however many the
-    /// model has".
-    ///
-    /// Every one of the strip's three events reports and decides nothing: `change`
-    /// asks to show a tab, `close` asks for one to go, `new` asks for one to
-    /// arrive, and the model answers all three. A strip whose handlers did nothing
-    /// would sit there unmoved, which is the visible form of "the model did not
-    /// change" (ADR-0063, ADR-0107).
-    private Widget tabs() {
-        var strip = new java.util.ArrayList<Widget>();
-        for (var name : model.tabs().get()) {
-            strip.add(new Tab(name, name,
-                    new Text("The " + name.toLowerCase(java.util.Locale.ROOT) + " tab."))
-                    .closable(true)
-                    // A colour a stylesheet cannot know: it is a fact about the
-                    // tab's name rather than about its state.
-                    .colour("Log".equals(name) ? 0xFFBF616A : 0));
-        }
-        return new Tabs(null, strip, model.tab(),
-                model::pickTab, model::closeTab, model::newTab,
-                io.github.digitalsmile.goldberry.widget.Attributes.NONE)
-                .id("tabs");
-    }
-
     @Override
     public Widget build(BuildContext context) {
         var actions = new Row(
@@ -84,12 +55,8 @@ public record Content(ShowcaseModel model, Icon plus) implements Widget.Stateles
                         .id("reset").styled("danger"))
                 .id("actions");
 
-        // `contextMenu` is an attribute like `id` is: any widget may carry one,
-        // and right-clicking anywhere in this pane opens the menu the application
-        // registered under that name (ADR-0108).
         return model.isProseShown()
-                ? new Column(new Text(PROSE).id("prose"), tabs(), actions)
-                        .id("content").contextMenu("content")
-                : new Column(tabs(), actions).id("content").contextMenu("content");
+                ? new Column(new Text(PROSE).id("prose"), actions).id("screen-text")
+                : new Column(actions).id("screen-text");
     }
 }

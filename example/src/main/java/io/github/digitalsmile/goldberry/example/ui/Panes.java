@@ -13,16 +13,22 @@ import io.github.digitalsmile.goldberry.widget.Widget;
 ///
 /// ## What is in markup and what is not
 ///
-/// The title bar and the sidebar are here because every value in them flows
-/// through `bind=` and every gesture through `change=`: they need no Java at all,
-/// and a designer can move a badge or rename a class in them without a compiler.
+/// The title bar and three of the gallery's five screens are here because every
+/// value in them flows through `bind=` and every gesture through `change=`: they
+/// need no Java at all, and a designer can move a badge or rename a class in them
+/// without a compiler. **A screen is a file**, so adding one to the gallery is a
+/// file and a line ([ADR-0110](../../../../../../../book/src/adr/0110-the-showcase-is-a-gallery-of-screens.md)).
 ///
-/// [Content] is **not**, and the reason is instructive rather than incidental —
-/// its Undo and Reset buttons are disabled when the click count is zero, and
-/// §8's markup has no expressions. `disabled=#true` is a constant. A document
-/// cannot say "disabled when this property is zero" and is not going to grow a
-/// way to, so the pane that needs one stays in Java
-/// ([ADR-0094](../../../../../../../book/src/adr/0094-name-the-overload-not-the-allocation.md)).
+/// The other two screens are **not**, and both reasons are instructive rather
+/// than incidental:
+///
+/// - [Content]'s Undo and Reset buttons are disabled when the click count is
+///   zero, and §8's markup has no expressions. `disabled=#true` is a constant; a
+///   document cannot say "disabled when this property is zero" and is not going
+///   to grow a way to.
+/// - [TabsDemo]'s strip has a list that **changes** — tabs are added and closed
+///   while the window is open — and KDL is data. It can write three tabs, not
+///   "however many the model has".
 public final class Panes {
 
     private Panes() {
@@ -33,10 +39,20 @@ public final class Panes {
         return inflate(inflater, "titlebar.kdl");
     }
 
-    /// The theme picker, the status chips, the bound status line, and every
-    /// control in the window.
-    public static Widget sidebar(KdlInflater<Widget> inflater) {
-        return inflate(inflater, "sidebar.kdl");
+    /// The **Controls** screen: §3's controls whose value is a state.
+    public static Widget controls(KdlInflater<Widget> inflater) {
+        return inflate(inflater, "controls.kdl");
+    }
+
+    /// The **Values** screen: §3's controls whose value is a number, and the two
+    /// that report one back.
+    public static Widget values(KdlInflater<Widget> inflater) {
+        return inflate(inflater, "values.kdl");
+    }
+
+    /// The **Overlays** screen: the two places something can float over a window.
+    public static Widget overlays(KdlInflater<Widget> inflater) {
+        return inflate(inflater, "overlays.kdl");
     }
 
     private static Widget inflate(KdlInflater<Widget> inflater, String document) {

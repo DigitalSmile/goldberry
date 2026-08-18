@@ -68,6 +68,15 @@ public final class ShowcaseModel {
     /// How many tabs have been added, so a new one gets a name nobody has used.
     private int added;
 
+    /// Which gallery screen is showing — the tab strip across the top of the
+    /// window (ADR-0110).
+    ///
+    /// A `Property` like every other value: the strip reads it through `bind` and
+    /// reports what was picked, and this decides. Which means `Ctrl+1`, a menu
+    /// item and the strip itself are three ways to set one thing rather than three
+    /// copies of a selection.
+    private final Property<String> screen = Property.of("controls");
+
     /// §1.3's density preference — a plain field, because nothing binds to it. No
     /// control shows which density is on, the way the theme radios show the
     /// theme; it moves every control's height and is named by no widget, which is
@@ -107,6 +116,17 @@ public final class ShowcaseModel {
 
     public Observable<String> themeName() {
         return themeName;
+    }
+
+    /// Which gallery screen is showing.
+    public Observable<String> screen() {
+        return screen;
+    }
+
+    /// Shows a screen. What the gallery's strip asks for and this decides.
+    @Action("app.pick-screen")
+    public void pickScreen(String name) {
+        changed(() -> screen.set(name));
     }
 
     /// The tabs, in order — subscribed to by whatever builds the strip, because a

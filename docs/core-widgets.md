@@ -196,5 +196,5 @@ All overlays render in the in-window overlay layer or backend popup windows as a
 ## Cross-cutting notes
 
 - **Retained widget state** (scroll position, selected tab, caret, splitter position, list selection) survives widget-tree rebuilds via element-tree keys — declarative rebuilds never visibly reset UI.
-- **Gallery app** exercises every widget in every state in both themes; golden-image CI runs the gallery matrix. A widget isn't "done" until it's in the gallery.
+- **Gallery app** exercises every widget in every state in both themes; golden-image CI runs the gallery matrix. A widget isn't "done" until it's in the gallery. **Built** ([ADR-0110](../book/src/adr/0110-the-showcase-is-a-gallery-of-screens.md)): the showcase is a title bar and five screens behind one tab strip — Controls, Values, Text, Overlays, Tabs — three of them documents and two of them Java, the split being about what markup cannot say rather than about appearance. Six golden images cover them, and a widget now has a screen to be on: `select` belongs on Controls, `text-input` on a Forms screen that does not exist yet, `dialog` and `toast` on Overlays.
 - **KDL/Java/CSS parity test** walks the registry: every widget constructible from markup, from the builder, and matched by its type selector — build fails otherwise.

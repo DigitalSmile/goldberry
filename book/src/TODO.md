@@ -150,6 +150,11 @@ disabled container disabling its descendants.
 
 ## The catalog: specified and unbuilt
 
+- **The gallery has no scroll**, so a screen taller than the window loses its
+  bottom — which is §1's `scroll` for the third time, after a menu taller than the
+  work area and a `select` over a realistic option list. It is now the single
+  missing widget behind three separate pieces of work. —
+  [ADR-0110](adr/0110-the-showcase-is-a-gallery-of-screens.md)
 - **A tab strip does not scroll, and neither does anything else.** Enough tabs and
   the row overflows its window; a menu taller than the work area is clamped. §1's
   `scroll` is the single missing widget behind both, and behind `select` over a

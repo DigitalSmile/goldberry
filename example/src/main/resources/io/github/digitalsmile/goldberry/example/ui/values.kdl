@@ -1,0 +1,49 @@
+// The **Values** screen: sec. 3's controls whose value is a *number*, and the two
+// that report one back.
+//
+// Every control on this screen is on the same property, which is the thing worth
+// looking at: drag the slider and the knob turns, the bar fills and the label
+// under them changes -- because none of them owns the value and all of them show
+// what `app.gain` says (ADR-0063).
+column id="screen-values" {
+
+  text class="screen-title" "One value, four controls"
+
+  // sec. 3's two optional halves -- tick marks and a value label -- and the
+  // reason there is no `text` under this line: the application used to format
+  // "Gain 40%" into a second property and the control says it now (ADR-0080).
+  slider id="gain" min=0 max=100 step=5 ticks=5 format="%.0f%%" \
+         bind="app.gain" change="app.set-gain"
+
+  // The only place two controls with different *kinds* of gesture meet: the
+  // slider's value is where the pointer is along its track, and this one's is
+  // where it started plus how far you have dragged (ADR-0089).
+  row id="knobs" {
+    knob id="gain-knob" min=0 max=100 step=5 detents=5 bind="app.gain" change="app.set-gain"
+    text id="gain-knob-label" class="caption" "Gain, again"
+  }
+
+  // A vertical slider is a class rather than a widget, and its dB scale is a
+  // value rather than a function (ADR-0080).
+  row id="faders" {
+    slider id="fader" class="vertical" min=0 max=100 step=5 bind="app.gain" change="app.set-gain"
+    text id="fader-label" class="caption" "The same value, vertically"
+  }
+
+  text class="screen-title" "Reporting"
+
+  // Reports rather than asks: the bar follows the property the slider sets, and
+  // the spinner is the reason this window no longer goes idle -- a mounted
+  // spinner asks for another frame for as long as it is there (ADR-0081).
+  column id="task" {
+    row id="busy" {
+      spinner
+      text id="busy-label" "Working"
+    }
+    progress max=100 bind="app.gain"
+  }
+
+  // Bound and never passed a value: the environment probe sets the property from
+  // a virtual thread and this line updates itself (ADR-0020, ADR-0062).
+  text id="status" class="caption" bind="app.status"
+}

@@ -157,6 +157,16 @@ public final class Showcase implements Application {
         // *during* a resize or a drag, when there is something to watch.
         host.shortcut(Mod.CTRL.and(Key.F), this::toggleHud);
 
+        // One accelerator per screen, which is what a gallery of five wants —
+        // and three ways to set one property rather than three copies of a
+        // selection: the strip, these keys, and the menu (ADR-0110).
+        var screens = List.of("controls", "values", "text", "overlays", "tabs");
+        var digits = List.of(Key.DIGIT_1, Key.DIGIT_2, Key.DIGIT_3, Key.DIGIT_4, Key.DIGIT_5);
+        for (var index = 0; index < screens.size(); index++) {
+            var name = screens.get(index);
+            host.shortcut(Mod.CTRL.and(digits.get(index)), () -> model.pickScreen(name));
+        }
+
         // §8's other half: `context-menu="…"` on any widget, and one line to say
         // what the names mean. The toolkit notices the right-click and finds the
         // name; only the catalog can turn a name into a menu (ADR-0108).

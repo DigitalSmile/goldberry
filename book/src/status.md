@@ -1285,6 +1285,41 @@ second.
   the node it builds carries the appearance, the CSS type, the attributes and the
   focus scope.
 
+### The showcase is a gallery
+
+- **A window is a title bar and five screens**, one per tab:
+  Controls (§3's controls whose value is a state), Values (§3's controls whose
+  value is a number), Text (§2's paragraph and the buttons that act on the model),
+  Overlays (§7's two places something can float), and Tabs (§5's strip gaining and
+  losing tabs). `core-widgets.md` asks for exactly this — "a gallery app exercises
+  every widget in every state in both themes… **a widget isn't done until it's in
+  the gallery**" — and what existed was a *sidebar*: one document holding every
+  control there was, which worked at four and was failing at eleven
+  ([ADR-0110](adr/0110-the-showcase-is-a-gallery-of-screens.md)).
+- **A screen is a file**, so adding one is a file and a line, and the gallery
+  knows nothing about what is on any of them.
+- **Three screens are documents and two are Java, and which is which is the
+  point.** Not appearance — what §8's markup cannot say: Text is Java because
+  Undo and Reset are disabled when the click count is zero and markup has no
+  expressions, and Tabs is Java because its list *changes* while the window is
+  open and KDL is data. Everything else is `bind=` and `change=`.
+- **The gallery's own selection is an ordinary bound value**, so `Ctrl+1`…`Ctrl+5`
+  and the strip are two ways to set one property rather than two copies of a
+  selection. Its strip is deliberately fixed — a gallery whose chrome could be
+  closed is a gallery you can break — and the Tabs screen is where a closable,
+  addable strip is demonstrated instead.
+- **Only the selected screen exists**, which is §5's lazy content doing the work:
+  four of the five are not in the element tree at all, so a five-screen window is
+  as cheap as the one-pane one it replaced.
+- **Six golden images of the example**, which is the first visual coverage the
+  showcase has ever had — before this, a screen that rendered blank passed every
+  test it had. Two things had to be fixed for them to mean anything: `:example`'s
+  test JVM did not know where the native library was, so every one of them
+  *skipped* — a green build that checked nothing — and the Values screen has a
+  `spinner` on it, whose rotation is a function of the frame clock, so against the
+  system clock the image failed by 113 pixels and a channel delta of 144. The
+  renderer takes a virtual clock now.
+
 ### Not started
 
 `menubar`, tray, dialogs, scroll, forms, client-side decorations and charts. The rest of §5 — `card`, `group-box`, `split-pane`, `collapse`,

@@ -1,0 +1,40 @@
+// The **Overlays** screen: the two places something can float over a window, and
+// the two ways it can explain itself.
+//
+// `core-widgets.md` sec. 7 names both -- "the in-window overlay layer **or**
+// backend popup windows as appropriate" -- and the difference is visible from
+// this screen: shrink the window until the menu would not fit below its button,
+// and the menu is drawn *outside* the window while the HUD is clipped to it
+// (ADR-0100, ADR-0102).
+column id="screen-overlays" {
+
+  text class="screen-title" "Popups and the overlay layer"
+
+  // Neither handler is the model's: they are facts about this window, so
+  // `Showcase` binds them beside the generated registry.
+  //
+  // `tooltip=` attaches to **any** widget and is shown by the toolkit after a
+  // delay, on hover and on keyboard focus alike -- so tabbing to these buttons
+  // explains them too, which is the half sec. 7 asks for and every toolkit
+  // forgets (ADR-0105).
+  row id="overlays" {
+    button id="menu-button" press="app.open-menu" \
+           tooltip="A platform popup window, free of this window's bounds" "Menu"
+    button id="hud-button" class="ghost" press="app.toggle-hud" \
+           tooltip="A frame-rate readout in the window's own overlay layer" "HUD"
+  }
+
+  text class="caption" id="overlay-note" \
+       "The menu is a second platform window: it is placed against the button, \
+flips above it near the bottom of the screen, and takes the keyboard while it is \
+open. The HUD floats in this window's own layer and is clipped to it."
+
+  text class="screen-title" "Context menus"
+
+  // sec. 8's `context-menu=` on any widget. The pane below carries one, and so
+  // does the whole content area behind these tabs.
+  panel id="context-target" context-menu="content" \
+        tooltip="Right-click me" {
+    text "Right-click anywhere in here."
+  }
+}

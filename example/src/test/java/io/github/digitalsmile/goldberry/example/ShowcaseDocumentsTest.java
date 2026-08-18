@@ -71,18 +71,39 @@ class ShowcaseDocumentsTest {
         assertEquals(List.of("row", "text", "badge", "spacer", "button"), types);
     }
 
-    /// Every control §3 has shipped so far appears in this one document, which is
-    /// what makes the sidebar the showcase's coverage as well as its demo.
+    /// Every control §3 has shipped so far appears across the gallery's
+    /// documents, which is what makes them the showcase's coverage as well as its
+    /// demo — `core-widgets.md` asks for exactly this: "a widget isn't done until
+    /// it's in the gallery".
+    ///
+    /// Across the three rather than in one: a screen is a file now, and which file
+    /// a control lives in is the gallery's business rather than this test's
+    /// (ADR-0110).
     @Test
-    @DisplayName("the sidebar holds every control the catalog has")
-    void sidebarCoversTheCatalog() {
-        var types = typesIn(Panes.sidebar(inflater()));
+    @DisplayName("the gallery's documents hold every control the catalog has")
+    void galleryCoversTheCatalog() {
+        var types = new ArrayList<String>();
+        types.addAll(typesIn(Panes.controls(inflater())));
+        types.addAll(typesIn(Panes.values(inflater())));
+        types.addAll(typesIn(Panes.overlays(inflater())));
 
         for (var control : List.of("radio-group", "radio", "segmented", "option", "badge",
-                "text", "checkbox", "toggle", "slider", "knob", "spinner", "progress")) {
+                "text", "checkbox", "toggle", "slider", "knob", "spinner", "progress",
+                "button", "panel")) {
             assertTrue(types.contains(control),
-                    () -> "sidebar.kdl no longer builds a " + control + ": " + types);
+                    () -> "no document builds a " + control + " any more: " + types);
         }
+    }
+
+    /// A screen is a file, and every one of them parses and inflates — which is
+    /// the assertion that fails when a document is added to the gallery and its
+    /// names were never resolved against the registries.
+    @Test
+    @DisplayName("every screen document inflates against the real registries")
+    void everyScreenInflates() {
+        assertFalse(typesIn(Panes.controls(inflater())).isEmpty());
+        assertFalse(typesIn(Panes.values(inflater())).isEmpty());
+        assertFalse(typesIn(Panes.overlays(inflater())).isEmpty());
     }
 
     /// The half that a shape assertion would miss: a `bind=` that resolved to
@@ -92,9 +113,10 @@ class ShowcaseDocumentsTest {
     @DisplayName("a bound control holds the model's own property, not a copy")
     void bindingsReachTheModel() {
         var bound = new ArrayList<Widget>();
-        collectBound(new ElementTree(Panes.sidebar(inflater())).root(), bound);
+        collectBound(new ElementTree(Panes.controls(inflater())).root(), bound);
+        collectBound(new ElementTree(Panes.values(inflater())).root(), bound);
 
-        assertFalse(bound.isEmpty(), "nothing in sidebar.kdl is bound");
+        assertFalse(bound.isEmpty(), "nothing in the gallery's documents is bound");
         assertTrue(bound.stream().anyMatch(w -> w.binding() == model.gain()),
                 "no control follows app.gain");
         assertTrue(bound.stream().anyMatch(w -> w.binding() == model.themeName()),
@@ -117,9 +139,10 @@ class ShowcaseDocumentsTest {
     @DisplayName("the slider, the knob and the bar are on the same property")
     void oneValueManyReaders() {
         var onGain = new ArrayList<String>();
-        collectOn(new ElementTree(Panes.sidebar(inflater())).root(), model.gain(), onGain);
+        collectOn(new ElementTree(Panes.values(inflater())).root(), model.gain(), onGain);
 
-        assertEquals(List.of("slider", "knob", "progress"), onGain);
+        assertEquals(List.of("slider", "knob", "slider", "progress"), onGain,
+                "the slider, the knob, the fader and the bar — four readers of one number");
     }
 
     private static void collectOn(Element element, Object property, List<String> into) {
@@ -143,10 +166,12 @@ class ShowcaseDocumentsTest {
     }
 
     @Test
-    @DisplayName("both documents are on the module path and parse")
+    @DisplayName("every document is on the module path and parses")
     void documentsExist() {
         assertNotNull(Panes.titleBar(inflater()));
-        assertNotNull(Panes.sidebar(inflater()));
+        assertNotNull(Panes.controls(inflater()));
+        assertNotNull(Panes.values(inflater()));
+        assertNotNull(Panes.overlays(inflater()));
     }
 
     /// The stylesheet is a resource too, and an unstyled window is a window that
@@ -166,12 +191,16 @@ class ShowcaseDocumentsTest {
     void stylesheetAndDocumentsAgree() {
         var ids = new ArrayList<String>();
         collectIds(new ElementTree(Panes.titleBar(inflater())).root(), ids);
-        collectIds(new ElementTree(Panes.sidebar(inflater())).root(), ids);
+        collectIds(new ElementTree(Panes.controls(inflater())).root(), ids);
+        collectIds(new ElementTree(Panes.values(inflater())).root(), ids);
+        collectIds(new ElementTree(Panes.overlays(inflater())).root(), ids);
 
-        // The ids the documents own. `#root`, `#body` and `#content` are the
-        // Java panes' and are deliberately absent here.
-        for (var id : List.of("bar", "title", "clicks", "theme", "sidebar", "themes",
-                "badges", "status", "options", "gain", "knobs", "task", "busy")) {
+        // The ids the documents own. `#root`, `#gallery` and the two Java
+        // screens' are deliberately absent here.
+        for (var id : List.of("bar", "title", "clicks", "theme", "themes",
+                "badges", "status", "options", "gain", "knobs", "task", "busy",
+                "screen-controls", "screen-values", "screen-overlays",
+                "faders", "overlays", "context-target")) {
             assertTrue(ids.contains(id),
                     () -> "showcase.css styles #" + id + " and no document builds it: " + ids);
         }
