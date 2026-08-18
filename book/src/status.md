@@ -1199,10 +1199,47 @@ second.
   hover opens a submenu beside its row, a command inside the submenu closes both,
   and a disabled row does neither.
 
+### `tabs`, the first widget of §5
+
+- **Adding and removing needed no API.** The strip reads its selection through
+  `bind` and reports three things — `change`, `close`, `new` — and the application
+  answers all of them, which is `radio-group`'s shape extended to a set whose
+  *membership* changes. A strip whose `close` handler does nothing keeps its tab,
+  which is the visible form of "the model did not change". There is no `addTab`,
+  no internal list, and so no second copy of the thing the tabs are *of*
+  ([ADR-0107](adr/0107-a-tab-strip-is-a-model-a-header-and-a-panel.md), ADR-0063).
+- **A tab takes a colour, which is the first value of its kind in the catalog.**
+  `colour="#bf616a"` is application data — a tab coloured after its project — and
+  a stylesheet cannot know it, because there is no selector for "the tab whose
+  project is red". Written through `restyle`, so the stylesheet still decides what
+  the colour *means*: `controls.css` puts it on the label and on the underline,
+  and a tab given none is styled entirely by the theme. The syntax is CSS's, via a
+  new `CssColor.parse(String)`.
+- **Content is lazy by omission**: only the selected tab's widgets are built into
+  elements at all, so nine background tabs cost nine headers. The cost is stated
+  where somebody will read it — a tab's content is **rebuilt when it is selected
+  again**, so a scroll position or a half-typed form belongs in the model.
+- **The underline is a box, and the golden image is what said so.** The first
+  version wrote `border-bottom` and `currentColor`; §8's subset has one `border`
+  covering all four edges and no `currentColor`, so both declarations were
+  silently dropped — every number in the layout correct and the underline simply
+  not there. It is a 2px box pinned across the header now, and the rule under the
+  row is another across the list, which is `segmented-indicator`'s anatomy for the
+  same reason. Fifth time a golden image has caught something no assertion did.
+- **One Tab stop, and the × is not in it.** A focusable close affordance would
+  make nine tabs nineteen stops between the strip and the content; `Delete` on the
+  tab is the keyboard's answer. The `+` *is* focusable, because adding a tab is a
+  destination the roving selection should reach.
+- Two new marks — `CROSS` and `PLUS` — rather than two icons: at eight to ten
+  logical pixels inside another control, an icon's metrics and lookup buy nothing.
+- The showcase's strip is dynamic, which is the third reason that pane is in Java:
+  KDL can write three tabs, not "however many the model has".
+
 ### Not started
 
 `menubar`, context menus, tray, dialogs, scroll, forms, client-side decorations
-and charts. `menu` and M2's
+and charts. The rest of §5 — `card`, `group-box`, `split-pane`, `collapse`,
+`carousel`, `statistic`, `skeleton` — is untouched. `menu` and M2's
 leftover `select` are ordinary widget work now — each owns its
 model, its item semantics and its keyboard map, and none of them has to solve
 size, position or dismissal. The one thing between here and a `select` over a

@@ -122,6 +122,20 @@ public record Box(
             /// greyed tick is not.
             DASH,
 
+            /// Two crossed strokes — the close affordance on a tab, and later on
+            /// a toast, a chip and a dialog.
+            ///
+            /// A mark rather than an icon because it is drawn at 8–10 logical
+            /// pixels inside another control, where an icon's own metrics and
+            /// lookup buy nothing: what a close × has to do is line up with the
+            /// glyph beside it and take the colour of the thing it closes
+            /// ([ADR-0107](../../../../../../book/src/adr/0107-a-tab-strip-is-a-model-a-header-and-a-panel.md)).
+            CROSS,
+
+            /// Two crossed strokes at right angles — the add affordance on a tab
+            /// strip, and [#CROSS] turned a quarter.
+            PLUS,
+
             /// A filled circle — `:checked` on a radio, which is why this is here
             /// before `radio` is.
             DOT,

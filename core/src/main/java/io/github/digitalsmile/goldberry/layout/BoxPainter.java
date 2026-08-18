@@ -198,6 +198,20 @@ public final class BoxPainter {
                 path.moveTo(width * 0.24, height * 0.5);
                 path.lineTo(width * 0.76, height * 0.5);
             }
+            case PLUS -> {
+                path.moveTo(width * 0.5, height * 0.22);
+                path.lineTo(width * 0.5, height * 0.78);
+                path.moveTo(width * 0.22, height * 0.5);
+                path.lineTo(width * 0.78, height * 0.5);
+            }
+            case CROSS -> {
+                // The same inset as the tick's, so a × and a ✓ in the same
+                // column are the same size.
+                path.moveTo(width * 0.26, height * 0.26);
+                path.lineTo(width * 0.74, height * 0.74);
+                path.moveTo(width * 0.74, height * 0.26);
+                path.lineTo(width * 0.26, height * 0.74);
+            }
             case ARC -> {
                 // Inset by half the stroke so the ring's *outer* edge is the box
                 // rather than its centre line -- a 16px spinner that stroked on

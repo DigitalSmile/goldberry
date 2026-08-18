@@ -1479,3 +1479,120 @@ separator {
   flex-shrink: 0;
   background: var(--gb-border);
 }
+
+/* ------------------------------------------------------------------ tabs --
+ *
+ * `docs/core-widgets.md` §5, top placement: a row of headers over one panel.
+ *
+ * The rule under the headers is `tab-list`'s and not `tabs`'s, because it has to
+ * stop where the headers stop — a border on the outer box would run under the
+ * panel as well. That is `slider`'s anatomy argument again: two boxes were doing
+ * one job (ADR-0107).
+ */
+tabs {
+  flex-direction: column;
+}
+
+tab-list {
+  flex-direction: row;
+  align-items: stretch;
+  gap: 2px;
+}
+
+/* The rule under the headers, as a box: §8's subset has one `border` and no
+   per-edge longhands, so `border-bottom` is not a declaration that exists
+   (ADR-0107). Pinned across the bottom of the list, with the selected tab's
+   indicator drawn over it. */
+tab-rule {
+  height: 1px;
+  background: var(--gb-border);
+}
+
+/* A header. The selected one is marked by an underline drawn *over* the list's
+   rule, which is why the resting state carries a transparent border of the same
+   width: a border that appeared on selection would move the label by 2px. */
+tab {
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+  height: var(--gb-control-height);
+  padding: 0 12px;
+  flex-shrink: 0;
+  color: var(--gb-text-muted);
+  transition: color var(--gb-motion-fast) ease-out;
+}
+
+tab:hover {
+  color: var(--gb-text);
+  background: var(--gb-overlay-hover);
+}
+
+/* The selected tab. `--gb-accent` is the default and a tab that was given a
+   colour of its own overrides `color` through `restyle`, which is why the
+   underline reads `currentColor` rather than the accent token: one declaration
+   that follows whichever colour won. */
+tab:checked {
+  color: var(--gb-accent);
+}
+
+/* The underline. Transparent when the tab is not selected rather than absent, so
+   it can fade rather than appear -- and `--gb-accent` here rather than the tab's
+   `color`, because there is no `currentColor` in the subset either; a tab given
+   a colour of its own writes it straight onto this box through `restyle`. */
+tab-indicator {
+  height: 2px;
+  background: transparent;
+  transition: background var(--gb-motion-fast) ease-out;
+}
+
+tab-indicator:checked {
+  background: var(--gb-accent);
+}
+
+tab:focus-visible {
+  outline: 2px solid var(--gb-focus);
+  outline-offset: -2px;
+}
+
+tab:disabled {
+  opacity: 0.45;
+}
+
+/* The × and the +. Both take the colour of the thing they belong to, so a tab
+   with a colour of its own gets a matching close mark. */
+tab-close {
+  width: 12px;
+  height: 12px;
+  flex-shrink: 0;
+  opacity: 0.6;
+}
+
+tab-close:hover {
+  opacity: 1;
+}
+
+tab-new {
+  width: 28px;
+  align-self: center;
+  height: 20px;
+  flex-shrink: 0;
+  border-radius: 4px;
+  color: var(--gb-text-muted);
+}
+
+tab-new:hover {
+  color: var(--gb-text);
+  background: var(--gb-overlay-hover);
+}
+
+tab-new:focus-visible {
+  outline: 2px solid var(--gb-focus);
+  outline-offset: 2px;
+}
+
+/* The panel takes what is left, so a tab strip in a column fills it. */
+tab-panel {
+  flex-direction: column;
+  flex-grow: 1;
+  padding: 12px 0 0 0;
+}

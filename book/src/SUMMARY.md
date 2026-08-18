@@ -113,6 +113,7 @@
 - [ADR-0104 A popup is measured, then placed](adr/0104-a-popup-is-measured-then-placed.md)
 - [ADR-0105 A tooltip is an attribute, not a widget](adr/0105-a-tooltip-is-an-attribute-not-a-widget.md)
 - [ADR-0106 A menu is a widget, and opening one is not](adr/0106-a-menu-is-a-widget-and-opening-one-is-not.md)
+- [ADR-0107 A tab strip is a model, a header and a panel](adr/0107-a-tab-strip-is-a-model-a-header-and-a-panel.md)
 
 ---
 

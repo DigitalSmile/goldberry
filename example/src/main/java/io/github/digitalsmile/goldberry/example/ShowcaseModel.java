@@ -8,6 +8,8 @@ import io.github.digitalsmile.goldberry.bind.Property;
 import io.github.digitalsmile.goldberry.css.Theme;
 import io.github.digitalsmile.goldberry.widgets.Density;
 import io.github.digitalsmile.goldberry.widgets.controls.checkbox.Checkbox;
+import java.util.ArrayList;
+import java.util.List;
 
 /// Everything the showcase *knows*, and nothing about how it looks.
 ///
@@ -49,6 +51,16 @@ public final class ShowcaseModel {
     @Bind("app.status")
     private final Property<String> status = Property.of("checking the environment…");
 
+    /// The tabs, and which of them is showing. A **list**, because §5's strip
+    /// reports what the user asked for and changes nothing itself — closing a tab
+    /// removes it from here or it does not close (ADR-0107).
+    private final List<String> tabs = new ArrayList<>(List.of("Notes", "Log"));
+
+    private final Property<String> tab = Property.of("Notes");
+
+    /// How many tabs have been added, so a new one gets a name nobody has used.
+    private int added;
+
     /// §1.3's density preference — a plain field, because nothing binds to it. No
     /// control shows which density is on, the way the theme radios show the
     /// theme; it moves every control's height and is named by no widget, which is
@@ -88,6 +100,46 @@ public final class ShowcaseModel {
 
     public Observable<String> themeName() {
         return themeName;
+    }
+
+    /// The tabs, in order.
+    public List<String> tabs() {
+        return List.copyOf(tabs);
+    }
+
+    /// Which tab is showing.
+    public Observable<String> tab() {
+        return tab;
+    }
+
+    /// Shows a tab. What the strip asks for and this decides, like every other
+    /// value here.
+    public void pickTab(String value) {
+        changed(() -> tab.set(value));
+    }
+
+    /// Closes one — and picks a neighbour when it was the one being shown, because
+    /// a strip whose selection has been removed shows nothing at all.
+    public void closeTab(String value) {
+        changed(() -> {
+            var index = tabs.indexOf(value);
+            if (index < 0) {
+                return;
+            }
+            tabs.remove(index);
+            if (value.equals(tab.get())) {
+                tab.set(tabs.isEmpty() ? null : tabs.get(Math.min(index, tabs.size() - 1)));
+            }
+        });
+    }
+
+    /// Adds one, and shows it — which is what every editor does with a new tab.
+    public void newTab() {
+        changed(() -> {
+            var name = "Untitled " + (++added);
+            tabs.add(name);
+            tab.set(name);
+        });
     }
 
     public Observable<String> status() {

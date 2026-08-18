@@ -45,6 +45,10 @@ module io.github.digitalsmile.goldberry.widgets {
     exports io.github.digitalsmile.goldberry.widgets.text;
     exports io.github.digitalsmile.goldberry.widgets.panel;
 
+    /// `docs/core-widgets.md` §5's `tabs` and its `tab`; the list, the panel, the
+    /// close affordance and the add one are parts and stay in here (ADR-0107).
+    exports io.github.digitalsmile.goldberry.widgets.panel.tabs;
+
     exports io.github.digitalsmile.goldberry.widgets.controls;
     exports io.github.digitalsmile.goldberry.widgets.controls.badge;
     exports io.github.digitalsmile.goldberry.widgets.controls.button;

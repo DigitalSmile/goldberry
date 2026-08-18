@@ -23,6 +23,8 @@ import io.github.digitalsmile.goldberry.widgets.controls.spinner.Spinner;
 import io.github.digitalsmile.goldberry.widgets.controls.toggle.Toggle;
 import io.github.digitalsmile.goldberry.widgets.overlay.hud.Hud;
 import io.github.digitalsmile.goldberry.widgets.overlay.hud.Reading;
+import io.github.digitalsmile.goldberry.widgets.panel.tabs.Tab;
+import io.github.digitalsmile.goldberry.widgets.panel.tabs.Tabs;
 import io.github.digitalsmile.goldberry.widgets.menu.Item;
 import io.github.digitalsmile.goldberry.widgets.menu.Menu;
 import io.github.digitalsmile.goldberry.widgets.menu.Separator;
@@ -299,6 +301,36 @@ public final class Controls {
         // something about the frame loop rather than about a model. Nothing to
         // bind and nothing to resolve: what it shows arrives on the render
         // context, so a document writes `hud` and is done.
+        // §5's tab strip, and the tabs that go in it. `close` and `new` are the
+        // two halves of "a tab strip's list is the application's": the strip asks
+        // and the application answers, exactly as `change` does for the selection
+        // (ADR-0063, ADR-0107).
+        inflater.register("tabs", (node, children) -> new Tabs(
+                node.stringProperty("value"),
+                children,
+                bindings.resolve(node.stringProperty("bind")),
+                actions.resolveValued(node.stringProperty("change")),
+                actions.resolveValued(node.stringProperty("close")),
+                actions.resolve(node.stringProperty("new")),
+                Attributes.of(node)));
+        inflater.register("tab", (node, children) -> new Tab(
+                // Required for a `radio`'s reason: the value is what the strip
+                // reports and what it matches on, and two tabs sharing a
+                // defaulted value would select together.
+                requiredValue("tab", node.stringProperty("value")),
+                node.argument().map(v -> v.asString()).orElse(""),
+                icons.resolve(node.stringProperty("icon")),
+                // Written the way a stylesheet writes a colour, because it is one
+                // — an author who knows `#bf616a` in CSS writes the same here.
+                colour(node.stringProperty("colour"), node.stringProperty("color")),
+                node.booleanProperty("closable"),
+                children,
+                // `selected` and the two handlers are the strip's to supply on
+                // every build, which is why none of them is an attribute: a
+                // document that could mark two tabs selected would break the one
+                // invariant a strip exists to hold.
+                false, null, null,
+                Attributes.of(node)));
         // §8's menu, its rows and its rules. A document declares a menu; opening
         // one is `Menus.open(host, …)`, because that needs a `Host` and a widget
         // must not have one (ADR-0106).
@@ -327,6 +359,19 @@ public final class Controls {
                 readings(node.stringProperty("readings")),
                 Attributes.of(node)));
         return inflater;
+    }
+
+    /// `colour="#bf616a"`, or `color=` for whoever spells it that way.
+    ///
+    /// Both, because CSS spells it `color` and this document's prose spells it
+    /// `colour`, and an author guessing wrong should get a colour rather than a
+    /// silent default.
+    ///
+    /// @return the colour as `0xAARRGGBB`, or 0 for "the stylesheet decides"
+    private static int colour(String british, String american) {
+        var parsed = io.github.digitalsmile.goldberry.css.CssColor.parse(
+                british != null ? british : american);
+        return parsed == null ? 0 : parsed;
     }
 
     /// `readings="fps paint"` — a space-separated list, like `class`.

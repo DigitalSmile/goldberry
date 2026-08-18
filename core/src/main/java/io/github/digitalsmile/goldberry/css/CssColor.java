@@ -85,6 +85,29 @@ public final class CssColor {
         return Oklch.mix(from, to, t);
     }
 
+    /// Parses a colour written the way a stylesheet writes one — `#3b4252`,
+    /// `rgb(59 66 82)`, `oklch(…)`, a named colour.
+    ///
+    /// For the values that arrive as a **string** rather than as a parsed
+    /// declaration: an attribute in a markup document, or an application handing
+    /// a widget a colour from its own data. The syntax is deliberately the
+    /// stylesheet's rather than a second one — an author who knows how to write a
+    /// colour in `controls.css` writes it the same way in `colour="…"`.
+    ///
+    /// @param text the colour, or null
+    /// @return the colour as `0xAARRGGBB`, or null if `text` is not one
+    public static Integer parse(String text) {
+        if (text == null || text.isBlank()) {
+            return null;
+        }
+        // Without the end-of-input token the tokenizer appends: `parse` counts
+        // its tokens, and a colour followed by "nothing else" is one token, not
+        // two.
+        return parse(CssTokenizer.tokenize(text).stream()
+                .filter(token -> !token.is(TokenType.EOF))
+                .toList());
+    }
+
     /// Parses a colour from a declaration's value tokens.
     ///
     /// @return the colour as `0xAARRGGBB`, or null if these tokens are not one

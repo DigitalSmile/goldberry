@@ -141,6 +141,20 @@ disabled container disabling its descendants.
 
 ## The catalog: specified and unbuilt
 
+- **A tab strip does not scroll, and neither does anything else.** Enough tabs and
+  the row overflows its window; a menu taller than the work area is clamped. §1's
+  `scroll` is the single missing widget behind both, and behind `select` over a
+  realistic option list. —
+  [ADR-0107](adr/0107-a-tab-strip-is-a-model-a-header-and-a-panel.md)
+- **A tab's content is rebuilt when it is selected again.** That is the cost of
+  §5's "lazy content instantiation" and is right — but it means a scroll position,
+  a caret or a half-typed form in a background tab is gone, and the toolkit offers
+  nowhere to put it except the application's model. `collapse` will have the same
+  trade. —
+  [ADR-0107](adr/0107-a-tab-strip-is-a-model-a-header-and-a-panel.md)
+- **Nothing reorders tabs.** §5 does not ask for drag-to-reorder; the model shape
+  would take it without a change, since the strip draws the list it is given. —
+  [ADR-0107](adr/0107-a-tab-strip-is-a-model-a-header-and-a-panel.md)
 - **The catalog's specified surface roughly tripled, and none of it is built.**
   `docs/core-widgets.md` gained twenty-one widgets and four options in one pass —
   `link`, `affix`, `segmented`, `date-picker`, `time-picker`, `color-picker`,

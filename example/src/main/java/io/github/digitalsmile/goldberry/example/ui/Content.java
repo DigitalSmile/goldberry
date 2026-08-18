@@ -7,6 +7,8 @@ import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widgets.controls.button.Button;
 import io.github.digitalsmile.goldberry.widgets.core.Column;
 import io.github.digitalsmile.goldberry.widgets.core.Row;
+import io.github.digitalsmile.goldberry.widgets.panel.tabs.Tab;
+import io.github.digitalsmile.goldberry.widgets.panel.tabs.Tabs;
 import io.github.digitalsmile.goldberry.widgets.text.Text;
 
 /// The main pane — the prose and the three action buttons.
@@ -46,6 +48,32 @@ public record Content(ShowcaseModel model, Icon plus) implements Widget.Stateles
             after Ctrl+T has changed it from outside the group, because the selection is the \
             position rather than something remembered beside it.""";
 
+    /// §5's strip, built here rather than in a document for the third reason this
+    /// pane is in Java: **the list is dynamic**. A tab can be closed and a new one
+    /// added, and KDL is data — it can write three tabs, not "however many the
+    /// model has".
+    ///
+    /// Every one of the strip's three events reports and decides nothing: `change`
+    /// asks to show a tab, `close` asks for one to go, `new` asks for one to
+    /// arrive, and the model answers all three. A strip whose handlers did nothing
+    /// would sit there unmoved, which is the visible form of "the model did not
+    /// change" (ADR-0063, ADR-0107).
+    private Widget tabs() {
+        var strip = new java.util.ArrayList<Widget>();
+        for (var name : model.tabs()) {
+            strip.add(new Tab(name, name,
+                    new Text("The " + name.toLowerCase(java.util.Locale.ROOT) + " tab."))
+                    .closable(true)
+                    // A colour a stylesheet cannot know: it is a fact about the
+                    // tab's name rather than about its state.
+                    .colour("Log".equals(name) ? 0xFFBF616A : 0));
+        }
+        return new Tabs(null, strip, model.tab(),
+                model::pickTab, model::closeTab, model::newTab,
+                io.github.digitalsmile.goldberry.widget.Attributes.NONE)
+                .id("tabs");
+    }
+
     @Override
     public Widget build(BuildContext context) {
         var actions = new Row(
@@ -57,7 +85,7 @@ public record Content(ShowcaseModel model, Icon plus) implements Widget.Stateles
                 .id("actions");
 
         return model.isProseShown()
-                ? new Column(new Text(PROSE).id("prose"), actions).id("content")
-                : new Column(actions).id("content");
+                ? new Column(new Text(PROSE).id("prose"), tabs(), actions).id("content")
+                : new Column(tabs(), actions).id("content");
     }
 }
