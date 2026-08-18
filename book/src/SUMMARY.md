@@ -105,6 +105,8 @@
 - [ADR-0097 A selection that travels needs a geometry](adr/0097-a-selection-that-travels-needs-a-geometry.md)
 - [ADR-0098 A private member is reached by a handle](adr/0098-a-private-member-is-reached-by-a-handle.md)
 - [ADR-0099 An indicator travels on a grid](adr/0099-an-indicator-travels-on-a-grid.md)
+- [ADR-0100 A window has a layer above its application](adr/0100-a-window-has-a-layer-above-its-application.md)
+- [ADR-0101 A diagnostic must not be the thing it measures](adr/0101-a-diagnostic-must-not-be-the-thing-it-measures.md)
 
 ---
 

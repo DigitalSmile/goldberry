@@ -74,6 +74,23 @@ public interface Paints extends Widget {
         /// microseconds apart.
         double nowMillis();
 
+        /// What the frame loop has been managing lately.
+        ///
+        /// The third fact here that is about the frame rather than the node, and
+        /// it is on this interface for [#nowMillis]'s reason: a widget that went
+        /// looking for it itself would find a different answer than the widget
+        /// beside it. Two HUDs in one window report one rate.
+        ///
+        /// [io.github.digitalsmile.goldberry.FrameStats#none()] unless something
+        /// told the renderer otherwise — a render into a [io.github.digitalsmile.goldberry.Layer],
+        /// or a test, has no frame loop over it and honestly reports no frames.
+        ///
+        /// **Read, never recorded.** A widget observes the loop; it does not
+        /// contribute to it, and nothing here lets it try.
+        default io.github.digitalsmile.goldberry.FrameStats frames() {
+            return io.github.digitalsmile.goldberry.FrameStats.none();
+        }
+
         /// Whether the user asked for less movement (§1.7).
         ///
         /// A widget that animates itself has to ask, because there is no

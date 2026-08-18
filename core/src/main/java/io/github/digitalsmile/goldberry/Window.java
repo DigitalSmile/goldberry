@@ -57,6 +57,11 @@ public final class Window implements AutoCloseable {
     /// something the backend copies out immediately.
     private PixelBuffer cached;
 
+    /// What this window's frame loop has been managing lately (§1.7's frame
+    /// budget, made visible). Written once per painted frame and read by whatever
+    /// is watching — a `hud`, or a test.
+    private final FrameRing frames = new FrameRing();
+
     private Window(GoldberryRuntime runtime, BackendWindow window) {
         this.runtime = runtime;
         this.window = window;
@@ -234,6 +239,19 @@ public final class Window implements AutoCloseable {
         return partialRepaint;
     }
 
+    /// What this window's frame loop has been managing over the last frames.
+    ///
+    /// Live: the same object every call, updated as frames are painted, so a
+    /// widget that keeps it keeps something current rather than a snapshot that
+    /// went stale the moment it was taken.
+    ///
+    /// Reading it costs the arithmetic of a mean over at most
+    /// [FrameStats#capacity] frames and allocates nothing, which is what makes it
+    /// safe to ask inside a `build` that runs every frame.
+    public FrameStats frames() {
+        return frames;
+    }
+
     void paint() {
         if (!window.isOpen()) {
             return;
@@ -245,7 +263,12 @@ public final class Window implements AutoCloseable {
             return;
         }
         var traced = LOG.isTraceEnabled();
-        var started = traced ? System.nanoTime() : 0L;
+        // Ungated, unlike the four readings below it: this pair is what
+        // [#frames] is made of, and a frame rate that only exists at TRACE would
+        // be a diagnostic you have to change the logging configuration to see —
+        // and would then be measuring a loop that is also writing a line per
+        // frame. Two `nanoTime` calls against a frame is not a cost worth an if.
+        var started = System.nanoTime();
 
         // Paint into the platform's own buffer when it lends one. Otherwise
         // rasterize into ours and let the backend copy -- which is a full frame of
@@ -296,7 +319,12 @@ public final class Window implements AutoCloseable {
             drawn = traced ? System.nanoTime() : 0L;
             frame.end();
         }
-        var painted = traced ? System.nanoTime() : 0L;
+        var painted = System.nanoTime();
+
+        // Before `present`, and counted even when that throws: the frame was
+        // painted, and a frame the platform then refused because the window was
+        // resized under it is a frame this loop still spent (see the catch).
+        frames.record(started, painted);
 
         var frameSize = size;
         try {

@@ -337,4 +337,16 @@
   --gb-motion-fast: 100ms;
   --gb-motion-base: 160ms;
   --gb-motion-overlay: 240ms;
+
+  /* The HUD's plate (§7). The one group here that is **the same in both
+     themes**: it lies over the application's own colours, which the toolkit does
+     not know, so it carries its own contrast rather than borrowing the theme's.
+
+     Darker than `--gb-bg` on either theme, and edged, because "over the window"
+     has to be visible over a *dark* window too -- a plate the colour of the
+     background it is lying on is not a plate. */
+  --gb-hud-bg: #1c212ae6;
+  --gb-hud-border: #ffffff26;
+  --gb-hud-text: #eceff4;
+  --gb-hud-text-muted: #a3adbe;
 }

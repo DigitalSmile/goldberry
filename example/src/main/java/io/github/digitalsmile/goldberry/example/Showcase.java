@@ -3,6 +3,7 @@ package io.github.digitalsmile.goldberry.example;
 import io.github.digitalsmile.goldberry.Application;
 import io.github.digitalsmile.goldberry.Goldberry;
 import io.github.digitalsmile.goldberry.Host;
+import io.github.digitalsmile.goldberry.Overlay;
 import io.github.digitalsmile.goldberry.backend.LogicalSize;
 import io.github.digitalsmile.goldberry.css.CascadeLayer;
 import io.github.digitalsmile.goldberry.css.Stylesheet;
@@ -10,9 +11,11 @@ import io.github.digitalsmile.goldberry.example.ui.Screen;
 import io.github.digitalsmile.goldberry.icon.Icon;
 import io.github.digitalsmile.goldberry.input.Key;
 import io.github.digitalsmile.goldberry.input.Mod;
+import io.github.digitalsmile.goldberry.widget.Corner;
 import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widgets.Controls;
 import io.github.digitalsmile.goldberry.widgets.Icons;
+import io.github.digitalsmile.goldberry.widgets.overlay.hud.Hud;
 import java.util.ArrayList;
 import java.util.List;
 import org.slf4j.Logger;
@@ -70,6 +73,10 @@ public final class Showcase implements Application {
     private final ShowcaseModel model = new ShowcaseModel();
 
     private Host host;
+
+    /// The frame-rate readout, while it is on screen. Null when it is not — see
+    /// [#toggleHud].
+    private Overlay hud;
     private Icon paletteIcon;
     private Icon plusIcon;
     private Screen screen;
@@ -130,6 +137,10 @@ public final class Showcase implements Application {
         // height, and every control still resizes.
         host.shortcut(Mod.CTRL.and(Key.T), model::toggleTheme);
         host.shortcut(Mod.CTRL.and(Key.D), model::toggleDensity);
+        // Off by default, and deliberately: a HUD reports the frames the loop
+        // was already painting, so the interesting time to switch it on is
+        // *during* a resize or a drag, when there is something to watch.
+        host.shortcut(Mod.CTRL.and(Key.F), this::toggleHud);
 
         host.window().onResize(size -> LOG.info("resized to {}", size));
         host.window().onScaleChange(scale -> LOG.info("scale is now {}", scale));
@@ -151,6 +162,22 @@ public final class Showcase implements Application {
     @Override
     public Widget root() {
         return screen;
+    }
+
+    /// Puts a `hud` in the window's overlay layer, or takes it away again.
+    ///
+    /// The whole of what an application does to float something: one call, and
+    /// the handle that comes back is the way out. Nothing about `screen` changes
+    /// — the overlay is a sibling of it, which is why switching this on mid-drag
+    /// does not cost a single element its state.
+    private void toggleHud() {
+        if (hud != null) {
+            hud.remove();
+            hud = null;
+        } else {
+            hud = host.overlay(new Hud(), Corner.BOTTOM_END);
+        }
+        LOG.info("hud {}", hud == null ? "off" : "on");
     }
 
     /// What [#start] opened, in reverse. The launcher closes what the launcher

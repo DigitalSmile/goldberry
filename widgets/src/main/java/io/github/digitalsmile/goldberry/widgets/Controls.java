@@ -21,6 +21,8 @@ import io.github.digitalsmile.goldberry.widgets.controls.segmented.Segmented;
 import io.github.digitalsmile.goldberry.widgets.controls.slider.Slider;
 import io.github.digitalsmile.goldberry.widgets.controls.spinner.Spinner;
 import io.github.digitalsmile.goldberry.widgets.controls.toggle.Toggle;
+import io.github.digitalsmile.goldberry.widgets.overlay.hud.Hud;
+import io.github.digitalsmile.goldberry.widgets.overlay.hud.Reading;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
@@ -289,7 +291,25 @@ public final class Controls {
                 false, null,
                 node.booleanProperty("disabled"),
                 Attributes.of(node)));
+        // §7's first overlay, and the only widget in the catalog that reads
+        // something about the frame loop rather than about a model. Nothing to
+        // bind and nothing to resolve: what it shows arrives on the render
+        // context, so a document writes `hud` and is done.
+        inflater.register("hud", (node, children) -> new Hud(
+                readings(node.stringProperty("readings")),
+                Attributes.of(node)));
         return inflater;
+    }
+
+    /// `readings="fps paint"` — a space-separated list, like `class`.
+    ///
+    /// Null and blank both mean [Hud#DEFAULT] rather than an error: a bare `hud`
+    /// is the form almost every document will write.
+    private static List<Reading> readings(String value) {
+        if (value == null || value.isBlank()) {
+            return Hud.DEFAULT;
+        }
+        return List.of(value.trim().split("\\s+")).stream().map(Reading::parse).toList();
     }
 
     private static String requiredValue(String node, String value) {

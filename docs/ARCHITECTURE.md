@@ -110,6 +110,7 @@ Rules baked into the SPI:
 - **macOS main thread.** `Goldberry.launch(app)` takes over the calling thread as the UI thread (AppKit requires the first thread). It does not spawn one.
 - **HiDPI:** layout in logical px, raster at physical px, per window. Fractional scales are day-1 correct, not retrofitted.
 - **Decorations:** native/server-side by default on every platform (SDL negotiates Wayland SSD). Client-side "frost" decorations are an opt-in `titlebar` widget (`core-widgets.md` §8) using the `frost` material (`design-system.md` §1.5), same widget code on every backend.
+- **Overlays, two places.** In-window overlays — a toast, a scrim, a `hud` — are a widget-tree facility and need nothing from here: they are children of the window's own root node, out of flow at a corner (ADR-0100). `createPopup` is for the ones that must escape the window's bounds, and is still unbuilt.
 - **Backends shipped:** `sdl3` (the desktop backend on all three OSes), `headless` (renders to `BLImage` for golden-image tests). That is the complete list — no hand-written Win32/Cocoa/Wayland backends and no AWT bridge, ever. SDL3 is a permanent dependency on desktop; the SPI exists to serve `headless` and to keep the platform boundary in one place, not as an invitation to grow new desktop backends.
 
 ## 5. Rendering pipeline
@@ -365,7 +366,7 @@ Screen-reader bridging (UIA / NSAccessibility / AT-SPI) is planned via **AccessK
 - **M0 — Skeleton:** superbuild → `libgoldberry` on 3 OSes; FFM bindings + layout checks; SDL3 + headless backends; blank window at correct fractional DPI.
 - **M1 — Vertical slice:** styled wrapped paragraph, resized at 60 fps on Linux, macOS and Windows; paragraph cache + upcall benchmarks green.
 - **M2 — Widgets & style:** CSS engine, KDL inflater + hot reload, core controls, Nord light/dark, focus/cursor/shortcuts, golden-image CI. *Engines done; **every control in `core-widgets.md` §3 is built except `select`**, whose popup window belongs with M3's overlays. `segmented` closed the catalog and cost two amendments to `design-system.md`: its specified drawing needs per-corner radii that §8's subset does not have, and its specified motion needs the geometry of a box a widget cannot see (ADR-0097). Plus §7.2's roving arrow-key focus with an axis — which `segmented` is the first non-menu to use — §1.3's density, disabled propagating through a subtree, §1.2's contrast floor now checked in CI, and a gesture anchor for controls whose drag is a rate. Custom image cursors are the other gap. `book/src/status.md` has the detail.*
-- **M3 — Shell:** menus/popups, tray, dialogs, scroll, forms, decorations opt-in CSD, charts, widget showcase.
+- **M3 — Shell:** menus/popups, tray, dialogs, scroll, forms, decorations opt-in CSD, charts, widget showcase. *Started: the **in-window overlay layer** ships and `hud` is its first occupant — every window's tree is rooted at a `window-root` that floats overlays out of flow at a corner, which is what `toast`, a `dialog`'s scrim and `hud` need and what none of them needed a platform window for (ADR-0100, ADR-0101). The popup-window half of §4 is still absent, which is what `menu`, `tooltip`, `popover` and M2's leftover `select` are waiting on.*
 - **M4 — GPU:** `canvas3d`, GPU composition path.
 - **M5 — Hardening:** text editing depth, AccessKit bridge, IME preedit, docs, 0.1 release.
 

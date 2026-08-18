@@ -1315,3 +1315,46 @@ option:checked {
    colour remap: the 45% in the states block above fades the bar, its pill, its
    segments and their labels together, because the painter multiplies opacity
    down the subtree (ADR-0077). */
+
+/* ------------------------------------------------------------------- hud --
+ *
+ * `docs/core-widgets.md` §7's `hud`: what the frame loop is managing, floating
+ * over the window it is managing.
+ *
+ * It is the one widget in the catalog that is *about* the toolkit rather than
+ * about the application, and it is styled to look like it — a small dark plate
+ * that reads as instrumentation laid on the window rather than as part of it.
+ * `--gb-hud-bg` is therefore the one background token in the toolkit that does
+ * **not** invert with the theme: a HUD on the light theme is still a dark plate,
+ * because it has to be legible over whatever it happens to be lying on, and what
+ * it is lying on is the application's and unknown.
+ */
+hud {
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  background: var(--gb-hud-bg);
+  border: 1px solid var(--gb-hud-border);
+  color: var(--gb-hud-text);
+  font-size: var(--gb-font-caption);
+  line-height: var(--gb-line-caption);
+  /* A HUD is pinned out of flow and sized by its content, so it must not be
+     talked into shrinking by anything -- and nothing should be able to stretch
+     it across the corner it is pinned to either. */
+  flex-shrink: 0;
+  flex-grow: 0;
+}
+
+/* The readings are dim; the rate is not. There are only ever two or three
+   numbers here and one of them is the answer -- the rest is context for it. */
+hud-reading {
+  flex-shrink: 0;
+  color: var(--gb-hud-text-muted);
+}
+
+hud-reading.fps {
+  color: var(--gb-hud-text);
+  font-weight: 600;
+}

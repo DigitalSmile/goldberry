@@ -56,4 +56,11 @@ module io.github.digitalsmile.goldberry.widgets {
     exports io.github.digitalsmile.goldberry.widgets.controls.slider;
     exports io.github.digitalsmile.goldberry.widgets.controls.spinner;
     exports io.github.digitalsmile.goldberry.widgets.controls.toggle;
+
+    /// `docs/core-widgets.md` §7's `overlay` group. `hud` is the first of it and
+    /// the only one that needs no popup: it floats in the window's own overlay
+    /// layer ([io.github.digitalsmile.goldberry.Overlay]), where `toast` and a
+    /// `dialog`'s scrim will join it, while `menu`, `tooltip` and `popover` wait
+    /// for the backend popup windows §4 reserves.
+    exports io.github.digitalsmile.goldberry.widgets.overlay.hud;
 }

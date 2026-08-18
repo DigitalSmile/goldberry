@@ -1,6 +1,8 @@
 package io.github.digitalsmile.goldberry;
 
 import io.github.digitalsmile.goldberry.text.Fonts;
+import io.github.digitalsmile.goldberry.widget.Corner;
+import io.github.digitalsmile.goldberry.widget.Widget;
 
 /// What a running [Application] can ask of the toolkit.
 ///
@@ -51,6 +53,44 @@ public interface Host {
     ///
     /// @throws IllegalArgumentException if the text names no key this toolkit has
     void shortcut(String accelerator, Runnable action);
+
+    /// Floats `widget` over the window's content, pinned to `corner`.
+    ///
+    /// The in-window overlay layer (`docs/core-widgets.md` §7): the widget is a
+    /// sibling of the application's root rather than a descendant of it, so it is
+    /// painted after everything and takes no space from anything. A widget
+    /// already in the tree cannot do this for itself — an absolute box is placed
+    /// against its own parent, so the furthest it can reach is the panel it is in.
+    ///
+    /// Adding, moving and removing overlays never re-parents the application:
+    /// every window has an overlay layer from the first frame whether or not
+    /// anything is in it, so a toast cannot cost the tree its state.
+    ///
+    /// ```java
+    /// var hud = host.overlay(new Hud(), Corner.BOTTOM_END);
+    /// // ...
+    /// hud.remove();
+    /// ```
+    ///
+    /// @param widget what to float
+    /// @param corner which corner it is pinned to
+    /// @return the handle that takes it away again
+    Overlay overlay(Widget widget, Corner corner);
+
+    /// [#overlay(Widget, Corner)] with a chosen distance from the window's edges,
+    /// in logical pixels, instead of [Overlay#WINDOW_MARGIN].
+    Overlay overlay(Widget widget, Corner corner, float margin);
+
+    /// What the frame loop has been managing lately.
+    ///
+    /// Live rather than a snapshot, and cheap to ask: it is the same object every
+    /// call and reading it is a mean over at most [FrameStats#capacity] frames.
+    ///
+    /// This is the window's, not the application's — an application that wants a
+    /// frame-rate display puts a `hud` in the overlay layer and never touches
+    /// this. It is here for the ones that want to log it, assert on it in a test,
+    /// or draw it themselves on a `canvas`.
+    FrameStats frames();
 
     /// The font book the renderer is drawing with.
     ///

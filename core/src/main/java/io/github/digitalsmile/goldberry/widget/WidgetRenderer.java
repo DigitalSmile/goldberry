@@ -34,6 +34,12 @@ public final class WidgetRenderer {
     /// What time it is, for anything that animates (§1.7).
     private Clock clock = Clock.system();
 
+    /// What the frame loop is managing, for the widgets that draw it. Nothing
+    /// until a window says otherwise, because a renderer with no loop over it —
+    /// a test, a layer — has no frames to report.
+    private io.github.digitalsmile.goldberry.FrameStats frames =
+            io.github.digitalsmile.goldberry.FrameStats.none();
+
     /// Whether `prefers-reduced-motion` is on — §1.7's rule 6.
     private boolean reducedMotion;
 
@@ -109,6 +115,11 @@ public final class WidgetRenderer {
             public boolean reducedMotion() {
                 return reducedMotion;
             }
+
+            @Override
+            public io.github.digitalsmile.goldberry.FrameStats frames() {
+                return frames;
+            }
         };
     }
 
@@ -138,6 +149,18 @@ public final class WidgetRenderer {
     /// machinery still runs and still ends and a reduced-motion user reaches the
     /// same states by the same route. §4 asks for the same shape from the
     /// high-contrast theme: an alias swap, never a separate code path.
+    /// The frame statistics every node on this renderer reads — see
+    /// [Paints.Context#frames()].
+    ///
+    /// The launcher points this at the window's; a test hands in
+    /// [io.github.digitalsmile.goldberry.FrameStats#of] so a golden image of a
+    /// HUD shows numbers somebody chose rather than whatever the machine that ran
+    /// the test managed.
+    public WidgetRenderer frames(io.github.digitalsmile.goldberry.FrameStats value) {
+        this.frames = Objects.requireNonNull(value, "frames");
+        return this;
+    }
+
     public WidgetRenderer reducedMotion(boolean value) {
         this.reducedMotion = value;
         return this;

@@ -1,12 +1,18 @@
 package io.github.digitalsmile.goldberry;
 
 import io.github.digitalsmile.goldberry.backend.LogicalSize;
+import io.github.digitalsmile.goldberry.bind.Property;
 import io.github.digitalsmile.goldberry.input.HitTest;
 import io.github.digitalsmile.goldberry.input.PointerRouter;
 import io.github.digitalsmile.goldberry.layout.RenderTree;
 import io.github.digitalsmile.goldberry.text.Fonts;
+import io.github.digitalsmile.goldberry.widget.Corner;
 import io.github.digitalsmile.goldberry.widget.ElementTree;
 import io.github.digitalsmile.goldberry.widget.WidgetRenderer;
+import io.github.digitalsmile.goldberry.widget.Widget;
+import io.github.digitalsmile.goldberry.widget.WindowRoot;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -34,6 +40,11 @@ final class Launcher implements Host {
 
     /// Set when the stylesheets must be re-read — see [#restyle()].
     private boolean stylesDirty = true;
+
+    /// What is floating over the content, watched by [WindowRoot] rather than
+    /// handed to it: the root widget of an element tree cannot be swapped, so a
+    /// list that changes has to be one the root *reads* (ADR-0062).
+    private final Property<List<Overlay>> overlays = Property.of(List.of());
 
     private int painted;
 
@@ -97,7 +108,11 @@ final class Launcher implements Host {
         // accelerators and then describe a tree that uses them.
         application.start(this);
 
-        tree = new ElementTree(application.root());
+        // The application's root goes *under* the window's own node, from the
+        // first frame and whether or not anything is floating yet: a layer that
+        // appeared with the first overlay would re-parent the whole application
+        // to show a toast, and re-parenting is what throws state away.
+        tree = new ElementTree(new WindowRoot(application.root(), overlays));
         router.focusRoot(tree.root());
 
         // Held for the life of the window, which is the whole point of it: the
@@ -128,7 +143,8 @@ final class Launcher implements Host {
             // animations, which live on the elements a restyle does not touch, so
             // a transition in flight when the theme changes carries on into the
             // new colours rather than snapping (ADR-0067).
-            renderer = new WidgetRenderer(application.stylesheets(), fonts);
+            renderer = new WidgetRenderer(application.stylesheets(), fonts)
+                    .frames(window.frames());
             stylesDirty = false;
         }
 
@@ -223,6 +239,41 @@ final class Launcher implements Host {
     @Override
     public void shortcut(String accelerator, Runnable action) {
         router.shortcut(accelerator, action);
+    }
+
+    @Override
+    public Overlay overlay(Widget widget, Corner corner) {
+        return overlay(widget, corner, Overlay.WINDOW_MARGIN);
+    }
+
+    @Override
+    public Overlay overlay(Widget widget, Corner corner, float margin) {
+        var entry = Overlay.of(widget, corner, margin);
+        var next = new ArrayList<>(overlays.get());
+        next.add(entry);
+        // A fresh list rather than a mutation of the one in the property: the
+        // root element is subscribed to the *value*, and a list changed in place
+        // is the same value, so nothing would rebuild.
+        overlays.set(List.copyOf(next));
+        // By identity, not by equality: two `new Hud()` overlays in one corner
+        // are equal values and two different things on screen.
+        entry.attached(() -> {
+            var remaining = new ArrayList<Overlay>(overlays.get().size());
+            for (var existing : overlays.get()) {
+                if (existing != entry) {
+                    remaining.add(existing);
+                }
+            }
+            overlays.set(List.copyOf(remaining));
+            window.repaint();
+        });
+        window.repaint();
+        return entry;
+    }
+
+    @Override
+    public FrameStats frames() {
+        return window.frames();
     }
 
     @Override
