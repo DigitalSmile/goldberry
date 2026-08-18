@@ -172,9 +172,9 @@ All overlays render in the in-window overlay layer or backend popup windows as a
 
 ## 8. `widget.menu`
 
-- **`menubar`** — in-window horizontal bar (a global macOS menubar is a documented non-goal for v1, see ARCHITECTURE §17); `Alt`-style keyboard activation; arrows navigate.
-- **`menu` / `item` / `separator`** — items: label, optional icon, accelerator (displayed right-aligned *and* auto-registered in the window's shortcut map), checkable items, disabled state, nested submenus (hover-intent timing). Rendered in backend popup windows so menus escape window bounds.
-- **Context menus** — any widget takes `context-menu="menuId"`; opened by right-click or the keyboard menu key at the focused widget.
+- **`menubar`** — in-window horizontal bar (a global macOS menubar is a documented non-goal for v1, see ARCHITECTURE §17); `Alt`-style keyboard activation; arrows navigate. *Not built: it is the widget in this group that needs a menu to exist for longer than one opening, which is the same thing accelerator registration needs.*
+- **`menu` / `item` / `separator`** — items: label, optional icon, accelerator (displayed right-aligned *and* auto-registered in the window's shortcut map), checkable items, disabled state, nested submenus (hover-intent timing). Rendered in backend popup windows so menus escape window bounds. **Built, except the accelerator's second half** ([ADR-0106](../book/src/adr/0106-a-menu-is-a-widget-and-opening-one-is-not.md)): the three are widgets and `Menus.open(host, anchor, menu)` is the call that opens one, because opening needs a `Host` and a widget must not have one. A nested `item` *is* the submenu syntax; submenus open beside their row after 150ms of hover intent and close their siblings as they go; choosing any command closes the whole stack. A `menu` is a vertical focus scope, so `Left`/`Right` stay free for "close this submenu" and "open that one". The accelerator is **displayed and not registered**: a shortcut has to work while the menu is shut, and a menu is built when it opens and thrown away when it closes — registration needs something that owns menus for longer than one opening, which is also what `menubar` needs.
+- **Context menus** — any widget takes `context-menu="menuId"`; opened by right-click or the keyboard menu key at the focused widget. *Not built: the attribute would ride on `Attributes` exactly as a tooltip's text does, and needs a registry of menus by id to resolve against.*
 - Semantics: menubar/menu/menuitem with checked state.
 
 ## 9. `widget.shell`

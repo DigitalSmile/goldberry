@@ -172,6 +172,20 @@ public interface Host {
     /// nowhere to put it.
     java.util.Optional<Popup> popup(Widget content, String anchorId, Placement placement);
 
+    /// Runs `action` on the UI thread after `delay`.
+    ///
+    /// The frame loop's own timer: it shortens its next wait so the action lands
+    /// on time, where anything sleeping elsewhere would fire on time and then wait
+    /// for the loop to come back and notice.
+    ///
+    /// What §8's "hover-intent timing" is made of, and §7's tooltip delay before
+    /// that. An application wanting to do something in half a second wants this
+    /// rather than a thread ([ADR-0105](../../../../../book/src/adr/0105-a-tooltip-is-an-attribute-not-a-widget.md)).
+    ///
+    /// @return a handle that cancels it
+    io.github.digitalsmile.goldberry.backend.EventLoop.Timer after(
+            java.time.Duration delay, Runnable action);
+
     /// What the frame loop has been managing lately.
     ///
     /// Live rather than a snapshot, and cheap to ask: it is the same object every

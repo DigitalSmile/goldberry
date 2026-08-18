@@ -1165,9 +1165,44 @@ second.
   also cannot end up under the pointer, by construction: it is placed outside the
   anchor's rectangle and the pointer is inside it, above or flipped below.
 
+### `menu`, `item` and `separator`
+
+- **A menu is a widget; opening one is a call.** `Menus.open(host, anchor, menu)`
+  measures the panel, places it, opens a platform window, wraps every command in
+  "and close the stack" and hands each row with children a way to open its own
+  submenu. It is not a method on the widget because opening needs a `Host`, and a
+  widget holding the window it is drawn in would be describing its own
+  surroundings — so the opener rebuilds the tree and supplies what only it knows,
+  which is what `radio-group` does to its `radio` children
+  ([ADR-0106](adr/0106-a-menu-is-a-widget-and-opening-one-is-not.md), ADR-0073).
+- **A nested `item` is the submenu syntax**, so there is no `submenu` node to
+  forget and no way to write one that is not a submenu. Submenus open **beside**
+  their row — `Placement.AFTER`, flipping near the screen edge — after 150ms of
+  hover intent, and close their siblings as they open, so travelling down a menu
+  past three rows with submenus leaves one open rather than three.
+- **A submenu is anchored inside a popup, which needed a second `anchor`.**
+  `Host.anchor` answers from the main window's geometry and knows nothing about
+  what is in a popup, so `Popup` gained one that translates by its own offset —
+  without which a submenu opens at the right place relative to the wrong origin.
+- **A `menu` is a vertical focus scope.** `Up` and `Down` move between rows;
+  `Left` and `Right` are deliberately not traversal, because in a menu they mean
+  "close this submenu" and "open that one". `Escape` was already the popup's.
+- **The tick column is always built**, checked or not, so a menu's labels line up
+  the moment one row becomes checkable rather than shifting sideways.
+- **The accelerator is displayed and not registered.** §8 asks for both; a
+  shortcut has to work while the menu is *shut*, and a menu is built when it opens
+  and thrown away when it closes. Registration needs something that owns menus for
+  longer than one opening — which is what `menubar` needs too, and why neither is
+  here.
+- Driven by four tests that post **real clicks** into the popup's own window
+  through the real launcher and frame loop: a command runs and closes the stack, a
+  hover opens a submenu beside its row, a command inside the submenu closes both,
+  and a disabled row does neither.
+
 ### Not started
 
-Tray, dialogs, scroll, forms, client-side decorations and charts. `menu` and M2's
+`menubar`, context menus, tray, dialogs, scroll, forms, client-side decorations
+and charts. `menu` and M2's
 leftover `select` are ordinary widget work now — each owns its
 model, its item semantics and its keyboard map, and none of them has to solve
 size, position or dismissal. The one thing between here and a `select` over a

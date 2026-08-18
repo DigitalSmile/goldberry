@@ -70,6 +70,9 @@ public final class Popup implements AutoCloseable {
     /// Whether [#focusFirst] has run. See there.
     private boolean focused;
 
+    /// The last painted frame's geometry — see [#anchor].
+    private java.util.List<HitTest.Region> regions = java.util.List.of();
+
     /// The trees are handed in rather than built here because the content has
     /// usually been **measured** already — that is how the popup got a size — and
     /// measuring builds both. A second element tree would also be a second lot of
@@ -116,6 +119,29 @@ public final class Popup implements AutoCloseable {
     /// is, exactly like [Host#window()].
     public Window window() {
         return window;
+    }
+
+    /// The painted rectangle of a node **inside this popup**, in the owner
+    /// window's coordinates.
+    ///
+    /// What a submenu is anchored to. `Host.anchor` answers from the main
+    /// window's geometry and knows nothing about what is in a popup, so a menu
+    /// item that opens a submenu has to ask the popup it is in — and the answer
+    /// is translated by this popup's own offset, because that is the space
+    /// `Host.popup` places in.
+    public java.util.Optional<io.github.digitalsmile.goldberry.backend.LogicalRect> anchor(
+            String id) {
+        Objects.requireNonNull(id, "id");
+        for (var region : regions) {
+            if (region.owner() instanceof io.github.digitalsmile.goldberry.widget.Element element
+                    && element.widget() instanceof io.github.digitalsmile.goldberry.widget.Styled styled
+                    && id.equals(styled.id())) {
+                var bounds = region.bounds();
+                return java.util.Optional.of(
+                        bounds.offsetBy(backend.offset().x(), backend.offset().y()));
+            }
+        }
+        return java.util.Optional.empty();
     }
 
     /// Where the popup sits, as an offset from its owner window's top-left.
@@ -199,7 +225,8 @@ public final class Popup implements AutoCloseable {
         // only when something in it changed, and damage tracking would be
         // machinery for a saving nobody can measure on a 180×132 menu.
         render.paint(frame);
-        router.updateRegions(HitTest.capture(render));
+        regions = HitTest.capture(render);
+        router.updateRegions(regions);
         if (!focused) {
             focused = true;
             focusFirst();

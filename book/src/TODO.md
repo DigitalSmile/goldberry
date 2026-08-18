@@ -21,6 +21,18 @@ disabled container disabling its descendants.
 
 ## Overlays, popups and windows
 
+- **`menubar` and context menus are not built, and both want the same missing
+  thing.** §8's in-window bar with `Alt` activation, and `context-menu="menuId"`
+  on any widget, each need a menu that exists for longer than one opening: a menu
+  model the window owns, rather than a widget tree built when the menu opens and
+  thrown away when it closes. That is also what makes an accelerator
+  *registrable* — §8 asks for one "displayed right-aligned **and** auto-registered
+  in the window's shortcut map", and only the display half is built. —
+  [ADR-0106](adr/0106-a-menu-is-a-widget-and-opening-one-is-not.md)
+- **A keyboard `Right` into a submenu waits 150ms**, because it goes through the
+  same hover-intent path as a pointer. Wrong, and one line to fix once `Item` can
+  tell a hover from a keypress. —
+  [ADR-0106](adr/0106-a-menu-is-a-widget-and-opening-one-is-not.md)
 - **A tooltip is plain text, has no maximum width of its own and does not follow
   the pointer.** All three as `docs/core-widgets.md` §7 specifies for v1, and all
   three are what "rich content" would change. The 500ms delay is not configurable

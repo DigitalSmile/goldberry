@@ -50,6 +50,9 @@
      thing that sentence rules out. Two levels rather than one because §1.3 and
      §3 are each asking for something the other cannot give. */
   --gb-button-height: var(--gb-control-height);
+  /* §8's rows. Derived from the control height rather than fixed, so a menu
+     tightens with the density like everything else does. */
+  --gb-menu-item-height: var(--gb-control-height);
   --gb-checkbox-height: var(--gb-control-height);
   --gb-radio-height: var(--gb-control-height);
   --gb-toggle-height: var(--gb-control-height);
@@ -1408,4 +1411,71 @@ tooltip {
   color: var(--gb-hud-text);
   font-size: var(--gb-font-caption);
   line-height: var(--gb-line-caption);
+}
+
+/* ------------------------------------------------------------------ menu --
+ *
+ * `docs/core-widgets.md` §8. A menu is drawn in a popup window of its own, so —
+ * like `popover` — it is the root of its own element tree and inherits nothing:
+ * every property it needs is written here, `color` included (ADR-0103).
+ */
+menu {
+  flex-direction: column;
+  padding: 4px;
+  gap: 1px;
+  background: var(--gb-surface);
+  color: var(--gb-text);
+  border: 1px solid var(--gb-border);
+  border-radius: 8px;
+}
+
+/* A row: tick column, optional icon, label, the growing gap, accelerator.
+   `height` rather than padding alone, so every row is the same height whether or
+   not it has an icon — a menu whose rows changed height with their content would
+   be a menu the pointer cannot travel down predictably. */
+item {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  height: var(--gb-menu-item-height);
+  padding: 0 8px;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+item:hover {
+  background: var(--gb-overlay-hover);
+}
+
+/* The pointer is not the only way in: an item reached by the arrow keys is the
+   one that will run on Enter, and it has to look like it. Menus are the one
+   place the focus *ring* would be wrong -- a rectangle inside a rectangle, on
+   every row in turn -- so the highlight is the affordance, which is what every
+   desktop menu does. */
+item:focus {
+  background: var(--gb-overlay-hover);
+}
+
+item:active {
+  background: var(--gb-overlay-active);
+}
+
+item:disabled {
+  opacity: 0.45;
+}
+
+/* The accelerator and the tick are dimmer than the label: they are context for
+   the command rather than the command. */
+item-check {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+  color: var(--gb-text-muted);
+}
+
+/* A rule, and the only thing in a menu with no interior. */
+separator {
+  height: 1px;
+  flex-shrink: 0;
+  background: var(--gb-border);
 }

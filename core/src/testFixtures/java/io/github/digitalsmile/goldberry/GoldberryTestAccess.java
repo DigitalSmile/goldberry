@@ -18,4 +18,9 @@ public final class GoldberryTestAccess {
     public static void install(Backend backend) {
         GoldberryRuntime.install(backend);
     }
+
+    /// Takes it down again, so the next test starts from nothing.
+    public static void shutdown() {
+        GoldberryRuntime.shutdown();
+    }
 }

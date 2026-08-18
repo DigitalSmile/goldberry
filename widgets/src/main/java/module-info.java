@@ -64,4 +64,10 @@ module io.github.digitalsmile.goldberry.widgets {
     /// for the backend popup windows §4 reserves.
     exports io.github.digitalsmile.goldberry.widgets.overlay.hud;
     exports io.github.digitalsmile.goldberry.widgets.overlay.popover;
+
+    /// `docs/core-widgets.md` §8's `menu` group: the panel, its items and its
+    /// separators as widgets, plus [io.github.digitalsmile.goldberry.widgets.menu.Menus],
+    /// which is the half that opens one — a widget cannot, because opening needs
+    /// a `Host` (ADR-0106).
+    exports io.github.digitalsmile.goldberry.widgets.menu;
 }

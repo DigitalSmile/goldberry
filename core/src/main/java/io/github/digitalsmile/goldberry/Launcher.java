@@ -276,7 +276,7 @@ final class Launcher implements Host {
         // A fresh delay per node, cancelled by the next move. The pointer
         // crossing five buttons on its way to a sixth schedules five timers and
         // fires none of them.
-        tooltipTimer = GoldberryRuntime.get().loop().after(TOOLTIP_DELAY, this::showTooltip);
+        tooltipTimer = after(TOOLTIP_DELAY, this::showTooltip);
     }
 
     /// The node whose tooltip should show: what the pointer is on, or — when the
@@ -636,6 +636,12 @@ final class Launcher implements Host {
                     io.github.digitalsmile.goldberry.backend.LogicalPoint.ZERO, window.size());
         }
         return area.get().offsetBy(-origin.get().x(), -origin.get().y());
+    }
+
+    @Override
+    public io.github.digitalsmile.goldberry.backend.EventLoop.Timer after(
+            java.time.Duration delay, Runnable action) {
+        return GoldberryRuntime.get().loop().after(delay, action);
     }
 
     @Override

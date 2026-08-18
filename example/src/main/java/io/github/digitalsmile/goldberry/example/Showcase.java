@@ -19,9 +19,11 @@ import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widgets.Actions;
 import io.github.digitalsmile.goldberry.widgets.Controls;
 import io.github.digitalsmile.goldberry.widgets.Icons;
-import io.github.digitalsmile.goldberry.widgets.controls.button.Button;
+import io.github.digitalsmile.goldberry.widgets.menu.Item;
+import io.github.digitalsmile.goldberry.widgets.menu.Menu;
+import io.github.digitalsmile.goldberry.widgets.menu.Menus;
+import io.github.digitalsmile.goldberry.widgets.menu.Separator;
 import io.github.digitalsmile.goldberry.widgets.overlay.hud.Hud;
-import io.github.digitalsmile.goldberry.widgets.overlay.popover.Popover;
 import java.util.ArrayList;
 import java.util.List;
 import org.slf4j.Logger;
@@ -216,11 +218,12 @@ public final class Showcase implements Application {
             menu = null;
             return;
         }
-        // One call does the three things a menu needs and none of them is this
+        // One call does everything a menu needs and none of it is this
         // application's business: measure the panel, place it against the button
-        // with a flip if it would open off the bottom of the screen, and open a
-        // platform window at the result (ADR-0104).
-        host.popup(menuContent(), "menu-button", Placement.BELOW).ifPresentOrElse(
+        // with a flip if it would open off the bottom of the screen, open a
+        // platform window, close the whole stack when a command is chosen, and
+        // open a submenu beside the row that owns one (ADR-0104, ADR-0106).
+        Menus.open(host, "menu-button", menuContent()).ifPresentOrElse(
                 open -> menu = open,
                 () -> LOG.info("nowhere to put a menu: either this video driver has no popup"
                         + " windows, or the button has not been painted yet"));
@@ -229,29 +232,30 @@ public final class Showcase implements Application {
     /// What the menu contains: three things that do something visible, so that
     /// the popup is demonstrably live rather than a picture of a menu.
     ///
-    /// A `popover` and nothing else — the panel is §7's widget and carries its own
-    /// surface, edge and radius, because a popup's contents are the root of their
-    /// own tree and inherit nothing from the window that opened them (ADR-0103).
+    /// A `menu` with everything §8 gives a row: a label, an icon, an accelerator
+    /// shown right-aligned, a checkable item, a disabled one, a rule, and a
+    /// submenu.
+    ///
+    /// Nothing here closes the menu — `Menus` wraps every command in "and close
+    /// the stack", which is what choosing a command does everywhere and which an
+    /// application that had to remember it would eventually forget on one row.
     ///
     /// Built in Java rather than in KDL because its handlers are direct calls
-    /// with no names to resolve — which is also the shorter half of §9's story
-    /// and worth having one of in the showcase.
-    private Widget menuContent() {
-        return new Popover(
-                new Button("Switch theme", () -> chooseFromMenu(model::toggleTheme)),
-                new Button("Switch density", () -> chooseFromMenu(model::toggleDensity)),
-                new Button("Toggle HUD", () -> chooseFromMenu(this::toggleHud)));
-    }
-
-    /// Every item does its thing and then closes the menu, which is what a menu
-    /// item does everywhere. The close is here rather than in each handler so
-    /// that adding an item cannot forget it.
-    private void chooseFromMenu(Runnable action) {
-        action.run();
-        if (menu != null) {
-            menu.close();
-            menu = null;
-        }
+    /// with no names to resolve — the shorter half of §9's story, and worth having
+    /// one of in the showcase.
+    private Menu menuContent() {
+        return new Menu(
+                new Item("Switch theme", model::toggleTheme)
+                        .icon(paletteIcon)
+                        .accelerator("Ctrl+T"),
+                new Item("Switch density", model::toggleDensity).accelerator("Ctrl+D"),
+                new Separator(),
+                new Item("Frame rate", this::toggleHud)
+                        .accelerator("Ctrl+F")
+                        .checked(hud != null),
+                new Item("More").submenu(
+                        new Item("Reset the counter", model::reset),
+                        new Item("Nothing here", () -> { }).disabled(true)));
     }
 
     /// Puts a `hud` in the window's overlay layer, or takes it away again.

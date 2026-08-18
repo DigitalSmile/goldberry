@@ -23,6 +23,9 @@ import io.github.digitalsmile.goldberry.widgets.controls.spinner.Spinner;
 import io.github.digitalsmile.goldberry.widgets.controls.toggle.Toggle;
 import io.github.digitalsmile.goldberry.widgets.overlay.hud.Hud;
 import io.github.digitalsmile.goldberry.widgets.overlay.hud.Reading;
+import io.github.digitalsmile.goldberry.widgets.menu.Item;
+import io.github.digitalsmile.goldberry.widgets.menu.Menu;
+import io.github.digitalsmile.goldberry.widgets.menu.Separator;
 import io.github.digitalsmile.goldberry.widgets.overlay.popover.Popover;
 import java.io.IOException;
 import java.io.InputStream;
@@ -296,6 +299,25 @@ public final class Controls {
         // something about the frame loop rather than about a model. Nothing to
         // bind and nothing to resolve: what it shows arrives on the render
         // context, so a document writes `hud` and is done.
+        // §8's menu, its rows and its rules. A document declares a menu; opening
+        // one is `Menus.open(host, …)`, because that needs a `Host` and a widget
+        // must not have one (ADR-0106).
+        inflater.register("menu", (node, children) -> new Menu(
+                children, Attributes.of(node)));
+        inflater.register("item", (node, children) -> new Item(
+                node.argument().map(v -> v.asString()).orElse(""),
+                icons.resolve(node.stringProperty("icon")),
+                node.stringProperty("accelerator"),
+                actions.resolve(node.stringProperty("press")),
+                node.booleanProperty("checked"),
+                node.booleanProperty("disabled"),
+                // A nested `item` is a submenu, which is the only thing a menu
+                // item can contain -- so nesting *is* the syntax and there is no
+                // `submenu` node to forget.
+                children,
+                null,
+                Attributes.of(node)));
+        inflater.register("separator", (node, children) -> new Separator(Attributes.of(node)));
         // §7's floating panel. It is the panel and not the opening: where a
         // popover goes and when it goes away is `Host.popup`'s, which serves a
         // tooltip and a select equally and is not a widget (ADR-0104).
