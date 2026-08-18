@@ -38,7 +38,7 @@ API. No JNI, no bundled web engine, no platform widget wrapping.
 > type scale in two real weights, a `regular`/`compact` density that no widget
 > mentions, CSS transitions on a frame clock and golden images — so three
 > controls are still to come: `knob`, `select` and `badge`.
-> See [Status](book/src/status.md) for what works and what is still open.
+> See [Status](book/src/status.md) for what works, and [TODO](book/src/TODO.md) for what does not yet.
 
 ## Quick start
 
@@ -1348,7 +1348,8 @@ start-up timeline (866.6ms to here):
 |---|---|
 | [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | The design: what the system is, layer by layer |
 | [`book/`](book/src/introduction.md) | Why each significant choice was made, one decision at a time |
-| [`book/src/status.md`](book/src/status.md) | Module layout, milestones, and open questions |
+| [`book/src/status.md`](book/src/status.md) | What is built, milestone by milestone, plus the module layout |
+| [`book/src/TODO.md`](book/src/TODO.md) | What is not: deferred items, known gaps, and the answered ones kept for their reasoning |
 
 The book is [mdBook](https://rust-lang.github.io/mdBook/):
 

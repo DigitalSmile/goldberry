@@ -13,7 +13,8 @@ shipped font can draw. So this document now **references** the design system's
 tables rather than copying them, and where it still states a number, it says which
 section it mirrors.
 
-What is *built* is tracked in `book/src/status.md`, not here. A line in this
+What is *built* is tracked in `book/src/status.md`, and what is deferred or
+known-broken in `book/src/TODO.md`, not here. A line in this
 document is a design, not a claim that it exists — the places where the
 implementation has since answered a question, or refused one, are marked inline.
 
@@ -384,8 +385,8 @@ Deliberately *not* in v1, with the seams that keep them addable:
 ### 17.1 Where this document and the design documents disagree
 
 Recorded rather than reconciled, because the design documents are the authority
-and each of these needs a decision rather than an edit. `book/src/status.md`
-tracks them alongside the implementation's own open questions.
+and each of these needs a decision rather than an edit. `book/src/TODO.md`
+tracks them alongside the implementation's own gaps.
 
 - **The platform primary modifier.** `design-system.md` §2.3 wants accelerators
   expressed against a platform-primary modifier — `Cmd` on macOS, `Ctrl`

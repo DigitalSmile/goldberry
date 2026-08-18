@@ -104,7 +104,7 @@ to satisfy a rule they are not subject to.
 and rejected in ADR-0087 for determinism; nothing here changes that argument.
 
 **Leave them, and document the failures.** They were documented, in
-`KNOWN_FAILURES` and in `status.md`, which is what made this change a
+`KNOWN_FAILURES` and in `TODO.md`, which is what made this change a
 five-token edit instead of an investigation. But `button.danger` is the control a
 user reaches for when something is about to be destroyed, and at 2.95:1 its
 hover state is the least readable thing in the toolkit.
@@ -137,7 +137,7 @@ also supplies `--gb-accent-fill`, `--gb-danger-fill`, `--gb-accent-bg-hover` and
 its fill. A checked checkbox's mark, a slider's thumb against its groove, and the
 focus ring against the surface behind it are all under §1.2's 3:1 non-text rule
 and nothing measures them — the argument that the accent ramp did not need to
-move rests on a number nobody is enforcing. Recorded in `status.md`.
+move rests on a number nobody is enforcing. Recorded in `TODO.md`.
 
 **`ButtonTest.fadesRatherThanRemaps` no longer pins a hex.** It asserted the
 disabled danger background equalled `0xFFBF616A`, so it also asserted *which*

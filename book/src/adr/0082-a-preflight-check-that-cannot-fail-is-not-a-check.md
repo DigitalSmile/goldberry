@@ -141,4 +141,4 @@ in a build script has nowhere to put a test.
   no `mesa-libEGL-devel` and no `xkeyboard-config`, so whether the published
   manylinux artifacts carry SDL's Wayland driver is an open question this record
   does not answer — it needs a look at the container, not at this table. It is
-  listed under the open questions in `book/src/status.md`.
+  listed in `book/src/TODO.md`.
