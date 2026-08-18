@@ -200,6 +200,45 @@ class MenusTest {
         assertEquals(0, left[0], "choosing a command leaves nothing on screen");
     }
 
+    /// The one a pointer user notices immediately: a submenu that will not go
+    /// away. Moving to a sibling closes it, and most siblings have no submenu of
+    /// their own — which is why *every* row reports the pointer arriving on it and
+    /// not only the ones with children ([ADR-0112]).
+    @Test
+    @Timeout(20)
+    @DisplayName("moving to a row without a submenu closes the one that is open")
+    void submenuClosesOnASibling() {
+        var openWhileHovering = new int[1];
+        var openAfterMovingAway = new int[1];
+        Goldberry.launch(new TestApp(host -> {
+            var menu = new Menu(
+                    new Item("Plain", () -> { }),
+                    new Item("More").submenu(new Item("Inner", () -> { })));
+            Menus.open(host, ANCHOR, menu).orElseThrow();
+
+            later(200, () -> {
+                var first = (HeadlessWindow) popups().getFirst();
+                // Onto the row with children, and wait for it to open.
+                backend.post(new BackendEvent.PointerMoved(first, 40, 52, 0));
+                later(300, () -> {
+                    openWhileHovering[0] = (int) popups().stream()
+                            .filter(HeadlessPopup::isOpen).count();
+                    // And back up to the row without one.
+                    backend.post(new BackendEvent.PointerMoved(first, 40, 20, 0));
+                    later(300, () -> {
+                        openAfterMovingAway[0] = (int) popups().stream()
+                                .filter(HeadlessPopup::isOpen).count();
+                        Goldberry.stop();
+                    });
+                });
+            });
+        }));
+
+        assertEquals(2, openWhileHovering[0], "the submenu opened");
+        assertEquals(1, openAfterMovingAway[0],
+                "and closed again when the pointer moved to a sibling — the menu itself stays");
+    }
+
     @Test
     @Timeout(20)
     @DisplayName("a disabled item does nothing at all")

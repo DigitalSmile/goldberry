@@ -41,7 +41,12 @@ disabled container disabling its descendants.
 - **A keyboard `Right` into a submenu waits 150ms**, because it goes through the
   same hover-intent path as a pointer. Wrong, and one line to fix once `Item` can
   tell a hover from a keypress. —
-  [ADR-0106](adr/0106-a-menu-is-a-widget-and-opening-one-is-not.md)
+  [ADR-0106](adr/0106-a-menu-is-a-widget-and-opening-one-is-not.md),
+  [ADR-0112](adr/0112-a-menu-follows-the-pointer-and-lights-for-the-keyboard.md)
+- **`Left` does not close a submenu.** The arrow that opens one has no opposite:
+  it needs a callback from the item to the *popup it is in*, which is one more
+  thing `Menus` would have to wire. —
+  [ADR-0112](adr/0112-a-menu-follows-the-pointer-and-lights-for-the-keyboard.md)
 - **A tooltip is plain text, has no maximum width of its own and does not follow
   the pointer.** All three as `docs/core-widgets.md` §7 specifies for v1, and all
   three are what "rich content" would change. The 500ms delay is not configurable

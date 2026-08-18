@@ -149,11 +149,17 @@ public final class Menus {
         var identified = item.attributes().id() == null
                 ? item.id("item-" + index)
                 : item;
-        if (identified.hasSubmenu()) {
-            return identified.opensWith(() -> intendSubmenu(host, identified, owner, stack));
+        // Every row is told when the pointer arrives on it, because a submenu is
+        // closed by the pointer moving to a *sibling* — and most siblings have no
+        // submenu of their own (ADR-0112).
+        var hovering = identified.hasSubmenu()
+                ? identified.hovering(() -> intend(host, identified, owner, stack))
+                : identified.hovering(() -> intend(host, null, owner, stack));
+        if (hovering.hasSubmenu()) {
+            return hovering;
         }
-        var command = identified.onPress();
-        return identified.pressing(() -> {
+        var command = hovering.onPress();
+        return hovering.pressing(() -> {
             closeAll(stack);
             if (command != null) {
                 command.run();
@@ -168,19 +174,39 @@ public final class Menus {
     /// had already moved to a different menu entirely.
     private static io.github.digitalsmile.goldberry.backend.EventLoop.Timer pending;
 
-    /// Waits [#HOVER_INTENT] before opening, so travelling down a menu past three
-    /// rows with submenus opens none of them.
+    /// What the pointer arriving on a row means, after [#HOVER_INTENT].
+    ///
+    /// One timer for both halves, because they are one gesture: travelling down a
+    /// menu past three rows with submenus opens none of them, and arriving on a
+    /// row *without* one closes whatever the row above had opened. `item` is the
+    /// row's submenu to open, or null for "there is nothing here — put away what
+    /// is showing".
     ///
     /// A keyboard `Right` goes through here too and waits the same 150ms, which is
     /// wrong and is one line to fix when `Item` can tell the two apart.
-    private static void intendSubmenu(Host host, Item item, Popup[] owner, List<Popup> stack) {
+    private static void intend(Host host, Item item, Popup[] owner, List<Popup> stack) {
         if (pending != null) {
             pending.cancel();
         }
         pending = host.after(HOVER_INTENT, () -> {
             pending = null;
-            openSubmenu(host, item, owner, stack);
+            if (item == null) {
+                collapse(owner, stack);
+            } else {
+                openSubmenu(host, item, owner, stack);
+            }
         });
+    }
+
+    /// Closes everything this menu had open, leaving the menu itself.
+    ///
+    /// What the pointer moving to a row with no submenu means: the branch it was
+    /// on is no longer the branch it is on.
+    private static void collapse(Popup[] owner, List<Popup> stack) {
+        var parent = owner[0];
+        if (parent != null && parent.isOpen()) {
+            closeAfter(stack, parent);
+        }
     }
 
     /// Opens one item's submenu, beside it, having closed whatever else this menu

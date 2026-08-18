@@ -271,7 +271,12 @@ public final class Popup implements AutoCloseable {
     /// focused would answer `Down` by focusing the first item — one keystroke
     /// later than every menu anywhere else.
     private void focusFirst() {
-        router.moveFocus(1);
+        // Not "from the keyboard": nobody pressed anything, and a menu whose
+        // first row is lit before the user has touched a key looks like a menu
+        // that has already chosen (ADR-0112). The row is focused so that an arrow
+        // has somewhere to start; `:focus-visible` is what draws it, and the
+        // first arrow press is what sets that.
+        router.moveFocus(1, false);
     }
 
     /// Called by the launcher when the owner window sees input the popup should

@@ -1357,6 +1357,31 @@ been there since text was first painted
   20-component record change in two records for one `+`, and is recorded rather
   than done.
 
+### What the pointer being somewhere means
+
+Two faults in one menu, and they are opposite halves of one question
+([ADR-0112](adr/0112-a-menu-follows-the-pointer-and-lights-for-the-keyboard.md)).
+
+- **A submenu did not close when the pointer left the row that opened it**,
+  because ADR-0106 handed `onOpenSubmenu` only to rows that had one — the wrong
+  half of the relationship. A submenu is closed by the pointer moving to a
+  *sibling*, and most siblings have no submenu of their own. Every row is handed
+  `onHovered` now and the menu decides what arriving means: open one, or put away
+  what the row above opened. Both go through the one intent timer, because they
+  are one gesture. The rename is the point — `onOpenSubmenu` described what the
+  caller wanted, `onHovered` describes what the item knows.
+- **The first row always looked hovered.** A menu focuses its first row as it
+  opens so an arrow key has somewhere to start, and it did so through a call that
+  reports the move as the *keyboard's* — so `item:focus` lit it. Focus and the
+  highlight are two things: `moveFocus` takes a `fromKeyboard` flag now, and the
+  highlight is `item:focus-visible`, which is what §2.2 defined that pseudo-class
+  to mean. Open a menu with the mouse and nothing is picked out; press `Down` and
+  the row it lands on lights up.
+- **A tooltip takes `body` rather than `caption`**, with 8px and 12px of padding.
+  §1.4 gives caption to secondary text *under* a control, where the reader has the
+  control for context; a tooltip is the only text on screen at the moment it is
+  read.
+
 ### Not started
 
 `menubar`, tray, dialogs, scroll, forms, client-side decorations and charts. The rest of §5 — `card`, `group-box`, `split-pane`, `collapse`,

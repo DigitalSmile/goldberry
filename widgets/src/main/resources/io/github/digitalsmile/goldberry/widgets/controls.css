@@ -1404,13 +1404,17 @@ popover button {
  * tighter than a `popover`, because it is a label rather than a surface.
  */
 tooltip {
-  padding: 6px 10px;
-  border-radius: 6px;
+  padding: 8px 12px;
+  border-radius: 8px;
   background: var(--gb-hud-bg);
   border: 1px solid var(--gb-hud-border);
   color: var(--gb-hud-text);
-  font-size: var(--gb-font-caption);
-  line-height: var(--gb-line-caption);
+  /* `body`, not `caption`. §1.4 gives caption to secondary text *under* a
+     control, where the reader has the control itself for context; a tooltip is
+     the only text on screen at the moment it is read, and 11px of it at arm's
+     length is a squint. */
+  font-size: var(--gb-font-body);
+  line-height: var(--gb-line-body);
 }
 
 /* ------------------------------------------------------------------ menu --
@@ -1451,8 +1455,13 @@ item:hover {
    one that will run on Enter, and it has to look like it. Menus are the one
    place the focus *ring* would be wrong -- a rectangle inside a rectangle, on
    every row in turn -- so the highlight is the affordance, which is what every
-   desktop menu does. */
-item:focus {
+   desktop menu does.
+
+   `:focus-visible` and **not** `:focus`, which is the difference between a menu
+   that looks right and one whose first row is always lit: a menu focuses its
+   first item as it opens so that the arrows have somewhere to start, and a
+   pointer user never asked for that row to be picked out (ADR-0112). */
+item:focus-visible {
   background: var(--gb-overlay-hover);
 }
 

@@ -581,6 +581,17 @@ public final class PointerRouter {
     ///
     /// @return whether focus moved
     public boolean moveFocus(int direction) {
+        return moveFocus(direction, true);
+    }
+
+    /// [#moveFocus(int)], saying whether the keyboard asked.
+    ///
+    /// `false` is for the one caller that moves focus without anyone pressing
+    /// anything: a menu focuses its first item as it opens, so that an arrow key
+    /// has somewhere to start — and a first row lit up before the user has
+    /// touched the keyboard is a menu that looks like it has already chosen
+    /// ([ADR-0112](../../../../../../book/src/adr/0112-a-menu-follows-the-pointer-and-lights-for-the-keyboard.md)).
+    public boolean moveFocus(int direction, boolean fromKeyboard) {
         if (focusRoot == null) {
             return false;
         }
@@ -594,7 +605,7 @@ public final class PointerRouter {
         var next = current < 0
                 ? (direction > 0 ? 0 : focusable.size() - 1)
                 : Math.floorMod(current + direction, focusable.size());
-        focus(focusable.get(next), true);
+        focus(focusable.get(next), fromKeyboard);
         return true;
     }
 

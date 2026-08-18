@@ -127,6 +127,49 @@ class FocusScopeTest {
         return router.keyPressed(key, Modifiers.NONE, false);
     }
 
+    /// Focus and the *highlight* are two things, and a menu is what made the
+    /// difference visible: it focuses its first row as it opens so that an arrow
+    /// key has somewhere to start, and a row picked out before the user has
+    /// touched the keyboard reads as a menu that has already chosen
+    /// ([ADR-0112](../../../../../../book/src/adr/0112-a-menu-follows-the-pointer-and-lights-for-the-keyboard.md)).
+    @Nested
+    @DisplayName("moving focus says whether the keyboard asked")
+    class FocusVisible {
+
+        @Test
+        @DisplayName("moving focus without the keyboard focuses and does not light")
+        void quietly() {
+            assertTrue(router.moveFocus(1, false));
+
+            assertSame(before, router.focused());
+            assertTrue(before.hasState(io.github.digitalsmile.goldberry.css.Selector.PseudoClass.FOCUS),
+                    "it is focused, so an arrow has somewhere to start");
+            assertFalse(before.hasState(
+                            io.github.digitalsmile.goldberry.css.Selector.PseudoClass.FOCUS_VISIBLE),
+                    "and nothing is lit, because nobody pressed anything");
+        }
+
+        @Test
+        @DisplayName("and an arrow key lights the row it lands on")
+        void andThenAKey() {
+            router.moveFocus(1, false);
+            tab();
+
+            assertTrue(router.focused().hasState(
+                            io.github.digitalsmile.goldberry.css.Selector.PseudoClass.FOCUS_VISIBLE),
+                    "the keyboard moved it, so the keyboard's affordance is drawn");
+        }
+
+        @Test
+        @DisplayName("the one-argument form is still the keyboard's")
+        void theDefaultIsKeyboard() {
+            assertTrue(router.moveFocus(1));
+
+            assertTrue(router.focused().hasState(
+                    io.github.digitalsmile.goldberry.css.Selector.PseudoClass.FOCUS_VISIBLE));
+        }
+    }
+
     @Nested
     @DisplayName("a composite is one Tab stop")
     class OneStop {

@@ -31,7 +31,7 @@ import java.util.Set;
 ///
 /// **It does not open its own submenu.** Opening anything is [Menus]'s, because
 /// it needs a `Host` and a widget does not have one — so an item with children
-/// carries them and is handed an `onOpenSubmenu` by whoever opened the menu it is
+/// carries them and is handed an `onHovered` by whoever opened the menu it is
 /// in, exactly as a `radio` is handed `selected` and `onSelect` by its group
 /// ([ADR-0106](../../../../../../../book/src/adr/0106-a-menu-is-a-widget-and-opening-one-is-not.md)).
 ///
@@ -50,12 +50,16 @@ import java.util.Set;
 /// @param checked     whether it draws a tick — §8's "checkable items"
 /// @param disabled    whether it refuses
 /// @param submenu     the items of its submenu, or empty
-/// @param onOpenSubmenu how it asks for that submenu to be opened. Supplied by
-///                    [Menus], never by an author
+/// @param onHovered   how it tells the menu the pointer has arrived on it.
+///                    Supplied by [Menus], never by an author — and given to
+///                    **every** row, not only the ones with children: a submenu
+///                    closes when the pointer moves to a sibling, and a row with
+///                    no submenu is the commonest sibling there is
+///                    ([ADR-0112](../../../../../../../book/src/adr/0112-a-menu-follows-the-pointer-and-lights-for-the-keyboard.md))
 /// @param attributes  `id` and `class`, exactly as on the primitives
 public record Item(
         String label, Icon icon, String accelerator, Runnable onPress, boolean checked,
-        boolean disabled, List<Widget> submenu, Runnable onOpenSubmenu, Attributes attributes)
+        boolean disabled, List<Widget> submenu, Runnable onHovered, Attributes attributes)
         implements Widget.Leaf, Styled, Paints, Handles, Attributed<Item> {
 
     public Item {
@@ -81,31 +85,31 @@ public record Item(
     /// This item with an icon before its label.
     public Item icon(Icon value) {
         return new Item(label, value, accelerator, onPress, checked, disabled, submenu,
-                onOpenSubmenu, attributes);
+                onHovered, attributes);
     }
 
     /// This item showing `text` as its accelerator — the display half of §8's
     /// accelerator, right-aligned. See the class note for the other half.
     public Item accelerator(String text) {
-        return new Item(label, icon, text, onPress, checked, disabled, submenu, onOpenSubmenu,
+        return new Item(label, icon, text, onPress, checked, disabled, submenu, onHovered,
                 attributes);
     }
 
     /// This item with a tick, or without one.
     public Item checked(boolean value) {
         return new Item(label, icon, accelerator, onPress, value, disabled, submenu,
-                onOpenSubmenu, attributes);
+                onHovered, attributes);
     }
 
     public Item disabled(boolean value) {
         return new Item(label, icon, accelerator, onPress, checked, value, submenu,
-                onOpenSubmenu, attributes);
+                onHovered, attributes);
     }
 
     /// This item with a submenu under it.
     public Item submenu(Widget... items) {
         return new Item(label, icon, accelerator, onPress, checked, disabled, List.of(items),
-                onOpenSubmenu, attributes);
+                onHovered, attributes);
     }
 
     /// This item running `action` when chosen — used by [Menus] to wrap an
@@ -113,12 +117,13 @@ public record Item(
     /// does everywhere.
     public Item pressing(Runnable action) {
         return new Item(label, icon, accelerator, action, checked, disabled, submenu,
-                onOpenSubmenu, attributes);
+                onHovered, attributes);
     }
 
-    /// Used by [Menus] to hand an item the way to open its own submenu.
-    public Item opensWith(Runnable opener) {
-        return new Item(label, icon, accelerator, onPress, checked, disabled, submenu, opener,
+    /// Used by [Menus] to hand an item the way to tell its menu that the pointer
+    /// has arrived — see [#onHovered].
+    public Item hovering(Runnable onHovered) {
+        return new Item(label, icon, accelerator, onPress, checked, disabled, submenu, onHovered,
                 attributes);
     }
 
@@ -145,7 +150,7 @@ public record Item(
     @Override
     public Item withAttributes(Attributes value) {
         return new Item(label, icon, accelerator, onPress, checked, disabled, submenu,
-                onOpenSubmenu, value);
+                onHovered, value);
     }
 
     @Override
@@ -179,8 +184,12 @@ public record Item(
         if (event.kind() == PointerEvent.Kind.CLICKED) {
             activate();
             event.consume();
-        } else if (event.kind() == PointerEvent.Kind.ENTERED && hasSubmenu()) {
-            openSubmenu();
+        } else if (event.kind() == PointerEvent.Kind.ENTERED) {
+            // **Every** row, not only the ones with children. A submenu closes
+            // when the pointer moves to a sibling, and the menu is the only thing
+            // that can close it — so every row says "I am the one now" and the
+            // menu decides what that means (ADR-0112).
+            hovered();
         }
     }
 
@@ -196,7 +205,7 @@ public record Item(
             activate();
             event.consume();
         } else if (event.key() == Key.RIGHT && hasSubmenu()) {
-            openSubmenu();
+            hovered();
             event.consume();
         }
     }
@@ -208,15 +217,15 @@ public record Item(
     /// heading, and every desktop menu agrees.
     private void activate() {
         if (hasSubmenu()) {
-            openSubmenu();
+            hovered();
         } else if (onPress != null) {
             onPress.run();
         }
     }
 
-    private void openSubmenu() {
-        if (onOpenSubmenu != null) {
-            onOpenSubmenu.run();
+    private void hovered() {
+        if (onHovered != null) {
+            onHovered.run();
         }
     }
 
