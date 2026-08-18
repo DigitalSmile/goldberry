@@ -42,6 +42,10 @@ public final class SdlVideo {
             Layouts.SDL_DISPLAY_MODE.offsetOf("refresh_rate");
 
     private static final long RECT_SIZE = Layouts.SDL_RECT.byteSize();
+    private static final long RECT_X = Layouts.SDL_RECT.offsetOf("x");
+    private static final long RECT_Y = Layouts.SDL_RECT.offsetOf("y");
+    private static final long RECT_W = Layouts.SDL_RECT.offsetOf("w");
+    private static final long RECT_H = Layouts.SDL_RECT.offsetOf("h");
 
     private static final class Holder {
         private static final SdlVideo INSTANCE = new SdlVideo(NativeLibrary.get().lookup());
@@ -51,6 +55,8 @@ public final class SdlVideo {
     private final MethodHandle createPopupWindow;
     private final MethodHandle setWindowPosition;
     private final MethodHandle setWindowSize;
+    private final MethodHandle getWindowPosition;
+    private final MethodHandle getDisplayUsableBounds;
     private final MethodHandle destroyWindow;
     private final MethodHandle showWindow;
     private final MethodHandle setWindowTitle;
@@ -81,6 +87,12 @@ public final class SdlVideo {
         this.setWindowSize = downcall(lookup, "SDL_SetWindowSize", FunctionDescriptor.of(
                 ValueLayout.JAVA_BOOLEAN, ValueLayout.ADDRESS,
                 ValueLayout.JAVA_INT, ValueLayout.JAVA_INT));
+        this.getWindowPosition = downcall(lookup, "SDL_GetWindowPosition", FunctionDescriptor.of(
+                ValueLayout.JAVA_BOOLEAN, ValueLayout.ADDRESS,
+                ValueLayout.ADDRESS, ValueLayout.ADDRESS));
+        this.getDisplayUsableBounds = downcall(lookup, "SDL_GetDisplayUsableBounds",
+                FunctionDescriptor.of(ValueLayout.JAVA_BOOLEAN, ValueLayout.JAVA_INT,
+                        ValueLayout.ADDRESS));
         this.destroyWindow = downcall(lookup, "SDL_DestroyWindow",
                 FunctionDescriptor.ofVoid(ValueLayout.ADDRESS));
         this.showWindow = downcall(lookup, "SDL_ShowWindow",
@@ -186,6 +198,63 @@ public final class SdlVideo {
         }
         var id = (int) invoke(getWindowId, "SDL_GetWindowID", pointer);
         return java.util.Optional.of(new SdlWindowHandle(pointer, id));
+    }
+
+    /// Where the window's top-left is, in the desktop's coordinates.
+    ///
+    /// For a popup this is **not** the offset it was created at: SDL reports a
+    /// popup's position differently per driver, which is why [SdlWindowHandle]'s
+    /// caller remembers what it asked for. For a top-level window it is what
+    /// turns a popup's owner-relative placement into the same coordinate space
+    /// [#displayUsableBounds] answers in.
+    public SdlPoint windowPosition(SdlWindowHandle window) {
+        try (var arena = Arena.ofConfined()) {
+            var x = arena.allocate(ValueLayout.JAVA_INT);
+            var y = arena.allocate(ValueLayout.JAVA_INT);
+            if (!(boolean) invoke(getWindowPosition, "SDL_GetWindowPosition",
+                    window.pointer(), x, y)) {
+                throw new SdlException("SDL_GetWindowPosition", Sdl.get().lastError());
+            }
+            return new SdlPoint(x.get(ValueLayout.JAVA_INT, 0), y.get(ValueLayout.JAVA_INT, 0));
+        }
+    }
+
+    /// The part of a display a window may usefully occupy — the full bounds less
+    /// whatever the desktop has reserved for a taskbar, a dock or a panel.
+    ///
+    /// **Not the display's size**, and that is the point: a menu placed against
+    /// the screen's bottom edge opens underneath the taskbar. Some drivers cannot
+    /// tell the difference and return the full bounds, which is a worse answer
+    /// and not a wrong one.
+    ///
+    /// @param displayId the display the window is on
+    private SdlRect displayUsableBounds(int displayId) {
+        try (var arena = Arena.ofConfined()) {
+            var rect = arena.allocate(RECT_SIZE);
+            if (!(boolean) invoke(getDisplayUsableBounds, "SDL_GetDisplayUsableBounds",
+                    displayId, rect)) {
+                throw new SdlException("SDL_GetDisplayUsableBounds", Sdl.get().lastError());
+            }
+            return new SdlRect(
+                    rect.get(ValueLayout.JAVA_INT, RECT_X),
+                    rect.get(ValueLayout.JAVA_INT, RECT_Y),
+                    rect.get(ValueLayout.JAVA_INT, RECT_W),
+                    rect.get(ValueLayout.JAVA_INT, RECT_H));
+        }
+    }
+
+    /// [#displayUsableBounds] for the display `window` is currently on.
+    ///
+    /// Empty when SDL will not say which display that is — the same "no number
+    /// to answer with" state [#refreshRate] treats as unknowable rather than as a
+    /// failure, and for the same reason: a menu still has to open.
+    public java.util.Optional<SdlRect> windowUsableBounds(SdlWindowHandle window) {
+        var display = (int) invoke(getDisplayForWindow, "SDL_GetDisplayForWindow",
+                window.pointer());
+        if (display == 0) {
+            return java.util.Optional.empty();
+        }
+        return java.util.Optional.of(displayUsableBounds(display));
     }
 
     /// Moves a window. For a popup the coordinates are its parent's; for a
@@ -600,6 +669,14 @@ public final class SdlVideo {
 
     /// A size in SDL's terms. Deliberately not `:core`'s `PhysicalSize` — this
     /// module does not depend on that one, and the backend converts.
+    /// A point in SDL's window coordinates.
+    public record SdlPoint(int x, int y) {
+    }
+
+    /// A rectangle in SDL's window coordinates — an `SDL_Rect`, read back.
+    public record SdlRect(int x, int y, int width, int height) {
+    }
+
     public record SdlSize(int width, int height) {
 
         public SdlSize {

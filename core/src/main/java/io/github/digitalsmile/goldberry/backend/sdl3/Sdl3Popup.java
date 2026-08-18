@@ -22,16 +22,16 @@ final class Sdl3Popup extends Sdl3Window implements BackendPopup {
 
     /// Remembered rather than read back from SDL: `SDL_GetWindowPosition` on a
     /// popup reports the *display's* coordinates on some drivers and the parent's
-    /// on others, and this SPI promises the parent's. What was asked for is the
-    /// one answer that is the same everywhere.
-    private LogicalPoint position;
+    /// on others, and this SPI promises an offset from the parent. What was asked
+    /// for is the one answer that is the same everywhere.
+    private LogicalPoint offset;
 
     Sdl3Popup(Sdl3Backend backend, SdlWindowHandle handle, Sdl3Window owner,
-            PopupKind kind, LogicalPoint position) {
+            PopupKind kind, LogicalPoint offset) {
         super(backend, handle, "");
         this.owner = Objects.requireNonNull(owner, "owner");
         this.kind = Objects.requireNonNull(kind, "kind");
-        this.position = Objects.requireNonNull(position, "position");
+        this.offset = Objects.requireNonNull(offset, "offset");
     }
 
     @Override
@@ -45,8 +45,8 @@ final class Sdl3Popup extends Sdl3Window implements BackendPopup {
     }
 
     @Override
-    public LogicalPoint position() {
-        return position;
+    public LogicalPoint offset() {
+        return offset;
     }
 
     @Override
@@ -55,7 +55,7 @@ final class Sdl3Popup extends Sdl3Window implements BackendPopup {
         backend().requireUiThread();
         requireUsable();
         video().setWindowPosition(handle(), Math.round(next.x()), Math.round(next.y()));
-        position = next;
+        offset = next;
     }
 
     @Override
@@ -95,6 +95,6 @@ final class Sdl3Popup extends Sdl3Window implements BackendPopup {
 
     @Override
     public String toString() {
-        return "Sdl3Popup[" + kind + " at " + position + " on " + owner + "]";
+        return "Sdl3Popup[" + kind + " at " + offset + " on " + owner + "]";
     }
 }

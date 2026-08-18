@@ -21,6 +21,7 @@ import io.github.digitalsmile.goldberry.widget.Paints;
 import io.github.digitalsmile.goldberry.widget.Styled;
 import io.github.digitalsmile.goldberry.widget.Widget;
 import java.util.List;
+import java.util.ArrayList;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Consumer;
@@ -68,6 +69,77 @@ class PopupLifecycleTest {
         }
     }
 
+    /// A node with a size of its own, so a measured popup has something to
+    /// measure.
+    private record Sized(Attributes attributes) implements Widget.Leaf, Styled, Paints {
+
+        Sized(String id) {
+            this(new Attributes(id, Set.of(), id));
+        }
+
+        @Override
+        public String cssType() {
+            return "sized";
+        }
+
+        @Override
+        public String id() {
+            return attributes.id();
+        }
+
+        @Override
+        public Set<String> classes() {
+            return attributes.classes();
+        }
+
+        @Override
+        public Box render(ComputedStyle style, List<Box> children, Context context) {
+            return Box.of().style(style);
+        }
+    }
+
+    /// Two focusable nodes in a popup, so there is something for a forwarded
+    /// arrow key to move between.
+    private record Item(String name, List<String> focused, Attributes attributes)
+            implements Widget.Leaf, Styled, Paints, io.github.digitalsmile.goldberry.input.Handles {
+
+        Item(String name, List<String> focused) {
+            this(name, focused, new Attributes(name, Set.of(), name));
+        }
+
+        @Override
+        public void onFocusChanged(boolean gained, boolean fromKeyboard) {
+            if (gained) {
+                focused.add(name);
+            }
+        }
+
+        @Override
+        public String cssType() {
+            return "item";
+        }
+
+        @Override
+        public String id() {
+            return attributes.id();
+        }
+
+        @Override
+        public Set<String> classes() {
+            return attributes.classes();
+        }
+
+        @Override
+        public boolean isFocusable() {
+            return true;
+        }
+
+        @Override
+        public Box render(ComputedStyle style, List<Box> children, Context context) {
+            return Box.of().style(style);
+        }
+    }
+
     /// An application that hands its [Host] to the test and does nothing else.
     private static final class TestApp implements Application {
 
@@ -95,6 +167,8 @@ class PopupLifecycleTest {
         public List<Stylesheet> stylesheets() {
             return List.of(Stylesheet.parse(CascadeLayer.APPLICATION, """
                     plate { background: #204060 }
+                    sized { width: 200px; height: 80px; background: #eceff4 }
+                    item { width: 100px; height: 24px }
                     #menu { background: #eceff4 }
                     """));
         }
@@ -163,7 +237,7 @@ class PopupLifecycleTest {
         // same loop. Asserted on the *backend* window, because that is the only
         // thing that can tell painting from intending to.
         assertTrue(backing[0].presentCount() > 0, "the popup never presented a frame");
-        assertEquals(new LogicalPoint(40, 60), backing[0].position());
+        assertEquals(new LogicalPoint(40, 60), backing[0].offset());
     }
 
     /// The rule that needs the launcher to be real: a press **anywhere** in the
@@ -253,6 +327,160 @@ class PopupLifecycleTest {
         assertEquals(400f, region.width(), "it fills the window it was given");
         assertEquals(300f, region.height());
         assertTrue(missing.get().isEmpty());
+    }
+
+    /// Measured, placed and opened in one call — the form a `popover`, a `menu`
+    /// and a `select` all use.
+    ///
+    /// The plate is 200×80 by its own CSS, and the anchor is a 100×30 rectangle
+    /// at (40, 40) in a 400×300 window, so it lands 4px under the anchor with
+    /// their left edges together. Nothing here says 200, 80 or 74: the point is
+    /// that the caller did not have to.
+    @Test
+    @Timeout(20)
+    @DisplayName("a popup measures its own content and is placed against an anchor")
+    void measuredAndPlaced() {
+        var opened = new Popup[1];
+        var backing = new HeadlessPopup[1];
+        Goldberry.launch(new TestApp(
+                host -> {
+                    opened[0] = host.popup(new Sized("menu"),
+                            io.github.digitalsmile.goldberry.backend.LogicalRect.of(40, 40, 100, 30),
+                            Placement.BELOW).orElseThrow();
+                    backing[0] = onlyPopup();
+                },
+                host -> { }),
+                new String[] {"--frames=2"});
+
+        assertEquals(LogicalSize.of(200, 80), backing[0].size(),
+                "the size came from the content, not from the caller");
+        assertEquals(new LogicalPoint(40, 74), backing[0].offset(),
+                "4px under a 30px-tall anchor at y=40, left edges together");
+    }
+
+    /// The anchor by id, which is what a document-driven application has.
+    @Test
+    @Timeout(20)
+    @DisplayName("a popup can be anchored to a node by id, and refuses when there is none")
+    void anchoredById() {
+        var backing = new HeadlessPopup[1];
+        var missing = new boolean[1];
+        Goldberry.launch(new TestApp(
+                host -> { },
+                host -> {
+                    // In `stop()`, because an anchor is a rectangle from a frame
+                    // that has been painted and `start()` runs before any have.
+                    host.popup(new Sized("menu"), "content", Placement.BELOW)
+                            .ifPresent(open -> backing[0] = onlyPopup());
+                    missing[0] = host.popup(new Sized("menu"), "no-such-id", Placement.BELOW)
+                            .isEmpty();
+                }),
+                new String[] {"--frames=2"});
+
+        assertEquals(new LogicalPoint(0, 304), backing[0].offset(),
+                "the content plate fills the 400x300 window, so its bottom edge is 300");
+        assertTrue(missing[0], "nothing with that id was painted, so there is nowhere to put it");
+    }
+
+    /// The whole chain, at the one place it matters: a window at the bottom of
+    /// the screen, and a menu that has to open upwards.
+    ///
+    /// The work area is the backend's 1920×1040 — 40 logical pixels reserved, as a
+    /// taskbar would — translated into the window's own coordinates by the
+    /// window's position on that desktop. Get either half wrong and this menu
+    /// opens under the taskbar, which is exactly the bug that cannot be found
+    /// without a taskbar.
+    @Test
+    @Timeout(20)
+    @DisplayName("a menu at the bottom of the screen opens upwards")
+    void flipsAgainstTheRealWorkArea() {
+        var backing = new HeadlessPopup[1];
+        Goldberry.launch(new TestApp(
+                host -> {
+                    // 300 tall, so its bottom edge is at 1300 on a desktop whose
+                    // work area ends at 1040 — the window is hanging off the
+                    // bottom, which is where this is interesting.
+                    ownerWindow().moveTo(new LogicalPoint(200, 1000));
+                    opened(host, 40, 40);
+                    backing[0] = onlyPopup();
+                },
+                host -> { }),
+                new String[] {"--frames=2"});
+
+        // Below would be y = 74, and 1000 + 74 + 80 is past the work area's 1040.
+        assertEquals(new LogicalPoint(40, -44), backing[0].offset(),
+                "4px above a 30px anchor at y=40: the menu flipped, and its offset is"
+                        + " negative because it is above the window's own top edge — which is"
+                        + " the point of a popup being a window rather than an overlay");
+    }
+
+    private static void opened(Host host, float x, float y) {
+        host.popup(new Sized("menu"),
+                io.github.digitalsmile.goldberry.backend.LogicalRect.of(x, y, 100, 30),
+                Placement.BELOW).orElseThrow();
+    }
+
+    /// The keyboard belongs to the menu while the menu is open — whether or not
+    /// the platform moved focus into it, which is per-driver and cannot be relied
+    /// on. An arrow that reached the window *underneath* would move a selection
+    /// nobody can see.
+    ///
+    /// Observed through `onFocusChanged`, which is what a menu item reacts to
+    /// anyway, rather than by reaching into the popup's router.
+    @Test
+    @Timeout(20)
+    @DisplayName("keys go to the open popup rather than to the window beneath it")
+    void theKeyboardBelongsToThePopup() {
+        var focused = new ArrayList<String>();
+        Goldberry.launch(new TestApp(
+                host -> {
+                    host.popup(new Menu(List.of(
+                                    new Item("one", focused), new Item("two", focused))),
+                            io.github.digitalsmile.goldberry.backend.LogicalRect.of(0, 0, 10, 10),
+                            Placement.BELOW).orElseThrow();
+                    // Queued behind the frames the popup needs to build its tree:
+                    // focus traversal walks elements, and there are none until it
+                    // has been painted once.
+                    backend.post(new BackendEvent.KeyPressed(
+                            ownerWindow(), Key.DOWN.sdlKeycode(), 0, false));
+                },
+                host -> { }),
+                new String[] {"--frames=4"});
+
+        assertEquals(List.of("one", "two"), focused,
+                "the first item takes focus when the menu opens, and Down moves to the second"
+                        + " — inside the popup, from a key the owner window received");
+    }
+
+    /// A focus scope with items in it — which is what §7 says every overlay
+    /// wraps, and what makes `Down` mean "the next item" rather than nothing.
+    private record Menu(List<Widget> items)
+            implements Widget.Leaf, Styled, Paints, io.github.digitalsmile.goldberry.input.Handles {
+
+        @Override
+        public io.github.digitalsmile.goldberry.input.FocusScope focusScope() {
+            return io.github.digitalsmile.goldberry.input.FocusScope.VERTICAL;
+        }
+
+        @Override
+        public String cssType() {
+            return "menu";
+        }
+
+        @Override
+        public Set<String> classes() {
+            return Set.of();
+        }
+
+        @Override
+        public List<Widget> children() {
+            return items;
+        }
+
+        @Override
+        public Box render(ComputedStyle style, List<Box> children, Context context) {
+            return Box.of().style(style).children(children.toArray(Box[]::new));
+        }
     }
 
     /// The platform destroys a popup with its parent. So does the toolkit, and

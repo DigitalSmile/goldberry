@@ -5,7 +5,7 @@ import io.github.digitalsmile.goldberry.Goldberry;
 import io.github.digitalsmile.goldberry.Host;
 import io.github.digitalsmile.goldberry.Overlay;
 import io.github.digitalsmile.goldberry.Popup;
-import io.github.digitalsmile.goldberry.backend.LogicalPoint;
+import io.github.digitalsmile.goldberry.Placement;
 import io.github.digitalsmile.goldberry.backend.LogicalSize;
 import io.github.digitalsmile.goldberry.css.CascadeLayer;
 import io.github.digitalsmile.goldberry.css.Stylesheet;
@@ -20,9 +20,8 @@ import io.github.digitalsmile.goldberry.widgets.Actions;
 import io.github.digitalsmile.goldberry.widgets.Controls;
 import io.github.digitalsmile.goldberry.widgets.Icons;
 import io.github.digitalsmile.goldberry.widgets.controls.button.Button;
-import io.github.digitalsmile.goldberry.widgets.core.Column;
 import io.github.digitalsmile.goldberry.widgets.overlay.hud.Hud;
-import io.github.digitalsmile.goldberry.widgets.panel.Panel;
+import io.github.digitalsmile.goldberry.widgets.overlay.popover.Popover;
 import java.util.ArrayList;
 import java.util.List;
 import org.slf4j.Logger;
@@ -208,39 +207,40 @@ public final class Showcase implements Application {
     /// in-window layer the HUD uses.
     ///
     /// Anchored to the button's painted rectangle, which is a fact about the last
-    /// frame rather than something this method can compute (ADR-0080).
+    /// frame rather than something this method can compute (ADR-0080) — and
+    /// **sized by its own content**, so adding an item here changes nothing else.
+    /// Drag the window to the bottom of the screen and it opens upwards.
     private void toggleMenu() {
         if (menu != null && menu.isOpen()) {
             menu.close();
             menu = null;
             return;
         }
-        var at = host.anchor("menu-button")
-                .map(button -> LogicalPoint.of(button.left(), button.top() + button.height() + 4))
-                // Before the first frame there is no geometry, and a menu that
-                // refused to open would be a worse answer than one in the corner.
-                .orElse(LogicalPoint.of(16, 16));
-
-        host.popup(menuContent(), at, LogicalSize.of(180, 132)).ifPresentOrElse(
+        // One call does the three things a menu needs and none of them is this
+        // application's business: measure the panel, place it against the button
+        // with a flip if it would open off the bottom of the screen, and open a
+        // platform window at the result (ADR-0104).
+        host.popup(menuContent(), "menu-button", Placement.BELOW).ifPresentOrElse(
                 open -> menu = open,
-                () -> LOG.info("this video driver has no popup windows,"
-                        + " so a menu here would have to be an overlay"));
+                () -> LOG.info("nowhere to put a menu: either this video driver has no popup"
+                        + " windows, or the button has not been painted yet"));
     }
 
     /// What the menu contains: three things that do something visible, so that
     /// the popup is demonstrably live rather than a picture of a menu.
     ///
+    /// A `popover` and nothing else — the panel is §7's widget and carries its own
+    /// surface, edge and radius, because a popup's contents are the root of their
+    /// own tree and inherit nothing from the window that opened them (ADR-0103).
+    ///
     /// Built in Java rather than in KDL because its handlers are direct calls
     /// with no names to resolve — which is also the shorter half of §9's story
     /// and worth having one of in the showcase.
     private Widget menuContent() {
-        return new Panel(List.of(
-                new Column(List.of(
-                        new Button("Switch theme", () -> chooseFromMenu(model::toggleTheme)),
-                        new Button("Switch density", () -> chooseFromMenu(model::toggleDensity)),
-                        new Button("Toggle HUD", () -> chooseFromMenu(this::toggleHud))),
-                        new Attributes("menu-items", java.util.Set.of(), "menu-items"))),
-                new Attributes("menu", java.util.Set.of(), "menu"));
+        return new Popover(
+                new Button("Switch theme", () -> chooseFromMenu(model::toggleTheme)),
+                new Button("Switch density", () -> chooseFromMenu(model::toggleDensity)),
+                new Button("Toggle HUD", () -> chooseFromMenu(this::toggleHud)));
     }
 
     /// Every item does its thing and then closes the menu, which is what a menu

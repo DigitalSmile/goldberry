@@ -137,6 +137,41 @@ public interface Host {
             io.github.digitalsmile.goldberry.backend.LogicalPoint at,
             io.github.digitalsmile.goldberry.backend.LogicalSize size);
 
+    /// Opens a popup **against a rectangle**, sized to its own content and moved
+    /// to stay on the screen.
+    ///
+    /// The form almost every caller wants, and the one `docs/core-widgets.md`
+    /// §7's `popover` is: a dropdown belongs under its control, a submenu beside
+    /// its item, a tooltip above the thing it describes — and none of them has a
+    /// size until its content has been laid out, or a position until that size is
+    /// compared against the edges of the screen.
+    ///
+    /// Three things happen, in order, and each is separately observable:
+    ///
+    /// 1. **Measure.** The content is laid out with no surface, bounded by the
+    ///    window's own size, and comes back with the size it wants.
+    /// 2. **Place.** [Placement] applies its preferred side, flips it if it would
+    ///    not fit, and shifts it along until it is inside the display's work area
+    ///    — the usable part, less whatever a taskbar has taken.
+    /// 3. **Open**, at the result.
+    ///
+    /// `anchor` is in this window's logical coordinates, which is what
+    /// [#anchor(String)] returns and what a hit test reports, so anchoring to a
+    /// button is that button's rectangle and no conversion.
+    ///
+    /// Empty for [#popup(Widget, LogicalPoint, LogicalSize)]'s reason: the
+    /// platform may have no popup windows.
+    java.util.Optional<Popup> popup(Widget content,
+            io.github.digitalsmile.goldberry.backend.LogicalRect anchor, Placement placement);
+
+    /// [#popup(Widget, LogicalRect, Placement)] against the node with this id —
+    /// "open this under that button", in one call.
+    ///
+    /// Empty when the platform has no popups **or** when nothing with that id was
+    /// painted, which are different problems with the same answer here: there is
+    /// nowhere to put it.
+    java.util.Optional<Popup> popup(Widget content, String anchorId, Placement placement);
+
     /// What the frame loop has been managing lately.
     ///
     /// Live rather than a snapshot, and cheap to ask: it is the same object every

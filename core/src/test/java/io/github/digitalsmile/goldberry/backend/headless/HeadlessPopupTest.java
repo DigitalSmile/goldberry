@@ -56,7 +56,7 @@ class HeadlessPopupTest {
 
         assertSame(window, popup.owner());
         assertEquals(PopupKind.MENU, popup.kind());
-        assertEquals(new LogicalPoint(120, 48), popup.position());
+        assertEquals(new LogicalPoint(120, 48), popup.offset());
         assertEquals(LogicalSize.of(200, 300), popup.size());
         assertTrue(popup.isOpen());
     }
@@ -82,7 +82,7 @@ class HeadlessPopupTest {
     void escapesTheOwner() {
         var popup = popup(700, 590, 300, 400);
 
-        assertEquals(new LogicalPoint(700, 590), popup.position());
+        assertEquals(new LogicalPoint(700, 590), popup.offset());
         assertEquals(LogicalSize.of(800, 600), window.size(),
                 "and the owner is unaffected — a popup is a second window, not a child box");
     }
@@ -94,7 +94,7 @@ class HeadlessPopupTest {
 
         popup.move(LogicalPoint.of(64, 200));
 
-        assertEquals(new LogicalPoint(64, 200), popup.position());
+        assertEquals(new LogicalPoint(64, 200), popup.offset());
         assertEquals(1, popup.moveCount());
     }
 

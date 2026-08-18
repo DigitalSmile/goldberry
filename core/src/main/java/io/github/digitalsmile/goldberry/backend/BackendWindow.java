@@ -112,6 +112,35 @@ public interface BackendWindow extends AutoCloseable {
     default void setCursor(Cursor cursor) {
     }
 
+    /// Where this window's top-left is, in the desktop's logical coordinates.
+    ///
+    /// The origin of [#workArea()]'s coordinate space, and the only thing that
+    /// turns a position expressed in *this window's* coordinates — which is how a
+    /// popup is placed, and how a hit test reports — into one that can be compared
+    /// against the screen's edges.
+    ///
+    /// Empty when the platform will not say. A backend with no desktop under it
+    /// has no answer, and a placement policy that gets none has to fall back to
+    /// its preferred side rather than refuse to open a menu.
+    default Optional<LogicalPoint> position() {
+        return Optional.empty();
+    }
+
+    /// The part of this window's display that a window may usefully occupy — the
+    /// full bounds less whatever the desktop reserves for a taskbar, a dock or a
+    /// panel, in the desktop's logical coordinates.
+    ///
+    /// **What flip and shift are computed against** (`docs/core-widgets.md` §7:
+    /// "placement with flip/shift when near edges"). Not the display's size: a
+    /// menu placed against the screen's bottom edge opens underneath the taskbar,
+    /// and the difference between the two rectangles is exactly that taskbar.
+    ///
+    /// Empty when the platform will not say, which some drivers genuinely will
+    /// not — see [#position()] for what a caller does about it.
+    default Optional<LogicalRect> workArea() {
+        return Optional.empty();
+    }
+
     /// Sets the window title.
     void setTitle(String title);
 

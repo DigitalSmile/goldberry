@@ -5,6 +5,8 @@ import io.github.digitalsmile.goldberry.backend.BackendWindow;
 import io.github.digitalsmile.goldberry.backend.Cursor;
 import io.github.digitalsmile.goldberry.backend.DamageRect;
 import io.github.digitalsmile.goldberry.backend.DisplayScale;
+import io.github.digitalsmile.goldberry.backend.LogicalPoint;
+import io.github.digitalsmile.goldberry.backend.LogicalRect;
 import io.github.digitalsmile.goldberry.backend.LogicalSize;
 import io.github.digitalsmile.goldberry.backend.PhysicalSize;
 import io.github.digitalsmile.goldberry.backend.PixelBuffer;
@@ -242,6 +244,26 @@ sealed class Sdl3Window implements BackendWindow permits Sdl3Popup {
             case NESW_RESIZE -> SdlSystemCursor.NESW_RESIZE;
             case NWSE_RESIZE -> SdlSystemCursor.NWSE_RESIZE;
         };
+    }
+
+    @Override
+    public Optional<LogicalPoint> position() {
+        backend.requireUiThread();
+        if (!open) {
+            return Optional.empty();
+        }
+        var point = video().windowPosition(handle);
+        return Optional.of(new LogicalPoint(point.x(), point.y()));
+    }
+
+    @Override
+    public Optional<LogicalRect> workArea() {
+        backend.requireUiThread();
+        if (!open) {
+            return Optional.empty();
+        }
+        return video().windowUsableBounds(handle)
+                .map(rect -> LogicalRect.of(rect.x(), rect.y(), rect.width(), rect.height()));
     }
 
     @Override

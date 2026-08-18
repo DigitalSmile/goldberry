@@ -1358,3 +1358,33 @@ hud-reading.fps {
   color: var(--gb-hud-text);
   font-weight: 600;
 }
+
+/* --------------------------------------------------------------- popover --
+ *
+ * `docs/core-widgets.md` §7's floating panel: the surface a menu, a dropdown or
+ * a picker is drawn on.
+ *
+ * It is the **root of its own element tree** — a popup's contents are not
+ * descendants of the widget that opened them (ADR-0103) — so nothing inherits
+ * into it and every property it needs is written here. That includes `color`,
+ * which everywhere else in the catalog comes from an ancestor.
+ *
+ * The elevation is a border rather than a shadow: §8's subset has no
+ * `box-shadow`, and a floating panel with no edge at all disappears into a
+ * surface of the same colour underneath it.
+ */
+popover {
+  flex-direction: column;
+  padding: 4px;
+  gap: 2px;
+  background: var(--gb-surface);
+  color: var(--gb-text);
+  border: 1px solid var(--gb-border);
+  border-radius: 8px;
+}
+
+/* A menu's items fill the width and read from the leading edge — which is what
+   makes a column of buttons a menu rather than three stacked buttons. */
+popover button {
+  justify-content: flex-start;
+}

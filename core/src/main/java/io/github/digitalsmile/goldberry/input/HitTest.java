@@ -76,6 +76,15 @@ public final class HitTest {
             return new Region(owner, Cursor.DEFAULT, left, top, width, height, null);
         }
 
+        /// This rectangle as a plain one, in the window's logical coordinates.
+        ///
+        /// What a popup is anchored to — the rectangle without the owner, the
+        /// cursor or the transform, which is all a placement policy wants.
+        public io.github.digitalsmile.goldberry.backend.LogicalRect bounds() {
+            return io.github.digitalsmile.goldberry.backend.LogicalRect.of(
+                    left, top, width, height);
+        }
+
         public boolean contains(float x, float y) {
             if (inverse == null) {
                 return x >= left && x < left + width && y >= top && y < top + height;

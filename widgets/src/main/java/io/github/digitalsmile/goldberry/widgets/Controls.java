@@ -23,6 +23,7 @@ import io.github.digitalsmile.goldberry.widgets.controls.spinner.Spinner;
 import io.github.digitalsmile.goldberry.widgets.controls.toggle.Toggle;
 import io.github.digitalsmile.goldberry.widgets.overlay.hud.Hud;
 import io.github.digitalsmile.goldberry.widgets.overlay.hud.Reading;
+import io.github.digitalsmile.goldberry.widgets.overlay.popover.Popover;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
@@ -295,6 +296,11 @@ public final class Controls {
         // something about the frame loop rather than about a model. Nothing to
         // bind and nothing to resolve: what it shows arrives on the render
         // context, so a document writes `hud` and is done.
+        // §7's floating panel. It is the panel and not the opening: where a
+        // popover goes and when it goes away is `Host.popup`'s, which serves a
+        // tooltip and a select equally and is not a widget (ADR-0104).
+        inflater.register("popover", (node, children) -> new Popover(
+                children, Attributes.of(node)));
         inflater.register("hud", (node, children) -> new Hud(
                 readings(node.stringProperty("readings")),
                 Attributes.of(node)));

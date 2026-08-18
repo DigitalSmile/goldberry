@@ -1092,12 +1092,61 @@ second.
   `HUD` floats a `hud` in the window's own layer, clipped to it and needing
   nothing from the platform.
 
+### `popover`, and the three things it is made of
+
+- **A popup measures its own content, and the second pass is the interesting
+  one.** `RenderTree.measure` lays a tree out with no surface — two floats rather
+  than a `LogicalSize`, because "undefined" is what has to be expressible and a
+  size refuses `NaN`. The trap is that **Yoga lays a root out at exactly the
+  available size when that size is definite**: there is no parent for it to be "at
+  most" of, so a bound and a target are the same number, and measuring a menu
+  against its window returns the window. That happened twice, once per axis —
+  `960×640`, then `960×108` — and both times it looked like a placement bug. So
+  the measurement is nothing definite, then a second pass with the width pinned
+  only if the natural width overflows, where a definite width is now what is
+  wanted and a paragraph wraps at it. The same trap caught the widget:
+  `Popover.render` grew to fill its window, and a growing root fills a definite
+  available size ([ADR-0104](adr/0104-a-popup-is-measured-then-placed.md)).
+- **`Placement` is three rules and no state**: preferred side, **flip** only when
+  it does not fit and the opposite side does — not when the other side merely has
+  more room, which would be a menu nobody can predict — and then **shift** along
+  the cross axis, which keeps the popup attached to its anchor's side while
+  sliding it along. Too big for the screen either way and it clamps to the *near*
+  edge, so the top of a long menu survives. It opens no window and reads no
+  display: an anchor rectangle, a size and the rectangle to stay inside go in, a
+  point comes out, and every case of it is a test rather than a screenshot.
+- **The rectangle it must stay inside is the display's *work area*, not its
+  bounds.** `SDL_GetDisplayUsableBounds` excludes whatever the desktop reserved,
+  and the difference between the two rectangles is exactly the taskbar a menu
+  would otherwise open underneath. `BackendWindow` gained `workArea()` and
+  `position()`, both `Optional` because some drivers will not say; the launcher
+  translates the first by the second so placement works entirely in the window's
+  own coordinates. `HeadlessBackend` has a pretend desktop of 1920×1040 — 40
+  pixels reserved, so a test that confuses the work area with the display's size
+  fails — and its windows can be moved about on it, because a placement policy is
+  only interesting near an edge.
+- **The keyboard belongs to the open popup.** Its router focuses the first item
+  after the first frame, and keys the *owner* window receives are forwarded to the
+  topmost popup before the owner's own router sees them —
+  `Window.InputWatcher.keyPressed` returns a boolean now, and `true` takes the
+  key. Not belt-and-braces: whether a popup has the platform's keyboard focus is
+  per-driver, so without forwarding an arrow would move the selection in the
+  window *underneath* the menu on half the platforms.
+- **`popover` is the panel and not the opening.** §7's floating surface —
+  background, border, radius, padding — as a widget, so it is themeable and
+  writable from a document; where it goes and when it goes away is `Host.popup`,
+  which serves `tooltip`, `select` and `menu` equally and is not a popover. The
+  showcase's `Menu` button opens one with `host.popup(content, "menu-button",
+  Placement.BELOW)`, and on X11 it comes out 125×108 — its own content's size —
+  directly under the button that opened it.
+
 ### Not started
 
 Tray, dialogs, scroll, forms, client-side decorations and charts. `menu`,
-`tooltip`, `popover` and M2's leftover `select` are now ordinary widget work —
-placement that flips near a screen edge, sizing to content, focus travelling into
-a popup and back, and submenu chains — and each is listed in
+`tooltip` and M2's leftover `select` are ordinary widget work now — each owns its
+model, its item semantics and its keyboard map, and none of them has to solve
+size, position or dismissal. The one thing between here and a `select` over a
+realistic option list is `scroll`. Everything outstanding is in
 [TODO.md](TODO.md).
 
 ## M4 — GPU

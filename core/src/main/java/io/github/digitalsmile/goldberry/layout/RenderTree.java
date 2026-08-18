@@ -2,6 +2,8 @@ package io.github.digitalsmile.goldberry.layout;
 
 import io.github.digitalsmile.goldberry.Frame;
 import io.github.digitalsmile.goldberry.backend.DamageRect;
+import io.github.digitalsmile.goldberry.backend.DisplayScale;
+import io.github.digitalsmile.goldberry.backend.LogicalSize;
 import io.github.digitalsmile.goldberry.backend.PhysicalSize;
 import io.github.digitalsmile.goldberry.css.Affine;
 import io.github.digitalsmile.goldberry.natives.blend2d.BlendPath;
@@ -88,7 +90,18 @@ public final class RenderTree implements AutoCloseable {
         Objects.requireNonNull(box, "box");
         requireUsable();
 
-        var scale = frame.scale().factor();
+        reconcile(box, frame.scale().factor());
+
+        var size = frame.size();
+        // Yoga skips a subtree with nothing dirty in it, so on a static frame
+        // this call is close to free — which is the whole return on the guards
+        // in `RenderObject.apply`.
+        root.node().calculateLayout(size.width(), size.height());
+    }
+
+    /// Brings the retained tree in line with `box`, at `scale`. The half of
+    /// [#update] that is not the layout pass, shared with [#measure].
+    private void reconcile(Box box, float scale) {
         if (root != null && scale != pointScale) {
             // Every computed edge in the tree was rounded to the old grid. There
             // is no call that says "re-round everything", so the tree goes.
@@ -105,14 +118,56 @@ public final class RenderTree implements AutoCloseable {
             root.close();
             root = new RenderObject(config, box.text() != null);
         }
-
         root.update(box, config);
+    }
 
-        var size = frame.size();
-        // Yoga skips a subtree with nothing dirty in it, so on a static frame
-        // this call is close to free — which is the whole return on the guards
-        // in `RenderObject.apply`.
-        root.node().calculateLayout(size.width(), size.height());
+    /// Lays the tree out against `available` and reports the size it wants, with
+    /// no surface to paint into.
+    ///
+    /// **What a popup is sized by.** A menu is as tall as its items and as wide as
+    /// its longest label, and neither is known until Yoga has been run — but a
+    /// platform window has to be given a size *before* there is anything to paint
+    /// into it. Every other layout pass in the toolkit starts from a [Frame],
+    /// which is a surface that already exists.
+    ///
+    /// An available dimension of [Float#NaN] is Yoga's "undefined": the tree
+    /// takes its content size along that axis. A number is a **bound and not a
+    /// target** — the tree may come back smaller, and a paragraph wraps at it
+    /// rather than overflowing. Passing undefined for the width of a tree with
+    /// text in it therefore measures it as one unwrapped line, which is right for
+    /// a menu item and wrong for a paragraph, and is the caller's choice to make.
+    ///
+    /// Two floats rather than a [LogicalSize], for exactly that reason: a size is
+    /// a size, and refuses `NaN`. "Undefined" is not a size and this is the one
+    /// place the toolkit needs to say it.
+    ///
+    /// A **definite** dimension will be filled by a root that grows, because
+    /// `flex-grow` on a root with a definite main size is growth into it. So a
+    /// caller measuring something that fills its window must leave the axis it
+    /// fills undefined, or it measures the window rather than the content.
+    ///
+    /// This is a **real layout pass** and leaves the tree laid out at that size,
+    /// so the [#update] that follows re-lays it out at the size the surface turned
+    /// out to be. Yoga skips what has not changed, so the second pass is cheap
+    /// rather than free.
+    ///
+    /// @param box       the tree to measure
+    /// @param scale     the display scale to round edges against — the same one
+    ///                  the eventual frame will use, or the measurement is against
+    ///                  a different pixel grid than the paint
+    /// @param availableWidth  the width to lay out in, or `NaN` for content size
+    /// @param availableHeight the height to lay out in, or `NaN`
+    /// @return the size the root came out as, in logical pixels
+    public LogicalSize measure(Box box, DisplayScale scale,
+            float availableWidth, float availableHeight) {
+        Objects.requireNonNull(box, "box");
+        Objects.requireNonNull(scale, "scale");
+        requireUsable();
+
+        reconcile(box, scale.factor());
+        root.node().calculateLayout(availableWidth, availableHeight);
+        var layout = root.node().layout();
+        return new LogicalSize(layout.width(), layout.height());
     }
 
     /// Paints the tree, but **only inside `damage`**.

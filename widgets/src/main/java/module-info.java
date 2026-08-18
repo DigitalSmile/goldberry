@@ -63,4 +63,5 @@ module io.github.digitalsmile.goldberry.widgets {
     /// `dialog`'s scrim will join it, while `menu`, `tooltip` and `popover` wait
     /// for the backend popup windows §4 reserves.
     exports io.github.digitalsmile.goldberry.widgets.overlay.hud;
+    exports io.github.digitalsmile.goldberry.widgets.overlay.popover;
 }

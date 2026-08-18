@@ -6,6 +6,8 @@ import io.github.digitalsmile.goldberry.backend.BackendWindow;
 import io.github.digitalsmile.goldberry.backend.Cursor;
 import io.github.digitalsmile.goldberry.backend.DamageRect;
 import io.github.digitalsmile.goldberry.backend.DisplayScale;
+import io.github.digitalsmile.goldberry.backend.LogicalPoint;
+import io.github.digitalsmile.goldberry.backend.LogicalRect;
 import io.github.digitalsmile.goldberry.backend.LogicalSize;
 import io.github.digitalsmile.goldberry.backend.PhysicalSize;
 import io.github.digitalsmile.goldberry.backend.PixelBuffer;
@@ -28,6 +30,9 @@ public sealed class HeadlessWindow implements BackendWindow permits HeadlessPopu
     private String title;
     private boolean open = true;
     private boolean framePending;
+
+    /// Where this window pretends to be on the backend's desktop.
+    private LogicalPoint position = LogicalPoint.ZERO;
 
     private PixelBuffer lastFrame;
     private List<DamageRect> lastDamage = List.of();
@@ -114,6 +119,28 @@ public sealed class HeadlessWindow implements BackendWindow permits HeadlessPopu
         }
         framePending = true;
         backend.post(new BackendEvent.FrameDue(this));
+    }
+
+    @Override
+    public Optional<LogicalPoint> position() {
+        backend.requireUiThread();
+        return open ? Optional.of(position) : Optional.empty();
+    }
+
+    @Override
+    public Optional<LogicalRect> workArea() {
+        backend.requireUiThread();
+        return open ? Optional.of(backend.workArea()) : Optional.empty();
+    }
+
+    /// Puts this window somewhere on the backend's pretend desktop.
+    ///
+    /// There is no window manager here to do it, and a placement test needs a
+    /// window that is *near an edge* — which is the only interesting case.
+    public void moveTo(LogicalPoint next) {
+        backend.requireUiThread();
+        requireOpen();
+        this.position = Objects.requireNonNull(next, "position");
     }
 
     @Override

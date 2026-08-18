@@ -70,6 +70,14 @@ SDL_CreatePopupWindow
 SDL_SetWindowPosition
 SDL_SetWindowSize
 
+# Where a popup is allowed to be (sec. 7's "placement with flip/shift when near
+# edges"). The usable bounds exclude a taskbar or a dock, which is the whole
+# reason it is not the display's full size; the window's own position is what
+# turns a popup's owner-relative placement into the screen coordinates the work
+# area is in.
+SDL_GetDisplayUsableBounds
+SDL_GetWindowPosition
+
 # The modifier keys, read at the moment a pointer event is translated rather
 # than latched from the last key event. A window that loses focus while Shift is
 # held never sees the key release, and a latched flag would stay stuck down.

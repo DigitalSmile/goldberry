@@ -22,7 +22,7 @@ public final class HeadlessPopup extends HeadlessWindow implements BackendPopup 
     private final HeadlessWindow owner;
     private final PopupKind kind;
 
-    private LogicalPoint position;
+    private LogicalPoint offset;
     private int moves;
     private int resizes;
 
@@ -34,7 +34,7 @@ public final class HeadlessPopup extends HeadlessWindow implements BackendPopup 
         super(backend, spec.size(), scale, "");
         this.owner = Objects.requireNonNull(owner, "owner");
         this.kind = spec.kind();
-        this.position = spec.position();
+        this.offset = spec.position();
     }
 
     @Override
@@ -48,8 +48,8 @@ public final class HeadlessPopup extends HeadlessWindow implements BackendPopup 
     }
 
     @Override
-    public LogicalPoint position() {
-        return position;
+    public LogicalPoint offset() {
+        return offset;
     }
 
     @Override
@@ -57,7 +57,7 @@ public final class HeadlessPopup extends HeadlessWindow implements BackendPopup 
         Objects.requireNonNull(next, "position");
         backend().requireUiThread();
         requireUsable();
-        position = next;
+        offset = next;
         moves++;
     }
 
@@ -122,6 +122,6 @@ public final class HeadlessPopup extends HeadlessWindow implements BackendPopup 
 
     @Override
     public String toString() {
-        return "HeadlessPopup[" + kind + " at " + position + "]";
+        return "HeadlessPopup[" + kind + " at " + offset + "]";
     }
 }

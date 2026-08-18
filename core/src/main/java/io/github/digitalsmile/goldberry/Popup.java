@@ -7,7 +7,6 @@ import io.github.digitalsmile.goldberry.input.HitTest;
 import io.github.digitalsmile.goldberry.input.PointerRouter;
 import io.github.digitalsmile.goldberry.layout.RenderTree;
 import io.github.digitalsmile.goldberry.widget.ElementTree;
-import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widget.WidgetRenderer;
 import java.util.Objects;
 import java.util.function.Supplier;
@@ -68,14 +67,21 @@ public final class Popup implements AutoCloseable {
     private boolean lightDismiss = true;
     private boolean closed;
 
-    Popup(BackendPopup backend, Window window, Widget content,
+    /// Whether [#focusFirst] has run. See there.
+    private boolean focused;
+
+    /// The trees are handed in rather than built here because the content has
+    /// usually been **measured** already — that is how the popup got a size — and
+    /// measuring builds both. A second element tree would also be a second lot of
+    /// `initState`.
+    Popup(BackendPopup backend, Window window, ElementTree tree, RenderTree render,
             Supplier<WidgetRenderer> renderer, Runnable onClosed) {
         this.backend = Objects.requireNonNull(backend, "backend");
         this.window = Objects.requireNonNull(window, "window");
         this.renderer = Objects.requireNonNull(renderer, "renderer");
         this.onClosed = Objects.requireNonNull(onClosed, "onClosed");
-        this.tree = new ElementTree(Objects.requireNonNull(content, "content"));
-        this.render = RenderTree.create();
+        this.tree = Objects.requireNonNull(tree, "tree");
+        this.render = Objects.requireNonNull(render, "render");
         this.router = new PointerRouter();
 
         router.focusRoot(tree.root());
@@ -91,10 +97,16 @@ public final class Popup implements AutoCloseable {
             }
 
             @Override
-            public void keyPressed(io.github.digitalsmile.goldberry.input.Key key) {
+            public boolean keyPressed(io.github.digitalsmile.goldberry.input.Key key,
+                    io.github.digitalsmile.goldberry.input.Modifiers modifiers, boolean repeat) {
                 if (key == io.github.digitalsmile.goldberry.input.Key.ESCAPE) {
                     dismissedByInput();
+                    return true;
                 }
+                // Everything else goes to this popup's own router, which is
+                // where it was going anyway — the watcher only exists here for
+                // the key no widget owns.
+                return false;
             }
         });
     }
@@ -106,9 +118,9 @@ public final class Popup implements AutoCloseable {
         return window;
     }
 
-    /// Where the popup sits, in its owner window's logical coordinates.
-    public LogicalPoint position() {
-        return backend.position();
+    /// Where the popup sits, as an offset from its owner window's top-left.
+    public LogicalPoint offset() {
+        return backend.offset();
     }
 
     /// Moves the popup, in the owner's logical coordinates.
@@ -188,9 +200,43 @@ public final class Popup implements AutoCloseable {
         // machinery for a saving nobody can measure on a 180×132 menu.
         render.paint(frame);
         router.updateRegions(HitTest.capture(render));
+        if (!focused) {
+            focused = true;
+            focusFirst();
+        }
         if (current.isAnimating()) {
             window.repaint();
         }
+    }
+
+    /// Handles a key the **owner** window received while this popup was open.
+    ///
+    /// A popup may or may not have the platform's keyboard focus — SDL will give
+    /// a `POPUP_MENU` window focus on some drivers and not on others, and a
+    /// tooltip must never have it. So the owner forwards, and a menu is operable
+    /// by arrows either way ([ADR-0104]).
+    ///
+    /// @return whether the popup's router did something with it
+    boolean handleKey(io.github.digitalsmile.goldberry.input.Key key,
+            io.github.digitalsmile.goldberry.input.Modifiers modifiers, boolean repeat) {
+        if (!isOpen()) {
+            return false;
+        }
+        var handled = router.keyPressed(key, modifiers, repeat);
+        if (handled) {
+            window.repaint();
+        }
+        return handled;
+    }
+
+    /// Puts the keyboard on this popup's first focusable node.
+    ///
+    /// Called after its first frame, because focus traversal walks the element
+    /// tree and the tree is not built until then. A menu whose first item is not
+    /// focused would answer `Down` by focusing the first item — one keystroke
+    /// later than every menu anywhere else.
+    private void focusFirst() {
+        router.moveFocus(1);
     }
 
     /// Called by the launcher when the owner window sees input the popup should
@@ -209,7 +255,7 @@ public final class Popup implements AutoCloseable {
 
     @Override
     public String toString() {
-        return "Popup[" + backend.kind() + " at " + backend.position()
+        return "Popup[" + backend.kind() + " at " + backend.offset()
                 + (isOpen() ? "" : ", closed") + "]";
     }
 }

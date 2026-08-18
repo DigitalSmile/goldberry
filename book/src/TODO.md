@@ -21,25 +21,23 @@ disabled container disabling its descendants.
 
 ## Overlays, popups and windows
 
-- **A popup does not size itself to its content.** The caller gives a size — the
-  showcase's menu is 180×132 because somebody measured it — and a menu whose items
-  changed would be the wrong size. Auto-sizing needs a measure pass with no surface to
-  measure against, which Yoga can do and `RenderTree.update` cannot currently be asked
-  for. Every one of §7's popup widgets wants it. —
-  [ADR-0103](adr/0103-a-popup-is-a-second-tree-in-a-second-window.md)
-- **Placement is not policy.** Nothing flips a menu that would open off the bottom of
-  the screen, or shifts one that would run off the side — §7 asks `popover` for
-  "placement with flip/shift when near edges". It needs the display's work area, which
-  the backend SPI does not expose, plus the anchor rectangle (which `Host.anchor` now
-  gives) and a preference order. —
-  [ADR-0103](adr/0103-a-popup-is-a-second-tree-in-a-second-window.md)
-- **Focus does not travel into a popup.** Its router has a focus root of its own, so
-  `Tab` *inside* a menu works; what does not is opening one from the keyboard and
-  landing in it, or returning focus to the button on close. §7's "each wraps a
-  `focus-scope` and restores focus on close" is the widgets' to keep, and `focus-scope`
-  exists. —
-  [ADR-0103](adr/0103-a-popup-is-a-second-tree-in-a-second-window.md),
-  [ADR-0078](adr/0078-a-focus-scope-has-an-axis.md)
+- **A popup cannot scroll, so a long menu loses its bottom.** `Placement` clamps a
+  popup taller than the work area to the near edge, which keeps the top of it
+  visible and drops the rest. That is the honest thing to do with no viewport, and
+  it is the one thing between here and a `select` over a realistic option list:
+  §1's `scroll` does not exist. —
+  [ADR-0104](adr/0104-a-popup-is-measured-then-placed.md)
+- **Nothing re-places an open popup.** Move or resize the window with a menu open
+  and the menu stays where it was put; `Popup.move` exists and nothing calls it. A
+  `popover` that follows a scrolling anchor is the case that needs it, and it
+  needs to know the anchor moved, which today nothing reports. —
+  [ADR-0104](adr/0104-a-popup-is-measured-then-placed.md)
+- **Focus is not restored when a popup closes.** §7 says each overlay "wraps a
+  `focus-scope` and restores focus on close". Focus never *leaves* the owner
+  window — the popup borrows the keyboard — so there is nothing to restore in the
+  common case, but a menu opened from the keyboard should return focus to the
+  control that opened it, and nothing remembers which that was. —
+  [ADR-0104](adr/0104-a-popup-is-measured-then-placed.md)
 - **Two popups do not know about each other.** A submenu chain — opening one closes its
   siblings but not its parent — is `menu`'s to arrange; the launcher's light dismissal
   closes all of them at once, which is right for one popup and wrong for a chain. —
@@ -567,6 +565,29 @@ disabled container disabling its descendants.
 
 Kept rather than deleted: each is a trap somebody hit, and the reasoning that got
 out of it is usually worth more than the fact that it is fixed.
+
+- ~~**A popup does not size itself to its content.**~~ **It does, in two passes.**
+  `RenderTree.measure` lays a tree out with no surface; the second pass exists
+  because Yoga lays a *root* out at exactly the available size when that size is
+  definite — there is no parent for it to be "at most" of — so measuring against
+  the window returns the window. Nothing definite first, then the width pinned
+  only if the natural width overflows. —
+  [ADR-0104](adr/0104-a-popup-is-measured-then-placed.md)
+- ~~**Placement is not policy.**~~ **`Placement` is, and it is arithmetic.**
+  Preferred side, flip only when the preferred side does not fit and the opposite
+  one does, then shift along the cross axis; clamped to the near edge when it fits
+  nowhere. Computed against the display's **work area** — `SDL_GetDisplayUsableBounds`,
+  reached through `BackendWindow.workArea()` and translated by `position()` — which
+  is the rectangle that excludes the taskbar a menu would otherwise open under. —
+  [ADR-0104](adr/0104-a-popup-is-measured-then-placed.md)
+- ~~**Focus does not travel into a popup.**~~ **The keyboard belongs to the open
+  popup.** Its router focuses the first item after the first frame, and keys the
+  owner window receives are forwarded to the topmost popup before the owner's own
+  router sees them. Forwarded rather than delegated to platform focus, because
+  whether a popup gets the keyboard is per-driver and a tooltip must never have
+  it. What is still owed is the *return*: §7's "restores focus on close" is the
+  widgets' to keep, and nothing yet remembers what had focus before a menu opened.
+  — [ADR-0104](adr/0104-a-popup-is-measured-then-placed.md)
 
 - ~~**`Sdl3Backend.translate`'s `MOUSE_WHEEL` branch has never run.**~~ **Answered: it
   runs, through the real SDL, on every CI run.** A test cannot turn a wheel — but

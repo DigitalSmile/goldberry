@@ -141,10 +141,20 @@ final class Launcher implements Host {
             }
 
             @Override
-            public void keyPressed(io.github.digitalsmile.goldberry.input.Key key) {
+            public boolean keyPressed(io.github.digitalsmile.goldberry.input.Key key,
+                    io.github.digitalsmile.goldberry.input.Modifiers modifiers, boolean repeat) {
+                var top = topmostPopup();
+                if (top == null) {
+                    return false;
+                }
                 if (key == io.github.digitalsmile.goldberry.input.Key.ESCAPE) {
                     dismissPopups();
+                    return true;
                 }
+                // While a menu is open the keyboard belongs to it, whether or not
+                // the platform moved focus there — otherwise an arrow would move
+                // the selection in the window *underneath* the menu (ADR-0104).
+                return top.handleKey(key, modifiers, repeat);
             }
         });
 
@@ -157,26 +167,37 @@ final class Launcher implements Host {
                 application.getClass().getSimpleName(), painted);
     }
 
+    /// The renderer for this frame, built if the stylesheets have moved.
+    ///
+    /// Called from the paint path and from [#popup], which is why it is a method:
+    /// a popup opened from `Application#start` has to measure its content, and
+    /// measuring needs a renderer before the first frame has asked for one.
+    ///
+    /// A new renderer means new resolved styles — but **not** new animations,
+    /// which live on the elements a restyle does not touch, so a transition in
+    /// flight when the theme changes carries on into the new colours rather than
+    /// snapping (ADR-0067).
+    private WidgetRenderer renderer() {
+        if (stylesDirty || renderer == null) {
+            renderer = new WidgetRenderer(application.stylesheets(), fonts)
+                    .frames(window.frames());
+            stylesDirty = false;
+        }
+        return renderer;
+    }
+
     private void paint(io.github.digitalsmile.goldberry.Frame frame) {
         // Every setState since the last frame settles here, once, however many of
         // them there were (ADR-0052).
         if (tree.needsBuild()) {
             tree.flush();
         }
-        if (stylesDirty) {
-            // A new renderer means new resolved styles -- but **not** new
-            // animations, which live on the elements a restyle does not touch, so
-            // a transition in flight when the theme changes carries on into the
-            // new colours rather than snapping (ADR-0067).
-            renderer = new WidgetRenderer(application.stylesheets(), fonts)
-                    .frames(window.frames());
-            stylesDirty = false;
-        }
+        renderer();
 
         // One layout pass, two readers. `update` reconciles the retained render
         // tree against this frame's description and lays it out; the paint and the
         // hit-test snapshot both read that one result (ADR-0069).
-        render.update(frame, renderer.render(tree));
+        render.update(frame, renderer().render(tree));
 
         // What differs from the last frame, computed before painting because the
         // clip has to be in place before anything is drawn (ADR-0072).
@@ -198,7 +219,7 @@ final class Launcher implements Host {
 
         // §1.7's "the frame loop is fully idle when no animation is active": ask
         // for another frame *only* while something is moving.
-        if (renderer.isAnimating()) {
+        if (renderer().isAnimating()) {
             window.repaint();
         }
 
@@ -211,6 +232,16 @@ final class Launcher implements Host {
                 window.repaint();
             }
         }
+    }
+
+    /// The popup on top: the last one opened that is still open.
+    private Popup topmostPopup() {
+        for (var i = popups.size() - 1; i >= 0; i--) {
+            if (popups.get(i).isOpen()) {
+                return popups.get(i);
+            }
+        }
+        return null;
     }
 
     /// Closes every light-dismissed popup. Copied first: closing one removes it
@@ -352,21 +383,113 @@ final class Launcher implements Host {
             io.github.digitalsmile.goldberry.backend.PopupKind kind) {
 
         Objects.requireNonNull(content, "content");
-        var spec = new io.github.digitalsmile.goldberry.backend.PopupSpec(at, size, kind);
+        return open(new ElementTree(content), RenderTree.create(),
+                new io.github.digitalsmile.goldberry.backend.PopupSpec(at, size, kind));
+    }
+
+    /// Asks the backend for the window and wires the trees to it.
+    private java.util.Optional<Popup> open(ElementTree tree, RenderTree render,
+            io.github.digitalsmile.goldberry.backend.PopupSpec spec) {
+
         var backend = GoldberryRuntime.get().backend()
                 .createPopup(window.backendWindow(), spec);
         if (backend.isEmpty()) {
             // The driver has none. The caller's fallback is the overlay layer,
             // clipped to the window, and saying so is more use than an empty
             // Optional on its own (ADR-0102).
-            LOG.info("this platform has no popup windows; a {} will have to be an overlay", kind);
+            tree.unmount();
+            render.close();
+            LOG.info("this platform has no popup windows; a {} will have to be an overlay",
+                    spec.kind());
             return java.util.Optional.empty();
         }
 
-        var popup = new Popup(backend.get(), Window.over(backend.get()), content,
-                () -> renderer, () -> popups.removeIf(open -> !open.isOpen()));
+        var popup = new Popup(backend.get(), Window.over(backend.get()), tree, render,
+                this::renderer, () -> popups.removeIf(open -> !open.isOpen()));
         popups.add(popup);
         return java.util.Optional.of(popup);
+    }
+
+    @Override
+    public java.util.Optional<Popup> popup(Widget content,
+            io.github.digitalsmile.goldberry.backend.LogicalRect anchor, Placement placement) {
+        Objects.requireNonNull(content, "content");
+        Objects.requireNonNull(anchor, "anchor");
+        Objects.requireNonNull(placement, "placement");
+
+        // Built once and handed to the popup: measuring throws the layout away
+        // otherwise, and the element tree is what carries state, so a second one
+        // would also be a second lot of `initState`.
+        var tree = new ElementTree(content);
+        var render = RenderTree.create();
+        var size = measure(tree, render);
+        var placed = placement.place(anchor, size, placeableArea());
+        return open(tree, render,
+                new io.github.digitalsmile.goldberry.backend.PopupSpec(
+                        placed.at(), size,
+                        io.github.digitalsmile.goldberry.backend.PopupKind.MENU));
+    }
+
+    @Override
+    public java.util.Optional<Popup> popup(Widget content, String anchorId, Placement placement) {
+        Objects.requireNonNull(anchorId, "anchorId");
+        var anchor = anchor(anchorId);
+        if (anchor.isEmpty()) {
+            LOG.warn("nothing with id \"{}\" has been painted, so there is nothing to anchor to",
+                    anchorId);
+            return java.util.Optional.empty();
+        }
+        return popup(content, anchor.get().bounds(), placement);
+    }
+
+    /// The content's own size, capped at the window's width — in **two passes**,
+    /// and the second one is why.
+    ///
+    /// Yoga lays a root out at exactly the available size when that size is
+    /// definite: there is no parent to be "at most" of, so a bound and a target
+    /// are the same number. Measuring a menu against the window therefore returns
+    /// the window — which is what the first two attempts at this did, once in each
+    /// axis, and both looked like a placement bug rather than a measurement one.
+    ///
+    /// So: measure with **nothing** definite, which gives the content's natural
+    /// size, and only if that is wider than the window measure again with the
+    /// width pinned — where a definite width is now what is wanted, and a
+    /// paragraph wraps at it instead of running off the side. A second pass over a
+    /// menu is a few dozen Yoga nodes and it happens once, when the popup opens.
+    ///
+    /// The height is never bounded here. A menu taller than the screen is
+    /// [Placement]'s to clamp, and it can only clamp a number that means the
+    /// content.
+    private io.github.digitalsmile.goldberry.backend.LogicalSize measure(
+            ElementTree tree, RenderTree render) {
+        var box = renderer().render(tree);
+        var natural = render.measure(box, window.scale(), Float.NaN, Float.NaN);
+        var cap = window.size().width();
+        if (natural.width() <= cap) {
+            return natural;
+        }
+        return render.measure(box, window.scale(), cap, Float.NaN);
+    }
+
+    /// Where a popup is allowed to be, **in this window's coordinates**.
+    ///
+    /// The display's work area translated by the window's position on the
+    /// desktop, because a placement policy works in one space and an anchor is in
+    /// this one.
+    ///
+    /// When the platform will not say where the window is or what the work area
+    /// is — a headless run, or a driver that does not know — the window's own
+    /// bounds stand in. That is a worse answer and not a wrong one: a popup kept
+    /// inside its owner is always on the screen.
+    private io.github.digitalsmile.goldberry.backend.LogicalRect placeableArea() {
+        var backendWindow = window.backendWindow();
+        var origin = backendWindow.position();
+        var area = backendWindow.workArea();
+        if (origin.isEmpty() || area.isEmpty()) {
+            return new io.github.digitalsmile.goldberry.backend.LogicalRect(
+                    io.github.digitalsmile.goldberry.backend.LogicalPoint.ZERO, window.size());
+        }
+        return area.get().offsetBy(-origin.get().x(), -origin.get().y());
     }
 
     @Override

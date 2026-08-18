@@ -7,6 +7,7 @@ import io.github.digitalsmile.goldberry.backend.BackendPopup;
 import io.github.digitalsmile.goldberry.backend.BackendWindow;
 import io.github.digitalsmile.goldberry.backend.DisplayScale;
 import io.github.digitalsmile.goldberry.backend.EventSink;
+import io.github.digitalsmile.goldberry.backend.LogicalRect;
 import io.github.digitalsmile.goldberry.backend.PopupSpec;
 import io.github.digitalsmile.goldberry.backend.WindowSpec;
 import io.github.digitalsmile.goldberry.natives.log.Logs;
@@ -81,6 +82,28 @@ public final class HeadlessBackend implements Backend {
         windows.add(window);
         LOG.debug("created headless window \"{}\" {} at {}", spec.title(), spec.size(), scale);
         return window;
+    }
+
+    /// The desktop this backend pretends to have — what
+    /// [io.github.digitalsmile.goldberry.backend.BackendWindow#workArea()]
+    /// answers with.
+    ///
+    /// A placement policy is only interesting near an edge, and "near an edge"
+    /// needs an edge. 1920×1080 with 40 logical pixels reserved at the bottom:
+    /// the reservation is there so that a test which confuses the work area with
+    /// the display's full size fails, which is the mistake the two rectangles
+    /// exist to tell apart.
+    private LogicalRect workArea = LogicalRect.of(0, 0, 1920, 1040);
+
+    /// The work area every window on this backend reports.
+    public LogicalRect workArea() {
+        return workArea;
+    }
+
+    /// Changes it, for a test that wants a smaller screen or none of it reserved.
+    public HeadlessBackend workArea(LogicalRect value) {
+        this.workArea = Objects.requireNonNull(value, "workArea");
+        return this;
     }
 
     /// A popup, which this backend has because the SPI's rules need somewhere to

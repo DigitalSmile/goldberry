@@ -32,15 +32,22 @@ public interface BackendPopup extends BackendWindow {
     /// What the platform was asked to treat this as.
     PopupKind kind();
 
-    /// Where the popup was last asked to be, in the owner's logical coordinates.
+    /// Where the popup was last asked to be, **as an offset from its owner's
+    /// top-left**.
+    ///
+    /// Not [BackendWindow#position()], which is this window's place on the
+    /// *desktop* — the two are different measurements and deliberately do not
+    /// share a name. A popup is placed against the thing that opened it; the
+    /// desktop only comes into it when a placement policy has to ask whether the
+    /// result fits on the screen.
     ///
     /// **What was requested, not what the window system has got round to.** SDL
     /// cannot be asked reliably — `SDL_GetWindowPosition` reports the display's
     /// coordinates on some drivers and the parent's on others — and the request is
     /// the one answer that is the same everywhere.
-    LogicalPoint position();
+    LogicalPoint offset();
 
-    /// Moves the popup, in the owner's logical coordinates.
+    /// Moves the popup, as an offset from its owner's top-left.
     ///
     /// Cheaper than closing and reopening, and visibly different: a menu that is
     /// destroyed and recreated flickers and loses whatever the platform was

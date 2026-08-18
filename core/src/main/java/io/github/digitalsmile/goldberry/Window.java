@@ -437,7 +437,17 @@ public final class Window implements AutoCloseable {
         void pressed();
 
         /// A key went down somewhere in this window.
-        void keyPressed(io.github.digitalsmile.goldberry.input.Key key);
+        ///
+        /// Returning `true` **takes** the key: this window's own router does not
+        /// see it. That is what makes a menu keyboard-operable without the
+        /// platform having moved focus into it — arrows and `Enter` reach the
+        /// popup's router rather than moving the selection in the window
+        /// underneath, which is what they would otherwise do while a menu is
+        /// open ([ADR-0104]).
+        ///
+        /// @return true when the key has been dealt with
+        boolean keyPressed(io.github.digitalsmile.goldberry.input.Key key,
+                io.github.digitalsmile.goldberry.input.Modifiers modifiers, boolean repeat);
     }
 
     /// Where pointer events go.
@@ -544,8 +554,11 @@ public final class Window implements AutoCloseable {
     }
 
     void handleKeyPressed(int keycode, int modifiers, boolean repeat) {
-        if (inputWatcher != null) {
-            inputWatcher.keyPressed(io.github.digitalsmile.goldberry.input.Key.fromSdl(keycode));
+        if (inputWatcher != null && inputWatcher.keyPressed(
+                io.github.digitalsmile.goldberry.input.Key.fromSdl(keycode),
+                Modifiers.fromSdl(modifiers), repeat)) {
+            repaintIfRestyled();
+            return;
         }
         if (router != null) {
             router.keyPressed(

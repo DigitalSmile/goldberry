@@ -86,7 +86,7 @@ class Sdl3PopupTest {
             BackendPopup popup = opened.get();
             assertSame(window, popup.owner());
             assertEquals(PopupKind.MENU, popup.kind());
-            assertEquals(new LogicalPoint(40, 60), popup.position());
+            assertEquals(new LogicalPoint(40, 60), popup.offset());
             assertTrue(popup.isOpen());
             assertTrue(backend.windows().contains(popup),
                     "a popup is a window, and shutdown enumerates windows");
@@ -95,7 +95,7 @@ class Sdl3PopupTest {
                             + " events find their way back to it");
 
             popup.move(LogicalPoint.of(64, 200));
-            assertEquals(new LogicalPoint(64, 200), popup.position());
+            assertEquals(new LogicalPoint(64, 200), popup.offset());
 
             // A **request**: on X11 and Wayland the window manager decides when
             // the resize happens, and until it has, `size()` is honestly still
