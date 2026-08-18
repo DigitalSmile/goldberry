@@ -4,6 +4,8 @@ import io.github.digitalsmile.goldberry.Application;
 import io.github.digitalsmile.goldberry.Goldberry;
 import io.github.digitalsmile.goldberry.Host;
 import io.github.digitalsmile.goldberry.Overlay;
+import io.github.digitalsmile.goldberry.Popup;
+import io.github.digitalsmile.goldberry.backend.LogicalPoint;
 import io.github.digitalsmile.goldberry.backend.LogicalSize;
 import io.github.digitalsmile.goldberry.css.CascadeLayer;
 import io.github.digitalsmile.goldberry.css.Stylesheet;
@@ -11,11 +13,16 @@ import io.github.digitalsmile.goldberry.example.ui.Screen;
 import io.github.digitalsmile.goldberry.icon.Icon;
 import io.github.digitalsmile.goldberry.input.Key;
 import io.github.digitalsmile.goldberry.input.Mod;
+import io.github.digitalsmile.goldberry.widget.Attributes;
 import io.github.digitalsmile.goldberry.widget.Corner;
 import io.github.digitalsmile.goldberry.widget.Widget;
+import io.github.digitalsmile.goldberry.widgets.Actions;
 import io.github.digitalsmile.goldberry.widgets.Controls;
 import io.github.digitalsmile.goldberry.widgets.Icons;
+import io.github.digitalsmile.goldberry.widgets.controls.button.Button;
+import io.github.digitalsmile.goldberry.widgets.core.Column;
 import io.github.digitalsmile.goldberry.widgets.overlay.hud.Hud;
+import io.github.digitalsmile.goldberry.widgets.panel.Panel;
 import java.util.ArrayList;
 import java.util.List;
 import org.slf4j.Logger;
@@ -77,6 +84,13 @@ public final class Showcase implements Application {
     /// The frame-rate readout, while it is on screen. Null when it is not — see
     /// [#toggleHud].
     private Overlay hud;
+
+    /// The menu, while it is open. Null when it is not — see [#toggleMenu].
+    ///
+    /// A popup is light-dismissed by default, so it can also close itself: a
+    /// press anywhere in the window below it, or `Escape`. `isOpen()` is what
+    /// this field is checked with rather than nullness alone.
+    private Popup menu;
     private Icon paletteIcon;
     private Icon plusIcon;
     private Screen screen;
@@ -121,7 +135,7 @@ public final class Showcase implements Application {
         screen = new Screen(
                 model,
                 Controls.inflater(
-                        ShowcaseModelRegistry.actions(model),
+                        actions(model, this::toggleMenu, this::toggleHud),
                         Icons.strict().bind("palette", paletteIcon).bind("plus", plusIcon),
                         ShowcaseModelRegistry.bindings(model)),
                 plusIcon);
@@ -159,9 +173,85 @@ public final class Showcase implements Application {
         });
     }
 
+    /// The action registry the two documents resolve against: the model's
+    /// generated one, plus the two handlers that are the **window's**.
+    ///
+    /// Opening a popup and floating a HUD are facts about this window rather than
+    /// about the application's data, so they are not `@Action`s on the model —
+    /// and they are bound here, in one place, because `sidebar.kdl` names them
+    /// and a strict registry refuses a name nobody bound. That refusal is the
+    /// point (a `press=` typo is otherwise a button that silently does nothing),
+    /// which is why the test resolves through this method rather than keeping its
+    /// own list of what the document happens to mention.
+    ///
+    /// @param model     the model whose `@Action`s the processor generated
+    /// @param openMenu  what `app.open-menu` does
+    /// @param toggleHud what `app.toggle-hud` does
+    static Actions actions(ShowcaseModel model, Runnable openMenu, Runnable toggleHud) {
+        return ShowcaseModelRegistry.actions(model)
+                .bind("app.open-menu", openMenu)
+                .bind("app.toggle-hud", toggleHud);
+    }
+
     @Override
     public Widget root() {
         return screen;
+    }
+
+    /// Opens the menu under the button that opened it, or closes it again.
+    ///
+    /// The showcase's demonstration of the **other** place an overlay can go: a
+    /// real platform window, parented to this one and free of its bounds
+    /// (ADR-0102). The menu is 132px tall and the button that opens it sits near
+    /// the bottom of a short window — so on a window under about 300px this menu
+    /// is drawn *outside* it, which is the whole point and is impossible in the
+    /// in-window layer the HUD uses.
+    ///
+    /// Anchored to the button's painted rectangle, which is a fact about the last
+    /// frame rather than something this method can compute (ADR-0080).
+    private void toggleMenu() {
+        if (menu != null && menu.isOpen()) {
+            menu.close();
+            menu = null;
+            return;
+        }
+        var at = host.anchor("menu-button")
+                .map(button -> LogicalPoint.of(button.left(), button.top() + button.height() + 4))
+                // Before the first frame there is no geometry, and a menu that
+                // refused to open would be a worse answer than one in the corner.
+                .orElse(LogicalPoint.of(16, 16));
+
+        host.popup(menuContent(), at, LogicalSize.of(180, 132)).ifPresentOrElse(
+                open -> menu = open,
+                () -> LOG.info("this video driver has no popup windows,"
+                        + " so a menu here would have to be an overlay"));
+    }
+
+    /// What the menu contains: three things that do something visible, so that
+    /// the popup is demonstrably live rather than a picture of a menu.
+    ///
+    /// Built in Java rather than in KDL because its handlers are direct calls
+    /// with no names to resolve — which is also the shorter half of §9's story
+    /// and worth having one of in the showcase.
+    private Widget menuContent() {
+        return new Panel(List.of(
+                new Column(List.of(
+                        new Button("Switch theme", () -> chooseFromMenu(model::toggleTheme)),
+                        new Button("Switch density", () -> chooseFromMenu(model::toggleDensity)),
+                        new Button("Toggle HUD", () -> chooseFromMenu(this::toggleHud))),
+                        new Attributes("menu-items", java.util.Set.of(), "menu-items"))),
+                new Attributes("menu", java.util.Set.of(), "menu"));
+    }
+
+    /// Every item does its thing and then closes the menu, which is what a menu
+    /// item does everywhere. The close is here rather than in each handler so
+    /// that adding an item cannot forget it.
+    private void chooseFromMenu(Runnable action) {
+        action.run();
+        if (menu != null) {
+            menu.close();
+            menu = null;
+        }
     }
 
     /// Puts a `hud` in the window's overlay layer, or takes it away again.

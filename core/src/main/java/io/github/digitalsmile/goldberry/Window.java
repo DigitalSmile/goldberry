@@ -75,6 +75,27 @@ public final class Window implements AutoCloseable {
         return open(WindowSpec.of(title, LogicalSize.of(width, height)));
     }
 
+    /// The window behind this one, for the calls that are the backend's rather
+    /// than this class's — opening a popup parented to it.
+    BackendWindow backendWindow() {
+        return window;
+    }
+
+    /// Wraps a window the backend has already made — today, a popup.
+    ///
+    /// Everything above the SPI is the same for a popup as for a window: it is
+    /// painted, it presents, its events arrive through the same pump and its
+    /// pointer goes through a router. This is where that sameness is taken
+    /// advantage of rather than reimplemented ([ADR-0102]).
+    static Window over(BackendWindow backendWindow) {
+        Objects.requireNonNull(backendWindow, "backendWindow");
+        var runtime = GoldberryRuntime.get();
+        var window = new Window(runtime, backendWindow);
+        runtime.register(backendWindow, window);
+        window.repaint();
+        return window;
+    }
+
     /// Opens a window from a full specification — for the cases that need to say
     /// something about resizability or decorations.
     public static Window open(WindowSpec spec) {
@@ -164,7 +185,13 @@ public final class Window implements AutoCloseable {
         if (!window.isOpen()) {
             return;
         }
-        LOG.info("window \"{}\" closed", window.title());
+        if (window instanceof io.github.digitalsmile.goldberry.backend.BackendPopup) {
+            // A popup opens and closes as often as a menu is used; at INFO it
+            // would be the only thing in an application's log.
+            LOG.debug("popup closed");
+        } else {
+            LOG.info("window \"{}\" closed", window.title());
+        }
         runtime.forget(window);
         window.close();
         cached = null;
@@ -389,6 +416,30 @@ public final class Window implements AutoCloseable {
         repaint();
     }
 
+    /// See [#inputWatcher].
+    private InputWatcher inputWatcher;
+
+    /// Input this window's router will not deliver, for whoever needs it anyway.
+    ///
+    /// There is one caller and one reason: a [Popup] is dismissed by a press
+    /// outside it or by `Escape`, and neither reaches a widget — the press
+    /// usually lands on nothing, and `Escape` belongs to no control in
+    /// particular. Package-private, because "see every press before anything
+    /// else does" is not a thing an application should be handed.
+    void inputWatcher(InputWatcher watcher) {
+        this.inputWatcher = watcher;
+    }
+
+    /// See [#inputWatcher(InputWatcher)].
+    interface InputWatcher {
+
+        /// A pointer button went down somewhere in this window.
+        void pressed();
+
+        /// A key went down somewhere in this window.
+        void keyPressed(io.github.digitalsmile.goldberry.input.Key key);
+    }
+
     /// Where pointer events go.
     ///
     /// Null until an application asks for one. A window with no router does the
@@ -447,6 +498,14 @@ public final class Window implements AutoCloseable {
     }
 
     void handlePointerPressed(float x, float y, int button, int clickCount, int modifiers) {
+        // Before the router, and unconditionally: light dismissal needs to know a
+        // press happened *anywhere* in this window, and the router cannot say so
+        // — it dispatches to the widget under the pointer, and a press on nothing
+        // dispatches to nothing, which is precisely the case a menu has to close
+        // on.
+        if (inputWatcher != null) {
+            inputWatcher.pressed();
+        }
         if (router != null) {
             router.pointerPressed(x, y, toButton(button), clickCount, Modifiers.fromSdl(modifiers));
             repaintIfRestyled();
@@ -485,6 +544,9 @@ public final class Window implements AutoCloseable {
     }
 
     void handleKeyPressed(int keycode, int modifiers, boolean repeat) {
+        if (inputWatcher != null) {
+            inputWatcher.keyPressed(io.github.digitalsmile.goldberry.input.Key.fromSdl(keycode));
+        }
         if (router != null) {
             router.keyPressed(
                     io.github.digitalsmile.goldberry.input.Key.fromSdl(keycode),

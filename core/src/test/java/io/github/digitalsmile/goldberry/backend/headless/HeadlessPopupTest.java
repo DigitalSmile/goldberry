@@ -133,17 +133,21 @@ class HeadlessPopupTest {
         assertTrue(refused.getMessage().contains("Edit"));
     }
 
-    /// The platform destroys a popup with its parent, so a call afterwards is
-    /// reaching through a pointer the window system has already freed.
+    /// The platform destroys a popup with its parent. This backend does too, and
+    /// the reason is not symmetry: the event loop runs until `windows()` is
+    /// empty, so a popup left open by its owner's close is a process that never
+    /// exits.
     @Test
-    @DisplayName("a popup whose owner closed refuses to be used")
+    @DisplayName("closing a window closes its popups")
     void ownerClosed() {
         var popup = popup(0, 0, 100, 100);
+
         window.close();
 
-        var refused = assertThrows(IllegalStateException.class,
-                () -> popup.move(LogicalPoint.of(1, 1)));
-        assertTrue(refused.getMessage().contains("owner"), refused.getMessage());
+        assertFalse(popup.isOpen());
+        assertTrue(backend.windows().isEmpty(),
+                "an orphaned popup keeps the event loop running for a window nobody can see");
+        assertThrows(IllegalStateException.class, () -> popup.move(LogicalPoint.of(1, 1)));
     }
 
     @Test

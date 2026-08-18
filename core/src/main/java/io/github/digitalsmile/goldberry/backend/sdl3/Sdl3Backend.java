@@ -733,6 +733,17 @@ public final class Sdl3Backend implements Backend {
         Sdl.get().quit();
     }
 
+    /// Closes every popup belonging to `owner`, before the platform does it for
+    /// us and leaves this side holding dangling handles.
+    void closePopupsOf(Sdl3Window owner) {
+        // Copied: closing a popup removes it from this map.
+        for (var window : List.copyOf(windowsById.values())) {
+            if (window instanceof Sdl3Popup popup && popup.owner() == owner) {
+                popup.close();
+            }
+        }
+    }
+
     SdlVideo video() {
         return video;
     }

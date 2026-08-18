@@ -216,6 +216,16 @@ public final class HeadlessBackend implements Backend {
         return closed;
     }
 
+    /// Closes every popup belonging to `owner`, as the platform would.
+    void closePopupsOf(HeadlessWindow owner) {
+        // Copied: closing a popup removes it from the list being walked.
+        for (var window : List.copyOf(windows)) {
+            if (window instanceof HeadlessPopup popup && popup.owner() == owner) {
+                popup.close();
+            }
+        }
+    }
+
     void forget(HeadlessWindow window) {
         windows.remove(window);
         pending.removeIf(event -> event.window() == window);

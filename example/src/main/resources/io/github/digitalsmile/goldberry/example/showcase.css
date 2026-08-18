@@ -58,3 +58,36 @@
    Muted, because what it says is a state and not content. */
 #busy-label { color: var(--gb-text-muted) }
 .caption   { color: var(--gb-text-muted) }
+
+/* The two overlay buttons, side by side like every other row here. */
+#overlays {
+  gap: 8px;
+  align-items: center;
+}
+
+/* The menu, which is drawn in a **popup window of its own** and therefore has
+   no ancestor in this document -- it is the root of a second element tree
+   (ADR-0103). So it carries its own surface and its own edge; nothing above it
+   is going to provide either.
+
+   The popup's window is exactly the size it was asked for, so the panel fills
+   it: a margin here would show as the platform's background at the edges. */
+#menu {
+  padding: 6px;
+  background: var(--gb-surface);
+  border: 1px solid var(--gb-border);
+  border-radius: 8px;
+  flex-grow: 1;
+}
+
+#menu-items {
+  flex-direction: column;
+  gap: 4px;
+  flex-grow: 1;
+}
+
+/* Menu items are buttons that fill the width, which is what makes a column of
+   them read as a menu rather than as three buttons that happen to be stacked. */
+#menu-items button {
+  justify-content: flex-start;
+}

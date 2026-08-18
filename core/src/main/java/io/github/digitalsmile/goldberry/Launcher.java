@@ -46,6 +46,14 @@ final class Launcher implements Host {
     /// list that changes has to be one the root *reads* (ADR-0062).
     private final Property<List<Overlay>> overlays = Property.of(List.of());
 
+    /// The popups this window has open. Light-dismissed together on a press or an
+    /// `Escape` in the window below them, which is the input their own routers
+    /// never see.
+    private final List<Popup> popups = new ArrayList<>();
+
+    /// The last painted frame's geometry — see [#anchor].
+    private List<HitTest.Region> regions = List.of();
+
     private int painted;
 
     /// The two flags the launcher understands on the command line, both for CI.
@@ -123,6 +131,23 @@ final class Launcher implements Host {
 
         window.onPaint(this::paint);
 
+        // A press on nothing, or an Escape, closes whatever is open over this
+        // window. Neither reaches a widget, which is why it is watched here
+        // rather than handled by one (ADR-0103).
+        window.inputWatcher(new Window.InputWatcher() {
+            @Override
+            public void pressed() {
+                dismissPopups();
+            }
+
+            @Override
+            public void keyPressed(io.github.digitalsmile.goldberry.input.Key key) {
+                if (key == io.github.digitalsmile.goldberry.input.Key.ESCAPE) {
+                    dismissPopups();
+                }
+            }
+        });
+
         try {
             Goldberry.run();
         } finally {
@@ -165,8 +190,11 @@ final class Launcher implements Host {
 
         // What the pointer is tested against is the frame that was just painted,
         // not a fresh layout -- which would be one frame ahead of what the user
-        // can see (ADR-0054).
-        router.updateRegions(HitTest.capture(render));
+        // can see (ADR-0054). Kept as well as handed over: `anchor` answers from
+        // the same capture, so a menu opens under where its button *was drawn*
+        // rather than where a fresh layout would put it.
+        regions = HitTest.capture(render);
+        router.updateRegions(regions);
 
         // §1.7's "the frame loop is fully idle when no animation is active": ask
         // for another frame *only* while something is moving.
@@ -185,6 +213,18 @@ final class Launcher implements Host {
         }
     }
 
+    /// Closes every light-dismissed popup. Copied first: closing one removes it
+    /// from the list it is being iterated over.
+    private void dismissPopups() {
+        if (popups.isEmpty()) {
+            return;
+        }
+        for (var popup : List.copyOf(popups)) {
+            popup.dismissedByInput();
+        }
+        popups.removeIf(popup -> !popup.isOpen());
+    }
+
     /// The reverse of the build order, and the ordering is the reason this class
     /// exists.
     ///
@@ -194,6 +234,12 @@ final class Launcher implements Host {
     /// measure callback that closes over a paragraph, and a paragraph over a font
     /// — closing them the other way round leaves Blend2D reading unmapped memory.
     private void shutDown() {
+        // Before the window's own trees: a popup holds a render tree of its own
+        // over the same fonts, and the fonts go last.
+        for (var popup : List.copyOf(popups)) {
+            popup.close();
+        }
+        popups.clear();
         if (tree != null) {
             tree.unmount();
         }
@@ -269,6 +315,58 @@ final class Launcher implements Host {
         });
         window.repaint();
         return entry;
+    }
+
+    @Override
+    public java.util.Optional<HitTest.Region> anchor(String id) {
+        Objects.requireNonNull(id, "id");
+        for (var region : regions) {
+            if (region.owner() instanceof io.github.digitalsmile.goldberry.widget.Element element
+                    && element.widget() instanceof io.github.digitalsmile.goldberry.widget.Styled styled
+                    && id.equals(styled.id())) {
+                return java.util.Optional.of(region);
+            }
+        }
+        return java.util.Optional.empty();
+    }
+
+    @Override
+    public java.util.Optional<Popup> popup(Widget content,
+            io.github.digitalsmile.goldberry.backend.LogicalPoint at,
+            io.github.digitalsmile.goldberry.backend.LogicalSize size) {
+        return popup(content, at, size,
+                io.github.digitalsmile.goldberry.backend.PopupKind.MENU);
+    }
+
+    @Override
+    public java.util.Optional<Popup> tooltip(Widget content,
+            io.github.digitalsmile.goldberry.backend.LogicalPoint at,
+            io.github.digitalsmile.goldberry.backend.LogicalSize size) {
+        return popup(content, at, size,
+                io.github.digitalsmile.goldberry.backend.PopupKind.TOOLTIP);
+    }
+
+    private java.util.Optional<Popup> popup(Widget content,
+            io.github.digitalsmile.goldberry.backend.LogicalPoint at,
+            io.github.digitalsmile.goldberry.backend.LogicalSize size,
+            io.github.digitalsmile.goldberry.backend.PopupKind kind) {
+
+        Objects.requireNonNull(content, "content");
+        var spec = new io.github.digitalsmile.goldberry.backend.PopupSpec(at, size, kind);
+        var backend = GoldberryRuntime.get().backend()
+                .createPopup(window.backendWindow(), spec);
+        if (backend.isEmpty()) {
+            // The driver has none. The caller's fallback is the overlay layer,
+            // clipped to the window, and saying so is more use than an empty
+            // Optional on its own (ADR-0102).
+            LOG.info("this platform has no popup windows; a {} will have to be an overlay", kind);
+            return java.util.Optional.empty();
+        }
+
+        var popup = new Popup(backend.get(), Window.over(backend.get()), content,
+                () -> renderer, () -> popups.removeIf(open -> !open.isOpen()));
+        popups.add(popup);
+        return java.util.Optional.of(popup);
     }
 
     @Override

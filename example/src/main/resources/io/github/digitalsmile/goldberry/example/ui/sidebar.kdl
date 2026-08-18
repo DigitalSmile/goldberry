@@ -76,6 +76,18 @@ column id="sidebar" {
       text id="gain-knob-label" class="caption" "Gain, again"
     }
 
+    // The two places an overlay can go, one button each (ADR-0100, ADR-0102).
+    // "Menu" opens a **platform popup window** parented to this one, so it is
+    // free of the window's bounds -- shrink the window and the menu is drawn
+    // outside it. "HUD" floats a `hud` in the window's own overlay layer, which
+    // is clipped to the window and needs no cooperation from the platform.
+    // Neither handler is the model's: they are facts about this window, so
+    // `Showcase` binds them beside the generated registry.
+    row id="overlays" {
+      button id="menu-button" press="app.open-menu" "Menu"
+      button id="hud-button" class="ghost" press="app.toggle-hud" "HUD"
+    }
+
     // Reports rather than asks: the bar follows the property the slider sets, and
     // the spinner is the reason this window no longer goes idle -- a mounted
     // spinner asks for another frame for as long as it is there (ADR-0081).

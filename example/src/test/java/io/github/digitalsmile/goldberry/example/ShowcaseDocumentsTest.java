@@ -40,7 +40,13 @@ class ShowcaseDocumentsTest {
     /// The registry trio, exactly as `Showcase.start` builds it — minus the
     /// icons, which own native memory and are the one thing a test cannot have.
     private io.github.digitalsmile.goldberry.kdl.KdlInflater<Widget> inflater() {
-        return Controls.inflater(ShowcaseModelRegistry.actions(model), Icons.lenient(),
+        // Through `Showcase.actions` rather than the generated registry alone:
+        // the documents name two handlers that belong to the window rather than
+        // to the model, and a test with its own list of them would pass while
+        // the application refused to start.
+        return Controls.inflater(
+                Showcase.actions(model, () -> { }, () -> { }),
+                Icons.lenient(),
                 ShowcaseModelRegistry.bindings(model));
     }
 

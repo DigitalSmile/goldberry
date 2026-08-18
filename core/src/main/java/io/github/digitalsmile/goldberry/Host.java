@@ -81,6 +81,62 @@ public interface Host {
     /// in logical pixels, instead of [Overlay#WINDOW_MARGIN].
     Overlay overlay(Widget widget, Corner corner, float margin);
 
+    /// The painted rectangle of the node with this `id`, in the window's logical
+    /// coordinates.
+    ///
+    /// **What a popup is anchored to.** A menu belongs under the button that
+    /// opened it, and where that button *is* is a fact about the last frame:
+    /// geometry exists after a paint and it is the router that has it
+    /// ([ADR-0080](../../../../../book/src/adr/0080-a-value-is-measured-along-a-part.md)).
+    ///
+    /// By `id` rather than by element because that is how the specification asks
+    /// for it — `docs/core-widgets.md` §7's `tour` "names a target by id" — and
+    /// because an application holds ids, not elements. A `popover` anchoring to
+    /// *itself* wants the element form, and will want it when it is built.
+    ///
+    /// Empty before the first frame, and for a node that was not painted: a
+    /// rectangle for something invisible would be a lie a menu would then point
+    /// at.
+    java.util.Optional<io.github.digitalsmile.goldberry.input.HitTest.Region> anchor(String id);
+
+    /// Opens a widget tree in a platform window of its own — a menu, a dropdown,
+    /// a tooltip.
+    ///
+    /// The other place an overlay can go, and the one thing
+    /// [#overlay(Widget, Corner)] cannot do: **leave the window**. A dropdown near
+    /// the bottom of a window is routinely taller than the space below its
+    /// button, and an in-window overlay would be clipped to four of its nine
+    /// options.
+    ///
+    /// `at` is in the window's own logical coordinates — the space a hit test
+    /// reports in, so a menu under the button that opened it is that button's
+    /// rectangle and no conversion.
+    ///
+    /// **Empty is a normal answer.** Popup support belongs to the platform's
+    /// video driver rather than to the request: every desktop driver has it, and
+    /// a caller that gets empty falls back to [#overlay(Widget, Corner)] at the
+    /// cost of being clipped to the window
+    /// ([ADR-0102](../../../../../book/src/adr/0102-a-popup-is-a-window-the-platform-may-refuse.md)).
+    ///
+    /// The popup is light-dismissed by default: a press anywhere in this window,
+    /// or `Escape`, closes it.
+    ///
+    /// @param content what to draw in it
+    /// @param at      its top-left, in this window's logical coordinates
+    /// @param size    its logical size — a popup does not size itself to its
+    ///                content yet, because measuring a tree needs a surface to
+    ///                measure against
+    /// @return the popup, or empty if the platform has no popup windows
+    java.util.Optional<Popup> popup(Widget content,
+            io.github.digitalsmile.goldberry.backend.LogicalPoint at,
+            io.github.digitalsmile.goldberry.backend.LogicalSize size);
+
+    /// [#popup(Widget, LogicalPoint, LogicalSize)] as a tooltip: never focusable,
+    /// and treated as a tooltip by the window manager.
+    java.util.Optional<Popup> tooltip(Widget content,
+            io.github.digitalsmile.goldberry.backend.LogicalPoint at,
+            io.github.digitalsmile.goldberry.backend.LogicalSize size);
+
     /// What the frame loop has been managing lately.
     ///
     /// Live rather than a snapshot, and cheap to ask: it is the same object every

@@ -108,6 +108,7 @@
 - [ADR-0100 A window has a layer above its application](adr/0100-a-window-has-a-layer-above-its-application.md)
 - [ADR-0101 A diagnostic must not be the thing it measures](adr/0101-a-diagnostic-must-not-be-the-thing-it-measures.md)
 - [ADR-0102 A popup is a window the platform may refuse](adr/0102-a-popup-is-a-window-the-platform-may-refuse.md)
+- [ADR-0103 A popup is a second tree in a second window](adr/0103-a-popup-is-a-second-tree-in-a-second-window.md)
 
 ---
 

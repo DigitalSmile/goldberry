@@ -271,6 +271,12 @@ sealed class Sdl3Window implements BackendWindow permits Sdl3Popup {
         backend.requireUiThread();
         open = false;
         framePending = false;
+        // First, and not tidiness. SDL destroys a window's popups with it, so
+        // after this call their handles are dangling and their ids are free for
+        // reuse — while `windowsById` still holds them. The event loop runs until
+        // `windows()` is empty, so an orphaned popup is a process that will not
+        // exit.
+        backend.closePopupsOf(this);
         backend.forget(this);
         video().destroyWindow(handle);
     }

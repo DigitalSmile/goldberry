@@ -142,6 +142,10 @@ public sealed class HeadlessWindow implements BackendWindow permits HeadlessPopu
         backend.requireUiThread();
         open = false;
         framePending = false;
+        // A real platform destroys a window's popups with it, so this backend
+        // does too — a fake that left them open would be the one place the event
+        // loop's "run until every window has closed" quietly never finishes.
+        backend.closePopupsOf(this);
         backend.forget(this);
     }
 
