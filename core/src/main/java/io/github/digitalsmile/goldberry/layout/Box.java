@@ -136,6 +136,15 @@ public record Box(
             /// strip, and [#CROSS] turned a quarter.
             PLUS,
 
+            /// A single `>` — the affordance on a menu row that leads to a
+            /// submenu, and on a `breadcrumbs` separator when that is built.
+            ///
+            /// A mark rather than Lucide's `chevron-right` for [#CROSS]'s reason,
+            /// with one more: an icon owns native memory that must be closed
+            /// exactly once (ADR-0043), and a menu is built and thrown away every
+            /// time it opens.
+            CHEVRON_END,
+
             /// A filled circle — `:checked` on a radio, which is why this is here
             /// before `radio` is.
             DOT,

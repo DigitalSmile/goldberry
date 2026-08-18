@@ -213,6 +213,13 @@ public final class BoxPainter {
                 path.moveTo(width * 0.24, height * 0.5);
                 path.lineTo(width * 0.76, height * 0.5);
             }
+            case CHEVRON_END -> {
+                // Narrower than it is tall, like the glyph: a chevron drawn to a
+                // square box reads as an arrowhead.
+                path.moveTo(width * 0.38, height * 0.26);
+                path.lineTo(width * 0.66, height * 0.5);
+                path.lineTo(width * 0.38, height * 0.74);
+            }
             case PLUS -> {
                 path.moveTo(width * 0.5, height * 0.22);
                 path.lineTo(width * 0.5, height * 0.78);

@@ -1473,11 +1473,15 @@ item:disabled {
   opacity: 0.45;
 }
 
-/* The accelerator and the tick are dimmer than the label: they are context for
-   the command rather than the command. */
-item-check {
-  width: 14px;
-  height: 14px;
+/* The leading column: a tick, an icon, or nothing, at one width so the labels
+   line up whichever it is (ADR-0113). 16 rather than 14, because that is the size
+   an icon is built at and the tick has to share the column with it.
+
+   Dimmer than the label, like the accelerator: both are context for the command
+   rather than the command. */
+item-lead {
+  width: 16px;
+  height: 16px;
   flex-shrink: 0;
   color: var(--gb-text-muted);
 }
@@ -1613,4 +1617,14 @@ tab-panel {
   flex-direction: column;
   flex-grow: 1;
   padding: 12px 0 0 0;
+}
+
+/* The `>` on a row that leads to a submenu — dimmer than the label, like the
+   accelerator, because it is context for the command rather than the command
+   (ADR-0113). */
+item-chevron {
+  width: 12px;
+  height: 12px;
+  flex-shrink: 0;
+  color: var(--gb-text-muted);
 }

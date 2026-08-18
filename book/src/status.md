@@ -1382,6 +1382,38 @@ Two faults in one menu, and they are opposite halves of one question
   control for context; a tooltip is the only text on screen at the moment it is
   read.
 
+### A menu's geometry, twice made per row and belonging to the menu
+
+- **A submenu opened on top of the border of the menu it came from.** ADR-0106
+  anchored it to its *item*, which is right for one axis and wrong for the other:
+  an item's right edge is a few pixels inside the menu's — the panel's padding and
+  its border — so the submenu's left edge landed inside the parent's frame. The
+  anchor is two rectangles now, **x from the popup and y from the row**, with a 2px
+  gap: far enough that the two panels do not share an edge, near enough that a
+  pointer crossing it does not leave both menus
+  ([ADR-0113](adr/0113-a-submenu-is-placed-beside-its-menu.md)).
+- **Every row in every menu was indented by a tick column**, whether or not
+  anything in that menu could be ticked. The rule — a column that appears with the
+  first tick shifts every label sideways — is right *within* a menu and had been
+  applied to all of them. A menu reserves a column when anything in it is
+  checkable, and then every row has one; which needs `checked` to have three
+  states, because "unchecked" and "not a checkbox" had been the same value.
+  `Boolean`: on, off, and not a checkbox at all.
+- **And that was still not the whole of it.** A row's icon was drawn *after* the
+  tick column rather than in it, so a row with an icon sat further in than the rows
+  above it — which the showcase's own menu shows, having both an icon row and a
+  checkable one. There is one leading part now, `item-lead`, with one width and
+  three possible contents: a tick, an icon, or nothing. No menu anywhere shows a
+  tick and an icon on the same row, because the tick is the row's *state* and the
+  icon is its *identity*.
+- **And a row that leads somewhere now says so.** A submenu row was drawn exactly
+  like a command; the chevron is a painter mark beside `CROSS` and `PLUS` rather
+  than Lucide's `chevron-right`, because an icon owns native memory that must be
+  closed exactly once and a menu is built and thrown away every time it opens.
+- **The menu has golden images**, five of them, where it had none — a menu is
+  drawn in a window of its own and appears in no other picture in the corpus. Both
+  faults were visible the moment there was one.
+
 ### Not started
 
 `menubar`, tray, dialogs, scroll, forms, client-side decorations and charts. The rest of §5 — `card`, `group-box`, `split-pane`, `collapse`,

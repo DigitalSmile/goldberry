@@ -148,6 +148,18 @@ public final class Popup implements AutoCloseable {
         return java.util.Optional.empty();
     }
 
+    /// This popup's whole rectangle, in the owner window's coordinates.
+    ///
+    /// [#anchor] answers for a node *inside* the popup; this is the popup itself,
+    /// which is what a submenu is placed beside. The difference is the panel's
+    /// padding and its border — an item's right edge is a few pixels inside the
+    /// menu's, so a submenu anchored to the item overlaps the border of the menu
+    /// it came from ([ADR-0113](../../../../../book/src/adr/0113-a-submenu-is-placed-beside-its-menu.md)).
+    public io.github.digitalsmile.goldberry.backend.LogicalRect bounds() {
+        return new io.github.digitalsmile.goldberry.backend.LogicalRect(
+                backend.offset(), window.size());
+    }
+
     /// Where the popup sits, as an offset from its owner window's top-left.
     public LogicalPoint offset() {
         return backend.offset();

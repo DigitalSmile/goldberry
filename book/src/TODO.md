@@ -47,6 +47,11 @@ disabled container disabling its descendants.
   it needs a callback from the item to the *popup it is in*, which is one more
   thing `Menus` would have to wire. —
   [ADR-0112](adr/0112-a-menu-follows-the-pointer-and-lights-for-the-keyboard.md)
+- **Nothing marks the row whose submenu is showing.** A row is `:focus-visible`
+  when the keyboard is on it and `:hover` when the pointer is, and neither says
+  "this is the branch that is open" — which is what a chevron rotating or a row
+  staying highlighted would say. —
+  [ADR-0113](adr/0113-a-submenu-is-placed-beside-its-menu.md)
 - **A tooltip is plain text, has no maximum width of its own and does not follow
   the pointer.** All three as `docs/core-widgets.md` §7 specifies for v1, and all
   three are what "rich content" would change. The 500ms delay is not configurable

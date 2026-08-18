@@ -59,6 +59,14 @@ public final class Menus {
     /// travelling down a menu past three rows with submenus opens none of them.
     private static final java.time.Duration HOVER_INTENT = java.time.Duration.ofMillis(150);
 
+    /// How far a submenu sits from the menu it came from.
+    ///
+    /// Small on purpose: far enough that the two panels do not share an edge —
+    /// which reads as one panel with a seam — and near enough that the pointer
+    /// crossing the gap does not leave both menus and put the submenu away
+    /// (ADR-0113).
+    private static final float SUBMENU_GAP = 2;
+
     /// Wires up §8's context menus: `context-menu="rowMenu"` on any widget opens
     /// `menus.get("rowMenu")` where the pointer is.
     ///
@@ -120,9 +128,17 @@ public final class Menus {
         // popup exists -- which is before anything can be hovered, let alone
         // clicked.
         var self = new Popup[1];
+        // One decision for the whole menu: the leading column appears when
+        // *anything* in it has something to put there — a tick or an icon — and
+        // then every row has one, so the labels line up. A menu with neither has
+        // no column at all, which is most menus and which is the unexplained
+        // indent this removes (ADR-0113).
+        var reserve = menu.children().stream()
+                .anyMatch(child -> child instanceof Item item
+                        && (item.isCheckable() || item.icon() != null));
         var children = new ArrayList<Widget>(menu.children().size());
         for (var index = 0; index < menu.children().size(); index++) {
-            children.add(prepare(host, menu.children().get(index), index, self, stack));
+            children.add(prepare(host, menu.children().get(index), index, reserve, self, stack));
         }
 
         var opened = host.popup(menu.withAttributes(menu.attributes()).children(children),
@@ -137,12 +153,13 @@ public final class Menus {
     /// Rewrites one child of a menu so that it can do the two things only the
     /// opener can arrange: close the stack when it is chosen, and open its own
     /// submenu.
-    private static Widget prepare(Host host, Widget child, int index, Popup[] owner,
-            List<Popup> stack) {
+    private static Widget prepare(Host host, Widget child, int index, boolean reserveLead,
+            Popup[] owner, List<Popup> stack) {
 
         if (!(child instanceof Item item)) {
             return child;
         }
+        item = item.reservingLead(reserveLead);
         // An id, because a submenu is anchored to the *item*, and an anchor is
         // looked up by id. Generated rather than required: an author writing a
         // menu should not have to name every row that happens to lead somewhere.
@@ -216,18 +233,32 @@ public final class Menus {
         if (parent == null || !parent.isOpen()) {
             return;
         }
-        var anchor = parent.anchor(item.attributes().id());
-        if (anchor.isEmpty()) {
+        var row = parent.anchor(item.attributes().id());
+        if (row.isEmpty()) {
             return;
         }
         // Everything this menu opened, closed: moving down past three items with
         // submenus should leave one open, not three.
         closeAfter(stack, parent);
-        // `AFTER` and not `BELOW`: a submenu sits beside its item, and flips to
+
+        // **Beside the menu, level with the row.** Two rectangles, because the
+        // two axes answer to different things: an item's right edge is a few
+        // pixels inside the menu's — the panel's padding and its border — so a
+        // submenu anchored to the item alone opens *on top of* the border of the
+        // menu it came from, which is what it looked like (ADR-0113).
+        var menu = parent.bounds();
+        var beside = new io.github.digitalsmile.goldberry.backend.LogicalRect(
+                new io.github.digitalsmile.goldberry.backend.LogicalPoint(
+                        menu.left(), row.get().top()),
+                new io.github.digitalsmile.goldberry.backend.LogicalSize(
+                        menu.width(), row.get().height()));
+
+        // `AFTER` and not `BELOW`: a submenu sits beside its menu, and flips to
         // the other side near the edge of the screen, which is `Placement`'s
-        // (ADR-0104).
-        open(host, anchor.get(), new Menu(item.submenu(), item.attributes().id(null)),
-                Placement.AFTER, stack);
+        // (ADR-0104). The gap is the couple of pixels that keep the two panels
+        // from sharing an edge.
+        open(host, beside, new Menu(item.submenu(), item.attributes().id(null)),
+                Placement.AFTER.gap(SUBMENU_GAP), stack);
     }
 
     private static void closeAll(List<Popup> stack) {

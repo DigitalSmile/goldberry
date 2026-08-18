@@ -71,18 +71,56 @@ class MenuTest {
                         + " §8's CSS subset has no text-align");
     }
 
-    /// The tick column is always built, checked or not: a column that appeared
-    /// with the first tick would shift every label in the menu sideways.
+    /// The tick column is a **menu's** decision, not a row's: every row in a menu
+    /// with anything checkable in it reserves one so the labels line up, and a
+    /// menu with nothing checkable has no column at all — which is most menus, and
+    /// fourteen pixels of unexplained indent when it was per row (ADR-0113).
     @Test
-    @DisplayName("every item has a tick column, checked or not")
-    void tickColumnIsAlwaysThere() {
-        var unchecked = new Item("Word wrap", () -> { });
-        var checked = unchecked.checked(true);
+    @DisplayName("a row reserves a tick column only when its menu has one")
+    void tickColumnIsTheMenusDecision() {
+        var plain = new Item("Word wrap", () -> { });
+        var checkable = plain.checkable();
 
-        assertEquals(1, unchecked.children().size());
-        assertEquals(1, checked.children().size());
-        assertFalse(((Styled) unchecked.children().getFirst()).isChecked());
-        assertTrue(((Styled) checked.children().getFirst()).isChecked());
+        assertFalse(plain.isCheckable(), "no `checked` at all is not a checkbox");
+        assertTrue(checkable.isCheckable(), "and `checked=false` is one that is off");
+        assertFalse(checkable.isChecked());
+        assertTrue(plain.checked(true).isChecked());
+
+        // A row on its own reserves nothing: only the menu knows whether anything
+        // in it is checkable.
+        assertEquals(0, plain.children().size());
+        assertEquals(0, checkable.children().size());
+    }
+
+    /// And the menu that has one gives it to every row, including the rows that
+    /// are not checkable — which is what keeps the labels in a line.
+    @Test
+    @DisplayName("one checkable row gives every row in that menu a column")
+    void oneCheckableRowReservesForAll() {
+        var withCheckable = headersOf(new Menu(
+                new Item("Plain", () -> { }),
+                new Item("Word wrap", () -> { }).checked(true)));
+        var withoutAny = headersOf(new Menu(
+                new Item("Plain", () -> { }),
+                new Item("Also plain", () -> { })));
+
+        assertEquals(1, withCheckable.get(0).children().size(), "a plain row beside a checkable"
+                + " one reserves the column too, or the labels step in and out");
+        assertEquals(1, withCheckable.get(1).children().size());
+        assertEquals(0, withoutAny.get(0).children().size());
+        assertEquals(0, withoutAny.get(1).children().size());
+    }
+
+    /// What a menu built for opening looks like — the rows [Menus] rewrites, which
+    /// is where the column is decided.
+    private static List<Item> headersOf(Menu menu) {
+        var reserve = menu.children().stream()
+                .anyMatch(child -> child instanceof Item item && (item.isCheckable() || item.icon() != null));
+        return menu.children().stream()
+                .filter(Item.class::isInstance)
+                .map(Item.class::cast)
+                .map(item -> item.reservingLead(reserve))
+                .toList();
     }
 
     @Test

@@ -341,13 +341,19 @@ public final class Controls {
                 icons.resolve(node.stringProperty("icon")),
                 node.stringProperty("accelerator"),
                 actions.resolve(node.stringProperty("press")),
-                node.booleanProperty("checked"),
+                // Three states: `checked=#true` is on, `checked=#false` is a
+                // checkable row that is off, and no attribute at all is a row
+                // that is not checkable — which is what decides whether its menu
+                // reserves a tick column (ADR-0113).
+                node.property("checked").isPresent() ? node.booleanProperty("checked") : null,
                 node.booleanProperty("disabled"),
                 // A nested `item` is a submenu, which is the only thing a menu
                 // item can contain -- so nesting *is* the syntax and there is no
                 // `submenu` node to forget.
                 children,
-                null,
+                // `reservesCheck` and the hover callback are the menu's to supply
+                // on every open, which is why neither is an attribute.
+                false, null,
                 Attributes.of(node)));
         inflater.register("separator", (node, children) -> new Separator(Attributes.of(node)));
         // §7's floating panel. It is the panel and not the opening: where a
