@@ -329,7 +329,7 @@ public final class Controls {
                 // strip's to supply on every build, which is why none of them is
                 // an attribute: a document that could mark two tabs selected would
                 // break the one invariant a strip exists to hold.
-                false, null, null, null, null,
+                false, null, null, null, null, null,
                 Attributes.of(node)));
         // §8's menu, its rows and its rules. A document declares a menu; opening
         // one is `Menus.open(host, …)`, because that needs a `Host` and a widget

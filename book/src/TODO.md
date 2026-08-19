@@ -212,13 +212,11 @@ the mechanism the sentence named.
   input or to draw something that cannot affect layout, never to decide a size —
   and the scroll view obeys it by construction rather than by check. —
   [ADR-0117](adr/0117-a-widget-may-be-told-what-it-measured.md)
-- **`scrollIntoView(widget)` is not built, and `tour` and `affix` both want it.**
-  §1 names it, §5's `tour` "scrolls the target into view and waits for the frame"
-  before positioning a popover, and the offset it would need is a fact about a
-  descendant's rectangle rather than about the viewport's. The extents on an
-  event answer "how big are these two boxes"; this needs "where is *that* box
-  inside me", which is a different question and one nothing asks yet. —
-  [ADR-0116](adr/0116-a-scroll-view-is-a-clip-an-offset-and-two-extents.md)
+- **A reveal moves both axes at once.** A wide table asked to show a cell scrolls
+  the minimum on each axis independently, which is right and occasionally moves a
+  view further than a person would have. Nobody has asked for one axis to take
+  priority. —
+  [ADR-0120](adr/0120-a-widget-scrolls-itself-into-view.md)
 - **The "always show scroll bars" gutter has nothing to switch it.** §2.4 wants a
   reserved 12px gutter as an app or user setting, and §13 lists it among the
   accessibility switches. There is no settings mechanism at all — the same
@@ -261,11 +259,12 @@ the mechanism the sentence named.
   viewport: it needs to know it is at an edge, which is `scrollIntoView`'s
   missing question again. —
   [ADR-0118](adr/0118-a-popup-that-does-not-fit-scrolls.md)
-- **Selecting a tab does not scroll it into view.** `Ctrl+3` on a strip scrolled
-  past the third tab selects something the user cannot see. It is the smallest
-  real consumer of `scrollIntoView` and it is why that entry is the next thing on
-  this widget rather than a nicety. —
-  [ADR-0118](adr/0118-a-popup-that-does-not-fit-scrolls.md)
+- **A revealed row lands rather than glides.** §3.1 gives `scroll`
+  "`scrollIntoView` / programmatic: overlay duration", and a reveal jumps: the
+  offset is state and nothing interpolates it. It is a transition on a value the
+  cascade cannot see — the same shape `TabPhase` solved for one widget, and the
+  second consumer that would justify promoting it. —
+  [ADR-0120](adr/0120-a-widget-scrolls-itself-into-view.md)
 - **A tab's content is rebuilt when it is selected again.** That is the cost of
   §5's "lazy content instantiation" and is right — but it means a scroll position,
   a caret or a half-typed form in a background tab is gone, and the toolkit offers

@@ -1,6 +1,7 @@
 package io.github.digitalsmile.goldberry.widgets.panel.tabs;
 
 import io.github.digitalsmile.goldberry.widget.BuildContext;
+import io.github.digitalsmile.goldberry.widgets.core.scroll.ScrollController;
 import io.github.digitalsmile.goldberry.widget.State;
 import io.github.digitalsmile.goldberry.widget.Widget;
 import java.util.ArrayList;
@@ -32,6 +33,22 @@ import java.util.Map;
 /// finished — which marks a rebuild, and the next build is where it is dropped.
 final class TabsState extends State<Tabs> {
 
+    /// The viewport the headers live in, so a selected tab that is scrolled out
+    /// of the strip can be brought back ([ADR-0120]).
+    ///
+    /// Created here and handed *down* into the `tab-list`, which is the one
+    /// direction a controller can travel: the scroll view is a descendant, so
+    /// `findAncestorState` looks the wrong way, and a controller built by the
+    /// viewport would have a new identity on every rebuild.
+    private final ScrollController headerScroll = new ScrollController();
+
+    /// The tab that has just been selected and has not yet been shown, or null.
+    ///
+    /// A **request**, cleared as soon as it is acted on. A strip that pulled the
+    /// selected tab into view on every frame would take the strip's scrollbar
+    /// away from the user for as long as anything was selected, which is always.
+    private String pendingReveal;
+
     /// The tabs on screen, in the order they are drawn: the application's, plus
     /// any that are still leaving.
     private final Map<String, TabPhase> phases = new LinkedHashMap<>();
@@ -48,6 +65,20 @@ final class TabsState extends State<Tabs> {
     /// Whether a build has happened. The first one animates nothing: a window
     /// opening should show its tabs, not play six arrivals at once.
     private boolean opened;
+
+    /// Acts on a pending reveal, then forgets it.
+    ///
+    /// Handed the selected header's rectangle and the one that clips it, which is
+    /// the strip's viewport — the controller turns those two into a distance and
+    /// the viewport clamps it ([ADR-0119], [ADR-0120]).
+    private void revealed(io.github.digitalsmile.goldberry.backend.LogicalRect self,
+            io.github.digitalsmile.goldberry.backend.LogicalRect clip) {
+        if (pendingReveal == null) {
+            return;
+        }
+        headerScroll.reveal(self, clip);
+        setState(() -> pendingReveal = null);
+    }
 
     @Override
     public Widget build(BuildContext context) {
@@ -92,7 +123,11 @@ final class TabsState extends State<Tabs> {
                     leaving ? null : () -> strip.select(value),
                     leaving ? null : () -> strip.close(value),
                     phase::isRunning,
-                    now -> visibility(value, phase, now)));
+                    now -> visibility(value, phase, now),
+                    // Non-null only for the tab that has just been selected, so
+                    // exactly one header per build is asked where it is —
+                    // and only until it has been brought into view (ADR-0120).
+                    value.equals(pendingReveal) ? this::revealed : null));
             if (isSelected) {
                 content = tab.content();
             }
@@ -102,7 +137,7 @@ final class TabsState extends State<Tabs> {
             headers.add(new TabNew(strip.onNew()));
         }
         opened = true;
-        return new TabStrip(headers, content, strip.attributes());
+        return new TabStrip(headers, content, headerScroll, strip.attributes());
     }
 
     /// Everything in `current` that was not here before is arriving — except on

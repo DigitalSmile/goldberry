@@ -72,8 +72,13 @@ public record Tab(
         String value, String label, Icon icon, int colour, boolean closable,
         List<Widget> content, boolean selected, Runnable onSelect, Runnable onClose,
         java.util.function.BooleanSupplier animating,
-        java.util.function.DoubleUnaryOperator visibility, Attributes attributes)
-        implements Widget.Leaf, Styled, Paints, Handles, Attributed<Tab> {
+        java.util.function.DoubleUnaryOperator visibility,
+        java.util.function.BiConsumer<
+                io.github.digitalsmile.goldberry.backend.LogicalRect,
+                io.github.digitalsmile.goldberry.backend.LogicalRect> reveal,
+        Attributes attributes)
+        implements Widget.Leaf, Styled, Paints, Handles,
+                io.github.digitalsmile.goldberry.input.Located, Attributed<Tab> {
 
     public Tab {
         Objects.requireNonNull(value, "value");
@@ -89,20 +94,20 @@ public record Tab(
 
     /// A tab with a value and a label, and whatever it shows.
     public Tab(String value, String label, Widget... content) {
-        this(value, label, null, 0, false, List.of(content), false, null, null, null, null,
+        this(value, label, null, 0, false, List.of(content), false, null, null, null, null, null,
                 Attributes.NONE);
     }
 
     /// This tab with an icon before its label.
     public Tab icon(Icon value) {
         return new Tab(this.value, label, value, colour, closable, content, selected, onSelect,
-                onClose, animating, visibility, attributes);
+                onClose, animating, visibility, reveal, attributes);
     }
 
     /// This tab in a colour of its own — see the class note.
     public Tab colour(int argb) {
         return new Tab(value, label, icon, argb, closable, content, selected, onSelect, onClose,
-                animating, visibility, attributes);
+                animating, visibility, reveal, attributes);
     }
 
     /// This tab with a close affordance in its header, which raises the strip's
@@ -110,15 +115,32 @@ public record Tab(
     /// application's list, and only the application may shorten it (ADR-0063).
     public Tab closable(boolean value) {
         return new Tab(this.value, label, icon, colour, value, content, selected, onSelect,
-                onClose, animating, visibility, attributes);
+                onClose, animating, visibility, reveal, attributes);
     }
 
     /// Used by [Tabs] to tell a tab what it is and what it may ask for.
+    ///
+    /// `reveal` is non-null only for a tab that has just been selected and has
+    /// not yet been brought into view. A tab that carries one implements
+    /// [io.github.digitalsmile.goldberry.input.Located] in effect: it is told
+    /// where it is once a frame, hands both rectangles over and is then wired
+    /// without one again ([ADR-0120]).
     Tab wired(boolean isSelected, Runnable select, Runnable close,
             java.util.function.BooleanSupplier isAnimating,
-            java.util.function.DoubleUnaryOperator howVisible) {
+            java.util.function.DoubleUnaryOperator howVisible,
+            java.util.function.BiConsumer<
+                    io.github.digitalsmile.goldberry.backend.LogicalRect,
+                    io.github.digitalsmile.goldberry.backend.LogicalRect> reveal) {
         return new Tab(value, label, icon, colour, closable, content, isSelected, select, close,
-                isAnimating, howVisible, attributes);
+                isAnimating, howVisible, reveal, attributes);
+    }
+
+    @Override
+    public void located(io.github.digitalsmile.goldberry.backend.LogicalRect self,
+            io.github.digitalsmile.goldberry.backend.LogicalRect clip) {
+        if (reveal != null) {
+            reveal.accept(self, clip);
+        }
     }
 
     @Override
@@ -139,7 +161,7 @@ public record Tab(
     @Override
     public Tab withAttributes(Attributes value) {
         return new Tab(this.value, label, icon, colour, closable, content, selected, onSelect,
-                onClose, animating, visibility, value);
+                onClose, animating, visibility, reveal, value);
     }
 
     /// A tab takes the focus — it is what the strip's arrows rove between.

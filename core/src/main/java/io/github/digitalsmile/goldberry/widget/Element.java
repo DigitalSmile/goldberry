@@ -340,6 +340,17 @@ public final class Element implements BuildContext, StyleElement {
     }
 
     @Override
+    public <S extends State<?>> Optional<S> findAncestorState(Class<S> type) {
+        Objects.requireNonNull(type, "type");
+        for (var current = parent; current != null; current = current.parent) {
+            if (type.isInstance(current.state)) {
+                return Optional.of(type.cast(current.state));
+            }
+        }
+        return Optional.empty();
+    }
+
+    @Override
     public int depth() {
         var depth = 0;
         for (var current = parent; current != null; current = current.parent) {

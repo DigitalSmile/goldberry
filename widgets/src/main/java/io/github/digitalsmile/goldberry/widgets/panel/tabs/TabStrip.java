@@ -21,7 +21,9 @@ import java.util.Set;
 /// @param headers    the tab headers, already wired and phased
 /// @param content    the selected tab's content
 /// @param attributes the strip's own, so `#views` still selects it
-record TabStrip(List<Widget> headers, List<Widget> content, Attributes attributes)
+record TabStrip(List<Widget> headers, List<Widget> content,
+        io.github.digitalsmile.goldberry.widgets.core.scroll.ScrollController controller,
+        Attributes attributes)
         implements Widget.Leaf, Styled, Paints,
         io.github.digitalsmile.goldberry.input.Handles {
 
@@ -59,7 +61,7 @@ record TabStrip(List<Widget> headers, List<Widget> content, Attributes attribute
 
     @Override
     public List<Widget> children() {
-        return List.of(new TabList(headers), new TabPanel(content));
+        return List.of(new TabList(headers, controller), new TabPanel(content));
     }
 
     @Override

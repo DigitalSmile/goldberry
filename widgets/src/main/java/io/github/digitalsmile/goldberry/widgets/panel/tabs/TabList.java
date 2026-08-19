@@ -7,6 +7,7 @@ import io.github.digitalsmile.goldberry.widget.Styled;
 import io.github.digitalsmile.goldberry.widget.Attributes;
 import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widgets.core.scroll.Scroll;
+import io.github.digitalsmile.goldberry.widgets.core.scroll.ScrollController;
 import io.github.digitalsmile.goldberry.widgets.core.scroll.ScrollAxis;
 import java.util.List;
 import java.util.Set;
@@ -23,7 +24,8 @@ import java.util.Set;
 /// subset has no per-edge borders — see [TabIndicator].
 ///
 /// @param headers the tabs, already told which of them is selected
-record TabList(List<Widget> headers) implements Widget.Leaf, Styled, Paints {
+record TabList(List<Widget> headers, ScrollController controller)
+        implements Widget.Leaf, Styled, Paints {
 
     TabList {
         headers = List.copyOf(headers == null ? List.of() : headers);
@@ -61,7 +63,10 @@ record TabList(List<Widget> headers) implements Widget.Leaf, Styled, Paints {
         return List.of(
                 new TabRule(),
                 new Scroll(List.copyOf(headers), ScrollAxis.HORIZONTAL,
-                        Attributes.NONE.classes("tab-viewport")));
+                        Attributes.NONE.classes("tab-viewport"))
+                        // So a tab selected while the strip is scrolled past it
+                        // can ask to be brought back (ADR-0120).
+                        .controlledBy(controller));
     }
 
     @Override

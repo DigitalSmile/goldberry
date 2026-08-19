@@ -55,7 +55,9 @@ import java.util.List;
 ///                   children stack the way they would in a `column`
 /// @param axis       which way it moves
 /// @param attributes `id` and `class`, exactly as on the primitives
-public record Scroll(List<Widget> children, ScrollAxis axis, double height, Attributes attributes)
+public record Scroll(
+        List<Widget> children, ScrollAxis axis, double height,
+        ScrollController controller, Attributes attributes)
         implements Widget.Stateful, Attributed<Scroll> {
 
     public Scroll {
@@ -65,11 +67,21 @@ public record Scroll(List<Widget> children, ScrollAxis axis, double height, Attr
     }
 
     public Scroll(List<Widget> children, ScrollAxis axis, Attributes attributes) {
-        this(children, axis, Double.NaN, attributes);
+        this(children, axis, Double.NaN, null, attributes);
     }
 
     public Scroll(Widget... kids) {
         this(List.of(kids), ScrollAxis.VERTICAL, Attributes.NONE);
+    }
+
+    /// This viewport answering to `value` — §1's `scrollIntoView` API.
+    ///
+    /// A controller is a handle something *outside* the viewport holds, so it
+    /// cannot be created by the viewport's own state: whoever needs to scroll it
+    /// is by definition somewhere else, and a controller made here would have a
+    /// new identity on every rebuild ([ADR-0120]).
+    public Scroll controlledBy(ScrollController value) {
+        return new Scroll(children, axis, height, value, attributes);
     }
 
     /// This viewport with a height of `value` logical pixels.
@@ -83,12 +95,12 @@ public record Scroll(List<Widget> children, ScrollAxis axis, double height, Attr
     /// An ordinary `scroll` leaves this alone and takes its height from the
     /// stylesheet, which is `flex-grow: 1` — fill what is left of the column.
     public Scroll height(double value) {
-        return new Scroll(children, axis, value, attributes);
+        return new Scroll(children, axis, value, controller, attributes);
     }
 
     @Override
     public Scroll withAttributes(Attributes attributes) {
-        return new Scroll(children, axis, height, attributes);
+        return new Scroll(children, axis, height, controller, attributes);
     }
 
     @Override

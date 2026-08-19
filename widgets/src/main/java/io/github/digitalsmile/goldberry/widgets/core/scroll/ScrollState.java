@@ -45,6 +45,52 @@ final class ScrollState extends State<Scroll> {
     /// Which bar the pointer is dragging, or null.
     private Boolean draggingVertical;
 
+    /// Attaches to the controller the application gave this viewport, if any.
+    ///
+    /// On mount rather than on every build, so the attachment survives rebuilds
+    /// and a controller is never pointed at a state that is on its way out.
+    @Override
+    protected void initState() {
+        attach(widget().controller());
+    }
+
+    @Override
+    protected void didUpdateWidget(Scroll previous) {
+        if (previous.controller() != widget().controller()) {
+            // A viewport handed a different controller lets go of the old one
+            // first, or two controllers would both believe they drive this and
+            // the stale one would scroll a viewport nobody expects.
+            if (previous.controller() != null && previous.controller().attached == this) {
+                previous.controller().attached = null;
+            }
+            attach(widget().controller());
+        }
+    }
+
+    /// Lets go, so a controller an application still holds cannot scroll a tree
+    /// that has been unmounted.
+    ///
+    /// The reference is kept here rather than read back off `widget()`, which
+    /// throws once a state is disposed — and a leak whose cleanup depends on the
+    /// thing being cleaned up is not cleanup.
+    @Override
+    protected void dispose() {
+        if (held != null && held.attached == this) {
+            held.attached = null;
+        }
+        held = null;
+    }
+
+    /// The controller currently pointed at this state.
+    private ScrollController held;
+
+    private void attach(ScrollController controller) {
+        held = controller;
+        if (controller != null) {
+            controller.attached = this;
+        }
+    }
+
     @Override
     public Widget build(BuildContext context) {
         var scroll = widget();
@@ -89,6 +135,23 @@ final class ScrollState extends State<Scroll> {
             draggingVertical = active ? vertical : null;
             fade.hold(active);
         });
+    }
+
+    /// Moves by `dx`, `dy` from wherever it is, clamped to what there is to show.
+    ///
+    /// What [Reveal] calls, and the only thing a descendant may ask of a scroll
+    /// view. A **distance** rather than a target, so the viewport needs to know
+    /// nothing about what asked or why ([ADR-0120]).
+    ///
+    /// The clamp is the same one every other path takes, so a child asking to be
+    /// revealed cannot scroll past the end any more than a wheel can.
+    void scrollBy(double dx, double dy) {
+        moveTo(clamp(offsetX + dx, viewport.overflowX(content)),
+                clamp(offsetY + dy, viewport.overflowY(content)));
+    }
+
+    private static double clamp(double value, double max) {
+        return value < 0 ? 0 : value > max ? max : value;
     }
 
     /// Takes the offset the viewport arrived at and asks for a frame.

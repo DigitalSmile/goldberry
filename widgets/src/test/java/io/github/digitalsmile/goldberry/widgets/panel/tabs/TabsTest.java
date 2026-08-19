@@ -250,7 +250,7 @@ class TabsTest {
     @DisplayName("a strip is one Tab stop with a horizontal roving selection")
     void keyboard() {
         assertEquals(FocusScope.HORIZONTAL,
-                new TabStrip(List.of(), List.of(), null).focusScope());
+                new TabStrip(List.of(), List.of(), null, null).focusScope());
         assertTrue(new Tab("a", "First").isFocusable());
         assertFalse(new TabClose(() -> { }).isFocusable(),
                 "a closable tab would otherwise be two stops, and nine tabs nineteen");
