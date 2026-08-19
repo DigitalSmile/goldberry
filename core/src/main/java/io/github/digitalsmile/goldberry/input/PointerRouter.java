@@ -225,20 +225,7 @@ public final class PointerRouter {
     /// is ever asked about and is only done for the handful of nodes that asked
     /// to be told where they are.
     private static LogicalRect paintedRect(HitTest.Region region) {
-        if (region.inverse() == null) {
-            return region.bounds();
-        }
-        var forward = region.inverse().invert();
-        if (forward == null) {
-            return region.bounds();
-        }
-        var left = forward.a() * region.left() + forward.c() * region.top() + forward.e();
-        var top = forward.b() * region.left() + forward.d() * region.top() + forward.f();
-        // Width and height come through the scale terms; every transform in the
-        // catalog that a `Located` widget sits under is a translation, so this is
-        // the identity in practice and correct if that ever stops being true.
-        return LogicalRect.of((float) left, (float) top,
-                (float) (forward.a() * region.width()), (float) (forward.d() * region.height()));
+        return region.painted();
     }
 
     /// What confines `region`, or the window when nothing does.

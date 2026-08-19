@@ -99,7 +99,34 @@ public final class ElementTree {
     }
 
     void markDirty(Element element) {
+        // The listener fires on the transition into dirty, not on every mark: a
+        // handler calling `setState` ten times asks for one frame, which is the
+        // same coalescing `flush` does one level down (ADR-0052).
+        var wasClean = dirty.isEmpty();
         dirty.add(element);
+        if (wasClean && onDirty != null) {
+            onDirty.run();
+        }
+    }
+
+    /// Told when this tree goes from clean to dirty — see [#onDirty].
+    private Runnable onDirty;
+
+    /// Asks `listener` for a frame whenever a `setState` lands on a clean tree.
+    ///
+    /// **Without this a `setState` reaches nothing.** The frame loop is idle when
+    /// nothing is animating (§1.7), and input handlers do not paint — so a widget
+    /// that changed its own state sat there until some *unrelated* event caused a
+    /// frame, and then showed the change one interaction late. A scroll view was
+    /// where it was noticed: the first turn of the wheel appeared to do nothing
+    /// and the second appeared to do one turn's worth
+    /// ([ADR-0122](../../../../../../book/src/adr/0122-a-setstate-asks-for-a-frame.md)).
+    ///
+    /// The window sets this. It is a single listener rather than a list because
+    /// there is exactly one thing that can paint a tree, and a second one would
+    /// mean two windows drawing one element tree.
+    public void onDirty(Runnable listener) {
+        this.onDirty = listener;
     }
 
     void forget(Element element) {

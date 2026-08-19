@@ -84,6 +84,10 @@ public final class Popup implements AutoCloseable {
         this.renderer = Objects.requireNonNull(renderer, "renderer");
         this.onClosed = Objects.requireNonNull(onClosed, "onClosed");
         this.tree = Objects.requireNonNull(tree, "tree");
+        // A popup's tree paints into a popup's window, exactly as the owner's
+        // does into its own — a `setState` in a menu item is as much a reason for
+        // a frame as one in the application (ADR-0122).
+        tree.onDirty(window::repaint);
         this.render = Objects.requireNonNull(render, "render");
         this.router = new PointerRouter();
 

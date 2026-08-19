@@ -1610,6 +1610,53 @@ numbers in the wrong argument positions. `TourGoldenTest` is the answer, and it
 is the right kind of test for this widget rather than an extra one: which region
 is dimmed and which is lit is not a question a widget tree can be asked.
 
+### Eight things the running application said
+
+The showcase had been rendered and not *used*. Running it produced a list, and
+two of the items were defects the whole suite was blind to.
+
+**A `setState` asked for no frame.** Reported as "the scroll starts working on
+the second or third turn of the wheel", and it was neither a scroll bug nor
+about the wheel. Two rules met and left a hole: §1.7 says the frame loop is idle
+unless something asks, and ADR-0052 says `setState` defers. Nothing connected
+them — `handlePointerWheel` did not repaint at all, and every other handler asked
+`repaintIfRestyled`, which is a question about `:hover`, not about state. So a
+widget that changed its own state waited for an unrelated event to paint it.
+Every stateful widget had this; it hid because most of them change a
+pseudo-class in the same gesture, and a scroll view changes none. The tree now
+tells its window when it goes from clean to dirty, once per transition. **No test
+in the suite could have caught it** — a widget test drives frames itself, so it
+is a frame loop that never asks whether anyone wanted one.
+
+**A pinned `affix` was painted underneath the rows sliding over it.** `AffixTest`
+passed the whole time, because every assertion it makes is about a *position* and
+all of them were true. A box tree has no order beyond document order, the affix
+sits at index N, and the rows at N+1 are drawn afterwards — so a background
+cannot help. This is exactly why CSS puts `position: sticky` in the positioned
+layer, and `Box.elevated` is that rule at its narrowest: one bit meaning "draw me
+last", no stacking context, no `z-index`, no ordering among elevated siblings.
+Layout is untouched, and the hit test reorders with the painter — a box drawn on
+top that was not *clicked* first would be a header you can see and point through.
+
+The other six were smaller and mostly mine. The tour anchored to the **layout**
+rectangle rather than the painted one, so a target inside anything scrolled was
+described in the wrong place, and its card was aligned to the target's left edge
+rather than centred on it — which put every card in the same place and made the
+sequence look static. The lit target had no edge of its own. `--gb-text-subtle`
+was a token this file invented, defined nowhere, logged as a dropped `var()` on
+every frame, and — once defined — produced a counter nobody could read: there is
+no third text rank in this palette, and the size carries the demotion instead.
+`border-bottom` is not in §8's subset and was being dropped with a line in the
+log each time. And the tab demo's panel could not fill, because it is inside a
+`scroll`, where the remaining height is nothing — correct, silent, and now an
+explicit height.
+
+Two goldens came out of it, and they are the right kind of test rather than
+extras: `affix-pinned` because "the header is at the top of the viewport" and
+"you can read the header" are indistinguishable to any assertion about the tree,
+and `tour-edge` because a card clamped against the window's edge is a placement,
+not a value.
+
 ### Not started
 
 `menubar`, tray, dialogs, forms, client-side decorations and charts. The rest of §5 — `card`, `group-box`, `split-pane`, `collapse`,

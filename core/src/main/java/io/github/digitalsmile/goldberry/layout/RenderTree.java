@@ -379,8 +379,19 @@ public final class RenderTree implements AutoCloseable {
             // the *traversal* as well as the rasterization (ADR-0114).
             return;
         }
+        // Document order, then whatever asked to be drawn last. Two passes and no
+        // sort: the flag is rare, the lists are short, and a comparator would put
+        // an ordering *among* elevated siblings that ADR-0123 deliberately does
+        // not define.
         for (var child : object.children()) {
-            paint(child, left, top, alpha, transform, clip, state);
+            if (!child.box().elevated()) {
+                paint(child, left, top, alpha, transform, clip, state);
+            }
+        }
+        for (var child : object.children()) {
+            if (child.box().elevated()) {
+                paint(child, left, top, alpha, transform, clip, state);
+            }
         }
         state.clipTo(parentClip);
     }
@@ -494,7 +505,14 @@ public final class RenderTree implements AutoCloseable {
             return;
         }
         for (var child : object.children()) {
-            paint(child, left, top, alpha, transform, clip, state);
+            if (!child.box().elevated()) {
+                paint(child, left, top, alpha, transform, clip, state);
+            }
+        }
+        for (var child : object.children()) {
+            if (child.box().elevated()) {
+                paint(child, left, top, alpha, transform, clip, state);
+            }
         }
     }
 
@@ -636,11 +654,23 @@ public final class RenderTree implements AutoCloseable {
         if (clip.isEmpty()) {
             return;
         }
+        // The same two passes the painter makes, and it must be the same two: this
+        // walk is what the hit test is built from, and a box drawn on top that was
+        // not *clicked* first would be a header you can see and point through
+        // (ADR-0123).
+        //
+        // The *unfaded* box is what the children were built from, so the
+        // accumulated alpha travels as a number rather than being applied twice on
+        // the way down.
         for (var child : object.children()) {
-            // The *unfaded* box is what the children were built from, so the
-            // accumulated alpha travels as a number rather than being applied
-            // twice on the way down.
-            visit(child, left, top, alpha, transform, clip, visitor);
+            if (!child.box().elevated()) {
+                visit(child, left, top, alpha, transform, clip, visitor);
+            }
+        }
+        for (var child : object.children()) {
+            if (child.box().elevated()) {
+                visit(child, left, top, alpha, transform, clip, visitor);
+            }
         }
     }
 

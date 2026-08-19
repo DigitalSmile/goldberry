@@ -46,6 +46,10 @@
   --gb-surface-2: var(--nord5);
   --gb-text: var(--nord0);
   --gb-text-muted: var(--nord3);
+  /* §1.2's scrim: what a veil dims the window with. Lighter on the light
+     theme, because the same alpha over white reads as a much heavier
+     curtain than it does over nord0. */
+  --gb-scrim: rgba(0, 0, 0, 0.40);
   --gb-border: var(--nord4);
   --gb-accent: var(--nord10);
   --gb-focus: var(--nord8);

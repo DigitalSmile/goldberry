@@ -128,6 +128,8 @@
 - [ADR-0119 A widget may be told where it is](adr/0119-a-widget-may-be-told-where-it-is.md)
 - [ADR-0120 A widget scrolls itself into view](adr/0120-a-widget-scrolls-itself-into-view.md)
 - [ADR-0121 A tour is a veil and a sequence](adr/0121-a-tour-is-a-veil-and-a-sequence.md)
+- [ADR-0122 A setState asks for a frame](adr/0122-a-setstate-asks-for-a-frame.md)
+- [ADR-0123 A pinned box paints after its siblings](adr/0123-a-pinned-box-paints-after-its-siblings.md)
 
 ---
 

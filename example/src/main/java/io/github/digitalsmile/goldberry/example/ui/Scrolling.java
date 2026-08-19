@@ -91,7 +91,7 @@ public record Scrolling(Runnable startTour) implements Widget.Stateful {
             }
 
             var jumps = new ArrayList<Widget>();
-            jumps.add(new Text("Jump to", Attributes.NONE.classes("caption")));
+            jumps.add(new Text("Jump to", Attributes.NONE.classes("jump-label")));
             for (var section : Scrolling.SECTIONS) {
                 jumps.add(new Button(section, () -> ask(section))
                         .withAttributes(Attributes.NONE.id("jump-" + section.toLowerCase())));

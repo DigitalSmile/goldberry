@@ -41,6 +41,20 @@ class TourGoldenTest {
     @Test
     @DisplayName("a stop lights its target and dims the rest")
     void stop() {
+        shoot("tour-stop", "jump-bar", "Jump to a section",
+                "These ask the list to bring a section into view.");
+    }
+
+    /// A target at the far right, which is the case the placement has to clamp:
+    /// a card centred on it would hang off the window.
+    @Test
+    @DisplayName("a card centred on a target near the edge stays on screen")
+    void nearTheEdge() {
+        shoot("tour-edge", "tour-button", "Start it again",
+                "A small target at the right-hand edge.");
+    }
+
+    private void shoot(String golden, String targetId, String title, String body) {
         RendererRequirement.enforce();
         var sheets = new ArrayList<Stylesheet>(
                 Controls.stylesheets(Theme.NORD_DARK, Density.REGULAR));
@@ -65,8 +79,7 @@ class TourGoldenTest {
 
             var host = new TourTestHost(regions);
             var tour = new Tour(List.of(
-                    new Stop("jump-bar", "Jump to a section",
-                            "These ask the list to bring a section into view."),
+                    new Stop(targetId, title, body),
                     new Stop("scroll-demo", "A viewport of its own",
                             "Scroll it with the wheel, or use PageDown.")),
                     host, () -> { });
@@ -90,7 +103,7 @@ class TourGoldenTest {
                 warm.end();
             }
 
-            GoldenImage.assertMatches("tour-stop", 900, 560, 1.0f, frame -> {
+            GoldenImage.assertMatches(golden, 900, 560, 1.0f, frame -> {
                 try (var render = RenderTree.create()) {
                     tree.flush();
                     render.update(frame, renderer.render(tree));

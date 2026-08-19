@@ -57,6 +57,28 @@
 
 #overlay-note, #tabs-note { color: var(--gb-text-muted) }
 
+/* The demo strip fills what the screen leaves it, so its panel is a panel rather
+   than a caption. Without this the strip is content-sized and the tab's content
+   ends wherever its text does, with the screen's background under it -- which
+   reads as a tab that failed to draw. */
+/* A definite height, and **not** `flex-grow: 1`, which was the first attempt and
+   does nothing here. Every gallery screen is inside a `scroll`, and a scroll
+   view's content column is as tall as its content by construction -- so there is
+   no "remaining height" for a child to grow into, and a strip that asked for one
+   stayed exactly as tall as its text. A panel that should fill has to be told
+   what to fill. */
+#demo-tabs { height: 300px }
+
+/* And its panel takes a surface, so that "the panel fills the screen" is
+   something you can see rather than something you have to measure. A tab panel
+   is transparent by default and rightly so -- most applications put their own
+   background behind it -- which is why the fill was invisible either way. */
+#demo-tabs > tab-panel {
+  background: var(--gb-surface);
+  border-radius: 8px;
+  padding: 12px;
+}
+
 /* A segmented control has **no width of its own**: its cells are proportions, so
    it fills whatever it is given (ADR-0099). In a 30% sidebar that was the right
    answer and needed saying nowhere; on a screen 900px wide it is a two-option
@@ -127,11 +149,18 @@
 /* --- the scrolling screen -------------------------------------------- */
 
 /* The list's frame. A fixed height rather than `flex-grow`, so the screen shows
-   a viewport that is visibly shorter than its content — a viewport that filled
-   the window would look exactly like a window. */
+   a viewport that is visibly shorter than its content -- one that filled the
+   window would look exactly like a window, and there would be nothing to say
+   that a viewport is what it is.
+
+   The border is the other half of that: without an edge, a scroll view is just
+   text that stops, and the reader has no way to tell the bottom of the list from
+   the bottom of the screen. */
 .scroll-demo {
   height: 320px;
   padding: 0;
+  border: 1px solid var(--gb-border);
+  border-radius: 8px;
 }
 
 /* The row of jump buttons. `flex-shrink: 0` because the list below it grows,
@@ -142,10 +171,14 @@
   flex-shrink: 0;
 }
 
-.caption {
+/* The "Jump to" label. Its own class and **not** `.caption`, which this file
+   already defines: a second rule for one name is not an override, it is two
+   authors disagreeing, and the later one silently re-coloured every caption on
+   the Values screen. */
+.jump-label {
   font-size: 11px;
   line-height: 16px;
-  color: var(--gb-text-subtle);
+  color: var(--gb-text-muted);
 }
 
 .scroll-row {
@@ -168,8 +201,13 @@ section-header {
 
 /* The moment it lifts. §1's whole argument for `:affixed` being a pseudo-class:
    no selector can say "this node is currently over another one", and a sticky
-   header without a surface has the rows travelling *through* it. */
+   header without a surface has the rows travelling *through* it.
+
+   `border` and not `border-bottom`: §8's subset has one `border` and no per-edge
+   longhands (ADR-0107), and a declaration it does not know is dropped with a
+   line in the log rather than drawn. A full border reads correctly here because
+   the header spans the list's whole width, so only the bottom edge is ever
+   against anything. */
 .section:affixed > affix-content > section-header {
-  background: var(--gb-surface);
-  border-bottom: 1px solid var(--gb-border);
+  background: var(--gb-surface-2);
 }

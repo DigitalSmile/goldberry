@@ -181,6 +181,28 @@ the mechanism the sentence named.
 
 ## The catalog: specified and unbuilt
 
+- **There is no third text rank, and one was invented and taken back out.** A
+  tour's step counter wanted something quieter than `--gb-text-muted`;
+  `--gb-text-subtle` was added, resolved to `nord3`, and produced a counter
+  nobody could read on `nord1` — §1.2's contrast floor applies to metadata as
+  much as to prose, and the Nord palette has nothing between muted and the border
+  colour. The size carries the demotion instead. A real third rank would need a
+  colour the palette does not contain. —
+  [ADR-0121](adr/0121-a-tour-is-a-veil-and-a-sequence.md)
+- **Nothing warns that a `var()` resolved to nothing.** It logs, which is how the
+  invented token above was found — but it logs per node per frame, so one missing
+  token is a stream rather than a message. A cascade that said it once per
+  property per stylesheet would be a diagnostic; what is there is closer to
+  noise. —
+  [ADR-0121](adr/0121-a-tour-is-a-veil-and-a-sequence.md)
+- **`flex-grow` means nothing inside a `scroll`, and nothing says so.** A scroll
+  view's content column is as tall as its content by construction, so a child
+  asking to fill the remaining height gets none — which is correct and completely
+  silent. The showcase's tab strip hit it and needed an explicit height. A
+  diagnostic would have to know that a `grow` resolved against an unbounded main
+  axis, which Yoga knows and does not report. —
+  [ADR-0116](adr/0116-a-scroll-view-is-a-clip-an-offset-and-two-extents.md)
+
 - **A `tour` cannot find the viewport its target is in.** §5 asks it to scroll a
   target into view, and `Stop` takes a `ScrollController` the application
   supplies. Discovering it means walking from an element to its nearest scrolling
@@ -192,10 +214,6 @@ the mechanism the sentence named.
   below its target from a constant. Measuring needs the measure-then-place
   machinery ADR-0104 built, which works on *windows* rather than on boxes. Being
   wrong puts a card above its target when it would have fitted below. —
-  [ADR-0121](adr/0121-a-tour-is-a-veil-and-a-sequence.md)
-- **`--gb-scrim` does not exist.** A tour band's 0.55 black is §1.2's scrim
-  written as a literal, because there is one consumer and ADR-0019's rule says
-  wait for the second. `dialog` will be it. —
   [ADR-0121](adr/0121-a-tour-is-a-veil-and-a-sequence.md)
 - **A tour has no arrival or exit.** §1.7's overlay curve wants one to arrive
   rather than appear, and stops change instantly — §5's row asks for the veil

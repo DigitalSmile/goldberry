@@ -61,6 +61,13 @@ record AffixSlot(
     @Override
     public Box render(ComputedStyle style, List<Box> boxes, Context context) {
         return Box.of().children(boxes.toArray(Box[]::new)).style(style)
-                .direction(FlexDirection.COLUMN);
+                .direction(FlexDirection.COLUMN)
+                // While pinned, this paints after its siblings — and only while
+                // pinned. Document order is paint order (ADR-0053), so a header
+                // sitting where the layout put it has the rows *below* it drawn
+                // afterwards, straight over the top of it. Which is a sticky
+                // header you can read the list through
+                // ([ADR-0123](../../../../../../../../book/src/adr/0123-a-pinned-box-paints-after-its-siblings.md)).
+                .elevated(affixed);
     }
 }

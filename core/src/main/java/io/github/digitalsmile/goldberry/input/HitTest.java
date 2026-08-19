@@ -91,6 +91,35 @@ public final class HitTest {
         ///
         /// What a popup is anchored to — the rectangle without the owner, the
         /// cursor or the transform, which is all a placement policy wants.
+        /// Where this box was **painted**, which is not where it was laid out
+        /// when something above it was transformed.
+        ///
+        /// [#bounds()] is the layout rectangle, which is what a popup anchors to
+        /// — a menu belongs under where its button sits in the flow. Anything
+        /// reasoning about what the user can *see* wants this one instead: a row
+        /// inside a scrolled list is laid out where it always was and drawn a
+        /// long way from there
+        /// ([ADR-0123](../../../../../../book/src/adr/0123-a-pinned-box-paints-after-its-siblings.md)).
+        ///
+        /// A region stores the **inverse** of its matrix, because undoing a
+        /// transform is what hit testing needs and inverting once while painting
+        /// is what stops two inversions disagreeing (ADR-0068). Going forwards
+        /// means inverting it back, which is exact for the translations this is
+        /// ever asked about.
+        public io.github.digitalsmile.goldberry.backend.LogicalRect painted() {
+            if (inverse == null) {
+                return bounds();
+            }
+            var forward = inverse.invert();
+            if (forward == null) {
+                return bounds();
+            }
+            return io.github.digitalsmile.goldberry.backend.LogicalRect.of(
+                    (float) (forward.a() * left + forward.c() * top + forward.e()),
+                    (float) (forward.b() * left + forward.d() * top + forward.f()),
+                    (float) (forward.a() * width), (float) (forward.d() * height));
+        }
+
         public io.github.digitalsmile.goldberry.backend.LogicalRect bounds() {
             return io.github.digitalsmile.goldberry.backend.LogicalRect.of(
                     left, top, width, height);

@@ -62,6 +62,10 @@ record TourStop(
     /// below.
     private static final float ESTIMATED_HEIGHT = 132;
 
+    /// How far the ring sits outside the target, so it frames the widget rather
+    /// than covering its outermost pixels.
+    private static final float RING = 3;
+
     @Override
     public String cssType() {
         return "tour";
@@ -107,6 +111,12 @@ record TourStop(
                 .withAttributes(Attributes.NONE.classes("tour-next")));
         return List.of(
                 new TourVeil(target, window),
+                // The lit rectangle gets an edge of its own. Without one the
+                // target is "the part that is not dim", which reads as a hole
+                // rather than as the subject — and where the widget's own
+                // background matches the window's, as a toolbar's does, there is
+                // no visible boundary at all.
+                new TourRing(target),
                 new TourCard(
                         new Column(
                                 new Text(stop.title(), Attributes.NONE.classes("tour-title")),
@@ -149,11 +159,16 @@ record TourStop(
         var width = window.size().width();
         var height = window.size().height();
         var veil = children.get(0);
-        var card = children.get(1);
+        var ring = children.get(1);
+        var card = children.get(2);
         var below = target.top() + target.size().height() + GAP;
         var fitsBelow = height <= 0 || below + ESTIMATED_HEIGHT + GAP <= height;
         var cardTop = fitsBelow ? below : Math.max(GAP, target.top() - ESTIMATED_HEIGHT - GAP);
-        var cardLeft = target.left();
+        // Centred on the target rather than aligned to its left edge. A stop
+        // describing a narrow control had its card start at that control's `x`,
+        // which for anything near the left of the window put every card in the
+        // same place and made the sequence look as though it were not moving.
+        var cardLeft = target.left() + target.size().width() / 2 - WIDTH / 2;
         if (width > 0) {
             cardLeft = Math.min(cardLeft, width - WIDTH - GAP);
         }
@@ -170,6 +185,13 @@ record TourStop(
                 .children(
                 veil.position(PositionType.ABSOLUTE)
                         .inset(Insets.all(StyleLength.points(0))),
+                ring.position(PositionType.ABSOLUTE)
+                        .inset(new Insets(
+                                StyleLength.points(target.top() - RING),
+                                StyleLength.UNDEFINED, StyleLength.UNDEFINED,
+                                StyleLength.points(target.left() - RING)))
+                        .size(StyleLength.points(target.size().width() + RING * 2),
+                                StyleLength.points(target.size().height() + RING * 2)),
                 card.position(PositionType.ABSOLUTE)
                         // `Insets` is in CSS order -- top, right, bottom, left.
                         // Left and top the other way round anchors the card by

@@ -1785,7 +1785,17 @@ tour-veil {
    light enough that the surrounding layout is still readable -- a tour that
    blacked out its context would be a modal dialog with extra steps. */
 tour-band {
-  background: rgba(0, 0, 0, 0.55);
+  background: var(--gb-scrim);
+}
+
+/* The edge around the lit widget. No fill -- the target shows through it
+   untouched -- and the accent, because the thing being described is the thing
+   the eye should go to. §1.5's focus ring is 2px and this is the same idea one
+   step out, framing a widget rather than marking a focused one. */
+tour-ring {
+  background: transparent;
+  border: 2px solid var(--gb-accent);
+  border-radius: 6px;
 }
 
 /* §1.5's dialog elevation: the 12 radius, because a tour card is a dialog by
@@ -1827,11 +1837,17 @@ tour-card > column > row {
 }
 
 /* The counter reads as metadata rather than as prose, which is what stops "3 of
-   5" being mistaken for part of the sentence above it. */
+   5" being mistaken for part of the sentence above it.
+
+   `--gb-text-muted` and not a quieter third rank, which this first asked for and
+   which does not exist: §1.2 defines two text ranks, and the Nord palette has
+   nothing between muted and the border colour. A token invented for it resolved
+   to `nord3`, which on `nord1` is a counter nobody can read -- §1.2's contrast
+   floor applies to metadata too. The size carries the demotion instead. */
 .tour-count {
   font-size: 11px;
   line-height: 16px;
-  color: var(--gb-text-subtle);
+  color: var(--gb-text-muted);
 }
 
 /* Skip is the way out and must not compete with the way on. */

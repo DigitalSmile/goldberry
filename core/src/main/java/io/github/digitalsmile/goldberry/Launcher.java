@@ -125,6 +125,10 @@ final class Launcher implements Host {
         // appeared with the first overlay would re-parent the whole application
         // to show a toast, and re-parenting is what throws state away.
         tree = new ElementTree(new WindowRoot(application.root(), overlays));
+        // A `setState` anywhere in the tree asks for a frame. Without it the
+        // change waits for some unrelated event to paint, which is a widget that
+        // reacts one interaction late (ADR-0122).
+        tree.onDirty(window::repaint);
         router.focusRoot(tree.root());
 
         // Held for the life of the window, which is the whole point of it: the
