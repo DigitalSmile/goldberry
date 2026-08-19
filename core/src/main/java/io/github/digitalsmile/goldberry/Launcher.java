@@ -234,6 +234,10 @@ final class Launcher implements Host {
         // the same capture, so a menu opens under where its button *was drawn*
         // rather than where a fresh layout would put it.
         regions = HitTest.capture(render);
+        // Before the regions, because a `Located` widget is told what clips it and
+        // "nothing clips me" resolves to this (ADR-0119).
+        router.windowBounds(io.github.digitalsmile.goldberry.backend.LogicalRect.of(
+                0, 0, frame.size().width(), frame.size().height()));
         router.updateRegions(regions);
 
         // §1.7's "the frame loop is fully idle when no animation is active": ask

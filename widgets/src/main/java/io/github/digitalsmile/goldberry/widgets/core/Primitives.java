@@ -4,6 +4,8 @@ import io.github.digitalsmile.goldberry.bind.Bindings;
 import io.github.digitalsmile.goldberry.kdl.KdlInflater;
 import io.github.digitalsmile.goldberry.widget.Attributes;
 import io.github.digitalsmile.goldberry.widget.Widget;
+import io.github.digitalsmile.goldberry.widgets.core.affix.Affix;
+import io.github.digitalsmile.goldberry.widgets.core.affix.Edge;
 import io.github.digitalsmile.goldberry.widgets.core.scroll.Scroll;
 import io.github.digitalsmile.goldberry.widgets.core.scroll.ScrollAxis;
 import io.github.digitalsmile.goldberry.widgets.panel.Panel;
@@ -12,7 +14,7 @@ import java.util.List;
 import java.util.Objects;
 
 /// The KDL registry for `docs/core-widgets.md` §1, §2 and §5's structural
-/// widgets: `text`, `row`, `column`, `panel`, `spacer`, `scroll`.
+/// widgets: `text`, `row`, `column`, `panel`, `spacer`, `scroll`, `affix`.
 ///
 /// These used to live in `:core` as nested records inside a `Widgets` class,
 /// because the engines needed *something* to prove the widget tree against before
@@ -61,6 +63,9 @@ public final class Primitives {
         inflater.register("column", (node, children) -> new Column(children, Attributes.of(node)));
         inflater.register("panel", (node, children) -> new Panel(children, Attributes.of(node)));
         inflater.register("spacer", (node, children) -> new Spacer(Attributes.of(node)));
+        inflater.register("affix", (node, children) -> new Affix(
+                children, Edge.parse(node.stringProperty("edge")),
+                node.numberProperty("offset", 0), Attributes.of(node)));
         inflater.register("scroll", (node, children) -> new Scroll(
                 children, ScrollAxis.parse(node.stringProperty("axis")), Attributes.of(node)));
         return inflater;
@@ -72,6 +77,6 @@ public final class Primitives {
         // `scroll` and not `scroll-content`: the parity test checks the names a
         // document may write, and the content node is one this widget builds
         // for itself.
-        return List.of("text", "row", "column", "panel", "spacer", "scroll");
+        return List.of("text", "row", "column", "panel", "spacer", "scroll", "affix");
     }
 }

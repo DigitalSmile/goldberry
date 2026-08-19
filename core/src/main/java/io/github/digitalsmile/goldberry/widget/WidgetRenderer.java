@@ -244,6 +244,7 @@ public final class WidgetRenderer {
             element.setPseudoClass(PseudoClass.DISABLED, styled.isDisabled());
             element.setPseudoClass(PseudoClass.CHECKED, styled.isChecked());
             element.setPseudoClass(PseudoClass.INDETERMINATE, styled.isIndeterminate());
+            element.setPseudoClass(PseudoClass.AFFIXED, styled.isAffixed());
         }
 
         // A node the cascade can reach resolves a style; one it cannot passes its

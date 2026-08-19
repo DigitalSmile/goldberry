@@ -85,6 +85,15 @@ public interface Styled extends Widget {
         return resolved;
     }
 
+    /// Whether this node has pinned itself, for `:affixed`.
+    ///
+    /// `affix`'s, and nothing else's. Mirrored onto the element exactly as
+    /// `:disabled` and `:checked` are, so a stylesheet, a hit test and the widget
+    /// agree about it without three of them asking separately.
+    default boolean isAffixed() {
+        return false;
+    }
+
     /// Whether this node is disabled, for `:disabled`.
     ///
     /// The one pseudo-class a **widget** owns rather than the router. `:hover`,

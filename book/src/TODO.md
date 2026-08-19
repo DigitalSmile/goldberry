@@ -241,12 +241,18 @@ the mechanism the sentence named.
   opens both. —
   [ADR-0116](adr/0116-a-scroll-view-is-a-clip-an-offset-and-two-extents.md),
   [ADR-0080](adr/0080-a-value-is-measured-along-a-part.md)
-- **`affix` is unbuilt and now has something to pin to.** §1 gives it `edge=`,
-  an `:affixed` pseudo-class and a same-sized hole left behind, all defined
-  against "the nearest `scroll`". It needs a descendant's position within the
-  viewport, which is `scrollIntoView`'s missing question asked the other way
-  round. —
-  [ADR-0116](adr/0116-a-scroll-view-is-a-clip-an-offset-and-two-extents.md)
+- **A pinned `affix` is not pushed out by the next one.** A sticky header
+  conventionally gives way when the following section's header reaches it; this
+  one stays pinned until its own subtree has scrolled away entirely, so two
+  headers overlap for the length of the shorter section. Doing better needs an
+  affix to know about its sibling, which is a relationship nothing in the widget
+  tree expresses. —
+  [ADR-0119](adr/0119-a-widget-may-be-told-where-it-is.md)
+- **An `affix` pins on one axis.** All four `edge=` values work and no affix can
+  be pinned to two at once — a header that is both sticky at the top and held
+  against the left of a horizontally scrolling table is the case, and it needs
+  two shifts and a rule about which wins. Nobody has asked. —
+  [ADR-0119](adr/0119-a-widget-may-be-told-where-it-is.md)
 
 - **A tab strip scrolls, and has no chevrons at either end.** The headers are in
   a horizontal viewport now, so a strip wider than its window can be reached —

@@ -1751,3 +1751,20 @@ scroll-thumb.dragging { background: var(--gb-accent) }
    its last commands silently dropped (ADR-0118). The height is the opener's,
    because nothing in a stylesheet knows how tall the display is. */
 scroll.menu-viewport { flex-grow: 0 }
+
+/* --- affix (§1) ------------------------------------------------------- */
+
+/* The hole. It has no appearance of its own and must not gain one: whatever the
+   author put inside is what shows, and a fill here would paint over the content
+   scrolling underneath the pinned child. */
+affix,
+affix-content {
+  flex-shrink: 0;
+}
+
+/* A pinned child sits above what scrolls under it. §1.5's elevation, applied
+   the moment it lifts and not before -- which is the whole reason `:affixed` is
+   a pseudo-class rather than something an author writes. */
+affix:affixed > affix-content {
+  background: var(--gb-surface);
+}

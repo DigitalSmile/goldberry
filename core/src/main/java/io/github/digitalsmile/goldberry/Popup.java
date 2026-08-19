@@ -246,6 +246,8 @@ public final class Popup implements AutoCloseable {
         // machinery for a saving nobody can measure on a 180×132 menu.
         render.paint(frame);
         regions = HitTest.capture(render);
+        router.windowBounds(io.github.digitalsmile.goldberry.backend.LogicalRect.of(
+                0, 0, frame.size().width(), frame.size().height()));
         router.updateRegions(regions);
         if (!focused) {
             focused = true;

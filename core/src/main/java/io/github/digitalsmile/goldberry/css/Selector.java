@@ -110,6 +110,19 @@ public record Selector(List<Part> parts) {
         /// wrong for the mixed case, silently.
         INDETERMINATE,
 
+        /// An `affix` that has pinned itself — `docs/core-widgets.md` §1's
+        /// `:affixed`.
+        ///
+        /// A widget's own state rather than the router's, like `:checked`: the
+        /// pointer and the keyboard know nothing about it, and what decides it is
+        /// a comparison between two rectangles the widget was told about
+        /// ([ADR-0119](../../../../../../book/src/adr/0119-a-widget-may-be-told-where-it-is.md)).
+        ///
+        /// It exists so a sticky header can gain a shadow **the moment it lifts**,
+        /// which is the whole visual point of the widget and is not expressible any
+        /// other way: no selector can say "this node is currently over another one".
+        AFFIXED,
+
         /// The root element — `:root { --gb-accent: … }`.
         ///
         /// Structural rather than a state: it never changes for an element, so

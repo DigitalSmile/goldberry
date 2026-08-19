@@ -2,6 +2,7 @@ package io.github.digitalsmile.goldberry.input;
 
 import io.github.digitalsmile.goldberry.backend.Cursor;
 import io.github.digitalsmile.goldberry.css.Selector.PseudoClass;
+import io.github.digitalsmile.goldberry.backend.LogicalRect;
 import io.github.digitalsmile.goldberry.widget.Element;
 import io.github.digitalsmile.goldberry.widget.Styled;
 import java.util.ArrayList;
@@ -86,6 +87,19 @@ public final class PointerRouter {
     public void updateRegions(List<HitTest.Region> regions) {
         this.regions = List.copyOf(Objects.requireNonNull(regions, "regions"));
         notifyMeasured();
+        notifyLocated();
+    }
+
+    /// The window's own rectangle, for a [Located] widget nothing clips.
+    ///
+    /// Set from the frame rather than assumed, because "nothing clips me" has to
+    /// resolve to a real rectangle for `affix` to pin against — see
+    /// [Located#located].
+    private LogicalRect windowBounds = LogicalRect.of(0, 0, 0, 0);
+
+    /// Tells the router how big the window is, for the rectangle above.
+    public void windowBounds(LogicalRect bounds) {
+        this.windowBounds = bounds == null ? LogicalRect.of(0, 0, 0, 0) : bounds;
     }
 
     /// What each [Measured] widget was told last time, so an unchanging window
@@ -140,6 +154,76 @@ public final class PointerRouter {
             measured.measured(bounds, part);
         }
         measuredBounds = next == null ? java.util.Map.of() : next;
+    }
+
+    /// What each [Located] widget was last told, so a still window notifies
+    /// nothing — [#measuredBounds]'s reason exactly.
+    private java.util.Map<Element, Location> locations = java.util.Map.of();
+
+    private record Location(LogicalRect self, LogicalRect clip) {
+    }
+
+    /// Tells every [Located] widget where the frame just put it.
+    ///
+    /// Separate from [#notifyMeasured] rather than folded into it, because the
+    /// two answer different questions and almost nothing wants both: a scrollbar
+    /// needs a size and does not care where it is, and an `affix` needs a
+    /// position and does not care how big it is. One walk each, over the nodes
+    /// that asked ([ADR-0119]).
+    private void notifyLocated() {
+        java.util.Map<Element, Location> next = null;
+        for (var region : regions) {
+            if (!(region.owner() instanceof Element element)
+                    || !(element.widget() instanceof Located located)) {
+                continue;
+            }
+            var location = new Location(paintedRect(region), clipRect(region));
+            if (next == null) {
+                next = new java.util.IdentityHashMap<>();
+            }
+            next.put(element, location);
+            if (location.equals(locations.get(element))) {
+                continue;
+            }
+            located.located(location.self(), location.clip());
+        }
+        locations = next == null ? java.util.Map.of() : next;
+    }
+
+    /// Where `region` was actually painted, which is not where it was laid out
+    /// when something above it was transformed.
+    ///
+    /// A region stores the layout rectangle and the **inverse** of the matrix,
+    /// because undoing a transform is what hit testing needs and inverting once
+    /// while painting is what stops two inversions disagreeing (ADR-0068). Going
+    /// forwards means inverting it back, which is exact for the translations this
+    /// is ever asked about and is only done for the handful of nodes that asked
+    /// to be told where they are.
+    private static LogicalRect paintedRect(HitTest.Region region) {
+        if (region.inverse() == null) {
+            return region.bounds();
+        }
+        var forward = region.inverse().invert();
+        if (forward == null) {
+            return region.bounds();
+        }
+        var left = forward.a() * region.left() + forward.c() * region.top() + forward.e();
+        var top = forward.b() * region.left() + forward.d() * region.top() + forward.f();
+        // Width and height come through the scale terms; every transform in the
+        // catalog that a `Located` widget sits under is a translation, so this is
+        // the identity in practice and correct if that ever stops being true.
+        return LogicalRect.of((float) left, (float) top,
+                (float) (forward.a() * region.width()), (float) (forward.d() * region.height()));
+    }
+
+    /// What confines `region`, or the window when nothing does.
+    private LogicalRect clipRect(HitTest.Region region) {
+        var clip = region.clip();
+        if (clip == null || clip.isNone()) {
+            return windowBounds;
+        }
+        return LogicalRect.of((float) clip.left(), (float) clip.top(),
+                (float) clip.width(), (float) clip.height());
     }
 
     /// Told when the hovered or the focused node changes — see [#onPointingChanged].
