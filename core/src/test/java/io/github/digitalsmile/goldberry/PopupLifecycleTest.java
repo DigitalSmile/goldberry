@@ -280,6 +280,101 @@ class PopupLifecycleTest {
         assertFalse(opened[0].isOpen());
     }
 
+    /// **A floor under the width** — [ADR-0145], and the only thing a
+    /// measurement of the content cannot say.
+    ///
+    /// `Sized` is 200 wide by the test's stylesheet, so a floor of 320 has to
+    /// win and a floor of 100 has to lose.
+    @Test
+    @Timeout(20)
+    @DisplayName("a popup opened with a minimum width is at least that wide")
+    void minimumWidth() {
+        var wide = new LogicalSize[1];
+        var narrow = new LogicalSize[1];
+        Goldberry.launch(new TestApp(
+                host -> {
+                    wide[0] = host.popup(new Sized("menu"),
+                            io.github.digitalsmile.goldberry.backend.LogicalRect.of(0, 0, 10, 10),
+                            Placement.BELOW, 320).orElseThrow().bounds().size();
+                    narrow[0] = host.popup(new Sized("menu2"),
+                            io.github.digitalsmile.goldberry.backend.LogicalRect.of(0, 0, 10, 10),
+                            Placement.BELOW, 100).orElseThrow().bounds().size();
+                },
+                host -> { }),
+                new String[] {"--frames=3"});
+
+        assertEquals(320, wide[0].width(), 0.5,
+                "the floor won, because the content wanted less");
+        assertEquals(200, narrow[0].width(), 0.5,
+                "and the content won, because it wanted more — this is a floor, not a width");
+    }
+
+    /// Runs `action` on the UI thread after `millis`, so a deferred check has
+    /// had time to fire and the answer can be read while the loop is still up —
+    /// `shutDown` closes every popup, so anything asserted after `launch`
+    /// returns is asserting the teardown.
+    private static void later(long millis, Runnable action) {
+        Goldberry.async(() -> {
+            try {
+                Thread.sleep(millis);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+            return null;
+        }).thenRun(action);
+    }
+
+    /// **A popup goes away when the application does** — [ADR-0144].
+    ///
+    /// Nothing reported this before: the toolkit had no focus event at all, so a
+    /// menu left open while the user switched to another application stayed on
+    /// screen over it, and stayed *on top*, because a popup is always-on-top by
+    /// kind.
+    @Test
+    @Timeout(20)
+    @DisplayName("a popup closes when the last of this application's windows loses focus")
+    void closesWhenTheApplicationLosesFocus() {
+        var stillOpen = new boolean[] {true};
+        Goldberry.launch(new TestApp(
+                host -> {
+                    var opened = host.popup(new Plate("menu"),
+                            LogicalPoint.of(40, 60), LogicalSize.of(180, 132)).orElseThrow();
+                    backend.post(new BackendEvent.FocusChanged(ownerWindow(), false));
+                    later(300, () -> {
+                        stillOpen[0] = opened.isOpen();
+                        Goldberry.stop();
+                    });
+                },
+                host -> { }));
+
+        assertFalse(stillOpen[0]);
+    }
+
+    /// The other half, and the reason the check is deferred rather than
+    /// immediate: opening a popup **is** a focus-lost for the window under it.
+    /// A menu that closed on that would close as it opened.
+    @Test
+    @Timeout(20)
+    @DisplayName("a popup that took the focus itself stays open")
+    void focusMovingToThePopupIsNotLeaving() {
+        var stillOpen = new boolean[1];
+        Goldberry.launch(new TestApp(
+                host -> {
+                    var opened = host.popup(new Plate("menu"),
+                            LogicalPoint.of(40, 60), LogicalSize.of(180, 132)).orElseThrow();
+                    // Exactly the pair a compositor sends.
+                    backend.post(new BackendEvent.FocusChanged(ownerWindow(), false));
+                    backend.post(new BackendEvent.FocusChanged(onlyPopup(), true));
+                    later(300, () -> {
+                        stillOpen[0] = opened.isOpen();
+                        Goldberry.stop();
+                    });
+                },
+                host -> { }));
+
+        assertTrue(stillOpen[0], "the focus went to the popup, not out of the application");
+    }
+
     @Test
     @Timeout(20)
     @DisplayName("a popup that opted out of light dismissal stays open")

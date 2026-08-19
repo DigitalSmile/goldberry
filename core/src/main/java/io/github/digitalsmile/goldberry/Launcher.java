@@ -202,6 +202,11 @@ final class Launcher implements Host {
             }
         });
 
+        // A popup goes away when the *application* does, which no platform
+        // reports: opening one sends a focus-lost for the window under it and a
+        // focus-gained for the popup itself (ADR-0144).
+        GoldberryRuntime.get().onFocusChange(this::focusMayHaveLeft);
+
         try {
             Goldberry.run();
         } finally {
@@ -474,6 +479,45 @@ final class Launcher implements Host {
         return null;
     }
 
+    /// The pending "has the application really lost focus" check, or null.
+    private io.github.digitalsmile.goldberry.backend.EventLoop.Timer focusCheck;
+
+    /// How long to wait before believing a focus-lost.
+    ///
+    /// **Deferred rather than acted on**, and this is the whole mechanism. The
+    /// platform reports focus per window: opening a popup sends a lost for the
+    /// owner and then a gained for the popup, in that order, so a menu that
+    /// closed on the first of those would close as it opened. One turn of the
+    /// event loop later, the pair has been seen and the question "is any window
+    /// of ours focused" has its real answer.
+    ///
+    /// Short enough not to leave a menu floating over another application while
+    /// anybody notices, long enough to cover a pair of events the compositor
+    /// delivers in two batches.
+    private static final java.time.Duration FOCUS_SETTLE = java.time.Duration.ofMillis(60);
+
+    /// Some window's focus changed. If the application ends up with none of it,
+    /// every light-dismissed popup goes away.
+    ///
+    /// A menu left floating over the application the user switched *to* is the
+    /// symptom this exists for, and it is worse than it sounds: a popup is
+    /// always-on-top by kind, so it stays visible over the other application's
+    /// window (ADR-0144).
+    private void focusMayHaveLeft() {
+        if (popups.isEmpty()) {
+            return;
+        }
+        if (focusCheck != null) {
+            focusCheck.cancel();
+        }
+        focusCheck = after(FOCUS_SETTLE, () -> {
+            focusCheck = null;
+            if (!GoldberryRuntime.get().anyWindowFocused()) {
+                dismissPopups();
+            }
+        });
+    }
+
     /// Closes every light-dismissed popup. Copied first: closing one removes it
     /// from the list it is being iterated over.
     ///
@@ -658,14 +702,22 @@ final class Launcher implements Host {
     public java.util.Optional<Popup> popup(Widget content,
             io.github.digitalsmile.goldberry.backend.LogicalRect anchor, Placement placement) {
         return placed(content, anchor, placement,
-                io.github.digitalsmile.goldberry.backend.PopupKind.MENU);
+                io.github.digitalsmile.goldberry.backend.PopupKind.MENU, 0);
+    }
+
+    @Override
+    public java.util.Optional<Popup> popup(Widget content,
+            io.github.digitalsmile.goldberry.backend.LogicalRect anchor, Placement placement,
+            float minimumWidth) {
+        return placed(content, anchor, placement,
+                io.github.digitalsmile.goldberry.backend.PopupKind.MENU, minimumWidth);
     }
 
     /// Measure, place, open — the three steps `popover` is made of (ADR-0104),
     /// shared by the menu form and the tooltip one because only the kind differs.
     private java.util.Optional<Popup> placed(Widget content,
             io.github.digitalsmile.goldberry.backend.LogicalRect anchor, Placement placement,
-            io.github.digitalsmile.goldberry.backend.PopupKind kind) {
+            io.github.digitalsmile.goldberry.backend.PopupKind kind, float minimumWidth) {
 
         Objects.requireNonNull(content, "content");
         Objects.requireNonNull(anchor, "anchor");
@@ -676,7 +728,7 @@ final class Launcher implements Host {
         // would also be a second lot of `initState`.
         var tree = new ElementTree(content, this);
         var render = RenderTree.create();
-        var size = measure(tree, render);
+        var size = measure(tree, render, minimumWidth);
         var placed = placement.place(anchor, size, placeableArea());
         return open(tree, render,
                 new io.github.digitalsmile.goldberry.backend.PopupSpec(placed.at(), size, kind));
@@ -691,7 +743,7 @@ final class Launcher implements Host {
     private java.util.Optional<Popup> tooltipPopup(Widget content,
             io.github.digitalsmile.goldberry.backend.LogicalRect anchor) {
         return placed(content, anchor, Placement.ABOVE.align(Placement.Align.CENTER),
-                io.github.digitalsmile.goldberry.backend.PopupKind.TOOLTIP)
+                io.github.digitalsmile.goldberry.backend.PopupKind.TOOLTIP, 0)
                 .map(popup -> popup.lightDismiss(false));
     }
 
@@ -726,14 +778,27 @@ final class Launcher implements Host {
     /// [Placement]'s to clamp, and it can only clamp a number that means the
     /// content.
     private io.github.digitalsmile.goldberry.backend.LogicalSize measure(
-            ElementTree tree, RenderTree render) {
+            ElementTree tree, RenderTree render, float minimumWidth) {
         var box = renderer().render(tree);
         var natural = render.measure(box, window.scale(), Float.NaN, Float.NaN);
         var cap = window.size().width();
-        if (natural.width() <= cap) {
+        // A floor under the width, for a dropdown that must be at least as wide
+        // as the control it drops from (ADR-0145). Bounded by the cap, because a
+        // popup wider than the window it belongs to is not what any anchor meant.
+        var floor = Math.min(minimumWidth, cap);
+        if (natural.width() >= floor && natural.width() <= cap) {
             return natural;
         }
-        return render.measure(box, window.scale(), cap, Float.NaN);
+        // One more pass with a definite width, which is what makes the content
+        // *fill* the floor rather than merely be placed in a wider window --
+        // and the same pass the cap already needed.
+        var target = Math.max(floor, Math.min(natural.width(), cap));
+        var laid = render.measure(box, window.scale(), target, Float.NaN);
+        // Content that will not stretch -- something with a width of its own --
+        // still gets the window the floor asked for, because the floor is about
+        // where the popup's *edges* are and not about what is drawn in it.
+        return new io.github.digitalsmile.goldberry.backend.LogicalSize(
+                Math.max(laid.width(), floor), laid.height());
     }
 
     /// Where a popup is allowed to be, **in this window's coordinates**.

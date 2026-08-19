@@ -151,6 +151,31 @@ class MenuGoldenTest {
                 new Item("More").submenu(new Item("Reset", () -> { }))));
     }
 
+    /// **An icon sits in the middle of its column** — [ADR-0143].
+    ///
+    /// The leading column is 16 square, because it has to be one width whether it
+    /// holds a tick or an icon (ADR-0113). The icon is whatever size the
+    /// application built it, and it was drawn at the column's top-left corner —
+    /// so the showcase's 20px palette hung 4px above and left of the tick it is
+    /// supposed to line up with, and the row read as the odd one out.
+    ///
+    /// A **20px icon on purpose**, which is the size the showcase builds and the
+    /// case the other images here miss by building 16. The picture is the test:
+    /// where the glyph sits inside its slot is not a number any assertion here
+    /// reaches.
+    @Test
+    @DisplayName("an icon larger than its column is centred in it, not parked in the corner")
+    void oversizedIconIsCentred() {
+        var big = Icon.bundled("palette", 20);
+        try {
+            paint("menu-icon-oversized", Theme.NORD_DARK, 240, 110, new Menu(
+                    new Item("Switch theme", () -> { }).icon(big).accelerator("Ctrl+T"),
+                    new Item("Frame rate", () -> { }).accelerator("Ctrl+F").checked(true)));
+        } finally {
+            big.close();
+        }
+    }
+
     @Test
     @DisplayName("a menu on the light theme")
     void light() {

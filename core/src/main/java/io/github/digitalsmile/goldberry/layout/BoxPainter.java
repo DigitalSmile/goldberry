@@ -161,11 +161,20 @@ public final class BoxPainter {
         }
 
         if (box.icon() != null) {
-            // At the box's own origin, not centred in it: the box was sized
-            // to the icon by `Box.icon`, so they are the same rectangle
-            // unless a stylesheet said otherwise -- and if it did, the icon
-            // stays put rather than drifting to a centre nobody asked for.
-            box.icon().icon().draw(frame, x, y, box.icon().argb());
+            // **Centred in the box**, which is a no-op in the common case and the
+            // whole point in the other one. `Box.icon` sizes the box to the icon,
+            // so the two are usually the same rectangle and this offset is zero.
+            // Where a stylesheet said otherwise -- `item-lead` is 16 square,
+            // because a menu's leading column has to be one width whether it
+            // holds a tick or an icon (ADR-0113) -- the icon is whatever size the
+            // application built it, and drawing it at the corner put a 20px glyph
+            // 4px above and left of the tick it lines up with. An icon parked in
+            // the corner of its slot is the report "the row with the icon looks
+            // wrong"; centring is what a slot means
+            // ([ADR-0143](../../../../../../book/src/adr/0143-a-strip-keeps-its-height-and-an-icon-its-centre.md)).
+            var glyph = box.icon().icon().size();
+            box.icon().icon().draw(frame,
+                    x + (width - glyph) / 2, y + (height - glyph) / 2, box.icon().argb());
         }
 
         if (box.mark() != null) {

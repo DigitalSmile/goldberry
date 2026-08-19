@@ -30,6 +30,14 @@ public enum SdlEventType {
     /// The window moved to a display with a different scale.
     WINDOW_DISPLAY_SCALE_CHANGED(0x214),
 
+    /// The window took the keyboard focus.
+    WINDOW_FOCUS_GAINED(0x20E),
+
+    /// The window lost the keyboard focus — to another of this application's
+    /// windows, or to another application entirely. Which of the two it was is
+    /// not in the event: it is whether anything else of ours gained it.
+    WINDOW_FOCUS_LOST(0x20F),
+
     /// The window manager asked for the window to close.
     WINDOW_CLOSE_REQUESTED(0x210),
 

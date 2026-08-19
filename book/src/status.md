@@ -1274,6 +1274,64 @@ merely made to appear.
   `text-input` and `tree` rather than on a decision
   ([ADR-0141](adr/0141-a-select-is-a-closed-control-and-a-list.md))
 
+- **Five things reported from the running window, and one of them was the frame
+  itself.** The showcase was painting at 10–15 ms with nothing moving, worse when
+  a tour or a menu appeared. The suspects were all innocent — the popup's second
+  window, the veil, damage tracking — and the measurement said something much
+  duller and much worse: **one `render` of a settled screen cost 10 069 µs for 77
+  elements**, and 56 of 72 styled elements missed the style cache **on every
+  frame**. ADR-0070's cache is keyed on the style a node's parent handed down, by
+  identity, which is what makes inheritance invalidate itself. But the style a
+  parent hands down is not the one it caches: `restyle` runs after the cache, by
+  design, and every widget that writes an inline value allocates a fresh
+  `ComputedStyle` every frame whether or not anything moved —
+  `ScrollContent`'s is `resolved.flexShrink(0)`, unconditionally. So every node
+  under a `scroll` re-resolved every frame, and in the showcase every screen is
+  inside a `scroll`. A node now hands its children the **same instance** for as
+  long as the value is equal, which is a flat record comparison against a
+  re-resolve costing two orders of magnitude more: Controls 10 069 → 294 µs,
+  Values 8 125 → 126, Text 2 607 → 50, Overlays 2 923 → 17, Tabs 5 036 → 22. The
+  test asserts the mechanism rather than a duration — a widget whose `restyle`
+  allocates, and its child handed the same object twice — because a timing test
+  passes on a fast machine with the bug still in it
+  ([ADR-0142](adr/0142-a-style-handed-down-keeps-its-identity.md))
+- **A menu outlived the window that owned it.** Click on another application with
+  the menu open and it stayed, on top, over the window you switched to. Light
+  dismissal covered a press inside the owner and `Escape`, and neither of those
+  happens when the user clicks somewhere else entirely — because **there was no
+  focus event at all**, in the SPI or in the SDL translation. There is now, per
+  window, which is what every platform reports; "the application lost focus" is a
+  conclusion drawn from the whole set and the launcher is the only thing that
+  needs to draw it. **The check is deferred by 60 ms**, and that is the mechanism
+  rather than a fudge: opening a popup *is* a focus-lost for the window under it,
+  followed by a focus-gained for the popup, so a menu acting on the first would
+  close as it opened. Both outcomes have a test, and the second is the one that
+  would have caught the naive version
+  ([ADR-0144](adr/0144-a-popup-goes-away-when-the-application-does.md))
+- **A dropdown is as wide as what it drops from.** A `select` stretched across a
+  form opened a list as wide as the word "Dark". No measurement of the *content*
+  can fix that — it is a fact about the anchor — so `host.popup` takes a
+  **floor** under the width, applied inside the two-pass measurement it already
+  did. A floor and not a width: an option longer than the field still widens the
+  list past it. Opt-in per call rather than a property of `Placement`, because it
+  is false for the other two callers — a menu is as wide as its commands and a
+  tooltip as wide as its text
+  ([ADR-0145](adr/0145-a-dropdown-is-as-wide-as-what-it-drops-from.md))
+- **A tab strip took its height from the tallest thing in it, and a menu icon
+  from the corner of its box.** Two drawing defects with one shape. Closing the
+  last tab left the `+` — 24 square by design — as the tallest thing in the
+  header row, so the strip shrank to it and the button rode high; the same rule
+  was quietly wrong *with* tabs in it, measuring 30 where its tabs are 32, which
+  is why the gallery's `controls` images moved by two pixels. A header row is one
+  control tall by definition and now says so. And an icon was drawn at its box's
+  origin, which is a no-op where the box is the icon and four pixels of
+  misalignment where a stylesheet sized the box instead — `item-lead` is 16
+  square, the showcase builds its palette at 20, and the row with the icon read
+  as the odd one out. Centred now, which changes nothing in the common case and
+  is what a slot means in the other. Both are pinned by pictures, because both
+  are facts about where something is drawn
+  ([ADR-0143](adr/0143-a-strip-keeps-its-height-and-an-icon-its-centre.md))
+
 ## M3 — Shell
 
 **Started.** `docs/core-widgets.md` §7 names two places an overlay can be drawn —

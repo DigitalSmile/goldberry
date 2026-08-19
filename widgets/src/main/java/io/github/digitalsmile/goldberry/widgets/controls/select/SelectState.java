@@ -126,7 +126,12 @@ final class SelectState extends State<Select> {
             }
         }
 
-        var opened = host.popup(new SelectList(rows), field, Placement.BELOW);
+        // At least as wide as the field, and wider when an option is longer. A
+        // list narrower than the control it hangs off reads as a mistake rather
+        // than as a menu, and no measurement of the *content* can know how wide
+        // the field turned out (ADR-0145).
+        var opened = host.popup(new SelectList(rows), field, Placement.BELOW,
+                field.size().width());
         if (opened.isEmpty()) {
             // No popup windows on this driver. The list stays closed rather than
             // falling back to an in-window overlay, because the overlay would be

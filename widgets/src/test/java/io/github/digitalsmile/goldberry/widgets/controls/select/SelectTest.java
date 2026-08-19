@@ -71,7 +71,8 @@ class SelectTest {
     /// control must survive.
     private static final class StubHost implements Host {
 
-        record Opened(Widget content, LogicalRect anchor, Placement placement) {
+        record Opened(Widget content, LogicalRect anchor, Placement placement,
+                float minimumWidth) {
         }
 
         private final List<Opened> opened = new ArrayList<>();
@@ -79,7 +80,13 @@ class SelectTest {
 
         @Override
         public Optional<Popup> popup(Widget content, LogicalRect anchor, Placement placement) {
-            opened.add(new Opened(content, anchor, placement));
+            return popup(content, anchor, placement, 0);
+        }
+
+        @Override
+        public Optional<Popup> popup(Widget content, LogicalRect anchor, Placement placement,
+                float minimumWidth) {
+            opened.add(new Opened(content, anchor, placement, minimumWidth));
             return Optional.empty();
         }
 
@@ -411,6 +418,23 @@ class SelectTest {
             assertEquals(LogicalRect.of(10, 20, 160, 32), host.opened.getFirst().anchor(),
                     "anchored to where the last frame painted it, not to an id");
             assertEquals(Placement.BELOW, host.opened.getFirst().placement());
+        }
+
+        /// **A dropdown is at least as wide as what it drops from** — [ADR-0145].
+        ///
+        /// The list is measured from its content, and its content knows nothing
+        /// about the field: a `select` stretched across a form opened a panel as
+        /// wide as the word "Dark" hanging off its left-hand end, which reads as
+        /// a mistake rather than as a menu.
+        @Test
+        @DisplayName("the list is asked to be at least as wide as the field")
+        void atLeastAsWideAsTheField() {
+            var tree = tree(two());
+            field(tree).located(LogicalRect.of(10, 20, 240, 32), LogicalRect.of(0, 0, 800, 600));
+
+            click(field(tree));
+
+            assertEquals(240f, host.opened.getFirst().minimumWidth(), 0.5f);
         }
 
         @Test

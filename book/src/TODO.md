@@ -380,14 +380,16 @@ the mechanism the sentence named.
   not added on spec, because a capture phase is a routing rule and inventing one
   for a single consumer is how a router grows two. —
   [ADR-0141](adr/0141-a-select-is-a-closed-control-and-a-list.md)
-- **A `select` is as wide as its current value.** Nothing sizes it to its widest
-  option, so the field moves when the value does. No selector can measure a set
-  of options — the same wall `segmented` hit, where the answer was that the
-  control writes the width itself (ADR-0099) — and doing it here means measuring
-  text outside a layout pass, which only `Paragraph` can do and only for a style
-  that has been resolved. An application gives it a width, which is what a form
-  does anyway. —
-  [ADR-0141](adr/0141-a-select-is-a-closed-control-and-a-list.md)
+- **A `select`'s *field* is as wide as its current value.** The list is now at
+  least as wide as the field (ADR-0145), which was the half that showed; the
+  field itself still tracks its value, so it moves when the value does. No
+  selector can measure a set of options — the same wall `segmented` hit, where
+  the answer was that the control writes the width itself (ADR-0099) — and doing
+  it here means measuring text outside a layout pass, which only `Paragraph` can
+  do and only for a style that has been resolved. An application gives it a
+  width, which is what a form does anyway. —
+  [ADR-0141](adr/0141-a-select-is-a-closed-control-and-a-list.md),
+  [ADR-0145](adr/0145-a-dropdown-is-as-wide-as-what-it-drops-from.md)
 - **A `select`'s list is clamped rather than scrolled when it is taller than the
   screen.** `Menus` caps its own content by estimating a row height (ADR-0118)
   and this does not, so a long list loses its bottom exactly as a long menu used
@@ -826,11 +828,48 @@ the mechanism the sentence named.
 
 ---
 
+- **A style that really changes still re-resolves its whole subtree, and only
+  the inherited properties can matter.** ADR-0142 stopped a node handing down a
+  new instance for an unchanged value; what it did not do is narrow the
+  comparison to the properties a child could actually inherit. So scrolling —
+  which moves a transform, and a transform inherits nothing — re-resolves every
+  node inside the viewport on every frame of the gesture. The fix needs a notion
+  of which properties inherit, which the cascade has and `ComputedStyle` does
+  not. —
+  [ADR-0142](adr/0142-a-style-handed-down-keeps-its-identity.md)
+- **An icon larger than its slot overflows it.** An `Icon` is a path built at a
+  size and cannot be rescaled at paint time (ADR-0043), so a 20px glyph in a menu's
+  16px leading column is 20px — centred now rather than parked in the corner,
+  which is the difference between "large" and "misaligned", but still larger than
+  the column. An application that wants them to fit builds them at 16, and
+  nothing says so at the door. —
+  [ADR-0143](adr/0143-a-strip-keeps-its-height-and-an-icon-its-centre.md)
+- **60 ms is how long a focus-lost is disbelieved for.** Long enough to cover the
+  focus-lost/focus-gained pair that opening a popup produces, short enough that
+  nobody sees a menu over another application. It is one number covering every
+  driver, and the first driver that delivers that pair more slowly will look like
+  a menu that closes as it opens. —
+  [ADR-0144](adr/0144-a-popup-goes-away-when-the-application-does.md)
+
 ## Answered
 
 Kept rather than deleted: each is a trap somebody hit, and the reasoning that got
 out of it is usually worth more than the fact that it is fixed.
 
+- ~~**The style cache makes a settled frame free.**~~ **It did not, and had not
+  since `scroll` shipped.** ADR-0070 measured style resolution as the largest
+  term in a frame and cached it; the cache was keyed on the parent's style *by
+  identity*, and the style a parent hands down is not the one it caches —
+  `restyle` runs afterwards and allocates. Every node under a `scroll`, a `tab`
+  or a `segmented` re-resolved on every frame, which in the showcase is every
+  node on the screen: 10 069 µs to render 77 unchanged elements. This was never
+  on this list, because nothing had measured it. —
+  [ADR-0142](adr/0142-a-style-handed-down-keeps-its-identity.md)
+- ~~**Nothing tells the toolkit its window lost focus.**~~ **`FocusChanged`
+  does.** A menu left open while the user switched applications stayed on screen
+  over the one they switched *to*, because a popup is always-on-top by kind and
+  light dismissal only ever saw a press inside the owner window. —
+  [ADR-0144](adr/0144-a-popup-goes-away-when-the-application-does.md)
 - ~~**`option` lives in `…controls.segmented` and `select` will want it.**~~
   **It lives in `…controls.option`, and `select` wants exactly what `segmented`
   wanted.** The guess this entry refused to make — "a model, possibly a tree

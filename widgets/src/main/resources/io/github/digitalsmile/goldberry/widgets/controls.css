@@ -1661,6 +1661,14 @@ tab-list {
   flex-direction: row;
   align-items: center;
   gap: 2px;
+  /* The strip's own height, and not the tallest thing in it. Without this the
+     row is sized by its content -- which is `tab`'s 32 while there are tabs, and
+     the `+` button's 24 when the last one is closed. So closing every tab made
+     the strip shrink by 8px and dropped the `+` to the top of a row that was no
+     longer as tall as it, which is the one state where a header row has nothing
+     to take its height from ([ADR-0143](../../../../../../book/src/adr/0143-a-strip-keeps-its-height-and-an-icon-its-centre.md)). */
+  height: var(--gb-control-height);
+  flex-shrink: 0;
 }
 
 /* The headers' viewport. The gap moves here with them: the scroll view is now

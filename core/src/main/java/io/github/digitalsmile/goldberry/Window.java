@@ -560,6 +560,22 @@ public final class Window implements AutoCloseable {
         }
     }
 
+    /// Whether this window has the keyboard, as the platform last said.
+    private boolean focused;
+
+    /// Whether this window has the keyboard focus.
+    ///
+    /// A fact about the platform rather than about the widget tree: the element
+    /// the *router* has focused is a different question, and a window that is not
+    /// focused still has one (ADR-0144).
+    public boolean isFocused() {
+        return focused;
+    }
+
+    void handleFocusChanged(boolean value) {
+        focused = value;
+    }
+
     void handlePointerExited() {
         if (inputWatcher != null && inputWatcher.exited()) {
             return;

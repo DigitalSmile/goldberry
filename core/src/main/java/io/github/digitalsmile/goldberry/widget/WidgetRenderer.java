@@ -277,6 +277,13 @@ public final class WidgetRenderer {
             if (element.widget() instanceof Styled styled) {
                 self = styled.restyle(self);
             }
+            // The style handed to the children, kept as one **instance** for as
+            // long as it keeps its value. Their cache is keyed on this by
+            // identity, and `restyle` above hands back a new object every frame
+            // for every widget that writes an inline value — so without this the
+            // cache below a `scroll`, a `tab` or a `segmented` never hit at all
+            // (ADR-0142).
+            self = element.stableStyle(self);
         } else {
             self = inherited;
         }

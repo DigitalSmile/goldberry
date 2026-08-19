@@ -175,6 +175,29 @@ public interface Host {
     java.util.Optional<Popup> popup(Widget content,
             io.github.digitalsmile.goldberry.backend.LogicalRect anchor, Placement placement);
 
+    /// [#popup(Widget, LogicalRect, Placement)] with a floor under the width.
+    ///
+    /// **What a dropdown is**, and the one thing a content measurement cannot
+    /// say: a `select`'s list belongs under its field and at least as wide as it,
+    /// because a wide control with a narrow panel hanging off its left-hand end
+    /// reads as a mistake rather than as a menu. The options decide the rest —
+    /// one longer than the field widens the list past it, which is the other half
+    /// of the same rule
+    /// ([ADR-0145](../../../../../book/src/adr/0145-a-dropdown-is-as-wide-as-what-it-drops-from.md)).
+    ///
+    /// A floor and not a width: this is still measure-then-place, and a caller
+    /// asking for less than its content needs would get its content's size.
+    ///
+    /// Opt-in per call rather than a property of [Placement], because it is
+    /// false for the other two callers — a menu is as wide as its commands and a
+    /// tooltip as wide as its text, and neither has any business being as wide as
+    /// the thing it points at.
+    ///
+    /// @param minimumWidth the least the popup may be, in logical pixels
+    java.util.Optional<Popup> popup(Widget content,
+            io.github.digitalsmile.goldberry.backend.LogicalRect anchor, Placement placement,
+            float minimumWidth);
+
     /// Where a popup is allowed to be, in this window's coordinates.
     ///
     /// The display's work area, which [Placement] already places against. Exposed

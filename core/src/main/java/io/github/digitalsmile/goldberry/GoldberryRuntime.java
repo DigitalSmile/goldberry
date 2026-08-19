@@ -32,6 +32,31 @@ final class GoldberryRuntime {
     private final EventLoop loop;
     private final Map<BackendWindow, Window> windows = new IdentityHashMap<>();
 
+    /// Told after **any** window's focus changed — see [#onFocusChange].
+    private Runnable focusWatcher;
+
+    /// Watches every window's focus, for the one consumer that needs the set
+    /// rather than the event.
+    ///
+    /// A popup is dismissed when the *application* loses focus, and no platform
+    /// reports that: opening the popup itself sends a lost for the window under
+    /// it and a gained for the popup. Only something that can see every window
+    /// can tell the two apart, and that is the launcher
+    /// ([ADR-0144](../../../../../book/src/adr/0144-a-popup-goes-away-when-the-application-does.md)).
+    void onFocusChange(Runnable watcher) {
+        this.focusWatcher = watcher;
+    }
+
+    /// Whether any window of this application has the keyboard.
+    boolean anyWindowFocused() {
+        for (var window : windows.values()) {
+            if (window.isFocused()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     private GoldberryRuntime(Backend backend) {
         this.backend = backend;
         this.loop = new EventLoop(backend);
@@ -133,6 +158,15 @@ final class GoldberryRuntime {
                             wheel.deltaX(), wheel.deltaY(),
                             wheel.ticksX(), wheel.ticksY(), wheel.modifiers());
             case BackendEvent.PointerExited ignored -> window.handlePointerExited();
+            case BackendEvent.FocusChanged focus -> {
+                window.handleFocusChanged(focus.focused());
+                // Told after the flag is set, so a watcher asking "is anything of
+                // ours focused" reads the answer this event produced rather than
+                // the one before it.
+                if (focusWatcher != null) {
+                    focusWatcher.run();
+                }
+            }
             case BackendEvent.KeyPressed key ->
                     window.handleKeyPressed(key.keycode(), key.modifiers(), key.repeat());
             case BackendEvent.KeyReleased key ->

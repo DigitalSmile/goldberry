@@ -113,6 +113,12 @@ class TourTest {
         }
 
         @Override
+        public Optional<Popup> popup(Widget content, LogicalRect anchor,
+                io.github.digitalsmile.goldberry.Placement placement, float minimumWidth) {
+            return Optional.empty();
+        }
+
+        @Override
         public io.github.digitalsmile.goldberry.backend.EventLoop.Timer after(
                 java.time.Duration delay, Runnable action) {
             throw new UnsupportedOperationException("no event loop in this stub");

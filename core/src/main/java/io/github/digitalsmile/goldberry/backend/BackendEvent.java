@@ -151,6 +151,17 @@ public sealed interface BackendEvent {
     record PointerExited(BackendWindow window) implements BackendEvent {
     }
 
+    /// The window gained or lost the keyboard focus.
+    ///
+    /// Reported per window and never per application, because that is what every
+    /// platform reports: opening a popup sends a *lost* for the window under it
+    /// and a *gained* for the popup itself, one after the other. So "the
+    /// application lost focus" is a conclusion drawn from the whole set and not
+    /// an event — see `Launcher`, which is the only thing that needs to draw it
+    /// ([ADR-0144](../../../../../../book/src/adr/0144-a-popup-goes-away-when-the-application-does.md)).
+    record FocusChanged(BackendWindow window, boolean focused) implements BackendEvent {
+    }
+
     /// A key went down.
     ///
     /// @param keycode  the platform's virtual keycode — translated to a [Key] by

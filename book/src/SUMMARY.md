@@ -150,6 +150,10 @@
 - [ADR-0139 Actions are annotated as actions](adr/0139-actions-are-annotated-as-actions.md)
 - [ADR-0140 A widget may reach its window](adr/0140-a-widget-may-reach-its-window.md)
 - [ADR-0141 A select is a closed control and a list](adr/0141-a-select-is-a-closed-control-and-a-list.md)
+- [ADR-0142 A style handed down keeps its identity](adr/0142-a-style-handed-down-keeps-its-identity.md)
+- [ADR-0143 A strip keeps its height, and an icon its centre](adr/0143-a-strip-keeps-its-height-and-an-icon-its-centre.md)
+- [ADR-0144 A popup goes away when the application does](adr/0144-a-popup-goes-away-when-the-application-does.md)
+- [ADR-0145 A dropdown is as wide as what it drops from](adr/0145-a-dropdown-is-as-wide-as-what-it-drops-from.md)
 
 ---
 

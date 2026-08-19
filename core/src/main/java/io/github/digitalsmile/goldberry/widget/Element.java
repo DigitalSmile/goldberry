@@ -96,6 +96,34 @@ public final class Element implements BuildContext, StyleElement {
         this.style = resolved;
     }
 
+    /// What this node last handed its children, kept so that an equal style can
+    /// be handed down as the **same instance**. See [#stableStyle].
+    private ComputedStyle handedDown;
+
+    /// `candidate`, or the identical style this node handed down last frame.
+    ///
+    /// The other half of "inheritance invalidates itself", and without it that
+    /// scheme has a hole big enough to disable the whole cache. A child's entry
+    /// is keyed on its parent's style **by identity**, and the style a parent
+    /// hands down is not the one it cached: [Styled#restyle] runs afterwards, and
+    /// a widget that writes an inline value returns a fresh `ComputedStyle` on
+    /// every frame whether or not anything in it moved. `ScrollContent` does
+    /// exactly that — `resolved.flexShrink(0)`, unconditionally — so every node
+    /// inside a `scroll` re-resolved on every frame, and in the showcase that is
+    /// every node on the screen: 56 of 72 elements missing, and 10ms of cascade
+    /// in a frame that should have cost nothing
+    /// ([ADR-0142](../../../../../../book/src/adr/0142-a-style-handed-down-keeps-its-identity.md)).
+    ///
+    /// A value comparison against one instance, which is a flat record `equals`
+    /// — against a re-resolve that costs two orders of magnitude more.
+    ComputedStyle stableStyle(ComputedStyle candidate) {
+        if (handedDown != null && handedDown.equals(candidate)) {
+            return handedDown;
+        }
+        handedDown = candidate;
+        return candidate;
+    }
+
     /// Throws away this node's cached style **and its whole subtree's**.
     ///
     /// The subtree, not just this node, and that is the load-bearing part. A
@@ -115,6 +143,11 @@ public final class Element implements BuildContext, StyleElement {
         style = null;
         styleResolver = null;
         styleInherited = null;
+        // Deliberately **not** cleared. `handedDown` is not a cache of this
+        // node's answer -- it is the identity its children are keyed on, and
+        // dropping it would make every descendant re-resolve after any
+        // invalidation that changed nothing they can see. It is compared by
+        // value, so a stale one that no longer matches is simply replaced.
         for (var child : children) {
             child.invalidateStyle();
         }
