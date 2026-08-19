@@ -45,11 +45,33 @@ import java.util.List;
 /// one", which is why it is a pseudo-class rather than something a stylesheet
 /// could have written itself.
 ///
+/// ## Revealing one
+///
+/// An `affix` is the wrong thing to point `scrollIntoView` at from the outside,
+/// and the reason is the whole point of the widget: once pinned, its **content**
+/// sits at the viewport's edge, so anything measuring it concludes it is already
+/// in view and scrolls nowhere. What travels with the document is the *hole*, and
+/// only this widget can hand that out
+/// ([ADR-0124](../../../../../../../../book/src/adr/0124-a-pinned-affix-is-revealed-by-its-hole.md)).
+///
+/// So [#onReveal] is a door rather than a policy: give it a callback and it is
+/// handed the hole's rectangle and the viewport's, once a frame, which is exactly
+/// the pair [io.github.digitalsmile.goldberry.widgets.core.scroll.ScrollController#reveal]
+/// takes. What to do with them — whether a section wants showing at all — stays
+/// with the caller.
+///
 /// @param children   what to pin. Several are stacked, as in a `column`
 /// @param edge       which side of the viewport to pin to
 /// @param offset     how far from that edge to sit, in logical pixels
+/// @param onReveal   told where the **hole** is and what clips it, or null for
+///                   the ordinary case where nobody is asking
 /// @param attributes `id` and `class`, exactly as on the primitives
-public record Affix(List<Widget> children, Edge edge, double offset, Attributes attributes)
+public record Affix(
+        List<Widget> children, Edge edge, double offset,
+        java.util.function.BiConsumer<
+                io.github.digitalsmile.goldberry.backend.LogicalRect,
+                io.github.digitalsmile.goldberry.backend.LogicalRect> onReveal,
+        Attributes attributes)
         implements Widget.Stateful, Attributed<Affix> {
 
     public Affix {
@@ -58,13 +80,25 @@ public record Affix(List<Widget> children, Edge edge, double offset, Attributes 
         attributes = attributes == null ? Attributes.NONE : attributes;
     }
 
+    public Affix(List<Widget> children, Edge edge, double offset, Attributes attributes) {
+        this(children, edge, offset, null, attributes);
+    }
+
     public Affix(Widget... kids) {
         this(List.of(kids), Edge.TOP, 0, Attributes.NONE);
     }
 
+    /// This affix, telling `listener` where its hole is — see the class note.
+    public Affix revealedBy(
+            java.util.function.BiConsumer<
+                    io.github.digitalsmile.goldberry.backend.LogicalRect,
+                    io.github.digitalsmile.goldberry.backend.LogicalRect> listener) {
+        return new Affix(children, edge, offset, listener, attributes);
+    }
+
     @Override
     public Affix withAttributes(Attributes attributes) {
-        return new Affix(children, edge, offset, attributes);
+        return new Affix(children, edge, offset, onReveal, attributes);
     }
 
     @Override

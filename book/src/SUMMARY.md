@@ -130,6 +130,7 @@
 - [ADR-0121 A tour is a veil and a sequence](adr/0121-a-tour-is-a-veil-and-a-sequence.md)
 - [ADR-0122 A setState asks for a frame](adr/0122-a-setstate-asks-for-a-frame.md)
 - [ADR-0123 A pinned box paints after its siblings](adr/0123-a-pinned-box-paints-after-its-siblings.md)
+- [ADR-0124 A pinned affix is revealed by its hole](adr/0124-a-pinned-affix-is-revealed-by-its-hole.md)
 
 ---
 

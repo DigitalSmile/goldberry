@@ -1657,6 +1657,41 @@ extras: `affix-pinned` because "the header is at the top of the viewport" and
 and `tour-edge` because a card clamped against the window's edge is a placement,
 not a value.
 
+### Three more from running it
+
+**The jump buttons were never working.** Reported as stopping after a few
+clicks; the first press happened to be a scroll *forwards*, which any
+measurement gets right. ADR-0120 says the thing that wants to be seen measures
+itself, so the section's header did — and that header is inside an `affix`, so
+the moment its section starts scrolling away it is **pinned to the viewport's
+edge**, by design, permanently. A reveal measured against it concludes the
+section has already arrived, however far away it is. Two rules, each correct
+alone, composing into a widget that can never ask to be scrolled to.
+
+An `affix` now hands out its **hole** — the same-sized gap §1 already requires,
+which travels with the document precisely because it never moves itself. It is a
+door and not a policy: `Affix` forwards two rectangles and holds no controller,
+and the caller decides whether a section wants showing. The showcase's
+`SectionHeader` went back to being a plain node, which is the proof the door is
+in the right place. Neither `AffixTest`'s eleven cases nor `ScrollingScreenTest`'s
+four could have caught it — the failing sequence is *scroll away, then ask to come
+back*, and every test asked to go somewhere new.
+
+**A second invented token.** `--gb-on-accent` this time, on the tour's forward
+button: used, defined nowhere, dropped every frame with a warning. A primary
+button's foreground is not derivable from the accent — it is `nord0` on dark and
+`nord6` on light, because the fill flips which is legible — so it takes
+`--gb-button-primary-text` like every other primary button. Twice in two days is
+a pattern rather than an accident, so `TokenClosureTest` and
+`ShowcaseTokensTest` now check that every `var(--gb-…)` the toolkit or the
+showcase writes resolves under both themes. Verified by breaking one on purpose.
+
+**`flex-grow` on the wrong box.** Five gallery screens carried it inside the
+gallery's viewport, where a content-sized column means there is no remaining
+height to claim, and one screen carried it where it was load-bearing. A dead
+declaration sitting next to a live one is how it stops looking dead. The growth
+is the `scroll` box's.
+
 ### Not started
 
 `menubar`, tray, dialogs, forms, client-side decorations and charts. The rest of §5 — `card`, `group-box`, `split-pane`, `collapse`,

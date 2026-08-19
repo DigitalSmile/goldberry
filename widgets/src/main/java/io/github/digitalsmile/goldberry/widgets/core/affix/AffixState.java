@@ -34,6 +34,14 @@ final class AffixState extends State<Affix> {
     /// what makes the arithmetic stable rather than cumulative.
     private void located(LogicalRect self, LogicalRect clip) {
         var affix = widget();
+        if (affix.onReveal() != null) {
+            // The hole's rectangle, which is what `self` is — this is the outer
+            // node and it never moves itself. A caller measuring the *content*
+            // would be measuring something pinned to the viewport's edge, which
+            // reads as already visible however far away its section is
+            // ([ADR-0124]).
+            affix.onReveal().accept(self, clip);
+        }
         var offset = affix.offset();
         // How far past the edge the affix has gone. Positive means it has
         // scrolled out of view and must be pulled back; zero or less means the

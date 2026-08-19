@@ -281,6 +281,57 @@ class AffixTest {
     }
 
     @Nested
+    @DisplayName("revealing one")
+    class Revealing {
+
+        @Test
+        @DisplayName("it reports the hole, which travels, and not the content, which pins")
+        void reportsTheHole() {
+            var seen = new java.util.ArrayList<LogicalRect>();
+            var rows = new ArrayList<Widget>();
+            for (var i = 0; i < 4; i++) {
+                rows.add(new Text("before " + i));
+            }
+            rows.add(new Affix(List.of(new Text("HEADER")), Edge.TOP, 0, Attributes.NONE)
+                    .revealedBy((self, clip) -> seen.add(self)));
+            for (var i = 0; i < 30; i++) {
+                rows.add(new Text("after " + i));
+            }
+            var harness = new Harness(new Scroll(
+                    List.of(new Column(rows.toArray(Widget[]::new))),
+                    ScrollAxis.VERTICAL, Attributes.NONE));
+
+            var atRest = seen.getLast();
+            harness.wheel(6);
+            var scrolled = seen.getLast();
+
+            // The content is pinned at the viewport's edge by now — which is what
+            // the widget is *for*, and what makes it useless to measure. The hole
+            // has travelled with the document, and that is what a caller asking
+            // "how far away is this section" has to be given.
+            assertTrue(scrolled.top() < atRest.top() - 10,
+                    "the affix reported a rectangle that did not travel: " + atRest.top()
+                            + " then " + scrolled.top());
+            assertTrue(harness.affix().hasState(PseudoClass.AFFIXED),
+                    "the header was not pinned, so this proves nothing");
+        }
+
+        @Test
+        @DisplayName("an affix nobody is asking about reports nothing")
+        void silentByDefault() {
+            // The ordinary case, and it must cost nothing: a list of forty
+            // sections has forty affixes and at most one of them is being
+            // revealed.
+            var harness = new Harness(document());
+            harness.wheel(6);
+
+            // Nothing to assert but that it did not throw — `document()` builds
+            // its affix without a listener, which is the default constructor.
+            assertNotNull(harness.affix());
+        }
+    }
+
+    @Nested
     @DisplayName("outside a scroll view")
     class Unclipped {
 

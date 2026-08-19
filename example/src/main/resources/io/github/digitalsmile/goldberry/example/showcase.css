@@ -34,8 +34,19 @@
 /* Every screen is a column of groups with §1.3's 16 between them, whether it
    came from a document or from Java -- which is the point of the split being
    about *expressions* rather than about appearance. */
+/* A screen inside the gallery's viewport is **content-sized**, and the growing is
+   the viewport's. `flex-grow` here did nothing and looked as though it did: a
+   scroll view's content column is as tall as its content by construction, so
+   there is no remaining height for a child to claim. The `scroll` rule in
+   `controls.css` is where the growth is, and it is the container that grows. */
 #screen-controls, #screen-values, #screen-overlays,
-#screen-text, #screen-tabs, #screen-scrolling
+#screen-text, #screen-tabs
+           { flex-direction: column; gap: 16px; padding-top: 16px }
+
+/* Except this one, which is the screen that owns its own viewport rather than
+   sitting in the gallery's — so here the growth is real and it is this box that
+   has to fill the tab panel. */
+#screen-scrolling
            { flex-direction: column; gap: 16px; flex-grow: 1; padding-top: 16px }
 
 /* A group's heading. This used to be `font-weight: 600` and nothing else, which

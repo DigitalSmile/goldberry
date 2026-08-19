@@ -1856,7 +1856,22 @@ tour-card > column > row {
   color: var(--gb-text-muted);
 }
 
+/* The forward button is `button.primary` by another name, so it takes that
+   control's own tokens rather than reaching for the raw accent. Two reasons, and
+   the second is the one that bit: a primary button's *text* colour is not
+   derivable from the accent — it is `nord0` on dark and `nord6` on light,
+   because the accent fill flips which of them is legible — and there is no
+   `--gb-on-accent` to ask for. Written as one, it resolved to nothing, dropped
+   the declaration, and logged a line per node per frame. */
 .tour-next {
-  background: var(--gb-accent);
-  color: var(--gb-on-accent);
+  background: var(--gb-button-primary-bg);
+  color: var(--gb-button-primary-text);
+}
+
+.tour-next:hover {
+  background: var(--gb-button-primary-bg-hover);
+}
+
+.tour-next:active {
+  background: var(--gb-button-primary-bg-active);
 }

@@ -197,6 +197,31 @@ class ScrollingScreenTest {
     }
 
     @Test
+    @DisplayName("the jump buttons keep working, however many times they are pressed")
+    void jumpsRepeatedly() {
+        var harness = new Harness();
+        var list = harness.rectOf(harness.byId("scroll-demo"));
+
+        // Reported as "the buttons stop working after a few clicks". Alternating
+        // ends is the case: each press has somewhere to go, so a press that does
+        // nothing is a press that was dropped rather than one already satisfied.
+        for (var round = 1; round <= 4; round++) {
+            harness.click("jump-endings");
+            var endings = harness.rectOf(harness.byId("section-endings"));
+            var r = round;
+            assertTrue(endings.top() < list.top() + list.size().height() + 1,
+                    () -> "round " + r + ": Endings never arrived; it is at " + endings.top());
+
+            harness.click("jump-beginnings");
+            var beginnings = harness.rectOf(harness.byId("section-beginnings"));
+            assertTrue(beginnings.top() >= list.top() - 1
+                            && beginnings.top() < list.top() + list.size().height() + 1,
+                    () -> "round " + r + ": Beginnings never came back; it is at "
+                            + beginnings.top());
+        }
+    }
+
+    @Test
     @DisplayName("a jump acts once, so the user can scroll away from it afterwards")
     void jumpDoesNotHold() {
         var harness = new Harness();

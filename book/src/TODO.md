@@ -189,18 +189,21 @@ the mechanism the sentence named.
   colour. The size carries the demotion instead. A real third rank would need a
   colour the palette does not contain. —
   [ADR-0121](adr/0121-a-tour-is-a-veil-and-a-sequence.md)
-- **Nothing warns that a `var()` resolved to nothing.** It logs, which is how the
-  invented token above was found — but it logs per node per frame, so one missing
-  token is a stream rather than a message. A cascade that said it once per
-  property per stylesheet would be a diagnostic; what is there is closer to
-  noise. —
+- **Nothing warns that a `var()` resolved to nothing — it logs, per node, per
+  frame.** One missing token is a stream rather than a message, which is how two
+  of them survived long enough to reach a user. `TokenClosureTest` and
+  `ShowcaseTokensTest` now fail the build instead, so the log is no longer the
+  only line of defence; the log itself is still noise. Saying it once per property
+  per stylesheet would make it a diagnostic. —
   [ADR-0121](adr/0121-a-tour-is-a-veil-and-a-sequence.md)
 - **`flex-grow` means nothing inside a `scroll`, and nothing says so.** A scroll
   view's content column is as tall as its content by construction, so a child
-  asking to fill the remaining height gets none — which is correct and completely
-  silent. The showcase's tab strip hit it and needed an explicit height. A
-  diagnostic would have to know that a `grow` resolved against an unbounded main
-  axis, which Yoga knows and does not report. —
+  asking to fill the remaining height gets none — correct, and completely silent.
+  The showcase had it on five screens where it did nothing and on one where it
+  was load-bearing, which is exactly how long it takes for a dead declaration to
+  look like a live one. The growth belongs on the `scroll` box; a diagnostic
+  would have to know that a `grow` resolved against an unbounded main axis, which
+  Yoga knows and does not report. —
   [ADR-0116](adr/0116-a-scroll-view-is-a-clip-an-offset-and-two-extents.md)
 
 - **A `tour` cannot find the viewport its target is in.** §5 asks it to scroll a

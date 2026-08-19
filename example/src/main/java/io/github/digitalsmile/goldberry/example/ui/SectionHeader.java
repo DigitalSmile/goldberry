@@ -1,31 +1,24 @@
 package io.github.digitalsmile.goldberry.example.ui;
 
-import io.github.digitalsmile.goldberry.backend.LogicalRect;
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
-import io.github.digitalsmile.goldberry.input.Located;
 import io.github.digitalsmile.goldberry.layout.Box;
 import io.github.digitalsmile.goldberry.natives.yoga.FlexDirection;
 import io.github.digitalsmile.goldberry.widget.Paints;
 import io.github.digitalsmile.goldberry.widget.Styled;
 import io.github.digitalsmile.goldberry.widget.Widget;
-import io.github.digitalsmile.goldberry.widgets.core.scroll.ScrollController;
 import io.github.digitalsmile.goldberry.widgets.text.Text;
 import java.util.List;
 import java.util.Set;
 
-/// One section's heading inside [Scrolling]'s list, and the application's half of
-/// `scrollIntoView`.
+/// One section's heading inside [Scrolling]'s list.
 ///
-/// It implements [Located] rather than being wrapped in something that does,
-/// which is the shape ADR-0120 settled on: a wrapper is a box, and a box in a
-/// flex column changes how that column is sized. A widget that wants to know
-/// where it is implements the interface on a node that is already there.
-///
-/// `wanted` is a request the screen above sets and this clears — a header that
-/// asked to be revealed on every frame would hold the list against a user trying
-/// to scroll away from it.
-record SectionHeader(String title, ScrollController list, boolean wanted, Runnable onRevealed)
-        implements Widget.Leaf, Styled, Paints, Located {
+/// A plain node. It used to carry the `scrollIntoView` half of this screen and
+/// could not: a header inside an `affix` is *pinned to the viewport's edge* the
+/// moment its section starts scrolling away, so a reveal measured against it
+/// concluded the section was already visible and moved nothing. What travels
+/// with the document is the affix's hole, and the affix is what hands it out
+/// ([ADR-0124](../../../../../../../book/src/adr/0124-a-pinned-affix-is-revealed-by-its-hole.md)).
+record SectionHeader(String title) implements Widget.Leaf, Styled, Paints {
 
     @Override
     public String cssType() {
@@ -40,18 +33,6 @@ record SectionHeader(String title, ScrollController list, boolean wanted, Runnab
     @Override
     public List<Widget> children() {
         return List.of(new Text(title));
-    }
-
-    @Override
-    public void located(LogicalRect self, LogicalRect clip) {
-        if (!wanted) {
-            return;
-        }
-        // The controller turns two rectangles into a distance and the viewport
-        // clamps it; nothing here does arithmetic, which is the point of
-        // `reveal` taking the pair rather than a number.
-        list.reveal(self, clip);
-        onRevealed.run();
     }
 
     @Override

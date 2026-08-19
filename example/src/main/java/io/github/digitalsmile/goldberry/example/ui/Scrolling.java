@@ -78,12 +78,17 @@ public record Scrolling(Runnable startTour) implements Widget.Stateful {
         public Widget build(BuildContext context) {
             var rows = new ArrayList<Widget>();
             for (var section : Scrolling.SECTIONS) {
-                rows.add(new Affix(
-                        List.of(new SectionHeader(section, list, section.equals(wanted),
-                                this::revealed)),
+                var affix = new Affix(
+                        List.of(new SectionHeader(section)),
                         Edge.TOP, 0,
                         Attributes.NONE.id("section-" + section.toLowerCase())
-                                .classes("section")));
+                                .classes("section"));
+                // Only the section that has been asked for listens, so exactly
+                // one affix per build is measured — and it is the affix and not
+                // the header, because a pinned header sits at the viewport's edge
+                // and reads as already visible however far away its section is
+                // ([ADR-0124](../../../../../../../book/src/adr/0124-a-pinned-affix-is-revealed-by-its-hole.md)).
+                rows.add(section.equals(wanted) ? affix.revealedBy(this::revealed) : affix);
                 for (var i = 1; i <= Scrolling.ROWS_PER_SECTION; i++) {
                     rows.add(new Text(section + " — line " + i,
                             Attributes.NONE.classes("scroll-row")));
@@ -123,7 +128,16 @@ public record Scrolling(Runnable startTour) implements Widget.Stateful {
             setState(() -> wanted = section);
         }
 
-        private void revealed() {
+        /// Told where the asked-for section's hole is, and what clips it.
+        ///
+        /// The controller turns the pair into a distance and the viewport clamps
+        /// it; nothing here does arithmetic. Cleared whether or not anything
+        /// moved — a section already in view is a request that has been met, and
+        /// leaving it outstanding would make the next frame act on a stale one.
+        private void revealed(
+                io.github.digitalsmile.goldberry.backend.LogicalRect self,
+                io.github.digitalsmile.goldberry.backend.LogicalRect clip) {
+            list.reveal(self, clip);
             setState(() -> wanted = null);
         }
     }
