@@ -39,6 +39,39 @@ public interface StyleElement {
     /// is matched right to left: this walks up, and there is no way to walk down.
     StyleElement parent();
 
+    /// The custom properties this element resolved last time, if they are still
+    /// good for `resolver` and for the `inherited` map its parent handed down.
+    ///
+    /// **Null means "ask again"**, and the default implementation always says so
+    /// — which is correct and is what a test's hand-written element wants.
+    ///
+    /// This exists because collecting custom properties is a walk to the **root**:
+    /// a node's are its parent's plus its own, so resolving one node at depth ten
+    /// ran eleven cascades. Cached against the parent's map by identity, the walk
+    /// collapses to one, and an unchanged parent keeps its children's entries
+    /// valid without anything having to tell them
+    /// ([ADR-0152](../../../../../../book/src/adr/0152-the-cascade-looks-at-rules-that-could-match.md)).
+    ///
+    /// The same scheme the computed style already uses (ADR-0070), one level
+    /// down: a cascade is to custom properties what a style resolve is to a
+    /// [ComputedStyle].
+    ///
+    /// @param resolver  the resolver asking, compared by identity
+    /// @param inherited what this element's parent handed down, by identity
+    default java.util.Map<String, java.util.List<Token>> cachedCustomProperties(
+            StyleResolver resolver, java.util.Map<String, java.util.List<Token>> inherited) {
+        return null;
+    }
+
+    /// Remembers what [#cachedCustomProperties] should answer next time.
+    ///
+    /// The default does nothing, so an element that does not want a cache simply
+    /// has none.
+    default void cacheCustomProperties(StyleResolver resolver,
+            java.util.Map<String, java.util.List<Token>> inherited,
+            java.util.Map<String, java.util.List<Token>> resolved) {
+    }
+
     /// Whether a state pseudo-class currently holds.
     ///
     /// Never asked about [Selector.PseudoClass#ROOT] — that is answered by

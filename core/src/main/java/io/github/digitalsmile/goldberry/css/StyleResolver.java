@@ -47,9 +47,79 @@ public final class StyleResolver {
     private final java.util.Set<Selector.PseudoClass> untypedAncestorStates =
             java.util.EnumSet.noneOf(Selector.PseudoClass.class);
 
+    /// One rule, with the layer it came from — what a bucket holds.
+    ///
+    /// The layer travels with the rule because the buckets flatten the sheets
+    /// away, and the cascade needs it back.
+    private record Candidate(StyleRule rule, CascadeLayer layer) {
+    }
+
+    /// Rules whose **rightmost** compound names a type, bucketed by that type.
+    ///
+    /// A selector's rightmost compound is the one that has to match the element
+    /// being styled, so a rule for `button` cannot possibly apply to a `text`.
+    /// Testing it anyway is what made a single style resolve cost 1.7ms in the
+    /// showcase: four stylesheets, some two thousand rules, matched in full
+    /// against every element — and then again against every one of its ancestors,
+    /// because custom properties are collected by walking to the root
+    /// ([ADR-0152](../../../../../../book/src/adr/0152-the-cascade-looks-at-rules-that-could-match.md)).
+    private final java.util.Map<String, List<Candidate>> byType = new java.util.HashMap<>();
+
+    /// Rules whose rightmost compound names no type — `.primary`, `#gain`, `*`.
+    ///
+    /// These have to be tested against everything, and there are few of them: the
+    /// toolkit's own sheets are written type-first, which is what makes the
+    /// bucketing worth having.
+    private final List<Candidate> untyped = new java.util.ArrayList<>();
+
     public StyleResolver(List<Stylesheet> stylesheets) {
         this.stylesheets = List.copyOf(Objects.requireNonNull(stylesheets, "stylesheets"));
         indexAncestorStates();
+        indexByType();
+    }
+
+    /// Buckets every rule by the type its rightmost compound names.
+    ///
+    /// A rule with several selectors goes in every bucket any of them names, and
+    /// in [#untyped] if any of them names none — a rule is a unit and the
+    /// cascade has to see it whole, so over-collecting is the only safe error.
+    private void indexByType() {
+        for (var sheet : stylesheets) {
+            for (var rule : sheet.rules()) {
+                var candidate = new Candidate(rule, sheet.layer());
+                var everywhere = false;
+                for (var selector : rule.selectors()) {
+                    var subject = selector.parts().getFirst().compound().type();
+                    if (subject == null) {
+                        everywhere = true;
+                    } else {
+                        byType.computeIfAbsent(subject, key -> new java.util.ArrayList<>())
+                                .add(candidate);
+                    }
+                }
+                if (everywhere) {
+                    untyped.add(candidate);
+                }
+            }
+        }
+    }
+
+    /// The rules that could match an element of this type.
+    private List<Candidate> candidatesFor(String type) {
+        if (type == null) {
+            return untyped;
+        }
+        var typed = byType.get(type);
+        if (typed == null) {
+            return untyped;
+        }
+        if (untyped.isEmpty()) {
+            return typed;
+        }
+        var all = new java.util.ArrayList<Candidate>(typed.size() + untyped.size());
+        all.addAll(typed);
+        all.addAll(untyped);
+        return all;
     }
 
     /// Walks every selector once, recording which pseudo-classes appear to the
@@ -117,8 +187,11 @@ public final class StyleResolver {
     /// @return property name to value tokens, in no particular order
     public Map<String, List<Token>> resolve(StyleElement element) {
         Objects.requireNonNull(element, "element");
-        var customProperties = customPropertiesFor(element);
+        // One cascade, two readers. Custom properties are collected from the same
+        // declarations the cascade produces, so asking for them separately ran it
+        // twice for every element resolved (ADR-0152).
         var declared = cascade(element);
+        var customProperties = customPropertiesFor(element, declared);
 
         var resolved = new LinkedHashMap<String, List<Token>>();
         for (var entry : declared.entrySet()) {
@@ -145,41 +218,73 @@ public final class StyleResolver {
     /// Every custom property visible to `element`, its own overriding those it
     /// inherits.
     public Map<String, List<Token>> customPropertiesFor(StyleElement element) {
+        return customPropertiesFor(element, null);
+    }
+
+    /// The same, when the caller has already cascaded `element` and would
+    /// otherwise pay for it twice.
+    ///
+    /// @param ownCascade this element's winning declarations, or null to compute
+    ///                   them here
+    private Map<String, List<Token>> customPropertiesFor(
+            StyleElement element, Map<String, List<Token>> ownCascade) {
         // Built from the root down so a nearer definition overwrites a farther
         // one. Recursion rather than a loop because the chain is walked upward
         // and applied downward.
         var parent = element.parent();
-        var inherited = parent == null
-                ? new LinkedHashMap<String, List<Token>>()
-                : new LinkedHashMap<>(customPropertiesFor(parent));
+        var inherited = parent == null ? EMPTY : customPropertiesFor(parent, null);
 
-        for (var entry : cascade(element).entrySet()) {
+        // **Cached against what the parent handed down, by identity.** Without
+        // this the recursion above runs a full cascade at every level of the
+        // tree, so one node at depth ten costs eleven of them -- which was the
+        // largest term left in a frame after the rule index (ADR-0152).
+        var cached = element.cachedCustomProperties(this, inherited);
+        if (cached != null) {
+            return cached;
+        }
+
+        var own = new LinkedHashMap<>(inherited);
+        for (var entry : (ownCascade == null ? cascade(element) : ownCascade).entrySet()) {
             if (entry.getKey().startsWith("--")) {
-                inherited.put(entry.getKey(), entry.getValue());
+                own.put(entry.getKey(), entry.getValue());
             }
         }
-        return inherited;
+        // The parent's own map when this node declares none, so a chain of nodes
+        // that define nothing shares one instance -- and a child's cache stays
+        // valid through all of them, because the identity it is keyed on does not
+        // change on the way down.
+        var resolved = own.equals(inherited) ? inherited : Map.copyOf(own);
+        element.cacheCustomProperties(this, inherited, resolved);
+        return resolved;
     }
+
+    /// The empty map every root starts from, as one instance — so a tree whose
+    /// root declares no custom property still hands its children something with a
+    /// stable identity.
+    private static final Map<String, List<Token>> EMPTY = Map.of();
 
     /// The winning declaration for each property on `element`, before `var()`.
     private Map<String, List<Token>> cascade(StyleElement element) {
         var matches = new ArrayList<Match>();
-        for (var sheet : stylesheets) {
-            for (var rule : sheet.rules()) {
-                // The most specific *matching* selector in the list is the one
-                // that represents the rule, per the cascade.
-                var best = -1;
-                for (var selector : rule.selectors()) {
-                    if (SelectorMatcher.matches(selector, element)) {
-                        best = Math.max(best, selector.specificity());
-                    }
+        // Only the rules whose rightmost compound could name this element. The
+        // order they come out in does not matter: every match carries its layer,
+        // its specificity and the rule's own order, and the sort below is what
+        // decides the winner (ADR-0152).
+        for (var candidate : candidatesFor(element.type())) {
+            var rule = candidate.rule();
+            // The most specific *matching* selector in the list is the one
+            // that represents the rule, per the cascade.
+            var best = -1;
+            for (var selector : rule.selectors()) {
+                if (SelectorMatcher.matches(selector, element)) {
+                    best = Math.max(best, selector.specificity());
                 }
-                if (best < 0) {
-                    continue;
-                }
-                for (var declaration : rule.declarations()) {
-                    matches.add(new Match(declaration, sheet.layer(), best, rule.order()));
-                }
+            }
+            if (best < 0) {
+                continue;
+            }
+            for (var declaration : rule.declarations()) {
+                matches.add(new Match(declaration, candidate.layer(), best, rule.order()));
             }
         }
 

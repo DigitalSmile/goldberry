@@ -90,6 +90,42 @@ public final class Element implements BuildContext, StyleElement {
         return styleResolver == resolver && styleInherited == inherited ? style : null;
     }
 
+    // --- the custom-property cache -----------------------------------------
+    //
+    // The same scheme as the style cache above, one level down: a node's custom
+    // properties are its parent's plus its own, so they are keyed on the parent's
+    // map by identity and an unchanged parent keeps every entry below it valid.
+    // Without it, resolving one node ran a full cascade at every level between it
+    // and the root -- eleven of them at the showcase's depth, and the largest
+    // term left in a frame (ADR-0152).
+
+    private java.util.Map<String, java.util.List<io.github.digitalsmile.goldberry.css.Token>>
+            customProperties;
+
+    private StyleResolver customPropertiesResolver;
+
+    private java.util.Map<String, java.util.List<io.github.digitalsmile.goldberry.css.Token>>
+            customPropertiesInherited;
+
+    @Override
+    public java.util.Map<String, java.util.List<io.github.digitalsmile.goldberry.css.Token>>
+            cachedCustomProperties(StyleResolver resolver,
+                    java.util.Map<String,
+                            java.util.List<io.github.digitalsmile.goldberry.css.Token>> inherited) {
+        return customPropertiesResolver == resolver && customPropertiesInherited == inherited
+                ? customProperties
+                : null;
+    }
+
+    @Override
+    public void cacheCustomProperties(StyleResolver resolver,
+            java.util.Map<String, java.util.List<io.github.digitalsmile.goldberry.css.Token>> inherited,
+            java.util.Map<String, java.util.List<io.github.digitalsmile.goldberry.css.Token>> resolved) {
+        this.customPropertiesResolver = resolver;
+        this.customPropertiesInherited = inherited;
+        this.customProperties = resolved;
+    }
+
     void cacheStyle(StyleResolver resolver, ComputedStyle inherited, ComputedStyle resolved) {
         this.styleResolver = resolver;
         this.styleInherited = inherited;
@@ -136,6 +172,22 @@ public final class Element implements BuildContext, StyleElement {
     /// Conservative on purpose. Working out which descendants a rule could reach
     /// is real machinery, and this walk is pointer-chasing against a cascade pass
     /// that costs hundreds of times more.
+    /// The tree this element belongs to — for the frame trace, which counts on
+    /// the tree because a count is about the frame and not about a node.
+    ElementTree tree() {
+        return tree;
+    }
+
+    /// How many elements are under this one, this one included — for the trace,
+    /// which reports a subtree walk by what it cost.
+    private int subtreeSize() {
+        var total = 1;
+        for (var child : children) {
+            total += child.subtreeSize();
+        }
+        return total;
+    }
+
     /// Throws away **this node's** cached style and nothing else.
     ///
     /// The narrow half of [#invalidateStyle], for the caller that has asked
@@ -159,18 +211,33 @@ public final class Element implements BuildContext, StyleElement {
     }
 
     private void invalidateOwnStyle() {
+        if (FrameTrace.ENABLED && style != null) {
+            tree.trace().countInvalidation();
+        }
         style = null;
         styleResolver = null;
         styleInherited = null;
+        // The custom properties go with it: what invalidates a style is a change
+        // in what matches this node, and a `--gb-*` declaration is matched by the
+        // same rules as everything else (ADR-0152).
+        customProperties = null;
+        customPropertiesResolver = null;
+        customPropertiesInherited = null;
     }
 
     void invalidateStyle() {
+        if (FrameTrace.ENABLED && style != null) {
+            tree.trace().countInvalidation();
+        }
         // Not short-circuited on `style == null`: a composition node never caches
         // one -- the renderer passes its ancestor's straight through -- so a null
         // here says nothing about the subtree below it.
         style = null;
         styleResolver = null;
         styleInherited = null;
+        customProperties = null;
+        customPropertiesResolver = null;
+        customPropertiesInherited = null;
         // Deliberately **not** cleared. `handedDown` is not a cache of this
         // node's answer -- it is the identity its children are keyed on, and
         // dropping it would make every descendant re-resolve after any
@@ -289,6 +356,9 @@ public final class Element implements BuildContext, StyleElement {
 
     /// Rebuilds this element's subtree from its widget.
     void rebuild() {
+        if (FrameTrace.ENABLED) {
+            tree.trace().countBuild();
+        }
         needsBuild = false;
         var described = describe();
         children = reconcile(children, described);
@@ -525,6 +595,10 @@ public final class Element implements BuildContext, StyleElement {
             var resolver = tree.styleResolver();
             invalidateOwnStyle();
             if (resolver == null || resolver.reachesDescendants(pseudoClass, type())) {
+                if (FrameTrace.ENABLED) {
+                    tree.trace().walked(type() + ":" + pseudoClass
+                            + (resolver == null ? " (no resolver yet)" : ""), subtreeSize());
+                }
                 for (var child : children) {
                     child.invalidateStyle();
                 }

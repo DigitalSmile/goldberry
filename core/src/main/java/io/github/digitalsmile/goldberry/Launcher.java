@@ -242,6 +242,9 @@ final class Launcher implements Host {
         // frame that costs hundreds of microseconds is not a cost worth a branch
         // ([ADR-0146](../../../../../book/src/adr/0146-a-hud-shows-where-the-frame-went.md)).
         var beganAt = System.nanoTime();
+        if (io.github.digitalsmile.goldberry.widget.FrameTrace.ENABLED) {
+            tree.trace().reset();
+        }
 
         // Every setState since the last frame settles here, once, however many of
         // them there were (ADR-0052).
@@ -293,6 +296,10 @@ final class Launcher implements Host {
             window.repaint();
         }
 
+        if (io.github.digitalsmile.goldberry.widget.FrameTrace.ENABLED) {
+            traceFrame(beganAt, builtAt, styledAt, laidOutAt, rasterizedAt, damage.size());
+        }
+
         painted++;
         if (options.frames() > 0) {
             if (painted >= options.frames()) {
@@ -302,6 +309,33 @@ final class Launcher implements Host {
                 window.repaint();
             }
         }
+    }
+
+    /// One line per frame that did something, for `-Dgoldberry.trace.frames=true`.
+    ///
+    /// The stage timings say which part of a frame is expensive and the counts
+    /// say why: a `style` of 12ms next to `resolved 74` is a cascade running on
+    /// the whole tree, and the `subtree walks` line names the node and the state
+    /// that asked for it (ADR-0151).
+    ///
+    /// Quiet frames are skipped unless `=all`, because an idle loop at 60fps
+    /// otherwise writes a line a frame saying nothing happened — and the frames
+    /// worth reading are the ones next to the click.
+    private void traceFrame(long beganAt, long builtAt, long styledAt, long laidOutAt,
+            long rasterizedAt, int damageRects) {
+        var trace = tree.trace();
+        if (trace.isQuiet() && !io.github.digitalsmile.goldberry.widget.FrameTrace.ALL_FRAMES) {
+            return;
+        }
+        LOG.info("frame {} | build {} style {} layout {} raster {} ms | {} | damage {}",
+                painted,
+                millis(builtAt - beganAt), millis(styledAt - builtAt),
+                millis(laidOutAt - styledAt), millis(rasterizedAt - laidOutAt),
+                trace, damageRects);
+    }
+
+    private static String millis(long nanos) {
+        return String.format(java.util.Locale.ROOT, "%.3f", nanos / 1_000_000.0);
     }
 
     // --- context menus ------------------------------------------------------

@@ -201,7 +201,7 @@ class HudTest {
                 .render(new ElementTree(new Hud()));
         // A fixed source keeps no window, so there is no length to name and the
         // caption says only what it can stand behind.
-        assertEquals("per frame · mean", caption(live));
+        assertEquals("per frame · mean · this hud included", caption(live));
 
         var empty = renderer(FrameStats.none()).render(new ElementTree(new Hud()));
         assertEquals("no frames measured", caption(empty),

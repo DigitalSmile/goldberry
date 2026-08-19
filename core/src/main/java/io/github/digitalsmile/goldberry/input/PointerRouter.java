@@ -989,8 +989,25 @@ public final class PointerRouter {
         }
         if (element.isMounted() && element.setPseudoClass(pseudoClass, active)) {
             stylesDirty = true;
+            if (TRACE_INPUT) {
+                // The chain, one line per node, so a frame's `subtree walks` can
+                // be read against what the pointer actually did (ADR-0151).
+                INPUT_LOG.info("  {} {} {}", active ? "+" : "-", pseudoClass,
+                        element.type() == null ? "<composition>" : element.type());
+            }
         }
     }
+
+    /// Whether to report every pseudo-class the pointer and the keyboard set.
+    ///
+    /// Separate from `goldberry.trace.frames` because they answer different
+    /// halves of the same question — that one says what a frame cost, this says
+    /// what asked for it — and because this one is loud: a pointer crossing a
+    /// control writes a line per node of the chain.
+    private static final boolean TRACE_INPUT = Boolean.getBoolean("goldberry.trace.input");
+
+    private static final org.slf4j.Logger INPUT_LOG =
+            org.slf4j.LoggerFactory.getLogger(PointerRouter.class);
 
     /// An element and its ancestors, deepest first.
     private static List<Element> chain(Element element) {

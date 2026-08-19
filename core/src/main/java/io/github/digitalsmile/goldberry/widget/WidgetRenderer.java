@@ -77,6 +77,11 @@ public final class WidgetRenderer {
         this.paintContext = context(style -> font);
     }
 
+    /// The shaping cache the paint context is built over, for the frame trace —
+    /// a frame that shapes text it shaped last frame is a frame with a defect in
+    /// it, and the count is the only thing that says so (ADR-0152).
+    private ParagraphCache paragraphs;
+
     /// A paint context over `fonts`, with a shaping cache behind it.
     ///
     /// One cache per renderer rather than one global one: it holds `GlyphRun`s,
@@ -89,6 +94,7 @@ public final class WidgetRenderer {
     /// it already bound (ADR-0069).
     private Paints.Context context(java.util.function.Function<ComputedStyle, Font> fonts) {
         var cache = ParagraphCache.create();
+        this.paragraphs = cache;
         return new Paints.Context() {
 
             @Override
@@ -210,7 +216,13 @@ public final class WidgetRenderer {
         // So a node whose state changes between frames can ask what the sheets
         // say without having resolved a style of its own (ADR-0149).
         tree.styleResolver(resolver);
+        var textHitsBefore = FrameTrace.ENABLED ? paragraphs.hits() : 0;
+        var textMissesBefore = FrameTrace.ENABLED ? paragraphs.misses() : 0;
         var boxes = render(tree.root(), null, now);
+        if (FrameTrace.ENABLED) {
+            tree.trace().text((int) (paragraphs.hits() - textHitsBefore),
+                    (int) (paragraphs.misses() - textMissesBefore));
+        }
         if (boxes.isEmpty()) {
             throw new IllegalStateException(
                     "nothing in this widget tree paints; the root described only composition");
@@ -243,6 +255,10 @@ public final class WidgetRenderer {
         // A widget cannot be both checked and indeterminate; `Styled` says so,
         // and mirroring `isChecked() && !isIndeterminate()` would hide a widget
         // that broke the rule instead of letting its stylesheet show it.
+        var trace = FrameTrace.ENABLED ? element.tree().trace() : null;
+        if (trace != null) {
+            trace.countWalk();
+        }
         if (element.widget() instanceof Styled styled) {
             // What the widget computes from the frame, before the cascade is
             // asked — the same mirroring the pseudo-classes below get, for the
@@ -269,8 +285,13 @@ public final class WidgetRenderer {
             // anything having to tell them to (ADR-0070).
             self = element.cachedStyle(resolver, inherited);
             if (self == null) {
+                var began = trace == null ? 0L : System.nanoTime();
                 self = ComputedStyle.of(resolver.resolve(element), lengths, inherited);
                 element.cacheStyle(resolver, inherited, self);
+                if (trace != null) {
+                    trace.countResolve();
+                    trace.cascade(System.nanoTime() - began);
+                }
             }
             // §8's `inline` layer, typed: the widget's last word, applied after
             // the cascade and **after** the cache — a widget-computed value
@@ -281,6 +302,7 @@ public final class WidgetRenderer {
             // the whole point: a value written here is part of what the
             // transition observes and therefore moves, where the same value
             // written in `render` would snap (ADR-0099).
+            var identityBegan = trace == null ? 0L : System.nanoTime();
             if (element.widget() instanceof Styled styled) {
                 self = styled.restyle(self);
             }
@@ -291,6 +313,9 @@ public final class WidgetRenderer {
             // cache below a `scroll`, a `tab` or a `segmented` never hit at all
             // (ADR-0142).
             self = element.stableStyle(self);
+            if (trace != null) {
+                trace.identity(System.nanoTime() - identityBegan);
+            }
         } else {
             self = inherited;
         }
@@ -303,11 +328,15 @@ public final class WidgetRenderer {
         // one would start a second transition from it and never arrive.
         var painted = self;
         if (self != null && (!self.transitions().isEmpty() || element.isAnimating())) {
+            var motionBegan = trace == null ? 0L : System.nanoTime();
             var animations = element.animations();
             animations.observe(reducedMotion ? self.transitions(self.transitions().reduced()) : self,
                     now);
             painted = animations.apply(self, now);
             animating |= animations.settle(now);
+            if (trace != null) {
+                trace.motion(System.nanoTime() - motionBegan);
+            }
         }
 
         var children = new ArrayList<Box>();
@@ -333,6 +362,11 @@ public final class WidgetRenderer {
 
         // Tagged with the element that produced it, which is how a pointer
         // event gets from a rectangle on screen back to a node (ADR-0054).
-        return List.of(paints.render(painted, List.copyOf(children), paintContext).owner(element));
+        var boxBegan = trace == null ? 0L : System.nanoTime();
+        var box = paints.render(painted, List.copyOf(children), paintContext).owner(element);
+        if (trace != null) {
+            trace.boxes(System.nanoTime() - boxBegan);
+        }
+        return List.of(box);
     }
 }

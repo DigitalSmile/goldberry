@@ -95,7 +95,7 @@ class HudGoldenTest {
     void stages() {
         paint("hud-stages", Theme.NORD_DARK,
                 FrameStats.of(60, 16.7, 2.1, 4_200, 0.05, 0.29, 0.11, 1.34),
-                220, 190, Hud.stages());
+                300, 190, Hud.stages());
     }
 
     /// **A frame in trouble** — [ADR-0150], and the only thing that can say
@@ -110,7 +110,7 @@ class HudGoldenTest {
     void overBudget() {
         paint("hud-over-budget", Theme.NORD_DARK,
                 FrameStats.of(22, 45.0, 11.0, 4_200, 0.04, 9.6, 0.2, 3.4),
-                220, 190, Hud.stages());
+                300, 190, Hud.stages());
     }
 
     /// The plate: a dim rate and a dimmer paint time, on the dark theme.

@@ -1423,6 +1423,41 @@ merely made to appear.
   somebody else's question
   ([ADR-0147](adr/0147-a-frame-has-a-budget-and-the-build-checks-it.md))
 
+- **A frame can say what it did, and the first thing it said was that the cascade
+  is slow per element.** Twice now the answer to "why is this frame expensive"
+  has been a count rather than a duration, and twice it meant compiling a counter
+  into the renderer and taking it out again. `-Dgoldberry.trace.frames=true` is
+  that counter kept: one line per frame that did something, with the four stages
+  broken down further into **cascade**, **identity**, **motion** and **boxes**,
+  plus how many elements were built, resolved and invalidated, what asked for a
+  subtree walk, and how many paragraphs had to be shaped. Free when off — one
+  `static final boolean` the JIT folds away — and a system property rather than a
+  log level, because an `isTraceEnabled()` per element per frame is a diagnostic
+  measuring itself. `-Dgoldberry.trace.input=true` is the other half: what asked
+  for the frame ([ADR-0151](adr/0151-a-frame-can-say-what-it-did.md))
+- **It found `cascade 5.133 ms for three elements`.** With ADR-0149's narrowing
+  in place a click re-resolved one or two nodes and `style` was still 1.5 ms,
+  because **one resolve cost 1.7 ms**. Two reasons, both structural. Every rule in
+  every sheet was matched against every element — four sheets, some two thousand
+  rules, asked about for a `text` node as readily as for a `button`. And custom
+  properties are collected by walking to the **root**, running a full cascade at
+  every level, so one node at depth ten was eleven cascades — twelve, because
+  `resolve` asked for the properties and the declarations separately and both
+  cascade the element. ADR-0070 cached the *result* of this term and never made
+  the term cheaper, so every miss paid in full. Rules are now bucketed by the type
+  their rightmost compound names, custom properties are cached per element on the
+  same identity scheme the computed style uses, and `resolve` cascades once:
+  **one resolve 1.7 ms → 0.13 ms**, a click frame's cascade 0.48 → 0.26 ms, and a
+  cold render of a whole screen — what a tab switch pays — **112 ms → 52 ms**
+  ([ADR-0152](adr/0152-the-cascade-looks-at-rules-that-could-match.md))
+- **And the HUD says it is in its own numbers.** Three paragraphs a frame are
+  re-shaped in the showcase and they are the HUD's own readings: a string that
+  changes every frame cannot be held by a cache keyed on the string. It cannot be
+  taken out of the measurement without lying about the frame the window actually
+  painted, so the caption reads `this hud included` — ADR-0101's rule kept by
+  being honest rather than by pretending
+  ([ADR-0152](adr/0152-the-cascade-looks-at-rules-that-could-match.md))
+
 ## M3 — Shell
 
 **Started.** `docs/core-widgets.md` §7 names two places an overlay can be drawn —

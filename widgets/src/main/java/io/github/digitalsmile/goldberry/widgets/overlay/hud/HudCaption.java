@@ -50,8 +50,15 @@ record HudCaption() implements Widget.Leaf, Styled, Paints {
         // window would otherwise be described by this line as though it kept
         // ours. A fixed source reports zero, and "per frame, mean" is all that
         // can honestly be said about numbers somebody chose.
+        // **"this hud included"**, because it is. A HUD is a node in the window's
+        // own tree: it walks with everything else, and its readings are strings
+        // that change every frame, so it shapes text no cache can hold. Measured
+        // in the showcase, three paragraphs a frame. ADR-0101's rule is that a
+        // diagnostic must not be the thing it measures; it cannot be taken out of
+        // this measurement without lying about the frame the window actually
+        // painted, so it says so instead (ADR-0152).
         return frames.capacity() > 0
-                ? "per frame · mean of last " + frames.capacity()
-                : "per frame · mean";
+                ? "per frame · mean of last " + frames.capacity() + " · this hud included"
+                : "per frame · mean · this hud included";
     }
 }

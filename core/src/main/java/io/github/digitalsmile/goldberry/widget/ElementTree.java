@@ -83,6 +83,14 @@ public final class ElementTree {
         return styleResolver;
     }
 
+    /// What this frame did to the tree — see [FrameTrace]. Always present and
+    /// only written to when tracing is on.
+    private final FrameTrace trace = new FrameTrace();
+
+    public FrameTrace trace() {
+        return trace;
+    }
+
     /// The window this tree is built into, or empty — [BuildContext#host()]'s
     /// answer, held once for the whole tree.
     java.util.Optional<io.github.digitalsmile.goldberry.Host> host() {

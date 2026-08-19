@@ -159,6 +159,8 @@
 - [ADR-0148 A menu row does not wrap](adr/0148-a-menu-row-does-not-wrap.md)
 - [ADR-0149 A state invalidates what it can reach](adr/0149-a-state-invalidates-what-it-can-reach.md)
 - [ADR-0150 A HUD reads itself against a budget](adr/0150-a-hud-reads-itself-against-a-budget.md)
+- [ADR-0151 A frame can say what it did](adr/0151-a-frame-can-say-what-it-did.md)
+- [ADR-0152 The cascade looks at rules that could match](adr/0152-the-cascade-looks-at-rules-that-could-match.md)
 
 ---
 

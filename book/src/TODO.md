@@ -872,6 +872,19 @@ the mechanism the sentence named.
   problem. —
   [ADR-0149](adr/0149-a-state-invalidates-what-it-can-reach.md)
 
+- **A HUD costs about three shaped paragraphs a frame, and reports the cost as
+  its own.** Its readings are strings that change every frame, so no cache keyed
+  on the string can hold them. The caption says so rather than hiding it, and the
+  ways out are all worse than the disclosure: refreshing the text at 10 Hz would
+  need per-frame state a widget cannot have, and excluding the overlay subtree
+  from the timings would report a frame the window did not paint. —
+  [ADR-0152](adr/0152-the-cascade-looks-at-rules-that-could-match.md)
+- **The rule buckets are only as good as the stylesheet.** A sheet written
+  entirely in classes puts every rule in the untyped bucket and gets none of
+  ADR-0152's saving. The toolkit's own sheets are type-first and nothing enforces
+  that they stay so. —
+  [ADR-0152](adr/0152-the-cascade-looks-at-rules-that-could-match.md)
+
 ## Answered
 
 Kept rather than deleted: each is a trap somebody hit, and the reasoning that got
