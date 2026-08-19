@@ -161,6 +161,7 @@
 - [ADR-0150 A HUD reads itself against a budget](adr/0150-a-hud-reads-itself-against-a-budget.md)
 - [ADR-0151 A frame can say what it did](adr/0151-a-frame-can-say-what-it-did.md)
 - [ADR-0152 The cascade looks at rules that could match](adr/0152-the-cascade-looks-at-rules-that-could-match.md)
+- [ADR-0153 A rate is counted; a refresh is asked for](adr/0153-a-rate-is-counted-a-refresh-is-asked-for.md)
 
 ---
 

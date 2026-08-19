@@ -64,21 +64,20 @@ public record Hud(List<Reading> readings, Attributes attributes)
     /// The readings a bare `hud` shows: the rate, and how much of each frame the
     /// toolkit spent painting it.
     ///
-    /// Two rather than three, and [Reading#FRAME] is the one left out on purpose:
-    /// it is `1000 / fps` and a HUD that showed both would be spending a third of
-    /// its width restating the first number. It is one attribute away for whoever
-    /// is thinking in budgets rather than in rates.
+    /// Two, because they are the two halves of the question a HUD is opened to
+    /// answer — how often frames are arriving, and how much of one this toolkit
+    /// is responsible for. Everything else is [#STAGES].
     public static final List<Reading> DEFAULT = List.of(Reading.FPS, Reading.PAINT);
 
-    /// The rate, **both totals**, and where the toolkit's went —
-    /// `hud readings="stages"` and what the showcase turns on.
+    /// The rate, what the display can do, the toolkit's total, and where that
+    /// total went — `hud readings="stages"` and what the showcase turns on.
     ///
-    /// Two totals because they answer different questions and a breakdown makes
-    /// the difference matter: `frame` is the whole interval, the platform's half
-    /// included, and `paint` is the toolkit's share of it. Four stages under a
-    /// `paint` of 2 ms inside a `frame` of 16.7 is idle hardware; the same four
-    /// under a `paint` of 2 ms inside a `frame` of 40 is something outside this
-    /// toolkit.
+    /// `display` rather than the frame interval it replaced. The interval was
+    /// counted between frames, and §1.7 makes the loop idle when nothing asks for
+    /// one — so it measured how long the user had not touched the window and read
+    /// as a stall every time they stopped. What is worth knowing is what one
+    /// frame of *this display* is, because that is what every budget below is a
+    /// share of ([ADR-0153](../../../../../../../../book/src/adr/0153-a-rate-is-counted-a-refresh-is-asked-for.md)).
     ///
     /// Four stages rather than "everything a frame does": the hit-test capture and
     /// the frame's own setup are in [Reading#PAINT] and not in any of these, so
@@ -88,7 +87,7 @@ public record Hud(List<Reading> readings, Attributes attributes)
     /// running uncached (ADR-0142,
     /// [ADR-0146](../../../../../../../../book/src/adr/0146-a-hud-shows-where-the-frame-went.md)).
     public static final List<Reading> STAGES = List.of(
-            Reading.FPS, Reading.FRAME, Reading.PAINT,
+            Reading.FPS, Reading.REFRESH, Reading.PAINT,
             Reading.BUILD, Reading.STYLE, Reading.LAYOUT, Reading.RASTER);
 
     /// A HUD showing [#STAGES].

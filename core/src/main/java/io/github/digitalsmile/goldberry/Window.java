@@ -361,6 +361,10 @@ public final class Window implements AutoCloseable {
         // painted, and a frame the platform then refused because the window was
         // resized under it is a frame this loop still spent (see the catch).
         frames.record(started, painted);
+        // Asked of the backend on every frame and cached there: it changes only
+        // when the window moves monitors, and a `hud` needs it to know what a
+        // frame's budget actually is (ADR-0153).
+        frames.displayHertz(window.refreshRate());
 
         var frameSize = size;
         try {

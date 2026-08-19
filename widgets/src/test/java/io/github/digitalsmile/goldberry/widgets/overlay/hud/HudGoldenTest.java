@@ -41,7 +41,7 @@ class HudGoldenTest {
 
     /// A rate a machine cannot influence. Every number here is chosen, which is
     /// the whole reason [FrameStats] is an interface.
-    private static final FrameStats SIXTY = FrameStats.of(60, 16.7, 2.1, 4_200);
+    private static final FrameStats SIXTY = FrameStats.of(60, 16.7, 2.1, 4_200, 0, 0, 0, 0, 60);
 
     @BeforeEach
     void setUp() {
@@ -94,7 +94,7 @@ class HudGoldenTest {
     @DisplayName("the stage breakdown, a line each, with the caption under it")
     void stages() {
         paint("hud-stages", Theme.NORD_DARK,
-                FrameStats.of(60, 16.7, 2.1, 4_200, 0.05, 0.29, 0.11, 1.34),
+                FrameStats.of(60, 16.7, 2.1, 4_200, 0.05, 0.29, 0.11, 1.34, 60),
                 300, 190, Hud.stages());
     }
 
@@ -109,7 +109,7 @@ class HudGoldenTest {
     @DisplayName("readings over their budget are red, near it amber, and the rest quiet")
     void overBudget() {
         paint("hud-over-budget", Theme.NORD_DARK,
-                FrameStats.of(22, 45.0, 11.0, 4_200, 0.04, 9.6, 0.2, 3.4),
+                FrameStats.of(22, 45.0, 11.0, 4_200, 0.04, 9.6, 0.2, 3.4, 60),
                 300, 190, Hud.stages());
     }
 
@@ -134,7 +134,7 @@ class HudGoldenTest {
     @DisplayName("every reading at once")
     void allReadings() {
         paint("hud-readings", Theme.NORD_DARK, SIXTY, 300,
-                new Hud(Reading.FPS, Reading.FRAME, Reading.PAINT));
+                new Hud(Reading.FPS, Reading.REFRESH, Reading.PAINT));
     }
 
     /// Dashes rather than zeroes: a HUD with no frame loop over it has measured
@@ -144,7 +144,7 @@ class HudGoldenTest {
     @DisplayName("no frame loop, so no numbers")
     void noLoop() {
         paint("hud-no-loop", Theme.NORD_DARK, FrameStats.none(), 300,
-                new Hud(Reading.FPS, Reading.FRAME, Reading.PAINT));
+                new Hud(Reading.FPS, Reading.REFRESH, Reading.PAINT));
     }
 
     /// **The overlay layer itself.** A window with content in it and a HUD

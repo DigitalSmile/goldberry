@@ -65,7 +65,7 @@ class HudTest {
     @Test
     @DisplayName("a bare hud shows the rate and the paint time")
     void defaultReadings() {
-        var box = renderer(FrameStats.of(60, 16.7, 2.1, 500))
+        var box = renderer(FrameStats.of(60, 16.7, 2.1, 500, 0, 0, 0, 0, 60))
                 .render(new ElementTree(new Hud()));
 
         assertEquals(List.of("60 fps", "paint 2.1 ms"), readings(box));
@@ -79,10 +79,10 @@ class HudTest {
     void frameIsOptional() {
         assertEquals(List.of(Reading.FPS, Reading.PAINT), Hud.DEFAULT);
 
-        var box = renderer(FrameStats.of(60, 16.7, 2.1, 500))
-                .render(new ElementTree(new Hud(Reading.FPS, Reading.FRAME, Reading.PAINT)));
+        var box = renderer(FrameStats.of(60, 16.7, 2.1, 500, 0, 0, 0, 0, 60))
+                .render(new ElementTree(new Hud(Reading.FPS, Reading.REFRESH, Reading.PAINT)));
 
-        assertEquals(List.of("60 fps", "frame 16.7 ms", "paint 2.1 ms"), readings(box));
+        assertEquals(List.of("60 fps", "refresh 60 Hz", "paint 2.1 ms"), readings(box));
     }
 
     /// The breakdown — [ADR-0146].
@@ -93,10 +93,10 @@ class HudTest {
     @Test
     @DisplayName("`stages` shows where the frame went, two decimals at a time")
     void stages() {
-        var box = renderer(FrameStats.of(60, 16.7, 2.1, 500, 0.05, 0.29, 0.11, 1.34))
+        var box = renderer(FrameStats.of(60, 16.7, 2.1, 500, 0.05, 0.29, 0.11, 1.34, 60))
                 .render(new ElementTree(Hud.stages()));
 
-        assertEquals(List.of("60 fps", "frame 16.7 ms", "paint 2.1 ms",
+        assertEquals(List.of("60 fps", "refresh 60 Hz", "paint 2.1 ms",
                         "build 0.05 ms", "style 0.29 ms", "layout 0.11 ms", "raster 1.34 ms"),
                 readings(box));
     }
@@ -107,7 +107,7 @@ class HudTest {
     @Test
     @DisplayName("a stage under a tenth of a millisecond still reads as a number")
     void stagesKeepTheirPrecision() {
-        var box = renderer(FrameStats.of(60, 16.7, 2.1, 500, 0.04, 0.0, 0, 0))
+        var box = renderer(FrameStats.of(60, 16.7, 2.1, 500, 0.04, 0.0, 0, 0, 60))
                 .render(new ElementTree(new Hud(Reading.BUILD, Reading.STYLE)));
 
         assertEquals(List.of("build 0.04 ms", "style 0.00 ms"), readings(box));
@@ -131,7 +131,7 @@ class HudTest {
     void stagesWithNoLoop() {
         var box = renderer(FrameStats.none()).render(new ElementTree(Hud.stages()));
 
-        assertEquals(List.of("— fps", "frame —", "paint —",
+        assertEquals(List.of("— fps", "refresh —", "paint —",
                 "build —", "style —", "layout —", "raster —"), readings(box));
     }
 
@@ -142,9 +142,9 @@ class HudTest {
     @DisplayName("no frame loop reads as dashes, not as zero")
     void noLoopIsNotZero() {
         var box = renderer(FrameStats.none())
-                .render(new ElementTree(new Hud(Reading.FPS, Reading.FRAME, Reading.PAINT)));
+                .render(new ElementTree(new Hud(Reading.FPS, Reading.REFRESH, Reading.PAINT)));
 
-        assertEquals(List.of("— fps", "frame —", "paint —"), readings(box));
+        assertEquals(List.of("— fps", "refresh —", "paint —"), readings(box));
 
         // A loop that genuinely stopped dead is a different thing and reads
         // differently, which is the distinction the dashes exist for.
@@ -164,10 +164,10 @@ class HudTest {
             // A locale whose decimal separator is a comma, which is what would
             // turn `16.7 ms` into `16,7 ms` on a CI runner in Berlin.
             Locale.setDefault(Locale.GERMANY);
-            var box = renderer(FrameStats.of(60, 16.7, 2.1, 500))
-                    .render(new ElementTree(new Hud(Reading.FRAME)));
+            var box = renderer(FrameStats.of(60, 16.7, 2.1, 500, 0, 0, 0, 0, 60))
+                    .render(new ElementTree(new Hud(Reading.REFRESH)));
 
-            assertEquals(List.of("frame 16.7 ms"), readings(box));
+            assertEquals(List.of("refresh 60 Hz"), readings(box));
         } finally {
             Locale.setDefault(previous);
         }
@@ -197,7 +197,7 @@ class HudTest {
     @Test
     @DisplayName("the caption says the numbers are per-frame means over the ring")
     void caption() {
-        var live = renderer(FrameStats.of(60, 16.7, 2.1, 500))
+        var live = renderer(FrameStats.of(60, 16.7, 2.1, 500, 0, 0, 0, 0, 60))
                 .render(new ElementTree(new Hud()));
         // A fixed source keeps no window, so there is no length to name and the
         // caption says only what it can stand behind.
@@ -219,40 +219,64 @@ class HudTest {
     void budgetLevels() {
         var reading = Reading.PAINT;
 
-        assertEquals(8.0, reading.budgetMillis(), 0.001, "half a 60 Hz frame");
-        assertTrue(new HudReading(reading).classes(FrameStats.of(60, 16.7, 2.0, 9))
+        assertEquals(8.33, reading.budgetMillis(
+                FrameStats.of(60, 16.7, 2, 9, 0, 0, 0, 0, 60)), 0.01,
+                "half a frame of a 60 Hz display");
+        assertEquals(4.17, reading.budgetMillis(
+                FrameStats.of(120, 8.3, 2, 9, 0, 0, 0, 0, 120)), 0.01,
+                "and half a frame of a 120 Hz one — the budget follows the display");
+        assertTrue(new HudReading(reading).classes(FrameStats.of(60, 16.7, 2.0, 9, 0, 0, 0, 0, 60))
                 .contains("ok"), "2 ms of an 8 ms budget is fine");
-        assertTrue(new HudReading(reading).classes(FrameStats.of(60, 16.7, 6.5, 9))
+        assertTrue(new HudReading(reading).classes(FrameStats.of(60, 16.7, 6.5, 9, 0, 0, 0, 0, 60))
                 .contains("near"), "6.5 of 8 is three quarters of the way there");
-        assertTrue(new HudReading(reading).classes(FrameStats.of(60, 16.7, 9.0, 9))
+        assertTrue(new HudReading(reading).classes(FrameStats.of(60, 16.7, 9.0, 9, 0, 0, 0, 0, 60))
                 .contains("over"), "9 of 8 is over");
     }
 
-    /// **A frame interval is a target to sit at, not a ceiling to stay under.**
-    /// A vsynced loop is supposed to measure 16.7, and a healthy window reading
-    /// amber teaches a reader to ignore the colour (ADR-0150).
+    /// **The rate is never coloured, and that is the decision** — [ADR-0153].
+    ///
+    /// §1.7 makes the loop idle when nothing asks for a frame, so a rate counted
+    /// between frames measures how long the user did not touch the window. It
+    /// collapses the moment they stop clicking and stays low for the next sixty
+    /// frames, and colouring it turned normal idling into an alarm.
     @Test
-    @DisplayName("a frame sitting exactly on its budget is fine, not a warning")
-    void frameSitsOnItsBudget() {
-        assertTrue(new HudReading(Reading.FRAME).classes(FrameStats.of(60, 16.7, 2, 9))
-                .contains("ok"), "60 Hz is the budget, not a near miss of it");
-        assertTrue(new HudReading(Reading.FRAME).classes(FrameStats.of(50, 20.0, 2, 9))
-                .contains("near"));
-        assertTrue(new HudReading(Reading.FRAME).classes(FrameStats.of(20, 50.0, 2, 9))
-                .contains("over"));
+    @DisplayName("the rate is context, not a budget: it is never coloured")
+    void rateIsNeverColoured() {
+        for (var stats : List.of(
+                FrameStats.of(60, 16.7, 2, 9, 0, 0, 0, 0, 60),
+                FrameStats.of(45, 22, 2, 9, 0, 0, 0, 0, 60),
+                FrameStats.of(2, 500, 2, 9, 0, 0, 0, 0, 60))) {
+            assertTrue(new HudReading(Reading.FPS).classes(stats).contains("ok"),
+                    () -> "an idle loop is not a fault: " + stats.fps() + " fps");
+        }
     }
 
-    /// The rate is the one reading where **more is better**, so it reads its own
-    /// level rather than sharing the arithmetic.
+    /// **The display's refresh rate is the only rate a platform can be asked
+    /// for**, and it is what every budget is a share of — so the same paint time
+    /// is fine at 60 Hz and over budget at 120 (ADR-0153).
     @Test
-    @DisplayName("the rate is judged as a floor, not as a ceiling")
-    void rateIsAFloor() {
-        assertTrue(new HudReading(Reading.FPS).classes(FrameStats.of(60, 16.7, 2, 9))
-                .contains("ok"));
-        assertTrue(new HudReading(Reading.FPS).classes(FrameStats.of(45, 22, 2, 9))
-                .contains("near"));
-        assertTrue(new HudReading(Reading.FPS).classes(FrameStats.of(20, 50, 2, 9))
-                .contains("over"));
+    @DisplayName("a budget is a share of the display's frame, not of a hard-coded 60 Hz")
+    void budgetsFollowTheDisplay() {
+        var sixty = FrameStats.of(60, 16.7, 5.0, 9, 0, 0, 0, 0, 60);
+        var oneTwenty = FrameStats.of(120, 8.3, 5.0, 9, 0, 0, 0, 0, 120);
+
+        assertTrue(new HudReading(Reading.PAINT).classes(sixty).contains("ok"),
+                "5 ms of a 60 Hz display's 8.3 ms paint budget");
+        assertTrue(new HudReading(Reading.PAINT).classes(oneTwenty).contains("over"),
+                "the same 5 ms against a 120 Hz display's 4.2 ms");
+    }
+
+    /// A platform that will not say what the display does — a headless backend,
+    /// or a mode SDL cannot describe — falls back to 60 Hz, and says so in the
+    /// reading rather than pretending to know.
+    @Test
+    @DisplayName("an unknown display rate reads as dashes and budgets as 60 Hz")
+    void unknownDisplayRate() {
+        var unknown = FrameStats.of(60, 16.7, 2.0, 9, 0, 0, 0, 0, 0);
+
+        assertEquals(List.of("refresh —"),
+                readings(renderer(unknown).render(new ElementTree(new Hud(Reading.REFRESH)))));
+        assertEquals(8.33, Reading.PAINT.budgetMillis(unknown), 0.01);
     }
 
     /// A HUD with no loop behind it draws dashes, and dashes in red would be an
@@ -274,8 +298,8 @@ class HudTest {
         assertEquals(Hud.DEFAULT, ((Hud) bare).readings());
 
         var chosen = Widgets.inflater()
-                .inflate(KdlParser.parse("hud readings=\"fps frame\" class=\"dim\"").getFirst());
-        assertEquals(List.of(Reading.FPS, Reading.FRAME), ((Hud) chosen).readings());
+                .inflate(KdlParser.parse("hud readings=\"fps refresh\" class=\"dim\"").getFirst());
+        assertEquals(List.of(Reading.FPS, Reading.REFRESH), ((Hud) chosen).readings());
         assertTrue(((Hud) chosen).classes().contains("dim"));
     }
 

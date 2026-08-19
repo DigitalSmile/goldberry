@@ -858,12 +858,6 @@ the mechanism the sentence named.
   behaviour to choose. `option` has carried the same gap since ADR-0099. —
   [ADR-0148](adr/0148-a-menu-row-does-not-wrap.md)
 
-- **The HUD's budgets assume a 60 Hz display.** Every one of them is a share of
-  16.7 ms, so on a 120 Hz window they are all wrong by a factor of two and a
-  perfectly healthy loop reads amber. Reading the display's refresh rate is a
-  backend question — `SDL_GetDisplayMode` has it — and not the widget's, so the
-  widget has a number where it should have a fraction of one it is told. —
-  [ADR-0150](adr/0150-a-hud-reads-itself-against-a-budget.md)
 - **`Element.update` still invalidates a subtree wholesale.** ADR-0149 narrowed
   the *state* path; a rebuilt widget still throws away everything below it,
   because what changed there is the node's identity to the cascade — its classes
@@ -885,11 +879,24 @@ the mechanism the sentence named.
   that they stay so. —
   [ADR-0152](adr/0152-the-cascade-looks-at-rules-that-could-match.md)
 
+- **A widget's CSS classes share a namespace with the design system's.** A `hud`
+  reading named `display` picked up §1.4's `.display` type rank and rendered at
+  28px. Renamed, and nothing prevents the next one: there is no prefix
+  convention, no check, and the two sets of names are written in different files
+  by different people. —
+  [ADR-0153](adr/0153-a-rate-is-counted-a-refresh-is-asked-for.md)
+
 ## Answered
 
 Kept rather than deleted: each is a trap somebody hit, and the reasoning that got
 out of it is usually worth more than the fact that it is fixed.
 
+- ~~**The HUD's budgets assume a 60 Hz display.**~~ **They are shares of the
+  display's own frame now.** `SDL_GetCurrentDisplayMode`'s refresh rate was
+  already bound for the frame pacer; it reaches a `hud` through
+  `FrameStats.displayHertz()`, and a platform that will not say falls back to 60
+  with the reading showing dashes rather than a number it does not have. —
+  [ADR-0153](adr/0153-a-rate-is-counted-a-refresh-is-asked-for.md)
 - ~~**A click costs one node's style.**~~ **It cost the whole tree's, and the
   HUD is what found it.** Hover and active apply to the ancestor chain, and every
   node in that chain invalidated its entire subtree in case a descendant

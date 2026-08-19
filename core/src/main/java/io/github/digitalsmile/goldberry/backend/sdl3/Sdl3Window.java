@@ -315,7 +315,8 @@ sealed class Sdl3Window implements BackendWindow permits Sdl3Popup {
     /// Cached, because it is read once per pump and a native call per pump for a
     /// number that changes only when the window moves monitors is waste. Dropped
     /// by [#forgetRefreshRate()] when it might have changed.
-    float refreshRate() {
+    @Override
+    public float refreshRate() {
         if (!open) {
             return 0f;
         }

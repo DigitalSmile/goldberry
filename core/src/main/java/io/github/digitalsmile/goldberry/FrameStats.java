@@ -94,6 +94,20 @@ public interface FrameStats {
         return 0;
     }
 
+    /// How many times a second the display refreshes, or **0** if the platform
+    /// will not say.
+    ///
+    /// **The only rate that is not counted.** SDL has no achieved-frame-rate
+    /// call, and nothing else does either: what a loop managed can only be
+    /// measured by the loop, which is what [#fps] is. This is what the *display*
+    /// does, asked of `SDL_GetCurrentDisplayMode` — and it is the number every
+    /// budget on a `hud` is a share of, so a 120 Hz window judges itself against
+    /// 8.3 ms rather than against a hard-coded 16.7
+    /// ([ADR-0153](../../../../../book/src/adr/0153-a-rate-is-counted-a-refresh-is-asked-for.md)).
+    default double displayHertz() {
+        return 0;
+    }
+
     /// Whether anything has been recorded yet.
     default boolean isEmpty() {
         return count() == 0;
@@ -116,7 +130,7 @@ public interface FrameStats {
     /// @param paintMillis the paint time to report
     /// @param count       the frame count to report
     static FrameStats of(double fps, double frameMillis, double paintMillis, long count) {
-        return new FixedFrameStats(fps, frameMillis, paintMillis, count, 0, 0, 0, 0);
+        return new FixedFrameStats(fps, frameMillis, paintMillis, count, 0, 0, 0, 0, 0);
     }
 
     /// The same, with the four stages a frame is made of — for the golden image
@@ -128,6 +142,15 @@ public interface FrameStats {
     static FrameStats of(double fps, double frameMillis, double paintMillis, long count,
             double buildMillis, double styleMillis, double layoutMillis, double rasterMillis) {
         return new FixedFrameStats(fps, frameMillis, paintMillis, count,
-                buildMillis, styleMillis, layoutMillis, rasterMillis);
+                buildMillis, styleMillis, layoutMillis, rasterMillis, 0);
+    }
+
+    /// The same, with the display's refresh rate — for the golden image of a
+    /// `hud` whose budgets have to be the same on every machine.
+    static FrameStats of(double fps, double frameMillis, double paintMillis, long count,
+            double buildMillis, double styleMillis, double layoutMillis, double rasterMillis,
+            double displayHertz) {
+        return new FixedFrameStats(fps, frameMillis, paintMillis, count,
+                buildMillis, styleMillis, layoutMillis, rasterMillis, displayHertz);
     }
 }

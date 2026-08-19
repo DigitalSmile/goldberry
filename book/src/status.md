@@ -1458,6 +1458,27 @@ merely made to appear.
   being honest rather than by pretending
   ([ADR-0152](adr/0152-the-cascade-looks-at-rules-that-could-match.md))
 
+- **The frame interval is gone, and the display's refresh rate is in its place.**
+  `frame` was counted between frames, and §1.7 makes the loop idle when nothing
+  asks for one — so it measured how long the user had not touched the window. It
+  collapsed the moment they stopped clicking and stayed low for the next sixty
+  frames, because the ring is sixty long, and ADR-0150 had given it a colour: a
+  window sitting still read **red, permanently**, which is how the showcase came
+  to look broken at rest. **SDL has no frame rate to offer instead** —
+  `SDL_GetCurrentDisplayMode` reports what the *display* does, and what a loop
+  achieved is not a thing any platform knows. So `refresh` is asked for rather
+  than counted: `SdlVideo.refreshRate` was already bound for the pacer and is now
+  on the backend SPI, 0 meaning "the platform will not say". **Every budget is a
+  share of one display frame** rather than of a hard-coded 16.7 ms — paint a
+  half, raster a quarter, style and layout an eighth, build a sixteenth — so a
+  120 Hz window judges its paint against 4.2 ms, which closes the gap ADR-0150
+  left in TODO. `fps` stays and is **never coloured**: it is worth watching while
+  something is moving and it is not a thing the toolkit is answerable for. One
+  more lesson recorded: a reading's name is a CSS class, the first draft called
+  this one `display`, and `.display` is §1.4's largest type rank — so it rendered
+  at 28px in the golden
+  ([ADR-0153](adr/0153-a-rate-is-counted-a-refresh-is-asked-for.md))
+
 ## M3 — Shell
 
 **Started.** `docs/core-widgets.md` §7 names two places an overlay can be drawn —

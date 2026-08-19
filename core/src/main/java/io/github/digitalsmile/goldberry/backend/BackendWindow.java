@@ -137,6 +137,21 @@ public interface BackendWindow extends AutoCloseable {
     ///
     /// Empty when the platform will not say, which some drivers genuinely will
     /// not — see [#position()] for what a caller does about it.
+    /// How many times a second the display this window is on refreshes, or **0**
+    /// if the platform will not say.
+    ///
+    /// The one honest rate a platform can give. SDL has no notion of an achieved
+    /// frame rate — `SDL_GetCurrentDisplayMode` reports what the *display* does,
+    /// and what a loop managed can only be counted by the loop
+    /// ([ADR-0153](../../../../../../book/src/adr/0153-a-rate-is-counted-a-refresh-is-asked-for.md)).
+    ///
+    /// Zero is a legitimate answer rather than a failure: a headless backend has
+    /// no display, and SDL documents `refresh_rate` as 0 for a mode it cannot
+    /// describe. A caller reads it as "assume nothing".
+    default float refreshRate() {
+        return 0f;
+    }
+
     default Optional<LogicalRect> workArea() {
         return Optional.empty();
     }

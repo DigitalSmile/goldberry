@@ -1515,6 +1515,7 @@ hud-reading.fps {
 /* The four stages a frame is made of, one rank quieter again: `paint` is the
    number a reader is checking against a budget and these are where it went, so
    they are context for context (ADR-0146). */
+hud-reading.refresh,
 hud-reading.build,
 hud-reading.style,
 hud-reading.layout,

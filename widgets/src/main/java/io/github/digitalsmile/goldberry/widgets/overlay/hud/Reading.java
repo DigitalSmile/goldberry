@@ -28,73 +28,61 @@ public enum Reading {
             return String.format(Locale.ROOT, "%.0f fps", stats.fps());
         }
 
-        /// A **floor**, not a ceiling: this is the one reading where more is
-        /// better, so it reads its own level rather than sharing [#level]'s
-        /// arithmetic. 55 is a 60 Hz loop missing the odd frame; 30 is one
-        /// missing every other one.
+        /// **Never coloured**, and that is why it is still here rather than gone.
+        ///
+        /// §1.7 makes the loop idle when nothing asks for a frame, so the gap
+        /// between two frames is however long the user did not touch the window.
+        /// A rate counted over that measures the *user*: it collapses the moment
+        /// you stop clicking and stays low for the next sixty frames. Judging it
+        /// against a budget turned normal idling into an alarm, which is the
+        /// opposite of what a budget is for
+        /// ([ADR-0153](../../../../../../../../book/src/adr/0153-a-rate-is-counted-a-refresh-is-asked-for.md)).
+        ///
+        /// It is worth showing anyway: while something *is* moving — a drag, a
+        /// scroll, a transition — the loop runs continuously and this is exactly
+        /// the number to watch. It is context, and the readings the toolkit is
+        /// answerable for are the ones below it.
         @Override
         Level level(FrameStats stats) {
-            if (stats == null || stats.isEmpty() || stats.fps() <= 0) {
-                return Level.OK;
-            }
-            if (stats.fps() < 30) {
-                return Level.OVER;
-            }
-            return stats.fps() < 55 ? Level.NEAR : Level.OK;
+            return Level.OK;
         }
 
         @Override
         double value(FrameStats stats) {
             return stats.fps();
         }
-
-        @Override
-        double budgetMillis() {
-            return 0;
-        }
     },
 
-    /// The mean interval between frames: `16.7 ms`.
+    /// What the **display** does: `refresh 60 Hz`.
     ///
-    /// The budget. One decimal, because the difference between 16.7 and 16.9 is
-    /// the difference between hitting a 60 Hz vsync and missing it.
-    FRAME("frame") {
+    /// Named `refresh` and not `display`, which is where it started: a reading's
+    /// name is its CSS class, and `.display` is already §1.4's largest type rank
+    /// — so the first draft of this reading rendered at 28px. A widget's class
+    /// names share one namespace with the design system's, and this is the first
+    /// collision (ADR-0153).
+    ///
+    /// The only rate a platform can be asked for. SDL has no achieved-frame-rate
+    /// call and nothing else does either — `SDL_GetCurrentDisplayMode` reports
+    /// the display's mode, and what a loop managed can only be counted by the
+    /// loop, which is [#FPS] with all of its caveats.
+    ///
+    /// It is here because it is the number every budget below is a share of: on a
+    /// 120 Hz window a frame is 8.3 ms and not 16.7, and a `hud` judging against
+    /// the wrong one would call a healthy loop late (ADR-0153).
+    ///
+    /// Dashes when the platform will not say — a headless backend, or a mode SDL
+    /// cannot describe.
+    REFRESH("refresh") {
         @Override
         String text(FrameStats stats) {
-            return String.format(Locale.ROOT, "frame %.1f ms", stats.frameMillis());
+            return stats.displayHertz() > 0
+                    ? String.format(Locale.ROOT, "refresh %.0f Hz", stats.displayHertz())
+                    : "refresh —";
         }
 
         @Override
         double value(FrameStats stats) {
-            return stats.frameMillis();
-        }
-
-        /// A 60 Hz frame. The one budget here that is a fact about the display
-        /// rather than a judgement about the toolkit.
-        @Override
-        double budgetMillis() {
-            return 16.7;
-        }
-
-        /// **A target to sit at, not a ceiling to stay under**, which is why this
-        /// reading does not share [#level]'s three-quarters band: a vsynced loop
-        /// is *supposed* to measure 16.7, and a healthy window reading amber
-        /// teaches a reader to ignore the colour.
-        ///
-        /// So: on the budget is fine, half again is worth a look, and beyond that
-        /// is a loop missing frames.
-        @Override
-        Level level(FrameStats stats) {
-            if (stats == null || stats.isEmpty() || stats.frameMillis() <= 0) {
-                return Level.OK;
-            }
-            var measured = stats.frameMillis();
-            if (measured > budgetMillis() * 1.5) {
-                return Level.OVER;
-            }
-            // Five percent of vsync jitter, so a loop hitting its rate exactly
-            // does not flicker between two colours.
-            return measured > budgetMillis() * 1.05 ? Level.NEAR : Level.OK;
+            return stats.displayHertz();
         }
     },
 
@@ -114,12 +102,15 @@ public enum Reading {
             return stats.paintMillis();
         }
 
-        /// Half a 60 Hz frame. The toolkit's share of the interval, leaving the
-        /// platform its own — a paint over this is a window that cannot absorb a
-        /// resize, whatever the rate currently says.
+        /// **Half a display frame**, whatever the display is: the toolkit's share
+        /// of the interval, leaving the platform its own. A paint over this is a
+        /// window that cannot absorb a resize, whatever the rate currently says.
+        ///
+        /// A share rather than a number, so a 120 Hz window judges itself against
+        /// 4.2 ms where a 60 Hz one gets 8.3 (ADR-0153).
         @Override
-        double budgetMillis() {
-            return 8.0;
+        double budgetMillis(FrameStats stats) {
+            return frameBudget(stats) / 2;
         }
     },
 
@@ -145,9 +136,10 @@ public enum Reading {
             return stats.buildMillis();
         }
 
+        /// A sixteenth of a display frame (ADR-0153).
         @Override
-        double budgetMillis() {
-            return 1.0;
+        double budgetMillis(FrameStats stats) {
+            return frameBudget(stats) / 16;
         }
     },
 
@@ -169,9 +161,10 @@ public enum Reading {
             return stats.styleMillis();
         }
 
+        /// An eighth of a display frame (ADR-0153).
         @Override
-        double budgetMillis() {
-            return 2.0;
+        double budgetMillis(FrameStats stats) {
+            return frameBudget(stats) / 8;
         }
     },
 
@@ -191,9 +184,10 @@ public enum Reading {
             return stats.layoutMillis();
         }
 
+        /// An eighth of a display frame (ADR-0153).
         @Override
-        double budgetMillis() {
-            return 2.0;
+        double budgetMillis(FrameStats stats) {
+            return frameBudget(stats) / 8;
         }
     },
 
@@ -214,9 +208,10 @@ public enum Reading {
             return stats.rasterMillis();
         }
 
+        /// A quarter of a display frame (ADR-0153).
         @Override
-        double budgetMillis() {
-            return 4.0;
+        double budgetMillis(FrameStats stats) {
+            return frameBudget(stats) / 4;
         }
     };
 
@@ -271,7 +266,7 @@ public enum Reading {
         }
         throw new IllegalArgumentException(
                 "\"" + text + "\" is not a hud reading. Use one of:"
-                        + " fps, frame, paint, build, style, layout, raster");
+                        + " fps, refresh, paint, build, style, layout, raster");
     }
 
     /// This reading of `stats`, assuming there is something to read.
@@ -281,13 +276,25 @@ public enum Reading {
     abstract double value(FrameStats stats);
 
     /// What this reading is allowed to cost, in milliseconds, or 0 for one that
-    /// is not a duration.
+    /// is not a duration and cannot be over anything.
     ///
-    /// Every budget here is a share of the 16.7 ms a 60 Hz frame has, and every
-    /// one is a judgement rather than a measurement — which is why they are on
-    /// the reading and not in a stylesheet: a token would invite an application
-    /// to move the line rather than the number (ADR-0150).
-    abstract double budgetMillis();
+    /// Every budget here is a share of one **display** frame, and every one is a
+    /// judgement rather than a measurement — which is why they are on the reading
+    /// and not in a stylesheet: a token would invite an application to move the
+    /// line rather than the number (ADR-0150).
+    double budgetMillis(FrameStats stats) {
+        return 0;
+    }
+
+    /// How long one frame of the display lasts, in milliseconds.
+    ///
+    /// 16.7 when the platform will not say what the display does — a headless
+    /// backend, or a mode SDL cannot describe. A stated assumption rather than a
+    /// hidden one (ADR-0153).
+    static double frameBudget(FrameStats stats) {
+        var hertz = stats == null ? 0 : stats.displayHertz();
+        return hertz > 0 ? 1_000.0 / hertz : 1_000.0 / 60;
+    }
 
     /// How this reading is doing against its budget.
     ///
@@ -295,14 +302,18 @@ public enum Reading {
     /// behind it is not a HUD reporting a healthy one — it draws dashes, and
     /// dashes in red would be an alarm about nothing.
     Level level(FrameStats stats) {
-        if (stats == null || stats.isEmpty() || budgetMillis() <= 0) {
+        if (stats == null || stats.isEmpty()) {
+            return Level.OK;
+        }
+        var budget = budgetMillis(stats);
+        if (budget <= 0) {
             return Level.OK;
         }
         var measured = value(stats);
-        if (measured > budgetMillis()) {
+        if (measured > budget) {
             return Level.OVER;
         }
-        return measured >= budgetMillis() * NEAR_FRACTION ? Level.NEAR : Level.OK;
+        return measured >= budget * NEAR_FRACTION ? Level.NEAR : Level.OK;
     }
 
     /// This reading of `stats`, or dashes when there is nothing to read.
@@ -315,7 +326,7 @@ public enum Reading {
         if (stats == null || stats.isEmpty()) {
             return switch (this) {
                 case FPS -> "— fps";
-                case FRAME -> "frame —";
+                case REFRESH -> "refresh —";
                 case PAINT -> "paint —";
                 case BUILD -> "build —";
                 case STYLE -> "style —";

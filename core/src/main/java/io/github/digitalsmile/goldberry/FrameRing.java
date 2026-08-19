@@ -67,6 +67,19 @@ final class FrameRing implements FrameStats {
     /// a mean and the one thing this ring cannot forget.
     private long count;
 
+    /// What the display does, as the backend last reported it — see
+    /// [FrameStats#displayHertz].
+    private double displayHertz;
+
+    void displayHertz(double hertz) {
+        this.displayHertz = hertz;
+    }
+
+    @Override
+    public double displayHertz() {
+        return displayHertz;
+    }
+
     /// Adds a frame.
     ///
     /// Both timestamps are `System.nanoTime` readings taken by [Window#paint]
