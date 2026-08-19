@@ -310,12 +310,27 @@ public record Item(
             content.add(children.getFirst());
         }
         if (!label.isEmpty()) {
-            content.add(Box.text(context.paragraph(style, label), style.color()));
+            // **It does not shrink**, and a menu row is the place that matters.
+            // A box with text is a measured leaf, so a row squeezed narrower than
+            // its content does not clip the label -- it *wraps* it, and a
+            // two-line label in a fixed-height row is centred to the row's top
+            // edge. That is what "the item after the iconed one is aligned to the
+            // top" turned out to be: the widest row wraps first, and the widest
+            // row is rarely the one with the icon
+            // ([ADR-0148](../../../../../../../book/src/adr/0148-a-menu-row-does-not-wrap.md)).
+            //
+            // The cost is `option`'s, documented there and taken for the same
+            // reason: a label longer than the room for it overflows, because
+            // nothing in this toolkit clips. A menu one word too wide is legible;
+            // a menu of two-line rows is not.
+            content.add(Box.text(context.paragraph(style, label), style.color()).shrink(0));
         }
         // Grows, so everything after it is pushed to the far edge.
         content.add(Box.of().grow(1));
         if (accelerator != null && !accelerator.isEmpty()) {
-            content.add(Box.text(context.paragraph(style, accelerator), style.color()));
+            // The same, and more obviously: `Ctrl+Shift+K` broken over two lines
+            // is not an accelerator anybody can read.
+            content.add(Box.text(context.paragraph(style, accelerator), style.color()).shrink(0));
         }
         if (hasSubmenu() && !children.isEmpty()) {
             content.add(children.getLast());

@@ -1365,6 +1365,23 @@ merely made to appear.
   still fast"
   ([ADR-0147](adr/0147-a-frame-has-a-budget-and-the-build-checks-it.md))
 
+- **A menu row wraps, and a wrapped label sits at the top of its row.** Reported
+  as "the item after the iconed one is vertically aligned to top", and four
+  rounds of measuring the rows could not reproduce it: every row is 32 tall and
+  every label 8 from the top, at both densities and four display scales. The rows
+  were never wrong. A menu row is a row of **measured leaves**, nothing stops
+  those boxes shrinking, and a row squeezed narrower than its content does not
+  clip its label — it wraps it. Two lines measure 32 in a 32-tall row, so
+  `align-items: center` puts them at the top edge. **The widest row wraps first**,
+  and the widest row is rarely the one with the icon — "Switch density Ctrl+D" is
+  longer than "Switch theme Ctrl+T" — which is why it presented as something the
+  icon had done. The label and the accelerator no longer shrink; the cost is
+  `option`'s, taken for the same reason, that a label with no room overflows
+  because nothing in this toolkit clips. The test asserts where the *paragraph*
+  was painted rather than where the row was, and squeezes the menu to 160 logical
+  pixels — the general sweep passes with the defect in place, which is what made
+  it hard to find ([ADR-0148](adr/0148-a-menu-row-does-not-wrap.md))
+
 ## M3 — Shell
 
 **Started.** `docs/core-widgets.md` §7 names two places an overlay can be drawn —

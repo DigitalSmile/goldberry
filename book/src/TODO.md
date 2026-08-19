@@ -851,6 +851,13 @@ the mechanism the sentence named.
   a menu that closes as it opens. —
   [ADR-0144](adr/0144-a-popup-goes-away-when-the-application-does.md)
 
+- **A menu row overflows rather than ellipsising.** ADR-0148 stopped a squeezed
+  row wrapping to two lines, which was the visible defect; what it leaves is a
+  label running off the edge of a menu too narrow for it. §8's subset has no
+  `text-overflow` and nothing in this toolkit clips, so there is no third
+  behaviour to choose. `option` has carried the same gap since ADR-0099. —
+  [ADR-0148](adr/0148-a-menu-row-does-not-wrap.md)
+
 ## Answered
 
 Kept rather than deleted: each is a trap somebody hit, and the reasoning that got

@@ -156,6 +156,7 @@
 - [ADR-0145 A dropdown is as wide as what it drops from](adr/0145-a-dropdown-is-as-wide-as-what-it-drops-from.md)
 - [ADR-0146 A HUD shows where the frame went](adr/0146-a-hud-shows-where-the-frame-went.md)
 - [ADR-0147 A frame has a budget, and the build checks it](adr/0147-a-frame-has-a-budget-and-the-build-checks-it.md)
+- [ADR-0148 A menu row does not wrap](adr/0148-a-menu-row-does-not-wrap.md)
 
 ---
 
