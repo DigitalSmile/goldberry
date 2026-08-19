@@ -1332,6 +1332,39 @@ merely made to appear.
   are facts about where something is drawn
   ([ADR-0143](adr/0143-a-strip-keeps-its-height-and-an-icon-its-centre.md))
 
+- **The HUD says where the frame went, and the build checks it stays there.**
+  ADR-0142's 34× regression lived here for a month with every test passing and a
+  HUD on screen reading `paint 12.4 ms` — true, and useless: a total says a frame
+  is slow and nothing about which part of it is. Finding the answer took a
+  purpose-built probe and a counter compiled into the renderer. So `hud` grew
+  four readings — `build`, `style`, `layout`, `raster`, one word for the set of
+  them (`readings="stages"`) — timed by five `nanoTime` calls in the painter and
+  kept in the same 60-frame ring as the rate. They deliberately **do not add up
+  to `paint`**: the hit-test capture and the frame's setup are in the total and
+  in none of the stages, and making them add up would mean a fifth reading nobody
+  can act on. Two decimals for a stage against one for a total, because `0.0 ms`
+  cannot be told from a stage that is not running, and three ranks in the
+  stylesheet because six equally bright numbers on one plate read as a wall. The
+  showcase turns it on ([ADR-0146](adr/0146-a-hud-shows-where-the-frame-went.md))
+- **And a frame now has a budget.** `FrameBudgetTest` measures the showcase's own
+  tree at five resolutions from 800×600 to 4K, prints the table, and **fails the
+  build** when a stage is over its ceiling — `style` measures 0.03–0.08 ms and is
+  allowed 1 ms, which is useless against a 20% drift and exactly right against
+  what happens: with ADR-0142's defect put back it reports 10.1 ms and names the
+  stage and the resolution. Ceilings rather than stored comparisons, because a
+  test comparing against a recorded number fails on a slower machine and passes
+  on a faster one that regressed. **Two claims hold on any machine and are the
+  sharper half**: style and build do not grow with the pixel count, because the
+  cascade runs per element and a 4K window has the same elements as a small one;
+  and a settled render is two orders of magnitude cheaper than a cold one —
+  450–520× with the cache working and **11×** without it. Zero Blend2D workers,
+  because a threaded context queues its work and a loop around `paint` measures
+  *submitting* a frame, which is how the first run reported a 4K raster as
+  cheaper than an 800×600 one. `FrameBenchmark` stays: it measures the engine's
+  parts against each other, which is a different question from "is a real frame
+  still fast"
+  ([ADR-0147](adr/0147-a-frame-has-a-budget-and-the-build-checks-it.md))
+
 ## M3 — Shell
 
 **Started.** `docs/core-widgets.md` §7 names two places an overlay can be drawn —

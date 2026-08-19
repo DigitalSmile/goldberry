@@ -70,6 +70,25 @@ public record Hud(List<Reading> readings, Attributes attributes)
     /// is thinking in budgets rather than in rates.
     public static final List<Reading> DEFAULT = List.of(Reading.FPS, Reading.PAINT);
 
+    /// The rate, the total, and where the total went — `hud readings="stages"` and
+    /// what the showcase turns on.
+    ///
+    /// Four stages rather than "everything a frame does": the hit-test capture and
+    /// the frame's own setup are in [Reading#PAINT] and not in any of these, so
+    /// the four do not add up to the total and are not meant to. What they are for
+    /// is telling *which* of the four moved, which is the question a total cannot
+    /// answer — and which went unanswered for a month while the cascade was
+    /// running uncached (ADR-0142,
+    /// [ADR-0146](../../../../../../../../book/src/adr/0146-a-hud-shows-where-the-frame-went.md)).
+    public static final List<Reading> STAGES = List.of(
+            Reading.FPS, Reading.PAINT,
+            Reading.BUILD, Reading.STYLE, Reading.LAYOUT, Reading.RASTER);
+
+    /// A HUD showing [#STAGES].
+    public static Hud stages() {
+        return new Hud(STAGES, Attributes.NONE);
+    }
+
     public Hud(Reading... readings) {
         this(List.of(readings), Attributes.NONE);
     }
@@ -137,6 +156,12 @@ public record Hud(List<Reading> readings, Attributes attributes)
     private static List<Reading> readings(String value) {
         if (value == null || value.isBlank()) {
             return DEFAULT;
+        }
+        // One name for the whole breakdown, because `readings="fps paint build
+        // style layout raster"` is the list nobody wants to type and the one
+        // everybody wants when a frame has gone wrong (ADR-0146).
+        if ("stages".equals(value.trim())) {
+            return STAGES;
         }
         return List.of(value.trim().split("\\s+")).stream().map(Reading::parse).toList();
     }

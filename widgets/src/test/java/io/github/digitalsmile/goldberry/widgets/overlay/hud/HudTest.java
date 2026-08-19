@@ -74,6 +74,56 @@ class HudTest {
         assertEquals(List.of("60 fps", "16.7 ms", "paint 2.1 ms"), readings(box));
     }
 
+    /// The breakdown — [ADR-0146].
+    ///
+    /// A total tells you a frame is slow; the stages tell you *which* part of it
+    /// is. The showcase spent a month at 10ms a frame with the cascade running
+    /// uncached, and nothing on screen could have said which of the four it was.
+    @Test
+    @DisplayName("`stages` shows where the frame went, two decimals at a time")
+    void stages() {
+        var box = renderer(FrameStats.of(60, 16.7, 2.1, 500, 0.05, 0.29, 0.11, 1.34))
+                .render(new ElementTree(Hud.stages()));
+
+        assertEquals(List.of("60 fps", "paint 2.1 ms",
+                        "build 0.05 ms", "style 0.29 ms", "layout 0.11 ms", "raster 1.34 ms"),
+                readings(box));
+    }
+
+    /// **Two decimals for a stage and one for a total**, which is not a
+    /// preference: a stage that reads `0.0 ms` cannot be told from a stage that
+    /// is not running, and telling those apart is the whole use of a breakdown.
+    @Test
+    @DisplayName("a stage under a tenth of a millisecond still reads as a number")
+    void stagesKeepTheirPrecision() {
+        var box = renderer(FrameStats.of(60, 16.7, 2.1, 500, 0.04, 0.0, 0, 0))
+                .render(new ElementTree(new Hud(Reading.BUILD, Reading.STYLE)));
+
+        assertEquals(List.of("build 0.04 ms", "style 0.00 ms"), readings(box));
+    }
+
+    @Test
+    @DisplayName("`readings=\"stages\"` is the whole breakdown in one word")
+    void stagesFromMarkup() {
+        var hud = (Hud) io.github.digitalsmile.goldberry.widgets.Widgets.inflater()
+                .inflate(io.github.digitalsmile.goldberry.kdl.KdlParser
+                        .parse("hud readings=\"stages\"").getFirst());
+
+        assertEquals(Hud.STAGES, hud.readings());
+    }
+
+    /// A source that does not measure the stages reports zero for them, which is
+    /// every source but the frame loop's own — and a HUD with no loop over it
+    /// still says so with dashes rather than with four zeroes.
+    @Test
+    @DisplayName("no frame loop reads as dashes for the stages too")
+    void stagesWithNoLoop() {
+        var box = renderer(FrameStats.none()).render(new ElementTree(Hud.stages()));
+
+        assertEquals(List.of("— fps", "paint —",
+                "build —", "style —", "layout —", "raster —"), readings(box));
+    }
+
     /// A zero is a measurement. A HUD rendered with no frame loop over it has not
     /// measured anything, and saying `0 fps` there would be a claim about a loop
     /// that is not being observed at all.

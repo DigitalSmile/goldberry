@@ -236,17 +236,31 @@ final class Launcher implements Host {
     }
 
     private void paint(io.github.digitalsmile.goldberry.Frame frame) {
+        // Four timestamps rather than four `if (traced)` pairs: the stages are
+        // what a `hud` shows, so they are measured on every frame or the number
+        // on screen would be a different frame's. Five `nanoTime` calls against a
+        // frame that costs hundreds of microseconds is not a cost worth a branch
+        // ([ADR-0146](../../../../../book/src/adr/0146-a-hud-shows-where-the-frame-went.md)).
+        var beganAt = System.nanoTime();
+
         // Every setState since the last frame settles here, once, however many of
         // them there were (ADR-0052).
         if (tree.needsBuild()) {
             tree.flush();
         }
         renderer();
+        var builtAt = System.nanoTime();
+
+        // The cascade and the box tree: the term ADR-0070 measured as the largest
+        // in a frame, and ADR-0142 as the one that had stopped being cached.
+        var boxes = renderer().render(tree);
+        var styledAt = System.nanoTime();
 
         // One layout pass, two readers. `update` reconciles the retained render
         // tree against this frame's description and lays it out; the paint and the
         // hit-test snapshot both read that one result (ADR-0069).
-        render.update(frame, renderer().render(tree));
+        render.update(frame, boxes);
+        var laidOutAt = System.nanoTime();
 
         // What differs from the last frame, computed before painting because the
         // clip has to be in place before anything is drawn (ADR-0072).
@@ -256,6 +270,9 @@ final class Launcher implements Host {
         } else {
             render.paint(frame);
         }
+        var rasterizedAt = System.nanoTime();
+        window.frameRing().stages(builtAt - beganAt, styledAt - builtAt,
+                laidOutAt - styledAt, rasterizedAt - laidOutAt);
         window.damaged(damage);
 
         // What the pointer is tested against is the frame that was just painted,

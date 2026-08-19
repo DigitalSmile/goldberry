@@ -27,6 +27,36 @@ final class FrameRing implements FrameStats {
     /// How long each retained frame spent being painted.
     private final long[] painted = new long[CAPACITY];
 
+    /// The four stages of each retained frame, in the same slots.
+    ///
+    /// One array per stage rather than one array of records: a ring of 60 frames
+    /// times four `long`s is 1.9 KiB of primitives that never move, where 60
+    /// records would be 60 allocations per second for a diagnostic that must not
+    /// cost anything to leave on (ADR-0146).
+    private final long[] built = new long[CAPACITY];
+    private final long[] styled = new long[CAPACITY];
+    private final long[] laid = new long[CAPACITY];
+    private final long[] rastered = new long[CAPACITY];
+
+    /// The stages of the frame being painted **now**, waiting for [#record].
+    ///
+    /// Handed in during the painter and consumed when it returns, because the
+    /// thing that can time the stages is inside the painter and the thing that
+    /// closes the frame is outside it. Cleared on every record, so a painter that
+    /// reported no stages leaves zeroes rather than the previous frame's.
+    private long pendingBuilt;
+    private long pendingStyled;
+    private long pendingLaid;
+    private long pendingRastered;
+
+    /// What the frame currently being painted spent in each stage, in nanos.
+    void stages(long buildNanos, long styleNanos, long layoutNanos, long rasterNanos) {
+        pendingBuilt = Math.max(0L, buildNanos);
+        pendingStyled = Math.max(0L, styleNanos);
+        pendingLaid = Math.max(0L, layoutNanos);
+        pendingRastered = Math.max(0L, rasterNanos);
+    }
+
     /// Where the next frame goes.
     private int next;
 
@@ -50,6 +80,14 @@ final class FrameRing implements FrameStats {
     void record(long startNanos, long paintNanos) {
         finished[next] = paintNanos;
         painted[next] = Math.max(0L, paintNanos - startNanos);
+        built[next] = pendingBuilt;
+        styled[next] = pendingStyled;
+        laid[next] = pendingLaid;
+        rastered[next] = pendingRastered;
+        pendingBuilt = 0;
+        pendingStyled = 0;
+        pendingLaid = 0;
+        pendingRastered = 0;
         next = (next + 1) % CAPACITY;
         if (size < CAPACITY) {
             size++;
@@ -88,12 +126,37 @@ final class FrameRing implements FrameStats {
 
     @Override
     public double paintMillis() {
+        return meanOf(painted);
+    }
+
+    @Override
+    public double buildMillis() {
+        return meanOf(built);
+    }
+
+    @Override
+    public double styleMillis() {
+        return meanOf(styled);
+    }
+
+    @Override
+    public double layoutMillis() {
+        return meanOf(laid);
+    }
+
+    @Override
+    public double rasterMillis() {
+        return meanOf(rastered);
+    }
+
+    /// The mean of one stage's ring, in milliseconds.
+    private double meanOf(long[] ring) {
         if (size == 0) {
             return 0;
         }
         var total = 0L;
         for (var i = 0; i < size; i++) {
-            total += painted[(next - 1 - i + CAPACITY) % CAPACITY];
+            total += ring[(next - 1 - i + CAPACITY) % CAPACITY];
         }
         return total / 1_000_000.0 / size;
     }

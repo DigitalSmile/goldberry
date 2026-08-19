@@ -154,6 +154,8 @@
 - [ADR-0143 A strip keeps its height, and an icon its centre](adr/0143-a-strip-keeps-its-height-and-an-icon-its-centre.md)
 - [ADR-0144 A popup goes away when the application does](adr/0144-a-popup-goes-away-when-the-application-does.md)
 - [ADR-0145 A dropdown is as wide as what it drops from](adr/0145-a-dropdown-is-as-wide-as-what-it-drops-from.md)
+- [ADR-0146 A HUD shows where the frame went](adr/0146-a-hud-shows-where-the-frame-went.md)
+- [ADR-0147 A frame has a budget, and the build checks it](adr/0147-a-frame-has-a-budget-and-the-build-checks-it.md)
 
 ---
 

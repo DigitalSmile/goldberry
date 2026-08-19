@@ -328,7 +328,12 @@ public final class Showcase implements Application {
             hud.remove();
             hud = null;
         } else {
-            hud = host.overlay(new Hud(), Corner.BOTTOM_END);
+            // The breakdown rather than the two-number default: a total is what
+            // tells you a frame is slow and the stages are what tell you which
+            // part of it is, which is the question the showcase's own 10ms frame
+            // went a month without anybody being able to ask (ADR-0142,
+            // ADR-0146).
+            hud = host.overlay(Hud.stages(), Corner.BOTTOM_END);
         }
         LOG.info("hud {}", hud == null ? "off" : "on");
     }

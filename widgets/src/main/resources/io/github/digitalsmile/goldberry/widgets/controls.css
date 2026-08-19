@@ -1508,6 +1508,19 @@ hud-reading.fps {
   font-weight: 600;
 }
 
+/* The four stages a frame is made of, one rank quieter again: `paint` is the
+   number a reader is checking against a budget and these are where it went, so
+   they are context for context. They are also the only readings that can be six
+   on one line, and a row of six equally bright numbers reads as a wall
+   (ADR-0146). */
+hud-reading.build,
+hud-reading.style,
+hud-reading.layout,
+hud-reading.raster {
+  font-size: var(--gb-font-caption);
+  line-height: var(--gb-line-caption);
+}
+
 /* --------------------------------------------------------------- popover --
  *
  * `docs/core-widgets.md` §7's floating panel: the surface a menu, a dropdown or

@@ -58,6 +58,42 @@ public interface FrameStats {
     /// dropping every other one.
     double paintMillis();
 
+    /// The mean time spent **rebuilding widgets** in one of those frames, in
+    /// milliseconds — every `setState` since the last frame, settled once
+    /// ([ADR-0052](../../../../../book/src/adr/0052-state-is-a-plain-object-and-setstate-defers.md)).
+    ///
+    /// Zero on a source that does not measure the stages, which is every source
+    /// but the frame loop's own. That is not a claim the stage took no time: it
+    /// is the same "nothing was measured" [#isEmpty] already means, and the four
+    /// stage readings draw dashes on it for the same reason
+    /// ([ADR-0146](../../../../../book/src/adr/0146-a-hud-shows-where-the-frame-went.md)).
+    default double buildMillis() {
+        return 0;
+    }
+
+    /// The mean time spent **resolving styles and building boxes**.
+    ///
+    /// The cascade, its cache, and the widget tree turning into a box tree. The
+    /// term ADR-0070 measured as the largest in a frame, and ADR-0142 as the one
+    /// that had quietly stopped being cached — which is the whole argument for
+    /// this number existing: it was the largest term in the frame for a month and
+    /// nothing on screen could have told anybody.
+    default double styleMillis() {
+        return 0;
+    }
+
+    /// The mean time spent in **layout** — Yoga, over the retained render tree.
+    default double layoutMillis() {
+        return 0;
+    }
+
+    /// The mean time spent **rasterizing** — Blend2D, over the damage rectangle
+    /// when the platform's buffer retains and over the whole frame when it does
+    /// not.
+    default double rasterMillis() {
+        return 0;
+    }
+
     /// Whether anything has been recorded yet.
     default boolean isEmpty() {
         return count() == 0;
@@ -80,6 +116,18 @@ public interface FrameStats {
     /// @param paintMillis the paint time to report
     /// @param count       the frame count to report
     static FrameStats of(double fps, double frameMillis, double paintMillis, long count) {
-        return new FixedFrameStats(fps, frameMillis, paintMillis, count);
+        return new FixedFrameStats(fps, frameMillis, paintMillis, count, 0, 0, 0, 0);
+    }
+
+    /// The same, with the four stages a frame is made of — for the golden image
+    /// of a HUD showing the breakdown, which has to draw numbers somebody chose.
+    ///
+    /// The stages do not have to add up to `paintMillis` and are not asserted to:
+    /// the total includes the hit-test capture and the frame's own setup, which
+    /// are neither large enough to name nor zero.
+    static FrameStats of(double fps, double frameMillis, double paintMillis, long count,
+            double buildMillis, double styleMillis, double layoutMillis, double rasterMillis) {
+        return new FixedFrameStats(fps, frameMillis, paintMillis, count,
+                buildMillis, styleMillis, layoutMillis, rasterMillis);
     }
 }

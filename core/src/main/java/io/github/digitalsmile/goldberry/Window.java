@@ -279,6 +279,15 @@ public final class Window implements AutoCloseable {
         return frames;
     }
 
+    /// The same ring, as the thing that can be written to.
+    ///
+    /// Package-private, because [#frames] is the reading half and everything
+    /// outside this package is a reader — the one writer is the launcher's
+    /// painter, which times the stages a `hud` shows (ADR-0146).
+    FrameRing frameRing() {
+        return frames;
+    }
+
     void paint() {
         if (!window.isOpen()) {
             return;

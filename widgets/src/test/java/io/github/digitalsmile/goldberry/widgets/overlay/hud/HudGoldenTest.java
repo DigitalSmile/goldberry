@@ -77,6 +77,20 @@ class HudGoldenTest {
                 frame -> BoxPainter.paint(frame, renderer(theme, stats).render(tree)));
     }
 
+    /// The breakdown — [ADR-0146], and the only thing that can say whether six
+    /// numbers on one plate read as a diagnostic or as a wall.
+    ///
+    /// The rate is bright, the total is dim, the four stages are dimmer and one
+    /// size down. Three ranks on one line is the kind of thing that resolves to
+    /// the same numbers whether it works or not.
+    @Test
+    @DisplayName("the stage breakdown, six readings in three ranks")
+    void stages() {
+        paint("hud-stages", Theme.NORD_DARK,
+                FrameStats.of(60, 16.7, 2.1, 4_200, 0.05, 0.29, 0.11, 1.34),
+                460, Hud.stages());
+    }
+
     /// The plate: a dim rate and a dimmer paint time, on the dark theme.
     @Test
     @DisplayName("a hud on the dark theme")
