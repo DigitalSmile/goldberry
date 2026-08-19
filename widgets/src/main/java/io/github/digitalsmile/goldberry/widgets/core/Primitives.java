@@ -1,17 +1,21 @@
 package io.github.digitalsmile.goldberry.widgets.core;
 
-import io.github.digitalsmile.goldberry.bind.Bindings;
-import io.github.digitalsmile.goldberry.kdl.KdlInflater;
-import io.github.digitalsmile.goldberry.widget.Attributes;
-import io.github.digitalsmile.goldberry.widget.Widget;
-import io.github.digitalsmile.goldberry.widgets.core.affix.Affix;
-import io.github.digitalsmile.goldberry.widgets.core.affix.Edge;
-import io.github.digitalsmile.goldberry.widgets.core.scroll.Scroll;
-import io.github.digitalsmile.goldberry.widgets.core.scroll.ScrollAxis;
-import io.github.digitalsmile.goldberry.widgets.panel.Panel;
-import io.github.digitalsmile.goldberry.widgets.text.Text;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 import java.util.List;
-import java.util.Objects;
+
 
 /// The KDL registry for `docs/core-widgets.md` §1, §2 and §5's structural
 /// widgets: `text`, `row`, `column`, `panel`, `spacer`, `scroll`, `affix`.
@@ -31,45 +35,11 @@ public final class Primitives {
     private Primitives() {
     }
 
-    /// An inflater that knows every structural widget, with nothing bound.
-    ///
-    /// §9: built-ins and application widgets register identically — this is just
-    /// the first caller of [KdlInflater#register], not a privileged path.
-    public static KdlInflater<Widget> inflater() {
-        return inflater(Bindings.none());
-    }
 
-    /// An inflater whose `bind=` paths resolve against `bindings`.
-    ///
-    /// The `bind` half of §9, and the same shape as the `action` half: markup
-    /// names a path, the registry says what it means, and a document reloaded at
-    /// runtime re-resolves every path against the properties the application
-    /// already holds (ADR-0062).
-    public static KdlInflater<Widget> inflater(Bindings bindings) {
-        Objects.requireNonNull(bindings, "bindings");
-        var inflater = new KdlInflater<Widget>();
-        inflater.register("text", (node, children) -> {
-            var source = bindings.resolve(node.stringProperty("bind"));
-            var literal = node.argument().map(v -> v.asString()).orElse("");
-            // A bound node keeps its argument as the fallback rather than
-            // refusing it: `text bind="user.name" "…"` is what a lenient registry
-            // shows for a path nothing answers yet, and it is what a designer
-            // laying out a screen wants to see.
-            return source == null
-                    ? new Text(literal, Attributes.of(node))
-                    : new Text(literal, source, Attributes.of(node));
-        });
-        inflater.register("row", (node, children) -> new Row(children, Attributes.of(node)));
-        inflater.register("column", (node, children) -> new Column(children, Attributes.of(node)));
-        inflater.register("panel", (node, children) -> new Panel(children, Attributes.of(node)));
-        inflater.register("spacer", (node, children) -> new Spacer(Attributes.of(node)));
-        inflater.register("affix", (node, children) -> new Affix(
-                children, Edge.parse(node.stringProperty("edge")),
-                node.numberProperty("offset", 0), Attributes.of(node)));
-        inflater.register("scroll", (node, children) -> new Scroll(
-                children, ScrollAxis.parse(node.stringProperty("axis")), Attributes.of(node)));
-        return inflater;
-    }
+    // The inflater used to be here. The structural widgets carry `@Markup` like
+    // every other widget now, so the build collects them into the same generated
+    // catalog -- which is what §9's "built-ins and application widgets register
+    // identically" was always claiming and is now literally true (ADR-0131).
 
     /// The CSS type names of every structural widget, which is what the parity
     /// test checks the other two forms against.

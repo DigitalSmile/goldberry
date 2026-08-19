@@ -17,6 +17,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+import io.github.digitalsmile.goldberry.kdl.KdlNode;
+import io.github.digitalsmile.goldberry.widgets.Wiring;
+import io.github.digitalsmile.goldberry.widgets.Markup;
 
 /// One tab of a [Tabs] — its label, its icon, its colour, and the content behind
 /// it.
@@ -68,6 +71,7 @@ import java.util.Set;
 /// @param onSelect   supplied by [Tabs]
 /// @param onClose    supplied by [Tabs]
 /// @param attributes `id` and `class`, exactly as on the primitives
+@Markup("tab")
 public record Tab(
         String value, String label, Icon icon, int colour, boolean closable,
         List<Widget> content, boolean selected, Runnable onSelect, Runnable onClose,
@@ -283,5 +287,22 @@ public record Tab(
         return box.opacity(visible)
                 .transform(Transform.of(new Transform.Function.Translate(
                         Transform.Length.ZERO, Transform.Length.px((1 - visible) * 6))));
+    }
+
+    /// Builds a `tab` from markup.
+    ///
+    /// `selected`, the two handlers and the arrival phase are the strip's to
+    /// supply on every build, which is why none of them is an attribute: a
+    /// document that could mark two tabs selected would break the one invariant a
+    /// strip exists to hold.
+    public static Widget inflate(KdlNode node, List<Widget> children, Wiring wiring) {
+        return new Tab(Wiring.requiredValue("tab", node), Wiring.label(node),
+                wiring.icon(node),
+                // Written the way a stylesheet writes a colour, because it is one
+                // -- an author who knows `#bf616a` in CSS writes the same here.
+                Wiring.colour(node),
+                node.booleanProperty("closable"), children,
+                false, null, null, null, null, null,
+                Attributes.of(node));
     }
 }

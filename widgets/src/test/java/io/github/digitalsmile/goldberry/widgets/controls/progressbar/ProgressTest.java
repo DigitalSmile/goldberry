@@ -31,6 +31,7 @@ import java.util.Set;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import io.github.digitalsmile.goldberry.widgets.Widgets;
 
 /// The seventh control, and the first that is not a control: it reports and takes
 /// nothing back ([ADR-0081]).
@@ -66,7 +67,7 @@ class ProgressTest {
         void javaAndKdlAgree() {
             var fromJava = new Progress(40, 100, false, null, ID);
 
-            var fromKdl = Controls.inflater().inflateAll(KdlParser.parse("""
+            var fromKdl = Widgets.inflater().inflateAll(KdlParser.parse("""
                     progress id="p" value=40 max=100
                     """)).getFirst();
 
@@ -78,7 +79,7 @@ class ProgressTest {
         void indeterminateParity() {
             var fromJava = new Progress(0, 1, true, null, ID);
 
-            var fromKdl = Controls.inflater().inflateAll(KdlParser.parse("""
+            var fromKdl = Widgets.inflater().inflateAll(KdlParser.parse("""
                     progress id="p" indeterminate=#true
                     """)).getFirst();
 
@@ -89,7 +90,7 @@ class ProgressTest {
         @DisplayName("progress is a control type and progress-fill is a part")
         void fillIsAPart() {
             assertTrue(Controls.controlTypes().contains("progress"));
-            assertFalse(Controls.inflater().registered().contains("progress-fill"));
+            assertFalse(Widgets.inflater().registered().contains("progress-fill"));
         }
 
         @Test

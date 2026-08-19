@@ -11,6 +11,9 @@ import io.github.digitalsmile.goldberry.widget.Styled;
 import io.github.digitalsmile.goldberry.widget.Widget;
 import java.util.List;
 import java.util.Set;
+import io.github.digitalsmile.goldberry.kdl.KdlNode;
+import io.github.digitalsmile.goldberry.widgets.Wiring;
+import io.github.digitalsmile.goldberry.widgets.Markup;
 
 /// Something is happening — `docs/core-widgets.md` §3's `spinner`, "a small
 /// indeterminate activity indicator". The eighth control, and the smallest thing
@@ -46,6 +49,7 @@ import java.util.Set;
 ///
 /// Reduced motion replaces the rotation with §3.1's opacity pulse, which is the
 /// stylesheet's: this widget simply stops turning.
+@Markup("spinner")
 public record Spinner(Attributes attributes) implements Widget.Leaf, Styled, Paints, Attributed<Spinner> {
 
     /// §3.1's "rotation **900ms** linear loop", in milliseconds.
@@ -120,5 +124,14 @@ public record Spinner(Attributes attributes) implements Widget.Leaf, Styled, Pai
     static double turnAt(double now) {
         var phase = (now % PERIOD) / PERIOD;
         return phase < 0 ? phase + 1 : phase;
+    }
+
+    /// Builds a `spinner` from markup.
+    ///
+    /// The one widget in the catalog with no attributes of its own: a spinner has
+    /// no value, no state and nothing to say. It still takes an id and classes,
+    /// because everything CSS-selectable does (§11).
+    public static Widget inflate(KdlNode node, List<Widget> children, Wiring wiring) {
+        return new Spinner(Attributes.of(node));
     }
 }

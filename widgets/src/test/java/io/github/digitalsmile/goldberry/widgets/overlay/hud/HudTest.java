@@ -23,6 +23,7 @@ import java.util.Locale;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import io.github.digitalsmile.goldberry.widgets.Widgets;
 
 /// `hud` — the numbers, where they come from, and the two ways it can be wrong.
 ///
@@ -127,11 +128,11 @@ class HudTest {
     @Test
     @DisplayName("a document writes `hud`, with or without a list of readings")
     void fromKdl() {
-        var bare = Controls.inflater().inflate(KdlParser.parse("hud").getFirst());
+        var bare = Widgets.inflater().inflate(KdlParser.parse("hud").getFirst());
         assertInstanceOf(Hud.class, bare);
         assertEquals(Hud.DEFAULT, ((Hud) bare).readings());
 
-        var chosen = Controls.inflater()
+        var chosen = Widgets.inflater()
                 .inflate(KdlParser.parse("hud readings=\"fps frame\" class=\"dim\"").getFirst());
         assertEquals(List.of(Reading.FPS, Reading.FRAME), ((Hud) chosen).readings());
         assertTrue(((Hud) chosen).classes().contains("dim"));
@@ -141,7 +142,7 @@ class HudTest {
     @DisplayName("a reading nobody has heard of is a refusal that names the ones there are")
     void refusesAnUnknownReading() {
         var refused = assertThrows(IllegalArgumentException.class,
-                () -> Controls.inflater().inflate(KdlParser.parse("hud readings=\"gpu\"").getFirst()));
+                () -> Widgets.inflater().inflate(KdlParser.parse("hud readings=\"gpu\"").getFirst()));
 
         assertTrue(refused.getMessage().contains("fps"), refused.getMessage());
     }

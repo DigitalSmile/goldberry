@@ -1,5 +1,6 @@
 plugins {
     id 'goldberry.java-conventions'
+    id 'goldberry.weave'
     id 'application'
 }
 
@@ -8,11 +9,6 @@ description = 'Goldberry showcase: what the toolkit looks like from an applicati
 dependencies {
     implementation project(':core')
     implementation project(':widgets')
-
-    // The registry generator (ADR-0096). Build-time only: it runs inside javac
-    // and nothing it produces references it, so it never reaches the runtime
-    // classpath or the module graph.
-    annotationProcessor project(':processor')
 
     // The golden-image harness and the renderer requirement, so the gallery can
     // be checked as pictures the way the catalog is (§14, ADR-0110).

@@ -19,6 +19,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+import io.github.digitalsmile.goldberry.kdl.KdlNode;
+import io.github.digitalsmile.goldberry.widgets.Wiring;
+import io.github.digitalsmile.goldberry.widgets.Markup;
+import io.github.digitalsmile.goldberry.widgets.Widgets;
 
 /// A checkbox — binary or tri-state (§11, `docs/core-widgets.md` §3).
 ///
@@ -66,6 +70,7 @@ import java.util.Set;
 ///                   may be null for a checkbox that is not wired yet
 /// @param disabled   whether it refuses to toggle and matches `:disabled`
 /// @param attributes `id` and `class`, exactly as on the primitives
+@Markup("checkbox")
 public record Checkbox(
         String label, Value state, Observable<?> source, Runnable onChange, boolean disabled,
         Attributes attributes)
@@ -282,5 +287,19 @@ public record Checkbox(
         if (!disabled && onChange != null) {
             onChange.run();
         }
+    }
+
+    /// Builds a `checkbox` from markup.
+    public static Widget inflate(KdlNode node, List<Widget> children, Wiring wiring) {
+        return new Checkbox(Wiring.label(node),
+                // `indeterminate` wins over `checked`, because a document that
+                // says both has said something contradictory and the mixed state
+                // is the one that cannot be reached any other way -- resolving it
+                // to "checked" would silently discard the more specific claim.
+                node.booleanProperty("indeterminate")
+                        ? Value.MIXED
+                        : Value.of(node.booleanProperty("checked")),
+                wiring.bound(node), wiring.action(node, "change"),
+                Wiring.disabled(node), Attributes.of(node));
     }
 }

@@ -5,6 +5,9 @@ import io.github.digitalsmile.goldberry.widget.Attributes;
 import io.github.digitalsmile.goldberry.widget.State;
 import io.github.digitalsmile.goldberry.widget.Widget;
 import java.util.List;
+import io.github.digitalsmile.goldberry.kdl.KdlNode;
+import io.github.digitalsmile.goldberry.widgets.Wiring;
+import io.github.digitalsmile.goldberry.widgets.Markup;
 
 /// A viewport that shows part of something taller than itself —
 /// `docs/core-widgets.md` §1's `scroll`.
@@ -55,6 +58,7 @@ import java.util.List;
 ///                   children stack the way they would in a `column`
 /// @param axis       which way it moves
 /// @param attributes `id` and `class`, exactly as on the primitives
+@Markup("scroll")
 public record Scroll(
         List<Widget> children, ScrollAxis axis, double height,
         ScrollController controller, Attributes attributes)
@@ -111,5 +115,11 @@ public record Scroll(
     @Override
     public State<?> createState() {
         return new ScrollState();
+    }
+
+    /// Builds a `scroll` from markup.
+    public static Widget inflate(KdlNode node, List<Widget> children, Wiring wiring) {
+        return new Scroll(children, ScrollAxis.parse(node.stringProperty("axis")),
+                Attributes.of(node));
     }
 }

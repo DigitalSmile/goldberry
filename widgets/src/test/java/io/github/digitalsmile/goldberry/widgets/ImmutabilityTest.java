@@ -40,7 +40,7 @@ class ImmutabilityTest {
 
     /// Every widget the catalog registers, built the way markup builds it.
     private static List<Widget> catalog() {
-        var inflater = Controls.inflater();
+        var inflater = Widgets.inflater();
         var widgets = new ArrayList<Widget>();
         for (var type : allTypes()) {
             var markup = switch (type) {

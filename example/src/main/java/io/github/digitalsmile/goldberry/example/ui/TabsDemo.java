@@ -1,5 +1,7 @@
 package io.github.digitalsmile.goldberry.example.ui;
 
+import io.github.digitalsmile.goldberry.bind.Models;
+
 import io.github.digitalsmile.goldberry.example.ShowcaseModel;
 import io.github.digitalsmile.goldberry.widget.BuildContext;
 import io.github.digitalsmile.goldberry.widget.Widget;
@@ -32,7 +34,8 @@ import java.util.Locale;
 /// [ADR-0107](../../../../../../../book/src/adr/0107-a-tab-strip-is-a-model-a-header-and-a-panel.md)).
 ///
 /// @param model what it reads and what its strip asks of
-public record TabsDemo(ShowcaseModel model) implements Widget.Stateless {
+public record TabsDemo(ShowcaseModel model, ShowcaseModel.Actions actions)
+        implements Widget.Stateless {
 
     private static final String NOTE = """
             Close a tab and it fades out before it goes; add one and it fades in. \
@@ -44,7 +47,7 @@ public record TabsDemo(ShowcaseModel model) implements Widget.Stateless {
     @Override
     public Widget build(BuildContext context) {
         var strip = new ArrayList<Widget>();
-        for (var name : model.tabs().get()) {
+        for (var name : Models.<List<String>>observable(model, "app.tabs").get()) {
             strip.add(new Tab(name, name,
                     new Text("The " + name.toLowerCase(Locale.ROOT) + " tab.").id("tab-body"))
                     .closable(true)
@@ -55,8 +58,8 @@ public record TabsDemo(ShowcaseModel model) implements Widget.Stateless {
 
         return new Column(List.of(
                 new Text("A strip that gains and loses tabs").styled("screen-title"),
-                new Tabs(null, strip, model.tab(),
-                        model::pickTab, model::closeTab, model::newTab,
+                new Tabs(null, strip, Models.observable(model, "app.tab"),
+                        actions::pickTab, actions::closeTab, actions::newTab,
                         io.github.digitalsmile.goldberry.widget.Attributes.NONE)
                         .id("demo-tabs"),
                 new Text(NOTE).styled("caption").id("tabs-note")),

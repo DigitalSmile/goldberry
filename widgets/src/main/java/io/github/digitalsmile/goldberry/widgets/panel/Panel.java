@@ -9,6 +9,9 @@ import io.github.digitalsmile.goldberry.widget.Styled;
 import io.github.digitalsmile.goldberry.widget.Widget;
 import java.util.List;
 import java.util.Set;
+import io.github.digitalsmile.goldberry.kdl.KdlNode;
+import io.github.digitalsmile.goldberry.widgets.Wiring;
+import io.github.digitalsmile.goldberry.widgets.Markup;
 
 /// A surface — `docs/core-widgets.md` §5's `panel`, "plain surface:
 /// `--gb-surface`, border, radius tokens. The building block; no elevation."
@@ -21,6 +24,7 @@ import java.util.Set;
 /// all, not even a background. That is what separates it from `card`, which will
 /// carry elevation, and from `row`/`column`, which own their axis — a panel owns
 /// nothing, and is therefore the one container a theme can restyle completely.
+@Markup("panel")
 public record Panel(List<Widget> children, Attributes attributes)
         implements Widget.Leaf, Styled, Paints, Attributed<Panel> {
 
@@ -60,5 +64,10 @@ public record Panel(List<Widget> children, Attributes attributes)
     @Override
     public Box render(ComputedStyle style, List<Box> boxes, Context context) {
         return Box.of().children(boxes.toArray(Box[]::new)).style(style);
+    }
+
+    /// Builds a `panel` from markup.
+    public static Widget inflate(KdlNode node, List<Widget> children, Wiring wiring) {
+        return new Panel(children, Attributes.of(node));
     }
 }

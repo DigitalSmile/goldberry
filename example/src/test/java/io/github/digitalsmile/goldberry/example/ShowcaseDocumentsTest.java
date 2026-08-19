@@ -1,5 +1,6 @@
 package io.github.digitalsmile.goldberry.example;
 
+import io.github.digitalsmile.goldberry.bind.Models;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -19,6 +20,7 @@ import java.util.ArrayList;
 import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import io.github.digitalsmile.goldberry.widgets.Widgets;
 
 /// The showcase's two markup documents, inflated against the registries the
 /// application really supplies.
@@ -35,19 +37,29 @@ import org.junit.jupiter.api.Test;
 /// ([ADR-0094](../../../../../../book/src/adr/0094-name-the-overload-not-the-allocation.md)).
 class ShowcaseDocumentsTest {
 
-    private final ShowcaseModel model = new ShowcaseModel();
+    /// The real application, for the sake of its real model list.
+    private final Showcase showcase = new Showcase();
 
-    /// The registry trio, exactly as `Showcase.start` builds it — minus the
+    private final ShowcaseModel model = modelOf(ShowcaseModel.class);
+    private final ShowcaseModel.Actions actions = modelOf(ShowcaseModel.Actions.class);
+
+    private <T> T modelOf(Class<T> type) {
+        return showcase.models().stream()
+                .filter(type::isInstance).map(type::cast).findFirst().orElseThrow(
+                        () -> new AssertionError("Showcase.models() has no " + type.getSimpleName()));
+    }
+
+    /// The inflater, built from **the application's own** `models()` — minus the
     /// icons, which own native memory and are the one thing a test cannot have.
+    ///
+    /// From `models()` and not from a list assembled here, because a list
+    /// assembled here is a list that can be right while the application's is
+    /// wrong. That is not hypothetical: the showcase shipped for one commit with
+    /// `Widgets.inflater(icons, model, this)` in `start` and `model, actions,
+    /// new Showcase()` in this file, so every test passed and the window threw
+    /// `no action named "app.toggle-theme" is bound` on the first frame.
     private io.github.digitalsmile.goldberry.kdl.KdlInflater<Widget> inflater() {
-        // Through `Showcase.actions` rather than the generated registry alone:
-        // the documents name two handlers that belong to the window rather than
-        // to the model, and a test with its own list of them would pass while
-        // the application refused to start.
-        return Controls.inflater(
-                Showcase.actions(model, () -> { }, () -> { }),
-                Icons.lenient(),
-                ShowcaseModelRegistry.bindings(model));
+        return Widgets.inflater(Icons.lenient(), showcase.models().toArray());
     }
 
     private static List<String> typesIn(Widget widget) {
@@ -117,11 +129,11 @@ class ShowcaseDocumentsTest {
         collectBound(new ElementTree(Panes.values(inflater())).root(), bound);
 
         assertFalse(bound.isEmpty(), "nothing in the gallery's documents is bound");
-        assertTrue(bound.stream().anyMatch(w -> w.binding() == model.gain()),
+        assertTrue(bound.stream().anyMatch(w -> w.binding() == Models.observable(model, "app.gain")),
                 "no control follows app.gain");
-        assertTrue(bound.stream().anyMatch(w -> w.binding() == model.themeName()),
+        assertTrue(bound.stream().anyMatch(w -> w.binding() == Models.observable(model, "app.theme")),
                 "the theme picker does not follow app.theme");
-        assertTrue(bound.stream().anyMatch(w -> w.binding() == model.status()),
+        assertTrue(bound.stream().anyMatch(w -> w.binding() == Models.observable(model, "app.status")),
                 "the status line does not follow app.status");
     }
 
@@ -139,7 +151,7 @@ class ShowcaseDocumentsTest {
     @DisplayName("the slider, the knob and the bar are on the same property")
     void oneValueManyReaders() {
         var onGain = new ArrayList<String>();
-        collectOn(new ElementTree(Panes.values(inflater())).root(), model.gain(), onGain);
+        collectOn(new ElementTree(Panes.values(inflater())).root(), Models.observable(model, "app.gain"), onGain);
 
         assertEquals(List.of("slider", "knob", "slider", "progress"), onGain,
                 "the slider, the knob, the fader and the bar — four readers of one number");
@@ -230,13 +242,13 @@ class ShowcaseDocumentsTest {
     @Test
     @DisplayName("the generated registry exposes what the documents name")
     void registriesAreComplete() {
-        var bindings = ShowcaseModelRegistry.bindings(model);
-        var actions = ShowcaseModelRegistry.actions(model);
+        var bindings = Models.bindings(model);
+        var registry = Models.actions(actions);
 
-        assertSame(model.gain(), bindings.resolve("app.gain"));
-        assertSame(model.status(), bindings.resolve("app.status"));
-        assertNotNull(actions.resolve("app.toggle-theme"));
-        assertNotNull(actions.resolveValued("app.set-gain"));
+        assertSame(Models.observable(model, "app.gain"), bindings.resolve("app.gain"));
+        assertSame(Models.observable(model, "app.status"), bindings.resolve("app.status"));
+        assertNotNull(registry.resolve("app.toggle-theme"));
+        assertNotNull(registry.resolveValued("app.set-gain"));
     }
 
     /// Every member the registry wires is **private** now, so this is also the
@@ -246,16 +258,16 @@ class ShowcaseDocumentsTest {
     @Test
     @DisplayName("the registry reaches the model's private members")
     void privateMembersAreReachable() {
-        var bindings = ShowcaseModelRegistry.bindings(model);
-        var actions = ShowcaseModelRegistry.actions(model);
+        var bindings = Models.bindings(model);
+        var registry = Models.actions(actions);
 
-        // Read through a VarHandle: the field is private and this is the same
-        // `Property` the accessor hands out.
-        assertSame(model.themeName(), bindings.resolve("app.theme"));
+        // The field is package-private and the value is reached by path, which
+        // is the only route markup has (ADR-0129).
+        assertSame(Models.observable(model, "app.theme"), bindings.resolve("app.theme"));
 
-        // Invoked through a MethodHandle, with the value parsed on the way in.
-        actions.resolveValued("app.pick-theme").accept("light");
-        assertEquals("light", model.themeName().get());
+        // Called through the woven call site, with the value parsed on the way in.
+        registry.resolveValued("app.pick-theme").accept("light");
+        assertEquals("light", Models.observable(model, "app.theme").get());
     }
 
     /// A valued action crosses as a `String` and the generated lambda parses it —
@@ -264,8 +276,8 @@ class ShowcaseDocumentsTest {
     @Test
     @DisplayName("a generated valued action parses the value it is handed")
     void generatedValuedActionParses() {
-        ShowcaseModelRegistry.actions(model).resolveValued("app.set-gain").accept("62.5");
+        Models.actions(actions).resolveValued("app.set-gain").accept("62.5");
 
-        assertEquals(62.5, model.gain().get().doubleValue(), 1e-9);
+        assertEquals(62.5, Models.observable(model, "app.gain", Number.class).get().doubleValue(), 1e-9);
     }
 }

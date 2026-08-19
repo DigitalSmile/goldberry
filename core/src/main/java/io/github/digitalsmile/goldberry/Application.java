@@ -78,6 +78,40 @@ public interface Application {
         return List.of();
     }
 
+    /// The view models this window shows, if any.
+    ///
+    /// ```java
+    /// private final Settings settings = new Settings();
+    ///
+    /// @Override public List<Object> models() {
+    ///     return List.of(settings);
+    /// }
+    /// ```
+    ///
+    /// Naming them here is the whole of the wiring. The toolkit subscribes: a
+    /// change to any `@Bind` field asks this window for a frame, and a change to
+    /// one declared `@Bind(restyle = true)` asks for a restyle first. An
+    /// application says nothing about repainting, which is the point — a model
+    /// that changed and a window that did not repaint was the failure the old
+    /// `changed()` line existed to prevent and regularly failed to
+    /// ([ADR-0128](../../../../../../book/src/adr/0128-a-change-is-its-own-frame-request.md),
+    /// [ADR-0133](../../../../../../book/src/adr/0133-a-restyle-is-declared.md)).
+    ///
+    /// **A list**, because a window's own actions — "open the menu", "toggle the
+    /// HUD" — belong to the window rather than to the view model, and an
+    /// application that keeps two objects should not have to merge them by hand.
+    ///
+    /// A model here is also what
+    /// [io.github.digitalsmile.goldberry.widgets] resolves a document's `bind=`
+    /// and `press=` against, so the same list answers both questions.
+    ///
+    /// Opt out per model with `@Model(repaint = false)` — for one driving a
+    /// background job, where every write would wake a window with nothing new to
+    /// draw.
+    default List<Object> models() {
+        return List.of();
+    }
+
     /// Called once on the UI thread, before [#root()] and before the first frame.
     ///
     /// Where an application opens the native resources it owns, registers

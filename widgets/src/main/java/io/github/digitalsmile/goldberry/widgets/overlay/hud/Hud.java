@@ -10,6 +10,9 @@ import io.github.digitalsmile.goldberry.widget.Widget;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+import io.github.digitalsmile.goldberry.kdl.KdlNode;
+import io.github.digitalsmile.goldberry.widgets.Wiring;
+import io.github.digitalsmile.goldberry.widgets.Markup;
 
 /// What the frame loop is doing, on top of the window it is doing it to —
 /// `docs/core-widgets.md` §7's `hud`.
@@ -54,6 +57,7 @@ import java.util.Set;
 ///
 /// @param readings   which readings to show, in order. Never empty
 /// @param attributes `id` and `class`, exactly as on the primitives
+@Markup("hud")
 public record Hud(List<Reading> readings, Attributes attributes)
         implements Widget.Leaf, Styled, Paints, Attributed<Hud> {
 
@@ -114,5 +118,26 @@ public record Hud(List<Reading> readings, Attributes attributes)
     @Override
     public Box render(ComputedStyle style, List<Box> children, Context context) {
         return Box.of().style(style).children(children.toArray(Box[]::new));
+    }
+
+    /// Builds a `hud` from markup.
+    ///
+    /// §7's first overlay, and the only widget in the catalog that reads
+    /// something about the frame loop rather than about a model. Nothing to bind
+    /// and nothing to resolve: what it shows arrives on the render context, so a
+    /// document writes `hud` and is done.
+    public static Widget inflate(KdlNode node, List<Widget> children, Wiring wiring) {
+        return new Hud(readings(node.stringProperty("readings")), Attributes.of(node));
+    }
+
+    /// `readings="fps paint"` — a space-separated list, like `class`.
+    ///
+    /// Null and blank both mean [#DEFAULT] rather than an error: a bare `hud` is
+    /// the form almost every document will write.
+    private static List<Reading> readings(String value) {
+        if (value == null || value.isBlank()) {
+            return DEFAULT;
+        }
+        return List.of(value.trim().split("\\s+")).stream().map(Reading::parse).toList();
     }
 }

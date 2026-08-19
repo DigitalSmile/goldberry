@@ -11,7 +11,7 @@ import java.lang.invoke.MethodHandle;
 import java.util.Collection;
 import java.util.Set;
 
-/// Bindings for SDL3's lifecycle, error and version calls.
+/// BindingRegistry for SDL3's lifecycle, error and version calls.
 ///
 /// The first slice of the backend (ADR-0003): enough to prove SDL3 is reachable
 /// through `libgoldberry`'s export list and to report which SDL is statically

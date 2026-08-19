@@ -1,5 +1,6 @@
 package io.github.digitalsmile.goldberry.widgets;
 
+import io.github.digitalsmile.goldberry.bind.ActionRegistry;
 import io.github.digitalsmile.goldberry.icon.Icon;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -7,7 +8,7 @@ import java.util.Objects;
 
 /// What an icon name in markup means.
 ///
-/// The same shape as [Actions] and for a sharper reason: an `Icon` owns native
+/// The same shape as [ActionRegistry] and for a sharper reason: an `Icon` owns native
 /// memory and has to be closed. If `icon="plus"` built one on the spot, a
 /// document reloaded on every keystroke would leak one per reload, and nothing
 /// would ever close the last of them.
@@ -28,7 +29,7 @@ public final class Icons {
     }
 
     /// A registry that refuses an unknown name — the right default, for the
-    /// reason [Actions#strict()] gives.
+    /// reason [ActionRegistry#strict()] gives.
     public static Icons strict() {
         return new Icons(true);
     }

@@ -12,6 +12,9 @@ import io.github.digitalsmile.goldberry.widget.Widget;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+import io.github.digitalsmile.goldberry.kdl.KdlNode;
+import io.github.digitalsmile.goldberry.widgets.Wiring;
+import io.github.digitalsmile.goldberry.widgets.Markup;
 
 /// A list of commands — `docs/core-widgets.md` §8's `menu`.
 ///
@@ -47,6 +50,7 @@ import java.util.Set;
 ///
 /// @param children   the items, separators and anything else a menu is made of
 /// @param attributes `id` and `class`, exactly as on the primitives
+@Markup("menu")
 public record Menu(List<Widget> children, Attributes attributes)
         implements Widget.Leaf, Styled, Paints, Handles, Attributed<Menu> {
 
@@ -101,5 +105,13 @@ public record Menu(List<Widget> children, Attributes attributes)
     @Override
     public Box render(ComputedStyle style, List<Box> boxes, Context context) {
         return Box.of().style(style).children(boxes.toArray(Box[]::new));
+    }
+
+    /// Builds a `menu` from markup.
+    ///
+    /// A document declares a menu; *opening* one is `Menus.open(host, …)`,
+    /// because that needs a `Host` and a widget must not have one (ADR-0106).
+    public static Widget inflate(KdlNode node, List<Widget> children, Wiring wiring) {
+        return new Menu(children, Attributes.of(node));
     }
 }

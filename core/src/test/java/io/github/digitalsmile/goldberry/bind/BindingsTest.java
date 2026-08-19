@@ -18,7 +18,7 @@ class BindingsTest {
     @DisplayName("a bound path resolves to its property")
     void resolvesWhatWasBound() {
         var frost = Property.of(true);
-        var bindings = Bindings.strict().bind("prefs.frost", frost);
+        var bindings = BindingRegistry.strict().bind("prefs.frost", frost);
 
         assertSame(frost, bindings.resolve("prefs.frost"));
     }
@@ -26,13 +26,13 @@ class BindingsTest {
     @Test
     @DisplayName("no path at all is not an error: most nodes have no bind=")
     void nullPathResolvesToNothing() {
-        assertNull(Bindings.strict().resolve(null));
+        assertNull(BindingRegistry.strict().resolve(null));
     }
 
     @Test
     @DisplayName("a strict registry refuses an unknown path and says what it knows")
     void strictRefusesUnknown() {
-        var bindings = Bindings.strict().bind("prefs.frost", Property.of(true));
+        var bindings = BindingRegistry.strict().bind("prefs.frost", Property.of(true));
 
         var thrown = assertThrows(IllegalArgumentException.class,
                 () -> bindings.resolve("prefs.frsot"));
@@ -49,8 +49,8 @@ class BindingsTest {
     void lenientAllowsUnknown() {
         // Markup-first development: the screen is laid out before the model
         // exists, and reload is deliberately forgiving (ADR-0051).
-        assertNull(Bindings.lenient().resolve("prefs.frost"));
-        assertNull(Bindings.none().resolve("anything"));
+        assertNull(BindingRegistry.lenient().resolve("prefs.frost"));
+        assertNull(BindingRegistry.none().resolve("anything"));
     }
 
     @Test
@@ -58,7 +58,7 @@ class BindingsTest {
     void noAccidentalShadowing() {
         var first = Property.of(1);
         var second = Property.of(2);
-        var bindings = Bindings.strict().bind("count", first);
+        var bindings = BindingRegistry.strict().bind("count", first);
 
         assertThrows(IllegalStateException.class, () -> bindings.bind("count", second));
 
@@ -69,7 +69,7 @@ class BindingsTest {
     @Test
     @DisplayName("a registry can declare the property it holds")
     void bindsAndCreates() {
-        var bindings = Bindings.strict();
+        var bindings = BindingRegistry.strict();
 
         var opacity = bindings.bind("window.opacity", Double.class, 0.8);
 
@@ -81,7 +81,7 @@ class BindingsTest {
     @ValueSource(strings = {"frost", "prefs.frost", "prefs.window.opacity", "_private", "kebab-case"})
     @DisplayName("a dotted path is a name, or names joined by dots")
     void validPaths(String path) {
-        var bindings = Bindings.lenient();
+        var bindings = BindingRegistry.lenient();
         bindings.bind(path, Property.of(1));
         assertEquals(1, bindings.resolve(path).get());
     }
@@ -104,7 +104,7 @@ class BindingsTest {
         // Enforcing it here is what makes that a contract rather than a wish:
         // `bind="!prefs.frost"` fails at inflation with the text quoted, instead
         // of producing a control that silently never updates.
-        var bindings = Bindings.lenient();
+        var bindings = BindingRegistry.lenient();
 
         assertThrows(IllegalArgumentException.class, () -> bindings.resolve(path));
         assertThrows(IllegalArgumentException.class, () -> bindings.bind(path, Property.of(1)));
@@ -118,9 +118,9 @@ class BindingsTest {
         // control could then write to the application's model from a `bind=`
         // attribute, and "who changed this value?" would stop having an answer.
         assertEquals(Observable.class,
-                Bindings.class.getMethod("resolve", String.class).getReturnType());
+                BindingRegistry.class.getMethod("resolve", String.class).getReturnType());
         assertEquals(Observable.class,
-                Bindings.class.getMethod("resolve", String.class, Class.class).getReturnType());
+                BindingRegistry.class.getMethod("resolve", String.class, Class.class).getReturnType());
         assertEquals(Observable.class,
                 io.github.digitalsmile.goldberry.widget.Widget.class.getMethod("binding").getReturnType());
 
@@ -132,7 +132,7 @@ class BindingsTest {
     @Test
     @DisplayName("a typed resolve refuses a property holding something else")
     void typedResolveChecks() {
-        var bindings = Bindings.strict().bind("prefs.frost", Property.of("yes"));
+        var bindings = BindingRegistry.strict().bind("prefs.frost", Property.of("yes"));
 
         // What a two-way control asks for: writing a Boolean into a path the
         // application holds a String in is a bug that would otherwise surface as
@@ -145,7 +145,7 @@ class BindingsTest {
     @DisplayName("a typed resolve accepts a property holding nothing yet")
     void typedResolveAllowsNull() {
         var pending = Property.<String>of(null);
-        var bindings = Bindings.strict().bind("user.name", pending);
+        var bindings = BindingRegistry.strict().bind("user.name", pending);
 
         // "Not loaded yet" has to be expressible, or every application is pushed
         // into a sentinel value.

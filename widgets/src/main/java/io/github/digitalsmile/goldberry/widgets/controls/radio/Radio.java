@@ -17,6 +17,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+import io.github.digitalsmile.goldberry.kdl.KdlNode;
+import io.github.digitalsmile.goldberry.widgets.Wiring;
+import io.github.digitalsmile.goldberry.widgets.Markup;
 
 /// One option of a [RadioGroup] (§11, `docs/core-widgets.md` §3).
 ///
@@ -62,6 +65,7 @@ import java.util.Set;
 /// @param onSelect   what asking for this option does. Also the group's
 /// @param disabled   whether it refuses selection and matches `:disabled`
 /// @param attributes `id` and `class`, exactly as on the primitives
+@Markup("radio")
 public record Radio(
         String value, String label, boolean selected, Runnable onSelect, boolean disabled,
         Attributes attributes)
@@ -214,5 +218,15 @@ public record Radio(
         if (!disabled && onSelect != null) {
             onSelect.run();
         }
+    }
+
+    /// Builds a `radio` from markup.
+    ///
+    /// `selected` and the action are the group's to supply on every build, which
+    /// is why neither is an attribute: a document that could mark two options
+    /// selected would break the one invariant a group exists to hold.
+    public static Widget inflate(KdlNode node, List<Widget> children, Wiring wiring) {
+        return new Radio(Wiring.requiredValue("radio", node), Wiring.label(node),
+                false, null, Wiring.disabled(node), Attributes.of(node));
     }
 }

@@ -16,6 +16,9 @@ import io.github.digitalsmile.goldberry.widget.Widget;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+import io.github.digitalsmile.goldberry.kdl.KdlNode;
+import io.github.digitalsmile.goldberry.widgets.Wiring;
+import io.github.digitalsmile.goldberry.widgets.Markup;
 
 /// A button (§11, `docs/core-widgets.md` §3).
 ///
@@ -48,6 +51,7 @@ import java.util.Set;
 ///                   there to be styled and not yet wired
 /// @param disabled   whether it refuses activation and matches `:disabled`
 /// @param attributes `id` and `class`, exactly as on the primitives
+@Markup("button")
 public record Button(
         String label, Icon icon, Runnable onPress, boolean disabled,
         Attributes attributes)
@@ -189,5 +193,15 @@ public record Button(
         if (!disabled && onPress != null) {
             onPress.run();
         }
+    }
+
+    /// Builds a `button` from markup.
+    ///
+    /// `press=` names an action and `icon=` names an icon, and neither can be
+    /// *built* by a document: an `Icon` owns native memory and has to be closed,
+    /// so one reloaded on every keystroke would leak per reload.
+    public static Widget inflate(KdlNode node, List<Widget> children, Wiring wiring) {
+        return new Button(Wiring.label(node), wiring.icon(node), wiring.action(node, "press"),
+                Wiring.disabled(node), Attributes.of(node));
     }
 }

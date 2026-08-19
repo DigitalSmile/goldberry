@@ -12,6 +12,9 @@ import io.github.digitalsmile.goldberry.widget.Styled;
 import io.github.digitalsmile.goldberry.widget.Widget;
 import java.util.List;
 import java.util.Set;
+import io.github.digitalsmile.goldberry.kdl.KdlNode;
+import io.github.digitalsmile.goldberry.widgets.Wiring;
+import io.github.digitalsmile.goldberry.widgets.Markup;
 
 /// How far along something is — `docs/core-widgets.md` §3's `progress`. The
 /// seventh control, and the first that is not a control at all: nothing here is
@@ -60,6 +63,7 @@ import java.util.Set;
 /// @param max           what `value` is out of; 1 by default, so a fraction works
 /// @param indeterminate whether this reports progress it cannot measure
 /// @param source        §9's `bind`, read-only — see [#resolved()]
+@Markup("progress")
 public record Progress(
         double value, double max, boolean indeterminate,
         Observable<?> source, Attributes attributes)
@@ -168,5 +172,14 @@ public record Progress(
     @Override
     public Box render(ComputedStyle style, List<Box> children, Context context) {
         return Box.of().style(style).children(children.toArray(Box[]::new));
+    }
+
+    /// Builds a `progress` from markup.
+    public static Widget inflate(KdlNode node, List<Widget> children, Wiring wiring) {
+        return new Progress(
+                node.numberProperty("value", 0),
+                node.numberProperty("max", 1),
+                node.booleanProperty("indeterminate"),
+                wiring.bound(node), Attributes.of(node));
     }
 }

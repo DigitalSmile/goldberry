@@ -1,5 +1,6 @@
 package io.github.digitalsmile.goldberry.widgets.core;
 
+import io.github.digitalsmile.goldberry.widgets.Controls;
 import io.github.digitalsmile.goldberry.widget.Attributes;
 import io.github.digitalsmile.goldberry.widget.Element;
 import io.github.digitalsmile.goldberry.widget.ElementTree;
@@ -28,6 +29,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
+import io.github.digitalsmile.goldberry.widgets.Widgets;
 
 /// The parity invariant, enforced.
 ///
@@ -49,7 +51,7 @@ class WidgetParityTest {
     void constructibleFromKdl(String type) {
         // `text` needs its content argument; the rest are bare nodes.
         var markup = type.equals("text") ? "text \"hi\"" : type;
-        var widget = Primitives.inflater().inflate(KdlParser.parse(markup).getFirst());
+        var widget = Widgets.inflater().inflate(KdlParser.parse(markup).getFirst());
 
         assertNotNull(widget);
         var styled = styledNode(widget);
@@ -112,7 +114,7 @@ class WidgetParityTest {
     @DisplayName("every built-in is selectable by its type, id and class")
     void styleable(String type) {
         var markup = type.equals("text") ? "text id=\"x\" class=\"a\" \"hi\"" : type + " id=\"x\" class=\"a\"";
-        var widget = Primitives.inflater().inflate(KdlParser.parse(markup).getFirst());
+        var widget = Widgets.inflater().inflate(KdlParser.parse(markup).getFirst());
         var root = new ElementTree(widget).root();
         // For a composite, the styled node is the one it builds -- and `id` and
         // `class` have to have travelled down to it, which is the half of this
@@ -136,7 +138,7 @@ class WidgetParityTest {
     @DisplayName("every built-in renders to a box")
     void rendersToABox(String type) {
         var markup = type.equals("text") ? "text \"hi\"" : type;
-        var widget = Primitives.inflater().inflate(KdlParser.parse(markup).getFirst());
+        var widget = Widgets.inflater().inflate(KdlParser.parse(markup).getFirst());
 
         // Not rendered here -- text needs a real font, which needs the native
         // library -- but the contract that makes rendering possible is checkable
@@ -146,11 +148,28 @@ class WidgetParityTest {
     }
 
     @Test
-    @DisplayName("the KDL registry and the declared built-ins agree")
+    @DisplayName("the generated catalog registers every declared widget")
     void registryMatchesDeclaredTypes() {
-        // Two lists that must not drift: one is what KDL will accept, the other
-        // is what this test iterates.
-        assertEquals(Set.copyOf(Primitives.builtInTypes()), Set.copyOf(Primitives.inflater().registered()));
+        // Three lists that must not drift: what this test iterates, what the
+        // catalog registers, and what CSS is expected to select. Containment
+        // rather than equality now that one inflater carries the whole module --
+        // `tabs`, `menu`, `popover` and `hud` are registered and are checked by
+        // their own suites rather than by this one.
+        var registered = Set.copyOf(Widgets.inflater().registered());
+
+        assertTrue(registered.containsAll(Primitives.builtInTypes()),
+                "declared built-ins missing from the catalog: "
+                        + minus(Primitives.builtInTypes(), registered));
+        assertTrue(registered.containsAll(Controls.controlTypes()),
+                "declared controls missing from the catalog: "
+                        + minus(Controls.controlTypes(), registered));
+    }
+
+    /// What `declared` has and the catalog does not — the useful half of a
+    /// containment failure, because "a set is not a subset" says nothing about
+    /// which name was forgotten.
+    private static List<String> minus(List<String> declared, Set<String> registered) {
+        return declared.stream().filter(name -> !registered.contains(name)).toList();
     }
 
     @Test
@@ -160,7 +179,7 @@ class WidgetParityTest {
                 List.of(new Text("hi", Attributes.NONE)),
                 new Attributes("r", Set.of("wide"), "r"));
 
-        var fromKdl = Primitives.inflater().inflate(
+        var fromKdl = Widgets.inflater().inflate(
                 KdlParser.parse("row id=\"r\" class=\"wide\" { text \"hi\" }").getFirst());
 
         // Records, so equality is structural -- which is what makes "the same
@@ -171,7 +190,7 @@ class WidgetParityTest {
     @Test
     @DisplayName("class is space-separated, as in HTML")
     void multipleClasses() {
-        var widget = (Styled) Primitives.inflater()
+        var widget = (Styled) Widgets.inflater()
                 .inflate(KdlParser.parse("panel class=\"card raised\"").getFirst());
 
         assertEquals(Set.of("card", "raised"), widget.classes());
@@ -182,7 +201,7 @@ class WidgetParityTest {
     void unknownWidget() {
         var thrown = org.junit.jupiter.api.Assertions.assertThrows(
                 io.github.digitalsmile.goldberry.kdl.KdlSyntaxException.class,
-                () -> Primitives.inflater().inflate(KdlParser.parse("buttton").getFirst()));
+                () -> Widgets.inflater().inflate(KdlParser.parse("buttton").getFirst()));
 
         assertTrue(thrown.getMessage().contains("buttton"));
         assertTrue(thrown.getMessage().contains("panel"));

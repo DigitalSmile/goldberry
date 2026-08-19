@@ -901,7 +901,8 @@ merely made to appear.
   `Toggle` and `Progress` had the same shape — now `Slider.of`, `Knob.of`, `Toggle.of`,
   `Progress.of`, following the `of` = bound convention the catalog already used —
   [ADR-0094](adr/0094-name-the-overload-not-the-allocation.md)
-- **Registries are generated, not reflected.** Wiring a model to markup was fifteen
+- **Registries are generated, not reflected.** *(Superseded — see "A model is plain
+  Java again" below.)* Wiring a model to markup was fifteen
   lines of pure copying — one `.bind(path, property)` per property, one per handler,
   plus the `Double.parseDouble` a valued action needs — and the failure mode was the
   worst kind: a property that exists and is never registered inflates to a control that
@@ -966,7 +967,9 @@ merely made to appear.
   The one component that is mutable by design is called out rather than papered over: a
   binding is an `Observable` and a handler is a lambda, and what matters is that a
   widget cannot *write* through them (ADR-0063).
-- **Two things landed that M2's ladder does not name.** The first is that **an
+- **Two things landed that M2's ladder does not name.** *(The first is superseded —
+  see "A model is plain Java again" below, where the problem stops existing rather
+  than getting a better answer.)* The first is that **an
   annotated member may be private again.** ADR-0096 listed "annotated members cannot be
   `private`" as a cost and argued the fields belonged package-private anyway; the
   argument runs the wrong way round, because the toolkit was deciding a model's
@@ -985,6 +988,234 @@ merely made to appear.
   "it compiles" stopped being the interesting half of the claim, and `ShowcaseModel`'s
   six properties and five markup-only handlers are private
   ([ADR-0098](adr/0098-a-private-member-is-reached-by-a-handle.md)).
+
+- **A model is plain Java again.** The binding schema had drifted into the shape it
+  was meant to avoid: `clicks.set(clicks.get() + 1)` is `clicks++` with three extra
+  tokens and a heap object, and because the *field* was a `Property`, every read and
+  write inside the model went through an accessor nobody chose to write. The showcase's
+  model carried eight of them. A model is now plain fields and plain methods —
+  `@Bind("app.clicks") private int clicks;` and `clicks++` — and the **build** rewrites
+  that one `putfield` into a store that notifies, using the JDK 25 class-file API
+  (JEP 484) on the model's own compiled class. It has to be the declaring class:
+  `putfield` is not virtual, so no subclass or proxy can see the write. The `@Action`
+  half moved with it — one `invokedynamic` per action, bootstrapped by
+  `LambdaMetafactory`, written into the model's own class, which is byte for byte the
+  call site `javac` emits for `model::click`. That deletes both the `:processor` module
+  and the generated `…Registry` source file, and it deletes ADR-0098's `privateLookupIn`
+  along with the problem it solved: a call site inside the model reaches the model's own
+  private methods with no handle at all. **Measured**, medians per operation: a write
+  nobody is watching 9.5 ns → 2.5 ns, a watched write 19.0 ns → 12.9 ns, constructing the
+  model 23.8 ns → 2.8 ns; action dispatch unchanged, because it was a
+  `LambdaMetafactory` call site before and is one now, and registry construction
+  unchanged. The cost is honest and in the other direction: reading *through* a binding
+  is 1.9× slower for a primitive, because a woven read boxes where a `Property<Integer>`
+  already held a box. That is the right trade — a model writes on every event and the
+  tree reads once per rebuild. **The refusals moved with the rules**: a `static` or
+  `final` `@Bind` field, an array (only assignment is observed, so `values[0] = x` would
+  notify nobody), a malformed path, two members claiming one name, an `@Action` taking
+  two arguments or one the toolkit cannot parse, an abstract or empty `@Model`, a `@Model` extending a `@Model` — 41
+  weaver tests, each of them a rule that would otherwise have quietly stopped applying.
+  The known gap is stated rather than hidden: a field assigned from a *different* class,
+  such as a nested class of the model, is not observed. Lambdas are fine, and there is a
+  test for that, because javac compiles them into the same class
+  ([ADR-0125](adr/0125-a-raw-field-is-woven-into-a-binding.md),
+  [ADR-0126](adr/0126-actions-are-bound-by-lambdametafactory.md))
+- **The binding schema fits a closed world, and a test says so.** The brief asked for the
+  class-file API, `LambdaMetafactory`, and a GraalVM native image — three requirements
+  that contradict each other if the first two run at runtime, because a closed world has
+  no class loading and no class generation. They do not contradict at build time, which
+  is where the weaving happens, and `LambdaMetafactory` is used as an `invokedynamic`
+  bootstrap rather than as a method call — the one form the image builder resolves when
+  it builds the image. `NativeImageComplianceTest` parses the woven bytecode and asserts
+  it: no `Class.forName`, `setAccessible`, `privateLookupIn`, `findVarHandle`,
+  `defineHiddenClass` or `Method.invoke`; every bootstrap is `LambdaMetafactory`
+  .`metafactory`; one call site per action. **No image has been built** — there is no
+  GraalVM in this toolchain or in CI — so what is verified is the structural property and
+  not an image that starts. The claim is that the binding layer is no longer the reason
+  an image cannot be attempted, and not that the toolkit produces one; `:natives` and its
+  FFM downcalls into SDL3, Blend2D and HarfBuzz are a separate and much larger question
+  ([ADR-0127](adr/0127-the-binding-schema-fits-a-closed-world.md))
+
+- **An action is an assignment, and a value is named once.** Two things the first
+  cut of ADR-0125 left behind, both of which were the model still doing work on the
+  toolkit's behalf. The first: every action ended in a `changed()` that asked the
+  window to repaint — a line with no meaning of its own, never wrong and only ever
+  *missing*, whose symptom when missing is a value that moved and a window that did
+  not. A `@Bind` field changing **is** the frame request now, subscribed to with
+  `Models.onChange(model, host::repaint)`, and fired once per *change* rather than
+  once per write — so a button that sets a counter already at zero asks for no
+  frame, where the old code asked every time. The showcase's second callback went
+  with it: `onRestyle` became two subscriptions to the two paths a stylesheet
+  depends on, which is what made `density` worth binding even though nothing
+  displays it. The second: nine `public Observable<String> tab()` accessors, which
+  existed because a widget built in Java had no way into the registry a document
+  already used — so every bound value was named twice and the two could disagree.
+  `Models.observable(model, "app.tab")` is the same lookup `bind="app.tab"` does,
+  and the weaver now caches the `Bindings` it builds so a path lookup while
+  building a widget costs a map get. `Actions` is deliberately *not* cached,
+  because applications extend it — the showcase adds the window's own two — and a
+  shared one would fail the second caller for doing what the first did.
+  `ShowcaseModel` went from 320 lines to 246 and contains no plumbing at all
+  ([ADR-0128](adr/0128-a-change-is-its-own-frame-request.md),
+  [ADR-0129](adr/0129-a-value-is-named-one-way.md))
+- **A widget inflates itself, and the catalog is a list of names.**
+  `Controls.inflater` was 300 lines of `inflater.register("button", (node, children)
+  -> new Button(…))`, nineteen times, none of it near the widget it built — so a
+  widget's markup contract lived in a different file from the record and the
+  javadoc describing its attributes, which is two of §9's three required forms in
+  one place and the third somewhere else. It was also mostly repetition:
+  `node.argument().map(v -> v.asString()).orElse("")` eight times, the
+  `String.valueOf` change adapter three. Each widget now has a
+  `static Widget inflate(KdlNode, List<Widget>, Wiring)` beside its record, `Wiring`
+  carries the three registries and the readings that were repeated, and
+  `Inflatable.Catalog` binds one wiring so the table is `catalog.add("button",
+  Button::inflate)`. A class rather than a `Map`, because the registration order is
+  the order an unknown node is reported against. `Primitives` uses the same catalog,
+  which makes §9's "built-ins and application widgets register identically"
+  literally true rather than nearly. **Controls went from 443 lines to 204**, and
+  adding a widget is a method and one line instead of a fifteen-line lambda in a
+  file about something else
+  ([ADR-0130](adr/0130-a-widget-inflates-itself.md))
+- **The weaver is a jar with a `main`, and every build can call it.** It has no
+  dependencies beyond the JDK, so `java -jar goldberry-weaver.jar target/classes` is
+  a complete integration — verified end to end against a class compiled outside
+  this build. Gradle gets the `goldberry.weave` plugin, which hangs the weave off
+  `classes` and `testClasses` so `jar`, `run` and every `Test` task reach through it
+  and unwoven output cannot be consumed. **Maven has no first-class plugin**:
+  `exec-maven-plugin` bound to `process-classes` runs it as it stands, which is the
+  phase that exists for class post-processing, and [the weaving
+  page](weaving.md) carries the XML. A real Mojo would be one `<plugin>` block
+  instead of two `<execution>`s and is small work whose awkward part is that this
+  repository builds with Gradle and would have to write `META-INF/maven/plugin.xml`
+  itself — not built, and said plainly rather than implied
+
+- **A widget package announces itself, and a model wires itself.** The catalog
+  ADR-0130 left in `Controls` was still nineteen hand-written lines naming exactly
+  the widgets `:widgets` happens to ship — which does not survive a second widget
+  module, where an application would merge two registries and keep the merge in
+  step with both. A widget now carries `@Markup("button")` beside its record, and
+  the build collects every annotated class in the module into a `WidgetCatalog`,
+  **patches `provides` into the module's own `module-info.class`**, and writes a
+  `META-INF/services` entry for the class-path case. `ServiceLoader` finds them,
+  which is the one discovery mechanism GraalVM already resolves at *image build*
+  time — a scan would have been the runtime scan ADR-0127 spent the redesign
+  avoiding. The wiring went the same way: `Widgets.inflater(icons, model, this)`
+  reads the paths and action names off the models rather than being handed
+  registries, and takes more than one because "open the menu" is the *window's*
+  action and not the view model's — `Showcase` is itself a `@Model` now, and the
+  `Showcase.actions(model, openMenu, toggleHud)` static that used to merge them by
+  hand is gone. `Controls` is 136 lines and has no `inflater` at all;
+  `Primitives.inflater` is gone entirely, because the structural widgets carry
+  `@Markup` like everything else — which makes §9's "built-ins and application
+  widgets register identically" literally true rather than nearly. **The migration
+  found a real footgun**: `Widgets.inflater(actions, icons, bindings)` bound to the
+  varargs model-taking overload, compiled, and failed at run time reading `Actions`
+  as a model. Eight tests caught it and an exact overload now exists
+  ([ADR-0131](adr/0131-a-widget-package-announces-itself.md),
+  [ADR-0132](adr/0132-a-model-wires-itself.md))
+- **A restyle is declared, and the window repaints itself.** ADR-0128 moved the
+  frame request out of every action; what it left behind was two subscriptions
+  saying what one word could — and with exactly the property it was written to
+  remove, in that they are never wrong and only ever *missing*, and when missing
+  the symptom is a theme that changes and a window that keeps painting the old
+  one. `@Bind(value = "app.theme", restyle = true)` is the whole declaration now:
+  the weaver emits the call in that field's setter, **before** the frame request,
+  so a window has dropped its resolved styles by the time it is asked for the frame
+  that will use them. And the subscription itself moved into the toolkit —
+  `Application.models()` names the objects, and the launcher wires repaint and
+  restyle after `start`, so an application says nothing about either.
+  `@Model(repaint = false)` turns the frame request off for a model the UI does not
+  show. A `Property` field cannot ask for a restyle and the build refuses one: the
+  weaver rewires no writes to it, so there is nowhere to put the call — the only
+  asymmetry between the two kinds of `@Bind` field, and the error says what to do
+  instead ([ADR-0133](adr/0133-a-restyle-is-declared.md))
+
+- **A frame is asked for by the value that moved, and a write is rewritten wherever
+  it is.** Two refinements that turned out to be the same shape of mistake. The
+  first: `@Model(repaint = false)` was the wrong granularity, and obviously so once
+  a real model was written — one model routinely holds both the gain a slider shows
+  and the counter nothing shows, so a switch on the *class* has to be wrong about
+  one of them. It is `@Bind(value = "…", repaint = false)` now, per value, decided
+  in the build — a quiet field costs an instruction that is not there rather than a
+  branch that is — and "off" means *do not wake the window*, not *do not observe*,
+  which has its own test because the two are easy to conflate and the conflation
+  would be silent. The second: ADR-0125 shipped a known gap where a write to a
+  `@Bind` field from **outside** its declaring class was not rewritten, and the
+  failure was silent. The weaver already made two passes, so pass one now records
+  every model's rewired fields and pass two rewrites writes to them in any class.
+  The synthesised setter went package-private to allow it, and a write from another
+  package is a build error naming both classes rather than an `IllegalAccessError`
+  at the first click. **The bug that found the implementation was mine**: composing
+  two `transformingMethodBodies` with complementary predicates silently drops every
+  rewrite, because the second pass no longer sees the elements the first handed on
+  — every notification test failed at once, which was the good outcome
+  ([ADR-0134](adr/0134-a-write-is-rewritten-wherever-it-is.md),
+  [ADR-0135](adr/0135-a-frame-is-asked-for-by-the-value-that-moved.md))
+- **An application is values, actions, views — and there is now a page saying so.**
+  Nine records had changed how an application is written, each for a local reason,
+  and none of them said what the *result* was; the showcase demonstrated the shape
+  and did not explain it, and until now did not follow it either. `ShowcaseModel`
+  is 125 lines of fields and four projections; `ShowcaseActions` is a **record**
+  wrapping it with one method per thing a control can ask for. Each is the only
+  shape that works rather than a preference: a record's components are final and a
+  bound field has to be assignable, so the values cannot be a record — and the
+  actions hold one thing immutably and have no state, which is the half a record
+  fits exactly. The showcase now has three models — values, actions, and the window
+  itself — which is a useful proof that multi-model wiring is not a special case.
+  The split costs `private` on the values' fields, and that is stated rather than
+  glossed: it is available, not required, and a three-field model should not
+  bother. [The guide](applications.md) is the deliverable — the four kinds of class,
+  what each may know, widget state versus application state, and a "where does it
+  go?" table — and it is deliberately **not** enforced by a test, because
+  mechanically enforcing a recommendation turns it into a rule nobody agreed to
+  ([ADR-0136](adr/0136-an-application-is-values-actions-views.md))
+
+- **A model keeps its fields, an application is not a model, and the showcase runs
+  again.** Three corrections to the previous entry, one of them a real bug. The
+  bug: `Showcase.start` built its inflater from a hand-written list of models while
+  `models()` returned a different one, so `app.toggle-theme` was never registered
+  and the window threw on its first frame — while every test passed, because the
+  test had its *own* third list that happened to be right. The fix is that there is
+  now one list: `start` builds the inflater from `models()`, and both tests take
+  the application's own objects rather than constructing parallel ones. **The
+  comment above that test already warned about exactly this failure and the test
+  did it anyway**, which is worth recording. The first correction: fields did *not*
+  have to open up to the package. Nestmates share private access in both
+  directions, so an `Actions` record nested inside the values reads a `private`
+  field with an ordinary `getfield` — and the weaver now derives each setter's
+  visibility from whether anything outside the model's nest writes to it, so a
+  nested-actions model is exactly as encapsulated as one with no actions at all.
+  `ShowcaseModel`'s fields and its synthesised setters are both `private` again.
+  The second: `@Model` sat on top of `implements Application`, which put two
+  unrelated roles on one class and was the only place the guide's four kinds did
+  not hold. The window's two actions are a `WindowActions` record of `Runnable`s
+  now, so it knows what they are called and nothing about who performs them
+  ([ADR-0137](adr/0137-a-model-keeps-its-fields.md),
+  [ADR-0138](adr/0138-a-window-s-actions-are-a-model-of-their-own.md))
+
+- **Actions are annotated as actions.** `@Model` marked two different things: a
+  class of `@Bind` values, and a class of `@Action` methods that operates on
+  somebody else's values and holds nothing at all. ADR-0138 had just made that
+  mislabelling more visible by extracting a `WindowActions` record whose entire
+  content is actions and whose annotation said "model". There is an `@Actions`
+  marker now, with three build-time rules — a `@Bind` field on one is refused ("a
+  class that holds values is a @Model"), an `@Actions` with no `@Action` is
+  refused, and carrying both markers is refused. A `@Model` **may** still carry
+  actions, because that is the right shape for a model too small to be worth
+  splitting and taking it away would make the second annotation a tax rather than
+  a clarification. The name was taken, so `Bindings` and `Actions` — the two
+  runtime registries — became `BindingRegistry` and `ActionRegistry`: a rename made
+  to free a name, which is a bad reason, and an improvement for a better one, since
+  one package held `Bind`, `Bindings`, `Action` and `Actions` where two were
+  annotations on members and two were registries. Each family reads distinctly now.
+  **Two mistakes worth recording**: the rename's first pass ran over markdown as
+  well as Java and produced "GitHub ActionRegistry matrix" in a dozen ADRs — a
+  decision log records what the names *were*, and was reverted; and the same pass
+  renamed a nested record's own declaration, which the new exclusivity check then
+  caught on the next build. The remaining wart is documented rather than hidden: a
+  nested type called `Actions` shadows the annotation, so the showcase writes the
+  fully-qualified name, and the guide recommends naming the type for its domain
+  instead ([ADR-0139](adr/0139-actions-are-annotated-as-actions.md))
 
 ## M3 — Shell
 
@@ -1717,7 +1948,7 @@ built. Everything outstanding is in [TODO.md](TODO.md).
 | `:natives` | `goldberry-natives-{platform}-{arch}` | Hand-written FFM bindings, owning wrappers, and the CMake superbuild that produces `libgoldberry` |
 | `:core` | `goldberry-core` | The engines and the contracts — the widget/element/render trees, style, layout, text, icons, paint, the backend SPI, and the two backends `headless` and `sdl3` ([ADR-0041](adr/0041-three-platforms-four-artifacts-two-backends.md)). **No widgets**: `text`, `row`, `column`, `panel` and `spacer` lived here until they had a catalog to belong to ([ADR-0092](adr/0092-a-primitive-is-a-widget-like-any-other.md)) |
 | `:widgets` | `goldberry-widgets` | The widget catalog — controls, containers, menus, charts — plus the showcase screens that serve as the visual regression corpus. **One module, a package per control** — `docs/core-widgets.md`'s groups (`…widgets.controls` and `…widgets.overlay`, with `form`/`panel`/`nav`/`collection` as they are built) and one package inside each for every widget and its parts. Half a reversal of ADR-0014, and the second level is what makes ADR-0065's rule a boundary the compiler enforces rather than a convention: a `slider-thumb` is now invisible outside `…controls.slider`, where before "package-private" meant "visible to the whole catalog" ([ADR-0091](adr/0091-one-module-a-package-per-control.md)) |
-| `:processor` | *not published* | The registry generator: turns `@Bind`/`@Action` into the explicit `Bindings`/`Actions` calls §9 requires, at compile time. Build-time only, like `:assets` — it runs inside javac, never reaches a runtime classpath and has no `module-info` ([ADR-0096](adr/0096-a-registry-is-generated-not-reflected.md)) |
+| `:weaver` | *not published* | The model weaver: rewires a `@Model`'s `@Bind` fields into bindings and writes its `@Action` call sites, in the compiled class, with the JDK's class-file API. Build-time only, like `:assets` — it runs between `compileJava` and `jar`, never reaches a runtime classpath and has no `module-info` ([ADR-0125](adr/0125-a-raw-field-is-woven-into-a-binding.md), [ADR-0126](adr/0126-actions-are-bound-by-lambdametafactory.md)) |
 | `:gpu` | `goldberry-gpu` | `canvas3d` and the GPU composition path |
 
 `:assets` is a fifth subproject and is not published: it is the build-time

@@ -16,6 +16,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+import io.github.digitalsmile.goldberry.kdl.KdlNode;
+import io.github.digitalsmile.goldberry.widgets.Wiring;
+import io.github.digitalsmile.goldberry.widgets.Markup;
 
 /// One segment of a [Segmented] (§11, `docs/core-widgets.md` §3).
 ///
@@ -68,6 +71,7 @@ import java.util.Set;
 /// @param onSelect   what asking for this segment does. Also the control's
 /// @param disabled   whether it refuses selection and matches `:disabled`
 /// @param attributes `id` and `class`, exactly as on the primitives
+@Markup("option")
 public record Option(
         String value, String label, Icon icon, boolean selected, Runnable onSelect,
         boolean disabled, Attributes attributes)
@@ -235,5 +239,15 @@ public record Option(
         if (!disabled && onSelect != null) {
             onSelect.run();
         }
+    }
+
+    /// Builds an `option` from markup.
+    ///
+    /// `selected` and the action are the control's to supply on every build,
+    /// which is why neither is an attribute.
+    public static Widget inflate(KdlNode node, List<Widget> children, Wiring wiring) {
+        return new Option(Wiring.requiredValue("option", node), Wiring.label(node),
+                wiring.icon(node), false, null,
+                Wiring.disabled(node), Attributes.of(node));
     }
 }

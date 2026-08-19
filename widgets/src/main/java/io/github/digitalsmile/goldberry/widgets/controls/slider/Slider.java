@@ -19,6 +19,9 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 import java.util.function.DoubleConsumer;
+import io.github.digitalsmile.goldberry.kdl.KdlNode;
+import io.github.digitalsmile.goldberry.widgets.Wiring;
+import io.github.digitalsmile.goldberry.widgets.Markup;
 
 /// A continuous value on a track — `docs/core-widgets.md` §3's `slider`. The
 /// sixth control.
@@ -104,6 +107,7 @@ import java.util.function.DoubleConsumer;
 ///                 unless a fader says otherwise
 /// @param source   §9's `bind`, read-only — see [#resolved()]
 /// @param onChange what the user asked for, already snapped and clamped
+@Markup("slider")
 public record Slider(
         double min, double max, double value, double step,
         int ticks, String format, Scale scale,
@@ -468,5 +472,25 @@ public record Slider(
             return raw;
         }
         return clamp(min + Math.round((raw - min) / step) * step);
+    }
+
+    /// Builds a `slider` from markup.
+    ///
+    /// `ticks` is a count and `format` is a pattern, so both are values a
+    /// document can carry — unlike an action or an icon, neither names anything
+    /// the application has to have registered (ADR-0080). `scale=` is strict:
+    /// `scale="dB"` is refused rather than resolved quietly to linear, which
+    /// would be a fader that works and is wrong.
+    public static Widget inflate(KdlNode node, List<Widget> children, Wiring wiring) {
+        var min = node.numberProperty("min", 0);
+        var max = node.numberProperty("max", 1);
+        return new Slider(min, max,
+                node.numberProperty("value", min),
+                node.numberProperty("step", 0),
+                (int) node.numberProperty("ticks", 0),
+                node.stringProperty("format"),
+                Scale.of(node.stringProperty("scale")),
+                wiring.bound(node), wiring.numeric(node, "change"),
+                Wiring.disabled(node), Attributes.of(node));
     }
 }

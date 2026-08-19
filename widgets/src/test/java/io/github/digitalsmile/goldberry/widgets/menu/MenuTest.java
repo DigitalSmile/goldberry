@@ -23,6 +23,7 @@ import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import io.github.digitalsmile.goldberry.widgets.Widgets;
 
 /// `menu`, `item` and `separator` as widgets — the half of §8 that is a tree.
 ///
@@ -169,7 +170,7 @@ class MenuTest {
     @Test
     @DisplayName("a document writes a menu, its rows and its rules")
     void fromKdl() {
-        var widget = Controls.inflater().inflate(KdlParser.parse("""
+        var widget = Widgets.inflater().inflate(KdlParser.parse("""
                 menu id="file" {
                     item accelerator="Ctrl+O" "Open…"
                     separator

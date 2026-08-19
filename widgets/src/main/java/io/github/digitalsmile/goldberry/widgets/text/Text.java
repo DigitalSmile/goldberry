@@ -12,6 +12,9 @@ import io.github.digitalsmile.goldberry.widget.Widget;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+import io.github.digitalsmile.goldberry.kdl.KdlNode;
+import io.github.digitalsmile.goldberry.widgets.Wiring;
+import io.github.digitalsmile.goldberry.widgets.Markup;
 
 /// A run of text — `docs/core-widgets.md` §2's `text`, and the whole of that
 /// package until `span` and `link` are built.
@@ -31,6 +34,7 @@ import java.util.Set;
 /// colour; `class="body"` and the rest of §1.4's scale are rules in
 /// `controls.css`, which is why a `text` with no ancestor setting `color` is
 /// still an open question rather than a default written here.
+@Markup("text")
 public record Text(String content, Observable<?> source, Attributes attributes)
         implements Widget.Leaf, Styled, Paints, Attributed<Text>, Bindable<Text> {
 
@@ -111,5 +115,19 @@ public record Text(String content, Observable<?> source, Attributes attributes)
         // A measured leaf: Yoga proposes a width, the paragraph wraps at it, and
         // the height that comes back is what sizes the box (ADR-0036).
         return Box.text(context.paragraph(style, resolved()), style.color()).style(style);
+    }
+
+    /// Builds a `text` node from markup.
+    ///
+    /// A bound node keeps its argument as the fallback rather than refusing it:
+    /// `text bind="user.name" "…"` is what a lenient registry shows for a path
+    /// nothing answers yet, and it is what a designer laying out a screen wants
+    /// to see.
+    public static Widget inflate(KdlNode node, List<Widget> children, Wiring wiring) {
+        var source = wiring.bound(node);
+        var literal = Wiring.label(node);
+        return source == null
+                ? new Text(literal, Attributes.of(node))
+                : new Text(literal, source, Attributes.of(node));
     }
 }

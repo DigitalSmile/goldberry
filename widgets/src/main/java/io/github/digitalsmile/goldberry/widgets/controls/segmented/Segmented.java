@@ -16,6 +16,9 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Consumer;
+import io.github.digitalsmile.goldberry.kdl.KdlNode;
+import io.github.digitalsmile.goldberry.widgets.Wiring;
+import io.github.digitalsmile.goldberry.widgets.Markup;
 
 /// A row of mutually exclusive options drawn as one joined bar (§11,
 /// `docs/core-widgets.md` §3).
@@ -62,6 +65,7 @@ import java.util.function.Consumer;
 /// @param onChange   what to tell the application, given the picked value
 /// @param disabled   whether the whole bar refuses selection
 /// @param attributes `id` and `class`, exactly as on the primitives
+@Markup("segmented")
 public record Segmented(
         String value, List<Widget> children, Observable<?> source, Consumer<String> onChange,
         boolean disabled, Attributes attributes)
@@ -227,5 +231,16 @@ public record Segmented(
         // it -- see focusScope(). What this box holds is one child, the track;
         // the segments are its.
         return Box.of().style(style).children(boxes.toArray(Box[]::new));
+    }
+
+    /// Builds a `segmented` from markup.
+    ///
+    /// The same valued action `radio-group` takes, because §3 says this control
+    /// shares that model exactly — a set's handler is useless without the value
+    /// picked (ADR-0073).
+    public static Widget inflate(KdlNode node, List<Widget> children, Wiring wiring) {
+        return new Segmented(node.stringProperty("value"), children,
+                wiring.bound(node), wiring.valued(node, "change"),
+                Wiring.disabled(node), Attributes.of(node));
     }
 }

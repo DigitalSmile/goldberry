@@ -9,7 +9,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
-import io.github.digitalsmile.goldberry.bind.Bindings;
+import io.github.digitalsmile.goldberry.bind.BindingRegistry;
 import io.github.digitalsmile.goldberry.bind.Property;
 import io.github.digitalsmile.goldberry.css.CascadeLayer;
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
@@ -25,7 +25,7 @@ import io.github.digitalsmile.goldberry.kdl.KdlParser;
 import io.github.digitalsmile.goldberry.natives.yoga.StyleLength;
 import io.github.digitalsmile.goldberry.widget.ElementTree;
 import io.github.digitalsmile.goldberry.widget.Widget;
-import io.github.digitalsmile.goldberry.widgets.Actions;
+import io.github.digitalsmile.goldberry.bind.ActionRegistry;
 import io.github.digitalsmile.goldberry.widgets.Controls;
 import io.github.digitalsmile.goldberry.widgets.Icons;
 import io.github.digitalsmile.goldberry.widgets.controls.Scale;
@@ -37,6 +37,7 @@ import java.util.Set;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import io.github.digitalsmile.goldberry.widgets.Widgets;
 
 /// The sixth control, and the first whose value is **a number rather than a
 /// state** ([ADR-0079]).
@@ -80,7 +81,7 @@ class SliderTest {
             var fromJava = new Slider(0, 100, 40, 5, null, null, false,
                     new Attributes("gain", Set.of("vertical"), "gain"));
 
-            var fromKdl = Controls.inflater().inflateAll(KdlParser.parse("""
+            var fromKdl = Widgets.inflater().inflateAll(KdlParser.parse("""
                     slider id="gain" class="vertical" min=0 max=100 value=40 step=5
                     """)).getFirst();
 
@@ -106,7 +107,7 @@ class SliderTest {
         @Test
         @DisplayName("slider is a control type and its parts are not")
         void partsAreNotConstructible() {
-            var registered = Controls.inflater().registered();
+            var registered = Widgets.inflater().registered();
             assertTrue(Controls.controlTypes().contains("slider"));
             for (var part : List.of("slider-track", "slider-groove", "slider-fill", "slider-rest",
                     "slider-thumb", "slider-ticks", "slider-tick", "slider-value")) {
@@ -129,7 +130,7 @@ class SliderTest {
         @Test
         @DisplayName("a non-numeric attribute falls back rather than failing the window")
         void nonNumericFallsBack() {
-            var slider = (Slider) Controls.inflater().inflateAll(KdlParser.parse("""
+            var slider = (Slider) Widgets.inflater().inflateAll(KdlParser.parse("""
                     slider min="oops" max=10 value=3
                     """)).getFirst();
 
@@ -673,7 +674,7 @@ class SliderTest {
             var fromJava = new Slider(0, 1, 0, 0, 5, "%.2f", Scale.decibels(), null, null, false,
                     new Attributes("gain", Set.of("vertical"), "gain"));
 
-            var fromKdl = Controls.inflater().inflateAll(KdlParser.parse("""
+            var fromKdl = Widgets.inflater().inflateAll(KdlParser.parse("""
                     slider id="gain" class="vertical" min=0 max=1 ticks=5 format="%.2f" scale="db"
                     """)).getFirst();
 
@@ -696,9 +697,9 @@ class SliderTest {
         @DisplayName("a KDL change= receives the snapped value as a string")
         void kdlChangeReceivesAString() {
             var got = new ArrayList<String>();
-            var actions = Actions.strict().bind("setGain", (String value) -> got.add(value));
+            var actions = ActionRegistry.strict().bind("setGain", (String value) -> got.add(value));
 
-            var slider = (Slider) Controls.inflater(actions, Icons.none(), Bindings.none())
+            var slider = (Slider) Widgets.inflater(actions, Icons.none(), BindingRegistry.none())
                     .inflateAll(KdlParser.parse("""
                             slider min=0 max=100 value=50 step=10 change="setGain"
                             """)).getFirst();
@@ -711,9 +712,9 @@ class SliderTest {
         @DisplayName("bind= resolves against the registry")
         void kdlBind() {
             var gain = Property.of(30.0);
-            var bindings = Bindings.strict().bind("audio.gain", gain);
+            var bindings = BindingRegistry.strict().bind("audio.gain", gain);
 
-            var slider = (Slider) Controls.inflater(Actions.lenient(), Icons.none(), bindings)
+            var slider = (Slider) Widgets.inflater(ActionRegistry.lenient(), Icons.none(), bindings)
                     .inflateAll(KdlParser.parse("""
                             slider min=0 max=100 bind="audio.gain"
                             """)).getFirst();

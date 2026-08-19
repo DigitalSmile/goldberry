@@ -1,5 +1,6 @@
 package io.github.digitalsmile.goldberry.example;
 
+import io.github.digitalsmile.goldberry.bind.Models;
 import io.github.digitalsmile.goldberry.RendererRequirement;
 import io.github.digitalsmile.goldberry.assets.BundledFont;
 import io.github.digitalsmile.goldberry.css.CascadeLayer;
@@ -20,6 +21,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import io.github.digitalsmile.goldberry.widgets.Widgets;
 
 /// The gallery, one image per screen (§14: "golden-image CI runs the gallery
 /// matrix").
@@ -33,7 +35,9 @@ import org.junit.jupiter.api.Test;
 /// `./gradlew :example:test -Dgoldberry.golden.update=true` rewrites them.
 class GalleryGoldenTest {
 
+    private Showcase showcase;
     private ShowcaseModel model;
+    private ShowcaseModel.Actions actions;
     private Icon palette;
     private Icon plus;
     private Font font;
@@ -41,7 +45,11 @@ class GalleryGoldenTest {
     @BeforeEach
     void setUp() {
         RendererRequirement.enforce();
-        model = new ShowcaseModel();
+        // The application's own objects, so the gallery is painted against the
+        // wiring the window uses rather than a copy of it.
+        showcase = new Showcase();
+        model = modelOf(ShowcaseModel.class);
+        actions = modelOf(ShowcaseModel.Actions.class);
         palette = Icon.bundled("palette", 16);
         plus = Icon.bundled("plus", 16);
         font = Font.bundled(BundledFont.UI, 13);
@@ -63,15 +71,19 @@ class GalleryGoldenTest {
         }
     }
 
+    private <T> T modelOf(Class<T> type) {
+        return showcase.models().stream()
+                .filter(type::isInstance).map(type::cast).findFirst().orElseThrow();
+    }
+
     /// The whole window, on `screen`.
     private void paint(String name, String screen, Theme theme) {
-        model.pickScreen(screen);
+        actions.pickScreen(screen);
 
-        var inflater = Controls.inflater(
-                Showcase.actions(model, () -> { }, () -> { }),
+        var inflater = Widgets.inflater(
                 Icons.strict().bind("palette", palette).bind("plus", plus),
-                ShowcaseModelRegistry.bindings(model));
-        var tree = new ElementTree(new Screen(model, inflater, plus, () -> { }));
+                showcase.models().toArray());
+        var tree = new ElementTree(new Screen(model, actions, inflater, plus, () -> { }));
 
         var sheets = new ArrayList<Stylesheet>(Controls.stylesheets(theme, model.density()));
         sheets.add(Stylesheet.resource(CascadeLayer.APPLICATION, Showcase.class, "showcase.css"));

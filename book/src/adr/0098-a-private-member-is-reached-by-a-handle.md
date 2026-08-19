@@ -1,6 +1,10 @@
 # ADR-0098: A private member is reached by a handle
 
-- **Status:** Accepted
+- **Status:** Superseded by [ADR-0126](0126-actions-are-bound-by-lambdametafactory.md).
+  The problem this record solved — generated code in the same package cannot see
+  a private member — stops existing once the wiring is written *inside* the
+  model's own class, where private is not a barrier. No handle is looked up at
+  all now.
 - **Date:** 2026-08-18
 - **Relates to:** `docs/ARCHITECTURE.md` §9, revises one consequence of
   [ADR-0096](0096-a-registry-is-generated-not-reflected.md)

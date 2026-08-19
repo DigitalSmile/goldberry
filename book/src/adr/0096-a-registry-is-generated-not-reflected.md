@@ -1,6 +1,11 @@
 # ADR-0096: A registry is generated, not reflected
 
-- **Status:** Accepted
+- **Status:** Superseded by [ADR-0125](0125-a-raw-field-is-woven-into-a-binding.md)
+  (the `@Bind` half) and [ADR-0126](0126-actions-are-bound-by-lambdametafactory.md)
+  (the `@Action` half). The rule this record argued for — names are wired
+  explicitly, not looked up reflectively — still holds; what changed is that the
+  wiring is written into the model's own bytecode rather than into a generated
+  source file beside it.
 - **Date:** 2026-08-18
 - **Relates to:** `docs/ARCHITECTURE.md` §9, extends [ADR-0062](0062-bind-is-a-path-and-nothing-else.md)
 

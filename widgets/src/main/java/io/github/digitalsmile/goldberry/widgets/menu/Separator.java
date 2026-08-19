@@ -9,6 +9,9 @@ import io.github.digitalsmile.goldberry.widget.Styled;
 import io.github.digitalsmile.goldberry.widget.Widget;
 import java.util.List;
 import java.util.Set;
+import io.github.digitalsmile.goldberry.kdl.KdlNode;
+import io.github.digitalsmile.goldberry.widgets.Wiring;
+import io.github.digitalsmile.goldberry.widgets.Markup;
 
 /// A rule between groups of menu items — `docs/core-widgets.md` §8's
 /// `separator`.
@@ -19,6 +22,7 @@ import java.util.Set;
 ///
 /// Its whole appearance is `controls.css`'s. The widget contributes a box with no
 /// content, which is what a 1px rule is.
+@Markup("separator")
 public record Separator(Attributes attributes)
         implements Widget.Leaf, Styled, Paints, Attributed<Separator> {
 
@@ -53,5 +57,10 @@ public record Separator(Attributes attributes)
     @Override
     public Box render(ComputedStyle style, List<Box> children, Context context) {
         return Box.of().style(style);
+    }
+
+    /// Builds a `separator` from markup.
+    public static Widget inflate(KdlNode node, List<Widget> children, Wiring wiring) {
+        return new Separator(Attributes.of(node));
     }
 }

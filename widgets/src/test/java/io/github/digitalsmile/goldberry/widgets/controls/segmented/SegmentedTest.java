@@ -9,7 +9,7 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import io.github.digitalsmile.goldberry.bind.Bindings;
+import io.github.digitalsmile.goldberry.bind.BindingRegistry;
 import io.github.digitalsmile.goldberry.bind.Property;
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
 import io.github.digitalsmile.goldberry.css.CssLength;
@@ -34,7 +34,7 @@ import io.github.digitalsmile.goldberry.widget.Element;
 import io.github.digitalsmile.goldberry.widget.ElementTree;
 import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widget.WidgetRenderer;
-import io.github.digitalsmile.goldberry.widgets.Actions;
+import io.github.digitalsmile.goldberry.bind.ActionRegistry;
 import io.github.digitalsmile.goldberry.widgets.Controls;
 import io.github.digitalsmile.goldberry.widgets.Icons;
 import io.github.digitalsmile.goldberry.widgets.controls.TestFont;
@@ -49,6 +49,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import io.github.digitalsmile.goldberry.widgets.Widgets;
 
 /// The eleventh control, and the second composite.
 ///
@@ -62,7 +63,7 @@ import org.junit.jupiter.api.Test;
 class SegmentedTest {
 
     private static List<Widget> inflate(String markup) {
-        return Controls.inflater().inflateAll(KdlParser.parse(markup));
+        return Widgets.inflater().inflateAll(KdlParser.parse(markup));
     }
 
     /// The segments, as the control rewrites them — which is where the
@@ -120,7 +121,7 @@ class SegmentedTest {
         @Test
         @DisplayName("the registry lists both, and `segment` is deliberately not a node")
         void registered() {
-            var registered = Controls.inflater().registered();
+            var registered = Widgets.inflater().registered();
 
             assertTrue(registered.contains("segmented"));
             assertTrue(registered.contains("option"));
@@ -285,10 +286,10 @@ class SegmentedTest {
         void fromMarkup() {
             var picked = new ArrayList<String>();
             var view = Property.of("list");
-            var bindings = Bindings.strict().bind("view.mode", view);
-            var actions = Actions.strict().bind("pickView", (String value) -> picked.add(value));
+            var bindings = BindingRegistry.strict().bind("view.mode", view);
+            var actions = ActionRegistry.strict().bind("pickView", (String value) -> picked.add(value));
 
-            var bar = (Segmented) Controls.inflater(actions, Icons.none(), bindings)
+            var bar = (Segmented) Widgets.inflater(actions, Icons.none(), bindings)
                     .inflateAll(KdlParser.parse("""
                             segmented bind="view.mode" change="pickView" {
                                 option value="list" "List"

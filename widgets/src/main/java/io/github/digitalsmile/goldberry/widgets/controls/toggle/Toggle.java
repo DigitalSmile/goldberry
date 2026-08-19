@@ -20,6 +20,9 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Consumer;
+import io.github.digitalsmile.goldberry.kdl.KdlNode;
+import io.github.digitalsmile.goldberry.widgets.Wiring;
+import io.github.digitalsmile.goldberry.widgets.Markup;
 
 /// A switch — `docs/core-widgets.md` §3's `toggle`. The fifth control.
 ///
@@ -80,6 +83,7 @@ import java.util.function.Consumer;
 ///                 every rebuild, which is what makes it controlled
 /// @param source   §9's `bind`, read-only — see [#resolved()]
 /// @param onChange what the user asked for, `true` or `false`
+@Markup("toggle")
 public record Toggle(
         String label, boolean on, Observable<?> source, Consumer<Boolean> onChange,
         boolean disabled, Attributes attributes)
@@ -243,5 +247,17 @@ public record Toggle(
         if (!disabled && onChange != null) {
             onChange.accept(value);
         }
+    }
+
+    /// Builds a `toggle` from markup.
+    ///
+    /// The change is a **valued** action: what the user asked for is `true` or
+    /// `false` rather than "the other one", because a drag is a request for a
+    /// particular state and dragging right on a switch already on asks for on
+    /// (ADR-0075).
+    public static Widget inflate(KdlNode node, List<Widget> children, Wiring wiring) {
+        return new Toggle(Wiring.label(node), node.booleanProperty("on"),
+                wiring.bound(node), wiring.flag(node, "change"),
+                Wiring.disabled(node), Attributes.of(node));
     }
 }

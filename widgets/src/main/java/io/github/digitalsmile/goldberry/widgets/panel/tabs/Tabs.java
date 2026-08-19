@@ -9,6 +9,9 @@ import io.github.digitalsmile.goldberry.widget.Widget;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Consumer;
+import io.github.digitalsmile.goldberry.kdl.KdlNode;
+import io.github.digitalsmile.goldberry.widgets.Wiring;
+import io.github.digitalsmile.goldberry.widgets.Markup;
 
 /// A strip of tabs over one panel — `docs/core-widgets.md` §5's `tabs`.
 ///
@@ -68,6 +71,7 @@ import java.util.function.Consumer;
 ///                   shorten
 /// @param onNew      what the user asked to add, or null for no add affordance
 /// @param attributes `id` and `class`, exactly as on the primitives
+@Markup("tabs")
 public record Tabs(
         String value, List<Widget> children, Observable<?> source, Consumer<String> onChange,
         Consumer<String> onClose, Runnable onNew, Attributes attributes)
@@ -160,5 +164,19 @@ public record Tabs(
         if (onClose != null) {
             onClose.accept(picked);
         }
+    }
+
+    /// Builds a `tabs` strip from markup.
+    ///
+    /// `close` and `new` are the two halves of "a tab strip's list is the
+    /// application's": the strip asks and the application answers, exactly as
+    /// `change` does for the selection (ADR-0063, ADR-0107).
+    public static Widget inflate(KdlNode node, List<Widget> children, Wiring wiring) {
+        return new Tabs(node.stringProperty("value"), children,
+                wiring.bound(node),
+                wiring.valued(node, "change"),
+                wiring.valued(node, "close"),
+                wiring.action(node, "new"),
+                Attributes.of(node));
     }
 }

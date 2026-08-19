@@ -398,7 +398,7 @@ public final class PointerRouter {
         // Read into locals and cleared at the end: the release and the click are
         // the last two events of the gesture and both want its origin, and a
         // handler that fires another press from inside one -- which
-        // `Actions`-driven code does -- must not have this overwritten under it.
+        // `ActionRegistry`-driven code does -- must not have this overwritten under it.
         var originX = pressOriginX;
         var originY = pressOriginY;
         pressOriginX = Float.NaN;

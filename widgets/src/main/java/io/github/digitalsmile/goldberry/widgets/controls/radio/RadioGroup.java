@@ -1,5 +1,6 @@
 package io.github.digitalsmile.goldberry.widgets.controls.radio;
 
+import io.github.digitalsmile.goldberry.bind.ActionRegistry;
 import io.github.digitalsmile.goldberry.widget.Attributed;
 import io.github.digitalsmile.goldberry.widget.Bindable;
 import io.github.digitalsmile.goldberry.widget.Attributes;
@@ -18,6 +19,9 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Consumer;
+import io.github.digitalsmile.goldberry.kdl.KdlNode;
+import io.github.digitalsmile.goldberry.widgets.Wiring;
+import io.github.digitalsmile.goldberry.widgets.Markup;
 
 /// A set of options of which exactly one is chosen (§11,
 /// `docs/core-widgets.md` §3).
@@ -50,7 +54,7 @@ import java.util.function.Consumer;
 ///
 /// `change` is the first action in the toolkit that has to say **which one**, so
 /// it is a `Consumer<String>` taking the picked option's `value` — see
-/// [Actions#bind(String, java.util.function.Consumer)]. A plain `Runnable`
+/// [ActionRegistry#bind(String, java.util.function.Consumer)]. A plain `Runnable`
 /// resolves against it too, for a handler that reads the model itself.
 ///
 /// ## One Tab stop, arrows inside
@@ -74,6 +78,7 @@ import java.util.function.Consumer;
 ///                   every option, so `radio:disabled` matches without a
 ///                   descendant combinator
 /// @param attributes `id` and `class`, exactly as on the primitives
+@Markup("radio-group")
 public record RadioGroup(
         String value, List<Widget> children, Observable<?> source, Consumer<String> onChange,
         boolean disabled, Attributes attributes)
@@ -242,5 +247,16 @@ public record RadioGroup(
         // would be a name that lies, while "radio-group" names the semantics and
         // says nothing about the axis.
         return Box.of().style(style).children(boxes.toArray(Box[]::new));
+    }
+
+    /// Builds a `radio-group` from markup.
+    ///
+    /// The first action that has to say **which one** — a group's handler is
+    /// useless without the value picked, and one action per option would make
+    /// adding an option an edit in Java too (ADR-0073).
+    public static Widget inflate(KdlNode node, List<Widget> children, Wiring wiring) {
+        return new RadioGroup(node.stringProperty("value"), children,
+                wiring.bound(node), wiring.valued(node, "change"),
+                Wiring.disabled(node), Attributes.of(node));
     }
 }

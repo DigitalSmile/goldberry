@@ -31,6 +31,7 @@ import java.util.Set;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import io.github.digitalsmile.goldberry.widgets.Widgets;
 
 /// The tenth control, and the first whose drag is a **rate** ([ADR-0089]).
 ///
@@ -419,7 +420,7 @@ class KnobTest {
         void javaAndKdlAgree() {
             var attributes = new Attributes("gain", Set.of("large"), "gain");
 
-            var fromKdl = Controls.inflater().inflateAll(KdlParser.parse("""
+            var fromKdl = Widgets.inflater().inflateAll(KdlParser.parse("""
                     knob id="gain" class="large" min=0 max=11 value=5 step=1 detents=3
                     """)).getFirst();
 
@@ -432,7 +433,7 @@ class KnobTest {
             assertTrue(Controls.controlTypes().contains("knob"));
             for (var part : List.of("knob-track", "knob-arc")) {
                 assertFalse(Controls.controlTypes().contains(part));
-                assertFalse(Controls.inflater().registered().contains(part),
+                assertFalse(Widgets.inflater().registered().contains(part),
                         "a part is CSS-selectable and not KDL-constructible (ADR-0065)");
             }
         }

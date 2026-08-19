@@ -5,6 +5,9 @@ import io.github.digitalsmile.goldberry.widget.Attributes;
 import io.github.digitalsmile.goldberry.widget.State;
 import io.github.digitalsmile.goldberry.widget.Widget;
 import java.util.List;
+import io.github.digitalsmile.goldberry.kdl.KdlNode;
+import io.github.digitalsmile.goldberry.widgets.Wiring;
+import io.github.digitalsmile.goldberry.widgets.Markup;
 
 /// A child pinned to an edge of the nearest `scroll` once it would have scrolled
 /// past it — `docs/core-widgets.md` §1's `affix`.
@@ -66,6 +69,7 @@ import java.util.List;
 /// @param onReveal   told where the **hole** is and what clips it, or null for
 ///                   the ordinary case where nobody is asking
 /// @param attributes `id` and `class`, exactly as on the primitives
+@Markup("affix")
 public record Affix(
         List<Widget> children, Edge edge, double offset,
         java.util.function.BiConsumer<
@@ -109,5 +113,11 @@ public record Affix(
     @Override
     public State<?> createState() {
         return new AffixState();
+    }
+
+    /// Builds an `affix` from markup.
+    public static Widget inflate(KdlNode node, List<Widget> children, Wiring wiring) {
+        return new Affix(children, Edge.parse(node.stringProperty("edge")),
+                node.numberProperty("offset", 0), Attributes.of(node));
     }
 }

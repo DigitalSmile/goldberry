@@ -1,5 +1,6 @@
 package io.github.digitalsmile.goldberry.example.ui;
 
+
 import io.github.digitalsmile.goldberry.example.ShowcaseModel;
 import io.github.digitalsmile.goldberry.icon.Icon;
 import io.github.digitalsmile.goldberry.widget.BuildContext;
@@ -27,7 +28,8 @@ import io.github.digitalsmile.goldberry.widgets.text.Text;
 /// @param plus  the icon on the primary button — handed in, because a widget is
 ///              a value that is rebuilt and thrown away and an `Icon` owns native
 ///              memory that must be closed exactly once (ADR-0043)
-public record Content(ShowcaseModel model, Icon plus) implements Widget.Stateless {
+public record Content(ShowcaseModel model, ShowcaseModel.Actions actions, Icon plus)
+        implements Widget.Stateless {
 
     private static final String PROSE = """
             Yoga proposes a width and this paragraph answers with a height, which is the only \
@@ -47,16 +49,16 @@ public record Content(ShowcaseModel model, Icon plus) implements Widget.Stateles
 
     @Override
     public Widget build(BuildContext context) {
-        var actions = new Row(
-                new Button("Click me", model::click)
+        var buttons = new Row(
+                new Button("Click me", actions()::click)
                         .withIcon(plus).id("click").styled("primary"),
-                new Button("Undo", model::undo).disabled(!model.hasClicks()).id("undo"),
-                new Button("Reset", model::reset).disabled(!model.hasClicks())
+                new Button("Undo", actions()::undo).disabled(!model.hasClicks()).id("undo"),
+                new Button("Reset", actions()::reset).disabled(!model.hasClicks())
                         .id("reset").styled("danger"))
                 .id("actions");
 
         return model.isProseShown()
-                ? new Column(new Text(PROSE).id("prose"), actions).id("screen-text")
-                : new Column(actions).id("screen-text");
+                ? new Column(new Text(PROSE).id("prose"), buttons).id("screen-text")
+                : new Column(buttons).id("screen-text");
     }
 }

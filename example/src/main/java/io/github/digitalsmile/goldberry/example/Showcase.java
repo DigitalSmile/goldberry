@@ -16,7 +16,8 @@ import io.github.digitalsmile.goldberry.input.Mod;
 import io.github.digitalsmile.goldberry.widget.Attributes;
 import io.github.digitalsmile.goldberry.widget.Corner;
 import io.github.digitalsmile.goldberry.widget.Widget;
-import io.github.digitalsmile.goldberry.widgets.Actions;
+import io.github.digitalsmile.goldberry.bind.ActionRegistry;
+import io.github.digitalsmile.goldberry.bind.Models;
 import io.github.digitalsmile.goldberry.widgets.Controls;
 import io.github.digitalsmile.goldberry.widgets.Icons;
 import io.github.digitalsmile.goldberry.widgets.menu.Item;
@@ -30,6 +31,7 @@ import java.util.ArrayList;
 import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import io.github.digitalsmile.goldberry.widgets.Widgets;
 
 /// Goldberry's showcase — the [Application], and nothing else.
 ///
@@ -81,6 +83,8 @@ public final class Showcase implements Application {
             Stylesheet.resource(CascadeLayer.APPLICATION, Showcase.class, "showcase.css");
 
     private final ShowcaseModel model = new ShowcaseModel();
+    private final ShowcaseModel.Actions actions = new ShowcaseModel.Actions(model);
+    private final WindowActions window = new WindowActions(this::toggleMenu, this::toggleHud);
 
     private Host host;
 
@@ -130,31 +134,30 @@ public final class Showcase implements Application {
         paletteIcon = Icon.bundled("palette", ICON_SIZE);
         plusIcon = Icon.bundled("plus", ICON_SIZE);
 
-        // The three registries §9 asks for, and they are three because they
-        // answer three different questions: what a name *does*, what a name
-        // *draws*, and where a value *lives*. Markup names an icon and cannot
-        // build one -- an `Icon` owns native memory, and a document reloaded on
-        // every keystroke would leak one per reload (ADR-0043).
+        // Two models and one icon registry, and that is the whole of the wiring.
+        // The paths and the action names come off the models themselves; the node
+        // names come from every widget module on the path (ADR-0131, ADR-0132).
+        // Icons stay explicit because one owns native memory: markup may name an
+        // icon and must not be able to build one, or a document reloaded on every
+        // keystroke would leak one per reload (ADR-0043).
         screen = new Screen(
-                model,
-                Controls.inflater(
-                        actions(model, this::toggleMenu, this::toggleHud),
+                model, actions,
+                Widgets.inflater(
                         Icons.strict().bind("palette", paletteIcon).bind("plus", plusIcon),
-                        ShowcaseModelRegistry.bindings(model)),
+                        models().toArray()),
                 plusIcon,
                 this::startTour);
 
-        model.onChanged(host::repaint);
-        model.onRestyle(() -> {
-            host.restyle();
-            LOG.info("theme {} / density {}", model.theme(), model.density());
-        });
+        // No `repaint()` and no `restyle()` here. `models()` below hands both
+        // objects to the toolkit, which subscribes: a change asks for a frame,
+        // and a change to a field declared `@Bind(restyle = true)` drops the
+        // resolved styles first (ADR-0128, ADR-0133).
 
         // A per-window accelerator map is what §7.2 asks for (ADR-0058). Ctrl+D
         // is the interesting one: not a widget in this application mentions a
         // height, and every control still resizes.
-        host.shortcut(Mod.CTRL.and(Key.T), model::toggleTheme);
-        host.shortcut(Mod.CTRL.and(Key.D), model::toggleDensity);
+        host.shortcut(Mod.CTRL.and(Key.T), actions::toggleTheme);
+        host.shortcut(Mod.CTRL.and(Key.D), actions::toggleDensity);
         // Off by default, and deliberately: a HUD reports the frames the loop
         // was already painting, so the interesting time to switch it on is
         // *during* a resize or a drag, when there is something to watch.
@@ -168,7 +171,7 @@ public final class Showcase implements Application {
                 Key.DIGIT_6);
         for (var index = 0; index < screens.size(); index++) {
             var name = screens.get(index);
-            host.shortcut(Mod.CTRL.and(digits.get(index)), () -> model.pickScreen(name));
+            host.shortcut(Mod.CTRL.and(digits.get(index)), () -> actions.pickScreen(name));
         }
 
         // §8's other half: `context-menu="…"` on any widget, and one line to say
@@ -189,7 +192,7 @@ public final class Showcase implements Application {
             host.title("Goldberry — " + text);
             // Nothing here reaches into the tree: the property is set, and the
             // sidebar line bound to it redraws itself.
-            model.setStatus(text);
+            actions.setStatus(text);
         });
     }
 
@@ -217,7 +220,7 @@ public final class Showcase implements Application {
     /// nobody is looking at would skip every stop and end immediately — which is
     /// correct behaviour and a useless demonstration.
     private void startTour() {
-        model.pickScreen("scrolling");
+        actions.pickScreen("scrolling");
         if (host == null) {
             return;
         }
@@ -237,10 +240,17 @@ public final class Showcase implements Application {
                                 + " out of the strip brings it back."))));
     }
 
-    static Actions actions(ShowcaseModel model, Runnable openMenu, Runnable toggleHud) {
-        return ShowcaseModelRegistry.actions(model)
-                .bind("app.open-menu", openMenu)
-                .bind("app.toggle-hud", toggleHud);
+
+    /// The two objects this window is driven by.
+    ///
+    /// The view model, and the window itself — because "open the menu" and
+    /// "toggle the HUD" are the *window's* actions and have no business on a view
+    /// model that knows nothing about menus. Naming both here is what lets a
+    /// document write `press="app.open-menu"` beside `press="app.click"` without
+    /// the application merging two registries by hand (ADR-0132).
+    @Override
+    public List<Object> models() {
+        return List.of(model, actions, window);
     }
 
     @Override
@@ -294,16 +304,16 @@ public final class Showcase implements Application {
     /// one of in the showcase.
     private Menu menuContent() {
         return new Menu(
-                new Item("Switch theme", model::toggleTheme)
+                new Item("Switch theme", actions::toggleTheme)
                         .icon(paletteIcon)
                         .accelerator("Ctrl+T"),
-                new Item("Switch density", model::toggleDensity).accelerator("Ctrl+D"),
+                new Item("Switch density", actions::toggleDensity).accelerator("Ctrl+D"),
                 new Separator(),
                 new Item("Frame rate", this::toggleHud)
                         .accelerator("Ctrl+F")
                         .checked(hud != null),
                 new Item("More").submenu(
-                        new Item("Reset the counter", model::reset),
+                        new Item("Reset the counter", actions::reset),
                         new Item("Nothing here", () -> { }).disabled(true)));
     }
 

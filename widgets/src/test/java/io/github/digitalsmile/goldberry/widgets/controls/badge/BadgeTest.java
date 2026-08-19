@@ -25,6 +25,7 @@ import java.util.List;
 import java.util.Set;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import io.github.digitalsmile.goldberry.widgets.Widgets;
 
 /// The ninth entry in §3's table and the first that is not a control
 /// ([ADR-0087]).
@@ -46,7 +47,7 @@ class BadgeTest {
     void javaAndKdlAgree() {
         var attributes = new Attributes("unread", Set.of("danger"), "unread");
 
-        var fromKdl = Controls.inflater().inflateAll(KdlParser.parse("""
+        var fromKdl = Widgets.inflater().inflateAll(KdlParser.parse("""
                 badge id="unread" class="danger" "3"
                 """)).getFirst();
 
@@ -86,7 +87,7 @@ class BadgeTest {
     @DisplayName("it is a widget in the catalog and not a part")
     void isACatalogWidget() {
         assertTrue(Controls.controlTypes().contains("badge"));
-        assertTrue(Controls.inflater().registered().contains("badge"));
+        assertTrue(Widgets.inflater().registered().contains("badge"));
         assertEquals("badge", new Badge("3").cssType());
     }
 

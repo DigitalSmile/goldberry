@@ -14,6 +14,9 @@ import io.github.digitalsmile.goldberry.widget.Widget;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+import io.github.digitalsmile.goldberry.kdl.KdlNode;
+import io.github.digitalsmile.goldberry.widgets.Wiring;
+import io.github.digitalsmile.goldberry.widgets.Markup;
 
 /// A count or a status — `docs/core-widgets.md` §3's `badge`, "count/status chip,
 /// typically composed inside `stack`".
@@ -62,6 +65,7 @@ import java.util.Set;
 ///                   value, and an [Observable] rather than a property because a
 ///                   badge reports nothing back ([ADR-0063])
 /// @param attributes `id` and `class`, exactly as on every other widget
+@Markup("badge")
 public record Badge(String text, Observable<?> source, Attributes attributes)
         implements Widget.Leaf, Styled, Paints, Attributed<Badge>, Bindable<Badge> {
 
@@ -142,5 +146,15 @@ public record Badge(String text, Observable<?> source, Attributes attributes)
         // second widget's (`SliderValue` takes the other branch, and says why).
         return Box.of().style(style)
                 .children(Box.text(context.paragraph(style, resolved()), style.color()));
+    }
+
+    /// Builds a `badge` from markup.
+    ///
+    /// §3's only entry that is not a control: no action, no state, nothing to
+    /// resolve against a registry. A count is the archetypal bound value, so
+    /// `bind` is the one wiring it takes, and the literal argument stays as the
+    /// fallback the way `text`'s does.
+    public static Widget inflate(KdlNode node, List<Widget> children, Wiring wiring) {
+        return new Badge(Wiring.label(node), wiring.bound(node), Attributes.of(node));
     }
 }

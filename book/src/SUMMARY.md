@@ -3,6 +3,8 @@
 [Introduction](introduction.md)
 [Status](status.md)
 [TODO](TODO.md)
+[Building an application](applications.md)
+[Model weaving](weaving.md)
 
 # Architecture decisions
 
@@ -131,6 +133,21 @@
 - [ADR-0122 A setState asks for a frame](adr/0122-a-setstate-asks-for-a-frame.md)
 - [ADR-0123 A pinned box paints after its siblings](adr/0123-a-pinned-box-paints-after-its-siblings.md)
 - [ADR-0124 A pinned affix is revealed by its hole](adr/0124-a-pinned-affix-is-revealed-by-its-hole.md)
+- [ADR-0125 A raw field is woven into a binding](adr/0125-a-raw-field-is-woven-into-a-binding.md)
+- [ADR-0126 Actions are bound by LambdaMetafactory](adr/0126-actions-are-bound-by-lambdametafactory.md)
+- [ADR-0127 The binding schema fits a closed world](adr/0127-the-binding-schema-fits-a-closed-world.md)
+- [ADR-0128 A change is its own frame request](adr/0128-a-change-is-its-own-frame-request.md)
+- [ADR-0129 A value is named one way](adr/0129-a-value-is-named-one-way.md)
+- [ADR-0130 A widget inflates itself](adr/0130-a-widget-inflates-itself.md)
+- [ADR-0131 A widget package announces itself](adr/0131-a-widget-package-announces-itself.md)
+- [ADR-0132 A model wires itself](adr/0132-a-model-wires-itself.md)
+- [ADR-0133 A restyle is declared](adr/0133-a-restyle-is-declared.md)
+- [ADR-0134 A write is rewritten wherever it is](adr/0134-a-write-is-rewritten-wherever-it-is.md)
+- [ADR-0135 A frame is asked for by the value that moved](adr/0135-a-frame-is-asked-for-by-the-value-that-moved.md)
+- [ADR-0136 An application is values, actions, views](adr/0136-an-application-is-values-actions-views.md)
+- [ADR-0137 A model keeps its fields](adr/0137-a-model-keeps-its-fields.md)
+- [ADR-0138 A window's actions are a model of their own](adr/0138-a-window-s-actions-are-a-model-of-their-own.md)
+- [ADR-0139 Actions are annotated as actions](adr/0139-actions-are-annotated-as-actions.md)
 
 ---
 

@@ -1,5 +1,7 @@
 package io.github.digitalsmile.goldberry.example.ui;
 
+import io.github.digitalsmile.goldberry.bind.Models;
+
 import io.github.digitalsmile.goldberry.example.ShowcaseModel;
 import io.github.digitalsmile.goldberry.icon.Icon;
 import io.github.digitalsmile.goldberry.kdl.KdlInflater;
@@ -44,7 +46,8 @@ import java.util.List;
 /// @param model    the state every screen reads
 /// @param inflater what turns the three documents into widgets
 /// @param plus     the icon on [Content]'s primary button
-public record Screen(ShowcaseModel model, KdlInflater<Widget> inflater, Icon plus,
+public record Screen(ShowcaseModel model, ShowcaseModel.Actions actions,
+        KdlInflater<Widget> inflater, Icon plus,
         Runnable startTour)
         implements Widget.Stateful {
 
@@ -74,11 +77,12 @@ public record Screen(ShowcaseModel model, KdlInflater<Widget> inflater, Icon plu
 
             // Structure only. Every *value* in this window reaches its widget
             // through a binding and needs no rebuild here.
-            watching.add(widget().model().showProse().subscribe(value -> setState(() -> { })));
-            watching.add(widget().model().clicks().subscribe(value -> setState(() -> { })));
-            // Which tabs exist is structure too: a tab added or closed is a
-            // different tree, not a different value (ADR-0109).
-            watching.add(widget().model().tabs().subscribe(value -> setState(() -> { })));
+            for (var path : List.of("app.prose", "app.clicks", "app.tabs")) {
+                // Which tabs exist is structure too: a tab added or closed is a
+                // different tree, not a different value (ADR-0109).
+                watching.add(Models.observable(widget().model(), path)
+                        .subscribe(value -> setState(() -> { })));
+            }
         }
 
         /// A property outlives the tree — it is the application's — so a listener
@@ -112,20 +116,21 @@ public record Screen(ShowcaseModel model, KdlInflater<Widget> inflater, Icon plu
         @Override
         public Widget build(BuildContext context) {
             var model = widget().model();
+            var actions = widget().actions();
             // The gallery: one strip, five screens, none of them closable. It is
             // bound like every other control — `Ctrl+1`… and the strip itself are
             // two ways to set one property rather than two copies of a selection.
             var gallery = new Tabs(null, List.of(
                     new Tab("controls", "Controls", scrolled(controls)),
                     new Tab("values", "Values", scrolled(values)),
-                    new Tab("text", "Text", scrolled(new Content(model, widget().plus()))),
+                    new Tab("text", "Text", scrolled(new Content(model, actions, widget().plus()))),
                     new Tab("overlays", "Overlays", scrolled(overlays)),
-                    new Tab("tabs", "Tabs", scrolled(new TabsDemo(model))),
+                    new Tab("tabs", "Tabs", scrolled(new TabsDemo(model, actions))),
                     // Not `scrolled`: this screen owns a viewport of its own, and
                     // §2.4 bans nested same-axis scrollers — so the screen that
                     // demonstrates the rule is where the gallery has to keep it.
                     new Tab("scrolling", "Scrolling", new Scrolling(widget().startTour()))),
-                    model.screen(), model::pickScreen, null, null, Attributes.NONE)
+                    Models.observable(model, "app.screen"), actions::pickScreen, null, null, Attributes.NONE)
                     .id("gallery");
 
             return new Column(List.of(titleBar, gallery), Attributes.NONE)

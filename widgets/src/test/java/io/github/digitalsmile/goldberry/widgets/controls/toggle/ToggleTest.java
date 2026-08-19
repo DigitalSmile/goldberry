@@ -10,7 +10,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import io.github.digitalsmile.goldberry.bind.Bindings;
+import io.github.digitalsmile.goldberry.bind.BindingRegistry;
 import io.github.digitalsmile.goldberry.bind.Property;
 import io.github.digitalsmile.goldberry.css.CascadeLayer;
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
@@ -26,7 +26,7 @@ import io.github.digitalsmile.goldberry.input.PointerEvent;
 import io.github.digitalsmile.goldberry.kdl.KdlParser;
 import io.github.digitalsmile.goldberry.natives.yoga.StyleLength;
 import io.github.digitalsmile.goldberry.widget.ElementTree;
-import io.github.digitalsmile.goldberry.widgets.Actions;
+import io.github.digitalsmile.goldberry.bind.ActionRegistry;
 import io.github.digitalsmile.goldberry.widgets.Controls;
 import io.github.digitalsmile.goldberry.widgets.Density;
 import io.github.digitalsmile.goldberry.widgets.Icons;
@@ -40,6 +40,7 @@ import java.util.Set;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import io.github.digitalsmile.goldberry.widgets.Widgets;
 
 /// The fifth control, and the first with a **gesture**
 /// ([ADR-0075](../../../../../../../../book/src/adr/0075-a-gestures-origin-is-the-routers.md)).
@@ -59,7 +60,7 @@ class ToggleTest {
             var fromJava = new Toggle("Frost", true, null, null, false,
                     new Attributes("frost", Set.of("compact"), "frost"));
 
-            var fromKdl = Controls.inflater().inflateAll(KdlParser.parse("""
+            var fromKdl = Widgets.inflater().inflateAll(KdlParser.parse("""
                     toggle id="frost" class="compact" on=#true "Frost"
                     """)).getFirst();
 
@@ -330,9 +331,9 @@ class ToggleTest {
         @DisplayName("a KDL change= receives \"true\" or \"false\"")
         void kdlChangeReceivesAString() {
             var got = new ArrayList<String>();
-            var actions = Actions.strict().bind("setFrost", (String value) -> got.add(value));
+            var actions = ActionRegistry.strict().bind("setFrost", (String value) -> got.add(value));
 
-            var toggle = (Toggle) Controls.inflater(actions, Icons.none(), Bindings.none())
+            var toggle = (Toggle) Widgets.inflater(actions, Icons.none(), BindingRegistry.none())
                     .inflateAll(KdlParser.parse("""
                             toggle change="setFrost" "Frost"
                             """)).getFirst();

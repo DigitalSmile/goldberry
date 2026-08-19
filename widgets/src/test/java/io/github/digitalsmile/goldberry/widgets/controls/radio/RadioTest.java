@@ -12,7 +12,7 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import io.github.digitalsmile.goldberry.bind.Bindings;
+import io.github.digitalsmile.goldberry.bind.BindingRegistry;
 import io.github.digitalsmile.goldberry.bind.Property;
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
 import io.github.digitalsmile.goldberry.css.CssLength;
@@ -31,7 +31,7 @@ import io.github.digitalsmile.goldberry.widget.Element;
 import io.github.digitalsmile.goldberry.widget.ElementTree;
 import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widget.WidgetRenderer;
-import io.github.digitalsmile.goldberry.widgets.Actions;
+import io.github.digitalsmile.goldberry.bind.ActionRegistry;
 import io.github.digitalsmile.goldberry.widgets.Controls;
 import io.github.digitalsmile.goldberry.widgets.Icons;
 import io.github.digitalsmile.goldberry.widgets.controls.TestFont;
@@ -46,6 +46,7 @@ import java.util.Set;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import io.github.digitalsmile.goldberry.widgets.Widgets;
 
 /// The third and fourth controls, and the first **composite**.
 ///
@@ -56,7 +57,7 @@ import org.junit.jupiter.api.Test;
 class RadioTest {
 
     private static List<Widget> inflate(String markup) {
-        return Controls.inflater().inflateAll(KdlParser.parse(markup));
+        return Widgets.inflater().inflateAll(KdlParser.parse(markup));
     }
 
     /// The group's options, as the group rewrites them — which is where the
@@ -111,7 +112,7 @@ class RadioTest {
         @Test
         @DisplayName("the registry lists both, and the parts are deliberately absent")
         void registered() {
-            var registered = Controls.inflater().registered();
+            var registered = Widgets.inflater().registered();
             assertTrue(registered.contains("radio"));
             assertTrue(registered.contains("radio-group"));
             assertFalse(registered.contains("radio-indicator"),
@@ -280,10 +281,10 @@ class RadioTest {
         void fromMarkup() {
             var picked = new ArrayList<String>();
             var theme = Property.of("light");
-            var bindings = Bindings.strict().bind("prefs.theme", theme);
-            var actions = Actions.strict().bind("pickTheme", (String value) -> picked.add(value));
+            var bindings = BindingRegistry.strict().bind("prefs.theme", theme);
+            var actions = ActionRegistry.strict().bind("pickTheme", (String value) -> picked.add(value));
 
-            var group = (RadioGroup) Controls.inflater(actions, Icons.none(), bindings)
+            var group = (RadioGroup) Widgets.inflater(actions, Icons.none(), bindings)
                     .inflateAll(KdlParser.parse("""
                             radio-group bind="prefs.theme" change="pickTheme" {
                                 radio value="light" "Light"
@@ -303,9 +304,9 @@ class RadioTest {
             // the bind() overload to match the widget would be a distinction only
             // the registry cares about.
             var fired = new ArrayList<String>();
-            var actions = Actions.strict().bind("refresh", () -> fired.add("ran"));
+            var actions = ActionRegistry.strict().bind("refresh", () -> fired.add("ran"));
 
-            var group = (RadioGroup) Controls.inflater(actions)
+            var group = (RadioGroup) Widgets.inflater(actions)
                     .inflateAll(KdlParser.parse("""
                             radio-group change="refresh" { radio value="a" "A" }
                             """)).getFirst();
@@ -317,10 +318,10 @@ class RadioTest {
         @Test
         @DisplayName("a valued action refuses to answer an attribute that takes none")
         void valuedIsNotARunnable() {
-            var actions = Actions.strict().bind("pickTheme", (String value) -> { });
+            var actions = ActionRegistry.strict().bind("pickTheme", (String value) -> { });
 
             var thrown = assertThrows(IllegalArgumentException.class,
-                    () -> Controls.inflater(actions)
+                    () -> Widgets.inflater(actions)
                             .inflateAll(KdlParser.parse("button press=\"pickTheme\" \"Pick\"")));
             assertTrue(thrown.getMessage().contains("expects a value"), thrown.getMessage());
         }
@@ -329,7 +330,7 @@ class RadioTest {
         @DisplayName("a strict registry refuses a name nobody bound")
         void strictRefuses() {
             assertThrows(IllegalArgumentException.class,
-                    () -> Controls.inflater(Actions.strict())
+                    () -> Widgets.inflater(ActionRegistry.strict())
                             .inflateAll(KdlParser.parse("""
                                     radio-group change="pikcTheme" { radio value="a" "A" }
                                     """)));

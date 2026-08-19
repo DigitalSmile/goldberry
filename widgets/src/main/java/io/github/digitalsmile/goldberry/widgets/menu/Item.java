@@ -16,6 +16,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+import io.github.digitalsmile.goldberry.kdl.KdlNode;
+import io.github.digitalsmile.goldberry.widgets.Wiring;
+import io.github.digitalsmile.goldberry.widgets.Markup;
 
 /// One command in a [Menu] — `docs/core-widgets.md` §8's `item`: "label, optional
 /// icon, accelerator (displayed right-aligned …), checkable items, disabled
@@ -67,6 +70,7 @@ import java.util.Set;
 ///                    no submenu is the commonest sibling there is
 ///                    ([ADR-0112](../../../../../../../book/src/adr/0112-a-menu-follows-the-pointer-and-lights-for-the-keyboard.md))
 /// @param attributes  `id` and `class`, exactly as on the primitives
+@Markup("item")
 public record Item(
         String label, Icon icon, String accelerator, Runnable onPress, Boolean checked,
         boolean disabled, List<Widget> submenu, boolean reservesLead, Runnable onHovered,
@@ -317,5 +321,24 @@ public record Item(
             content.add(children.getLast());
         }
         return Box.of().style(style).children(content.toArray(Box[]::new));
+    }
+
+    /// Builds an `item` from markup.
+    ///
+    /// A nested `item` is a submenu, which is the only thing a menu item can
+    /// contain — so nesting *is* the syntax and there is no `submenu` node to
+    /// forget. `reservesCheck` and the hover callback are the menu's to supply on
+    /// every open, which is why neither is an attribute.
+    public static Widget inflate(KdlNode node, List<Widget> children, Wiring wiring) {
+        return new Item(Wiring.label(node), wiring.icon(node),
+                node.stringProperty("accelerator"),
+                wiring.action(node, "press"),
+                // Three states: `checked=#true` is on, `checked=#false` is a
+                // checkable row that is off, and no attribute at all is a row
+                // that is not checkable -- which is what decides whether its menu
+                // reserves a tick column (ADR-0113).
+                node.property("checked").isPresent() ? node.booleanProperty("checked") : null,
+                Wiring.disabled(node), children, false, null,
+                Attributes.of(node));
     }
 }

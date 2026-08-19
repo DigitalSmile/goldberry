@@ -12,9 +12,17 @@ module io.github.digitalsmile.goldberry.widgets {
     requires transitive io.github.digitalsmile.goldberry.core;
 
     /// The module-level furniture: the KDL registry, the stylesheets, and the
-    /// three lookups a document resolves names against ([Controls], [Actions],
+    /// three lookups a document resolves names against ([Controls], [io.github.digitalsmile.goldberry.bind.ActionRegistry],
     /// [Icons], [Density]). Not widgets — an application reaches for exactly one
     /// of these to wire a window up, and then never again.
+    /// Every widget module announces its node names this way, and this one
+    /// consumes them -- including its own, whose `provides` the build patches
+    /// into this descriptor from the `@Markup` annotations (ADR-0131).
+    ///
+    /// `uses` and not a hard-coded list: a second widget module is found by an
+    /// application that never names it, which is the whole point.
+    uses io.github.digitalsmile.goldberry.widgets.WidgetCatalog;
+
     exports io.github.digitalsmile.goldberry.widgets;
 
     /// `docs/core-widgets.md` §3's `controls` group, **one package per control**.

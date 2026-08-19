@@ -1,5 +1,8 @@
 plugins {
     id 'goldberry.java-conventions'
+    // Collects this module's @Markup widgets into a WidgetCatalog and declares
+    // it in the module descriptor (ADR-0131).
+    id 'goldberry.weave'
 }
 
 description = 'Goldberry widgets: the widget catalog, charts included'

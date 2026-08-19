@@ -10,6 +10,9 @@ import io.github.digitalsmile.goldberry.widget.Styled;
 import io.github.digitalsmile.goldberry.widget.Widget;
 import java.util.List;
 import java.util.Set;
+import io.github.digitalsmile.goldberry.kdl.KdlNode;
+import io.github.digitalsmile.goldberry.widgets.Wiring;
+import io.github.digitalsmile.goldberry.widgets.Markup;
 
 /// Children laid out along the cross axis — `docs/core-widgets.md` §1's `column`.
 ///
@@ -22,6 +25,7 @@ import java.util.Set;
 /// the one thing a rule cannot take — a `column` a stylesheet could turn into a
 /// row would be a name that lies, and `flex-direction` is therefore applied
 /// after the style rather than read from it.
+@Markup("column")
 public record Column(List<Widget> children, Attributes attributes)
         implements Widget.Leaf, Styled, Paints, Attributed<Column> {
 
@@ -62,5 +66,10 @@ public record Column(List<Widget> children, Attributes attributes)
     public Box render(ComputedStyle style, List<Box> boxes, Context context) {
         return Box.of().children(boxes.toArray(Box[]::new)).style(style)
                 .direction(FlexDirection.COLUMN);
+    }
+
+    /// Builds a `column` from markup.
+    public static Widget inflate(KdlNode node, List<Widget> children, Wiring wiring) {
+        return new Column(children, Attributes.of(node));
     }
 }

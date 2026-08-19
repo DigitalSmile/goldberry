@@ -9,6 +9,9 @@ import io.github.digitalsmile.goldberry.widget.Styled;
 import io.github.digitalsmile.goldberry.widget.Widget;
 import java.util.List;
 import java.util.Set;
+import io.github.digitalsmile.goldberry.kdl.KdlNode;
+import io.github.digitalsmile.goldberry.widgets.Wiring;
+import io.github.digitalsmile.goldberry.widgets.Markup;
 
 /// Empty space that takes what is left over — `docs/core-widgets.md` §1's
 /// `spacer`, "a `flex-grow: 1` shorthand widget".
@@ -16,6 +19,7 @@ import java.util.Set;
 /// ```kdl
 /// row { text "Goldberry"; spacer; button "Theme" }
 /// ```
+@Markup("spacer")
 public record Spacer(Attributes attributes) implements Widget.Leaf, Styled, Paints, Attributed<Spacer> {
 
     public Spacer() {
@@ -49,5 +53,10 @@ public record Spacer(Attributes attributes) implements Widget.Leaf, Styled, Pain
         // every stylesheet would make the widget pointless.
         var box = Box.of().style(style);
         return style.flexGrow() == 0 ? box.grow(1) : box;
+    }
+
+    /// Builds a `spacer` from markup.
+    public static Widget inflate(KdlNode node, List<Widget> children, Wiring wiring) {
+        return new Spacer(Attributes.of(node));
     }
 }

@@ -88,7 +88,7 @@ class ChainingTest {
     @Test
     @DisplayName("a chained widget equals the one KDL builds")
     void parityWithMarkup() {
-        var fromKdl = Controls.inflater().inflateAll(KdlParser.parse("""
+        var fromKdl = Widgets.inflater().inflateAll(KdlParser.parse("""
                 badge id="unread" class="danger" "3"
                 """)).getFirst();
 
@@ -125,7 +125,7 @@ class ChainingTest {
     @Test
     @DisplayName("every registered widget is chainable")
     void everyWidgetIsAttributed() {
-        var inflater = Controls.inflater();
+        var inflater = Widgets.inflater();
         for (var type : names()) {
             var markup = switch (type) {
                 case "text", "button", "badge" -> type + " \"x\"";

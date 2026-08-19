@@ -10,6 +10,9 @@ import io.github.digitalsmile.goldberry.widget.Widget;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+import io.github.digitalsmile.goldberry.kdl.KdlNode;
+import io.github.digitalsmile.goldberry.widgets.Wiring;
+import io.github.digitalsmile.goldberry.widgets.Markup;
 
 /// The floating panel a popup draws — `docs/core-widgets.md` §7's `popover`, and
 /// what §7 calls "the primitive under menus, dropdowns, `date-picker`,
@@ -57,6 +60,7 @@ import java.util.Set;
 ///
 /// @param children   what is in the panel
 /// @param attributes `id` and `class`, exactly as on the primitives
+@Markup("popover")
 public record Popover(List<Widget> children, Attributes attributes)
         implements Widget.Leaf, Styled, Paints, Attributed<Popover> {
 
@@ -106,5 +110,14 @@ public record Popover(List<Widget> children, Attributes attributes)
     @Override
     public Box render(ComputedStyle style, List<Box> boxes, Context context) {
         return Box.of().style(style).children(boxes.toArray(Box[]::new));
+    }
+
+    /// Builds a `popover` from markup.
+    ///
+    /// It is the panel and not the opening: where a popover goes and when it goes
+    /// away is `Host.popup`'s, which serves a tooltip and a select equally and is
+    /// not a widget (ADR-0104).
+    public static Widget inflate(KdlNode node, List<Widget> children, Wiring wiring) {
+        return new Popover(children, Attributes.of(node));
     }
 }

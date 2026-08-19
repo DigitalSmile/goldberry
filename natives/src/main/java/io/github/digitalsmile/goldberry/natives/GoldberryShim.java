@@ -10,7 +10,7 @@ import java.lang.foreign.ValueLayout;
 import java.lang.invoke.MethodHandle;
 import org.slf4j.Logger;
 
-/// Bindings for libgoldberry's own three exported functions.
+/// BindingRegistry for libgoldberry's own three exported functions.
 ///
 /// This is the first hand-written binding (ADR-0010) and the template for every
 /// other: look the symbol up once, describe its signature exactly, keep the

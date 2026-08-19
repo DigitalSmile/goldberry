@@ -26,6 +26,7 @@ import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import io.github.digitalsmile.goldberry.widgets.Widgets;
 
 /// `tabs` — the strip, the lazy panel, and the three things a tab can be given
 /// that a stylesheet cannot supply: a label, an icon and a colour.
@@ -260,7 +261,7 @@ class TabsTest {
     @Test
     @DisplayName("a document writes a strip, its tabs, their icons and their colours")
     void fromKdl() {
-        var widget = Controls.inflater().inflate(KdlParser.parse("""
+        var widget = Widgets.inflater().inflate(KdlParser.parse("""
                 tabs id="views" value="editor" {
                     tab value="editor" "Editor" {
                         text "the editor"
@@ -284,7 +285,7 @@ class TabsTest {
     @DisplayName("a tab needs a value, for a radio's reason")
     void refusesATabWithNoValue() {
         var refused = assertThrows(IllegalArgumentException.class,
-                () -> Controls.inflater().inflate(KdlParser.parse("tabs { tab \"Log\" }")
+                () -> Widgets.inflater().inflate(KdlParser.parse("tabs { tab \"Log\" }")
                         .getFirst()));
 
         assertTrue(refused.getMessage().contains("value"), refused.getMessage());

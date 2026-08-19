@@ -14,6 +14,7 @@ import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import io.github.digitalsmile.goldberry.widgets.Widgets;
 
 /// The whole stack in one image: KDL → widgets → element tree → cascade → boxes
 /// → Blend2D. If any of the six breaks, this changes.
@@ -44,7 +45,7 @@ class WidgetStackGoldenTest {
                   }
                 }
                 """);
-        var widget = Primitives.inflater().inflate(markup.getFirst());
+        var widget = Widgets.inflater().inflate(markup.getFirst());
 
         var base = Stylesheet.parse(CascadeLayer.TOOLKIT_BASE, """
                 panel.root { background: var(--gb-bg); padding: 8px }

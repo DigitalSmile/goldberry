@@ -10,7 +10,7 @@ import java.util.function.Consumer;
 /// decides what that means
 /// ([ADR-0063](../../../../../../book/src/adr/0063-data-flows-down-events-flow-up.md)).
 ///
-/// The split is types rather than discipline. `Bindings.resolve` hands back one of
+/// The split is types rather than discipline. `BindingRegistry.resolve` hands back one of
 /// these, so a widget built from markup **cannot** write to the model even by
 /// accident — there is no method to call. A markup document that could mutate an
 /// application's state would be code in a data file, and it would be code with no

@@ -16,6 +16,9 @@ import io.github.digitalsmile.goldberry.widget.Widget;
 import java.util.List;
 import java.util.Set;
 import java.util.function.DoubleConsumer;
+import io.github.digitalsmile.goldberry.kdl.KdlNode;
+import io.github.digitalsmile.goldberry.widgets.Wiring;
+import io.github.digitalsmile.goldberry.widgets.Markup;
 
 /// A rotary control — `docs/core-widgets.md` §3's `knob`, and the tenth in the
 /// catalog.
@@ -72,6 +75,7 @@ import java.util.function.DoubleConsumer;
 /// @param onChange   what the user is asking for — never what the knob decided
 /// @param disabled   whether it refuses input and matches `:disabled`
 /// @param attributes `id` and `class`; `class="large"` is §3's 48px diameter
+@Markup("knob")
 public record Knob(
         double min, double max, double value, double step, int detents,
         Observable<?> source, DoubleConsumer onChange,
@@ -482,5 +486,20 @@ public record Knob(
             return raw;
         }
         return clamp(min + Math.round((raw - min) / step) * step);
+    }
+
+    /// Builds a `knob` from markup.
+    ///
+    /// `detents` is a count, like `slider`'s `ticks` — a value a document can
+    /// carry, naming nothing the application has to have registered (ADR-0080).
+    public static Widget inflate(KdlNode node, List<Widget> children, Wiring wiring) {
+        var min = node.numberProperty("min", 0);
+        var max = node.numberProperty("max", 1);
+        return new Knob(min, max,
+                node.numberProperty("value", min),
+                node.numberProperty("step", 0),
+                (int) node.numberProperty("detents", 0),
+                wiring.bound(node), wiring.numeric(node, "change"),
+                Wiring.disabled(node), Attributes.of(node));
     }
 }

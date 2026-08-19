@@ -28,7 +28,7 @@ import io.github.digitalsmile.goldberry.natives.yoga.StyleLength;
 import io.github.digitalsmile.goldberry.widget.Element;
 import io.github.digitalsmile.goldberry.widget.ElementTree;
 import io.github.digitalsmile.goldberry.widget.WidgetRenderer;
-import io.github.digitalsmile.goldberry.widgets.Actions;
+import io.github.digitalsmile.goldberry.bind.ActionRegistry;
 import io.github.digitalsmile.goldberry.widgets.Controls;
 import io.github.digitalsmile.goldberry.widgets.Icons;
 import io.github.digitalsmile.goldberry.widgets.controls.TestFont;
@@ -41,6 +41,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import io.github.digitalsmile.goldberry.widgets.Widgets;
 
 /// The first control, checked the three ways §11 says a widget has to exist.
 class ButtonTest {
@@ -58,7 +59,7 @@ class ButtonTest {
             var nodes = KdlParser.parse("""
                     button id="save" class="primary" "Save"
                     """);
-            var fromKdl = Controls.inflater().inflateAll(nodes).getFirst();
+            var fromKdl = Widgets.inflater().inflateAll(nodes).getFirst();
 
             // The invariant, and the reason it is a test rather than a promise:
             // two constructors for one widget drift the first time either grows
@@ -80,22 +81,22 @@ class ButtonTest {
         @Test
         @DisplayName("the registry lists it, and refuses what it does not know")
         void registered() {
-            assertTrue(Controls.inflater().registered().contains("button"));
-            assertTrue(Controls.inflater().registered().contains("column"),
+            assertTrue(Widgets.inflater().registered().contains("button"));
+            assertTrue(Widgets.inflater().registered().contains("column"),
                     "the primitives come along, so markup can mix the two");
             assertTrue(Controls.controlTypes().contains("button"));
 
             // A part is not a control: `check-indicator` is CSS-selectable and
             // deliberately not KDL-constructible, so it is in neither list.
             assertTrue(!Controls.controlTypes().contains("check-indicator"));
-            assertTrue(!Controls.inflater().registered().contains("check-indicator"));
+            assertTrue(!Widgets.inflater().registered().contains("check-indicator"));
         }
 
         @Test
         @DisplayName("`styled` produces the same classes markup would")
         void styledMatchesMarkup() {
             var fromJava = new Button("Delete", null).styled("danger");
-            var fromKdl = Controls.inflater()
+            var fromKdl = Widgets.inflater()
                     .inflateAll(KdlParser.parse("button class=\"danger\" \"Delete\"")).getFirst();
 
             assertEquals(((Button) fromKdl).classes(), fromJava.classes());
@@ -373,9 +374,9 @@ class ButtonTest {
         @DisplayName("markup names an action and the registry resolves it")
         void resolves() {
             var fired = new ArrayList<String>();
-            var actions = Actions.strict().bind("save", () -> fired.add("saved"));
+            var actions = ActionRegistry.strict().bind("save", () -> fired.add("saved"));
 
-            var button = (Button) Controls.inflater(actions)
+            var button = (Button) Widgets.inflater(actions)
                     .inflateAll(KdlParser.parse("button press=\"save\" \"Save\"")).getFirst();
             button.onPress().run();
 
@@ -387,16 +388,16 @@ class ButtonTest {
         void strictRefuses() {
             // `press="svae"` is a typo, and a button that silently does nothing
             // produces a bug report with no error anywhere in it.
-            var actions = Actions.strict().bind("save", () -> { });
+            var actions = ActionRegistry.strict().bind("save", () -> { });
 
-            assertThrows(IllegalArgumentException.class, () -> Controls.inflater(actions)
+            assertThrows(IllegalArgumentException.class, () -> Widgets.inflater(actions)
                     .inflateAll(KdlParser.parse("button press=\"svae\" \"Save\"")));
         }
 
         @Test
         @DisplayName("a lenient registry inflates anyway, for a document being edited")
         void lenientAllows() {
-            var button = (Button) Controls.inflater(Actions.lenient())
+            var button = (Button) Widgets.inflater(ActionRegistry.lenient())
                     .inflateAll(KdlParser.parse("button press=\"nothing-yet\" \"Save\"")).getFirst();
 
             assertEquals(null, button.onPress());
@@ -405,7 +406,7 @@ class ButtonTest {
         @Test
         @DisplayName("binding the same name twice is refused, rebinding is not")
         void doubleBind() {
-            var actions = Actions.strict().bind("save", () -> { });
+            var actions = ActionRegistry.strict().bind("save", () -> { });
 
             assertThrows(IllegalStateException.class, () -> actions.bind("save", () -> { }));
             actions.rebind("save", () -> { });
@@ -463,7 +464,7 @@ class ButtonTest {
         void iconFromMarkup() {
             var icons = Icons.strict().bind("plus", icon);
 
-            var button = (Button) Controls.inflater(Actions.none(), icons)
+            var button = (Button) Widgets.inflater(ActionRegistry.none(), icons)
                     .inflateAll(KdlParser.parse("button icon=\"plus\" \"New\"")).getFirst();
 
             assertEquals(icon, button.icon());
@@ -474,7 +475,7 @@ class ButtonTest {
         void unknownIcon() {
             // Markup cannot build an icon, because nothing would ever close it.
             assertThrows(IllegalArgumentException.class,
-                    () -> Controls.inflater(Actions.none(), Icons.strict())
+                    () -> Widgets.inflater(ActionRegistry.none(), Icons.strict())
                             .inflateAll(KdlParser.parse("button icon=\"plus\" \"New\"")));
         }
     }
@@ -508,7 +509,7 @@ class ButtonTest {
         @Test
         @DisplayName("`disabled=#true` in markup is the same value as in Java")
         void fromMarkup() {
-            var fromKdl = (Button) Controls.inflater()
+            var fromKdl = (Button) Widgets.inflater()
                     .inflateAll(KdlParser.parse("button disabled=#true \"Save\"")).getFirst();
 
             assertEquals(new Button("Save").disabled(true), fromKdl);

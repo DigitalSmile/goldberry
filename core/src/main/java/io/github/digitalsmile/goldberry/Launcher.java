@@ -120,6 +120,15 @@ final class Launcher implements Host {
         // accelerators and then describe a tree that uses them.
         application.start(this);
 
+        // The application's models drive the window, and it says nothing about
+        // it: a change to a bound field asks for a frame, and a change to one
+        // declared `@Bind(restyle = true)` drops the resolved styles first
+        // (ADR-0128, ADR-0133).
+        for (var model : application.models()) {
+            io.github.digitalsmile.goldberry.bind.Models.onRestyle(model, this::restyle);
+            io.github.digitalsmile.goldberry.bind.Models.onRepaint(model, window::repaint);
+        }
+
         // The application's root goes *under* the window's own node, from the
         // first frame and whether or not anything is floating yet: a layer that
         // appeared with the first overlay would re-parent the whole application

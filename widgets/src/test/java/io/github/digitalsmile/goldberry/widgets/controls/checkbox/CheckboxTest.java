@@ -9,7 +9,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import io.github.digitalsmile.goldberry.bind.Bindings;
+import io.github.digitalsmile.goldberry.bind.BindingRegistry;
 import io.github.digitalsmile.goldberry.bind.Property;
 import io.github.digitalsmile.goldberry.css.CascadeLayer;
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
@@ -27,7 +27,7 @@ import io.github.digitalsmile.goldberry.layout.Box;
 import io.github.digitalsmile.goldberry.natives.yoga.StyleLength;
 import io.github.digitalsmile.goldberry.widget.ElementTree;
 import io.github.digitalsmile.goldberry.widget.WidgetRenderer;
-import io.github.digitalsmile.goldberry.widgets.Actions;
+import io.github.digitalsmile.goldberry.bind.ActionRegistry;
 import io.github.digitalsmile.goldberry.widgets.Controls;
 import io.github.digitalsmile.goldberry.widgets.Icons;
 import io.github.digitalsmile.goldberry.widgets.controls.TestFont;
@@ -41,6 +41,7 @@ import java.util.Set;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import io.github.digitalsmile.goldberry.widgets.Widgets;
 
 /// The second control, and the first whose *value* comes from outside it.
 ///
@@ -59,7 +60,7 @@ class CheckboxTest {
             var fromJava = new Checkbox("Frost", Checkbox.Value.CHECKED, null, null, false,
                     new Attributes("frost", Set.of("compact"), "frost"));
 
-            var fromKdl = Controls.inflater().inflateAll(KdlParser.parse("""
+            var fromKdl = Widgets.inflater().inflateAll(KdlParser.parse("""
                     checkbox id="frost" class="compact" checked=#true "Frost"
                     """)).getFirst();
 
@@ -79,7 +80,7 @@ class CheckboxTest {
         @Test
         @DisplayName("the registry lists it beside button")
         void registered() {
-            assertTrue(Controls.inflater().registered().contains("checkbox"));
+            assertTrue(Widgets.inflater().registered().contains("checkbox"));
             assertTrue(Controls.controlTypes().contains("checkbox"));
         }
 
@@ -89,7 +90,7 @@ class CheckboxTest {
             // A document that says both has said something contradictory, and
             // mixed is the state that cannot be reached any other way -- so
             // resolving it to "checked" would discard the more specific claim.
-            var mixed = (Checkbox) Controls.inflater().inflateAll(KdlParser.parse("""
+            var mixed = (Checkbox) Widgets.inflater().inflateAll(KdlParser.parse("""
                     checkbox checked=#true indeterminate=#true "Some"
                     """)).getFirst();
 
@@ -213,10 +214,10 @@ class CheckboxTest {
         void fromMarkup() {
             var fired = new ArrayList<String>();
             var frost = Property.of(true);
-            var bindings = Bindings.strict().bind("prefs.frost", frost);
-            var actions = Actions.strict().bind("toggleFrost", () -> fired.add("toggled"));
+            var bindings = BindingRegistry.strict().bind("prefs.frost", frost);
+            var actions = ActionRegistry.strict().bind("toggleFrost", () -> fired.add("toggled"));
 
-            var checkbox = (Checkbox) Controls.inflater(actions, Icons.none(), bindings)
+            var checkbox = (Checkbox) Widgets.inflater(actions, Icons.none(), bindings)
                     .inflateAll(KdlParser.parse("""
                             checkbox bind="prefs.frost" change="toggleFrost" "Frosted sidebar"
                             """)).getFirst();
@@ -241,7 +242,7 @@ class CheckboxTest {
         @DisplayName("a strict registry refuses a path nobody bound")
         void strictRefuses() {
             assertThrows(IllegalArgumentException.class,
-                    () -> Controls.inflater(Actions.none(), Icons.none(), Bindings.strict())
+                    () -> Widgets.inflater(ActionRegistry.none(), Icons.none(), BindingRegistry.strict())
                             .inflateAll(KdlParser.parse("checkbox bind=\"prefs.frost\" \"Frost\"")));
         }
     }
@@ -391,7 +392,7 @@ class CheckboxTest {
             // nothing, so registering the node would let a document create
             // exactly that. Restyling it is what an author wants, and a type
             // selector is the whole of that.
-            assertFalse(Controls.inflater().registered().contains("check-indicator"));
+            assertFalse(Widgets.inflater().registered().contains("check-indicator"));
             assertTrue(Controls.baseSource().contains("check-indicator"));
         }
     }

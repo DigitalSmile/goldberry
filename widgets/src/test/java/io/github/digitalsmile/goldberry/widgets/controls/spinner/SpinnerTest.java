@@ -25,6 +25,7 @@ import io.github.digitalsmile.goldberry.widgets.controls.spinner.Spinner;
 import java.util.Set;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import io.github.digitalsmile.goldberry.widgets.Widgets;
 
 /// The eighth control and the smallest: a ring, turning, with nothing else to it
 /// ([ADR-0081]).
@@ -52,7 +53,7 @@ class SpinnerTest {
     void javaAndKdlAgree() {
         var attributes = new Attributes("busy", Set.of(), "busy");
 
-        var fromKdl = Controls.inflater().inflateAll(KdlParser.parse("""
+        var fromKdl = Widgets.inflater().inflateAll(KdlParser.parse("""
                 spinner id="busy"
                 """)).getFirst();
 
