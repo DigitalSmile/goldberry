@@ -1591,7 +1591,7 @@ tour that points at them. It is the one screen *not* wrapped in the gallery's ow
 viewport, because §2.4 bans nested same-axis scrollers and the screen that
 demonstrates the rule is where it has to be kept.
 
-It found a real hole within a frame. `Located` fired only when a rectangle
+It found two real defects. `Located` fired only when a rectangle
 changed, and a header asked to scroll itself into view is *in exactly the
 position it was already in* — so the request was made and never heard. The cache
 now holds the widget as well as the rectangles, compared by identity: a rebuilt
@@ -1600,6 +1600,15 @@ nobody, because an element that was not rebuilt holds the same instance.
 `Measured` had the same latent bug and has the same fix; nothing had hit it,
 because its one consumer is a scrollbar whose state is stable. Which is what a
 second consumer is for.
+
+The other was only visible as a picture. Fifteen tour tests passed while the
+card was drawn down the whole left edge of the window and stretched to its full
+height: `Insets` is in CSS order — top, right, bottom, left — and the placement
+passed left and top, which anchors a box by its top *and its bottom*. Every
+assertion about what the tree contained stayed true, because the defect was two
+numbers in the wrong argument positions. `TourGoldenTest` is the answer, and it
+is the right kind of test for this widget rather than an extra one: which region
+is dimmed and which is lit is not a question a widget tree can be asked.
 
 ### Not started
 

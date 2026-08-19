@@ -88,6 +88,22 @@ stale must not take the window down.
 same reason (ADR-0106): resolving an id against the painted frame and putting
 something on the window are both things a widget tree cannot do to itself.
 
+### It needed a picture, and the picture found the bug
+
+`TourTest` drives fifteen cases against a stub host and every one of them passed
+while the card was drawn down the entire left edge of the window, one pixel from
+the top, stretched to the full height.
+
+`Insets` is in CSS order — top, right, bottom, left — and the placement passed
+left and top. Anchoring a box by its top *and its bottom* stretches it; anchoring
+it by nothing horizontal puts it at the origin. Every assertion about what the
+tree contained was true throughout, because the defect was entirely in two
+numbers' positions in an argument list.
+
+So `TourGoldenTest` exists, and it is the right kind of test for this widget
+rather than a belt-and-braces one: a veil is a fact about **pixels**, and which
+region is dimmed and which is not is not a question the widget tree can be asked.
+
 ## Consequences
 
 `tour` is the first widget to use the in-window overlay layer for something that

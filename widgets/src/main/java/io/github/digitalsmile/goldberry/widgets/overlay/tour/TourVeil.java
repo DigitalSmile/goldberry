@@ -50,18 +50,13 @@ record TourVeil(LogicalRect target, LogicalRect window)
         return List.of(new TourBand(), new TourBand(), new TourBand(), new TourBand());
     }
 
-    private static float points(StyleLength length) {
-        return length instanceof StyleLength.Points p ? p.value() : 0;
-    }
-
     @Override
     public Box render(ComputedStyle style, List<Box> children, Context context) {
-        // The veil's own resolved size, not the `window` component: this node is
-        // inset to all four sides of the tour, so the cascade has already worked
-        // out how big the window is and asking twice would be asking two
-        // different things to agree.
-        var width = points(style.width()) > 0 ? points(style.width()) : window.size().width();
-        var height = points(style.height()) > 0 ? points(style.height()) : window.size().height();
+        // Handed down from [TourStop], which is the node that was measured. A
+        // box sized by absolute insets carries no `width` in its style, so there
+        // is nothing here to read it from (ADR-0121).
+        var width = window.size().width();
+        var height = window.size().height();
         if (target == null || target.size().width() <= 0 || target.size().height() <= 0) {
             // Nothing to cut around: one band covering everything, and the other
             // three collapsed. A tour between stops looks like a dimmed window
@@ -89,9 +84,10 @@ record TourVeil(LogicalRect target, LogicalRect window)
 
     private static Box band(Box box, double x, double y, double width, double height) {
         return box.position(PositionType.ABSOLUTE)
+                // CSS order: top, right, bottom, left.
                 .inset(new Insets(
-                        StyleLength.points((float) x), StyleLength.UNDEFINED,
-                        StyleLength.points((float) y), StyleLength.UNDEFINED))
+                        StyleLength.points((float) y), StyleLength.UNDEFINED,
+                        StyleLength.UNDEFINED, StyleLength.points((float) x)))
                 .size(StyleLength.points((float) width), StyleLength.points((float) height));
     }
 

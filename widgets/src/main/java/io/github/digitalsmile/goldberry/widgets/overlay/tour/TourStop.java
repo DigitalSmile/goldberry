@@ -42,9 +42,11 @@ import java.util.Set;
 /// §5: "`Esc` skips the whole tour, not one stop." Left and Right move between
 /// stops, which is what the arrows mean in every wizard.
 record TourStop(
-        Stop stop, LogicalRect target, int index, int count,
-        Runnable onBack, Runnable onNext, Runnable onSkip)
-        implements Widget.Leaf, Styled, Paints, Handles {
+        Stop stop, LogicalRect target, LogicalRect window, int index, int count,
+        Runnable onBack, Runnable onNext, Runnable onSkip,
+        java.util.function.Consumer<LogicalRect> onWindow)
+        implements Widget.Leaf, Styled, Paints, Handles,
+                io.github.digitalsmile.goldberry.input.Located {
 
     /// How far the card sits from the target, and from the window's edge.
     private static final float GAP = 12;
@@ -59,10 +61,6 @@ record TourStop(
     /// consequence of being wrong is a card placed above when it would have fitted
     /// below.
     private static final float ESTIMATED_HEIGHT = 132;
-
-    private static float points(StyleLength length) {
-        return length instanceof StyleLength.Points p ? p.value() : 0;
-    }
 
     @Override
     public String cssType() {
@@ -79,6 +77,22 @@ record TourStop(
         return true;
     }
 
+    /// How big the window is.
+    ///
+    /// This node is inset on all four sides of a filling overlay, so its own
+    /// rectangle **is** the window — and there is no other way to learn it. The
+    /// cascade cannot say: a box sized by absolute insets has no `width` in its
+    /// style, so reading the resolved style gives nothing
+    /// ([ADR-0121](../../../../../../../../book/src/adr/0121-a-tour-is-a-veil-and-a-sequence.md)).
+    ///
+    /// Safe against [io.github.digitalsmile.goldberry.input.Located]'s rule: what
+    /// this reports is fixed by the overlay's insets, so nothing drawn inside it
+    /// can change what is reported.
+    @Override
+    public void located(LogicalRect self, LogicalRect clip) {
+        onWindow.accept(self);
+    }
+
     @Override
     public List<Widget> children() {
         var buttons = new ArrayList<Widget>(4);
@@ -92,7 +106,7 @@ record TourStop(
         buttons.add(new Button(index + 1 >= count ? "Done" : "Next", onNext)
                 .withAttributes(Attributes.NONE.classes("tour-next")));
         return List.of(
-                new TourVeil(target, LogicalRect.of(0, 0, 0, 0)),
+                new TourVeil(target, window),
                 new TourCard(
                         new Column(
                                 new Text(stop.title(), Attributes.NONE.classes("tour-title")),
@@ -129,12 +143,11 @@ record TourStop(
 
     @Override
     public Box render(ComputedStyle style, List<Box> children, Context context) {
-        // The window's size, read off the style the cascade resolved for this
-        // node -- which fills the window, because a filling overlay is inset to
-        // all four sides. Zero when it has not been laid out yet, which reads as
-        // "do not clamp" and is right for a frame that has nothing to clamp to.
-        var width = points(style.width());
-        var height = points(style.height());
+        // The window, as the last frame measured this node -- see `located`.
+        // Zero on the very first frame, which reads as "do not clamp" and is
+        // right for a frame that has nothing to clamp against yet.
+        var width = window.size().width();
+        var height = window.size().height();
         var veil = children.get(0);
         var card = children.get(1);
         var below = target.top() + target.size().height() + GAP;
@@ -145,13 +158,26 @@ record TourStop(
             cardLeft = Math.min(cardLeft, width - WIDTH - GAP);
         }
         cardLeft = Math.max(GAP, cardLeft);
-        return Box.of().style(style).children(
+        // A column, so the card is content-height. In a row the cross axis is
+        // the vertical one, and an absolutely-positioned child with a `top` and
+        // no `bottom` is stretched down the whole window by the default
+        // `align-items: stretch` -- which made the first tour a card the height
+        // of the screen. The veil is unaffected either way: it states all four
+        // insets, so there is nothing left for an alignment to decide.
+        return Box.of().style(style)
+                .direction(io.github.digitalsmile.goldberry.natives.yoga.FlexDirection.COLUMN)
+                .alignItems(io.github.digitalsmile.goldberry.natives.yoga.Align.FLEX_START)
+                .children(
                 veil.position(PositionType.ABSOLUTE)
                         .inset(Insets.all(StyleLength.points(0))),
                 card.position(PositionType.ABSOLUTE)
+                        // `Insets` is in CSS order -- top, right, bottom, left.
+                        // Left and top the other way round anchors the card by
+                        // its top *and its bottom*, which stretches it down the
+                        // whole window and puts it against the left edge.
                         .inset(new Insets(
-                                StyleLength.points(cardLeft), StyleLength.UNDEFINED,
-                                StyleLength.points(cardTop), StyleLength.UNDEFINED))
+                                StyleLength.points(cardTop), StyleLength.UNDEFINED,
+                                StyleLength.UNDEFINED, StyleLength.points(cardLeft)))
                         .size(StyleLength.points(WIDTH), StyleLength.UNDEFINED));
     }
 }

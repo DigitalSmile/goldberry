@@ -23,6 +23,14 @@ final class TourState extends State<Tour> {
     /// against a user trying to look at something else (ADR-0120).
     private boolean revealed;
 
+    /// How big the window is, as the last frame measured the tour's own node.
+    ///
+    /// Zero until the first frame has been laid out, which draws nothing — a
+    /// veil of no size — and is corrected on the frame after. One frame of
+    /// nothing at the start of a tour is invisible; guessing would not be
+    /// ([ADR-0121]).
+    private LogicalRect window = LogicalRect.of(0, 0, 0, 0);
+
     @Override
     public Widget build(BuildContext context) {
         var tour = widget();
@@ -33,7 +41,7 @@ final class TourState extends State<Tour> {
             // because removing an overlay mid-build would mutate the tree that is
             // being described.
             end();
-            return new TourVeil(null, LogicalRect.of(0, 0, 0, 0));
+            return new TourVeil(null, window);
         }
         var anchor = anchorOf(stop);
         if (!revealed && stop.scroll() != null) {
@@ -45,10 +53,11 @@ final class TourState extends State<Tour> {
             stop.scroll().reveal(anchor, clipOf(stop));
         }
         return new TourStop(
-                stop, anchor, index, tour.stops().size(),
+                stop, anchor, window, index, tour.stops().size(),
                 index > 0 ? this::back : null,
                 this::next,
-                this::skip);
+                this::skip,
+                this::measured);
     }
 
     /// The first stop from here whose target is on screen, skipping any that are
@@ -85,6 +94,14 @@ final class TourState extends State<Tour> {
                                     (float) clip.width(), (float) clip.height());
                 })
                 .orElse(LogicalRect.of(0, 0, 0, 0));
+    }
+
+    /// Told how big the window is by the node that fills it.
+    private void measured(LogicalRect bounds) {
+        if (bounds.equals(window)) {
+            return;
+        }
+        setState(() -> window = bounds);
     }
 
     private void back() {
