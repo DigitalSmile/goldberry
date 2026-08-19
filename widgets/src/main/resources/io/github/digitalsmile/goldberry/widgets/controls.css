@@ -1479,9 +1479,13 @@ select-list option:focus-visible:checked {
  * it is lying on is the application's and unknown.
  */
 hud {
-  flex-direction: row;
-  align-items: center;
-  gap: 10px;
+  /* **A column, one reading a line.** A row was fine for two numbers and is a
+     wall for seven: a reader scanning for the one that has gone wrong is
+     scanning across, which is the direction a line of text already uses
+     (ADR-0150). */
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1px;
   padding: 4px 10px;
   border-radius: 6px;
   background: var(--gb-hud-bg);
@@ -1510,15 +1514,40 @@ hud-reading.fps {
 
 /* The four stages a frame is made of, one rank quieter again: `paint` is the
    number a reader is checking against a budget and these are where it went, so
-   they are context for context. They are also the only readings that can be six
-   on one line, and a row of six equally bright numbers reads as a wall
-   (ADR-0146). */
+   they are context for context (ADR-0146). */
 hud-reading.build,
 hud-reading.style,
 hud-reading.layout,
 hud-reading.raster {
+  color: var(--gb-hud-text-muted);
+}
+
+/* **Near its budget, and over it** — the two states worth a colour and the only
+   two. §1.2 admits the aurora hues "only with semantic meaning", and "this
+   number is the problem" is exactly one; a HUD is also the one surface in the
+   toolkit where a warning is the whole point rather than an interruption
+   (ADR-0150).
+
+   The classes come from the widget rather than from a pseudo-class, because
+   there is no pseudo-class for "over budget" and inventing one for a single
+   diagnostic would be inventing a language (see `HudReading`). */
+hud-reading.near {
+  color: var(--gb-warning);
+}
+
+hud-reading.over {
+  color: var(--gb-danger);
+  font-weight: 600;
+}
+
+/* What the numbers are. Quieter than everything above it and it has to be: it
+   is read once and then never again, where the numbers are read every time the
+   window is looked at. */
+hud-caption {
+  color: var(--gb-hud-text-muted);
   font-size: var(--gb-font-caption);
   line-height: var(--gb-line-caption);
+  opacity: 0.75;
 }
 
 /* --------------------------------------------------------------- popover --

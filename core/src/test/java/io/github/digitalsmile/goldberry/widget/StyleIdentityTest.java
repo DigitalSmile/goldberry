@@ -1,5 +1,7 @@
 package io.github.digitalsmile.goldberry.widget;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -8,6 +10,7 @@ import io.github.digitalsmile.goldberry.RendererRequirement;
 import io.github.digitalsmile.goldberry.assets.BundledFont;
 import io.github.digitalsmile.goldberry.css.CascadeLayer;
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
+import io.github.digitalsmile.goldberry.css.Selector;
 import io.github.digitalsmile.goldberry.css.Stylesheet;
 import io.github.digitalsmile.goldberry.layout.Box;
 import io.github.digitalsmile.goldberry.text.Font;
@@ -121,6 +124,85 @@ class StyleIdentityTest {
         assertSame(seen.get(0), seen.get(1),
                 "the parent re-ran `restyle` and produced an equal style;"
                         + " handing down a new instance is what disabled the cache");
+    }
+
+    /// **A state invalidates what a rule can reach, and no more** — [ADR-0149].
+    ///
+    /// The hover and active chains run from the deepest node to the root, so a
+    /// click on empty space marks every ancestor. Each of those used to throw its
+    /// whole subtree's styles away on the chance that some rule read the state
+    /// through a descendant combinator — which, for a node near the root, is the
+    /// whole screen: 74 of 78 elements re-resolving per click, 12 ms of cascade.
+    ///
+    /// Nothing in any sheet here says `poisoner:hover recorder`, so the child
+    /// keeps its style — asserted by identity, which is what the cache is keyed
+    /// on.
+    @Test
+    @DisplayName("a state no rule reads through leaves the subtree's styles alone")
+    void unreachableStateDoesNotInvalidate() {
+        var seen = new ArrayList<ComputedStyle>();
+        var tree = new ElementTree(new Poisoner(List.of(new Recorder(seen))));
+        var renderer = renderer(font);
+
+        renderer.render(tree);
+        tree.root().setPseudoClass(Selector.PseudoClass.HOVER, true);
+        renderer.render(tree);
+
+        assertSame(seen.get(0), seen.get(1),
+                "no rule reaches through :hover on a `poisoner`, so nothing under it moved");
+    }
+
+    /// The other half, and the half that makes the narrowing safe: a rule that
+    /// **does** read the state through a descendant combinator gets its subtree
+    /// re-resolved. `checkbox:hover check-indicator` is the real one; this is the
+    /// same shape.
+    @Test
+    @DisplayName("a state a descendant rule reads through invalidates the subtree")
+    void reachableStateInvalidates() {
+        var seen = new ArrayList<ComputedStyle>();
+        var tree = new ElementTree(new Poisoner(List.of(new Recorder(seen))));
+        var renderer = new WidgetRenderer(List.of(Stylesheet.parse(CascadeLayer.APPLICATION,
+                "poisoner { color: #d8dee9; padding: 4px }\n"
+                        + "recorder { width: 10px; height: 10px }\n"
+                        + "poisoner:hover recorder { background: #bf616a }\n")), font);
+
+        renderer.render(tree);
+        tree.root().setPseudoClass(Selector.PseudoClass.HOVER, true);
+        renderer.render(tree);
+
+        assertNotSame(seen.get(0), seen.get(1), "the rule applies, so the child re-resolved");
+        assertEquals(0xFFBF616A, seen.get(1).background(), "and it took the rule's background");
+    }
+
+    /// A node **no selector can name** — a composition node, or a bare painter
+    /// with no type, id or classes — cannot be read through either, and the hover
+    /// chain is full of them. Treating those as "unknown, be conservative" is
+    /// what made the narrowing worthless on the first attempt.
+    @Test
+    @DisplayName("a typeless node's state reaches nothing, because nothing can name it")
+    void typelessNodeReachesNothing() {
+        var resolver = new io.github.digitalsmile.goldberry.css.StyleResolver(
+                List.of(Stylesheet.parse(CascadeLayer.APPLICATION,
+                        "checkbox:hover check-indicator { background: #bf616a }")));
+
+        assertTrue(resolver.reachesDescendants(Selector.PseudoClass.HOVER, "checkbox"));
+        assertFalse(resolver.reachesDescendants(Selector.PseudoClass.HOVER, null));
+        assertFalse(resolver.reachesDescendants(Selector.PseudoClass.HOVER, "column"));
+        assertFalse(resolver.reachesDescendants(Selector.PseudoClass.ACTIVE, "checkbox"));
+    }
+
+    /// An ancestor compound that names **no type** cannot be narrowed, so it
+    /// makes its state conservative everywhere. `.section:affixed > affix-content`
+    /// is the real one, in the showcase's own sheet.
+    @Test
+    @DisplayName("an untyped ancestor compound keeps its state conservative")
+    void untypedAncestorIsConservative() {
+        var resolver = new io.github.digitalsmile.goldberry.css.StyleResolver(
+                List.of(Stylesheet.parse(CascadeLayer.APPLICATION,
+                        ".section:affixed > affix-content { background: #bf616a }")));
+
+        assertTrue(resolver.reachesDescendants(Selector.PseudoClass.AFFIXED, "anything"));
+        assertTrue(resolver.reachesDescendants(Selector.PseudoClass.AFFIXED, null));
     }
 
     /// The other half, and the reason this cannot simply cache `restyle`'s

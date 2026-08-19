@@ -85,6 +85,32 @@ public interface Styled extends Widget {
         return resolved;
     }
 
+    /// The classes this widget computes from the **frame being rendered**, on top
+    /// of its own.
+    ///
+    /// Empty for every widget but one, and the one is the point: a `hud` reading
+    /// carries `over` or `near` depending on how the number it is about to draw
+    /// compares with its budget, and a stylesheet has to be able to colour that
+    /// ([ADR-0150](../../../../../../book/src/adr/0150-a-hud-reads-itself-against-a-budget.md)).
+    ///
+    /// **Why it cannot be [#classes()]**: the cascade reads a node's classes
+    /// before that node's `render` runs, and the frame statistics only arrive in
+    /// `render`. A widget is a value described once and drawn many times, so it
+    /// cannot hold the answer either. This is the same shape as the pseudo-classes
+    /// the renderer already mirrors from `isChecked()` and `isDisabled()` — a fact
+    /// the widget knows and the element has to carry — with the frame added,
+    /// because that is what this fact is about.
+    ///
+    /// **Not a licence to style by the frame.** Anything derivable from the
+    /// widget belongs in [#classes()], which costs nothing per frame; this is for
+    /// a value that is genuinely a property of the loop.
+    ///
+    /// @param frames what the loop has been doing, never null
+    default java.util.Set<String> classes(
+            io.github.digitalsmile.goldberry.FrameStats frames) {
+        return java.util.Set.of();
+    }
+
     /// Whether this node has pinned itself, for `:affixed`.
     ///
     /// `affix`'s, and nothing else's. Mirrored onto the element exactly as

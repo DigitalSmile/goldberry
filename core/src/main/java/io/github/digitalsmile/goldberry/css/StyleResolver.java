@@ -29,8 +29,87 @@ public final class StyleResolver {
     /// mechanism: `:root { --gb-accent }` is useless if a button cannot see it.
     private final List<Stylesheet> stylesheets;
 
+    /// For each pseudo-class, the element **types** that carry it in an ancestor
+    /// position of some selector — `checkbox` for `:hover`, from
+    /// `checkbox:hover check-indicator`.
+    ///
+    /// What it is for: a node whose state changed has to invalidate its
+    /// descendants only if some rule can reach them *through* that state. See
+    /// [#reachesDescendants].
+    private final java.util.Map<Selector.PseudoClass, java.util.Set<String>> ancestorStates =
+            new java.util.EnumMap<>(Selector.PseudoClass.class);
+
+    /// The pseudo-classes used in an ancestor position by a compound that names
+    /// **no type** — `.section:affixed > affix-content`.
+    ///
+    /// Those cannot be narrowed by type, so any node changing one of them stays
+    /// conservative and invalidates its whole subtree.
+    private final java.util.Set<Selector.PseudoClass> untypedAncestorStates =
+            java.util.EnumSet.noneOf(Selector.PseudoClass.class);
+
     public StyleResolver(List<Stylesheet> stylesheets) {
         this.stylesheets = List.copyOf(Objects.requireNonNull(stylesheets, "stylesheets"));
+        indexAncestorStates();
+    }
+
+    /// Walks every selector once, recording which pseudo-classes appear to the
+    /// **left** of a combinator and on what.
+    ///
+    /// Once per resolver, which is once per theme change — against a cascade pass
+    /// per element per frame, which is what this saves.
+    private void indexAncestorStates() {
+        for (var sheet : stylesheets) {
+            for (var rule : sheet.rules()) {
+                for (var selector : rule.selectors()) {
+                    var parts = selector.parts();
+                    // Rightmost first, so everything past index 0 is an ancestor.
+                    for (var i = 1; i < parts.size(); i++) {
+                        var compound = parts.get(i).compound();
+                        for (var state : compound.pseudoClasses()) {
+                            if (compound.type() == null) {
+                                untypedAncestorStates.add(state);
+                            } else {
+                                ancestorStates
+                                        .computeIfAbsent(state, key -> new java.util.HashSet<>())
+                                        .add(compound.type());
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    /// Whether `state` changing on an element of `type` can change what matches
+    /// **below** it.
+    ///
+    /// The question [io.github.digitalsmile.goldberry.widget.Element#setPseudoClass]
+    /// asks before throwing a subtree's styles away. `checkbox:hover
+    /// check-indicator` means yes for `:hover` on a `checkbox`; nothing in any
+    /// sheet says `column:hover …`, so hovering a `column` — which is what a
+    /// click on empty space does — changes that node and nothing under it
+    /// ([ADR-0149](../../../../../../book/src/adr/0149-a-state-invalidates-what-it-can-reach.md)).
+    ///
+    /// Conservative in both directions it can be: an untyped ancestor compound
+    /// makes its pseudo-class reach everything, and a caller with no type of its
+    /// own gets `true`.
+    public boolean reachesDescendants(Selector.PseudoClass state, String type) {
+        Objects.requireNonNull(state, "state");
+        if (untypedAncestorStates.contains(state)) {
+            return true;
+        }
+        if (type == null) {
+            // A node with no CSS type is a composition node or a bare painter:
+            // the only compound that can name it is one that names no type
+            // either, and every such compound is in the set just checked. So
+            // there is no rule left that could reach through this node's state
+            // -- which matters because the hover and active chains run to the
+            // root through several of them, and treating those as unknown was
+            // the whole tree re-resolving on every click (ADR-0149).
+            return false;
+        }
+        var types = ancestorStates.get(state);
+        return types != null && types.contains(type);
     }
 
     /// The declarations that apply to `element`, with `var()` resolved.

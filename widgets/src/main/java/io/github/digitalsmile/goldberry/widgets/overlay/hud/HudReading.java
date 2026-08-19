@@ -25,10 +25,28 @@ record HudReading(Reading reading) implements Widget.Leaf, Styled, Paints {
         return "hud-reading";
     }
 
-    /// The reading's own name, so `hud-reading.paint` is a selector.
+    /// The reading's own name, so `hud-reading.paint` is a selector, plus how it
+    /// is doing against its budget — `ok`, `near` or `over`.
+    ///
+    /// **Classes and not a colour written here.** A widget that picked the red
+    /// itself would be a widget that cannot be themed, and §10's whole mechanism
+    /// is that a colour comes from a token. What this node knows is which of the
+    /// three states it is in; what that looks like is `controls.css`'s
+    /// ([ADR-0150](../../../../../../../../book/src/adr/0150-a-hud-reads-itself-against-a-budget.md)).
+    ///
+    /// **The level cannot be in [#classes()]**, and that is what
+    /// [Styled#classes(io.github.digitalsmile.goldberry.FrameStats)] exists for:
+    /// the cascade reads a node's classes before that node's `render` runs, and
+    /// the frame statistics only arrive in `render`. A widget is a value, so it
+    /// cannot hold the answer between the two either.
     @Override
     public Set<String> classes() {
         return Set.of(reading.cssClass());
+    }
+
+    @Override
+    public Set<String> classes(io.github.digitalsmile.goldberry.FrameStats frames) {
+        return Set.of(reading.level(frames).cssClass());
     }
 
     @Override

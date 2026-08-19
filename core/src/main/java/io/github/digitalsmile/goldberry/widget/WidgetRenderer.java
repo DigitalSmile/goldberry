@@ -207,6 +207,9 @@ public final class WidgetRenderer {
         var now = clock.nowMillis();
         frameNow = now;
         animating = false;
+        // So a node whose state changes between frames can ask what the sheets
+        // say without having resolved a style of its own (ADR-0149).
+        tree.styleResolver(resolver);
         var boxes = render(tree.root(), null, now);
         if (boxes.isEmpty()) {
             throw new IllegalStateException(
@@ -241,6 +244,10 @@ public final class WidgetRenderer {
         // and mirroring `isChecked() && !isIndeterminate()` would hide a widget
         // that broke the rule instead of letting its stylesheet show it.
         if (element.widget() instanceof Styled styled) {
+            // What the widget computes from the frame, before the cascade is
+            // asked — the same mirroring the pseudo-classes below get, for the
+            // same reason, with the frame added (ADR-0150).
+            element.frameClasses(styled.classes(frames));
             element.setPseudoClass(PseudoClass.DISABLED, styled.isDisabled());
             element.setPseudoClass(PseudoClass.CHECKED, styled.isChecked());
             element.setPseudoClass(PseudoClass.INDETERMINATE, styled.isIndeterminate());

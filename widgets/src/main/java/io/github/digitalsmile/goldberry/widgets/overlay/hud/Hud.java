@@ -70,8 +70,15 @@ public record Hud(List<Reading> readings, Attributes attributes)
     /// is thinking in budgets rather than in rates.
     public static final List<Reading> DEFAULT = List.of(Reading.FPS, Reading.PAINT);
 
-    /// The rate, the total, and where the total went — `hud readings="stages"` and
-    /// what the showcase turns on.
+    /// The rate, **both totals**, and where the toolkit's went —
+    /// `hud readings="stages"` and what the showcase turns on.
+    ///
+    /// Two totals because they answer different questions and a breakdown makes
+    /// the difference matter: `frame` is the whole interval, the platform's half
+    /// included, and `paint` is the toolkit's share of it. Four stages under a
+    /// `paint` of 2 ms inside a `frame` of 16.7 is idle hardware; the same four
+    /// under a `paint` of 2 ms inside a `frame` of 40 is something outside this
+    /// toolkit.
     ///
     /// Four stages rather than "everything a frame does": the hit-test capture and
     /// the frame's own setup are in [Reading#PAINT] and not in any of these, so
@@ -81,7 +88,7 @@ public record Hud(List<Reading> readings, Attributes attributes)
     /// running uncached (ADR-0142,
     /// [ADR-0146](../../../../../../../../book/src/adr/0146-a-hud-shows-where-the-frame-went.md)).
     public static final List<Reading> STAGES = List.of(
-            Reading.FPS, Reading.PAINT,
+            Reading.FPS, Reading.FRAME, Reading.PAINT,
             Reading.BUILD, Reading.STYLE, Reading.LAYOUT, Reading.RASTER);
 
     /// A HUD showing [#STAGES].
@@ -129,9 +136,22 @@ public record Hud(List<Reading> readings, Attributes attributes)
     /// different measurement and a stylesheet should be able to say so — dim the
     /// units, colour a paint time that has run out of budget. A single paragraph
     /// could carry none of that (ADR-0065).
+    /// One part per reading, plus the line that says what the numbers are.
+    ///
+    /// The caption exists because every number here is a **mean over the last
+    /// sixty frames** and nothing said so: `paint 2.1 ms` reads as "this frame"
+    /// and is not, which makes a spike look like a plateau and a plateau look
+    /// like a spike
+    /// ([ADR-0150](../../../../../../../../book/src/adr/0150-a-hud-reads-itself-against-a-budget.md)).
+    ///
     @Override
     public List<Widget> children() {
-        return List.copyOf(readings.stream().map(HudReading::new).map(Widget.class::cast).toList());
+        var parts = new java.util.ArrayList<Widget>(readings.size() + 1);
+        for (var reading : readings) {
+            parts.add(new HudReading(reading));
+        }
+        parts.add(new HudCaption());
+        return List.copyOf(parts);
     }
 
     @Override

@@ -63,6 +63,26 @@ public final class ElementTree {
         return root;
     }
 
+    /// The resolver this tree is currently being drawn with, or null before the
+    /// first render.
+    ///
+    /// Held here because the question it answers is the tree's rather than any
+    /// node's — "which stylesheets are in force" — and because the node that
+    /// needs to ask is often one that has never resolved a style of its own: a
+    /// composition node in the hover chain has no cache and no resolver, and
+    /// treating that as "unknown, be conservative" re-resolved the whole tree on
+    /// every click (ADR-0149).
+    private io.github.digitalsmile.goldberry.css.StyleResolver styleResolver;
+
+    /// Told by the renderer at the start of every frame.
+    public void styleResolver(io.github.digitalsmile.goldberry.css.StyleResolver resolver) {
+        this.styleResolver = resolver;
+    }
+
+    io.github.digitalsmile.goldberry.css.StyleResolver styleResolver() {
+        return styleResolver;
+    }
+
     /// The window this tree is built into, or empty — [BuildContext#host()]'s
     /// answer, held once for the whole tree.
     java.util.Optional<io.github.digitalsmile.goldberry.Host> host() {

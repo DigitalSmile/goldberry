@@ -72,8 +72,15 @@ class HudGoldenTest {
     }
 
     private void paint(String name, Theme theme, FrameStats stats, int width, Widget hud) {
+        paint(name, theme, stats, width, 60, hud);
+    }
+
+    /// The same, with a height — a HUD is a column now, so the two-reading
+    /// default and the seven-reading breakdown are not the same shape (ADR-0150).
+    private void paint(String name, Theme theme, FrameStats stats, int width, int height,
+            Widget hud) {
         var tree = new ElementTree(new Row(List.of(hud), id("scene")));
-        GoldenImage.assertMatches(name, width, 44, 1.0f,
+        GoldenImage.assertMatches(name, width, height, 1.0f,
                 frame -> BoxPainter.paint(frame, renderer(theme, stats).render(tree)));
     }
 
@@ -84,11 +91,26 @@ class HudGoldenTest {
     /// size down. Three ranks on one line is the kind of thing that resolves to
     /// the same numbers whether it works or not.
     @Test
-    @DisplayName("the stage breakdown, six readings in three ranks")
+    @DisplayName("the stage breakdown, a line each, with the caption under it")
     void stages() {
         paint("hud-stages", Theme.NORD_DARK,
                 FrameStats.of(60, 16.7, 2.1, 4_200, 0.05, 0.29, 0.11, 1.34),
-                460, Hud.stages());
+                220, 190, Hud.stages());
+    }
+
+    /// **A frame in trouble** — [ADR-0150], and the only thing that can say
+    /// whether three colours on one plate read as a diagnostic or as a mess.
+    ///
+    /// 22 fps, a 45 ms frame, an 11 ms paint and a style that has run away: the
+    /// rate and the frame and the paint and the style are over, the raster is
+    /// near, and the two that are fine stay quiet. A reader should find the
+    /// problem without reading a number.
+    @Test
+    @DisplayName("readings over their budget are red, near it amber, and the rest quiet")
+    void overBudget() {
+        paint("hud-over-budget", Theme.NORD_DARK,
+                FrameStats.of(22, 45.0, 11.0, 4_200, 0.04, 9.6, 0.2, 3.4),
+                220, 190, Hud.stages());
     }
 
     /// The plate: a dim rate and a dimmer paint time, on the dark theme.

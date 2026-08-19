@@ -1382,6 +1382,47 @@ merely made to appear.
   pixels — the general sweep passes with the defect in place, which is what made
   it hard to find ([ADR-0148](adr/0148-a-menu-row-does-not-wrap.md))
 
+- **A click on empty space re-resolved the whole tree.** Reported as "clicking
+  empty space keeps adding a lot of ms", and the HUD from ADR-0146 is what made
+  it findable: measured through the real launcher, **74 of 78 elements
+  re-resolved per click** and `style` sat at 12 ms a frame. `:hover` and
+  `:active` apply to the whole ancestor chain — `.card:hover .title` has to work
+  — so a click marks every node up to the root, and each of those threw away its
+  **whole subtree's** styles on the chance that a descendant combinator read the
+  state. For a node near the root that subtree is the window. ADR-0070 said
+  plainly that this was conservative on purpose; what nobody had was the number.
+  `StyleResolver` now indexes, once, which pseudo-classes appear to the *left* of
+  a combinator and on what type, so `checkbox:hover check-indicator` makes
+  `:hover` on a `checkbox` reach down and nothing makes `:hover` on a `column`
+  do so. **A node with no CSS type reaches nothing**, and getting that wrong is
+  what made the first attempt change the measurement not at all: the hover chain
+  is full of composition nodes, and treating them as "unknown, be conservative"
+  is the same as not narrowing. **74 re-resolves per click → 3**, style 12.4 → 2.5
+  ms, and what is left is transitions genuinely running rather than the cascade
+  ([ADR-0149](adr/0149-a-state-invalidates-what-it-can-reach.md))
+- **The HUD says what its numbers are, and colours the ones in trouble.** Three
+  things were wrong with the breakdown as it shipped, all of them a correct
+  number nobody could read: it never said the readings are **means over sixty
+  frames**, so `paint 2.1 ms` reads as "this frame" and a spike looks like a
+  plateau; it showed one total where there are two, so a slow frame could not be
+  attributed to the toolkit or to the platform; and seven numbers in a row is a
+  wall to scan. It is a column now, one reading a line, with `frame` beside
+  `paint` and a caption under both. Every reading carries a **budget** — shares of
+  a 60 Hz frame — and reports `ok`, `near` or `over` as a class the stylesheet
+  colours, because §10 says a colour is a token and a widget that picked its own
+  red could not be themed. Two readings are judged the other way round and both
+  would otherwise cry wolf: the **rate** is a floor, and the **frame interval** is
+  a target to sit *at*, since a vsynced loop measuring exactly 16.7 is success and
+  a healthy window reading amber teaches a reader to ignore the colour. That
+  needed one new hook, `Styled.classes(FrameStats)`: the cascade reads a node's
+  classes before its `render` runs and the statistics only arrive in `render`, so
+  a value cannot hold the answer in between
+  ([ADR-0150](adr/0150-a-hud-reads-itself-against-a-budget.md))
+- **The budget table gained both 2Ks.** DCI's 2048×1080 and the monitor aisle's
+  2560×1440 are 25% apart, and a table that picked one would be answering
+  somebody else's question
+  ([ADR-0147](adr/0147-a-frame-has-a-budget-and-the-build-checks-it.md))
+
 ## M3 — Shell
 
 **Started.** `docs/core-widgets.md` §7 names two places an overlay can be drawn —

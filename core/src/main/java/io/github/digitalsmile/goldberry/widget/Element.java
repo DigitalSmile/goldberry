@@ -136,6 +136,34 @@ public final class Element implements BuildContext, StyleElement {
     /// Conservative on purpose. Working out which descendants a rule could reach
     /// is real machinery, and this walk is pointer-chasing against a cascade pass
     /// that costs hundreds of times more.
+    /// Throws away **this node's** cached style and nothing else.
+    ///
+    /// The narrow half of [#invalidateStyle], for the caller that has asked
+    /// whether the subtree can be affected and been told no (ADR-0149).
+    /// The classes this node's widget computed from the frame — see
+    /// [Styled#classes(io.github.digitalsmile.goldberry.FrameStats)].
+    private Set<String> frameClasses = Set.of();
+
+    /// Told by the renderer, before the cascade is asked.
+    ///
+    /// Invalidates this node's own style when it changes, and **only** this
+    /// node's: a class the widget computed from the frame is on this element, and
+    /// a rule reading it through a descendant combinator would be a stylesheet
+    /// colouring one node by another's frame timings, which is not a thing
+    /// anybody should be able to write (ADR-0150).
+    void frameClasses(Set<String> classes) {
+        if (!frameClasses.equals(classes)) {
+            frameClasses = Set.copyOf(classes);
+            invalidateOwnStyle();
+        }
+    }
+
+    private void invalidateOwnStyle() {
+        style = null;
+        styleResolver = null;
+        styleInherited = null;
+    }
+
     void invalidateStyle() {
         // Not short-circuited on `style == null`: a composition node never caches
         // one -- the renderer passes its ancestor's straight through -- so a null
@@ -422,7 +450,13 @@ public final class Element implements BuildContext, StyleElement {
 
     @Override
     public Set<String> classes() {
-        return widget instanceof Styled styled ? styled.classes() : Set.of();
+        var own = widget instanceof Styled styled ? styled.classes() : Set.<String>of();
+        if (frameClasses.isEmpty()) {
+            return own;
+        }
+        var all = new LinkedHashSet<>(own);
+        all.addAll(frameClasses);
+        return all;
     }
 
     /// The nearest ancestor that the cascade should see.
@@ -480,7 +514,21 @@ public final class Element implements BuildContext, StyleElement {
             // `:disabled`, `:checked` and `:indeterminate` mirrored from the
             // widget by the renderer -- so this is the single place that has to
             // remember to invalidate, rather than six.
-            invalidateStyle();
+            //
+            // **The subtree only when a rule can reach it.** A descendant
+            // combinator means a node's match can depend on an ancestor's state
+            // -- `checkbox:hover check-indicator` -- and until ADR-0149 that
+            // possibility was assumed for every state on every node. It is asked
+            // now: nothing in any sheet says `column:hover …`, so a click on
+            // empty space re-resolves one node instead of the screen, which was
+            // 12ms a click.
+            var resolver = tree.styleResolver();
+            invalidateOwnStyle();
+            if (resolver == null || resolver.reachesDescendants(pseudoClass, type())) {
+                for (var child : children) {
+                    child.invalidateStyle();
+                }
+            }
         }
         return changed;
     }

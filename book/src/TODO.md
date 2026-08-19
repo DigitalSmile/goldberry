@@ -858,11 +858,32 @@ the mechanism the sentence named.
   behaviour to choose. `option` has carried the same gap since ADR-0099. —
   [ADR-0148](adr/0148-a-menu-row-does-not-wrap.md)
 
+- **The HUD's budgets assume a 60 Hz display.** Every one of them is a share of
+  16.7 ms, so on a 120 Hz window they are all wrong by a factor of two and a
+  perfectly healthy loop reads amber. Reading the display's refresh rate is a
+  backend question — `SDL_GetDisplayMode` has it — and not the widget's, so the
+  widget has a number where it should have a fraction of one it is told. —
+  [ADR-0150](adr/0150-a-hud-reads-itself-against-a-budget.md)
+- **`Element.update` still invalidates a subtree wholesale.** ADR-0149 narrowed
+  the *state* path; a rebuilt widget still throws away everything below it,
+  because what changed there is the node's identity to the cascade — its classes
+  and its id — rather than one bit of its state. Narrowing that needs the same
+  index keyed on classes as well as types, and nothing has measured it as a
+  problem. —
+  [ADR-0149](adr/0149-a-state-invalidates-what-it-can-reach.md)
+
 ## Answered
 
 Kept rather than deleted: each is a trap somebody hit, and the reasoning that got
 out of it is usually worth more than the fact that it is fixed.
 
+- ~~**A click costs one node's style.**~~ **It cost the whole tree's, and the
+  HUD is what found it.** Hover and active apply to the ancestor chain, and every
+  node in that chain invalidated its entire subtree in case a descendant
+  combinator read the state — 74 of 78 elements per click on the showcase. This
+  was never on this list because nothing could see it until the frame had a
+  breakdown. —
+  [ADR-0149](adr/0149-a-state-invalidates-what-it-can-reach.md)
 - ~~**The style cache makes a settled frame free.**~~ **It did not, and had not
   since `scroll` shipped.** ADR-0070 measured style resolution as the largest
   term in a frame and cached it; the cache was keyed on the parent's style *by

@@ -63,8 +63,9 @@ import org.junit.jupiter.api.Test;
 class FrameBudgetTest {
 
     /// Resolutions worth having a number for: a small laptop, a common desktop,
-    /// 1080p and 4K. The last is the one that separates a per-pixel cost from a
-    /// per-element one.
+    /// 1080p, both meanings of 2K, QHD, and 4K at 2x. The last is the one that
+    /// separates a per-pixel cost from a per-element one — 17 times the pixels of
+    /// the first row, and the same elements.
     private record Resolution(String name, int width, int height, float scale) {
 
         long pixels() {
@@ -75,8 +76,12 @@ class FrameBudgetTest {
     private static final List<Resolution> RESOLUTIONS = List.of(
             new Resolution("800x600", 800, 600, 1.0f),
             new Resolution("1280x800", 1280, 800, 1.0f),
-            new Resolution("1920x1080", 1920, 1080, 1.0f),
-            new Resolution("2560x1440", 2560, 1440, 1.0f),
+            new Resolution("1920x1080 FHD", 1920, 1080, 1.0f),
+            // Both of the things "2K" means, because they are 25% apart and a
+            // table that picked one would be answering somebody else's question:
+            // DCI 2K is 2048x1080 and the monitor aisle's 2K is 2560x1440.
+            new Resolution("2048x1080 2K", 2048, 1080, 1.0f),
+            new Resolution("2560x1440 QHD", 2560, 1440, 1.0f),
             new Resolution("3840x2160 @2x", 3840, 2160, 2.0f));
 
     // --- the ceilings -------------------------------------------------------
@@ -237,11 +242,11 @@ class FrameBudgetTest {
     void withinBudget() {
         warmUp();
         var failures = new ArrayList<String>();
-        System.out.printf("%n  %-16s %8s %8s %8s %8s%n",
+        System.out.printf("%n  %-18s %8s %8s %8s %8s%n",
                 "resolution", "build", "style", "layout", "raster");
         for (var resolution : RESOLUTIONS) {
             var cost = measure("controls", resolution);
-            System.out.printf("  %-16s %7.3f %7.3f %7.3f %7.3f  (ms, median)%n",
+            System.out.printf("  %-18s %7.3f %7.3f %7.3f %7.3f  (ms, median)%n",
                     resolution.name(), cost.build(), cost.style(), cost.layout(), cost.raster());
 
             var rasterBudget = Math.max(RASTER_BUDGET_FLOOR_MS,

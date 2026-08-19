@@ -47,8 +47,19 @@ class HudTest {
     }
 
     /// The text of every reading in a rendered HUD, in order.
+    ///
+    /// **Without the caption**, which is the last child and is not a reading: it
+    /// says what the numbers are rather than being one (ADR-0150). [#caption]
+    /// asserts it on its own.
     private static List<String> readings(Box box) {
-        return box.children().stream().map(child -> child.text().paragraph().text()).toList();
+        var all = box.children();
+        return all.subList(0, all.size() - 1).stream()
+                .map(child -> child.text().paragraph().text()).toList();
+    }
+
+    /// The last child, which explains the ones above it.
+    private static String caption(Box box) {
+        return box.children().getLast().text().paragraph().text();
     }
 
     @Test
@@ -71,7 +82,7 @@ class HudTest {
         var box = renderer(FrameStats.of(60, 16.7, 2.1, 500))
                 .render(new ElementTree(new Hud(Reading.FPS, Reading.FRAME, Reading.PAINT)));
 
-        assertEquals(List.of("60 fps", "16.7 ms", "paint 2.1 ms"), readings(box));
+        assertEquals(List.of("60 fps", "frame 16.7 ms", "paint 2.1 ms"), readings(box));
     }
 
     /// The breakdown — [ADR-0146].
@@ -85,7 +96,7 @@ class HudTest {
         var box = renderer(FrameStats.of(60, 16.7, 2.1, 500, 0.05, 0.29, 0.11, 1.34))
                 .render(new ElementTree(Hud.stages()));
 
-        assertEquals(List.of("60 fps", "paint 2.1 ms",
+        assertEquals(List.of("60 fps", "frame 16.7 ms", "paint 2.1 ms",
                         "build 0.05 ms", "style 0.29 ms", "layout 0.11 ms", "raster 1.34 ms"),
                 readings(box));
     }
@@ -120,7 +131,7 @@ class HudTest {
     void stagesWithNoLoop() {
         var box = renderer(FrameStats.none()).render(new ElementTree(Hud.stages()));
 
-        assertEquals(List.of("— fps", "paint —",
+        assertEquals(List.of("— fps", "frame —", "paint —",
                 "build —", "style —", "layout —", "raster —"), readings(box));
     }
 
@@ -133,7 +144,7 @@ class HudTest {
         var box = renderer(FrameStats.none())
                 .render(new ElementTree(new Hud(Reading.FPS, Reading.FRAME, Reading.PAINT)));
 
-        assertEquals(List.of("— fps", "— ms", "paint —"), readings(box));
+        assertEquals(List.of("— fps", "frame —", "paint —"), readings(box));
 
         // A loop that genuinely stopped dead is a different thing and reads
         // differently, which is the distinction the dashes exist for.
@@ -156,7 +167,7 @@ class HudTest {
             var box = renderer(FrameStats.of(60, 16.7, 2.1, 500))
                     .render(new ElementTree(new Hud(Reading.FRAME)));
 
-            assertEquals(List.of("16.7 ms"), readings(box));
+            assertEquals(List.of("frame 16.7 ms"), readings(box));
         } finally {
             Locale.setDefault(previous);
         }
@@ -169,10 +180,90 @@ class HudTest {
         var children = hud.children();
 
         assertEquals("hud", hud.cssType());
-        assertEquals(2, children.size());
+        // Two readings and the caption that says what they are (ADR-0150).
+        assertEquals(3, children.size());
         assertEquals("hud-reading", ((Styled) children.getFirst()).cssType());
         assertTrue(((Styled) children.getFirst()).classes().contains("fps"));
         assertTrue(((Styled) children.get(1)).classes().contains("paint"));
+        assertEquals("hud-caption", ((Styled) children.get(2)).cssType());
+    }
+
+    /// **What the numbers are** — [ADR-0150].
+    ///
+    /// Every reading is a mean over the ring's whole window, and `paint 2.1 ms`
+    /// reads as "this frame" until something says otherwise. A spike looks like a
+    /// plateau on the way in and a plateau looks like a spike on the way out, and
+    /// a reader with the wrong model draws the wrong conclusion from all of them.
+    @Test
+    @DisplayName("the caption says the numbers are per-frame means over the ring")
+    void caption() {
+        var live = renderer(FrameStats.of(60, 16.7, 2.1, 500))
+                .render(new ElementTree(new Hud()));
+        // A fixed source keeps no window, so there is no length to name and the
+        // caption says only what it can stand behind.
+        assertEquals("per frame · mean", caption(live));
+
+        var empty = renderer(FrameStats.none()).render(new ElementTree(new Hud()));
+        assertEquals("no frames measured", caption(empty),
+                "and a HUD with no loop behind it does not describe a window it has not filled");
+    }
+
+    /// **A reading colours itself against a budget** — [ADR-0150].
+    ///
+    /// The class comes from
+    /// [Styled#classes(io.github.digitalsmile.goldberry.FrameStats)] rather than
+    /// from `classes()`, because the cascade reads a node's classes before its
+    /// `render` runs and the statistics only arrive in `render`.
+    @Test
+    @DisplayName("a reading over its budget classes itself `over`, and near it `near`")
+    void budgetLevels() {
+        var reading = Reading.PAINT;
+
+        assertEquals(8.0, reading.budgetMillis(), 0.001, "half a 60 Hz frame");
+        assertTrue(new HudReading(reading).classes(FrameStats.of(60, 16.7, 2.0, 9))
+                .contains("ok"), "2 ms of an 8 ms budget is fine");
+        assertTrue(new HudReading(reading).classes(FrameStats.of(60, 16.7, 6.5, 9))
+                .contains("near"), "6.5 of 8 is three quarters of the way there");
+        assertTrue(new HudReading(reading).classes(FrameStats.of(60, 16.7, 9.0, 9))
+                .contains("over"), "9 of 8 is over");
+    }
+
+    /// **A frame interval is a target to sit at, not a ceiling to stay under.**
+    /// A vsynced loop is supposed to measure 16.7, and a healthy window reading
+    /// amber teaches a reader to ignore the colour (ADR-0150).
+    @Test
+    @DisplayName("a frame sitting exactly on its budget is fine, not a warning")
+    void frameSitsOnItsBudget() {
+        assertTrue(new HudReading(Reading.FRAME).classes(FrameStats.of(60, 16.7, 2, 9))
+                .contains("ok"), "60 Hz is the budget, not a near miss of it");
+        assertTrue(new HudReading(Reading.FRAME).classes(FrameStats.of(50, 20.0, 2, 9))
+                .contains("near"));
+        assertTrue(new HudReading(Reading.FRAME).classes(FrameStats.of(20, 50.0, 2, 9))
+                .contains("over"));
+    }
+
+    /// The rate is the one reading where **more is better**, so it reads its own
+    /// level rather than sharing the arithmetic.
+    @Test
+    @DisplayName("the rate is judged as a floor, not as a ceiling")
+    void rateIsAFloor() {
+        assertTrue(new HudReading(Reading.FPS).classes(FrameStats.of(60, 16.7, 2, 9))
+                .contains("ok"));
+        assertTrue(new HudReading(Reading.FPS).classes(FrameStats.of(45, 22, 2, 9))
+                .contains("near"));
+        assertTrue(new HudReading(Reading.FPS).classes(FrameStats.of(20, 50, 2, 9))
+                .contains("over"));
+    }
+
+    /// A HUD with no loop behind it draws dashes, and dashes in red would be an
+    /// alarm about nothing.
+    @Test
+    @DisplayName("nothing measured is not over budget")
+    void nothingMeasuredIsNotAnAlarm() {
+        for (var reading : Reading.values()) {
+            assertTrue(new HudReading(reading).classes(FrameStats.none()).contains("ok"),
+                    () -> reading + " raised an alarm about a loop it has not seen");
+        }
     }
 
     @Test

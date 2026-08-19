@@ -27,6 +27,31 @@ public enum Reading {
         String text(FrameStats stats) {
             return String.format(Locale.ROOT, "%.0f fps", stats.fps());
         }
+
+        /// A **floor**, not a ceiling: this is the one reading where more is
+        /// better, so it reads its own level rather than sharing [#level]'s
+        /// arithmetic. 55 is a 60 Hz loop missing the odd frame; 30 is one
+        /// missing every other one.
+        @Override
+        Level level(FrameStats stats) {
+            if (stats == null || stats.isEmpty() || stats.fps() <= 0) {
+                return Level.OK;
+            }
+            if (stats.fps() < 30) {
+                return Level.OVER;
+            }
+            return stats.fps() < 55 ? Level.NEAR : Level.OK;
+        }
+
+        @Override
+        double value(FrameStats stats) {
+            return stats.fps();
+        }
+
+        @Override
+        double budgetMillis() {
+            return 0;
+        }
     },
 
     /// The mean interval between frames: `16.7 ms`.
@@ -36,7 +61,40 @@ public enum Reading {
     FRAME("frame") {
         @Override
         String text(FrameStats stats) {
-            return String.format(Locale.ROOT, "%.1f ms", stats.frameMillis());
+            return String.format(Locale.ROOT, "frame %.1f ms", stats.frameMillis());
+        }
+
+        @Override
+        double value(FrameStats stats) {
+            return stats.frameMillis();
+        }
+
+        /// A 60 Hz frame. The one budget here that is a fact about the display
+        /// rather than a judgement about the toolkit.
+        @Override
+        double budgetMillis() {
+            return 16.7;
+        }
+
+        /// **A target to sit at, not a ceiling to stay under**, which is why this
+        /// reading does not share [#level]'s three-quarters band: a vsynced loop
+        /// is *supposed* to measure 16.7, and a healthy window reading amber
+        /// teaches a reader to ignore the colour.
+        ///
+        /// So: on the budget is fine, half again is worth a look, and beyond that
+        /// is a loop missing frames.
+        @Override
+        Level level(FrameStats stats) {
+            if (stats == null || stats.isEmpty() || stats.frameMillis() <= 0) {
+                return Level.OK;
+            }
+            var measured = stats.frameMillis();
+            if (measured > budgetMillis() * 1.5) {
+                return Level.OVER;
+            }
+            // Five percent of vsync jitter, so a loop hitting its rate exactly
+            // does not flicker between two colours.
+            return measured > budgetMillis() * 1.05 ? Level.NEAR : Level.OK;
         }
     },
 
@@ -49,6 +107,19 @@ public enum Reading {
         @Override
         String text(FrameStats stats) {
             return String.format(Locale.ROOT, "paint %.1f ms", stats.paintMillis());
+        }
+
+        @Override
+        double value(FrameStats stats) {
+            return stats.paintMillis();
+        }
+
+        /// Half a 60 Hz frame. The toolkit's share of the interval, leaving the
+        /// platform its own — a paint over this is a window that cannot absorb a
+        /// resize, whatever the rate currently says.
+        @Override
+        double budgetMillis() {
+            return 8.0;
         }
     },
 
@@ -68,6 +139,16 @@ public enum Reading {
         String text(FrameStats stats) {
             return String.format(Locale.ROOT, "build %.2f ms", stats.buildMillis());
         }
+
+        @Override
+        double value(FrameStats stats) {
+            return stats.buildMillis();
+        }
+
+        @Override
+        double budgetMillis() {
+            return 1.0;
+        }
     },
 
     /// Time spent in the cascade and building boxes: `style 0.29 ms`.
@@ -82,6 +163,16 @@ public enum Reading {
         String text(FrameStats stats) {
             return String.format(Locale.ROOT, "style %.2f ms", stats.styleMillis());
         }
+
+        @Override
+        double value(FrameStats stats) {
+            return stats.styleMillis();
+        }
+
+        @Override
+        double budgetMillis() {
+            return 2.0;
+        }
     },
 
     /// Time spent in layout: `layout 0.11 ms`.
@@ -93,6 +184,16 @@ public enum Reading {
         @Override
         String text(FrameStats stats) {
             return String.format(Locale.ROOT, "layout %.2f ms", stats.layoutMillis());
+        }
+
+        @Override
+        double value(FrameStats stats) {
+            return stats.layoutMillis();
+        }
+
+        @Override
+        double budgetMillis() {
+            return 2.0;
         }
     },
 
@@ -107,7 +208,44 @@ public enum Reading {
         String text(FrameStats stats) {
             return String.format(Locale.ROOT, "raster %.2f ms", stats.rasterMillis());
         }
+
+        @Override
+        double value(FrameStats stats) {
+            return stats.rasterMillis();
+        }
+
+        @Override
+        double budgetMillis() {
+            return 4.0;
+        }
     };
+
+    /// How a reading is doing against its budget — see [#level].
+    ///
+    /// Three levels and not a number, because what a colour can say is "fine",
+    /// "watch this" and "this is the problem", and a gradient would say none of
+    /// them at a glance
+    /// ([ADR-0150](../../../../../../../../book/src/adr/0150-a-hud-reads-itself-against-a-budget.md)).
+    enum Level {
+        OK("ok"), NEAR("near"), OVER("over");
+
+        private final String cssClass;
+
+        Level(String cssClass) {
+            this.cssClass = cssClass;
+        }
+
+        /// The class a stylesheet selects this level by: `hud-reading.over`.
+        String cssClass() {
+            return cssClass;
+        }
+    }
+
+    /// At what fraction of its budget a reading starts to be worth looking at.
+    ///
+    /// Three quarters, so the warning arrives with a quarter of the budget left
+    /// rather than after it has gone.
+    private static final double NEAR_FRACTION = 0.75;
 
     private final String cssClass;
 
@@ -139,6 +277,34 @@ public enum Reading {
     /// This reading of `stats`, assuming there is something to read.
     abstract String text(FrameStats stats);
 
+    /// The number behind [#text], for comparing against [#budgetMillis].
+    abstract double value(FrameStats stats);
+
+    /// What this reading is allowed to cost, in milliseconds, or 0 for one that
+    /// is not a duration.
+    ///
+    /// Every budget here is a share of the 16.7 ms a 60 Hz frame has, and every
+    /// one is a judgement rather than a measurement — which is why they are on
+    /// the reading and not in a stylesheet: a token would invite an application
+    /// to move the line rather than the number (ADR-0150).
+    abstract double budgetMillis();
+
+    /// How this reading is doing against its budget.
+    ///
+    /// [Level#OK] when there is nothing measured, because a HUD with no loop
+    /// behind it is not a HUD reporting a healthy one — it draws dashes, and
+    /// dashes in red would be an alarm about nothing.
+    Level level(FrameStats stats) {
+        if (stats == null || stats.isEmpty() || budgetMillis() <= 0) {
+            return Level.OK;
+        }
+        var measured = value(stats);
+        if (measured > budgetMillis()) {
+            return Level.OVER;
+        }
+        return measured >= budgetMillis() * NEAR_FRACTION ? Level.NEAR : Level.OK;
+    }
+
     /// This reading of `stats`, or dashes when there is nothing to read.
     ///
     /// Dashes rather than `0 fps`: a zero is a measurement, and a HUD in a tree
@@ -149,7 +315,7 @@ public enum Reading {
         if (stats == null || stats.isEmpty()) {
             return switch (this) {
                 case FPS -> "— fps";
-                case FRAME -> "— ms";
+                case FRAME -> "frame —";
                 case PAINT -> "paint —";
                 case BUILD -> "build —";
                 case STYLE -> "style —";

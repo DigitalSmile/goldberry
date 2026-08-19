@@ -157,6 +157,8 @@
 - [ADR-0146 A HUD shows where the frame went](adr/0146-a-hud-shows-where-the-frame-went.md)
 - [ADR-0147 A frame has a budget, and the build checks it](adr/0147-a-frame-has-a-budget-and-the-build-checks-it.md)
 - [ADR-0148 A menu row does not wrap](adr/0148-a-menu-row-does-not-wrap.md)
+- [ADR-0149 A state invalidates what it can reach](adr/0149-a-state-invalidates-what-it-can-reach.md)
+- [ADR-0150 A HUD reads itself against a budget](adr/0150-a-hud-reads-itself-against-a-budget.md)
 
 ---
 
