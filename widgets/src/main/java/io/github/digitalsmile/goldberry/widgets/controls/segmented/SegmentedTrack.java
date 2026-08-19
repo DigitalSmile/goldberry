@@ -1,5 +1,6 @@
 package io.github.digitalsmile.goldberry.widgets.controls.segmented;
 
+import io.github.digitalsmile.goldberry.widgets.controls.option.Option;
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
 import io.github.digitalsmile.goldberry.layout.Box;
 import io.github.digitalsmile.goldberry.natives.yoga.StyleLength;

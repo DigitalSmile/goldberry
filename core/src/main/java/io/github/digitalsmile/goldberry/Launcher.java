@@ -133,7 +133,7 @@ final class Launcher implements Host {
         // first frame and whether or not anything is floating yet: a layer that
         // appeared with the first overlay would re-parent the whole application
         // to show a toast, and re-parenting is what throws state away.
-        tree = new ElementTree(new WindowRoot(application.root(), overlays));
+        tree = new ElementTree(new WindowRoot(application.root(), overlays), this);
         // A `setState` anywhere in the tree asks for a frame. Without it the
         // change waits for some unrelated event to paint, which is a widget that
         // reacts one interaction late (ADR-0122).
@@ -156,7 +156,19 @@ final class Launcher implements Host {
             public boolean pressed(
                     io.github.digitalsmile.goldberry.input.PointerEvent.Button button,
                     float x, float y) {
-                dismissPopups();
+                // **A press that dismissed something is a dismissal and not a
+                // click**, which is what every desktop does: with a menu open,
+                // the click that puts it away does not also press the button it
+                // landed on. The rule was already here for the secondary button
+                // below (ADR-0108); it turns out to be the general one.
+                //
+                // Without it a control that opens its own popup cannot be closed
+                // by clicking it again: the press dismisses the list and the
+                // release then reads as "open it", so a `select` toggles twice
+                // and stays open ([ADR-0141]).
+                if (dismissPopups()) {
+                    return true;
+                }
                 // The secondary button, on a widget that named a menu: the press
                 // is *taken*, so it does not also reach whatever it landed on —
                 // right-clicking a button should open its menu, not press it
@@ -464,14 +476,19 @@ final class Launcher implements Host {
 
     /// Closes every light-dismissed popup. Copied first: closing one removes it
     /// from the list it is being iterated over.
-    private void dismissPopups() {
+    ///
+    /// @return whether this actually closed one, which is what makes the press
+    ///         that did it a dismissal rather than a click — see the watcher
+    private boolean dismissPopups() {
         if (popups.isEmpty()) {
-            return;
+            return false;
         }
+        var wasOpen = popups.stream().anyMatch(Popup::isOpen);
         for (var popup : List.copyOf(popups)) {
             popup.dismissedByInput();
         }
         popups.removeIf(popup -> !popup.isOpen());
+        return wasOpen && popups.stream().noneMatch(Popup::isOpen);
     }
 
     /// The reverse of the build order, and the ordering is the reason this class
@@ -610,7 +627,7 @@ final class Launcher implements Host {
             io.github.digitalsmile.goldberry.backend.PopupKind kind) {
 
         Objects.requireNonNull(content, "content");
-        return open(new ElementTree(content), RenderTree.create(),
+        return open(new ElementTree(content, this), RenderTree.create(),
                 new io.github.digitalsmile.goldberry.backend.PopupSpec(at, size, kind));
     }
 
@@ -657,7 +674,7 @@ final class Launcher implements Host {
         // Built once and handed to the popup: measuring throws the layout away
         // otherwise, and the element tree is what carries state, so a second one
         // would also be a second lot of `initState`.
-        var tree = new ElementTree(content);
+        var tree = new ElementTree(content, this);
         var render = RenderTree.create();
         var size = measure(tree, render);
         var placed = placement.place(anchor, size, placeableArea());

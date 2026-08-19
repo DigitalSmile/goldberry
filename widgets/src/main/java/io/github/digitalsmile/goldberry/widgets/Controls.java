@@ -116,8 +116,9 @@ public final class Controls {
     /// `radio-indicator`, `radio-dot`, `toggle-track`, `toggle-thumb`,
     /// `slider-track`, `slider-groove`, `slider-fill`, `slider-thumb`,
     /// `slider-rest`, `slider-ticks`, `slider-tick`, `slider-value`,
-    /// `progress-fill`, `knob-track`, `knob-arc`, `segmented-track` and
-    /// `segmented-indicator` — are
+    /// `progress-fill`, `knob-track`, `knob-arc`, `segmented-track`,
+    /// `segmented-indicator`, `select-value`, `select-chevron` and
+    /// `select-list` — are
     /// styled by the same stylesheet and are not here, because they are parts
     /// rather than widgets: they are CSS-selectable and deliberately not
     /// KDL-constructible, and asking the parity test to inflate one would be
@@ -131,6 +132,6 @@ public final class Controls {
     /// (ADR-0091). A link that cannot resolve is worse than a name).
     public static List<String> controlTypes() {
         return List.of("button", "checkbox", "toggle", "slider", "radio-group", "radio",
-                "segmented", "option", "progress", "spinner", "badge", "knob");
+                "segmented", "option", "select", "progress", "spinner", "badge", "knob");
     }
 }

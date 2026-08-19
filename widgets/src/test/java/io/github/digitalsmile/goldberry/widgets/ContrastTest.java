@@ -15,7 +15,7 @@ import io.github.digitalsmile.goldberry.widget.ElementTree;
 import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widgets.controls.badge.Badge;
 import io.github.digitalsmile.goldberry.widgets.controls.button.Button;
-import io.github.digitalsmile.goldberry.widgets.controls.segmented.Option;
+import io.github.digitalsmile.goldberry.widgets.controls.option.Option;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;

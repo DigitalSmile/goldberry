@@ -148,6 +148,17 @@ public record Box(
             /// time it opens.
             CHEVRON_END,
 
+            /// A single `v` — the affordance on a closed `select`, saying that
+            /// there is a list under it.
+            ///
+            /// [#CHEVRON_END] turned a quarter, and a separate kind rather than a
+            /// rotation because §8's subset has no `transform` on a mark and a
+            /// drop-down chevron is not "a submenu arrow that happens to point
+            /// down": one says *beside*, the other says *below*, and a control
+            /// that drew the wrong one would be pointing at the wrong place
+            /// ([ADR-0141](../../../../../../book/src/adr/0141-a-select-is-a-closed-control-and-a-list.md)).
+            CHEVRON_DOWN,
+
             /// A filled circle — `:checked` on a radio, which is why this is here
             /// before `radio` is.
             DOT,

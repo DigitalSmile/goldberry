@@ -1,5 +1,6 @@
 package io.github.digitalsmile.goldberry.widgets.controls.segmented;
 
+import io.github.digitalsmile.goldberry.widgets.controls.option.Option;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;

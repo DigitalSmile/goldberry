@@ -148,6 +148,8 @@
 - [ADR-0137 A model keeps its fields](adr/0137-a-model-keeps-its-fields.md)
 - [ADR-0138 A window's actions are a model of their own](adr/0138-a-window-s-actions-are-a-model-of-their-own.md)
 - [ADR-0139 Actions are annotated as actions](adr/0139-actions-are-annotated-as-actions.md)
+- [ADR-0140 A widget may reach its window](adr/0140-a-widget-may-reach-its-window.md)
+- [ADR-0141 A select is a closed control and a list](adr/0141-a-select-is-a-closed-control-and-a-list.md)
 
 ---
 

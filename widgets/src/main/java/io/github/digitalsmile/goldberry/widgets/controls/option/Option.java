@@ -1,4 +1,4 @@
-package io.github.digitalsmile.goldberry.widgets.controls.segmented;
+package io.github.digitalsmile.goldberry.widgets.controls.option;
 
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
 import io.github.digitalsmile.goldberry.icon.Icon;
@@ -20,7 +20,9 @@ import io.github.digitalsmile.goldberry.kdl.KdlNode;
 import io.github.digitalsmile.goldberry.widgets.Wiring;
 import io.github.digitalsmile.goldberry.widgets.Markup;
 
-/// One segment of a [Segmented] (§11, `docs/core-widgets.md` §3).
+/// One choice in a [io.github.digitalsmile.goldberry.widgets.controls.segmented.Segmented]
+/// or a [io.github.digitalsmile.goldberry.widgets.controls.select.Select]
+/// (§11, `docs/core-widgets.md` §3).
 ///
 /// ```kdl
 /// segmented bind="view.mode" change="pickMode" {
@@ -29,6 +31,24 @@ import io.github.digitalsmile.goldberry.widgets.Markup;
 /// }
 /// ```
 ///
+/// ## One node, two controls, one package
+///
+/// §3 gives `segmented` and `select` the same child node — a value, a label, an
+/// icon, and nothing else — so this is one widget by specification. It lived in
+/// `…controls.segmented` while that was its only caller, under
+/// [ADR-0092](../../../../../../../../book/src/adr/0092-a-primitive-is-a-widget-like-any-other.md)'s
+/// rule about not generalising from one, and moved here when the second arrived:
+/// a package named after one of two callers tells the reader the wrong thing
+/// ([ADR-0141](../../../../../../../../book/src/adr/0141-a-select-is-a-closed-control-and-a-list.md)).
+///
+/// **The drawing is not shared, and does not need to be.** A segment is a cell in
+/// a bar and a choice in a dropdown is a row; both are `option` in CSS, and which
+/// is drawn is the ancestor's — `segmented option` against `popover option`. That
+/// is a descendant selector telling one widget's two *surroundings* apart, which
+/// is not what the improvisation below is: that one would be using an ancestor to
+/// tell two different widgets apart, and the difference is whether the selector
+/// is describing where a thing is or what it is.
+///
 /// ## What it knows and what it is told
 ///
 /// The same division [io.github.digitalsmile.goldberry.widgets.controls.radio.Radio]
@@ -36,7 +56,7 @@ import io.github.digitalsmile.goldberry.widgets.Markup;
 /// *exactly*: an option owns its [#value()], its label and its icon, and is told
 /// whether it is selected, what picking it does, and whether the set as a whole
 /// is unavailable. "Exactly one of these is on" is a fact about the set
-/// ([Segmented#children()]), so an option inflated from markup starts unselected
+/// ([io.github.digitalsmile.goldberry.widgets.controls.segmented.Segmented#children()]), so an option inflated from markup starts unselected
 /// and unwired and the control rewrites it on every build — which is also what
 /// keeps §11's parity invariant honest, since that is precisely the value a Java
 /// caller writes.
@@ -49,7 +69,8 @@ import io.github.digitalsmile.goldberry.widgets.Markup;
 /// `segmented radio` — which is the descendant-selector improvisation
 /// [ADR-0065](../../../../../../../../book/src/adr/0065-a-part-is-styleable-and-not-constructible.md)
 /// exists to avoid. It is named `option` rather than `segment` because that is
-/// the node `docs/core-widgets.md` §3 writes, in both this control and `select`.
+/// the node `docs/core-widgets.md` §3 writes, in both that control and `select` —
+/// which is what eventually put it in a package of its own.
 ///
 /// ## The content is boxes, not child widgets
 ///
@@ -71,10 +92,13 @@ import io.github.digitalsmile.goldberry.widgets.Markup;
 /// @param onSelect   what asking for this segment does. Also the control's
 /// @param disabled   whether it refuses selection and matches `:disabled`
 /// @param attributes `id` and `class`, exactly as on the primitives
+/// @param roving     whether the keyboard landing on this option chooses it —
+///                   true in a `radio-group` and a `segmented`, false in a
+///                   `select`'s list. See [#inAList()], which is the argument
 @Markup("option")
 public record Option(
         String value, String label, Icon icon, boolean selected, Runnable onSelect,
-        boolean disabled, Attributes attributes)
+        boolean disabled, Attributes attributes, boolean roving)
         implements Widget.Leaf, Styled, Paints, Handles, Attributed<Option> {
 
     public Option {
@@ -86,6 +110,15 @@ public record Option(
                             + " and nothing to read out (§13)");
         }
         attributes = attributes == null ? Attributes.NONE : attributes;
+    }
+
+    /// The form every caller wrote before there were two keyboard models, and
+    /// still the one to reach for: an option is [#roving()] unless a control says
+    /// otherwise, because that is `segmented`'s and `radio-group`'s shape and
+    /// they are two of the three callers.
+    public Option(String value, String label, Icon icon, boolean selected, Runnable onSelect,
+            boolean disabled, Attributes attributes) {
+        this(value, label, icon, selected, onSelect, disabled, attributes, true);
     }
 
     /// A segment with a value and a label — what an author writes, in Java or in
@@ -109,7 +142,7 @@ public record Option(
     /// keeps a `Font`.
     public Option withIcon(Icon icon) {
         return new Option(value, label, Objects.requireNonNull(icon, "icon"), selected,
-                onSelect, disabled, attributes);
+                onSelect, disabled, attributes, roving);
     }
 
     /// This segment, disabled or not.
@@ -118,22 +151,45 @@ public record Option(
     /// this document has no data for — which is why this is here as well as on
     /// the control.
     public Option disabled(boolean value) {
-        return new Option(this.value, label, icon, selected, onSelect, value, attributes);
+        return new Option(this.value, label, icon, selected, onSelect, value, attributes, roving);
     }
 
-    /// This segment as its control sees it: told whether it is on, what picking it
-    /// does, and whether the bar as a whole is unavailable.
+    /// This option as its control sees it: told whether it is on, what picking it
+    /// does, and whether the set as a whole is unavailable.
     ///
-    /// Package-private, because there is exactly one caller and letting an
-    /// application set `selected` itself is how a set ends up with two.
-    Option within(boolean isSelected, Runnable select, boolean groupDisabled) {
+    /// Package-private until `select` needed it from another package, and the
+    /// visibility costs nothing it was protecting: **both controls rewrite every
+    /// option on every build**, so a `selected` an application set here is
+    /// discarded before it is ever drawn. What keeps a set from having two
+    /// selected options was never this modifier — it is that "exactly one" is
+    /// computed in one place from the bound value and stored nowhere (ADR-0141).
+    public Option within(boolean isSelected, Runnable select, boolean groupDisabled) {
         return new Option(value, label, icon, isSelected, select, disabled || groupDisabled,
-                attributes);
+                attributes, roving);
     }
 
     @Override
     public Option withAttributes(Attributes attributes) {
-        return new Option(value, label, icon, selected, onSelect, disabled, attributes);
+        return new Option(value, label, icon, selected, onSelect, disabled, attributes, roving);
+    }
+
+    /// This option as a **row in a list** rather than a cell in a bar: the
+    /// keyboard moves over it without choosing it, and `Enter` is what chooses.
+    ///
+    /// §3 gives the two controls that share this node two different keyboards, in
+    /// as many words. A `radio-group` — and therefore a `segmented` — has "arrow
+    /// keys move selection (roving focus)", so an arrow *is* the choice. A
+    /// `select` has "arrows, Enter/Esc", so an arrow moves and `Enter` commits,
+    /// and `Esc` has something to leave alone. Both are what those controls do
+    /// everywhere, and the difference is not cosmetic: an arrow in a dropdown
+    /// that chose would also close the list, so the second press would have
+    /// nothing to move ([ADR-0141]).
+    ///
+    /// One flag rather than two, because the two halves are one decision: a set
+    /// where the keyboard chooses has no use for a separate commit, and a set
+    /// with a commit must not choose before it.
+    public Option inAList() {
+        return new Option(value, label, icon, selected, onSelect, disabled, attributes, false);
     }
 
     @Override
@@ -189,14 +245,19 @@ public record Option(
     ///
     /// Arrow keys are absent on purpose. Which segment is *next* is a fact about
     /// the bar, and an option cannot see its siblings; the router moves the focus
-    /// along [Segmented#focusScope()]'s axis and this widget hears about it in
+    /// along [io.github.digitalsmile.goldberry.widgets.controls.segmented.Segmented#focusScope()]'s axis and this widget hears about it in
     /// [#onFocusChanged] ([ADR-0073]).
     @Override
     public void onKey(KeyEvent event) {
         if (event.kind() != KeyEvent.Kind.PRESSED || event.isRepeat() || !event.modifiers().none()) {
             return;
         }
-        if (event.key() == Key.SPACE) {
+        // `Enter` for a row in a list and not for a cell in a bar. The catalog's
+        // rule is that `Enter` belongs to a dialog's default action, and it holds
+        // where a control sits in a form — but a list is in a popup of its own,
+        // over everything, and there is no default action behind it to take.
+        // Choosing is the only thing `Enter` can mean there, and §3 says so.
+        if (event.key() == Key.SPACE || (!roving && event.key() == Key.ENTER)) {
             select();
             event.consume();
         }
@@ -209,7 +270,7 @@ public record Option(
     /// twice: once when the press moved focus and once for the click itself.
     @Override
     public void onFocusChanged(boolean focused, boolean fromKeyboard) {
-        if (focused && fromKeyboard) {
+        if (focused && fromKeyboard && roving) {
             select();
         }
     }

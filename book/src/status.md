@@ -12,7 +12,7 @@ page is the other half: it says what works and what it cost to find out.
 | [Foundation](#foundation) | **done** | The build, the module graph, the toolchain and the decision log |
 | [M0 — Skeleton](#m0--skeleton) | **done** | One native library on four targets, two backends, a window at the right fractional DPI |
 | [M1 — Vertical slice](#m1--vertical-slice) | **started** | Blend2D rasterizes, HarfBuzz shapes, text lays out, and a frame's cost is measured |
-| [M2 — Widgets & style](#m2--widgets--style) | **engines done, catalog complete but `select`** | CSS, KDL, the three trees, input, motion — and every §3 control except the one that needs a popup |
+| [M2 — Widgets & style](#m2--widgets--style) | **done** | CSS, KDL, the three trees, input, motion — and every §3 control, `select` included |
 | [M3 — Shell](#m3--shell) | **started** | Both places an overlay can go, `tabs`, and the whole `scroll` family — viewport, bars, `affix`, `scrollIntoView` and `tour` |
 | [M4 — GPU](#m4--gpu) | not started | `canvas3d`, GPU composition |
 | [M5 — Hardening](#m5--hardening) | not started | Text editing depth, AccessKit bridge, IME preedit, docs, 0.1 release |
@@ -1216,6 +1216,63 @@ merely made to appear.
   nested type called `Actions` shadows the annotation, so the showcase writes the
   fully-qualified name, and the guide recommends naming the type for its domain
   instead ([ADR-0139](adr/0139-actions-are-annotated-as-actions.md))
+
+- **`select` is built, and it is the last control in §3.** The value model needed
+  nothing new — it is `segmented`'s, which is `radio-group`'s, which §3 says
+  outright — and everything else it needed had arrived in the last month:
+  `scroll` for a list longer than the screen, `host.popup` for a panel measured
+  and placed against a rectangle, and a way for a widget to *ask* for one. That
+  last was the real blocker and the reason this control waited: opening a menu is
+  something an application does, so `Menus.open(host, …)` is right (ADR-0106);
+  opening a dropdown is something the control does, and there is no application
+  code on a `select bind="app.theme"` line to hold a window with.
+  `BuildContext.host()` is the door — Flutter's `Overlay.of(context)`, which
+  ADR-0100 named as the wanted shape and declined to build against one consumer.
+  There are two now, so it exists, and it is an `Optional` because a golden image
+  and a widget test build the same widget with no window at all: **no window, no
+  popup, and the control draws its closed form** rather than throwing
+  ([ADR-0140](adr/0140-a-widget-may-reach-its-window.md))
+- **`option` moved, and the move cost one flag.** §3 gives `segmented` and
+  `select` the same child node; TODO had recorded that it would move when there
+  were two callers, and refused to guess what the second one would want — "a
+  model, possibly a tree node, a popup to render in". Wrong in every part: a row
+  in a dropdown is the same record as a cell in a bar. The whole difference is a
+  stylesheet's ancestor — `segmented option` against `select-list option` — and
+  **which of §3's two keyboards the set has**, which the specification states in
+  as many words: a `radio-group` has "arrow keys move selection (roving focus)"
+  and a `select` has "arrows, Enter/Esc". `Option.inAList()` is that, and it also
+  unlocks `Enter`, which every other control in the catalog refuses because it
+  belongs to a dialog's default action — a list is in a popup over everything and
+  has no default action behind it. **The flag was found by a failing test**: with
+  roving left on, the first `Down` in an open list chose a row, and choosing
+  closes the list, so the second and third arrows had nothing to move
+  ([ADR-0141](adr/0141-a-select-is-a-closed-control-and-a-list.md))
+- **Two things fell out that are not about `select` at all.** A press that
+  dismisses a popup no longer also activates what it lands on — the rule the
+  launcher already applied to the secondary button (ADR-0108) turning out to be
+  the general one, and without it a control that opens its own popup cannot be
+  closed by clicking it again. And `Popup.focusOn(id)` exists, because a control
+  that has already chosen must open on the row it chose: a list that focused its
+  first row would answer `Down` with the second option whatever the value was.
+  Focused **not** "from the keyboard", which matters more here than for a menu —
+  a row focused from the keyboard in a roving set is chosen on the spot, so
+  opening the list would report a change nobody asked for
+  ([ADR-0140](adr/0140-a-widget-may-reach-its-window.md),
+  [ADR-0141](adr/0141-a-select-is-a-closed-control-and-a-list.md))
+- **It anchors to itself by rectangle, not by id.** `SelectField` is `Located`, so
+  it is told where the last frame painted it and the state opens the popup there.
+  Anchoring by `id` was the alternative and is worse: a `select` a document gave
+  no `id` would need a generated one to open itself, and two in one window would
+  then depend on that generation being unique. Six golden images and 49 tests,
+  eight of them driving the real launcher — a click at a coordinate in the owner
+  window, a second window opening, a click at a coordinate in *that*, and the
+  value coming back through `change`. The gaps are stated rather than implied:
+  typeahead works closed and not open, because a `TextEvent` goes to the focused
+  row and there is no text capture phase for the list to take it in; the field is
+  as wide as its current value, because no selector can measure a set of options;
+  and `multiple`, `autocomplete` and `tree` are unbuilt, two of them waiting on
+  `text-input` and `tree` rather than on a decision
+  ([ADR-0141](adr/0141-a-select-is-a-closed-control-and-a-list.md))
 
 ## M3 — Shell
 

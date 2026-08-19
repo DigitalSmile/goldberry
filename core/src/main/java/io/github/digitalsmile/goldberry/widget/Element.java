@@ -351,6 +351,11 @@ public final class Element implements BuildContext, StyleElement {
     }
 
     @Override
+    public Optional<io.github.digitalsmile.goldberry.Host> host() {
+        return tree.host();
+    }
+
+    @Override
     public int depth() {
         var depth = 0;
         for (var current = parent; current != null; current = current.parent) {

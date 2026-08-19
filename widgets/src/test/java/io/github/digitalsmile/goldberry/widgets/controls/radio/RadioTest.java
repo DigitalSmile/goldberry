@@ -130,7 +130,7 @@ class RadioTest {
             // deliberate act, and this failing is what makes it one.
             assertEquals(
                     List.of("button", "checkbox", "toggle", "slider", "radio-group", "radio",
-                            "segmented", "option", "progress", "spinner", "badge", "knob"),
+                            "segmented", "option", "select", "progress", "spinner", "badge", "knob"),
                     Controls.controlTypes());
         }
 

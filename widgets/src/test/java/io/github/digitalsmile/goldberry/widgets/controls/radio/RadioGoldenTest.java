@@ -1,5 +1,7 @@
 package io.github.digitalsmile.goldberry.widgets.controls.radio;
 
+import io.github.digitalsmile.goldberry.widgets.controls.select.Select;
+import io.github.digitalsmile.goldberry.widgets.controls.option.Option;
 import io.github.digitalsmile.goldberry.widget.Attributes;
 import io.github.digitalsmile.goldberry.widgets.core.Column;
 
@@ -314,7 +316,7 @@ class RadioGoldenTest {
             // frame that fitted only because the last two controls were falling
             // off the bottom is the same defect ADR-0076 found in six scenes at
             // once: an image is not evidence of a control it clipped away.
-            GoldenImage.assertMatches(name, 300, 330, 1.0f,
+            GoldenImage.assertMatches(name, 300, 370, 1.0f,
                     frame -> BoxPainter.paint(frame, renderer.render(tree)));
         }
     }
@@ -359,7 +361,16 @@ class RadioGoldenTest {
                         // track ran across the body at 1.2:1 -- which is why it
                         // is in the scene rather than exempted from it
                         // (ADR-0089).
-                        new Knob(0, 1, 0.4, 0, null)),
+                        new Knob(0, 1, 0.4, 0, null),
+                        // A closed `select` is a field, and a field is exactly
+                        // the shape that disappears on a panel: it is a border
+                        // and a fill one step off whatever is behind it, so the
+                        // one thing this scene has to prove about it is that the
+                        // step is visible in both themes (ADR-0141).
+                        new Select("dark",
+                                List.of(new Option("light", "Light"),
+                                        new Option("dark", "Dark")),
+                                null, null, "", false, id("theme"))),
                 id("panel"));
     }
 

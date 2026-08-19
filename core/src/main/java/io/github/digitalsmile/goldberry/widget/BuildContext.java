@@ -36,6 +36,26 @@ public interface BuildContext {
     /// widgets end up with one bug, and nothing here makes it convenient.
     <S extends State<?>> Optional<S> findAncestorState(Class<S> type);
 
+    /// The window this element is being built into, if it has one.
+    ///
+    /// Flutter's `Overlay.of(context)`, and the door a control needs when the
+    /// thing it has to do is not describable as a widget: a `select` opens a
+    /// popup window under itself, and a popup is the platform's rather than the
+    /// tree's ([ADR-0140](../../../../../../book/src/adr/0140-a-widget-may-reach-its-window.md)).
+    ///
+    /// **For acting, not for reading.** A build must stay a pure function of its
+    /// widget, its state and this context, so what a build may do with a host is
+    /// *capture* it for a handler that runs later. Reading anything off it —
+    /// [io.github.digitalsmile.goldberry.Host#anchor], the placeable area — makes
+    /// the build depend on the last frame, which nothing invalidates.
+    ///
+    /// **Empty is a normal answer**, and the reason this is an `Optional` rather
+    /// than a nullable: a widget test builds an [ElementTree] with no window at
+    /// all, and so does a golden image. A control that cannot open its popup
+    /// should stay closed rather than throw, which is exactly what a still
+    /// picture of it wants.
+    Optional<io.github.digitalsmile.goldberry.Host> host();
+
     /// The depth of this element from the root. Mostly for diagnostics.
     int depth();
 }

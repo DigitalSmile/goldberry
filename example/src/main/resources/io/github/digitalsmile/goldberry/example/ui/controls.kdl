@@ -30,6 +30,20 @@ column id="screen-controls" {
     option value="light" "Light"
   }
 
+  // And a third control on the same property, which is the whole argument of
+  // this screen: none of the three owns the value, so picking from the dropdown
+  // moves the radios and the bar, and Ctrl+T moves all three. It writes the
+  // same `option` nodes the bar above does -- one node by sec. 3, one record
+  // since it had two callers (ADR-0141).
+  //
+  // The list opens in a window of its own, so it is not clipped by this one --
+  // which is what a dropdown near the bottom of a window needs and what an
+  // in-window overlay cannot do (ADR-0102, ADR-0140).
+  select id="theme-select" bind="app.theme" change="app.pick-theme" placeholder="Choose a theme" {
+    option value="dark" "Nord dark"
+    option value="light" "Nord light"
+  }
+
   text class="screen-title" "Switches"
 
   column id="options" {

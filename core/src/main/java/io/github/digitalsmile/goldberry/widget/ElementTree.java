@@ -27,11 +27,30 @@ public final class ElementTree {
     private final Element root;
     private final Set<Element> dirty = new LinkedHashSet<>();
 
-    /// Builds a tree from a root widget.
+    /// The window every element in this tree is being built into, or null.
+    ///
+    /// Held on the tree rather than on each element because it is the same
+    /// answer for all of them, and because a popup's tree has a different one
+    /// from the window that opened it (ADR-0140).
+    private final io.github.digitalsmile.goldberry.Host host;
+
+    /// Builds a tree from a root widget, with no window behind it.
+    ///
+    /// What a widget test and a golden image build. A control that wants a popup
+    /// finds [BuildContext#host()] empty and stays closed.
+    public ElementTree(Widget root) {
+        this(root, null);
+    }
+
+    /// Builds a tree from a root widget, into `host`.
     ///
     /// The first build happens here, so the tree is usable the moment it exists.
-    public ElementTree(Widget root) {
+    ///
+    /// @param host the window this tree is drawn in, or null for a tree with no
+    ///             window — a measurement, a test, a still picture
+    public ElementTree(Widget root, io.github.digitalsmile.goldberry.Host host) {
         Objects.requireNonNull(root, "root");
+        this.host = host;
         this.root = new Element(this, null, root);
         this.root.rebuild();
         // Deliberately NOT clearing `dirty` here. A setState during the very
@@ -42,6 +61,12 @@ public final class ElementTree {
 
     public Element root() {
         return root;
+    }
+
+    /// The window this tree is built into, or empty — [BuildContext#host()]'s
+    /// answer, held once for the whole tree.
+    java.util.Optional<io.github.digitalsmile.goldberry.Host> host() {
+        return java.util.Optional.ofNullable(host);
     }
 
     /// Whether anything is waiting to be rebuilt.

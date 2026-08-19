@@ -70,6 +70,10 @@ public final class Popup implements AutoCloseable {
     /// Whether [#focusFirst] has run. See there.
     private boolean focused;
 
+    /// Which node to put the keyboard on when this popup first paints, or null
+    /// for "the first focusable one". See [#focusOn].
+    private String focusId;
+
     /// The last painted frame's geometry — see [#anchor].
     private java.util.List<HitTest.Region> regions = java.util.List.of();
 
@@ -282,6 +286,29 @@ public final class Popup implements AutoCloseable {
         return handled;
     }
 
+    /// Opens with the keyboard on the node carrying this `id`, rather than on the
+    /// first focusable one.
+    ///
+    /// What a control that has *already chosen* needs. A `select` showing its
+    /// third option opens a list whose third row is the one an arrow should move
+    /// from; starting at the first row makes `Down` mean "go to the second
+    /// option" whatever the value was, which is a control that loses the user's
+    /// place every time they open it
+    /// ([ADR-0141](../../../../../book/src/adr/0141-a-select-is-a-closed-control-and-a-list.md)).
+    ///
+    /// Called between [Host#popup] returning and the first frame, which is the
+    /// only window there is: the focus is placed after that frame, because
+    /// traversal walks an element tree that does not exist until then.
+    ///
+    /// A node that is not there when the frame comes falls back to the first
+    /// focusable one, because a list that opened with no focus at all would
+    /// ignore the first arrow key.
+    ///
+    /// @param id the node to focus, or null to restore the default
+    public void focusOn(String id) {
+        this.focusId = id;
+    }
+
     /// Puts the keyboard on this popup's first focusable node.
     ///
     /// Called after its first frame, because focus traversal walks the element
@@ -294,7 +321,37 @@ public final class Popup implements AutoCloseable {
         // that has already chosen (ADR-0112). The row is focused so that an arrow
         // has somewhere to start; `:focus-visible` is what draws it, and the
         // first arrow press is what sets that.
+        //
+        // The same `false` for a chosen node, and it matters more there: a
+        // `select` row focused *from the keyboard* would be selected on the spot
+        // by the option's own follow-the-focus rule, so opening the list would
+        // report a change nobody asked for.
+        var chosen = focusId == null ? null : elementWithId(tree.root(), focusId);
+        if (chosen != null) {
+            router.focus(chosen, false);
+            return;
+        }
         router.moveFocus(1, false);
+    }
+
+    /// The element in this popup's tree carrying `id`, or null.
+    ///
+    /// A walk rather than a lookup in [#regions], which [#anchor] uses: focus is
+    /// placed *before* anything asks where a node was painted, and a region
+    /// carries a rectangle where this needs the element itself.
+    private static io.github.digitalsmile.goldberry.widget.Element elementWithId(
+            io.github.digitalsmile.goldberry.widget.Element element, String id) {
+        if (element.widget() instanceof io.github.digitalsmile.goldberry.widget.Styled styled
+                && id.equals(styled.id())) {
+            return element;
+        }
+        for (var child : element.children()) {
+            var found = elementWithId(child, id);
+            if (found != null) {
+                return found;
+            }
+        }
+        return null;
     }
 
     /// Called by the launcher when the owner window sees input the popup should

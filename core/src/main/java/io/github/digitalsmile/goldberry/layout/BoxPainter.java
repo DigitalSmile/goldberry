@@ -220,6 +220,14 @@ public final class BoxPainter {
                 path.lineTo(width * 0.66, height * 0.5);
                 path.lineTo(width * 0.38, height * 0.74);
             }
+            case CHEVRON_DOWN -> {
+                // The same drawing as CHEVRON_END with the axes swapped, so a
+                // chevron in a select and a chevron in a menu are the same
+                // glyph seen from two sides rather than two glyphs.
+                path.moveTo(width * 0.26, height * 0.38);
+                path.lineTo(width * 0.5, height * 0.66);
+                path.lineTo(width * 0.74, height * 0.38);
+            }
             case PLUS -> {
                 path.moveTo(width * 0.5, height * 0.22);
                 path.lineTo(width * 0.5, height * 0.78);

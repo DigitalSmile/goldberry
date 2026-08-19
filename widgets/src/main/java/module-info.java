@@ -64,9 +64,20 @@ module io.github.digitalsmile.goldberry.widgets {
     exports io.github.digitalsmile.goldberry.widgets.controls.button;
     exports io.github.digitalsmile.goldberry.widgets.controls.checkbox;
     exports io.github.digitalsmile.goldberry.widgets.controls.knob;
+
+    /// `option`, which is `segmented`'s child node **and** `select`'s — one
+    /// widget by §3's specification, and in a package of its own from the moment
+    /// it had two callers rather than one (ADR-0141).
+    exports io.github.digitalsmile.goldberry.widgets.controls.option;
     exports io.github.digitalsmile.goldberry.widgets.controls.progressbar;
     exports io.github.digitalsmile.goldberry.widgets.controls.radio;
     exports io.github.digitalsmile.goldberry.widgets.controls.segmented;
+
+    /// `select` — the closed control and the list under it. The rows are
+    /// [io.github.digitalsmile.goldberry.widgets.controls.option.Option]s, so
+    /// this package exports one type and hides the parts that draw the value and
+    /// the chevron (ADR-0141).
+    exports io.github.digitalsmile.goldberry.widgets.controls.select;
     exports io.github.digitalsmile.goldberry.widgets.controls.slider;
     exports io.github.digitalsmile.goldberry.widgets.controls.spinner;
     exports io.github.digitalsmile.goldberry.widgets.controls.toggle;

@@ -112,14 +112,16 @@ the mechanism the sentence named.
   stated — the topmost overlay takes the pointer first, and a modal one takes it
   exclusively — and that belongs with the widget that needs it rather than with the
   layer. — [ADR-0100](adr/0100-a-window-has-a-layer-above-its-application.md)
-- **An overlay cannot be raised from inside the tree.** `Host.overlay` is the
-  application's door, which is the whole API a `hud` needs and half of what a `toast`
-  will: the thing raising a toast is usually a handler deep in the tree, and what it
-  wants is Flutter's `Overlay.of(context)`. Not built, deliberately — there is one
-  consumer and an interface designed against one caller is designed twice
-  ([ADR-0019](adr/0019-the-backend-spis-first-cut.md)) — and it would be implemented in
-  terms of what is here rather than instead of it. —
-  [ADR-0100](adr/0100-a-window-has-a-layer-above-its-application.md)
+- **A widget can reach its window, and the in-window overlay layer is still the
+  application's.** `BuildContext.host()` exists now, because `select` was the
+  second consumer and one is not enough to design an interface against — so a
+  control that must open something for itself can. What that answers is the
+  *popup* half; `Host.overlay` is still the door a `toast` raised from a handler
+  deep in the tree would want, and nothing wraps it in the
+  `Overlay.of(context)`-shaped call that would put a toast up from there without
+  the application's help. Smaller than it was, and the same shape. —
+  [ADR-0100](adr/0100-a-window-has-a-layer-above-its-application.md),
+  [ADR-0140](adr/0140-a-widget-may-reach-its-window.md)
 - **Overlays do not animate in or out, and `stack` is still owed.** §1.7's overlay curve
   wants a toast to arrive rather than appear, which is a transition on the widget and
   not on the layer. And `docs/core-widgets.md` §1's `stack` — "z-order layering;
@@ -371,11 +373,40 @@ the mechanism the sentence named.
   semantics are M5's. `Option` refuses a segment with neither a label nor an icon, which
   is the half that can be enforced today, and the other half is a gap the whole catalog
   shares rather than one this control invented.
-- **`option` lives in `…controls.segmented` and `select` will want it.** §3 gives both
-  controls the same child node, so the widget is shared by specification and not yet by
-  code. Moving it now would be guessing at what a `select`'s option needs — a model,
-  possibly a tree node, a popup to render in — so it stays with its only caller until
-  there are two (ADR-0092's rule about a reason that has not expired).
+- **A `select`'s typeahead works closed and not open.** §3 asks for typeahead
+  and a `TextEvent` goes to the *focused* node, which in an open list is an
+  `option` — so the list has nothing to intercept it in. `Handles` has an
+  `onKeyCapture` and no `onTextCapture`, and adding one is the whole fix; it was
+  not added on spec, because a capture phase is a routing rule and inventing one
+  for a single consumer is how a router grows two. —
+  [ADR-0141](adr/0141-a-select-is-a-closed-control-and-a-list.md)
+- **A `select` is as wide as its current value.** Nothing sizes it to its widest
+  option, so the field moves when the value does. No selector can measure a set
+  of options — the same wall `segmented` hit, where the answer was that the
+  control writes the width itself (ADR-0099) — and doing it here means measuring
+  text outside a layout pass, which only `Paragraph` can do and only for a style
+  that has been resolved. An application gives it a width, which is what a form
+  does anyway. —
+  [ADR-0141](adr/0141-a-select-is-a-closed-control-and-a-list.md)
+- **A `select`'s list is clamped rather than scrolled when it is taller than the
+  screen.** `Menus` caps its own content by estimating a row height (ADR-0118)
+  and this does not, so a long list loses its bottom exactly as a long menu used
+  to. It is the same gap in one more place, and it wants the same fix: the popup
+  facility reporting what it measured, so neither caller has to guess. —
+  [ADR-0118](adr/0118-a-popup-that-does-not-fit-scrolls.md),
+  [ADR-0141](adr/0141-a-select-is-a-closed-control-and-a-list.md)
+- **`select multiple=`, `autocomplete=` and `tree=` are not built.** Two of the
+  three are waiting on widgets rather than on decisions: `autocomplete=#true`
+  makes the closed control an editable `text-input` and `tree=#true` takes a
+  `tree`'s model, and neither of those widgets exists. `multiple=#true` renders
+  the selection as `badge` chips with a remove affordance, which needs nothing
+  that is not built, and is deferred as scope. —
+  [ADR-0141](adr/0141-a-select-is-a-closed-control-and-a-list.md)
+- **A `select` opened from the keyboard does not give focus back to the field.**
+  The general form of this is already on this list — §7's "restores focus on
+  close", which nothing remembers — and this is the first control for which it is
+  a control's own problem rather than an application's. —
+  [ADR-0104](adr/0104-a-popup-is-measured-then-placed.md)
 - **The circular drag is not built, and §3 offers it.** "Rotary: vertical-drag primary
   (**circular-drag optional**)". The vertical drag ships; the circular one needs an
   answer for the pointer crossing the 90° gap at the bottom, and every answer is either
@@ -799,6 +830,25 @@ the mechanism the sentence named.
 
 Kept rather than deleted: each is a trap somebody hit, and the reasoning that got
 out of it is usually worth more than the fact that it is fixed.
+
+- ~~**`option` lives in `…controls.segmented` and `select` will want it.**~~
+  **It lives in `…controls.option`, and `select` wants exactly what `segmented`
+  wanted.** The guess this entry refused to make — "a model, possibly a tree
+  node, a popup to render in" — turned out to be wrong in every part: a row in a
+  dropdown is the same record as a cell in a bar, and the whole difference
+  between them is a stylesheet's ancestor selector and one flag saying whether
+  the keyboard chooses or merely moves. ADR-0092's rule paid for itself twice
+  over — it stopped a generalisation that would have been made from the wrong
+  example. —
+  [ADR-0141](adr/0141-a-select-is-a-closed-control-and-a-list.md)
+- ~~**A press that dismisses a popup also activates what it lands on.**~~ **It
+  does not, and this was never written down as a gap because nothing had hit
+  it.** With a list open, the press on the field that dismisses it was also read
+  as "open it", so a `select` toggled twice and stayed open. The launcher already
+  took the press for the secondary button (ADR-0108); it now takes any press that
+  actually closed something, which is what the click that puts a menu away does
+  everywhere. —
+  [ADR-0140](adr/0140-a-widget-may-reach-its-window.md)
 
 - ~~**A popup does not size itself to its content.**~~ **It does, in two passes.**
   `RenderTree.measure` lays a tree out with no surface; the second pass exists

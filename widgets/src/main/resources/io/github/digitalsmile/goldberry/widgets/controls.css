@@ -57,6 +57,11 @@
   --gb-radio-height: var(--gb-control-height);
   --gb-toggle-height: var(--gb-control-height);
   --gb-segmented-height: var(--gb-control-height);
+  /* §3's row gives `text-input` and `select` one height between them, which is
+     the control height like everything else. The list's rows are
+     `--gb-list-row-height`, already declared above for `list` itself: a
+     dropdown's rows and a list's rows are the same rows. */
+  --gb-select-height: var(--gb-control-height);
 }
 
 /* ------------------------------------------------------------- no shrink --
@@ -110,6 +115,8 @@ knob-dial,
 segmented,
 segmented-track,
 segmented-indicator,
+select,
+select-chevron,
 option {
   flex-shrink: 0;
 }
@@ -294,6 +301,7 @@ radio:focus-visible,
 toggle:focus-visible,
 slider:focus-visible,
 knob:focus-visible,
+select:focus-visible,
 option:focus-visible {
   outline: 2px solid var(--gb-focus);
   outline-offset: 2px;
@@ -317,6 +325,7 @@ slider:disabled,
 knob:disabled,
 option:disabled,
 radio-group:disabled,
+select:disabled,
 segmented:disabled {
   opacity: 0.45;
   cursor: not-allowed;
@@ -1318,6 +1327,143 @@ option:checked {
    colour remap: the 45% in the states block above fades the bar, its pill, its
    segments and their labels together, because the painter multiplies opacity
    down the subtree (ADR-0077). */
+
+/* ---------------------------------------------------------------- select --
+ *
+ * §3's row: "`text-input` / `select` — height 32 (28); padding-x 8; radius 4;
+ * `body`", plus §3's `list` row for what is inside the popup — "height 32 (26);
+ * padding-x 12; selection = `--gb-selection` full-row".
+ *
+ * The anatomy:
+ *
+ *   select                    height, radius 4, padding-x 8, 1px --gb-border
+ *   |-- select-value          the chosen label, growing; `.placeholder` when it is not one
+ *   `-- select-chevron        16px, muted, saying there is a list under this
+ *
+ *   select-list               in a popup window of its own; a panel like `menu`
+ *   `-- option ...            a row, not a segment: full width, leading-aligned
+ *
+ * **A field and not a button**, which is the whole of why it carries a border
+ * and a 4px radius where `button` carries 8 and none: §3 files it with
+ * `text-input` rather than with the buttons, because what it is offering is a
+ * *value* and the affordance for that is a field the value sits in.
+ */
+select {
+  height: var(--gb-select-height);
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+  padding: 0 8px;
+  border-radius: 4px;
+  border: 1px solid var(--gb-border);
+  /* One step off the panel, like `badge`'s chip and for the same reason: a
+     field whose fill *was* `--gb-surface` would be a control that disappears on
+     a panel and is held together by a 1px border -- which is precisely the
+     defect `controls-on-surface-*` exists to catch, and why this control is in
+     that scene rather than exempt from it. */
+  background: var(--gb-surface-2);
+  color: var(--gb-text);
+  cursor: pointer;
+  font-size: var(--gb-font-body);
+  line-height: var(--gb-line-body);
+}
+
+/* §2.1's hover, as a step rather than a wash: this control has a surface of its
+   own, unlike a segment, so it can take the same treatment `panel` does. */
+select:hover {
+  border-color: var(--gb-text-muted);
+}
+
+/* The field while its list is showing. A class and not a pseudo-class -- §8's
+   subset has none meaning "expanded" (see `SelectField`) -- and the accent
+   border is the same one a focused field would carry, because "this is the
+   control the keyboard is in" is exactly what both states mean. */
+select.open {
+  border-color: var(--gb-accent);
+}
+
+/* The value grows so the chevron is pushed to the trailing edge, and a label
+   longer than the field ellipses rather than pushing the chevron out -- except
+   that nothing in this toolkit clips yet, which is the same limit `option`
+   documents two blocks up. */
+select-value {
+  flex-grow: 1;
+  flex-shrink: 1;
+}
+
+/* Nothing chosen reads as `--gb-text-muted`, which is §1.2's rank for text that
+   is standing in for content rather than being it. A class rather than a
+   pseudo-class for `select.open`'s reason. */
+select-value.placeholder {
+  color: var(--gb-text-muted);
+}
+
+/* The mark. 16px because that is the size every glyph in this catalog is built
+   at, and muted because it is the affordance rather than the value -- the same
+   rank `item-lead` gives a menu's tick. */
+select-chevron {
+  width: 16px;
+  height: 16px;
+  color: var(--gb-text-muted);
+}
+
+/* ------------------------------------------------------------ select-list --
+ *
+ * The panel, in a popup window of its own -- so like `popover` and `menu` it is
+ * the root of its own element tree and inherits nothing: every property it needs
+ * is written here, `color` included (ADR-0103).
+ */
+select-list {
+  flex-direction: column;
+  padding: 4px;
+  gap: 1px;
+  background: var(--gb-surface);
+  color: var(--gb-text);
+  border: 1px solid var(--gb-border);
+  border-radius: 8px;
+}
+
+/* An `option` in a list is a **row** where an `option` in a bar is a cell, and
+   these four declarations are the whole difference: full width, leading-aligned,
+   a list row's height, and §3's `body` rather than `body-strong` -- a bar's
+   labels are emphasised because they are all on screen competing, and a list's
+   are not.
+ *
+ * Scoped by the ancestor, which is what one widget in two surroundings looks
+ * like in CSS. It is not the improvisation ADR-0065 warns about: that one is
+ * using an ancestor to tell two different *widgets* apart, and this is one
+ * widget being told where it is (see `Option`). */
+select-list option {
+  height: var(--gb-list-row-height);
+  justify-content: flex-start;
+  border-radius: 4px;
+  font-weight: var(--gb-weight-regular);
+  color: var(--gb-text);
+}
+
+/* §3's `list` row: "selection = `--gb-selection` full-row". The colour stays
+   `--gb-text` -- `--gb-selection` is a translucent wash rather than a fill, so
+   the label under it does not need a foreground of its own the way a segment's
+   does on its opaque pill. */
+select-list option:checked {
+  background: var(--gb-selection);
+  color: var(--gb-text);
+}
+
+/* No ring in the list, which is ADR-0112's rule for a menu applied here for the
+   same reason: a rectangle inside a rectangle on every row in turn reads as
+   damage, and the highlight is the affordance every desktop list already uses.
+   The row the keyboard is on is also the row that is selected, because arrows
+   move the value (see `SelectList`) -- so this wash is what distinguishes a
+   list being driven from the keyboard from one merely showing its value. */
+select-list option:focus-visible {
+  outline: none;
+  background: var(--gb-overlay-hover);
+}
+
+select-list option:focus-visible:checked {
+  background: var(--gb-selection);
+}
 
 /* ------------------------------------------------------------------- hud --
  *
