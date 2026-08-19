@@ -35,7 +35,7 @@
    came from a document or from Java -- which is the point of the split being
    about *expressions* rather than about appearance. */
 #screen-controls, #screen-values, #screen-overlays,
-#screen-text, #screen-tabs
+#screen-text, #screen-tabs, #screen-scrolling
            { flex-direction: column; gap: 16px; flex-grow: 1; padding-top: 16px }
 
 /* A group's heading. This used to be `font-weight: 600` and nothing else, which
@@ -123,3 +123,53 @@
    surface, edge, radius and padding in `controls.css` — which it has to, being
    the root of its own element tree with nothing above it to inherit from
    (ADR-0103, ADR-0104). */
+
+/* --- the scrolling screen -------------------------------------------- */
+
+/* The list's frame. A fixed height rather than `flex-grow`, so the screen shows
+   a viewport that is visibly shorter than its content — a viewport that filled
+   the window would look exactly like a window. */
+.scroll-demo {
+  height: 320px;
+  padding: 0;
+}
+
+/* The row of jump buttons. `flex-shrink: 0` because the list below it grows,
+   and a toolbar that gave up its height first would vanish before it did. */
+.toolbar {
+  gap: 8px;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.caption {
+  font-size: 11px;
+  line-height: 16px;
+  color: var(--gb-text-subtle);
+}
+
+.scroll-row {
+  padding: 6px 12px;
+  font-size: 13px;
+  line-height: 18px;
+  color: var(--gb-text-muted);
+}
+
+/* A section heading. It gets its surface from `:affixed` below rather than
+   here: an opaque header at rest would draw a band across a list that has not
+   scrolled, which is exactly the thing that should only appear on lift. */
+section-header {
+  padding: 8px 12px;
+  font-size: 13px;
+  line-height: 18px;
+  font-weight: 600;
+  color: var(--gb-text);
+}
+
+/* The moment it lifts. §1's whole argument for `:affixed` being a pseudo-class:
+   no selector can say "this node is currently over another one", and a sticky
+   header without a surface has the rows travelling *through* it. */
+.section:affixed > affix-content > section-header {
+  background: var(--gb-surface);
+  border-bottom: 1px solid var(--gb-border);
+}

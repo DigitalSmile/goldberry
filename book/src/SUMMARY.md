@@ -127,6 +127,7 @@
 - [ADR-0118 A popup that does not fit scrolls, and so does everything else](adr/0118-a-popup-that-does-not-fit-scrolls.md)
 - [ADR-0119 A widget may be told where it is](adr/0119-a-widget-may-be-told-where-it-is.md)
 - [ADR-0120 A widget scrolls itself into view](adr/0120-a-widget-scrolls-itself-into-view.md)
+- [ADR-0121 A tour is a veil and a sequence](adr/0121-a-tour-is-a-veil-and-a-sequence.md)
 
 ---
 

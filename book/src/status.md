@@ -13,7 +13,7 @@ page is the other half: it says what works and what it cost to find out.
 | [M0 — Skeleton](#m0--skeleton) | **done** | One native library on four targets, two backends, a window at the right fractional DPI |
 | [M1 — Vertical slice](#m1--vertical-slice) | **started** | Blend2D rasterizes, HarfBuzz shapes, text lays out, and a frame's cost is measured |
 | [M2 — Widgets & style](#m2--widgets--style) | **engines done, catalog complete but `select`** | CSS, KDL, the three trees, input, motion — and every §3 control except the one that needs a popup |
-| [M3 — Shell](#m3--shell) | **started** | Both places an overlay can go — the in-window layer and real popup windows — plus `tabs` and the `scroll` viewport three other things were waiting on |
+| [M3 — Shell](#m3--shell) | **started** | Both places an overlay can go, `tabs`, and the whole `scroll` family — viewport, bars, `affix`, `scrollIntoView` and `tour` |
 | [M4 — GPU](#m4--gpu) | not started | `canvas3d`, GPU composition |
 | [M5 — Hardening](#m5--hardening) | not started | Text editing depth, AccessKit bridge, IME preedit, docs, 0.1 release |
 
@@ -1543,6 +1543,63 @@ horizontal consumer could have found it.
 **Still owed:** `scrollIntoView` (which `affix`, `tour` and selecting an
 off-screen tab all want), the "always show scroll bars" reserved gutter, and the
 chevrons at the ends of a tab strip. All of it is in [TODO.md](TODO.md).
+
+### `affix`, `scrollIntoView` and `tour`
+
+The three things `scroll` was owed, and one more geometry facility to carry them.
+
+**`affix`** is §1's sticky child. Every geometry facility so far carried a
+*size*; this one needs a *position*, and one no widget can compute — whether a
+header has gone above its viewport is a comparison between where it was painted
+and where a node it cannot see has its edge. `Located` answers it, and the clip
+is what made it small: the obvious reading of "the nearest scroll view's
+rectangle" is an ancestor walk with a cast, coupling the router to a widget in
+another module and answering nothing for a node inside two viewports. ADR-0114's
+clip is already that rectangle, already computed, already on every region for hit
+testing. Nesting composes for free, and "nothing clips me" resolves to the window,
+so an `affix` outside any scroll view pins to the page rather than being a special
+case.
+
+A widget told where it is must not move itself, or it is told a new position and
+moves again forever. The escape is structural: `affix` is a hole that never moves
+and a content node that slides under it — which is the same shape §1 needs for the
+hole anyway, so the constraint and the requirement turn out to be one thing.
+
+**`scrollIntoView`** went the wrong way first, and that is the useful part. A
+`Reveal` widget wrapping whatever wanted to be seen reads better than a
+controller and broke two tab goldens and two motion tests the moment it went
+around a tab header: a wrapper is a box, and a box in a flex row changes how that
+row is sized. There is no node transparent to flexbox, so any widget that adds
+one to observe layout can change the layout it observes. §1 words this as an API
+rather than as markup, and that is the load-bearing part of the wording — an API
+adds no node. `Tab` was already a `Handles` node and is now a `Located` one, with
+no parent gained.
+
+**`tour`** is §5's guided sequence: a veil, a card, Back/Next/Skip, `Esc` to
+skip the whole thing, and a target named by id that is skipped with a warning
+when it is not on screen. The veil is four rectangles rather than one with a
+hole, because §8's subset has no mask — and the workaround turned out better than
+the thing it replaced: nothing covers the target, so it stays live and a stop
+that says "click here" can be obeyed without the tour arranging an exception to
+itself. It needed one small facility, `Host.fill`, which is an overlay inset on
+all four sides rather than two.
+
+### The showcase screen, which found the bug
+
+A sixth gallery screen — a list with four sticky headers, jump buttons, and a
+tour that points at them. It is the one screen *not* wrapped in the gallery's own
+viewport, because §2.4 bans nested same-axis scrollers and the screen that
+demonstrates the rule is where it has to be kept.
+
+It found a real hole within a frame. `Located` fired only when a rectangle
+changed, and a header asked to scroll itself into view is *in exactly the
+position it was already in* — so the request was made and never heard. The cache
+now holds the widget as well as the rectangles, compared by identity: a rebuilt
+node hears again even if it has not moved, and a still window still notifies
+nobody, because an element that was not rebuilt holds the same instance.
+`Measured` had the same latent bug and has the same fix; nothing had hit it,
+because its one consumer is a scrollbar whose state is stable. Which is what a
+second consumer is for.
 
 ### Not started
 

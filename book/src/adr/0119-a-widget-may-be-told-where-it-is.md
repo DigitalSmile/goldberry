@@ -94,6 +94,24 @@ should gain a shadow. Mirrored onto the element from `Styled.isAffixed()` the wa
 `:checked` and `:disabled` are, so a stylesheet, a hit test and the widget agree
 without three of them asking separately.
 
+### It fires when the widget changes, not only when the rectangle does
+
+The first version compared rectangles alone, and the showcase found the hole in
+it within a frame: a section header asked to scroll itself into view is *in
+exactly the position it was in*, so nothing had changed and it was never told
+anything. The request was made and never heard.
+
+So the cache holds the widget as well as the two rectangles, compared by
+**identity**. A node that has just been rebuilt hears again even if it has not
+moved, because a rebuilt node may want something different from the same
+numbers. And §1.7's idle guarantee survives intact: an element that was not
+rebuilt holds the same widget instance, so a still window still notifies nobody.
+
+[ADR-0117](0117-a-widget-may-be-told-what-it-measured.md)'s `Measured` had the
+same latent bug and now has the same fix. Nothing had hit it, because its one
+consumer is a scrollbar whose state is stable — which is exactly the kind of gap
+a second consumer finds.
+
 ## Consequences
 
 There are now three ways for a widget to learn geometry, which is two more than a

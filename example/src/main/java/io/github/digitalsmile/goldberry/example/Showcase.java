@@ -24,6 +24,8 @@ import io.github.digitalsmile.goldberry.widgets.menu.Menu;
 import io.github.digitalsmile.goldberry.widgets.menu.Menus;
 import io.github.digitalsmile.goldberry.widgets.menu.Separator;
 import io.github.digitalsmile.goldberry.widgets.overlay.hud.Hud;
+import io.github.digitalsmile.goldberry.widgets.overlay.tour.Stop;
+import io.github.digitalsmile.goldberry.widgets.overlay.tour.Tours;
 import java.util.ArrayList;
 import java.util.List;
 import org.slf4j.Logger;
@@ -139,7 +141,8 @@ public final class Showcase implements Application {
                         actions(model, this::toggleMenu, this::toggleHud),
                         Icons.strict().bind("palette", paletteIcon).bind("plus", plusIcon),
                         ShowcaseModelRegistry.bindings(model)),
-                plusIcon);
+                plusIcon,
+                this::startTour);
 
         model.onChanged(host::repaint);
         model.onRestyle(() -> {
@@ -157,11 +160,12 @@ public final class Showcase implements Application {
         // *during* a resize or a drag, when there is something to watch.
         host.shortcut(Mod.CTRL.and(Key.F), this::toggleHud);
 
-        // One accelerator per screen, which is what a gallery of five wants —
+        // One accelerator per screen, which is what a gallery of six wants —
         // and three ways to set one property rather than three copies of a
         // selection: the strip, these keys, and the menu (ADR-0110).
-        var screens = List.of("controls", "values", "text", "overlays", "tabs");
-        var digits = List.of(Key.DIGIT_1, Key.DIGIT_2, Key.DIGIT_3, Key.DIGIT_4, Key.DIGIT_5);
+        var screens = List.of("controls", "values", "text", "overlays", "tabs", "scrolling");
+        var digits = List.of(Key.DIGIT_1, Key.DIGIT_2, Key.DIGIT_3, Key.DIGIT_4, Key.DIGIT_5,
+                Key.DIGIT_6);
         for (var index = 0; index < screens.size(); index++) {
             var name = screens.get(index);
             host.shortcut(Mod.CTRL.and(digits.get(index)), () -> model.pickScreen(name));
@@ -203,6 +207,36 @@ public final class Showcase implements Application {
     /// @param model     the model whose `@Action`s the processor generated
     /// @param openMenu  what `app.open-menu` does
     /// @param toggleHud what `app.toggle-hud` does
+    /// Starts §5's `tour` over the scrolling screen.
+    ///
+    /// The application's rather than the screen's, because starting one needs a
+    /// [Host] and a widget has none — the same seam `Menus.open` sits on
+    /// ([ADR-0121](../../../../../../book/src/adr/0121-a-tour-is-a-veil-and-a-sequence.md)).
+    ///
+    /// The screen is selected first, because a tour whose targets are on a screen
+    /// nobody is looking at would skip every stop and end immediately — which is
+    /// correct behaviour and a useless demonstration.
+    private void startTour() {
+        model.pickScreen("scrolling");
+        if (host == null) {
+            return;
+        }
+        // After the frame that switches screens, so the targets exist to be
+        // found. §5 asks a tour to wait for a frame before positioning, and this
+        // is that wait at its coarsest: the screen has to be *built* before any
+        // of it can be anchored to.
+        host.after(java.time.Duration.ofMillis(80), () -> Tours.start(host, List.of(
+                new Stop("jump-bar", "Jump to a section",
+                        "These ask the list to bring a section into view."
+                                + " The viewport moves the least it can."),
+                new Stop("scroll-demo", "A viewport of its own",
+                        "Scroll it with the wheel, or focus it and use PageDown."
+                                + " The headers stick as their sections pass."),
+                new Stop("gallery", "The gallery strip",
+                        "This scrolls too — and selecting a tab that has scrolled"
+                                + " out of the strip brings it back."))));
+    }
+
     static Actions actions(ShowcaseModel model, Runnable openMenu, Runnable toggleHud) {
         return ShowcaseModelRegistry.actions(model)
                 .bind("app.open-menu", openMenu)

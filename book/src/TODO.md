@@ -181,6 +181,29 @@ the mechanism the sentence named.
 
 ## The catalog: specified and unbuilt
 
+- **A `tour` cannot find the viewport its target is in.** §5 asks it to scroll a
+  target into view, and `Stop` takes a `ScrollController` the application
+  supplies. Discovering it means walking from an element to its nearest scrolling
+  ancestor, which is a `:core`-to-`:widgets` dependency the toolkit does not have.
+  ADR-0120 avoided the same wall by turning the question around; here there is
+  nothing to turn around, because the tour is not the thing being revealed. —
+  [ADR-0121](adr/0121-a-tour-is-a-veil-and-a-sequence.md)
+- **A tour card's height is estimated, not measured.** It decides whether it fits
+  below its target from a constant. Measuring needs the measure-then-place
+  machinery ADR-0104 built, which works on *windows* rather than on boxes. Being
+  wrong puts a card above its target when it would have fitted below. —
+  [ADR-0121](adr/0121-a-tour-is-a-veil-and-a-sequence.md)
+- **`--gb-scrim` does not exist.** A tour band's 0.55 black is §1.2's scrim
+  written as a literal, because there is one consumer and ADR-0019's rule says
+  wait for the second. `dialog` will be it. —
+  [ADR-0121](adr/0121-a-tour-is-a-veil-and-a-sequence.md)
+- **A tour has no arrival or exit.** §1.7's overlay curve wants one to arrive
+  rather than appear, and stops change instantly — §5's row asks for the veil
+  cut-out to `translate` and resize between stops. That is `TabPhase` again: the
+  enter/exit lifecycle built for one widget, wanted by a third. —
+  [ADR-0121](adr/0121-a-tour-is-a-veil-and-a-sequence.md),
+  [ADR-0109](adr/0109-a-tab-arrives-and-departs-on-the-frame-clock.md)
+
 - **The gallery goldens cannot see typography at all.** `GalleryGoldenTest` builds
   its renderer with the single-font constructor — which ignores `font-family`,
   `font-size` and `font-weight` by design, so that a golden image is not a test of

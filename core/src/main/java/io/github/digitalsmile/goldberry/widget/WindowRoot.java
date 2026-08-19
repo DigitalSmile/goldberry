@@ -121,7 +121,12 @@ public record WindowRoot(Widget content, Property<List<Overlay>> overlays)
             var entry = entries.get(i - 1);
             boxes.add(children.get(i)
                     .position(PositionType.ABSOLUTE)
-                    .inset(entry.corner().insets(entry.margin())));
+                    // Insets on all four sides is Yoga's "fill"; two sides is a
+                    // corner. One flag, no second placement path (ADR-0121).
+                    .inset(entry.isFilling()
+                            ? io.github.digitalsmile.goldberry.natives.yoga.Insets.all(
+                                    io.github.digitalsmile.goldberry.natives.yoga.StyleLength.points(0))
+                            : entry.corner().insets(entry.margin())));
         }
         return Box.of().style(style).children(boxes.toArray(Box[]::new));
     }

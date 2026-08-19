@@ -4,6 +4,7 @@ import io.github.digitalsmile.goldberry.backend.Cursor;
 import io.github.digitalsmile.goldberry.css.Selector.PseudoClass;
 import io.github.digitalsmile.goldberry.backend.LogicalRect;
 import io.github.digitalsmile.goldberry.widget.Element;
+import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widget.Styled;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -116,7 +117,12 @@ public final class PointerRouter {
     /// Both, and not just the bounds: a scroll view whose viewport is unchanged
     /// while its content grew is exactly the case a scrollbar has to redraw for,
     /// and a check on the outer rectangle alone would miss every one of them.
-    private record Measurement(Extent bounds, Extent part) {
+    private record Measurement(Widget widget, Extent bounds, Extent part) {
+
+        boolean sameAs(Measurement other) {
+            return other != null && other.widget == widget
+                    && other.bounds.equals(bounds) && other.part.equals(part);
+        }
     }
 
     /// Tells every widget that asked what the frame just laid it out as.
@@ -140,7 +146,10 @@ public final class PointerRouter {
                     part = namedExtent;
                 }
             }
-            var measurement = new Measurement(bounds, part);
+            // The widget as well as the numbers, for [Location]'s reason: a node
+            // that has been rebuilt may act differently on measurements it has
+            // already been given.
+            var measurement = new Measurement(element.widget(), bounds, part);
             if (next == null) {
                 next = new java.util.IdentityHashMap<>();
             }
@@ -148,7 +157,7 @@ public final class PointerRouter {
             // Only on a change: a still window must notify nothing, or §1.7's
             // idle frame loop would be woken every frame by a widget being told
             // what it already knew.
-            if (measurement.equals(measuredBounds.get(element))) {
+            if (measurement.sameAs(measuredBounds.get(element))) {
                 continue;
             }
             measured.measured(bounds, part);
@@ -160,7 +169,23 @@ public final class PointerRouter {
     /// nothing — [#measuredBounds]'s reason exactly.
     private java.util.Map<Element, Location> locations = java.util.Map.of();
 
-    private record Location(LogicalRect self, LogicalRect clip) {
+    /// What a [Located] widget was last told, **and which widget was told it**.
+    ///
+    /// The widget matters as much as the rectangles. A node that has just been
+    /// rebuilt may want something different from the same numbers — a header that
+    /// has this moment been asked to scroll itself into view is in exactly that
+    /// position, and comparing rectangles alone would decide it had nothing to
+    /// hear and never call it ([ADR-0119]).
+    ///
+    /// Compared by **identity**, which keeps §1.7's idle guarantee intact: an
+    /// element that was not rebuilt holds the same widget instance, so a still
+    /// window still notifies nobody.
+    private record Location(Widget widget, LogicalRect self, LogicalRect clip) {
+
+        boolean sameAs(Location other) {
+            return other != null && other.widget == widget
+                    && other.self.equals(self) && other.clip.equals(clip);
+        }
     }
 
     /// Tells every [Located] widget where the frame just put it.
@@ -177,12 +202,12 @@ public final class PointerRouter {
                     || !(element.widget() instanceof Located located)) {
                 continue;
             }
-            var location = new Location(paintedRect(region), clipRect(region));
+            var location = new Location(element.widget(), paintedRect(region), clipRect(region));
             if (next == null) {
                 next = new java.util.IdentityHashMap<>();
             }
             next.put(element, location);
-            if (location.equals(locations.get(element))) {
+            if (location.sameAs(locations.get(element))) {
                 continue;
             }
             located.located(location.self(), location.clip());

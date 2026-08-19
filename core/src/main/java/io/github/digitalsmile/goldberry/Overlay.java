@@ -61,6 +61,26 @@ public final class Overlay {
     /// needs to be able to say "this widget, that corner" without a launcher.
     ///
     /// A detached overlay is inert: [#remove()] does nothing and nothing draws it.
+    /// An overlay laid out to **the whole window** rather than pinned to a
+    /// corner.
+    ///
+    /// Every other overlay is content-sized and tucked into a corner, which is
+    /// what a `hud` or a `toast` wants. A `tour` wants the opposite: it dims
+    /// everything except one widget, so it has to cover everything
+    /// ([ADR-0121](../../../book/src/adr/0121-a-tour-is-a-veil-and-a-sequence.md)).
+    ///
+    /// The corner is [Corner#TOP_START] and the margin zero, which with insets on
+    /// all four sides is Yoga's way of saying "fill" — so this adds a flag and no
+    /// new placement code.
+    public static Overlay filling(Widget widget) {
+        return new Overlay(widget, Corner.TOP_START, 0, true);
+    }
+
+    /// Whether this overlay fills the window — see [#filling].
+    public boolean isFilling() {
+        return filling;
+    }
+
     public static Overlay of(Widget widget, Corner corner) {
         return new Overlay(widget, corner, WINDOW_MARGIN);
     }
@@ -70,7 +90,14 @@ public final class Overlay {
         return new Overlay(widget, corner, margin);
     }
 
+    private final boolean filling;
+
     private Overlay(Widget widget, Corner corner, float margin) {
+        this(widget, corner, margin, false);
+    }
+
+    private Overlay(Widget widget, Corner corner, float margin, boolean filling) {
+        this.filling = filling;
         this.widget = Objects.requireNonNull(widget, "widget");
         this.corner = Objects.requireNonNull(corner, "corner");
         if (!Float.isFinite(margin) || margin < 0) {

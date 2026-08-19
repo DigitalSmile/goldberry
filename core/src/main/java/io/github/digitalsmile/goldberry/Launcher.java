@@ -530,8 +530,16 @@ final class Launcher implements Host {
     }
 
     @Override
+    public Overlay fill(Widget widget) {
+        return attach(Overlay.filling(widget));
+    }
+
+    @Override
     public Overlay overlay(Widget widget, Corner corner, float margin) {
-        var entry = Overlay.of(widget, corner, margin);
+        return attach(Overlay.of(widget, corner, margin));
+    }
+
+    private Overlay attach(Overlay entry) {
         var next = new ArrayList<>(overlays.get());
         next.add(entry);
         // A fresh list rather than a mutation of the one in the property: the

@@ -1768,3 +1768,64 @@ affix-content {
 affix:affixed > affix-content {
   background: var(--gb-surface);
 }
+
+/* --- tour (§5) -------------------------------------------------------- */
+
+/* The node that fills the window. It paints nothing itself: the veil under it
+   does the dimming and the card does the talking. */
+tour {
+  background: transparent;
+}
+
+tour-veil {
+  background: transparent;
+}
+
+/* §1.2's scrim. Dark enough that the lit widget is unmistakably the subject and
+   light enough that the surrounding layout is still readable -- a tour that
+   blacked out its context would be a modal dialog with extra steps. */
+tour-band {
+  background: rgba(0, 0, 0, 0.55);
+}
+
+/* §1.5's dialog elevation: the 12 radius, because a tour card is a dialog by
+   any other name. */
+tour-card {
+  background: var(--gb-surface);
+  border: 1px solid var(--gb-border);
+  border-radius: 12px;
+  padding: 16px;
+  gap: 8px;
+}
+
+.tour-title {
+  font-size: 15px;
+  line-height: 20px;
+  font-weight: 600;
+  color: var(--gb-text);
+}
+
+.tour-body {
+  font-size: 13px;
+  line-height: 18px;
+  color: var(--gb-text-muted);
+}
+
+/* The counter reads as metadata rather than as prose, which is what stops "3 of
+   5" being mistaken for part of the sentence above it. */
+.tour-count {
+  font-size: 11px;
+  line-height: 16px;
+  color: var(--gb-text-subtle);
+}
+
+/* Skip is the way out and must not compete with the way on. */
+.tour-skip {
+  background: transparent;
+  color: var(--gb-text-muted);
+}
+
+.tour-next {
+  background: var(--gb-accent);
+  color: var(--gb-on-accent);
+}

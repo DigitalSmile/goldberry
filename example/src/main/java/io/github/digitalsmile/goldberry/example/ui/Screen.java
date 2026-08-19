@@ -44,7 +44,8 @@ import java.util.List;
 /// @param model    the state every screen reads
 /// @param inflater what turns the three documents into widgets
 /// @param plus     the icon on [Content]'s primary button
-public record Screen(ShowcaseModel model, KdlInflater<Widget> inflater, Icon plus)
+public record Screen(ShowcaseModel model, KdlInflater<Widget> inflater, Icon plus,
+        Runnable startTour)
         implements Widget.Stateful {
 
     @Override
@@ -119,7 +120,11 @@ public record Screen(ShowcaseModel model, KdlInflater<Widget> inflater, Icon plu
                     new Tab("values", "Values", scrolled(values)),
                     new Tab("text", "Text", scrolled(new Content(model, widget().plus()))),
                     new Tab("overlays", "Overlays", scrolled(overlays)),
-                    new Tab("tabs", "Tabs", scrolled(new TabsDemo(model)))),
+                    new Tab("tabs", "Tabs", scrolled(new TabsDemo(model))),
+                    // Not `scrolled`: this screen owns a viewport of its own, and
+                    // §2.4 bans nested same-axis scrollers — so the screen that
+                    // demonstrates the rule is where the gallery has to keep it.
+                    new Tab("scrolling", "Scrolling", new Scrolling(widget().startTour()))),
                     model.screen(), model::pickScreen, null, null, Attributes.NONE)
                     .id("gallery");
 

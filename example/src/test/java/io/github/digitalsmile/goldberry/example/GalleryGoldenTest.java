@@ -71,7 +71,7 @@ class GalleryGoldenTest {
                 Showcase.actions(model, () -> { }, () -> { }),
                 Icons.strict().bind("palette", palette).bind("plus", plus),
                 ShowcaseModelRegistry.bindings(model));
-        var tree = new ElementTree(new Screen(model, inflater, plus));
+        var tree = new ElementTree(new Screen(model, inflater, plus, () -> { }));
 
         var sheets = new ArrayList<Stylesheet>(Controls.stylesheets(theme, model.density()));
         sheets.add(Stylesheet.resource(CascadeLayer.APPLICATION, Showcase.class, "showcase.css"));
@@ -116,6 +116,20 @@ class GalleryGoldenTest {
     @DisplayName("the Tabs screen")
     void tabs() {
         paint("gallery-tabs", "tabs", Theme.NORD_DARK);
+    }
+
+    /// The sixth screen, and the only one that is not wrapped in the gallery's
+    /// own viewport — it owns one, and §2.4 bans nesting two on an axis.
+    ///
+    /// It cannot show what it is *for*. A thumb has faded by the time anything is
+    /// painted, a sticky header at rest is a header, and a tour has not been
+    /// started. What it does prove is that the screen lays out: four sections in a
+    /// viewport shorter than they are, with a toolbar above that does not give up
+    /// its height to them.
+    @Test
+    @DisplayName("the Scrolling screen")
+    void scrolling() {
+        paint("gallery-scrolling", "scrolling", Theme.NORD_DARK);
     }
 
     /// One screen on the light theme, because a gallery that only ever proves

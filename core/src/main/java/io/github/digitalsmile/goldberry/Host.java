@@ -81,6 +81,17 @@ public interface Host {
     /// in logical pixels, instead of [Overlay#WINDOW_MARGIN].
     Overlay overlay(Widget widget, Corner corner, float margin);
 
+    /// An overlay covering the **whole window** rather than tucked into a corner.
+    ///
+    /// For the one thing a corner cannot express: a `tour` dims everything except
+    /// the widget it is describing, so it has to reach every edge
+    /// ([ADR-0121](../../../../../../book/src/adr/0121-a-tour-is-a-veil-and-a-sequence.md)).
+    ///
+    /// It takes the pointer wherever it is opaque, which for a veil is
+    /// everywhere except the cut-out — that is the point of a veil, and it is
+    /// what makes a tour modal without anything having to say so.
+    Overlay fill(Widget widget);
+
     /// The painted rectangle of the node with this `id`, in the window's logical
     /// coordinates.
     ///
