@@ -108,6 +108,19 @@ modelTasks.eachWithIndex { task, index ->
     task.configure { mustRunAfter catalogTasks[index] }
 }
 
+// So that a task which asks for BOTH -- `:example:nativeImage` does -- gets them
+// in the only order that means anything. `weaveModels` rewrites the compiled
+// classes in place, so a `jar` that ran first would package the unwoven ones and
+// the image would be built from a model bound reflectively, which is the one
+// thing an image must not do (ADR-0155).
+//
+// `mustRunAfter` and not `dependsOn`: an ordinary `jar` does not want the model
+// weaver at all, and this says nothing until something else has put it in the
+// graph.
+tasks.named('jar') {
+    mustRunAfter modelTasks[0]
+}
+
 // `classes` is what `jar`, `run` and test compilation all reach through, and
 // `testClasses` is what every Test task reaches through -- so hanging the catalog
 // off them means there is no way to consume a module whose widgets are not

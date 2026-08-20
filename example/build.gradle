@@ -287,3 +287,173 @@ tasks.named('run') {
         }
     }
 }
+
+// --- GraalVM native image (ADR-0127, ADR-0156) ---------------------------
+//
+// The artifact ADR-0127's whole design was for: a closed world, no class
+// loading, no reflection on the binding path, and a start-up measured against
+// the process rather than against the JVM.
+//
+// Two tasks, because an image of this application needs two things and only one
+// of them is a compiler invocation:
+//
+//   nativeImageMetadata  runs the showcase under GraalVM's tracing agent and
+//                        writes what it observed into src/main/resources. FFM
+//                        descriptors, resources, and the reflection logback
+//                        does -- traced rather than hand-written (ADR-0156).
+//   nativeImage          runs `native-image` over the woven jar and that
+//                        metadata.
+//
+// Both need a GraalVM. There is none in this repository's toolchain and none in
+// CI, so neither task is wired into `build` and neither has been run here --
+// what is checked in is the invocation, not a binary. See book/src/native.md.
+
+def graalvmHome = providers.gradleProperty('graalvm.home')
+        .orElse(providers.environmentVariable('GRAALVM_HOME'))
+
+def windows = hostTarget.startsWith('windows')
+
+/// The GraalVM tool named, or a failure that says how to point at one.
+///
+/// Resolved inside the task rather than at configuration time, so a build that
+/// is not making an image does not need a GraalVM to configure.
+def graalTool = { String tool ->
+    if (!graalvmHome.present) {
+        throw new GradleException("""
+            No GraalVM found. ${tool} ships with the GraalVM distribution, not with a stock JDK.
+
+              ./gradlew :example:nativeImage -Pgraalvm.home=/path/to/graalvm
+              GRAALVM_HOME=/path/to/graalvm ./gradlew :example:nativeImage
+
+            GraalVM for JDK ${java.toolchain.languageVersion.get().asInt()} or newer: https://www.graalvm.org/downloads/
+            """.stripIndent())
+    }
+    def executable = new File(graalvmHome.get(), "bin/${tool}" + (windows ? '.cmd' : ''))
+    if (!executable.isFile()) {
+        throw new GradleException(
+                "${graalvmHome.get()} has no bin/${tool}. That is a JDK but not a GraalVM"
+                        + " -- native-image and the tracing agent ship only with the latter.")
+    }
+    executable.absolutePath
+}
+
+// Beside the code, because it is source: the agent produces it, a human reads
+// the diff, and it is packaged into the jar like any other resource so that a
+// downstream image build finds it without being told (ADR-0156).
+def metadataDir = layout.projectDirectory
+        .dir('src/main/resources/META-INF/native-image/io.github.digitalsmile/goldberry-example')
+
+tasks.register('nativeImageMetadata', JavaExec) {
+    group = 'distribution'
+    description = 'Runs the showcase under GraalVM\'s agent and records what an image will need'
+    dependsOn tasks.named('classes')
+
+    mainClass = 'io.github.digitalsmile.goldberry.example.Showcase'
+    mainModule = 'io.github.digitalsmile.goldberry.example'
+    classpath = sourceSets.main.runtimeClasspath
+
+    // A real run, and that is the point: the agent records what this window
+    // actually did. A screen the run never reaches contributes nothing, which is
+    // why the frame count is high enough to open the menu and the HUD and why
+    // ADR-0156 says the trace is checked in and reviewed rather than trusted.
+    args = ['--frames=120']
+
+    outputs.dir(metadataDir)
+    outputs.upToDateWhen { false }
+
+    doFirst {
+        executable = graalTool('java')
+        metadataDir.asFile.mkdirs()
+
+        jvmArgs = [
+                '--enable-native-access=io.github.digitalsmile.goldberry.natives',
+                "-agentlib:native-image-agent=config-output-dir=${metadataDir.asFile.absolutePath}",
+                // Headless, so this is runnable on a build machine. ADR-0155's
+                // sweep and every binding still happen; only the compositor does
+                // not.
+                '-Dgoldberry.backend.videoDriver=dummy',
+        ]
+        if (hostTarget.startsWith('macos')) {
+            jvmArgs += '-XstartOnFirstThread'  // ADR-0039
+        }
+        if (hostLibrary.isFile()) {
+            systemProperty 'goldberry.native.library', hostLibrary.absolutePath
+        } else {
+            throw new GradleException(
+                    "no libgoldberry at ${hostLibrary}. Build it first: ./gradlew :natives:cmakeBuild")
+        }
+    }
+}
+
+def imageDirNative = layout.buildDirectory.dir('native')
+def imageName = "goldberry-showcase-${hostTarget}"
+
+tasks.register('nativeImage', Exec) {
+    group = 'distribution'
+    description = 'Builds a GraalVM native image of the showcase'
+
+    // Both, and in this order -- see `mustRunAfter` in goldberry.weave.gradle.
+    // An image built from a model bound at run time would be an image that binds
+    // by reflection, which is the one thing ADR-0155 says an image never does.
+    dependsOn tasks.named('weaveModels')
+    dependsOn tasks.named('jar')
+
+    def runtimeClasspath = configurations.runtimeClasspath
+    def appJar = tasks.named('jar').flatMap { it.archiveFile }
+    def target = imageDirNative
+
+    inputs.files(runtimeClasspath).withPathSensitivity(PathSensitivity.RELATIVE)
+    inputs.files(appJar)
+    // A FileTree and not `inputs.dir`, because an image can be built before the
+    // agent has ever run -- worse, without the metadata, but `native-image` is
+    // what should say so rather than Gradle refusing to configure the task.
+    inputs.files(fileTree(metadataDir)).withPropertyName('reachabilityMetadata')
+    outputs.dir(target)
+
+    doFirst {
+        target.get().asFile.mkdirs()
+        def modulePath = (runtimeClasspath.files.toList() + [appJar.get().asFile])
+                .collect { it.absolutePath }
+                .join(File.pathSeparator)
+
+        commandLine graalTool('native-image'),
+                '--module-path', modulePath,
+                '--module', "${appModule}/io.github.digitalsmile.goldberry.example.Showcase",
+                '-o', new File(target.get().asFile, imageName).absolutePath,
+                // JEP 472, the same module the jar names (ADR-0007).
+                '--enable-native-access=io.github.digitalsmile.goldberry.natives',
+                // A fallback image is a JVM in a trench coat: it starts, it
+                // works, and it is not what this task claims to have produced.
+                // Failing is the useful answer.
+                '--no-fallback',
+                // Names the class and the trace that reached it rather than a
+                // stack in the builder.
+                '-H:+ReportExceptionStackTraces',
+                // SDL, Blend2D and HarfBuzz are opened with dlopen at run time
+                // by NativeLibrary, so nothing here is statically linked and the
+                // image needs libgoldberry beside it exactly as the jlink one
+                // does.
+                '--initialize-at-run-time=io.github.digitalsmile.goldberry.natives.NativeLibrary'
+    }
+
+    doLast {
+        // The library, next to the binary, and a launcher that points at it --
+        // the same arrangement showcaseImage uses and for the same reason: the
+        // path is only known relative to wherever this is unpacked.
+        def image = target.get().asFile
+        def libDir = new File(image, 'lib')
+        libDir.mkdirs()
+        new File(libDir, hostLibrary.name).bytes = hostLibrary.bytes
+
+        if (!windows) {
+            def launcher = new File(image, 'showcase')
+            launcher.text = """\
+#!/bin/sh
+APP_HOME=\$(cd "\$(dirname "\$0")" && pwd)
+exec "\$APP_HOME/${imageName}" \\
+  -Dgoldberry.native.library="\$APP_HOME/lib/${hostLibrary.name}" "\$@"
+"""
+            launcher.setExecutable(true, false)
+        }
+    }
+}

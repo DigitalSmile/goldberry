@@ -2254,6 +2254,28 @@ is the `scroll` box's.
   unnecessary, which the weaver already does, one flag away
   ([ADR-0155](adr/0155-a-jar-binds-at-run-time-an-image-is-woven.md))
 
+- **The showcase can be asked for a native image, and the metadata is traced.**
+  ADR-0127 claimed the binding layer was no longer the reason an image could not
+  be attempted; `:example:nativeImage` is the attempt. The obstacle was never the
+  binding — it is `:natives`, where a binding class takes a `SymbolLookup`
+  obtained at run time and builds its handles from it, so none of the 184
+  descriptors is a build-time constant a closed world could fold, and Yoga's
+  measure callback is an upcall besides. Writing them out by hand would be 184
+  registrations duplicating what the binding classes already say, going stale
+  silently. So `:example:nativeImageMetadata` runs the showcase headless under
+  GraalVM's tracing agent and writes what it saw into `src/main/resources` —
+  source, because it is reviewed in a diff and packaged into the jar — and
+  `nativeImage` builds over that, after `weaveModels`, which the build orders
+  before `jar` so an image can never be made from classes bound reflectively.
+  **No image has been built**: there is no GraalVM in this toolchain or in CI, so
+  what exists is the invocation and the reasoning, both tasks fail with a download
+  link when asked, and neither is wired into `build`. The two places it is most
+  likely to break first are written down rather than discovered — Logback reading
+  `logback.xml` reflectively, and whether `NativeLibrary` is rightly marked
+  `--initialize-at-run-time`
+  ([ADR-0156](adr/0156-the-image-s-metadata-is-traced-not-written.md),
+  [the native-image page](native.md))
+
 ### Not started
 
 `menubar`, tray, dialogs, forms, client-side decorations and charts. The rest of §5 — `card`, `group-box`, `split-pane`, `collapse`,

@@ -5,6 +5,7 @@
 [TODO](TODO.md)
 [Building an application](applications.md)
 [Model weaving](weaving.md)
+[Native image](native.md)
 
 # Architecture decisions
 
@@ -164,6 +165,7 @@
 - [ADR-0153 A rate is counted; a refresh is asked for](adr/0153-a-rate-is-counted-a-refresh-is-asked-for.md)
 - [ADR-0154 A reading is a range](adr/0154-a-reading-is-a-range.md)
 - [ADR-0155 A jar binds at run time; an image is woven](adr/0155-a-jar-binds-at-run-time-an-image-is-woven.md)
+- [ADR-0156 The image's metadata is traced, not written](adr/0156-the-image-s-metadata-is-traced-not-written.md)
 
 ---
 
