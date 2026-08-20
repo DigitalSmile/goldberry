@@ -94,12 +94,12 @@ public enum Reading {
     PAINT("paint") {
         @Override
         String text(FrameStats stats) {
-            return String.format(Locale.ROOT, "paint %.1f ms", stats.paintMillis());
+            return span("paint", stats.paint(), 1);
         }
 
         @Override
         double value(FrameStats stats) {
-            return stats.paintMillis();
+            return stats.paint().mean();
         }
 
         /// **Half a display frame**, whatever the display is: the toolkit's share
@@ -128,12 +128,12 @@ public enum Reading {
     BUILD("build") {
         @Override
         String text(FrameStats stats) {
-            return String.format(Locale.ROOT, "build %.2f ms", stats.buildMillis());
+            return span("build", stats.build(), 2);
         }
 
         @Override
         double value(FrameStats stats) {
-            return stats.buildMillis();
+            return stats.build().mean();
         }
 
         /// A sixteenth of a display frame (ADR-0153).
@@ -153,12 +153,12 @@ public enum Reading {
     STYLE("style") {
         @Override
         String text(FrameStats stats) {
-            return String.format(Locale.ROOT, "style %.2f ms", stats.styleMillis());
+            return span("style", stats.style(), 2);
         }
 
         @Override
         double value(FrameStats stats) {
-            return stats.styleMillis();
+            return stats.style().mean();
         }
 
         /// An eighth of a display frame (ADR-0153).
@@ -176,12 +176,12 @@ public enum Reading {
     LAYOUT("layout") {
         @Override
         String text(FrameStats stats) {
-            return String.format(Locale.ROOT, "layout %.2f ms", stats.layoutMillis());
+            return span("layout", stats.layout(), 2);
         }
 
         @Override
         double value(FrameStats stats) {
-            return stats.layoutMillis();
+            return stats.layout().mean();
         }
 
         /// An eighth of a display frame (ADR-0153).
@@ -200,12 +200,12 @@ public enum Reading {
     RASTER("raster") {
         @Override
         String text(FrameStats stats) {
-            return String.format(Locale.ROOT, "raster %.2f ms", stats.rasterMillis());
+            return span("raster", stats.raster(), 2);
         }
 
         @Override
         double value(FrameStats stats) {
-            return stats.rasterMillis();
+            return stats.raster().mean();
         }
 
         /// A quarter of a display frame (ADR-0153).
@@ -272,7 +272,33 @@ public enum Reading {
     /// This reading of `stats`, assuming there is something to read.
     abstract String text(FrameStats stats);
 
+    /// One stage as `style 0.21 / 0.29 / 1.02 ms` — its cheapest retained frame,
+    /// its mean, and its dearest.
+    ///
+    /// **The mean in the middle**, where a reader's eye lands and where the
+    /// budget is judged. The two either side are the shape of the cost, which a
+    /// mean cannot show: 2 ms that never leaves 1.9–2.1 is steady work, and 2 ms
+    /// ranging 0.2–14 is a spike being averaged away over sixty frames
+    /// ([ADR-0154](../../../../../../../../book/src/adr/0154-a-reading-is-a-range.md)).
+    ///
+    /// The unit is said once, at the end, because the caption already says the
+    /// numbers are milliseconds a frame and three `ms` on one line is two too
+    /// many.
+    static String span(String label, FrameStats.Span span, int decimals) {
+        var number = "%." + decimals + "f";
+        return String.format(Locale.ROOT,
+                label + " " + number + " / " + number + " / " + number + " ms",
+                span.min(), span.mean(), span.max());
+    }
+
     /// The number behind [#text], for comparing against [#budgetMillis].
+    ///
+    /// **The mean of the same span the text prints**, and it has to be: a level
+    /// read from one accessor while the row is drawn from another is a colour
+    /// that can disagree with the number beside it, which is exactly what the
+    /// first draft of the over-budget golden did — `style 4.80 / 9.60 / 38.40 ms`
+    /// in the quiet colour, nine milliseconds over an eighth of a frame
+    /// ([ADR-0154](../../../../../../../../book/src/adr/0154-a-reading-is-a-range.md)).
     abstract double value(FrameStats stats);
 
     /// What this reading is allowed to cost, in milliseconds, or 0 for one that

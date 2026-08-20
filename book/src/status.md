@@ -1479,6 +1479,25 @@ merely made to appear.
   at 28px in the golden
   ([ADR-0153](adr/0153-a-rate-is-counted-a-refresh-is-asked-for.md))
 
+- **A reading is a range.** Every number on the `hud` was the mean over the
+  ring's sixty frames — the right thing for a budget to judge and the wrong thing
+  to read a frame by, because it hides the shape of the cost and the shape is
+  usually the question. Two windows both averaging 2 ms of paint are different
+  animals if one never leaves 1.9–2.1 and the other ranges 0.2–14, and nothing on
+  the plate could say which. Each duration is `min / mean / max` now, with the
+  mean in the middle where the eye lands and where the budget is still judged —
+  colouring by the max would paint every window red for one slow frame in sixty.
+  `FrameStats` grew a `Span`, defaulting to a **flat** one built from the mean, so
+  a source that keeps no window reports its one number three times rather than
+  inventing a spread. The caption says the unit and the shape rather than the
+  arithmetic — `ms/frame · min / mean / max · last 60` — and `this hud included`
+  is gone: true, true of every such diagnostic, and recorded in ADR-0152 where a
+  reader who wants it can find it. **The level and the text now read the same
+  span**, which is not tidying: the first draft judged `styleMillis()` while the
+  row printed `style()`, and the over-budget golden came out with `style 4.80 /
+  9.60 / 38.40 ms` drawn as though it were fine
+  ([ADR-0154](adr/0154-a-reading-is-a-range.md))
+
 ## M3 — Shell
 
 **Started.** `docs/core-widgets.md` §7 names two places an overlay can be drawn —

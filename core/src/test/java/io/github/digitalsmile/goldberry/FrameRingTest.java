@@ -43,6 +43,64 @@ class FrameRingTest {
         assertEquals(2.0, ring.paintMillis(), 1e-9);
     }
 
+    /// **A reading is a range** — [ADR-0154].
+    ///
+    /// A mean alone hides the shape of the cost, and the shape is usually the
+    /// question: two windows both averaging 2 ms are different animals if one
+    /// never leaves 1.9–2.1 and the other ranges 0.2–14. The second is a spike
+    /// being averaged away over sixty frames, and a `hud` showing only the middle
+    /// number cannot say so.
+    @Test
+    @DisplayName("a stage reports its cheapest frame, its mean and its dearest")
+    void spans() {
+        var ring = new FrameRing();
+        // Three frames whose paint differs, so the mean says one thing and the
+        // range says another.
+        for (var paint : new long[] {1 * MS, 2 * MS, 9 * MS}) {
+            ring.stages(0, 0, 0, 0);
+            ring.record(0, paint);
+        }
+
+        var paint = ring.paint();
+        assertEquals(1.0, paint.min(), 1e-9);
+        assertEquals(4.0, paint.mean(), 1e-9, "which is nothing like any frame that happened");
+        assertEquals(9.0, paint.max(), 1e-9);
+        assertEquals(paint.mean(), ring.paintMillis(), 1e-9,
+                "the mean is the same number the scalar accessor always gave");
+    }
+
+    /// The stages get the same treatment, and from their own ring rather than
+    /// from the paint total.
+    @Test
+    @DisplayName("each stage keeps its own range")
+    void stageSpans() {
+        var ring = new FrameRing();
+        ring.stages(1 * MS, 4 * MS, 0, 0);
+        ring.record(0, 5 * MS);
+        ring.stages(3 * MS, 2 * MS, 0, 0);
+        ring.record(0, 5 * MS);
+
+        assertEquals(1.0, ring.build().min(), 1e-9);
+        assertEquals(3.0, ring.build().max(), 1e-9);
+        assertEquals(2.0, ring.style().min(), 1e-9);
+        assertEquals(4.0, ring.style().max(), 1e-9);
+        assertEquals(3.0, ring.style().mean(), 1e-9);
+    }
+
+    /// **Nothing measured is not a range of zeroes.** A source with no window
+    /// reports one number three times, which is the honest thing for a mean with
+    /// no spread behind it.
+    @Test
+    @DisplayName("a source that keeps no window reports a flat span")
+    void flatSpan() {
+        var fixed = FrameStats.of(60, 16.7, 2.5, 100);
+
+        assertEquals(2.5, fixed.paint().min(), 1e-9);
+        assertEquals(2.5, fixed.paint().mean(), 1e-9);
+        assertEquals(2.5, fixed.paint().max(), 1e-9);
+        assertEquals(FrameStats.Span.NONE, new FrameRing().paint());
+    }
+
     @Test
     @DisplayName("a steady 60 Hz loop reads 60 fps")
     void steadyRate() {

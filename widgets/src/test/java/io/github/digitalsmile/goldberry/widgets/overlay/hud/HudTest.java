@@ -68,7 +68,7 @@ class HudTest {
         var box = renderer(FrameStats.of(60, 16.7, 2.1, 500, 0, 0, 0, 0, 60))
                 .render(new ElementTree(new Hud()));
 
-        assertEquals(List.of("60 fps", "paint 2.1 ms"), readings(box));
+        assertEquals(List.of("60 fps", "paint 2.1 / 2.1 / 2.1 ms"), readings(box));
     }
 
     /// The one that would have been easy to get wrong: `frame` is `1000 / fps`,
@@ -82,7 +82,7 @@ class HudTest {
         var box = renderer(FrameStats.of(60, 16.7, 2.1, 500, 0, 0, 0, 0, 60))
                 .render(new ElementTree(new Hud(Reading.FPS, Reading.REFRESH, Reading.PAINT)));
 
-        assertEquals(List.of("60 fps", "refresh 60 Hz", "paint 2.1 ms"), readings(box));
+        assertEquals(List.of("60 fps", "refresh 60 Hz", "paint 2.1 / 2.1 / 2.1 ms"), readings(box));
     }
 
     /// The breakdown — [ADR-0146].
@@ -96,8 +96,8 @@ class HudTest {
         var box = renderer(FrameStats.of(60, 16.7, 2.1, 500, 0.05, 0.29, 0.11, 1.34, 60))
                 .render(new ElementTree(Hud.stages()));
 
-        assertEquals(List.of("60 fps", "refresh 60 Hz", "paint 2.1 ms",
-                        "build 0.05 ms", "style 0.29 ms", "layout 0.11 ms", "raster 1.34 ms"),
+        assertEquals(List.of("60 fps", "refresh 60 Hz", "paint 2.1 / 2.1 / 2.1 ms",
+                        "build 0.05 / 0.05 / 0.05 ms", "style 0.29 / 0.29 / 0.29 ms", "layout 0.11 / 0.11 / 0.11 ms", "raster 1.34 / 1.34 / 1.34 ms"),
                 readings(box));
     }
 
@@ -110,7 +110,7 @@ class HudTest {
         var box = renderer(FrameStats.of(60, 16.7, 2.1, 500, 0.04, 0.0, 0, 0, 60))
                 .render(new ElementTree(new Hud(Reading.BUILD, Reading.STYLE)));
 
-        assertEquals(List.of("build 0.04 ms", "style 0.00 ms"), readings(box));
+        assertEquals(List.of("build 0.04 / 0.04 / 0.04 ms", "style 0.00 / 0.00 / 0.00 ms"), readings(box));
     }
 
     @Test
@@ -201,7 +201,7 @@ class HudTest {
                 .render(new ElementTree(new Hud()));
         // A fixed source keeps no window, so there is no length to name and the
         // caption says only what it can stand behind.
-        assertEquals("per frame · mean · this hud included", caption(live));
+        assertEquals("ms/frame · min / mean / max", caption(live));
 
         var empty = renderer(FrameStats.none()).render(new ElementTree(new Hud()));
         assertEquals("no frames measured", caption(empty),

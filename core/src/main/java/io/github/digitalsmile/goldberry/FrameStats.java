@@ -25,6 +25,30 @@ package io.github.digitalsmile.goldberry;
 /// Confined to the UI thread, like everything the frame loop touches.
 public interface FrameStats {
 
+    /// What one stage cost across the retained window: its cheapest frame, its
+    /// mean, and its dearest.
+    ///
+    /// **A mean alone hides the shape of the cost**, and the shape is usually the
+    /// question. Two windows both averaging 2 ms are different animals if one
+    /// ranges 1.9–2.1 and the other 0.2–14: the first is steady work and the
+    /// second is a spike being averaged away over sixty frames
+    /// ([ADR-0154](../../../../../book/src/adr/0154-a-reading-is-a-range.md)).
+    ///
+    /// @param min  the cheapest retained frame, in milliseconds
+    /// @param mean the mean over them
+    /// @param max  the dearest
+    record Span(double min, double mean, double max) {
+
+        /// Nothing measured.
+        static final Span NONE = new Span(0, 0, 0);
+
+        /// One number with no spread — what a source that reports a mean and
+        /// keeps no window can honestly say.
+        static Span of(double mean) {
+            return new Span(mean, mean, mean);
+        }
+    }
+
     /// How many frames the averages are taken over, at most.
     int capacity();
 
@@ -106,6 +130,35 @@ public interface FrameStats {
     /// ([ADR-0153](../../../../../book/src/adr/0153-a-rate-is-counted-a-refresh-is-asked-for.md)).
     default double displayHertz() {
         return 0;
+    }
+
+    /// [#paintMillis] as a range over the retained window.
+    ///
+    /// Defaults to a flat span, so a source that keeps no window — a test's fixed
+    /// numbers — reports its one number three times rather than inventing a
+    /// spread it has not measured.
+    default Span paint() {
+        return Span.of(paintMillis());
+    }
+
+    /// [#buildMillis] as a range.
+    default Span build() {
+        return Span.of(buildMillis());
+    }
+
+    /// [#styleMillis] as a range.
+    default Span style() {
+        return Span.of(styleMillis());
+    }
+
+    /// [#layoutMillis] as a range.
+    default Span layout() {
+        return Span.of(layoutMillis());
+    }
+
+    /// [#rasterMillis] as a range.
+    default Span raster() {
+        return Span.of(rasterMillis());
     }
 
     /// Whether anything has been recorded yet.

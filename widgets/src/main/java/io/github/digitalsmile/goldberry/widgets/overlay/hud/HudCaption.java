@@ -22,7 +22,9 @@ import java.util.Set;
 /// this repository report medians and a reader who knows that would otherwise
 /// assume it here. A ring of sixty is a window, not a sample: it has no outliers
 /// to discard, and a mean over it is the thing a budget is actually about — sixty
-/// frames took this long between them.
+/// frames took this long between them. The min and the max either side of it are
+/// what a median would have been reached for, and better: they say where the
+/// spread actually is rather than hiding it in the middle (ADR-0154).
 record HudCaption() implements Widget.Leaf, Styled, Paints {
 
     @Override
@@ -50,15 +52,12 @@ record HudCaption() implements Widget.Leaf, Styled, Paints {
         // window would otherwise be described by this line as though it kept
         // ours. A fixed source reports zero, and "per frame, mean" is all that
         // can honestly be said about numbers somebody chose.
-        // **"this hud included"**, because it is. A HUD is a node in the window's
-        // own tree: it walks with everything else, and its readings are strings
-        // that change every frame, so it shapes text no cache can hold. Measured
-        // in the showcase, three paragraphs a frame. ADR-0101's rule is that a
-        // diagnostic must not be the thing it measures; it cannot be taken out of
-        // this measurement without lying about the frame the window actually
-        // painted, so it says so instead (ADR-0152).
+        // The unit and the shape, which is everything the rows leave unsaid: each
+        // is three numbers and a label, and without this line a reader has to
+        // guess whether they are milliseconds, whether they are this frame's, and
+        // which of the three is which (ADR-0154).
         return frames.capacity() > 0
-                ? "per frame · mean of last " + frames.capacity() + " · this hud included"
-                : "per frame · mean · this hud included";
+                ? "ms/frame · min / mean / max · last " + frames.capacity()
+                : "ms/frame · min / mean / max";
     }
 }

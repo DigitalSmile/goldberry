@@ -90,12 +90,74 @@ class HudGoldenTest {
     /// The rate is bright, the total is dim, the four stages are dimmer and one
     /// size down. Three ranks on one line is the kind of thing that resolves to
     /// the same numbers whether it works or not.
+    /// A `FrameStats` with a **spread**, because a flat one would draw the same
+    /// number three times and prove nothing about the layout (ADR-0154).
+    private static FrameStats spread(double fps, double paint, double build, double style,
+            double layout, double raster) {
+        return new FrameStats() {
+            @Override
+            public int capacity() {
+                return 60;
+            }
+
+            @Override
+            public long count() {
+                return 4_200;
+            }
+
+            @Override
+            public double fps() {
+                return fps;
+            }
+
+            @Override
+            public double frameMillis() {
+                return 1_000 / fps;
+            }
+
+            @Override
+            public double displayHertz() {
+                return 60;
+            }
+
+            @Override
+            public double paintMillis() {
+                return paint;
+            }
+
+            @Override
+            public Span paint() {
+                return new Span(paint * 0.6, paint, paint * 2.4);
+            }
+
+            @Override
+            public Span build() {
+                return new Span(0, build, build * 3);
+            }
+
+            @Override
+            public Span style() {
+                return new Span(style * 0.5, style, style * 4);
+            }
+
+            @Override
+            public Span layout() {
+                return new Span(layout * 0.4, layout, layout * 2);
+            }
+
+            @Override
+            public Span raster() {
+                return new Span(raster * 0.7, raster, raster * 1.9);
+            }
+        };
+    }
+
     @Test
-    @DisplayName("the stage breakdown, a line each, with the caption under it")
+    @DisplayName("the stage breakdown, a line each, min / mean / max")
     void stages() {
         paint("hud-stages", Theme.NORD_DARK,
-                FrameStats.of(60, 16.7, 2.1, 4_200, 0.05, 0.29, 0.11, 1.34, 60),
-                300, 190, Hud.stages());
+                spread(60, 2.1, 0.05, 0.29, 0.11, 1.34),
+                360, 190, Hud.stages());
     }
 
     /// **A frame in trouble** — [ADR-0150], and the only thing that can say
@@ -109,8 +171,8 @@ class HudGoldenTest {
     @DisplayName("readings over their budget are red, near it amber, and the rest quiet")
     void overBudget() {
         paint("hud-over-budget", Theme.NORD_DARK,
-                FrameStats.of(22, 45.0, 11.0, 4_200, 0.04, 9.6, 0.2, 3.4, 60),
-                300, 190, Hud.stages());
+                spread(22, 11.0, 0.04, 9.6, 0.2, 3.4),
+                360, 190, Hud.stages());
     }
 
     /// The plate: a dim rate and a dimmer paint time, on the dark theme.

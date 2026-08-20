@@ -162,6 +162,52 @@ final class FrameRing implements FrameStats {
         return meanOf(rastered);
     }
 
+    @Override
+    public Span paint() {
+        return spanOf(painted);
+    }
+
+    @Override
+    public Span build() {
+        return spanOf(built);
+    }
+
+    @Override
+    public Span style() {
+        return spanOf(styled);
+    }
+
+    @Override
+    public Span layout() {
+        return spanOf(laid);
+    }
+
+    @Override
+    public Span raster() {
+        return spanOf(rastered);
+    }
+
+    /// The cheapest, the mean and the dearest of one stage's ring.
+    ///
+    /// One pass over at most sixty `long`s, which is what makes it safe to ask
+    /// inside a `build` that runs every frame — the same promise [#paintMillis]
+    /// already made (ADR-0154).
+    private Span spanOf(long[] ring) {
+        if (size == 0) {
+            return Span.NONE;
+        }
+        var total = 0L;
+        var min = Long.MAX_VALUE;
+        var max = 0L;
+        for (var i = 0; i < size; i++) {
+            var value = ring[(next - 1 - i + CAPACITY) % CAPACITY];
+            total += value;
+            min = Math.min(min, value);
+            max = Math.max(max, value);
+        }
+        return new Span(min / 1_000_000.0, total / 1_000_000.0 / size, max / 1_000_000.0);
+    }
+
     /// The mean of one stage's ring, in milliseconds.
     private double meanOf(long[] ring) {
         if (size == 0) {
