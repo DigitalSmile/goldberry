@@ -323,4 +323,101 @@ public final class Paragraph {
     private double widthOf(int start, int end) {
         return font.toLogical(advanceBefore[end] - advanceBefore[start]);
     }
+
+    // --- caret geometry -------------------------------------------------------
+
+    /// The width of the text in `[start, end)`, in logical units.
+    ///
+    /// The public form of the subtraction wrapping is built on, and **the only
+    /// thing a caret needs**: a caret sitting before offset `o` on a line is
+    /// `widthBetween(line.start(), o)` from that line's left edge, and a
+    /// selection highlight from `a` to `b` is a rectangle between those two
+    /// numbers. There is no `caretX(offset)` here because it would be this
+    /// method with one argument fixed, and a paragraph that wrapped has no single
+    /// left edge to fix it to.
+    ///
+    /// Offsets inside a ligature or a surrogate pair report the width up to the
+    /// cluster's start, which is the same answer wrapping gets and for the same
+    /// reason: there is no width for half a ligature. Callers that want a caret
+    /// to land somewhere legal ask [#offsetAt] rather than rounding themselves.
+    ///
+    /// @throws IndexOutOfBoundsException if either offset is outside the text
+    /// @throws IllegalArgumentException  if `end` is before `start`
+    public double widthBetween(int start, int end) {
+        Objects.checkIndex(start, text.length() + 1);
+        Objects.checkIndex(end, text.length() + 1);
+        if (end < start) {
+            throw new IllegalArgumentException(
+                    "a text range cannot end before it starts: " + start + ".." + end);
+        }
+        return widthOf(start, end);
+    }
+
+    /// The offset in `[lineStart, lineEnd]` whose caret sits nearest `x`.
+    ///
+    /// The other direction of [#widthBetween], and what a click in a text field
+    /// asks: `x` is measured from the **line's** left edge, and the answer is a
+    /// text offset the caret can legally occupy.
+    ///
+    /// ## Nearest, and why that is the whole rule
+    ///
+    /// Every editor puts the caret *after* a character clicked on its right half
+    /// and *before* one clicked on its left. That is not a separate rule — it is
+    /// what "nearest caret position" already means, because the two caret
+    /// positions bracketing a glyph are its edges and the midpoint is where the
+    /// nearer one changes. So there is no half-advance arithmetic here, only a
+    /// walk and a minimum.
+    ///
+    /// ## Boundaries, not offsets
+    ///
+    /// The walk steps by **grapheme cluster** — `java.text.BreakIterator`'s
+    /// character instance, the same class the wrap uses for lines — so a click
+    /// can never land between the two halves of a surrogate pair or between a
+    /// letter and the accent over it. Those offsets exist in the string and are
+    /// not places a caret can be; returning one would put the next keystroke
+    /// inside a character.
+    ///
+    /// An `x` left of the line is `lineStart` and one right of it is `lineEnd`,
+    /// which is what dragging a selection off the end of a field should do.
+    ///
+    /// @param lineStart the first offset of the line, from [TextLine#start()]
+    /// @param lineEnd   one past its last, from [TextLine#end()]
+    /// @param x         the distance from the line's left edge, in logical units
+    /// @throws IndexOutOfBoundsException if either offset is outside the text
+    /// @throws IllegalArgumentException  if `lineEnd` is before `lineStart`
+    public int offsetAt(int lineStart, int lineEnd, double x) {
+        Objects.checkIndex(lineStart, text.length() + 1);
+        Objects.checkIndex(lineEnd, text.length() + 1);
+        if (lineEnd < lineStart) {
+            throw new IllegalArgumentException(
+                    "a line cannot end before it starts: " + lineStart + ".." + lineEnd);
+        }
+        if (lineStart == lineEnd || !(x > 0)) {
+            // NaN lands here too, which is the right home for it: a click at an
+            // unknown position is a click at the start.
+            return lineStart;
+        }
+
+        var graphemes = BreakIterator.getCharacterInstance();
+        graphemes.setText(text);
+
+        var best = lineStart;
+        var bestDistance = Math.abs(x - widthOf(lineStart, lineStart));
+        for (var offset = graphemes.following(lineStart);
+                offset != BreakIterator.DONE && offset <= lineEnd;
+                offset = graphemes.next()) {
+
+            var distance = Math.abs(x - widthOf(lineStart, offset));
+            if (distance > bestDistance) {
+                // Advances are non-negative, so the distance to the target falls
+                // and then rises. Once it has risen the answer is behind us --
+                // and stopping here is what keeps a click near the start of a
+                // long line from walking the whole line.
+                break;
+            }
+            bestDistance = distance;
+            best = offset;
+        }
+        return best;
+    }
 }

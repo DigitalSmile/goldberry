@@ -932,6 +932,16 @@ final class Launcher implements Host {
     }
 
     @Override
+    public io.github.digitalsmile.goldberry.backend.Clipboard clipboard() {
+        return GoldberryRuntime.get().backend().clipboard();
+    }
+
+    @Override
+    public void textInput(boolean active) {
+        window.backendWindow().textInput(active);
+    }
+
+    @Override
     public Window window() {
         return window;
     }

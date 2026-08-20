@@ -65,6 +65,9 @@ public final class SdlVideo {
     private final MemorySegment getWindowSurface;
     private final MemorySegment updateWindowSurfaceRects;
     private final MemorySegment destroyWindowSurface;
+    private final MemorySegment startTextInput;
+    private final MemorySegment stopTextInput;
+    private final MemorySegment textInputActive;
     private final MemorySegment pollEvent;
     private final MemorySegment waitEventTimeout;
     private final MemorySegment pushEvent;
@@ -88,6 +91,9 @@ public final class SdlVideo {
         this.getWindowSurface = Downcalls.symbol(lookup, "SDL_GetWindowSurface");
         this.updateWindowSurfaceRects = Downcalls.symbol(lookup, "SDL_UpdateWindowSurfaceRects");
         this.destroyWindowSurface = Downcalls.symbol(lookup, "SDL_DestroyWindowSurface");
+        this.startTextInput = Downcalls.symbol(lookup, "SDL_StartTextInput");
+        this.stopTextInput = Downcalls.symbol(lookup, "SDL_StopTextInput");
+        this.textInputActive = Downcalls.symbol(lookup, "SDL_TextInputActive");
         this.pollEvent = Downcalls.symbol(lookup, "SDL_PollEvent");
         this.waitEventTimeout = Downcalls.symbol(lookup, "SDL_WaitEventTimeout");
         this.pushEvent = Downcalls.symbol(lookup, "SDL_PushEvent");
@@ -261,6 +267,47 @@ public final class SdlVideo {
                 throw new SdlException("SDL_SetWindowTitle", Sdl.get().lastError());
             }
         }
+    }
+
+    /// Asks `window` to start delivering `SDL_EVENT_TEXT_INPUT`.
+    ///
+    /// **SDL3 does not deliver committed text until something asks.** Text input
+    /// is off when a window is created, and per window rather than per process,
+    /// because turning it on is what raises an on-screen keyboard on a tablet and
+    /// what tells an IME where to put its candidate list. Nothing in this toolkit
+    /// called it until `text-input` existed to want it, so the `TEXT_INPUT` event
+    /// [SdlEventBuffer#committedText()] has always known how to read never arrived
+    /// on a real SDL window.
+    ///
+    /// Idempotent as far as callers are concerned — SDL tracks the state itself
+    /// and [#textInputActive] reports it — but not free: on some platforms this
+    /// raises a keyboard, so it belongs on focus entering an editable field
+    /// rather than on window creation.
+    ///
+    /// A refusal is **logged rather than thrown**. A platform that will not start
+    /// text input is a platform whose keys still arrive; refusing to open the
+    /// window over it would be worse than a field that only takes what the key
+    /// events carry.
+    public void startTextInput(SdlWindowHandle window) {
+        if (!callBoolean(startTextInput, "SDL_StartTextInput", window.pointer())) {
+            LOG.debug("SDL_StartTextInput() refused: {}", Sdl.get().lastError());
+        }
+    }
+
+    /// Stops delivering committed text to `window` — what focus leaving the last
+    /// editable field does, and what lowers an on-screen keyboard.
+    public void stopTextInput(SdlWindowHandle window) {
+        if (!callBoolean(stopTextInput, "SDL_StopTextInput", window.pointer())) {
+            LOG.debug("SDL_StopTextInput() refused: {}", Sdl.get().lastError());
+        }
+    }
+
+    /// Whether `window` is currently receiving committed text.
+    ///
+    /// SDL's own answer rather than a flag kept here, so it stays right across
+    /// anything else in the process that touches the same window.
+    public boolean textInputActive(SdlWindowHandle window) {
+        return callBoolean(textInputActive, "SDL_TextInputActive", window.pointer());
     }
 
     /// The window's size in logical pixels.

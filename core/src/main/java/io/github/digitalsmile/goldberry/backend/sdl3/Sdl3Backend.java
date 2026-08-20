@@ -5,6 +5,7 @@ import io.github.digitalsmile.goldberry.backend.BackendEvent;
 import io.github.digitalsmile.goldberry.backend.BackendException;
 import io.github.digitalsmile.goldberry.backend.BackendPopup;
 import io.github.digitalsmile.goldberry.backend.BackendWindow;
+import io.github.digitalsmile.goldberry.backend.Clipboard;
 import io.github.digitalsmile.goldberry.backend.EventSink;
 import io.github.digitalsmile.goldberry.backend.PopupSpec;
 import io.github.digitalsmile.goldberry.backend.WindowSpec;
@@ -84,6 +85,7 @@ public final class Sdl3Backend implements Backend {
     private final Thread uiThread = Thread.currentThread();
     private final Map<Integer, Sdl3Window> windowsById = new LinkedHashMap<>();
     private final SdlEventBuffer eventBuffer = new SdlEventBuffer();
+    private final Clipboard clipboard = new Sdl3Clipboard();
     private final FramePacer pacer = FramePacer.fromProperties();
 
     /// The system cursors, created on first use.
@@ -755,6 +757,16 @@ public final class Sdl3Backend implements Backend {
                 popup.close();
             }
         }
+    }
+
+    /// The session's clipboard, through SDL.
+    ///
+    /// One instance, held rather than made per call: what it holds is four
+    /// symbol addresses, and looking them up again per copy would be four hash
+    /// lookups to do the same thing (ADR-0161).
+    @Override
+    public Clipboard clipboard() {
+        return clipboard;
     }
 
     SdlVideo video() {

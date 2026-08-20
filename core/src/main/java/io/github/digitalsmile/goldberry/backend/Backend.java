@@ -26,11 +26,11 @@ import java.util.Optional;
 ///
 /// ## What is not here yet
 ///
-/// The §4 sketch also lists tray icons, a clipboard and a GPU surface. They are
-/// absent from this cut, not dropped — each needs a consumer before its shape can
-/// be decided, and an interface designed against nothing is an interface that
-/// gets designed twice (ADR-0019). Popups were on that list until §7's menus,
-/// tooltips and `select` gave them one.
+/// The §4 sketch also lists tray icons and a GPU surface. They are absent from
+/// this cut, not dropped — each needs a consumer before its shape can be decided,
+/// and an interface designed against nothing is an interface that gets designed
+/// twice (ADR-0019). Popups were on that list until §7's menus, tooltips and
+/// `select` gave them one, and **the clipboard was until `text-input` did**.
 public interface Backend extends AutoCloseable {
 
     /// A name for logs and diagnostics: `sdl3`, `headless`.
@@ -69,6 +69,19 @@ public interface Backend extends AutoCloseable {
     /// @throws BackendException if the platform refuses a popup it should support
     default Optional<BackendPopup> createPopup(BackendWindow owner, PopupSpec spec) {
         return Optional.empty();
+    }
+
+    /// The session's clipboard.
+    ///
+    /// Never null and never [Optional]: a platform without one reports
+    /// [Clipboard#none()], because every caller of a missing clipboard would
+    /// otherwise write that class itself and a copy that quietly did nothing is
+    /// the honest behaviour of a session with nowhere to put it.
+    ///
+    /// Process-global rather than per window — the clipboard belongs to the
+    /// session, which is why this is on the backend and not on [BackendWindow].
+    default Clipboard clipboard() {
+        return Clipboard.none();
     }
 
     /// Waits for platform events and delivers them, then returns.

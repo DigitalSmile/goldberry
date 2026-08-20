@@ -282,6 +282,27 @@ public interface Host {
     /// or draw it themselves on a `canvas`.
     FrameStats frames();
 
+    /// The session's clipboard.
+    ///
+    /// On [Host] rather than reached through [#window()] because a widget is the
+    /// consumer — `text-input`'s `Ctrl+C` — and reaching a window's backend from a
+    /// widget is what [io.github.digitalsmile.goldberry.widget.BuildContext#host()]
+    /// exists to avoid (ADR-0140).
+    ///
+    /// Never null: a platform with no clipboard reports
+    /// [io.github.digitalsmile.goldberry.backend.Clipboard#none()], which accepts
+    /// nothing and always reads empty.
+    io.github.digitalsmile.goldberry.backend.Clipboard clipboard();
+
+    /// Asks the platform to start or stop delivering committed text to this
+    /// window.
+    ///
+    /// What a field calls when focus arrives and when it leaves. Off by default
+    /// and per window — see
+    /// [io.github.digitalsmile.goldberry.backend.BackendWindow#textInput(boolean)]
+    /// for why a toolkit must not simply turn it on and leave it on.
+    void textInput(boolean active);
+
     /// The font book the renderer is drawing with.
     ///
     /// For an application that measures text itself — a `canvas` laying out its

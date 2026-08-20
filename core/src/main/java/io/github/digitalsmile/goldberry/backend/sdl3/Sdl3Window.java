@@ -266,6 +266,32 @@ sealed class Sdl3Window implements BackendWindow permits Sdl3Popup {
                 .map(rect -> LogicalRect.of(rect.x(), rect.y(), rect.width(), rect.height()));
     }
 
+    /// Starts or stops SDL's text input for this window.
+    ///
+    /// SDL keeps the state itself, so this does not track it — but it does skip
+    /// the call when nothing would change, because on the platforms where
+    /// starting text input raises a keyboard, doing it again is a visible event
+    /// rather than a no-op.
+    ///
+    /// A window that has been closed is ignored rather than refused: focus
+    /// leaving a field during teardown is the ordinary way this is reached, and
+    /// the window it would have told is already gone.
+    @Override
+    public void textInput(boolean active) {
+        backend.requireUiThread();
+        if (!isOpen()) {
+            return;
+        }
+        if (video().textInputActive(handle) == active) {
+            return;
+        }
+        if (active) {
+            video().startTextInput(handle);
+        } else {
+            video().stopTextInput(handle);
+        }
+    }
+
     @Override
     public void setTitle(String title) {
         backend.requireUiThread();

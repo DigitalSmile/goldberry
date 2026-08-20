@@ -28,6 +28,7 @@ public sealed class HeadlessWindow implements BackendWindow permits HeadlessPopu
     private LogicalSize size;
     private DisplayScale scale;
     private String title;
+    private boolean textInputActive;
     private boolean open = true;
     private boolean framePending;
 
@@ -148,6 +149,30 @@ public sealed class HeadlessWindow implements BackendWindow permits HeadlessPopu
         backend.requireUiThread();
         requireOpen();
         this.title = Objects.requireNonNull(title, "title");
+    }
+
+    /// Records whether text input was asked for, so a test can assert that a
+    /// field turned it on.
+    ///
+    /// The headless backend delivers committed text through
+    /// [#inputText(String)] regardless of this flag. That is deliberate: a test
+    /// that types into a field it forgot to focus should fail on the focus, not
+    /// on a second gate that only exists on the real platform — and the flag is
+    /// still here so the *contract* can be tested, which is what
+    /// [io.github.digitalsmile.goldberry.backend.BackendWindow#textInput(boolean)]
+    /// says a field must do.
+    @Override
+    public void textInput(boolean active) {
+        backend.requireUiThread();
+        if (!isOpen()) {
+            return;
+        }
+        this.textInputActive = active;
+    }
+
+    /// Whether [#textInput(boolean)] was last asked to turn it on.
+    public boolean isTextInputActive() {
+        return textInputActive;
     }
 
     @Override

@@ -128,6 +128,15 @@ record TourTestHost(List<HitTest.Region> regions) implements Host {
     }
 
     @Override
+    public io.github.digitalsmile.goldberry.backend.Clipboard clipboard() {
+        return io.github.digitalsmile.goldberry.backend.Clipboard.none();
+    }
+
+    @Override
+    public void textInput(boolean active) {
+    }
+
+    @Override
     public Window window() {
         throw new UnsupportedOperationException("no window here");
     }

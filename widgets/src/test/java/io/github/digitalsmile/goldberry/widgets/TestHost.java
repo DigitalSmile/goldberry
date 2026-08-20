@@ -7,6 +7,7 @@ import io.github.digitalsmile.goldberry.Overlay;
 import io.github.digitalsmile.goldberry.Placement;
 import io.github.digitalsmile.goldberry.Popup;
 import io.github.digitalsmile.goldberry.Window;
+import io.github.digitalsmile.goldberry.backend.Clipboard;
 import io.github.digitalsmile.goldberry.backend.EventLoop;
 import io.github.digitalsmile.goldberry.backend.LogicalPoint;
 import io.github.digitalsmile.goldberry.backend.LogicalRect;
@@ -201,6 +202,59 @@ public class TestHost implements Host {
     @Override
     public Fonts fonts() {
         throw new UnsupportedOperationException("no fonts in this stub");
+    }
+
+    /// A real in-memory clipboard, not a stub that refuses.
+    ///
+    /// A `text-input` test that copies and pastes is testing the widget's
+    /// editing model; against a clipboard that accepted nothing every one of
+    /// those tests would pass for the wrong reason.
+    private final StringBuilder clipboardText = new StringBuilder();
+
+    private final Clipboard clipboard = new Clipboard() {
+
+        @Override
+        public boolean hasText() {
+            return !clipboardText.isEmpty();
+        }
+
+        @Override
+        public String text() {
+            return clipboardText.toString();
+        }
+
+        @Override
+        public boolean text(String text) {
+            clipboardText.setLength(0);
+            clipboardText.append(text == null ? "" : text);
+            return true;
+        }
+    };
+
+    private boolean textInputActive;
+
+    @Override
+    public Clipboard clipboard() {
+        return clipboard;
+    }
+
+    @Override
+    public void textInput(boolean active) {
+        this.textInputActive = active;
+    }
+
+    /// Whether a field asked the platform to start delivering committed text —
+    /// the contract
+    /// [io.github.digitalsmile.goldberry.backend.BackendWindow#textInput(boolean)]
+    /// puts on anything editable.
+    public boolean isTextInputActive() {
+        return textInputActive;
+    }
+
+    /// Puts `text` on this host's clipboard, as another application would have.
+    public TestHost clipboardText(String text) {
+        clipboard.text(text);
+        return this;
     }
 
     @Override
