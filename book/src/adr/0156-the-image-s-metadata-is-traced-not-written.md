@@ -9,10 +9,9 @@ Accepted. The first thing built on
 takes [ADR-0155](0155-a-jar-binds-at-run-time-an-image-is-woven.md)'s weaving
 flag as its input.
 
-**No image has been built yet.** There is no GraalVM in this repository's
-toolchain and none in CI, so what is recorded here is the invocation and the
-decision behind it, not a binary that starts. That is stated in the tasks, in
-[the native-image page](../native.md), and again in the consequences below.
+**An image has now been built and run** on linux-x64 against GraalVM CE 25.2.4:
+30.6 MiB, ~0.55 s to start, ~6 ms a frame headless, exit 0. It is still not built
+in CI. The one thing that does not work is logging — see the consequences.
 
 ## Context
 
@@ -109,11 +108,25 @@ and the HUD; a screen added later needs the trace re-run and the diff read.
 it shows up in review, which is the only mechanism that catches the agent
 recording something surprising — a reflective call nobody meant to add.
 
-**Two GraalVM-shaped holes remain, and neither has been walked into yet.**
-Logback reads `logback.xml` reflectively and is a well-known source of
-image-build friction; and `NativeLibrary` is marked `--initialize-at-run-time`
-here on the reasoning that a class which `dlopen`s in its initializer must not run
-in the builder, which is reasoning and not evidence.
+**The trace found an upcall this ADR did not know about.** Its context section
+names one — Yoga's measure callback — and the agent recorded **two**:
+`SdlEventWatch.invoke` as well. That is the argument for tracing over
+hand-writing, made by the mechanism itself on its first run. It also collapsed the
+184 exported symbols into **55 distinct downcall descriptors**, which is the list
+a hand-written `Feature` would have had to get right.
+
+**Of the two holes predicted here, one is real.** `NativeLibrary` marked
+`--initialize-at-run-time` was reasoning rather than evidence, and it works.
+**Logback does not**: SLF4J binds it, `LogbackServiceProvider` initializes,
+`ContextInitializer.autoConfig` runs, `logback.xml` is in the traced resources —
+and the image prints nothing on either stream. So the image is currently
+diagnosed by its exit code and its timing rather than by what it says. Unfixed,
+and the first thing to fix.
+
+**The linker needs `zlib1g-dev`, not `zlib1g`.** Not a decision, but the first
+thing that happens to anyone running these tasks: analysis succeeds, a minute
+passes, and the link fails with `cannot find -lz`. Written down on the
+native-image page beside the commands.
 
 **`build` does not depend on either task, and CI does not run them.** A task
 nobody can run on the machines this project builds on would be a red build for a

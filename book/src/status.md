@@ -2267,12 +2267,20 @@ is the `scroll` box's.
   source, because it is reviewed in a diff and packaged into the jar — and
   `nativeImage` builds over that, after `weaveModels`, which the build orders
   before `jar` so an image can never be made from classes bound reflectively.
-  **No image has been built**: there is no GraalVM in this toolchain or in CI, so
-  what exists is the invocation and the reasoning, both tasks fail with a download
-  link when asked, and neither is wired into `build`. The two places it is most
-  likely to break first are written down rather than discovered — Logback reading
-  `logback.xml` reflectively, and whether `NativeLibrary` is rightly marked
-  `--initialize-at-run-time`
+  **The image builds and runs** on linux-x64 against GraalVM CE 25.2.4: 30.6 MiB,
+  ~0.55 s to start, ~6 ms a frame headless, exit 0, with the FFM downcalls, both
+  upcalls, the fonts, the icons, the stylesheets, the KDL and the `WidgetCatalog`
+  service all surviving the closed world. Neither task is in CI and neither is
+  wired into `build`; both fail with a download link when asked. Two things the
+  first real run taught: the agent found **two** upcalls where this was written
+  expecting one — `SdlEventWatch.invoke` beside Yoga's measure callback — and
+  collapsed 184 exported symbols into 55 distinct downcall descriptors, which is
+  the tracing decision arguing for itself on its first outing; and the linker needs
+  `zlib1g-dev` rather than the `zlib1g` a desktop already has, or a minute of
+  analysis ends in `cannot find -lz`. **One thing does not work**: the image logs
+  nothing. Logback is bound, `autoConfig` runs, `logback.xml` is in the traced
+  resources, and no line reaches either stream — so an image is currently diagnosed
+  by its exit code and its timing rather than by what it says
   ([ADR-0156](adr/0156-the-image-s-metadata-is-traced-not-written.md),
   [the native-image page](native.md))
 

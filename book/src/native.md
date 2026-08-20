@@ -6,12 +6,30 @@ rather than against a JVM. That is what
 [ADR-0127](adr/0127-the-binding-schema-fits-a-closed-world.md) designed the
 binding schema for.
 
-> **Not yet verified.** There is no GraalVM in this repository's toolchain and
-> none in CI, so the tasks below have never produced a binary here. What is
-> checked in is the invocation and the reasoning
-> ([ADR-0156](adr/0156-the-image-s-metadata-is-traced-not-written.md)). If you
-> build one, the two open questions are Logback's reflective config reading and
-> whether `NativeLibrary` is correctly marked `--initialize-at-run-time`.
+> **Built and run on linux-x64; not in CI.** A 30.6 MiB binary that starts in
+> ~0.55 s, paints at about 6 ms a frame headless, and exits 0. The FFM downcalls,
+> the two upcalls, the fonts, the icons, the stylesheets, the KDL and the
+> `WidgetCatalog` service all survive the closed world.
+>
+> **One thing does not: the image logs nothing.** Logback is bound and parses
+> `logback.xml` — its `autoConfig` runs — and no line reaches the console. Every
+> other diagnostic in this page is therefore observed rather than read off a log.
+> See [ADR-0156](adr/0156-the-image-s-metadata-is-traced-not-written.md).
+
+## Before anything else: the C toolchain
+
+`native-image` links with the system `gcc`, so it needs a C toolchain **and the
+development package for zlib** — not merely the runtime one, which is what a
+desktop already has:
+
+```
+sudo apt install build-essential zlib1g-dev     # Debian / Ubuntu
+sudo dnf install gcc glibc-devel zlib-devel libstdc++-static
+```
+
+Without it the build runs to completion, spends a minute on analysis, and fails
+at the last step with `cannot find -lz`. `zlib1g` alone is not enough: the linker
+resolves `-lz` through the `libz.so` symlink that `zlib1g-dev` installs.
 
 ## The two commands
 
@@ -73,6 +91,15 @@ building the modules by hand; `nativeImage` arranges it for you.
 | `--no-fallback` | A fallback image is a JVM in a trench coat. Failing is the useful answer |
 | `-H:+ReportExceptionStackTraces` | Names the class that could not be reached, rather than a stack in the builder |
 | `--initialize-at-run-time=…NativeLibrary` | It `dlopen`s in its initializer, which must not happen in the builder |
+
+## What does not work yet
+
+**The image logs nothing.** SLF4J binds Logback, `LogbackServiceProvider`
+initializes, `ContextInitializer.autoConfig` runs and `logback.xml` is in the
+traced resources — and no line is printed on either stream. Whatever the cause,
+it is downstream of the config being found. Until it is fixed, an image is
+diagnosed by its exit code and its timing rather than by what it says, which is a
+poor trade for an application and the first thing to fix here.
 
 ## What is not built
 

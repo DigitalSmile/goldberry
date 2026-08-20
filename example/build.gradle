@@ -311,6 +311,15 @@ tasks.named('run') {
 def graalvmHome = providers.gradleProperty('graalvm.home')
         .orElse(providers.environmentVariable('GRAALVM_HOME'))
 
+// Extra arguments for `native-image`, space-separated. An escape hatch for the
+// things that are a property of the *machine* rather than of this application:
+// `-Ob` for a quick build while iterating, a `-H:NativeLinkerOption` for a
+// toolchain that needs one. Nothing the showcase itself requires belongs here --
+// that goes in the task below, where it is reviewed.
+def graalvmArgs = providers.gradleProperty('graalvm.args')
+        .map { it.split(' ').findAll { arg -> !arg.isEmpty() } as List }
+        .getOrElse([])
+
 def windows = hostTarget.startsWith('windows')
 
 /// The GraalVM tool named, or a failure that says how to point at one.
@@ -343,45 +352,59 @@ def graalTool = { String tool ->
 def metadataDir = layout.projectDirectory
         .dir('src/main/resources/META-INF/native-image/io.github.digitalsmile/goldberry-example')
 
-tasks.register('nativeImageMetadata', JavaExec) {
+// An `Exec` and not a `JavaExec`: JavaExec takes its launcher from the project's
+// toolchain convention, and setting `executable` to a different JDK is a conflict
+// it refuses outright ("Toolchain from `executable` property does not match
+// toolchain from `javaLauncher` property"). The agent ships with GraalVM and the
+// build compiles with whatever the toolchain resolved, so those two JDKs are
+// deliberately different and there is nothing to reconcile.
+tasks.register('nativeImageMetadata', Exec) {
     group = 'distribution'
     description = 'Runs the showcase under GraalVM\'s agent and records what an image will need'
-    dependsOn tasks.named('classes')
 
-    mainClass = 'io.github.digitalsmile.goldberry.example.Showcase'
-    mainModule = 'io.github.digitalsmile.goldberry.example'
-    classpath = sourceSets.main.runtimeClasspath
+    // The same two, in the same order, as `nativeImage` -- the trace has to be of
+    // the artifact the image is built from. Tracing an unwoven run would record
+    // the reflection ADR-0155's runtime binding does and the image never will.
+    dependsOn tasks.named('weaveModels')
+    dependsOn tasks.named('jar')
 
-    // A real run, and that is the point: the agent records what this window
-    // actually did. A screen the run never reaches contributes nothing, which is
-    // why the frame count is high enough to open the menu and the HUD and why
-    // ADR-0156 says the trace is checked in and reviewed rather than trusted.
-    args = ['--frames=120']
+    def runtimeClasspath = configurations.runtimeClasspath
+    def appJar = tasks.named('jar').flatMap { it.archiveFile }
+    def macos = hostTarget.startsWith('macos')
 
     outputs.dir(metadataDir)
     outputs.upToDateWhen { false }
 
     doFirst {
-        executable = graalTool('java')
-        metadataDir.asFile.mkdirs()
-
-        jvmArgs = [
-                '--enable-native-access=io.github.digitalsmile.goldberry.natives',
-                "-agentlib:native-image-agent=config-output-dir=${metadataDir.asFile.absolutePath}",
-                // Headless, so this is runnable on a build machine. ADR-0155's
-                // sweep and every binding still happen; only the compositor does
-                // not.
-                '-Dgoldberry.backend.videoDriver=dummy',
-        ]
-        if (hostTarget.startsWith('macos')) {
-            jvmArgs += '-XstartOnFirstThread'  // ADR-0039
-        }
-        if (hostLibrary.isFile()) {
-            systemProperty 'goldberry.native.library', hostLibrary.absolutePath
-        } else {
+        if (!hostLibrary.isFile()) {
             throw new GradleException(
                     "no libgoldberry at ${hostLibrary}. Build it first: ./gradlew :natives:cmakeBuild")
         }
+        metadataDir.asFile.mkdirs()
+        def modulePath = (runtimeClasspath.files.toList() + [appJar.get().asFile])
+                .collect { it.absolutePath }
+                .join(File.pathSeparator)
+
+        def command = [graalTool('java'),
+                       '--enable-native-access=io.github.digitalsmile.goldberry.natives',
+                       "-agentlib:native-image-agent=config-output-dir=${metadataDir.asFile.absolutePath}",
+                       // Headless, so this runs on a build machine. Every binding
+                       // and every sweep still happens; only the compositor does
+                       // not.
+                       '-Dgoldberry.backend.videoDriver=dummy',
+                       "-Dgoldberry.native.library=${hostLibrary.absolutePath}"]
+        if (macos) {
+            command += '-XstartOnFirstThread'  // ADR-0039
+        }
+        // A real run, and that is the point: the agent records what this window
+        // actually did. A screen the run never reaches contributes nothing, which
+        // is why the frame count is high enough to open the menu and the HUD and
+        // why ADR-0156 says the trace is checked in and reviewed rather than
+        // trusted.
+        command += ['--module-path', modulePath,
+                    '--module', "${appModule}/io.github.digitalsmile.goldberry.example.Showcase",
+                    '--frames=120']
+        commandLine command
     }
 }
 
@@ -434,6 +457,10 @@ tasks.register('nativeImage', Exec) {
                 // image needs libgoldberry beside it exactly as the jlink one
                 // does.
                 '--initialize-at-run-time=io.github.digitalsmile.goldberry.natives.NativeLibrary'
+        if (!graalvmArgs.isEmpty()) {
+            logger.lifecycle("native-image: extra arguments ${graalvmArgs}")
+            args graalvmArgs
+        }
     }
 
     doLast {
