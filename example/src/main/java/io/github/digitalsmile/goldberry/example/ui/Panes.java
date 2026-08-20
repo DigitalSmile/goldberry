@@ -55,6 +55,16 @@ public final class Panes {
         return inflate(inflater, "overlays.kdl");
     }
 
+    /// The **Panels** screen: §5's containers.
+    ///
+    /// The purest case for a document there is. Nothing on that screen holds a
+    /// value — they are all containers — so it needs no `bind=`, no `change=`
+    /// and no Java at all, and the two widgets on it with state keep it
+    /// themselves.
+    public static Widget panels(KdlInflater<Widget> inflater) {
+        return inflate(inflater, "panels.kdl");
+    }
+
     private static Widget inflate(KdlInflater<Widget> inflater, String document) {
         return inflater.inflate(KdlParser.resource(Panes.class, document).getFirst());
     }

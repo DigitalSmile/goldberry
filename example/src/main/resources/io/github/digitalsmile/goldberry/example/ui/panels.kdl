@@ -1,0 +1,130 @@
+// The **Panels** screen: sec. 5's containers, and the two limits three of them
+// ran into.
+//
+// Every widget here is a container -- nothing on this screen holds a value -- so
+// the whole screen is markup with not one line of Java behind it, which is what
+// sec. 9's "built-ins and application widgets register identically" is for. The
+// two that *do* have state, `collapse` and the `menubar` on the Overlays screen,
+// keep it themselves.
+//
+// The three interesting ones are interesting because of what the CSS subset has
+// not got (ADR-0164): a card is raised by contrast because there is no
+// `box-shadow`; a group box's title sits above its frame because a legend that
+// breaks a border needs a notch nothing here can express; and a closed
+// `collapse` has no body rather than a hidden one, because there is no `display`
+// and because a live subtree behind a shut header is what the widget tree exists
+// to avoid.
+column id="screen-panels" {
+
+  text class="screen-title" "Surfaces"
+
+  // `panel` and `card` side by side, which is the only way to see the
+  // difference: elevation here is a *relative* thing -- a brighter surface and a
+  // stronger edge than what is behind it -- so a card on its own just looks like
+  // a panel.
+  row id="surfaces" {
+    panel class="surface-demo" {
+      text class="caption" "panel"
+      text "The building block. No elevation: whatever the theme says a surface \
+is, and nothing else."
+    }
+    card class="surface-demo" {
+      text class="caption" "card"
+      text "Raised by contrast rather than by a shadow -- there is no \
+`box-shadow` in the subset, and nothing here paints outside its own rectangle."
+    }
+    card class="surface-demo interactive" {
+      text class="caption" "card class=interactive"
+      text "The optional hover-elevation. Opt-in, because a card that lit up \
+under the pointer would promise it does something."
+    }
+  }
+
+  text class="screen-title" "A titled cluster"
+
+  // The title is *above* the frame, not through it. A legend that breaks the
+  // border needs either a notch -- which sec. 10's subset cannot express -- or the
+  // page's own background painted behind the words, which is wrong the moment a
+  // group box sits on anything but the page.
+  group-box title="Appearance" {
+    row class="setting" { text "Theme"; spacer; text class="caption" "Nord Dark" }
+    row class="setting" { text "Density"; spacer; text class="caption" "Regular" }
+    row class="setting" { text "Reduced motion"; spacer; text class="caption" "Off" }
+  }
+
+  group-box {
+    text "A group box with no title is still a frame -- and leaves no gap where \
+the heading would have been, because the title node is absent rather than \
+present and empty."
+  }
+
+  text class="screen-title" "Numbers"
+
+  // The toolkit never formats these. `12,480` is `12.480` in half of Europe, and
+  // a golden image that depended on the runner's locale would fail in CI for a
+  // reason nobody could see in the diff -- `slider`'s argument, one widget later.
+  //
+  // `direction=` names the **sentiment**, not the arithmetic: latency falling is
+  // success, which is why the second one marks a fall as `down` and gets the
+  // danger colour for a metric where falling is what you want. Reading the
+  // leading minus instead would colour a latency improvement red.
+  row id="numbers" {
+    statistic label="Active users" value="12,480" delta="+4.2%" direction="up"
+    statistic label="Latency" value="128" unit="ms" delta="-11 ms" direction="down"
+    statistic label="Errors today" value="0" delta="no change"
+  }
+
+  text class="screen-title" "While it loads"
+
+  // The one loop sec. 1.7 allows, and it is a function of the frame clock rather
+  // than a transition -- a transition runs between two states and a skeleton has
+  // one. So every bar on this screen pulses in step by construction, with no
+  // controller to start and nothing to stop.
+  //
+  // Under reduced motion they hold at their dimmest, because a placeholder frozen
+  // at full strength reads as content that arrived and was blank.
+  row id="loading" {
+    column class="loading-block" {
+      text class="caption" "shape=title, then shape=text lines=3"
+      skeleton shape="title"
+      skeleton shape="text" lines=3
+    }
+    column class="loading-block" {
+      text class="caption" "shape=circle beside a heading and two lines"
+      row class="loading-row" {
+        skeleton shape="circle"
+        column class="loading-lines" {
+          skeleton shape="title"
+          skeleton shape="text" lines=2
+        }
+      }
+    }
+  }
+
+  text class="screen-title" "Folding away"
+
+  // `open` is retained state, so these remember across every rebuild of the
+  // window around them -- and the closed one has **no body at all**. Not a hidden
+  // one, not one of zero height: nothing is built, nothing is subscribed, and
+  // reopening it builds it again. That is the bargain `tabs` makes for its
+  // unselected content, and the reason anything that has to survive belongs in
+  // the model.
+  //
+  // The chevron rotates on `base`. The height does not animate and never will:
+  // height is not on sec. 1.7's whitelist, precisely so that a transition can
+  // never cost a reflow.
+  collapse title="Advanced" {
+    row class="setting" { text "Timeout"; spacer; text class="caption" "30s" }
+    row class="setting" { text "Retries"; spacer; text class="caption" "3" }
+  }
+
+  collapse title="Already open" open=#true {
+    text "Open it and shut it: the two rows above are built when the section \
+opens and dropped when it closes, which is what keeps a collapsed panel from \
+holding subscriptions for content nobody can see."
+  }
+
+  collapse title="Nothing in here" {
+    text "An empty section is still a section."
+  }
+}

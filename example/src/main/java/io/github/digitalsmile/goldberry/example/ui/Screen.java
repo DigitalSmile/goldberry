@@ -67,6 +67,7 @@ public record Screen(ShowcaseModel model, ShowcaseModel.Actions actions,
         private Widget controls;
         private Widget values;
         private Widget overlays;
+        private Widget panels;
 
         @Override
         protected void initState() {
@@ -74,6 +75,7 @@ public record Screen(ShowcaseModel model, ShowcaseModel.Actions actions,
             controls = Panes.controls(widget().inflater());
             values = Panes.values(widget().inflater());
             overlays = Panes.overlays(widget().inflater());
+            panels = Panes.panels(widget().inflater());
 
             // Structure only. Every *value* in this window reaches its widget
             // through a binding and needs no rebuild here.
@@ -117,7 +119,7 @@ public record Screen(ShowcaseModel model, ShowcaseModel.Actions actions,
         public Widget build(BuildContext context) {
             var model = widget().model();
             var actions = widget().actions();
-            // The gallery: one strip, five screens, none of them closable. It is
+            // The gallery: one strip, seven screens, none of them closable. It is
             // bound like every other control — `Ctrl+1`… and the strip itself are
             // two ways to set one property rather than two copies of a selection.
             var gallery = new Tabs(null, List.of(
@@ -125,6 +127,7 @@ public record Screen(ShowcaseModel model, ShowcaseModel.Actions actions,
                     new Tab("values", "Values", scrolled(values)),
                     new Tab("text", "Text", scrolled(new Content(model, actions, widget().plus()))),
                     new Tab("overlays", "Overlays", scrolled(overlays)),
+                    new Tab("panels", "Panels", scrolled(panels)),
                     new Tab("tabs", "Tabs", scrolled(new TabsDemo(model, actions))),
                     // Not `scrolled`: this screen owns a viewport of its own, and
                     // §2.4 bans nested same-axis scrollers — so the screen that

@@ -40,7 +40,7 @@
    there is no remaining height for a child to claim. The `scroll` rule in
    `controls.css` is where the growth is, and it is the container that grows. */
 #screen-controls, #screen-values, #screen-overlays,
-#screen-text, #screen-tabs
+#screen-text, #screen-tabs, #screen-panels
            { flex-direction: column; gap: 16px; padding-top: 16px }
 
 /* Except this one, which is the screen that owns its own viewport rather than
@@ -221,4 +221,74 @@ section-header {
    against anything. */
 .section:affixed > affix-content > section-header {
   background: var(--gb-surface-2);
+}
+
+
+/* --- the panels screen ------------------------------------------------ */
+
+/* §5's containers, and the only screen in the gallery with no value on it at
+   all — which is why it is a document with not one line of Java behind it.
+   Nothing here styles the widgets themselves: `card`, `group-box`, `statistic`,
+   `skeleton` and `collapse` all carry their own appearance in `controls.css`,
+   the way every other control in this catalog does. What is here is the
+   screen's *layout*, which is an application's business.
+
+   The one exception is `.surface-demo`, and it is the point of the row: a
+   `panel` and a `card` beside each other at the same size is the only way to see
+   an elevation that is expressed as contrast rather than as a shadow — a card on
+   its own looks exactly like a panel (ADR-0164). */
+#surfaces, #numbers, #loading {
+  gap: 12px;
+  align-items: stretch;
+}
+
+/* Equal thirds, so the three surfaces are compared and not merely listed. The
+   `panel` needs its own padding and radius because §5 gives it none: it is "the
+   building block", and the one container a theme can restyle completely. */
+.surface-demo {
+  flex-direction: column;
+  flex-grow: 1;
+  flex-shrink: 1;
+  gap: 6px;
+}
+
+panel.surface-demo {
+  padding: 12px;
+  background: var(--gb-surface);
+  border: 1px solid var(--gb-border);
+  border-radius: 8px;
+}
+
+/* A settings row: a label, the gap that pushes the value out, and the value. */
+.setting {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Each statistic takes an equal share of the row rather than only as much as its
+   own number needs — otherwise a five-digit figure beside a one-digit one puts
+   them at wildly different places and they stop reading as a set. */
+#numbers > statistic {
+  flex-grow: 1;
+  flex-shrink: 1;
+}
+
+.loading-block {
+  flex-direction: column;
+  flex-grow: 1;
+  flex-shrink: 1;
+  gap: 8px;
+}
+
+.loading-row {
+  flex-direction: row;
+  align-items: start;
+  gap: 12px;
+}
+
+.loading-lines {
+  flex-direction: column;
+  flex-grow: 1;
+  gap: 8px;
 }

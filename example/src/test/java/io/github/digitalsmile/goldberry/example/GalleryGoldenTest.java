@@ -124,6 +124,19 @@ class GalleryGoldenTest {
         paint("gallery-overlays", "overlays", Theme.NORD_DARK);
     }
 
+    /// §5's containers, and the screen with no value on it at all — so this is
+    /// also the image that says a gallery screen can be a document with not one
+    /// line of Java behind it.
+    ///
+    /// The `skeleton`s on it pulse from the frame clock, which is why the clock
+    /// this test freezes is load-bearing here in a way it was not for the other
+    /// six: without it the placeholders draw a different opacity every run.
+    @Test
+    @DisplayName("the Panels screen")
+    void panels() {
+        paint("gallery-panels", "panels", Theme.NORD_DARK);
+    }
+
     @Test
     @DisplayName("the Tabs screen")
     void tabs() {
