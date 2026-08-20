@@ -1,0 +1,28 @@
+{
+  "comment": [
+    "What :core ships that is read as a resource, declared by glob rather than",
+    "traced (ADR-0160).",
+    "",
+    "GraalVM reads META-INF/native-image/** from every jar on the path, so this",
+    "travels with the module and an application building an image gets it without",
+    "knowing it needs it. That is the point: a consumer should not have to know",
+    "that Goldberry has two themes and four fonts.",
+    "",
+    "Globs and not a traced list because this set is FINITE AND KNOWN AT BUILD",
+    "TIME, while a trace only ever records what one run happened to touch. The",
+    "first image built here recorded nord-dark.css and not nord-light.css, and",
+    "Inter but neither JetBrains Mono nor OpenMoji -- because the run never",
+    "switched theme and never drew mono text or an emoji. Each of those is a",
+    "control the user can reach and an image that dies when they do.",
+    "",
+    "Specific paths rather than one io/github/digitalsmile/goldberry/** : that",
+    "would match every .class file in the module as a resource and carry the whole",
+    "module twice."
+  ],
+  "resources": [
+    { "module": "io.github.digitalsmile.goldberry.core", "glob": "io/github/digitalsmile/goldberry/assets/fonts/*.ttf" },
+    { "module": "io.github.digitalsmile.goldberry.core", "glob": "io/github/digitalsmile/goldberry/assets/icons/*.txt" },
+    { "module": "io.github.digitalsmile.goldberry.core", "glob": "io/github/digitalsmile/goldberry/css/*.css" },
+    { "module": "io.github.digitalsmile.goldberry.core", "glob": "io/github/digitalsmile/goldberry/build-info.properties" }
+  ]
+}

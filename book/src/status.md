@@ -2354,6 +2354,26 @@ is the `scroll` box's.
   and running it with nothing beside it
   ([ADR-0159](adr/0159-a-native-image-carries-its-own-library.md))
 
+- **A module's own resources are declared, not traced — after the image crashed
+  on the theme toggle.** ADR-0156 wrote the cost of tracing down before it was
+  paid: "a screen the run never reaches contributes nothing, and the symptom is an
+  image that starts and then dies opening a menu". It was paid on the first real
+  use — `the NORD_LIGHT theme is missing from the jar` — and three more had the
+  same shape: `density-compact.css`, `JetBrainsMono.ttf` and `OpenMoji-black.ttf`,
+  each the far side of a control the 120-frame run never touched. Tracing harder
+  would have caught those four and told us nothing about the fifth: a trace can be
+  made longer, not complete. So `:core`, `:widgets` and `:example` each ship a
+  `reachability-metadata.json` declaring their own files **by glob** — a set that
+  is finite and known at build time, where a directory listing cannot be one
+  screen short. Each module ships its own because `native-image` reads
+  `META-INF/native-image/**` from every jar on the path, so an application
+  building an image gets the toolkit's resources without knowing it needs them,
+  rather than discovering that Goldberry has two themes by shipping a crash. The
+  image went 41 MiB to 43 MiB, which is the two fonts that were missing all along.
+  The FFM and reflection metadata are still traced and ADR-0156's warning still
+  applies to them
+  ([ADR-0160](adr/0160-a-modules-own-resources-are-declared-not-traced.md))
+
 ### Not started
 
 `menubar`, tray, dialogs, forms, client-side decorations and charts. The rest of §5 — `card`, `group-box`, `split-pane`, `collapse`,

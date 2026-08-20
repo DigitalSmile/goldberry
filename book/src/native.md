@@ -71,9 +71,22 @@ That path is under `src`, not `build`: the metadata is source. It is reviewed in
 diff, it changes when the application does, and being inside the jar is what lets
 a downstream image build find it without being told (ADR-0156).
 
-**The trace is only as good as the run.** A screen the run never reaches
-contributes nothing, and the symptom is an image that starts and dies opening a
-menu. Re-run the metadata task after adding a screen, and read the diff.
+**The trace is only as good as the run**, and that is why **resources are not
+traced**. `:core`, `:widgets` and `:example` each ship a
+`META-INF/native-image/…/reachability-metadata.json` declaring their own files by
+glob, because that set is finite and a directory listing cannot be one screen
+short. The first image built here proved the point by omitting `nord-light.css`,
+`density-compact.css`, `JetBrainsMono.ttf` and `OpenMoji-black.ttf` — every one
+the far side of a toggle the run never flipped
+([ADR-0160](adr/0160-a-modules-own-resources-are-declared-not-traced.md)).
+
+Because those declarations travel in the jars, an application building its own
+image gets the toolkit's resources without knowing it needs them.
+
+What is still traced — the FFM descriptors, the reflection, the services — really
+does depend on what the code did, and the warning applies to it unchanged: a
+screen the run never reaches contributes nothing. Re-run the metadata task after
+adding one, and read the diff.
 
 ## The image is woven, the jar is not
 

@@ -169,6 +169,7 @@
 - [ADR-0157 A layer is blitted into its own size](adr/0157-a-layer-is-blitted-into-its-own-size.md)
 - [ADR-0158 A full repaint is a full upload](adr/0158-a-full-repaint-is-a-full-upload.md)
 - [ADR-0159 A native image carries its own library](adr/0159-a-native-image-carries-its-own-library.md)
+- [ADR-0160 A module's own resources are declared, not traced](adr/0160-a-modules-own-resources-are-declared-not-traced.md)
 
 ---
 

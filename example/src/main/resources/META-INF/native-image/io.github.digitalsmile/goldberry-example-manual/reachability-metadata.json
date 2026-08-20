@@ -22,7 +22,11 @@
     "two (ADR-0159).",
     "",
     "A ** glob rather than this machine's classifier, so the same metadata is",
-    "right on all four targets."
+    "right on all four targets.",
+    "",
+    "The showcase's own stylesheet and documents are globbed for the same reason",
+    "the toolkit's are (ADR-0160): a screen the trace never opened contributes",
+    "nothing, and the symptom is an image that dies when somebody clicks the tab."
   ],
   "resources": [
     {
@@ -31,6 +35,14 @@
     },
     {
       "glob": "io/github/digitalsmile/goldberry/natives/**"
+    },
+    {
+      "module": "io.github.digitalsmile.goldberry.example",
+      "glob": "io/github/digitalsmile/goldberry/example/*.css"
+    },
+    {
+      "module": "io.github.digitalsmile.goldberry.example",
+      "glob": "io/github/digitalsmile/goldberry/example/ui/*.kdl"
     }
   ]
 }

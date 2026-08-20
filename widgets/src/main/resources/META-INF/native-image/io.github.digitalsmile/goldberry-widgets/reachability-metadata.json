@@ -1,0 +1,10 @@
+{
+  "comment": [
+    "The catalog's stylesheets, by glob (ADR-0160). `density-compact.css` is the",
+    "reason this file is not a traced list: it is the other half of a toggle, and",
+    "the trace that produced the first image never flipped it."
+  ],
+  "resources": [
+    { "module": "io.github.digitalsmile.goldberry.widgets", "glob": "io/github/digitalsmile/goldberry/widgets/*.css" }
+  ]
+}
