@@ -2352,3 +2352,160 @@ collapse-body {
   gap: 8px;
   padding: 4px 8px 8px 32px;
 }
+
+/* ------------------------------------------------------------ split-pane --
+ *
+ * §5's two children and a draggable divider. The layout is not here: the first
+ * pane is given an explicit main-axis size in logical pixels by `SplitPaneView`,
+ * because `flex-grow` shares out the space *left over* after content and would
+ * therefore ignore the divider's own fraction — and §10's subset has no
+ * `flex-basis` to say it with instead (ADR-0165).
+ */
+split-pane {
+  align-items: stretch;
+  flex-grow: 1;
+  flex-shrink: 1;
+}
+
+/* Each side clips what is in it. A pane dragged narrower than its content would
+   otherwise spill across the divider and over the other pane, which reads as a
+   divider that has stopped working. */
+split-pane-side {
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* The bar. Its thickness is set in `SplitPaneView.DIVIDER` and repeated here,
+   because the first pane's width is computed against it: a stylesheet that
+   disagreed would put the second pane's edge that many points out, silently.
+   `SplitPaneTest` pins the two together. */
+split-divider {
+  flex-shrink: 0;
+  background: var(--gb-border);
+}
+
+/* Hover and focus are the same colour on purpose. A divider is not a control
+   whose *state* matters -- there is nothing to press -- so what both mean is
+   "this is the thing you are about to move", and giving them two appearances
+   would invent a distinction the widget does not have. */
+split-divider:hover,
+split-divider:focus-visible {
+  background: var(--gb-accent);
+}
+
+/* The ring is *inside* the bar, which is the one place in the catalog it has to
+   be for `tab`'s reason: a ring at §2.2's usual 2px offset would be drawn across
+   both panes. At six points wide there is no room for an inset ring either, so
+   the fill is the affordance -- which is what the rule above is. */
+split-divider:focus-visible {
+  outline-width: 0;
+}
+
+/* Flush against an edge, with no pane on one side of it. Wider, because a
+   collapsed divider is the only handle left to bring the pane back with and six
+   points at the very edge of a window is a hard target. */
+split-divider.collapsed {
+  background: var(--gb-surface-2);
+}
+
+/* -------------------------------------------------------------- carousel --
+ *
+ * §5's one-at-a-time list. The rotation is not here and cannot be: it is a timer,
+ * not a transition, and §1.7 rule 4's conditions for stopping it — hover, focus,
+ * reduced motion — are decisions rather than declarations (ADR-0165).
+ */
+carousel {
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* Clips the slide, so content larger than the viewport does not spill past the
+   controls under it. */
+carousel-viewport {
+  flex-direction: column;
+  flex-grow: 1;
+  overflow: hidden;
+}
+
+carousel-controls {
+  flex-direction: row;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+/* A step button. `--gb-control-height` and not a smaller number: §1.3's hit
+   target applies to a carousel's arrows exactly as it does to everything else,
+   and these are the two controls somebody will be clicking repeatedly. */
+carousel-step {
+  width: var(--gb-control-height);
+  height: var(--gb-control-height);
+  flex-shrink: 0;
+  border-radius: 4px;
+  color: var(--gb-text-muted);
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+/* `Previous` is the same chevron turned half round. There is no `CHEVRON_START`
+   mark and adding one would be a second kind that has to stay the mirror of the
+   first forever, where this is one declaration that cannot drift —
+   `collapse-chevron` makes the same trade. */
+carousel-step.previous {
+  transform: rotate(180deg);
+}
+
+carousel-step:hover {
+  background: var(--gb-overlay-hover);
+  color: var(--gb-text);
+}
+
+carousel-step:active {
+  background: var(--gb-overlay-active);
+}
+
+carousel-step:focus-visible {
+  outline: 2px solid var(--gb-accent);
+  outline-offset: 2px;
+}
+
+/* At an end with no loop. Disabled rather than absent, so the row does not change
+   width as the carousel moves — and because a disabled `Next` is what says "that
+   is all of them", which is why `loop` is off by default. */
+carousel-step:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+carousel-dots {
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+/* A dot is 8 across and the radius is half of it, which is how a square becomes a
+   circle in a subset with no `border-radius: 50%`. Not focusable — the keyboard
+   reaches every slide through the arrows, and nine slides would otherwise be nine
+   tab stops (ADR-0107's close-button argument). */
+carousel-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 4px;
+  flex-shrink: 0;
+  background: var(--gb-border);
+  cursor: pointer;
+  transition: background var(--gb-motion-fast);
+}
+
+carousel-dot:hover {
+  background: var(--gb-text-muted);
+}
+
+/* The slide showing. `:checked` rather than the `.current` class beside it,
+   because "this is the one" is a state the cascade already has a word for. */
+carousel-dot:checked {
+  background: var(--gb-accent);
+}

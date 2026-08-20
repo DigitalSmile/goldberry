@@ -292,3 +292,30 @@ panel.surface-demo {
   flex-grow: 1;
   gap: 8px;
 }
+
+/* The split pane's two panes, and the carousel's slides. Both need a surface of
+   their own for the same reason `.surface-demo` does: `panel` carries none, being
+   "the building block" and the one container a theme can restyle completely. */
+.split-demo, .slide {
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px;
+  background: var(--gb-surface);
+  border-radius: 8px;
+}
+
+/* A definite height, because a split pane grows to fill what it is given and a
+   gallery screen's column gives it nothing: the screen is content-sized inside
+   the gallery's viewport, so without this the split is as tall as its taller pane
+   and the divider has nothing to travel along. */
+#demo-split {
+  height: 140px;
+  flex-grow: 0;
+  flex-shrink: 0;
+}
+
+/* Likewise, so the three slides do not each set the height of the strip and make
+   it jump as the carousel moves. */
+#demo-carousel carousel-viewport {
+  height: 90px;
+}

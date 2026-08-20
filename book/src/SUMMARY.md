@@ -174,6 +174,7 @@
 - [ADR-0162 A golden is checked at every scale](adr/0162-a-golden-is-checked-at-every-scale.md)
 - [ADR-0163 A menu bar owns its menus](adr/0163-a-menu-bar-owns-its-menus.md)
 - [ADR-0164 Elevation is an edge, and a closed section is absent](adr/0164-elevation-is-an-edge-and-a-closed-section-is-absent.md)
+- [ADR-0165 A divider translates, and a rotation has three brakes](adr/0165-a-divider-translates-and-a-rotation-has-three-brakes.md)
 
 ---
 

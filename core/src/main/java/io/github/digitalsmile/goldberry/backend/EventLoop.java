@@ -203,7 +203,12 @@ public final class EventLoop implements AutoCloseable {
         private final Runnable action;
         private boolean cancelled;
 
-        private Timer(long dueNanos, Runnable action) {
+        /// Package-private rather than private, so that a test fixture in this
+        /// package can hand one out for a fake event loop — the same privilege
+        /// `TestFrames` has over `Frame`'s constructor, and for the same reason:
+        /// widening it to public would put a scheduling internal in the toolkit's
+        /// API for the sake of a test helper.
+        Timer(long dueNanos, Runnable action) {
             this.dueNanos = dueNanos;
             this.action = action;
         }

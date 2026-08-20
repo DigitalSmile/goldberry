@@ -501,20 +501,26 @@ the mechanism the sentence named.
 
 ## Layout
 
-- **`split-pane` is not built.** §5 wants two children, a draggable divider that is
-  also keyboard-resizable when focused, minimum sizes, optional collapse-to-edge,
-  and a retained divider position. Nothing about it is undecided — it is the first
-  container in §5 that needs a **drag with a retained value**, which is `slider`'s
-  machinery pointed at a layout rather than at a number, plus the keyboard
-  equivalent that a separator with a value has to have. —
-  [ADR-0164](adr/0164-elevation-is-an-edge-and-a-closed-section-is-absent.md)
-- **`carousel` is not built, and it is the one §5 widget that is a controller.**
-  Everything else in the group is a description; a carousel with `interval` set
-  has a rotation that must pause on hover, pause on focus anywhere inside, and not
-  run at all under reduced motion — §1.7 rule 4's canonical violation is a
-  carousel that moves while being read. The pausing is the work: three separate
-  reasons to stop, and the widget has to see all three. —
-  [ADR-0164](adr/0164-elevation-is-an-edge-and-a-closed-section-is-absent.md)
+- ~~**`split-pane` is not built.**~~ ~~**`carousel` is not built.**~~ **Both
+  ship, and §5 is complete.** The divider turned out to want `knob`'s gesture
+  anchor rather than `slider`'s position — the pointer is somewhere inside a
+  six-point bar, and reading its position would snap the divider under the finger
+  on every press — and the carousel's rotation is one one-shot timer rescheduled
+  after each slide, so that a pause is a timer not scheduled rather than one
+  suspended. What did **not** ship is one of the carousel's three brakes; see the
+  entry below. —
+  [ADR-0165](adr/0165-a-divider-translates-and-a-rotation-has-three-brakes.md)
+- **A `carousel` does not pause when focus lands inside a slide.** §5 asks for a
+  rotation that pauses "on focus anywhere inside", and only two thirds of that is
+  built: focus on the strip or on the carousel's own controls stops it, and focus
+  on a widget *inside a slide* does not. The cascade has **no `:focus-within`** and
+  nothing tells a widget that focus arrived in its subtree, so a carousel cannot
+  find out. This is a real gap rather than a cosmetic one — somebody who has
+  tabbed into a slide is exactly somebody reading it, which is §1.7 rule 4's whole
+  concern. Closing it means `:focus-within` in the selector engine, the matcher
+  and the router's focus bookkeeping, which would serve more than this widget and
+  is a `:core` change of real size. —
+  [ADR-0165](adr/0165-a-divider-translates-and-a-rotation-has-three-brakes.md)
 - **`statistic`'s sparkline waits on `canvas`.** §5 asks for an "optional
   `sparkline` from a `canvas`", and `canvas` is §12's and not in the catalog.
   Nothing in `statistic` is shaped around its absence: a sparkline is one more

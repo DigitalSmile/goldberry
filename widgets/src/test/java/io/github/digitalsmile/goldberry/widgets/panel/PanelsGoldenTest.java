@@ -17,10 +17,14 @@ import io.github.digitalsmile.goldberry.widgets.Controls;
 import io.github.digitalsmile.goldberry.widgets.controls.TestFont;
 import io.github.digitalsmile.goldberry.widgets.core.Column;
 import io.github.digitalsmile.goldberry.widgets.core.Row;
+import io.github.digitalsmile.goldberry.widgets.panel.Panel;
 import io.github.digitalsmile.goldberry.widgets.panel.card.Card;
+import io.github.digitalsmile.goldberry.widgets.panel.carousel.Carousel;
 import io.github.digitalsmile.goldberry.widgets.panel.collapse.Collapse;
 import io.github.digitalsmile.goldberry.widgets.panel.groupbox.GroupBox;
 import io.github.digitalsmile.goldberry.widgets.panel.skeleton.Skeleton;
+import io.github.digitalsmile.goldberry.widgets.panel.split.SplitAxis;
+import io.github.digitalsmile.goldberry.widgets.panel.split.SplitPane;
 import io.github.digitalsmile.goldberry.widgets.panel.statistic.Statistic;
 import io.github.digitalsmile.goldberry.widgets.text.Text;
 import java.util.List;
@@ -225,5 +229,61 @@ class PanelsGoldenTest {
                 new Collapse("Advanced", true, open -> { },
                         new Text("Timeout"),
                         new Text("Retries")));
+    }
+
+    // --- split-pane ---------------------------------------------------------
+
+    /// A divider drawn a third of the way across is the only way to see that the
+    /// fraction reached the layout at all: `flex-grow` in proportion would put it
+    /// wherever the content did, which on two short labels is the middle — so a
+    /// broken split and a working one look identical at 0.5.
+    @Test
+    @DisplayName("a split a third of the way across, which a proportion would get wrong")
+    void splitPane() {
+        paint("split-pane-dark", Theme.NORD_DARK, 360, 120, new SplitPane(
+                SplitAxis.HORIZONTAL, 0.33, position -> { },
+                new Panel(new Text("The list")),
+                new Panel(new Text("The detail"))));
+    }
+
+    /// Stacked, where the divider is a horizontal bar. The same widget with one
+    /// enum changed, which is the check that the axis is not wired into the
+    /// arithmetic anywhere.
+    @Test
+    @DisplayName("a stacked split, with the divider across it")
+    void splitPaneVertical() {
+        paint("split-pane-vertical", Theme.NORD_DARK, 300, 160, new SplitPane(
+                SplitAxis.VERTICAL, 0.4, position -> { },
+                new Panel(new Text("Above")),
+                new Panel(new Text("Below"))));
+    }
+
+    // --- carousel -----------------------------------------------------------
+
+    /// The whole widget in one image: one slide, two buttons and the dots — with
+    /// `Previous` disabled, which is what says "this is the first" and is why
+    /// `loop` is off by default.
+    @Test
+    @DisplayName("the first slide, with Previous disabled and the first dot lit")
+    void carousel() {
+        paint("carousel-dark", Theme.NORD_DARK, 340, 140, new Carousel(
+                new Panel(new Text("The first slide")),
+                new Panel(new Text("The second")),
+                new Panel(new Text("The third"))));
+    }
+
+    /// In the middle of a looping carousel, where both buttons are live and the
+    /// lit dot has moved. The chevrons point in opposite directions, which is one
+    /// mark and one `transform` — and the thing most likely to be backwards.
+    @Test
+    @DisplayName("the middle of a looping carousel, with both chevrons live")
+    void carouselMiddle() {
+        paint("carousel-middle", Theme.NORD_DARK, 340, 140, new Carousel(
+                1, index -> { }, true, null,
+                List.of(
+                        new Panel(new Text("The first slide")),
+                        new Panel(new Text("The second")),
+                        new Panel(new Text("The third"))),
+                Attributes.NONE));
     }
 }

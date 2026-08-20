@@ -2555,17 +2555,65 @@ is the `scroll` box's.
   widget that read the leading `-` would colour a latency improvement red. The
   colour itself is a class on the delta, so it stays the stylesheet's
   ([ADR-0164](adr/0164-elevation-is-an-edge-and-a-closed-section-is-absent.md))
-- **`split-pane` and `carousel` are not built.** Neither has a design question
-  outstanding; both need something none of the five did — a drag with a retained
-  position and a keyboard equivalent, and a timed rotation that pauses on hover, on
-  focus and under reduced motion. `statistic`'s sparkline waits on `canvas`, and
-  `collapse`'s `accordion=` is a rule about siblings and therefore the containing
-  `column`'s.
+- **`statistic`'s sparkline waits on `canvas`**, and `collapse`'s `accordion=` is
+  a rule about siblings and therefore the containing `column`'s.
+
+### `split-pane` and `carousel`, and §5 is complete
+
+- **A divider translates; it does not track.** ADR-0164 said neither of these had
+  a design question left in it. Each had exactly one, and neither was the
+  predictable one. A slider reads its value straight off the pointer because the
+  value *is* a position along a track — a divider cannot, because the pointer is
+  somewhere inside a six-point bar and mapping that to a fraction snaps the
+  divider so its centre jumps under the finger on every press. So it is
+  **`knob`'s** arrangement instead: the divider reports its offset as a
+  `gestureAnchor` and the new offset is `anchor + dragX`. This is the second
+  widget to want an anchor **for a reason that is not the knob's** — a knob needs
+  one because its value has already moved by the second frame — which is the
+  useful thing it says: the mechanism generalises past the case it was built for.
+- **The position is a fraction and the minimums are pixels**, and they have to be
+  different kinds of thing. A divider a third of the way across stays a third of
+  the way across when the window widens, which a stored pixel offset gets wrong;
+  but "this list needs 160 points or its labels wrap" is a fact about content, and
+  a fractional minimum would let a narrow window squeeze it to nothing. The clamp
+  between them needs the measured length, which is ADR-0117's channel. And the
+  first pane is **sized** while the second grows, because `flex-grow` shares out
+  the space *left over* after content — two proportional panes would land wherever
+  their content put them and ignore the divider's fraction entirely, and §10's
+  subset has no `flex-basis` to say it with instead.
+- **A rotation has three brakes and only two of them work.** §5 makes `interval`
+  default to off and asks for a pause on hover, on focus anywhere inside, and
+  under reduced motion — §1.7 rule 4's canonical violation being a carousel that
+  moves while being read. Hover and reduced motion are complete. **Focus is not**:
+  the strip and the carousel's own controls pause it, and focus on a widget
+  *inside a slide* does not, because the cascade has no `:focus-within` and
+  nothing tells a widget that focus landed in its subtree. That is a real gap —
+  somebody who has tabbed into a slide is exactly somebody reading it — and it is
+  in TODO.md rather than papered over.
+- **One one-shot timer, rescheduled**, rather than a repeating one: a pause is
+  then a timer *not scheduled*, and needs no second mechanism to suspend. Every
+  reason to stop is re-checked **when the timer fires**, because one already in
+  flight when the pointer arrives would otherwise advance a slide past the moment
+  it should have stopped. And a build found a wasted wakeup: at the last slide of
+  a non-looping carousel, `build` scheduled a timer that would fire, move nothing
+  and stop — fixed by folding "is there anywhere to go" into the same predicate as
+  the three brakes, rather than testing it at the reschedule where the copy in
+  `build` was missing.
+- **Two small costs, both stated.** `EventLoop.Timer`'s constructor is
+  package-private rather than private so `TestTimers` can hand one to a stub
+  `Host` — `TestFrames` has the same privilege over `Frame`, for the same reason —
+  and the divider's thickness is written in `SplitPaneView` *and* in
+  `controls.css`, because the first pane's size is computed against it and a
+  stylesheet that disagreed would put the second pane's edge out silently.
+  `SplitPaneTest` pins them together.
+- **The showcase's Panels screen demonstrates all seven**, still with no Java
+  behind it: a `split-pane` and a `carousel` that keep their own state need no
+  more wiring than a `card` does
+  ([ADR-0165](adr/0165-a-divider-translates-and-a-rotation-has-three-brakes.md))
 
 ### Not started
 
-`split-pane`, `carousel`, tray, dialogs, forms, client-side decorations and
-charts. The rest of §5 — `card`, `group-box`, `split-pane`, `collapse`,
+Tray, dialogs, forms, client-side decorations and charts. The rest of §5 — `card`, `group-box`, `split-pane`, `collapse`,
 `carousel`, `statistic`, `skeleton` — is untouched. M2's leftover `select` is ordinary widget
 work now — it owns its model, its item semantics and its keyboard map, and none
 of that has to solve size, position or dismissal. The one thing that stood

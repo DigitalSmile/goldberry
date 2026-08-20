@@ -101,6 +101,59 @@ present and empty."
     }
   }
 
+  text class="screen-title" "Two panes and a divider"
+
+  // The divider is a **translation**, not a position: it moves by the pointer's
+  // travel from where it was, rather than jumping so its centre lands under the
+  // finger. Grab it near an edge and nothing snaps, which is the whole point of
+  // the anchor (ADR-0165).
+  //
+  // The position is a fraction so it survives a resize; the minimums are pixels
+  // because "this list needs 160 points or its labels wrap" is a fact about the
+  // content and not about the window. Drag it to either end to see it stop.
+  //
+  // `collapsible=#true`, so a shove most of the way into a minimum puts the pane
+  // away entirely -- and Enter on the divider does the same from the keyboard,
+  // and puts it back.
+  split-pane id="demo-split" first-min=120 second-min=140 collapsible=#true {
+    panel class="split-demo" {
+      text class="caption" "First pane"
+      text "Tab to the divider and use the arrows, or Enter to collapse."
+    }
+    panel class="split-demo" {
+      text class="caption" "Second pane"
+      text "This one takes whatever is left, which is why only the first is \
+given a size."
+    }
+  }
+
+  text class="screen-title" "One at a time"
+
+  // sec. 5's one widget that is a controller. This one has **no `interval`**, so it
+  // advances only when asked -- which is the default, because sec. 1.7 rule 4 says
+  // nothing loops except explicit continuous indicators.
+  //
+  // `loop` is off too, which is why `Previous` is greyed on the first slide: a
+  // disabled button says "that is all of them" where a silent wrap says nothing.
+  // Only the slide you can see is built, so moving away and back rebuilds it --
+  // `tabs`'s bargain, for `tabs`'s reason.
+  carousel id="demo-carousel" {
+    panel class="slide" {
+      text class="caption" "Slide 1 of 3"
+      text "The arrows move between slides when the strip has focus. The dots \
+go straight to one."
+    }
+    panel class="slide" {
+      text class="caption" "Slide 2 of 3"
+      text "Only this slide exists right now. The other two were dropped when \
+you left them."
+    }
+    panel class="slide" {
+      text class="caption" "Slide 3 of 3"
+      text "Next is greyed here, because this carousel does not loop."
+    }
+  }
+
   text class="screen-title" "Folding away"
 
   // `open` is retained state, so these remember across every rebuild of the
