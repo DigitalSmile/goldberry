@@ -8,6 +8,7 @@ import io.github.digitalsmile.goldberry.RendererRequirement;
 import io.github.digitalsmile.goldberry.TestFrames;
 import io.github.digitalsmile.goldberry.css.Affine;
 import io.github.digitalsmile.goldberry.css.Transform;
+import io.github.digitalsmile.goldberry.golden.ScaleInvariance;
 import io.github.digitalsmile.goldberry.input.HitTest;
 import io.github.digitalsmile.goldberry.natives.yoga.FlexDirection;
 import io.github.digitalsmile.goldberry.natives.yoga.Insets;
@@ -289,6 +290,33 @@ class ClipTest {
             var regions = HitTest.capture(target.frame(), root);
             assertEquals(owner, HitTest.at(regions, 25, 120).orElse(null),
                     "it spills, so it is hit where it spills");
+        }
+    }
+
+    /// A clip is a rectangle in logical coordinates handed to a context that
+    /// works in them, and Blend2D is told about it in physical ones. That is one
+    /// more crossing of the boundary ADR-0157 found a bug on, and nothing in
+    /// this class would have seen it: every assertion above is at 1x, where a
+    /// clip scaled once and a clip scaled twice are the same rectangle.
+    @Nested
+    @DisplayName("at other display scales")
+    class Scaled {
+
+        @Test
+        @DisplayName("a clipped viewport shows the same rectangle at 2x and 1.5x")
+        void clipIsInLogicalCoordinates() {
+            ScaleInvariance.assertSamePictureAtEveryScale("clip-hidden", 100, 100,
+                    frame -> BoxPainter.paint(frame, viewport(Overflow.HIDDEN)));
+        }
+
+        /// The pair, because "the clip never came off" and "the clip is the
+        /// wrong size" are different bugs and only the second one moves ink
+        /// inside the viewport.
+        @Test
+        @DisplayName("and an unclipped one spills the same amount")
+        void visibleOverflowIsToo() {
+            ScaleInvariance.assertSamePictureAtEveryScale("clip-visible", 100, 100,
+                    frame -> BoxPainter.paint(frame, viewport(Overflow.VISIBLE)));
         }
     }
 }

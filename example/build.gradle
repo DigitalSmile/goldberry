@@ -211,11 +211,14 @@ tasks.named('test') {
 
     // Forwarded for the same reason the run task forwards it: a golden that has
     // to be rewritten is rewritten by a property, and one that stopped at the
-    // Gradle daemon would look like a test that refuses to update.
-    def update = providers.systemProperty('goldberry.golden.update')
-            .orElse(providers.gradleProperty('goldberry.golden.update'))
-    if (update.present) {
-        systemProperty 'goldberry.golden.update', update.get()
+    // Gradle daemon would look like a test that refuses to update. The scale
+    // settings ride along for ADR-0162's second half, which is a property too.
+    ['goldberry.golden.update', 'goldberry.golden.scales',
+     'goldberry.golden.scales.report'].each { name ->
+        var value = providers.systemProperty(name).orElse(providers.gradleProperty(name))
+        if (value.present) {
+            systemProperty name, value.get()
+        }
     }
 }
 

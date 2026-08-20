@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.github.digitalsmile.goldberry.RendererRequirement;
 import io.github.digitalsmile.goldberry.TestFrames;
+import io.github.digitalsmile.goldberry.golden.ScaleInvariance;
 import io.github.digitalsmile.goldberry.natives.blend2d.BlendPath;
 import java.util.NoSuchElementException;
 import org.junit.jupiter.api.BeforeEach;
@@ -205,6 +206,22 @@ class IconPaintTest {
         }
         var partialCount = partial;
         assertTrue(partial > 10, () -> "only " + partialCount + " antialiased pixels; is it snapping?");
+    }
+
+    /// An icon is a 24x24 path scaled to a size in logical units and stroked
+    /// with a width in them too, onto a context already scaled to the display.
+    /// Two multiplications by the same factor, one of which is easy to apply
+    /// twice — and at 1x, which is every other assertion in this class, twice is
+    /// indistinguishable from once (ADR-0157).
+    @Test
+    @DisplayName("an icon is the same size and weight at every display scale")
+    void iconIsInLogicalUnits() {
+        ScaleInvariance.assertSamePictureAtEveryScale("icon-check", WIDTH, HEIGHT, frame -> {
+            frame.fill(0xFF000000);
+            try (var icon = Icon.bundled("check", 48)) {
+                icon.draw(frame, 20, 20, INK);
+            }
+        });
     }
 
     private int[] paint(String data) {

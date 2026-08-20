@@ -36,6 +36,15 @@ import org.opentest4j.AssertionFailedError;
 /// from what the code currently draws. That is a **review** step, not a fix: the
 /// diff in the pull request is the only thing that says whether the change was
 /// intended.
+///
+/// ## The other scales
+///
+/// A golden pins one scale, and it is 1.0 for almost all of them — the gap
+/// ADR-0157 named after a HiDPI bug that every image here was blind to. So every
+/// golden that matches is then drawn again at 2x and 1.5x its own scale and
+/// checked for describing the same picture, with nothing further committed. That
+/// is [ScaleInvariance], `-Dgoldberry.golden.scales=` turns it off, and ADR-0162
+/// is why it is a second question rather than a second set of files.
 public final class GoldenImage {
 
     /// Rewrites the goldens instead of asserting on them.
@@ -96,6 +105,9 @@ public final class GoldenImage {
         var expected = Png.read(goldenFile);
         var comparison = compare(expected, actual);
         if (comparison.matches()) {
+            // Only once the image is right: a scene whose golden has drifted
+            // would report both faults, and the first one is the one to read.
+            ScaleInvariance.assertScaleInvariant(name, width, height, scale, scene, actual);
             return;
         }
 
@@ -109,7 +121,9 @@ public final class GoldenImage {
                         + ". Expected, actual and diff images are in " + FAILURE_DIR.toAbsolutePath());
     }
 
-    private static Png.Image toImage(TestFrames.Target target, int width, int height) {
+    /// Package-private so [ScaleInvariance] can read back the frame it drew the
+    /// same way this does.
+    static Png.Image toImage(TestFrames.Target target, int width, int height) {
         var pixels = target.buffer().pixels().duplicate().order(ByteOrder.LITTLE_ENDIAN);
         var argb = new int[width * height];
         for (var y = 0; y < height; y++) {
