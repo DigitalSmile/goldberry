@@ -493,12 +493,15 @@ tasks.register('nativeImage', Exec) {
                 '--no-fallback',
                 // Names the class and the trace that reached it rather than a
                 // stack in the builder.
-                '-H:+ReportExceptionStackTraces',
-                // SDL, Blend2D and HarfBuzz are opened with dlopen at run time
-                // by NativeLibrary, so nothing here is statically linked and the
-                // image needs libgoldberry beside it exactly as the jlink one
-                // does.
-                '--initialize-at-run-time=io.github.digitalsmile.goldberry.natives.NativeLibrary'
+                '-H:+ReportExceptionStackTraces'
+                // Nothing about class initialisation is passed here any more.
+                // `:natives` ships its own META-INF/native-image/.../
+                // native-image.properties naming the two classes that have an
+                // opinion -- NativeLibrary, which dlopens and so must wait for
+                // run time, and Downcalls, which must NOT wait if the image is
+                // to make foreign calls at the speed the JVM does (ADR-0161).
+                // Both travel in the jar, so an application building its own
+                // image gets them without knowing they exist (ADR-0160).
         if (!graalvmArgs.isEmpty()) {
             logger.lifecycle("native-image: extra arguments ${graalvmArgs}")
             args graalvmArgs

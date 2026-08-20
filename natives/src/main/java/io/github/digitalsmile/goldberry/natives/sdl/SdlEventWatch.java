@@ -1,5 +1,6 @@
 package io.github.digitalsmile.goldberry.natives.sdl;
 
+import io.github.digitalsmile.goldberry.natives.Downcalls;
 import io.github.digitalsmile.goldberry.natives.NativeLibrary;
 import io.github.digitalsmile.goldberry.natives.log.Logs;
 import java.lang.foreign.Arena;
@@ -73,8 +74,8 @@ public final class SdlEventWatch implements AutoCloseable {
     }
 
     private final Handler handler;
-    private final MethodHandle addEventWatch;
-    private final MethodHandle removeEventWatch;
+    private final MemorySegment addEventWatch;
+    private final MemorySegment removeEventWatch;
     private final Arena arena;
     private final MemorySegment stub;
 
@@ -92,10 +93,8 @@ public final class SdlEventWatch implements AutoCloseable {
 
     SdlEventWatch(SymbolLookup lookup, Handler handler) {
         this.handler = handler;
-        this.addEventWatch = downcall(lookup, "SDL_AddEventWatch",
-                FunctionDescriptor.of(ValueLayout.JAVA_BOOLEAN, ValueLayout.ADDRESS, ValueLayout.ADDRESS));
-        this.removeEventWatch = downcall(lookup, "SDL_RemoveEventWatch",
-                FunctionDescriptor.ofVoid(ValueLayout.ADDRESS, ValueLayout.ADDRESS));
+        this.addEventWatch = Downcalls.symbol(lookup, "SDL_AddEventWatch");
+        this.removeEventWatch = Downcalls.symbol(lookup, "SDL_RemoveEventWatch");
 
         // Shared rather than confined, because the stub is not called on one
         // thread: SDL runs a watch on whichever thread pushed the event, and a
@@ -104,7 +103,7 @@ public final class SdlEventWatch implements AutoCloseable {
         this.arena = Arena.ofShared();
         try {
             this.stub = upcallStub(INVOKE.bindTo(this), arena);
-            if (!(boolean) invoke(addEventWatch, "SDL_AddEventWatch", stub, MemorySegment.NULL)) {
+            if (!added()) {
                 throw new SdlException("SDL_AddEventWatch", Sdl.get().lastError());
             }
         } catch (RuntimeException | Error e) {
@@ -123,7 +122,11 @@ public final class SdlEventWatch implements AutoCloseable {
             return;
         }
         closed = true;
-        invoke(removeEventWatch, "SDL_RemoveEventWatch", stub, MemorySegment.NULL);
+        try {
+            Downcalls.VOID__PTR_PTR.invokeExact(removeEventWatch, stub, MemorySegment.NULL);
+        } catch (Throwable t) {
+            throw new IllegalStateException("SDL_RemoveEventWatch() failed", t);
+        }
         arena.close();
     }
 
@@ -142,11 +145,14 @@ public final class SdlEventWatch implements AutoCloseable {
         return true;
     }
 
-    private static Object invoke(MethodHandle handle, String name, Object... args) {
+    /// `bool SDL_AddEventWatch(SDL_EventFilter, void *userdata)` — SDL's own
+    /// answer, which is false when it could not grow its watch list.
+    private boolean added() {
         try {
-            return handle.invokeWithArguments(args);
+            return (boolean) Downcalls.BOOL__PTR_PTR.invokeExact(
+                    addEventWatch, stub, MemorySegment.NULL);
         } catch (Throwable t) {
-            throw new IllegalStateException(name + "() failed", t);
+            throw new IllegalStateException("SDL_AddEventWatch() failed", t);
         }
     }
 
@@ -155,15 +161,6 @@ public final class SdlEventWatch implements AutoCloseable {
     @SuppressWarnings("restricted")
     private static MemorySegment upcallStub(MethodHandle target, Arena arena) {
         return LINKER.upcallStub(target, DESCRIPTOR, arena);
-    }
-
-    // Restricted: see GoldberryShim.downcall -- same obligation, same reason.
-    @SuppressWarnings("restricted")
-    private static MethodHandle downcall(SymbolLookup lookup, String symbol, FunctionDescriptor descriptor) {
-        var address = lookup.find(symbol).orElseThrow(() -> new UnsatisfiedLinkError(
-                "libgoldberry does not export " + symbol
-                        + " — is it listed in natives/src/main/cmake/exports/goldberry.symbols?"));
-        return LINKER.downcallHandle(address, descriptor);
     }
 
     private static MethodHandle invokeHandle() {

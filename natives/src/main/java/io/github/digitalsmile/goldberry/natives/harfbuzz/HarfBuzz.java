@@ -1,14 +1,12 @@
 package io.github.digitalsmile.goldberry.natives.harfbuzz;
 
+import io.github.digitalsmile.goldberry.natives.Downcalls;
 import io.github.digitalsmile.goldberry.natives.NativeLibrary;
 import io.github.digitalsmile.goldberry.natives.layout.Layouts;
 import java.lang.foreign.Arena;
-import java.lang.foreign.FunctionDescriptor;
-import java.lang.foreign.Linker;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.SymbolLookup;
 import java.lang.foreign.ValueLayout;
-import java.lang.invoke.MethodHandle;
 
 /// HarfBuzz's shaping calls.
 ///
@@ -21,8 +19,6 @@ import java.lang.invoke.MethodHandle;
 /// `hb_face_create` on nonsense bytes gives a face with no glyphs, not an
 /// error. So the checking here is about arguments, before the call.
 final class HarfBuzz {
-
-    private static final Linker LINKER = Linker.nativeLinker();
 
     static final long GLYPH_INFO_STRIDE = Layouts.HB_GLYPH_INFO.byteSize();
     static final long GLYPH_POSITION_STRIDE = Layouts.HB_GLYPH_POSITION.byteSize();
@@ -38,99 +34,73 @@ final class HarfBuzz {
         private static final HarfBuzz INSTANCE = new HarfBuzz(NativeLibrary.get().lookup());
     }
 
-    private final MethodHandle version;
-    private final MethodHandle blobCreate;
-    private final MethodHandle blobDestroy;
-    private final MethodHandle faceCreate;
-    private final MethodHandle faceDestroy;
-    private final MethodHandle faceGetEmpty;
-    private final MethodHandle faceGetUpem;
-    private final MethodHandle fontCreate;
-    private final MethodHandle fontDestroy;
-    private final MethodHandle fontSetScale;
-    private final MethodHandle bufferCreate;
-    private final MethodHandle bufferDestroy;
-    private final MethodHandle bufferReset;
-    private final MethodHandle bufferAddUtf16;
-    private final MethodHandle bufferGuessSegmentProperties;
-    private final MethodHandle bufferSetDirection;
-    private final MethodHandle bufferGetDirection;
-    private final MethodHandle bufferSetScript;
-    private final MethodHandle bufferSetLanguage;
-    private final MethodHandle bufferGetLength;
-    private final MethodHandle bufferGetGlyphInfos;
-    private final MethodHandle bufferGetGlyphPositions;
-    private final MethodHandle scriptFromString;
-    private final MethodHandle languageFromString;
-    private final MethodHandle shape;
+    private final MemorySegment version;
+    private final MemorySegment blobCreate;
+    private final MemorySegment blobDestroy;
+    private final MemorySegment faceCreate;
+    private final MemorySegment faceDestroy;
+    private final MemorySegment faceGetEmpty;
+    private final MemorySegment faceGetUpem;
+    private final MemorySegment fontCreate;
+    private final MemorySegment fontDestroy;
+    private final MemorySegment fontSetScale;
+    private final MemorySegment bufferCreate;
+    private final MemorySegment bufferDestroy;
+    private final MemorySegment bufferReset;
+    private final MemorySegment bufferAddUtf16;
+    private final MemorySegment bufferGuessSegmentProperties;
+    private final MemorySegment bufferSetDirection;
+    private final MemorySegment bufferGetDirection;
+    private final MemorySegment bufferSetScript;
+    private final MemorySegment bufferSetLanguage;
+    private final MemorySegment bufferGetLength;
+    private final MemorySegment bufferGetGlyphInfos;
+    private final MemorySegment bufferGetGlyphPositions;
+    private final MemorySegment scriptFromString;
+    private final MemorySegment languageFromString;
+    private final MemorySegment shape;
 
     private HarfBuzz(SymbolLookup lookup) {
-        this.version = downcall(lookup, "hb_version", FunctionDescriptor.ofVoid(
-                ValueLayout.ADDRESS, ValueLayout.ADDRESS, ValueLayout.ADDRESS));
+        this.version = Downcalls.symbol(lookup, "hb_version");
 
         // hb_blob_t *hb_blob_create(const char *data, unsigned int length,
         //     hb_memory_mode_t mode, void *user_data, hb_destroy_func_t destroy)
-        this.blobCreate = downcall(lookup, "hb_blob_create", FunctionDescriptor.of(
-                ValueLayout.ADDRESS, ValueLayout.ADDRESS, ValueLayout.JAVA_INT,
-                ValueLayout.JAVA_INT, ValueLayout.ADDRESS, ValueLayout.ADDRESS));
-        this.blobDestroy = downcall(lookup, "hb_blob_destroy",
-                FunctionDescriptor.ofVoid(ValueLayout.ADDRESS));
-        this.faceCreate = downcall(lookup, "hb_face_create", FunctionDescriptor.of(
-                ValueLayout.ADDRESS, ValueLayout.ADDRESS, ValueLayout.JAVA_INT));
-        this.faceDestroy = downcall(lookup, "hb_face_destroy",
-                FunctionDescriptor.ofVoid(ValueLayout.ADDRESS));
-        this.faceGetEmpty = downcall(lookup, "hb_face_get_empty",
-                FunctionDescriptor.of(ValueLayout.ADDRESS));
-        this.faceGetUpem = downcall(lookup, "hb_face_get_upem",
-                FunctionDescriptor.of(ValueLayout.JAVA_INT, ValueLayout.ADDRESS));
-        this.fontCreate = downcall(lookup, "hb_font_create",
-                FunctionDescriptor.of(ValueLayout.ADDRESS, ValueLayout.ADDRESS));
-        this.fontDestroy = downcall(lookup, "hb_font_destroy",
-                FunctionDescriptor.ofVoid(ValueLayout.ADDRESS));
-        this.fontSetScale = downcall(lookup, "hb_font_set_scale", FunctionDescriptor.ofVoid(
-                ValueLayout.ADDRESS, ValueLayout.JAVA_INT, ValueLayout.JAVA_INT));
+        this.blobCreate = Downcalls.symbol(lookup, "hb_blob_create");
+        this.blobDestroy = Downcalls.symbol(lookup, "hb_blob_destroy");
+        this.faceCreate = Downcalls.symbol(lookup, "hb_face_create");
+        this.faceDestroy = Downcalls.symbol(lookup, "hb_face_destroy");
+        this.faceGetEmpty = Downcalls.symbol(lookup, "hb_face_get_empty");
+        this.faceGetUpem = Downcalls.symbol(lookup, "hb_face_get_upem");
+        this.fontCreate = Downcalls.symbol(lookup, "hb_font_create");
+        this.fontDestroy = Downcalls.symbol(lookup, "hb_font_destroy");
+        this.fontSetScale = Downcalls.symbol(lookup, "hb_font_set_scale");
 
-        this.bufferCreate = downcall(lookup, "hb_buffer_create",
-                FunctionDescriptor.of(ValueLayout.ADDRESS));
-        this.bufferDestroy = downcall(lookup, "hb_buffer_destroy",
-                FunctionDescriptor.ofVoid(ValueLayout.ADDRESS));
-        this.bufferReset = downcall(lookup, "hb_buffer_reset",
-                FunctionDescriptor.ofVoid(ValueLayout.ADDRESS));
+        this.bufferCreate = Downcalls.symbol(lookup, "hb_buffer_create");
+        this.bufferDestroy = Downcalls.symbol(lookup, "hb_buffer_destroy");
+        this.bufferReset = Downcalls.symbol(lookup, "hb_buffer_reset");
         // void hb_buffer_add_utf16(hb_buffer_t*, const uint16_t *text,
         //     int text_length, unsigned int item_offset, int item_length)
         //
         // UTF-16 is why this is the natural entry point: a Java String already
         // is UTF-16, so the text crosses without being transcoded.
-        this.bufferAddUtf16 = downcall(lookup, "hb_buffer_add_utf16", FunctionDescriptor.ofVoid(
-                ValueLayout.ADDRESS, ValueLayout.ADDRESS, ValueLayout.JAVA_INT,
-                ValueLayout.JAVA_INT, ValueLayout.JAVA_INT));
-        this.bufferGuessSegmentProperties = downcall(lookup, "hb_buffer_guess_segment_properties",
-                FunctionDescriptor.ofVoid(ValueLayout.ADDRESS));
-        this.bufferSetDirection = downcall(lookup, "hb_buffer_set_direction",
-                FunctionDescriptor.ofVoid(ValueLayout.ADDRESS, ValueLayout.JAVA_INT));
-        this.bufferGetDirection = downcall(lookup, "hb_buffer_get_direction",
-                FunctionDescriptor.of(ValueLayout.JAVA_INT, ValueLayout.ADDRESS));
-        this.bufferSetScript = downcall(lookup, "hb_buffer_set_script",
-                FunctionDescriptor.ofVoid(ValueLayout.ADDRESS, ValueLayout.JAVA_INT));
-        this.bufferSetLanguage = downcall(lookup, "hb_buffer_set_language",
-                FunctionDescriptor.ofVoid(ValueLayout.ADDRESS, ValueLayout.ADDRESS));
-        this.bufferGetLength = downcall(lookup, "hb_buffer_get_length",
-                FunctionDescriptor.of(ValueLayout.JAVA_INT, ValueLayout.ADDRESS));
-        this.bufferGetGlyphInfos = downcall(lookup, "hb_buffer_get_glyph_infos",
-                FunctionDescriptor.of(ValueLayout.ADDRESS, ValueLayout.ADDRESS, ValueLayout.ADDRESS));
-        this.bufferGetGlyphPositions = downcall(lookup, "hb_buffer_get_glyph_positions",
-                FunctionDescriptor.of(ValueLayout.ADDRESS, ValueLayout.ADDRESS, ValueLayout.ADDRESS));
+        this.bufferAddUtf16 = Downcalls.symbol(lookup, "hb_buffer_add_utf16");
+        this.bufferGuessSegmentProperties =
+                Downcalls.symbol(lookup, "hb_buffer_guess_segment_properties");
+        this.bufferSetDirection = Downcalls.symbol(lookup, "hb_buffer_set_direction");
+        this.bufferGetDirection = Downcalls.symbol(lookup, "hb_buffer_get_direction");
+        this.bufferSetScript = Downcalls.symbol(lookup, "hb_buffer_set_script");
+        this.bufferSetLanguage = Downcalls.symbol(lookup, "hb_buffer_set_language");
+        this.bufferGetLength = Downcalls.symbol(lookup, "hb_buffer_get_length");
+        this.bufferGetGlyphInfos = Downcalls.symbol(lookup, "hb_buffer_get_glyph_infos");
+        this.bufferGetGlyphPositions = Downcalls.symbol(lookup, "hb_buffer_get_glyph_positions");
 
-        this.scriptFromString = downcall(lookup, "hb_script_from_string", FunctionDescriptor.of(
-                ValueLayout.JAVA_INT, ValueLayout.ADDRESS, ValueLayout.JAVA_INT));
-        this.languageFromString = downcall(lookup, "hb_language_from_string", FunctionDescriptor.of(
-                ValueLayout.ADDRESS, ValueLayout.ADDRESS, ValueLayout.JAVA_INT));
+        this.scriptFromString = Downcalls.symbol(lookup, "hb_script_from_string");
+        this.languageFromString = Downcalls.symbol(lookup, "hb_language_from_string");
 
         // void hb_shape(hb_font_t*, hb_buffer_t*, const hb_feature_t*, unsigned)
         // Features are NULL/0 until the CSS layer has font-feature-settings to
         // compile into them.
-        this.shape = downcall(lookup, "hb_shape", FunctionDescriptor.ofVoid(
-                ValueLayout.ADDRESS, ValueLayout.ADDRESS, ValueLayout.ADDRESS, ValueLayout.JAVA_INT));
+        this.shape = Downcalls.symbol(lookup, "hb_shape");
     }
 
     static HarfBuzz get() {
@@ -145,7 +115,7 @@ final class HarfBuzz {
             var minor = out.asSlice(4, 4);
             var micro = out.asSlice(8, 4);
             try {
-                version.invokeExact(major, minor, micro);
+                Downcalls.VOID__PTR_PTR_PTR.invokeExact(version, major, minor, micro);
             } catch (Throwable t) {
                 throw failure("hb_version", t);
             }
@@ -164,7 +134,7 @@ final class HarfBuzz {
     /// array's memory outlives the face, which nothing here can promise.
     MemorySegment blobCreate(MemorySegment data, int length) {
         try {
-            return (MemorySegment) blobCreate.invokeExact(
+            return (MemorySegment) Downcalls.PTR__PTR_INT_INT_PTR_PTR.invokeExact(blobCreate,
                     data, length, MemoryMode.DUPLICATE.nativeValue(),
                     MemorySegment.NULL, MemorySegment.NULL);
         } catch (Throwable t) {
@@ -178,7 +148,7 @@ final class HarfBuzz {
 
     MemorySegment faceCreate(MemorySegment blob, int index) {
         try {
-            return (MemorySegment) faceCreate.invokeExact(blob, index);
+            return (MemorySegment) Downcalls.PTR__PTR_INT.invokeExact(faceCreate, blob, index);
         } catch (Throwable t) {
             throw failure("hb_face_create", t);
         }
@@ -194,7 +164,7 @@ final class HarfBuzz {
     /// why [ShapedFont] tracks whether its face was borrowed.
     MemorySegment faceEmpty() {
         try {
-            return (MemorySegment) faceGetEmpty.invokeExact();
+            return (MemorySegment) Downcalls.PTR__VOID.invokeExact(faceGetEmpty);
         } catch (Throwable t) {
             throw failure("hb_face_get_empty", t);
         }
@@ -208,7 +178,7 @@ final class HarfBuzz {
     /// for a TrueType one, and free to be anything.
     int faceUpem(MemorySegment face) {
         try {
-            return (int) faceGetUpem.invokeExact(face);
+            return (int) Downcalls.INT__PTR.invokeExact(faceGetUpem, face);
         } catch (Throwable t) {
             throw failure("hb_face_get_upem", t);
         }
@@ -216,7 +186,7 @@ final class HarfBuzz {
 
     MemorySegment fontCreate(MemorySegment face) {
         try {
-            return (MemorySegment) fontCreate.invokeExact(face);
+            return (MemorySegment) Downcalls.PTR__PTR.invokeExact(fontCreate, face);
         } catch (Throwable t) {
             throw failure("hb_font_create", t);
         }
@@ -228,7 +198,7 @@ final class HarfBuzz {
 
     void fontScale(MemorySegment font, int xScale, int yScale) {
         try {
-            fontSetScale.invokeExact(font, xScale, yScale);
+            Downcalls.VOID__PTR_INT_INT.invokeExact(fontSetScale, font, xScale, yScale);
         } catch (Throwable t) {
             throw failure("hb_font_set_scale", t);
         }
@@ -238,7 +208,7 @@ final class HarfBuzz {
 
     MemorySegment bufferCreate() {
         try {
-            return (MemorySegment) bufferCreate.invokeExact();
+            return (MemorySegment) Downcalls.PTR__VOID.invokeExact(bufferCreate);
         } catch (Throwable t) {
             throw failure("hb_buffer_create", t);
         }
@@ -261,7 +231,8 @@ final class HarfBuzz {
     void bufferAddUtf16(
             MemorySegment buffer, MemorySegment text, int textLength, int itemOffset, int itemLength) {
         try {
-            bufferAddUtf16.invokeExact(buffer, text, textLength, itemOffset, itemLength);
+            Downcalls.VOID__PTR_PTR_INT_INT_INT.invokeExact(
+                    bufferAddUtf16, buffer, text, textLength, itemOffset, itemLength);
         } catch (Throwable t) {
             throw failure("hb_buffer_add_utf16", t);
         }
@@ -273,7 +244,8 @@ final class HarfBuzz {
 
     void bufferDirection(MemorySegment buffer, TextDirection direction) {
         try {
-            bufferSetDirection.invokeExact(buffer, direction.nativeValue());
+            Downcalls.VOID__PTR_INT.invokeExact(
+                    bufferSetDirection, buffer, direction.nativeValue());
         } catch (Throwable t) {
             throw failure("hb_buffer_set_direction", t);
         }
@@ -282,7 +254,7 @@ final class HarfBuzz {
     TextDirection bufferDirection(MemorySegment buffer) {
         int value;
         try {
-            value = (int) bufferGetDirection.invokeExact(buffer);
+            value = (int) Downcalls.INT__PTR.invokeExact(bufferGetDirection, buffer);
         } catch (Throwable t) {
             throw failure("hb_buffer_get_direction", t);
         }
@@ -291,7 +263,7 @@ final class HarfBuzz {
 
     void bufferScript(MemorySegment buffer, int scriptTag) {
         try {
-            bufferSetScript.invokeExact(buffer, scriptTag);
+            Downcalls.VOID__PTR_INT.invokeExact(bufferSetScript, buffer, scriptTag);
         } catch (Throwable t) {
             throw failure("hb_buffer_set_script", t);
         }
@@ -299,7 +271,7 @@ final class HarfBuzz {
 
     void bufferLanguage(MemorySegment buffer, MemorySegment language) {
         try {
-            bufferSetLanguage.invokeExact(buffer, language);
+            Downcalls.VOID__PTR_PTR.invokeExact(bufferSetLanguage, buffer, language);
         } catch (Throwable t) {
             throw failure("hb_buffer_set_language", t);
         }
@@ -307,7 +279,7 @@ final class HarfBuzz {
 
     int bufferLength(MemorySegment buffer) {
         try {
-            return (int) bufferGetLength.invokeExact(buffer);
+            return (int) Downcalls.INT__PTR.invokeExact(bufferGetLength, buffer);
         } catch (Throwable t) {
             throw failure("hb_buffer_get_length", t);
         }
@@ -316,7 +288,7 @@ final class HarfBuzz {
     /// A four-character script tag, e.g. `Latn`.
     int scriptFromString(MemorySegment name, int length) {
         try {
-            return (int) scriptFromString.invokeExact(name, length);
+            return (int) Downcalls.INT__PTR_INT.invokeExact(scriptFromString, name, length);
         } catch (Throwable t) {
             throw failure("hb_script_from_string", t);
         }
@@ -326,7 +298,8 @@ final class HarfBuzz {
     /// and that must not be freed.
     MemorySegment languageFromString(MemorySegment name, int length) {
         try {
-            return (MemorySegment) languageFromString.invokeExact(name, length);
+            return (MemorySegment) Downcalls.PTR__PTR_INT.invokeExact(
+                    languageFromString, name, length);
         } catch (Throwable t) {
             throw failure("hb_language_from_string", t);
         }
@@ -336,7 +309,7 @@ final class HarfBuzz {
 
     void shape(MemorySegment font, MemorySegment buffer) {
         try {
-            shape.invokeExact(font, buffer, MemorySegment.NULL, 0);
+            Downcalls.VOID__PTR_PTR_PTR_INT.invokeExact(shape, font, buffer, MemorySegment.NULL, 0);
         } catch (Throwable t) {
             throw failure("hb_shape", t);
         }
@@ -357,8 +330,9 @@ final class HarfBuzz {
         MemorySegment infos;
         MemorySegment positions;
         try {
-            infos = (MemorySegment) bufferGetGlyphInfos.invokeExact(buffer, MemorySegment.NULL);
-            positions = (MemorySegment) bufferGetGlyphPositions.invokeExact(
+            infos = (MemorySegment) Downcalls.PTR__PTR_PTR.invokeExact(
+                    bufferGetGlyphInfos, buffer, MemorySegment.NULL);
+            positions = (MemorySegment) Downcalls.PTR__PTR_PTR.invokeExact(bufferGetGlyphPositions,
                     buffer, MemorySegment.NULL);
         } catch (Throwable t) {
             throw failure("hb_buffer_get_glyph_infos", t);
@@ -403,9 +377,9 @@ final class HarfBuzz {
         return pointer.reinterpret(bytes);
     }
 
-    private static void callVoid(MethodHandle handle, String name, MemorySegment argument) {
+    private static void callVoid(MemorySegment function, String name, MemorySegment argument) {
         try {
-            handle.invokeExact(argument);
+            Downcalls.VOID__PTR.invokeExact(function, argument);
         } catch (Throwable t) {
             throw failure(name, t);
         }
@@ -413,14 +387,5 @@ final class HarfBuzz {
 
     private static IllegalStateException failure(String name, Throwable cause) {
         return new IllegalStateException(name + "() failed", cause);
-    }
-
-    // Restricted: see GoldberryShim.downcall -- same obligation, same reason.
-    @SuppressWarnings("restricted")
-    private static MethodHandle downcall(SymbolLookup lookup, String symbol, FunctionDescriptor descriptor) {
-        var address = lookup.find(symbol).orElseThrow(() -> new UnsatisfiedLinkError(
-                "libgoldberry does not export " + symbol
-                        + " — is it listed in natives/src/main/cmake/exports/goldberry.symbols?"));
-        return LINKER.downcallHandle(address, descriptor);
     }
 }

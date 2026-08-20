@@ -1,12 +1,9 @@
 package io.github.digitalsmile.goldberry.natives.yoga;
 
+import io.github.digitalsmile.goldberry.natives.Downcalls;
 import io.github.digitalsmile.goldberry.natives.NativeLibrary;
-import java.lang.foreign.FunctionDescriptor;
-import java.lang.foreign.Linker;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.SymbolLookup;
-import java.lang.foreign.ValueLayout;
-import java.lang.invoke.MethodHandle;
 
 /// Yoga's node, style, layout and config calls.
 ///
@@ -29,81 +26,56 @@ import java.lang.invoke.MethodHandle;
 /// [YogaEnum#all()].
 final class Yoga {
 
-    private static final Linker LINKER = Linker.nativeLinker();
-
-    /// `void f(YGNodeRef)`
-    private static final FunctionDescriptor NODE_VOID =
-            FunctionDescriptor.ofVoid(ValueLayout.ADDRESS);
-
-    /// `void f(YGNodeRef, float)`
-    private static final FunctionDescriptor NODE_FLOAT =
-            FunctionDescriptor.ofVoid(ValueLayout.ADDRESS, ValueLayout.JAVA_FLOAT);
-
-    /// `void f(YGNodeRef, <enum>)`
-    private static final FunctionDescriptor NODE_ENUM =
-            FunctionDescriptor.ofVoid(ValueLayout.ADDRESS, ValueLayout.JAVA_INT);
-
-    /// `void f(YGNodeRef, <enum>, float)` — the edge- and gutter-keyed setters.
-    private static final FunctionDescriptor NODE_KEY_FLOAT = FunctionDescriptor.ofVoid(
-            ValueLayout.ADDRESS, ValueLayout.JAVA_INT, ValueLayout.JAVA_FLOAT);
-
-    /// `float f(YGNodeConstRef)`
-    private static final FunctionDescriptor GET_FLOAT =
-            FunctionDescriptor.of(ValueLayout.JAVA_FLOAT, ValueLayout.ADDRESS);
-
-    /// `float f(YGNodeConstRef, <enum>)`
-    private static final FunctionDescriptor GET_FLOAT_KEYED = FunctionDescriptor.of(
-            ValueLayout.JAVA_FLOAT, ValueLayout.ADDRESS, ValueLayout.JAVA_INT);
-
-    /// `bool f(YGNodeConstRef)` — C's `_Bool`, one byte and not four.
-    private static final FunctionDescriptor GET_BOOL =
-            FunctionDescriptor.of(ValueLayout.JAVA_BOOLEAN, ValueLayout.ADDRESS);
+    // Yoga's whole surface is seven signatures, and the invocation helpers at
+    // the bottom of this file are one per signature -- so the shape a symbol was
+    // bound with is named exactly once, by the helper that calls it, rather than
+    // twice (ADR-0161). What each field holds is an address, not a handle.
 
     private static final class Holder {
         private static final Yoga INSTANCE = new Yoga(NativeLibrary.get().lookup());
     }
 
     // --- config ------------------------------------------------------------
-    private final MethodHandle configNew;
-    private final MethodHandle configFree;
-    private final MethodHandle configSetPointScaleFactor;
-    private final MethodHandle configGetPointScaleFactor;
-    private final MethodHandle configSetUseWebDefaults;
-    private final MethodHandle configGetUseWebDefaults;
+    private final MemorySegment configNew;
+    private final MemorySegment configFree;
+    private final MemorySegment configSetPointScaleFactor;
+    private final MemorySegment configGetPointScaleFactor;
+    private final MemorySegment configSetUseWebDefaults;
+    private final MemorySegment configGetUseWebDefaults;
 
     // --- node lifecycle and tree -------------------------------------------
-    private final MethodHandle nodeNew;
-    private final MethodHandle nodeNewWithConfig;
-    private final MethodHandle nodeFree;
-    private final MethodHandle nodeInsertChild;
-    private final MethodHandle nodeRemoveChild;
-    private final MethodHandle nodeRemoveAllChildren;
-    private final MethodHandle nodeGetChildCount;
-    private final MethodHandle nodeSetMeasureFunc;
-    private final MethodHandle nodeHasMeasureFunc;
-    private final MethodHandle nodeMarkDirty;
-    private final MethodHandle nodeIsDirty;
-    private final MethodHandle nodeGetHasNewLayout;
-    private final MethodHandle nodeSetHasNewLayout;
-    private final MethodHandle nodeCalculateLayout;
+    private final MemorySegment nodeNew;
+    private final MemorySegment nodeNewWithConfig;
+    private final MemorySegment nodeFree;
+    private final MemorySegment nodeInsertChild;
+    private final MemorySegment nodeRemoveChild;
+    private final MemorySegment nodeRemoveAllChildren;
+    private final MemorySegment nodeGetChildCount;
+    private final MemorySegment nodeSetMeasureFunc;
+    private final MemorySegment nodeHasMeasureFunc;
+    private final MemorySegment nodeMarkDirty;
+    private final MemorySegment nodeIsDirty;
+    private final MemorySegment nodeGetHasNewLayout;
+    private final MemorySegment nodeSetHasNewLayout;
+    private final MemorySegment nodeCalculateLayout;
 
     // --- style: enum-valued ------------------------------------------------
-    private final MethodHandle styleSetDirection;
-    private final MethodHandle styleSetFlexDirection;
-    private final MethodHandle styleSetJustifyContent;
-    private final MethodHandle styleSetAlignContent;
-    private final MethodHandle styleSetAlignItems;
-    private final MethodHandle styleSetAlignSelf;
-    private final MethodHandle styleSetPositionType;
-    private final MethodHandle styleSetFlexWrap;
-    private final MethodHandle styleSetOverflow;
-    private final MethodHandle styleSetDisplay;
+    private final MemorySegment styleSetDirection;
+    private final MemorySegment styleSetFlexDirection;
+    private final MemorySegment styleSetJustifyContent;
+    private final MemorySegment styleSetAlignContent;
+    private final MemorySegment styleSetAlignItems;
+    private final MemorySegment styleSetAlignSelf;
+    private final MemorySegment styleSetPositionType;
+    private final MemorySegment styleSetFlexWrap;
+    private final MemorySegment styleSetOverflow;
+    private final MemorySegment styleSetDisplay;
 
     // --- style: plain floats -----------------------------------------------
-    private final MethodHandle styleSetFlexGrow;
-    private final MethodHandle styleSetFlexShrink;
-    private final MethodHandle styleSetAspectRatio;
-    private final MethodHandle styleSetBorder;
+    private final MemorySegment styleSetFlexGrow;
+    private final MemorySegment styleSetFlexShrink;
+    private final MemorySegment styleSetAspectRatio;
+    private final MemorySegment styleSetBorder;
 
     // --- style: lengths ----------------------------------------------------
     private final LengthCalls width;
@@ -119,72 +91,61 @@ final class Yoga {
     private final KeyedLengthCalls gap;
 
     // --- computed layout ---------------------------------------------------
-    private final MethodHandle layoutGetLeft;
-    private final MethodHandle layoutGetTop;
-    private final MethodHandle layoutGetWidth;
-    private final MethodHandle layoutGetHeight;
-    private final MethodHandle layoutGetMargin;
-    private final MethodHandle layoutGetBorder;
-    private final MethodHandle layoutGetPadding;
-    private final MethodHandle layoutGetDirection;
-    private final MethodHandle layoutGetHadOverflow;
+    private final MemorySegment layoutGetLeft;
+    private final MemorySegment layoutGetTop;
+    private final MemorySegment layoutGetWidth;
+    private final MemorySegment layoutGetHeight;
+    private final MemorySegment layoutGetMargin;
+    private final MemorySegment layoutGetBorder;
+    private final MemorySegment layoutGetPadding;
+    private final MemorySegment layoutGetDirection;
+    private final MemorySegment layoutGetHadOverflow;
 
     private Yoga(SymbolLookup lookup) {
-        this.configNew = downcall(lookup, "YGConfigNew",
-                FunctionDescriptor.of(ValueLayout.ADDRESS));
-        this.configFree = downcall(lookup, "YGConfigFree", NODE_VOID);
+        this.configNew = Downcalls.symbol(lookup, "YGConfigNew");
+        this.configFree = Downcalls.symbol(lookup, "YGConfigFree");
         this.configSetPointScaleFactor =
-                downcall(lookup, "YGConfigSetPointScaleFactor", NODE_FLOAT);
+                Downcalls.symbol(lookup, "YGConfigSetPointScaleFactor");
         this.configGetPointScaleFactor =
-                downcall(lookup, "YGConfigGetPointScaleFactor", GET_FLOAT);
-        this.configSetUseWebDefaults = downcall(lookup, "YGConfigSetUseWebDefaults",
-                FunctionDescriptor.ofVoid(ValueLayout.ADDRESS, ValueLayout.JAVA_BOOLEAN));
+                Downcalls.symbol(lookup, "YGConfigGetPointScaleFactor");
+        this.configSetUseWebDefaults = Downcalls.symbol(lookup, "YGConfigSetUseWebDefaults");
         this.configGetUseWebDefaults =
-                downcall(lookup, "YGConfigGetUseWebDefaults", GET_BOOL);
+                Downcalls.symbol(lookup, "YGConfigGetUseWebDefaults");
 
-        this.nodeNew = downcall(lookup, "YGNodeNew",
-                FunctionDescriptor.of(ValueLayout.ADDRESS));
-        this.nodeNewWithConfig = downcall(lookup, "YGNodeNewWithConfig",
-                FunctionDescriptor.of(ValueLayout.ADDRESS, ValueLayout.ADDRESS));
-        this.nodeFree = downcall(lookup, "YGNodeFree", NODE_VOID);
+        this.nodeNew = Downcalls.symbol(lookup, "YGNodeNew");
+        this.nodeNewWithConfig = Downcalls.symbol(lookup, "YGNodeNewWithConfig");
+        this.nodeFree = Downcalls.symbol(lookup, "YGNodeFree");
         // size_t, which is 8 bytes on every target Goldberry builds for -- the
         // "size_t" scalar row in the layout table is what says so.
-        this.nodeInsertChild = downcall(lookup, "YGNodeInsertChild", FunctionDescriptor.ofVoid(
-                ValueLayout.ADDRESS, ValueLayout.ADDRESS, ValueLayout.JAVA_LONG));
-        this.nodeRemoveChild = downcall(lookup, "YGNodeRemoveChild",
-                FunctionDescriptor.ofVoid(ValueLayout.ADDRESS, ValueLayout.ADDRESS));
-        this.nodeRemoveAllChildren = downcall(lookup, "YGNodeRemoveAllChildren", NODE_VOID);
-        this.nodeGetChildCount = downcall(lookup, "YGNodeGetChildCount",
-                FunctionDescriptor.of(ValueLayout.JAVA_LONG, ValueLayout.ADDRESS));
-        this.nodeSetMeasureFunc = downcall(lookup, "YGNodeSetMeasureFunc",
-                FunctionDescriptor.ofVoid(ValueLayout.ADDRESS, ValueLayout.ADDRESS));
-        this.nodeHasMeasureFunc = downcall(lookup, "YGNodeHasMeasureFunc", GET_BOOL);
-        this.nodeMarkDirty = downcall(lookup, "YGNodeMarkDirty", NODE_VOID);
-        this.nodeIsDirty = downcall(lookup, "YGNodeIsDirty", GET_BOOL);
-        this.nodeGetHasNewLayout = downcall(lookup, "YGNodeGetHasNewLayout", GET_BOOL);
-        this.nodeSetHasNewLayout = downcall(lookup, "YGNodeSetHasNewLayout",
-                FunctionDescriptor.ofVoid(ValueLayout.ADDRESS, ValueLayout.JAVA_BOOLEAN));
-        this.nodeCalculateLayout = downcall(lookup, "YGNodeCalculateLayout",
-                FunctionDescriptor.ofVoid(ValueLayout.ADDRESS, ValueLayout.JAVA_FLOAT,
-                        ValueLayout.JAVA_FLOAT, ValueLayout.JAVA_INT));
+        this.nodeInsertChild = Downcalls.symbol(lookup, "YGNodeInsertChild");
+        this.nodeRemoveChild = Downcalls.symbol(lookup, "YGNodeRemoveChild");
+        this.nodeRemoveAllChildren = Downcalls.symbol(lookup, "YGNodeRemoveAllChildren");
+        this.nodeGetChildCount = Downcalls.symbol(lookup, "YGNodeGetChildCount");
+        this.nodeSetMeasureFunc = Downcalls.symbol(lookup, "YGNodeSetMeasureFunc");
+        this.nodeHasMeasureFunc = Downcalls.symbol(lookup, "YGNodeHasMeasureFunc");
+        this.nodeMarkDirty = Downcalls.symbol(lookup, "YGNodeMarkDirty");
+        this.nodeIsDirty = Downcalls.symbol(lookup, "YGNodeIsDirty");
+        this.nodeGetHasNewLayout = Downcalls.symbol(lookup, "YGNodeGetHasNewLayout");
+        this.nodeSetHasNewLayout = Downcalls.symbol(lookup, "YGNodeSetHasNewLayout");
+        this.nodeCalculateLayout = Downcalls.symbol(lookup, "YGNodeCalculateLayout");
 
-        this.styleSetDirection = downcall(lookup, "YGNodeStyleSetDirection", NODE_ENUM);
-        this.styleSetFlexDirection = downcall(lookup, "YGNodeStyleSetFlexDirection", NODE_ENUM);
-        this.styleSetJustifyContent = downcall(lookup, "YGNodeStyleSetJustifyContent", NODE_ENUM);
-        this.styleSetAlignContent = downcall(lookup, "YGNodeStyleSetAlignContent", NODE_ENUM);
-        this.styleSetAlignItems = downcall(lookup, "YGNodeStyleSetAlignItems", NODE_ENUM);
-        this.styleSetAlignSelf = downcall(lookup, "YGNodeStyleSetAlignSelf", NODE_ENUM);
-        this.styleSetPositionType = downcall(lookup, "YGNodeStyleSetPositionType", NODE_ENUM);
-        this.styleSetFlexWrap = downcall(lookup, "YGNodeStyleSetFlexWrap", NODE_ENUM);
-        this.styleSetOverflow = downcall(lookup, "YGNodeStyleSetOverflow", NODE_ENUM);
-        this.styleSetDisplay = downcall(lookup, "YGNodeStyleSetDisplay", NODE_ENUM);
+        this.styleSetDirection = Downcalls.symbol(lookup, "YGNodeStyleSetDirection");
+        this.styleSetFlexDirection = Downcalls.symbol(lookup, "YGNodeStyleSetFlexDirection");
+        this.styleSetJustifyContent = Downcalls.symbol(lookup, "YGNodeStyleSetJustifyContent");
+        this.styleSetAlignContent = Downcalls.symbol(lookup, "YGNodeStyleSetAlignContent");
+        this.styleSetAlignItems = Downcalls.symbol(lookup, "YGNodeStyleSetAlignItems");
+        this.styleSetAlignSelf = Downcalls.symbol(lookup, "YGNodeStyleSetAlignSelf");
+        this.styleSetPositionType = Downcalls.symbol(lookup, "YGNodeStyleSetPositionType");
+        this.styleSetFlexWrap = Downcalls.symbol(lookup, "YGNodeStyleSetFlexWrap");
+        this.styleSetOverflow = Downcalls.symbol(lookup, "YGNodeStyleSetOverflow");
+        this.styleSetDisplay = Downcalls.symbol(lookup, "YGNodeStyleSetDisplay");
 
-        this.styleSetFlexGrow = downcall(lookup, "YGNodeStyleSetFlexGrow", NODE_FLOAT);
-        this.styleSetFlexShrink = downcall(lookup, "YGNodeStyleSetFlexShrink", NODE_FLOAT);
-        this.styleSetAspectRatio = downcall(lookup, "YGNodeStyleSetAspectRatio", NODE_FLOAT);
+        this.styleSetFlexGrow = Downcalls.symbol(lookup, "YGNodeStyleSetFlexGrow");
+        this.styleSetFlexShrink = Downcalls.symbol(lookup, "YGNodeStyleSetFlexShrink");
+        this.styleSetAspectRatio = Downcalls.symbol(lookup, "YGNodeStyleSetAspectRatio");
         // Border is points-only: there is no percent or auto function for it,
         // which matches CSS -- a percentage border-width is not a thing.
-        this.styleSetBorder = downcall(lookup, "YGNodeStyleSetBorder", NODE_KEY_FLOAT);
+        this.styleSetBorder = Downcalls.symbol(lookup, "YGNodeStyleSetBorder");
 
         this.width = lengths(lookup, "Width", true);
         this.height = lengths(lookup, "Height", true);
@@ -204,16 +165,15 @@ final class Yoga {
         this.padding = keyedLengths(lookup, "Padding", false);
         this.gap = keyedLengths(lookup, "Gap", false);
 
-        this.layoutGetLeft = downcall(lookup, "YGNodeLayoutGetLeft", GET_FLOAT);
-        this.layoutGetTop = downcall(lookup, "YGNodeLayoutGetTop", GET_FLOAT);
-        this.layoutGetWidth = downcall(lookup, "YGNodeLayoutGetWidth", GET_FLOAT);
-        this.layoutGetHeight = downcall(lookup, "YGNodeLayoutGetHeight", GET_FLOAT);
-        this.layoutGetMargin = downcall(lookup, "YGNodeLayoutGetMargin", GET_FLOAT_KEYED);
-        this.layoutGetBorder = downcall(lookup, "YGNodeLayoutGetBorder", GET_FLOAT_KEYED);
-        this.layoutGetPadding = downcall(lookup, "YGNodeLayoutGetPadding", GET_FLOAT_KEYED);
-        this.layoutGetDirection = downcall(lookup, "YGNodeLayoutGetDirection",
-                FunctionDescriptor.of(ValueLayout.JAVA_INT, ValueLayout.ADDRESS));
-        this.layoutGetHadOverflow = downcall(lookup, "YGNodeLayoutGetHadOverflow", GET_BOOL);
+        this.layoutGetLeft = Downcalls.symbol(lookup, "YGNodeLayoutGetLeft");
+        this.layoutGetTop = Downcalls.symbol(lookup, "YGNodeLayoutGetTop");
+        this.layoutGetWidth = Downcalls.symbol(lookup, "YGNodeLayoutGetWidth");
+        this.layoutGetHeight = Downcalls.symbol(lookup, "YGNodeLayoutGetHeight");
+        this.layoutGetMargin = Downcalls.symbol(lookup, "YGNodeLayoutGetMargin");
+        this.layoutGetBorder = Downcalls.symbol(lookup, "YGNodeLayoutGetBorder");
+        this.layoutGetPadding = Downcalls.symbol(lookup, "YGNodeLayoutGetPadding");
+        this.layoutGetDirection = Downcalls.symbol(lookup, "YGNodeLayoutGetDirection");
+        this.layoutGetHadOverflow = Downcalls.symbol(lookup, "YGNodeLayoutGetHadOverflow");
     }
 
     static Yoga get() {
@@ -240,7 +200,7 @@ final class Yoga {
 
     void configUseWebDefaults(MemorySegment config, boolean useWebDefaults) {
         try {
-            configSetUseWebDefaults.invokeExact(config, useWebDefaults);
+            Downcalls.VOID__PTR_BOOL.invokeExact(configSetUseWebDefaults, config, useWebDefaults);
         } catch (Throwable t) {
             throw failure("YGConfigSetUseWebDefaults", t);
         }
@@ -259,7 +219,7 @@ final class Yoga {
     MemorySegment nodeNew(MemorySegment config) {
         MemorySegment node;
         try {
-            node = (MemorySegment) nodeNewWithConfig.invokeExact(config);
+            node = (MemorySegment) Downcalls.PTR__PTR.invokeExact(nodeNewWithConfig, config);
         } catch (Throwable t) {
             throw failure("YGNodeNewWithConfig", t);
         }
@@ -275,7 +235,7 @@ final class Yoga {
 
     void nodeInsertChild(MemorySegment node, MemorySegment child, long index) {
         try {
-            nodeInsertChild.invokeExact(node, child, index);
+            Downcalls.VOID__PTR_PTR_LONG.invokeExact(nodeInsertChild, node, child, index);
         } catch (Throwable t) {
             throw failure("YGNodeInsertChild", t);
         }
@@ -283,7 +243,7 @@ final class Yoga {
 
     void nodeRemoveChild(MemorySegment node, MemorySegment child) {
         try {
-            nodeRemoveChild.invokeExact(node, child);
+            Downcalls.VOID__PTR_PTR.invokeExact(nodeRemoveChild, node, child);
         } catch (Throwable t) {
             throw failure("YGNodeRemoveChild", t);
         }
@@ -295,7 +255,7 @@ final class Yoga {
 
     long nodeChildCount(MemorySegment node) {
         try {
-            return (long) nodeGetChildCount.invokeExact(node);
+            return (long) Downcalls.LONG__PTR.invokeExact(nodeGetChildCount, node);
         } catch (Throwable t) {
             throw failure("YGNodeGetChildCount", t);
         }
@@ -305,7 +265,7 @@ final class Yoga {
     /// [MemorySegment#NULL].
     void nodeMeasureFunc(MemorySegment node, MemorySegment stub) {
         try {
-            nodeSetMeasureFunc.invokeExact(node, stub);
+            Downcalls.VOID__PTR_PTR.invokeExact(nodeSetMeasureFunc, node, stub);
         } catch (Throwable t) {
             throw failure("YGNodeSetMeasureFunc", t);
         }
@@ -329,7 +289,7 @@ final class Yoga {
 
     void nodeHasNewLayout(MemorySegment node, boolean hasNewLayout) {
         try {
-            nodeSetHasNewLayout.invokeExact(node, hasNewLayout);
+            Downcalls.VOID__PTR_BOOL.invokeExact(nodeSetHasNewLayout, node, hasNewLayout);
         } catch (Throwable t) {
             throw failure("YGNodeSetHasNewLayout", t);
         }
@@ -338,7 +298,7 @@ final class Yoga {
     void nodeCalculateLayout(
             MemorySegment node, float availableWidth, float availableHeight, Direction ownerDirection) {
         try {
-            nodeCalculateLayout.invokeExact(
+            Downcalls.VOID__PTR_FLOAT_FLOAT_INT.invokeExact(nodeCalculateLayout,
                     node, availableWidth, availableHeight, ownerDirection.nativeValue());
         } catch (Throwable t) {
             throw failure("YGNodeCalculateLayout", t);
@@ -472,7 +432,7 @@ final class Yoga {
     Direction layoutDirection(MemorySegment node) {
         int value;
         try {
-            value = (int) layoutGetDirection.invokeExact(node);
+            value = (int) Downcalls.INT__PTR.invokeExact(layoutGetDirection, node);
         } catch (Throwable t) {
             throw failure("YGNodeLayoutGetDirection", t);
         }
@@ -497,13 +457,14 @@ final class Yoga {
     /// `symbol` is the C name the three share as a prefix, kept for the failure
     /// message: composed handles would otherwise report a CSS property name for
     /// what is really a broken binding to a named symbol.
-    private record LengthCalls(String symbol, MethodHandle points, MethodHandle percent, MethodHandle auto) {
+    private record LengthCalls(
+            String symbol, MemorySegment points, MemorySegment percent, MemorySegment auto) {
     }
 
     /// The same, for a property keyed by an [Edge] or a [Gutter]. The C shape is
     /// identical — `(node, int, float)` — so one record serves both.
     private record KeyedLengthCalls(
-            String symbol, MethodHandle points, MethodHandle percent, MethodHandle auto) {
+            String symbol, MemorySegment points, MemorySegment percent, MemorySegment auto) {
     }
 
     private static void applyLength(
@@ -544,7 +505,7 @@ final class Yoga {
     /// Yoga exports no `*Auto` function for every property, and a property that
     /// has none cannot be told `auto` at all. Refusing by name beats dropping the
     /// value, which would read as a stylesheet that has no effect.
-    private static MethodHandle requireAuto(MethodHandle auto, String property) {
+    private static MemorySegment requireAuto(MemorySegment auto, String property) {
         if (auto == null) {
             throw new IllegalArgumentException(
                     "Yoga has no `auto` for " + property + " — it exports no setter for it,"
@@ -565,96 +526,100 @@ final class Yoga {
         var prefix = "YGNodeStyleSet" + property;
         return new LengthCalls(
                 prefix,
-                downcall(lookup, prefix, NODE_FLOAT),
-                downcall(lookup, prefix + "Percent", NODE_FLOAT),
-                hasAuto ? downcall(lookup, prefix + "Auto", NODE_VOID) : null);
+                Downcalls.symbol(lookup, prefix),
+                Downcalls.symbol(lookup, prefix + "Percent"),
+                hasAuto ? Downcalls.symbol(lookup, prefix + "Auto") : null);
     }
 
     private static KeyedLengthCalls keyedLengths(SymbolLookup lookup, String property, boolean hasAuto) {
         var prefix = "YGNodeStyleSet" + property;
         return new KeyedLengthCalls(
                 prefix,
-                downcall(lookup, prefix, NODE_KEY_FLOAT),
-                downcall(lookup, prefix + "Percent", NODE_KEY_FLOAT),
-                hasAuto ? downcall(lookup, prefix + "Auto", NODE_ENUM) : null);
+                Downcalls.symbol(lookup, prefix),
+                Downcalls.symbol(lookup, prefix + "Percent"),
+                hasAuto ? Downcalls.symbol(lookup, prefix + "Auto") : null);
     }
 
     // --- invocation helpers ------------------------------------------------
     //
-    // invokeExact rather than invokeWithArguments: the handle's type is known
-    // statically at each of these call sites, so the JIT can inline through it.
+    // One per signature, and every Yoga call goes through one: `invokeExact` on
+    // a constant handle, never `invokeWithArguments`, so nothing here boxes and
+    // both compilers can lower it into a direct call to the stub (ADR-0161).
     // That matters here in a way it does not for SDL -- a layout pass touches
     // every node in the tree, and these are the calls it makes.
 
-    private static void call(MethodHandle handle, String name, MemorySegment node) {
+    private static void call(MemorySegment function, String name, MemorySegment node) {
         try {
-            handle.invokeExact(node);
+            Downcalls.VOID__PTR.invokeExact(function, node);
         } catch (Throwable t) {
             throw failure(name, t);
         }
     }
 
-    private static void call(MethodHandle handle, String name, MemorySegment node, float value) {
+    private static void call(MemorySegment function, String name, MemorySegment node, float value) {
         try {
-            handle.invokeExact(node, value);
+            Downcalls.VOID__PTR_FLOAT.invokeExact(function, node, value);
         } catch (Throwable t) {
             throw failure(name, t);
         }
     }
 
-    private static void callEnum(MethodHandle handle, String name, MemorySegment node, YogaEnum value) {
+    private static void callEnum(
+            MemorySegment function, String name, MemorySegment node, YogaEnum value) {
         try {
-            handle.invokeExact(node, value.nativeValue());
+            Downcalls.VOID__PTR_INT.invokeExact(function, node, value.nativeValue());
         } catch (Throwable t) {
             throw failure(name, t);
         }
     }
 
     private static void callKeyed(
-            MethodHandle handle, String name, MemorySegment node, int key, float value) {
+            MemorySegment function, String name, MemorySegment node, int key, float value) {
         try {
-            handle.invokeExact(node, key, value);
+            Downcalls.VOID__PTR_INT_FLOAT.invokeExact(function, node, key, value);
         } catch (Throwable t) {
             throw failure(name, t);
         }
     }
 
-    private static void callKeyedVoid(MethodHandle handle, String name, MemorySegment node, int key) {
+    private static void callKeyedVoid(
+            MemorySegment function, String name, MemorySegment node, int key) {
         try {
-            handle.invokeExact(node, key);
+            Downcalls.VOID__PTR_INT.invokeExact(function, node, key);
         } catch (Throwable t) {
             throw failure(name, t);
         }
     }
 
-    private static float getFloat(MethodHandle handle, String name, MemorySegment node) {
+    private static float getFloat(MemorySegment function, String name, MemorySegment node) {
         try {
-            return (float) handle.invokeExact(node);
+            return (float) Downcalls.FLOAT__PTR.invokeExact(function, node);
         } catch (Throwable t) {
             throw failure(name, t);
         }
     }
 
-    private static float getFloatKeyed(MethodHandle handle, String name, MemorySegment node, Edge edge) {
+    private static float getFloatKeyed(
+            MemorySegment function, String name, MemorySegment node, Edge edge) {
         try {
-            return (float) handle.invokeExact(node, edge.nativeValue());
+            return (float) Downcalls.FLOAT__PTR_INT.invokeExact(function, node, edge.nativeValue());
         } catch (Throwable t) {
             throw failure(name, t);
         }
     }
 
-    private static boolean getBoolean(MethodHandle handle, String name, MemorySegment node) {
+    private static boolean getBoolean(MemorySegment function, String name, MemorySegment node) {
         try {
-            return (boolean) handle.invokeExact(node);
+            return (boolean) Downcalls.BOOL__PTR.invokeExact(function, node);
         } catch (Throwable t) {
             throw failure(name, t);
         }
     }
 
-    private static MemorySegment pointer(MethodHandle handle, String name) {
+    private static MemorySegment pointer(MemorySegment function, String name) {
         MemorySegment result;
         try {
-            result = (MemorySegment) handle.invokeExact();
+            result = (MemorySegment) Downcalls.PTR__VOID.invokeExact(function);
         } catch (Throwable t) {
             throw failure(name, t);
         }
@@ -672,19 +637,10 @@ final class Yoga {
     ///
     /// Yoga has no error channel: its C API returns void almost everywhere and
     /// aborts on a violated precondition rather than reporting one. So anything
-    /// caught here is a broken binding — a descriptor that does not match the
-    /// signature it was written against — not a Yoga error, and the message says
-    /// so rather than blaming the caller.
+    /// caught here is a broken binding — a [Downcalls] constant that does not
+    /// match the C prototype — not a Yoga error, and the message says so rather
+    /// than blaming the caller.
     private static IllegalStateException failure(String name, Throwable cause) {
         return new IllegalStateException(name + "() failed", cause);
-    }
-
-    // Restricted: see GoldberryShim.downcall -- same obligation, same reason.
-    @SuppressWarnings("restricted")
-    private static MethodHandle downcall(SymbolLookup lookup, String symbol, FunctionDescriptor descriptor) {
-        var address = lookup.find(symbol).orElseThrow(() -> new UnsatisfiedLinkError(
-                "libgoldberry does not export " + symbol
-                        + " — is it listed in natives/src/main/cmake/exports/goldberry.symbols?"));
-        return LINKER.downcallHandle(address, descriptor);
     }
 }

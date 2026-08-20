@@ -7,7 +7,9 @@ rather than against a JVM. That is what
 binding schema for.
 
 > **Built and run on linux-x64; not in CI.** One 41 MiB file with nothing beside
-> it, starting in well under a second and painting at about 6 ms a frame headless.
+> it, starting in well under a second and painting at about 1 ms a frame
+> headless — faster than the JVM build over a short run, because there is nothing
+> to warm up ([ADR-0161](adr/0161-a-downcall-handle-is-a-constant-or-it-is-not-a-call.md)).
 > The FFM downcalls, the two upcalls, the fonts, the icons, the stylesheets, the
 > KDL, the `WidgetCatalog` service and `libgoldberry` itself all travel inside it.
 >
@@ -83,10 +85,15 @@ the far side of a toggle the run never flipped
 Because those declarations travel in the jars, an application building its own
 image gets the toolkit's resources without knowing it needs them.
 
-What is still traced — the FFM descriptors, the reflection, the services — really
+What is still traced — the reflection, the services, the upcall stubs — really
 does depend on what the code did, and the warning applies to it unchanged: a
 screen the run never reaches contributes nothing. Re-run the metadata task after
 adding one, and read the diff.
+
+The **FFM descriptors are the exception**, and stopped being run-dependent with
+ADR-0161: they are linked in `Downcalls`' class initializer, which runs on any
+JVM start, so the agent records all 56 of them whether or not the run reached the
+screen that uses them.
 
 ## The image is woven, the jar is not
 
@@ -105,7 +112,58 @@ building the modules by hand; `nativeImage` arranges it for you.
 | `--enable-native-access=…natives` | JEP 472, naming the one module that touches native code |
 | `--no-fallback` | A fallback image is a JVM in a trench coat. Failing is the useful answer |
 | `-H:+ReportExceptionStackTraces` | Names the class that could not be reached, rather than a stack in the builder |
-| `--initialize-at-run-time=…NativeLibrary` | It `dlopen`s in its initializer, which must not happen in the builder |
+
+Nothing about **class initialization** is passed here. `:natives` ships its own
+`META-INF/native-image/io.github.digitalsmile/goldberry-natives/native-image.properties`
+naming the two classes that have an opinion, and they are opposite opinions:
+
+| Class | When | Why |
+|---|---|---|
+| `NativeLibrary` | run time | It `dlopen`s in its initializer, which must not happen in the builder |
+| `Downcalls` | **build time** | A downcall handle is only a call if it is a compile-time constant, and only a build-time initializer makes it one ([ADR-0161](adr/0161-a-downcall-handle-is-a-constant-or-it-is-not-a-call.md)) |
+
+Both travel in the jar, so an application building its own image gets them
+without knowing they exist — the same argument ADR-0160 makes for resources.
+
+## The one flag the frame rate depends on
+
+GraalVM's FFM downcalls are **not optimized** — [oracle/graal#8113](https://github.com/oracle/graal/issues/8113)
+lists it as open work, and it costs a factor of 450 on the call itself. Goldberry
+takes the workaround: the handles in `Downcalls` are *unbound* (they take the
+address to call as an argument), so the class can be initialized while the image
+is being built, which is what turns each one into a constant the compiler can
+lower into a direct call.
+
+Sixty frames of the showcase, headless, on this machine:
+
+```
+./example/build/native/goldberry-showcase-linux-x64     -Dgoldberry.backend.videoDriver=dummy --frames=60
+```
+
+| | 60 frames | per frame |
+|---|---|---|
+| without `--initialize-at-build-time=…Downcalls` | 2.55 s | 42.5 ms |
+| with it | 0.061 s | **1.0 ms** |
+
+The same rule applies one level down, and it is the trap to know before editing a
+binding: **a downcall handle has to be read by the method that calls it.** Passing
+one into a helper as an argument costs 810 ns a call in an image against 8.9 ns
+when the helper names the constant itself — the JVM inlines and folds it, and
+native-image does not. That is why the constants are named for signatures rather
+than for functions, and why the invocation helpers in the binding classes name
+`Downcalls.INT__PTR` inside themselves rather than taking a handle.
+
+**Nothing fails when it is missing.** The image builds, runs, paints correctly
+and is forty times slower, which is why the number is written down here. (It is
+silent only because the traced metadata registers the descriptors anyway; a
+descriptor registered *nowhere* raises `MissingForeignRegistrationError` and
+names itself.) To check it, move the properties file aside and rebuild passing
+the run-time half by hand:
+
+```
+./gradlew :example:nativeImage -Pgraalvm.home=… \
+    -Pgraalvm.args="--initialize-at-run-time=io.github.digitalsmile.goldberry.natives.NativeLibrary"
+```
 
 ## Two metadata directories: traced, and written
 

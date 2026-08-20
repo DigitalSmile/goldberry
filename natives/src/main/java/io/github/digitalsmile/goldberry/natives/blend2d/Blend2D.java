@@ -1,14 +1,12 @@
 package io.github.digitalsmile.goldberry.natives.blend2d;
 
+import io.github.digitalsmile.goldberry.natives.Downcalls;
 import io.github.digitalsmile.goldberry.natives.NativeLibrary;
 import io.github.digitalsmile.goldberry.natives.layout.Layouts;
 import java.lang.foreign.Arena;
-import java.lang.foreign.FunctionDescriptor;
-import java.lang.foreign.Linker;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.SymbolLookup;
 import java.lang.foreign.ValueLayout;
-import java.lang.invoke.MethodHandle;
 import java.nio.charset.StandardCharsets;
 
 /// Blend2D's image and rendering-context calls.
@@ -28,8 +26,6 @@ import java.nio.charset.StandardCharsets;
 /// `enum NAME : uint32_t` in C++ and a plain enum in C, and the values are
 /// checked against the compiled library through the layout table.
 final class Blend2D {
-
-    private static final Linker LINKER = Linker.nativeLinker();
 
     private static final long BUILD_INFO_SIZE = Layouts.BL_RUNTIME_BUILD_INFO.byteSize();
     private static final long MAJOR_OFFSET = Layouts.BL_RUNTIME_BUILD_INFO.offsetOf("major_version");
@@ -53,60 +49,59 @@ final class Blend2D {
         private static final Blend2D INSTANCE = new Blend2D(NativeLibrary.get().lookup());
     }
 
-    private final MethodHandle runtimeQueryInfo;
+    private final MemorySegment runtimeQueryInfo;
 
-    private final MethodHandle imageInitAsFromData;
-    private final MethodHandle imageDestroy;
-    private final MethodHandle imageGetData;
+    private final MemorySegment imageInitAsFromData;
+    private final MemorySegment imageDestroy;
+    private final MemorySegment imageGetData;
 
-    private final MethodHandle contextInitAs;
-    private final MethodHandle contextEnd;
-    private final MethodHandle contextDestroy;
-    private final MethodHandle contextFlush;
-    private final MethodHandle contextApplyTransformOp;
-    private final MethodHandle contextSetCompOp;
-    private final MethodHandle contextClearAll;
-    private final MethodHandle contextFillAllRgba32;
-    private final MethodHandle contextFillRectDRgba32;
-    private final MethodHandle contextFillGlyphRunDRgba32;
-    private final MethodHandle contextSetStrokeWidth;
-    private final MethodHandle contextSetStrokeCaps;
-    private final MethodHandle contextSetStrokeJoin;
-    private final MethodHandle contextFillPathDRgba32;
-    private final MethodHandle contextStrokePathDRgba32;
-    private final MethodHandle contextBlitImageD;
-    private final MethodHandle contextBlitScaledImageD;
-    private final MethodHandle contextSetGlobalAlpha;
-    private final MethodHandle contextClipToRectD;
-    private final MethodHandle contextRestoreClipping;
+    private final MemorySegment contextInitAs;
+    private final MemorySegment contextEnd;
+    private final MemorySegment contextDestroy;
+    private final MemorySegment contextFlush;
+    private final MemorySegment contextApplyTransformOp;
+    private final MemorySegment contextSetCompOp;
+    private final MemorySegment contextClearAll;
+    private final MemorySegment contextFillAllRgba32;
+    private final MemorySegment contextFillRectDRgba32;
+    private final MemorySegment contextFillGlyphRunDRgba32;
+    private final MemorySegment contextSetStrokeWidth;
+    private final MemorySegment contextSetStrokeCaps;
+    private final MemorySegment contextSetStrokeJoin;
+    private final MemorySegment contextFillPathDRgba32;
+    private final MemorySegment contextStrokePathDRgba32;
+    private final MemorySegment contextBlitImageD;
+    private final MemorySegment contextBlitScaledImageD;
+    private final MemorySegment contextSetGlobalAlpha;
+    private final MemorySegment contextClipToRectD;
+    private final MemorySegment contextRestoreClipping;
 
-    private final MethodHandle pathInit;
-    private final MethodHandle pathDestroy;
-    private final MethodHandle pathReset;
-    private final MethodHandle pathGetSize;
-    private final MethodHandle pathMoveTo;
-    private final MethodHandle pathLineTo;
-    private final MethodHandle pathQuadTo;
-    private final MethodHandle pathCubicTo;
-    private final MethodHandle pathSmoothQuadTo;
-    private final MethodHandle pathSmoothCubicTo;
-    private final MethodHandle pathEllipticArcTo;
-    private final MethodHandle pathClose;
+    private final MemorySegment pathInit;
+    private final MemorySegment pathDestroy;
+    private final MemorySegment pathReset;
+    private final MemorySegment pathGetSize;
+    private final MemorySegment pathMoveTo;
+    private final MemorySegment pathLineTo;
+    private final MemorySegment pathQuadTo;
+    private final MemorySegment pathCubicTo;
+    private final MemorySegment pathSmoothQuadTo;
+    private final MemorySegment pathSmoothCubicTo;
+    private final MemorySegment pathEllipticArcTo;
+    private final MemorySegment pathClose;
 
-    private final MethodHandle fontDataInit;
-    private final MethodHandle fontDataCreateFromData;
-    private final MethodHandle fontDataDestroy;
-    private final MethodHandle fontFaceInit;
-    private final MethodHandle fontFaceCreateFromData;
-    private final MethodHandle fontFaceDestroy;
-    private final MethodHandle fontInit;
-    private final MethodHandle fontCreateFromFace;
-    private final MethodHandle fontDestroy;
-    private final MethodHandle fontGetMetrics;
+    private final MemorySegment fontDataInit;
+    private final MemorySegment fontDataCreateFromData;
+    private final MemorySegment fontDataDestroy;
+    private final MemorySegment fontFaceInit;
+    private final MemorySegment fontFaceCreateFromData;
+    private final MemorySegment fontFaceDestroy;
+    private final MemorySegment fontInit;
+    private final MemorySegment fontCreateFromFace;
+    private final MemorySegment fontDestroy;
+    private final MemorySegment fontGetMetrics;
 
     private Blend2D(SymbolLookup lookup) {
-        this.runtimeQueryInfo = downcall(lookup, "bl_runtime_query_info", FunctionDescriptor.of(
-                ValueLayout.JAVA_INT, ValueLayout.JAVA_INT, ValueLayout.ADDRESS));
+        this.runtimeQueryInfo = Downcalls.symbol(lookup, "bl_runtime_query_info");
 
         // BLResult bl_image_init_as_from_data(BLImageCore*, int w, int h, BLFormat,
         //     void* pixel_data, intptr_t stride, BLDataAccessFlags,
@@ -116,37 +111,19 @@ final class Blend2D {
         // what says so. It is signed: a negative stride means the image starts at
         // the bottom-left, which Goldberry never produces but must not silently
         // reinterpret.
-        this.imageInitAsFromData = downcall(lookup, "bl_image_init_as_from_data",
-                FunctionDescriptor.of(
-                        ValueLayout.JAVA_INT,
-                        ValueLayout.ADDRESS,
-                        ValueLayout.JAVA_INT,
-                        ValueLayout.JAVA_INT,
-                        ValueLayout.JAVA_INT,
-                        ValueLayout.ADDRESS,
-                        ValueLayout.JAVA_LONG,
-                        ValueLayout.JAVA_INT,
-                        ValueLayout.ADDRESS,
-                        ValueLayout.ADDRESS));
-        this.imageDestroy = downcall(lookup, "bl_image_destroy", resultOf(ValueLayout.ADDRESS));
-        this.imageGetData = downcall(lookup, "bl_image_get_data",
-                resultOf(ValueLayout.ADDRESS, ValueLayout.ADDRESS));
+        this.imageInitAsFromData = Downcalls.symbol(lookup, "bl_image_init_as_from_data");
+        this.imageDestroy = Downcalls.symbol(lookup, "bl_image_destroy");
+        this.imageGetData = Downcalls.symbol(lookup, "bl_image_get_data");
 
-        this.contextInitAs = downcall(lookup, "bl_context_init_as",
-                resultOf(ValueLayout.ADDRESS, ValueLayout.ADDRESS, ValueLayout.ADDRESS));
-        this.contextEnd = downcall(lookup, "bl_context_end", resultOf(ValueLayout.ADDRESS));
-        this.contextDestroy = downcall(lookup, "bl_context_destroy", resultOf(ValueLayout.ADDRESS));
-        this.contextFlush = downcall(lookup, "bl_context_flush",
-                resultOf(ValueLayout.ADDRESS, ValueLayout.JAVA_INT));
-        this.contextApplyTransformOp = downcall(lookup, "bl_context_apply_transform_op",
-                resultOf(ValueLayout.ADDRESS, ValueLayout.JAVA_INT, ValueLayout.ADDRESS));
-        this.contextSetCompOp = downcall(lookup, "bl_context_set_comp_op",
-                resultOf(ValueLayout.ADDRESS, ValueLayout.JAVA_INT));
-        this.contextClearAll = downcall(lookup, "bl_context_clear_all", resultOf(ValueLayout.ADDRESS));
-        this.contextFillAllRgba32 = downcall(lookup, "bl_context_fill_all_rgba32",
-                resultOf(ValueLayout.ADDRESS, ValueLayout.JAVA_INT));
-        this.contextFillRectDRgba32 = downcall(lookup, "bl_context_fill_rect_d_rgba32",
-                resultOf(ValueLayout.ADDRESS, ValueLayout.ADDRESS, ValueLayout.JAVA_INT));
+        this.contextInitAs = Downcalls.symbol(lookup, "bl_context_init_as");
+        this.contextEnd = Downcalls.symbol(lookup, "bl_context_end");
+        this.contextDestroy = Downcalls.symbol(lookup, "bl_context_destroy");
+        this.contextFlush = Downcalls.symbol(lookup, "bl_context_flush");
+        this.contextApplyTransformOp = Downcalls.symbol(lookup, "bl_context_apply_transform_op");
+        this.contextSetCompOp = Downcalls.symbol(lookup, "bl_context_set_comp_op");
+        this.contextClearAll = Downcalls.symbol(lookup, "bl_context_clear_all");
+        this.contextFillAllRgba32 = Downcalls.symbol(lookup, "bl_context_fill_all_rgba32");
+        this.contextFillRectDRgba32 = Downcalls.symbol(lookup, "bl_context_fill_rect_d_rgba32");
         // BLResult bl_context_fill_glyph_run_d_rgba32(BLContextCore*,
         //     const BLPoint* origin, const BLFontCore*, const BLGlyphRun*, uint32_t)
         //
@@ -154,88 +131,62 @@ final class Blend2D {
         // between physical pixels. The `_i` variant takes a BLPointI and is not
         // bound, because rounding the baseline is exactly what ADR-0031 went to
         // some trouble to stop doing for rectangles.
-        this.contextFillGlyphRunDRgba32 = downcall(lookup, "bl_context_fill_glyph_run_d_rgba32",
-                resultOf(ValueLayout.ADDRESS, ValueLayout.ADDRESS, ValueLayout.ADDRESS,
-                        ValueLayout.ADDRESS, ValueLayout.JAVA_INT));
+        this.contextFillGlyphRunDRgba32 =
+                Downcalls.symbol(lookup, "bl_context_fill_glyph_run_d_rgba32");
 
         // Stroke state (ADR-0043). Width is in the context's own units, so a
         // scaled context strokes in logical pixels like everything else.
-        this.contextSetStrokeWidth = downcall(lookup, "bl_context_set_stroke_width",
-                resultOf(ValueLayout.ADDRESS, ValueLayout.JAVA_DOUBLE));
+        this.contextSetStrokeWidth = Downcalls.symbol(lookup, "bl_context_set_stroke_width");
         // `_caps`, plural: it sets both ends at once. The singular
         // bl_context_set_stroke_cap takes a BLStrokeCapPosition as well, and
         // nothing wants a path capped differently at each end.
-        this.contextSetStrokeCaps = downcall(lookup, "bl_context_set_stroke_caps",
-                resultOf(ValueLayout.ADDRESS, ValueLayout.JAVA_INT));
-        this.contextSetStrokeJoin = downcall(lookup, "bl_context_set_stroke_join",
-                resultOf(ValueLayout.ADDRESS, ValueLayout.JAVA_INT));
+        this.contextSetStrokeCaps = Downcalls.symbol(lookup, "bl_context_set_stroke_caps");
+        this.contextSetStrokeJoin = Downcalls.symbol(lookup, "bl_context_set_stroke_join");
         // BLResult bl_context_{fill,stroke}_path_d_rgba32(BLContextCore*,
         //     const BLPoint* origin, const BLPathCore*, uint32_t)
         //
         // The origin translates the path without transforming the context, which
         // is what lets one 24x24 icon path be drawn at several places in a frame
         // without being rebuilt or the context's transform being saved.
-        this.contextFillPathDRgba32 = downcall(lookup, "bl_context_fill_path_d_rgba32",
-                resultOf(ValueLayout.ADDRESS, ValueLayout.ADDRESS, ValueLayout.ADDRESS,
-                        ValueLayout.JAVA_INT));
-        this.contextStrokePathDRgba32 = downcall(lookup, "bl_context_stroke_path_d_rgba32",
-                resultOf(ValueLayout.ADDRESS, ValueLayout.ADDRESS, ValueLayout.ADDRESS,
-                        ValueLayout.JAVA_INT));
+        this.contextFillPathDRgba32 = Downcalls.symbol(lookup, "bl_context_fill_path_d_rgba32");
+        this.contextStrokePathDRgba32 = Downcalls.symbol(lookup, "bl_context_stroke_path_d_rgba32");
 
         // Compositing a layer back onto its parent (ADR-0071). The last argument
         // is a `const BLRectI*` naming a sub-rectangle of the source, and it is
         // always NULL here -- Blend2D reads that as the whole image, which is
         // what a layer always wants -- so no BLRectI ever crosses.
-        this.contextBlitImageD = downcall(lookup, "bl_context_blit_image_d",
-                resultOf(ValueLayout.ADDRESS, ValueLayout.ADDRESS, ValueLayout.ADDRESS,
-                        ValueLayout.ADDRESS));
+        this.contextBlitImageD = Downcalls.symbol(lookup, "bl_context_blit_image_d");
         // The same, into a destination BLRect rather than at a point -- which is
         // what reconciles a raster measured in physical pixels with a context
         // measured in logical ones (ADR-0157). Same NULL `img_area`.
-        this.contextBlitScaledImageD = downcall(lookup, "bl_context_blit_scaled_image_d",
-                resultOf(ValueLayout.ADDRESS, ValueLayout.ADDRESS, ValueLayout.ADDRESS,
-                        ValueLayout.ADDRESS));
-        this.contextSetGlobalAlpha = downcall(lookup, "bl_context_set_global_alpha",
-                resultOf(ValueLayout.ADDRESS, ValueLayout.JAVA_DOUBLE));
+        this.contextBlitScaledImageD = Downcalls.symbol(lookup, "bl_context_blit_scaled_image_d");
+        this.contextSetGlobalAlpha = Downcalls.symbol(lookup, "bl_context_set_global_alpha");
 
         // Restricting a frame to the region that changed (ADR-0072). The rect is
         // a BLRect -- four doubles, in the context's own units, so a clip is
         // stated in logical coordinates like every other call on the context.
-        this.contextClipToRectD = downcall(lookup, "bl_context_clip_to_rect_d",
-                resultOf(ValueLayout.ADDRESS, ValueLayout.ADDRESS));
-        this.contextRestoreClipping = downcall(lookup, "bl_context_restore_clipping",
-                resultOf(ValueLayout.ADDRESS));
+        this.contextClipToRectD = Downcalls.symbol(lookup, "bl_context_clip_to_rect_d");
+        this.contextRestoreClipping = Downcalls.symbol(lookup, "bl_context_restore_clipping");
 
         // Paths. Every command is (BLPathCore*, doubles...) and returns BLResult,
         // which is what makes this a long list of near-identical rows rather than
         // a design.
-        this.pathInit = downcall(lookup, "bl_path_init", resultOf(ValueLayout.ADDRESS));
-        this.pathDestroy = downcall(lookup, "bl_path_destroy", resultOf(ValueLayout.ADDRESS));
-        this.pathReset = downcall(lookup, "bl_path_reset", resultOf(ValueLayout.ADDRESS));
+        this.pathInit = Downcalls.symbol(lookup, "bl_path_init");
+        this.pathDestroy = Downcalls.symbol(lookup, "bl_path_destroy");
+        this.pathReset = Downcalls.symbol(lookup, "bl_path_reset");
         // size_t, not BLResult -- the one path call that is not an operation.
-        this.pathGetSize = downcall(lookup, "bl_path_get_size",
-                FunctionDescriptor.of(ValueLayout.JAVA_LONG, ValueLayout.ADDRESS));
-        this.pathMoveTo = downcall(lookup, "bl_path_move_to",
-                resultOf(ValueLayout.ADDRESS, ValueLayout.JAVA_DOUBLE, ValueLayout.JAVA_DOUBLE));
-        this.pathLineTo = downcall(lookup, "bl_path_line_to",
-                resultOf(ValueLayout.ADDRESS, ValueLayout.JAVA_DOUBLE, ValueLayout.JAVA_DOUBLE));
-        this.pathQuadTo = downcall(lookup, "bl_path_quad_to",
-                resultOf(ValueLayout.ADDRESS, ValueLayout.JAVA_DOUBLE, ValueLayout.JAVA_DOUBLE,
-                        ValueLayout.JAVA_DOUBLE, ValueLayout.JAVA_DOUBLE));
-        this.pathCubicTo = downcall(lookup, "bl_path_cubic_to",
-                resultOf(ValueLayout.ADDRESS, ValueLayout.JAVA_DOUBLE, ValueLayout.JAVA_DOUBLE,
-                        ValueLayout.JAVA_DOUBLE, ValueLayout.JAVA_DOUBLE,
-                        ValueLayout.JAVA_DOUBLE, ValueLayout.JAVA_DOUBLE));
+        this.pathGetSize = Downcalls.symbol(lookup, "bl_path_get_size");
+        this.pathMoveTo = Downcalls.symbol(lookup, "bl_path_move_to");
+        this.pathLineTo = Downcalls.symbol(lookup, "bl_path_line_to");
+        this.pathQuadTo = Downcalls.symbol(lookup, "bl_path_quad_to");
+        this.pathCubicTo = Downcalls.symbol(lookup, "bl_path_cubic_to");
         // SVG's `S` and `T`: the first control point is the reflection of the
         // previous one. Blend2D does that reflection itself, against the command
         // it actually recorded -- which is the definition SVG gives, and not the
         // one a caller tracking "the last control point" in Java would arrive at
         // after a `Z` or a bare `M`.
-        this.pathSmoothQuadTo = downcall(lookup, "bl_path_smooth_quad_to",
-                resultOf(ValueLayout.ADDRESS, ValueLayout.JAVA_DOUBLE, ValueLayout.JAVA_DOUBLE));
-        this.pathSmoothCubicTo = downcall(lookup, "bl_path_smooth_cubic_to",
-                resultOf(ValueLayout.ADDRESS, ValueLayout.JAVA_DOUBLE, ValueLayout.JAVA_DOUBLE,
-                        ValueLayout.JAVA_DOUBLE, ValueLayout.JAVA_DOUBLE));
+        this.pathSmoothQuadTo = Downcalls.symbol(lookup, "bl_path_smooth_quad_to");
+        this.pathSmoothCubicTo = Downcalls.symbol(lookup, "bl_path_smooth_cubic_to");
         // BLResult bl_path_elliptic_arc_to(BLPathCore*, double rx, double ry,
         //     double x_axis_rotation, bool large_arc, bool sweep, double x1, double y1)
         //
@@ -243,39 +194,29 @@ final class Blend2D {
         // `bool`s are C `_Bool`, one byte -- JAVA_BOOLEAN, not JAVA_INT, which
         // would put four bytes where the ABI expects one and shift every
         // argument after them.
-        this.pathEllipticArcTo = downcall(lookup, "bl_path_elliptic_arc_to",
-                resultOf(ValueLayout.ADDRESS, ValueLayout.JAVA_DOUBLE, ValueLayout.JAVA_DOUBLE,
-                        ValueLayout.JAVA_DOUBLE, ValueLayout.JAVA_BOOLEAN, ValueLayout.JAVA_BOOLEAN,
-                        ValueLayout.JAVA_DOUBLE, ValueLayout.JAVA_DOUBLE));
-        this.pathClose = downcall(lookup, "bl_path_close", resultOf(ValueLayout.ADDRESS));
+        this.pathEllipticArcTo = Downcalls.symbol(lookup, "bl_path_elliptic_arc_to");
+        this.pathClose = Downcalls.symbol(lookup, "bl_path_close");
 
         // The three font objects. Each `create` REPLACES what the handle holds,
         // so each one has to be `init`ed first -- Blend2D releases the previous
         // instance, and releasing an uninitialised one reads a pointer that was
         // never written.
-        this.fontDataInit = downcall(lookup, "bl_font_data_init", resultOf(ValueLayout.ADDRESS));
+        this.fontDataInit = Downcalls.symbol(lookup, "bl_font_data_init");
         // BLResult bl_font_data_create_from_data(BLFontDataCore*, const void* data,
         //     size_t data_size, BLDestroyExternalDataFunc, void* user_data)
-        this.fontDataCreateFromData = downcall(lookup, "bl_font_data_create_from_data",
-                resultOf(ValueLayout.ADDRESS, ValueLayout.ADDRESS, ValueLayout.JAVA_LONG,
-                        ValueLayout.ADDRESS, ValueLayout.ADDRESS));
-        this.fontDataDestroy = downcall(lookup, "bl_font_data_destroy",
-                resultOf(ValueLayout.ADDRESS));
+        this.fontDataCreateFromData = Downcalls.symbol(lookup, "bl_font_data_create_from_data");
+        this.fontDataDestroy = Downcalls.symbol(lookup, "bl_font_data_destroy");
 
-        this.fontFaceInit = downcall(lookup, "bl_font_face_init", resultOf(ValueLayout.ADDRESS));
-        this.fontFaceCreateFromData = downcall(lookup, "bl_font_face_create_from_data",
-                resultOf(ValueLayout.ADDRESS, ValueLayout.ADDRESS, ValueLayout.JAVA_INT));
-        this.fontFaceDestroy = downcall(lookup, "bl_font_face_destroy",
-                resultOf(ValueLayout.ADDRESS));
+        this.fontFaceInit = Downcalls.symbol(lookup, "bl_font_face_init");
+        this.fontFaceCreateFromData = Downcalls.symbol(lookup, "bl_font_face_create_from_data");
+        this.fontFaceDestroy = Downcalls.symbol(lookup, "bl_font_face_destroy");
 
-        this.fontInit = downcall(lookup, "bl_font_init", resultOf(ValueLayout.ADDRESS));
+        this.fontInit = Downcalls.symbol(lookup, "bl_font_init");
         // The size is a `float`, not a double: Blend2D's own choice, and the one
         // place in the paint path where a coordinate narrows.
-        this.fontCreateFromFace = downcall(lookup, "bl_font_create_from_face",
-                resultOf(ValueLayout.ADDRESS, ValueLayout.ADDRESS, ValueLayout.JAVA_FLOAT));
-        this.fontDestroy = downcall(lookup, "bl_font_destroy", resultOf(ValueLayout.ADDRESS));
-        this.fontGetMetrics = downcall(lookup, "bl_font_get_metrics",
-                resultOf(ValueLayout.ADDRESS, ValueLayout.ADDRESS));
+        this.fontCreateFromFace = Downcalls.symbol(lookup, "bl_font_create_from_face");
+        this.fontDestroy = Downcalls.symbol(lookup, "bl_font_destroy");
+        this.fontGetMetrics = Downcalls.symbol(lookup, "bl_font_get_metrics");
     }
 
     static Blend2D get() {
@@ -322,7 +263,8 @@ final class Blend2D {
 
         int result;
         try {
-            result = (int) imageInitAsFromData.invokeExact(
+            result = (int) Downcalls.INT__PTR_INT_INT_INT_PTR_LONG_INT_PTR_PTR.invokeExact(
+                    imageInitAsFromData,
                     image, width, height, format.nativeValue(), pixels, stride,
                     BlendDataAccess.READ_WRITE.nativeValue(),
                     MemorySegment.NULL, MemorySegment.NULL);
@@ -380,7 +322,8 @@ final class Blend2D {
 
     void contextFlush(MemorySegment context, int flags) {
         try {
-            check("bl_context_flush", (int) contextFlush.invokeExact(context, flags));
+            check("bl_context_flush",
+                    (int) Downcalls.INT__PTR_INT.invokeExact(contextFlush, context, flags));
         } catch (Throwable t) {
             throw failure("bl_context_flush", t);
         }
@@ -406,7 +349,8 @@ final class Blend2D {
             point.setAtIndex(ValueLayout.JAVA_DOUBLE, 1, y);
             try {
                 check("bl_context_apply_transform_op",
-                        (int) contextApplyTransformOp.invokeExact(context, op.nativeValue(), point));
+                        (int) Downcalls.INT__PTR_INT_PTR.invokeExact(
+                                contextApplyTransformOp, context, op.nativeValue(), point));
             } catch (Throwable t) {
                 throw failure("bl_context_apply_transform_op", t);
             }
@@ -423,7 +367,7 @@ final class Blend2D {
     void contextTransform(MemorySegment context, MemorySegment matrix) {
         try {
             check("bl_context_apply_transform_op",
-                    (int) contextApplyTransformOp.invokeExact(
+                    (int) Downcalls.INT__PTR_INT_PTR.invokeExact(contextApplyTransformOp,
                             context, BlendTransformOp.ASSIGN.nativeValue(), matrix));
         } catch (Throwable t) {
             throw failure("bl_context_apply_transform_op", t);
@@ -433,7 +377,8 @@ final class Blend2D {
     void contextCompOp(MemorySegment context, BlendCompOp compOp) {
         try {
             check("bl_context_set_comp_op",
-                    (int) contextSetCompOp.invokeExact(context, compOp.nativeValue()));
+                    (int) Downcalls.INT__PTR_INT.invokeExact(
+                            contextSetCompOp, context, compOp.nativeValue()));
         } catch (Throwable t) {
             throw failure("bl_context_set_comp_op", t);
         }
@@ -451,7 +396,7 @@ final class Blend2D {
     void contextFillAll(MemorySegment context, int argb) {
         try {
             check("bl_context_fill_all_rgba32",
-                    (int) contextFillAllRgba32.invokeExact(context, argb));
+                    (int) Downcalls.INT__PTR_INT.invokeExact(contextFillAllRgba32, context, argb));
         } catch (Throwable t) {
             throw failure("bl_context_fill_all_rgba32", t);
         }
@@ -461,7 +406,8 @@ final class Blend2D {
     void contextFillRect(MemorySegment context, MemorySegment rect, int argb) {
         try {
             check("bl_context_fill_rect_d_rgba32",
-                    (int) contextFillRectDRgba32.invokeExact(context, rect, argb));
+                    (int) Downcalls.INT__PTR_PTR_INT.invokeExact(
+                            contextFillRectDRgba32, context, rect, argb));
         } catch (Throwable t) {
             throw failure("bl_context_fill_rect_d_rgba32", t);
         }
@@ -477,7 +423,7 @@ final class Blend2D {
             MemorySegment glyphRun, int argb) {
         try {
             check("bl_context_fill_glyph_run_d_rgba32",
-                    (int) contextFillGlyphRunDRgba32.invokeExact(
+                    (int) Downcalls.INT__PTR_PTR_PTR_PTR_INT.invokeExact(contextFillGlyphRunDRgba32,
                             context, origin, font, glyphRun, argb));
         } catch (Throwable t) {
             throw failure("bl_context_fill_glyph_run_d_rgba32", t);
@@ -489,7 +435,8 @@ final class Blend2D {
     void contextSetStrokeWidth(MemorySegment context, double width) {
         int result;
         try {
-            result = (int) contextSetStrokeWidth.invokeExact(context, width);
+            result = (int) Downcalls.INT__PTR_DOUBLE.invokeExact(
+                    contextSetStrokeWidth, context, width);
         } catch (Throwable t) {
             throw failure("bl_context_set_stroke_width", t);
         }
@@ -499,7 +446,8 @@ final class Blend2D {
     void contextSetStrokeCaps(MemorySegment context, BlendStrokeCap cap) {
         int result;
         try {
-            result = (int) contextSetStrokeCaps.invokeExact(context, cap.nativeValue());
+            result = (int) Downcalls.INT__PTR_INT.invokeExact(
+                    contextSetStrokeCaps, context, cap.nativeValue());
         } catch (Throwable t) {
             throw failure("bl_context_set_stroke_caps", t);
         }
@@ -509,7 +457,8 @@ final class Blend2D {
     void contextSetStrokeJoin(MemorySegment context, BlendStrokeJoin join) {
         int result;
         try {
-            result = (int) contextSetStrokeJoin.invokeExact(context, join.nativeValue());
+            result = (int) Downcalls.INT__PTR_INT.invokeExact(
+                    contextSetStrokeJoin, context, join.nativeValue());
         } catch (Throwable t) {
             throw failure("bl_context_set_stroke_join", t);
         }
@@ -519,7 +468,8 @@ final class Blend2D {
     void contextFillPath(MemorySegment context, MemorySegment origin, MemorySegment path, int argb) {
         int result;
         try {
-            result = (int) contextFillPathDRgba32.invokeExact(context, origin, path, argb);
+            result = (int) Downcalls.INT__PTR_PTR_PTR_INT.invokeExact(
+                    contextFillPathDRgba32, context, origin, path, argb);
         } catch (Throwable t) {
             throw failure("bl_context_fill_path_d_rgba32", t);
         }
@@ -530,7 +480,8 @@ final class Blend2D {
             MemorySegment context, MemorySegment origin, MemorySegment path, int argb) {
         int result;
         try {
-            result = (int) contextStrokePathDRgba32.invokeExact(context, origin, path, argb);
+            result = (int) Downcalls.INT__PTR_PTR_PTR_INT.invokeExact(
+                    contextStrokePathDRgba32, context, origin, path, argb);
         } catch (Throwable t) {
             throw failure("bl_context_stroke_path_d_rgba32", t);
         }
@@ -544,7 +495,7 @@ final class Blend2D {
     void contextBlitImage(MemorySegment context, MemorySegment origin, MemorySegment image) {
         int result;
         try {
-            result = (int) contextBlitImageD.invokeExact(
+            result = (int) Downcalls.INT__PTR_PTR_PTR_PTR.invokeExact(contextBlitImageD,
                     context, origin, image, MemorySegment.NULL);
         } catch (Throwable t) {
             throw failure("bl_context_blit_image_d", t);
@@ -557,7 +508,7 @@ final class Blend2D {
     void contextBlitScaledImage(MemorySegment context, MemorySegment rect, MemorySegment image) {
         int result;
         try {
-            result = (int) contextBlitScaledImageD.invokeExact(
+            result = (int) Downcalls.INT__PTR_PTR_PTR_PTR.invokeExact(contextBlitScaledImageD,
                     context, rect, image, MemorySegment.NULL);
         } catch (Throwable t) {
             throw failure("bl_context_blit_scaled_image_d", t);
@@ -573,7 +524,8 @@ final class Blend2D {
     void contextGlobalAlpha(MemorySegment context, double alpha) {
         int result;
         try {
-            result = (int) contextSetGlobalAlpha.invokeExact(context, alpha);
+            result = (int) Downcalls.INT__PTR_DOUBLE.invokeExact(
+                    contextSetGlobalAlpha, context, alpha);
         } catch (Throwable t) {
             throw failure("bl_context_set_global_alpha", t);
         }
@@ -585,7 +537,7 @@ final class Blend2D {
     void contextClipToRect(MemorySegment context, MemorySegment rect) {
         int result;
         try {
-            result = (int) contextClipToRectD.invokeExact(context, rect);
+            result = (int) Downcalls.INT__PTR_PTR.invokeExact(contextClipToRectD, context, rect);
         } catch (Throwable t) {
             throw failure("bl_context_clip_to_rect_d", t);
         }
@@ -600,7 +552,7 @@ final class Blend2D {
     void contextRestoreClipping(MemorySegment context) {
         int result;
         try {
-            result = (int) contextRestoreClipping.invokeExact(context);
+            result = (int) Downcalls.INT__PTR.invokeExact(contextRestoreClipping, context);
         } catch (Throwable t) {
             throw failure("bl_context_restore_clipping", t);
         }
@@ -623,7 +575,7 @@ final class Blend2D {
     /// parser really issued the commands" becomes a number rather than a claim.
     long pathSize(MemorySegment path) {
         try {
-            return (long) pathGetSize.invokeExact(path);
+            return (long) Downcalls.LONG__PTR.invokeExact(pathGetSize, path);
         } catch (Throwable t) {
             throw failure("bl_path_get_size", t);
         }
@@ -632,7 +584,7 @@ final class Blend2D {
     void pathMoveTo(MemorySegment path, double x, double y) {
         int result;
         try {
-            result = (int) pathMoveTo.invokeExact(path, x, y);
+            result = (int) Downcalls.INT__PTR_DOUBLE_DOUBLE.invokeExact(pathMoveTo, path, x, y);
         } catch (Throwable t) {
             throw failure("bl_path_move_to", t);
         }
@@ -642,7 +594,7 @@ final class Blend2D {
     void pathLineTo(MemorySegment path, double x, double y) {
         int result;
         try {
-            result = (int) pathLineTo.invokeExact(path, x, y);
+            result = (int) Downcalls.INT__PTR_DOUBLE_DOUBLE.invokeExact(pathLineTo, path, x, y);
         } catch (Throwable t) {
             throw failure("bl_path_line_to", t);
         }
@@ -652,7 +604,8 @@ final class Blend2D {
     void pathQuadTo(MemorySegment path, double x1, double y1, double x2, double y2) {
         int result;
         try {
-            result = (int) pathQuadTo.invokeExact(path, x1, y1, x2, y2);
+            result = (int) Downcalls.INT__PTR_DOUBLE_DOUBLE_DOUBLE_DOUBLE.invokeExact(
+                    pathQuadTo, path, x1, y1, x2, y2);
         } catch (Throwable t) {
             throw failure("bl_path_quad_to", t);
         }
@@ -664,7 +617,8 @@ final class Blend2D {
             double x1, double y1, double x2, double y2, double x3, double y3) {
         int result;
         try {
-            result = (int) pathCubicTo.invokeExact(path, x1, y1, x2, y2, x3, y3);
+            result = (int) Downcalls.INT__PTR_DOUBLE_DOUBLE_DOUBLE_DOUBLE_DOUBLE_DOUBLE.invokeExact(
+                    pathCubicTo, path, x1, y1, x2, y2, x3, y3);
         } catch (Throwable t) {
             throw failure("bl_path_cubic_to", t);
         }
@@ -674,7 +628,8 @@ final class Blend2D {
     void pathSmoothQuadTo(MemorySegment path, double x2, double y2) {
         int result;
         try {
-            result = (int) pathSmoothQuadTo.invokeExact(path, x2, y2);
+            result = (int) Downcalls.INT__PTR_DOUBLE_DOUBLE.invokeExact(
+                    pathSmoothQuadTo, path, x2, y2);
         } catch (Throwable t) {
             throw failure("bl_path_smooth_quad_to", t);
         }
@@ -684,7 +639,8 @@ final class Blend2D {
     void pathSmoothCubicTo(MemorySegment path, double x2, double y2, double x3, double y3) {
         int result;
         try {
-            result = (int) pathSmoothCubicTo.invokeExact(path, x2, y2, x3, y3);
+            result = (int) Downcalls.INT__PTR_DOUBLE_DOUBLE_DOUBLE_DOUBLE.invokeExact(
+                    pathSmoothCubicTo, path, x2, y2, x3, y3);
         } catch (Throwable t) {
             throw failure("bl_path_smooth_cubic_to", t);
         }
@@ -697,7 +653,8 @@ final class Blend2D {
             double x, double y) {
         int result;
         try {
-            result = (int) pathEllipticArcTo.invokeExact( path, rx, ry, rotation, largeArc, sweep, x, y);
+            result = (int) Downcalls.INT__PTR_DOUBLE_DOUBLE_DOUBLE_BOOL_BOOL_DOUBLE_DOUBLE
+                    .invokeExact(pathEllipticArcTo, path, rx, ry, rotation, largeArc, sweep, x, y);
         } catch (Throwable t) {
             throw failure("bl_path_elliptic_arc_to", t);
         }
@@ -723,7 +680,7 @@ final class Blend2D {
     void fontDataCreate(MemorySegment fontData, MemorySegment bytes, long length) {
         int result;
         try {
-            result = (int) fontDataCreateFromData.invokeExact(
+            result = (int) Downcalls.INT__PTR_PTR_LONG_PTR_PTR.invokeExact(fontDataCreateFromData,
                     fontData, bytes, length, MemorySegment.NULL, MemorySegment.NULL);
         } catch (Throwable t) {
             throw failure("bl_font_data_create_from_data", t);
@@ -748,7 +705,8 @@ final class Blend2D {
     void fontFaceCreate(MemorySegment face, MemorySegment fontData, int index) {
         int result;
         try {
-            result = (int) fontFaceCreateFromData.invokeExact(face, fontData, index);
+            result = (int) Downcalls.INT__PTR_PTR_INT.invokeExact(
+                    fontFaceCreateFromData, face, fontData, index);
         } catch (Throwable t) {
             throw failure("bl_font_face_create_from_data", t);
         }
@@ -771,7 +729,8 @@ final class Blend2D {
     void fontCreate(MemorySegment font, MemorySegment face, float size) {
         int result;
         try {
-            result = (int) fontCreateFromFace.invokeExact(font, face, size);
+            result = (int) Downcalls.INT__PTR_PTR_FLOAT.invokeExact(
+                    fontCreateFromFace, font, face, size);
         } catch (Throwable t) {
             throw failure("bl_font_create_from_face", t);
         }
@@ -798,40 +757,40 @@ final class Blend2D {
     }
 
     // --- plumbing ----------------------------------------------------------
+    //
+    // Four helpers rather than four `try` blocks, for the shapes that carry no
+    // arguments worth naming: `BLResult f(pointers...)`, which is most of
+    // Blend2D. The rest call their [Downcalls] constant directly, because the
+    // symbol's name belongs in the failure and these cannot give it one.
 
-    /// `BLResult f(...)` — every Blend2D function has this return type.
-    private static FunctionDescriptor resultOf(java.lang.foreign.MemoryLayout... arguments) {
-        return FunctionDescriptor.of(ValueLayout.JAVA_INT, arguments);
-    }
-
-    private static int invoke(MethodHandle handle, MemorySegment argument) {
+    private static int invoke(MemorySegment function, MemorySegment argument) {
         try {
-            return (int) handle.invokeExact(argument);
+            return (int) Downcalls.INT__PTR.invokeExact(function, argument);
         } catch (Throwable t) {
             throw failure("a Blend2D call", t);
         }
     }
 
-    private static int invoke(MethodHandle handle, MemorySegment first, MemorySegment second) {
+    private static int invoke(MemorySegment function, MemorySegment first, MemorySegment second) {
         try {
-            return (int) handle.invokeExact(first, second);
+            return (int) Downcalls.INT__PTR_PTR.invokeExact(function, first, second);
         } catch (Throwable t) {
             throw failure("a Blend2D call", t);
         }
     }
 
-    private static int invoke(MethodHandle handle, int first, MemorySegment second) {
+    private static int invoke(MemorySegment function, int first, MemorySegment second) {
         try {
-            return (int) handle.invokeExact(first, second);
+            return (int) Downcalls.INT__INT_PTR.invokeExact(function, first, second);
         } catch (Throwable t) {
             throw failure("a Blend2D call", t);
         }
     }
 
-    private static int invoke(
-            MethodHandle handle, MemorySegment first, MemorySegment second, MemorySegment third) {
+    private static int invoke(MemorySegment function, MemorySegment first, MemorySegment second,
+            MemorySegment third) {
         try {
-            return (int) handle.invokeExact(first, second, third);
+            return (int) Downcalls.INT__PTR_PTR_PTR.invokeExact(function, first, second, third);
         } catch (Throwable t) {
             throw failure("a Blend2D call", t);
         }
@@ -844,18 +803,10 @@ final class Blend2D {
         }
     }
 
-    /// A failed downcall — a descriptor that does not match the signature, not a
-    /// Blend2D error. Blend2D reports its own failures through `BLResult`.
+    /// A failed downcall — the arena that held an argument closed under the
+    /// call, or a [Downcalls] constant that does not match the C prototype. Not
+    /// a Blend2D error: Blend2D reports its own failures through `BLResult`.
     private static IllegalStateException failure(String name, Throwable cause) {
         return new IllegalStateException(name + " could not be invoked", cause);
-    }
-
-    // Restricted: see GoldberryShim.downcall -- same obligation, same reason.
-    @SuppressWarnings("restricted")
-    private static MethodHandle downcall(SymbolLookup lookup, String symbol, FunctionDescriptor descriptor) {
-        var address = lookup.find(symbol).orElseThrow(() -> new UnsatisfiedLinkError(
-                "libgoldberry does not export " + symbol
-                        + " — is it listed in natives/src/main/cmake/exports/goldberry.symbols?"));
-        return LINKER.downcallHandle(address, descriptor);
     }
 }

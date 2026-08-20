@@ -580,6 +580,17 @@ def nativeRequired = providers.systemProperty('goldberry.native.required')
 // test, so they are not loaded as the named module. Consumers of the published
 // artifact use --enable-native-access=io.github.digitalsmile.goldberry.natives,
 // which is why the module descriptor exists (ADR-0007).
+// The benchmarks are downcalls too, so they need the library and the JEP 472
+// permission exactly as the tests do. Without this `:natives:benchmark` reports
+// SKIPPED -- which reads as "nothing to measure" rather than as "no library".
+tasks.named('benchmark') {
+    jvmArgs '--enable-native-access=ALL-UNNAMED'
+    systemProperty 'goldberry.native.library',
+            externalLibrary.getOrElse(
+                    installDir.get().dir('lib').file(hostTarget.library).asFile.absolutePath)
+    systemProperty 'goldberry.native.required', nativeRequired
+}
+
 tasks.named('test') {
     jvmArgs '--enable-native-access=ALL-UNNAMED'
 

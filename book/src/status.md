@@ -2268,7 +2268,7 @@ is the `scroll` box's.
   `nativeImage` builds over that, after `weaveModels`, which the build orders
   before `jar` so an image can never be made from classes bound reflectively.
   **The image builds and runs** on linux-x64 against GraalVM CE 25.2.4: 30.6 MiB,
-  ~0.55 s to start, ~6 ms a frame headless, exit 0, with the FFM downcalls, both
+  ~0.55 s to start, exit 0, with the FFM downcalls, both
   upcalls, the fonts, the icons, the stylesheets, the KDL and the `WidgetCatalog`
   service all surviving the closed world. Neither task is in CI and neither is
   wired into `build`; both fail with a download link when asked. Two things the
@@ -2373,6 +2373,45 @@ is the `scroll` box's.
   The FFM and reflection metadata are still traced and ADR-0156's warning still
   applies to them
   ([ADR-0160](adr/0160-a-modules-own-resources-are-declared-not-traced.md))
+
+- **A downcall handle is a constant, or it is not a call — and the image went
+  from 42 ms a frame to 1.0 ms.** The `hud` on the first properly exercised image
+  read `paint 37.5 / 41 / 53 ms`, `raster 34.7 / 36 / 52 ms`, against a 16.7 ms
+  budget: two and a half frames of work per frame, almost all of it Blend2D. The
+  cause is a **known and open** GraalVM limitation —
+  [#8113](https://github.com/oracle/graal/issues/8113) has "improve downcall
+  performance (currently always unoptimized)" on its unfinished list — and a
+  GraalVM engineer's answer to somebody else's SDL application dropping from 400
+  fps to 25 gives the workaround. Measured here before anything was changed: one
+  trivial call costs **10 ns on the JVM and 4560 ns in an image**, and an unbound
+  handle built at run time is just as slow, so both halves of the workaround are
+  load-bearing. A `MethodHandle` is a call only when the compiler can see *which*
+  handle it is; the JIT gets there by watching the field, and an image has no
+  second chance. A handle bound to an address never can be — the address does not
+  exist until `libgoldberry` is `dlopen`ed. So `Downcalls` holds one **unbound**
+  handle per signature (134 bindings share 56 of them), each binding keeps the
+  `MemorySegment` it looked up, and `:natives` ships the
+  `native-image.properties` that initializes that class in the builder — beside
+  the `--initialize-at-run-time=…NativeLibrary` that moved there from
+  `example/build.gradle`, since both are facts about the module rather than about
+  an application. Sixty frames headless: **2.533 s before, 0.061 s after**, with a
+  control build — the same code, properties file moved aside — reproducing 2.55 s
+  exactly, which is what makes the gain attributable. The image is now faster than
+  the JVM over a short run, because the JVM spends its first frames compiling and
+  an image has nothing to compile. The JVM loses nothing (9.81 ns bound against
+  9.27 ns unbound), and two `invokeWithArguments(Object...)` paths in `SdlVideo`
+  and `SdlCursors` that boxed every argument became `invokeExact` on the way past.
+  The same trap sits one level down and decided the naming: **a handle has to be
+  read by the method that calls it.** A constant passed *into* a three-line helper
+  costs 810 ns in an image against 8.9 ns when the helper names it itself, so the
+  constants are named for signatures — `INT__PTR_PTR_INT`, in C's words rather
+  than JVM descriptor letters — and not for functions, which would mean deleting
+  every shape-generic helper and inlining it at ~100 call sites.
+  **Nothing fails if the flag goes missing** — the image builds, runs, paints
+  correctly and is forty times slower — so `DowncallsTest` pins the naming scheme,
+  `DowncallBenchmark` prints both numbers, and the control is written down
+  ([ADR-0161](adr/0161-a-downcall-handle-is-a-constant-or-it-is-not-a-call.md),
+  [the native-image page](native.md))
 
 ### Not started
 

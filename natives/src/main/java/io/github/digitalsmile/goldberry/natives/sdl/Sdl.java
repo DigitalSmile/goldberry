@@ -1,13 +1,11 @@
 package io.github.digitalsmile.goldberry.natives.sdl;
 
+import io.github.digitalsmile.goldberry.natives.Downcalls;
 import io.github.digitalsmile.goldberry.natives.NativeLibrary;
 import java.lang.foreign.Arena;
-import java.lang.foreign.FunctionDescriptor;
-import java.lang.foreign.Linker;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.SymbolLookup;
 import java.lang.foreign.ValueLayout;
-import java.lang.invoke.MethodHandle;
 import java.util.Collection;
 import java.util.Set;
 
@@ -31,8 +29,6 @@ import java.util.Set;
 /// not to callers.
 public final class Sdl {
 
-    private static final Linker LINKER = Linker.nativeLinker();
-
     /// The SDL these bindings were written against, and the floor the pinned ref
     /// in `gradle/libs.versions.toml` must meet. Before 3.2.0 the lifecycle calls
     /// returned `int` rather than `bool`, so on an older SDL the descriptors here
@@ -44,47 +40,36 @@ public final class Sdl {
         private static final Sdl INSTANCE = new Sdl(NativeLibrary.get().lookup());
     }
 
-    private final MethodHandle init;
-    private final MethodHandle initSubSystem;
-    private final MethodHandle quitSubSystem;
-    private final MethodHandle wasInit;
-    private final MethodHandle quit;
-    private final MethodHandle getError;
-    private final MethodHandle clearError;
-    private final MethodHandle getVersion;
-    private final MethodHandle getRevision;
-    private final MethodHandle getCurrentVideoDriver;
-    private final MethodHandle setHint;
-    private final MethodHandle getModState;
+    private final MemorySegment init;
+    private final MemorySegment initSubSystem;
+    private final MemorySegment quitSubSystem;
+    private final MemorySegment wasInit;
+    private final MemorySegment quit;
+    private final MemorySegment getError;
+    private final MemorySegment clearError;
+    private final MemorySegment getVersion;
+    private final MemorySegment getRevision;
+    private final MemorySegment getCurrentVideoDriver;
+    private final MemorySegment setHint;
+    private final MemorySegment getModState;
 
     private Sdl(SymbolLookup lookup) {
         // `bool` is C's _Bool -- one byte, not the four an int would take.
-        this.init = downcall(lookup, "SDL_Init",
-                FunctionDescriptor.of(ValueLayout.JAVA_BOOLEAN, ValueLayout.JAVA_INT));
-        this.initSubSystem = downcall(lookup, "SDL_InitSubSystem",
-                FunctionDescriptor.of(ValueLayout.JAVA_BOOLEAN, ValueLayout.JAVA_INT));
-        this.quitSubSystem = downcall(lookup, "SDL_QuitSubSystem",
-                FunctionDescriptor.ofVoid(ValueLayout.JAVA_INT));
-        this.wasInit = downcall(lookup, "SDL_WasInit",
-                FunctionDescriptor.of(ValueLayout.JAVA_INT, ValueLayout.JAVA_INT));
-        this.quit = downcall(lookup, "SDL_Quit", FunctionDescriptor.ofVoid());
-        this.getError = downcall(lookup, "SDL_GetError",
-                FunctionDescriptor.of(ValueLayout.ADDRESS));
-        this.clearError = downcall(lookup, "SDL_ClearError",
-                FunctionDescriptor.of(ValueLayout.JAVA_BOOLEAN));
-        this.getVersion = downcall(lookup, "SDL_GetVersion",
-                FunctionDescriptor.of(ValueLayout.JAVA_INT));
-        this.getRevision = downcall(lookup, "SDL_GetRevision",
-                FunctionDescriptor.of(ValueLayout.ADDRESS));
-        this.getCurrentVideoDriver = downcall(lookup, "SDL_GetCurrentVideoDriver",
-                FunctionDescriptor.of(ValueLayout.ADDRESS));
-        this.setHint = downcall(lookup, "SDL_SetHint",
-                FunctionDescriptor.of(ValueLayout.JAVA_BOOLEAN, ValueLayout.ADDRESS, ValueLayout.ADDRESS));
+        this.init = Downcalls.symbol(lookup, "SDL_Init");
+        this.initSubSystem = Downcalls.symbol(lookup, "SDL_InitSubSystem");
+        this.quitSubSystem = Downcalls.symbol(lookup, "SDL_QuitSubSystem");
+        this.wasInit = Downcalls.symbol(lookup, "SDL_WasInit");
+        this.quit = Downcalls.symbol(lookup, "SDL_Quit");
+        this.getError = Downcalls.symbol(lookup, "SDL_GetError");
+        this.clearError = Downcalls.symbol(lookup, "SDL_ClearError");
+        this.getVersion = Downcalls.symbol(lookup, "SDL_GetVersion");
+        this.getRevision = Downcalls.symbol(lookup, "SDL_GetRevision");
+        this.getCurrentVideoDriver = Downcalls.symbol(lookup, "SDL_GetCurrentVideoDriver");
+        this.setHint = Downcalls.symbol(lookup, "SDL_SetHint");
         // `SDL_Keymod` is a Uint16, not an int -- the layout table's "Uint16"
         // scalar row is what says so, and binding it as JAVA_INT would read two
         // bytes of whatever follows it in the return register.
-        this.getModState = downcall(lookup, "SDL_GetModState",
-                FunctionDescriptor.of(ValueLayout.JAVA_SHORT));
+        this.getModState = Downcalls.symbol(lookup, "SDL_GetModState");
     }
 
     /// The SDL bindings, loading `libgoldberry` on first call.
@@ -137,9 +122,10 @@ public final class Sdl {
         }
     }
 
-    private static boolean invokeHint(MethodHandle handle, MemorySegment name, MemorySegment value) {
+    private static boolean invokeHint(
+            MemorySegment function, MemorySegment name, MemorySegment value) {
         try {
-            return (boolean) handle.invokeExact(name, value);
+            return (boolean) Downcalls.BOOL__PTR_PTR.invokeExact(function, name, value);
         } catch (Throwable t) {
             throw new IllegalStateException("SDL_SetHint() failed", t);
         }
@@ -227,65 +213,65 @@ public final class Sdl {
         callBoolean(clearError, "SDL_ClearError");
     }
 
-    private static boolean callBoolean(MethodHandle handle, String name, int flags) {
+    private static boolean callBoolean(MemorySegment function, String name, int flags) {
         try {
-            return (boolean) handle.invokeExact(flags);
+            return (boolean) Downcalls.BOOL__INT.invokeExact(function, flags);
         } catch (Throwable t) {
             throw new IllegalStateException(name + "() failed", t);
         }
     }
 
-    private static boolean callBoolean(MethodHandle handle, String name) {
+    private static boolean callBoolean(MemorySegment function, String name) {
         try {
-            return (boolean) handle.invokeExact();
+            return (boolean) Downcalls.BOOL__VOID.invokeExact(function);
         } catch (Throwable t) {
             throw new IllegalStateException(name + "() failed", t);
         }
     }
 
-    private static short callShort(MethodHandle handle, String name) {
+    private static short callShort(MemorySegment function, String name) {
         try {
-            return (short) handle.invokeExact();
+            return (short) Downcalls.SHORT__VOID.invokeExact(function);
         } catch (Throwable t) {
             throw new IllegalStateException(name + "() failed", t);
         }
     }
 
-    private static int callInt(MethodHandle handle, String name) {
+    private static int callInt(MemorySegment function, String name) {
         try {
-            return (int) handle.invokeExact();
+            return (int) Downcalls.INT__VOID.invokeExact(function);
         } catch (Throwable t) {
             throw new IllegalStateException(name + "() failed", t);
         }
     }
 
-    private static int callInt(MethodHandle handle, String name, int flags) {
+    private static int callInt(MemorySegment function, String name, int flags) {
         try {
-            return (int) handle.invokeExact(flags);
+            return (int) Downcalls.INT__INT.invokeExact(function, flags);
         } catch (Throwable t) {
             throw new IllegalStateException(name + "() failed", t);
         }
     }
 
-    private static MemorySegment callPointer(MethodHandle handle, String name) {
+    private static MemorySegment callPointer(MemorySegment function, String name) {
         try {
-            return (MemorySegment) handle.invokeExact();
+            return (MemorySegment) Downcalls.PTR__VOID.invokeExact(function);
         } catch (Throwable t) {
             throw new IllegalStateException(name + "() failed", t);
         }
     }
 
-    private static void callVoid(MethodHandle handle, String name) {
+    private static void callVoid(MemorySegment function, String name) {
         try {
-            handle.invokeExact();
+            Downcalls.VOID__VOID.invokeExact(function);
         } catch (Throwable t) {
             throw new IllegalStateException(name + "() failed", t);
         }
     }
 
-    private static void callVoid(MethodHandle handle, String name, int flags) {
+    private static void callVoid(MemorySegment function, String name, int flags) {
         try {
-            handle.invokeExact(flags);
+            Downcalls.VOID__INT.invokeExact(function, flags);
         } catch (Throwable t) {
             throw new IllegalStateException(name + "() failed", t);
         }
@@ -307,12 +293,4 @@ public final class Sdl {
     /// Bound on strings read back from SDL.
     private static final long MAX_STRING_LENGTH = 4096;
 
-    // Restricted: see GoldberryShim.downcall -- same obligation, same reason.
-    @SuppressWarnings("restricted")
-    private static MethodHandle downcall(SymbolLookup lookup, String symbol, FunctionDescriptor descriptor) {
-        var address = lookup.find(symbol).orElseThrow(() -> new UnsatisfiedLinkError(
-                "libgoldberry does not export " + symbol
-                        + " — is it listed in natives/src/main/cmake/exports/goldberry.symbols?"));
-        return LINKER.downcallHandle(address, descriptor);
-    }
 }

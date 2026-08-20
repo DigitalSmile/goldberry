@@ -1,13 +1,10 @@
 package io.github.digitalsmile.goldberry.natives.sdl;
 
+import io.github.digitalsmile.goldberry.natives.Downcalls;
 import io.github.digitalsmile.goldberry.natives.NativeLibrary;
 import io.github.digitalsmile.goldberry.natives.log.Logs;
-import java.lang.foreign.FunctionDescriptor;
-import java.lang.foreign.Linker;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.SymbolLookup;
-import java.lang.foreign.ValueLayout;
-import java.lang.invoke.MethodHandle;
 import java.util.EnumMap;
 import java.util.Map;
 import org.slf4j.Logger;
@@ -31,13 +28,11 @@ public final class SdlCursors implements AutoCloseable {
 
     private static final Logger LOG = Logs.of(SdlCursors.class);
 
-    private static final Linker LINKER = Linker.nativeLinker();
-
-    private final MethodHandle createSystemCursor;
-    private final MethodHandle setCursor;
-    private final MethodHandle destroyCursor;
-    private final MethodHandle showCursor;
-    private final MethodHandle hideCursor;
+    private final MemorySegment createSystemCursor;
+    private final MemorySegment setCursor;
+    private final MemorySegment destroyCursor;
+    private final MemorySegment showCursor;
+    private final MemorySegment hideCursor;
 
     private final Map<SdlSystemCursor, MemorySegment> cursors = new EnumMap<>(SdlSystemCursor.class);
     private SdlSystemCursor current;
@@ -48,16 +43,11 @@ public final class SdlCursors implements AutoCloseable {
     }
 
     SdlCursors(SymbolLookup lookup) {
-        this.createSystemCursor = downcall(lookup, "SDL_CreateSystemCursor",
-                FunctionDescriptor.of(ValueLayout.ADDRESS, ValueLayout.JAVA_INT));
-        this.setCursor = downcall(lookup, "SDL_SetCursor",
-                FunctionDescriptor.of(ValueLayout.JAVA_BOOLEAN, ValueLayout.ADDRESS));
-        this.destroyCursor = downcall(lookup, "SDL_DestroyCursor",
-                FunctionDescriptor.ofVoid(ValueLayout.ADDRESS));
-        this.showCursor = downcall(lookup, "SDL_ShowCursor",
-                FunctionDescriptor.of(ValueLayout.JAVA_BOOLEAN));
-        this.hideCursor = downcall(lookup, "SDL_HideCursor",
-                FunctionDescriptor.of(ValueLayout.JAVA_BOOLEAN));
+        this.createSystemCursor = Downcalls.symbol(lookup, "SDL_CreateSystemCursor");
+        this.setCursor = Downcalls.symbol(lookup, "SDL_SetCursor");
+        this.destroyCursor = Downcalls.symbol(lookup, "SDL_DestroyCursor");
+        this.showCursor = Downcalls.symbol(lookup, "SDL_ShowCursor");
+        this.hideCursor = Downcalls.symbol(lookup, "SDL_HideCursor");
     }
 
     /// Shows `shape`, creating it the first time it is asked for.
@@ -77,7 +67,7 @@ public final class SdlCursors implements AutoCloseable {
         if (MemorySegment.NULL.equals(cursor)) {
             return;
         }
-        if (!(boolean) invoke(setCursor, "SDL_SetCursor", cursor)) {
+        if (!setCursor(cursor)) {
             LOG.debug("SDL_SetCursor({}) refused: {}", shape, Sdl.get().lastError());
             return;
         }
@@ -91,13 +81,13 @@ public final class SdlCursors implements AutoCloseable {
 
     /// Makes the cursor visible. It is by default.
     public void show() {
-        invoke(showCursor, "SDL_ShowCursor");
+        toggle(showCursor, "SDL_ShowCursor");
     }
 
     /// Hides the cursor without confining it — what a text editor does while
     /// typing, and what a full-screen player does after a few idle seconds.
     public void hide() {
-        invoke(hideCursor, "SDL_HideCursor");
+        toggle(hideCursor, "SDL_HideCursor");
     }
 
     /// Destroys every cursor created here.
@@ -113,11 +103,15 @@ public final class SdlCursors implements AutoCloseable {
         closed = true;
         var fallback = cursors.get(SdlSystemCursor.DEFAULT);
         if (fallback != null && current != null && current != SdlSystemCursor.DEFAULT) {
-            invoke(setCursor, "SDL_SetCursor", fallback);
+            setCursor(fallback);
         }
         for (var entry : cursors.entrySet()) {
             if (!MemorySegment.NULL.equals(entry.getValue())) {
-                invoke(destroyCursor, "SDL_DestroyCursor", entry.getValue());
+                try {
+                    Downcalls.VOID__PTR.invokeExact(destroyCursor, entry.getValue());
+                } catch (Throwable t) {
+                    throw new IllegalStateException("SDL_DestroyCursor() failed", t);
+                }
             }
         }
         cursors.clear();
@@ -125,27 +119,36 @@ public final class SdlCursors implements AutoCloseable {
     }
 
     private MemorySegment create(SdlSystemCursor shape) {
-        var cursor = (MemorySegment) invoke(createSystemCursor, "SDL_CreateSystemCursor", shape.value());
+        MemorySegment cursor;
+        try {
+            cursor = (MemorySegment) Downcalls.PTR__INT.invokeExact(
+                    createSystemCursor, shape.value());
+        } catch (Throwable t) {
+            throw new IllegalStateException("SDL_CreateSystemCursor() failed", t);
+        }
         if (MemorySegment.NULL.equals(cursor)) {
             LOG.debug("SDL has no {} cursor on this platform: {}", shape, Sdl.get().lastError());
         }
         return cursor;
     }
 
-    private static Object invoke(MethodHandle handle, String name, Object... args) {
+    /// `bool SDL_SetCursor(SDL_Cursor*)` — false when SDL refused it.
+    private boolean setCursor(MemorySegment cursor) {
         try {
-            return handle.invokeWithArguments(args);
+            return (boolean) Downcalls.BOOL__PTR.invokeExact(setCursor, cursor);
         } catch (Throwable t) {
-            throw new IllegalStateException(name + "() failed", t);
+            throw new IllegalStateException("SDL_SetCursor() failed", t);
         }
     }
 
-    // Restricted: see GoldberryShim.downcall -- same obligation, same reason.
-    @SuppressWarnings("restricted")
-    private static MethodHandle downcall(SymbolLookup lookup, String symbol, FunctionDescriptor descriptor) {
-        var address = lookup.find(symbol).orElseThrow(() -> new UnsatisfiedLinkError(
-                "libgoldberry does not export " + symbol
-                        + " — is it listed in natives/src/main/cmake/exports/goldberry.symbols?"));
-        return LINKER.downcallHandle(address, descriptor);
+    /// `bool SDL_ShowCursor(void)` and its twin. The result is dropped: SDL
+    /// returns false only when there is no video subsystem, and there is one by
+    /// the time anything here runs.
+    private static void toggle(MemorySegment function, String name) {
+        try {
+            var ignored = (boolean) Downcalls.BOOL__VOID.invokeExact(function);
+        } catch (Throwable t) {
+            throw new IllegalStateException(name + "() failed", t);
+        }
     }
 }

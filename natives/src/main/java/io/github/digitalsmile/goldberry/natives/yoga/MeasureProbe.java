@@ -1,12 +1,10 @@
 package io.github.digitalsmile.goldberry.natives.yoga;
 
+import io.github.digitalsmile.goldberry.natives.Downcalls;
 import io.github.digitalsmile.goldberry.natives.NativeLibrary;
 import java.lang.foreign.Arena;
-import java.lang.foreign.FunctionDescriptor;
-import java.lang.foreign.Linker;
-import java.lang.foreign.SymbolLookup;
+import java.lang.foreign.MemorySegment;
 import java.lang.foreign.ValueLayout;
-import java.lang.invoke.MethodHandle;
 
 /// Calls a [MeasureCallback] from C and reports what arrived.
 ///
@@ -22,25 +20,17 @@ import java.lang.invoke.MethodHandle;
 /// are checked against each other.
 public final class MeasureProbe {
 
-    private static final Linker LINKER = Linker.nativeLinker();
-
     /// ```c
     /// void goldberry_probe_measure(YGMeasureFunc measure,
     ///                              float width, int width_mode,
     ///                              float height, int height_mode,
     ///                              float *out_width, float *out_height);
     /// ```
-    private static final FunctionDescriptor DESCRIPTOR = FunctionDescriptor.ofVoid(
-            ValueLayout.ADDRESS,
-            ValueLayout.JAVA_FLOAT,
-            ValueLayout.JAVA_INT,
-            ValueLayout.JAVA_FLOAT,
-            ValueLayout.JAVA_INT,
-            ValueLayout.ADDRESS,
-            ValueLayout.ADDRESS);
-
+    ///
+    /// — which is [Downcalls#V_PFIFIPP], the constant the call below names.
     private static final class Holder {
-        private static final MethodHandle PROBE = downcall(NativeLibrary.get().lookup());
+        private static final MemorySegment PROBE =
+                Downcalls.symbol(NativeLibrary.get().lookup(), "goldberry_probe_measure");
     }
 
     private MeasureProbe() {
@@ -70,7 +60,8 @@ public final class MeasureProbe {
             var outHeight = out.asSlice(ValueLayout.JAVA_FLOAT.byteSize(), ValueLayout.JAVA_FLOAT.byteSize());
 
             try {
-                Holder.PROBE.invokeExact(
+                Downcalls.VOID__PTR_FLOAT_INT_FLOAT_INT_PTR_PTR.invokeExact(
+                        Holder.PROBE,
                         callback.pointer(),
                         width,
                         widthMode.nativeValue(),
@@ -91,14 +82,5 @@ public final class MeasureProbe {
         callback.throwIfFailed();
 
         return new MeasuredSize(measuredWidth, measuredHeight);
-    }
-
-    // Restricted: see GoldberryShim.downcall -- same obligation, same reason.
-    @SuppressWarnings("restricted")
-    private static MethodHandle downcall(SymbolLookup lookup) {
-        var address = lookup.find("goldberry_probe_measure").orElseThrow(() -> new UnsatisfiedLinkError(
-                "libgoldberry does not export goldberry_probe_measure"
-                        + " — is it listed in natives/src/main/cmake/exports/goldberry.symbols?"));
-        return LINKER.downcallHandle(address, DESCRIPTOR);
     }
 }
