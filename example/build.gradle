@@ -411,6 +411,32 @@ tasks.register('nativeImageMetadata', Exec) {
 def imageDirNative = layout.buildDirectory.dir('native')
 def imageName = "goldberry-showcase-${hostTarget}"
 
+// The classifier jar holding libgoldberry, which is what makes the image one
+// file instead of two (ADR-0159).
+//
+// `:natives` already packages the library at exactly the resource path
+// `NativeLibrary.resourcePath()` looks for -- that is the released-application
+// path, and an image is simply an application. So the jar goes on the image's
+// **classpath** (not its module path: nothing `requires` it, so module
+// resolution would leave it out) and `NativeLibrary` finds it there with the
+// code it already has.
+def nativesTaskSuffix = hostTarget.split('-').collect { it.capitalize() }.join('')
+def nativesJarTask = ":natives:nativeJar${nativesTaskSuffix}"
+
+// The jar packages whatever is in :natives' artifacts directory, which CI fills
+// by downloading each platform's build (ADR-0012). Locally nothing fills it
+// unless `stageHostArtifact` runs, so an image built from a source tree asks for
+// both -- and in that order, which `dependsOn` alone does not promise.
+//
+// The ordering is declared from here rather than by making `nativeJar` depend on
+// staging, because that dependency would be wrong in CI: the Linux legs build
+// inside the manylinux container and download the result, and a `cmakeBuild` on
+// the runner would produce a different binary against a different glibc.
+def nativesStageTask = ':natives:stageHostArtifact'
+project(':natives').tasks.named("nativeJar${nativesTaskSuffix}").configure {
+    mustRunAfter nativesStageTask
+}
+
 tasks.register('nativeImage', Exec) {
     group = 'distribution'
     description = 'Builds a GraalVM native image of the showcase'
@@ -420,17 +446,28 @@ tasks.register('nativeImage', Exec) {
     // by reflection, which is the one thing ADR-0155 says an image never does.
     dependsOn tasks.named('weaveModels')
     dependsOn tasks.named('jar')
+    // And the library, staged out of this machine's build and packaged as the
+    // resource the image will carry.
+    dependsOn nativesStageTask
+    dependsOn nativesJarTask
 
     def runtimeClasspath = configurations.runtimeClasspath
     def appJar = tasks.named('jar').flatMap { it.archiveFile }
+    def nativesJar = project(':natives').tasks.named(
+            "nativeJar${nativesTaskSuffix}").flatMap { it.archiveFile }
     def target = imageDirNative
 
+    inputs.files(nativesJar)
     inputs.files(runtimeClasspath).withPathSensitivity(PathSensitivity.RELATIVE)
     inputs.files(appJar)
     // A FileTree and not `inputs.dir`, because an image can be built before the
     // agent has ever run -- worse, without the metadata, but `native-image` is
     // what should say so rather than Gradle refusing to configure the task.
     inputs.files(fileTree(metadataDir)).withPropertyName('reachabilityMetadata')
+    // Without this the task is UP-TO-DATE across a change of arguments, which is
+    // exactly when somebody is iterating on them and least expects to be handed
+    // the previous image.
+    inputs.property('graalvmArgs', graalvmArgs)
     outputs.dir(target)
 
     doFirst {
@@ -441,6 +478,11 @@ tasks.register('nativeImage', Exec) {
 
         commandLine graalTool('native-image'),
                 '--module-path', modulePath,
+                // The library, as a resource rather than a module. On the module
+                // path nothing would `require` it and resolution would drop it;
+                // on the class path it is exactly what a released application
+                // sees, which is the arrangement NativeLibrary was written for.
+                '-cp', nativesJar.get().asFile.absolutePath,
                 '--module', "${appModule}/io.github.digitalsmile.goldberry.example.Showcase",
                 '-o', new File(target.get().asFile, imageName).absolutePath,
                 // JEP 472, the same module the jar names (ADR-0007).
@@ -464,23 +506,11 @@ tasks.register('nativeImage', Exec) {
     }
 
     doLast {
-        // The library, next to the binary, and a launcher that points at it --
-        // the same arrangement showcaseImage uses and for the same reason: the
-        // path is only known relative to wherever this is unpacked.
-        def image = target.get().asFile
-        def libDir = new File(image, 'lib')
-        libDir.mkdirs()
-        new File(libDir, hostLibrary.name).bytes = hostLibrary.bytes
-
-        if (!windows) {
-            def launcher = new File(image, 'showcase')
-            launcher.text = """\
-#!/bin/sh
-APP_HOME=\$(cd "\$(dirname "\$0")" && pwd)
-exec "\$APP_HOME/${imageName}" \\
-  -Dgoldberry.native.library="\$APP_HOME/lib/${hostLibrary.name}" "\$@"
-"""
-            launcher.setExecutable(true, false)
-        }
+        // No library beside the binary and no launcher script to point at one:
+        // libgoldberry is *inside* the image, and NativeLibrary unpacks it to a
+        // temporary file on first use exactly as it does from a classifier jar
+        // (ADR-0159). One file is the whole point.
+        logger.lifecycle("native image: {}",
+                new File(target.get().asFile, imageName).absolutePath)
     }
 }

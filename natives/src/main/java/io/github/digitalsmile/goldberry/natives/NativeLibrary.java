@@ -57,6 +57,34 @@ public final class NativeLibrary {
                 + platform.classifier() + "/" + platform.libraryFileName();
     }
 
+    /// Opens the classifier jar's library resource, from wherever it is.
+    ///
+    /// Two lookups, because this class lives in a **named module** and the jar
+    /// holding the library does not. `Class.getResourceAsStream` on a class in a
+    /// named module searches *that module* and never the class path, so the first
+    /// call answers only when the library has been packaged into the natives
+    /// module itself. The system class loader is what finds an ordinary
+    /// `goldberry-natives-<classifier>` jar beside it.
+    ///
+    /// The second lookup was missing, and the gap was invisible: every
+    /// module-path run in this repository points at a locally built library with
+    /// `-Dgoldberry.native.library`, so nothing ever took this branch on the
+    /// module path. A native image does — it carries the classifier jar's
+    /// resource and has no file to point at — which is where it surfaced
+    /// ([ADR-0159](../../../../../../book/src/adr/0159-a-native-image-carries-its-own-library.md)).
+    ///
+    /// @param resource an absolute resource name, leading slash and all
+    /// @return the open stream, or null when neither lookup finds it
+    private static InputStream openClassifierResource(String resource) {
+        var own = NativeLibrary.class.getResourceAsStream(resource);
+        if (own != null) {
+            return own;
+        }
+        // Without the leading slash: a ClassLoader resource name is always
+        // absolute, and one that starts with `/` matches nothing — silently.
+        return ClassLoader.getSystemResourceAsStream(resource.substring(1));
+    }
+
     public SymbolLookup lookup() {
         return lookup;
     }
@@ -80,7 +108,14 @@ public final class NativeLibrary {
             return true;
         }
         try {
-            return NativeLibrary.class.getResource(resourcePath(NativePlatform.current())) != null;
+            // The same two lookups `load` does, or this answers "no" for a library
+            // that is there -- which is what it did for a module-path run before
+            // the system-class-loader fallback existed.
+            try (var in = openClassifierResource(resourcePath(NativePlatform.current()))) {
+                return in != null;
+            } catch (IOException e) {
+                return false;
+            }
         } catch (UnsupportedOperationException e) {
             return false;
         }
@@ -115,7 +150,7 @@ public final class NativeLibrary {
 
     private static Path extractFromClasspath(NativePlatform platform) {
         var resource = resourcePath(platform);
-        try (InputStream in = NativeLibrary.class.getResourceAsStream(resource)) {
+        try (InputStream in = openClassifierResource(resource)) {
             if (in == null) {
                 throw new UnsatisfiedLinkError(
                         "No libgoldberry for " + platform.classifier() + " on the classpath"
@@ -130,8 +165,13 @@ public final class NativeLibrary {
             LOG.debug("unpacking {} to {}", resource, target);
             Startup.mark("unpacking libgoldberry from the classifier jar");
             Files.copy(in, target, StandardCopyOption.REPLACE_EXISTING);
-            target.toFile().deleteOnExit();
+            // The directory **before** the file it contains, because
+            // `deleteOnExit` runs its queue in reverse order of registration --
+            // so registering the file first means the directory is attempted
+            // first, fails because it is not empty, and is left behind. An empty
+            // directory per run is not much, and it is per run forever.
             target.getParent().toFile().deleteOnExit();
+            target.toFile().deleteOnExit();
             return target;
         } catch (IOException e) {
             throw new UncheckedIOException("Failed to unpack " + resource, e);

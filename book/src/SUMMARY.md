@@ -168,6 +168,7 @@
 - [ADR-0156 The image's metadata is traced, not written](adr/0156-the-image-s-metadata-is-traced-not-written.md)
 - [ADR-0157 A layer is blitted into its own size](adr/0157-a-layer-is-blitted-into-its-own-size.md)
 - [ADR-0158 A full repaint is a full upload](adr/0158-a-full-repaint-is-a-full-upload.md)
+- [ADR-0159 A native image carries its own library](adr/0159-a-native-image-carries-its-own-library.md)
 
 ---
 

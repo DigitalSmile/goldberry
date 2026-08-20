@@ -2330,6 +2330,30 @@ is the `scroll` box's.
   answer yet
   ([ADR-0158](adr/0158-a-full-repaint-is-a-full-upload.md))
 
+- **The native image is one file, and getting there found two bugs that were not
+  about images.** It shipped as a binary plus `lib/libgoldberry.so` plus a
+  launcher setting `-Dgoldberry.native.library`, so running the binary on its own
+  failed — which is what a person does, because an image is supposed to be a
+  program. **Statically linking the archives in does not work**, and the failure
+  is not where it looks: linking is fine (`-Wl,-u,<symbol>` pulls the code in,
+  given the `-lstdc++` and `-lm` native-image does not pass), but Goldberry
+  resolves every native function *by name at run time*, so the symbols must reach
+  the dynamic symbol table — and `native-image` links with its own
+  `--version-script` making everything unlisted `local`. `--export-dynamic-symbol`
+  does not beat it and a second version script is refused outright. So the image
+  **carries** the library instead: the classifier jar's resource, embedded, and
+  unpacked on first use by the branch `NativeLibrary` already had. One 41 MiB
+  file, ~5 ms and a writable temp directory the cost. On the way: a **named module
+  cannot see a class-path resource**, so the classifier jar — the mechanism a
+  released application is meant to use — could never have worked on the module
+  path, invisible because every module-path run here points at a local library
+  instead; and **`deleteOnExit` drains in reverse**, so the unpacked library's
+  directory was attempted before the file in it and every run leaked an empty
+  directory, on the JVM as much as in an image. Neither has a test and both live
+  where this repository does not look — what caught them was building the artifact
+  and running it with nothing beside it
+  ([ADR-0159](adr/0159-a-native-image-carries-its-own-library.md))
+
 ### Not started
 
 `menubar`, tray, dialogs, forms, client-side decorations and charts. The rest of §5 — `card`, `group-box`, `split-pane`, `collapse`,

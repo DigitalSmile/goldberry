@@ -12,12 +12,25 @@
     "a named module and has to be registered against that module or it is simply",
     "not there. The symptom is a silent image: with no configuration found,",
     "logback ends up with no appenders and prints nothing at all -- not even its",
-    "own status."
+    "own status.",
+    "",
+    "libgoldberry is here because the agent cannot have seen it: the trace runs",
+    "with -Dgoldberry.native.library pointing at the build tree, which is the",
+    "branch of NativeLibrary that does NOT read a resource. The image takes the",
+    "other branch -- unpack from the classpath -- so the library has to be",
+    "registered by hand or the one file the image is meant to be turns back into",
+    "two (ADR-0159).",
+    "",
+    "A ** glob rather than this machine's classifier, so the same metadata is",
+    "right on all four targets."
   ],
   "resources": [
     {
       "module": "io.github.digitalsmile.goldberry.example",
       "glob": "logback.xml"
+    },
+    {
+      "glob": "io/github/digitalsmile/goldberry/natives/**"
     }
   ]
 }

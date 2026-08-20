@@ -6,10 +6,10 @@ rather than against a JVM. That is what
 [ADR-0127](adr/0127-the-binding-schema-fits-a-closed-world.md) designed the
 binding schema for.
 
-> **Built and run on linux-x64; not in CI.** A 30.6 MiB binary that starts in
-> ~0.55 s, paints at about 6 ms a frame headless, and exits 0. The FFM downcalls,
-> the two upcalls, the fonts, the icons, the stylesheets, the KDL and the
-> `WidgetCatalog` service all survive the closed world.
+> **Built and run on linux-x64; not in CI.** One 41 MiB file with nothing beside
+> it, starting in well under a second and painting at about 6 ms a frame headless.
+> The FFM downcalls, the two upcalls, the fonts, the icons, the stylesheets, the
+> KDL, the `WidgetCatalog` service and `libgoldberry` itself all travel inside it.
 >
 > It logs, too, which took one hand-written metadata entry — see
 > [below](#two-metadata-directories-traced-and-written).
@@ -40,12 +40,16 @@ resolves `-lz` through the `libz.so` symlink that `zlib1g-dev` installs.
 and not a stock JDK — `native-image` and the tracing agent ship only with the
 former, and the task says so if you point it at the wrong thing.
 
-The result is `example/build/native/`, holding the binary, `lib/libgoldberry.so`
-beside it, and a `showcase` launcher that points one at the other. The library is
-`dlopen`ed at run time exactly as it is from a jar, so the image is not
-self-contained and deliberately so
-([ADR-0019](adr/0019-the-backend-spis-first-cut.md),
-[ADR-0041](adr/0041-three-platforms-four-artifacts-two-backends.md)).
+The result is **one file**: `example/build/native/goldberry-showcase-<target>`.
+No launcher, no `lib/` directory, nothing to set. `libgoldberry` is carried inside
+the binary as the same classifier-jar resource a released application would use,
+and unpacked to a temporary file on first use — a shared object has to be a real
+file to be `dlopen`ed, so it cannot be mapped straight out of the image
+([ADR-0159](adr/0159-a-native-image-carries-its-own-library.md)).
+
+That makes a **writable temp directory a requirement**, and
+`-Dgoldberry.native.library` is still the way out of one that is read-only or
+`noexec`.
 
 ## Why there are two commands
 
@@ -115,6 +119,20 @@ an image that is working perfectly looks like an image that is doing nothing.
 The general shape of that trap is worth remembering: **the agent records how a
 lookup was made, not where the file will be.** A resource fetched through a
 `ClassLoader` by a library that knows nothing of modules is recorded without one.
+
+## Why the library is carried rather than linked
+
+Statically linking the archives into the image is the obvious answer and it does
+not work. The linking part is fine — `-Wl,-u,<symbol>` pulls the code in, given
+`-lstdc++` and `-lm` which `native-image` does not pass. What fails is that
+Goldberry resolves every native function **by name at run time**, so the symbols
+have to be in the executable's dynamic symbol table, and `native-image` links with
+its own `--version-script` that makes everything it does not list `local`.
+`--export-dynamic-symbol` does not beat it, and a second version script is refused
+outright — *"anonymous version tag cannot be combined with other version tags"*.
+
+ADR-0159 records the experiments. Revisit if `native-image` grows a way to extend
+its export list.
 
 ## What is not built
 
