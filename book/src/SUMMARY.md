@@ -166,6 +166,7 @@
 - [ADR-0154 A reading is a range](adr/0154-a-reading-is-a-range.md)
 - [ADR-0155 A jar binds at run time; an image is woven](adr/0155-a-jar-binds-at-run-time-an-image-is-woven.md)
 - [ADR-0156 The image's metadata is traced, not written](adr/0156-the-image-s-metadata-is-traced-not-written.md)
+- [ADR-0157 A layer is blitted into its own size](adr/0157-a-layer-is-blitted-into-its-own-size.md)
 
 ---
 

@@ -75,6 +75,7 @@ final class Blend2D {
     private final MethodHandle contextFillPathDRgba32;
     private final MethodHandle contextStrokePathDRgba32;
     private final MethodHandle contextBlitImageD;
+    private final MethodHandle contextBlitScaledImageD;
     private final MethodHandle contextSetGlobalAlpha;
     private final MethodHandle contextClipToRectD;
     private final MethodHandle contextRestoreClipping;
@@ -186,6 +187,12 @@ final class Blend2D {
         // always NULL here -- Blend2D reads that as the whole image, which is
         // what a layer always wants -- so no BLRectI ever crosses.
         this.contextBlitImageD = downcall(lookup, "bl_context_blit_image_d",
+                resultOf(ValueLayout.ADDRESS, ValueLayout.ADDRESS, ValueLayout.ADDRESS,
+                        ValueLayout.ADDRESS));
+        // The same, into a destination BLRect rather than at a point -- which is
+        // what reconciles a raster measured in physical pixels with a context
+        // measured in logical ones (ADR-0157). Same NULL `img_area`.
+        this.contextBlitScaledImageD = downcall(lookup, "bl_context_blit_scaled_image_d",
                 resultOf(ValueLayout.ADDRESS, ValueLayout.ADDRESS, ValueLayout.ADDRESS,
                         ValueLayout.ADDRESS));
         this.contextSetGlobalAlpha = downcall(lookup, "bl_context_set_global_alpha",
@@ -543,6 +550,19 @@ final class Blend2D {
             throw failure("bl_context_blit_image_d", t);
         }
         check("bl_context_blit_image_d", result);
+    }
+
+    /// The same, into `rect` -- a `BLRect` of four doubles in the context's own
+    /// units, so the image is drawn to that size rather than one pixel per unit.
+    void contextBlitScaledImage(MemorySegment context, MemorySegment rect, MemorySegment image) {
+        int result;
+        try {
+            result = (int) contextBlitScaledImageD.invokeExact(
+                    context, rect, image, MemorySegment.NULL);
+        } catch (Throwable t) {
+            throw failure("bl_context_blit_scaled_image_d", t);
+        }
+        check("bl_context_blit_scaled_image_d", result);
     }
 
     /// Scales the alpha of everything drawn after it, including a blitted image.

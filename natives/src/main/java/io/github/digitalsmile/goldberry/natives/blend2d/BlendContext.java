@@ -342,11 +342,43 @@ public final class BlendContext implements AutoCloseable {
         blend2d.contextTransform(context, matrix);
     }
 
-    /// Draws `layer` with its top-left corner at logical `(x, y)`.
+    /// Draws `layer` into the logical rectangle `(x, y, width, height)`.
     ///
     /// The whole image, composited with the current [#globalAlpha(double)] and
     /// the current transform. This is how a subtree rendered into its own image
     /// gets back onto the frame (ADR-0071).
+    ///
+    /// **The size is not optional and this is the reason there are two blits.**
+    /// A layer's raster is allocated in *physical* pixels while this context is
+    /// in *logical* ones, so [#blit] -- which draws one raster pixel per logical
+    /// unit -- is right only where the two coincide. They coincide at 1x, which
+    /// is why nothing noticed until a 2x display drew every faded subtree at
+    /// twice its size ([ADR-0157](../../../../../../../book/src/adr/0157-a-layer-is-blitted-into-its-own-size.md)).
+    ///
+    /// @throws IllegalArgumentException if the origin is not drawable, or the
+    ///         size is not positive
+    public void blitScaled(double x, double y, double width, double height, BlendImage layer) {
+        requireUsable();
+        Objects.requireNonNull(layer, "layer");
+        requireDrawableOrigin(x, y);
+        if (!(width > 0) || !(height > 0)) {
+            throw new IllegalArgumentException(
+                    "a layer is blitted into a positive rectangle, and " + width + "x" + height
+                            + " is not one");
+        }
+        rect.set(ValueLayout.JAVA_DOUBLE, RECT_X, x);
+        rect.set(ValueLayout.JAVA_DOUBLE, RECT_Y, y);
+        rect.set(ValueLayout.JAVA_DOUBLE, RECT_W, width);
+        rect.set(ValueLayout.JAVA_DOUBLE, RECT_H, height);
+        blend2d.contextBlitScaledImage(context, rect, layer.pointer());
+    }
+
+    /// Draws `layer` with its top-left corner at logical `(x, y)`, one image
+    /// pixel per logical unit.
+    ///
+    /// Correct only where the image was rasterized at the context's own scale.
+    /// [#blitScaled] is what a [io.github.digitalsmile.goldberry.natives.blend2d.BlendImage]
+    /// holding a *physical* raster wants.
     ///
     /// @throws IllegalArgumentException if the origin is not drawable
     public void blit(double x, double y, BlendImage layer) {

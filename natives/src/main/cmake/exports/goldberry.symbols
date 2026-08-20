@@ -200,6 +200,15 @@ bl_context_stroke_path_d_rgba32
 # `img_area` is passed as NULL, which Blend2D reads as the whole image, so no
 # BLRectI crosses and no layout row is needed for one.
 bl_context_blit_image_d
+#
+# And the scaled form, which is what a layer actually needs. A layer's raster is
+# allocated in PHYSICAL pixels while the context it is composited onto is in
+# LOGICAL ones, so blitting at an origin draws the raster one raster-pixel per
+# logical unit -- correct at 1x by coincidence and twice the size at 2x, which is
+# how every disabled control on a Mac came out enormous. The destination rect
+# says how big the raster is in the context's own units, so the two spaces are
+# reconciled once, here (ADR-0157).
+bl_context_blit_scaled_image_d
 bl_context_set_global_alpha
 
 # Damage-driven painting (sec. 5, ADR-0072). Clipping the rasterizer to the

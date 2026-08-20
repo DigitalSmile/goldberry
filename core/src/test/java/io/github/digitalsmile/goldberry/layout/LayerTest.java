@@ -84,6 +84,72 @@ class LayerTest {
     }
 
     @Nested
+    @DisplayName("on a display that is not 1:1")
+    class Scaled {
+
+        /// A 60x60 logical square, faded so that it is promoted to a layer, in
+        /// the top-left of a 200x200 logical frame rasterized at 2x.
+        private static Box fadedSquare() {
+            return Box.filled(BACKDROP)
+                    .size(StyleLength.points(200), StyleLength.points(200))
+                    .children(Box.of()
+                            .opacity(0.5)
+                            .children(square(RED, 60)));
+        }
+
+        @Test
+        @DisplayName("a promoted subtree is composited at its own size, not the scale's square")
+        void layerIsBlittedOneToOne() {
+            // The bug this pins, reported from a 2x Mac: every disabled control
+            // -- the only widgets with an opacity, so the only ones promoted --
+            // came out twice as big.
+            //
+            // A layer is allocated in PHYSICAL pixels (60 logical at 2x is a
+            // 120x120 raster, which is the point: a layer is a raster and
+            // rasterizing it at logical size would throw the display's detail
+            // away). The frame it is composited onto is in LOGICAL coordinates,
+            // because its Blend2D context carries the scale. So blitting the
+            // raster at a logical origin draws 120 raster pixels across 120
+            // *logical* units -- 240 physical -- and the subtree is twice the
+            // size it laid out at.
+            //
+            // At 1x the two spaces coincide and nothing is visibly wrong, which
+            // is why every test and every Linux run missed it.
+            var scaled = TestFrames.of(400, 400, 2.0f, 0);
+            BoxPainter.paint(scaled.frame(), fadedSquare());
+            scaled.end();
+
+            // Physical coordinates. The square is 60 logical wide, so it ends at
+            // physical 120 and physical 180 is well past it.
+            var insideTheSquare = scaled.pixel(60, 60);
+            var pastIt = scaled.pixel(180, 180);
+
+            assertNotEquals(BACKDROP, insideTheSquare,
+                    "the faded square should cover physical (60, 60)");
+            assertEquals(BACKDROP, pastIt,
+                    () -> "the layer was composited at twice its size: physical (180, 180)"
+                            + " is 90 logical, well outside a 60-point square, and holds #"
+                            + Integer.toHexString(pastIt));
+        }
+
+        @Test
+        @DisplayName("and the same is true of a fractional scale")
+        void fractionalScale() {
+            // 1.5x rounds the raster up to 90x90 for a 60-point square, so the
+            // blit cannot be a whole number of logical units either way -- which
+            // is what makes this the case a "just divide by two" fix gets wrong.
+            var scaled = TestFrames.of(300, 300, 1.5f, 0);
+            BoxPainter.paint(scaled.frame(), fadedSquare());
+            scaled.end();
+
+            assertNotEquals(BACKDROP, scaled.pixel(45, 45),
+                    "the faded square should cover physical (45, 45)");
+            assertEquals(BACKDROP, scaled.pixel(120, 120),
+                    "physical (120, 120) is 80 logical, outside a 60-point square");
+        }
+    }
+
+    @Nested
     @DisplayName("group opacity")
     class GroupOpacity {
 

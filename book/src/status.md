@@ -2276,6 +2276,24 @@ is the `scroll` box's.
   ([ADR-0156](adr/0156-the-image-s-metadata-is-traced-not-written.md),
   [the native-image page](native.md))
 
+- **A layer is blitted into its own size, and every disabled control on a Mac
+  stopped being twice as big.** Reported from a 2x display. `opacity` is the only
+  thing the stylesheets set on a disabled control (ADR-0077) and `opacity` is what
+  promotes a subtree to a layer, so "disabled controls are huge" was "promoted
+  subtrees are huge". A layer's raster is allocated in **physical** pixels — a
+  raster kept at logical size on a HiDPI screen throws the detail away — while the
+  frame it composites onto is in **logical** ones, and `bl_context_blit_image_d`
+  draws one image pixel per context unit. At 1x the two spaces coincide and the
+  arithmetic is right by accident; at 2x a 60-point square is a 120x120 raster
+  drawn across 120 logical units. The composite now states its destination
+  rectangle, derived from the raster rather than from the laid-out bounds so that a
+  fractional scale's rounded-up raster still lands one-for-one on the device.
+  **Every golden passed unchanged**, which is what says this is a fix and not a
+  rendering change. The lasting part is `LayerTest`'s new `Scaled` nest at 2x and
+  1.5x — and the gap it exposes, which is not closed: almost every pixel assertion
+  in this repository is at 1x, where this whole class of bug is invisible
+  ([ADR-0157](adr/0157-a-layer-is-blitted-into-its-own-size.md))
+
 ### Not started
 
 `menubar`, tray, dialogs, forms, client-side decorations and charts. The rest of §5 — `card`, `group-box`, `split-pane`, `collapse`,

@@ -221,6 +221,19 @@ public final class Frame {
             return;
         }
         var size = layer.size();
+        // The raster is in PHYSICAL pixels and this context is in LOGICAL ones,
+        // so the blit has to say how big the raster is in the context's units or
+        // it is drawn one raster pixel per logical unit -- which is right at 1x
+        // and twice the size at 2x
+        // ([ADR-0157](../../../../../book/src/adr/0157-a-layer-is-blitted-into-its-own-size.md)).
+        //
+        // Derived from the raster rather than from the bounds the caller laid
+        // out: `Layer.of` rounds the physical size *up*, so at a fractional scale
+        // the raster is a fraction of a pixel larger than the box, and dividing
+        // it back is what maps it one-for-one onto the device. Asking the caller
+        // for the logical size instead would squash it by that fraction and
+        // leave a seam.
+        var factor = scale.factor();
         // A view over the layer's pixels, made and dropped here. An image is a
         // view and views are cheap; holding one across frames would mean holding
         // a native handle to a buffer whose lifetime is the layer's, not this
@@ -233,7 +246,7 @@ public final class Frame {
                 context.globalAlpha(alpha);
             }
             try {
-                context.blit(x, y, image);
+                context.blitScaled(x, y, size.width() / factor, size.height() / factor, image);
             } finally {
                 if (faded) {
                     // Context state, so it must go back: the next thing drawn on
