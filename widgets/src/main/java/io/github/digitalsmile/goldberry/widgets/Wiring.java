@@ -55,7 +55,10 @@ public record Wiring(ActionRegistry actions, Icons icons, BindingRegistry bindin
     /// classes.
     ///
     /// @throws IllegalStateException if two models claim one name
-    /// @throws IllegalStateException if any model was not woven
+    /// @throws IllegalStateException if any of them is annotated neither
+    ///         `@Model` nor `@Actions`, or is annotated and cannot be bound —
+    ///         an unwoven model is bound at run time rather than refused
+    ///         ([ADR-0155](../../../../../../book/src/adr/0155-a-jar-binds-at-run-time-an-image-is-woven.md))
     public static Wiring of(Icons icons, Object... models) {
         Objects.requireNonNull(icons, "icons");
         var bindings = BindingRegistry.strict();

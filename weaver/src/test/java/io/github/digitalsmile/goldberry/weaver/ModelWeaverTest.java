@@ -704,17 +704,20 @@ class ModelWeaverTest {
     class FrontDoor {
 
         @Test
-        @DisplayName("says which build step did not run")
-        void unwovenIsExplained() {
+        @DisplayName("an unwoven model is bound at run time rather than refused")
+        void unwovenIsBoundAnyway() {
             // The raw class, straight off the test classpath -- annotated and
-            // never woven, which is exactly what a misconfigured build produces.
+            // never woven, which since ADR-0155 is what an ordinary jar contains
+            // rather than what a misconfigured build produces. It used to be an
+            // IllegalStateException naming the missing build step.
             var raw = new Counter();
 
             assertFalse(Models.isWoven(raw));
-            var message = assertThrows(IllegalStateException.class, () -> Models.bindings(raw))
-                    .getMessage();
-            assertTrue(message.contains("was not woven"), message);
-            assertTrue(message.contains("goldberry.weave"), message);
+            assertEquals(0, Models.bindings(raw).resolve("app.clicks").get());
+            assertNotNull(Models.actions(raw).resolve("app.click"));
+
+            // And what the two forms agree on is RuntimeAgreesWithWovenTest's
+            // whole subject; this only says the front door opens.
         }
 
         @Test

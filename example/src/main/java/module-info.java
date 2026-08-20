@@ -21,6 +21,13 @@ module io.github.digitalsmile.goldberry.example {
     /// Qualified rather than a bare `opens`, because the toolkit is the only
     /// thing that needs to read these and an unqualified open would hand the
     /// package's private types to every module on the path as well.
+    ///
+    /// It is also what lets this module's `@Model` and `@Actions` classes be bound
+    /// **at run time**, which is what an ordinary jar does: the reflective binder
+    /// needs private access to the fields, and JPMS is what grants it. A woven
+    /// module needs neither -- the weaver works from inside the class -- so this
+    /// line is the cost of not having to run a build step
+    /// ([ADR-0155](../../../../../book/src/adr/0155-a-jar-binds-at-run-time-an-image-is-woven.md)).
     opens io.github.digitalsmile.goldberry.example to io.github.digitalsmile.goldberry.core;
 
     /// And the same for the panes' documents — one `opens` per package that

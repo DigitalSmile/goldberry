@@ -1,7 +1,14 @@
 # Model weaving
 
-A Goldberry model is plain Java. You write fields; the build makes assignments to
-them observable.
+A Goldberry model is plain Java. You write fields; the toolkit makes assignments
+to them observable.
+
+**You do not have to run the weaver.** A plain jar binds a model reflectively and
+needs no build step at all; weaving is what a **GraalVM native image** is built
+from ([ADR-0155](adr/0155-a-jar-binds-at-run-time-an-image-is-woven.md)). The
+short version is [below](#you-probably-do-not-need-to-run-any-of-this); this page
+starts with what the weaver does, because that is the form everything else is
+described against.
 
 ```java
 @Model
@@ -60,7 +67,10 @@ its output, using the JDK 25 class-file API (JEP 484). For the class above,
 
 1. `implements BoundModel`, and a lazily created `FieldListeners`;
 2. a synthesised `goldberry$set$gain(int)` — compare, store, notify;
-3. every `putfield gain` **inside that class** rewritten into a call to it;
+3. every `putfield gain` rewritten into a call to it — in that class and in any
+   other class in the same build that assigns to it, which is what lets an
+   `@Actions` class beside the model change its values
+   ([ADR-0134](adr/0134-a-write-is-rewritten-wherever-it-is.md));
 4. `bindings()` and `actions()`, built from the annotations, the second as one
    `invokedynamic` per action bootstrapped by `LambdaMetafactory`.
 
@@ -73,7 +83,7 @@ module.
 Step 3 is a one-for-one instruction swap: `putfield` pops *objectref, value*, and
 so does an instance call taking one argument.
 
-### Why it has to be a build step
+### Why it has to be a build step to see the write
 
 A field write cannot be intercepted any other way. `getfield` and `putfield` are
 not virtual, so no subclass and no proxy can see one — **the class that declares
@@ -81,6 +91,69 @@ the field is the only place the write can be observed.** Doing that to the
 compiled class in the build is the one option that needs no `-javaagent`, no
 `opens`, and nothing generated at runtime, which is also what lets the result go
 into a GraalVM native image ([ADR-0127](adr/0127-the-binding-schema-fits-a-closed-world.md)).
+
+## You probably do not need to run any of this
+
+**Model weaving is for a native image.** An ordinary jar binds the same
+annotations at run time and needs no build step at all
+([ADR-0155](adr/0155-a-jar-binds-at-run-time-an-image-is-woven.md)):
+
+| | Woven | Bound at run time |
+|---|---|---|
+| Who | a GraalVM native image | everything else — `gradle run`, `mvn exec:java`, an IDE, `java -jar` |
+| Build step | the weaver, over the compiled classes | none |
+| A change notifies | inside the assignment that made it | at the next **sweep** |
+| Needs | nothing | the model's package open to the toolkit, in a named module |
+| `Models.isWoven` | `true` | `false` |
+
+Everything else is identical. The same `Models.bindings`, the same
+`Models.actions`, the same paths, the same values, the same refusals — and
+`RuntimeAgreesWithWovenTest` drives one model class both ways through the same
+actions to keep it that way.
+
+### The sweep, and the one line it sometimes costs
+
+Reading is exact either way: an `Observable` over a woven field and one over a
+`VarHandle` both see the field itself. What the reflective form cannot do is see
+the *write*, so it compares each field against what it last held and notifies
+what moved. That sweep runs
+
+- after every action a document dispatches — across **every** model, because an
+  `@Actions` record writes to the model beside it;
+- at the top of every frame, over the models `Application.models()` named;
+- wherever you call `Models.refresh(model)`.
+
+Which leaves one case: a field written from neither an action nor anything that
+leads to a frame.
+
+```java
+job.onFinished(text -> {
+    model.status = text;
+    Models.refresh(model);   // a no-op, returning false, once this is woven
+});
+```
+
+### A model in a named module opens its package
+
+The reflective form needs private access, and JPMS is what grants it:
+
+```java
+opens com.example.app to io.github.digitalsmile.goldberry.core;
+```
+
+A classpath application needs nothing — the unnamed module is open. The refusal
+names the package and that exact line if you forget. The woven form needs neither,
+which is one more reason an image is the cheaper artifact.
+
+### Turning weaving on
+
+```
+./gradlew build -Pgoldberry.nativeImage=true    # the whole build, woven
+./gradlew :example:weaveModels                  # one module, to look at
+```
+
+The **catalog** half of the weaver is not optional and is not affected by any of
+this — see below.
 
 ### What it never touches
 
@@ -90,6 +163,25 @@ left alone: `getfield` is already the fastest thing that could happen. And
 weaving is idempotent, so running it twice over the same tree writes nothing the
 second time.
 
+## The two halves
+
+The weaver does two unrelated jobs to the same tree, and a build asks for them
+separately:
+
+| Flag | Does | Needed by |
+|---|---|---|
+| `--models` | rewires `@Bind` fields, writes the `@Action` call sites | a **native image** only |
+| `--catalog` | writes the module's `WidgetCatalog` from its `@Markup` widgets, patches `provides` into `module-info.class`, writes `META-INF/services` | **every** build |
+
+Neither flag means both, which is what every pre-ADR-0155 integration already
+wrote.
+
+The catalog half has no runtime equivalent and never will: finding annotated
+classes while the program runs means scanning the path, which is the thing a
+`provides` exists to avoid ([ADR-0131](adr/0131-a-widget-package-announces-itself.md)).
+So a module that ships widgets runs the weaver whatever it is building; a module
+that only keeps a model runs it only for an image.
+
 ## Adding it to a project
 
 The weaver is one jar with **no dependencies beyond the JDK**, and a `main` that
@@ -98,7 +190,8 @@ calling that.
 
 ### Gradle
 
-Apply the plugin to any module that keeps a model:
+Apply the plugin to any module that ships `@Markup` widgets, or that you want to
+be able to weave for an image:
 
 ```groovy
 plugins {
@@ -106,8 +199,10 @@ plugins {
 }
 ```
 
-It hangs a `JavaExec` off `classes` and `testClasses`, so `jar`, `run`, and every
-`Test` task reach through it — there is no way to consume unwoven output.
+It registers four `JavaExec`s — `weaveCatalog` and `weaveModels`, each for the
+main and test source sets. The catalog pair hangs off `classes` and `testClasses`
+so `jar`, `run` and every `Test` task reach through it; the model pair joins them
+only under `-Pgoldberry.nativeImage=true`.
 
 In a build that consumes Goldberry from a repository rather than from this
 source tree, the equivalent is:
@@ -133,7 +228,8 @@ tasks.named('classes') { dependsOn weave }
 
 There is **no first-class Maven plugin.** `exec-maven-plugin` runs the weaver as
 it stands, bound to `process-classes`, which is the phase that exists for exactly
-this:
+this. Add `<argument>--catalog</argument>` (or `--models`) before the directory to
+run one half; with neither it runs both:
 
 ```xml
 <plugin>
@@ -194,21 +290,20 @@ the member when it refuses a model.
 
 ## If you forget
 
-The failure is loud and says which step is missing:
+Nothing. A model that is annotated and not woven is bound at run time, which is
+the ordinary case — that is ADR-0155. All five annotations are `RUNTIME`-retained
+so that the reflective binder can read them.
 
-```
-java.lang.IllegalStateException: Settings is annotated @Model or @Actions but was
-not woven: its members are still ordinary ones and nothing would ever be notified.
-The `goldberry.weave` build step has to run on the module that compiles it.
-```
-
-That is the whole reason `@Model` and `@Actions` keep `RUNTIME` retention when
-`@Bind` and `@Action` do not.
+The one thing you can forget is the `opens` line, in a named module, and the
+refusal quotes it back at you.
 
 ## What it refuses, and why
 
-Each of these is a build failure naming the member, because a binding that fails
-at runtime is a control that renders perfectly and never moves.
+Each of these is a failure naming the member — at build time when the weaver runs,
+and on the first `Models` call when it did not — because a binding that fails
+silently is a control that renders perfectly and never moves. **Both forms refuse
+the same list**, which is the point: a model that builds as an image builds as a
+jar.
 
 | Refused | Because |
 |---|---|
@@ -231,10 +326,15 @@ at runtime is a control that renders perfectly and never moves.
 
 ## Known limits
 
-**A field assigned from a different class is not observed.** A nested class
-writing to its outer's `@Bind` field compiles to a `putfield` in *that* class,
-which the transform never sees, and the failure is silent. Lambdas are fine —
-javac compiles them into synthetic methods of the same class.
+**Notification is deferred when nothing wove the class.** The sweep points above
+cover every path a document takes; a write outside all of them waits for
+`Models.refresh`. Woven, there is no deferral at all.
+
+**The order a registry lists its names in differs between the two forms.** The
+weaver publishes in class-file order; reflection cannot recover that —
+`getDeclaredFields` and `getDeclaredMethods` promise no order — so the reflective
+form sorts by member name. It shows up only in the `Bound: ...` list a strict
+registry prints when it refuses a name.
 
 **Reading through a binding boxes a primitive.** `Models.observable(model,
 "app.gain").get()` on an `int` field allocates, where the old `Property<Integer>`

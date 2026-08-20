@@ -45,7 +45,15 @@ import java.lang.annotation.Target;
 /// access question to answer: no `opens`, no `setAccessible`, no handle lookup.
 /// A model's fields should be private, and the toolkit has no opinion about it
 /// because it never needs one (ADR-0125, superseding ADR-0098).
-@Retention(RetentionPolicy.CLASS)
+///
+/// ## Kept at run time, because an ordinary jar reads it there
+///
+/// `RUNTIME` rather than `CLASS`, since [ADR-0155]: the weaver is what a **native
+/// image** is built from, and a plain jar binds the same field reflectively from
+/// this annotation instead. The weaver reads it either way — it parses the class
+/// file, where a visible annotation and an invisible one differ only in which
+/// attribute they sit in.
+@Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.FIELD)
 public @interface Bind {
 

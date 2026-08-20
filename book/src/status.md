@@ -2204,6 +2204,56 @@ height to claim, and one screen carried it where it was load-bearing. A dead
 declaration sitting next to a live one is how it stops looking dead. The growth
 is the `scroll` box's.
 
+- **A jar binds at run time; an image is woven.** ADR-0125's weaving was
+  *mandatory*: every module keeping a model applied `goldberry.weave`, and `Models`
+  threw at the first sight of an unwoven class. The weaving was cheap and the
+  mandatory was not — a consumer had to install a class post-processor before the
+  first field notified, Maven had no Mojo to install it with, and an IDE's green Run
+  button did not run it at all. So the weaver became what it is actually for: the
+  **native image** path. An ordinary jar reads the same annotations reflectively —
+  a `VarHandle` per `@Bind` field, a `MethodHandle` per `@Action` — and `Models`
+  picks between the two forms, which answer identically. The one thing reflection
+  cannot do is see the write, so a **sweep** compares each field against what it
+  last held: after every action a document dispatches (across every model, because
+  an `@Actions` record writes to the model beside it), at the top of every frame
+  over the models `Application.models()` named, and wherever `Models.refresh` is
+  called. The showcase needed exactly one of those calls — a background job's
+  continuation — and it is the one visible cost. `RuntimeAgreesWithWovenTest` is
+  what keeps the arrangement honest: the same model class raw and woven, driven
+  through the same actions, asserted to publish the same paths, names, values,
+  notifications and frame requests. **The catalog half did not move**: `@Markup`
+  widgets have no runtime equivalent — finding them means scanning the path, which
+  is what a `provides` exists to avoid — so `WeaverMain` grew `--models` and
+  `--catalog`, and the catalog stays hung off `classes` for every build while the
+  models wait for `-Pgoldberry.nativeImage=true`. The costs are written down rather
+  than discovered: a model in a named module has to `opens` its package to the
+  toolkit, the registry listing order differs between the two forms because
+  `getDeclaredMethods` promises none, and an image now carries annotation metadata
+  it does not read. **And measured rather than asserted**: `BindingSchemeBenchmark`
+  runs both forms of one model class in one JVM, and a press one widget is
+  watching costs 15 ns woven against 45 ns reflective, a read 1.3 ns against 10 ns,
+  and a document reload the same either way (570 ns against 630 ns). The sweep
+  scales at 14 ns per attached model and 9 ns per bound field per press — so ten
+  models cost a button 140 ns against a 16 ms frame, and the slope is the thing to
+  watch rather than the base.
+
+  **Generating the binding at run time was priced and rejected, and the pricing
+  paid for itself.** `BindingCodegenBenchmark` builds the option for real — a
+  hidden class defined as a nestmate of the model, reading its private fields with
+  a plain `getfield` — and it does the sweep's read-and-compare in 0.60 ns against
+  the boxed reflective 15.7. But asking the *same* `VarHandle` for an `int` and
+  comparing two `long`s gets 5.2 ns with no new mechanism, which said most of the
+  measured cost was this implementation's own plumbing rather than reflection. It
+  was: replacing the boxed comparison with one small class per primitive kind, the
+  `List` walks with arrays, and a `List.copyOf` per action dispatch with a snapshot
+  rebuilt on change took a press from 107 ns to 45 and a read from 32 ns to 10 —
+  **no new mechanism, no new semantics, and not one test changed**. What codegen
+  would still buy is ~4 ns a field, against making `java.lang.classfile` and
+  `defineHiddenClass` reachable from the module every image is built from — and
+  against the fact that it would make the sweep fast without making it
+  unnecessary, which the weaver already does, one flag away
+  ([ADR-0155](adr/0155-a-jar-binds-at-run-time-an-image-is-woven.md))
+
 ### Not started
 
 `menubar`, tray, dialogs, forms, client-side decorations and charts. The rest of §5 — `card`, `group-box`, `split-pane`, `collapse`,
@@ -2229,7 +2279,7 @@ built. Everything outstanding is in [TODO.md](TODO.md).
 | `:natives` | `goldberry-natives-{platform}-{arch}` | Hand-written FFM bindings, owning wrappers, and the CMake superbuild that produces `libgoldberry` |
 | `:core` | `goldberry-core` | The engines and the contracts — the widget/element/render trees, style, layout, text, icons, paint, the backend SPI, and the two backends `headless` and `sdl3` ([ADR-0041](adr/0041-three-platforms-four-artifacts-two-backends.md)). **No widgets**: `text`, `row`, `column`, `panel` and `spacer` lived here until they had a catalog to belong to ([ADR-0092](adr/0092-a-primitive-is-a-widget-like-any-other.md)) |
 | `:widgets` | `goldberry-widgets` | The widget catalog — controls, containers, menus, charts — plus the showcase screens that serve as the visual regression corpus. **One module, a package per control** — `docs/core-widgets.md`'s groups (`…widgets.controls` and `…widgets.overlay`, with `form`/`panel`/`nav`/`collection` as they are built) and one package inside each for every widget and its parts. Half a reversal of ADR-0014, and the second level is what makes ADR-0065's rule a boundary the compiler enforces rather than a convention: a `slider-thumb` is now invisible outside `…controls.slider`, where before "package-private" meant "visible to the whole catalog" ([ADR-0091](adr/0091-one-module-a-package-per-control.md)) |
-| `:weaver` | *not published* | The model weaver: rewires a `@Model`'s `@Bind` fields into bindings and writes its `@Action` call sites, in the compiled class, with the JDK's class-file API. Build-time only, like `:assets` — it runs between `compileJava` and `jar`, never reaches a runtime classpath and has no `module-info` ([ADR-0125](adr/0125-a-raw-field-is-woven-into-a-binding.md), [ADR-0126](adr/0126-actions-are-bound-by-lambdametafactory.md)) |
+| `:weaver` | *not published* | The weaver, in two halves. **Catalog**: collects a module's `@Markup` widgets into a `WidgetCatalog` and declares it — every build runs this, because nothing finds annotated classes at run time ([ADR-0131](adr/0131-a-widget-package-announces-itself.md)). **Models**: rewires a `@Model`'s `@Bind` fields into bindings and writes its `@Action` call sites, with the JDK's class-file API — only a **GraalVM native image** runs this, since an ordinary jar binds the same annotations reflectively ([ADR-0155](adr/0155-a-jar-binds-at-run-time-an-image-is-woven.md)). Build-time only, like `:assets`: it runs between `compileJava` and `jar`, never reaches a runtime classpath and has no `module-info` ([ADR-0125](adr/0125-a-raw-field-is-woven-into-a-binding.md), [ADR-0126](adr/0126-actions-are-bound-by-lambdametafactory.md)) |
 | `:gpu` | `goldberry-gpu` | `canvas3d` and the GPU composition path |
 
 `:assets` is a fifth subproject and is not published: it is the build-time

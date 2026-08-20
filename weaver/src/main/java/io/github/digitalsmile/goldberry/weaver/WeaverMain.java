@@ -7,38 +7,82 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 
-/// Weaves every `@Model` in a directory of compiled classes, in place.
+/// Weaves a directory of compiled classes, in place.
 ///
-/// What the `goldberry.weave` Gradle task runs, between `compileJava` and `jar`.
+/// What the `goldberry.weave` Gradle tasks run, between `compileJava` and `jar`.
 /// A plain `main` rather than a Gradle plugin class, so the weaver is a program
 /// with an argument and an exit code — runnable from any build, from a script,
 /// and from a terminal when somebody wants to see what it did to one class.
 ///
 /// ```
-/// java -cp goldberry-weaver.jar io.github.digitalsmile.goldberry.weaver.WeaverMain build/classes/java/main
+/// java -jar goldberry-weaver.jar build/classes/java/main
+/// java -jar goldberry-weaver.jar --catalog build/classes/java/main
+/// java -jar goldberry-weaver.jar --models  build/classes/java/main
 /// ```
+///
+/// ## Two halves, and they are wanted at different times
+///
+/// The weaver does two unrelated jobs to the same tree, and since
+/// [ADR-0155](../../../../book/src/adr/0155-a-jar-binds-at-run-time-an-image-is-woven.md)
+/// a build asks for them separately:
+///
+/// - `--models` rewires `@Bind` fields and writes the `@Action` call sites. Only
+///   a **native image** needs it: an ordinary jar binds the same annotations at
+///   run time, so running this over a jar buys speed and costs a build step
+///   (ADR-0125, ADR-0127).
+/// - `--catalog` writes the module's `WidgetCatalog` from its `@Markup` widgets
+///   and declares it. **Every** build needs it, image or not: there is no runtime
+///   equivalent — finding annotated classes at run time would mean scanning the
+///   path, which is the thing a `provides` exists to avoid (ADR-0131).
+///
+/// Neither flag means both, which is what a build that wants the lot writes and
+/// what every pre-0155 integration already wrote.
 ///
 /// ## It rewrites in place, and says what it touched
 ///
-/// A class that is not a `@Model` is not rewritten at all — not re-serialised,
-/// not touched — so the task is incremental in the only way that matters and a
-/// build that changes nothing changes no timestamps.
+/// A class the requested halves have nothing to do to is not rewritten at all —
+/// not re-serialised, not touched — so the task is incremental in the only way
+/// that matters and a build that changes nothing changes no timestamps.
 public final class WeaverMain {
 
     private WeaverMain() {
     }
 
-    /// @param args one or more directories of compiled classes
+    /// @param args `--models`, `--catalog`, or neither, then one or more
+    ///        directories of compiled classes
     public static void main(String[] args) {
-        if (args.length == 0) {
-            System.err.println("usage: WeaverMain <classes-dir>...");
+        var models = false;
+        var catalog = false;
+        var roots = new ArrayList<String>();
+        for (var argument : args) {
+            switch (argument) {
+                case "--models" -> models = true;
+                case "--catalog" -> catalog = true;
+                default -> {
+                    if (argument.startsWith("--")) {
+                        System.err.println("goldberry: unknown option " + argument);
+                        System.exit(2);
+                        return;
+                    }
+                    roots.add(argument);
+                }
+            }
+        }
+        if (roots.isEmpty()) {
+            System.err.println("usage: WeaverMain [--models] [--catalog] <classes-dir>...");
             System.exit(2);
             return;
         }
+        // Neither named is both named: the flags narrow, and a build that says
+        // nothing gets what the weaver always did.
+        if (!models && !catalog) {
+            models = true;
+            catalog = true;
+        }
         var woven = new ArrayList<String>();
         try {
-            for (var argument : args) {
-                weaveTree(Path.of(argument), woven);
+            for (var argument : roots) {
+                weaveTree(Path.of(argument), woven, models, catalog);
             }
         } catch (WeaveException e) {
             // The message names the member and says what is wrong with it. A
@@ -63,6 +107,19 @@ public final class WeaverMain {
     ///
     /// @throws WeaveException if any `@Model` below it is one the toolkit refuses
     public static void weaveTree(Path root, List<String> woven) throws IOException {
+        weaveTree(root, woven, true, true);
+    }
+
+    /// The same, doing only the halves asked for.
+    ///
+    /// @param models whether to rewire `@Bind` fields and write `@Action` call
+    ///        sites — what a native image needs and a jar does not (ADR-0155)
+    /// @param catalog whether to write the module's `WidgetCatalog` — what every
+    ///        build needs, because nothing finds `@Markup` widgets at run time
+    /// @throws WeaveException if any `@Model` below it is one the toolkit refuses
+    public static void weaveTree(Path root, List<String> woven, boolean models, boolean catalog)
+            throws IOException {
+
         if (!Files.isDirectory(root)) {
             return;
         }
@@ -70,7 +127,7 @@ public final class WeaverMain {
         try (var tree = Files.walk(root)) {
             classes = tree.filter(p -> p.toString().endsWith(".class")).toList();
         }
-        var models = new java.util.LinkedHashMap<String, ModelWeaver.Rewired>();
+        var rewired = new java.util.LinkedHashMap<String, ModelWeaver.Rewired>();
         var widgets = new java.util.LinkedHashMap<String, java.lang.constant.ClassDesc>();
         java.nio.file.Path descriptor = null;
         for (var file : classes) {
@@ -79,12 +136,12 @@ public final class WeaverMain {
                 descriptor = file;
                 continue;
             }
-            var rewired = ModelWeaver.rewired(bytes);
-            if (rewired != null) {
-                models.put(rewired.owner().descriptorString()
-                        .substring(1, rewired.owner().descriptorString().length() - 1), rewired);
+            var model = models ? ModelWeaver.rewired(bytes) : null;
+            if (model != null) {
+                rewired.put(model.owner().descriptorString()
+                        .substring(1, model.owner().descriptorString().length() - 1), model);
             }
-            var node = CatalogWeaver.markupName(bytes);
+            var node = catalog ? CatalogWeaver.markupName(bytes) : null;
             if (node != null) {
                 var widget = java.lang.classfile.ClassFile.of().parse(bytes).thisClass().asSymbol();
                 var clash = widgets.put(node, widget);
@@ -99,19 +156,24 @@ public final class WeaverMain {
         // setters -- and only theirs -- have to open up to the package. A model
         // whose actions are a nested class keeps everything private (ADR-0137).
         var open = new java.util.HashSet<String>();
-        for (var file : classes) {
-            var bytes = Files.readAllBytes(file);
-            var host = ModelWeaver.nestHost(bytes);
-            for (var written : ModelWeaver.modelsWrittenBy(bytes, models)) {
-                if (!ModelWeaver.nestHost(Files.readAllBytes(fileOf(root, written))).equals(host)) {
-                    open.add(written);
+        if (models) {
+            for (var file : classes) {
+                var bytes = Files.readAllBytes(file);
+                var host = ModelWeaver.nestHost(bytes);
+                for (var written : ModelWeaver.modelsWrittenBy(bytes, rewired)) {
+                    if (!ModelWeaver.nestHost(Files.readAllBytes(fileOf(root, written)))
+                            .equals(host)) {
+                        open.add(written);
+                    }
                 }
             }
+            for (var file : classes) {
+                weaveFile(file, rewired, open, woven);
+            }
         }
-        for (var file : classes) {
-            weaveFile(file, models, open, woven);
+        if (catalog) {
+            writeCatalog(root, descriptor, widgets, woven);
         }
-        writeCatalog(root, descriptor, widgets, woven);
     }
 
     /// Writes the module's [WidgetCatalog] and declares it.

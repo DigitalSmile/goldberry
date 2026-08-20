@@ -334,11 +334,7 @@ public final class ModelWeaver {
 
     /// Whether the class carries `marker`.
     private static boolean marked(ClassModel model, ClassDesc marker) {
-        return model.findAttribute(Attributes0.VISIBLE)
-                .map(RuntimeVisibleAnnotationsAttribute::annotations)
-                .orElse(List.of())
-                .stream()
-                .anyMatch(a -> a.classSymbol().equals(marker));
+        return annotationsOn(model).stream().anyMatch(a -> a.classSymbol().equals(marker));
     }
 
     /// Whether the class is one the weaver has anything to do to.
@@ -351,11 +347,37 @@ public final class ModelWeaver {
         return marked(model, CD_MODEL) || marked(model, CD_ACTIONS_MARKER);
     }
 
+    /// Every annotation on `member`, whichever attribute it was written into.
+    ///
+    /// Both, because retention is not this weaver's business. `@Bind` and
+    /// `@Action` became `RUNTIME`-retained when an unwoven jar started reading
+    /// them reflectively (ADR-0155), and a weaver that looked only in
+    /// `RuntimeInvisibleAnnotations` would silently have stopped seeing them —
+    /// which presents as a model that compiles, weaves nothing, and publishes an
+    /// empty registry.
+    static List<java.lang.classfile.Annotation> annotationsOn(
+            java.lang.classfile.AttributedElement member) {
+
+        var visible = member.findAttribute(Attributes0.VISIBLE)
+                .map(RuntimeVisibleAnnotationsAttribute::annotations).orElse(List.of());
+        var invisible = member.findAttribute(Attributes0.INVISIBLE)
+                .map(RuntimeInvisibleAnnotationsAttribute::annotations).orElse(List.of());
+        if (invisible.isEmpty()) {
+            return visible;
+        }
+        if (visible.isEmpty()) {
+            return invisible;
+        }
+        var both = new ArrayList<java.lang.classfile.Annotation>(visible);
+        both.addAll(invisible);
+        return both;
+    }
+
     /// The `value()` of `wanted` on `member`, or null when it is not annotated.
     static String annotationValue(
-            java.util.Optional<RuntimeInvisibleAnnotationsAttribute> attribute, ClassDesc wanted) {
+            java.lang.classfile.AttributedElement member, ClassDesc wanted) {
 
-        for (var annotation : attribute.map(RuntimeInvisibleAnnotationsAttribute::annotations).orElse(List.of())) {
+        for (var annotation : annotationsOn(member)) {
             if (!annotation.classSymbol().equals(wanted)) {
                 continue;
             }
@@ -376,10 +398,10 @@ public final class ModelWeaver {
     /// in the class file at all, so "absent" and "explicitly the default" are the
     /// same thing here and the caller has to say which way that falls.
     private static boolean annotationFlag(
-            java.util.Optional<RuntimeInvisibleAnnotationsAttribute> attribute,
+            java.lang.classfile.AttributedElement carrier,
             ClassDesc wanted, String member, boolean whenAbsent) {
 
-        for (var annotation : attribute.map(RuntimeInvisibleAnnotationsAttribute::annotations).orElse(List.of())) {
+        for (var annotation : annotationsOn(carrier)) {
             if (!annotation.classSymbol().equals(wanted)) {
                 continue;
             }
@@ -397,7 +419,7 @@ public final class ModelWeaver {
         var bounds = new ArrayList<Bound>();
         var slot = 0;
         for (FieldModel field : model.fields()) {
-            var path = annotationValue(field.findAttribute(Attributes0.INVISIBLE), CD_BIND);
+            var path = annotationValue(field, CD_BIND);
             if (path == null) {
                 continue;
             }
@@ -428,10 +450,8 @@ public final class ModelWeaver {
                         + " so `values[0] = x` would notify nobody. Hold a List and assign a new"
                         + " one — a value that is edited in place is not a value.");
             }
-            var restyle = annotationFlag(
-                    field.findAttribute(Attributes0.INVISIBLE), CD_BIND, "restyle", false);
-            var repaint = annotationFlag(
-                    field.findAttribute(Attributes0.INVISIBLE), CD_BIND, "repaint", true);
+            var restyle = annotationFlag(field, CD_BIND, "restyle", false);
+            var repaint = annotationFlag(field, CD_BIND, "repaint", true);
             if (restyle && property) {
                 throw new WeaveException(where + " is a Property and asks for a restyle;"
                         + " the weaver rewires no writes to it, so it has nowhere to put the call."
@@ -449,7 +469,7 @@ public final class ModelWeaver {
     private static List<Act> collectActions(ClassModel model, String owner, Map<String, String> claimed) {
         var actions = new ArrayList<Act>();
         for (MethodModel method : model.methods()) {
-            var name = annotationValue(method.findAttribute(Attributes0.INVISIBLE), CD_ACTION);
+            var name = annotationValue(method, CD_ACTION);
             if (name == null) {
                 continue;
             }
@@ -941,10 +961,13 @@ public final class ModelWeaver {
 
     /// The two attribute mappers this needs, named once.
     ///
-    /// `@Model` is `RUNTIME`-retained so [io.github.digitalsmile.goldberry.bind.Models]
-    /// can say "annotated but not woven"; `@Bind` and `@Action` are `CLASS`-retained
-    /// because only this reads them, and a toolkit that leaves them in the image
-    /// for nobody is a toolkit that made the image bigger for nothing.
+    /// All five annotations are `RUNTIME`-retained: `@Model` and `@Actions` so
+    /// that [io.github.digitalsmile.goldberry.bind.Models] can tell an annotated
+    /// class from an ordinary one, and `@Bind` and `@Action` because a jar that
+    /// was never woven binds from them reflectively (ADR-0155). This reads the
+    /// class file, where the distinction is only which attribute an annotation
+    /// sits in -- so [#annotationsOn] looks in both and neither retention can
+    /// break it again.
     private static final class Attributes0 {
 
         private static final java.lang.classfile.AttributeMapper<RuntimeVisibleAnnotationsAttribute> VISIBLE =

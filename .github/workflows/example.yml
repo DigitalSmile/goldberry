@@ -5,6 +5,12 @@
 # that does not exist, a native library that resolves only from the build tree --
 # each of those compiles fine and fails here.
 #
+# Since ADR-0155 it is also the only place the reflective binding is exercised as
+# a real module. Binding a @Model at run time needs `opens ... to
+# io.github.digitalsmile.goldberry.core` and a read edge back from the toolkit,
+# and neither is testable from a test source set: those run in the unnamed module,
+# where everything is open to everybody and both requirements are met for free.
+#
 # And it runs the thing. A window opens under Xvfb, a frame is presented, and the
 # process exits on its own. "It compiled" is not the claim being made.
 

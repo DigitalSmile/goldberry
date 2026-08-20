@@ -30,10 +30,13 @@ rootProject.name = 'goldberry'
 // that Gradle and every IDE see it -- see ADR-0023, which supersedes ADR-0021.
 // It is not published either.
 // :weaver is a build-time tool too, and the same kind of thing :assets is: it
-// runs over compiled classes and never ships. It rewires a model's @Bind fields
-// into bindings and writes the @Action call sites, with the JDK's class-file API
-// -- at build time, so nothing is generated or reflected at run time and the
-// result survives a closed-world native image (ADR-0125, ADR-0126, ADR-0127).
+// runs over compiled classes and never ships. Two halves: it collects a module's
+// @Markup widgets into a WidgetCatalog and declares it, which every build needs
+// because nothing finds annotated classes at run time (ADR-0131); and it rewires
+// a model's @Bind fields into bindings and writes the @Action call sites, which
+// only a GraalVM native image needs -- an ordinary jar binds the same annotations
+// reflectively, so weaving a jar buys a direct field write and costs every
+// consumer a build step (ADR-0125, ADR-0126, ADR-0127, ADR-0155).
 include ':natives',
         ':core',
         ':widgets',

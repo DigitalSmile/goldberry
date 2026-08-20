@@ -14,10 +14,25 @@ import java.util.Objects;
 /// The weaver adds [BoundModel] to the compiled class, which is after javac has
 /// already decided what the author's source means — so `model.bindings()` does not
 /// compile, however true it is by the time the class runs. This is the cast that
-/// bridges the two, and the reason it is worth having a class for is the failure
-/// message: a model that was annotated and never woven is a build that silently
-/// did nothing, and the difference between finding that out here and finding it
-/// out as a slider that never moves is the whole value of the check.
+/// bridges the two.
+///
+/// ## Two ways in, and an application cannot tell which it got
+///
+/// There are two implementations of [BoundModel] and this is what picks between
+/// them ([ADR-0155](../../../../../../book/src/adr/0155-a-jar-binds-at-run-time-an-image-is-woven.md)):
+///
+/// - the model's **own class**, if the weaver rewrote it. Nothing is reflected,
+///   nothing is looked up, and a change notifies from inside the assignment that
+///   made it. This is what a GraalVM native image is built from, because a closed
+///   world can resolve it and cannot resolve the other one.
+/// - a **runtime binding** otherwise, which reads the same annotations through
+///   handles. What an ordinary jar uses, so a plain `./gradlew run` and a plain
+///   `mvn exec:java` need no build step at all.
+///
+/// Every method below answers the same for both. The one visible difference is
+/// *when* a change is noticed: the woven form notices the write, and the runtime
+/// one notices at the next sweep — after the action that did it, at the top of the
+/// next frame, or wherever [#refresh] is called.
 public final class Models {
 
     private Models() {
@@ -25,14 +40,16 @@ public final class Models {
 
     /// Every `@Bind` path on `model`, strict.
     ///
-    /// @throws IllegalStateException if `model` was not woven
+    /// @throws IllegalStateException if `model`'s class is annotated neither
+    ///         [Model] nor [Actions]
     public static BindingRegistry bindings(Object model) {
         return bound(model).bindings();
     }
 
     /// Every `@Action` name on `model`, strict.
     ///
-    /// @throws IllegalStateException if `model` was not woven
+    /// @throws IllegalStateException if `model`'s class is annotated neither
+    ///         [Model] nor [Actions]
     public static ActionRegistry actions(Object model) {
         return bound(model).actions();
     }
@@ -61,7 +78,7 @@ public final class Models {
     /// the brevity — a generic type it cannot check is exactly when it does.
     ///
     /// @throws IllegalArgumentException if the path is malformed or not bound
-    /// @throws IllegalStateException if `model` was not woven
+    /// @throws IllegalStateException if `model` publishes nothing
     @SuppressWarnings("unchecked")
     public static <T> Observable<T> observable(Object model, String path) {
         return (Observable<T>) bindings(model).resolve(path);
@@ -96,7 +113,7 @@ public final class Models {
     /// coalesces three `setState` calls (ADR-0122).
     ///
     /// @return a subscription that stops the notifications
-    /// @throws IllegalStateException if `model` was not woven
+    /// @throws IllegalStateException if `model` publishes nothing
     public static Subscription onRepaint(Object model, Runnable listener) {
         return bound(model).boundListeners().onRepaint(listener);
     }
@@ -108,38 +125,59 @@ public final class Models {
     /// ([ADR-0133](../../../../../../book/src/adr/0133-a-restyle-is-declared.md)).
     ///
     /// @return a subscription that stops the notifications
-    /// @throws IllegalStateException if `model` was not woven
+    /// @throws IllegalStateException if `model` publishes nothing
     public static Subscription onRestyle(Object model, Runnable listener) {
         return bound(model).boundListeners().onRestyle(listener);
     }
 
+    /// Notices a change made to `model` where nothing could have seen it, and
+    /// notifies whoever was watching.
+    ///
+    /// **A no-op for a woven model**, which noticed the write as it happened, and
+    /// the reason this is safe to call unconditionally: an application that calls
+    /// it is correct in a jar and pays a returned `false` in an image.
+    ///
+    /// For the runtime binding it is the sweep — every `@Bind` field compared
+    /// against what it last held, the listeners of the ones that moved notified,
+    /// a restyle asked for first and a frame asked for after. The toolkit runs it
+    /// after every action a document dispatches and at the top of every frame, so
+    /// an application needs this only for a change made from neither: a callback
+    /// off the UI thread's timer, a background job reporting in, a field written
+    /// during [io.github.digitalsmile.goldberry.Application#start].
+    ///
+    /// ```java
+    /// job.onFinished(() -> { model.status = "done"; Models.refresh(model); });
+    /// ```
+    ///
+    /// @return whether anything had in fact changed
+    /// @throws IllegalStateException if `model` publishes nothing
+    public static boolean refresh(Object model) {
+        return bound(model) instanceof RuntimeBinding runtime && runtime.refresh();
+    }
+
     /// Whether `model`'s class was woven.
     ///
-    /// For a test, and for an application that wants to degrade rather than fail
-    /// — a preview tool with an unwoven model can still inflate its document
-    /// against [BindingRegistry#none()].
+    /// The two forms answer every other method here the same way, so this is a
+    /// **diagnostic** rather than a branch to write: what it tells you is which
+    /// build produced the class, not what the class can do. A native image says
+    /// true; a plain jar says false and works (ADR-0155).
     public static boolean isWoven(Object model) {
+        Objects.requireNonNull(model, "model");
         return model instanceof BoundModel;
     }
 
-    /// `model` as the interface the weaver added, or a message explaining which
-    /// build step did not run.
+    /// `model` as the interface the weaver added, or the runtime binding that
+    /// stands in for it.
+    ///
+    /// The order matters and only one way round: a woven class *is* a
+    /// [BoundModel], and asking it directly is what keeps the fast path free of
+    /// this class entirely — no map, no handle, no reflection on a path that a
+    /// widget takes per frame.
     private static BoundModel bound(Object model) {
         Objects.requireNonNull(model, "model");
         if (model instanceof BoundModel woven) {
             return woven;
         }
-        var type = model.getClass();
-        throw new IllegalStateException(type.getName()
-                + (type.isAnnotationPresent(Model.class) || type.isAnnotationPresent(Actions.class)
-                        ? " is annotated @Model or @Actions but was not woven: its members are"
-                                + " still ordinary ones and nothing would ever be notified. The"
-                                + " `goldberry.weave` build step has to run on the module that"
-                                + " compiles it."
-                        : " is annotated neither @Model nor @Actions, so it publishes no"
-                                + " bindings or actions. Annotate the class — @Model if it holds"
-                                + " values, @Actions if it only has methods — or build the"
-                                + " registries by hand with BindingRegistry.strict() and"
-                                + " ActionRegistry.strict()."));
+        return RuntimeBinding.of(model);
     }
 }

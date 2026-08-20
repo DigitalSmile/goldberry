@@ -38,7 +38,15 @@ import java.lang.annotation.Target;
 /// A `private` method is fine, and is the expected case: the call site is written
 /// into the model's own class, where private is not a barrier. An action only the
 /// markup calls has no reason to be part of a model's API.
-@Retention(RetentionPolicy.CLASS)
+///
+/// ## Or bound by a `MethodHandle`, when nothing wove it
+///
+/// The paragraph above is what a **native image** runs, and an ordinary jar
+/// resolves the same method reflectively instead — which is why this is
+/// `RUNTIME`-retained since [ADR-0155]. A handle unreflected from a private
+/// method needs the model's package open to the toolkit; an image needs nothing
+/// at all.
+@Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.METHOD)
 public @interface Action {
 

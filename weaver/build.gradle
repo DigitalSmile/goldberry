@@ -2,13 +2,20 @@ plugins {
     id 'java'
 }
 
-description = 'Goldberry model weaver: rewires @Bind fields into bindings with the class-file API'
+description = 'Goldberry weaver: the widget catalog, and the models a native image is built from'
 
 // Not `goldberry.java-conventions`, and not published as a module of the
 // toolkit. This is a **build-time** tool like :assets: it runs over compiled
 // classes between `compileJava` and `jar`, it never reaches an application's
 // runtime classpath, and it has no module-info because it is launched as a plain
 // classpath program (ADR-0125).
+//
+// Two halves, wanted at different times (ADR-0155). `--catalog` declares a
+// module's @Markup widgets and every build needs it, because nothing finds
+// annotated classes at run time. `--models` rewires @Bind fields and writes the
+// @Action call sites, and only a GraalVM native image needs it -- an ordinary jar
+// binds the same annotations reflectively, so this is a dependency of the image
+// build rather than of the toolkit.
 group = 'io.github.digitalsmile'
 version = providers.gradleProperty('goldberryVersion').get()
 
@@ -60,8 +67,34 @@ tasks.named('jar') {
 }
 
 tasks.named('test') {
-    useJUnitPlatform()
+    // `benchmark`-tagged classes print numbers and assert almost nothing, so
+    // `check` never runs them -- the same rule the java-conventions plugin
+    // applies everywhere else, written out here because this module is plain
+    // `java` and does not get that plugin.
+    useJUnitPlatform { excludeTags 'benchmark' }
     testLogging { exceptionFormat = 'full' }
+}
+
+// The two binding schemes, measured against each other in one JVM. This is the
+// only module that can: it holds a raw model and can weave a copy of it in
+// memory, so both forms of one class exist side by side (ADR-0155).
+tasks.register('benchmark', Test) {
+    group = 'verification'
+    description = 'Runs the benchmarks, which print measurements rather than asserting them.'
+
+    testClassesDirs = sourceSets.test.output.classesDirs
+    classpath = sourceSets.test.runtimeClasspath
+
+    useJUnitPlatform { includeTags 'benchmark' }
+    // The numbers are the whole output, so they have to reach the console.
+    testLogging {
+        events 'started', 'passed', 'failed'
+        showStandardStreams = true
+        exceptionFormat = 'full'
+    }
+    // Never up to date: a benchmark whose result is cached from last week is
+    // worse than no benchmark.
+    outputs.upToDateWhen { false }
 }
 
 tasks.withType(PublishToMavenRepository).configureEach { enabled = false }

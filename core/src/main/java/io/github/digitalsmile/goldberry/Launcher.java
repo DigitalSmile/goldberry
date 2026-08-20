@@ -54,6 +54,19 @@ final class Launcher implements Host {
     /// The last painted frame's geometry — see [#anchor].
     private List<HitTest.Region> regions = List.of();
 
+    /// The application's models, kept because they are swept once a frame.
+    ///
+    /// A no-op for a woven model, which notified from inside the assignment that
+    /// changed it. For one bound at run time it is how a change made from
+    /// somewhere no listener could see — a timer callback, a background job
+    /// reporting in — reaches the screen rather than waiting for the next action
+    /// ([ADR-0155](../../../../../book/src/adr/0155-a-jar-binds-at-run-time-an-image-is-woven.md)).
+    ///
+    /// Read once at start-up rather than per frame: `models()` is a description of
+    /// the wiring, and an application that returns a fresh list every call would
+    /// otherwise allocate one per frame.
+    private List<Object> models = List.of();
+
     private int painted;
 
     /// The two flags the launcher understands on the command line, both for CI.
@@ -124,7 +137,8 @@ final class Launcher implements Host {
         // it: a change to a bound field asks for a frame, and a change to one
         // declared `@Bind(restyle = true)` drops the resolved styles first
         // (ADR-0128, ADR-0133).
-        for (var model : application.models()) {
+        models = List.copyOf(application.models());
+        for (var model : models) {
             io.github.digitalsmile.goldberry.bind.Models.onRestyle(model, this::restyle);
             io.github.digitalsmile.goldberry.bind.Models.onRepaint(model, window::repaint);
         }
@@ -244,6 +258,17 @@ final class Launcher implements Host {
         var beganAt = System.nanoTime();
         if (io.github.digitalsmile.goldberry.widget.FrameTrace.ENABLED) {
             tree.trace().reset();
+        }
+
+        // Before the build rather than after it, so a change a sweep notices is a
+        // change *this* frame shows. A listener marks an element dirty, and the
+        // flush below is what a dirty element is waiting for -- the other order
+        // would show it one frame late (ADR-0155).
+        //
+        // Nothing at all for a woven model: `refresh` returns false without
+        // looking, which is what makes this line free in a native image.
+        for (var model : models) {
+            io.github.digitalsmile.goldberry.bind.Models.refresh(model);
         }
 
         // Every setState since the last frame settles here, once, however many of

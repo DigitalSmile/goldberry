@@ -1,13 +1,32 @@
 import org.gradle.api.artifacts.VersionCatalogsExtension
 
 // ============================================================================
-// Model weaving (ADR-0125)
+// The weaver, in its two halves (ADR-0125, ADR-0131, ADR-0155)
 //
-// Rewires every `@Model`'s `@Bind` fields into bindings, in the compiled class,
-// between `compileJava` and anything that reads its output. A module that keeps
-// a view model applies this; nothing else needs it.
+// The weaver does two unrelated things to a module's compiled classes, and a
+// build wants them at different times:
 //
-// It runs as a separate JVM rather than inside the Gradle daemon because the
+//   catalog  Collects the module's `@Markup` widgets into a `WidgetCatalog`,
+//            patches `provides ... with` into `module-info.class`, and writes a
+//            `META-INF/services` entry. EVERY build needs this. There is no
+//            runtime equivalent -- finding annotated classes while the program
+//            runs would mean scanning the path, which is the thing a `provides`
+//            exists to avoid (ADR-0131).
+//
+//   models   Rewires `@Bind` fields into bindings and writes the `@Action` call
+//            sites. Only a NATIVE IMAGE needs this. An ordinary jar reads the
+//            same annotations at run time and binds them through handles, so
+//            weaving a jar buys a direct field write and costs a build step that
+//            an IDE, a `mvn exec:java` and an unfamiliar build system each have
+//            to be taught (ADR-0155).
+//
+// So the catalog half hangs off `classes` unconditionally and the model half is
+// asked for -- by the native-image build, or by hand:
+//
+//   ./gradlew :example:weaveModels
+//   ./gradlew build -Pgoldberry.nativeImage=true
+//
+// Both run as a separate JVM rather than inside the Gradle daemon because the
 // weaver needs the class-file API of the *toolchain* -- the daemon's JVM is
 // whatever launched Gradle, and pinning the build to it would make the toolkit's
 // Java floor a property of how somebody started their build.
@@ -16,11 +35,17 @@ import org.gradle.api.artifacts.VersionCatalogsExtension
 def catalog = extensions.getByType(VersionCatalogsExtension).named('libs')
 def javaVersion = catalog.findVersion('java').get().requiredVersion as int
 
+// Set by a GraalVM build, and by anybody who wants the woven form of a module to
+// look at. Off means the module binds at run time, which is what a jar does.
+def weavingForImage = providers.gradleProperty('goldberry.nativeImage')
+        .map { it.isEmpty() || Boolean.parseBoolean(it) }
+        .getOrElse(false)
+
 configurations {
     goldberryWeaver {
         canBeConsumed = false
         canBeResolved = true
-        description = 'The model weaver, run over this module\'s compiled classes.'
+        description = 'The weaver, run over this module\'s compiled classes.'
     }
 }
 
@@ -29,13 +54,16 @@ dependencies {
 }
 
 // Both source sets, because a test that declares its own @Model -- a benchmark
-// comparing two schemes, a fixture exercising one rule -- is a model like any
-// other, and one that compiled but was never woven would fail as a binding that
-// silently notifies nobody.
-def weaveTasks = ['main': 'compileJava', 'test': 'compileTestJava'].collect { setName, compileTask ->
-    tasks.register(setName == 'main' ? 'weaveModels' : 'weaveTestModels', JavaExec) {
+// comparing the two binding schemes, a fixture exercising one rule -- is a model
+// like any other, and a test module that ships a widget declares a catalog like
+// any other.
+def sourceSetTasks = ['main': 'compileJava', 'test': 'compileTestJava']
+
+/// One JavaExec over a compiled source set, running the half named by `flag`.
+def weaveTask = { String taskName, String setName, String compileTask, String flag, String what ->
+    tasks.register(taskName, JavaExec) {
         group = 'build'
-        description = "Rewires @Bind fields into bindings in the compiled ${setName} classes."
+        description = "${what} in the compiled ${setName} classes."
 
         dependsOn tasks.named(compileTask)
 
@@ -46,7 +74,9 @@ def weaveTasks = ['main': 'compileJava', 'test': 'compileTestJava'].collect { se
         mainClass = 'io.github.digitalsmile.goldberry.weaver.WeaverMain'
 
         def classesDir = tasks.named(compileTask).flatMap { it.destinationDirectory }
-        argumentProviders.add({ [classesDir.get().asFile.absolutePath] } as CommandLineArgumentProvider)
+        argumentProviders.add({
+            [flag, classesDir.get().asFile.absolutePath]
+        } as CommandLineArgumentProvider)
 
         // In place, so the same directory is both. Gradle therefore never
         // considers this up to date, which is fine and deliberate: weaving is
@@ -59,13 +89,38 @@ def weaveTasks = ['main': 'compileJava', 'test': 'compileTestJava'].collect { se
     }
 }
 
+def catalogTasks = sourceSetTasks.collect { setName, compileTask ->
+    weaveTask(setName == 'main' ? 'weaveCatalog' : 'weaveTestCatalog', setName, compileTask,
+            '--catalog', 'Collects the @Markup widgets into a WidgetCatalog and declares it')
+}
+
+// Registered whether or not this build wants them, so `:example:weaveModels` is
+// always a thing somebody can run to see what the image will be built from.
+def modelTasks = sourceSetTasks.collect { setName, compileTask ->
+    weaveTask(setName == 'main' ? 'weaveModels' : 'weaveTestModels', setName, compileTask,
+            '--models', 'Rewires @Bind fields into bindings')
+}
+
+// Ordered rather than merely both hung off `classes`: two JavaExecs writing into
+// one directory at once is a corrupt class file, and Gradle is free to run
+// independent tasks in parallel.
+modelTasks.eachWithIndex { task, index ->
+    task.configure { mustRunAfter catalogTasks[index] }
+}
+
 // `classes` is what `jar`, `run` and test compilation all reach through, and
-// `testClasses` is what every Test task reaches through -- so hanging the weave
-// off them means there is no way to consume unwoven output, which is the failure
-// this whole step exists to make impossible.
+// `testClasses` is what every Test task reaches through -- so hanging the catalog
+// off them means there is no way to consume a module whose widgets are not
+// declared, which is the failure that half exists to make impossible.
 tasks.named('classes') {
-    dependsOn weaveTasks[0]
+    dependsOn catalogTasks[0]
+    if (weavingForImage) {
+        dependsOn modelTasks[0]
+    }
 }
 tasks.named('testClasses') {
-    dependsOn weaveTasks[1]
+    dependsOn catalogTasks[1]
+    if (weavingForImage) {
+        dependsOn modelTasks[1]
+    }
 }

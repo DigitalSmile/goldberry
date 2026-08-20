@@ -1,5 +1,10 @@
 plugins {
     id 'goldberry.java-conventions'
+    // Does nothing to an ordinary build of this module -- the showcase ships no
+    // @Markup widgets, so the catalog half has nothing to collect, and the model
+    // half only runs for an image. It is here because `nativeImage` below depends
+    // on `weaveModels`, and a module that cannot be woven cannot be imaged
+    // (ADR-0155).
     id 'goldberry.weave'
     id 'application'
 }

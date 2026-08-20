@@ -20,8 +20,19 @@ import org.junit.jupiter.api.Test;
 /// repository actually shipped: a `Property` per value, `set(get() + 1)` to
 /// change one, and a registry of method references of the kind the annotation
 /// processor generated. The "after" is [New], the same model written as plain
-/// fields and woven. Both are here, in one file, measured by one loop, so the
-/// comparison is not two numbers taken on different days.
+/// fields. Both are here, in one file, measured by one loop, so the comparison is
+/// not two numbers taken on different days.
+///
+/// ## Which "after" this measures depends on the build
+///
+/// Since [ADR-0155] a `@Model` is bound one of two ways, and this module does not
+/// weave — so what runs here is normally the **reflective** binding, which is what
+/// an application's own jar uses. Every label below says which form it got rather
+/// than assuming, because a benchmark that names a mechanism it did not measure is
+/// worse than one that prints no label at all.
+///
+/// The two forms against **each other** are `BindingSchemeBenchmark` in `:weaver`,
+/// which is the only module that can hold both at once.
 ///
 /// **Tagged `benchmark`, so `check` never runs it.** Nothing here asserts a
 /// timing: a threshold on shared hardware fails for reasons that have nothing to
@@ -29,24 +40,40 @@ import org.junit.jupiter.api.Test;
 /// against a number it has not taken. Run with
 /// `./gradlew :example:benchmark --tests '*BindingBenchmark*'`.
 ///
+/// ## Every write here is a press, and that is not a detail
+///
+/// `old.click()` notifies, because the `Property` inside it does. `plain.click()`
+/// is an `iinc` and notifies nobody until something sweeps — which is the whole
+/// shape of ADR-0155, and it means a benchmark timing the two *methods* would be
+/// pricing all of one scheme against a fraction of the other and calling the
+/// difference a speed-up.
+///
+/// So every write below is dispatched through the action registry, which is what a
+/// `button press=` does and what both schemes share. Whatever the second arm's
+/// notification costs — a rewritten setter or a sweep — it is inside the number.
+///
 /// ## What to expect, and why
 ///
-/// The write path is where the two differ. `Property.set` is a virtual call, an
-/// `Objects.equals` on two boxes, and — for an `int` — a `valueOf` on the way in
-/// whether or not anybody is listening. The woven setter compares two `int`s with
-/// `if_icmpne` and boxes only once it knows the value changed, so a model that
-/// changes a counter nobody is watching does no allocation at all.
+/// `Property.set` is a virtual call, an `Objects.equals` on two boxes, and — for
+/// an `int` — a `valueOf` on the way in whether or not anybody is listening. A
+/// woven setter compares two `int`s with `if_icmpne` and boxes only once it knows
+/// the value changed. A sweep reads each field through a `VarHandle`, boxes it and
+/// compares, once per press, for every model bound at run time.
 ///
-/// Reads are the other way round and deliberately so: a woven read goes through
-/// `boundValue`'s switch and a box, where `Property.get` is one `getfield`. That
-/// is the trade ADR-0125 made — writes are what a model does in its own methods,
-/// on every event, and reads through the binding happen once per rebuild.
+/// Reads are their own trade: both of the new forms box where `Property.get` is
+/// one `getfield`. That is what ADR-0125 bought — writes are what a model does on
+/// every event, and reads through a binding happen once per rebuild.
 @Tag("benchmark")
 @DisplayName("the binding schema, before and after")
 class BindingBenchmark {
 
     private static final int WARMUP = 20;
     private static final int RUNS = 200;
+
+    /// What to call the second scheme in this run's output — `woven` when the
+    /// build ran the weaver over this module, `runtime` when it did not
+    /// ([ADR-0155](../../../../../../book/src/adr/0155-a-jar-binds-at-run-time-an-image-is-woven.md)).
+    private static final String FORM = Models.isWoven(new New()) ? "woven" : "runtime";
 
     /// How many writes one sample does, so a sample is long enough to time.
     private static final int WRITES = 100_000;
@@ -106,11 +133,11 @@ class BindingBenchmark {
         }
     }
 
-    /// The same model, written as plain fields and woven.
+    /// The same model, written as plain fields.
     ///
-    /// Nested in a test class, which the build weaves like any other compiled
-    /// class — so what runs below is the real thing and not a hand-written
-    /// imitation of it.
+    /// Nested in a test class, so whatever this build does to a compiled model it
+    /// does to this one — which is how the labels below stay true without being
+    /// told which build they are in.
     @Model
     static final class New {
 
@@ -156,19 +183,21 @@ class BindingBenchmark {
     @DisplayName("changing a value nobody is watching")
     void unwatchedWrites() {
         var old = new Old();
-        var woven = new New();
+        var plain = new New();
+        var oldPress = old.actions().resolve("app.click");
+        var newPress = Models.actions(plain).resolve("app.click");
 
         report("Property.set, no listeners", () -> {
             for (var i = 0; i < WRITES; i++) {
-                old.click();
+                oldPress.run();
             }
             return old.clicks.get();
         });
-        report("woven field, no listeners", () -> {
+        report(FORM + " field, no listeners", () -> {
             for (var i = 0; i < WRITES; i++) {
-                woven.click();
+                newPress.run();
             }
-            return woven.clicks;
+            return plain.clicks;
         });
     }
 
@@ -176,21 +205,23 @@ class BindingBenchmark {
     @DisplayName("changing a value one widget is watching")
     void watchedWrites() {
         var old = new Old();
-        var woven = new New();
+        var plain = new New();
         var sink = new long[1];
 
         old.bindings().resolve("app.clicks").subscribe(v -> sink[0]++);
-        Models.bindings(woven).resolve("app.clicks").subscribe(v -> sink[0]++);
+        Models.bindings(plain).resolve("app.clicks").subscribe(v -> sink[0]++);
+        var oldPress = old.actions().resolve("app.click");
+        var newPress = Models.actions(plain).resolve("app.click");
 
         report("Property.set, 1 listener", () -> {
             for (var i = 0; i < WRITES; i++) {
-                old.click();
+                oldPress.run();
             }
             return sink[0];
         });
-        report("woven field, 1 listener", () -> {
+        report(FORM + " field, 1 listener", () -> {
             for (var i = 0; i < WRITES; i++) {
-                woven.click();
+                newPress.run();
             }
             return sink[0];
         });
@@ -203,21 +234,23 @@ class BindingBenchmark {
         // status line and assigns the same string back. Both schemes stop, and
         // the question is what the stopping costs.
         var old = new Old();
-        var woven = new New();
-        old.say("steady");
-        woven.say("steady");
+        var plain = new New();
+        var oldSay = old.actions().resolveValued("app.say");
+        var newSay = Models.actions(plain).resolveValued("app.say");
+        oldSay.accept("steady");
+        newSay.accept("steady");
 
         report("Property.set, same value", () -> {
             for (var i = 0; i < WRITES; i++) {
-                old.say("steady");
+                oldSay.accept("steady");
             }
             return old.label.get().length();
         });
-        report("woven field, same value", () -> {
+        report(FORM + " field, same value", () -> {
             for (var i = 0; i < WRITES; i++) {
-                woven.say("steady");
+                newSay.accept("steady");
             }
-            return woven.label.length();
+            return plain.label.length();
         });
     }
 
@@ -255,7 +288,7 @@ class BindingBenchmark {
             }
             return total;
         });
-        report("woven boundValue, int (boxes)", () -> {
+        report(FORM + " read, int (boxes)", () -> {
             var total = 0L;
             for (var i = 0; i < WRITES; i++) {
                 total += (Integer) news[i & 63].get();
@@ -269,7 +302,7 @@ class BindingBenchmark {
             }
             return total;
         });
-        report("woven boundValue, reference", () -> {
+        report(FORM + " read, reference", () -> {
             var total = 0L;
             for (var i = 0; i < WRITES; i++) {
                 total += ((String) newLabels[i & 63].get()).length();
@@ -298,7 +331,7 @@ class BindingBenchmark {
             }
             return 0L;
         });
-        report("woven indy -> Runnable.run", () -> {
+        report(FORM + " dispatch -> Runnable.run", () -> {
             for (var i = 0; i < WRITES; i++) {
                 newRun.run();
             }
@@ -324,7 +357,7 @@ class BindingBenchmark {
             }
             return old.clicks.get();
         });
-        report("press -> woven field", () -> {
+        report("press -> " + FORM + " field", () -> {
             for (var i = 0; i < WRITES; i++) {
                 newRun.run();
             }
@@ -339,7 +372,7 @@ class BindingBenchmark {
             }
             return old.gain.get().longValue();
         });
-        report("change -> woven bridge -> field", () -> {
+        report("change -> " + FORM + " parse -> field", () -> {
             for (var i = 0; i < WRITES; i++) {
                 newValued.accept("62.5");
             }
@@ -360,7 +393,7 @@ class BindingBenchmark {
             }
             return total;
         });
-        report("woven bindings() + actions(), x1000", () -> {
+        report(FORM + " bindings() + actions(), x1000", () -> {
             var total = 0L;
             for (var i = 0; i < 1_000; i++) {
                 total += Models.bindings(woven).bound().size() + Models.actions(woven).bound().size();

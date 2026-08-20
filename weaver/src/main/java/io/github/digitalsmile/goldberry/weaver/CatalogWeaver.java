@@ -5,7 +5,6 @@ import java.lang.classfile.ClassModel;
 import java.lang.classfile.ClassTransform;
 import java.lang.classfile.attribute.ModuleAttribute;
 import java.lang.classfile.attribute.ModuleProvideInfo;
-import java.lang.classfile.attribute.RuntimeInvisibleAnnotationsAttribute;
 import java.lang.constant.ClassDesc;
 import java.lang.constant.ConstantDescs;
 import java.lang.constant.DirectMethodHandleDesc;
@@ -81,9 +80,7 @@ public final class CatalogWeaver {
     /// @throws WeaveException if it is one and has no usable `inflate`
     public static String markupName(byte[] bytes) {
         var model = ClassFile.of().parse(bytes);
-        var name = ModelWeaver.annotationValue(
-                model.findAttribute(java.lang.classfile.Attributes.runtimeInvisibleAnnotations()),
-                CD_MARKUP);
+        var name = ModelWeaver.annotationValue(model, CD_MARKUP);
         if (name == null) {
             return null;
         }
@@ -234,10 +231,10 @@ public final class CatalogWeaver {
         return result;
     }
 
-    /// The `RuntimeInvisibleAnnotations` reader [ModelWeaver] already has, reused
-    /// so both halves read an annotation the same way.
-    static String annotationValue(java.util.Optional<RuntimeInvisibleAnnotationsAttribute> attribute,
-            ClassDesc wanted) {
-        return ModelWeaver.annotationValue(attribute, wanted);
+    /// The annotation reader [ModelWeaver] already has, reused so both halves
+    /// read one the same way -- and out of the same two attributes, whichever the
+    /// retention put it in.
+    static String annotationValue(java.lang.classfile.AttributedElement member, ClassDesc wanted) {
+        return ModelWeaver.annotationValue(member, wanted);
     }
 }

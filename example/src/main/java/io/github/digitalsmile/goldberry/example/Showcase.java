@@ -190,9 +190,17 @@ public final class Showcase implements Application {
         // automatically, so touching the window here is safe (ADR-0020).
         Goldberry.async(Showcase::describeEnvironment).thenAccept(text -> {
             host.title("Goldberry — " + text);
-            // Nothing here reaches into the tree: the property is set, and the
+            // Nothing here reaches into the tree: the field is set, and the
             // sidebar line bound to it redraws itself.
             actions.setStatus(text);
+            // The one place an application says this, and the reason it is here
+            // rather than in every method: `setStatus` is a plain Java call from
+            // a background job's continuation, so it is neither an action a
+            // document dispatched nor a write the toolkit had any reason to look
+            // for. A woven model notices it from inside the assignment and this
+            // returns false; a jar's model is swept here
+            // ([ADR-0155](../../../../../../book/src/adr/0155-a-jar-binds-at-run-time-an-image-is-woven.md)).
+            Models.refresh(model);
         });
     }
 

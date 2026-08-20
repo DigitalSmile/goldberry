@@ -167,20 +167,50 @@ class NativeImageComplianceTest {
     }
 
     @Test
-    @DisplayName("the annotations a model keeps at runtime are one, and it is only read for its message")
+    @DisplayName("a model keeps its annotations at runtime, and an image reads none of them")
     void annotationRetention() {
-        // @Bind and @Action are CLASS-retained: the weaver has already read them
-        // and an image that carried them would be carrying metadata for nobody.
-        // @Model stays, because `Models` reads it to tell an author that the
-        // weave step did not run -- an annotation lookup on a class the image
-        // already has, which needs no registration.
+        // All of them are RUNTIME-retained since ADR-0155, because that is what
+        // an unwoven jar binds from: the weaver is the native-image path and the
+        // reflective binder is the ordinary one, and the reflective binder cannot
+        // read a CLASS-retained annotation at all.
+        //
+        // The cost in an image is the annotation metadata itself, which nothing
+        // there reads -- a woven model's registries are code, and this whole
+        // class is the assertion that they are. That is a few bytes per member
+        // against a build step every consumer would otherwise have to install,
+        // and the trade is recorded in ADR-0155.
         assertTrue(Counter.class.isAnnotationPresent(
                 io.github.digitalsmile.goldberry.bind.Model.class));
-        assertEquals(0, java.util.Arrays.stream(Counter.class.getDeclaredFields())
-                .flatMap(f -> java.util.Arrays.stream(f.getAnnotations()))
-                .count());
-        assertEquals(0, java.util.Arrays.stream(Counter.class.getDeclaredMethods())
-                .flatMap(m -> java.util.Arrays.stream(m.getAnnotations()))
-                .count());
+        // Counted against the woven registries rather than against a literal, so
+        // this stays true when somebody adds a field to Counter: what it asserts
+        // is that reflection sees exactly what the weaver saw.
+        var woven = Woven.instance(Counter.class);
+        assertEquals(io.github.digitalsmile.goldberry.bind.Models.bindings(woven).bound().size(),
+                java.util.Arrays.stream(Counter.class.getDeclaredFields())
+                        .filter(f -> f.isAnnotationPresent(
+                                io.github.digitalsmile.goldberry.bind.Bind.class))
+                        .count(),
+                "every @Bind field is still readable at run time");
+        assertEquals(io.github.digitalsmile.goldberry.bind.Models.actions(woven).bound().size(),
+                java.util.Arrays.stream(Counter.class.getDeclaredMethods())
+                        .filter(m -> m.isAnnotationPresent(
+                                io.github.digitalsmile.goldberry.bind.Action.class))
+                        .count(),
+                "every @Action method is still readable at run time");
+    }
+
+    @Test
+    @DisplayName("the woven form is what an image gets, and it reads no annotation to do it")
+    void wovenReadsNoAnnotation() {
+        // The claim the paragraph above trades against: whatever metadata the
+        // class carries, the woven registries do not consult it. `bindings()` and
+        // `actions()` are emitted code over emitted constants, so an image that
+        // dropped every annotation would behave identically.
+        var woven = Woven.of(Counter.class);
+        for (var call : callsIn(Woven.weave(Counter.class))) {
+            assertFalse(call.contains("getAnnotation") || call.contains("isAnnotationPresent")
+                            || call.contains("getDeclaredAnnotation"),
+                    woven.getName() + " reads an annotation at run time: " + call);
+        }
     }
 }
