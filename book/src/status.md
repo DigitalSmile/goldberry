@@ -2277,10 +2277,16 @@ is the `scroll` box's.
   collapsed 184 exported symbols into 55 distinct downcall descriptors, which is
   the tracing decision arguing for itself on its first outing; and the linker needs
   `zlib1g-dev` rather than the `zlib1g` a desktop already has, or a minute of
-  analysis ends in `cannot find -lz`. **One thing does not work**: the image logs
-  nothing. Logback is bound, `autoConfig` runs, `logback.xml` is in the traced
-  resources, and no line reaches either stream — so an image is currently diagnosed
-  by its exit code and its timing rather than by what it says
+  analysis ends in `cannot find -lz`. **And it logs**, which took one hand-written
+  metadata entry and taught the sharpest lesson of the exercise: the agent records
+  *how a lookup was made, not where the file will be*. Logback asks a
+  `ClassLoader` for `logback.xml`, so the agent files it as a classpath resource —
+  but the image runs on the module path, where that file is at the root of a named
+  module and, registered without one, is simply absent. Logback with no
+  configuration ends with no appenders and prints nothing, not even its own status,
+  so a perfectly working image looked like a dead one. There is a second metadata
+  directory now, `goldberry-example-manual`, for what a human writes; the traced
+  one is never edited because the next trace overwrites it
   ([ADR-0156](adr/0156-the-image-s-metadata-is-traced-not-written.md),
   [the native-image page](native.md))
 

@@ -10,8 +10,8 @@ takes [ADR-0155](0155-a-jar-binds-at-run-time-an-image-is-woven.md)'s weaving
 flag as its input.
 
 **An image has now been built and run** on linux-x64 against GraalVM CE 25.2.4:
-30.6 MiB, ~0.55 s to start, ~6 ms a frame headless, exit 0. It is still not built
-in CI. The one thing that does not work is logging — see the consequences.
+30.6 MiB, ~0.55 s to start, ~6 ms a frame headless, exit 0, and logging. It is
+still not built in CI.
 
 ## Context
 
@@ -115,13 +115,25 @@ hand-writing, made by the mechanism itself on its first run. It also collapsed t
 184 exported symbols into **55 distinct downcall descriptors**, which is the list
 a hand-written `Feature` would have had to get right.
 
-**Of the two holes predicted here, one is real.** `NativeLibrary` marked
-`--initialize-at-run-time` was reasoning rather than evidence, and it works.
-**Logback does not**: SLF4J binds it, `LogbackServiceProvider` initializes,
-`ContextInitializer.autoConfig` runs, `logback.xml` is in the traced resources —
-and the image prints nothing on either stream. So the image is currently
-diagnosed by its exit code and its timing rather than by what it says. Unfixed,
-and the first thing to fix.
+**Of the two holes predicted here, neither was what it looked like.**
+`NativeLibrary` marked `--initialize-at-run-time` was reasoning rather than
+evidence, and it works. Logback was predicted to break on *reflective config
+reading* and does not — Joran, the XML parse and the reflective instantiation of
+appenders and encoders all work in the image. What broke was the file: the agent
+records `logback.xml` as a **classpath** resource, because a `ClassLoader` is
+what logback asks, and the image runs on the module path where that file is at
+the root of a named module. Registered without its module it is simply absent,
+and logback with no configuration ends with no appenders and prints nothing at
+all — not even its own status.
+
+So there is now a **second metadata directory**, `goldberry-example-manual`,
+holding what a human writes. The traced one is never edited, because the next
+trace overwrites it. `native-image` merges every `META-INF/native-image/**`, so
+the split costs nothing and keeps the diff honest.
+
+The general lesson is sharper than the fix: **the agent records how a lookup was
+made, not where the file will be.** Any resource a module-unaware library fetches
+through a `ClassLoader` has the same shape of bug waiting in it.
 
 **The linker needs `zlib1g-dev`, not `zlib1g`.** Not a decision, but the first
 thing that happens to anyone running these tasks: analysis succeeds, a minute

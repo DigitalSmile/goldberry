@@ -1,0 +1,23 @@
+{
+  "comment": [
+    "Hand-written, and in a directory of its own so that re-running the agent",
+    "cannot overwrite it -- `nativeImageMetadata` writes only to the sibling",
+    "`goldberry-example` directory (ADR-0156). native-image reads every",
+    "META-INF/native-image/** it finds, so the two are merged for it and kept",
+    "apart for us.",
+    "",
+    "logback.xml is here because the agent records it as a CLASSPATH resource:",
+    "logback asks a ClassLoader for it, and that is what the agent sees. In the",
+    "image the showcase runs on the module path, so the file lives at the root of",
+    "a named module and has to be registered against that module or it is simply",
+    "not there. The symptom is a silent image: with no configuration found,",
+    "logback ends up with no appenders and prints nothing at all -- not even its",
+    "own status."
+  ],
+  "resources": [
+    {
+      "module": "io.github.digitalsmile.goldberry.example",
+      "glob": "logback.xml"
+    }
+  ]
+}

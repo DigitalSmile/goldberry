@@ -11,10 +11,8 @@ binding schema for.
 > the two upcalls, the fonts, the icons, the stylesheets, the KDL and the
 > `WidgetCatalog` service all survive the closed world.
 >
-> **One thing does not: the image logs nothing.** Logback is bound and parses
-> `logback.xml` — its `autoConfig` runs — and no line reaches the console. Every
-> other diagnostic in this page is therefore observed rather than read off a log.
-> See [ADR-0156](adr/0156-the-image-s-metadata-is-traced-not-written.md).
+> It logs, too, which took one hand-written metadata entry — see
+> [below](#two-metadata-directories-traced-and-written).
 
 ## Before anything else: the C toolchain
 
@@ -92,14 +90,31 @@ building the modules by hand; `nativeImage` arranges it for you.
 | `-H:+ReportExceptionStackTraces` | Names the class that could not be reached, rather than a stack in the builder |
 | `--initialize-at-run-time=…NativeLibrary` | It `dlopen`s in its initializer, which must not happen in the builder |
 
-## What does not work yet
+## Two metadata directories: traced, and written
 
-**The image logs nothing.** SLF4J binds Logback, `LogbackServiceProvider`
-initializes, `ContextInitializer.autoConfig` runs and `logback.xml` is in the
-traced resources — and no line is printed on either stream. Whatever the cause,
-it is downstream of the config being found. Until it is fixed, an image is
-diagnosed by its exit code and its timing rather than by what it says, which is a
-poor trade for an application and the first thing to fix here.
+The agent's output goes to
+`META-INF/native-image/io.github.digitalsmile/goldberry-example`, and **nothing
+hand-written goes in there** — the next trace overwrites it. Anything a human has
+to add lives in the sibling `…/goldberry-example-manual`. `native-image` reads
+every `META-INF/native-image/**` it finds, so the two are merged for the tool and
+kept apart for the diff.
+
+There is exactly one entry in it so far, and it is instructive:
+
+```json
+{ "module": "io.github.digitalsmile.goldberry.example", "glob": "logback.xml" }
+```
+
+Logback asks a `ClassLoader` for `logback.xml`, so the agent records it as a
+**classpath** resource. The image runs on the module path, where that file is at
+the root of a named module and has to be registered against that module or it is
+not there at all. The symptom is the worst kind: with no configuration found,
+logback ends with no appenders and prints nothing — not even its own status — so
+an image that is working perfectly looks like an image that is doing nothing.
+
+The general shape of that trap is worth remembering: **the agent records how a
+lookup was made, not where the file will be.** A resource fetched through a
+`ClassLoader` by a library that knows nothing of modules is recorded without one.
 
 ## What is not built
 
