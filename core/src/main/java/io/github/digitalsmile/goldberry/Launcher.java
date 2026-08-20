@@ -675,6 +675,17 @@ final class Launcher implements Host {
     }
 
     @Override
+    public void removeShortcut(io.github.digitalsmile.goldberry.input.Shortcut accelerator) {
+        router.removeShortcut(accelerator);
+    }
+
+    @Override
+    public void removeShortcut(String accelerator) {
+        router.removeShortcut(
+                io.github.digitalsmile.goldberry.input.Shortcut.of(accelerator));
+    }
+
+    @Override
     public Overlay overlay(Widget widget, Corner corner) {
         return overlay(widget, corner, Overlay.WINDOW_MARGIN);
     }

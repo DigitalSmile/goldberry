@@ -1682,6 +1682,76 @@ separator {
   background: var(--gb-border);
 }
 
+/* --------------------------------------------------------------- menubar --
+ *
+ * `docs/core-widgets.md` §8's in-window bar. Unlike a `menu`, this is drawn in
+ * the application's own window and inherits from it — so only what actually
+ * differs from the surrounding page is written here (ADR-0163).
+ *
+ * There is **no rule under it**. §8's subset has one `border` and no per-edge
+ * longhands, so `border-bottom` is not a declaration that exists (ADR-0107), and
+ * a bar separated from the page by its own surface colour does not need one. The
+ * `tab-rule` trick — a 1px box pinned across the bottom — is available if it ever
+ * turns out to.
+ */
+menubar {
+  flex-direction: row;
+  align-items: center;
+  gap: 2px;
+  padding: 2px 4px;
+  flex-shrink: 0;
+  background: var(--gb-surface);
+}
+
+/* A heading. Shorter and wider than a menu row: it sits in a horizontal bar
+   rather than a vertical list, so the padding that separates it from its
+   neighbours is the one on the sides. */
+menu-title {
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+  height: var(--gb-menu-item-height);
+  padding: 0 10px;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+menu-title:hover {
+  background: var(--gb-overlay-hover);
+}
+
+/* `:focus-visible` and not `:focus`, for the reason an `item` gives: the bar is
+   one tab stop and lands on its first heading, and a pointer user never asked
+   for that heading to be picked out (ADR-0112). */
+menu-title:focus-visible {
+  background: var(--gb-overlay-hover);
+}
+
+menu-title:active {
+  background: var(--gb-overlay-active);
+}
+
+/* The heading whose menu is showing, which is the one thing `:hover` and
+   `:focus-visible` between them cannot say — the pointer has usually left the
+   bar entirely by the time the menu is down. A class rather than a pseudo-class
+   because "the branch that is open" is not one of CSS's states, and it is the
+   same shape `select` marks its open field with.
+
+   The **accent fill**, not a stronger overlay. `--gb-overlay-active` is 0x29 over
+   0x14 on dark: twice the alpha, and at 8% against 16% the two are hard to tell
+   apart side by side — which is exactly the comparison a bar puts in front of
+   somebody, since the hovered heading is usually the one *next to* the open one.
+   The accent pairing is the toolkit's existing "this one is chosen", and it is
+   what a menu hanging off a heading looks like everywhere else. */
+menu-title.open {
+  background: var(--gb-accent-fill);
+  color: var(--gb-button-primary-text);
+}
+
+menu-title:disabled {
+  opacity: 0.45;
+}
+
 /* ------------------------------------------------------------------ tabs --
  *
  * `docs/core-widgets.md` §5, top placement: a row of headers over one panel.
@@ -2072,3 +2142,4 @@ tour-card > column > row {
 .tour-next:active {
   background: var(--gb-button-primary-bg-active);
 }
+
