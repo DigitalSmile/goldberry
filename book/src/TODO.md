@@ -552,6 +552,20 @@ the mechanism the sentence named.
 
 ## Style, colour and motion
 
+- **A dropped declaration is reported once, and `align-items: start` is why.** The
+  Panels screen filled the console while it scrolled: `start` is CSS's alias for
+  `flex-start` and Yoga has only the second, so the declaration was dropped —
+  correctly — and reported *per element per style resolution*, which on a moving
+  screen is sixty times a second. The typo is fixed and the report is now
+  deduplicated by property and value, because a stylesheet is static and a value
+  that is not one cannot become one on the next frame. **What is still true**: the
+  toolkit accepts Yoga's spelling of these keywords and not CSS's aliases, so
+  `start`, `end` and `space-between`-style names have exactly one correct form
+  each and a document that uses the other gets a warning rather than a mapping.
+  Whether to accept the aliases is open; accepting them means a second table to
+  keep in step with Yoga's enum.
+
+
 - **`align-self` is not in §8's subset**, which a tab strip's `+` found: a child
   shorter than its row sits at the top of it and there is no per-child way to say
   otherwise. It is the companion of `align-items`, which *is* in the subset, and

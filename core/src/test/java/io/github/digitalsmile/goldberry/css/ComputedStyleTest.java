@@ -592,4 +592,48 @@ class ComputedStyleTest {
                     ComputedStyle.of(java.util.Map.of(), CssLength.Context.DEFAULT, null));
         }
     }
+
+    /// What a declaration that cannot be applied says, and how often.
+    ///
+    /// A stylesheet is static, so a value that is not one cannot become one on
+    /// the next frame — but a style is resolved per element per invalidation, so
+    /// before this was deduplicated a single typo reported itself for every
+    /// element on every frame the screen moved. The point of a warning is that
+    /// somebody reads it, and one line does not survive a thousand identical ones
+    /// after it.
+    @org.junit.jupiter.api.Nested
+    @org.junit.jupiter.api.DisplayName("reporting a declaration that cannot be applied")
+    class Dropping {
+
+        @org.junit.jupiter.api.BeforeEach
+        void forget() {
+            ComputedStyle.forgetReportedDrops();
+        }
+
+        /// The value is still dropped every time — only the *report* is once.
+        /// Making the drop itself conditional would be a stylesheet that behaved
+        /// differently on the second frame.
+        @Test
+        @DisplayName("the declaration is dropped every time, however often it is reported")
+        void alwaysDropped() {
+            for (var attempt = 0; attempt < 3; attempt++) {
+                var style = compute("button { align-items: start; gap: 4px }");
+                assertEquals(ComputedStyle.INITIAL.alignItems(), style.alignItems(),
+                        "a value this toolkit has not got must never be applied");
+                assertEquals(io.github.digitalsmile.goldberry.natives.yoga.StyleLength.points(4),
+                        style.gap(), "and the declarations around it still are");
+            }
+        }
+
+        /// `start` is CSS's alias for `flex-start` and Yoga has only the second,
+        /// which is the exact typo that produced the report this test exists for.
+        @Test
+        @DisplayName("`start` is not `flex-start`, which is the typo that started this")
+        void startIsNotFlexStart() {
+            assertEquals(io.github.digitalsmile.goldberry.natives.yoga.Align.FLEX_START,
+                    compute("button { align-items: flex-start }").alignItems());
+            assertEquals(ComputedStyle.INITIAL.alignItems(),
+                    compute("button { align-items: start }").alignItems());
+        }
+    }
 }

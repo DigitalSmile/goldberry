@@ -430,9 +430,47 @@ public record ComputedStyle(
         };
     }
 
+    /// Every declaration already reported as unusable.
+    ///
+    /// A stylesheet is **static**, so a declaration that cannot be applied cannot
+    /// be applied on the next frame either — but a style is resolved per element
+    /// per invalidation, so one typo in one rule reported itself sixty times a
+    /// second for as long as the screen it was on kept moving. That is not a
+    /// louder warning, it is a quieter log: the one line saying `align-items:
+    /// start` is not a value gets lost in the thousand identical lines after it.
+    ///
+    /// Keyed by property **and** value, so two different bad values for one
+    /// property are two reports. Bounded because a stylesheet has finitely many
+    /// declarations — with a cap anyway, since a `var()` resolving to a fresh bad
+    /// value each frame would otherwise be a slow leak in a diagnostic.
+    private static final java.util.Set<String> REPORTED =
+            java.util.concurrent.ConcurrentHashMap.newKeySet();
+
+    /// How many distinct drops are remembered before the deduplication gives up
+    /// and lets them all through.
+    ///
+    /// Letting them through rather than falling silent: past this many distinct
+    /// bad declarations something is generating them, and a log that went quiet
+    /// would hide it.
+    private static final int REPORT_LIMIT = 512;
+
     private ComputedStyle dropped(String property, List<Token> value) {
-        LOG.warn("dropping \"{}\": {} is not a valid value", property, text(value));
+        var text = text(value);
+        // `add` returns false when it was already there, which is the whole test.
+        if (REPORTED.size() >= REPORT_LIMIT || REPORTED.add(property + ':' + text)) {
+            LOG.warn("dropping \"{}\": {} is not a valid value", property, text);
+        }
         return this;
+    }
+
+    /// Forgets what has been reported, so a test can drive the same bad
+    /// declaration twice.
+    ///
+    /// Package-private: this exists for `ComputedStyleTest` and for nothing else.
+    /// A cache that could not be cleared would make the second test in a class
+    /// depend on whether the first one had already tripped the same warning.
+    static void forgetReportedDrops() {
+        REPORTED.clear();
     }
 
     // --- withers -----------------------------------------------------------

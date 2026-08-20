@@ -281,9 +281,13 @@ panel.surface-demo {
   gap: 8px;
 }
 
+/* `flex-start` and not `start`: §10's `align-items` takes Yoga's keywords, and
+   the CSS alias is not one of them. Written as `start` first, which was dropped
+   with a warning on every style resolution — so the avatar sat centred against
+   its two lines *and* the console filled up while the screen scrolled. */
 .loading-row {
   flex-direction: row;
-  align-items: start;
+  align-items: flex-start;
   gap: 12px;
 }
 
