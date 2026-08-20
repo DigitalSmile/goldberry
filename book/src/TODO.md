@@ -25,13 +25,39 @@ the mechanism the sentence named.
 
 ## Overlays, popups and windows
 
-- **`menubar` is not built, and it wants a menu that outlives one opening.** §8's
-  in-window bar with `Alt` activation needs a menu model the window owns, rather
-  than a widget tree built when the menu opens and thrown away when it closes.
-  That is the same thing that makes an accelerator *registrable*: §8 asks for one
-  "displayed right-aligned **and** auto-registered in the window's shortcut map",
-  and only the display half is built. —
+- ~~**`menubar` is not built, and it wants a menu that outlives one opening.**~~
+  **Both halves ship, and the model that outlives an opening turned out to be the
+  one the author already wrote.** What is built and discarded per opening is the
+  *popup*; a `Menu` is a value, so a `menubar` holding one holds it for as long as
+  the bar is mounted. `Accelerators` walks that description and binds every
+  command with a key on it, with no menu on screen and none needed. A bar's
+  children are `item`s and a nested `item` is a heading, so no markup was added. —
+  [ADR-0163](adr/0163-a-menu-bar-owns-its-menus.md),
   [ADR-0106](adr/0106-a-menu-is-a-widget-and-opening-one-is-not.md)
+- **A bare `Alt` tap does not activate the menu bar, and `F10` does.** §8 asks for
+  "`Alt`-style keyboard activation". A bare `Alt` is a **modifier released with
+  nothing in between**, and a `Shortcut` here is a key plus modifiers — `Key` has
+  no `ALT` to name, because a shortcut on a modifier alone can never fire. Doing
+  it properly needs key-release tracking with a "nothing happened in between"
+  rule, at the window level where the `InputWatcher` already lives. `F10` is the
+  companion binding on every platform that has the `Alt` one and is what ships. —
+  [ADR-0163](adr/0163-a-menu-bar-owns-its-menus.md)
+- **`Left` and `Right` do not move between menus while one is showing.** They walk
+  the headings when the bar has focus and nothing is down, which is the horizontal
+  focus scope doing its job. Once a menu is open the focus is in a **different
+  window**, so the bar never sees the arrow — the same missing item-to-popup
+  callback that keeps `Left` from closing a submenu, one entry below. Fixing
+  either would probably fix both. —
+  [ADR-0163](adr/0163-a-menu-bar-owns-its-menus.md),
+  [ADR-0112](adr/0112-a-menu-follows-the-pointer-and-lights-for-the-keyboard.md)
+- **An accelerator is unbound by key, so a `menubar` going away can take somebody
+  else's binding with it.** The window's shortcut map is keyed by the shortcut and
+  not by who bound it, so `Host.removeShortcut(Ctrl+O)` removes whatever is on
+  `Ctrl+O` — including a binding the application made afterwards. Two things
+  claiming one key is already a conflict where the last registration wins; this is
+  that conflict at the other end. Fixing it means the map remembering owners, and
+  `menubar` would be the only thing that used it. —
+  [ADR-0163](adr/0163-a-menu-bar-owns-its-menus.md)
 - **The keyboard menu key does not open a context menu.** §8 asks for "right-click
   **or** the keyboard menu key at the focused widget"; the key half needs
   `Key.MENU` in the key map and an anchor from the *focused element's* rectangle,
@@ -475,6 +501,31 @@ the mechanism the sentence named.
 
 ## Layout
 
+- **`split-pane` is not built.** §5 wants two children, a draggable divider that is
+  also keyboard-resizable when focused, minimum sizes, optional collapse-to-edge,
+  and a retained divider position. Nothing about it is undecided — it is the first
+  container in §5 that needs a **drag with a retained value**, which is `slider`'s
+  machinery pointed at a layout rather than at a number, plus the keyboard
+  equivalent that a separator with a value has to have. —
+  [ADR-0164](adr/0164-elevation-is-an-edge-and-a-closed-section-is-absent.md)
+- **`carousel` is not built, and it is the one §5 widget that is a controller.**
+  Everything else in the group is a description; a carousel with `interval` set
+  has a rotation that must pause on hover, pause on focus anywhere inside, and not
+  run at all under reduced motion — §1.7 rule 4's canonical violation is a
+  carousel that moves while being read. The pausing is the work: three separate
+  reasons to stop, and the widget has to see all three. —
+  [ADR-0164](adr/0164-elevation-is-an-edge-and-a-closed-section-is-absent.md)
+- **`statistic`'s sparkline waits on `canvas`.** §5 asks for an "optional
+  `sparkline` from a `canvas`", and `canvas` is §12's and not in the catalog.
+  Nothing in `statistic` is shaped around its absence: a sparkline is one more
+  child at the end of the column. —
+  [ADR-0164](adr/0164-elevation-is-an-edge-and-a-closed-section-is-absent.md)
+- **`collapse`'s `accordion=` is not built, and it belongs to the `column`.** §5
+  puts `accordion=#true` on a *containing* `column`, which makes it a rule about
+  siblings rather than about a section — so the enforcement is the container's and
+  a `collapse` cannot do it alone. The widget is otherwise complete. —
+  [ADR-0164](adr/0164-elevation-is-an-edge-and-a-closed-section-is-absent.md)
+
 - **`flex-basis` is still the only layout property §8 names and nothing resolves.** It
   was implemented for `segmented` and taken back out rather than left as a property with
   no consumer — `flex-basis: 0` makes Yoga compute a track's content size as *zero*, so
@@ -592,6 +643,30 @@ the mechanism the sentence named.
   rather than earlier.
 
 ## Rendering and performance
+
+- **What is still asserted only at 1x, now that the goldens are not.** Every one of
+  the 106 golden images is drawn again at 2x and 1.5x and checked for being the same
+  picture, and `ClipTest`, `TransformPaintTest` and `IconPaintTest` do the same
+  without a golden behind them — so the whole widget catalog, text included, is now
+  covered against the logical-against-physical family ADR-0157 found. **Four classes
+  of direct pixel assertion are not**, and two of them are deliberate:
+  `BoxPainterTest` and `TextPaintTest` each already carry their own scale cases and
+  would gain little; `DamageTest` is **excluded on purpose**, because a damage
+  rectangle is in physical pixels by design and legitimately differs between scales,
+  so an invariance check there would assert something false; and `ThreadedPaintTest`
+  is about two worker counts agreeing, which is orthogonal. What no test at any scale
+  covers is a **fractional scale other than 1.5** — 1.25 and 1.75 are ordinary
+  Windows settings and neither is exercised. —
+  [ADR-0162](adr/0162-a-golden-is-checked-at-every-scale.md),
+  [ADR-0157](adr/0157-a-layer-is-blitted-into-its-own-size.md)
+- **The scale-invariance thresholds are calibrated on one CPU.** The worst honest
+  disagreement measured over the corpus is 0.332% of pixels against a 1.2% limit, and
+  Blend2D JITs its antialiasing for the CPU it finds (ADR-0030) — so the margin on
+  AVX-512, on Apple Silicon and under MSVC is answered by the next CI run rather than
+  by argument, exactly as the goldens' own tolerance is.
+  `-Dgoldberry.golden.scales.report=true` prints what every check measured, which is
+  how a runner pressing against the limit would say so in numbers. —
+  [ADR-0162](adr/0162-a-golden-is-checked-at-every-scale.md)
 
 - **How damage is computed, and the bug a resize found in it.** Each render object
   remembers where it was, and a node that changed damages the union of where it **was**

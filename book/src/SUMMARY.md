@@ -171,6 +171,9 @@
 - [ADR-0159 A native image carries its own library](adr/0159-a-native-image-carries-its-own-library.md)
 - [ADR-0160 A module's own resources are declared, not traced](adr/0160-a-modules-own-resources-are-declared-not-traced.md)
 - [ADR-0161 A downcall handle is a constant, or it is not a call](adr/0161-a-downcall-handle-is-a-constant-or-it-is-not-a-call.md)
+- [ADR-0162 A golden is checked at every scale](adr/0162-a-golden-is-checked-at-every-scale.md)
+- [ADR-0163 A menu bar owns its menus](adr/0163-a-menu-bar-owns-its-menus.md)
+- [ADR-0164 Elevation is an edge, and a closed section is absent](adr/0164-elevation-is-an-edge-and-a-closed-section-is-absent.md)
 
 ---
 

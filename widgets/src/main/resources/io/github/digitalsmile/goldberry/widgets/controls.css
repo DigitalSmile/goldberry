@@ -2143,3 +2143,212 @@ tour-card > column > row {
   background: var(--gb-button-primary-bg-active);
 }
 
+/* ------------------------------------------------------------------ card --
+ *
+ * `docs/core-widgets.md` §5's "elevated surface". §5 says "shadow tokens" and
+ * §10's subset has no `box-shadow` — nothing in this toolkit paints outside a
+ * box's own rectangle — so **elevation is an edge**, exactly as `popover`'s is
+ * (ADR-0104, ADR-0164): a brighter surface and a stronger border than the page.
+ */
+card {
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  background: var(--gb-surface-2);
+  border: 1px solid var(--gb-border);
+  border-radius: 8px;
+}
+
+/* §5's "hover-elevation optional via class". Opt-in, because a card that lit up
+   under the pointer would promise it does something, and most cards do not. */
+card.interactive {
+  transition: border-color var(--gb-motion-base);
+}
+
+card.interactive:hover {
+  border-color: var(--gb-accent);
+}
+
+/* ------------------------------------------------------------- group-box --
+ *
+ * §5's "titled border group for settings clusters". The title sits **above** the
+ * frame rather than through it: a legend that breaks the border needs a notch the
+ * subset cannot express, or the page's own background painted behind the words —
+ * which is wrong the moment a group box sits on anything but the page (ADR-0164).
+ */
+group-box {
+  flex-direction: column;
+  gap: 6px;
+}
+
+group-box-title {
+  font-size: var(--gb-font-heading);
+  font-weight: 600;
+  color: var(--gb-text);
+  flex-shrink: 0;
+}
+
+/* The frame, and the only part with a border — a border on `group-box` itself
+   would enclose the title as well. `tab-rule`'s argument, one widget later. */
+group-box-body {
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  background: var(--gb-surface);
+  border: 1px solid var(--gb-border);
+  border-radius: 8px;
+}
+
+/* ------------------------------------------------------------- statistic --
+ *
+ * §5's "labelled number". Three ranks of §1.2's hierarchy in one block: the label
+ * is caption, the value is display, the delta is body.
+ */
+statistic {
+  flex-direction: column;
+  gap: 2px;
+}
+
+statistic-label {
+  font-size: var(--gb-font-caption);
+  color: var(--gb-text-muted);
+}
+
+/* A row, because the unit sits beside the number rather than under it. */
+statistic-value {
+  flex-direction: row;
+  align-items: baseline;
+  gap: 4px;
+  font-size: var(--gb-font-display);
+  color: var(--gb-text);
+}
+
+/* Muted and small: the unit is context for the number rather than part of it,
+   which is the same rank a menu row's accelerator has. */
+statistic-unit {
+  font-size: var(--gb-font-body);
+  color: var(--gb-text-muted);
+}
+
+/* Neither up nor down is the muted default, so a delta with no direction is
+   legible rather than arbitrarily green (see `Statistic.Direction`). */
+statistic-delta {
+  font-size: var(--gb-font-body);
+  color: var(--gb-text-muted);
+}
+
+statistic-delta.up {
+  color: var(--gb-success);
+}
+
+statistic-delta.down {
+  color: var(--gb-danger);
+}
+
+/* -------------------------------------------------------------- skeleton --
+ *
+ * §5's placeholder. Every size here is a **typography token**, which is the whole
+ * point: "sized from the typography token it stands in for so the layout does not
+ * jump when the real content arrives". A theme that changes its type scale moves
+ * the placeholders with it.
+ *
+ * The pulse is not here. §1.7 rule 4 makes a shimmer the one loop in the canon,
+ * and a loop is not a transition — it is a pure function of the frame clock,
+ * computed in `Skeleton` the way `spinner`'s rotation is (ADR-0081).
+ */
+skeleton {
+  flex-direction: column;
+  gap: 6px;
+}
+
+skeleton-bar {
+  background: var(--gb-surface-2);
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+/* Body text. The height is the line box rather than the glyph height, so three
+   bars occupy exactly what three lines will. */
+skeleton-bar.text {
+  height: var(--gb-font-body);
+}
+
+skeleton-bar.title {
+  height: var(--gb-font-title);
+}
+
+/* An avatar. The radius is half the side, which is how a square becomes a circle
+   in a subset with no `border-radius: 50%`. */
+skeleton-bar.circle {
+  width: 40px;
+  height: 40px;
+  border-radius: 20px;
+}
+
+/* Arbitrary content — an image, a chart. No token can say how big that is, so
+   this is a floor and whatever encloses it decides the rest. */
+skeleton-bar.rect {
+  height: 80px;
+}
+
+/* The last line of a paragraph is short, because a block of identical full-width
+   bars reads as a table rather than as prose. A width and not a margin: the bars
+   are in a column, so shortening one is shortening it. */
+skeleton-bar.text.last {
+  width: 60%;
+}
+
+/* -------------------------------------------------------------- collapse --
+ *
+ * §5's disclosure. The body is **not here** while it is shut — `CollapseSection`
+ * describes no such node, so there is nothing to hide and nothing alive behind a
+ * header nobody has opened.
+ */
+collapse {
+  flex-direction: column;
+  flex-shrink: 0;
+}
+
+/* One tab stop, and the only focusable thing in a section. */
+collapse-header {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  height: var(--gb-control-height);
+  padding: 0 8px;
+  border-radius: 4px;
+  flex-shrink: 0;
+  cursor: pointer;
+}
+
+collapse-header:hover {
+  background: var(--gb-overlay-hover);
+}
+
+collapse-header:focus-visible {
+  outline: 2px solid var(--gb-accent);
+  outline-offset: 2px;
+}
+
+/* The marker turns rather than being swapped for a different glyph: §5 asks for a
+   rotation on `base`, and a mark that changed kind would jump. `transform` is on
+   §1.7's whitelist precisely so this costs no layout. */
+collapse-chevron {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  color: var(--gb-text-muted);
+  transition: transform var(--gb-motion-base);
+}
+
+collapse-chevron.open {
+  transform: rotate(90deg);
+}
+
+/* Indented under the header, which is why the body is a node of its own: padding
+   on `collapse` would indent the header too. */
+collapse-body {
+  flex-direction: column;
+  gap: 8px;
+  padding: 4px 8px 8px 32px;
+}

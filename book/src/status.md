@@ -2422,9 +2422,150 @@ is the `scroll` box's.
   which is the only way to test a flag read once into a `static final` field
   (ADR-0101)
 
+- **Every golden is now three goldens, and none of them is committed.** ADR-0157
+  fixed a layer composited at twice its size on a 2x display and wrote down what it
+  had not fixed: 37 of the 39 `assertMatches` calls in the repository were at 1.0,
+  where the multiplication between logical units and device pixels is the identity
+  and a conversion done twice, not at all, or in the wrong space draws exactly the
+  right picture. A golden that matches is now **drawn again at 2x and 1.5x its own
+  scale**, into a frame of the same *logical* size, area-resampled back down and
+  compared — so the claim being checked is invariance rather than "this is the 2x
+  render", which is what makes it worth a hundred more PNGs of nobody's review
+  attention. The comparison lets a pixel find its match anywhere in the 3x3
+  neighbourhood around it, because the two things that differ honestly between
+  scales — an edge Yoga rounded onto a different device pixel, and a glyph
+  antialiased at a different resolution — are both sub-pixel, and a subtree at twice
+  its size is not. It runs in **both directions**: "every pixel of the reference is
+  still near where it was" says nothing about something that *grew*, since the
+  reference's ink is all still there with more around it. `ClipTest`,
+  `TransformPaintTest` and `IconPaintTest` get the same check with no golden behind
+  it, which is where the arithmetic actually lives. **Nothing new was found** — the
+  whole corpus passed at both scales on the first run, 2215 tests green — and saying
+  otherwise would misrepresent what this bought: ADR-0157's bug was already fixed,
+  and this is what stops the next one being invisible for a year. The cost is about
+  17 ms a golden (88 images, 2.16 s to 3.64 s). What keeps it honest is that its
+  failure path runs: `ScaleInvarianceTest` rebuilds ADR-0157's bug on purpose — a
+  rectangle sized in physical pixels and drawn in logical ones — and asserts it is
+  rejected, and does it again for a border thickened by the scale, which is the
+  subtle end of the family and only a stroke wide
+  ([ADR-0162](adr/0162-a-golden-is-checked-at-every-scale.md))
+
+### `menubar`, and the accelerator that was waiting on it
+
+- **The model that had to outlive one opening turned out to be the one the author
+  already wrote.** ADR-0106 left two things unbuilt with one sentence explaining
+  both — §8's in-window bar, and the half of an accelerator that is
+  *registration* rather than display — because "a menu is built when it opens and
+  thrown away when it closes". That is true of the **popup**. A `Menu` is a
+  `record`: an ordinary value, and `Menus.open` builds a *second* tree from it to
+  put in a window. Nothing was ever holding the description, which is a different
+  complaint, and the fix for it is a widget that does. So `menubar` holds its
+  menus, `Accelerators` walks them, and `Ctrl+O` runs the command a submenu three
+  levels down names **with nothing at all on screen** — which is the central test,
+  written that way deliberately, because anything that opened a menu first would
+  be testing the part that already worked.
+- **No markup was added.** A bar's children are `item`s, and an `item` containing
+  `item`s is a heading that opens a menu — the nesting that has been the submenu
+  syntax since ADR-0106. The showcase's bar is written entirely in KDL beside the
+  buttons that were already there, wired to the same actions, and its
+  accelerators are live: `Ctrl+K` clicks the counter with the bar shut.
+- **A heading is not a menu row, and the keyboard is why.** `Down` opens where an
+  `Item` moves; `Right` moves where an `Item` opens. Neither arrow is the widget's
+  — `menubar` is a **horizontal** focus scope where `menu` is a vertical one
+  (ADR-0078), so traversal is free and the two arrows left over are the two a bar
+  wants. A heading also has none of the three things that make a row a row: no
+  tick column, no accelerator on the right, no chevron. Hovering a heading opens
+  it **only when a menu is already down**, which is what every desktop bar does;
+  hovering with nothing open would drop a menu on somebody crossing the bar on
+  the way elsewhere.
+- **`F10`, not `Alt`, and the reason is in the type.** §8 asks for "`Alt`-style
+  keyboard activation"; a bare `Alt` is a *modifier released with nothing in
+  between*, and a `Shortcut` here is a key plus modifiers — `Key` has no `ALT` to
+  name, because `Shortcut`'s own constructor refuses one that can never fire.
+  `F10` is the companion binding on every platform that has the `Alt` one, and it
+  **opens** the first heading rather than focusing it, because there is no
+  `Host.focus` and a binding that did nothing visible would read as broken rather
+  than as missing.
+- **Three costs, written down rather than discovered.** `Host` grew
+  `removeShortcut`, and the map is keyed by the shortcut and not by who bound it —
+  so a bar going away takes whatever is on `Ctrl+O` with it, including a binding
+  made afterwards; a collision inside one bar is logged and the later row wins;
+  and an accelerator that does not **parse** is logged and skipped rather than
+  thrown, because it is a typo already drawn beside the row where somebody can
+  see it.
+- **Adding two methods to `Host` found a third hand-written stub.** `SelectTest`
+  and `TourTest` each carried a near-identical one, so the interface change would
+  have meant editing both and writing a third. `TestHost` is the shared one, both
+  extend it, and — like the real thing under SDL's `dummy` driver — it **opens
+  nothing**, which is the branch ADR-0102 says a control has to survive.
+- **The first widget drawn through ADR-0162.** Six goldens, each checked at 2x and
+  1.5x on the day it was written rather than after somebody reports a HiDPI bug.
+  And the images earned their keep immediately: `.open` started as
+  `--gb-overlay-active` against `:hover`'s `--gb-overlay-hover` — 16% against 8% —
+  and the picture said the two are hard to tell apart, which is precisely the
+  comparison a bar puts in front of somebody, since the hovered heading is usually
+  the one *next to* the open one. It is the accent fill now
+  ([ADR-0163](adr/0163-a-menu-bar-owns-its-menus.md))
+- **Two things §8 asks for are still not built and neither is a bar problem**: a
+  bare `Alt` tap, and `Left`/`Right` moving *between* menus while one is down —
+  the open menu is a window of its own with its own focus, so the bar never sees
+  the arrow, which is the same missing item-to-popup callback that has kept `Left`
+  from closing a submenu since ADR-0112.
+
+### Five of §5's seven containers
+
+- **`card`, `group-box`, `statistic`, `skeleton` and `collapse` ship**, and three
+  of them ran straight into a limit worth writing down rather than rediscovering.
+  **A card's elevation is an edge**: §10's subset has no `box-shadow` and nothing
+  in this toolkit paints outside a box's own rectangle, so a card is raised by
+  contrast — `--gb-surface-2` against the page, plus a border — which is the
+  answer `popover` reached first and is the honest version of the same idea, since
+  contrast is what a rasterizer with no shadow pass can express. **A group box's
+  title is above the frame, not through it**: a legend that breaks a border needs
+  a notch the subset cannot express, or the page's own background painted behind
+  the words, which is wrong the moment the box sits on anything but the page — and
+  a heading above a frame wraps at a small width where a legend through one breaks
+  it. **A closed `collapse` describes no body at all** — not a hidden one, not one
+  of zero height — so nothing is mounted and nothing subscribed, which is §5's
+  own reasoning and ADR-0004's; the test for it is therefore an assertion about an
+  absence, including that the author's own widgets were never built.
+- **The one loop in the canon is a function of the clock, not a transition.** §1.7
+  rule 4 lets a `skeleton` shimmer and nothing else, and a transition runs between
+  two states where a skeleton has one — so the pulse is computed from
+  `nowMillis()`, which is `spinner`'s arrangement (ADR-0081) and is why a column of
+  placeholders is in step by construction. A **triangle wave** folding at the
+  halfway point, so the two ends meet and it does not snap once a second, between
+  0.45 and 1.0 rather than 0 and 1: a placeholder that fades to nothing flickers
+  the layout empty, and one at full strength is indistinguishable from content.
+  Reduced motion holds it at its **dimmest**, because a placeholder frozen bright
+  reads as content that arrived and was blank.
+- **Two things the tests found rather than assumed.** A record component **cannot
+  be called `children` when `children()` is overridden**: `GroupBox` described its
+  parts from that method, which is also the accessor for the author's widgets, so
+  asking a group box what was in it returned its own chrome — caught by inflating
+  one node and being told it had two, and the component is `content` now. And the
+  **skeleton goldens could never have matched**: a widget drawing from the frame
+  clock renders differently every run, so they need `Clock.virtual()` the way
+  `ProgressGoldenTest` already did. The instant is pinned at the fold, 500 ms; 250
+  was the first guess and is a quarter of the way in rather than the peak.
+- **`statistic` never formats and never infers.** §5's reason for a string is that
+  a locale-aware number formatted inside the toolkit makes a golden that cannot be
+  reproduced on another machine. And `direction` names the **sentiment** rather
+  than the arithmetic — latency falling is success — so the caller picks it; a
+  widget that read the leading `-` would colour a latency improvement red. The
+  colour itself is a class on the delta, so it stays the stylesheet's
+  ([ADR-0164](adr/0164-elevation-is-an-edge-and-a-closed-section-is-absent.md))
+- **`split-pane` and `carousel` are not built.** Neither has a design question
+  outstanding; both need something none of the five did — a drag with a retained
+  position and a keyboard equivalent, and a timed rotation that pauses on hover, on
+  focus and under reduced motion. `statistic`'s sparkline waits on `canvas`, and
+  `collapse`'s `accordion=` is a rule about siblings and therefore the containing
+  `column`'s.
+
 ### Not started
 
-`menubar`, tray, dialogs, forms, client-side decorations and charts. The rest of §5 — `card`, `group-box`, `split-pane`, `collapse`,
+`split-pane`, `carousel`, tray, dialogs, forms, client-side decorations and
+charts. The rest of §5 — `card`, `group-box`, `split-pane`, `collapse`,
 `carousel`, `statistic`, `skeleton` — is untouched. M2's leftover `select` is ordinary widget
 work now — it owns its model, its item semantics and its keyboard map, and none
 of that has to solve size, position or dismissal. The one thing that stood
