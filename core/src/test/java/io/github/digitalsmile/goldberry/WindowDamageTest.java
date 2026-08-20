@@ -1,13 +1,16 @@
 package io.github.digitalsmile.goldberry;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import io.github.digitalsmile.goldberry.backend.DamageRect;
 import io.github.digitalsmile.goldberry.backend.DisplayScale;
 import io.github.digitalsmile.goldberry.backend.LogicalSize;
 import io.github.digitalsmile.goldberry.backend.WindowSpec;
 import io.github.digitalsmile.goldberry.backend.headless.HeadlessBackend;
 import io.github.digitalsmile.goldberry.backend.headless.HeadlessWindow;
+import java.util.List;
 import java.util.function.Consumer;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -98,6 +101,98 @@ class WindowDamageTest {
         var rect = presented.lastDamage().getFirst();
         assertEquals(600, rect.width(), "damage kept the pre-resize width");
         assertEquals(450, rect.height(), "damage kept the pre-resize height");
+    }
+
+    @Test
+    @Timeout(10)
+    @DisplayName("a frame that could not be repainted in part uploads the whole window")
+    void aFullRepaintUploadsTheWholeWindow() {
+        // The resize flicker, reported as "black areas appear while dragging the
+        // edge". Two facts that are each correct on their own:
+        //
+        //   - a resize reallocates the frame buffer, so the previous frame's
+        //     pixels are gone and `canRepaintPartially()` says no. The painter
+        //     therefore repaints everything, which is right.
+        //   - the painter also reports which regions *changed*, and after a
+        //     resize that is still a small list -- one control moved.
+        //
+        // Presenting that small list uploads a small rectangle of a buffer that
+        // was entirely repainted, onto a platform surface that was entirely
+        // reallocated. Everything outside it is whatever the compositor left
+        // there, which is black.
+        //
+        // So the window overrides what it was told: a frame it could not repaint
+        // in part is a frame it must upload in whole.
+        var window = Window.open(WindowSpec.of("damage", LogicalSize.of(200f, 100f)));
+        var backendWindow = (HeadlessWindow) backend.windows().getFirst();
+        var painted = new int[1];
+        var partialOnTheLastFrame = new boolean[1];
+
+        window.onPaint(frame -> {
+            frame.fill(0xFF204060);
+            painted[0]++;
+            if (painted[0] == 1) {
+                backendWindow.resizeTo(LogicalSize.of(400f, 300f));
+            }
+            partialOnTheLastFrame[0] = window.canRepaintPartially();
+            // What damage tracking reports on a frame where one control moved.
+            window.damaged(List.of(new DamageRect(0, 0, 10, 10)));
+            if (painted[0] >= 2) {
+                Goldberry.stop();
+            } else {
+                window.repaint();
+            }
+        });
+
+        Goldberry.run();
+
+        assertFalse(partialOnTheLastFrame[0],
+                "the buffer was reallocated by the resize, so this frame was a full repaint");
+        var damage = presentedDamage(backendWindow);
+        assertEquals(600, damage.width(),
+                "a fully repainted frame uploaded only the region the painter said had changed");
+        assertEquals(450, damage.height(),
+                "a fully repainted frame uploaded only the region the painter said had changed");
+    }
+
+    @Test
+    @Timeout(10)
+    @DisplayName("a frame that could be repainted in part uploads only what changed")
+    void aPartialRepaintUploadsOnlyTheDamage() {
+        // The other half, and the reason the fix above is a clamp rather than
+        // "always upload everything": at a steady size the buffer is the same one
+        // and what the painter reports is exactly what should be uploaded. ADR-0046
+        // measured that at about a millisecond a frame.
+        var window = Window.open(WindowSpec.of("damage", LogicalSize.of(200f, 100f)));
+        var backendWindow = (HeadlessWindow) backend.windows().getFirst();
+        var painted = new int[1];
+        var partialOnTheLastFrame = new boolean[1];
+
+        window.onPaint(frame -> {
+            frame.fill(0xFF204060);
+            painted[0]++;
+            partialOnTheLastFrame[0] = window.canRepaintPartially();
+            window.damaged(List.of(new DamageRect(0, 0, 10, 10)));
+            if (painted[0] >= 3) {
+                Goldberry.stop();
+            } else {
+                window.repaint();
+            }
+        });
+
+        Goldberry.run();
+
+        assertTrue(partialOnTheLastFrame[0],
+                "the size never moved, so the third frame should have been partial");
+        var damage = presentedDamage(backendWindow);
+        assertEquals(10, damage.width(), "the reported damage was widened for no reason");
+        assertEquals(10, damage.height(), "the reported damage was widened for no reason");
+    }
+
+    private static DamageRect presentedDamage(HeadlessWindow window) {
+        var damage = window.lastDamage();
+        assertEquals(1, damage.size(), () -> "expected one rectangle, got " + damage);
+        return damage.getFirst();
     }
 
     /// Opens a window, runs the real event loop until it has painted `frames`

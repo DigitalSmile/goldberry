@@ -224,6 +224,14 @@ public final class Window implements AutoCloseable {
     /// is advisory in the strict sense — the pixels outside them are still
     /// whatever was painted — so a caller that gets it wrong shows a stale
     /// region rather than a corrupt one.
+    ///
+    /// **Ignored on a frame that could not be repainted in part.** If
+    /// [#canRepaintPartially()] said no, the buffer had no previous contents to
+    /// build on, the painter was expected to draw everything, and uploading a
+    /// subset of it would leave the rest of the window showing whatever the
+    /// platform had there. So the whole frame goes up and what is reported here
+    /// is not consulted (ADR-0158). A painter therefore reports what *changed*
+    /// and never has to reason about what the surface underneath it still holds.
     public Window damaged(List<DamageRect> regions) {
         this.damage = List.copyOf(Objects.requireNonNull(regions, "regions"));
         return this;
@@ -262,6 +270,10 @@ public final class Window implements AutoCloseable {
     /// }
     /// window.damaged(damage);
     /// ```
+    ///
+    /// `damaged` is called the same way either way: what is reported is what
+    /// changed, and a frame this returned false for is uploaded whole regardless
+    /// (ADR-0158).
     public boolean canRepaintPartially() {
         return partialRepaint;
     }
@@ -368,8 +380,28 @@ public final class Window implements AutoCloseable {
 
         var frameSize = size;
         try {
+            // Clamped to the whole frame when this one could not be repainted in
+            // part, whatever the painter reported.
+            //
+            // The two are not the same question and it took a resize to show it.
+            // What `damaged` reports is which regions *changed*; what `present`
+            // uploads has to be every region that is not already correct on the
+            // platform's surface. At a steady size those coincide, because the
+            // surface holds the last frame. After a reallocation -- a resize, a
+            // rotated buffer -- the surface holds nothing, the painter was told to
+            // repaint everything and did, and uploading only what changed leaves
+            // the rest of the window showing whatever the compositor had there.
+            // Which is black, and during a live resize it is black that flickers
+            // ([ADR-0158](../../../../../book/src/adr/0158-a-full-repaint-is-a-full-upload.md)).
+            //
+            // Here rather than at the call site, because a painter reporting what
+            // changed is right and there is nothing for it to do differently --
+            // this window is the only thing that knows whether the buffer it is
+            // about to present had valid contents to begin with.
             window.present(target,
-                    damage == null ? List.of(DamageRect.all(frameSize)) : damage);
+                    damage == null || !partialRepaint
+                            ? List.of(DamageRect.all(frameSize))
+                            : damage);
             damage = null;
             if (!everPresented) {
                 everPresented = true;

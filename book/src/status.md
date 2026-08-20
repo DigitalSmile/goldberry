@@ -2294,6 +2294,28 @@ is the `scroll` box's.
   in this repository is at 1x, where this whole class of bug is invisible
   ([ADR-0157](adr/0157-a-layer-is-blitted-into-its-own-size.md))
 
+- **A full repaint is a full upload, and the resize stopped flickering black.**
+  Reported from a Mac: dragging a window edge flickered with black areas. Two
+  mechanisms, each correct alone. ADR-0072 asks the backend whether the lent
+  buffer still holds the last frame; a resize reallocates it, so the answer is no
+  and the painter repaints everything. ADR-0046's damage list is a different
+  question — which regions *changed* — and the frame loop reported it either way.
+  So the frame after a resize was painted in full and uploaded in part, onto a
+  surface that was entirely new: everything outside the damage rectangles was
+  whatever the compositor had there. At a steady size the two questions have the
+  same answer, which is why every damage test, every golden and every headless run
+  missed it. The clamp lives in `Window` rather than at the call site, because a
+  painter reporting what changed has nothing to do differently and the window is
+  the only thing that knows whether the buffer had valid contents. Both halves are
+  now pinned — a frame after a resize uploads the whole window, a frame at a
+  steady size uploads only what changed, and the second is what stops this being
+  "fixed" by uploading everything always. **Not confirmed on the reporting
+  machine**: the cause is reproduced headlessly on Linux and is unambiguous, but
+  whether it is the whole of what a Mac shows during a live resize — which macOS
+  drives from inside a modal run loop — is not something this repository can
+  answer yet
+  ([ADR-0158](adr/0158-a-full-repaint-is-a-full-upload.md))
+
 ### Not started
 
 `menubar`, tray, dialogs, forms, client-side decorations and charts. The rest of §5 — `card`, `group-box`, `split-pane`, `collapse`,
