@@ -2413,6 +2413,15 @@ is the `scroll` box's.
   ([ADR-0161](adr/0161-a-downcall-handle-is-a-constant-or-it-is-not-a-call.md),
   [the native-image page](native.md))
 
+- **`-Dgoldberry.trace.frames=all` printed nothing at all.** Found while measuring
+  the above. `ENABLED` was `Boolean.getBoolean`, which is false for anything but
+  `true`, while `ALL_FRAMES` looked for `all` — so the setting that asks for *more*
+  output turned tracing off entirely and every counter guarded by `ENABLED` was
+  skipped. `all` now implies `true`, and both readings are pure functions of the
+  property value so that `FrameTraceFlagsTest` can check them without setting it —
+  which is the only way to test a flag read once into a `static final` field
+  (ADR-0101)
+
 ### Not started
 
 `menubar`, tray, dialogs, forms, client-side decorations and charts. The rest of §5 — `card`, `group-box`, `split-pane`, `collapse`,

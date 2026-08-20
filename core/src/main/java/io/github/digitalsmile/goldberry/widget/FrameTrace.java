@@ -7,7 +7,8 @@ import java.util.Map;
 /// explaining.
 ///
 /// ```
-/// ./gradlew :example:run -Dgoldberry.trace.frames=true
+/// ./gradlew :example:run -Dgoldberry.trace.frames=true   # frames that did something
+/// ./gradlew :example:run -Dgoldberry.trace.frames=all    # and the quiet ones
 /// ```
 ///
 /// ## Why this is not logging
@@ -30,20 +31,43 @@ import java.util.Map;
 /// Confined to the UI thread, like everything the frame loop touches.
 public final class FrameTrace {
 
+    /// The property both readings come from: unset, `true`, or `all`.
+    public static final String TRACE_PROPERTY = "goldberry.trace.frames";
+
     /// Whether to count anything at all.
     ///
     /// A system property and not a log level: a diagnostic that costs an
     /// `isTraceEnabled()` per element per frame would be measuring itself, which
     /// is [ADR-0101](../../../../../../book/src/adr/0101-a-diagnostic-must-not-be-the-thing-it-measures.md)'s
     /// whole subject.
-    public static final boolean ENABLED = Boolean.getBoolean("goldberry.trace.frames");
+    public static final boolean ENABLED = enabled(System.getProperty(TRACE_PROPERTY));
 
     /// Whether to report frames in which nothing happened.
     ///
     /// Off by default because an idle loop at 60 fps produces a line a frame that
     /// says "nothing changed", and the frames worth reading are the ones next to
     /// the click.
-    public static final boolean ALL_FRAMES = "all".equals(System.getProperty("goldberry.trace.frames"));
+    public static final boolean ALL_FRAMES = allFrames(System.getProperty(TRACE_PROPERTY));
+
+    /// Whether `value` asks for tracing at all.
+    ///
+    /// **`all` implies `true`**, which is the whole reason this is a method. It
+    /// used to be `Boolean.getBoolean`, which is false for `all` — so the louder
+    /// of the two settings turned the quieter one off and `=all` printed nothing
+    /// whatsoever. A flag whose stronger form does less than its weaker one is
+    /// the kind of thing only a test catches, so there is one.
+    ///
+    /// @param value the raw property, or null when it is unset
+    static boolean enabled(String value) {
+        return allFrames(value) || Boolean.parseBoolean(value);
+    }
+
+    /// Whether `value` asks for the quiet frames too.
+    ///
+    /// @param value the raw property, or null when it is unset
+    static boolean allFrames(String value) {
+        return "all".equalsIgnoreCase(value);
+    }
 
     /// One per element tree, made by it — there is nothing useful to do with a
     /// trace that is not attached to a tree.
