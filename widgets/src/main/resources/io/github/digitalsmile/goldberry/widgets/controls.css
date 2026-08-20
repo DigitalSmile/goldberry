@@ -2143,6 +2143,24 @@ tour-card > column > row {
   background: var(--gb-button-primary-bg-active);
 }
 
+/* ----------------------------------------------------------------- panel --
+ *
+ * §5's "plain surface: `--gb-surface`, border, radius tokens. The building block;
+ * no elevation."
+ *
+ * **This rule did not exist**, and its absence was reported as "I cannot tell a
+ * panel from a card": the widget draws nothing at all, so every document that
+ * wanted a surface invented one — and the showcase invented one that looked
+ * exactly like a card. A building block that draws nothing is not a building
+ * block (ADR-0166).
+ */
+panel {
+  flex-direction: column;
+  background: var(--gb-surface);
+  border: 1px solid var(--gb-border);
+  border-radius: 8px;
+}
+
 /* ------------------------------------------------------------------ card --
  *
  * `docs/core-widgets.md` §5's "elevated surface". §5 says "shadow tokens" and
@@ -2154,8 +2172,24 @@ card {
   flex-direction: column;
   gap: 8px;
   padding: 12px;
-  background: var(--gb-surface-2);
-  border: 1px solid var(--gb-border);
+  /* **The same fill as a panel, and a stronger edge.** ADR-0164 decided that
+     elevation here is an edge, and then hedged by also stepping the fill to
+     `--gb-surface-2` -- which is wrong in two ways. Eight levels is not an
+     elevation anybody can see on dark, which is how it was first reported; and
+     `--gb-surface-2` is a step *down* from `--gb-surface` on the light theme,
+     where `--gb-surface` is white, so a stepped card read as **recessed** there.
+     `surface-2` means "the second surface", not "one step more elevated", and
+     it never promised otherwise.
+
+     So the fill is `--gb-surface-raised`, which is a token that means what a
+     card needs -- "one step more raised than a panel" -- and which the two
+     themes answer differently because they have to: dark has room above
+     `--gb-surface` and light does not, white being the top. And the edge is an
+     alpha over whatever is underneath, so it lightens on dark and darkens on
+     light without either theme stating it twice, and a card reads as raised on
+     a page, on a panel, or on another card (ADR-0166). */
+  background: var(--gb-surface-raised);
+  border: 1px solid var(--gb-border-strong);
   border-radius: 8px;
 }
 
@@ -2171,32 +2205,47 @@ card.interactive:hover {
 
 /* ------------------------------------------------------------- group-box --
  *
- * §5's "titled border group for settings clusters". The title sits **above** the
- * frame rather than through it: a legend that breaks the border needs a notch the
- * subset cannot express, or the page's own background painted behind the words —
- * which is wrong the moment a group box sits on anything but the page (ADR-0164).
+ * §5's "titled border group for settings clusters", and the border goes round
+ * **both** the title and the content — which is what makes it a titled group
+ * rather than a heading with a panel under it.
+ *
+ * The first cut put the title above the frame and was reported as "what is the
+ * purpose of group box?", which was the right question to ask of it: a heading
+ * floating over a bordered box says nothing about the two belonging together, and
+ * an untitled one was indistinguishable from a `card` (ADR-0166).
+ *
+ * A `fieldset`'s legend *through* the border is still not available — it needs a
+ * notch the subset cannot express — and this needs nothing the subset has not
+ * got.
  */
 group-box {
   flex-direction: column;
-  gap: 6px;
+  background: var(--gb-surface);
+  border: 1px solid var(--gb-border);
+  border-radius: 8px;
 }
 
+/* The header row. The rule under it is a `border` on this node rather than a
+   separate box, which works here and did not for `tabs` (ADR-0107): a tab strip's
+   rule has to stop where the headers stop, and this one runs the full width on
+   purpose. It is the border's *bottom* that is wanted and §8's subset has one
+   `border` and no per-edge longhands — so the whole box is bordered and three of
+   its edges are painted in the frame's own colour, which is what a full-width
+   1px rule under a header costs here. */
 group-box-title {
+  padding: 8px 12px;
   font-size: var(--gb-font-heading);
   font-weight: 600;
   color: var(--gb-text);
+  background: var(--gb-surface-2);
+  border-radius: 7px 7px 0 0;
   flex-shrink: 0;
 }
 
-/* The frame, and the only part with a border — a border on `group-box` itself
-   would enclose the title as well. `tab-rule`'s argument, one widget later. */
 group-box-body {
   flex-direction: column;
   gap: 8px;
   padding: 12px;
-  background: var(--gb-surface);
-  border: 1px solid var(--gb-border);
-  border-radius: 8px;
 }
 
 /* ------------------------------------------------------------- statistic --

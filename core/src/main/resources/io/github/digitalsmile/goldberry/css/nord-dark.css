@@ -46,6 +46,33 @@
      curtain than it does over nord0. */
   --gb-scrim: rgba(0, 0, 0, 0.55);
   --gb-border: var(--nord3);
+
+  /* The edge of something raised — `card`, and whatever else says "above the
+     page" (ADR-0166). Not a palette entry but an **alpha over whatever is
+     underneath**, which is the only way to say "lighter than its own surface"
+     in a subset with no colour functions, and which therefore stays right on a
+     card sitting on a page, on a panel, or on another card.
+
+     A **light** rim on a dark theme: a raised thing catches the light.
+
+     It exists because `--gb-surface-2` alone is eight levels away from
+     `--gb-surface` on this ramp, and eight levels is not an elevation anybody
+     can see. */
+  --gb-border-strong: rgba(255, 255, 255, 0.20);
+
+
+  /* The surface of something **raised** — `card`, and whatever else is above the
+     page (ADR-0166).
+
+     A token of its own and not `--gb-surface-2`, which was the first answer and
+     is not an elevation at all: it means "the second surface", and on the light
+     theme it is a step *down* from `--gb-surface` rather than up — so a card
+     built on it read as recessed there. What a card wants is "one step more
+     raised than a panel", and the two themes answer that differently.
+
+     A step up the ramp, because on a dark theme there is room above
+     `--gb-surface` and a raised thing catches more light. */
+  --gb-surface-raised: var(--nord2);
   --gb-accent: var(--nord8);
   --gb-focus: var(--nord8);
   --gb-danger: var(--nord11);

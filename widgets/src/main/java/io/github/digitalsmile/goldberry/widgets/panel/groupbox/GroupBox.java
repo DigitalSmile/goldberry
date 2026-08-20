@@ -26,31 +26,33 @@ import java.util.Set;
 /// }
 /// ```
 ///
-/// ## The title is above the border, not through it
+/// ## The frame encloses the title
 ///
-/// A `fieldset` puts its legend **on** the frame, with the border broken behind
-/// the words. Reproducing that needs a box that paints over its parent's edge —
-/// which means either a notch in the border (nothing in §10's subset can express
-/// one) or a title absolutely positioned over the frame with the page's own
-/// background behind it, which is wrong the moment a `group-box` sits on anything
-/// but the page.
+/// A `fieldset` puts its legend **through** the border, with the frame broken
+/// behind the words. That needs a box painting over its parent's edge, which
+/// means either a notch (nothing in §10's subset expresses one) or the page's own
+/// background painted behind the title — wrong the moment a `group-box` sits on
+/// anything but the page.
 ///
-/// So the title sits **above** a bordered body, which is what a settings cluster
-/// looks like in every desktop written this decade — macOS System Settings, GNOME
-/// Settings, Windows 11 — and which needs nothing the subset has not got. It also
-/// keeps the widget honest at small widths: a legend through a border has to fit
-/// on one line or the frame breaks, and a heading above one simply wraps
-/// ([ADR-0164]).
+/// The first cut put the title **above** the frame instead. That was a mistake and
+/// it was reported as one: "what is the purpose of group box? I thought I should
+/// group elements with title and border." A heading floating over a bordered box
+/// is a heading and a `panel`. Nothing about it says the two belong together, and
+/// an untitled one is indistinguishable from a `card`.
+///
+/// So the border goes round **both**: the title is a header row *inside* the
+/// frame, with a rule under it. That is a titled group with one look and no
+/// ambiguity, it needs nothing the subset has not got, and it wraps at a narrow
+/// width where a legend through a border would break the frame ([ADR-0166]).
 ///
 /// ## The parts
 ///
-/// Two children, both selectable, for the reason a `slider` has three: a border
-/// on the outer box would enclose the title as well.
+/// Two children, both selectable:
 ///
-///   - `group-box-title` — the heading, absent entirely when there is no title,
-///     rather than present and empty. An empty box with `gap` above it is a gap
-///     nobody asked for.
-///   - `group-box-body` — the frame, and the only thing with a border.
+///   - `group-box-title` — the header row, absent entirely when there is no
+///     title rather than present and empty. An empty box with a rule under it is
+///     a line nobody asked for.
+///   - `group-box-body` — what the author put in.
 ///
 /// ## `content`, not `children`
 ///
@@ -109,9 +111,8 @@ public record GroupBox(String title, List<Widget> content, Attributes attributes
         return attributes.key();
     }
 
-    /// The heading, if there is one, and the frame — which is a widget of its own
-    /// so that the author's children are laid out inside the border rather than
-    /// beside the title.
+    /// The header row, if there is one, and the body — both **inside** the
+    /// frame, which is this node.
     @Override
     public List<Widget> children() {
         var parts = new ArrayList<Widget>(2);
@@ -137,7 +138,7 @@ public record GroupBox(String title, List<Widget> content, Attributes attributes
         return new GroupBox(node.stringProperty("title"), children, Attributes.of(node));
     }
 
-    /// The heading over the frame.
+    /// The header row at the top of the frame.
     record GroupBoxTitle(String text) implements Widget.Leaf, Styled, Paints {
 
         GroupBoxTitle {
@@ -156,7 +157,7 @@ public record GroupBox(String title, List<Widget> content, Attributes attributes
         }
     }
 
-    /// The frame, and the only part with a border.
+    /// What the author put in, under the header row.
     record GroupBoxBody(List<Widget> children) implements Widget.Leaf, Styled, Paints {
 
         GroupBoxBody {

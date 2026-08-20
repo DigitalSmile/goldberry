@@ -5,6 +5,7 @@ import io.github.digitalsmile.goldberry.backend.EventLoop;
 import io.github.digitalsmile.goldberry.widget.BuildContext;
 import io.github.digitalsmile.goldberry.widget.State;
 import io.github.digitalsmile.goldberry.widget.Widget;
+import io.github.digitalsmile.goldberry.widgets.core.Phase;
 
 /// Which slide a [Carousel] is showing, and whether the rotation is running.
 ///
@@ -49,6 +50,25 @@ final class CarouselState extends State<Carousel> {
     /// timer that reads it fires between frames rather than during one.
     private boolean reducedMotion;
 
+    /// Where the slide now showing is in its arrival, and which way it came.
+    ///
+    /// A **new phase per slide change**, which is what starts the animation: the
+    /// clock is stamped on the first frame that draws it, because `render` is the
+    /// only place a widget has one (`tabs`'s arrangement, [Phase]).
+    ///
+    /// There is no *departure*. §5 builds only the current slide, and keeping the
+    /// old one alive for the length of a fade would be building a slide that has
+    /// been moved away from — which is the one thing "only the current slide is
+    /// built" says it does not do. So the outgoing slide is dropped and the
+    /// incoming one fades up over the viewport's own surface, which is exactly
+    /// what a `tab` panel does.
+    private Phase arriving = new Phase(Phase.Kind.SETTLED);
+
+    /// Which way the last move went: `+1` forwards, `-1` back. The arriving slide
+    /// translates *from* that direction, so a carousel going forwards moves its
+    /// content leftwards — the direction a reader's eye is already going.
+    private int direction = 1;
+
     @Override
     protected void initState() {
         index = widget().index();
@@ -85,7 +105,8 @@ final class CarouselState extends State<Carousel> {
                 current > 0 || carousel.loop(),
                 current < carousel.count() - 1 || carousel.loop(),
                 slide(current), carousel.attributes(),
-                this::go, this::step, this::hover, this::focus, this::motion);
+                this::go, this::step, this::hover, this::focus, this::motion,
+                this::visibility, direction);
     }
 
     /// **Only the current slide is built** — `tabs`'s bargain, for `tabs`'s
@@ -126,14 +147,40 @@ final class CarouselState extends State<Carousel> {
     }
 
     private void set(int next) {
-        if (next == resolved()) {
+        var current = resolved();
+        if (next == current) {
             return;
         }
+        // Before the change, so the arriving slide's first frame is its first
+        // frame -- and so a controlled carousel animates too, where the index
+        // comes back from the application rather than from here.
+        //
+        // Wrapping from the last slide to the first is a move *forwards*, not a
+        // long way back: what the reader asked for was "next".
+        var count = widget().count();
+        var forwards = next > current;
+        if (widget().loop() && count > 1) {
+            if (current == count - 1 && next == 0) {
+                forwards = true;
+            } else if (current == 0 && next == count - 1) {
+                forwards = false;
+            }
+        }
+        direction = forwards ? 1 : -1;
+        arriving = new Phase(Phase.Kind.ENTERING);
         if (widget().isControlled()) {
             widget().onChange().accept(next);
             return;
         }
         setState(() -> index = next);
+    }
+
+    /// How far into its arrival the current slide is at `now`, `0..1`.
+    ///
+    /// Read from `render`, which is what stamps the beginning: a `State` never
+    /// sees the frame clock.
+    private double visibility(double now) {
+        return arriving.progressAt(now);
     }
 
     /// The pointer arrived or left. Cancels immediately rather than waiting for

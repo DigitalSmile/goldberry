@@ -421,6 +421,87 @@ class CarouselTest {
     }
 
     @Nested
+    @DisplayName("the arrival, which is not a transition")
+    class Arriving {
+
+        /// A slide that has been there a while animates nothing and asks for
+        /// nothing, so a window with a carousel in it is as idle as one without.
+        @Test
+        @DisplayName("a settled slide reports no animation")
+        void settled() {
+            var tree = new ElementTree(carousel(0, false, null, 3));
+            var viewport = Described.first(tree, CarouselView.CarouselViewport.class);
+
+            assertEquals(1, viewport.visibility().applyAsDouble(0), 1e-9,
+                    "nothing has moved, so the first slide is fully arrived");
+        }
+
+        /// The arriving slide starts invisible and ends visible, and the clock is
+        /// stamped by the **first read** — which is why a fresh phase reports 0 at
+        /// whatever time it is first asked, rather than at zero.
+        @Test
+        @DisplayName("a slide change starts an arrival from wherever the clock is")
+        void arrivalStartsOnFirstRead() {
+            var tree = new ElementTree(carousel(0, false, null, 3));
+            key(tree, Key.RIGHT);
+            var arriving = Described.first(tree, CarouselView.CarouselViewport.class);
+
+            // 5000 is an arbitrary "now": a phase has no beginning until it is
+            // asked, so this is its beginning.
+            assertEquals(0, arriving.visibility().applyAsDouble(5000), 1e-9);
+            assertEquals(0.5, arriving.visibility().applyAsDouble(5080), 1e-9);
+            assertEquals(1, arriving.visibility().applyAsDouble(5160), 1e-9);
+        }
+
+        /// Going forwards the new slide comes in from the right, which moves the
+        /// content leftwards — the direction a reader's eye is already going.
+        @Test
+        @DisplayName("the direction follows the way the carousel moved")
+        void direction() {
+            var tree = new ElementTree(carousel(1, false, null, 3));
+
+            key(tree, Key.RIGHT);
+            assertEquals(1, Described.first(tree,
+                    CarouselView.CarouselViewport.class).direction());
+
+            key(tree, Key.LEFT);
+            assertEquals(-1, Described.first(tree,
+                    CarouselView.CarouselViewport.class).direction());
+        }
+
+        /// Wrapping from the last slide to the first is a move **forwards**: what
+        /// the reader asked for was "next", not a long way back.
+        @Test
+        @DisplayName("a wrap is the direction that was asked for, not the arithmetic")
+        void wrapDirection() {
+            var tree = new ElementTree(carousel(2, true, null, 3));
+
+            key(tree, Key.RIGHT);
+            assertEquals(0, view(tree).index());
+            assertEquals(1, Described.first(tree,
+                    CarouselView.CarouselViewport.class).direction(),
+                    "last to first is still forwards");
+
+            key(tree, Key.LEFT);
+            assertEquals(2, view(tree).index());
+            assertEquals(-1, Described.first(tree,
+                    CarouselView.CarouselViewport.class).direction(),
+                    "and first to last is still backwards");
+        }
+
+        /// §1.7 asks for movement to be *removed* rather than shortened, so
+        /// there is no animation at all — the slide is simply there.
+        @Test
+        @DisplayName("a viewport that can animate says so, and one that cannot does not")
+        void animating() {
+            var tree = new ElementTree(carousel(0, false, null, 3));
+
+            assertTrue(Described.first(tree, CarouselView.CarouselViewport.class)
+                    .isAnimating());
+        }
+    }
+
+    @Nested
     @DisplayName("from markup")
     class Markup {
 

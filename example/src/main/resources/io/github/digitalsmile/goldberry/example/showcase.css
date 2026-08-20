@@ -22,7 +22,14 @@
 #root      { flex-direction: column; background: var(--gb-bg);
              color: var(--gb-text) }
 
-#bar       { height: 44px; padding: 0 16px; gap: 12px;
+/* `flex-shrink: 0`, and it is not tidiness. Yoga's children shrink by default,
+   so a window whose content asks for more height than there is takes it out of
+   whatever will give -- and a title bar with a definite height is the most
+   willing thing in the tree. The Panels screen was the first to ask for more, and
+   the symptom was a title bar that was 44px tall on six screens and half that on
+   the seventh. Chrome does not shrink: if the content does not fit, the content
+   is what scrolls. */
+#bar       { height: 44px; flex-shrink: 0; padding: 0 16px; gap: 12px;
              align-items: center; background: var(--gb-surface) }
 #title     { color: var(--gb-text) }
 
@@ -252,11 +259,11 @@ section-header {
   gap: 6px;
 }
 
+/* Only the padding. The surface, the edge and the radius are `panel`'s own now —
+   inventing them here is what made a panel look exactly like a card, which is
+   how the missing rule was reported (ADR-0166). */
 panel.surface-demo {
   padding: 12px;
-  background: var(--gb-surface);
-  border: 1px solid var(--gb-border);
-  border-radius: 8px;
 }
 
 /* A settings row: a label, the gap that pushes the value out, and the value. */
@@ -322,4 +329,11 @@ panel.surface-demo {
    it jump as the carousel moves. */
 #demo-carousel carousel-viewport {
   height: 90px;
+}
+
+/* The accordion demo. Nothing about the `accordion` class here — it is on the
+   node so a stylesheet *can* reach it, and this one has nothing to say. What is
+   here is the gap between sections, which is an application's business. */
+#demo-accordion {
+  gap: 4px;
 }

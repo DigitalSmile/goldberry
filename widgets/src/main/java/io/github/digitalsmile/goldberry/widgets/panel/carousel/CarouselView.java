@@ -1,6 +1,7 @@
 package io.github.digitalsmile.goldberry.widgets.panel.carousel;
 
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
+import io.github.digitalsmile.goldberry.css.Transform;
 import io.github.digitalsmile.goldberry.input.FocusScope;
 import io.github.digitalsmile.goldberry.input.Handles;
 import io.github.digitalsmile.goldberry.input.Key;
@@ -16,6 +17,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
+import java.util.function.DoubleUnaryOperator;
 import java.util.function.IntConsumer;
 
 /// **This is the `carousel` a stylesheet selects.**
@@ -44,11 +46,18 @@ import java.util.function.IntConsumer;
 /// @param onHover        the pointer arrived or left
 /// @param onFocus        the strip or a control took focus, or gave it up
 /// @param onMotion       what the frame says about the motion preference
+/// @param visibility     how far into its arrival the current slide is at a given
+///                       frame time, `0..1`. Reading it is also what *starts* the
+///                       arrival, because `render` is the only place a widget is
+///                       given the clock ([ADR-0109], [Phase])
+/// @param direction      which way the last move went, `+1` forwards; the arriving
+///                       slide translates in from that side
 record CarouselView(
         int index, int count, boolean loop, boolean rotates,
         boolean canGoBack, boolean canGoForward, Widget slide, Attributes attributes,
         IntConsumer onGo, IntConsumer onStep, Consumer<Boolean> onHover,
-        Consumer<Boolean> onFocus, Consumer<Boolean> onMotion)
+        Consumer<Boolean> onFocus, Consumer<Boolean> onMotion,
+        DoubleUnaryOperator visibility, int direction)
         implements Widget.Leaf, Styled, Paints, Handles {
 
     @Override
@@ -140,7 +149,7 @@ record CarouselView(
     @Override
     public List<Widget> children() {
         var parts = new ArrayList<Widget>(3);
-        parts.add(new CarouselViewport(slide));
+        parts.add(new CarouselViewport(slide, visibility, direction));
         parts.add(new CarouselControls(
                 canGoBack, canGoForward, () -> onStep.accept(-1), () -> onStep.accept(1),
                 onFocus));
@@ -159,8 +168,21 @@ record CarouselView(
     }
 
     /// What the current slide is drawn in — a node of its own so a stylesheet can
-    /// clip it and give it a height without touching whatever the author put in.
-    record CarouselViewport(Widget slide) implements Widget.Leaf, Styled, Paints {
+    /// clip it and give it a height without touching whatever the author put in,
+    /// and so the **arrival** has somewhere to live: the animation belongs to the
+    /// viewport rather than to the slide, because the slide is the author's widget
+    /// and a carousel must not reach inside it.
+    record CarouselViewport(Widget slide, DoubleUnaryOperator visibility, int direction)
+            implements Widget.Leaf, Styled, Paints {
+
+        /// How far the arriving slide travels, in logical pixels.
+        ///
+        /// Larger than a `tab`'s 6, because a carousel is *about* the movement
+        /// between slides where a tab's arrival is a detail — and small enough
+        /// that it is a settle rather than a swipe. §1.7 has no token for this;
+        /// a clock-driven animation cannot read a `transition` declaration
+        /// because it is not one (ADR-0109).
+        private static final double TRAVEL = 24;
 
         @Override
         public String cssType() {
@@ -172,9 +194,44 @@ record CarouselView(
             return slide == null ? List.of() : List.of(slide);
         }
 
+        /// Whether an arrival is still running, which is what keeps the frame
+        /// loop awake for the length of one.
+        ///
+        /// A carousel that has been sitting on one slide animates nothing and
+        /// asks for nothing, so a window with one in it is as idle as a window
+        /// without.
+        @Override
+        public boolean isAnimating() {
+            return visibility != null;
+        }
+
+        /// **Opacity and a translation, and nothing else** — §1.7's whitelist is
+        /// the compositor-cheap set, and a viewport that animated its own width
+        /// would run Yoga on every frame of every move.
+        ///
+        /// Under reduced motion there is no animation at all: the slide is simply
+        /// there. §1.7 asks for movement to be removed rather than shortened.
         @Override
         public Box render(ComputedStyle style, List<Box> boxes, Context context) {
-            return Box.of().style(style).children(boxes.toArray(Box[]::new));
+            var box = Box.of().style(style).children(boxes.toArray(Box[]::new));
+            if (visibility == null) {
+                return box;
+            }
+            // Reading it is what starts the arrival: the phase is stamped from the
+            // frame clock on its first read, and this is the only place there is
+            // one.
+            var visible = context.reducedMotion() ? 1 : visibility.applyAsDouble(
+                    context.nowMillis());
+            if (visible >= 1) {
+                return box;
+            }
+            // Going forwards, the new slide comes in from the right — content
+            // moves leftwards, which is the direction a reader's eye is already
+            // travelling.
+            var offset = (1 - visible) * TRAVEL * direction;
+            return box.opacity(visible)
+                    .transform(Transform.of(new Transform.Function.Translate(
+                            Transform.Length.px(offset), Transform.Length.ZERO)));
         }
     }
 

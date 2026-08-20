@@ -69,7 +69,26 @@ public record Column(List<Widget> children, Attributes attributes)
     }
 
     /// Builds a `column` from markup.
+    /// Builds a `column` from markup.
+    ///
+    /// **`accordion=#true` builds something else.** §5 puts that flag here and is
+    /// right to — "one section open at a time" is a rule about *siblings*, which
+    /// no section can enforce about the others — but honouring it needs state, and
+    /// a `column` is the most-used container in the toolkit. Making this record
+    /// stateful would give every column in every document a `State` object it
+    /// never uses.
+    ///
+    /// So the flag inflates to an
+    /// [io.github.digitalsmile.goldberry.widgets.panel.accordion.Accordion], which
+    /// reports `column` as its own CSS type and adds an `accordion` class. A
+    /// document writes what §5 says, a stylesheet still sees a column, and an
+    /// ordinary column pays nothing ([ADR-0166]).
     public static Widget inflate(KdlNode node, List<Widget> children, Wiring wiring) {
+        if (node.booleanProperty("accordion")) {
+            return new io.github.digitalsmile.goldberry.widgets.panel.accordion.Accordion(
+                    io.github.digitalsmile.goldberry.widgets.panel.accordion.Accordion.NONE,
+                    null, children, Attributes.of(node));
+        }
         return new Column(children, Attributes.of(node));
     }
 }

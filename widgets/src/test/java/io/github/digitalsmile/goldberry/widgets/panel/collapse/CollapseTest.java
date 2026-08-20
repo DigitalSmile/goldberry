@@ -169,6 +169,35 @@ class CollapseTest {
                 .classes().contains("open"));
     }
 
+    /// §5 forbids animating the height and always will, so the body appears at
+    /// full height and fades up into it — `tab`'s arrival, and for the same
+    /// reason: a newly built element has no previous style to interpolate from.
+    @Test
+    @DisplayName("an opening body arrives on the frame clock, from wherever it is")
+    void bodyArrives() {
+        var tree = new ElementTree(new Collapse("Advanced", new Text("Body")));
+        click(tree);
+
+        var body = Described.first(tree, CollapseBody.class);
+        assertTrue(body.isAnimating());
+        // A phase has no beginning until it is asked, so this is its beginning.
+        assertEquals(0, body.visibility().applyAsDouble(5000), 1e-9);
+        assertEquals(0.5, body.visibility().applyAsDouble(5080), 1e-9);
+        assertEquals(1, body.visibility().applyAsDouble(5160), 1e-9);
+    }
+
+    /// A section that was **declared** open has nothing to arrive from: it was
+    /// there on the first frame, and fading it up would animate the window
+    /// opening.
+    @Test
+    @DisplayName("a section that started open does not animate")
+    void startedOpenDoesNotAnimate() {
+        var tree = new ElementTree(new Collapse("Advanced", true, null, new Text("Body")));
+
+        assertEquals(1, Described.first(tree, CollapseBody.class)
+                .visibility().applyAsDouble(0), 1e-9);
+    }
+
     @Test
     @DisplayName("a collapse inflates from markup")
     void inflates() {

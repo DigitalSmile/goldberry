@@ -180,4 +180,31 @@ holding subscriptions for content nobody can see."
   collapse title="Nothing in here" {
     text "An empty section is still a section."
   }
+
+  text class="screen-title" "One at a time"
+
+  // sec. 5 puts `accordion=#true` on the *containing column*, and it is right to:
+  // "one open at a time" is a rule about siblings, which no section can enforce
+  // about the others.
+  //
+  // A column is the most-used container in the toolkit and honouring the flag
+  // needs state, so this inflates to an `accordion` -- which reports `column` as
+  // its own CSS type, so a rule written for `column` still applies and an
+  // ordinary column pays nothing (ADR-0166).
+  //
+  // Open one and watch the one above it shut. The body fades in; the height does
+  // not animate and never will, because height is not on sec. 1.7's whitelist.
+  column accordion=#true id="demo-accordion" {
+    collapse title="General" {
+      row class="setting" { text "Start with the last file"; spacer; text class="caption" "On" }
+      row class="setting" { text "Confirm on quit"; spacer; text class="caption" "Off" }
+    }
+    collapse title="Editing" {
+      row class="setting" { text "Tab width"; spacer; text class="caption" "4" }
+      row class="setting" { text "Trim trailing space"; spacer; text class="caption" "On" }
+    }
+    collapse title="Keyboard" {
+      row class="setting" { text "Preset"; spacer; text class="caption" "Default" }
+    }
+  }
 }

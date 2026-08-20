@@ -2611,6 +2611,58 @@ is the `scroll` box's.
   more wiring than a `card` does
   ([ADR-0165](adr/0165-a-divider-translates-and-a-rotation-has-three-brakes.md))
 
+### Five reports from looking at it, and two of them were decisions being wrong
+
+- **`panel` had no stylesheet rule at all**, and §5 has always said it is a
+  "plain surface: `--gb-surface`, border, radius tokens". The widget drew nothing,
+  so every document that wanted a surface invented one — and the showcase invented
+  one that looked exactly like a `card`, which is how it surfaced: "in black theme
+  I do not see any visual differences between panel and card". A building block
+  that draws nothing is not a building block.
+- **`--gb-surface-2` was never an elevation.** ADR-0164 said "elevation is an
+  edge" and then hedged by also stepping the fill, which is wrong twice: eight
+  levels on the Nord dark ramp is not an elevation anybody can see, and on the
+  **light** theme `--gb-surface-2` is a step *down* from `--gb-surface` — which is
+  `#ffffff` there — so a card built on it read as **recessed**. The token means
+  "the second surface" and never promised otherwise. There are two tokens now that
+  say what is meant: `--gb-surface-raised` and `--gb-border-strong`, the second an
+  **alpha over whatever is underneath**, which is the only way to say "lighter
+  than its own surface" in a subset with no colour functions — so it lightens on
+  dark, darkens on light, and stays right on a card sitting on a page, on a panel
+  or on another card.
+- **A `group-box` holds its title now**, and the report was the right question to
+  ask of the old one: "what is the purpose of group box? I thought I should group
+  elements with title and border." ADR-0164 put the title *above* the frame,
+  because a `fieldset`'s legend through a border needs a notch the subset cannot
+  express. The premise still holds and the conclusion did not: a heading floating
+  over a bordered box is a heading and a `panel`, nothing about it says the two
+  belong together, and an untitled one was indistinguishable from a card — so the
+  widget had no purpose two existing widgets did not already serve. The border
+  goes round both now, with the title as a tinted header row inside it.
+- **`carousel` and `collapse` animate, and `TabPhase` became `Phase`.** It was
+  written for `tabs` and had nothing tab-shaped in it. Both new arrivals are
+  **arrival only** and both for the widget's own reason: a carousel builds only
+  the current slide, so holding the outgoing one alive for a cross-fade would be
+  building a slide that has been moved away from; and a `collapse` unmounts its
+  body, so holding it for 160 ms after it was asked to go is the thing the widget
+  exists not to do. Closing is instant and opening is not — asymmetric on purpose,
+  because the thing worth animating is content appearing where there was none.
+  Opacity and a small translation, never height.
+- **`accordion=#true` inflates to a widget.** §5 puts the flag on the containing
+  `column` and is right to, since "one open at a time" is a rule about *siblings*.
+  But `column` is the most-used container in the toolkit and statefulness is a
+  property of the type rather than of the instance — so honouring the flag there
+  would give every column in every document a `State` it never uses. It inflates
+  to an `Accordion` instead, which reports `column` as its own CSS type: the
+  document writes what §5 says, a stylesheet still sees a column, and an ordinary
+  column pays nothing.
+- **And chrome does not shrink.** A title bar half its height on one screen, which
+  is Yoga's default: children shrink, so a window whose content asks for more
+  height than there is takes it out of whatever will give — and a bar with a
+  definite height is the most willing thing in the tree. If the content does not
+  fit, the content is what scrolls
+  ([ADR-0166](adr/0166-a-raised-thing-is-told-apart-by-its-edge.md))
+
 ### Not started
 
 Tray, dialogs, forms, client-side decorations and charts. The rest of §5 — `card`, `group-box`, `split-pane`, `collapse`,

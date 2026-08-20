@@ -59,6 +59,18 @@ module io.github.digitalsmile.goldberry.widgets {
     /// close affordance and the add one are parts and stay in here (ADR-0107).
     exports io.github.digitalsmile.goldberry.widgets.panel.tabs;
 
+    /// The rest of §5's containers. Each exports the widget an application names
+    /// and keeps its parts to itself, which is the rule ADR-0065 set: a part is
+    /// styleable and not constructible.
+    exports io.github.digitalsmile.goldberry.widgets.panel.accordion;
+    exports io.github.digitalsmile.goldberry.widgets.panel.card;
+    exports io.github.digitalsmile.goldberry.widgets.panel.carousel;
+    exports io.github.digitalsmile.goldberry.widgets.panel.collapse;
+    exports io.github.digitalsmile.goldberry.widgets.panel.groupbox;
+    exports io.github.digitalsmile.goldberry.widgets.panel.skeleton;
+    exports io.github.digitalsmile.goldberry.widgets.panel.split;
+    exports io.github.digitalsmile.goldberry.widgets.panel.statistic;
+
     exports io.github.digitalsmile.goldberry.widgets.controls;
     exports io.github.digitalsmile.goldberry.widgets.controls.badge;
     exports io.github.digitalsmile.goldberry.widgets.controls.button;

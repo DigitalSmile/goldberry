@@ -51,6 +51,37 @@
      curtain than it does over nord0. */
   --gb-scrim: rgba(0, 0, 0, 0.40);
   --gb-border: var(--nord4);
+
+  /* The edge of something raised — `card`, and whatever else says "above the
+     page" (ADR-0166). Not a palette entry but an **alpha over whatever is
+     underneath**, which is the only way to say "lighter than its own surface"
+     in a subset with no colour functions, and which therefore stays right on a
+     card sitting on a page, on a panel, or on another card.
+
+     A **dark** rim on a light theme, which is the same statement upside down:
+     a raised thing casts into what is under it.
+
+     It exists because `--gb-surface-2` alone is eight levels away from
+     `--gb-surface` on this ramp, and eight levels is not an elevation anybody
+     can see. */
+  --gb-border-strong: rgba(0, 0, 0, 0.16);
+
+
+  /* The surface of something **raised** — `card`, and whatever else is above the
+     page (ADR-0166).
+
+     A token of its own and not `--gb-surface-2`, which was the first answer and
+     is not an elevation at all: it means "the second surface", and on the light
+     theme it is a step *down* from `--gb-surface` rather than up — so a card
+     built on it read as recessed there. What a card wants is "one step more
+     raised than a panel", and the two themes answer that differently.
+
+     The **same** white as `--gb-surface`, because on a light theme there is
+     no room above it -- white is the top. A raised thing here is told apart by
+     its edge alone, which is what the light theme can offer and what it
+     already does well: a white card with a defined edge on a near-white page
+     reads as raised, and a *darker* card would read as recessed. */
+  --gb-surface-raised: #ffffff;
   --gb-accent: var(--nord10);
   --gb-focus: var(--nord8);
   --gb-danger: var(--nord11);

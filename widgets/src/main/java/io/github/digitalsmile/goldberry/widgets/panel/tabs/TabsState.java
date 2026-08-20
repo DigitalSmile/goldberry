@@ -3,6 +3,7 @@ package io.github.digitalsmile.goldberry.widgets.panel.tabs;
 import io.github.digitalsmile.goldberry.widget.BuildContext;
 import io.github.digitalsmile.goldberry.widgets.core.scroll.ScrollController;
 import io.github.digitalsmile.goldberry.widget.State;
+import io.github.digitalsmile.goldberry.widgets.core.Phase;
 import io.github.digitalsmile.goldberry.widget.Widget;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -51,7 +52,7 @@ final class TabsState extends State<Tabs> {
 
     /// The tabs on screen, in the order they are drawn: the application's, plus
     /// any that are still leaving.
-    private final Map<String, TabPhase> phases = new LinkedHashMap<>();
+    private final Map<String, Phase> phases = new LinkedHashMap<>();
 
     /// A leaving tab's last known description, because the application no longer
     /// has one to give.
@@ -144,8 +145,8 @@ final class TabsState extends State<Tabs> {
     /// the first build, where everything is simply already there.
     private void arrivals(Map<String, Tab> current) {
         for (var value : current.keySet()) {
-            phases.computeIfAbsent(value, ignored -> new TabPhase(
-                    opened ? TabPhase.Kind.ENTERING : TabPhase.Kind.SETTLED));
+            phases.computeIfAbsent(value, ignored -> new Phase(
+                    opened ? Phase.Kind.ENTERING : Phase.Kind.SETTLED));
         }
     }
 
@@ -157,7 +158,7 @@ final class TabsState extends State<Tabs> {
                 departing.remove(entry.getKey());
                 continue;
             }
-            if (entry.getValue().kind() != TabPhase.Kind.LEAVING) {
+            if (entry.getValue().kind() != Phase.Kind.LEAVING) {
                 entry.getValue().leave();
                 // The last moment its description is available: the application
                 // has already dropped it, and `lastBuilt` is the only copy left.
@@ -177,13 +178,13 @@ final class TabsState extends State<Tabs> {
     /// reaches a widget: the first call stamps the phase's start, and the call
     /// that finds a departure over is what asks for the tab to be dropped
     /// (ADR-0109).
-    private double visibility(String value, TabPhase phase, double now) {
+    private double visibility(String value, Phase phase, double now) {
         var progress = phase.progressAt(now);
         if (phase.hasDeparted(now)) {
             departed(value);
             return 0;
         }
-        return phase.kind() == TabPhase.Kind.LEAVING ? 1 - progress : progress;
+        return phase.kind() == Phase.Kind.LEAVING ? 1 - progress : progress;
     }
 
     /// A departure has finished — drop the tab on the next build.

@@ -19,7 +19,8 @@ import java.util.Set;
 /// `.open` while the body is showing, so a stylesheet can reach the header, the
 /// chevron and the body by one class rather than each of them being told.
 record CollapseSection(
-        String title, boolean open, Runnable onToggle, List<Widget> body,
+        String title, boolean open, Runnable onToggle,
+        java.util.function.DoubleUnaryOperator visibility, List<Widget> body,
         Attributes attributes)
         implements Widget.Leaf, Styled, Paints {
 
@@ -58,7 +59,7 @@ record CollapseSection(
         var parts = new ArrayList<Widget>(2);
         parts.add(new CollapseHeader(title, open, onToggle));
         if (open) {
-            parts.add(new CollapseBody(body));
+            parts.add(new CollapseBody(body, visibility));
         }
         return List.copyOf(parts);
     }

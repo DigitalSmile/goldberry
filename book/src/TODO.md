@@ -526,11 +526,14 @@ the mechanism the sentence named.
   Nothing in `statistic` is shaped around its absence: a sparkline is one more
   child at the end of the column. —
   [ADR-0164](adr/0164-elevation-is-an-edge-and-a-closed-section-is-absent.md)
-- **`collapse`'s `accordion=` is not built, and it belongs to the `column`.** §5
-  puts `accordion=#true` on a *containing* `column`, which makes it a rule about
-  siblings rather than about a section — so the enforcement is the container's and
-  a `collapse` cannot do it alone. The widget is otherwise complete. —
-  [ADR-0164](adr/0164-elevation-is-an-edge-and-a-closed-section-is-absent.md)
+- ~~**`collapse`'s `accordion=` is not built.**~~ **It ships, as a widget rather
+  than as a flag on `column`.** The flag belongs on the container — "one open at a
+  time" is a rule about siblings — but honouring it needs state, and statefulness
+  is a property of the *type*: putting it on `column` would give every column in
+  every document a `State` it never uses. `column accordion=#true` inflates to an
+  `Accordion` that reports `column` as its own CSS type, so the document writes
+  what §5 says and an ordinary column pays nothing. —
+  [ADR-0166](adr/0166-a-raised-thing-is-told-apart-by-its-edge.md)
 
 - **`flex-basis` is still the only layout property §8 names and nothing resolves.** It
   was implemented for `segmented` and taken back out rather than left as a property with
