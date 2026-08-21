@@ -62,6 +62,9 @@
      `--gb-list-row-height`, already declared above for `list` itself: a
      dropdown's rows and a list's rows are the same rows. */
   --gb-select-height: var(--gb-control-height);
+  /* The other half of that row. One token each rather than one shared one, so
+     an application can pin a field without moving every dropdown with it. */
+  --gb-input-height: var(--gb-control-height);
 }
 
 /* ------------------------------------------------------------- no shrink --
@@ -117,7 +120,8 @@ segmented-track,
 segmented-indicator,
 select,
 select-chevron,
-option {
+option,
+text-input {
   flex-shrink: 0;
 }
 
@@ -302,7 +306,8 @@ toggle:focus-visible,
 slider:focus-visible,
 knob:focus-visible,
 select:focus-visible,
-option:focus-visible {
+option:focus-visible,
+text-input:focus-visible {
   outline: 2px solid var(--gb-focus);
   outline-offset: 2px;
 }
@@ -326,6 +331,7 @@ knob:disabled,
 option:disabled,
 radio-group:disabled,
 select:disabled,
+text-input:disabled,
 segmented:disabled {
   opacity: 0.45;
   cursor: not-allowed;
@@ -1396,6 +1402,63 @@ select-value {
    pseudo-class for `select.open`'s reason. */
 select-value.placeholder {
   color: var(--gb-text-muted);
+}
+
+/* ---------------------------------------------------------- text-input --
+ *
+ * §4's single-line field. It is `select`'s surface with a caret in it, and the
+ * two are deliberately the same: §3 gives them one row and one height, and a
+ * form where the field you type into and the field you pick from do not match is
+ * a form that looks assembled from two toolkits.
+ *
+ * The children are placed by the widget, not by this stylesheet -- a caret's x
+ * is the width of the text before it, which no selector can express (see
+ * `TextField`). What is here is what everything else is: the surface, the
+ * colours and the rank.
+ */
+text-input {
+  height: var(--gb-input-height);
+  flex-direction: row;
+  align-items: center;
+  padding: 0 8px;
+  border-radius: 4px;
+  border: 1px solid var(--gb-border);
+  /* `select`'s fill, for `select`'s reason: a field whose surface *was*
+     `--gb-surface` disappears on a panel and is held together by a 1px border. */
+  background: var(--gb-surface-2);
+  color: var(--gb-text);
+  font-size: var(--gb-font-body);
+  line-height: var(--gb-line-body);
+}
+
+/* §2.1's hover, the step `select` takes rather than a wash. */
+text-input:hover {
+  border-color: var(--gb-text-muted);
+}
+
+/* An empty field is standing in for content rather than being it, which is
+   §1.2's rank for `--gb-text-muted`. A class rather than a pseudo-class for
+   `select-value.placeholder`'s reason: §8's subset has none that means this. */
+text-value.placeholder {
+  color: var(--gb-text-muted);
+}
+
+/* The insertion point. `--gb-text` and not the accent: a caret is the text it is
+   about to become, and one in the accent colour reads as a selected thing rather
+   than as a place. Its *width* is the widget's -- one logical pixel, set in the
+   same call that sets its position, because a stylesheet that disagreed would
+   move the caret rather than resize it (see `TextField.CARET_WIDTH`). */
+text-caret {
+  background: var(--gb-text);
+}
+
+/* The highlight, behind the text rather than over it, so the glyphs keep their
+   own colour and stay readable (§1.2). `--gb-selection` is translucent in both
+   themes for exactly that reason, and is the one token here that was already
+   declared before anything used it. */
+text-selection {
+  background: var(--gb-selection);
+  border-radius: 2px;
 }
 
 /* The mark. 16px because that is the size every glyph in this catalog is built
