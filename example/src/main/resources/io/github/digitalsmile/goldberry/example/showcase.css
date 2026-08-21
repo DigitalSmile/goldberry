@@ -66,8 +66,6 @@
 #signup-card, #stacked-card, #label-card
            { flex-direction: column; gap: 6px; flex-grow: 1; flex-shrink: 1 }
 
-#signup-actions { flex-direction: row; gap: 8px; align-items: center }
-
 /* A narrower label column than the 120 the toolkit defaults to, because this
    card is a third of a screen. Which is the token doing its job: an application
    moves every field in a form at once rather than writing a rule per row, and

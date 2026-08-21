@@ -100,10 +100,15 @@ column id="screen-forms" {
           text-input bind="app.signup-port" change="app.set-signup-port" \
                      filter="digits" max-length=5 placeholder="8080"
         }
-      }
-      row id="signup-actions" {
-        button class="primary" press="app.submit-signup" "Save"
-        text id="signup-status" class="caption" bind="app.signup-status"
+        // The actions are a `field` with no label, which is what lines them up
+        // with the controls rather than with the labels: the empty label still
+        // occupies the column, so nothing here has to know how wide it is. A
+        // `row` beside the form starts at the form's left edge and sits under
+        // the labels, which is what it did and what looked wrong.
+        field class="actions" {
+          button class="primary" press="app.submit-signup" "Save"
+          text id="signup-status" class="caption" bind="app.signup-status"
+        }
       }
     }
 

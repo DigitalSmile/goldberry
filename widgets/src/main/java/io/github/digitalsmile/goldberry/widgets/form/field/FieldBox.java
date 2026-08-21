@@ -88,13 +88,17 @@ record FieldBox(
         return true;
     }
 
+    /// The label, and everything else in a box of its own.
+    ///
+    /// **Two children and not three**, which is what makes both of §4's layouts
+    /// come out of one structure: a label column is a *row* and a message below
+    /// is a *column*, and a flat field can only be one of them. See [FieldBody].
     @Override
     public List<Widget> children() {
-        var all = new ArrayList<Widget>(children.size() + 2);
-        all.add(new FieldLabel(label, required));
-        all.addAll(children);
-        all.add(new FieldMessage(message));
-        return all;
+        var body = new ArrayList<Widget>(children.size() + 1);
+        body.addAll(children);
+        body.add(new FieldMessage(message));
+        return List.of(new FieldLabel(label, required), new FieldBody(body));
     }
 
     @Override

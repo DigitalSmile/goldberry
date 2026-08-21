@@ -2789,6 +2789,19 @@ is the `scroll` box's.
   carrying them would hand an application its own data back — and `binding()` is
   an `Observable` rather than a path, so the toolkit cannot name them anyway. A
   `FormController` submits, because a Save button is usually outside the form.
+- **Two reports from looking at a real form, and both were geometry.** The
+  validation message appeared *beside* the control rather than under it, and the
+  Save button lined up with the labels rather than with the controls. The first
+  is structural and the fix says why: §4 asks for a label column and a message
+  below **in one sentence**, and those are a row and a column — so a flat field
+  of label, control and message can only be one of them. A field is two boxes
+  now, `field-label` beside a `field-body` that is always a column. The second
+  falls out of the same idea: an action row is a `field` with **no label**, so
+  the empty label still occupies the column and nothing has to know how wide it
+  is. `align-items: baseline` on the row went too — a baseline is a property of a
+  line of text, and asking a *column* for one put two fields on top of each
+  other. Both passed every test that existed; `FieldGoldenTest` is the pixel
+  coverage they should have had.
 - **Two things the screen reported by their absence, and both are closed.**
   Markup can name an object now — `controller=` and `validator=` resolve against
   a fourth registry, `Named`, which exists because the other three each refused
