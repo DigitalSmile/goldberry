@@ -89,6 +89,15 @@ module io.github.digitalsmile.goldberry.widgets {
     exports io.github.digitalsmile.goldberry.widgets.form;
     exports io.github.digitalsmile.goldberry.widgets.form.field;
     exports io.github.digitalsmile.goldberry.widgets.form.form;
+    exports io.github.digitalsmile.goldberry.widgets.form.textarea;
+
+    /// `…form.parts` is deliberately **not** exported. `text-input` and
+    /// `text-area` draw the same `text-caret`, `text-selection` and `text-value`,
+    /// and a part is styleable and not constructible (ADR-0065) — which has
+    /// always meant package-private, because one widget owned its parts. Two
+    /// widgets own these, so they are public in a package nothing can see: an
+    /// application cannot build one, both widgets can, and there is one caret
+    /// rather than two kept alike by hand.
 
     exports io.github.digitalsmile.goldberry.widgets.controls;
     exports io.github.digitalsmile.goldberry.widgets.controls.badge;

@@ -669,7 +669,7 @@ class TextInputTest {
             // The class is how the stylesheet tells the two apart: §3 wants
             // `--gb-text-muted` here and `--gb-text` for a real value, and §8's
             // subset has no pseudo-class that means "standing in for content".
-            assertTrue(((TextValue) field(tree).children().get(1)).classes().contains("placeholder"));
+            assertTrue(((io.github.digitalsmile.goldberry.widgets.form.parts.Value) field(tree).children().get(1)).classes().contains("placeholder"));
         }
 
         @Test
@@ -930,9 +930,9 @@ class TextInputTest {
 
             // The highlight first, so it is behind the glyphs: §1.2 wants
             // selected text readable, and a wash over a glyph dims it.
-            assertTrue(parts.get(0) instanceof TextSelection);
-            assertTrue(parts.get(1) instanceof TextValue);
-            assertTrue(parts.get(2) instanceof TextCaret);
+            assertTrue(parts.get(0) instanceof io.github.digitalsmile.goldberry.widgets.form.parts.Highlight);
+            assertTrue(parts.get(1) instanceof io.github.digitalsmile.goldberry.widgets.form.parts.Value);
+            assertTrue(parts.get(2) instanceof io.github.digitalsmile.goldberry.widgets.form.parts.Caret);
         }
     }
 }

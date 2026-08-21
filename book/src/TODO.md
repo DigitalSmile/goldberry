@@ -280,6 +280,20 @@ the mechanism the sentence named.
   That is a second seam — a field that validates a *parsed* value — rather than a
   change to this one, and it is the picker's to open. —
   [ADR-0169](adr/0169-a-field-is-silent-until-you-leave-it.md)
+- **A `text-area` has no visible scrollbar.** §4 asks for "scrollbar beyond" the
+  maximum rows; it scrolls with the wheel and to keep the caret in view, and
+  draws no bar. `scroll`'s bars belong to a *viewport* rather than to a control,
+  so the choice is a `scroll` around the text — which would fight the auto-grow,
+  since both want to decide the height — or a second bar implementation. Neither
+  is obviously right. —
+  [ADR-0171](adr/0171-a-column-is-an-x-and-a-width-arrives-late.md)
+- **A golden of a `text-area` is a golden of its first frame.** The gallery
+  renders once, and a settled wrap needs the measurement only a painted frame
+  produces — so the image shows the control before it knows its width. Fixing it
+  means the golden painting twice and feeding the hit-test regions back between,
+  which is what the real loop does and would make every screen's image more
+  faithful, not just this one. —
+  [ADR-0171](adr/0171-a-column-is-an-x-and-a-width-arrives-late.md)
 - **A guard at the top of `onPointer` is a guard on every pointer kind, and the
   kinds do not carry the same fields.** `text-input` tested
   `button() == PRIMARY` there and silently lost every drag, because

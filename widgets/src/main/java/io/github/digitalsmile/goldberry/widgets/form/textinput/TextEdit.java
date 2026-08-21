@@ -148,6 +148,52 @@ public record TextEdit(String text, int anchor, int caret) {
         return caretTo(text.length(), extend);
     }
 
+    // --- lines ----------------------------------------------------------------
+
+    /// The offset of the start of the **hard** line `offset` is on.
+    ///
+    /// Hard, meaning a line break somebody typed. A soft-wrapped line is a fact
+    /// about a width and belongs to whatever laid the text out — the model has no
+    /// width and cannot have an opinion.
+    ///
+    /// This is what `Home` means in a `text-area`, and what a `text-input` gets
+    /// for free: a single line's start is always 0.
+    public int lineStart(int offset) {
+        var at = Math.clamp(offset, 0, text.length());
+        var newline = text.lastIndexOf('\n', at - 1);
+        return newline + 1;
+    }
+
+    /// One past the end of the hard line `offset` is on, not counting the break
+    /// itself — so `End` puts the caret before the newline rather than after it.
+    public int lineEnd(int offset) {
+        var at = Math.clamp(offset, 0, text.length());
+        var newline = text.indexOf('\n', at);
+        return newline < 0 ? text.length() : newline;
+    }
+
+    /// To the start of the current hard line.
+    public TextEdit toLineStart(boolean extend) {
+        return caretTo(lineStart(caret), extend);
+    }
+
+    /// To the end of the current hard line.
+    public TextEdit toLineEnd(boolean extend) {
+        return caretTo(lineEnd(caret), extend);
+    }
+
+    /// How many hard lines the text has. One for empty text, which is what an
+    /// empty field occupies.
+    public int lineCount() {
+        var lines = 1;
+        for (var i = 0; i < text.length(); i++) {
+            if (text.charAt(i) == '\n') {
+                lines++;
+            }
+        }
+        return lines;
+    }
+
     /// Everything selected, with the caret at the end.
     public TextEdit selectAll() {
         return new TextEdit(text, 0, text.length());

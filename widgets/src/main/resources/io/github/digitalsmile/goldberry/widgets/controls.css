@@ -1594,6 +1594,53 @@ text-selection {
   border-radius: 2px;
 }
 
+/* ----------------------------------------------------------- text-area --
+ *
+ * §4's multi-line field. It is `text-input`'s surface with more than one line in
+ * it, and it shares the three parts and every rule about them — the two controls
+ * must not look like they were designed by different people, and the surest way
+ * to that is one set of rules rather than two that agree today.
+ *
+ * What it does **not** share is the height. A `text-input` is `--gb-input-height`
+ * and a `text-area` is as tall as its text, between `rows` and `max-rows`, which
+ * is a number the widget computes because no selector can ask how many lines the
+ * text wrapped into. So there is no `height` here, and a stylesheet that added
+ * one would be a control that stopped growing.
+ */
+text-area {
+  padding: 6px 8px;
+  border-radius: 4px;
+  border: 1px solid var(--gb-border);
+  background: var(--gb-surface-sunken);
+  color: var(--gb-text);
+  font-size: var(--gb-font-body);
+  line-height: var(--gb-line-body);
+  flex-shrink: 0;
+}
+
+text-area:hover {
+  border-color: var(--gb-text-muted);
+}
+
+text-area:focus-visible {
+  outline: 2px solid var(--gb-focus);
+  outline-offset: 2px;
+}
+
+text-area:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* A `text-area` in a horizontal form takes the width like every other control,
+   and its label goes back on top — a label beside a four-line control leaves it
+   the narrowest thing on the screen, which is the opposite of what a paragraph
+   field wants. */
+field.horizontal text-area,
+form.horizontal field text-area {
+  flex-grow: 1;
+}
+
 /* The mark. 16px because that is the size every glyph in this catalog is built
    at, and muted because it is the affordance rather than the value -- the same
    rank `item-lead` gives a menu's tick. */

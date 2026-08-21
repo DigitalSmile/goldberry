@@ -92,6 +92,13 @@ public final class ShowcaseModel {
     @Bind("app.signup-status")
     private String signupStatus = "Nothing submitted yet";
 
+    /// The `text-area`'s value, so the screen shows a multi-line control that a
+    /// model can see — and one long enough to wrap, which is the half of it
+    /// `text-input` cannot demonstrate.
+    @Bind("app.bio")
+    private String bio = "Yoga laid this out, HarfBuzz shaped it, and Blend2D drew "
+            + "every glyph.\n\nPress Enter for a new line.";
+
     @Bind("app.status")
     private String status = "checking the environment…";
 
@@ -284,6 +291,11 @@ public final class ShowcaseModel {
         @Action("app.set-port")
         void setPort(String value) {
             values.port = value;
+        }
+
+        @Action("app.set-bio")
+        void setBio(String value) {
+            values.bio = value;
         }
 
         @Action("app.set-signup-name")

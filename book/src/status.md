@@ -2810,10 +2810,35 @@ is the `scroll` box's.
   ADR-0166's own defects were found
   ([ADR-0170](adr/0170-a-document-names-an-object-and-a-label-hands-focus-down.md))
 
+### `text-area`, which turned out to be `text-input` and two ideas
+
+- **The model needed two helpers, not a rewrite.** `TextEdit` was written without
+  a line in it about how many lines there are, and the editing, the undo history,
+  the clipboard and the caret's blink are all `text-input`'s unchanged.
+- **A column is an x.** `Up` keeps the column, a column is a position rather than
+  an offset, and a run of `Up`/`Down` has to survive a short line in the middle —
+  which is why the x is captured once per run and held. It cannot live in the
+  model: a `TextEdit` has no font, no width and no layout.
+- **A selection is one rectangle per visual line**, because a run of wrapped text
+  is not a rectangle. That is why `Paragraph`'s measurements take a *line's*
+  range: they were written for this one widget early.
+- **The three parts are shared rather than copied**, public in a package the
+  module does not export — ADR-0065's "styleable and not constructible" has meant
+  package-private only because one widget owned its parts, and JPMS can say the
+  real thing when two do.
+- **Two things about the render order, both found by looking.** `render` runs
+  before Yoga, so a box does not know its width — the first version wrapped at one
+  point before anything was measured and put every word on a line of its own,
+  which the Forms golden showed at once. And a measurement has to **ask for a
+  frame**: `text-input` records its width and requests nothing, because its width
+  only decides how far it has scrolled, and a `text-area` doing the same would
+  show its first guess until something unrelated repainted
+  ([ADR-0171](adr/0171-a-column-is-an-x-and-a-width-arrives-late.md))
+
 ### Not started
 
 Tray, dialogs, client-side decorations and charts, and the rest of §4 —
-`text-area`, the pickers, `code-input` and autocomplete. All of those reuse
+the pickers, `code-input` and autocomplete. All of those reuse
 `TextEdit` and `EditHistory` for their editing and `field` for their contract,
 which are the parts with rules in them, so each is ordinary widget work now. Everything outstanding is in
 [TODO.md](TODO.md).

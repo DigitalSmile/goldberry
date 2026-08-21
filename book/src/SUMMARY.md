@@ -180,6 +180,7 @@
 - [ADR-0168 A field is a well, and a drag is a selection](adr/0168-a-field-is-a-well-and-a-drag-is-a-selection.md)
 - [ADR-0169 A field is silent until you leave it](adr/0169-a-field-is-silent-until-you-leave-it.md)
 - [ADR-0170 A document names an object, and a label hands focus down](adr/0170-a-document-names-an-object-and-a-label-hands-focus-down.md)
+- [ADR-0171 A column is an x, and a width arrives late](adr/0171-a-column-is-an-x-and-a-width-arrives-late.md)
 
 ---
 

@@ -17,6 +17,9 @@ import io.github.digitalsmile.goldberry.widget.Attributes;
 import io.github.digitalsmile.goldberry.widget.Paints;
 import io.github.digitalsmile.goldberry.widget.Styled;
 import io.github.digitalsmile.goldberry.widget.Widget;
+import io.github.digitalsmile.goldberry.widgets.form.parts.Caret;
+import io.github.digitalsmile.goldberry.widgets.form.parts.Highlight;
+import io.github.digitalsmile.goldberry.widgets.form.parts.Value;
 import java.util.List;
 import java.util.Set;
 
@@ -234,9 +237,9 @@ record TextField(
     @Override
     public List<Widget> children() {
         return List.of(
-                new TextSelection(focused && edit.hasSelection()),
-                new TextValue(display, placeholder),
-                new TextCaret(focused && caretShown && !edit.hasSelection()));
+                new Highlight(focused && edit.hasSelection()),
+                new Value(display, placeholder),
+                new Caret(focused && caretShown && !edit.hasSelection()));
     }
 
     @Override

@@ -120,12 +120,16 @@ column id="screen-forms" {
       }
     }
 
-    // Click the label, not the box.
+    // Click the label, not the box -- and type into more than one line.
     card id="label-card" {
-      text class="card-title" "Click the label"
-      text class="caption" "A label is the control's sibling, so the router turns round"
+      text class="card-title" "More than one line"
+      text class="caption" "Enter breaks a line; Up and Down keep the column"
       form id="labelled" {
-        field label="Click this label" { text-input placeholder="…and the caret lands here" }
+        // sec. 4's multi-line field. It grows as you type, between `rows` and
+        // `max-rows`, and scrolls after that -- a height no stylesheet can set,
+        // because it is a function of how many lines the text wrapped into.
+        field label="Bio" { text-area bind="app.bio" change="app.set-bio" rows=3 max-rows=6 }
+        field label="Click this label" { text-input placeholder="…the caret lands here" }
       }
     }
   }
