@@ -71,6 +71,14 @@ module io.github.digitalsmile.goldberry.widgets {
     exports io.github.digitalsmile.goldberry.widgets.panel.split;
     exports io.github.digitalsmile.goldberry.widgets.panel.statistic;
 
+    /// `docs/core-widgets.md` §4's `form` group. `text-input` is the first of
+    /// it, and the editing model it is built on
+    /// ([io.github.digitalsmile.goldberry.widgets.form.textinput.TextEdit]) is
+    /// exported beside it: `text-area`, `code-input` and every picker that owns
+    /// a typed field are the same editing rules over a different widget, and an
+    /// application writing its own field should not have to reimplement them.
+    exports io.github.digitalsmile.goldberry.widgets.form.textinput;
+
     exports io.github.digitalsmile.goldberry.widgets.controls;
     exports io.github.digitalsmile.goldberry.widgets.controls.badge;
     exports io.github.digitalsmile.goldberry.widgets.controls.button;
