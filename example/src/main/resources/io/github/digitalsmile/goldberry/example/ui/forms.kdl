@@ -6,11 +6,11 @@
 // that *are* wired are wired the way every real form is, with `bind=` down and
 // `change=` back up.
 //
-// The pair at the top is the whole argument for that arrangement. `app.name` is
-// written by the handler on every keystroke and read back by the field and by
-// the `text` beside it, which is a round trip through the model on every letter.
-// A field that adopted its own echo would put the caret at the end each time;
-// type in the middle of a word and watch it stay where it is.
+// The fields are in `card`s because a form is a set of groups rather than a
+// list of lines: a card is sec. 5's "raised surface", and putting related
+// fields on one is what makes "these three belong together" visible without a
+// heading saying it. It is also the arrangement that shows a field is a **well**
+// -- content sits *in* it and the card is what it sits on (ADR-0168).
 column id="screen-forms" {
 
   text class="screen-title" "A field, and the model behind it"
@@ -18,10 +18,20 @@ column id="screen-forms" {
   // Bound *and* reported: the field is the source of what it holds and the model
   // is told, which is sec. 9's "data flows down, events flow up" with the field
   // owning the caret (ADR-0063).
-  column id="named" {
+  //
+  // This pair is the whole argument for that arrangement. `app.name` is written
+  // by the handler on every keystroke and read back by the field and by the
+  // `text` under it, which is a round trip through the model on every letter. A
+  // field that adopted its own echo would put the caret at the end each time;
+  // type in the middle of a word and watch it stay where it is.
+  card id="named-card" {
     text class="caption" "Type here, then click into the middle and keep typing"
-    text-input id="name" bind="app.name" change="app.set-name" placeholder="Jane Doe" \
-               max-length=40
+    text-input id="name" bind="app.name" change="app.set-name" \
+               placeholder="Your full name" max-length=40
+    // Written down because a limit that is not visible reads as a bug: paste
+    // into this field enough times and it stops taking characters, which is
+    // `max-length` doing exactly what it says and looking like a fault.
+    text class="caption" "At most 40 characters — a paste past that is clipped, not refused"
     row id="named-echo" {
       text class="caption" "The model says:"
       text id="name-echo" class="caption" bind="app.name"
@@ -32,12 +42,12 @@ column id="screen-forms" {
 
   // A filter judges the *result* rather than the keystroke, which is what makes
   // a paste of "80x80" fail and a typed "-" at the start of an integer succeed.
-  column id="limited" {
+  card id="limits-card" {
     text class="caption" "Digits only, and at most five of them"
     text-input id="port" bind="app.port" change="app.set-port" filter="digits" max-length=5
 
     text class="caption" "Masked, and it will not copy itself out"
-    text-input id="secret" password=#true placeholder="Password"
+    text-input id="secret" password=#true placeholder="Your password"
 
     text class="caption" "Read-only: a caret and a selection, but no edits"
     text-input id="frozen" value="You can select this, and copy it" read-only=#true
@@ -51,9 +61,12 @@ column id="screen-forms" {
   // The one thing a single-line field does that no other control does: it
   // scrolls its own content, by the minimum needed to keep the caret in view,
   // against the width the last frame measured.
-  column id="overflowing" {
+  card id="overflow-card" {
     text class="caption" "Press End, then Home, and watch the text move under the caret"
     text-input id="long" \
                value="Yoga laid this out, HarfBuzz shaped it, and Blend2D drew every glyph of it."
+
+    text class="caption" "And drag across this one to select part of it"
+    text-input id="selectable" value="Press, hold and move — a drag is a selection."
   }
 }

@@ -2715,6 +2715,43 @@ is the `scroll` box's.
   every test that checked what the field *held*
   ([ADR-0167](adr/0167-a-field-owns-its-caret-and-the-model-is-told.md))
 
+### Six reports from using it, and four were defects
+
+- **A drag selected nothing, ever.** The field guarded its whole pointer handler
+  on `button() == PRIMARY`, and `PointerRouter.pointerMoved` builds its event
+  with a **null** button — a motion is not a button event. So every drag was
+  thrown away before the switch could look at it. The button is the press's
+  question now, and what a motion carries is `dragX()`, which is `NaN` when
+  nothing is held and is how the router already says "not a drag".
+- **The caret was as tall as the control** — an 18-point line with a 32-point
+  caret through it, which reads as a terminal cursor. It takes the font's line
+  height now, as does the selection highlight, and both are centred by the
+  field's own `align-items` exactly as the text is.
+- **A field was `--gb-surface-2`, which is still not a direction.** On the light
+  theme that is one rung off the page, which is what "the fields are too pale"
+  was — and it is the same defect ADR-0166 corrected for `card`, in a new place,
+  found the same way. `--gb-surface-sunken` is `--gb-surface-raised`'s opposite
+  and is an **alpha over whatever is underneath**, because a fixed value has to
+  pick one background to be right against and a field has three. The first
+  attempt proved it: `--nord2` on dark is exactly `--gb-surface-raised`, so a
+  field on a card vanished into it.
+- **The placeholder rule applied and could not be seen.** `--gb-text-muted` is
+  two rungs from `--gb-text`, which inside a filled field is not a difference —
+  so an empty field looked like a filled one. `--gb-text-placeholder` is its own
+  token, and its alpha is set by §1.2 rather than by taste: the first value tried
+  was 2.4:1 on light, and the shipping ones are the lowest that clear 4.5:1
+  against the worst surface a field sits on, landing at about half a value's
+  contrast. `ContrastTest` cannot measure either token — both are translucent,
+  which is the trap it keeps `button.ghost` out for — so a test of its own
+  composites them explicitly.
+- **A limit nobody can see reads as a fault.** The screen's first field has
+  `max-length=40`; pasting into it a few times stops taking characters, which is
+  exactly what that means and is indistinguishable from a broken field. Clipping
+  a paste rather than refusing it stands, and the screen says so now.
+- **The fields moved into `card`s**, because a form is a set of groups rather
+  than a list of lines — and a card is also what shows a field is a well
+  ([ADR-0168](adr/0168-a-field-is-a-well-and-a-drag-is-a-selection.md))
+
 ### Not started
 
 Tray, dialogs, client-side decorations and charts, and the rest of §4 — `field`,

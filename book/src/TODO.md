@@ -245,6 +245,23 @@ the mechanism the sentence named.
   broken; what is untested is a font-family fallback swapping mid-edit, which no
   test can currently provoke. —
   [ADR-0167](adr/0167-a-field-owns-its-caret-and-the-model-is-told.md)
+- **A guard at the top of `onPointer` is a guard on every pointer kind, and the
+  kinds do not carry the same fields.** `text-input` tested
+  `button() == PRIMARY` there and silently lost every drag, because
+  `PointerRouter.pointerMoved` builds its event with a null button — a motion is
+  not a button event (ADR-0168). `Slider` asks per kind and reads as a style
+  choice until this happens. Nothing warns; a `PointerEvent` accessor that is
+  meaningless for the kind in hand answers with a default rather than refusing,
+  which is right for `dragX`'s `NaN` and quietly wrong for a null `button`. —
+  [ADR-0168](adr/0168-a-field-is-a-well-and-a-drag-is-a-selection.md)
+- **`--gb-surface-2` has now been mistaken for an elevation three times** — by
+  `card` (ADR-0166), by `text-input` and by `select` (ADR-0168). It means "the
+  second surface" and promises no direction, and each consumer that assumed
+  otherwise was wrong on one theme only. The two replacements,
+  `--gb-surface-raised` and `--gb-surface-sunken`, say which way they go; what is
+  unresolved is whether `--gb-surface-2` should keep existing at all, and that
+  needs a look at what still reads it. —
+  [ADR-0168](adr/0168-a-field-is-a-well-and-a-drag-is-a-selection.md)
 - **`--gb-caret-width` is not a token and the caret is one logical pixel.** The
   width is set in the same call that sets the caret's position, so a stylesheet
   that disagreed would move it rather than resize it. A theme that wants a fat

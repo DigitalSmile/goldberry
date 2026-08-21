@@ -177,6 +177,7 @@
 - [ADR-0165 A divider translates, and a rotation has three brakes](adr/0165-a-divider-translates-and-a-rotation-has-three-brakes.md)
 - [ADR-0166 A raised thing is told apart by its edge](adr/0166-a-raised-thing-is-told-apart-by-its-edge.md)
 - [ADR-0167 A field owns its caret, and the model is told](adr/0167-a-field-owns-its-caret-and-the-model-is-told.md)
+- [ADR-0168 A field is a well, and a drag is a selection](adr/0168-a-field-is-a-well-and-a-drag-is-a-selection.md)
 
 ---
 

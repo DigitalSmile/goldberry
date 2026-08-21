@@ -82,6 +82,52 @@
      already does well: a white card with a defined edge on a near-white page
      reads as raised, and a *darker* card would read as recessed. */
   --gb-surface-raised: #ffffff;
+
+  /* The surface of something **sunken** — a `text-input`, a `select`, and
+     whatever else content sits *in* rather than *on* (ADR-0168).
+
+     `--gb-surface-raised`'s opposite, and here for the same reason: what a field
+     wants is "one step more recessed than the page", and the two themes answer
+     that in opposite directions. `--gb-surface-2` was the first answer and is
+     the same mistake ADR-0166 corrected for cards — it means "the second
+     surface" and promises no direction, so on this theme a field built on it is
+     one rung off the page and reads as barely there.
+
+     An **alpha over whatever is underneath**, not a rung on the ramp. A fixed
+     value has to pick one background to be right against, and a field has three:
+     the page, a `panel`, and a `card` — which on this theme is white, so a field
+     with a fixed fill is either invisible on one of them or too heavy on
+     another. `--nord5` was the first answer and is a single rung off an
+     `--nord6` page, which is what "the fields are too pale" was.
+
+     Darkening is `--gb-border-strong`'s technique (ADR-0166), and the same
+     number as the dark theme's would be far too strong here — a light ramp has
+     much less room below it. */
+  --gb-surface-sunken: rgba(0, 0, 0, 0.07);
+
+  /* Text that is **standing in for content** rather than being it — a field's
+     placeholder.
+
+     Not `--gb-text-muted`, which was the first answer and is a step so small
+     that a placeholder and a value looked alike: on this theme muted is
+     `--nord3` and text is `--nord0`, two rungs apart on a ramp where the eye
+     needs four. §1.2's rank for de-emphasised *labels* is right for labels and
+     too strong for something whose whole job is to look unwritten.
+
+     An **alpha over whatever is underneath**, which is `--gb-border-strong`'s
+     technique (ADR-0166) and is the only way to say "dimmer than its own
+     surface" in a subset with no colour functions — so it is right on a field on
+     a page, on a card, and on another field.
+
+     The alpha is what it is because of §1.2 rather than because of taste: at
+     0.45 this was 2.4:1 on the light theme, which is a placeholder nobody can
+     read. These are the lowest values that clear **4.5:1 against the worst
+     background a field sits on** — which is a `card`, where the fill is
+     lightest — and they leave a placeholder at roughly half a value's contrast,
+     so it is unmistakably dimmer *and* legible. `ContrastTest` holds them
+     there. */
+  --gb-text-placeholder: rgba(46, 52, 64, 0.75);
+
   --gb-accent: var(--nord10);
   --gb-focus: var(--nord8);
   --gb-danger: var(--nord11);

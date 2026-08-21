@@ -127,11 +127,14 @@ record TextField(
     /// rather than selecting after the button comes up.
     @Override
     public void onPointer(PointerEvent event) {
-        if (disabled || event.button() != PointerEvent.Button.PRIMARY) {
+        if (disabled) {
             return;
         }
         switch (event.kind()) {
             case PRESSED -> {
+                if (event.button() != PointerEvent.Button.PRIMARY) {
+                    return;
+                }
                 editor.pointerAt(event.local().x(), event.modifiers().shift(), event.clickCount());
                 event.consume();
             }
@@ -139,6 +142,14 @@ record TextField(
                 // A drag and not a hover. `dragX()` is NaN when no button is
                 // down, which is the router reporting "no gesture" through the
                 // arithmetic rather than through a flag (ADR-0075).
+                //
+                // The **button is not asked about here**, and testing it above
+                // this switch was the bug that kept click-and-drag from ever
+                // selecting anything: `PointerRouter.pointerMoved` builds its
+                // event with a null button, because a motion is not a button
+                // event — so a guard that demanded PRIMARY threw away every drag
+                // before it arrived. Which button started the gesture is the
+                // press's question and is asked there.
                 if (!Double.isNaN(event.dragX())) {
                     // Always extending: a drag *is* a selection, and the shift
                     // key adds nothing to one.
@@ -245,23 +256,37 @@ record TextField(
         // drawn under the left padding and clipped away -- which is exactly what
         // the Forms screen's first golden showed.
 
+        // A line tall, and centred by the field's `align-items` like the text is —
+        // **not** pinned top and bottom. A caret that filled a 32-point control
+        // would be nearly twice the height of the 18-point line it is sitting in,
+        // which reads as a cursor from a terminal rather than as an insertion
+        // point; and a highlight that filled it would extend above and below the
+        // glyphs it is meant to be behind.
+        //
+        // The font's line height rather than a number in the stylesheet, because
+        // it has to follow the text: a field at a larger `font-size` has a taller
+        // line, and a CSS height that disagreed would be wrong at every size but
+        // one.
+        var line = StyleLength.points((float) paragraph.font().lineHeight());
+
         var selection = children.get(0)
                 .position(PositionType.ABSOLUTE)
                 .inset(new Insets(
-                        StyleLength.points(0),
                         StyleLength.UNDEFINED,
-                        StyleLength.points(0),
+                        StyleLength.UNDEFINED,
+                        StyleLength.UNDEFINED,
                         StyleLength.points((float) (padding
                                 + paragraph.widthBetween(0, clamp(edit.start(), length)) - offset))))
                 .size(StyleLength.points((float) paragraph.widthBetween(
                                 clamp(edit.start(), length), clamp(edit.end(), length))),
-                        StyleLength.UNDEFINED);
+                        line);
 
         // Only the left edge is pinned. An absolute box with no top or bottom is
         // placed by its parent's alignment, so `align-items: center` on the field
         // is what puts the text on the vertical middle -- and the field keeps one
-        // way of saying that rather than two. The caret and the highlight *are*
-        // pinned top and bottom, because both are meant to span the line.
+        // way of saying that rather than two. All three children are placed the
+        // same way, and the two that are not text take their height from the line
+        // rather than from the control.
         var value = children.get(1)
                 .position(PositionType.ABSOLUTE)
                 .inset(new Insets(
@@ -273,12 +298,12 @@ record TextField(
         var caret = children.get(2)
                 .position(PositionType.ABSOLUTE)
                 .inset(new Insets(
-                        StyleLength.points(0),
                         StyleLength.UNDEFINED,
-                        StyleLength.points(0),
+                        StyleLength.UNDEFINED,
+                        StyleLength.UNDEFINED,
                         StyleLength.points((float) (padding
                                 + paragraph.widthBetween(0, clamp(edit.caret(), length)) - offset))))
-                .size(StyleLength.points((float) CARET_WIDTH), StyleLength.UNDEFINED);
+                .size(StyleLength.points((float) CARET_WIDTH), line);
 
         return Box.of().style(style)
                 .children(selection, value, caret)

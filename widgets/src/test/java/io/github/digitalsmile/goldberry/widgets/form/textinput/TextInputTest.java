@@ -787,6 +787,145 @@ class TextInputTest {
     }
 
     @Nested
+    @DisplayName("dragging")
+    class Dragging {
+
+        /// A press, then a move with the button still down — which is what the
+        /// router sends: `PointerRouter.pointerMoved` builds a `MOVED` event
+        /// carrying the press origin, and **no button at all**, because a motion
+        /// is not a button event.
+        private void dragTo(ElementTree tree, float from, float to) {
+            press(tree, from, 1, Modifiers.NONE);
+            var moved = new PointerEvent(PointerEvent.Kind.MOVED, to, 0,
+                    null, 0, from, 0, Modifiers.NONE, null);
+            moved.localTo(new PointerEvent.Local(to, 0, 200, 32));
+            field(tree).onPointer(moved);
+            render(tree);
+        }
+
+        @Test
+        @DisplayName("press, hold and move selects what the pointer crossed")
+        void dragSelects() {
+            var tree = mounted(new TextInput("Goldberry", null));
+
+            dragTo(tree, 8, 400);
+
+            assertTrue(field(tree).edit().hasSelection(),
+                    "a drag selected nothing: the field never saw the motion");
+            assertEquals("Goldberry", field(tree).edit().selectedText());
+        }
+
+        @Test
+        @DisplayName("a drag keeps its anchor where the press was")
+        void dragKeepsTheAnchor() {
+            var tree = mounted(new TextInput("Goldberry", null));
+
+            dragTo(tree, 400, 8);
+
+            // Dragged right to left, so the anchor is at the end and the caret at
+            // the start -- which is what lets Shift+Right shrink it afterwards.
+            assertEquals(9, field(tree).edit().anchor());
+            assertEquals(0, field(tree).edit().caret());
+        }
+
+        @Test
+        @DisplayName("a hover with no button down selects nothing")
+        void hoverDoesNotSelect() {
+            var tree = mounted(new TextInput("Goldberry", null));
+            key(tree, Key.HOME);
+
+            // `dragX()` is NaN when no button is down, which is the router
+            // reporting "no gesture" through the arithmetic (ADR-0075). A field
+            // that read the position anyway would move the caret on hover.
+            var hover = new PointerEvent(PointerEvent.Kind.MOVED, 400, 0,
+                    null, 0, Float.NaN, Float.NaN, Modifiers.NONE, null);
+            hover.localTo(new PointerEvent.Local(400, 0, 200, 32));
+            field(tree).onPointer(hover);
+            render(tree);
+
+            assertEquals(0, field(tree).edit().caret());
+            assertFalse(field(tree).edit().hasSelection());
+        }
+    }
+
+    @Nested
+    @DisplayName("where the parts are drawn")
+    class Geometry {
+
+        /// The boxes the field describes, rendered by hand — the only way to see
+        /// where a caret actually goes, since its position is a measurement
+        /// rather than anything a stylesheet or a layout decides.
+        private List<io.github.digitalsmile.goldberry.layout.Box> parts(ElementTree tree) {
+            var context = TestFont.context();
+            // The **real** resolved style, so the padding this asserts against is
+            // the one `controls.css` actually gives a field rather than a number
+            // repeated here.
+            var element = tree.root().children().getFirst();
+            var style = io.github.digitalsmile.goldberry.css.ComputedStyle.of(
+                    new io.github.digitalsmile.goldberry.css.StyleResolver(
+                            Controls.stylesheets(Theme.NORD_DARK)).resolve(element),
+                    io.github.digitalsmile.goldberry.css.CssLength.Context.DEFAULT);
+            var field = field(tree);
+            var children = field.children().stream()
+                    .map(child -> ((io.github.digitalsmile.goldberry.widget.Paints) child)
+                            .render(style, List.of(), context))
+                    .toList();
+            return field.render(style, children, context).children();
+        }
+
+        private static float points(io.github.digitalsmile.goldberry.natives.yoga.StyleLength length) {
+            return length instanceof io.github.digitalsmile.goldberry.natives.yoga.StyleLength.Points p
+                    ? p.value() : Float.NaN;
+        }
+
+        @Test
+        @DisplayName("the caret is a line tall, not a control tall")
+        void caretIsALineTall() {
+            var tree = mounted(new TextInput("Goldberry", null));
+            focus(tree, true, false);
+            key(tree, Key.END);
+
+            var caret = parts(tree).get(2);
+
+            // A 32-point control holds an 18-point line. A caret filling the
+            // control would be nearly twice the height of the text it sits in,
+            // which reads as a terminal cursor rather than an insertion point.
+            assertEquals(TestFont.one().lineHeight(), points(caret.height()), 0.01);
+            assertTrue(points(caret.height()) < 24,
+                    "the caret is as tall as the whole field");
+        }
+
+        @Test
+        @DisplayName("the highlight is a line tall too, so it sits behind the glyphs")
+        void selectionIsALineTall() {
+            var tree = mounted(new TextInput("Goldberry", null));
+            focus(tree, true, false);
+            key(tree, Key.A, Modifiers.of(Mod.CTRL));
+
+            var selection = parts(tree).getFirst();
+
+            assertEquals(TestFont.one().lineHeight(), points(selection.height()), 0.01);
+        }
+
+        @Test
+        @DisplayName("every part's left carries the field's padding")
+        void partsAllowForPadding() {
+            var tree = mounted(new TextInput("Goldberry", null));
+            focus(tree, true, false);
+            key(tree, Key.HOME);
+
+            var parts = parts(tree);
+
+            // The bug the Forms screen's first golden showed: an absolutely
+            // positioned child here is placed against the border box while the
+            // clip is the padding box, so a `left` of zero draws the first
+            // character under the padding and loses it.
+            assertEquals(8, points(parts.get(1).inset().left()), 0.01, "the text");
+            assertEquals(8, points(parts.get(2).inset().left()), 0.01, "the caret at offset 0");
+        }
+    }
+
+    @Nested
     @DisplayName("the node a stylesheet sees")
     class Styling {
 

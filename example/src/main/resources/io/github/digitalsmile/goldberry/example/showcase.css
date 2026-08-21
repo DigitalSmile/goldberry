@@ -50,11 +50,12 @@
 #screen-text, #screen-tabs, #screen-panels, #screen-forms
            { flex-direction: column; gap: 16px; padding-top: 16px }
 
-/* The Forms screen's groups: a caption and the field it describes belong to each
-   other, so the gap inside a group is smaller than the gap between them. Without
-   this every label sits the same distance from the field above it as from the
-   one it names, and a form reads as a list of unrelated lines. */
-#named, #limited, #overflowing
+/* The Forms screen's groups. Each is a `card`, because a form is a set of groups
+   rather than a list of lines — and a caption and the field it describes belong
+   to each other, so the gap inside a card is smaller than the gap between them.
+   Without this every label sits the same distance from the field above it as
+   from the one it names, and a form reads as unrelated lines. */
+#named-card, #limits-card, #overflow-card
            { flex-direction: column; gap: 6px }
 
 #named-echo { flex-direction: row; gap: 6px; align-items: center }

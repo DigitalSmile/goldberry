@@ -1362,12 +1362,14 @@ select {
   padding: 0 8px;
   border-radius: 4px;
   border: 1px solid var(--gb-border);
-  /* One step off the panel, like `badge`'s chip and for the same reason: a
-     field whose fill *was* `--gb-surface` would be a control that disappears on
-     a panel and is held together by a 1px border -- which is precisely the
-     defect `controls-on-surface-*` exists to catch, and why this control is in
-     that scene rather than exempt from it. */
-  background: var(--gb-surface-2);
+  /* A well, exactly as `text-input` is: §3 gives the two controls one row, and
+     a form where the field you type into and the field you pick from are
+     different colours is a form that looks assembled from two toolkits. This was
+     `--gb-surface-2` and had `text-input`'s defect for `text-input`'s reason
+     (ADR-0168) -- one rung off the page on the light theme, held together by a
+     1px border, which is precisely what `controls-on-surface-*` exists to
+     catch. */
+  background: var(--gb-surface-sunken);
   color: var(--gb-text);
   cursor: pointer;
   font-size: var(--gb-font-body);
@@ -1401,7 +1403,7 @@ select-value {
    is standing in for content rather than being it. A class rather than a
    pseudo-class for `select.open`'s reason. */
 select-value.placeholder {
-  color: var(--gb-text-muted);
+  color: var(--gb-text-placeholder);
 }
 
 /* ---------------------------------------------------------- text-input --
@@ -1423,9 +1425,13 @@ text-input {
   padding: 0 8px;
   border-radius: 4px;
   border: 1px solid var(--gb-border);
-  /* `select`'s fill, for `select`'s reason: a field whose surface *was*
-     `--gb-surface` disappears on a panel and is held together by a 1px border. */
-  background: var(--gb-surface-2);
+  /* A **well**: content sits in a field rather than on it, and
+     `--gb-surface-sunken` is the token that says so in whichever direction the
+     theme's ramp runs (ADR-0168). This was `--gb-surface-2` and that is the same
+     mistake ADR-0166 corrected for `card`: it means "the second surface" and
+     promises no direction, so on the light theme a field was one rung off the
+     page and read as barely there. */
+  background: var(--gb-surface-sunken);
   color: var(--gb-text);
   font-size: var(--gb-font-body);
   line-height: var(--gb-line-body);
@@ -1436,11 +1442,16 @@ text-input:hover {
   border-color: var(--gb-text-muted);
 }
 
-/* An empty field is standing in for content rather than being it, which is
-   §1.2's rank for `--gb-text-muted`. A class rather than a pseudo-class for
-   `select-value.placeholder`'s reason: §8's subset has none that means this. */
+/* An empty field is standing in for content rather than being it. A class rather
+   than a pseudo-class for `select-value.placeholder`'s reason: §8's subset has
+   none that means this.
+
+   `--gb-text-placeholder` and not `--gb-text-muted`, which was the first answer
+   and did apply -- it was simply too small a step to see. Muted and text are two
+   rungs apart on the Nord ramp, so a placeholder inside a filled field looked
+   exactly like a value somebody had typed (ADR-0168). */
 text-value.placeholder {
-  color: var(--gb-text-muted);
+  color: var(--gb-text-placeholder);
 }
 
 /* The insertion point. `--gb-text` and not the accent: a caret is the text it is

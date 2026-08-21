@@ -171,6 +171,21 @@ class GalleryGoldenTest {
         paint("gallery-scrolling", "scrolling", Theme.NORD_DARK);
     }
 
+    /// The Forms screen on the light theme, and the second screen to earn a
+    /// light image rather than share the one.
+    ///
+    /// It earned it by being wrong there and right on the dark theme, which is a
+    /// failure a one-screen light corpus cannot catch: a field's fill was
+    /// `--gb-surface-2`, one rung off an `--nord6` page, and read as barely
+    /// there — the same defect ADR-0166 corrected for `card`, in the same place,
+    /// found the same way (ADR-0168). A **light** image of a screen full of
+    /// fields is what would have caught it.
+    @Test
+    @DisplayName("the Forms screen on the light theme")
+    void formsLight() {
+        paint("gallery-forms-light", "forms", Theme.NORD_LIGHT);
+    }
+
     /// One screen on the light theme, because a gallery that only ever proves
     /// itself on one is half a corpus — and the theme is a stylesheet swap, so one
     /// screen is enough to say the swap works.

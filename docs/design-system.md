@@ -142,7 +142,7 @@ Behavior and API live in `core-widgets.md`; GDS pins the numbers. Metrics ship a
 | Component | Metrics |
 |-----------|---------|
 | `button` | height 32 (28); padding-x 12; icon+label gap 6; radius 8; `body-strong` |
-| `text-input` / `select` | height 32 (28); padding-x 8; radius 4; `body` |
+| `text-input` / `select` | height 32 (28); padding-x 8; radius 4; `body`; fill `--gb-surface-sunken` — a field is a **well**, and the token is an alpha so it is one step below the page, a `panel` or a `card` alike (ADR-0168); caret and selection are one **line** tall, not one control tall; placeholder `--gb-text-placeholder`, not `--gb-text-muted`, which is two rungs from `--gb-text` and invisible inside a filled field |
 | `text-area` | min-height 64; padding 8; radius 4 |
 | `checkbox` / `radio` | glyph 16; hit ≥32; label gap 8 |
 | `toggle` | track 36×20; thumb 16; travel 16 |
