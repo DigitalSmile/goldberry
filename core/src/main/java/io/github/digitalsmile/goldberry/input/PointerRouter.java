@@ -363,10 +363,7 @@ public final class PointerRouter {
             captured = target;
             capturedImplicitly = true;
         }
-        // §7.2: focus travels by pointer press -- and it lands on the nearest
-        // focusable ancestor, not only on a directly focusable target, so
-        // clicking the label inside a button focuses the button.
-        focus(nearestFocusable(target), false);
+        focusFromPress(target);
         dispatch(new PointerEvent(PointerEvent.Kind.PRESSED, x, y, button, clickCount,
                 pressOriginX, pressOriginY, modifiers, target));
     }
@@ -539,11 +536,48 @@ public final class PointerRouter {
         if (focused != null) {
             notifyFocus(focused, true, fromKeyboard);
         }
+        notifyFocusWithin(lost, focused, fromKeyboard);
     }
 
     private static void notifyFocus(Element element, boolean gained, boolean fromKeyboard) {
         if (element.widget() instanceof Handles handles) {
             handles.onFocusChanged(gained, fromKeyboard);
+        }
+    }
+
+    /// Tells the containers that gained or lost the keyboard — CSS's
+    /// `:focus-within`, as a notification ([Handles#onFocusWithin]).
+    ///
+    /// **The difference of the two chains, not both of them.** Focus moving
+    /// between two controls inside one `field` leaves that field's subtree
+    /// focused throughout, and a container told "left" and then "entered" for a
+    /// move that never crossed its boundary would validate, pause or collapse
+    /// for no reason. So an ancestor of both is told nothing.
+    ///
+    /// Walking two chains on every focus change is the cost, and it is a walk to
+    /// the root of a widget tree per keystroke that moves focus — the same order
+    /// as the pointer dispatch that already happens per motion.
+    private static void notifyFocusWithin(Element lost, Element gained, boolean fromKeyboard) {
+        if (lost == gained) {
+            return;
+        }
+        var left = lost == null ? List.<Element>of() : chain(lost);
+        var entered = gained == null ? List.<Element>of() : chain(gained);
+        var shared = new java.util.HashSet<>(left);
+        shared.retainAll(new java.util.HashSet<>(entered));
+
+        // Deepest first for the leave and deepest first for the enter, which is
+        // the order the pointer's bubble phase uses -- a container that reacts by
+        // rebuilding should see its children settle before it does.
+        for (var element : left) {
+            if (!shared.contains(element) && element.widget() instanceof Handles handles) {
+                handles.onFocusWithin(false, fromKeyboard);
+            }
+        }
+        for (var element : entered) {
+            if (!shared.contains(element) && element.widget() instanceof Handles handles) {
+                handles.onFocusWithin(true, fromKeyboard);
+            }
         }
     }
 
@@ -1072,10 +1106,55 @@ public final class PointerRouter {
         };
     }
 
+    /// Moves focus as a press on `target` would — §7.2's "focus travels by
+    /// pointer press".
+    ///
+    /// It lands on the nearest focusable **ancestor** rather than only on a
+    /// directly focusable target, so clicking the label inside a button focuses
+    /// the button; and on a container that [Handles#delegatesFocus()] it goes the
+    /// other way, down to the first focusable child, which is how clicking a
+    /// `field`'s label focuses the control beside it.
+    ///
+    /// Public because the rule is worth naming: [#pointerPressed] is the only
+    /// caller in the toolkit, and a test that wants to ask "what would a press
+    /// here focus" should be able to ask that rather than paint a frame and
+    /// synthesize a press to find out.
+    public void focusFromPress(Element target) {
+        focus(nearestFocusable(target), false);
+    }
+
+    /// Who a press at `element` should focus.
+    ///
+    /// Up the chain, which is what makes clicking a button's label press the
+    /// button — and, at each step, a container that
+    /// [Handles#delegatesFocus()] hands the press **down** to its first focusable
+    /// child instead. That is how clicking a `field`'s label focuses the control
+    /// beside it, which no upward walk can reach because a label is the control's
+    /// sibling.
     private static Element nearestFocusable(Element element) {
         for (var current = element; current != null; current = parentOf(current)) {
             if (isFocusable(current)) {
                 return current;
+            }
+            if (current.widget() instanceof Handles handles && handles.delegatesFocus()) {
+                var inside = firstFocusable(current);
+                if (inside != null) {
+                    return inside;
+                }
+            }
+        }
+        return null;
+    }
+
+    /// The first focusable node in `element`'s subtree, in document order.
+    private static Element firstFocusable(Element element) {
+        for (var child : element.children()) {
+            if (isFocusable(child)) {
+                return child;
+            }
+            var deeper = firstFocusable(child);
+            if (deeper != null) {
+                return deeper;
             }
         }
         return null;

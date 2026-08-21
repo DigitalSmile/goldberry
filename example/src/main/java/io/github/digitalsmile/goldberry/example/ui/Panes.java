@@ -55,6 +55,28 @@ public final class Panes {
         return inflate(inflater, "overlays.kdl");
     }
 
+    /// The **Panels** screen: §5's containers.
+    ///
+    /// The purest case for a document there is. Nothing on that screen holds a
+    /// value — they are all containers — so it needs no `bind=`, no `change=`
+    /// and no Java at all, and the two widgets on it with state keep it
+    /// themselves.
+    public static Widget panels(KdlInflater<Widget> inflater) {
+        return inflate(inflater, "panels.kdl");
+    }
+
+    /// The **Forms** screen: §4's `text-input` in every state it has.
+    ///
+    /// A document for [#panels]'s reason and a stronger one: a field holds its
+    /// own text, caret and undo stack, so a screen full of them needs no more
+    /// wiring than a screen full of cards. The two that *are* wired are wired the
+    /// way a real form is — `bind=` down and `change=` back up — which is what
+    /// makes this screen the demonstration that a field does not adopt the echo
+    /// of its own keystroke.
+    public static Widget forms(KdlInflater<Widget> inflater) {
+        return inflate(inflater, "forms.kdl");
+    }
+
     private static Widget inflate(KdlInflater<Widget> inflater, String document) {
         return inflater.inflate(KdlParser.resource(Panes.class, document).getFirst());
     }

@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import io.github.digitalsmile.goldberry.RendererRequirement;
 import io.github.digitalsmile.goldberry.TestFrames;
 import io.github.digitalsmile.goldberry.css.Transform;
+import io.github.digitalsmile.goldberry.golden.ScaleInvariance;
 import io.github.digitalsmile.goldberry.natives.yoga.StyleLength;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -159,5 +160,42 @@ class TransformPaintTest {
 
         assertGreen(target, 110, 10);
         assertNotGreen(target, 10, 10);
+    }
+
+    /// A transform is composed with the context's own scale matrix, and a
+    /// `translate` in `px` is a length in logical units on one side of that
+    /// composition. Getting the order wrong, or applying the display scale to a
+    /// translation that has already been through it, moves the box by the scale
+    /// factor — and every assertion above is at 1x, where a factor of one hides
+    /// it completely (ADR-0157).
+    ///
+    /// A rotation and a scale go with it because they are the two that pick up a
+    /// wrong `transform-origin`: an origin computed in physical pixels swings
+    /// the box out of frame at 2x and sits exactly on the centre at 1x.
+    @Test
+    @DisplayName("a translation is the same distance at every display scale")
+    void translateIsInLogicalUnits() {
+        ScaleInvariance.assertSamePictureAtEveryScale("transform-translate", 200, 200,
+                frame -> BoxPainter.paint(frame, transformed(Transform.of(
+                        new Transform.Function.Translate(
+                                Transform.Length.px(100), Transform.Length.px(60))))));
+    }
+
+    @Test
+    @DisplayName("a rotation turns about the same point at every display scale")
+    void rotationOriginIsInLogicalUnits() {
+        ScaleInvariance.assertSamePictureAtEveryScale("transform-rotate", 200, 200,
+                frame -> BoxPainter.paint(frame, transformed(Transform.of(
+                        new Transform.Function.Rotate(Math.toRadians(30))))));
+    }
+
+    /// The same tree [#paint] builds, without painting it: the scale check needs
+    /// the scene as a description it can draw more than once.
+    private static Box transformed(Transform transform) {
+        return Box.filled(0xFF000000)
+                .size(StyleLength.points(200), StyleLength.points(200))
+                .children(Box.filled(GREEN)
+                        .size(StyleLength.points(40), StyleLength.points(40))
+                        .transform(transform));
     }
 }

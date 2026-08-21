@@ -56,6 +56,46 @@ class ComputedStyleTest {
     }
 
     @Nested
+    @DisplayName("a shorthand with a function in it")
+    class Functions {
+
+        @Test
+        @DisplayName("keeps the spaces inside the function's own parentheses")
+        void borderWithRgba() {
+            // The bug this pins was live and silent: the splitter broke a
+            // shorthand on *any* whitespace, so `rgba(255, 255, 255, 0.2)`
+            // became four fragments, none of them a colour, and the whole
+            // `border` was dropped with a warning nobody was reading.
+            var style = compute("button { border: 1px solid rgba(255, 255, 255, 0.2) }");
+
+            assertTrue(style.decoration().hasBorder());
+        }
+
+        @Test
+        @DisplayName("and the same value written without spaces means the same thing")
+        void spacingDoesNotMatter() {
+            var spaced = compute("button { border: 1px solid rgba(255, 255, 255, 0.2) }");
+            var tight = compute("button { border: 1px solid rgba(255,255,255,0.2) }");
+
+            assertEquals(tight.decoration(), spaced.decoration());
+        }
+
+        @Test
+        @DisplayName("a token that is what a card's edge actually resolves to")
+        void theCardEdge() {
+            // `--gb-border-strong`, through a custom property, which is how it
+            // reaches the shorthand in the real stylesheet -- an alpha over
+            // whatever is underneath is the only way to say "lighter than its
+            // own surface" in a subset with no colour functions (ADR-0166).
+            var style = compute("window { --edge: rgba(255, 255, 255, 0.20) }"
+                    + " button { border: 1px solid var(--edge) }");
+
+            assertTrue(style.decoration().hasBorder(),
+                    "a raised thing is told apart by its edge, and it had none");
+        }
+    }
+
+    @Nested
     @DisplayName("layout properties compile to Yoga")
     class Layout {
 
@@ -590,6 +630,50 @@ class ComputedStyleTest {
         void rootInheritsNothing() {
             assertSame(ComputedStyle.INITIAL,
                     ComputedStyle.of(java.util.Map.of(), CssLength.Context.DEFAULT, null));
+        }
+    }
+
+    /// What a declaration that cannot be applied says, and how often.
+    ///
+    /// A stylesheet is static, so a value that is not one cannot become one on
+    /// the next frame — but a style is resolved per element per invalidation, so
+    /// before this was deduplicated a single typo reported itself for every
+    /// element on every frame the screen moved. The point of a warning is that
+    /// somebody reads it, and one line does not survive a thousand identical ones
+    /// after it.
+    @org.junit.jupiter.api.Nested
+    @org.junit.jupiter.api.DisplayName("reporting a declaration that cannot be applied")
+    class Dropping {
+
+        @org.junit.jupiter.api.BeforeEach
+        void forget() {
+            ComputedStyle.forgetReportedDrops();
+        }
+
+        /// The value is still dropped every time — only the *report* is once.
+        /// Making the drop itself conditional would be a stylesheet that behaved
+        /// differently on the second frame.
+        @Test
+        @DisplayName("the declaration is dropped every time, however often it is reported")
+        void alwaysDropped() {
+            for (var attempt = 0; attempt < 3; attempt++) {
+                var style = compute("button { align-items: start; gap: 4px }");
+                assertEquals(ComputedStyle.INITIAL.alignItems(), style.alignItems(),
+                        "a value this toolkit has not got must never be applied");
+                assertEquals(io.github.digitalsmile.goldberry.natives.yoga.StyleLength.points(4),
+                        style.gap(), "and the declarations around it still are");
+            }
+        }
+
+        /// `start` is CSS's alias for `flex-start` and Yoga has only the second,
+        /// which is the exact typo that produced the report this test exists for.
+        @Test
+        @DisplayName("`start` is not `flex-start`, which is the typo that started this")
+        void startIsNotFlexStart() {
+            assertEquals(io.github.digitalsmile.goldberry.natives.yoga.Align.FLEX_START,
+                    compute("button { align-items: flex-start }").alignItems());
+            assertEquals(ComputedStyle.INITIAL.alignItems(),
+                    compute("button { align-items: start }").alignItems());
         }
     }
 }

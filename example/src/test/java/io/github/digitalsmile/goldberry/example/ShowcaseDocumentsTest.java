@@ -59,7 +59,12 @@ class ShowcaseDocumentsTest {
     /// new Showcase()` in this file, so every test passed and the window threw
     /// `no action named "app.toggle-theme" is bound` on the first frame.
     private io.github.digitalsmile.goldberry.kdl.KdlInflater<Widget> inflater() {
-        return Widgets.inflater(Icons.lenient(), showcase.models().toArray());
+        return Widgets.inflater(
+                // Strict, and that is the point of it being here: the documents
+                // name a controller and a validator, and a lenient registry would
+                // resolve a typo in either to null and let this test pass a
+                // screen whose form nothing can submit.
+                model.named(), Icons.lenient(), showcase.models().toArray());
     }
 
     private static List<String> typesIn(Widget widget) {

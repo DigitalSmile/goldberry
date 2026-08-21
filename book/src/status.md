@@ -13,7 +13,7 @@ page is the other half: it says what works and what it cost to find out.
 | [M0 — Skeleton](#m0--skeleton) | **done** | One native library on four targets, two backends, a window at the right fractional DPI |
 | [M1 — Vertical slice](#m1--vertical-slice) | **started** | Blend2D rasterizes, HarfBuzz shapes, text lays out, and a frame's cost is measured |
 | [M2 — Widgets & style](#m2--widgets--style) | **done** | CSS, KDL, the three trees, input, motion — and every §3 control, `select` included |
-| [M3 — Shell](#m3--shell) | **started** | Both places an overlay can go, `tabs`, and the whole `scroll` family — viewport, bars, `affix`, `scrollIntoView` and `tour` |
+| [M3 — Shell](#m3--shell) | **started** | Both places an overlay can go, `menubar`, §5's containers, the whole `scroll` family, and §4's first field — with the clipboard and text input the platform had never been asked for |
 | [M4 — GPU](#m4--gpu) | not started | `canvas3d`, GPU composition |
 | [M5 — Hardening](#m5--hardening) | not started | Text editing depth, AccessKit bridge, IME preedit, docs, 0.1 release |
 
@@ -2422,14 +2422,439 @@ is the `scroll` box's.
   which is the only way to test a flag read once into a `static final` field
   (ADR-0101)
 
+- **Every golden is now three goldens, and none of them is committed.** ADR-0157
+  fixed a layer composited at twice its size on a 2x display and wrote down what it
+  had not fixed: 37 of the 39 `assertMatches` calls in the repository were at 1.0,
+  where the multiplication between logical units and device pixels is the identity
+  and a conversion done twice, not at all, or in the wrong space draws exactly the
+  right picture. A golden that matches is now **drawn again at 2x and 1.5x its own
+  scale**, into a frame of the same *logical* size, area-resampled back down and
+  compared — so the claim being checked is invariance rather than "this is the 2x
+  render", which is what makes it worth a hundred more PNGs of nobody's review
+  attention. The comparison lets a pixel find its match anywhere in the 3x3
+  neighbourhood around it, because the two things that differ honestly between
+  scales — an edge Yoga rounded onto a different device pixel, and a glyph
+  antialiased at a different resolution — are both sub-pixel, and a subtree at twice
+  its size is not. It runs in **both directions**: "every pixel of the reference is
+  still near where it was" says nothing about something that *grew*, since the
+  reference's ink is all still there with more around it. `ClipTest`,
+  `TransformPaintTest` and `IconPaintTest` get the same check with no golden behind
+  it, which is where the arithmetic actually lives. **Nothing new was found** — the
+  whole corpus passed at both scales on the first run, 2215 tests green — and saying
+  otherwise would misrepresent what this bought: ADR-0157's bug was already fixed,
+  and this is what stops the next one being invisible for a year. The cost is about
+  17 ms a golden (88 images, 2.16 s to 3.64 s). What keeps it honest is that its
+  failure path runs: `ScaleInvarianceTest` rebuilds ADR-0157's bug on purpose — a
+  rectangle sized in physical pixels and drawn in logical ones — and asserts it is
+  rejected, and does it again for a border thickened by the scale, which is the
+  subtle end of the family and only a stroke wide
+  ([ADR-0162](adr/0162-a-golden-is-checked-at-every-scale.md))
+
+### `menubar`, and the accelerator that was waiting on it
+
+- **The model that had to outlive one opening turned out to be the one the author
+  already wrote.** ADR-0106 left two things unbuilt with one sentence explaining
+  both — §8's in-window bar, and the half of an accelerator that is
+  *registration* rather than display — because "a menu is built when it opens and
+  thrown away when it closes". That is true of the **popup**. A `Menu` is a
+  `record`: an ordinary value, and `Menus.open` builds a *second* tree from it to
+  put in a window. Nothing was ever holding the description, which is a different
+  complaint, and the fix for it is a widget that does. So `menubar` holds its
+  menus, `Accelerators` walks them, and `Ctrl+O` runs the command a submenu three
+  levels down names **with nothing at all on screen** — which is the central test,
+  written that way deliberately, because anything that opened a menu first would
+  be testing the part that already worked.
+- **No markup was added.** A bar's children are `item`s, and an `item` containing
+  `item`s is a heading that opens a menu — the nesting that has been the submenu
+  syntax since ADR-0106. The showcase's bar is written entirely in KDL beside the
+  buttons that were already there, wired to the same actions, and its
+  accelerators are live: `Ctrl+K` clicks the counter with the bar shut.
+- **A heading is not a menu row, and the keyboard is why.** `Down` opens where an
+  `Item` moves; `Right` moves where an `Item` opens. Neither arrow is the widget's
+  — `menubar` is a **horizontal** focus scope where `menu` is a vertical one
+  (ADR-0078), so traversal is free and the two arrows left over are the two a bar
+  wants. A heading also has none of the three things that make a row a row: no
+  tick column, no accelerator on the right, no chevron. Hovering a heading opens
+  it **only when a menu is already down**, which is what every desktop bar does;
+  hovering with nothing open would drop a menu on somebody crossing the bar on
+  the way elsewhere.
+- **`F10`, not `Alt`, and the reason is in the type.** §8 asks for "`Alt`-style
+  keyboard activation"; a bare `Alt` is a *modifier released with nothing in
+  between*, and a `Shortcut` here is a key plus modifiers — `Key` has no `ALT` to
+  name, because `Shortcut`'s own constructor refuses one that can never fire.
+  `F10` is the companion binding on every platform that has the `Alt` one, and it
+  **opens** the first heading rather than focusing it, because there is no
+  `Host.focus` and a binding that did nothing visible would read as broken rather
+  than as missing.
+- **Three costs, written down rather than discovered.** `Host` grew
+  `removeShortcut`, and the map is keyed by the shortcut and not by who bound it —
+  so a bar going away takes whatever is on `Ctrl+O` with it, including a binding
+  made afterwards; a collision inside one bar is logged and the later row wins;
+  and an accelerator that does not **parse** is logged and skipped rather than
+  thrown, because it is a typo already drawn beside the row where somebody can
+  see it.
+- **Adding two methods to `Host` found a third hand-written stub.** `SelectTest`
+  and `TourTest` each carried a near-identical one, so the interface change would
+  have meant editing both and writing a third. `TestHost` is the shared one, both
+  extend it, and — like the real thing under SDL's `dummy` driver — it **opens
+  nothing**, which is the branch ADR-0102 says a control has to survive.
+- **The first widget drawn through ADR-0162.** Six goldens, each checked at 2x and
+  1.5x on the day it was written rather than after somebody reports a HiDPI bug.
+  And the images earned their keep immediately: `.open` started as
+  `--gb-overlay-active` against `:hover`'s `--gb-overlay-hover` — 16% against 8% —
+  and the picture said the two are hard to tell apart, which is precisely the
+  comparison a bar puts in front of somebody, since the hovered heading is usually
+  the one *next to* the open one. It is the accent fill now
+  ([ADR-0163](adr/0163-a-menu-bar-owns-its-menus.md))
+- **Two things §8 asks for are still not built and neither is a bar problem**: a
+  bare `Alt` tap, and `Left`/`Right` moving *between* menus while one is down —
+  the open menu is a window of its own with its own focus, so the bar never sees
+  the arrow, which is the same missing item-to-popup callback that has kept `Left`
+  from closing a submenu since ADR-0112.
+
+### Five of §5's seven containers
+
+- **`card`, `group-box`, `statistic`, `skeleton` and `collapse` ship**, and three
+  of them ran straight into a limit worth writing down rather than rediscovering.
+  **A card's elevation is an edge**: §10's subset has no `box-shadow` and nothing
+  in this toolkit paints outside a box's own rectangle, so a card is raised by
+  contrast — `--gb-surface-2` against the page, plus a border — which is the
+  answer `popover` reached first and is the honest version of the same idea, since
+  contrast is what a rasterizer with no shadow pass can express. **A group box's
+  title is above the frame, not through it**: a legend that breaks a border needs
+  a notch the subset cannot express, or the page's own background painted behind
+  the words, which is wrong the moment the box sits on anything but the page — and
+  a heading above a frame wraps at a small width where a legend through one breaks
+  it. **A closed `collapse` describes no body at all** — not a hidden one, not one
+  of zero height — so nothing is mounted and nothing subscribed, which is §5's
+  own reasoning and ADR-0004's; the test for it is therefore an assertion about an
+  absence, including that the author's own widgets were never built.
+- **The one loop in the canon is a function of the clock, not a transition.** §1.7
+  rule 4 lets a `skeleton` shimmer and nothing else, and a transition runs between
+  two states where a skeleton has one — so the pulse is computed from
+  `nowMillis()`, which is `spinner`'s arrangement (ADR-0081) and is why a column of
+  placeholders is in step by construction. A **triangle wave** folding at the
+  halfway point, so the two ends meet and it does not snap once a second, between
+  0.45 and 1.0 rather than 0 and 1: a placeholder that fades to nothing flickers
+  the layout empty, and one at full strength is indistinguishable from content.
+  Reduced motion holds it at its **dimmest**, because a placeholder frozen bright
+  reads as content that arrived and was blank.
+- **Two things the tests found rather than assumed.** A record component **cannot
+  be called `children` when `children()` is overridden**: `GroupBox` described its
+  parts from that method, which is also the accessor for the author's widgets, so
+  asking a group box what was in it returned its own chrome — caught by inflating
+  one node and being told it had two, and the component is `content` now. And the
+  **skeleton goldens could never have matched**: a widget drawing from the frame
+  clock renders differently every run, so they need `Clock.virtual()` the way
+  `ProgressGoldenTest` already did. The instant is pinned at the fold, 500 ms; 250
+  was the first guess and is a quarter of the way in rather than the peak.
+- **`statistic` never formats and never infers.** §5's reason for a string is that
+  a locale-aware number formatted inside the toolkit makes a golden that cannot be
+  reproduced on another machine. And `direction` names the **sentiment** rather
+  than the arithmetic — latency falling is success — so the caller picks it; a
+  widget that read the leading `-` would colour a latency improvement red. The
+  colour itself is a class on the delta, so it stays the stylesheet's
+  ([ADR-0164](adr/0164-elevation-is-an-edge-and-a-closed-section-is-absent.md))
+- **`statistic`'s sparkline waits on `canvas`**, and `collapse`'s `accordion=` is
+  a rule about siblings and therefore the containing `column`'s.
+
+### `split-pane` and `carousel`, and §5 is complete
+
+- **A divider translates; it does not track.** ADR-0164 said neither of these had
+  a design question left in it. Each had exactly one, and neither was the
+  predictable one. A slider reads its value straight off the pointer because the
+  value *is* a position along a track — a divider cannot, because the pointer is
+  somewhere inside a six-point bar and mapping that to a fraction snaps the
+  divider so its centre jumps under the finger on every press. So it is
+  **`knob`'s** arrangement instead: the divider reports its offset as a
+  `gestureAnchor` and the new offset is `anchor + dragX`. This is the second
+  widget to want an anchor **for a reason that is not the knob's** — a knob needs
+  one because its value has already moved by the second frame — which is the
+  useful thing it says: the mechanism generalises past the case it was built for.
+- **The position is a fraction and the minimums are pixels**, and they have to be
+  different kinds of thing. A divider a third of the way across stays a third of
+  the way across when the window widens, which a stored pixel offset gets wrong;
+  but "this list needs 160 points or its labels wrap" is a fact about content, and
+  a fractional minimum would let a narrow window squeeze it to nothing. The clamp
+  between them needs the measured length, which is ADR-0117's channel. And the
+  first pane is **sized** while the second grows, because `flex-grow` shares out
+  the space *left over* after content — two proportional panes would land wherever
+  their content put them and ignore the divider's fraction entirely, and §10's
+  subset has no `flex-basis` to say it with instead.
+- **A rotation has three brakes and only two of them work.** §5 makes `interval`
+  default to off and asks for a pause on hover, on focus anywhere inside, and
+  under reduced motion — §1.7 rule 4's canonical violation being a carousel that
+  moves while being read. Hover and reduced motion are complete. **Focus is not**:
+  the strip and the carousel's own controls pause it, and focus on a widget
+  *inside a slide* does not, because the cascade has no `:focus-within` and
+  nothing tells a widget that focus landed in its subtree. That is a real gap —
+  somebody who has tabbed into a slide is exactly somebody reading it — and it is
+  in TODO.md rather than papered over.
+- **One one-shot timer, rescheduled**, rather than a repeating one: a pause is
+  then a timer *not scheduled*, and needs no second mechanism to suspend. Every
+  reason to stop is re-checked **when the timer fires**, because one already in
+  flight when the pointer arrives would otherwise advance a slide past the moment
+  it should have stopped. And a build found a wasted wakeup: at the last slide of
+  a non-looping carousel, `build` scheduled a timer that would fire, move nothing
+  and stop — fixed by folding "is there anywhere to go" into the same predicate as
+  the three brakes, rather than testing it at the reschedule where the copy in
+  `build` was missing.
+- **Two small costs, both stated.** `EventLoop.Timer`'s constructor is
+  package-private rather than private so `TestTimers` can hand one to a stub
+  `Host` — `TestFrames` has the same privilege over `Frame`, for the same reason —
+  and the divider's thickness is written in `SplitPaneView` *and* in
+  `controls.css`, because the first pane's size is computed against it and a
+  stylesheet that disagreed would put the second pane's edge out silently.
+  `SplitPaneTest` pins them together.
+- **The showcase's Panels screen demonstrates all seven**, still with no Java
+  behind it: a `split-pane` and a `carousel` that keep their own state need no
+  more wiring than a `card` does
+  ([ADR-0165](adr/0165-a-divider-translates-and-a-rotation-has-three-brakes.md))
+
+### Five reports from looking at it, and two of them were decisions being wrong
+
+- **`panel` had no stylesheet rule at all**, and §5 has always said it is a
+  "plain surface: `--gb-surface`, border, radius tokens". The widget drew nothing,
+  so every document that wanted a surface invented one — and the showcase invented
+  one that looked exactly like a `card`, which is how it surfaced: "in black theme
+  I do not see any visual differences between panel and card". A building block
+  that draws nothing is not a building block.
+- **`--gb-surface-2` was never an elevation.** ADR-0164 said "elevation is an
+  edge" and then hedged by also stepping the fill, which is wrong twice: eight
+  levels on the Nord dark ramp is not an elevation anybody can see, and on the
+  **light** theme `--gb-surface-2` is a step *down* from `--gb-surface` — which is
+  `#ffffff` there — so a card built on it read as **recessed**. The token means
+  "the second surface" and never promised otherwise. There are two tokens now that
+  say what is meant: `--gb-surface-raised` and `--gb-border-strong`, the second an
+  **alpha over whatever is underneath**, which is the only way to say "lighter
+  than its own surface" in a subset with no colour functions — so it lightens on
+  dark, darkens on light, and stays right on a card sitting on a page, on a panel
+  or on another card.
+- **A `group-box` holds its title now**, and the report was the right question to
+  ask of the old one: "what is the purpose of group box? I thought I should group
+  elements with title and border." ADR-0164 put the title *above* the frame,
+  because a `fieldset`'s legend through a border needs a notch the subset cannot
+  express. The premise still holds and the conclusion did not: a heading floating
+  over a bordered box is a heading and a `panel`, nothing about it says the two
+  belong together, and an untitled one was indistinguishable from a card — so the
+  widget had no purpose two existing widgets did not already serve. The border
+  goes round both now, with the title as a tinted header row inside it.
+- **`carousel` and `collapse` animate, and `TabPhase` became `Phase`.** It was
+  written for `tabs` and had nothing tab-shaped in it. Both new arrivals are
+  **arrival only** and both for the widget's own reason: a carousel builds only
+  the current slide, so holding the outgoing one alive for a cross-fade would be
+  building a slide that has been moved away from; and a `collapse` unmounts its
+  body, so holding it for 160 ms after it was asked to go is the thing the widget
+  exists not to do. Closing is instant and opening is not — asymmetric on purpose,
+  because the thing worth animating is content appearing where there was none.
+  Opacity and a small translation, never height.
+- **`accordion=#true` inflates to a widget.** §5 puts the flag on the containing
+  `column` and is right to, since "one open at a time" is a rule about *siblings*.
+  But `column` is the most-used container in the toolkit and statefulness is a
+  property of the type rather than of the instance — so honouring the flag there
+  would give every column in every document a `State` it never uses. It inflates
+  to an `Accordion` instead, which reports `column` as its own CSS type: the
+  document writes what §5 says, a stylesheet still sees a column, and an ordinary
+  column pays nothing.
+- **And chrome does not shrink.** A title bar half its height on one screen, which
+  is Yoga's default: children shrink, so a window whose content asks for more
+  height than there is takes it out of whatever will give — and a bar with a
+  definite height is the most willing thing in the tree. If the content does not
+  fit, the content is what scrolls
+  ([ADR-0166](adr/0166-a-raised-thing-is-told-apart-by-its-edge.md))
+
+### §4 opens with `text-input`, and two things underneath it did not exist
+
+- **A field owns its caret and the model is told.** Every control before this one
+  has a state the application can hold — one bit, one number, one key. A field's
+  is a caret, a selection, an undo stack and a scroll offset as well as its text,
+  so the edit lives in the element and each value goes up through `change=`. A
+  `bind=` value is the initial text *and* an override, which needs two tests
+  rather than one: the value must differ from what the field holds — or an
+  application's own `change` handler would reset the caret to the end on every
+  letter — **and** it must have changed since the last build, or an unbound
+  field's constant `value=` would overwrite whatever had been typed. It also has
+  to be in `build` rather than in `didUpdateWidget`, because a binding firing does
+  not replace the widget.
+- **The editing rules are a value, and forty-five tests need no window.**
+  `TextEdit` is `(text, anchor, caret)` and every operation returns a new one — so
+  undo is a stack of *states* rather than a log of inverse operations, and nothing
+  has to know how to reverse a word delete. A run of keystrokes is one `Ctrl+Z` by
+  one comparison, *does this change start where the last one ended*, from which "a
+  caret move breaks the run", "a click breaks it" and "a value from the model
+  breaks it" all fall out with no rule written for any of them. Editors that
+  coalesce on a timer split the undo when you pause mid-word; this cannot.
+- **The field names intents; it does not build edits** — and the reason is the bug
+  the first version had. A `password` draws bullets, so the caret and selection it
+  draws are offsets into *those*, and a field applying `edit.backspace()` to what
+  it was drawing deleted a bullet and left the password a row of them. The seam
+  passes `move(LEFT, byWord, extend)` instead, and the one rule a masked field has
+  lives in one place: a row of bullets has no words, so `Ctrl+Left` goes to the
+  start rather than stepping by an amount that says how long they are.
+- **A caret blinks on a timer, not on the frame clock.** `isAnimating` asks for a
+  frame every frame, which is right for a spinner and wrong by two orders of
+  magnitude for something that changes twice a second: a focused field would run
+  the loop at the display's rate for as long as a form was open, and §1.7's idle
+  loop would be false for every window with one in it. One one-shot timer,
+  rescheduled — `carousel`'s arrangement — at two frames a second.
+- **`SDL_StartTextInput` was never called.** It was not on the export list, so on
+  a real SDL window the `TEXT_INPUT` event had never once arrived — `SdlEventBuffer`
+  could read it, `Window` routed it and `KeyboardTest` exercised it, all against
+  the headless backend. It is per window and off by default because asking is what
+  raises an on-screen keyboard, so it follows focus rather than the window.
+- **The clipboard was the SPI's last named hole**, left out by ADR-0019 until
+  something wanted it. Text only, for a stated reason — images and files are a
+  transfer negotiation rather than a value — and `SDL_free` is bound beside
+  `SDL_GetClipboardText` because that string is the caller's to free with *SDL's*
+  allocator. A backend without one reports `Clipboard.none()`; the headless one is
+  a real in-memory clipboard, so a copy/paste test tests the widget.
+- **The golden found what no unit test asked about.** An absolutely positioned
+  child here is placed against the border box while the clip is the padding box,
+  so the first character of every field was drawn under the padding and clipped
+  away — visible in all six fields of the Forms screen at once, and invisible to
+  every test that checked what the field *held*
+  ([ADR-0167](adr/0167-a-field-owns-its-caret-and-the-model-is-told.md))
+
+### Six reports from using it, and four were defects
+
+- **A drag selected nothing, ever.** The field guarded its whole pointer handler
+  on `button() == PRIMARY`, and `PointerRouter.pointerMoved` builds its event
+  with a **null** button — a motion is not a button event. So every drag was
+  thrown away before the switch could look at it. The button is the press's
+  question now, and what a motion carries is `dragX()`, which is `NaN` when
+  nothing is held and is how the router already says "not a drag".
+- **The caret was as tall as the control** — an 18-point line with a 32-point
+  caret through it, which reads as a terminal cursor. It takes the font's line
+  height now, as does the selection highlight, and both are centred by the
+  field's own `align-items` exactly as the text is.
+- **A field was `--gb-surface-2`, which is still not a direction.** On the light
+  theme that is one rung off the page, which is what "the fields are too pale"
+  was — and it is the same defect ADR-0166 corrected for `card`, in a new place,
+  found the same way. `--gb-surface-sunken` is `--gb-surface-raised`'s opposite
+  and is an **alpha over whatever is underneath**, because a fixed value has to
+  pick one background to be right against and a field has three. The first
+  attempt proved it: `--nord2` on dark is exactly `--gb-surface-raised`, so a
+  field on a card vanished into it.
+- **The placeholder rule applied and could not be seen.** `--gb-text-muted` is
+  two rungs from `--gb-text`, which inside a filled field is not a difference —
+  so an empty field looked like a filled one. `--gb-text-placeholder` is its own
+  token, and its alpha is set by §1.2 rather than by taste: the first value tried
+  was 2.4:1 on light, and the shipping ones are the lowest that clear 4.5:1
+  against the worst surface a field sits on, landing at about half a value's
+  contrast. `ContrastTest` cannot measure either token — both are translucent,
+  which is the trap it keeps `button.ghost` out for — so a test of its own
+  composites them explicitly.
+- **A limit nobody can see reads as a fault.** The screen's first field has
+  `max-length=40`; pasting into it a few times stops taking characters, which is
+  exactly what that means and is indistinguishable from a broken field. Clipping
+  a paste rather than refusing it stands, and the screen says so now.
+- **The fields moved into `card`s**, because a form is a set of groups rather
+  than a list of lines — and a card is also what shows a field is a well
+  ([ADR-0168](adr/0168-a-field-is-a-well-and-a-drag-is-a-selection.md))
+
+### `field`, `form` and the validation model, and a notification two widgets wanted
+
+- **A field is silent until you leave it, and live from then on.** §4 asks for
+  validation "on blur and on submit"; the second half of that sentence is in no
+  specification and is what every good form does — once a field has complained it
+  re-checks on every keystroke, so the message goes the instant the value is
+  fixed. A field that validated as you typed would call an email address invalid
+  after the first letter; one that waited for a second blur to forgive you is one
+  you have to leave and come back to.
+- **Blur is `onFocusWithin`, and it had two consumers before it was written.**
+  Nothing told a container that focus had entered or left its subtree. The router
+  now walks both chains and tells **only the difference**, so a move between two
+  controls inside one field is silent — which is what lets a field with three
+  controls behave like a field with one. The second consumer is `carousel`, whose
+  third brake ADR-0165 recorded as a gap needing "`:focus-within` in the selector
+  engine, the matcher and the router's focus bookkeeping". It needed none of
+  that: a carousel does not want to *style* itself on focus-within, it wants to
+  be told.
+- **A field reads its control's `bind=`**, one level down, so nothing is written
+  twice and there is no new channel. A field around an unbound control validates
+  nothing — `required` included — because the alternative is failing forever and
+  gating a form on a control nobody can satisfy.
+- **The fields find the form**, through `BuildContext.findAncestorState`'s first
+  consumer since it was written. `TabsState` looked at it and said it "looks the
+  wrong way", which was right for tabs and is exactly right here.
+- **`:invalid` is a real pseudo-class**, which is the one addition §1's list of
+  states asks for by name — unlike `select.open`, which is a class because the
+  subset had no word for "expanded" and inventing one for a single widget would
+  be inventing a language.
+- **A validator returns a message rather than a boolean**, because a field that
+  goes red without saying why is one somebody has to guess at, and `and` reports
+  the first failure because a message slot is one line.
+- **`submit` carries nothing**, and that is a departure from §4's "typed event
+  with bound values": `bind=` reads *from* the application's model, so an event
+  carrying them would hand an application its own data back — and `binding()` is
+  an `Observable` rather than a path, so the toolkit cannot name them anyway. A
+  `FormController` submits, because a Save button is usually outside the form.
+- **Two reports from looking at a real form, and both were geometry.** The
+  validation message appeared *beside* the control rather than under it, and the
+  Save button lined up with the labels rather than with the controls. The first
+  is structural and the fix says why: §4 asks for a label column and a message
+  below **in one sentence**, and those are a row and a column — so a flat field
+  of label, control and message can only be one of them. A field is two boxes
+  now, `field-label` beside a `field-body` that is always a column. The second
+  falls out of the same idea: an action row is a `field` with **no label**, so
+  the empty label still occupies the column and nothing has to know how wide it
+  is. `align-items: baseline` on the row went too — a baseline is a property of a
+  line of text, and asking a *column* for one put two fields on top of each
+  other. Both passed every test that existed; `FieldGoldenTest` is the pixel
+  coverage they should have had.
+- **Two things the screen reported by their absence, and both are closed.**
+  Markup can name an object now — `controller=` and `validator=` resolve against
+  a fourth registry, `Named`, which exists because the other three each refused
+  the job and the **binding** registry refused it in words that settled the
+  question: "a value that cannot change is not something to subscribe to". And a
+  container can hand focus down: `Handles.delegatesFocus()` turns the router's
+  walk round, so a press on a label that finds no focusable ancestor takes the
+  first focusable descendant instead
+  ([ADR-0169](adr/0169-a-field-is-silent-until-you-leave-it.md),
+  [ADR-0170](adr/0170-a-document-names-an-object-and-a-label-hands-focus-down.md))
+- **A card has had no edge since the day ADR-0166 gave it one.** The CSS
+  shorthand splitter broke on any whitespace, so
+  `border: 1px solid rgba(255, 255, 255, 0.2)` became seven fragments and the
+  whole declaration was dropped — and `--gb-border-strong` is `rgba(…)` by
+  design, because an alpha over whatever is underneath is the only way to say
+  "lighter than its own surface" in a subset with no colour functions. The
+  warning was printed on every run of the showcase and nothing was reading it.
+  It was found by running the application and looking at the log, which is how
+  ADR-0166's own defects were found
+  ([ADR-0170](adr/0170-a-document-names-an-object-and-a-label-hands-focus-down.md))
+
+### `text-area`, which turned out to be `text-input` and two ideas
+
+- **The model needed two helpers, not a rewrite.** `TextEdit` was written without
+  a line in it about how many lines there are, and the editing, the undo history,
+  the clipboard and the caret's blink are all `text-input`'s unchanged.
+- **A column is an x.** `Up` keeps the column, a column is a position rather than
+  an offset, and a run of `Up`/`Down` has to survive a short line in the middle —
+  which is why the x is captured once per run and held. It cannot live in the
+  model: a `TextEdit` has no font, no width and no layout.
+- **A selection is one rectangle per visual line**, because a run of wrapped text
+  is not a rectangle. That is why `Paragraph`'s measurements take a *line's*
+  range: they were written for this one widget early.
+- **The three parts are shared rather than copied**, public in a package the
+  module does not export — ADR-0065's "styleable and not constructible" has meant
+  package-private only because one widget owned its parts, and JPMS can say the
+  real thing when two do.
+- **Two things about the render order, both found by looking.** `render` runs
+  before Yoga, so a box does not know its width — the first version wrapped at one
+  point before anything was measured and put every word on a line of its own,
+  which the Forms golden showed at once. And a measurement has to **ask for a
+  frame**: `text-input` records its width and requests nothing, because its width
+  only decides how far it has scrolled, and a `text-area` doing the same would
+  show its first guess until something unrelated repainted
+  ([ADR-0171](adr/0171-a-column-is-an-x-and-a-width-arrives-late.md))
+
 ### Not started
 
-`menubar`, tray, dialogs, forms, client-side decorations and charts. The rest of §5 — `card`, `group-box`, `split-pane`, `collapse`,
-`carousel`, `statistic`, `skeleton` — is untouched. M2's leftover `select` is ordinary widget
-work now — it owns its model, its item semantics and its keyboard map, and none
-of that has to solve size, position or dismissal. The one thing that stood
-between here and a `select` over a realistic option list was `scroll`, and it is
-built. Everything outstanding is in [TODO.md](TODO.md).
+Tray, dialogs, client-side decorations and charts, and the rest of §4 —
+the pickers, `code-input` and autocomplete. All of those reuse
+`TextEdit` and `EditHistory` for their editing and `field` for their contract,
+which are the parts with rules in them, so each is ordinary widget work now. Everything outstanding is in
+[TODO.md](TODO.md).
 
 ## M4 — GPU
 

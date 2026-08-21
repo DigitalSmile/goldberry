@@ -59,6 +59,46 @@ module io.github.digitalsmile.goldberry.widgets {
     /// close affordance and the add one are parts and stay in here (ADR-0107).
     exports io.github.digitalsmile.goldberry.widgets.panel.tabs;
 
+    /// The rest of §5's containers. Each exports the widget an application names
+    /// and keeps its parts to itself, which is the rule ADR-0065 set: a part is
+    /// styleable and not constructible.
+    exports io.github.digitalsmile.goldberry.widgets.panel.accordion;
+    exports io.github.digitalsmile.goldberry.widgets.panel.card;
+    exports io.github.digitalsmile.goldberry.widgets.panel.carousel;
+    exports io.github.digitalsmile.goldberry.widgets.panel.collapse;
+    exports io.github.digitalsmile.goldberry.widgets.panel.groupbox;
+    exports io.github.digitalsmile.goldberry.widgets.panel.skeleton;
+    exports io.github.digitalsmile.goldberry.widgets.panel.split;
+    exports io.github.digitalsmile.goldberry.widgets.panel.statistic;
+
+    /// `docs/core-widgets.md` §4's `form` group. `text-input` is the first of
+    /// it, and the editing model it is built on
+    /// ([io.github.digitalsmile.goldberry.widgets.form.textinput.TextEdit]) is
+    /// exported beside it: `text-area`, `code-input` and every picker that owns
+    /// a typed field are the same editing rules over a different widget, and an
+    /// application writing its own field should not have to reimplement them.
+    exports io.github.digitalsmile.goldberry.widgets.form.textinput;
+
+    /// §4's layout contract and its validation model. [io.github.digitalsmile.goldberry.widgets.form.Validator]
+    /// is the rule an application writes; `field` is the label, the control slot
+    /// and the message under it; `form` is what gates a submission on all of
+    /// them. `field` exports [io.github.digitalsmile.goldberry.widgets.form.field.Validated]
+    /// as well, which is the four questions a form asks of a field and is what
+    /// lets the two live in different packages while keeping their parts to
+    /// themselves (ADR-0065).
+    exports io.github.digitalsmile.goldberry.widgets.form;
+    exports io.github.digitalsmile.goldberry.widgets.form.field;
+    exports io.github.digitalsmile.goldberry.widgets.form.form;
+    exports io.github.digitalsmile.goldberry.widgets.form.textarea;
+
+    /// `…form.parts` is deliberately **not** exported. `text-input` and
+    /// `text-area` draw the same `text-caret`, `text-selection` and `text-value`,
+    /// and a part is styleable and not constructible (ADR-0065) — which has
+    /// always meant package-private, because one widget owned its parts. Two
+    /// widgets own these, so they are public in a package nothing can see: an
+    /// application cannot build one, both widgets can, and there is one caret
+    /// rather than two kept alike by hand.
+
     exports io.github.digitalsmile.goldberry.widgets.controls;
     exports io.github.digitalsmile.goldberry.widgets.controls.badge;
     exports io.github.digitalsmile.goldberry.widgets.controls.button;

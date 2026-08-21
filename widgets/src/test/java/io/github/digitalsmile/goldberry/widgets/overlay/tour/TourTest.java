@@ -40,121 +40,16 @@ import org.junit.jupiter.api.Test;
 class TourTest {
 
     /// A host that answers `anchor` from a map and records what was put on it.
-    private static final class StubHost implements Host {
-
-        private final Map<String, LogicalRect> anchors = new LinkedHashMap<>();
-        private final List<Widget> filled = new ArrayList<>();
+    ///
+    /// Both halves are [TestHost]'s; what is here is the fluent `anchor(id, …)`
+    /// this test was already written against, kept so the cases below read the
+    /// way they did.
+    private static final class StubHost extends
+            io.github.digitalsmile.goldberry.widgets.TestHost {
 
         StubHost anchor(String id, float x, float y, float w, float h) {
-            anchors.put(id, LogicalRect.of(x, y, w, h));
+            anchoring(id, x, y, w, h);
             return this;
-        }
-
-        @Override
-        public Optional<HitTest.Region> anchor(String id) {
-            var rect = anchors.get(id);
-            return rect == null ? Optional.empty()
-                    : Optional.of(HitTest.Region.of(null, rect.left(), rect.top(),
-                            rect.size().width(), rect.size().height()));
-        }
-
-        @Override
-        public Overlay fill(Widget widget) {
-            filled.add(widget);
-            return Overlay.filling(widget);
-        }
-
-        @Override
-        public Overlay overlay(Widget widget, io.github.digitalsmile.goldberry.widget.Corner corner) {
-            return Overlay.of(widget, corner);
-        }
-
-        @Override
-        public Overlay overlay(Widget widget, io.github.digitalsmile.goldberry.widget.Corner corner,
-                float margin) {
-            return Overlay.of(widget, corner, margin);
-        }
-
-        @Override
-        public void repaint() {
-        }
-
-        @Override
-        public void restyle() {
-        }
-
-        @Override
-        public void title(String title) {
-        }
-
-        @Override
-        public void shortcut(io.github.digitalsmile.goldberry.input.Shortcut a, Runnable r) {
-        }
-
-        @Override
-        public void shortcut(String accelerator, Runnable action) {
-        }
-
-        @Override
-        public LogicalRect placeableArea() {
-            return LogicalRect.of(0, 0, 800, 600);
-        }
-
-        @Override
-        public Optional<Popup> popup(Widget content, String anchorId,
-                io.github.digitalsmile.goldberry.Placement placement) {
-            return Optional.empty();
-        }
-
-        @Override
-        public Optional<Popup> popup(Widget content, LogicalRect anchor,
-                io.github.digitalsmile.goldberry.Placement placement) {
-            return Optional.empty();
-        }
-
-        @Override
-        public Optional<Popup> popup(Widget content, LogicalRect anchor,
-                io.github.digitalsmile.goldberry.Placement placement, float minimumWidth) {
-            return Optional.empty();
-        }
-
-        @Override
-        public io.github.digitalsmile.goldberry.backend.EventLoop.Timer after(
-                java.time.Duration delay, Runnable action) {
-            throw new UnsupportedOperationException("no event loop in this stub");
-        }
-
-        @Override
-        public void onContextMenu(io.github.digitalsmile.goldberry.ContextMenuHandler handler) {
-        }
-
-        @Override
-        public Optional<Popup> popup(Widget content,
-                io.github.digitalsmile.goldberry.backend.LogicalPoint at,
-                io.github.digitalsmile.goldberry.backend.LogicalSize size) {
-            return Optional.empty();
-        }
-
-        @Override
-        public Optional<Popup> tooltip(Widget content,
-                io.github.digitalsmile.goldberry.backend.LogicalPoint at,
-                io.github.digitalsmile.goldberry.backend.LogicalSize size) {
-            return Optional.empty();
-        }
-
-        @Override
-        public FrameStats frames() {
-            return FrameStats.none();
-        }
-
-        @Override
-        public Fonts fonts() {
-            throw new UnsupportedOperationException("no fonts in this stub");
-        }
-
-        @Override
-        public Window window() {
-            throw new UnsupportedOperationException("no window in this stub");
         }
     }
 

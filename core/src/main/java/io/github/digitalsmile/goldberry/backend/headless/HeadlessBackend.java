@@ -5,6 +5,7 @@ import io.github.digitalsmile.goldberry.backend.BackendEvent;
 import io.github.digitalsmile.goldberry.backend.BackendException;
 import io.github.digitalsmile.goldberry.backend.BackendPopup;
 import io.github.digitalsmile.goldberry.backend.BackendWindow;
+import io.github.digitalsmile.goldberry.backend.Clipboard;
 import io.github.digitalsmile.goldberry.backend.DisplayScale;
 import io.github.digitalsmile.goldberry.backend.EventSink;
 import io.github.digitalsmile.goldberry.backend.LogicalRect;
@@ -55,6 +56,42 @@ public final class HeadlessBackend implements Backend {
     /// Set by [#wakeup()], which is the one thing another thread may call, so it
     /// is the one piece of state that has to be safe to touch from anywhere.
     private final AtomicBoolean woken = new AtomicBoolean();
+
+    /// An in-memory clipboard, not [Clipboard#none()].
+    ///
+    /// A test that copies and pastes should be testing the widget's editing
+    /// model, and against a clipboard that accepts nothing every such test would
+    /// pass for the wrong reason. This one behaves like a session's: what was
+    /// last written is what is read.
+    private final StringBuilder clipboardText = new StringBuilder();
+
+    private final Clipboard clipboard = new Clipboard() {
+
+        @Override
+        public boolean hasText() {
+            requireUiThread();
+            return !clipboardText.isEmpty();
+        }
+
+        @Override
+        public String text() {
+            requireUiThread();
+            return clipboardText.toString();
+        }
+
+        @Override
+        public boolean text(String text) {
+            requireUiThread();
+            clipboardText.setLength(0);
+            clipboardText.append(text == null ? "" : text);
+            return true;
+        }
+
+        @Override
+        public String toString() {
+            return "Clipboard[headless, " + clipboardText.length() + " chars]";
+        }
+    };
 
     private boolean closed;
 
@@ -132,6 +169,11 @@ public final class HeadlessBackend implements Backend {
         windows.add(popup);
         LOG.debug("created headless {} popup {} at {}", spec.kind(), spec.size(), spec.position());
         return Optional.of(popup);
+    }
+
+    @Override
+    public Clipboard clipboard() {
+        return clipboard;
     }
 
     @Override

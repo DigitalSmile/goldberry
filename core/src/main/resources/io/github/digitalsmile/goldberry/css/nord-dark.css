@@ -46,6 +46,79 @@
      curtain than it does over nord0. */
   --gb-scrim: rgba(0, 0, 0, 0.55);
   --gb-border: var(--nord3);
+
+  /* The edge of something raised — `card`, and whatever else says "above the
+     page" (ADR-0166). Not a palette entry but an **alpha over whatever is
+     underneath**, which is the only way to say "lighter than its own surface"
+     in a subset with no colour functions, and which therefore stays right on a
+     card sitting on a page, on a panel, or on another card.
+
+     A **light** rim on a dark theme: a raised thing catches the light.
+
+     It exists because `--gb-surface-2` alone is eight levels away from
+     `--gb-surface` on this ramp, and eight levels is not an elevation anybody
+     can see. */
+  --gb-border-strong: rgba(255, 255, 255, 0.20);
+
+
+  /* The surface of something **raised** — `card`, and whatever else is above the
+     page (ADR-0166).
+
+     A token of its own and not `--gb-surface-2`, which was the first answer and
+     is not an elevation at all: it means "the second surface", and on the light
+     theme it is a step *down* from `--gb-surface` rather than up — so a card
+     built on it read as recessed there. What a card wants is "one step more
+     raised than a panel", and the two themes answer that differently.
+
+     A step up the ramp, because on a dark theme there is room above
+     `--gb-surface` and a raised thing catches more light. */
+  --gb-surface-raised: var(--nord2);
+
+  /* The surface of something **sunken** — a `text-input`, a `select`, and
+     whatever else content sits *in* rather than *on* (ADR-0168).
+
+     `--gb-surface-raised`'s opposite, and here for the same reason: what a field
+     wants is "one step more recessed than the page", and the two themes answer
+     that in opposite directions. `--gb-surface-2` was the first answer and is
+     the same mistake ADR-0166 corrected for cards — it means "the second
+     surface" and promises no direction, so on the light theme a field built on
+     it is one step off the page and reads as barely there.
+
+     An **alpha over whatever is underneath**, not a rung on the ramp. A fixed
+     value has to pick one background to be right against, and a field has three:
+     the page, a `panel`, and a `card`. `--nord2` was the first answer and is
+     exactly `--gb-surface-raised` on this theme, so a field on a card vanished
+     into it and was held together by its border alone.
+
+     Darkening is the technique `--gb-border-strong` uses (ADR-0166) and is the
+     only way to say "one step below its own surface" in a subset with no colour
+     functions — so it is a well on the page, on a panel and on a card, without
+     three tokens that can each be wrong on their own. */
+  --gb-surface-sunken: rgba(0, 0, 0, 0.22);
+
+  /* Text that is **standing in for content** rather than being it — a field's
+     placeholder.
+
+     Not `--gb-text-muted`, which was the first answer and is a step so small
+     that a placeholder and a value looked alike: on this theme muted is
+     `--nord4` and text is `--nord6`, two rungs apart on a ramp where the eye
+     needs four. §1.2's rank for de-emphasised *labels* is right for labels and
+     too strong for something whose whole job is to look unwritten.
+
+     An **alpha over whatever is underneath**, which is `--gb-border-strong`'s
+     technique (ADR-0166) and is the only way to say "dimmer than its own
+     surface" in a subset with no colour functions — so it is right on a field on
+     a page, on a card, and on another field.
+
+     The alpha is what it is because of §1.2 rather than because of taste: at
+     0.45 this was 2.4:1 on the light theme, which is a placeholder nobody can
+     read. These are the lowest values that clear **4.5:1 against the worst
+     background a field sits on** — which is a `card`, where the fill is
+     lightest — and they leave a placeholder at roughly half a value's contrast,
+     so it is unmistakably dimmer *and* legible. `ContrastTest` holds them
+     there. */
+  --gb-text-placeholder: rgba(236, 239, 244, 0.60);
+
   --gb-accent: var(--nord8);
   --gb-focus: var(--nord8);
   --gb-danger: var(--nord11);

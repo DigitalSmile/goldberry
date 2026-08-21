@@ -54,6 +54,24 @@ public interface Host {
     /// @throws IllegalArgumentException if the text names no key this toolkit has
     void shortcut(String accelerator, Runnable action);
 
+    /// Unbinds a window accelerator. Harmless when nothing was bound.
+    ///
+    /// The other end of [#shortcut(Shortcut, Runnable)], and it exists because
+    /// `menubar` registers the accelerators of every command in its menus when
+    /// it is mounted and has to give them back when it is not
+    /// ([ADR-0163](../../../../../book/src/adr/0163-a-menu-bar-owns-its-menus.md)).
+    ///
+    /// **The map is keyed by the shortcut and not by who bound it**, so this
+    /// removes whatever is bound to `accelerator` — including a binding somebody
+    /// else made. Two things claiming `Ctrl+O` is already a conflict the last
+    /// registration wins; this is the same conflict at the other end.
+    void removeShortcut(io.github.digitalsmile.goldberry.input.Shortcut accelerator);
+
+    /// Unbinds a window accelerator written the way a menu prints it.
+    ///
+    /// @throws IllegalArgumentException if the text names no key this toolkit has
+    void removeShortcut(String accelerator);
+
     /// Floats `widget` over the window's content, pinned to `corner`.
     ///
     /// The in-window overlay layer (`docs/core-widgets.md` §7): the widget is a
@@ -263,6 +281,27 @@ public interface Host {
     /// this. It is here for the ones that want to log it, assert on it in a test,
     /// or draw it themselves on a `canvas`.
     FrameStats frames();
+
+    /// The session's clipboard.
+    ///
+    /// On [Host] rather than reached through [#window()] because a widget is the
+    /// consumer — `text-input`'s `Ctrl+C` — and reaching a window's backend from a
+    /// widget is what [io.github.digitalsmile.goldberry.widget.BuildContext#host()]
+    /// exists to avoid (ADR-0140).
+    ///
+    /// Never null: a platform with no clipboard reports
+    /// [io.github.digitalsmile.goldberry.backend.Clipboard#none()], which accepts
+    /// nothing and always reads empty.
+    io.github.digitalsmile.goldberry.backend.Clipboard clipboard();
+
+    /// Asks the platform to start or stop delivering committed text to this
+    /// window.
+    ///
+    /// What a field calls when focus arrives and when it leaves. Off by default
+    /// and per window — see
+    /// [io.github.digitalsmile.goldberry.backend.BackendWindow#textInput(boolean)]
+    /// for why a toolkit must not simply turn it on and leave it on.
+    void textInput(boolean active);
 
     /// The font book the renderer is drawing with.
     ///

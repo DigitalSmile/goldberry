@@ -143,6 +143,14 @@ public final class Showcase implements Application {
         screen = new Screen(
                 model, actions,
                 Widgets.inflater(
+                        // The **objects** the Forms document names: the handle
+                        // that submits its form and the rule one of its fields
+                        // applies. A fourth registry beside the three, because a
+                        // controller is not a method, not a resource and not a
+                        // value that changes -- and the binding machinery is what
+                        // said so, refusing a `final` `@Bind` field in as many
+                        // words (ADR-0170).
+                        model.named(),
                         Icons.strict().bind("palette", paletteIcon).bind("plus", plusIcon),
                         models().toArray()),
                 plusIcon,
@@ -163,12 +171,17 @@ public final class Showcase implements Application {
         // *during* a resize or a drag, when there is something to watch.
         host.shortcut(Mod.CTRL.and(Key.F), this::toggleHud);
 
-        // One accelerator per screen, which is what a gallery of six wants —
+        // One accelerator per screen, which is what a gallery of seven wants —
         // and three ways to set one property rather than three copies of a
         // selection: the strip, these keys, and the menu (ADR-0110).
-        var screens = List.of("controls", "values", "text", "overlays", "tabs", "scrolling");
+        //
+        // In gallery order, so the digit and the tab agree: a `Ctrl+5` that
+        // landed on the fourth strip position would be a gallery with two
+        // orders in it.
+        var screens = List.of("controls", "values", "text", "overlays", "panels", "forms",
+                "tabs", "scrolling");
         var digits = List.of(Key.DIGIT_1, Key.DIGIT_2, Key.DIGIT_3, Key.DIGIT_4, Key.DIGIT_5,
-                Key.DIGIT_6);
+                Key.DIGIT_6, Key.DIGIT_7, Key.DIGIT_8);
         for (var index = 0; index < screens.size(); index++) {
             var name = screens.get(index);
             host.shortcut(Mod.CTRL.and(digits.get(index)), () -> actions.pickScreen(name));

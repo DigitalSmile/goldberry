@@ -157,4 +157,20 @@ public interface Styled extends Widget {
     default boolean isIndeterminate() {
         return false;
     }
+
+    /// Whether this node's value has failed validation, for `:invalid`
+    /// (`docs/core-widgets.md` §4).
+    ///
+    /// A **widget's** state and not the router's, like `:checked` and unlike
+    /// `:hover`: what decides it is a `Validator` the application supplied, run
+    /// at a moment the field chose. Nothing about the pointer or the keyboard can
+    /// answer it.
+    ///
+    /// Reported by the `field` *and* by the control inside it, and both are
+    /// wanted: a stylesheet asks for `text-input:invalid` to redden the border
+    /// and for `field:invalid field-message` to show the reason, and §8's subset
+    /// has no way to walk from a child back up to its parent.
+    default boolean isInvalid() {
+        return false;
+    }
 }

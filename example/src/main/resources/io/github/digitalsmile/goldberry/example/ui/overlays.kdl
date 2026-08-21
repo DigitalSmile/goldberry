@@ -29,6 +29,39 @@ column id="screen-overlays" {
 flips above it near the bottom of the screen, and takes the keyboard while it is \
 open. The HUD floats in this window's own layer and is clipped to it."
 
+  text class="screen-title" "A menu bar"
+
+  // sec. 8's `menubar`, written entirely in markup and wired to the same actions
+  // the rest of this screen uses. A bar's children are `item`s and a nested
+  // `item` is a heading -- the same nesting a submenu has always used, so there
+  // is no second syntax to learn (ADR-0163).
+  //
+  // The accelerators here are **live**: `Ctrl+T` switches the theme with nothing
+  // on screen, because the bar holds the description rather than the popup. Every
+  // one of them is registered when this screen is built and given back when it is
+  // not, which is why leaving this tab stops them working.
+  menubar id="demo-menubar" {
+    item "View" {
+      item press="app.toggle-theme" accelerator="Ctrl+T" "Switch theme"
+      item press="app.toggle-hud" accelerator="Ctrl+F" "Frame rate"
+    }
+    item "Counter" {
+      item press="app.click" accelerator="Ctrl+K" "Click"
+      item press="app.undo" accelerator="Ctrl+Z" "Undo"
+      separator
+      item press="app.reset" accelerator="Ctrl+R" "Reset"
+    }
+    item "Nothing" {
+      item "Not wired to anything"
+      item "And disabled too" disabled=#true
+    }
+  }
+
+  text class="caption" id="menubar-note" \
+       "Click a heading, or press F10. With a menu down, running along the bar \
+swaps menus without a click. The accelerators work with the bar shut -- try \
+Ctrl+K with no menu open."
+
   text class="screen-title" "Context menus"
 
   // sec. 8's `context-menu=` on any widget. The pane below carries one, and so

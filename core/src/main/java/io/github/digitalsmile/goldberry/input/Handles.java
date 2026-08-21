@@ -146,4 +146,59 @@ public interface Handles extends Widget {
     ///                     click, once here and once on the click itself
     default void onFocusChanged(boolean focused, boolean fromKeyboard) {
     }
+
+    /// Focus entered this widget's **subtree**, or left it — CSS's
+    /// `:focus-within`, as a notification.
+    ///
+    /// [#onFocusChanged] is about *this* node and is what a control wants. This
+    /// is about everything under it, and is what a container wants: a `field`
+    /// validating when the user has finished with the control inside it, and a
+    /// `carousel` refusing to rotate while somebody is reading a slide they have
+    /// tabbed into.
+    ///
+    /// ## Only on the boundary
+    ///
+    /// Focus moving from one descendant to another **does not** call this. What
+    /// it reports is the subtree as a whole gaining or losing the keyboard, so a
+    /// `field` holding one control and a `field` holding three behave the same,
+    /// and a container does not have to filter out the moves that stayed inside
+    /// it.
+    ///
+    /// A widget that is itself focused is inside its own subtree, so a control
+    /// implementing both is told twice — once about itself and once about the
+    /// subtree containing it. That is not a mistake to work around: they are
+    /// different questions, and `:focus` and `:focus-within` are both true of a
+    /// focused node in CSS for the same reason.
+    ///
+    /// @param within      whether focus is now somewhere in this subtree
+    /// @param fromKeyboard whether the move that caused it came from the
+    ///                    keyboard, exactly as [#onFocusChanged]'s does
+    default void onFocusWithin(boolean within, boolean fromKeyboard) {
+    }
+
+    /// Whether a press that lands on this widget's scenery should focus the first
+    /// focusable thing **inside** it — HTML's `<label for>`, without the `for`.
+    ///
+    /// A press focuses the nearest focusable *ancestor* of whatever it hit, which
+    /// is what makes clicking a button's label press the button. A `field`'s label
+    /// is not an ancestor of the control it names, it is its **sibling**, so that
+    /// rule cannot reach it and clicking a label does nothing.
+    ///
+    /// A container that answers true says "the focusable thing here is one of my
+    /// children", and the router hands the press down instead of up.
+    ///
+    /// ## Only when nothing else claimed it
+    ///
+    /// This is consulted on the way up, so it never overrides a real target: a
+    /// press on the control itself finds the control before it reaches the
+    /// container, and a press on a `button` inside a field focuses the button.
+    /// What it catches is a press on the label, the message, or the gap — the
+    /// places where "the user aimed at this field" is the only sensible reading.
+    ///
+    /// The **first** focusable descendant in document order. A field with two
+    /// controls in it hands the click to the first, which is what a label at the
+    /// front of a row names.
+    default boolean delegatesFocus() {
+        return false;
+    }
 }

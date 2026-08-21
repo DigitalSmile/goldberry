@@ -22,7 +22,14 @@
 #root      { flex-direction: column; background: var(--gb-bg);
              color: var(--gb-text) }
 
-#bar       { height: 44px; padding: 0 16px; gap: 12px;
+/* `flex-shrink: 0`, and it is not tidiness. Yoga's children shrink by default,
+   so a window whose content asks for more height than there is takes it out of
+   whatever will give -- and a title bar with a definite height is the most
+   willing thing in the tree. The Panels screen was the first to ask for more, and
+   the symptom was a title bar that was 44px tall on six screens and half that on
+   the seventh. Chrome does not shrink: if the content does not fit, the content
+   is what scrolls. */
+#bar       { height: 44px; flex-shrink: 0; padding: 0 16px; gap: 12px;
              align-items: center; background: var(--gb-surface) }
 #title     { color: var(--gb-text) }
 
@@ -40,8 +47,41 @@
    there is no remaining height for a child to claim. The `scroll` rule in
    `controls.css` is where the growth is, and it is the container that grows. */
 #screen-controls, #screen-values, #screen-overlays,
-#screen-text, #screen-tabs
+#screen-text, #screen-tabs, #screen-panels, #screen-forms
            { flex-direction: column; gap: 16px; padding-top: 16px }
+
+/* The Forms screen's groups, side by side. Each is a `card`, because a form is a
+   set of groups rather than a list of lines, and columns are what make the set
+   visible in one look instead of one scroll.
+
+   `flex-basis` is not in §8's subset, so equal columns are `flex-grow: 1` on
+   children of a row that has no width of its own — which works because a card's
+   content is narrower than a third of this screen. A column of fields that
+   *was* wider would push the others narrow rather than wrapping, and §10's
+   `wrap` is not built. */
+#form-columns, #form-columns-2
+           { flex-direction: row; gap: 16px; align-items: flex-start }
+
+#named-card, #limits-card, #overflow-card,
+#signup-card, #stacked-card, #label-card
+           { flex-direction: column; gap: 6px; flex-grow: 1; flex-shrink: 1 }
+
+/* A narrower label column than the 120 the toolkit defaults to, because this
+   card is a third of a screen. Which is the token doing its job: an application
+   moves every field in a form at once rather than writing a rule per row, and
+   what "consistent label column" is worth depends on how much width there is. */
+#signup { --gb-field-label-width: 56px }
+
+/* A card's own heading. `heading` like a screen title and a rung quieter, so the
+   three cards read as parts of one screen rather than as three screens. */
+.card-title {
+  color: var(--gb-text);
+  font-size: var(--gb-font-body);
+  line-height: var(--gb-line-body);
+  font-weight: var(--gb-weight-strong);
+}
+
+#named-echo { flex-direction: row; gap: 6px; align-items: center }
 
 /* Except this one, which is the screen that owns its own viewport rather than
    sitting in the gallery's — so here the growth is real and it is this box that
@@ -221,4 +261,112 @@ section-header {
    against anything. */
 .section:affixed > affix-content > section-header {
   background: var(--gb-surface-2);
+}
+
+
+/* --- the panels screen ------------------------------------------------ */
+
+/* §5's containers, and the only screen in the gallery with no value on it at
+   all — which is why it is a document with not one line of Java behind it.
+   Nothing here styles the widgets themselves: `card`, `group-box`, `statistic`,
+   `skeleton` and `collapse` all carry their own appearance in `controls.css`,
+   the way every other control in this catalog does. What is here is the
+   screen's *layout*, which is an application's business.
+
+   The one exception is `.surface-demo`, and it is the point of the row: a
+   `panel` and a `card` beside each other at the same size is the only way to see
+   an elevation that is expressed as contrast rather than as a shadow — a card on
+   its own looks exactly like a panel (ADR-0164). */
+#surfaces, #numbers, #loading {
+  gap: 12px;
+  align-items: stretch;
+}
+
+/* Equal thirds, so the three surfaces are compared and not merely listed. The
+   `panel` needs its own padding and radius because §5 gives it none: it is "the
+   building block", and the one container a theme can restyle completely. */
+.surface-demo {
+  flex-direction: column;
+  flex-grow: 1;
+  flex-shrink: 1;
+  gap: 6px;
+}
+
+/* Only the padding. The surface, the edge and the radius are `panel`'s own now —
+   inventing them here is what made a panel look exactly like a card, which is
+   how the missing rule was reported (ADR-0166). */
+panel.surface-demo {
+  padding: 12px;
+}
+
+/* A settings row: a label, the gap that pushes the value out, and the value. */
+.setting {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Each statistic takes an equal share of the row rather than only as much as its
+   own number needs — otherwise a five-digit figure beside a one-digit one puts
+   them at wildly different places and they stop reading as a set. */
+#numbers > statistic {
+  flex-grow: 1;
+  flex-shrink: 1;
+}
+
+.loading-block {
+  flex-direction: column;
+  flex-grow: 1;
+  flex-shrink: 1;
+  gap: 8px;
+}
+
+/* `flex-start` and not `start`: §10's `align-items` takes Yoga's keywords, and
+   the CSS alias is not one of them. Written as `start` first, which was dropped
+   with a warning on every style resolution — so the avatar sat centred against
+   its two lines *and* the console filled up while the screen scrolled. */
+.loading-row {
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.loading-lines {
+  flex-direction: column;
+  flex-grow: 1;
+  gap: 8px;
+}
+
+/* The split pane's two panes, and the carousel's slides. Both need a surface of
+   their own for the same reason `.surface-demo` does: `panel` carries none, being
+   "the building block" and the one container a theme can restyle completely. */
+.split-demo, .slide {
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px;
+  background: var(--gb-surface);
+  border-radius: 8px;
+}
+
+/* A definite height, because a split pane grows to fill what it is given and a
+   gallery screen's column gives it nothing: the screen is content-sized inside
+   the gallery's viewport, so without this the split is as tall as its taller pane
+   and the divider has nothing to travel along. */
+#demo-split {
+  height: 140px;
+  flex-grow: 0;
+  flex-shrink: 0;
+}
+
+/* Likewise, so the three slides do not each set the height of the strip and make
+   it jump as the carousel moves. */
+#demo-carousel carousel-viewport {
+  height: 90px;
+}
+
+/* The accordion demo. Nothing about the `accordion` class here — it is on the
+   node so a stylesheet *can* reach it, and this one has nothing to say. What is
+   here is the gap between sections, which is an application's business. */
+#demo-accordion {
+  gap: 4px;
 }

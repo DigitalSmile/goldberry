@@ -106,6 +106,23 @@ SDL_DestroyCursor
 SDL_ShowCursor
 SDL_HideCursor
 
+# Text input (sec. 7.1). SDL3 does not deliver SDL_EVENT_TEXT_INPUT until a
+# window asks for it: text input is off at startup and per-window, because
+# turning it on may raise an on-screen keyboard or an IME candidate window.
+# Nothing bound these until `text-input` existed to want them, so the committed
+# text the event loop already knew how to read never arrived on SDL3.
+SDL_StartTextInput
+SDL_StopTextInput
+SDL_TextInputActive
+
+# The clipboard (sec. 4). SDL_GetClipboardText allocates and the caller frees,
+# which is the only reason SDL_free is on this list -- it is SDL's allocator and
+# not the C library's, and freeing across that boundary is undefined.
+SDL_GetClipboardText
+SDL_SetClipboardText
+SDL_HasClipboardText
+SDL_free
+
 # --- Blend2D (sec. 5, paint & raster) ----------------------------------------
 # The image and context surface: enough to rasterize a frame into the buffer the
 # platform lends us. Paths, gradients, strokes and text follow. See ADR-0031.

@@ -31,11 +31,22 @@ import java.util.function.DoubleConsumer;
 /// @param actions  what a `press="save"` attribute resolves against
 /// @param icons    what an `icon="plus"` attribute resolves against
 /// @param bindings what a `bind="app.gain"` attribute resolves against
-public record Wiring(ActionRegistry actions, Icons icons, BindingRegistry bindings) {
+public record Wiring(ActionRegistry actions, Icons icons, BindingRegistry bindings, Named named) {
 
     /// Nothing bound, and no complaints — what a preview or a golden image wants.
     public static Wiring none() {
-        return new Wiring(ActionRegistry.none(), Icons.none(), BindingRegistry.none());
+        return new Wiring(ActionRegistry.none(), Icons.none(), BindingRegistry.none(), Named.none());
+    }
+
+    /// The three registries a model publishes plus nothing named — the shape
+    /// every caller had before `controller=` and `validator=` existed.
+    public Wiring(ActionRegistry actions, Icons icons, BindingRegistry bindings) {
+        this(actions, icons, bindings, Named.none());
+    }
+
+    /// This wiring, with `named` for the objects a document refers to.
+    public Wiring with(Named named) {
+        return new Wiring(actions, icons, bindings, named);
     }
 
     /// The wiring `models` publish, with icons.
@@ -75,7 +86,7 @@ public record Wiring(ActionRegistry actions, Icons icons, BindingRegistry bindin
                 }
             });
         }
-        return new Wiring(actions, icons, bindings);
+        return new Wiring(actions, icons, bindings, Named.none());
     }
 
     /// The wiring `models` publish, with no icons.
@@ -136,6 +147,22 @@ public record Wiring(ActionRegistry actions, Icons icons, BindingRegistry bindin
     /// where it goes (ADR-0063).
     public Observable<?> bound(KdlNode node) {
         return bindings.resolve(node.stringProperty("bind"));
+    }
+
+    /// The **object** an attribute names — a `FormController`, a `Validator`.
+    ///
+    /// Resolved through [Named], which is the third registry and exists because
+    /// the other two both refused this job for good reasons: an action is a
+    /// method, a binding is a value that **changes** — the machinery says so out
+    /// loud, refusing a `final` `@Bind` field with "a value that cannot change is
+    /// not something to subscribe to" — and a controller is neither.
+    ///
+    /// @param type what the named object has to be
+    /// @return the object, or null when the attribute is absent
+    /// @throws IllegalArgumentException if the name is registered as something
+    ///         that is not a `type`, or is unknown to a strict registry
+    public <T> T handle(KdlNode node, String attribute, Class<T> type) {
+        return named.resolve(node.stringProperty(attribute), type);
     }
 
     /// The icon `icon=` names.

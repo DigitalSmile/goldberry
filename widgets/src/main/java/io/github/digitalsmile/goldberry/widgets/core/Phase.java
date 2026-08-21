@@ -1,18 +1,23 @@
-package io.github.digitalsmile.goldberry.widgets.panel.tabs;
+package io.github.digitalsmile.goldberry.widgets.core;
 
-/// Where a tab is in its arrival or its departure — the state behind §1.7's
-/// missing "overlay enter/exit lifecycle", for the first widget that needed one.
+/// Where something is in its arrival or its departure — the state behind §1.7's
+/// missing "overlay enter/exit lifecycle".
+///
+/// Written for `tabs`, which was the first widget to need one, and shared since:
+/// `carousel`'s slides and `collapse`'s body arrive exactly the same way, and
+/// there was never anything tab-shaped in it ([ADR-0166]). The `..Phase` it was
+/// called in that package is this, unchanged.
 ///
 /// ## Why this is not a transition
 ///
 /// Everything else that moves in this catalog moves *between two styles the
 /// cascade resolved*, which the renderer interpolates
 /// ([ADR-0067](../../../../../../../../book/src/adr/0067-motion-is-an-overlay-on-a-frame-clock.md)).
-/// A tab arriving has no two styles: its element did not exist last frame, and
+/// Something arriving has no two styles: its element did not exist last frame, and
 /// the first frame of a newly built element starts nothing
 /// ([ADR-0065](../../../../../../../../book/src/adr/0065-a-part-is-styleable-and-not-constructible.md)).
-/// A tab leaving is worse — the application has already dropped it from its list,
-/// so without something holding on there is nothing left to animate.
+/// Something leaving is worse — a tab's application has already dropped it from
+/// its list, so without something holding on there is nothing left to animate.
 ///
 /// So this is `spinner`'s shape instead: a **function of the frame clock**
 /// ([ADR-0081](../../../../../../../../book/src/adr/0081-a-perpetual-loop-has-no-state.md)),
@@ -22,11 +27,11 @@ package io.github.digitalsmile.goldberry.widgets.panel.tabs;
 ///
 /// ## Confined to the UI thread, and mutable on purpose
 ///
-/// One of these belongs to one tab for as long as that tab is on screen. It is
+/// One of these belongs to one arriving thing for as long as it is on screen. It is
 /// mutable because "when did this start" cannot be known until the first frame
 /// that draws it, and a record would mean rebuilding the widget tree to record
 /// the passage of time.
-final class TabPhase {
+public final class Phase {
 
     /// How long an arrival or a departure takes.
     ///
@@ -35,20 +40,20 @@ final class TabPhase {
     /// rather than a token because a clock-driven animation cannot read a
     /// `transition` declaration: it is not one
     /// ([ADR-0109](../../../../../../../../book/src/adr/0109-a-tab-arrives-and-departs-on-the-frame-clock.md)).
-    static final double DURATION_MILLIS = 160;
+    public static final double DURATION_MILLIS = 160;
 
     /// What this phase is.
-    enum Kind {
+    public enum Kind {
 
         /// Arriving: fading up and settling into place.
         ENTERING,
 
-        /// Leaving: fading down. The tab is no longer in the application's list
-        /// and is drawn only until this finishes.
+        /// Leaving: fading down. Whatever is going has already been dropped by
+        /// whoever owned it, and is drawn only until this finishes.
         LEAVING,
 
-        /// Neither — the ordinary state of a tab that has been there a while, and
-        /// the state every tab is in on the first build.
+        /// Neither — the ordinary state of something that has been there a while,
+        /// and the state everything is in on the first build.
         SETTLED
     }
 
@@ -57,16 +62,16 @@ final class TabPhase {
     /// When the current phase began, or `NaN` before its first frame.
     private double startedAt = Double.NaN;
 
-    TabPhase(Kind kind) {
+    public Phase(Kind kind) {
         this.kind = kind;
     }
 
-    Kind kind() {
+    public Kind kind() {
         return kind;
     }
 
-    /// Starts a departure, from wherever the tab currently is.
-    void leave() {
+    /// Starts a departure, from wherever it currently is.
+    public void leave() {
         if (kind != Kind.LEAVING) {
             kind = Kind.LEAVING;
             startedAt = Double.NaN;
@@ -79,7 +84,7 @@ final class TabPhase {
     /// frame clock, and it must be the *renderer's* clock rather than the wall
     /// one: a golden image of a half-finished arrival is impossible otherwise
     /// (ADR-0067's argument for `Clock.virtual`).
-    double progressAt(double now) {
+    public double progressAt(double now) {
         if (kind == Kind.SETTLED) {
             return 1;
         }
@@ -97,18 +102,18 @@ final class TabPhase {
     }
 
     /// Whether this phase still has frames to draw.
-    boolean isRunning() {
+    public boolean isRunning() {
         return kind != Kind.SETTLED;
     }
 
-    /// Whether a departure has finished, so the tab may be dropped.
-    boolean hasDeparted(double now) {
+    /// Whether a departure has finished, so the thing may be dropped.
+    public boolean hasDeparted(double now) {
         return kind == Kind.LEAVING && !Double.isNaN(startedAt)
                 && now - startedAt >= DURATION_MILLIS;
     }
 
     /// Ends the phase immediately — what reduced motion does to both of them.
-    void skip() {
+    public void skip() {
         if (kind == Kind.ENTERING) {
             kind = Kind.SETTLED;
         }

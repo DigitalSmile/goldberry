@@ -156,6 +156,27 @@ public interface BackendWindow extends AutoCloseable {
         return Optional.empty();
     }
 
+    /// Asks the platform to start or stop delivering committed text to this
+    /// window as [BackendEvent.TextInput].
+    ///
+    /// **Off by default, and this is not an optimisation.** SDL3 delivers no
+    /// `TEXT_INPUT` event until a window asks for one, because asking is what
+    /// raises an on-screen keyboard on a tablet and what tells an IME where its
+    /// candidate window belongs. A toolkit that turned it on at window creation
+    /// would put a keyboard over every phone screen showing a button.
+    ///
+    /// So it follows **focus, not the window**: a field turns it on when focus
+    /// arrives and off when focus leaves, and a window with nothing editable in
+    /// it never asks at all. Repeating the current state is harmless.
+    ///
+    /// Failure is not reported. A platform that will not start text input is one
+    /// whose key events still arrive, and there is nothing a caller could
+    /// usefully do about it that it is not already doing.
+    ///
+    /// @param active whether committed text should be delivered
+    default void textInput(boolean active) {
+    }
+
     /// Sets the window title.
     void setTitle(String title);
 

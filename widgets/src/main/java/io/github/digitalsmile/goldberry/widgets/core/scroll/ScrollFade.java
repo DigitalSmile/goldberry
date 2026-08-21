@@ -7,12 +7,12 @@ package io.github.digitalsmile.goldberry.widgets.core.scroll;
 /// two styles the cascade resolved
 /// ([ADR-0067](../../../../../../../../book/src/adr/0067-motion-is-an-overlay-on-a-frame-clock.md)),
 /// and "800ms after the last time anything happened" is not a style — no selector
-/// can express *when*. So this is [TabPhase]'s shape and `spinner`'s before it: a
+/// can express *when*. So this is [Phase]'s shape and `spinner`'s before it: a
 /// function of the frame clock, read in `render`, which is the only place a
 /// widget is handed one
 /// ([ADR-0081](../../../../../../../../book/src/adr/0081-a-perpetual-loop-has-no-state.md)).
 ///
-/// Mutable and confined to the UI thread, for [TabPhase]'s reason exactly: when
+/// Mutable and confined to the UI thread, for [Phase]'s reason exactly: when
 /// something last happened cannot be known until the frame that draws it, and a
 /// record would mean rebuilding the widget tree to record the passage of time.
 final class ScrollFade {
@@ -23,7 +23,7 @@ final class ScrollFade {
 
     /// How long they take to go once they start going.
     ///
-    /// §1.7's `base`. A constant rather than a token for [TabPhase#DURATION_MILLIS]'s
+    /// §1.7's `base`. A constant rather than a token for [Phase#DURATION_MILLIS]'s
     /// reason: a clock-driven animation cannot read a `transition` declaration,
     /// because it is not one.
     static final double FADE_MILLIS = 160;
@@ -37,7 +37,7 @@ final class ScrollFade {
     /// The wake and the clock arrive at different moments: a wheel event knows
     /// something happened and has no time, and `render` has a time and does not
     /// know what happened. This is the gap between them, and it is exactly how
-    /// [TabPhase] stamps the beginning of an arrival.
+    /// [Phase] stamps the beginning of an arrival.
     private boolean pending;
 
     /// The last frame time this was stamped with.

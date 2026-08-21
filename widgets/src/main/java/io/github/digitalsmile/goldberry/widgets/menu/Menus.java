@@ -106,9 +106,23 @@ public final class Menus {
     /// Empty when the platform has no popup windows or nothing with that id was
     /// painted — see [Host#popup(Widget, String, Placement)].
     public static Optional<Popup> open(Host host, String anchorId, Menu menu) {
+        return open(host, anchorId, menu, Placement.BELOW);
+    }
+
+    /// [#open(Host, String, Menu)] somewhere other than straight below.
+    ///
+    /// `menubar` is what wanted this: a heading's menu hangs from the bar with no
+    /// gap, where a context menu stands off the pointer so as not to open
+    /// underneath it (ADR-0163).
+    public static Optional<Popup> open(Host host, String anchorId, Menu menu,
+            Placement placement) {
+
         Objects.requireNonNull(host, "host");
         Objects.requireNonNull(anchorId, "anchorId");
-        return host.anchor(anchorId).flatMap(anchor -> open(host, anchor.bounds(), menu));
+        Objects.requireNonNull(placement, "placement");
+        return host.anchor(anchorId)
+                .flatMap(anchor -> open(host, anchor.bounds(), menu, placement,
+                        new ArrayList<>()));
     }
 
     /// Opens `menu` against a rectangle in the window's own coordinates — where a

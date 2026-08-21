@@ -35,7 +35,8 @@ tasks.withType(Test).configureEach {
     // Without this `-Dgoldberry.golden.update=true` reaches the Gradle daemon
     // and stops there, and the flag looks like it does nothing -- which is
     // exactly how it behaved in :core the first time it was tried.
-    ['goldberry.golden.update', 'goldberry.native.required'].each { name ->
+    ['goldberry.golden.update', 'goldberry.golden.scales',
+     'goldberry.golden.scales.report', 'goldberry.native.required'].each { name ->
         var value = providers.systemProperty(name).orElse(providers.gradleProperty(name))
         if (value.present) {
             systemProperty name, value.get()

@@ -62,6 +62,13 @@
      `--gb-list-row-height`, already declared above for `list` itself: a
      dropdown's rows and a list's rows are the same rows. */
   --gb-select-height: var(--gb-control-height);
+  /* The other half of that row. One token each rather than one shared one, so
+     an application can pin a field without moving every dropdown with it. */
+  --gb-input-height: var(--gb-control-height);
+  /* §4's "consistent label column". A token because it has to be the same for
+     every field in a form and §8's subset cannot say "as wide as the widest of
+     these" -- so somebody has to choose a number, and this is where. */
+  --gb-field-label-width: 120px;
 }
 
 /* ------------------------------------------------------------- no shrink --
@@ -117,7 +124,8 @@ segmented-track,
 segmented-indicator,
 select,
 select-chevron,
-option {
+option,
+text-input {
   flex-shrink: 0;
 }
 
@@ -302,7 +310,8 @@ toggle:focus-visible,
 slider:focus-visible,
 knob:focus-visible,
 select:focus-visible,
-option:focus-visible {
+option:focus-visible,
+text-input:focus-visible {
   outline: 2px solid var(--gb-focus);
   outline-offset: 2px;
 }
@@ -326,6 +335,7 @@ knob:disabled,
 option:disabled,
 radio-group:disabled,
 select:disabled,
+text-input:disabled,
 segmented:disabled {
   opacity: 0.45;
   cursor: not-allowed;
@@ -1356,12 +1366,14 @@ select {
   padding: 0 8px;
   border-radius: 4px;
   border: 1px solid var(--gb-border);
-  /* One step off the panel, like `badge`'s chip and for the same reason: a
-     field whose fill *was* `--gb-surface` would be a control that disappears on
-     a panel and is held together by a 1px border -- which is precisely the
-     defect `controls-on-surface-*` exists to catch, and why this control is in
-     that scene rather than exempt from it. */
-  background: var(--gb-surface-2);
+  /* A well, exactly as `text-input` is: §3 gives the two controls one row, and
+     a form where the field you type into and the field you pick from are
+     different colours is a form that looks assembled from two toolkits. This was
+     `--gb-surface-2` and had `text-input`'s defect for `text-input`'s reason
+     (ADR-0168) -- one rung off the page on the light theme, held together by a
+     1px border, which is precisely what `controls-on-surface-*` exists to
+     catch. */
+  background: var(--gb-surface-sunken);
   color: var(--gb-text);
   cursor: pointer;
   font-size: var(--gb-font-body);
@@ -1395,8 +1407,275 @@ select-value {
    is standing in for content rather than being it. A class rather than a
    pseudo-class for `select.open`'s reason. */
 select-value.placeholder {
-  color: var(--gb-text-muted);
+  color: var(--gb-text-placeholder);
 }
+
+/* --------------------------------------------------------- form & field --
+ *
+ * §4's layout contract. `field` is "consistent label column (or stacked labels
+ * via class), required marker, control slot, message slot below", and all of
+ * that is here rather than in the widget: a field's `render` sets nothing but
+ * its children, so what a document asks for with a class is what it gets.
+ *
+ * **Stacked is the default and the column is the class**, which is the opposite
+ * of how §4 words it and is the right way round for the toolkit that has to
+ * ship both. A label column needs a width, that width has to be the same for
+ * every field in a form, and §8's subset has no way to say "as wide as the
+ * widest of these" -- so the column form is the one that needs a number from
+ * the application, and a default that needed one would be a default that is
+ * wrong until it is configured.
+ */
+form {
+  flex-direction: column;
+  gap: 12px;
+}
+
+field {
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* The control and its message, always a column. §4 asks for a label *column* and
+   a message *below*, which are a row and a column — and §8's subset has no grid
+   and no wrapping, so the shape comes from the tree instead: a field is a row of
+   two, and this is the second (see `FieldBody`).
+
+   It grows, so the control fills whatever the label column leaves — and it is
+   the thing that grows rather than the control itself, which is what lets a
+   field hold two controls side by side without either of them fighting the
+   label for the width. */
+field-body {
+  flex-direction: column;
+  gap: 4px;
+  flex-grow: 1;
+}
+
+/* The label column, for a form that wants one. The width is
+   `--gb-field-label-width` so an application moves every field at once rather
+   than writing a rule per form -- and `align-items: baseline` rather than
+   `center`, because a label beside a control has to sit on the control's text
+   and not in the middle of its box.
+
+   Written twice, on the field and on the form, and the second is the one that
+   gets used: a form is where somebody decides that *this form* has a label
+   column, and writing the class on every field would be the same decision
+   repeated once per row and wrong the moment a row is added. The per-field class
+   stays because a form is not always there -- a `field` on its own in a dialog
+   is a real thing -- and because one field in a stacked form occasionally wants
+   the other shape. */
+field.horizontal,
+form.horizontal field {
+  flex-direction: row;
+  /* `flex-start` and **not** `baseline`, which is what this said first and what
+     put two fields on top of each other. A field's second child is a column
+     (`field-body`) and a baseline is a property of a line of text; asking a
+     column of a control and a message for one gives an offset that has nothing
+     to do with where the label should sit, and the row's height comes out wrong
+     with it. The label is nudged down by `padding-top` instead, which is one
+     number and cannot be wrong by a layout. */
+  align-items: flex-start;
+  gap: 12px;
+}
+
+field.horizontal field-label,
+form.horizontal field field-label {
+  width: var(--gb-field-label-width);
+  flex-shrink: 0;
+  /* So the label sits on the control's text rather than on the top edge of its
+     box: half the difference between a control's height and a line of it. A
+     number rather than an alignment, for the reason above. */
+  padding-top: 7px;
+}
+
+/* And the control takes the rest of the body. A `text-input` has no width of its
+   own — it is as wide as it is told to be — so in a box beside a fixed label it
+   would take nothing at all, which is a field with a label and a sliver.
+
+   Enumerated rather than "everything that is not the label", because §8's subset
+   has no `:not()` — the same reason a disabled control is kept from lighting up
+   in the router rather than in a stylesheet (ADR-0064). A control this list
+   forgets gets its natural width, which is visible immediately rather than
+   subtly wrong. */
+field-body text-input,
+field-body select,
+field-body text-area {
+  flex-grow: 1;
+}
+
+/* And the way back, for the one field in a horizontal form that wants the
+   stacked shape -- a `text-area`, usually, whose label beside it wastes the
+   width the control needs. `field.vertical` is more specific than
+   `form.horizontal field`, so it wins without `!important`, which §8's subset
+   does not have. */
+form.horizontal field.vertical {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 4px;
+}
+
+form.horizontal field.vertical field-label {
+  width: auto;
+}
+
+/* An **action row** — a Save button, usually — is a field with no label, so it
+   lines up with the controls rather than with the labels. That is the whole
+   reason it is a `field` at all: the empty label still occupies the column, and
+   nothing has to know what the column's width is.
+
+   Without it an action row is a sibling of the form, starts at the form's left
+   edge, and sits under the *labels* — which is what it did, and what looked
+   wrong. */
+field.actions field-body {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+}
+
+field-label {
+  color: var(--gb-text);
+  font-size: var(--gb-font-caption);
+  line-height: var(--gb-line-caption);
+}
+
+/* The required marker rides in the label's own text, so what can be coloured is
+   the whole label. §1.2 forbids colour as the only carrier of meaning, which is
+   why the marker is an asterisk first and a colour second -- and why this rule
+   does *not* redden the label: a required field is not a wrong one. */
+field-label.required {
+  color: var(--gb-text);
+}
+
+/* The message slot. `--gb-danger` is §4's word for it, and the slot is in the
+   tree at all times -- an empty one draws nothing and takes no height, so a
+   form does not breathe every time a field goes wrong. */
+field-message {
+  color: var(--gb-danger);
+  font-size: var(--gb-font-caption);
+  line-height: var(--gb-line-caption);
+}
+
+/* A field whose value its rule refused. `:invalid` is a pseudo-class rather
+   than a class because §4 asks for one by name -- the only addition to §8's
+   pseudo set the specification requests (`core-widgets.md` §1).
+ *
+ * It reddens the **control's border** and nothing else. Not the label, which
+ * would say the label is wrong; not the fill, which §2.1 reserves for state and
+ * which would fight the field's own well; and not the text, which has to stay
+ * readable while somebody fixes it. */
+field:invalid text-input,
+field:invalid select {
+  border-color: var(--gb-danger);
+}
+
+/* ---------------------------------------------------------- text-input --
+ *
+ * §4's single-line field. It is `select`'s surface with a caret in it, and the
+ * two are deliberately the same: §3 gives them one row and one height, and a
+ * form where the field you type into and the field you pick from do not match is
+ * a form that looks assembled from two toolkits.
+ *
+ * The children are placed by the widget, not by this stylesheet -- a caret's x
+ * is the width of the text before it, which no selector can express (see
+ * `TextField`). What is here is what everything else is: the surface, the
+ * colours and the rank.
+ */
+text-input {
+  height: var(--gb-input-height);
+  flex-direction: row;
+  align-items: center;
+  padding: 0 8px;
+  border-radius: 4px;
+  border: 1px solid var(--gb-border);
+  /* A **well**: content sits in a field rather than on it, and
+     `--gb-surface-sunken` is the token that says so in whichever direction the
+     theme's ramp runs (ADR-0168). This was `--gb-surface-2` and that is the same
+     mistake ADR-0166 corrected for `card`: it means "the second surface" and
+     promises no direction, so on the light theme a field was one rung off the
+     page and read as barely there. */
+  background: var(--gb-surface-sunken);
+  color: var(--gb-text);
+  font-size: var(--gb-font-body);
+  line-height: var(--gb-line-body);
+}
+
+/* §2.1's hover, the step `select` takes rather than a wash. */
+text-input:hover {
+  border-color: var(--gb-text-muted);
+}
+
+/* An empty field is standing in for content rather than being it. A class rather
+   than a pseudo-class for `select-value.placeholder`'s reason: §8's subset has
+   none that means this.
+
+   `--gb-text-placeholder` and not `--gb-text-muted`, which was the first answer
+   and did apply -- it was simply too small a step to see. Muted and text are two
+   rungs apart on the Nord ramp, so a placeholder inside a filled field looked
+   exactly like a value somebody had typed (ADR-0168). */
+text-value.placeholder {
+  color: var(--gb-text-placeholder);
+}
+
+/* The insertion point. `--gb-text` and not the accent: a caret is the text it is
+   about to become, and one in the accent colour reads as a selected thing rather
+   than as a place. Its *width* is the widget's -- one logical pixel, set in the
+   same call that sets its position, because a stylesheet that disagreed would
+   move the caret rather than resize it (see `TextField.CARET_WIDTH`). */
+text-caret {
+  background: var(--gb-text);
+}
+
+/* The highlight, behind the text rather than over it, so the glyphs keep their
+   own colour and stay readable (§1.2). `--gb-selection` is translucent in both
+   themes for exactly that reason, and is the one token here that was already
+   declared before anything used it. */
+text-selection {
+  background: var(--gb-selection);
+  border-radius: 2px;
+}
+
+/* ----------------------------------------------------------- text-area --
+ *
+ * §4's multi-line field. It is `text-input`'s surface with more than one line in
+ * it, and it shares the three parts and every rule about them — the two controls
+ * must not look like they were designed by different people, and the surest way
+ * to that is one set of rules rather than two that agree today.
+ *
+ * What it does **not** share is the height. A `text-input` is `--gb-input-height`
+ * and a `text-area` is as tall as its text, between `rows` and `max-rows`, which
+ * is a number the widget computes because no selector can ask how many lines the
+ * text wrapped into. So there is no `height` here, and a stylesheet that added
+ * one would be a control that stopped growing.
+ */
+text-area {
+  padding: 6px 8px;
+  border-radius: 4px;
+  border: 1px solid var(--gb-border);
+  background: var(--gb-surface-sunken);
+  color: var(--gb-text);
+  font-size: var(--gb-font-body);
+  line-height: var(--gb-line-body);
+  flex-shrink: 0;
+}
+
+text-area:hover {
+  border-color: var(--gb-text-muted);
+}
+
+text-area:focus-visible {
+  outline: 2px solid var(--gb-focus);
+  outline-offset: 2px;
+}
+
+text-area:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* A `text-area` in a horizontal form takes the width like every other control,
+   and its label goes back on top — a label beside a four-line control leaves it
+   the narrowest thing on the screen, which is the opposite of what a paragraph
+   field wants. */
+
 
 /* The mark. 16px because that is the size every glyph in this catalog is built
    at, and muted because it is the affordance rather than the value -- the same
@@ -1680,6 +1959,76 @@ separator {
   height: 1px;
   flex-shrink: 0;
   background: var(--gb-border);
+}
+
+/* --------------------------------------------------------------- menubar --
+ *
+ * `docs/core-widgets.md` §8's in-window bar. Unlike a `menu`, this is drawn in
+ * the application's own window and inherits from it — so only what actually
+ * differs from the surrounding page is written here (ADR-0163).
+ *
+ * There is **no rule under it**. §8's subset has one `border` and no per-edge
+ * longhands, so `border-bottom` is not a declaration that exists (ADR-0107), and
+ * a bar separated from the page by its own surface colour does not need one. The
+ * `tab-rule` trick — a 1px box pinned across the bottom — is available if it ever
+ * turns out to.
+ */
+menubar {
+  flex-direction: row;
+  align-items: center;
+  gap: 2px;
+  padding: 2px 4px;
+  flex-shrink: 0;
+  background: var(--gb-surface);
+}
+
+/* A heading. Shorter and wider than a menu row: it sits in a horizontal bar
+   rather than a vertical list, so the padding that separates it from its
+   neighbours is the one on the sides. */
+menu-title {
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+  height: var(--gb-menu-item-height);
+  padding: 0 10px;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+menu-title:hover {
+  background: var(--gb-overlay-hover);
+}
+
+/* `:focus-visible` and not `:focus`, for the reason an `item` gives: the bar is
+   one tab stop and lands on its first heading, and a pointer user never asked
+   for that heading to be picked out (ADR-0112). */
+menu-title:focus-visible {
+  background: var(--gb-overlay-hover);
+}
+
+menu-title:active {
+  background: var(--gb-overlay-active);
+}
+
+/* The heading whose menu is showing, which is the one thing `:hover` and
+   `:focus-visible` between them cannot say — the pointer has usually left the
+   bar entirely by the time the menu is down. A class rather than a pseudo-class
+   because "the branch that is open" is not one of CSS's states, and it is the
+   same shape `select` marks its open field with.
+
+   The **accent fill**, not a stronger overlay. `--gb-overlay-active` is 0x29 over
+   0x14 on dark: twice the alpha, and at 8% against 16% the two are hard to tell
+   apart side by side — which is exactly the comparison a bar puts in front of
+   somebody, since the hovered heading is usually the one *next to* the open one.
+   The accent pairing is the toolkit's existing "this one is chosen", and it is
+   what a menu hanging off a heading looks like everywhere else. */
+menu-title.open {
+  background: var(--gb-accent-fill);
+  color: var(--gb-button-primary-text);
+}
+
+menu-title:disabled {
+  opacity: 0.45;
 }
 
 /* ------------------------------------------------------------------ tabs --
@@ -2071,4 +2420,420 @@ tour-card > column > row {
 
 .tour-next:active {
   background: var(--gb-button-primary-bg-active);
+}
+
+/* ----------------------------------------------------------------- panel --
+ *
+ * §5's "plain surface: `--gb-surface`, border, radius tokens. The building block;
+ * no elevation."
+ *
+ * **This rule did not exist**, and its absence was reported as "I cannot tell a
+ * panel from a card": the widget draws nothing at all, so every document that
+ * wanted a surface invented one — and the showcase invented one that looked
+ * exactly like a card. A building block that draws nothing is not a building
+ * block (ADR-0166).
+ */
+panel {
+  flex-direction: column;
+  background: var(--gb-surface);
+  border: 1px solid var(--gb-border);
+  border-radius: 8px;
+}
+
+/* ------------------------------------------------------------------ card --
+ *
+ * `docs/core-widgets.md` §5's "elevated surface". §5 says "shadow tokens" and
+ * §10's subset has no `box-shadow` — nothing in this toolkit paints outside a
+ * box's own rectangle — so **elevation is an edge**, exactly as `popover`'s is
+ * (ADR-0104, ADR-0164): a brighter surface and a stronger border than the page.
+ */
+card {
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  /* **The same fill as a panel, and a stronger edge.** ADR-0164 decided that
+     elevation here is an edge, and then hedged by also stepping the fill to
+     `--gb-surface-2` -- which is wrong in two ways. Eight levels is not an
+     elevation anybody can see on dark, which is how it was first reported; and
+     `--gb-surface-2` is a step *down* from `--gb-surface` on the light theme,
+     where `--gb-surface` is white, so a stepped card read as **recessed** there.
+     `surface-2` means "the second surface", not "one step more elevated", and
+     it never promised otherwise.
+
+     So the fill is `--gb-surface-raised`, which is a token that means what a
+     card needs -- "one step more raised than a panel" -- and which the two
+     themes answer differently because they have to: dark has room above
+     `--gb-surface` and light does not, white being the top. And the edge is an
+     alpha over whatever is underneath, so it lightens on dark and darkens on
+     light without either theme stating it twice, and a card reads as raised on
+     a page, on a panel, or on another card (ADR-0166). */
+  background: var(--gb-surface-raised);
+  border: 1px solid var(--gb-border-strong);
+  border-radius: 8px;
+}
+
+/* §5's "hover-elevation optional via class". Opt-in, because a card that lit up
+   under the pointer would promise it does something, and most cards do not. */
+card.interactive {
+  transition: border-color var(--gb-motion-base);
+}
+
+card.interactive:hover {
+  border-color: var(--gb-accent);
+}
+
+/* ------------------------------------------------------------- group-box --
+ *
+ * §5's "titled border group for settings clusters", and the border goes round
+ * **both** the title and the content — which is what makes it a titled group
+ * rather than a heading with a panel under it.
+ *
+ * The first cut put the title above the frame and was reported as "what is the
+ * purpose of group box?", which was the right question to ask of it: a heading
+ * floating over a bordered box says nothing about the two belonging together, and
+ * an untitled one was indistinguishable from a `card` (ADR-0166).
+ *
+ * A `fieldset`'s legend *through* the border is still not available — it needs a
+ * notch the subset cannot express — and this needs nothing the subset has not
+ * got.
+ */
+group-box {
+  flex-direction: column;
+  background: var(--gb-surface);
+  border: 1px solid var(--gb-border);
+  border-radius: 8px;
+}
+
+/* The header row. The rule under it is a `border` on this node rather than a
+   separate box, which works here and did not for `tabs` (ADR-0107): a tab strip's
+   rule has to stop where the headers stop, and this one runs the full width on
+   purpose. It is the border's *bottom* that is wanted and §8's subset has one
+   `border` and no per-edge longhands — so the whole box is bordered and three of
+   its edges are painted in the frame's own colour, which is what a full-width
+   1px rule under a header costs here. */
+group-box-title {
+  padding: 8px 12px;
+  font-size: var(--gb-font-heading);
+  font-weight: 600;
+  color: var(--gb-text);
+  background: var(--gb-surface-2);
+  border-radius: 7px 7px 0 0;
+  flex-shrink: 0;
+}
+
+group-box-body {
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+}
+
+/* ------------------------------------------------------------- statistic --
+ *
+ * §5's "labelled number". Three ranks of §1.2's hierarchy in one block: the label
+ * is caption, the value is display, the delta is body.
+ */
+statistic {
+  flex-direction: column;
+  gap: 2px;
+}
+
+statistic-label {
+  font-size: var(--gb-font-caption);
+  color: var(--gb-text-muted);
+}
+
+/* A row, because the unit sits beside the number rather than under it. */
+statistic-value {
+  flex-direction: row;
+  align-items: baseline;
+  gap: 4px;
+  font-size: var(--gb-font-display);
+  color: var(--gb-text);
+}
+
+/* Muted and small: the unit is context for the number rather than part of it,
+   which is the same rank a menu row's accelerator has. */
+statistic-unit {
+  font-size: var(--gb-font-body);
+  color: var(--gb-text-muted);
+}
+
+/* Neither up nor down is the muted default, so a delta with no direction is
+   legible rather than arbitrarily green (see `Statistic.Direction`). */
+statistic-delta {
+  font-size: var(--gb-font-body);
+  color: var(--gb-text-muted);
+}
+
+statistic-delta.up {
+  color: var(--gb-success);
+}
+
+statistic-delta.down {
+  color: var(--gb-danger);
+}
+
+/* -------------------------------------------------------------- skeleton --
+ *
+ * §5's placeholder. Every size here is a **typography token**, which is the whole
+ * point: "sized from the typography token it stands in for so the layout does not
+ * jump when the real content arrives". A theme that changes its type scale moves
+ * the placeholders with it.
+ *
+ * The pulse is not here. §1.7 rule 4 makes a shimmer the one loop in the canon,
+ * and a loop is not a transition — it is a pure function of the frame clock,
+ * computed in `Skeleton` the way `spinner`'s rotation is (ADR-0081).
+ */
+skeleton {
+  flex-direction: column;
+  gap: 6px;
+}
+
+skeleton-bar {
+  background: var(--gb-surface-2);
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+/* Body text. The height is the line box rather than the glyph height, so three
+   bars occupy exactly what three lines will. */
+skeleton-bar.text {
+  height: var(--gb-font-body);
+}
+
+skeleton-bar.title {
+  height: var(--gb-font-title);
+}
+
+/* An avatar. The radius is half the side, which is how a square becomes a circle
+   in a subset with no `border-radius: 50%`. */
+skeleton-bar.circle {
+  width: 40px;
+  height: 40px;
+  border-radius: 20px;
+}
+
+/* Arbitrary content — an image, a chart. No token can say how big that is, so
+   this is a floor and whatever encloses it decides the rest. */
+skeleton-bar.rect {
+  height: 80px;
+}
+
+/* The last line of a paragraph is short, because a block of identical full-width
+   bars reads as a table rather than as prose. A width and not a margin: the bars
+   are in a column, so shortening one is shortening it. */
+skeleton-bar.text.last {
+  width: 60%;
+}
+
+/* -------------------------------------------------------------- collapse --
+ *
+ * §5's disclosure. The body is **not here** while it is shut — `CollapseSection`
+ * describes no such node, so there is nothing to hide and nothing alive behind a
+ * header nobody has opened.
+ */
+collapse {
+  flex-direction: column;
+  flex-shrink: 0;
+}
+
+/* One tab stop, and the only focusable thing in a section. */
+collapse-header {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  height: var(--gb-control-height);
+  padding: 0 8px;
+  border-radius: 4px;
+  flex-shrink: 0;
+  cursor: pointer;
+}
+
+collapse-header:hover {
+  background: var(--gb-overlay-hover);
+}
+
+collapse-header:focus-visible {
+  outline: 2px solid var(--gb-accent);
+  outline-offset: 2px;
+}
+
+/* The marker turns rather than being swapped for a different glyph: §5 asks for a
+   rotation on `base`, and a mark that changed kind would jump. `transform` is on
+   §1.7's whitelist precisely so this costs no layout. */
+collapse-chevron {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  color: var(--gb-text-muted);
+  transition: transform var(--gb-motion-base);
+}
+
+collapse-chevron.open {
+  transform: rotate(90deg);
+}
+
+/* Indented under the header, which is why the body is a node of its own: padding
+   on `collapse` would indent the header too. */
+collapse-body {
+  flex-direction: column;
+  gap: 8px;
+  padding: 4px 8px 8px 32px;
+}
+
+/* ------------------------------------------------------------ split-pane --
+ *
+ * §5's two children and a draggable divider. The layout is not here: the first
+ * pane is given an explicit main-axis size in logical pixels by `SplitPaneView`,
+ * because `flex-grow` shares out the space *left over* after content and would
+ * therefore ignore the divider's own fraction — and §10's subset has no
+ * `flex-basis` to say it with instead (ADR-0165).
+ */
+split-pane {
+  align-items: stretch;
+  flex-grow: 1;
+  flex-shrink: 1;
+}
+
+/* Each side clips what is in it. A pane dragged narrower than its content would
+   otherwise spill across the divider and over the other pane, which reads as a
+   divider that has stopped working. */
+split-pane-side {
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* The bar. Its thickness is set in `SplitPaneView.DIVIDER` and repeated here,
+   because the first pane's width is computed against it: a stylesheet that
+   disagreed would put the second pane's edge that many points out, silently.
+   `SplitPaneTest` pins the two together. */
+split-divider {
+  flex-shrink: 0;
+  background: var(--gb-border);
+}
+
+/* Hover and focus are the same colour on purpose. A divider is not a control
+   whose *state* matters -- there is nothing to press -- so what both mean is
+   "this is the thing you are about to move", and giving them two appearances
+   would invent a distinction the widget does not have. */
+split-divider:hover,
+split-divider:focus-visible {
+  background: var(--gb-accent);
+}
+
+/* The ring is *inside* the bar, which is the one place in the catalog it has to
+   be for `tab`'s reason: a ring at §2.2's usual 2px offset would be drawn across
+   both panes. At six points wide there is no room for an inset ring either, so
+   the fill is the affordance -- which is what the rule above is. */
+split-divider:focus-visible {
+  outline-width: 0;
+}
+
+/* Flush against an edge, with no pane on one side of it. Wider, because a
+   collapsed divider is the only handle left to bring the pane back with and six
+   points at the very edge of a window is a hard target. */
+split-divider.collapsed {
+  background: var(--gb-surface-2);
+}
+
+/* -------------------------------------------------------------- carousel --
+ *
+ * §5's one-at-a-time list. The rotation is not here and cannot be: it is a timer,
+ * not a transition, and §1.7 rule 4's conditions for stopping it — hover, focus,
+ * reduced motion — are decisions rather than declarations (ADR-0165).
+ */
+carousel {
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* Clips the slide, so content larger than the viewport does not spill past the
+   controls under it. */
+carousel-viewport {
+  flex-direction: column;
+  flex-grow: 1;
+  overflow: hidden;
+}
+
+carousel-controls {
+  flex-direction: row;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+/* A step button. `--gb-control-height` and not a smaller number: §1.3's hit
+   target applies to a carousel's arrows exactly as it does to everything else,
+   and these are the two controls somebody will be clicking repeatedly. */
+carousel-step {
+  width: var(--gb-control-height);
+  height: var(--gb-control-height);
+  flex-shrink: 0;
+  border-radius: 4px;
+  color: var(--gb-text-muted);
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+/* `Previous` is the same chevron turned half round. There is no `CHEVRON_START`
+   mark and adding one would be a second kind that has to stay the mirror of the
+   first forever, where this is one declaration that cannot drift —
+   `collapse-chevron` makes the same trade. */
+carousel-step.previous {
+  transform: rotate(180deg);
+}
+
+carousel-step:hover {
+  background: var(--gb-overlay-hover);
+  color: var(--gb-text);
+}
+
+carousel-step:active {
+  background: var(--gb-overlay-active);
+}
+
+carousel-step:focus-visible {
+  outline: 2px solid var(--gb-accent);
+  outline-offset: 2px;
+}
+
+/* At an end with no loop. Disabled rather than absent, so the row does not change
+   width as the carousel moves — and because a disabled `Next` is what says "that
+   is all of them", which is why `loop` is off by default. */
+carousel-step:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+carousel-dots {
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+/* A dot is 8 across and the radius is half of it, which is how a square becomes a
+   circle in a subset with no `border-radius: 50%`. Not focusable — the keyboard
+   reaches every slide through the arrows, and nine slides would otherwise be nine
+   tab stops (ADR-0107's close-button argument). */
+carousel-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 4px;
+  flex-shrink: 0;
+  background: var(--gb-border);
+  cursor: pointer;
+  transition: background var(--gb-motion-fast);
+}
+
+carousel-dot:hover {
+  background: var(--gb-text-muted);
+}
+
+/* The slide showing. `:checked` rather than the `.current` class beside it,
+   because "this is the one" is a state the cascade already has a word for. */
+carousel-dot:checked {
+  background: var(--gb-accent);
 }

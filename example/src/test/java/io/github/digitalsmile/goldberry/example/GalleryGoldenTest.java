@@ -78,9 +78,19 @@ class GalleryGoldenTest {
 
     /// The whole window, on `screen`.
     private void paint(String name, String screen, Theme theme) {
+        paint(name, screen, theme, 900, 560);
+    }
+
+    /// The same, at a chosen size — for a screen with more on it than the
+    /// window shows.
+    private void paint(String name, String screen, Theme theme, int width, int height) {
         actions.pickScreen(screen);
 
         var inflater = Widgets.inflater(
+                // The objects the Forms document names, so this image is the
+                // screen the application draws rather than one whose `form` lost
+                // its controller to a lenient registry.
+                model.named(),
                 Icons.strict().bind("palette", palette).bind("plus", plus),
                 showcase.models().toArray());
         var tree = new ElementTree(new Screen(model, actions, inflater, plus, () -> { }));
@@ -96,7 +106,7 @@ class GalleryGoldenTest {
         var renderer = new WidgetRenderer(sheets, font)
                 .clock(io.github.digitalsmile.goldberry.motion.Clock.virtual());
 
-        GoldenImage.assertMatches(name, 900, 560, 1.0f,
+        GoldenImage.assertMatches(name, width, height, 1.0f,
                 frame -> BoxPainter.paint(frame, renderer.render(tree)));
     }
 
@@ -124,6 +134,33 @@ class GalleryGoldenTest {
         paint("gallery-overlays", "overlays", Theme.NORD_DARK);
     }
 
+    /// §5's containers, and the screen with no value on it at all — so this is
+    /// also the image that says a gallery screen can be a document with not one
+    /// line of Java behind it.
+    ///
+    /// The `skeleton`s on it pulse from the frame clock, which is why the clock
+    /// this test freezes is load-bearing here in a way it was not for the other
+    /// six: without it the placeholders draw a different opacity every run.
+    @Test
+    @DisplayName("the Panels screen")
+    void panels() {
+        paint("gallery-panels", "panels", Theme.NORD_DARK);
+    }
+
+    /// §4's `text-input`, in the six states one has: bound, filtered, masked,
+    /// read-only, disabled, and holding more than it can show.
+    ///
+    /// **Nothing on it has focus**, so there is no caret in this image — which is
+    /// the right thing for a golden to pin. A caret blinks on a timer, so an
+    /// image that contained one would be an image of whichever half of the blink
+    /// the test happened to catch; what a caret does is [io.github.digitalsmile.goldberry.widgets.form.textinput]'s
+    /// unit tests' business, and what a field *looks* like is this one's.
+    @Test
+    @DisplayName("the Forms screen")
+    void forms() {
+        paint("gallery-forms", "forms", Theme.NORD_DARK);
+    }
+
     @Test
     @DisplayName("the Tabs screen")
     void tabs() {
@@ -142,6 +179,37 @@ class GalleryGoldenTest {
     @DisplayName("the Scrolling screen")
     void scrolling() {
         paint("gallery-scrolling", "scrolling", Theme.NORD_DARK);
+    }
+
+    /// The Forms screen's **second row**, which the 560-point window cuts off.
+    ///
+    /// A taller image rather than a scrolled one: what is being pinned is the
+    /// form, the `text-area` and the label — three controls whose whole point is
+    /// how they lay out — and a golden that had to drive a scroll first would be
+    /// testing the scroll as well, on a screen that is not about scrolling.
+    ///
+    /// The gallery's other images stay at the window's real size, because a
+    /// screen that only looks right when the window is unusually tall is a screen
+    /// with a defect this would hide.
+    @Test
+    @DisplayName("the Forms screen, tall enough to show its second row")
+    void formsTall() {
+        paint("gallery-forms-tall", "forms", Theme.NORD_DARK, 900, 900);
+    }
+
+    /// The Forms screen on the light theme, and the second screen to earn a
+    /// light image rather than share the one.
+    ///
+    /// It earned it by being wrong there and right on the dark theme, which is a
+    /// failure a one-screen light corpus cannot catch: a field's fill was
+    /// `--gb-surface-2`, one rung off an `--nord6` page, and read as barely
+    /// there — the same defect ADR-0166 corrected for `card`, in the same place,
+    /// found the same way (ADR-0168). A **light** image of a screen full of
+    /// fields is what would have caught it.
+    @Test
+    @DisplayName("the Forms screen on the light theme")
+    void formsLight() {
+        paint("gallery-forms-light", "forms", Theme.NORD_LIGHT);
     }
 
     /// One screen on the light theme, because a gallery that only ever proves

@@ -25,13 +25,39 @@ the mechanism the sentence named.
 
 ## Overlays, popups and windows
 
-- **`menubar` is not built, and it wants a menu that outlives one opening.** §8's
-  in-window bar with `Alt` activation needs a menu model the window owns, rather
-  than a widget tree built when the menu opens and thrown away when it closes.
-  That is the same thing that makes an accelerator *registrable*: §8 asks for one
-  "displayed right-aligned **and** auto-registered in the window's shortcut map",
-  and only the display half is built. —
+- ~~**`menubar` is not built, and it wants a menu that outlives one opening.**~~
+  **Both halves ship, and the model that outlives an opening turned out to be the
+  one the author already wrote.** What is built and discarded per opening is the
+  *popup*; a `Menu` is a value, so a `menubar` holding one holds it for as long as
+  the bar is mounted. `Accelerators` walks that description and binds every
+  command with a key on it, with no menu on screen and none needed. A bar's
+  children are `item`s and a nested `item` is a heading, so no markup was added. —
+  [ADR-0163](adr/0163-a-menu-bar-owns-its-menus.md),
   [ADR-0106](adr/0106-a-menu-is-a-widget-and-opening-one-is-not.md)
+- **A bare `Alt` tap does not activate the menu bar, and `F10` does.** §8 asks for
+  "`Alt`-style keyboard activation". A bare `Alt` is a **modifier released with
+  nothing in between**, and a `Shortcut` here is a key plus modifiers — `Key` has
+  no `ALT` to name, because a shortcut on a modifier alone can never fire. Doing
+  it properly needs key-release tracking with a "nothing happened in between"
+  rule, at the window level where the `InputWatcher` already lives. `F10` is the
+  companion binding on every platform that has the `Alt` one and is what ships. —
+  [ADR-0163](adr/0163-a-menu-bar-owns-its-menus.md)
+- **`Left` and `Right` do not move between menus while one is showing.** They walk
+  the headings when the bar has focus and nothing is down, which is the horizontal
+  focus scope doing its job. Once a menu is open the focus is in a **different
+  window**, so the bar never sees the arrow — the same missing item-to-popup
+  callback that keeps `Left` from closing a submenu, one entry below. Fixing
+  either would probably fix both. —
+  [ADR-0163](adr/0163-a-menu-bar-owns-its-menus.md),
+  [ADR-0112](adr/0112-a-menu-follows-the-pointer-and-lights-for-the-keyboard.md)
+- **An accelerator is unbound by key, so a `menubar` going away can take somebody
+  else's binding with it.** The window's shortcut map is keyed by the shortcut and
+  not by who bound it, so `Host.removeShortcut(Ctrl+O)` removes whatever is on
+  `Ctrl+O` — including a binding the application made afterwards. Two things
+  claiming one key is already a conflict where the last registration wins; this is
+  that conflict at the other end. Fixing it means the map remembering owners, and
+  `menubar` would be the only thing that used it. —
+  [ADR-0163](adr/0163-a-menu-bar-owns-its-menus.md)
 - **The keyboard menu key does not open a context menu.** §8 asks for "right-click
   **or** the keyboard menu key at the focused widget"; the key half needs
   `Key.MENU` in the key map and an anchor from the *focused element's* rectangle,
@@ -182,6 +208,115 @@ the mechanism the sentence named.
   [ADR-0057](adr/0057-the-cursor-rides-on-the-painted-box.md)
 
 ## The catalog: specified and unbuilt
+
+### `text-input`, and what §4 still owes
+
+- **IME preedit is not drawn, and committed text already works.** The platform
+  hands over *finished* characters and a field takes them like any others, so an
+  IME is usable today; what is missing is the underlined in-progress string,
+  which needs a second text the field draws and does not hold, and
+  `SDL_SetTextInputArea` so the candidate window lands under the caret rather
+  than in the corner of the screen. M5, as ARCHITECTURE §17 says. —
+  [ADR-0167](adr/0167-a-field-owns-its-caret-and-the-model-is-told.md)
+- **A field refuses right-to-left text outright.** `Paragraph.of` throws on it
+  ([ADR-0036]) and nothing catches that, so a field a user pastes Arabic into
+  takes the window down. The fix is `java.text.Bidi` run splitting, which is the
+  same missing work the paragraph documents — but the *field* needs a decision
+  the paragraph does not: refusing the paste is not acceptable and neither is
+  crashing, so the interim behaviour has to be chosen. —
+  [ADR-0167](adr/0167-a-field-owns-its-caret-and-the-model-is-told.md)
+- **An absolutely positioned child is placed against the border box, and the
+  clip is the padding box.** `text-input` allows for it by adding its own padding
+  to every child's `left`, which works and is a workaround: the next widget that
+  places a child absolutely inside a padded box will hit the same thing and will
+  not know to. Whether Yoga or the painter is the one disagreeing with CSS has
+  not been established. —
+  [ADR-0167](adr/0167-a-field-owns-its-caret-and-the-model-is-told.md)
+- **A field's scroll offset uses the previous frame's width.** ADR-0116 already
+  decided that is what a viewport does, and it is wrong for one frame after a
+  resize — invisible, because a resize is followed immediately by another frame.
+  Worth writing down because it is the second widget to need the measurement
+  `render` cannot have, and a third would be an argument for handing the width to
+  `render` rather than to `Measured`. —
+  [ADR-0167](adr/0167-a-field-owns-its-caret-and-the-model-is-told.md)
+- **Nothing re-places the caret when the font changes under it.** A restyle that
+  changes `font-size` reshapes the paragraph and the caret follows, because both
+  are computed in the same `render`. A *density* change does the same. Neither is
+  broken; what is untested is a font-family fallback swapping mid-edit, which no
+  test can currently provoke. —
+  [ADR-0167](adr/0167-a-field-owns-its-caret-and-the-model-is-told.md)
+- ~~**Markup cannot hand a controller to a widget.**~~ **It can, through a
+  fourth registry — and the first attempt was refused by the codebase itself.**
+  This entry guessed the answer was "a registry beside `actions` and `bindings`",
+  and it was; what it did not guess was that the *binding* registry would settle
+  the question. A `@Bind` field holding a controller is refused with "a value that
+  cannot change is not something to subscribe to", which is exactly what a
+  controller is. `Named` is the registry for objects that are neither methods,
+  resources, nor values that change. **`scroll` still has the gap** — a
+  `ScrollController` could be named the same way and nothing has done it. —
+  [ADR-0170](adr/0170-a-document-names-an-object-and-a-label-hands-focus-down.md)
+- ~~**Nothing can ask for focus, so `field` has no click-to-focus.**~~ **A
+  container can hand focus down now.** `Handles.delegatesFocus()` turns the
+  router's walk round: a press that finds no focusable ancestor takes the first
+  focusable *descendant* of a container that claims one. It has **one consumer**,
+  which is one fewer than a mechanism should have — `group-box` and `card` are
+  candidates and neither has asked. —
+  [ADR-0170](adr/0170-a-document-names-an-object-and-a-label-hands-focus-down.md)
+- **`Host.focus` still does not exist**, and click-to-focus did not need it: what
+  `field` wanted was a rule about where a *press* lands, not the ability to move
+  focus from anywhere. Something that wants to focus a control from a handler — a
+  dialog putting the caret in its first field, a form jumping to its first error —
+  still cannot. That is the entry this one leaves behind. —
+  [ADR-0170](adr/0170-a-document-names-an-object-and-a-label-hands-focus-down.md)
+- **A `field`'s error summary is a list and not a widget.** §4 says failures
+  "register in the form's error summary"; `FormController.errors()` is that
+  register, and nothing draws it. What should is `message` (§7), which is not
+  built — a summary drawn by `form` itself would be a second banner widget with
+  no `kind`, no icon and no dismiss. —
+  [ADR-0169](adr/0169-a-field-is-silent-until-you-leave-it.md)
+- **A `Validator` is over a `String`, and `date-picker` will want otherwise.**
+  What a user typed is text until something parses it, which is right for
+  `text-input` and stops being right for a control whose value is a `LocalDate`.
+  That is a second seam — a field that validates a *parsed* value — rather than a
+  change to this one, and it is the picker's to open. —
+  [ADR-0169](adr/0169-a-field-is-silent-until-you-leave-it.md)
+- **A `text-area` has no visible scrollbar.** §4 asks for "scrollbar beyond" the
+  maximum rows; it scrolls with the wheel and to keep the caret in view, and
+  draws no bar. `scroll`'s bars belong to a *viewport* rather than to a control,
+  so the choice is a `scroll` around the text — which would fight the auto-grow,
+  since both want to decide the height — or a second bar implementation. Neither
+  is obviously right. —
+  [ADR-0171](adr/0171-a-column-is-an-x-and-a-width-arrives-late.md)
+- **A golden of a `text-area` is a golden of its first frame.** The gallery
+  renders once, and a settled wrap needs the measurement only a painted frame
+  produces — so the image shows the control before it knows its width. Fixing it
+  means the golden painting twice and feeding the hit-test regions back between,
+  which is what the real loop does and would make every screen's image more
+  faithful, not just this one. —
+  [ADR-0171](adr/0171-a-column-is-an-x-and-a-width-arrives-late.md)
+- **A guard at the top of `onPointer` is a guard on every pointer kind, and the
+  kinds do not carry the same fields.** `text-input` tested
+  `button() == PRIMARY` there and silently lost every drag, because
+  `PointerRouter.pointerMoved` builds its event with a null button — a motion is
+  not a button event (ADR-0168). `Slider` asks per kind and reads as a style
+  choice until this happens. Nothing warns; a `PointerEvent` accessor that is
+  meaningless for the kind in hand answers with a default rather than refusing,
+  which is right for `dragX`'s `NaN` and quietly wrong for a null `button`. —
+  [ADR-0168](adr/0168-a-field-is-a-well-and-a-drag-is-a-selection.md)
+- **`--gb-surface-2` has now been mistaken for an elevation three times** — by
+  `card` (ADR-0166), by `text-input` and by `select` (ADR-0168). It means "the
+  second surface" and promises no direction, and each consumer that assumed
+  otherwise was wrong on one theme only. The two replacements,
+  `--gb-surface-raised` and `--gb-surface-sunken`, say which way they go; what is
+  unresolved is whether `--gb-surface-2` should keep existing at all, and that
+  needs a look at what still reads it. —
+  [ADR-0168](adr/0168-a-field-is-a-well-and-a-drag-is-a-selection.md)
+- **`--gb-caret-width` is not a token and the caret is one logical pixel.** The
+  width is set in the same call that sets the caret's position, so a stylesheet
+  that disagreed would move it rather than resize it. A theme that wants a fat
+  caret is a design-system decision and a token, which is Principle 3's order. —
+  [ADR-0167](adr/0167-a-field-owns-its-caret-and-the-model-is-told.md)
+
 
 - **There is no third text rank, and one was invented and taken back out.** A
   tour's step counter wanted something quieter than `--gb-text-muted`;
@@ -475,6 +610,41 @@ the mechanism the sentence named.
 
 ## Layout
 
+- ~~**`split-pane` is not built.**~~ ~~**`carousel` is not built.**~~ **Both
+  ship, and §5 is complete.** The divider turned out to want `knob`'s gesture
+  anchor rather than `slider`'s position — the pointer is somewhere inside a
+  six-point bar, and reading its position would snap the divider under the finger
+  on every press — and the carousel's rotation is one one-shot timer rescheduled
+  after each slide, so that a pause is a timer not scheduled rather than one
+  suspended. What did **not** ship is one of the carousel's three brakes; see the
+  entry below. —
+  [ADR-0165](adr/0165-a-divider-translates-and-a-rotation-has-three-brakes.md)
+- ~~**A `carousel` does not pause when focus lands inside a slide.**~~ **The
+  third brake ships, and it cost one line because something else needed the same
+  thing.** This entry guessed the price wrong in an instructive direction: it said
+  closing the gap meant "`:focus-within` in the selector engine, the matcher and
+  the router's focus bookkeeping". None of that was needed. A carousel does not
+  want to *style* itself on focus-within, it wants to be **told** — and so does a
+  `field`, which validates when the keyboard leaves it. So what shipped is
+  `Handles.onFocusWithin`, a notification rather than a selector, reporting only
+  the moves that cross a subtree's boundary. The selector-engine version is still
+  unbuilt and now has no consumer asking for it. —
+  [ADR-0169](adr/0169-a-field-is-silent-until-you-leave-it.md),
+  [ADR-0165](adr/0165-a-divider-translates-and-a-rotation-has-three-brakes.md)
+- **`statistic`'s sparkline waits on `canvas`.** §5 asks for an "optional
+  `sparkline` from a `canvas`", and `canvas` is §12's and not in the catalog.
+  Nothing in `statistic` is shaped around its absence: a sparkline is one more
+  child at the end of the column. —
+  [ADR-0164](adr/0164-elevation-is-an-edge-and-a-closed-section-is-absent.md)
+- ~~**`collapse`'s `accordion=` is not built.**~~ **It ships, as a widget rather
+  than as a flag on `column`.** The flag belongs on the container — "one open at a
+  time" is a rule about siblings — but honouring it needs state, and statefulness
+  is a property of the *type*: putting it on `column` would give every column in
+  every document a `State` it never uses. `column accordion=#true` inflates to an
+  `Accordion` that reports `column` as its own CSS type, so the document writes
+  what §5 says and an ordinary column pays nothing. —
+  [ADR-0166](adr/0166-a-raised-thing-is-told-apart-by-its-edge.md)
+
 - **`flex-basis` is still the only layout property §8 names and nothing resolves.** It
   was implemented for `segmented` and taken back out rather than left as a property with
   no consumer — `flex-basis: 0` makes Yoga compute a track's content size as *zero*, so
@@ -494,6 +664,20 @@ the mechanism the sentence named.
   [ADR-0087](adr/0087-a-semantic-fill-brings-its-own-foreground.md)
 
 ## Style, colour and motion
+
+- **A dropped declaration is reported once, and `align-items: start` is why.** The
+  Panels screen filled the console while it scrolled: `start` is CSS's alias for
+  `flex-start` and Yoga has only the second, so the declaration was dropped —
+  correctly — and reported *per element per style resolution*, which on a moving
+  screen is sixty times a second. The typo is fixed and the report is now
+  deduplicated by property and value, because a stylesheet is static and a value
+  that is not one cannot become one on the next frame. **What is still true**: the
+  toolkit accepts Yoga's spelling of these keywords and not CSS's aliases, so
+  `start`, `end` and `space-between`-style names have exactly one correct form
+  each and a document that uses the other gets a warning rather than a mapping.
+  Whether to accept the aliases is open; accepting them means a second table to
+  keep in step with Yoga's enum.
+
 
 - **`align-self` is not in §8's subset**, which a tab strip's `+` found: a child
   shorter than its row sits at the top of it and there is no per-child way to say
@@ -592,6 +776,30 @@ the mechanism the sentence named.
   rather than earlier.
 
 ## Rendering and performance
+
+- **What is still asserted only at 1x, now that the goldens are not.** Every one of
+  the 106 golden images is drawn again at 2x and 1.5x and checked for being the same
+  picture, and `ClipTest`, `TransformPaintTest` and `IconPaintTest` do the same
+  without a golden behind them — so the whole widget catalog, text included, is now
+  covered against the logical-against-physical family ADR-0157 found. **Four classes
+  of direct pixel assertion are not**, and two of them are deliberate:
+  `BoxPainterTest` and `TextPaintTest` each already carry their own scale cases and
+  would gain little; `DamageTest` is **excluded on purpose**, because a damage
+  rectangle is in physical pixels by design and legitimately differs between scales,
+  so an invariance check there would assert something false; and `ThreadedPaintTest`
+  is about two worker counts agreeing, which is orthogonal. What no test at any scale
+  covers is a **fractional scale other than 1.5** — 1.25 and 1.75 are ordinary
+  Windows settings and neither is exercised. —
+  [ADR-0162](adr/0162-a-golden-is-checked-at-every-scale.md),
+  [ADR-0157](adr/0157-a-layer-is-blitted-into-its-own-size.md)
+- **The scale-invariance thresholds are calibrated on one CPU.** The worst honest
+  disagreement measured over the corpus is 0.332% of pixels against a 1.2% limit, and
+  Blend2D JITs its antialiasing for the CPU it finds (ADR-0030) — so the margin on
+  AVX-512, on Apple Silicon and under MSVC is answered by the next CI run rather than
+  by argument, exactly as the goldens' own tolerance is.
+  `-Dgoldberry.golden.scales.report=true` prints what every check measured, which is
+  how a runner pressing against the limit would say so in numbers. —
+  [ADR-0162](adr/0162-a-golden-is-checked-at-every-scale.md)
 
 - **How damage is computed, and the bug a resize found in it.** Each render object
   remembers where it was, and a node that changed damages the union of where it **was**

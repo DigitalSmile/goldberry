@@ -63,6 +63,14 @@ record TourTestHost(List<HitTest.Region> regions) implements Host {
     }
 
     @Override
+    public void removeShortcut(io.github.digitalsmile.goldberry.input.Shortcut accelerator) {
+    }
+
+    @Override
+    public void removeShortcut(String accelerator) {
+    }
+
+    @Override
     public LogicalRect placeableArea() {
         return LogicalRect.of(0, 0, 900, 560);
     }
@@ -117,6 +125,15 @@ record TourTestHost(List<HitTest.Region> regions) implements Host {
     @Override
     public Fonts fonts() {
         throw new UnsupportedOperationException("no fonts here");
+    }
+
+    @Override
+    public io.github.digitalsmile.goldberry.backend.Clipboard clipboard() {
+        return io.github.digitalsmile.goldberry.backend.Clipboard.none();
+    }
+
+    @Override
+    public void textInput(boolean active) {
     }
 
     @Override
