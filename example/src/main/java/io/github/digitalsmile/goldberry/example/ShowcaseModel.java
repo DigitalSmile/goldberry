@@ -66,6 +66,19 @@ public final class ShowcaseModel {
     @Bind(value = "app.theme", restyle = true)
     private String themeName = "dark";
 
+    /// The Forms screen's bound field, and the one that proves the round trip:
+    /// the field reports every keystroke, the action below writes it here, and
+    /// the `text` beside it reads the same path. A field that reset its caret on
+    /// that round trip would be unusable, which is exactly what `TextInput`'s
+    /// "has the value changed since the last build" test is there to prevent.
+    @Bind("app.name")
+    private String name = "";
+
+    /// A field with a filter on it, so the screen shows one refusing a keystroke
+    /// rather than only describing that it would.
+    @Bind("app.port")
+    private String port = "8080";
+
     @Bind("app.status")
     private String status = "checking the environment…";
 
@@ -209,6 +222,20 @@ public final class ShowcaseModel {
         @Action("app.set-gain")
         void setGain(double value) {
             values.gain = value;
+        }
+
+        /// What the Name field reports. Every keystroke arrives here and is
+        /// written straight back to the model the field is bound to — the round
+        /// trip a real form makes, and the one that would move the caret to the
+        /// end on every letter if the field adopted its own echo.
+        @Action("app.set-name")
+        void setName(String value) {
+            values.name = value;
+        }
+
+        @Action("app.set-port")
+        void setPort(String value) {
+            values.port = value;
         }
 
         public void setStatus(String value) {

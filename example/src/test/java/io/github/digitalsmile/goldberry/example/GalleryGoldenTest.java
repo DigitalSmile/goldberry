@@ -137,6 +137,20 @@ class GalleryGoldenTest {
         paint("gallery-panels", "panels", Theme.NORD_DARK);
     }
 
+    /// §4's `text-input`, in the six states one has: bound, filtered, masked,
+    /// read-only, disabled, and holding more than it can show.
+    ///
+    /// **Nothing on it has focus**, so there is no caret in this image — which is
+    /// the right thing for a golden to pin. A caret blinks on a timer, so an
+    /// image that contained one would be an image of whichever half of the blink
+    /// the test happened to catch; what a caret does is [io.github.digitalsmile.goldberry.widgets.form.textinput]'s
+    /// unit tests' business, and what a field *looks* like is this one's.
+    @Test
+    @DisplayName("the Forms screen")
+    void forms() {
+        paint("gallery-forms", "forms", Theme.NORD_DARK);
+    }
+
     @Test
     @DisplayName("the Tabs screen")
     void tabs() {

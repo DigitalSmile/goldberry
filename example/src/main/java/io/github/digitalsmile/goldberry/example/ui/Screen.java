@@ -68,6 +68,7 @@ public record Screen(ShowcaseModel model, ShowcaseModel.Actions actions,
         private Widget values;
         private Widget overlays;
         private Widget panels;
+        private Widget forms;
 
         @Override
         protected void initState() {
@@ -76,6 +77,7 @@ public record Screen(ShowcaseModel model, ShowcaseModel.Actions actions,
             values = Panes.values(widget().inflater());
             overlays = Panes.overlays(widget().inflater());
             panels = Panes.panels(widget().inflater());
+            forms = Panes.forms(widget().inflater());
 
             // Structure only. Every *value* in this window reaches its widget
             // through a binding and needs no rebuild here.
@@ -128,6 +130,7 @@ public record Screen(ShowcaseModel model, ShowcaseModel.Actions actions,
                     new Tab("text", "Text", scrolled(new Content(model, actions, widget().plus()))),
                     new Tab("overlays", "Overlays", scrolled(overlays)),
                     new Tab("panels", "Panels", scrolled(panels)),
+                    new Tab("forms", "Forms", scrolled(forms)),
                     new Tab("tabs", "Tabs", scrolled(new TabsDemo(model, actions))),
                     // Not `scrolled`: this screen owns a viewport of its own, and
                     // §2.4 bans nested same-axis scrollers — so the screen that

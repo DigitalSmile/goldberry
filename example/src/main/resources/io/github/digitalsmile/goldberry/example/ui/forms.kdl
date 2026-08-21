@@ -1,0 +1,59 @@
+// The **Forms** screen: sec. 4's `text-input`, in every state it has.
+//
+// A document and not Java, like the Panels screen and for a stronger reason: a
+// field holds its own text, its own caret and its own undo stack, so a screen
+// full of them needs no more wiring than a screen full of cards -- and the two
+// that *are* wired are wired the way every real form is, with `bind=` down and
+// `change=` back up.
+//
+// The pair at the top is the whole argument for that arrangement. `app.name` is
+// written by the handler on every keystroke and read back by the field and by
+// the `text` beside it, which is a round trip through the model on every letter.
+// A field that adopted its own echo would put the caret at the end each time;
+// type in the middle of a word and watch it stay where it is.
+column id="screen-forms" {
+
+  text class="screen-title" "A field, and the model behind it"
+
+  // Bound *and* reported: the field is the source of what it holds and the model
+  // is told, which is sec. 9's "data flows down, events flow up" with the field
+  // owning the caret (ADR-0063).
+  column id="named" {
+    text class="caption" "Type here, then click into the middle and keep typing"
+    text-input id="name" bind="app.name" change="app.set-name" placeholder="Jane Doe" \
+               max-length=40
+    row id="named-echo" {
+      text class="caption" "The model says:"
+      text id="name-echo" class="caption" bind="app.name"
+    }
+  }
+
+  text class="screen-title" "What a field can refuse"
+
+  // A filter judges the *result* rather than the keystroke, which is what makes
+  // a paste of "80x80" fail and a typed "-" at the start of an integer succeed.
+  column id="limited" {
+    text class="caption" "Digits only, and at most five of them"
+    text-input id="port" bind="app.port" change="app.set-port" filter="digits" max-length=5
+
+    text class="caption" "Masked, and it will not copy itself out"
+    text-input id="secret" password=#true placeholder="Password"
+
+    text class="caption" "Read-only: a caret and a selection, but no edits"
+    text-input id="frozen" value="You can select this, and copy it" read-only=#true
+
+    text class="caption" "Disabled: out of the tab order entirely"
+    text-input id="off" value="Not this one" disabled=#true
+  }
+
+  text class="screen-title" "Longer than the box"
+
+  // The one thing a single-line field does that no other control does: it
+  // scrolls its own content, by the minimum needed to keep the caret in view,
+  // against the width the last frame measured.
+  column id="overflowing" {
+    text class="caption" "Press End, then Home, and watch the text move under the caret"
+    text-input id="long" \
+               value="Yoga laid this out, HarfBuzz shaped it, and Blend2D drew every glyph of it."
+  }
+}

@@ -13,7 +13,7 @@ page is the other half: it says what works and what it cost to find out.
 | [M0 — Skeleton](#m0--skeleton) | **done** | One native library on four targets, two backends, a window at the right fractional DPI |
 | [M1 — Vertical slice](#m1--vertical-slice) | **started** | Blend2D rasterizes, HarfBuzz shapes, text lays out, and a frame's cost is measured |
 | [M2 — Widgets & style](#m2--widgets--style) | **done** | CSS, KDL, the three trees, input, motion — and every §3 control, `select` included |
-| [M3 — Shell](#m3--shell) | **started** | Both places an overlay can go, `tabs`, and the whole `scroll` family — viewport, bars, `affix`, `scrollIntoView` and `tour` |
+| [M3 — Shell](#m3--shell) | **started** | Both places an overlay can go, `menubar`, §5's containers, the whole `scroll` family, and §4's first field — with the clipboard and text input the platform had never been asked for |
 | [M4 — GPU](#m4--gpu) | not started | `canvas3d`, GPU composition |
 | [M5 — Hardening](#m5--hardening) | not started | Text editing depth, AccessKit bridge, IME preedit, docs, 0.1 release |
 
@@ -2663,14 +2663,65 @@ is the `scroll` box's.
   fit, the content is what scrolls
   ([ADR-0166](adr/0166-a-raised-thing-is-told-apart-by-its-edge.md))
 
+### §4 opens with `text-input`, and two things underneath it did not exist
+
+- **A field owns its caret and the model is told.** Every control before this one
+  has a state the application can hold — one bit, one number, one key. A field's
+  is a caret, a selection, an undo stack and a scroll offset as well as its text,
+  so the edit lives in the element and each value goes up through `change=`. A
+  `bind=` value is the initial text *and* an override, which needs two tests
+  rather than one: the value must differ from what the field holds — or an
+  application's own `change` handler would reset the caret to the end on every
+  letter — **and** it must have changed since the last build, or an unbound
+  field's constant `value=` would overwrite whatever had been typed. It also has
+  to be in `build` rather than in `didUpdateWidget`, because a binding firing does
+  not replace the widget.
+- **The editing rules are a value, and forty-five tests need no window.**
+  `TextEdit` is `(text, anchor, caret)` and every operation returns a new one — so
+  undo is a stack of *states* rather than a log of inverse operations, and nothing
+  has to know how to reverse a word delete. A run of keystrokes is one `Ctrl+Z` by
+  one comparison, *does this change start where the last one ended*, from which "a
+  caret move breaks the run", "a click breaks it" and "a value from the model
+  breaks it" all fall out with no rule written for any of them. Editors that
+  coalesce on a timer split the undo when you pause mid-word; this cannot.
+- **The field names intents; it does not build edits** — and the reason is the bug
+  the first version had. A `password` draws bullets, so the caret and selection it
+  draws are offsets into *those*, and a field applying `edit.backspace()` to what
+  it was drawing deleted a bullet and left the password a row of them. The seam
+  passes `move(LEFT, byWord, extend)` instead, and the one rule a masked field has
+  lives in one place: a row of bullets has no words, so `Ctrl+Left` goes to the
+  start rather than stepping by an amount that says how long they are.
+- **A caret blinks on a timer, not on the frame clock.** `isAnimating` asks for a
+  frame every frame, which is right for a spinner and wrong by two orders of
+  magnitude for something that changes twice a second: a focused field would run
+  the loop at the display's rate for as long as a form was open, and §1.7's idle
+  loop would be false for every window with one in it. One one-shot timer,
+  rescheduled — `carousel`'s arrangement — at two frames a second.
+- **`SDL_StartTextInput` was never called.** It was not on the export list, so on
+  a real SDL window the `TEXT_INPUT` event had never once arrived — `SdlEventBuffer`
+  could read it, `Window` routed it and `KeyboardTest` exercised it, all against
+  the headless backend. It is per window and off by default because asking is what
+  raises an on-screen keyboard, so it follows focus rather than the window.
+- **The clipboard was the SPI's last named hole**, left out by ADR-0019 until
+  something wanted it. Text only, for a stated reason — images and files are a
+  transfer negotiation rather than a value — and `SDL_free` is bound beside
+  `SDL_GetClipboardText` because that string is the caller's to free with *SDL's*
+  allocator. A backend without one reports `Clipboard.none()`; the headless one is
+  a real in-memory clipboard, so a copy/paste test tests the widget.
+- **The golden found what no unit test asked about.** An absolutely positioned
+  child here is placed against the border box while the clip is the padding box,
+  so the first character of every field was drawn under the padding and clipped
+  away — visible in all six fields of the Forms screen at once, and invisible to
+  every test that checked what the field *held*
+  ([ADR-0167](adr/0167-a-field-owns-its-caret-and-the-model-is-told.md))
+
 ### Not started
 
-Tray, dialogs, forms, client-side decorations and charts. The rest of §5 — `card`, `group-box`, `split-pane`, `collapse`,
-`carousel`, `statistic`, `skeleton` — is untouched. M2's leftover `select` is ordinary widget
-work now — it owns its model, its item semantics and its keyboard map, and none
-of that has to solve size, position or dismissal. The one thing that stood
-between here and a `select` over a realistic option list was `scroll`, and it is
-built. Everything outstanding is in [TODO.md](TODO.md).
+Tray, dialogs, client-side decorations and charts, and the rest of §4 — `field`,
+`form`, validation, `text-area`, the pickers, `code-input` and autocomplete. All
+of those reuse `TextEdit` and `EditHistory`, which are the parts with rules in
+them, so each is ordinary widget work now. Everything outstanding is in
+[TODO.md](TODO.md).
 
 ## M4 — GPU
 

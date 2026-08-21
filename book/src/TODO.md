@@ -209,6 +209,49 @@ the mechanism the sentence named.
 
 ## The catalog: specified and unbuilt
 
+### `text-input`, and what §4 still owes
+
+- **IME preedit is not drawn, and committed text already works.** The platform
+  hands over *finished* characters and a field takes them like any others, so an
+  IME is usable today; what is missing is the underlined in-progress string,
+  which needs a second text the field draws and does not hold, and
+  `SDL_SetTextInputArea` so the candidate window lands under the caret rather
+  than in the corner of the screen. M5, as ARCHITECTURE §17 says. —
+  [ADR-0167](adr/0167-a-field-owns-its-caret-and-the-model-is-told.md)
+- **A field refuses right-to-left text outright.** `Paragraph.of` throws on it
+  ([ADR-0036]) and nothing catches that, so a field a user pastes Arabic into
+  takes the window down. The fix is `java.text.Bidi` run splitting, which is the
+  same missing work the paragraph documents — but the *field* needs a decision
+  the paragraph does not: refusing the paste is not acceptable and neither is
+  crashing, so the interim behaviour has to be chosen. —
+  [ADR-0167](adr/0167-a-field-owns-its-caret-and-the-model-is-told.md)
+- **An absolutely positioned child is placed against the border box, and the
+  clip is the padding box.** `text-input` allows for it by adding its own padding
+  to every child's `left`, which works and is a workaround: the next widget that
+  places a child absolutely inside a padded box will hit the same thing and will
+  not know to. Whether Yoga or the painter is the one disagreeing with CSS has
+  not been established. —
+  [ADR-0167](adr/0167-a-field-owns-its-caret-and-the-model-is-told.md)
+- **A field's scroll offset uses the previous frame's width.** ADR-0116 already
+  decided that is what a viewport does, and it is wrong for one frame after a
+  resize — invisible, because a resize is followed immediately by another frame.
+  Worth writing down because it is the second widget to need the measurement
+  `render` cannot have, and a third would be an argument for handing the width to
+  `render` rather than to `Measured`. —
+  [ADR-0167](adr/0167-a-field-owns-its-caret-and-the-model-is-told.md)
+- **Nothing re-places the caret when the font changes under it.** A restyle that
+  changes `font-size` reshapes the paragraph and the caret follows, because both
+  are computed in the same `render`. A *density* change does the same. Neither is
+  broken; what is untested is a font-family fallback swapping mid-edit, which no
+  test can currently provoke. —
+  [ADR-0167](adr/0167-a-field-owns-its-caret-and-the-model-is-told.md)
+- **`--gb-caret-width` is not a token and the caret is one logical pixel.** The
+  width is set in the same call that sets the caret's position, so a stylesheet
+  that disagreed would move it rather than resize it. A theme that wants a fat
+  caret is a design-system decision and a token, which is Principle 3's order. —
+  [ADR-0167](adr/0167-a-field-owns-its-caret-and-the-model-is-told.md)
+
+
 - **There is no third text rank, and one was invented and taken back out.** A
   tour's step counter wanted something quieter than `--gb-text-muted`;
   `--gb-text-subtle` was added, resolved to `nord3`, and produced a counter

@@ -689,6 +689,104 @@ class TextInputTest {
     }
 
     @Nested
+    @DisplayName("the placeholder")
+    class Placeholder {
+
+        @Test
+        @DisplayName("stands in for an empty field, and says that it is standing in")
+        void showsWhenEmpty() {
+            var tree = mounted(new TextInput().placeholder("Jane Doe"));
+
+            assertEquals("Jane Doe", field(tree).display());
+            assertTrue(field(tree).placeholder());
+            // The class is how the stylesheet tells the two apart: §3 wants
+            // `--gb-text-muted` here and `--gb-text` for a real value, and §8's
+            // subset has no pseudo-class that means "standing in for content".
+            assertTrue(((TextValue) field(tree).children().get(1)).classes().contains("placeholder"));
+        }
+
+        @Test
+        @DisplayName("goes as soon as there is anything to show")
+        void goesWhenTyped() {
+            var tree = mounted(new TextInput().placeholder("Jane Doe"));
+
+            type(tree, "J");
+
+            assertEquals("J", field(tree).display());
+            assertFalse(field(tree).placeholder());
+        }
+
+        @Test
+        @DisplayName("is not drawn instead of an empty *masked* field's bullets")
+        void maskedEmptyStillShowsIt() {
+            // An empty password field has no bullets to draw, so the placeholder
+            // is right -- and this is the case where "empty" has to be asked of
+            // the text rather than of the display.
+            var tree = mounted(new TextInput().password(true).placeholder("Password"));
+
+            assertEquals("Password", field(tree).display());
+            assertTrue(field(tree).placeholder());
+        }
+    }
+
+    @Nested
+    @DisplayName("scrolling, for text wider than the box")
+    class Scrolling {
+
+        /// A field 60 points wide, which is narrower than the text below.
+        private ElementTree narrow(String text) {
+            var tree = new ElementTree(new TextInput(text, null), host);
+            render(tree);
+            field(tree).measured(new Extent(60, 32), new Extent(60, 32));
+            render(tree);
+            return tree;
+        }
+
+        @Test
+        @DisplayName("a caret at the end brings the end into view")
+        void scrollsToTheCaret() {
+            var tree = narrow("Yoga laid this out, HarfBuzz shaped it");
+
+            // A press at the field's right edge must land near the *end* of the
+            // text rather than a few characters in, which is what it would if
+            // the content had not moved under the caret.
+            press(tree, 55, 1, Modifiers.NONE);
+
+            assertTrue(field(tree).edit().caret() > 20,
+                    "the field did not scroll: a press at its right edge landed at "
+                            + field(tree).edit().caret());
+        }
+
+        @Test
+        @DisplayName("Home brings the start back")
+        void scrollsBack() {
+            var tree = narrow("Yoga laid this out, HarfBuzz shaped it");
+
+            key(tree, Key.HOME);
+            press(tree, 2, 1, Modifiers.NONE);
+
+            assertEquals(0, field(tree).edit().caret());
+        }
+
+        @Test
+        @DisplayName("a press is measured past the padding, not from the border")
+        void allowsForPadding() {
+            // The bug the Forms screen's first golden showed, from the other
+            // side: the children are placed against the border box while the clip
+            // is the padding box, so everything the field draws and everything it
+            // measures has to carry the padding. Without it a press at the left
+            // edge of the *text* lands one character in.
+            var tree = mounted(new TextInput("Goldberry", null));
+
+            // 8 points is this field's left padding, so this is the very start of
+            // the text rather than the very start of the border.
+            press(tree, 8, 1, Modifiers.NONE);
+
+            assertEquals(0, field(tree).edit().caret());
+        }
+    }
+
+    @Nested
     @DisplayName("the node a stylesheet sees")
     class Styling {
 

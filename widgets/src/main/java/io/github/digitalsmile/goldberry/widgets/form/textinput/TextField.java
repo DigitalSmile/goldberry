@@ -239,13 +239,20 @@ record TextField(
         var padding = leftPadding(style);
         var offset = editor.laidOut(paragraph, padding);
 
+        // Every child's `left` carries the padding, because an absolutely
+        // positioned box here is placed against the **border** box while the clip
+        // is the padding box. Without it the first character of every field is
+        // drawn under the left padding and clipped away -- which is exactly what
+        // the Forms screen's first golden showed.
+
         var selection = children.get(0)
                 .position(PositionType.ABSOLUTE)
                 .inset(new Insets(
                         StyleLength.points(0),
                         StyleLength.UNDEFINED,
                         StyleLength.points(0),
-                        StyleLength.points((float) (paragraph.widthBetween(0, clamp(edit.start(), length)) - offset))))
+                        StyleLength.points((float) (padding
+                                + paragraph.widthBetween(0, clamp(edit.start(), length)) - offset))))
                 .size(StyleLength.points((float) paragraph.widthBetween(
                                 clamp(edit.start(), length), clamp(edit.end(), length))),
                         StyleLength.UNDEFINED);
@@ -261,7 +268,7 @@ record TextField(
                         StyleLength.UNDEFINED,
                         StyleLength.UNDEFINED,
                         StyleLength.UNDEFINED,
-                        StyleLength.points((float) -offset)));
+                        StyleLength.points((float) (padding - offset))));
 
         var caret = children.get(2)
                 .position(PositionType.ABSOLUTE)
@@ -269,7 +276,8 @@ record TextField(
                         StyleLength.points(0),
                         StyleLength.UNDEFINED,
                         StyleLength.points(0),
-                        StyleLength.points((float) (paragraph.widthBetween(0, clamp(edit.caret(), length)) - offset))))
+                        StyleLength.points((float) (padding
+                                + paragraph.widthBetween(0, clamp(edit.caret(), length)) - offset))))
                 .size(StyleLength.points((float) CARET_WIDTH), StyleLength.UNDEFINED);
 
         return Box.of().style(style)

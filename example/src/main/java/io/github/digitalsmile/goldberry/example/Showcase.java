@@ -170,10 +170,10 @@ public final class Showcase implements Application {
         // In gallery order, so the digit and the tab agree: a `Ctrl+5` that
         // landed on the fourth strip position would be a gallery with two
         // orders in it.
-        var screens = List.of("controls", "values", "text", "overlays", "panels", "tabs",
-                "scrolling");
+        var screens = List.of("controls", "values", "text", "overlays", "panels", "forms",
+                "tabs", "scrolling");
         var digits = List.of(Key.DIGIT_1, Key.DIGIT_2, Key.DIGIT_3, Key.DIGIT_4, Key.DIGIT_5,
-                Key.DIGIT_6, Key.DIGIT_7);
+                Key.DIGIT_6, Key.DIGIT_7, Key.DIGIT_8);
         for (var index = 0; index < screens.size(); index++) {
             var name = screens.get(index);
             host.shortcut(Mod.CTRL.and(digits.get(index)), () -> actions.pickScreen(name));

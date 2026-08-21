@@ -47,8 +47,17 @@
    there is no remaining height for a child to claim. The `scroll` rule in
    `controls.css` is where the growth is, and it is the container that grows. */
 #screen-controls, #screen-values, #screen-overlays,
-#screen-text, #screen-tabs, #screen-panels
+#screen-text, #screen-tabs, #screen-panels, #screen-forms
            { flex-direction: column; gap: 16px; padding-top: 16px }
+
+/* The Forms screen's groups: a caption and the field it describes belong to each
+   other, so the gap inside a group is smaller than the gap between them. Without
+   this every label sits the same distance from the field above it as from the
+   one it names, and a form reads as a list of unrelated lines. */
+#named, #limited, #overflowing
+           { flex-direction: column; gap: 6px }
+
+#named-echo { flex-direction: row; gap: 6px; align-items: center }
 
 /* Except this one, which is the screen that owns its own viewport rather than
    sitting in the gallery's — so here the growth is real and it is this box that
