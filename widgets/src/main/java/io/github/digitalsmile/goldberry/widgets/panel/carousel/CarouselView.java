@@ -95,12 +95,27 @@ record CarouselView(
 
     /// Focus on the strip pauses the rotation.
     ///
-    /// Focus **inside a slide** does not, which is §5's "on focus anywhere
-    /// inside" and is not built: the cascade has no `:focus-within` and nothing
-    /// tells a widget that focus landed in its subtree. See [Carousel].
+    /// Focus **inside a slide** does too, which is §5's "on focus anywhere
+    /// inside" and is the third brake ([ADR-0165] shipped two of them).
+    ///
+    /// [Handles#onFocusWithin] is what made it a line rather than a mechanism: it
+    /// reports the subtree as a whole gaining or losing the keyboard, so a
+    /// carousel is told when somebody tabs into a slide and told nothing about
+    /// the moves they make once they are in there. Somebody who has tabbed into a
+    /// slide is exactly somebody reading it, which is §1.7 rule 4's canonical
+    /// violation — a carousel that moves while being read.
+    ///
+    /// This node handles both questions and they are different ones: the strip
+    /// and the carousel's own controls are focusable themselves, and a widget
+    /// inside a slide is not this node at all.
     @Override
     public void onFocusChanged(boolean focused, boolean fromKeyboard) {
         onFocus.accept(focused);
+    }
+
+    @Override
+    public void onFocusWithin(boolean within, boolean fromKeyboard) {
+        onFocus.accept(within);
     }
 
     /// Hover pauses it, which is the half that works completely — and it is the

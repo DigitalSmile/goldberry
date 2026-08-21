@@ -6,8 +6,6 @@ import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import io.github.digitalsmile.goldberry.backend.EventLoop;
-import io.github.digitalsmile.goldberry.backend.TestTimers;
 import io.github.digitalsmile.goldberry.bind.Property;
 import io.github.digitalsmile.goldberry.css.Theme;
 import io.github.digitalsmile.goldberry.input.Extent;
@@ -40,38 +38,7 @@ import org.junit.jupiter.api.Test;
 /// exist at all — the clipboard and the platform's text input.
 class TextInputTest {
 
-    /// [TestHost] with an event loop, because a field with focus blinks.
-    ///
-    /// The timer is never due and never fires — the blink is not what any of
-    /// these tests are about, and one on a wall clock would make every focus test
-    /// wait half a second. What is asserted about it is that the field asks for
-    /// one and cancels it, which is the leak a widget can cause.
-    private static final class BlinkingHost extends TestHost {
-
-        private final List<Runnable> scheduled = new ArrayList<>();
-        private final List<EventLoop.Timer> handed = new ArrayList<>();
-
-        @Override
-        public EventLoop.Timer after(java.time.Duration delay, Runnable action) {
-            scheduled.add(action);
-            var timer = TestTimers.pending();
-            handed.add(timer);
-            return timer;
-        }
-
-        /// Fires the most recently scheduled timer, as the loop would.
-        void tick() {
-            if (!scheduled.isEmpty()) {
-                scheduled.removeLast().run();
-            }
-        }
-
-        boolean allCancelled() {
-            return handed.stream().noneMatch(EventLoop.Timer::isPending);
-        }
-    }
-
-    private final BlinkingHost host = new BlinkingHost();
+    private final TestHost host = new TestHost();
 
     /// Mounts `input` and renders it once, so the field has a shaped paragraph
     /// and a measurement — which is what a click needs to land anywhere.

@@ -110,6 +110,24 @@ public record Selector(List<Part> parts) {
         /// wrong for the mixed case, silently.
         INDETERMINATE,
 
+        /// A form control whose value its `field` will not accept —
+        /// `docs/core-widgets.md` §4.
+        ///
+        /// The one pseudo-class the specification *asks* for as an addition: §1's
+        /// list of states says "plus `:invalid` for form controls — an addition
+        /// to the CSS engine's pseudo set". It is here rather than as a `.invalid`
+        /// class — which is what `select.open` settled for — precisely because the
+        /// specification names it, and because it is a **state** in the sense the
+        /// others are: it changes while the element stands still, and it has to
+        /// invalidate a subtree so that a `field`'s label and message can react to
+        /// its control being wrong.
+        ///
+        /// It sits on the control *and* on the field, and that is not redundancy:
+        /// a stylesheet wants `text-input:invalid` for the red border and
+        /// `field:invalid field-message` for the message under it, and no selector
+        /// in §8's subset can walk from a child back up to a parent.
+        INVALID,
+
         /// An `affix` that has pinned itself — `docs/core-widgets.md` §1's
         /// `:affixed`.
         ///

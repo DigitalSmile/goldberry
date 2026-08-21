@@ -245,6 +245,35 @@ the mechanism the sentence named.
   broken; what is untested is a font-family fallback swapping mid-edit, which no
   test can currently provoke. —
   [ADR-0167](adr/0167-a-field-owns-its-caret-and-the-model-is-told.md)
+- **Markup cannot hand a controller to a widget, and `form` is the second to
+  want one.** `scroll` was the first. A `FormController` is what submits a form
+  and a controller is an object, so a document-declared `form` has no way to be
+  submitted — which is why the showcase's form has no Save button and
+  demonstrates only the half a document can express. The fix is a registry on
+  `Wiring` beside `actions` and `bindings`, and what it needs first is a decision
+  about what a document may name: an action is a method reference and a
+  controller is state, which is a different kind of thing to let markup reach. —
+  [ADR-0169](adr/0169-a-field-is-silent-until-you-leave-it.md)
+- **Nothing can ask for focus, so `field` has no click-to-focus.** §4 says a
+  field "wires label→control for semantics and click-to-focus automatically";
+  clicking a label does nothing, because focusing a control is not something a
+  widget can request. The router focuses the nearest focusable *ancestor* of what
+  was pressed, and a label is a control's sibling. It needs either `Host.focus`
+  or a router call a widget can reach — the same shape as every other facility a
+  widget got when a second consumer appeared. —
+  [ADR-0169](adr/0169-a-field-is-silent-until-you-leave-it.md)
+- **A `field`'s error summary is a list and not a widget.** §4 says failures
+  "register in the form's error summary"; `FormController.errors()` is that
+  register, and nothing draws it. What should is `message` (§7), which is not
+  built — a summary drawn by `form` itself would be a second banner widget with
+  no `kind`, no icon and no dismiss. —
+  [ADR-0169](adr/0169-a-field-is-silent-until-you-leave-it.md)
+- **A `Validator` is over a `String`, and `date-picker` will want otherwise.**
+  What a user typed is text until something parses it, which is right for
+  `text-input` and stops being right for a control whose value is a `LocalDate`.
+  That is a second seam — a field that validates a *parsed* value — rather than a
+  change to this one, and it is the picker's to open. —
+  [ADR-0169](adr/0169-a-field-is-silent-until-you-leave-it.md)
 - **A guard at the top of `onPointer` is a guard on every pointer kind, and the
   kinds do not carry the same fields.** `text-input` tested
   `button() == PRIMARY` there and silently lost every drag, because
@@ -570,16 +599,17 @@ the mechanism the sentence named.
   suspended. What did **not** ship is one of the carousel's three brakes; see the
   entry below. —
   [ADR-0165](adr/0165-a-divider-translates-and-a-rotation-has-three-brakes.md)
-- **A `carousel` does not pause when focus lands inside a slide.** §5 asks for a
-  rotation that pauses "on focus anywhere inside", and only two thirds of that is
-  built: focus on the strip or on the carousel's own controls stops it, and focus
-  on a widget *inside a slide* does not. The cascade has **no `:focus-within`** and
-  nothing tells a widget that focus arrived in its subtree, so a carousel cannot
-  find out. This is a real gap rather than a cosmetic one — somebody who has
-  tabbed into a slide is exactly somebody reading it, which is §1.7 rule 4's whole
-  concern. Closing it means `:focus-within` in the selector engine, the matcher
-  and the router's focus bookkeeping, which would serve more than this widget and
-  is a `:core` change of real size. —
+- ~~**A `carousel` does not pause when focus lands inside a slide.**~~ **The
+  third brake ships, and it cost one line because something else needed the same
+  thing.** This entry guessed the price wrong in an instructive direction: it said
+  closing the gap meant "`:focus-within` in the selector engine, the matcher and
+  the router's focus bookkeeping". None of that was needed. A carousel does not
+  want to *style* itself on focus-within, it wants to be **told** — and so does a
+  `field`, which validates when the keyboard leaves it. So what shipped is
+  `Handles.onFocusWithin`, a notification rather than a selector, reporting only
+  the moves that cross a subtree's boundary. The selector-engine version is still
+  unbuilt and now has no consumer asking for it. —
+  [ADR-0169](adr/0169-a-field-is-silent-until-you-leave-it.md),
   [ADR-0165](adr/0165-a-divider-translates-and-a-rotation-has-three-brakes.md)
 - **`statistic`'s sparkline waits on `canvas`.** §5 asks for an "optional
   `sparkline` from a `canvas`", and `canvas` is §12's and not in the catalog.

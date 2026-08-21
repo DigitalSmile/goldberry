@@ -65,6 +65,10 @@
   /* The other half of that row. One token each rather than one shared one, so
      an application can pin a field without moving every dropdown with it. */
   --gb-input-height: var(--gb-control-height);
+  /* §4's "consistent label column". A token because it has to be the same for
+     every field in a form and §8's subset cannot say "as wide as the widest of
+     these" -- so somebody has to choose a number, and this is where. */
+  --gb-field-label-width: 120px;
 }
 
 /* ------------------------------------------------------------- no shrink --
@@ -1404,6 +1408,83 @@ select-value {
    pseudo-class for `select.open`'s reason. */
 select-value.placeholder {
   color: var(--gb-text-placeholder);
+}
+
+/* --------------------------------------------------------- form & field --
+ *
+ * §4's layout contract. `field` is "consistent label column (or stacked labels
+ * via class), required marker, control slot, message slot below", and all of
+ * that is here rather than in the widget: a field's `render` sets nothing but
+ * its children, so what a document asks for with a class is what it gets.
+ *
+ * **Stacked is the default and the column is the class**, which is the opposite
+ * of how §4 words it and is the right way round for the toolkit that has to
+ * ship both. A label column needs a width, that width has to be the same for
+ * every field in a form, and §8's subset has no way to say "as wide as the
+ * widest of these" -- so the column form is the one that needs a number from
+ * the application, and a default that needed one would be a default that is
+ * wrong until it is configured.
+ */
+form {
+  flex-direction: column;
+  gap: 12px;
+}
+
+field {
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* The label column, for a form that wants one. The width is
+   `--gb-field-label-width` so an application moves every field at once rather
+   than writing a rule per form -- and `align-items: baseline` rather than
+   `center`, because a label beside a control has to sit on the control's text
+   and not in the middle of its box. */
+field.horizontal {
+  flex-direction: row;
+  align-items: baseline;
+  gap: 12px;
+}
+
+field.horizontal field-label {
+  width: var(--gb-field-label-width);
+  flex-shrink: 0;
+}
+
+field-label {
+  color: var(--gb-text);
+  font-size: var(--gb-font-caption);
+  line-height: var(--gb-line-caption);
+}
+
+/* The required marker rides in the label's own text, so what can be coloured is
+   the whole label. §1.2 forbids colour as the only carrier of meaning, which is
+   why the marker is an asterisk first and a colour second -- and why this rule
+   does *not* redden the label: a required field is not a wrong one. */
+field-label.required {
+  color: var(--gb-text);
+}
+
+/* The message slot. `--gb-danger` is §4's word for it, and the slot is in the
+   tree at all times -- an empty one draws nothing and takes no height, so a
+   form does not breathe every time a field goes wrong. */
+field-message {
+  color: var(--gb-danger);
+  font-size: var(--gb-font-caption);
+  line-height: var(--gb-line-caption);
+}
+
+/* A field whose value its rule refused. `:invalid` is a pseudo-class rather
+   than a class because §4 asks for one by name -- the only addition to §8's
+   pseudo set the specification requests (`core-widgets.md` §1).
+ *
+ * It reddens the **control's border** and nothing else. Not the label, which
+ * would say the label is wrong; not the fill, which §2.1 reserves for state and
+ * which would fight the field's own well; and not the text, which has to stay
+ * readable while somebody fixes it. */
+field:invalid text-input,
+field:invalid select {
+  border-color: var(--gb-danger);
 }
 
 /* ---------------------------------------------------------- text-input --

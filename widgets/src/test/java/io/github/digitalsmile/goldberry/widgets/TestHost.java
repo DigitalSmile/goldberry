@@ -189,9 +189,47 @@ public class TestHost implements Host {
         contextMenus = handler;
     }
 
+    private final java.util.List<Runnable> scheduled = new java.util.ArrayList<>();
+    private final java.util.List<Duration> delays = new java.util.ArrayList<>();
+    private final java.util.List<EventLoop.Timer> timers = new java.util.ArrayList<>();
+
+    /// Records the timer and hands back one that is never due.
+    ///
+    /// It used to throw, and that stopped being tenable when a **focused field
+    /// blinks**: any test that gives focus to a `text-input` schedules one, so
+    /// every test of anything containing a field would have had to know about
+    /// carets. Never due because a test drives the action itself — a timer on a
+    /// wall clock would make each of those tests wait out half a second.
     @Override
     public EventLoop.Timer after(Duration delay, Runnable action) {
-        throw new UnsupportedOperationException("no event loop in this stub");
+        scheduled.add(action);
+        delays.add(delay);
+        var timer = io.github.digitalsmile.goldberry.backend.TestTimers.pending();
+        timers.add(timer);
+        return timer;
+    }
+
+    /// Fires the most recently scheduled timer, as the loop would.
+    public void tick() {
+        if (!scheduled.isEmpty()) {
+            scheduled.removeLast().run();
+        }
+    }
+
+    /// Whether anything is waiting to fire.
+    public boolean hasPendingTimer() {
+        return !scheduled.isEmpty();
+    }
+
+    /// The delays that were asked for, in order.
+    public java.util.List<Duration> scheduledDelays() {
+        return java.util.List.copyOf(delays);
+    }
+
+    /// Whether every timer this ever handed out has been cancelled — the leak a
+    /// widget can cause.
+    public boolean allTimersCancelled() {
+        return timers.stream().noneMatch(EventLoop.Timer::isPending);
     }
 
     @Override

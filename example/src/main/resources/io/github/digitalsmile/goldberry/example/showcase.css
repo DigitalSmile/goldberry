@@ -50,13 +50,29 @@
 #screen-text, #screen-tabs, #screen-panels, #screen-forms
            { flex-direction: column; gap: 16px; padding-top: 16px }
 
-/* The Forms screen's groups. Each is a `card`, because a form is a set of groups
-   rather than a list of lines — and a caption and the field it describes belong
-   to each other, so the gap inside a card is smaller than the gap between them.
-   Without this every label sits the same distance from the field above it as
-   from the one it names, and a form reads as unrelated lines. */
-#named-card, #limits-card, #overflow-card
-           { flex-direction: column; gap: 6px }
+/* The Forms screen's groups, side by side. Each is a `card`, because a form is a
+   set of groups rather than a list of lines, and columns are what make the set
+   visible in one look instead of one scroll.
+
+   `flex-basis` is not in §8's subset, so equal columns are `flex-grow: 1` on
+   children of a row that has no width of its own — which works because a card's
+   content is narrower than a third of this screen. A column of fields that
+   *was* wider would push the others narrow rather than wrapping, and §10's
+   `wrap` is not built. */
+#form-columns
+           { flex-direction: row; gap: 16px; align-items: flex-start }
+
+#named-card, #limits-card, #overflow-card, #signup-card
+           { flex-direction: column; gap: 6px; flex-grow: 1; flex-shrink: 1 }
+
+/* A card's own heading. `heading` like a screen title and a rung quieter, so the
+   three cards read as parts of one screen rather than as three screens. */
+.card-title {
+  color: var(--gb-text);
+  font-size: var(--gb-font-body);
+  line-height: var(--gb-line-body);
+  font-weight: var(--gb-weight-strong);
+}
 
 #named-echo { flex-direction: row; gap: 6px; align-items: center }
 

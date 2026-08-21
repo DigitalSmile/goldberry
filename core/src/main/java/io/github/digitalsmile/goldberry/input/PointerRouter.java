@@ -539,11 +539,48 @@ public final class PointerRouter {
         if (focused != null) {
             notifyFocus(focused, true, fromKeyboard);
         }
+        notifyFocusWithin(lost, focused, fromKeyboard);
     }
 
     private static void notifyFocus(Element element, boolean gained, boolean fromKeyboard) {
         if (element.widget() instanceof Handles handles) {
             handles.onFocusChanged(gained, fromKeyboard);
+        }
+    }
+
+    /// Tells the containers that gained or lost the keyboard — CSS's
+    /// `:focus-within`, as a notification ([Handles#onFocusWithin]).
+    ///
+    /// **The difference of the two chains, not both of them.** Focus moving
+    /// between two controls inside one `field` leaves that field's subtree
+    /// focused throughout, and a container told "left" and then "entered" for a
+    /// move that never crossed its boundary would validate, pause or collapse
+    /// for no reason. So an ancestor of both is told nothing.
+    ///
+    /// Walking two chains on every focus change is the cost, and it is a walk to
+    /// the root of a widget tree per keystroke that moves focus — the same order
+    /// as the pointer dispatch that already happens per motion.
+    private static void notifyFocusWithin(Element lost, Element gained, boolean fromKeyboard) {
+        if (lost == gained) {
+            return;
+        }
+        var left = lost == null ? List.<Element>of() : chain(lost);
+        var entered = gained == null ? List.<Element>of() : chain(gained);
+        var shared = new java.util.HashSet<>(left);
+        shared.retainAll(new java.util.HashSet<>(entered));
+
+        // Deepest first for the leave and deepest first for the enter, which is
+        // the order the pointer's bubble phase uses -- a container that reacts by
+        // rebuilding should see its children settle before it does.
+        for (var element : left) {
+            if (!shared.contains(element) && element.widget() instanceof Handles handles) {
+                handles.onFocusWithin(false, fromKeyboard);
+            }
+        }
+        for (var element : entered) {
+            if (!shared.contains(element) && element.widget() instanceof Handles handles) {
+                handles.onFocusWithin(true, fromKeyboard);
+            }
         }
     }
 

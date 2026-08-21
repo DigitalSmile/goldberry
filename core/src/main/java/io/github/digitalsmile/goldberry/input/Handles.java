@@ -146,4 +146,33 @@ public interface Handles extends Widget {
     ///                     click, once here and once on the click itself
     default void onFocusChanged(boolean focused, boolean fromKeyboard) {
     }
+
+    /// Focus entered this widget's **subtree**, or left it — CSS's
+    /// `:focus-within`, as a notification.
+    ///
+    /// [#onFocusChanged] is about *this* node and is what a control wants. This
+    /// is about everything under it, and is what a container wants: a `field`
+    /// validating when the user has finished with the control inside it, and a
+    /// `carousel` refusing to rotate while somebody is reading a slide they have
+    /// tabbed into.
+    ///
+    /// ## Only on the boundary
+    ///
+    /// Focus moving from one descendant to another **does not** call this. What
+    /// it reports is the subtree as a whole gaining or losing the keyboard, so a
+    /// `field` holding one control and a `field` holding three behave the same,
+    /// and a container does not have to filter out the moves that stayed inside
+    /// it.
+    ///
+    /// A widget that is itself focused is inside its own subtree, so a control
+    /// implementing both is told twice — once about itself and once about the
+    /// subtree containing it. That is not a mistake to work around: they are
+    /// different questions, and `:focus` and `:focus-within` are both true of a
+    /// focused node in CSS for the same reason.
+    ///
+    /// @param within      whether focus is now somewhere in this subtree
+    /// @param fromKeyboard whether the move that caused it came from the
+    ///                    keyboard, exactly as [#onFocusChanged]'s does
+    default void onFocusWithin(boolean within, boolean fromKeyboard) {
+    }
 }

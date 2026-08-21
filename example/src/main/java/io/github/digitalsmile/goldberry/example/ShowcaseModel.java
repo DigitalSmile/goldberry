@@ -79,6 +79,16 @@ public final class ShowcaseModel {
     @Bind("app.port")
     private String port = "8080";
 
+    /// The §4 form on the Forms screen. Two required fields and a status line,
+    /// which is the smallest thing that shows a submission being **refused** —
+    /// the interesting half of a form, and the one a screenshot of a happy form
+    /// never shows.
+    @Bind("app.signup-name")
+    private String signupName = "";
+
+    @Bind("app.signup-port")
+    private String signupPort = "";
+
     @Bind("app.status")
     private String status = "checking the environment…";
 
@@ -236,6 +246,16 @@ public final class ShowcaseModel {
         @Action("app.set-port")
         void setPort(String value) {
             values.port = value;
+        }
+
+        @Action("app.set-signup-name")
+        void setSignupName(String value) {
+            values.signupName = value;
+        }
+
+        @Action("app.set-signup-port")
+        void setSignupPort(String value) {
+            values.signupPort = value;
         }
 
         public void setStatus(String value) {

@@ -2752,12 +2752,55 @@ is the `scroll` box's.
   than a list of lines — and a card is also what shows a field is a well
   ([ADR-0168](adr/0168-a-field-is-a-well-and-a-drag-is-a-selection.md))
 
+### `field`, `form` and the validation model, and a notification two widgets wanted
+
+- **A field is silent until you leave it, and live from then on.** §4 asks for
+  validation "on blur and on submit"; the second half of that sentence is in no
+  specification and is what every good form does — once a field has complained it
+  re-checks on every keystroke, so the message goes the instant the value is
+  fixed. A field that validated as you typed would call an email address invalid
+  after the first letter; one that waited for a second blur to forgive you is one
+  you have to leave and come back to.
+- **Blur is `onFocusWithin`, and it had two consumers before it was written.**
+  Nothing told a container that focus had entered or left its subtree. The router
+  now walks both chains and tells **only the difference**, so a move between two
+  controls inside one field is silent — which is what lets a field with three
+  controls behave like a field with one. The second consumer is `carousel`, whose
+  third brake ADR-0165 recorded as a gap needing "`:focus-within` in the selector
+  engine, the matcher and the router's focus bookkeeping". It needed none of
+  that: a carousel does not want to *style* itself on focus-within, it wants to
+  be told.
+- **A field reads its control's `bind=`**, one level down, so nothing is written
+  twice and there is no new channel. A field around an unbound control validates
+  nothing — `required` included — because the alternative is failing forever and
+  gating a form on a control nobody can satisfy.
+- **The fields find the form**, through `BuildContext.findAncestorState`'s first
+  consumer since it was written. `TabsState` looked at it and said it "looks the
+  wrong way", which was right for tabs and is exactly right here.
+- **`:invalid` is a real pseudo-class**, which is the one addition §1's list of
+  states asks for by name — unlike `select.open`, which is a class because the
+  subset had no word for "expanded" and inventing one for a single widget would
+  be inventing a language.
+- **A validator returns a message rather than a boolean**, because a field that
+  goes red without saying why is one somebody has to guess at, and `and` reports
+  the first failure because a message slot is one line.
+- **`submit` carries nothing**, and that is a departure from §4's "typed event
+  with bound values": `bind=` reads *from* the application's model, so an event
+  carrying them would hand an application its own data back — and `binding()` is
+  an `Observable` rather than a path, so the toolkit cannot name them anyway. A
+  `FormController` submits, because a Save button is usually outside the form.
+- **Two things the screen reports by their absence.** Markup cannot hand a
+  controller to a widget — `scroll` was the first to want one — so the showcase's
+  form has no Save button; and nothing can ask for focus, so clicking a label
+  does not focus its control
+  ([ADR-0169](adr/0169-a-field-is-silent-until-you-leave-it.md))
+
 ### Not started
 
-Tray, dialogs, client-side decorations and charts, and the rest of §4 — `field`,
-`form`, validation, `text-area`, the pickers, `code-input` and autocomplete. All
-of those reuse `TextEdit` and `EditHistory`, which are the parts with rules in
-them, so each is ordinary widget work now. Everything outstanding is in
+Tray, dialogs, client-side decorations and charts, and the rest of §4 —
+`text-area`, the pickers, `code-input` and autocomplete. All of those reuse
+`TextEdit` and `EditHistory` for their editing and `field` for their contract,
+which are the parts with rules in them, so each is ordinary widget work now. Everything outstanding is in
 [TODO.md](TODO.md).
 
 ## M4 — GPU

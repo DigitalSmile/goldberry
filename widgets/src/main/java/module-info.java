@@ -79,6 +79,17 @@ module io.github.digitalsmile.goldberry.widgets {
     /// application writing its own field should not have to reimplement them.
     exports io.github.digitalsmile.goldberry.widgets.form.textinput;
 
+    /// §4's layout contract and its validation model. [io.github.digitalsmile.goldberry.widgets.form.Validator]
+    /// is the rule an application writes; `field` is the label, the control slot
+    /// and the message under it; `form` is what gates a submission on all of
+    /// them. `field` exports [io.github.digitalsmile.goldberry.widgets.form.field.Validated]
+    /// as well, which is the four questions a form asks of a field and is what
+    /// lets the two live in different packages while keeping their parts to
+    /// themselves (ADR-0065).
+    exports io.github.digitalsmile.goldberry.widgets.form;
+    exports io.github.digitalsmile.goldberry.widgets.form.field;
+    exports io.github.digitalsmile.goldberry.widgets.form.form;
+
     exports io.github.digitalsmile.goldberry.widgets.controls;
     exports io.github.digitalsmile.goldberry.widgets.controls.badge;
     exports io.github.digitalsmile.goldberry.widgets.controls.button;
