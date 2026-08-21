@@ -79,15 +79,18 @@ public final class ShowcaseModel {
     @Bind("app.port")
     private String port = "8080";
 
-    /// The §4 form on the Forms screen. Two required fields and a status line,
-    /// which is the smallest thing that shows a submission being **refused** —
-    /// the interesting half of a form, and the one a screenshot of a happy form
-    /// never shows.
+    /// The §4 form's two values. The status line is what the Save button writes,
+    /// and is the smallest thing that shows a submission being **refused** — the
+    /// interesting half of a form, and the half a screenshot of a happy one never
+    /// shows.
     @Bind("app.signup-name")
     private String signupName = "";
 
     @Bind("app.signup-port")
     private String signupPort = "";
+
+    @Bind("app.signup-status")
+    private String signupStatus = "Nothing submitted yet";
 
     @Bind("app.status")
     private String status = "checking the environment…";
@@ -171,6 +174,41 @@ public final class ShowcaseModel {
     /// **Nested**, because a nestmate reaches a private field. A sibling
     /// top-level class would have forced every value above open to the package
     /// (ADR-0137).
+    /// The objects the Forms document **names**: the handle that submits its form
+    /// and the rule one of its fields applies.
+    ///
+    /// Not `@Bind` fields, and the binding machinery is what settled that — it
+    /// refuses a `final` one with "a value that cannot change is not something to
+    /// subscribe to", which is exactly what a controller and a validator are. They
+    /// go in a `Named` registry instead (ADR-0170).
+    private final io.github.digitalsmile.goldberry.widgets.form.form.FormController signup =
+            new io.github.digitalsmile.goldberry.widgets.form.form.FormController();
+
+    /// A rule the toolkit does not ship, which is the point of it being here: a
+    /// port is a number **and** in range, and only the application knows the
+    /// range.
+    private final io.github.digitalsmile.goldberry.widgets.form.Validator<String> portRule =
+            io.github.digitalsmile.goldberry.widgets.form.Validator.of(
+                    value -> {
+                        if (value == null || value.isEmpty()) {
+                            return true;
+                        }
+                        try {
+                            var port = Integer.parseInt(value);
+                            return port >= 1024 && port <= 65535;
+                        } catch (NumberFormatException e) {
+                            return false;
+                        }
+                    },
+                    "Ports run from 1024 to 65535");
+
+    /// What the Forms document may name — see [io.github.digitalsmile.goldberry.widgets.Named].
+    public io.github.digitalsmile.goldberry.widgets.Named named() {
+        return io.github.digitalsmile.goldberry.widgets.Named.strict()
+                .bind("app.signup-form", signup)
+                .bind("app.port-rule", portRule);
+    }
+
     @io.github.digitalsmile.goldberry.bind.Actions
     public record Actions(ShowcaseModel values) {
 
@@ -256,6 +294,24 @@ public final class ShowcaseModel {
         @Action("app.set-signup-port")
         void setSignupPort(String value) {
             values.signupPort = value;
+        }
+
+        /// What Save does, and the whole of what an application writes: the form
+        /// validates itself and this is told whether it may proceed.
+        ///
+        /// The submit event carries **nothing**, which is right — `bind=` reads
+        /// *from* this model, so the values are already here and an event
+        /// carrying them would hand the application its own data back
+        /// (ADR-0169).
+        @Action("app.submit-signup")
+        void submitSignup() {
+            if (values.signup.submit()) {
+                values.signupStatus = "Saved " + values.signupName + " on port "
+                        + values.signupPort;
+            } else {
+                var count = values.signup.errors().size();
+                values.signupStatus = count + (count == 1 ? " thing" : " things") + " to fix";
+            }
         }
 
         public void setStatus(String value) {

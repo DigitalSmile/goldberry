@@ -59,11 +59,20 @@
    content is narrower than a third of this screen. A column of fields that
    *was* wider would push the others narrow rather than wrapping, and §10's
    `wrap` is not built. */
-#form-columns
+#form-columns, #form-columns-2
            { flex-direction: row; gap: 16px; align-items: flex-start }
 
-#named-card, #limits-card, #overflow-card, #signup-card
+#named-card, #limits-card, #overflow-card,
+#signup-card, #stacked-card, #label-card
            { flex-direction: column; gap: 6px; flex-grow: 1; flex-shrink: 1 }
+
+#signup-actions { flex-direction: row; gap: 8px; align-items: center }
+
+/* A narrower label column than the 120 the toolkit defaults to, because this
+   card is a third of a screen. Which is the token doing its job: an application
+   moves every field in a form at once rather than writing a rule per row, and
+   what "consistent label column" is worth depends on how much width there is. */
+#signup { --gb-field-label-width: 56px }
 
 /* A card's own heading. `heading` like a screen title and a rung quieter, so the
    three cards read as parts of one screen rather than as three screens. */

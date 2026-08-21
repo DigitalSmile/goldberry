@@ -145,16 +145,18 @@ public record Field(
 
     /// Builds a `field` from markup.
     ///
-    /// There is no `validator=` property, and there cannot be: §8's markup is
-    /// data and a validator is a function. A document says `required=#true`,
-    /// which is the one rule that *is* data; anything else is Java, exactly as
-    /// `disabled` is a constant in markup and a predicate in Java.
+    /// `validator="app.port-rule"` **names** a [Validator] the application holds,
+    /// exactly as `press=` names an action: markup is data and a validator is a
+    /// function, so a document can say which rule and not what the rule is
+    /// ([ADR-0170]). `required=#true` stays a flag because it is the one rule
+    /// that *is* data.
+    @SuppressWarnings("unchecked")
     public static Widget inflate(KdlNode node, List<Widget> children, Wiring wiring) {
         return new Field(
                 node.stringProperty("label"),
                 children,
                 node.booleanProperty("required"),
-                null,
+                wiring.handle(node, "validator", Validator.class),
                 Attributes.of(node));
     }
 }

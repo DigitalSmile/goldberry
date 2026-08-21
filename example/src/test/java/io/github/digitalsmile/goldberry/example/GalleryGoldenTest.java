@@ -81,6 +81,10 @@ class GalleryGoldenTest {
         actions.pickScreen(screen);
 
         var inflater = Widgets.inflater(
+                // The objects the Forms document names, so this image is the
+                // screen the application draws rather than one whose `form` lost
+                // its controller to a lenient registry.
+                model.named(),
                 Icons.strict().bind("palette", palette).bind("plus", plus),
                 showcase.models().toArray());
         var tree = new ElementTree(new Screen(model, actions, inflater, plus, () -> { }));

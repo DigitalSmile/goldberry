@@ -909,11 +909,30 @@ public record ComputedStyle(
     }
 
     /// Splits a value on whitespace into the component values of a shorthand.
+    ///
+    /// **Not inside a function.** `border: 1px solid rgba(255, 255, 255, 0.2)` is
+    /// three components and not seven: the spaces between a function's arguments
+    /// belong to the function, and splitting on them hands `CssColor.parse` the
+    /// fragment `rgba(255,` — which parses as nothing, so the whole declaration is
+    /// dropped.
+    ///
+    /// That is not a hypothetical. `--gb-border-strong` is `rgba(…)` by design —
+    /// an alpha over whatever is underneath is the only way to say "lighter than
+    /// its own surface" in a subset with no colour functions (ADR-0166) — and
+    /// `card`'s edge, which is the whole of how a raised thing is told apart, has
+    /// been silently absent on both themes ever since. The warning was there and
+    /// said "dropping border"; nothing was looking at it.
     private static List<List<Token>> split(List<Token> value) {
         var parts = new java.util.ArrayList<List<Token>>();
         var current = new java.util.ArrayList<Token>();
+        var depth = 0;
         for (var token : value) {
-            if (token.is(TokenType.WHITESPACE)) {
+            if (token.is(TokenType.OPEN_PAREN) || token.is(TokenType.FUNCTION)) {
+                depth++;
+            } else if (token.is(TokenType.CLOSE_PAREN)) {
+                depth = Math.max(0, depth - 1);
+            }
+            if (depth == 0 && token.is(TokenType.WHITESPACE)) {
                 if (!current.isEmpty()) {
                     parts.add(List.copyOf(current));
                     current.clear();

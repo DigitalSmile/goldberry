@@ -143,6 +143,14 @@ public final class Showcase implements Application {
         screen = new Screen(
                 model, actions,
                 Widgets.inflater(
+                        // The **objects** the Forms document names: the handle
+                        // that submits its form and the rule one of its fields
+                        // applies. A fourth registry beside the three, because a
+                        // controller is not a method, not a resource and not a
+                        // value that changes -- and the binding machinery is what
+                        // said so, refusing a `final` `@Bind` field in as many
+                        // words (ADR-0170).
+                        model.named(),
                         Icons.strict().bind("palette", paletteIcon).bind("plus", plusIcon),
                         models().toArray()),
                 plusIcon,

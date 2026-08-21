@@ -320,8 +320,87 @@ class FormTest {
     }
 
     @Nested
+    @DisplayName("clicking a label")
+    class ClickToFocus {
+
+        /// What a press on `target` focuses — the router's own rule, asked
+        /// directly rather than by painting a frame and synthesizing a press.
+        private void pressOn(PointerRouter router, Element target) {
+            router.focusFromPress(target);
+        }
+
+        @Test
+        @DisplayName("a press on the label focuses the control beside it")
+        void labelFocusesTheControl() {
+            var tree = mounted(required("Name", Property.of("")));
+            var router = routed(tree);
+
+            pressOn(router, find(tree, "field-label"));
+
+            // A label is the control's *sibling*, so the router's walk up from
+            // what was pressed cannot reach it — `delegatesFocus` is what makes
+            // the walk turn round and go down.
+            assertEquals(find(tree, "text-input"), router.focused());
+        }
+
+        @Test
+        @DisplayName("a press on the control itself still focuses the control")
+        void controlWins() {
+            var tree = mounted(required("Name", Property.of("")));
+            var router = routed(tree);
+
+            pressOn(router, find(tree, "text-input"));
+
+            assertEquals(find(tree, "text-input"), router.focused());
+        }
+
+        @Test
+        @DisplayName("a field with nothing focusable in it focuses nothing")
+        void nothingToDelegateTo() {
+            var tree = mounted(new Field("Name",
+                    List.of(new io.github.digitalsmile.goldberry.widgets.text.Text("read only")),
+                    false, null, Attributes.NONE));
+            var router = routed(tree);
+
+            pressOn(router, find(tree, "field-label"));
+
+            assertEquals(null, router.focused());
+        }
+    }
+
+    /// What the Forms document names, and the shape an application uses: a
+    /// `@Model` for the values, a [io.github.digitalsmile.goldberry.widgets.Named]
+    /// registry for the objects.
+    @io.github.digitalsmile.goldberry.bind.Model
+    public static final class PortModel {
+
+        @io.github.digitalsmile.goldberry.bind.Bind("app.port")
+        String port = "";
+    }
+
+    @Nested
     @DisplayName("markup")
     class Markup {
+
+        private final PortModel model = new PortModel();
+        private final FormController signup = new FormController();
+        private final Validator<String> portRule =
+                Validator.matching(java.util.regex.Pattern.compile("\\d+"), "Ports are numbers");
+
+        /// An inflater over both: the model's `@Bind` values, and the objects the
+        /// document names.
+        ///
+        /// Two registries because they hold two kinds of thing, and the binding
+        /// machinery is what said so — it refuses a `final` `@Bind` field with
+        /// "a value that cannot change is not something to subscribe to", which
+        /// is exactly what a controller and a validator are.
+        private io.github.digitalsmile.goldberry.kdl.KdlInflater<Widget> wired() {
+            var named = io.github.digitalsmile.goldberry.widgets.Named.strict()
+                    .bind("app.form", signup)
+                    .bind("app.port-rule", portRule);
+            return Widgets.inflater(named, io.github.digitalsmile.goldberry.widgets.Icons.none(),
+                    model);
+        }
 
         @Test
         @DisplayName("a document writes what §4 spells")
@@ -342,16 +421,80 @@ class FormTest {
         }
 
         @Test
-        @DisplayName("there is no validator= property, because markup is data")
-        void noValidatorInMarkup() {
+        @DisplayName("a document names a validator; it does not describe one")
+        void namesAValidator() {
+            var field = (Field) wired().inflateAll(KdlParser.parse(
+                    "field label=\"Port\" validator=\"app.port-rule\"")).getFirst();
+
+            // Markup is data and a validator is a function, so a document says
+            // *which* rule and not what the rule is — the same thing `press=`
+            // does for an action.
+            assertFalse(field.rule().check("nonsense").isValid());
+            assertEquals("Ports are numbers", field.rule().check("nonsense").message());
+            assertTrue(field.rule().check("8080").isValid());
+        }
+
+        @Test
+        @DisplayName("a document names its form's controller too")
+        void namesAController() {
+            var form = wired().inflateAll(KdlParser.parse("""
+                    form controller="app.form" {
+                        field label="Port" required=#true { text-input bind="app.port" }
+                    }
+                    """)).getFirst();
+
+            mounted(form);
+
+            // Without this a document could declare a form and nothing could
+            // ever submit it.
+            assertTrue(signup.isAttached());
+            assertEquals(1, signup.fieldCount());
+            assertFalse(signup.submit(), "and it gates on the empty required field");
+        }
+
+        @Test
+        @DisplayName("a named validator and a named required flag compose")
+        void validatorComposesWithRequired() {
+            var field = (Field) wired().inflateAll(KdlParser.parse(
+                    "field label=\"Port\" required=#true validator=\"app.port-rule\"")).getFirst();
+
+            // Required runs first, so an empty value reports "this is required"
+            // rather than "that is not a number" — the more useful of two things
+            // that are both true.
+            assertEquals(Field.REQUIRED_MESSAGE, field.rule().check("").message());
+            assertEquals("Ports are numbers", field.rule().check("x").message());
+        }
+
+        @Test
+        @DisplayName("naming something of the wrong kind is refused where it is written")
+        void refusesTheWrongKind() {
+            // A form whose controller silently resolved to nothing would be a
+            // form that cannot be submitted and says so nowhere.
+            var thrown = org.junit.jupiter.api.Assertions.assertThrows(
+                    IllegalArgumentException.class,
+                    () -> wired().inflateAll(
+                            KdlParser.parse("form controller=\"app.port-rule\"")));
+
+            assertTrue(thrown.getMessage().contains("FormController"), thrown.getMessage());
+        }
+
+        @Test
+        @DisplayName("an unknown name is refused by a strict registry")
+        void refusesAnUnknownName() {
+            // `controller="signip"` is a typo, and a form that silently cannot be
+            // submitted is the hardest kind of bug to notice.
+            org.junit.jupiter.api.Assertions.assertThrows(IllegalArgumentException.class,
+                    () -> wired().inflateAll(KdlParser.parse("form controller=\"app.signip\"")));
+        }
+
+        @Test
+        @DisplayName("required is still a flag, because it is the one rule that is data")
+        void requiredIsAFlag() {
             var field = (Field) Widgets.inflater()
                     .inflateAll(KdlParser.parse("field label=\"Name\" required=#true")).getFirst();
 
-            // `required` is the one rule that *is* data. Anything else is a
-            // function, exactly as `disabled` is a constant in markup and a
-            // predicate in Java.
             assertTrue(field.validator() == null);
-            assertFalse(field.rule().check("").isValid(), "and required still applies");
+            assertFalse(field.rule().check("").isValid());
         }
 
         @Test

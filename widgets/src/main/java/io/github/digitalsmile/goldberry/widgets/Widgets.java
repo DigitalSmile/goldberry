@@ -43,6 +43,17 @@ public final class Widgets {
         return inflater(Wiring.of(icons, models));
     }
 
+    /// The same, with the objects a document may name — a `FormController`, a
+    /// `Validator`.
+    ///
+    /// A fourth registry rather than a fourth kind of annotation, for the reason
+    /// [Named] gives: a controller is not a method, not a resource, and not a
+    /// value that changes, and the registry that *told* it was not was the one
+    /// already written.
+    public static KdlInflater<Widget> inflater(Named named, Icons icons, Object... models) {
+        return inflater(Wiring.of(icons, models).with(named));
+    }
+
     /// An inflater for `models`, with no icons.
     public static KdlInflater<Widget> inflater(Object... models) {
         return inflater(Icons.none(), models);

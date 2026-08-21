@@ -56,6 +56,46 @@ class ComputedStyleTest {
     }
 
     @Nested
+    @DisplayName("a shorthand with a function in it")
+    class Functions {
+
+        @Test
+        @DisplayName("keeps the spaces inside the function's own parentheses")
+        void borderWithRgba() {
+            // The bug this pins was live and silent: the splitter broke a
+            // shorthand on *any* whitespace, so `rgba(255, 255, 255, 0.2)`
+            // became four fragments, none of them a colour, and the whole
+            // `border` was dropped with a warning nobody was reading.
+            var style = compute("button { border: 1px solid rgba(255, 255, 255, 0.2) }");
+
+            assertTrue(style.decoration().hasBorder());
+        }
+
+        @Test
+        @DisplayName("and the same value written without spaces means the same thing")
+        void spacingDoesNotMatter() {
+            var spaced = compute("button { border: 1px solid rgba(255, 255, 255, 0.2) }");
+            var tight = compute("button { border: 1px solid rgba(255,255,255,0.2) }");
+
+            assertEquals(tight.decoration(), spaced.decoration());
+        }
+
+        @Test
+        @DisplayName("a token that is what a card's edge actually resolves to")
+        void theCardEdge() {
+            // `--gb-border-strong`, through a custom property, which is how it
+            // reaches the shorthand in the real stylesheet -- an alpha over
+            // whatever is underneath is the only way to say "lighter than its
+            // own surface" in a subset with no colour functions (ADR-0166).
+            var style = compute("window { --edge: rgba(255, 255, 255, 0.20) }"
+                    + " button { border: 1px solid var(--edge) }");
+
+            assertTrue(style.decoration().hasBorder(),
+                    "a raised thing is told apart by its edge, and it had none");
+        }
+    }
+
+    @Nested
     @DisplayName("layout properties compile to Yoga")
     class Layout {
 

@@ -74,6 +74,20 @@ record FieldBox(
         }
     }
 
+    /// §4's "click-to-focus": clicking the label focuses the control it names.
+    ///
+    /// A label is the control's **sibling**, so the router's walk up from what
+    /// was pressed cannot reach it — this is the flag that makes the walk turn
+    /// round and go down instead ([Handles#delegatesFocus()]).
+    ///
+    /// It costs nothing when the press landed on something real: the control is
+    /// found on the way up before this node is reached, and so is a `button`
+    /// inside the field. What it catches is the label, the message and the gap.
+    @Override
+    public boolean delegatesFocus() {
+        return true;
+    }
+
     @Override
     public List<Widget> children() {
         var all = new ArrayList<Widget>(children.size() + 2);

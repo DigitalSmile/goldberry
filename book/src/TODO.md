@@ -245,23 +245,29 @@ the mechanism the sentence named.
   broken; what is untested is a font-family fallback swapping mid-edit, which no
   test can currently provoke. —
   [ADR-0167](adr/0167-a-field-owns-its-caret-and-the-model-is-told.md)
-- **Markup cannot hand a controller to a widget, and `form` is the second to
-  want one.** `scroll` was the first. A `FormController` is what submits a form
-  and a controller is an object, so a document-declared `form` has no way to be
-  submitted — which is why the showcase's form has no Save button and
-  demonstrates only the half a document can express. The fix is a registry on
-  `Wiring` beside `actions` and `bindings`, and what it needs first is a decision
-  about what a document may name: an action is a method reference and a
-  controller is state, which is a different kind of thing to let markup reach. —
-  [ADR-0169](adr/0169-a-field-is-silent-until-you-leave-it.md)
-- **Nothing can ask for focus, so `field` has no click-to-focus.** §4 says a
-  field "wires label→control for semantics and click-to-focus automatically";
-  clicking a label does nothing, because focusing a control is not something a
-  widget can request. The router focuses the nearest focusable *ancestor* of what
-  was pressed, and a label is a control's sibling. It needs either `Host.focus`
-  or a router call a widget can reach — the same shape as every other facility a
-  widget got when a second consumer appeared. —
-  [ADR-0169](adr/0169-a-field-is-silent-until-you-leave-it.md)
+- ~~**Markup cannot hand a controller to a widget.**~~ **It can, through a
+  fourth registry — and the first attempt was refused by the codebase itself.**
+  This entry guessed the answer was "a registry beside `actions` and `bindings`",
+  and it was; what it did not guess was that the *binding* registry would settle
+  the question. A `@Bind` field holding a controller is refused with "a value that
+  cannot change is not something to subscribe to", which is exactly what a
+  controller is. `Named` is the registry for objects that are neither methods,
+  resources, nor values that change. **`scroll` still has the gap** — a
+  `ScrollController` could be named the same way and nothing has done it. —
+  [ADR-0170](adr/0170-a-document-names-an-object-and-a-label-hands-focus-down.md)
+- ~~**Nothing can ask for focus, so `field` has no click-to-focus.**~~ **A
+  container can hand focus down now.** `Handles.delegatesFocus()` turns the
+  router's walk round: a press that finds no focusable ancestor takes the first
+  focusable *descendant* of a container that claims one. It has **one consumer**,
+  which is one fewer than a mechanism should have — `group-box` and `card` are
+  candidates and neither has asked. —
+  [ADR-0170](adr/0170-a-document-names-an-object-and-a-label-hands-focus-down.md)
+- **`Host.focus` still does not exist**, and click-to-focus did not need it: what
+  `field` wanted was a rule about where a *press* lands, not the ability to move
+  focus from anywhere. Something that wants to focus a control from a handler — a
+  dialog putting the caret in its first field, a form jumping to its first error —
+  still cannot. That is the entry this one leaves behind. —
+  [ADR-0170](adr/0170-a-document-names-an-object-and-a-label-hands-focus-down.md)
 - **A `field`'s error summary is a list and not a widget.** §4 says failures
   "register in the form's error summary"; `FormController.errors()` is that
   register, and nothing draws it. What should is `message` (§7), which is not

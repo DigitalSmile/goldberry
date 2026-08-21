@@ -2789,11 +2789,26 @@ is the `scroll` box's.
   carrying them would hand an application its own data back — and `binding()` is
   an `Observable` rather than a path, so the toolkit cannot name them anyway. A
   `FormController` submits, because a Save button is usually outside the form.
-- **Two things the screen reports by their absence.** Markup cannot hand a
-  controller to a widget — `scroll` was the first to want one — so the showcase's
-  form has no Save button; and nothing can ask for focus, so clicking a label
-  does not focus its control
-  ([ADR-0169](adr/0169-a-field-is-silent-until-you-leave-it.md))
+- **Two things the screen reported by their absence, and both are closed.**
+  Markup can name an object now — `controller=` and `validator=` resolve against
+  a fourth registry, `Named`, which exists because the other three each refused
+  the job and the **binding** registry refused it in words that settled the
+  question: "a value that cannot change is not something to subscribe to". And a
+  container can hand focus down: `Handles.delegatesFocus()` turns the router's
+  walk round, so a press on a label that finds no focusable ancestor takes the
+  first focusable descendant instead
+  ([ADR-0169](adr/0169-a-field-is-silent-until-you-leave-it.md),
+  [ADR-0170](adr/0170-a-document-names-an-object-and-a-label-hands-focus-down.md))
+- **A card has had no edge since the day ADR-0166 gave it one.** The CSS
+  shorthand splitter broke on any whitespace, so
+  `border: 1px solid rgba(255, 255, 255, 0.2)` became seven fragments and the
+  whole declaration was dropped — and `--gb-border-strong` is `rgba(…)` by
+  design, because an alpha over whatever is underneath is the only way to say
+  "lighter than its own surface" in a subset with no colour functions. The
+  warning was printed on every run of the showcase and nothing was reading it.
+  It was found by running the application and looking at the log, which is how
+  ADR-0166's own defects were found
+  ([ADR-0170](adr/0170-a-document-names-an-object-and-a-label-hands-focus-down.md))
 
 ### Not started
 

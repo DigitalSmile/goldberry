@@ -59,31 +59,6 @@ column id="screen-forms" {
       text-input id="off" value="Not this one" disabled=#true
     }
 
-    // sec. 4's layout contract: `field` labels the control, carries the required
-    // marker and holds the message slot under it, and `form` is what a
-    // submission is gated on.
-    //
-    // There is **no Save button here**, and its absence is the honest report: a
-    // `FormController` is what submits a form, a controller is an object, and
-    // markup is data -- so a document cannot hand one to a `form` any more than
-    // it can hand one to a `scroll`. What a document *can* express is the whole
-    // of the validation the user sees: tab into a field, leave it empty, and it
-    // reddens and says why; type one character and it forgives immediately.
-    card id="signup-card" {
-      text class="card-title" "A form that refuses"
-      text class="caption" "Tab in, leave one empty, and tab out again"
-      form id="signup" {
-        field label="Name" required=#true {
-          text-input bind="app.signup-name" change="app.set-signup-name" \
-                     placeholder="Jane Doe"
-        }
-        field label="Port" required=#true {
-          text-input bind="app.signup-port" change="app.set-signup-port" \
-                     filter="digits" max-length=5 placeholder="8080"
-        }
-      }
-    }
-
     // The one thing a single-line field does that no other control does: it
     // scrolls its own content, by the minimum needed to keep the caret in view,
     // against the width the last frame measured.
@@ -95,6 +70,63 @@ column id="screen-forms" {
 
       text class="caption" "And drag across this one to select part of it"
       text-input id="selectable" value="Press, hold and move — a drag is a selection."
+    }
+  }
+
+  // Three to a row. A fourth column on a 900-point screen gives every field
+  // about 200 points, which is narrower than the values people put in them --
+  // and sec. 10's `wrap` is not built, so a row that outgrows its width squeezes
+  // rather than folding. Three is the number this screen fits; a form that
+  // needed a fourth would start a second row, as this one does.
+  row id="form-columns-2" {
+
+    // sec. 4's layout contract, wired the way a real form is. Everything here is
+    // a **name**: `controller=` names the handle that submits the form,
+    // `validator=` names a rule the application wrote, `press=` names the action
+    // Save runs. Markup is data, so a document can say which and never what
+    // (ADR-0170).
+    card id="signup-card" {
+      text class="card-title" "A form that refuses"
+      text class="caption" "Leave one empty and press Save, or tab out of it"
+      form id="signup" class="horizontal" controller="app.signup-form" {
+        field label="Name" required=#true {
+          text-input bind="app.signup-name" change="app.set-signup-name" \
+                     placeholder="Jane Doe"
+        }
+        // A rule the toolkit does not ship: a port is a number **and** in range,
+        // and only the application knows the range. `filter="digits"` refuses
+        // the letters as they are typed; this refuses 80 when it is submitted.
+        field label="Port" required=#true validator="app.port-rule" {
+          text-input bind="app.signup-port" change="app.set-signup-port" \
+                     filter="digits" max-length=5 placeholder="8080"
+        }
+      }
+      row id="signup-actions" {
+        button class="primary" press="app.submit-signup" "Save"
+        text id="signup-status" class="caption" bind="app.signup-status"
+      }
+    }
+
+    // The same fields with the labels above them, which is `field`'s default and
+    // the shape a narrow column wants. One class is the whole difference: a form
+    // is where somebody decides that *this form* has a label column, and writing
+    // it on every field would be the same decision repeated once per row.
+    card id="stacked-card" {
+      text class="card-title" "The same form, stacked"
+      text class="caption" "`form.horizontal` is a label column; without it, labels sit above"
+      form id="stacked" {
+        field label="Name" { text-input placeholder="Jane Doe" }
+        field label="Port" { text-input placeholder="8080" filter="digits" }
+      }
+    }
+
+    // Click the label, not the box.
+    card id="label-card" {
+      text class="card-title" "Click the label"
+      text class="caption" "A label is the control's sibling, so the router turns round"
+      form id="labelled" {
+        field label="Click this label" { text-input placeholder="…and the caret lands here" }
+      }
     }
   }
 }

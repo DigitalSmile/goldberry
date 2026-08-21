@@ -100,7 +100,15 @@ public record Form(List<Widget> children, Runnable onSubmit, FormController cont
     }
 
     /// Builds a `form` from markup.
+    ///
+    /// `controller="app.signup"` names a [FormController] the application holds,
+    /// through the same registry and the same path syntax `bind=` uses — because
+    /// a controller is a thing a document can *name* and cannot describe, which
+    /// is the rule markup has always followed for actions and icons
+    /// ([ADR-0170]). Without it a document could declare a form and nothing
+    /// could ever submit it.
     public static Widget inflate(KdlNode node, List<Widget> children, Wiring wiring) {
-        return new Form(children, wiring.action(node, "submit"), null, Attributes.of(node));
+        return new Form(children, wiring.action(node, "submit"),
+                wiring.handle(node, "controller", FormController.class), Attributes.of(node));
     }
 }

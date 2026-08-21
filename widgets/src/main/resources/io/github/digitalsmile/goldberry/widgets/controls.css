@@ -1439,16 +1439,57 @@ field {
    `--gb-field-label-width` so an application moves every field at once rather
    than writing a rule per form -- and `align-items: baseline` rather than
    `center`, because a label beside a control has to sit on the control's text
-   and not in the middle of its box. */
-field.horizontal {
+   and not in the middle of its box.
+
+   Written twice, on the field and on the form, and the second is the one that
+   gets used: a form is where somebody decides that *this form* has a label
+   column, and writing the class on every field would be the same decision
+   repeated once per row and wrong the moment a row is added. The per-field class
+   stays because a form is not always there -- a `field` on its own in a dialog
+   is a real thing -- and because one field in a stacked form occasionally wants
+   the other shape. */
+field.horizontal,
+form.horizontal field {
   flex-direction: row;
   align-items: baseline;
   gap: 12px;
 }
 
-field.horizontal field-label {
+field.horizontal field-label,
+form.horizontal field field-label {
   width: var(--gb-field-label-width);
   flex-shrink: 0;
+}
+
+/* And the control takes the rest. A `text-input` has no width of its own — it is
+   as wide as it is told to be — so in a row beside a fixed label it would take
+   nothing at all, which is a field with a label and a sliver.
+
+   Enumerated rather than "everything that is not the label", because §8's subset
+   has no `:not()` — the same reason a disabled control is kept from lighting up
+   in the router rather than in a stylesheet (ADR-0064). A control this list
+   forgets gets its natural width, which is visible immediately rather than
+   subtly wrong. */
+field.horizontal text-input,
+field.horizontal select,
+form.horizontal field text-input,
+form.horizontal field select {
+  flex-grow: 1;
+}
+
+/* And the way back, for the one field in a horizontal form that wants the
+   stacked shape -- a `text-area`, usually, whose label beside it wastes the
+   width the control needs. `field.vertical` is more specific than
+   `form.horizontal field`, so it wins without `!important`, which §8's subset
+   does not have. */
+form.horizontal field.vertical {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 4px;
+}
+
+form.horizontal field.vertical field-label {
+  width: auto;
 }
 
 field-label {
