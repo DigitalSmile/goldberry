@@ -96,16 +96,23 @@ import java.util.function.Consumer;
 ///                    is §3's default: a combobox is a *set* of values
 /// @param onQuery     what was typed, for the application to filter on. Filtering
 ///                    is deliberately not this control's — see [#onQuery]
+/// @param tree        §3's `tree=#true` — the popup is a
+///                    [io.github.digitalsmile.goldberry.widgets.panel.tree.Tree]
+///                    over these roots instead of a flat option list, or empty
 /// @param disabled    whether the whole control refuses to open
 /// @param attributes  `id` and `class`, exactly as on the primitives
 @Markup("select")
 public record Select(
         String value, List<Widget> children, Observable<?> source, Consumer<String> onChange,
         String placeholder, boolean multiple, boolean autocomplete, boolean free,
-        Consumer<String> onQuery, boolean disabled, Attributes attributes)
+        Consumer<String> onQuery,
+        List<io.github.digitalsmile.goldberry.widgets.panel.tree.TreeNode> tree,
+        boolean disabled, Attributes attributes)
         implements Widget.Stateful, Attributed<Select>, Bindable<Select> {
 
     public Select {
+        tree = List.copyOf(tree == null
+                ? List.<io.github.digitalsmile.goldberry.widgets.panel.tree.TreeNode>of() : tree);
         children = List.copyOf(children == null ? List.of() : children);
         placeholder = placeholder == null ? "" : placeholder;
         attributes = attributes == null ? Attributes.NONE : attributes;
@@ -114,13 +121,13 @@ public record Select(
     /// A select with a value and a handler, unbound — the Java spelling of
     /// `select value="…" change="…"`.
     public Select(String value, Consumer<String> onChange, Option... options) {
-        this(value, List.of(options), null, onChange, "", false, false, false, null, false,
+        this(value, List.of(options), null, onChange, "", false, false, false, null, List.of(), false,
                 Attributes.NONE);
     }
 
     /// A select that is not wired yet — what a layout preview builds.
     public Select(Option... options) {
-        this(null, List.of(options), null, null, "", false, false, false, null, false,
+        this(null, List.of(options), null, null, "", false, false, false, null, List.of(), false,
                 Attributes.NONE);
     }
 
@@ -130,19 +137,19 @@ public record Select(
     public static Select of(Observable<?> source, Consumer<String> onChange, Option... options) {
         return new Select(null, List.of(options),
                 Objects.requireNonNull(source, "source"), onChange, "", false, false, false, null,
-                false, Attributes.NONE);
+                List.of(), false, Attributes.NONE);
     }
 
     /// This select with the text its closed form reads when nothing is chosen.
     public Select placeholder(String value) {
         return new Select(this.value, children, source, onChange, value, multiple, autocomplete,
-                free, onQuery, disabled, attributes);
+                free, onQuery, tree, disabled, attributes);
     }
 
     /// This select, disabled or not.
     public Select disabled(boolean value) {
         return new Select(this.value, children, source, onChange, placeholder, multiple,
-                autocomplete, free, onQuery, value, attributes);
+                autocomplete, free, onQuery, tree, value, attributes);
     }
 
     /// Which option is selected **right now** — the bound value, or [#value()].
@@ -163,7 +170,7 @@ public record Select(
     /// This select taking more than one value — §3's `multiple=#true`.
     public Select multiple(boolean value) {
         return new Select(this.value, children, source, onChange, placeholder, value, autocomplete,
-                free, onQuery, disabled, attributes);
+                free, onQuery, tree, disabled, attributes);
     }
 
     /// This select with an editable closed control — §3's `autocomplete=#true`.
@@ -185,7 +192,7 @@ public record Select(
     /// @param onQuery told what was typed, or null for a control nobody filters
     public Select autocomplete(Consumer<String> onQuery) {
         return new Select(value, children, source, onChange, placeholder, multiple, true, free,
-                onQuery, disabled, attributes);
+                onQuery, tree, disabled, attributes);
     }
 
     /// This select keeping a typed value its options do not offer.
@@ -197,7 +204,53 @@ public record Select(
     /// any value is legal, which is what §4's free-text form always is.
     public Select free(boolean value) {
         return new Select(this.value, children, source, onChange, placeholder, multiple,
-                autocomplete, value, onQuery, disabled, attributes);
+                autocomplete, value, onQuery, tree, disabled, attributes);
+    }
+
+    /// This select opening a **tree** instead of a flat list — §3's `tree=#true`.
+    ///
+    /// "Takes a `tree`'s model instead of a flat option list, so the popup is a
+    /// `tree` and a selection is a node." The closed control is unchanged: it
+    /// still shows a label and a chevron, and still reports through `change`.
+    ///
+    /// Selection is **leaf-only**, which is §3's default and its reason —
+    /// "'Europe' is usually a heading and not an answer". A parent row is still
+    /// navigable and openable; it is simply not a value
+    /// ([ADR-0184](../../../../../../../../book/src/adr/0184-a-tree-is-a-list-that-remembers-what-is-open.md)).
+    public Select tree(
+            List<io.github.digitalsmile.goldberry.widgets.panel.tree.TreeNode> roots) {
+        return new Select(value, children, source, onChange, placeholder, multiple, autocomplete,
+                free, onQuery, roots, disabled, attributes);
+    }
+
+    /// Whether this select's popup is a tree.
+    public boolean isTree() {
+        return !tree.isEmpty();
+    }
+
+    /// The label of the node [#resolved()] names, searched depth-first — what the
+    /// closed control reads when the popup is a tree.
+    ///
+    /// A tree's rows are not [Option]s, so [#selected()] cannot answer for one:
+    /// the model is a different shape and the label has to be found in it.
+    public String treeLabel() {
+        var current = resolved();
+        return current == null ? null : labelIn(tree, current);
+    }
+
+    private static String labelIn(
+            List<io.github.digitalsmile.goldberry.widgets.panel.tree.TreeNode> nodes,
+            String id) {
+        for (var node : nodes) {
+            if (node.id().equals(id)) {
+                return node.label();
+            }
+            var found = labelIn(node.children(), id);
+            if (found != null) {
+                return found;
+            }
+        }
+        return null;
     }
 
     /// Every value selected right now, in the order the options were written.
@@ -292,6 +345,10 @@ public record Select(
     /// `option value="nord-dark" "Nord Dark"` exists so that a model can hold a
     /// key and a user can read a name.
     public String label() {
+        if (isTree()) {
+            var found = treeLabel();
+            return found == null ? placeholder : found;
+        }
         var option = selected();
         return option == null ? placeholder : option.label();
     }
@@ -299,13 +356,13 @@ public record Select(
     @Override
     public Select bound(Observable<?> source) {
         return new Select(value, children, source, onChange, placeholder, multiple, autocomplete,
-                free, onQuery, disabled, attributes);
+                free, onQuery, tree, disabled, attributes);
     }
 
     @Override
     public Select withAttributes(Attributes attributes) {
         return new Select(value, children, source, onChange, placeholder, multiple, autocomplete,
-                free, onQuery, disabled, attributes);
+                free, onQuery, tree, disabled, attributes);
     }
 
     @Override
@@ -333,6 +390,10 @@ public record Select(
                 node.stringProperty("placeholder"), node.booleanProperty("multiple"),
                 node.booleanProperty("autocomplete"), node.booleanProperty("free"),
                 wiring.valued(node, "query"),
+                // Not from markup: a tree's model is nodes with suppliers under
+                // them, which is a shape KDL has no way to write and which §3
+                // describes as "a `tree`'s model" — the application's (ADR-0184).
+                List.of(),
                 Wiring.disabled(node), Attributes.of(node));
     }
 }

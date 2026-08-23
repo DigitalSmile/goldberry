@@ -3185,6 +3185,34 @@ is the `scroll` box's.
   left alone it brought a `text-input`'s border, fill, radius and focus ring
   inside the `select`'s own ([ADR-0183](adr/0183-a-combobox-is-a-select-you-can-type-in.md))
 
+### `tree`, and the last of §3's select line
+
+- **`tree` is built in a first cut**, and it had to be: §3's `select tree=` takes
+  "a `tree`'s model", and §3 also says a tree shares `list`'s item-factory — but
+  `list` is not built either, so the model was defined here and `list` will have
+  to agree with it.
+- **The id is the whole model.** §3 asks for expansion retained "by node id, not
+  by index", so `TreeNode` requires one, the state holds a set of ids, and the row
+  uses it as its reconciler key. One decision paying three times: a model
+  re-sorted under an open branch leaves it open, and leaves its focus alone.
+- **A chevron is drawn before anyone knows what is under it**, which is what makes
+  lazy children possible at all — a node that had to know its children to decide
+  whether to draw a chevron would make a directory tree stat the whole disk to
+  draw its first row. The fetch happens in the toggle rather than in `build`, and
+  a branch closed and reopened does not go back to the supplier.
+- **The indent is a sized box, not padding**, so the selection highlight still
+  reaches the left edge; and a leaf keeps the chevron's box and draws nothing in
+  it, so a folder's label and a file's label at one level line up.
+- **`Right` on an open row does nothing, deliberately.** Rows are flattened
+  depth-first, so the next row *is* the first child — the key falls through
+  unconsumed to the vertical scope. `Left` on a closed row is the one that needs
+  help and asks the host to focus the parent by name.
+- **Not built, and filed**: the checkbox per node with `cascade` and
+  `indeterminate`, `*`, type-to-select, multi-selection, `Home`/`End`. And §2's
+  chevron `rotate`, which is two marks instead because §8's subset has no
+  `transform` on a mark
+  ([ADR-0184](adr/0184-a-tree-is-a-list-that-remembers-what-is-open.md))
+
 ### Not started
 
 Tray, client-side decorations and charts, the rest of §4 —

@@ -633,6 +633,15 @@ the mechanism the sentence named.
   expensive later — `message` against `toast`, `segmented` against `radio-group`,
   `code-input` against a styled `text-input` are all decisions that would otherwise be
   made by whoever happened to need one.
+- **`tree` is built in a first cut, and §3 asks for more.** Not built: the checkbox
+  per node with `cascade` propagating down and `indeterminate` upward — §3's "one
+  place the tri-state checkbox is not a decoration" — `*` to expand every sibling,
+  type-to-select across visible rows, multi-selection, and `Home`/`End` to the
+  first and last visible rows. Each is additive and none changes the model that
+  shipped. **§2's chevron `rotate` is two marks instead**, because §8's subset has
+  no `transform` on a mark — the wall `select`'s chevron hit — so a closed row
+  draws `>` and an open one `v`, and the cost is the animation. —
+  [ADR-0184](adr/0184-a-tree-is-a-list-that-remembers-what-is-open.md)
 - **`tree` moved from deferred to specified**, which changes what M5 owes. ARCHITECTURE
   §17 defers "tables/trees"; `table` still is, because it waits on virtualization, but
   `tree` reuses `list`'s model and item-factory and does not — and `select tree=#true`
@@ -692,7 +701,9 @@ the mechanism the sentence named.
   field stops being a Tab stop and delegates focus, so a combobox is one stop;
   `Esc` restores and a free-typed value is refused unless `free`, both off one
   nullable string of offered text that `TextInputState.follow` already knew how
-  to honour. **`tree=#true` is the last of the line** and still waits on `tree`. —
+  to honour. **`tree=#true` is built too** ([ADR-0184](adr/0184-a-tree-is-a-list-that-remembers-what-is-open.md)),
+  and so is a first cut of `tree` itself, which `list` will now have to agree with
+  since §3 says the two share an item-factory and `list` is not built. —
   [ADR-0182](adr/0182-a-select-may-hold-more-than-one.md),
   [ADR-0141](adr/0141-a-select-is-a-closed-control-and-a-list.md)
 - **Autocomplete is Java-only, and `SelectList` is in the wrong package.** §4 says

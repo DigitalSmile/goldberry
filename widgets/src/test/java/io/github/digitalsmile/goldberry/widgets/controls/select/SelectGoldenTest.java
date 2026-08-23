@@ -76,7 +76,7 @@ class SelectGoldenTest {
                 List.of(new Option("light", "Light"),
                         new Option("dark", "Dark"),
                         new Option("dim", "Dim")),
-                null, null, "Choose a theme", false, false, false, null, false, id("theme"));
+                null, null, "Choose a theme", false, false, false, null, List.of(), false, id("theme"));
     }
 
     /// §3's `multiple=#true`: "renders the selection as `badge` chips inside the
@@ -96,7 +96,7 @@ class SelectGoldenTest {
                                 new Option("dim", "Dim")),
                         io.github.digitalsmile.goldberry.bind.Property.of(
                                 List.of("light", "dark", "dim")),
-                        null, "Choose a theme", true, false, false, null, false, id("theme"))), id("row")));
+                        null, "Choose a theme", true, false, false, null, List.of(), false, id("theme"))), id("row")));
     }
 
     /// The control at rest: a value, an edge, and a mark saying there is more.

@@ -219,7 +219,8 @@ final class SelectState extends State<Select> {
     /// (ADR-0140).
     private void open() {
         var select = widget();
-        if (host == null || select.disabled() || select.options().isEmpty()) {
+        if (host == null || select.disabled()
+                || (select.options().isEmpty() && !select.isTree())) {
             return;
         }
         var chosen = chosenId(select);
@@ -234,7 +235,7 @@ final class SelectState extends State<Select> {
         // says what it measured, and a list that does not fit becomes a list of
         // the screen's height with the options scrolling inside it
         // ([ADR-0179](../../../../../../../../book/src/adr/0179-a-popup-says-what-it-measured.md)).
-        var opened = host.popup(new SelectList(rows()), field, Placement.BELOW,
+        var opened = host.popup(panel(), field, Placement.BELOW,
                 field.size().width(), VIEWPORT);
         if (opened.isEmpty()) {
             // No popup windows on this driver. The list stays closed rather than
@@ -281,6 +282,32 @@ final class SelectState extends State<Select> {
         if (widget().multiple() && isOpen()) {
             reopenRows();
         }
+    }
+
+    /// What goes in the popup: §3's flat list, or a `tree` when one was given.
+    ///
+    /// The **same panel either way**, so the surface, the edge, the radius and
+    /// the scroll-when-it-does-not-fit are one decision rather than two. What
+    /// differs is the one child inside it, which is exactly what §3's sentence
+    /// says: "takes a `tree`'s model instead of a flat option list, so the popup
+    /// is a `tree`" ([ADR-0184]).
+    private Widget panel() {
+        var select = widget();
+        if (!select.isTree()) {
+            return new SelectList(rows());
+        }
+        return new SelectList(java.util.List.of(
+                new io.github.digitalsmile.goldberry.widgets.panel.tree.Tree(
+                        select.tree(), select.resolved(), this::chooseNode)));
+    }
+
+    /// A node was chosen from the tree — the same road an option takes.
+    ///
+    /// A tree's rows are not `option`s, so they cannot report through
+    /// [Option#within]; the value is the node's id and it goes out through
+    /// `change` like everything else.
+    private void chooseNode(String id) {
+        choose(id);
     }
 
     /// The list's rows, described from the model as it is right now.
@@ -349,7 +376,7 @@ final class SelectState extends State<Select> {
     /// rebuild where it stands.
     private void reopenRows() {
         if (list != null) {
-            list.content(new SelectList(rows()));
+            list.content(panel());
         }
     }
 

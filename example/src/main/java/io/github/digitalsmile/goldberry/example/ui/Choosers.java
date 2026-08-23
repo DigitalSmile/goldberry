@@ -7,6 +7,7 @@ import io.github.digitalsmile.goldberry.widget.attr.Attributes;
 import io.github.digitalsmile.goldberry.widgets.controls.option.Option;
 import io.github.digitalsmile.goldberry.widgets.controls.select.Select;
 import io.github.digitalsmile.goldberry.widgets.core.Column;
+import io.github.digitalsmile.goldberry.widgets.panel.tree.TreeNode;
 import io.github.digitalsmile.goldberry.widgets.text.Text;
 
 import java.util.ArrayList;
@@ -57,11 +58,34 @@ public record Choosers() implements Widget.Stateful {
         private String city = "";
         private String query = "";
 
+        /// §3's `tree=`: the popup is a tree and a selection is a node.
+        private String region = "";
+
         private static final List<Option> LANGUAGES = List.of(
                 new Option("java", "Java"),
                 new Option("rust", "Rust"),
                 new Option("kotlin", "Kotlin"),
                 new Option("zig", "Zig"));
+
+        /// A model with a **lazy** branch in it, because that is the half of §3's
+        /// tree a still list cannot show: "a node's children are fetched when it
+        /// first expands". Nothing here reads a disk, but the supplier runs once
+        /// and only when Oceania is opened — which is what a directory tree
+        /// needs and why a node draws a chevron before anyone knows what is in
+        /// it.
+        private static final List<TreeNode> REGIONS = List.of(
+                TreeNode.of("europe", "Europe",
+                        TreeNode.leaf("no", "Norway"),
+                        TreeNode.leaf("se", "Sweden"),
+                        TreeNode.of("uk", "United Kingdom",
+                                TreeNode.leaf("sct", "Scotland"),
+                                TreeNode.leaf("wls", "Wales"))),
+                TreeNode.of("asia", "Asia",
+                        TreeNode.leaf("jp", "Japan"),
+                        TreeNode.leaf("kr", "Korea")),
+                TreeNode.lazy("oceania", "Oceania", () -> List.of(
+                        TreeNode.leaf("au", "Australia"),
+                        TreeNode.leaf("nz", "New Zealand"))));
 
         private static final List<String> CITIES = List.of(
                 "Amsterdam", "Antwerp", "Athens", "Barcelona", "Berlin", "Bergen",
@@ -103,6 +127,10 @@ public record Choosers() implements Widget.Stateful {
             setState(() -> query = text);
         }
 
+        private void chooseRegion(String id) {
+            setState(() -> region = id);
+        }
+
         /// A value was chosen or accepted. The control reports; this decides.
         private void chooseCity(String value) {
             setState(() -> {
@@ -126,11 +154,11 @@ public record Choosers() implements Widget.Stateful {
                             + " is a toggle — so the × and a second click on a chosen row are"
                             + " one channel.")
                             .withAttributes(Attributes.NONE.classes("caption")),
-                    new Select(null, List.copyOf(LANGUAGES),
-                            io.github.digitalsmile.goldberry.bind.Property.of(languages),
-                            this::toggleLanguage, "Choose languages", true, false, false, null,
-                            false, Attributes.NONE.id("languages"))
-                            .placeholder("Choose languages"),
+                    Select.of(io.github.digitalsmile.goldberry.bind.Property.of(languages),
+                                    this::toggleLanguage, LANGUAGES.toArray(Option[]::new))
+                            .multiple(true)
+                            .placeholder("Choose languages")
+                            .withAttributes(Attributes.NONE.id("languages")),
                     new Text("Holding: " + chosen).withAttributes(
                             Attributes.NONE.classes("caption")),
 
@@ -140,10 +168,25 @@ public record Choosers() implements Widget.Stateful {
                             + " committed value back rather than clearing, and a name no city"
                             + " matches is refused.")
                             .withAttributes(Attributes.NONE.classes("caption")),
-                    new Select(city, new ArrayList<Widget>(matches()), null,
-                            this::chooseCity, "Pick a city", false, true, false, this::typed,
-                            false, Attributes.NONE.id("city")),
+                    new Select(city, this::chooseCity, matches().toArray(Option[]::new))
+                            .autocomplete(this::typed)
+                            .placeholder("Pick a city")
+                            .withAttributes(Attributes.NONE.id("city")),
                     new Text(city.isEmpty() ? "No city chosen" : "Chose: " + city)
+                            .withAttributes(Attributes.NONE.classes("caption")),
+
+                    new SectionHeader("A tree instead of a list"),
+                    new Text("§3's tree: the popup is a tree and a selection is a node."
+                            + " Right opens a branch or steps into it, Left closes it or steps"
+                            + " out. A parent is not an answer — leaf-only is the default,"
+                            + " because Europe is usually a heading. Oceania fetches its"
+                            + " children the first time it opens.")
+                            .withAttributes(Attributes.NONE.classes("caption")),
+                    new Select(region, this::chooseRegion)
+                            .tree(REGIONS)
+                            .placeholder("Choose a region")
+                            .withAttributes(Attributes.NONE.id("region")),
+                    new Text(region.isEmpty() ? "No region chosen" : "Chose: " + region)
                             .withAttributes(Attributes.NONE.classes("caption"))),
                     Attributes.NONE.id("choosers"));
         }

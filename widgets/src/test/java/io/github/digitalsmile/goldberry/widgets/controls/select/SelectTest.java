@@ -55,7 +55,7 @@ class SelectTest {
     }
 
     private static Select select(Option... options) {
-        return new Select("dark", List.of(options), null, null, "", false, false, false, null, false,
+        return new Select("dark", List.of(options), null, null, "", false, false, false, null, List.of(), false,
                 io.github.digitalsmile.goldberry.widget.attr.Attributes.NONE);
     }
 
@@ -106,7 +106,7 @@ class SelectTest {
         @DisplayName("a value no option carries selects nothing rather than the first")
         void unknown() {
             var it = new Select("nord", List.of(new Option("light", "Light")), null, null,
-                    "Pick one", false, false, false, null, false,
+                    "Pick one", false, false, false, null, List.of(), false,
                     io.github.digitalsmile.goldberry.widget.attr.Attributes.NONE);
 
             assertNull(it.selected(), "guessing would report a value nobody picked");
@@ -137,7 +137,7 @@ class SelectTest {
             var it = new Select("dark",
                     List.of(new io.github.digitalsmile.goldberry.widgets.text.Text("Themes"),
                             new Option("dark", "Dark")),
-                    null, null, "", false, false, false, null, false,
+                    null, null, "", false, false, false, null, List.of(), false,
                     io.github.digitalsmile.goldberry.widget.attr.Attributes.NONE);
 
             assertEquals(2, it.children().size());
@@ -387,7 +387,7 @@ class SelectTest {
             var picked = new ArrayList<String>();
             var tree = tree(new Select("dark", List.of(
                     new Option("light", "Light"), new Option("dark", "Dark")),
-                    null, picked::add, "", false, false, false, null, false,
+                    null, picked::add, "", false, false, false, null, List.of(), false,
                     io.github.digitalsmile.goldberry.widget.attr.Attributes.NONE));
             click(field(tree));
 
@@ -575,7 +575,7 @@ class SelectTest {
         @DisplayName("typing on a disabled select does nothing")
         void disabled() {
             var tree = new ElementTree(new Select("dark",
-                    List.of(new Option("light", "Light")), null, picked::add, "", false, false, false, null, true,
+                    List.of(new Option("light", "Light")), null, picked::add, "", false, false, false, null, List.of(), true,
                     io.github.digitalsmile.goldberry.widget.attr.Attributes.NONE));
 
             type(tree, "l");
@@ -647,7 +647,7 @@ class SelectTest {
             var source = bound == null ? null
                     : io.github.digitalsmile.goldberry.bind.Property.of(bound);
             return new Select(null, List.of(options), source, picked::add, "Pick some", true,
-                    false, false, null, false,
+                    false, false, null, List.of(), false,
                     io.github.digitalsmile.goldberry.widget.attr.Attributes.NONE);
         }
 
@@ -782,7 +782,7 @@ class SelectTest {
 
         private Select combo(String value, boolean free, Option... options) {
             return new Select(value, List.of(options), null, changes::add, "Pick", false,
-                    true, free, queries::add, false,
+                    true, free, queries::add, List.of(), false,
                     io.github.digitalsmile.goldberry.widget.attr.Attributes.NONE);
         }
 

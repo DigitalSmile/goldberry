@@ -2388,6 +2388,71 @@ scroll.menu-viewport { flex-grow: 0 }
    (ADR-0179). */
 scroll.select-viewport { flex-grow: 0 }
 
+/* --- tree (§3) --------------------------------------------------------- */
+
+/* §2: "`tree` row: `list` row metrics; indent 20 per level; chevron 16 in the
+   indent gutter". The indent is a sized box the row draws rather than padding on
+   the row, so the selection highlight still reaches the left edge -- an indented
+   padding would start the highlight 40px in, which reads as a misaligned row
+   rather than a nested one (ADR-0184). */
+tree {
+  flex-direction: column;
+  align-items: stretch;
+}
+
+tree-row {
+  flex-direction: row;
+  align-items: center;
+  gap: 4px;
+  height: var(--gb-list-row-height);
+  padding: 0 8px;
+  flex-shrink: 0;
+  color: var(--gb-text);
+  cursor: pointer;
+  transition: background-color var(--gb-motion-fast);
+}
+
+/* The gutter is a width the row computes, so nothing here gives it one. */
+tree-indent {
+  flex-shrink: 0;
+}
+
+/* 16 in the gutter, and it keeps its box on a leaf so that a folder's label and
+   a file's label at one level line up. */
+tree-chevron {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  color: var(--gb-text-muted);
+}
+
+tree-label {
+  flex-shrink: 1;
+}
+
+tree-row:hover {
+  background: var(--gb-overlay-hover);
+}
+
+/* The same token a chosen `option` uses, because it is the same statement:
+   this is the one that is picked. */
+tree-row.selected {
+  background: var(--gb-selection);
+}
+
+/* A parent in a leaf-only tree: still a row, still openable, and not an answer.
+   Dimmed rather than disabled, because disabled would say it is inert. */
+tree-row.heading {
+  color: var(--gb-text-muted);
+}
+
+/* Inside the row rather than around it, for `select-list option`'s reason: a
+   ring drawn outside a full-width row is clipped by the panel it is in. */
+tree-row:focus-visible {
+  outline: 2px solid var(--gb-focus);
+  outline-offset: -2px;
+}
+
 /* --- affix (§1) ------------------------------------------------------- */
 
 /* The hole. It has no appearance of its own and must not gain one: whatever the
