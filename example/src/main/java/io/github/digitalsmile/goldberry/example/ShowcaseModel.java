@@ -209,9 +209,9 @@ public final class ShowcaseModel {
                     },
                     "Ports run from 1024 to 65535");
 
-    /// What the Forms document may name — see [io.github.digitalsmile.goldberry.widgets.Named].
-    public io.github.digitalsmile.goldberry.widgets.Named named() {
-        return io.github.digitalsmile.goldberry.widgets.Named.strict()
+    /// What the Forms document may name — see [io.github.digitalsmile.goldberry.widgets.markup.Named].
+    public io.github.digitalsmile.goldberry.widgets.markup.Named named() {
+        return io.github.digitalsmile.goldberry.widgets.markup.Named.strict()
                 .bind("app.signup-form", signup)
                 .bind("app.port-rule", portRule);
     }

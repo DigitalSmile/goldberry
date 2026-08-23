@@ -36,7 +36,7 @@ import java.util.Map;
 /// }
 /// ```
 ///
-/// plus a `provides io.…widgets.WidgetCatalog with …GoldberryCatalog` patched
+/// plus a `provides io.…widgets.markup.WidgetCatalog with …GoldberryCatalog` patched
 /// into the module's own `module-info.class`, and a `META-INF/services` entry for
 /// when the same jar is used on the class path. So a module that ships widgets is
 /// found by an application that never names it, and neither the widget author nor
@@ -48,7 +48,11 @@ import java.util.Map;
 /// (ADR-0127).
 public final class CatalogWeaver {
 
-    private static final String WIDGETS = "io.github.digitalsmile.goldberry.widgets.";
+    /// The markup contract -- the annotation, the catalog and the registrar --
+    /// moved into a package of its own in ADR-0172. It is a *written* name here,
+    /// not an import, so nothing but this constant would have caught the move;
+    /// `CatalogWeaverTest` is what does catch it.
+    private static final String WIDGETS = "io.github.digitalsmile.goldberry.widgets.markup.";
 
     private static final ClassDesc CD_MARKUP = ClassDesc.of(WIDGETS + "Markup");
     private static final ClassDesc CD_CATALOG = ClassDesc.of(WIDGETS + "WidgetCatalog");

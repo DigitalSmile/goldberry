@@ -29,7 +29,7 @@ import org.junit.jupiter.api.Test;
 class CatalogWeaverTest {
 
     private static final ClassDesc CD_CATALOG =
-            ClassDesc.of("io.github.digitalsmile.goldberry.widgets.WidgetCatalog");
+            ClassDesc.of("io.github.digitalsmile.goldberry.widgets.markup.WidgetCatalog");
 
     /// A module descriptor with one `requires` and one `exports`, so the patch
     /// has something to preserve.

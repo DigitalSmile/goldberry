@@ -21,9 +21,17 @@ module io.github.digitalsmile.goldberry.widgets {
     ///
     /// `uses` and not a hard-coded list: a second widget module is found by an
     /// application that never names it, which is the whole point.
-    uses io.github.digitalsmile.goldberry.widgets.WidgetCatalog;
+    uses io.github.digitalsmile.goldberry.widgets.markup.WidgetCatalog;
 
     exports io.github.digitalsmile.goldberry.widgets;
+
+    /// The markup contract, in a package of its own since ADR-0172: the
+    /// `@Markup` annotation a widget carries, the `Inflatable` it satisfies, the
+    /// `WidgetCatalog` the build writes from the two, and the `Wiring` a
+    /// document is inflated against. An application names these only when it
+    /// declares a widget of its own; the furniture above is what it uses to run
+    /// one.
+    exports io.github.digitalsmile.goldberry.widgets.markup;
 
     /// `docs/core-widgets.md` §3's `controls` group, **one package per control**.
     ///

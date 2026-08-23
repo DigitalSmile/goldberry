@@ -10,8 +10,8 @@ import io.github.digitalsmile.goldberry.widget.Widget;
 import java.util.List;
 import java.util.Set;
 import io.github.digitalsmile.goldberry.kdl.KdlNode;
-import io.github.digitalsmile.goldberry.widgets.Wiring;
-import io.github.digitalsmile.goldberry.widgets.Markup;
+import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
+import io.github.digitalsmile.goldberry.widgets.markup.Markup;
 
 /// A surface — `docs/core-widgets.md` §5's `panel`, "plain surface:
 /// `--gb-surface`, border, radius tokens. The building block; no elevation."

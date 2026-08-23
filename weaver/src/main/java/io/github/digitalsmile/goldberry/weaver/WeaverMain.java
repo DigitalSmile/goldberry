@@ -202,7 +202,7 @@ public final class WeaverMain {
         // The class path half. Harmless on the module path, where the module
         // system reads the descriptor instead and ignores this file.
         var services = root.resolve("META-INF/services/"
-                + "io.github.digitalsmile.goldberry.widgets.WidgetCatalog");
+                + "io.github.digitalsmile.goldberry.widgets.markup.WidgetCatalog");
         Files.createDirectories(services.getParent());
         Files.writeString(services, name + "\n");
 

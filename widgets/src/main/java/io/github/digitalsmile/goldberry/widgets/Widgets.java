@@ -5,6 +5,10 @@ import io.github.digitalsmile.goldberry.widget.Widget;
 import java.util.ServiceLoader;
 import io.github.digitalsmile.goldberry.bind.registry.ActionRegistry;
 import io.github.digitalsmile.goldberry.bind.registry.BindingRegistry;
+import io.github.digitalsmile.goldberry.widgets.markup.Inflatable;
+import io.github.digitalsmile.goldberry.widgets.markup.Named;
+import io.github.digitalsmile.goldberry.widgets.markup.WidgetCatalog;
+import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
 
 /// Turns markup into widgets, with every widget module on the path already in it.
 ///

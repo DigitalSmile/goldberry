@@ -8,8 +8,8 @@ import io.github.digitalsmile.goldberry.widget.attr.Attributes;
 import io.github.digitalsmile.goldberry.widget.style.Paints;
 import io.github.digitalsmile.goldberry.widget.style.Styled;
 import io.github.digitalsmile.goldberry.widget.Widget;
-import io.github.digitalsmile.goldberry.widgets.Markup;
-import io.github.digitalsmile.goldberry.widgets.Wiring;
+import io.github.digitalsmile.goldberry.widgets.markup.Markup;
+import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
 
 import java.util.ArrayList;
 import java.util.List;

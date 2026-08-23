@@ -1,9 +1,10 @@
-package io.github.digitalsmile.goldberry.widgets;
+package io.github.digitalsmile.goldberry.widgets.markup;
 
 import io.github.digitalsmile.goldberry.kdl.KdlInflater;
 import io.github.digitalsmile.goldberry.kdl.KdlNode;
 import io.github.digitalsmile.goldberry.widget.Widget;
 import java.util.List;
+import io.github.digitalsmile.goldberry.widgets.Controls;
 
 /// How one markup node becomes one widget.
 ///
@@ -13,7 +14,7 @@ import java.util.List;
 /// beside the record it builds and the javadoc describing the attributes it
 /// reads, so the three forms §9 requires every widget to have — Java, KDL and CSS
 /// — are three things in one file rather than one thing in three
-/// ([ADR-0130](../../../../../../book/src/adr/0130-a-widget-inflates-itself.md)).
+/// ([ADR-0130](../../../../../../../book/src/adr/0130-a-widget-inflates-itself.md)).
 ///
 /// A factory is a `static` method referenced as `Button::inflate`, which is what
 /// keeps [Controls] a list of names.

@@ -5,8 +5,8 @@ import io.github.digitalsmile.goldberry.widget.attr.Attributed;
 import io.github.digitalsmile.goldberry.widget.attr.Attributes;
 import io.github.digitalsmile.goldberry.widget.State;
 import io.github.digitalsmile.goldberry.widget.Widget;
-import io.github.digitalsmile.goldberry.widgets.Markup;
-import io.github.digitalsmile.goldberry.widgets.Wiring;
+import io.github.digitalsmile.goldberry.widgets.markup.Markup;
+import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
 import java.util.List;
 
 /// An in-window menu bar — `docs/core-widgets.md` §8's `menubar`.

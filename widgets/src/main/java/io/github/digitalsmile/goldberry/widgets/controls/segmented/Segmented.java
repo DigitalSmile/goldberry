@@ -18,8 +18,8 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.function.Consumer;
 import io.github.digitalsmile.goldberry.kdl.KdlNode;
-import io.github.digitalsmile.goldberry.widgets.Wiring;
-import io.github.digitalsmile.goldberry.widgets.Markup;
+import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
+import io.github.digitalsmile.goldberry.widgets.markup.Markup;
 
 /// A row of mutually exclusive options drawn as one joined bar (§11,
 /// `docs/core-widgets.md` §3).

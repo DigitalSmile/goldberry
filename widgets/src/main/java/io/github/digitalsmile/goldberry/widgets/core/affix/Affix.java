@@ -7,8 +7,8 @@ import io.github.digitalsmile.goldberry.widget.State;
 import io.github.digitalsmile.goldberry.widget.Widget;
 import java.util.List;
 import io.github.digitalsmile.goldberry.kdl.KdlNode;
-import io.github.digitalsmile.goldberry.widgets.Wiring;
-import io.github.digitalsmile.goldberry.widgets.Markup;
+import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
+import io.github.digitalsmile.goldberry.widgets.markup.Markup;
 
 /// A child pinned to an edge of the nearest `scroll` once it would have scrolled
 /// past it — `docs/core-widgets.md` §1's `affix`.

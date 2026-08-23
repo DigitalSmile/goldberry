@@ -12,8 +12,8 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import io.github.digitalsmile.goldberry.kdl.KdlNode;
-import io.github.digitalsmile.goldberry.widgets.Wiring;
-import io.github.digitalsmile.goldberry.widgets.Markup;
+import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
+import io.github.digitalsmile.goldberry.widgets.markup.Markup;
 
 /// The floating panel a popup draws — `docs/core-widgets.md` §7's `popover`, and
 /// what §7 calls "the primitive under menus, dropdowns, `date-picker`,

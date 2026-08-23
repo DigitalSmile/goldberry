@@ -369,7 +369,7 @@ class FormTest {
     }
 
     /// What the Forms document names, and the shape an application uses: a
-    /// `@Model` for the values, a [io.github.digitalsmile.goldberry.widgets.Named]
+    /// `@Model` for the values, a [io.github.digitalsmile.goldberry.widgets.markup.Named]
     /// registry for the objects.
     @io.github.digitalsmile.goldberry.bind.Model
     public static final class PortModel {
@@ -395,7 +395,7 @@ class FormTest {
         /// "a value that cannot change is not something to subscribe to", which
         /// is exactly what a controller and a validator are.
         private io.github.digitalsmile.goldberry.kdl.KdlInflater<Widget> wired() {
-            var named = io.github.digitalsmile.goldberry.widgets.Named.strict()
+            var named = io.github.digitalsmile.goldberry.widgets.markup.Named.strict()
                     .bind("app.form", signup)
                     .bind("app.port-rule", portRule);
             return Widgets.inflater(named, io.github.digitalsmile.goldberry.widgets.Icons.none(),

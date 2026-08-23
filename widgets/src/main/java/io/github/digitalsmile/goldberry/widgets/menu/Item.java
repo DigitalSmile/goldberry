@@ -17,8 +17,8 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import io.github.digitalsmile.goldberry.kdl.KdlNode;
-import io.github.digitalsmile.goldberry.widgets.Wiring;
-import io.github.digitalsmile.goldberry.widgets.Markup;
+import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
+import io.github.digitalsmile.goldberry.widgets.markup.Markup;
 
 /// One command in a [Menu] — `docs/core-widgets.md` §8's `item`: "label, optional
 /// icon, accelerator (displayed right-aligned …), checkable items, disabled

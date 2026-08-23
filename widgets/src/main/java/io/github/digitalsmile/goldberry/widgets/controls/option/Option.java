@@ -17,8 +17,8 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import io.github.digitalsmile.goldberry.kdl.KdlNode;
-import io.github.digitalsmile.goldberry.widgets.Wiring;
-import io.github.digitalsmile.goldberry.widgets.Markup;
+import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
+import io.github.digitalsmile.goldberry.widgets.markup.Markup;
 
 /// One choice in a [io.github.digitalsmile.goldberry.widgets.controls.segmented.Segmented]
 /// or a [io.github.digitalsmile.goldberry.widgets.controls.select.Select]

@@ -10,8 +10,8 @@ import java.util.List;
 import java.util.Objects;
 import java.util.function.Consumer;
 import io.github.digitalsmile.goldberry.kdl.KdlNode;
-import io.github.digitalsmile.goldberry.widgets.Wiring;
-import io.github.digitalsmile.goldberry.widgets.Markup;
+import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
+import io.github.digitalsmile.goldberry.widgets.markup.Markup;
 
 /// A strip of tabs over one panel — `docs/core-widgets.md` §5's `tabs`.
 ///

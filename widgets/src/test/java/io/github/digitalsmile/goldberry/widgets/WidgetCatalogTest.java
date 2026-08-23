@@ -17,6 +17,9 @@ import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import io.github.digitalsmile.goldberry.widgets.markup.Markup;
+import io.github.digitalsmile.goldberry.widgets.markup.WidgetCatalog;
+import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
 
 /// That a widget module announces itself, and that an application gets it
 /// without saying so.

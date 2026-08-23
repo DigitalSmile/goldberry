@@ -1,9 +1,11 @@
-package io.github.digitalsmile.goldberry.widgets;
+package io.github.digitalsmile.goldberry.widgets.markup;
 
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
+import io.github.digitalsmile.goldberry.widgets.Icons;
+import io.github.digitalsmile.goldberry.widgets.Widgets;
 
 /// The **objects** a document may name — a `FormController`, a `Validator`.
 ///

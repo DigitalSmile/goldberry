@@ -25,7 +25,7 @@ import org.junit.jupiter.api.Test;
 import io.github.digitalsmile.goldberry.bind.registry.ActionRegistry;
 import io.github.digitalsmile.goldberry.widgets.Icons;
 import io.github.digitalsmile.goldberry.widgets.Widgets;
-import io.github.digitalsmile.goldberry.widgets.Wiring;
+import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
 
 /// `bind=` from **markup** to a widget (§9,
 /// [ADR-0062](../../../../../../../book/src/adr/0062-bind-is-a-path-and-nothing-else.md)).

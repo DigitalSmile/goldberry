@@ -11,8 +11,8 @@ import io.github.digitalsmile.goldberry.widget.Widget;
 import java.util.List;
 import java.util.Set;
 import io.github.digitalsmile.goldberry.kdl.KdlNode;
-import io.github.digitalsmile.goldberry.widgets.Wiring;
-import io.github.digitalsmile.goldberry.widgets.Markup;
+import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
+import io.github.digitalsmile.goldberry.widgets.markup.Markup;
 
 /// Children laid out along the cross axis — `docs/core-widgets.md` §1's `column`.
 ///

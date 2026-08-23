@@ -1,4 +1,4 @@
-package io.github.digitalsmile.goldberry.widgets;
+package io.github.digitalsmile.goldberry.widgets.markup;
 
 import io.github.digitalsmile.goldberry.bind.registry.ActionRegistry;
 import io.github.digitalsmile.goldberry.bind.registry.BindingRegistry;
@@ -10,6 +10,7 @@ import io.github.digitalsmile.goldberry.kdl.KdlNode;
 import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.function.DoubleConsumer;
+import io.github.digitalsmile.goldberry.widgets.Icons;
 
 /// The three registries a document resolves names against, and the readings of a
 /// node that nearly every widget needs.
@@ -26,7 +27,7 @@ import java.util.function.DoubleConsumer;
 /// the catalog, and `change == null ? null : value -> change.accept(String
 /// .valueOf(value))` three times. Neither is a decision — they are the same
 /// sentence written out again — and a widget's factory should be the part that
-/// differs ([ADR-0130](../../../../../../book/src/adr/0130-a-widget-inflates-itself.md)).
+/// differs ([ADR-0130](../../../../../../../book/src/adr/0130-a-widget-inflates-itself.md)).
 ///
 /// @param actions  what a `press="save"` attribute resolves against
 /// @param icons    what an `icon="plus"` attribute resolves against
@@ -55,7 +56,7 @@ public record Wiring(ActionRegistry actions, Icons icons, BindingRegistry bindin
     /// application: a model already declares its paths and its actions, and
     /// asking the caller to fetch both and hand them back was ceremony around a
     /// fact the object already carried
-    /// ([ADR-0132](../../../../../../book/src/adr/0132-a-model-wires-itself.md)).
+    /// ([ADR-0132](../../../../../../../book/src/adr/0132-a-model-wires-itself.md)).
     ///
     /// **More than one model**, because a window's own actions — "open the menu",
     /// "toggle the HUD" — belong to the window rather than to the view model, and
@@ -69,7 +70,7 @@ public record Wiring(ActionRegistry actions, Icons icons, BindingRegistry bindin
     /// @throws IllegalStateException if any of them is annotated neither
     ///         `@Model` nor `@Actions`, or is annotated and cannot be bound —
     ///         an unwoven model is bound at run time rather than refused
-    ///         ([ADR-0155](../../../../../../book/src/adr/0155-a-jar-binds-at-run-time-an-image-is-woven.md))
+    ///         ([ADR-0155](../../../../../../../book/src/adr/0155-a-jar-binds-at-run-time-an-image-is-woven.md))
     public static Wiring of(Icons icons, Object... models) {
         Objects.requireNonNull(icons, "icons");
         var bindings = BindingRegistry.strict();

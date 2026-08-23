@@ -20,8 +20,8 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.function.Consumer;
 import io.github.digitalsmile.goldberry.kdl.KdlNode;
-import io.github.digitalsmile.goldberry.widgets.Wiring;
-import io.github.digitalsmile.goldberry.widgets.Markup;
+import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
+import io.github.digitalsmile.goldberry.widgets.markup.Markup;
 
 /// A set of options of which exactly one is chosen (§11,
 /// `docs/core-widgets.md` §3).
