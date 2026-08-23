@@ -3335,9 +3335,47 @@ is the `scroll` box's.
 - **Not verified on Windows or macOS.** Those paths are SDL's, are compiled, and
   nobody has looked at them. Said here rather than implied by silence.
 
+### Charts, which start two layers down
+
+- **`canvas` is not built, and charts sit on it.** `content-widgets.md` §3 builds
+  the five chart widgets on the `canvas` primitive so they inherit the theme, the
+  text stack, hit testing and the golden corpus — and §1's `canvas` was never
+  written. It has been blocking something shipped since M2: `statistic`'s
+  sparkline is specified and absent for want of it (ADR-0164). So the order is
+  `canvas`, the chart substrate, then the widgets.
+- **The paint surface gained a state stack**
+  ([ADR-0193](adr/0193-a-canvas-is-a-second-clip-depth.md)), which is the first
+  thing `canvas` needed and the second widening of the export list in this
+  milestone. Every painter inside the toolkit knows what it set and unsets it; an
+  application's `onPaint` is not one of those — it runs inside whatever clip the
+  tree established, and `resetClip` goes back to the **whole frame** rather than
+  to the region before it, so a canvas inside a `scroll` would paint over the
+  viewport's edge. `bl_context_save` / `bl_context_restore` are exported now (205
+  symbols), `Frame.save()` / `restore()` sit over them, and the nesting is
+  asserted rather than assumed. The export list's own comment used to explain why
+  the pair was unnecessary; it now explains why both calls exist.
+- **The series palette is derived and measured**
+  ([ADR-0194](adr/0194-a-series-colour-is-derived-from-nord-not-taken-from-it.md)).
+  §3 says "categorical series colors from aurora + frost hues", and the word doing
+  the work is *derived*: Nord used literally fails five of the six categorical
+  checks — six of eight hues below the chroma floor, so they read as gray and stop
+  doing identity work, and `nord9`/`nord8` at ΔE 8.5 because the frost family
+  spans 23° of hue and two of its members are 5° apart. What ships is eight slots
+  re-stepped from Nord's hue angles, with dark as its own steps rather than a
+  flip, passing all six checks in both modes. The **order** was searched over all
+  40 320 permutations rather than chosen, because adjacent slots are what touch in
+  a stack: Nord's own numbering puts orange beside green at ΔE 0.8 under
+  deuteranopia, which is two series nobody can tell apart.
+- **The Grafana question is answered in `docs/charts.md` §3** — which of its
+  features belong in a desktop toolkit, which are `goldberry-plot`'s, and which
+  are dashboard machinery a *toolkit* must not grow (query editors, field
+  overrides, auto-refresh, dual y-axes).
+- **Not built: the `canvas` widget itself**, its `Box` content slot, the chart
+  substrate and the five widgets. What exists is the layer underneath.
+
 ### Not started
 
-Client-side decorations and charts, the rest of §4 —
+Client-side decorations, the rest of §4 —
 the pickers, `code-input` and autocomplete. §7 is **complete**, mechanism and
 all: §3's **sibling reflow** is built, and it was the last thing the group owed.
 All of §4's leftovers reuse

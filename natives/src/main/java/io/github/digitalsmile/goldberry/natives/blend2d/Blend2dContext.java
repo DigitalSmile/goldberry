@@ -228,13 +228,33 @@ final class Blend2dContext {
 
     /// Back to the whole image.
     ///
-    /// `bl_context_restore_clipping` rather than a save/restore pair around the
-    /// clip: Blend2D's `bl_context_save` is not exported and does not need to be,
-    /// because there is only ever one clip depth in this frame path.
+    /// **Not to the previous clip** — this is why [#contextSave] exists. For the
+    /// frame path one depth is all there is and this is the cheaper call; for a
+    /// `canvas`, whose painter runs inside whatever the tree already set up,
+    /// going back to the whole image would paint over a scroll viewport's edge
+    /// (ADR-0193).
     void contextRestoreClipping(MemorySegment context) {
         int result;
         result = calls.contextRestoreClipping().call(context);
         check("bl_context_restore_clipping", result);
+    }
+
+    /// Pushes clip, transform, style and alpha, so that whatever a caller does
+    /// next can be undone exactly.
+    ///
+    /// The cookie is NULL: it is Blend2D's guard against a mismatched pair, and
+    /// the only pairs here are the two lines of [#contextRestore]'s one caller.
+    void contextSave(MemorySegment context) {
+        int result;
+        result = calls.contextSave().call(context, MemorySegment.NULL);
+        check("bl_context_save", result);
+    }
+
+    /// Pops what [#contextSave] pushed.
+    void contextRestore(MemorySegment context) {
+        int result;
+        result = calls.contextRestore().call(context, MemorySegment.NULL);
+        check("bl_context_restore", result);
     }
 
     /// A `BLResult` that is not `BL_SUCCESS` is the call reporting a problem, not

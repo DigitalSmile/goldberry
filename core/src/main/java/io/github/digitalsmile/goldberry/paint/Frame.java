@@ -299,6 +299,30 @@ public final class Frame {
         context.resetClip();
     }
 
+    /// Pushes clip, transform, style and alpha, so that whatever is drawn next
+    /// can be undone exactly.
+    ///
+    /// **For handing the frame to somebody else.** Every painter inside the
+    /// toolkit knows what it set and unsets it; a `canvas`'s painter is an
+    /// application's, runs inside whatever clip and transform the tree already
+    /// established, and may leave anything at all behind. [#resetClip()] cannot
+    /// undo that — it goes back to the *whole frame*, so a canvas inside a
+    /// `scroll` would paint over the viewport's edge — which is why this exists
+    /// and why the export list grew a state stack for it
+    /// ([ADR-0193](../../../../../../book/src/adr/0193-a-canvas-is-a-second-clip-depth.md)).
+    ///
+    /// Must be paired with [#restore()], and the pair is the caller's to balance.
+    public void save() {
+        requireOpen();
+        context.save();
+    }
+
+    /// Pops what [#save()] pushed.
+    public void restore() {
+        requireOpen();
+        context.restore();
+    }
+
     /// Finishes the frame, so the pixels are complete before anything presents
     /// them.
     ///

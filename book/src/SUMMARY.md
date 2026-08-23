@@ -202,6 +202,8 @@
 - [ADR-0190 A content module brings its own natives](adr/0190-a-content-module-brings-its-own-natives.md)
 - [ADR-0191 A tray is a menu somebody else draws](adr/0191-a-tray-is-a-menu-somebody-else-draws.md)
 - [ADR-0192 A row of chips wraps, and the chevron does not](adr/0192-a-row-of-chips-wraps-and-the-chevron-does-not.md)
+- [ADR-0193 A canvas is a second clip depth](adr/0193-a-canvas-is-a-second-clip-depth.md)
+- [ADR-0194 A series colour is derived from Nord, not taken from it](adr/0194-a-series-colour-is-derived-from-nord-not-taken-from-it.md)
 
 ---
 

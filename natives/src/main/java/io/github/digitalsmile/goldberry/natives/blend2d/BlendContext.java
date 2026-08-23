@@ -444,6 +444,24 @@ public final class BlendContext implements AutoCloseable {
         calls.contextRestoreClipping(context);
     }
 
+    /// Pushes the whole context state — clip, transform, style, alpha — so that
+    /// what a caller does next can be undone exactly.
+    ///
+    /// What `canvas` needs and the frame path does not: an application's painter
+    /// runs inside whatever clip and transform the tree already has, and
+    /// [#resetClip()] goes back to the *whole surface* rather than to the region
+    /// in force before it (ADR-0193). Must be paired with [#restore()].
+    public void save() {
+        requireUsable();
+        calls.contextSave(context);
+    }
+
+    /// Pops what [#save()] pushed.
+    public void restore() {
+        requireUsable();
+        calls.contextRestore(context);
+    }
+
     /// Back to plain scaled user space — what every box that has no transform of
     /// its own is drawn in.
     public void resetTransform() {

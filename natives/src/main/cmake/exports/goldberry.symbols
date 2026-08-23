@@ -255,11 +255,19 @@ bl_context_set_global_alpha
 
 # Damage-driven painting (sec. 5, ADR-0072). Clipping the rasterizer to the
 # region that changed is the half of damage tracking that saves the ~320us of
-# rasterization rather than the upload. `restore_clipping` rather than a
-# save/restore pair, because there is only ever one clip depth here and
-# bl_context_save is still not exported.
+# rasterization rather than the upload. `restore_clipping` alone was enough while
+# there was only ever one clip depth.
 bl_context_clip_to_rect_d
 bl_context_restore_clipping
+
+# The second clip depth, which `canvas` is (sec. 1, ADR-0193). An application's
+# own painter runs inside whatever clip and transform the tree already has, and
+# `restore_clipping` goes back to the whole frame rather than to the previous
+# region -- so a canvas inside a `scroll` would paint over the viewport's edge.
+# A save/restore pair is the state stack the note above said was not needed, and
+# it is needed exactly once a widget hands the context to somebody else.
+bl_context_save
+bl_context_restore
 
 # --- Yoga (sec. 5, layout) ---------------------------------------------------
 # The node API, bound in the `yoga` package. YGSize and the measure callback are

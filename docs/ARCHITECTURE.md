@@ -13,6 +13,10 @@ shipped font can draw. So this document now **references** the design system's
 tables rather than copying them, and where it still states a number, it says which
 section it mirrors.
 
+`charts.md` is the fifth, and the narrowest: it is the chart widgets' contract —
+the derived series palette (ADR-0194) and which of Grafana's features belong in a
+desktop toolkit at all.
+
 `content-widgets.md` is the fourth: it specifies the **optional content modules**
 — HTML/markdown, PDF, plotting, code, terminal, vector, media, camera,
 microphone — none of which is a core dependency and none of which is built. §11.1
@@ -552,3 +556,11 @@ tracks them alongside the implementation's own gaps.
   list from 192 to 203 (ADR-0191) — and of the 59 `SDL_*` entries now on it, none
   is audio and none is camera. Each of those modules is the same widening plus a
   binding apiece (ADR-0190). (§3.2, §11.1)
+- **Dual y-axes.** `content-widgets.md` §4.1 lists "dual y-axes" among
+  `goldberry-plot`'s scales. `charts.md` §3.4 refuses them outright: two measures
+  at different scales are two charts, small multiples, or one indexed to a common
+  base, and a second y-scale is the single most reliable way to make a chart say
+  something untrue. The design document is the authority and this is a refusal
+  rather than an omission, so it needs a decision. It is post-v1 either way —
+  `goldberry-plot` is not scheduled — but the note belongs here rather than in the
+  module that would inherit the argument. (§11.1)

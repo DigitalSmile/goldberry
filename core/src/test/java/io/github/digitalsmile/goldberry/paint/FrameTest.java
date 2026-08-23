@@ -51,6 +51,36 @@ class FrameTest {
     }
 
     @Test
+    @DisplayName("restore puts back the clip that was in force, not the whole frame")
+    void restoreReturnsToTheOuterClip() {
+        // The reason the export list grew a state stack (ADR-0193). `resetClip`
+        // goes back to the whole frame, so a painter that used it inside an
+        // existing clip -- which is what a `canvas` in a `scroll` is -- would
+        // paint over the viewport's edge. save/restore is what nests.
+        var buffer = PixelBuffer.allocate(new PhysicalSize(8, 8), PixelFormat.BGRA32_PREMULTIPLIED);
+        var frame = new Frame(buffer, new DisplayScale(1f));
+        try {
+            frame.fill(0xFF000000);
+            // The outer clip: the left half, as a scroll viewport would set.
+            frame.clipTo(0, 0, 4, 8);
+
+            frame.save();
+            frame.clipTo(0, 0, 8, 2);   // an inner clip, as a canvas would set
+            frame.restore();
+
+            // Still confined to the outer clip. Painted after the restore, so a
+            // restore that had widened the clip would let this through.
+            frame.fillRect(0, 0, 8, 8, 0xFFFFFFFF);
+        } finally {
+            frame.end();
+        }
+
+        assertEquals(0xFFFFFFFF, pixel(buffer, 3, 7), "inside the outer clip");
+        assertEquals(0xFF000000, pixel(buffer, 5, 7),
+                "outside it -- the restore went back to the outer clip, not to the frame");
+    }
+
+    @Test
     @DisplayName("a fractional scale antialiases rather than snapping")
     void fractionalScaleIsNotRounded() {
         // The whole reason the scale is a context transform. Rounding a logical

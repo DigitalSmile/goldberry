@@ -35,7 +35,9 @@ public record ContextCalls(
         ContextBlitScaledImageD contextBlitScaledImageD,
         ContextSetGlobalAlpha contextSetGlobalAlpha,
         ContextClipToRectD contextClipToRectD,
-        ContextRestoreClipping contextRestoreClipping) {
+        ContextRestoreClipping contextRestoreClipping,
+        ContextSave contextSave,
+        ContextRestore contextRestore) {
 
     /// Binds every function above, failing if the library exports none of them.
     ///
@@ -61,7 +63,9 @@ public record ContextCalls(
                 new ContextBlitScaledImageD(lookup),
                 new ContextSetGlobalAlpha(lookup),
                 new ContextClipToRectD(lookup),
-                new ContextRestoreClipping(lookup));
+                new ContextRestoreClipping(lookup),
+                new ContextSave(lookup),
+                new ContextRestore(lookup));
     }
 
     /// Begins rendering into `image`.
@@ -640,6 +644,62 @@ public record ContextCalls(
                 return (int) FD_bl_context_restore_clipping.invokeExact(address, context);
             } catch (Throwable t) {
                 throw Downcalls.failure("bl_context_restore_clipping", t);
+            }
+        }
+    }
+
+    /// Pushes the whole context state — clip, transform, style, alpha.
+    ///
+    /// Bound when `canvas` arrived: an application's painter runs inside whatever
+    /// the tree had already set up, and `restore_clipping` goes back to the whole
+    /// frame rather than to the previous region (ADR-0193).
+    ///
+    /// `int bl_context_save(void*, void*)`
+    ///
+    /// @param context the context to save
+    /// @param cookie a `BLContextCookie` to stamp, or NULL for an unguarded save
+    public static final class ContextSave {
+
+        private static final MethodHandle FD_bl_context_save =
+                Downcalls.link(FunctionDescriptor.of(JAVA_INT, ADDRESS, ADDRESS));
+
+        private final MemorySegment address;
+
+        ContextSave(SymbolLookup lookup) {
+            this.address = Downcalls.symbol(lookup, "bl_context_save");
+        }
+
+        public int call(MemorySegment context, MemorySegment cookie) {
+            try {
+                return (int) FD_bl_context_save.invokeExact(address, context, cookie);
+            } catch (Throwable t) {
+                throw Downcalls.failure("bl_context_save", t);
+            }
+        }
+    }
+
+    /// Pops what [ContextSave] pushed.
+    ///
+    /// `int bl_context_restore(void*, void*)`
+    ///
+    /// @param context the context to restore
+    /// @param cookie the cookie the matching save stamped, or NULL
+    public static final class ContextRestore {
+
+        private static final MethodHandle FD_bl_context_restore =
+                Downcalls.link(FunctionDescriptor.of(JAVA_INT, ADDRESS, ADDRESS));
+
+        private final MemorySegment address;
+
+        ContextRestore(SymbolLookup lookup) {
+            this.address = Downcalls.symbol(lookup, "bl_context_restore");
+        }
+
+        public int call(MemorySegment context, MemorySegment cookie) {
+            try {
+                return (int) FD_bl_context_restore.invokeExact(address, context, cookie);
+            } catch (Throwable t) {
+                throw Downcalls.failure("bl_context_restore", t);
             }
         }
     }
