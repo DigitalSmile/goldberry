@@ -228,7 +228,51 @@ public final class Popup implements AutoCloseable {
             return;
         }
         tree.update(Objects.requireNonNull(content, "content"));
+        resizeToContent();
         window.repaint();
+    }
+
+    /// Measures what the tree now describes and asks the window for that size.
+    ///
+    /// **A popup was measured once, when it opened, and never again.** For a menu
+    /// that is right — its content does not change. For the two things that now
+    /// re-describe themselves it was a bug with no workaround: a `tree` whose
+    /// branch expanded drew its new rows into a window still the height of the
+    /// collapsed one, so they were simply not there, and no viewport appeared
+    /// either because the fit that would have added one runs at open time
+    /// ([ADR-0186](../../../book/src/adr/0186-a-panel-that-hangs-off-a-field-is-not-a-menu.md)).
+    ///
+    /// The fit is re-applied with the measurement, which is what puts the
+    /// viewport in when the content outgrows the screen rather than only when it
+    /// was already too big.
+    ///
+    /// A **request**, like every resize: the window manager decides when it
+    /// happens ([BackendPopup#resize]).
+    private void resizeToContent() {
+        if (measurer == null) {
+            return;
+        }
+        var size = measurer.measure(tree, render);
+        if (size != null && !size.equals(window.size())) {
+            resize(size);
+        }
+    }
+
+    /// How this popup measures itself again — the launcher's, because measuring
+    /// needs the window's scale and the `Fit` this popup was opened with, and
+    /// neither belongs here.
+    @FunctionalInterface
+    interface Measurer {
+
+        /// @return the size the content wants now, or null if it cannot be taken
+        LogicalSize measure(ElementTree tree, RenderTree render);
+    }
+
+    private Measurer measurer;
+
+    /// Told by the launcher, which opened this and knows how it was measured.
+    void measuredBy(Measurer value) {
+        this.measurer = value;
     }
 
     /// Asks for another frame.

@@ -371,4 +371,10 @@ public class TestHost implements Host {
     public Window window() {
         throw new UnsupportedOperationException("no window in this stub");
     }
+
+    @Override
+    public Optional<Popup> attachedPopup(Widget content, LogicalRect anchor, Placement placement,
+            float minimumWidth, Fit fit) {
+        return popup(content, anchor, placement, minimumWidth, fit);
+    }
 }

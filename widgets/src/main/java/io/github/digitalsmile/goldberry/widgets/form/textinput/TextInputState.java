@@ -186,7 +186,7 @@ final class TextInputState extends State<TextInput> implements TextEditor {
         }
         // At least as wide as the field, for `select`'s reason: a panel narrower
         // than the control it hangs off reads as a mistake (ADR-0145).
-        host.popup(list, fieldBounds,
+        host.attachedPopup(list, fieldBounds,
                         io.github.digitalsmile.goldberry.Placement.BELOW,
                         fieldBounds.size().width(), VIEWPORT)
                 .ifPresent(popup -> suggestions = popup.lightDismiss(true).takesFocus(false));

@@ -240,6 +240,27 @@ public interface Host {
                                     LogicalRect anchor, Placement placement,
                                     float minimumWidth, Fit fit);
 
+    /// [#popup(Widget, LogicalRect, Placement, float, Fit)] as a panel that hangs
+    /// off something the user is **still using**.
+    ///
+    /// §4's autocomplete "attaches a `popover` of suggestions to the field", and
+    /// the field is what is being typed into — so this popup must never take the
+    /// keyboard. Not at the router level, which is what
+    /// [Popup#takesFocus(boolean)] settles, but at the **platform** level: a
+    /// window opened as a menu is focusable, and every window manager will hand
+    /// it the keyboard the moment it appears. A field whose suggestion list did
+    /// that took one character and then went dead
+    /// ([ADR-0186](../../../../../book/src/adr/0186-a-panel-that-hangs-off-a-field-is-not-a-menu.md)).
+    ///
+    /// So it is opened as the same *kind* of window a tooltip is — never
+    /// focusable, and treated as an attached panel by the window manager — while
+    /// still being measured, placed and light-dismissed like any other popup. The
+    /// arrows reach it because the owner forwards keys to whatever popup is open
+    /// ([ADR-0104](../../../../../book/src/adr/0104-a-popup-is-measured-then-placed.md)).
+    java.util.Optional<Popup> attachedPopup(Widget content,
+                                            LogicalRect anchor, Placement placement,
+                                            float minimumWidth, Fit fit);
+
     /// What a caller does with a measurement, between the measure and the place.
     ///
     /// ## Why the facility asks rather than deciding

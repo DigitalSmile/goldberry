@@ -157,4 +157,11 @@ record TourTestHost(List<HitTest.Region> regions) implements Host {
     public Window window() {
         throw new UnsupportedOperationException("no window here");
     }
+
+    @Override
+    public Optional<Popup> attachedPopup(Widget content, LogicalRect anchor,
+            io.github.digitalsmile.goldberry.Placement placement, float minimumWidth,
+            Fit fit) {
+        return Optional.empty();
+    }
 }

@@ -1273,7 +1273,15 @@ the mechanism the sentence named.
   by different people. —
   [ADR-0153](adr/0153-a-rate-is-counted-a-refresh-is-asked-for.md)
 
-- **A popup hangs on screen when the application loses focus to another window.**
+- **A popup hangs on screen when the application loses focus to another window** —
+  **still open, and one candidate is eliminated.** `anyWindowFocused()` counts
+  popup windows, so a popup holding platform focus keeps the whole check true. A
+  `MENU`-kind popup is focusable and is the likely culprit; the suggestion panels
+  are `TOOLTIP`-kind and `NOT_FOCUSABLE` since
+  [ADR-0186](adr/0186-a-panel-that-hangs-off-a-field-is-not-a-menu.md), so they
+  can no longer be it. The next step is a real window and a log of `FocusChanged`
+  per window id, which the headless backend cannot produce.
+- **(superseded detail)**
   The window hides and the popup stays where it was. The mechanism
   [ADR-0144](adr/0144-a-popup-goes-away-when-the-application-does.md) describes is
   wired — the launcher watches `FocusChanged` and calls `dismissPopups` after a

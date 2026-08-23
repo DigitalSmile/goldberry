@@ -195,6 +195,7 @@
 - [ADR-0183 A combobox is a select you can type in](adr/0183-a-combobox-is-a-select-you-can-type-in.md)
 - [ADR-0184 A tree is a list that remembers what is open](adr/0184-a-tree-is-a-list-that-remembers-what-is-open.md)
 - [ADR-0185 A list that hangs off a field does not take the keyboard](adr/0185-a-list-that-hangs-off-a-field-does-not-take-the-keyboard.md)
+- [ADR-0186 A panel that hangs off a field is not a menu](adr/0186-a-panel-that-hangs-off-a-field-is-not-a-menu.md)
 
 ---
 

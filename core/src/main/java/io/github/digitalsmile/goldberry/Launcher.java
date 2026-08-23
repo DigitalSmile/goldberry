@@ -815,6 +815,16 @@ final class Launcher implements Host {
                 PopupKind.MENU, minimumWidth, fit);
     }
 
+    @Override
+    public java.util.Optional<Popup> attachedPopup(Widget content,
+                                                   LogicalRect anchor, Placement placement,
+                                                   float minimumWidth, Fit fit) {
+        // TOOLTIP is the *kind*, not the widget: what it buys here is
+        // `NOT_FOCUSABLE`, so the keyboard stays on the field this hangs off
+        // (ADR-0186).
+        return placed(content, anchor, placement, PopupKind.TOOLTIP, minimumWidth, fit);
+    }
+
     /// Measure, place, open — the three steps `popover` is made of (ADR-0104),
     /// shared by the menu form and the tooltip one because only the kind differs.
     ///
@@ -854,8 +864,26 @@ final class Launcher implements Host {
         }
 
         var placed = placement.place(anchor, size, placeableArea());
-        return open(tree, render,
-                new PopupSpec(placed.at(), size, kind));
+        var opened = open(tree, render, new PopupSpec(placed.at(), size, kind));
+        // How it measures itself again when its content changes -- the same two
+        // passes and the same `Fit`, so a tree that expands grows the window and
+        // gets a viewport when it outgrows the screen (ADR-0186).
+        var floor = minimumWidth;
+        var refit = fit;
+        opened.ifPresent(popup -> popup.measuredBy((liveTree, liveRender) -> {
+            var measured = measure(liveTree, liveRender, floor);
+            if (refit == null) {
+                return measured;
+            }
+            var shown = liveTree.root().widget();
+            var answer = refit.fit(shown, measured, placeableArea());
+            if (answer == shown) {
+                return measured;
+            }
+            liveTree.update(answer);
+            return measure(liveTree, liveRender, floor);
+        }));
+        return opened;
     }
 
     /// A tooltip's popup: above by preference, never light-dismissed.
