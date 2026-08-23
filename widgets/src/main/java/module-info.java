@@ -86,6 +86,7 @@ module io.github.digitalsmile.goldberry.widgets {
     exports io.github.digitalsmile.goldberry.widgets.panel.carousel;
     exports io.github.digitalsmile.goldberry.widgets.panel.collapse;
     exports io.github.digitalsmile.goldberry.widgets.panel.groupbox;
+    exports io.github.digitalsmile.goldberry.widgets.panel.masonry;
     exports io.github.digitalsmile.goldberry.widgets.panel.skeleton;
     exports io.github.digitalsmile.goldberry.widgets.panel.split;
     exports io.github.digitalsmile.goldberry.widgets.panel.statistic;

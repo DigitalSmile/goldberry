@@ -230,6 +230,27 @@ public final class StyleResolver {
         return customPropertiesFor(element, null);
     }
 
+    /// One custom property's value, with any `var()` in it resolved.
+    ///
+    /// For the one reader outside the cascade: a widget that needs a value the
+    /// cascade has nowhere to put — a chart's eight series colours, which cannot
+    /// be eight properties on one node
+    /// ([ADR-0195](../../../../../../../book/src/adr/0195-a-painter-reads-the-theme-through-a-custom-property.md)).
+    ///
+    /// **Substituted, because a custom property may hold another one.**
+    /// `--gb-chart-1: var(--gb-warning)` is the natural way to say "this series
+    /// is the warning hue", and CSS resolves such a value at *use* time, which is
+    /// here rather than where it was written. Reading the raw tokens instead sees
+    /// `var(--gb-warning)`, decides it is not a colour, and falls back silently.
+    ///
+    /// @return the substituted tokens, or null when the property is unset or its
+    ///         `var()` resolves to nothing
+    public List<Token> customProperty(StyleElement element, String name) {
+        var properties = customPropertiesFor(element);
+        var tokens = properties.get(name);
+        return tokens == null ? null : substitute(tokens, properties, new HashSet<>());
+    }
+
     /// The same, when the caller has already cascaded `element` and would
     /// otherwise pay for it twice.
     ///

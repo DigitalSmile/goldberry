@@ -205,6 +205,7 @@
 - [ADR-0193 A canvas is a second clip depth](adr/0193-a-canvas-is-a-second-clip-depth.md)
 - [ADR-0194 A series colour is derived from Nord, not taken from it](adr/0194-a-series-colour-is-derived-from-nord-not-taken-from-it.md)
 - [ADR-0195 A painter reads the theme through a custom property](adr/0195-a-painter-reads-the-theme-through-a-custom-property.md)
+- [ADR-0196 A masonry is a layout that reads last frame](adr/0196-a-masonry-is-a-layout-that-reads-last-frame.md)
 
 ---
 

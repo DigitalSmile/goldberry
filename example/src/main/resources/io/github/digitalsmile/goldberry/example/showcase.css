@@ -386,3 +386,47 @@ panel.surface-demo {
 #demo-accordion {
   gap: 4px;
 }
+
+/* --- the Charts screen ----------------------------------------------------
+   A wall of cards in a `masonry`. Nothing here says how tall a card is: the
+   whole point of the layout is that a card is as tall as its contents and the
+   *columns* come out uneven. What the cards do need is a height for the plots,
+   because a chart has no intrinsic size — it takes the room it is given, which
+   is a stylesheet's business and not a number the toolkit should invent. */
+#charts {
+  gap: 12px;
+}
+
+#wall {
+  gap: 12px;
+}
+
+/* Every chart plot on this screen. A `statistic`'s sparkline is deliberately not
+   in this list: it is 28px because it sits under a number rather than beside an
+   axis, and a trend as tall as a chart would read as the point of the card. */
+#requests, #bytes, #errors, #latency {
+  height: 148px;
+}
+
+#cache {
+  height: 168px;
+}
+
+sparkline {
+  height: 28px;
+}
+
+/* The card's own title: §1.4's `label` rank, muted, above the thing it names. */
+.card-title {
+  color: var(--gb-text-muted);
+  font-size: var(--gb-font-caption);
+  line-height: var(--gb-line-caption);
+}
+
+/* One rule, both halves. `--gb-chart-1` is a custom property, so it inherits
+   from this card into the chart's plot *and* into its legend swatch -- the line
+   and the key cannot disagree, which is what a Java palette table could not have
+   promised (ADR-0195). */
+#latency-card {
+  --gb-chart-1: var(--gb-warning);
+}

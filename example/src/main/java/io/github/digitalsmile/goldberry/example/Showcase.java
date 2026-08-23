@@ -208,7 +208,7 @@ public final class Showcase implements Application {
         // landed on the fourth strip position would be a gallery with two
         // orders in it.
         var screens = List.of("controls", "values", "text", "overlays", "panels", "forms",
-                "notifications", "tabs", "scrolling");
+                "notifications", "charts", "tabs", "scrolling");
         var digits = List.of(Key.DIGIT_1, Key.DIGIT_2, Key.DIGIT_3, Key.DIGIT_4, Key.DIGIT_5,
                 Key.DIGIT_6, Key.DIGIT_7, Key.DIGIT_8, Key.DIGIT_9);
         for (var index = 0; index < screens.size(); index++) {

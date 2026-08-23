@@ -134,11 +134,17 @@ public final class WidgetRenderer {
                 // Cached by element identity against what its parent handed
                 // down, so a chart asking for eight slots pays one cascade
                 // rather than eight (ADR-0152).
-                var tokens = resolver.customPropertiesFor(currentElement).get(name);
-                if (tokens == null) {
+                // Substituted, not raw: a custom property may hold another one,
+                // and `--gb-chart-1: var(--gb-warning)` is the natural way to
+                // write "this series is the warning hue". Reading the tokens
+                // without resolving reads that as "not a colour" and falls back
+                // silently -- which is what the showcase's `p99 latency` card did
+                // until the picture showed it still green.
+                var resolved = resolver.customProperty(currentElement, name);
+                if (resolved == null) {
                     return fallback;
                 }
-                var parsed = io.github.digitalsmile.goldberry.css.value.CssColor.parse(tokens);
+                var parsed = io.github.digitalsmile.goldberry.css.value.CssColor.parse(resolved);
                 return parsed == null ? fallback : parsed;
             }
 

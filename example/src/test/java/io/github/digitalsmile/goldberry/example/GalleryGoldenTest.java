@@ -119,13 +119,29 @@ class GalleryGoldenTest {
         // `spinner` on the Values screen and the `skeleton`s on Panels are at
         // whatever they are at 200ms, on every machine.
         //
-        // This is half of the entry TODO.md files under `text-area`. The other
-        // half — feeding the hit-test regions back between the two frames, so a
-        // widget that measures itself sees a real width — is still open, and is
-        // why the `text-area` in the Forms image still wraps as if it were
-        // narrow.
-        renderer.render(tree);
-        clock.advance(200);
+        // **And the regions are fed back**, which is the other half of the entry
+        // TODO.md filed under `text-area` and was open until `masonry` became the
+        // second widget to need it. `Measured` is delivered by the *router*, from
+        // the rectangles a laid-out frame produced — so a harness that only
+        // rendered gave every self-measuring widget a first-frame answer for
+        // ever: a `text-area` that wrapped as though it were narrow, and a
+        // `masonry` photographed mid-settle.
+        //
+        // A real window does render → lay out → hand the router the regions, so
+        // that is what this does, twice.
+        var target = io.github.digitalsmile.goldberry.paint.TestFrames.of(width, height, 1.0f);
+        try (var render = io.github.digitalsmile.goldberry.paint.tree.RenderTree.create()) {
+            var router = new io.github.digitalsmile.goldberry.input.PointerRouter();
+            render.update(target.frame(), renderer.render(tree));
+            router.updateRegions(
+                    io.github.digitalsmile.goldberry.input.hit.HitTest.capture(render));
+            clock.advance(200);
+            render.update(target.frame(), renderer.render(tree));
+            router.updateRegions(
+                    io.github.digitalsmile.goldberry.input.hit.HitTest.capture(render));
+        } finally {
+            target.end();
+        }
 
         GoldenImage.assertMatches(name, width, height, 1.0f,
                 frame -> BoxPainter.paint(frame, renderer.render(tree)));
@@ -205,6 +221,19 @@ class GalleryGoldenTest {
     @DisplayName("the Choosers screen")
     void choosers() {
         paint("gallery-choosers", "choosers", Theme.NORD_DARK);
+    }
+
+    @Test
+    @DisplayName("the Charts screen")
+    void charts() {
+        // Taller than the default, because the wall is what is worth seeing: at
+        // the usual height the picture is three cards and the top of a fourth.
+        //
+        // **Two frames.** A masonry reads the frame before it, so the first is
+        // round-robin and the second is the real layout -- and a golden of the
+        // first would be a picture of the settling rather than of the widget
+        // (ADR-0196).
+        paint("gallery-charts", "charts", Theme.NORD_DARK, 900, 900);
     }
 
     @Test

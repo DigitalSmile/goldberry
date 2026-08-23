@@ -428,13 +428,19 @@ the mechanism the sentence named.
   since both want to decide the height — or a second bar implementation. Neither
   is obviously right. —
   [ADR-0171](adr/0171-a-column-is-an-x-and-a-width-arrives-late.md)
-- **A golden of a `text-area` is a golden of its first frame** — **half fixed.**
-  The gallery renders **twice** now and asserts on the second, 200ms in, which
-  §7's `message` forced: a screen painted once shows every arriving widget at the
-  *start* of its entrance, so four banners held their space and drew nothing. The
-  other half is still open and is the half a `text-area` needs — feeding the
-  hit-test regions back between the two frames, so a widget that measures itself
-  sees a real width rather than the guess it made before anything was laid out. —
+- ~~**A golden of a `text-area` is a golden of its first frame.**~~ **Both halves
+  are fixed now.** The first was the gallery rendering twice and asserting on the
+  second, 200ms in, which §7's `message` forced. The second — feeding the
+  hit-test regions back *between* those frames — stayed open because nothing
+  needed it badly enough, and `masonry` did: a layout that reads last frame
+  cannot be photographed at all without it
+  ([ADR-0196](adr/0196-a-masonry-is-a-layout-that-reads-last-frame.md)).
+  `Measured` is delivered by the **router**, from the rectangles a laid-out frame
+  produced, so a harness that only rendered gave every self-measuring widget a
+  first-frame answer for ever. The harness runs render → lay out → hand the
+  router the regions, twice, which is what a window does — and the Forms image is
+  now the one the running application shows, with its `text-area` wrapped at the
+  width it actually has. —
   [ADR-0175](adr/0175-a-banner-says-its-kind-twice.md),
   [ADR-0171](adr/0171-a-column-is-an-x-and-a-width-arrives-late.md)
 - **A guard at the top of `onPointer` is a guard on every pointer kind, and the

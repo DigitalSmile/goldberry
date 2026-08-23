@@ -564,3 +564,10 @@ tracks them alongside the implementation's own gaps.
   rather than an omission, so it needs a decision. It is post-v1 either way —
   `goldberry-plot` is not scheduled — but the note belongs here rather than in the
   module that would inherit the argument. (§11.1)
+- **`masonry` is a widget the design documents do not have.** §5's containers are
+  complete without it, and the catalog has it anyway: a wall of cards of unequal
+  height had no answer, `column-count` is not in §8's subset, and Yoga is a
+  flexbox engine — flexbox cannot do masonry, which is why CSS specified it
+  separately. It is an addition rather than a reading of the canon, and it is
+  here rather than in `core-widgets.md` because that document is the authority
+  and editing it is not the implementation's to do (ADR-0196). (§11)

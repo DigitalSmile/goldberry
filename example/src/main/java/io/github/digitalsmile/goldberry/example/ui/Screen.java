@@ -142,6 +142,9 @@ public record Screen(ShowcaseModel model, ShowcaseModel.Actions actions,
                     // a control a narrowed list of options back (ADR-0182,
                     // ADR-0183).
                     new Tab("choosers", "Choosers", scrolled(new Choosers())),
+                    // §11's five data widgets, in the wall of cards a dashboard
+                    // is made of -- which is what asked for `masonry`.
+                    new Tab("charts", "Charts", scrolled(new Charts())),
                     new Tab("tabs", "Tabs", scrolled(new TabsDemo(model, actions))),
                     // Not `scrolled`: this screen owns a viewport of its own, and
                     // §2.4 bans nested same-axis scrollers — so the screen that

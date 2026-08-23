@@ -187,7 +187,11 @@ public record ChartPlot(List<Series> series, List<String> categories, Mode mode)
                 gutter = Math.max(gutter, layout.width());
                 lineHeight = Math.max(lineHeight, layout.height());
             }
-            var bottom = xLabels.isEmpty() ? 0 : lineHeight + GAP;
+            // Half a line under the plot even with no x labels: the lowest y
+            // label is centred on the baseline, so without it the bottom half of
+            // it is cut off by the edge of the box -- which the showcase's `p99
+            // latency` card showed as a "120" with no bottom.
+            var bottom = xLabels.isEmpty() ? lineHeight / 2 : lineHeight + GAP;
 
             var left = gutter + GAP;
             var plotWidth = size.width() - left;

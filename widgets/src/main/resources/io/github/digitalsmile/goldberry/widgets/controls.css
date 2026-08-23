@@ -3312,10 +3312,13 @@ donut-plot {
 
 /* Wrapping, because a legend is the part of a chart most likely to be wider than
    the chart (ADR-0192). `flex-wrap` exists for exactly this shape. */
+/* One value, because §8's `gap` is a single length -- the two-value row/column
+   form parses as nothing and silently leaves the entries touching, which is what
+   the showcase's first chart legend looked like. */
 chart-legend {
   flex-direction: row;
   flex-wrap: wrap;
-  gap: 4px 12px;
+  gap: 12px;
   align-items: center;
 }
 
@@ -3344,4 +3347,35 @@ series,
 point {
   width: 0;
   height: 0;
+}
+
+/* --- masonry (ADR-0196) ---------------------------------------------------
+   A row of equal columns. `flex-basis: 0` with `flex-grow: 1` rather than
+   `width: 33%`, because the count is the widget's and a percentage would have to
+   agree with it -- three columns styled at 33% and set to `columns=4` would be a
+   layout that overflows by a third and looks like a rounding bug.
+
+   The gap between *columns* is this rule's; the gap between *cards* is the
+   column's. They are two different distances and a masonry that used one number
+   for both is one nobody can tune. */
+masonry {
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+/* The width is **not** here: it is 1/n of the row and no selector can count n,
+   so the widget writes it inline the way `segmented`'s indicator does
+   (ADR-0099). `flex-grow` alone would size a column to its content, and then a
+   card's height would depend on which column it landed in -- which is the loop
+   the whole layout is built to avoid. */
+masonry-column {
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* A cell adds nothing of its own: it exists to report a height. Anything drawn
+   here would be drawn around every card in the wall. */
+masonry-cell {
+  flex-direction: column;
 }

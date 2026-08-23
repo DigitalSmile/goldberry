@@ -3546,6 +3546,40 @@ is the `scroll` box's.
   have asserted: the clipped `Su`, the stacking order, the band-versus-point
   label offset, and the arc direction — `largeArc` set wrongly draws the
   *complement* of a slice, which is exactly wrong rather than obviously wrong.
+- **The showcase has a Charts screen**, which is the first place all five are on
+  one wall — and it is what asked for `masonry`
+  ([ADR-0196](adr/0196-a-masonry-is-a-layout-that-reads-last-frame.md)). A donut
+  is square, a `statistic` is three lines and a `line-chart` is whatever height
+  it was given; in equal rows every card is as tall as the tallest beside it and
+  the short ones sit in acres of surface.
+- **`masonry` reads the frame before.** Nothing can tell a widget how tall a
+  child will be before it is laid out, so each card reports what it came out as
+  through `Measured`, the state banks it, and the next frame puts each card under
+  the shortest column. First frame round-robin, second frame right. It is allowed
+  here — where `Measured`'s third rule forbids it in general — for one reason:
+  **the columns are equal width, so a card's height does not depend on which
+  column it is in**, and the number being reported is stable under the thing it
+  causes. Which is also why `columns` is a count and not a list of widths, and
+  why there is a test that four frames produce one layout rather than a comment
+  claiming they do.
+- **It is a widget the design documents do not have.** §5's containers were
+  complete without it; recorded in `ARCHITECTURE.md` §17.1 rather than resolved
+  by editing a document that is the authority.
+- **The screen found three defects that no assertion would have.** A legend's
+  entries touched, because §8's `gap` takes one length and the two-value
+  row/column form parses as nothing; the lowest y label was cut in half when a
+  chart had no x labels, because it is centred on the baseline; and
+  `--gb-chart-1: var(--gb-warning)` did nothing, because a custom property may
+  hold **another** `var()` and CSS resolves those at *use* time — reading the raw
+  tokens saw "not a colour" and fell back silently. `StyleResolver` exposes a
+  substituted read now, which is what ADR-0195's mechanism should have done from
+  the start.
+- **And it closed an open TODO.** The gallery goldens never fed hit-test regions
+  back between their two frames, so every self-measuring widget saw a first-frame
+  answer for ever — `text-area` wrapped as though it were narrow in the Forms
+  image and the entry said so. A masonry cannot be photographed at all without
+  it, which made the gap concrete enough to close; the Forms picture is now the
+  one the running application shows.
 - **Not built: the interaction layer** `charts.md` §3.1 lists — tooltip,
   crosshair, thresholds, log scales, time axes, and clicking a legend entry to
   isolate a series. The five widgets exist; what they do when a pointer arrives
