@@ -251,6 +251,12 @@ final class SelectState extends State<Select> {
                         field.size().width(), VIEWPORT)
                 : host.popup(panel(), field, Placement.BELOW,
                         field.size().width(), VIEWPORT);
+        // The anchor this was placed against, so a report of "it opened in the
+        // wrong place" can be settled from a log rather than from guesses. The
+        // rectangle is what the last frame *painted* the field as, which is the
+        // only thing a popup can be anchored to (ADR-0119).
+        LOG.debug("select list anchored to {} (field {}x{} at {},{})", field,
+                field.size().width(), field.size().height(), field.left(), field.top());
         if (opened.isEmpty()) {
             // No popup windows on this driver. The list stays closed rather than
             // falling back to an in-window overlay, because the overlay would be
