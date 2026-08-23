@@ -1273,7 +1273,14 @@ the mechanism the sentence named.
   by different people. —
   [ADR-0153](adr/0153-a-rate-is-counted-a-refresh-is-asked-for.md)
 
-- **A popup hangs on screen when the application loses focus to another window** —
+- ~~**A popup hangs on screen when the application loses focus to another
+  window**~~ **No popup of any kind holds the platform keyboard now**, so
+  `anyWindowFocused` means what it says: the application is focused exactly when
+  one of its own real windows is. A popup never relied on focus anyway — the owner
+  has forwarded keys to whatever popup is open since ADR-0104, precisely because
+  SDL focuses `POPUP_MENU` windows on some drivers and not others. —
+  [ADR-0189](adr/0189-no-popup-holds-the-keyboard.md)
+- **(was)** —
   **still open, and one candidate is eliminated.** `anyWindowFocused()` counts
   popup windows, so a popup holding platform focus keeps the whole check true. A
   `MENU`-kind popup is focusable and is the likely culprit; the suggestion panels

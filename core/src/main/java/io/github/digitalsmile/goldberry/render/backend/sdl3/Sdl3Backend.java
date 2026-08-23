@@ -375,23 +375,40 @@ public final class Sdl3Backend implements Backend {
         // TOOLTIP alone does *not* stop a popup taking focus -- NOT_FOCUSABLE is
         // a separate flag and is what keeps the caret in the field the tooltip is
         // describing.
-        var flags = EnumSet.of(SdlWindowFlag.HIGH_PIXEL_DENSITY, SdlWindowFlag.HIDDEN);
+        // **No popup of any kind takes the platform keyboard.**
+        //
+        // `NOT_FOCUSABLE` on all three, which reads like a restriction and is the
+        // opposite. A popup was never allowed to *rely* on having focus: SDL
+        // gives a `POPUP_MENU` window focus on some drivers and not others, so
+        // the owner has forwarded keys to whatever popup is open since ADR-0104
+        // and a menu is operable by arrows either way. What varied by driver was
+        // therefore never the behaviour — only whether the application still
+        // looked focused to itself.
+        //
+        // And that is what `anyWindowFocused` reads to decide a popup has been
+        // left behind (ADR-0144). A focusable popup could hold the answer true
+        // after the user had switched to another application entirely, so the
+        // menu stayed on screen over somebody else's window. Taking focus off all
+        // of them makes that check mean what it says: the application is focused
+        // exactly when one of its *own* windows is
+        // ([ADR-0189](../../../../../../book/src/adr/0189-no-popup-holds-the-keyboard.md)).
+        var flags = EnumSet.of(SdlWindowFlag.HIGH_PIXEL_DENSITY, SdlWindowFlag.HIDDEN,
+                SdlWindowFlag.NOT_FOCUSABLE);
         switch (spec.kind()) {
             case MENU -> {
                 flags.add(SdlWindowFlag.POPUP_MENU);
                 flags.add(SdlWindowFlag.TRANSPARENT);
             }
             case ATTACHED -> {
-                // A menu window that will not take the keyboard: the pointer
-                // still arrives, which is what tells this apart from TOOLTIP
-                // (ADR-0187).
+                // A menu window in everything the window manager cares about --
+                // it takes the pointer, which is what tells it apart from a
+                // tooltip (ADR-0187). The keyboard is refused above, with
+                // everything else's.
                 flags.add(SdlWindowFlag.POPUP_MENU);
-                flags.add(SdlWindowFlag.NOT_FOCUSABLE);
                 flags.add(SdlWindowFlag.TRANSPARENT);
             }
             case TOOLTIP -> {
                 flags.add(SdlWindowFlag.TOOLTIP);
-                flags.add(SdlWindowFlag.NOT_FOCUSABLE);
                 flags.add(SdlWindowFlag.TRANSPARENT);
             }
         }

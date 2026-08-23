@@ -169,6 +169,53 @@ class SelectLoopTest {
                         + " — so it is drawn over the control it belongs to");
     }
 
+    /// The same placement, from a window that is **not at the origin** and a
+    /// display whose work area is **not the whole screen**.
+    ///
+    /// Every other test here runs the case that hides a coordinate-space bug: a
+    /// window at (0,0) with a work area at (0,0) makes screen coordinates and
+    /// window coordinates identical, so mixing them is invisible. A real desktop
+    /// never looks like that — there is a taskbar and the window has been moved.
+    ///
+    /// `placeableArea` converts the work area into the window's own space by
+    /// subtracting the window's origin, and `Placement` clamps the popup into it.
+    /// If those two disagreed the popup would be pushed back up over the control
+    /// it belongs to, which is what "it overlaps the text edit" would look like
+    /// ([ADR-0189]).
+    @Test
+    @Timeout(20)
+    @DisplayName("and still below it from a moved window on a display with a taskbar")
+    void openedBelowFromAMovedWindow() {
+        var anchor = new LogicalRect[1];
+        var top = new float[1];
+        // A taskbar 48 tall at the top of a 1600×900 display.
+        backend.workArea(LogicalRect.of(0, 48, 1600, 852));
+
+        Goldberry.launch(new TestApp(
+                new Select("", value -> { }, new Option("london", "London"))
+                        .autocomplete(query -> { })
+                        .placeholder("Pick a city")
+                        .withAttributes(Attributes.NONE.id("city")),
+                host -> later(200, () -> {
+                    main().moveTo(new io.github.digitalsmile.goldberry.render.model
+                            .LogicalPoint(220, 160));
+                    anchor[0] = host.anchor("city").orElseThrow().bounds();
+                    click(main(), anchor[0].left() + 20, anchor[0].top() + 8);
+                    later(300, () -> {
+                        top[0] = popups().isEmpty()
+                                ? Float.NaN : popups().getFirst().offset().y();
+                        Goldberry.stop();
+                    });
+                })));
+
+        assertFalse(Float.isNaN(top[0]), "no list opened at all");
+        var bottom = anchor[0].top() + anchor[0].size().height();
+        assertTrue(top[0] >= bottom - 0.5f,
+                "the list opened at y=" + top[0] + " in the window's coordinates, and the field"
+                        + " runs from " + anchor[0].top() + " to " + bottom
+                        + " — the anchor and the placeable area are in different spaces");
+    }
+
     /// ADR-0186's defect: a field that took one character and went dead, because
     /// the popup's **window** took the keyboard.
     ///
