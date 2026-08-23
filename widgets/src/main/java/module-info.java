@@ -60,6 +60,12 @@ module io.github.digitalsmile.goldberry.widgets {
     exports io.github.digitalsmile.goldberry.widgets.core;
     exports io.github.digitalsmile.goldberry.widgets.core.affix;
     exports io.github.digitalsmile.goldberry.widgets.core.canvas;
+
+    /// `docs/core-widgets.md` §11's data widgets, built on `canvas` and the
+    /// theme palette rather than on a chart engine (`content-widgets.md` §3).
+    /// `sparkline` is the first and the smallest — no axes, no legend.
+    exports io.github.digitalsmile.goldberry.widgets.data;
+    exports io.github.digitalsmile.goldberry.widgets.data.sparkline;
     exports io.github.digitalsmile.goldberry.widgets.core.scroll;
     exports io.github.digitalsmile.goldberry.widgets.text;
     exports io.github.digitalsmile.goldberry.widgets.panel;

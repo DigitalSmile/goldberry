@@ -173,11 +173,11 @@ class PanelsGoldenTest {
     void statistics() {
         paint("statistic-dark", Theme.NORD_DARK, 460, 120, new Row(List.of(
                 new Statistic("Active users", "12,480", null, "+4.2%",
-                        Statistic.Direction.UP, Attributes.NONE.classes("grow")),
+                        Statistic.Direction.UP, null, Attributes.NONE.classes("grow")),
                 new Statistic("Latency", "128", "ms", "-11 ms",
-                        Statistic.Direction.DOWN, Attributes.NONE.classes("grow")),
+                        Statistic.Direction.DOWN, null, Attributes.NONE.classes("grow")),
                 new Statistic("Errors", "0", null, "no change",
-                        Statistic.Direction.NONE, Attributes.NONE.classes("grow"))),
+                        Statistic.Direction.NONE, null, Attributes.NONE.classes("grow"))),
                 id("stats")));
     }
 

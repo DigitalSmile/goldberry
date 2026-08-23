@@ -1,6 +1,7 @@
 package io.github.digitalsmile.goldberry.widgets.panel.statistic;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -31,6 +32,24 @@ class StatisticTest {
     }
 
     @Test
+    @DisplayName("holds §5's optional sparkline, as the last child")
+    void theSparklineIsOneMoreChild() {
+        // The note on the widget said, while it was waiting on `canvas`, that a
+        // sparkline would be "one more child at the end of the column". This is
+        // that sentence as an assertion.
+        var plain = new Statistic("Users", "12,480");
+        var withTrend = plain.sparkline(
+                new io.github.digitalsmile.goldberry.widgets.data.sparkline.Sparkline(
+                        java.util.List.of(1.0, 3.0, 2.0, 5.0)));
+
+        assertEquals(plain.children().size() + 1, withTrend.children().size());
+        assertTrue(withTrend.children().getLast()
+                        instanceof io.github.digitalsmile.goldberry.widgets.data.sparkline.Sparkline,
+                "the trend goes last: what it is, the number, how it changed, then the shape");
+        assertNull(plain.sparkline(), "and a statistic without one is unchanged");
+    }
+
+    @Test
     @DisplayName("a label and a value, and nothing else when nothing else is given")
     void minimal() {
         var tree = new ElementTree(new Statistic("Active users", "12,480"));
@@ -57,7 +76,7 @@ class StatisticTest {
     @DisplayName("a direction is a class on the delta, not a colour")
     void directionIsAClass() {
         var up = new Statistic("Users", "1", null, "+1", Statistic.Direction.UP,
-                Attributes.NONE);
+                null, Attributes.NONE);
 
         assertEquals(Set.of("up"),
                 Described.first(new ElementTree(up), Statistic.StatisticDelta.class).classes());
@@ -78,9 +97,9 @@ class StatisticTest {
     @DisplayName("a negative delta can be marked either way, because the caller decides")
     void directionIsSentiment() {
         var improvement = new Statistic("Latency", "128", "ms", "-11 ms",
-                Statistic.Direction.DOWN, Attributes.NONE);
+                Statistic.Direction.DOWN, null, Attributes.NONE);
         var loss = new Statistic("Revenue", "40k", null, "-11%",
-                Statistic.Direction.DOWN, Attributes.NONE);
+                Statistic.Direction.DOWN, null, Attributes.NONE);
 
         assertEquals(improvement.direction(), loss.direction(),
                 "the widget cannot tell these apart, and does not try");

@@ -3394,10 +3394,40 @@ is the `scroll` box's.
   Naming a painter from markup needs the registry indirection `icon` and `action`
   use, and the shape of that registry depends on whether a painter is a value or
   a method. Filed rather than guessed at.
-- **Not built: the chart substrate and the five widgets.** `canvas` is the floor
-  they stand on and it is now in the corpus — `canvas-dark` is a themed surface
-  with a border and a radius from CSS and two bars from a painter, which is the
-  picture that says the two halves compose.
+- **`sparkline` is built, and `statistic` has its child.** §11's first chart and
+  its smallest: no axes, no legend, no tooltip — a shape beside a number, read
+  for its direction. It is **one series, so it takes `color`**, exactly like
+  text: a palette is for telling series apart and there is nothing here to tell
+  apart, so an application recolours one with the property it would already reach
+  for and a trend inside a `statistic` can inherit the delta's hue from a rule.
+  The palette arrives with `line-chart`, which is the first widget that has two
+  of anything.
+- **It scales to the data's own range, not to zero.** A series between 1000 and
+  1004 baselined at zero is a flat line that says nothing, and the shape of the
+  change is the whole job. A flat series is centred rather than divided by a zero
+  range, and the stroke is inset by its own half-width so a maximum is not
+  clipped in half at the top edge.
+- **`Lttb` is the first of §3.1's borrowed algorithms.** Largest-Triangle-Three-
+  Buckets, and the reason is truth rather than speed: a hundred thousand points
+  in a two-hundred-pixel sparkline is five hundred per pixel, and whichever one
+  is drawn last wins. The test that matters puts a single 20× sample at index
+  4237 of 10 000 and asserts both that LTTB keeps it **and** that every hundredth
+  sample — "just take fewer points" — misses it entirely.
+- **The marker is a disc and there is a test that says so.** SVG's `A`, which is
+  what Blend2D's path takes, cannot draw a full circle in one segment, so it is
+  two half-arcs; getting that wrong gives a square, a wedge or nothing, and all
+  three look plausible at 200px. The corners of its bounding box are what tell
+  them apart.
+- **`statistic`'s note turned out to be right.** It said, while it was waiting,
+  that a sparkline would be "one more child at the end of the column" — and that
+  is exactly what it was, with no other change. That sentence is an assertion
+  now. The gap has been open since M2 (ADR-0164).
+- **Two goldens**: `canvas-dark`, a themed surface with a border and a radius
+  from CSS and two bars from a painter — the picture that says the two halves
+  compose — and `sparkline-dark`, filled and marked, in `--gb-accent`.
+- **Not built: the other four widgets and the substrate they need** — scales,
+  Wilkinson ticks, legend, tooltip, crosshair. `sparkline` needed none of them,
+  which is why it went first.
 
 ### Not started
 

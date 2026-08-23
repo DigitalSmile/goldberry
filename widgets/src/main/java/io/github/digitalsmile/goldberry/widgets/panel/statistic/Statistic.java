@@ -48,11 +48,18 @@ import java.util.Set;
 /// thing in the catalog conveying meaning by colour *and* shape while the
 /// accessible name conveys neither.
 ///
-/// ## The sparkline is not built
+/// ## The sparkline
 ///
-/// §5's "optional `sparkline` from a `canvas`" waits on `canvas`, which is §12's
-/// and is not in the catalog. Nothing here is shaped around its absence: a
-/// sparkline is one more child at the end of the column.
+/// §5's "optional `sparkline` from a `canvas`" is built, and it turned out to be
+/// exactly what this note predicted: **one more child at the end of the column**,
+/// with no other change. It waited on `canvas`
+/// ([ADR-0193](../../../../../../../../book/src/adr/0193-a-canvas-is-a-second-clip-depth.md)),
+/// which was §1's last unbuilt primitive.
+///
+/// It inherits its colour like everything else here, which is what makes
+/// `statistic.up sparkline { color: var(--gb-success) }` a rule an application
+/// can write — a trend drawn in the same hue as the delta above it, from the
+/// cascade rather than from an argument.
 ///
 /// @param label      what the number is of — always present, because §5 makes the
 ///                   label and the value one accessible name
@@ -60,10 +67,12 @@ import java.util.Set;
 /// @param unit       an optional suffix, set smaller and muted beside the value
 /// @param delta      an optional change, or null
 /// @param direction  which way [#delta] went, and therefore what colour it is
+/// @param sparkline  §5's optional trend, or null
 /// @param attributes the `id` and classes
 @Markup("statistic")
 public record Statistic(
         String label, String value, String unit, String delta, Direction direction,
+        io.github.digitalsmile.goldberry.widgets.data.sparkline.Sparkline sparkline,
         Attributes attributes)
         implements Widget.Leaf, Styled, Paints, Attributed<Statistic> {
 
@@ -102,7 +111,7 @@ public record Statistic(
     }
 
     public Statistic(String label, String value) {
-        this(label, value, null, null, Direction.NONE, Attributes.NONE);
+        this(label, value, null, null, Direction.NONE, null, Attributes.NONE);
     }
 
     public Statistic {
@@ -116,12 +125,12 @@ public record Statistic(
 
     /// This statistic with a unit after its value.
     public Statistic unit(String value) {
-        return new Statistic(label, this.value, value, delta, direction, attributes);
+        return new Statistic(label, this.value, value, delta, direction, sparkline, attributes);
     }
 
     /// This statistic with a change under its value.
     public Statistic delta(String text, Direction which) {
-        return new Statistic(label, value, unit, text, which, attributes);
+        return new Statistic(label, value, unit, text, which, sparkline, attributes);
     }
 
     @Override
@@ -131,7 +140,7 @@ public record Statistic(
 
     @Override
     public Statistic withAttributes(Attributes value) {
-        return new Statistic(label, this.value, unit, delta, direction, value);
+        return new Statistic(label, this.value, unit, delta, direction, sparkline, value);
     }
 
     @Override
@@ -152,11 +161,16 @@ public record Statistic(
     /// baked the hierarchy in.
     @Override
     public List<Widget> children() {
-        var parts = new ArrayList<Widget>(3);
+        var parts = new ArrayList<Widget>(4);
         parts.add(new StatisticLabel(label));
         parts.add(new StatisticValue(value, unit));
         if (delta != null) {
             parts.add(new StatisticDelta(delta, direction));
+        }
+        if (sparkline != null) {
+            // Last, because §5 reads top to bottom -- what it is, the number, how
+            // it changed, and then the shape of the change.
+            parts.add(sparkline);
         }
         return List.copyOf(parts);
     }
@@ -164,6 +178,12 @@ public record Statistic(
     @Override
     public Box render(ComputedStyle style, List<Box> boxes, Context context) {
         return Box.of().style(style).children(boxes.toArray(Box[]::new));
+    }
+
+    /// This statistic with §5's optional trend under it.
+    public Statistic sparkline(
+            io.github.digitalsmile.goldberry.widgets.data.sparkline.Sparkline value) {
+        return new Statistic(label, this.value, unit, delta, direction, value, attributes);
     }
 
     /// Builds a `statistic` from markup.
@@ -174,7 +194,7 @@ public record Statistic(
                 node.stringProperty("unit"),
                 node.stringProperty("delta"),
                 Direction.of(node.stringProperty("direction")),
-                Attributes.of(node));
+                null, Attributes.of(node));
     }
 
     /// What the number is of.
