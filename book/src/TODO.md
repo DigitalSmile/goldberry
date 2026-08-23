@@ -1281,7 +1281,14 @@ the mechanism the sentence named.
   [ADR-0186](adr/0186-a-panel-that-hangs-off-a-field-is-not-a-menu.md), so they
   can no longer be it. The next step is a real window and a log of `FocusChanged`
   per window id, which the headless backend cannot produce.
-- **(superseded detail)**
+- **`flex-wrap` is not in §8's subset**, and `select multiple` is the first thing
+  that wanted it: a row of chips shrinks rather than wrapping onto a second line.
+  Yoga has `setFlexWrap` bound and `Box` has no field for it, which is exactly
+  where `min-width` was before [ADR-0181](adr/0181-a-box-may-say-how-small-and-how-large.md)
+  and would take the same shape — one component, one property, one line in the
+  render tree, and the churn across every positional copy that the wither tests
+  now guard. —
+  [ADR-0187](adr/0187-a-panel-takes-the-pointer-and-leaves-the-keyboard.md)
   The window hides and the popup stays where it was. The mechanism
   [ADR-0144](adr/0144-a-popup-goes-away-when-the-application-does.md) describes is
   wired — the launcher watches `FocusChanged` and calls `dismissPopups` after a

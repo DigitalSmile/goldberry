@@ -307,6 +307,15 @@ public final class Popup implements AutoCloseable {
     private void paint(Frame frame) {
         if (tree.needsBuild()) {
             tree.flush();
+            // **And then measure again.** A popup's content can change without
+            // anything outside it knowing: a `tree` expanding a branch is a
+            // `setState` in the popup's *own* tree, which flushes here and never
+            // reaches the widget that opened the popup. Measuring only in
+            // `content` therefore missed exactly the case that needed it — the
+            // new rows were drawn into a window still the height of the
+            // collapsed one
+            // ([ADR-0187](../../../book/src/adr/0187-a-panel-takes-the-pointer-and-leaves-the-keyboard.md)).
+            resizeToContent();
         }
         var current = renderer.get();
         // Transparent, not a colour: a popup's panel has rounded corners, and

@@ -1126,8 +1126,13 @@ select text-input:focus {
    one holding a word. `align-items` rather than a height, so the control grows
    with what is in it -- a select with five values chosen is genuinely a taller
    control, and clipping it would hide what the user picked. */
+/* **No `flex-wrap`**, and the chips therefore shrink rather than wrapping onto a
+   second line. §8's subset has no such property -- Yoga has the setter bound and
+   `Box` has no field for it -- so writing one only logged "ignoring unsupported
+   property" once per frame and did nothing (ADR-0187). What holds instead: a
+   chip shrinks, and a field with more chips than it can show shows fewer of them
+   whole. Adding `flex-wrap` to the subset is the real answer and is filed. */
 select.multiple {
-  flex-wrap: wrap;
   gap: 4px;
   height: auto;
   min-height: 32px;

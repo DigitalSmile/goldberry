@@ -381,6 +381,14 @@ public final class Sdl3Backend implements Backend {
                 flags.add(SdlWindowFlag.POPUP_MENU);
                 flags.add(SdlWindowFlag.TRANSPARENT);
             }
+            case ATTACHED -> {
+                // A menu window that will not take the keyboard: the pointer
+                // still arrives, which is what tells this apart from TOOLTIP
+                // (ADR-0187).
+                flags.add(SdlWindowFlag.POPUP_MENU);
+                flags.add(SdlWindowFlag.NOT_FOCUSABLE);
+                flags.add(SdlWindowFlag.TRANSPARENT);
+            }
             case TOOLTIP -> {
                 flags.add(SdlWindowFlag.TOOLTIP);
                 flags.add(SdlWindowFlag.NOT_FOCUSABLE);

@@ -822,7 +822,7 @@ final class Launcher implements Host {
         // TOOLTIP is the *kind*, not the widget: what it buys here is
         // `NOT_FOCUSABLE`, so the keyboard stays on the field this hangs off
         // (ADR-0186).
-        return placed(content, anchor, placement, PopupKind.TOOLTIP, minimumWidth, fit);
+        return placed(content, anchor, placement, PopupKind.ATTACHED, minimumWidth, fit);
     }
 
     /// Measure, place, open — the three steps `popover` is made of (ADR-0104),
