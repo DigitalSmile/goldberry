@@ -82,6 +82,12 @@ them would publish it (ADR-0172 records the count and the decision).
 | text | `text` (paragraphs and lines) · `text.font` |
 | the rest | `kdl` · `motion` · `icon` · `assets` · `reload` |
 
+**`:common`** — one package, `io.github.digitalsmile.goldberry.log`, and the
+lowest module in the graph. `Logs` and `Startup` are used by the FFM bindings and
+by the widget catalog alike, and neither layer owns them; before ADR-0174 they
+had to live inside `:natives`, because that is the lower of the two modules that
+need them.
+
 **`:natives`** — 15 packages, split where the foreign memory stops. Each
 library's **wrappers that hold a handle** stay beside the binding class they are
 the only callers of; the enums and values, which touch no foreign memory at all,
@@ -405,8 +411,8 @@ Screen-reader bridging (UIA / NSAccessibility / AT-SPI) is planned via **AccessK
 
 ## 15. Distribution
 
-- Build: **Gradle** (Groovy DSL) multi-module — `:core`, `:widgets` (the widget catalog, charts included), `:gpu`, `:natives` (wraps the CMake superbuild) — with a version catalog and convention plugins; CI runs the same Gradle tasks on all three OSes. (The original design specified the Kotlin DSL, a separate `:charts`, and a `:gallery` module; see ADR-0013 and ADR-0014.)
-- Published to **Maven Central** under group `io.github.digitalsmile` (base package `io.github.digitalsmile.goldberry`): artifacts `goldberry-core`, `-widgets`, `-gpu`, plus `-natives-{platform}-{arch}` classifier jars (consumable from Gradle and Maven alike).
+- Build: **Gradle** (Groovy DSL) multi-module — `:common` (what both halves need and neither owns), `:core`, `:widgets` (the widget catalog, charts included), `:gpu`, `:natives` (wraps the CMake superbuild) — with a version catalog and convention plugins; CI runs the same Gradle tasks on all three OSes. (The original design specified the Kotlin DSL, a separate `:charts`, and a `:gallery` module; see ADR-0013 and ADR-0014.)
+- Published to **Maven Central** under group `io.github.digitalsmile` (base package `io.github.digitalsmile.goldberry`): artifacts `goldberry-common`, `-core`, `-widgets`, `-gpu`, plus `-natives-{platform}-{arch}` classifier jars (consumable from Gradle and Maven alike).
 - Single-jar quick start (fat natives) for tinkering; GraalVM native-image config shipped in the jars (`META-INF/native-image`).
 - License: toolkit Apache-2.0. Bundled assets — Inter (OFL), JetBrains Mono (OFL), Lucide (ISC), OpenMoji derivative (CC BY-SA, attribution in About/NOTICE). The statically linked native libraries also redistribute in object form: Blend2D, AsmJit, SDL3 (Zlib), Yoga, HarfBuzz. On Linux SDL loads the system libxkbcommon at run time; it is not redistributed. Full disclosure in `THIRD-PARTY-NOTICES.md` and `licenses/`, verified by `./gradlew checkLicenses`; see ADR-0015.
 

@@ -7,6 +7,13 @@ plugins {
 
 description = 'Goldberry native layer: hand-written FFM bindings and the libgoldberry superbuild'
 
+// Logging and the start-up timeline, which this module uses and does not own.
+// `api` because module-info says `requires`, so it has to be on the module path
+// of anything compiling against :natives (ADR-0174).
+dependencies {
+    api project(':common')
+}
+
 // ============================================================================
 // Native build (ADR-0012)
 //

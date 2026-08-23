@@ -6,7 +6,7 @@ import io.github.digitalsmile.goldberry.natives.sdl.calls.SdlSurfaceCalls;
 import io.github.digitalsmile.goldberry.natives.sdl.calls.SdlWindowCalls;
 import io.github.digitalsmile.goldberry.natives.NativeLibrary;
 import io.github.digitalsmile.goldberry.natives.layout.Layouts;
-import io.github.digitalsmile.goldberry.natives.log.Logs;
+import io.github.digitalsmile.goldberry.log.Logs;
 import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.SymbolLookup;

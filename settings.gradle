@@ -16,6 +16,9 @@ dependencyResolutionManagement {
 rootProject.name = 'goldberry'
 
 // Module map -- see docs/ARCHITECTURE.md §15.
+//   :common   what both halves need and neither owns -- logging, the start-up
+//             timeline. The lowest module: it requires nothing of Goldberry's,
+//             which is what lets :natives and :core both use it (ADR-0174)
 //   :natives  FFM bindings + the CMake superbuild that produces libgoldberry
 //   :core     widgets, style, layout, text, paint, backend SPI
 //   :widgets  the widget catalog, charts included (ADR-0014)
@@ -37,7 +40,8 @@ rootProject.name = 'goldberry'
 // only a GraalVM native image needs -- an ordinary jar binds the same annotations
 // reflectively, so weaving a jar buys a direct field write and costs every
 // consumer a build step (ADR-0125, ADR-0126, ADR-0127, ADR-0155).
-include ':natives',
+include ':common',
+        ':natives',
         ':core',
         ':widgets',
         ':gpu',

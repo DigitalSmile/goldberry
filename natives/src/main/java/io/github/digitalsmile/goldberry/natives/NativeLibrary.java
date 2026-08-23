@@ -1,7 +1,7 @@
 package io.github.digitalsmile.goldberry.natives;
 
-import io.github.digitalsmile.goldberry.natives.log.Logs;
-import io.github.digitalsmile.goldberry.natives.log.Startup;
+import io.github.digitalsmile.goldberry.log.Logs;
+import io.github.digitalsmile.goldberry.log.Startup;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;

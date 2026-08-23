@@ -1,7 +1,7 @@
 package io.github.digitalsmile.goldberry.natives.blend2d;
 
 import io.github.digitalsmile.goldberry.natives.layout.Layouts;
-import io.github.digitalsmile.goldberry.natives.log.Logs;
+import io.github.digitalsmile.goldberry.log.Logs;
 import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.ValueLayout;

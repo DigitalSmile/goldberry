@@ -183,6 +183,7 @@
 - [ADR-0171 A column is an x, and a width arrives late](adr/0171-a-column-is-an-x-and-a-width-arrives-late.md)
 - [ADR-0172 A package is a role, and the module is the fence](adr/0172-a-package-is-a-role-and-the-module-is-the-fence.md)
 - [ADR-0173 A bound function is a holder, and its handle is a constant](adr/0173-a-bound-function-is-a-holder-and-its-handle-is-a-constant.md)
+- [ADR-0174 What both halves need is its own module](adr/0174-what-both-halves-need-is-its-own-module.md)
 
 ---
 

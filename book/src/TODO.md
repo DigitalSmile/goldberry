@@ -1022,7 +1022,7 @@ the mechanism the sentence named.
   verbatim from the pinned upstream revisions. —
   [ADR-0015](adr/0015-licensing-and-third-party-disclosure.md)
 - **Nothing is publishable yet: there are no publications.** §15 says the four
-  classifier jars and `goldberry-core`, `-widgets`, `-gpu` go to Maven Central under
+  classifier jars and `goldberry-common`, `-core`, `-widgets`, `-gpu` go to Maven Central under
   `io.github.digitalsmile`. The half that exists is the artifact half — `release.yml`
   reuses the three per-OS workflows in one run, so all four libraries are built and
   downloaded into one job, and `:natives:nativeJars` packages them into classifier jars

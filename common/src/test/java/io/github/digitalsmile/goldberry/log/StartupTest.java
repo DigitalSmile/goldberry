@@ -1,4 +1,4 @@
-package io.github.digitalsmile.goldberry.natives.log;
+package io.github.digitalsmile.goldberry.log;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;

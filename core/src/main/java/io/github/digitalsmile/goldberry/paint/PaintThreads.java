@@ -1,7 +1,7 @@
 package io.github.digitalsmile.goldberry.paint;
 
 import io.github.digitalsmile.goldberry.render.model.PhysicalSize;
-import io.github.digitalsmile.goldberry.natives.log.Logs;
+import io.github.digitalsmile.goldberry.log.Logs;
 import org.slf4j.Logger;
 
 /// How many Blend2D workers a frame is painted with.

@@ -1,8 +1,8 @@
 package io.github.digitalsmile.goldberry.natives;
 
 import io.github.digitalsmile.goldberry.natives.calls.ShimCalls;
-import io.github.digitalsmile.goldberry.natives.log.Logs;
-import io.github.digitalsmile.goldberry.natives.log.Startup;
+import io.github.digitalsmile.goldberry.log.Logs;
+import io.github.digitalsmile.goldberry.log.Startup;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.SymbolLookup;
 import org.slf4j.Logger;

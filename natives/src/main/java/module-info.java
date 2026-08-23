@@ -17,6 +17,11 @@ module io.github.digitalsmile.goldberry.natives {
     // that chooses none sees nothing at all (ADR-0023).
     requires transitive org.slf4j;
 
+    // Logging and the start-up timeline. Not `transitive`: nothing here puts a
+    // type of :common in a signature, so a consumer of :natives is not made to
+    // read it (ADR-0174).
+    requires io.github.digitalsmile.goldberry.common;
+
     // The wrapper packages, and only those. The `natives` package itself stays
     // unexported: NativeLibrary hands out a SymbolLookup, and a foreign type in
     // the public surface of this module is the boundary leaking by another name.
@@ -41,16 +46,4 @@ module io.github.digitalsmile.goldberry.natives {
     exports io.github.digitalsmile.goldberry.natives.yoga;
     exports io.github.digitalsmile.goldberry.natives.yoga.style;
     exports io.github.digitalsmile.goldberry.natives.yoga.measure;
-
-    // Toolkit plumbing, not application surface.
-    //
-    // `exports ... to io.github.digitalsmile.goldberry.core` would say that
-    // precisely and does not compile: :core depends on :natives, so :core is not
-    // on the module path when this compiles, and javac warns that the target
-    // module is not found -- which -Werror makes fatal. Adding :core here would
-    // be a dependency cycle, and turning off the module lint to keep one
-    // qualified export costs more than it buys.
-    //
-    // So it is a plain export with a docstring that says what it is for.
-    exports io.github.digitalsmile.goldberry.natives.log;
 }

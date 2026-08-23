@@ -2869,6 +2869,7 @@ which are the parts with rules in them, so each is ordinary widget work now. Eve
 
 | Module | Artifact | Contents |
 |---|---|---|
+| `:common` | `goldberry-common` | What both halves need and neither owns: `Logs`, which every logger in the toolkit comes from so that SLF4J's own no-provider warning is quiet before the first one is created ([ADR-0023](adr/0023-logging-and-the-example-as-a-subproject.md)), and `Startup`, the timeline of what happened before the first pixel ([ADR-0028](adr/0028-the-start-up-timeline.md)). **The lowest module**: it requires nothing of Goldberry's, which is what lets `:natives` and `:core` both use it. It exists because they cannot both reach into the other — `:core` requires `:natives`, so shared code used to have to live inside the native layer and be exported from it ([ADR-0174](adr/0174-what-both-halves-need-is-its-own-module.md)) |
 | `:natives` | `goldberry-natives-{platform}-{arch}` | Hand-written FFM bindings, owning wrappers, and the CMake superbuild that produces `libgoldberry` |
 | `:core` | `goldberry-core` | The engines and the contracts — the widget/element/render trees, style, layout, text, icons, paint, the backend SPI, and the two backends `headless` and `sdl3` ([ADR-0041](adr/0041-three-platforms-four-artifacts-two-backends.md)). **No widgets**: `text`, `row`, `column`, `panel` and `spacer` lived here until they had a catalog to belong to ([ADR-0092](adr/0092-a-primitive-is-a-widget-like-any-other.md)) |
 | `:widgets` | `goldberry-widgets` | The widget catalog — controls, containers, menus, charts — plus the showcase screens that serve as the visual regression corpus. **One module, a package per control** — `docs/core-widgets.md`'s groups (`…widgets.controls` and `…widgets.overlay`, with `form`/`panel`/`nav`/`collection` as they are built) and one package inside each for every widget and its parts. Half a reversal of ADR-0014, and the second level is what makes ADR-0065's rule a boundary the compiler enforces rather than a convention: a `slider-thumb` is now invisible outside `…controls.slider`, where before "package-private" meant "visible to the whole catalog" ([ADR-0091](adr/0091-one-module-a-package-per-control.md)) |
@@ -2894,6 +2895,17 @@ Every module ships a `module-info.java`. That is not decoration: the module grap
 is what enforces the rule that raw `MemorySegment` never escapes `:natives`, and
 it is what makes `--enable-native-access` targetable under JEP 472. See
 [ADR-0007](adr/0007-jpms-modules-enforce-the-native-boundary.md).
+
+It is also what decides where shared code goes. `:core` requires `:natives`, so
+anything both of them need has to sit below both — which is why logging and the
+start-up timeline are a module rather than a package, and why `:core` names
+`:common` directly instead of taking it through the native layer
+([ADR-0174](adr/0174-what-both-halves-need-is-its-own-module.md)):
+
+```
+:common ← :natives ← :core ← :widgets
+   ↖________________________/
+```
 
 ## The call layer
 

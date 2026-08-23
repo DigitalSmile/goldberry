@@ -2,7 +2,7 @@ package io.github.digitalsmile.goldberry.render.event;
 
 import io.github.digitalsmile.goldberry.render.Backend;
 import io.github.digitalsmile.goldberry.render.BackendException;
-import io.github.digitalsmile.goldberry.natives.log.Logs;
+import io.github.digitalsmile.goldberry.log.Logs;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;

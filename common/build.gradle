@@ -1,0 +1,10 @@
+plugins {
+    id 'goldberry.java-conventions'
+}
+
+description = 'Goldberry common: the plumbing every module shares'
+
+// No dependencies but the logging facade, and that is the point. This module is
+// **below** :natives, which is what lets both halves of the toolkit use it -- a
+// class here can be called from a binding and from a widget alike. Anything that
+// needs :natives or :core does not belong here.

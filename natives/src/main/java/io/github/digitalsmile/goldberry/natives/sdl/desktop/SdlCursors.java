@@ -2,7 +2,7 @@ package io.github.digitalsmile.goldberry.natives.sdl.desktop;
 
 import io.github.digitalsmile.goldberry.natives.sdl.calls.SdlCursorCalls;
 import io.github.digitalsmile.goldberry.natives.NativeLibrary;
-import io.github.digitalsmile.goldberry.natives.log.Logs;
+import io.github.digitalsmile.goldberry.log.Logs;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.SymbolLookup;
 import java.util.EnumMap;

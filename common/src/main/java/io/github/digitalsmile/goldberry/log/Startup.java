@@ -1,4 +1,4 @@
-package io.github.digitalsmile.goldberry.natives.log;
+package io.github.digitalsmile.goldberry.log;
 
 import java.time.Duration;
 import java.time.Instant;

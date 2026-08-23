@@ -37,6 +37,11 @@ sourceSets {
 // reach a MemorySegment even by accident (ADR-0007, §3.1).
 dependencies {
     api project(':natives')
+
+    // Named here rather than taken through :natives. Logging is not the native
+    // layer's to lend, and the build should say so as plainly as module-info
+    // does (ADR-0174).
+    api project(':common')
 }
 
 // ============================================================================

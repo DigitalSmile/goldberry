@@ -9,6 +9,12 @@
 /// accident -- the boundary in §3.1 is the module graph, not a convention.
 module io.github.digitalsmile.goldberry.core {
     requires transitive io.github.digitalsmile.goldberry.natives;
+
+    // Named here rather than taken through :natives. Logging is not the native
+    // layer's to lend: this module reaches for it directly, which is what makes
+    // it possible to read the graph and see that :core does not depend on
+    // :natives *for* it (ADR-0174). `transitive`, because :widgets logs too.
+    requires transitive io.github.digitalsmile.goldberry.common;
     requires org.slf4j;
 
     exports io.github.digitalsmile.goldberry;

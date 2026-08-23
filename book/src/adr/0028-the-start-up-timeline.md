@@ -1,6 +1,7 @@
 # ADR-0028: The start-up timeline
 
-- **Status:** Accepted
+- **Status:** Accepted. The last paragraph's "worth watching" was watched: `Logs` and `Startup` moved out of
+  `:natives` into a module of their own in [ADR-0174](0174-what-both-halves-need-is-its-own-module.md).
 - **Date:** 2026-08-15
 - **Relates to:** `docs/ARCHITECTURE.md` §1, §14, [ADR-0023](0023-logging-and-the-example-as-a-subproject.md)
 

@@ -1,4 +1,4 @@
-package io.github.digitalsmile.goldberry.natives.log;
+package io.github.digitalsmile.goldberry.log;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

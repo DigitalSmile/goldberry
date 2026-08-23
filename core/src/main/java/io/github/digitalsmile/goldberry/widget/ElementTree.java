@@ -1,6 +1,6 @@
 package io.github.digitalsmile.goldberry.widget;
 
-import io.github.digitalsmile.goldberry.natives.log.Logs;
+import io.github.digitalsmile.goldberry.log.Logs;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashSet;
