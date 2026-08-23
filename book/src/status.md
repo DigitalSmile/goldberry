@@ -2895,6 +2895,55 @@ is what enforces the rule that raw `MemorySegment` never escapes `:natives`, and
 it is what makes `--enable-native-access` targetable under JEP 472. See
 [ADR-0007](adr/0007-jpms-modules-enforce-the-native-boundary.md).
 
+## The call layer
+
+**Done.** Every C function the toolkit binds is a **holder**: a small final class
+holding that function's address, with its unbound `MethodHandle` as a
+`private static final FD_<symbol>` and a `call` that takes ordinary Java types.
+The holders of one library are grouped in a `…Calls` record, which is what a
+binding class keeps instead of forty `MemorySegment` fields
+([ADR-0173](adr/0173-a-bound-function-is-a-holder-and-its-handle-is-a-constant.md)).
+
+```java
+// before -- three things that are one thing
+private final MemorySegment contextEnd;
+this.contextEnd = Downcalls.symbol(lookup, "bl_context_end");
+check("bl_context_end", (int) Downcalls.INT__PTR.invokeExact(contextEnd, context));
+
+// after
+check("bl_context_end", calls.contextEnd().call(context));
+```
+
+- **The binding classes lost a quarter to a half of their lines** — `Yoga` 658 →
+  409, `Blend2D` 821 → 561, `SdlVideo` 837 → 653, `HarfBuzz` 393 → 249, `Sdl`
+  296 → 198 — and all of it was plumbing. Thirty-six per-shape invocation
+  helpers are gone with it.
+- **A failure names the function it was.** `Blend2D`'s four shared `invoke`
+  helpers reported `"a Blend2D call"` for any of the eighteen symbols that went
+  through them, because a shared helper had no way to know which.
+- **[ADR-0161](adr/0161-a-downcall-handle-is-a-constant-or-it-is-not-a-call.md)'s
+  rule is kept more strictly, not relaxed.** A holder's handle is `static final`
+  and is read *inside* the method that invokes it; and because there is now one
+  handle per function rather than one per shape, no call site reaches a constant
+  through a parameter at all. That was the compromise the per-shape helpers
+  forced, and it is gone.
+- **The holders live in packages that contain nothing else**, and those packages
+  are what `--initialize-at-build-time` names. Measured, because the alternative
+  fails silently: a handle `static final` on a nested class whose *enclosing*
+  class is named in the flag runs at **4538 ns/call** against **8**. The image
+  builds, runs and paints correctly at a fortieth of the speed.
+- **Verified end to end.** A native image built from the packaged
+  `goldberry-natives` jar — the shipped `native-image.properties`, nothing added —
+  calls through a holder at **9.84 ns/call**, against 10 ns on the JVM.
+- **`HolderShapeTest`** replaces `DowncallsTest`. The old one could only check
+  that a *name* matched its layouts, because nothing tied either to a call site.
+  A holder states its signature twice — once in layouts, once in Java types, in
+  one class — so the check is now that the two agree. It walks the compiled
+  classes rather than listing them.
+
+The cost is about 3200 lines of holder code, uniform and uninteresting, and a new
+symbol now needs a holder class rather than a field and a lookup.
+
 ## Package layout
 
 **Done.** `:widgets` had been split by group and then by control

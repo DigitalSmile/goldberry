@@ -91,9 +91,10 @@ screen the run never reaches contributes nothing. Re-run the metadata task after
 adding one, and read the diff.
 
 The **FFM descriptors are the exception**, and stopped being run-dependent with
-ADR-0161: they are linked in `Downcalls`' class initializer, which runs on any
-JVM start, so the agent records all 56 of them whether or not the run reached the
-screen that uses them.
+ADR-0161: each one is linked in a holder's class initializer, and the holders of
+a library are all reached when its `…Calls` record binds, which happens on any
+JVM start. So the agent records all 134 of them whether or not the run reached
+the screen that uses them.
 
 ## The image is woven, the jar is not
 
@@ -120,19 +121,29 @@ naming the two classes that have an opinion, and they are opposite opinions:
 | Class | When | Why |
 |---|---|---|
 | `NativeLibrary` | run time | It `dlopen`s in its initializer, which must not happen in the builder |
-| `Downcalls` | **build time** | A downcall handle is only a call if it is a compile-time constant, and only a build-time initializer makes it one ([ADR-0161](adr/0161-a-downcall-handle-is-a-constant-or-it-is-not-a-call.md)) |
+| `Downcalls` | **build time** | It holds the shared `Linker`, and every holder's initializer calls `Downcalls.link` |
+| the `…calls` **packages** | **build time** | A downcall handle is only a call if it is a compile-time constant, and only a build-time initializer makes it one ([ADR-0161](adr/0161-a-downcall-handle-is-a-constant-or-it-is-not-a-call.md)) |
 
-Both travel in the jar, so an application building its own image gets them
+They are **packages** and they have to be. A holder is a nested class, and naming
+its enclosing class does not reach it — measured at 4538 ns/call against 8, and
+silently, because the image builds and runs. Naming a hundred and thirty-four
+nested classes in a flag is not a list anyone can maintain, and naming the
+*binding* packages instead would build-time initialize `Sdl` and `Blend2D`, whose
+holder idiom `dlopen`s the library in the builder. So the holders live in
+packages that contain nothing else
+([ADR-0173](adr/0173-a-bound-function-is-a-holder-and-its-handle-is-a-constant.md)).
+
+All of them travel in the jar, so an application building its own image gets them
 without knowing they exist — the same argument ADR-0160 makes for resources.
 
 ## The one flag the frame rate depends on
 
 GraalVM's FFM downcalls are **not optimized** — [oracle/graal#8113](https://github.com/oracle/graal/issues/8113)
 lists it as open work, and it costs a factor of 450 on the call itself. Goldberry
-takes the workaround: the handles in `Downcalls` are *unbound* (they take the
-address to call as an argument), so the class can be initialized while the image
-is being built, which is what turns each one into a constant the compiler can
-lower into a direct call.
+takes the workaround: a holder's `FD_<symbol>` handle is *unbound* (it takes the
+address to call as an argument), so it can be linked while the image is being
+built, which is what turns it into a constant the compiler can lower into a
+direct call.
 
 Sixty frames of the showcase, headless, on this machine:
 
@@ -142,16 +153,18 @@ Sixty frames of the showcase, headless, on this machine:
 
 | | 60 frames | per frame |
 |---|---|---|
-| without `--initialize-at-build-time=…Downcalls` | 2.55 s | 42.5 ms |
+| without the `--initialize-at-build-time` lines | 2.55 s | 42.5 ms |
 | with it | 0.061 s | **1.0 ms** |
 
 The same rule applies one level down, and it is the trap to know before editing a
 binding: **a downcall handle has to be read by the method that calls it.** Passing
 one into a helper as an argument costs 810 ns a call in an image against 8.9 ns
 when the helper names the constant itself — the JVM inlines and folds it, and
-native-image does not. That is why the constants are named for signatures rather
-than for functions, and why the invocation helpers in the binding classes name
-`Downcalls.INT__PTR` inside themselves rather than taking a handle.
+native-image does not. That is why a holder's `call` names its own
+`FD_<symbol>` field rather than taking a handle, and why the handle is
+`static final` on the holder rather than a component of it: an instance field is
+a value read from an object, not a constant read from a class, and measures
+4540 ns/call ([ADR-0173](adr/0173-a-bound-function-is-a-holder-and-its-handle-is-a-constant.md)).
 
 **Nothing fails when it is missing.** The image builds, runs, paints correctly
 and is forty times slower, which is why the number is written down here. (It is
