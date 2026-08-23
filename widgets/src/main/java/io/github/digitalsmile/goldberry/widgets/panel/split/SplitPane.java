@@ -36,7 +36,7 @@ import java.util.function.DoubleConsumer;
 ///
 /// So the fraction is clamped against the pixels on every layout, which needs the
 /// pane's measured length — and that arrives through
-/// [io.github.digitalsmile.goldberry.input.Measured], once a frame and only on a
+/// [io.github.digitalsmile.goldberry.input.handler.Measured], once a frame and only on a
 /// change ([ADR-0117](../../../../../../../../book/src/adr/0117-a-widget-may-be-told-what-it-measured.md)).
 /// Before the first measurement the fraction is used as given, which is right:
 /// the first frame has no minimum it could be violating yet.
@@ -51,7 +51,7 @@ import java.util.function.DoubleConsumer;
 /// So it is the knob's arrangement instead
 /// ([ADR-0089](../../../../../../../../book/src/adr/0089-a-knobs-gesture-is-a-rate.md)):
 /// the divider reports its current offset as a
-/// [io.github.digitalsmile.goldberry.input.Handles#gestureAnchor()], the router
+/// [io.github.digitalsmile.goldberry.input.handler.Handles#gestureAnchor()], the router
 /// hands that back on every event of the gesture, and the new offset is
 /// `anchor + dragX`. Nothing jumps, and the divider does not need to remember
 /// anything between frames — which it could not, being a value rebuilt from the

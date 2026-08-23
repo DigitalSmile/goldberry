@@ -25,7 +25,7 @@ record TabStrip(List<Widget> headers, List<Widget> content,
         io.github.digitalsmile.goldberry.widgets.core.scroll.ScrollController controller,
         Attributes attributes)
         implements Widget.Leaf, Styled, Paints,
-        io.github.digitalsmile.goldberry.input.Handles {
+        io.github.digitalsmile.goldberry.input.handler.Handles {
 
     TabStrip {
         headers = List.copyOf(headers == null ? List.of() : headers);

@@ -1,7 +1,7 @@
 package io.github.digitalsmile.goldberry.widgets.menu;
 
 import io.github.digitalsmile.goldberry.Host;
-import io.github.digitalsmile.goldberry.input.Shortcut;
+import io.github.digitalsmile.goldberry.input.key.Shortcut;
 import io.github.digitalsmile.goldberry.widget.Widget;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;

@@ -359,9 +359,9 @@ class RenderTreeTest {
                 tree.update(target.frame(), box);
                 tree.paint(target.frame());
 
-                var regions = io.github.digitalsmile.goldberry.input.HitTest.capture(tree);
+                var regions = io.github.digitalsmile.goldberry.input.hit.HitTest.capture(tree);
                 assertEquals("target",
-                        io.github.digitalsmile.goldberry.input.HitTest.at(regions, 20, 20)
+                        io.github.digitalsmile.goldberry.input.hit.HitTest.at(regions, 20, 20)
                                 .orElseThrow());
                 assertNotEquals(0, regions.size());
             }

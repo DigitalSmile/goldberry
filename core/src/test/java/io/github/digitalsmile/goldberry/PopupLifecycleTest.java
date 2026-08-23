@@ -15,7 +15,7 @@ import io.github.digitalsmile.goldberry.render.model.LogicalRect;
 import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
 import io.github.digitalsmile.goldberry.css.Stylesheet;
-import io.github.digitalsmile.goldberry.input.Key;
+import io.github.digitalsmile.goldberry.input.key.Key;
 import io.github.digitalsmile.goldberry.paint.Box;
 import io.github.digitalsmile.goldberry.widget.Attributes;
 import io.github.digitalsmile.goldberry.widget.Paints;
@@ -102,7 +102,7 @@ class PopupLifecycleTest {
     /// Two focusable nodes in a popup, so there is something for a forwarded
     /// arrow key to move between.
     private record Item(String name, List<String> focused, Attributes attributes)
-            implements Widget.Leaf, Styled, Paints, io.github.digitalsmile.goldberry.input.Handles {
+            implements Widget.Leaf, Styled, Paints, io.github.digitalsmile.goldberry.input.handler.Handles {
 
         Item(String name, List<String> focused) {
             this(name, focused, new Attributes(name, Set.of(), name));
@@ -407,9 +407,9 @@ class PopupLifecycleTest {
     @DisplayName("anchor reports the painted rectangle of a node, and nothing for one that is not there")
     void anchorsToAPaintedNode() {
         var content = new java.util.concurrent.atomic.AtomicReference<
-                Optional<io.github.digitalsmile.goldberry.input.HitTest.Region>>(Optional.empty());
+                Optional<io.github.digitalsmile.goldberry.input.hit.HitTest.Region>>(Optional.empty());
         var missing = new java.util.concurrent.atomic.AtomicReference<
-                Optional<io.github.digitalsmile.goldberry.input.HitTest.Region>>(Optional.empty());
+                Optional<io.github.digitalsmile.goldberry.input.hit.HitTest.Region>>(Optional.empty());
         Goldberry.launch(new TestApp(
                 host -> { },
                 host -> {
@@ -551,7 +551,7 @@ class PopupLifecycleTest {
     /// A focus scope with items in it — which is what §7 says every overlay
     /// wraps, and what makes `Down` mean "the next item" rather than nothing.
     private record Menu(List<Widget> items)
-            implements Widget.Leaf, Styled, Paints, io.github.digitalsmile.goldberry.input.Handles {
+            implements Widget.Leaf, Styled, Paints, io.github.digitalsmile.goldberry.input.handler.Handles {
 
         @Override
         public io.github.digitalsmile.goldberry.input.FocusScope focusScope() {

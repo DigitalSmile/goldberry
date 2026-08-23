@@ -1,11 +1,11 @@
 package io.github.digitalsmile.goldberry.widgets.core.scroll;
 
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
-import io.github.digitalsmile.goldberry.input.Extent;
-import io.github.digitalsmile.goldberry.input.Handles;
-import io.github.digitalsmile.goldberry.input.Measured;
-import io.github.digitalsmile.goldberry.input.KeyEvent;
-import io.github.digitalsmile.goldberry.input.PointerEvent;
+import io.github.digitalsmile.goldberry.input.hit.Extent;
+import io.github.digitalsmile.goldberry.input.handler.Handles;
+import io.github.digitalsmile.goldberry.input.handler.Measured;
+import io.github.digitalsmile.goldberry.input.event.KeyEvent;
+import io.github.digitalsmile.goldberry.input.event.PointerEvent;
 import io.github.digitalsmile.goldberry.paint.Box;
 import io.github.digitalsmile.goldberry.natives.yoga.FlexDirection;
 import io.github.digitalsmile.goldberry.natives.yoga.Overflow;

@@ -1,6 +1,6 @@
 package io.github.digitalsmile.goldberry.widgets.form.textarea;
 
-import io.github.digitalsmile.goldberry.input.Extent;
+import io.github.digitalsmile.goldberry.input.hit.Extent;
 import io.github.digitalsmile.goldberry.text.Paragraph;
 
 /// What [TextAreaBox] tells its state — `text-input`'s seam, with a second

@@ -8,7 +8,7 @@ import io.github.digitalsmile.goldberry.render.model.LogicalRect;
 import io.github.digitalsmile.goldberry.render.popup.PopupKind;
 import io.github.digitalsmile.goldberry.render.popup.PopupSpec;
 import io.github.digitalsmile.goldberry.bind.Property;
-import io.github.digitalsmile.goldberry.input.HitTest;
+import io.github.digitalsmile.goldberry.input.hit.HitTest;
 import io.github.digitalsmile.goldberry.input.PointerRouter;
 import io.github.digitalsmile.goldberry.paint.tree.RenderTree;
 import io.github.digitalsmile.goldberry.stats.FrameStats;
@@ -175,7 +175,7 @@ final class Launcher implements Host {
         window.inputWatcher(new Window.InputWatcher() {
             @Override
             public boolean pressed(
-                    io.github.digitalsmile.goldberry.input.PointerEvent.Button button,
+                    io.github.digitalsmile.goldberry.input.event.PointerEvent.Button button,
                     float x, float y) {
                 // **A press that dismissed something is a dismissal and not a
                 // click**, which is what every desktop does: with a menu open,
@@ -194,7 +194,7 @@ final class Launcher implements Host {
                 // is *taken*, so it does not also reach whatever it landed on —
                 // right-clicking a button should open its menu, not press it
                 // (ADR-0108).
-                return button == io.github.digitalsmile.goldberry.input.PointerEvent.Button.SECONDARY
+                return button == io.github.digitalsmile.goldberry.input.event.PointerEvent.Button.SECONDARY
                         && openContextMenu(x, y);
             }
 
@@ -206,13 +206,13 @@ final class Launcher implements Host {
             }
 
             @Override
-            public boolean keyPressed(io.github.digitalsmile.goldberry.input.Key key,
-                    io.github.digitalsmile.goldberry.input.Modifiers modifiers, boolean repeat) {
+            public boolean keyPressed(io.github.digitalsmile.goldberry.input.key.Key key,
+                    io.github.digitalsmile.goldberry.input.key.Modifiers modifiers, boolean repeat) {
                 var top = topmostPopup();
                 if (top == null) {
                     return false;
                 }
-                if (key == io.github.digitalsmile.goldberry.input.Key.ESCAPE) {
+                if (key == io.github.digitalsmile.goldberry.input.key.Key.ESCAPE) {
                     dismissPopups();
                     return true;
                 }
@@ -671,7 +671,7 @@ final class Launcher implements Host {
     }
 
     @Override
-    public void shortcut(io.github.digitalsmile.goldberry.input.Shortcut accelerator,
+    public void shortcut(io.github.digitalsmile.goldberry.input.key.Shortcut accelerator,
             Runnable action) {
         router.shortcut(accelerator, action);
     }
@@ -682,14 +682,14 @@ final class Launcher implements Host {
     }
 
     @Override
-    public void removeShortcut(io.github.digitalsmile.goldberry.input.Shortcut accelerator) {
+    public void removeShortcut(io.github.digitalsmile.goldberry.input.key.Shortcut accelerator) {
         router.removeShortcut(accelerator);
     }
 
     @Override
     public void removeShortcut(String accelerator) {
         router.removeShortcut(
-                io.github.digitalsmile.goldberry.input.Shortcut.of(accelerator));
+                io.github.digitalsmile.goldberry.input.key.Shortcut.of(accelerator));
     }
 
     @Override

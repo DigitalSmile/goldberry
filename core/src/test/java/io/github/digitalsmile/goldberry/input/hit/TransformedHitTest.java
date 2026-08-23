@@ -1,4 +1,4 @@
-package io.github.digitalsmile.goldberry.input;
+package io.github.digitalsmile.goldberry.input.hit;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;

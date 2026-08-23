@@ -2,7 +2,7 @@ package io.github.digitalsmile.goldberry.widgets.form.textinput;
 
 import io.github.digitalsmile.goldberry.Host;
 import io.github.digitalsmile.goldberry.render.event.EventLoop;
-import io.github.digitalsmile.goldberry.input.Extent;
+import io.github.digitalsmile.goldberry.input.hit.Extent;
 import io.github.digitalsmile.goldberry.text.Paragraph;
 import io.github.digitalsmile.goldberry.widget.BuildContext;
 import io.github.digitalsmile.goldberry.widget.State;
@@ -64,7 +64,7 @@ final class TextInputState extends State<TextInput> implements TextEditor {
     /// be asking for a frame in order to draw the frame being drawn (ADR-0119).
     private double scrollOffset;
 
-    /// The last frame's size, from [io.github.digitalsmile.goldberry.input.Measured].
+    /// The last frame's size, from [io.github.digitalsmile.goldberry.input.handler.Measured].
     private Extent bounds = Extent.NONE;
 
     /// The last frame's shaped text and the mask it was shaped from, kept so the

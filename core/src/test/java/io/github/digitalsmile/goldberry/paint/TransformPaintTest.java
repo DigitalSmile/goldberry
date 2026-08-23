@@ -12,7 +12,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 /// A transform reaching Blend2D — the other half of what
-/// [io.github.digitalsmile.goldberry.input.TransformedHitTest] asserts.
+/// [io.github.digitalsmile.goldberry.input.hit.TransformedHitTest] asserts.
 ///
 /// These read pixels back rather than inspecting matrices, because the matrix
 /// crosses into C as a `void*` and the only thing that proves the six doubles

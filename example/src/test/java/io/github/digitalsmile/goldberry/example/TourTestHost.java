@@ -10,7 +10,7 @@ import io.github.digitalsmile.goldberry.render.event.EventLoop;
 import io.github.digitalsmile.goldberry.render.model.LogicalRect;
 import io.github.digitalsmile.goldberry.render.model.LogicalPoint;
 import io.github.digitalsmile.goldberry.render.model.LogicalSize;
-import io.github.digitalsmile.goldberry.input.HitTest;
+import io.github.digitalsmile.goldberry.input.hit.HitTest;
 import io.github.digitalsmile.goldberry.text.Fonts;
 import io.github.digitalsmile.goldberry.widget.Corner;
 import io.github.digitalsmile.goldberry.widget.Element;
@@ -59,7 +59,7 @@ record TourTestHost(List<HitTest.Region> regions) implements Host {
     }
 
     @Override
-    public void shortcut(io.github.digitalsmile.goldberry.input.Shortcut a, Runnable r) {
+    public void shortcut(io.github.digitalsmile.goldberry.input.key.Shortcut a, Runnable r) {
     }
 
     @Override
@@ -67,7 +67,7 @@ record TourTestHost(List<HitTest.Region> regions) implements Host {
     }
 
     @Override
-    public void removeShortcut(io.github.digitalsmile.goldberry.input.Shortcut accelerator) {
+    public void removeShortcut(io.github.digitalsmile.goldberry.input.key.Shortcut accelerator) {
     }
 
     @Override

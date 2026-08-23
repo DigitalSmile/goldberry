@@ -1,6 +1,6 @@
 package io.github.digitalsmile.goldberry.widgets.panel.split;
 
-import io.github.digitalsmile.goldberry.input.Extent;
+import io.github.digitalsmile.goldberry.input.hit.Extent;
 import io.github.digitalsmile.goldberry.widget.BuildContext;
 import io.github.digitalsmile.goldberry.widget.State;
 import io.github.digitalsmile.goldberry.widget.Widget;

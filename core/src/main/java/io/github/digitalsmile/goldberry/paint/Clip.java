@@ -106,7 +106,7 @@ public record Clip(double left, double top, double right, double bottom) {
     /// Whether `(x, y)` is inside — what hit testing asks.
     ///
     /// Half-open on the right and bottom, matching
-    /// [io.github.digitalsmile.goldberry.input.HitTest.Region#contains], so a
+    /// [io.github.digitalsmile.goldberry.input.hit.HitTest.Region#contains], so a
     /// pointer exactly on the boundary between two adjacent viewports lands in
     /// exactly one of them.
     public boolean contains(double x, double y) {

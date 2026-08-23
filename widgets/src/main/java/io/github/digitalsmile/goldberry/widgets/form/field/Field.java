@@ -57,7 +57,7 @@ import java.util.Objects;
 /// ## When it validates
 ///
 /// §4 says "on blur and on submit". Blur is
-/// [io.github.digitalsmile.goldberry.input.Handles#onFocusWithin] — the field is
+/// [io.github.digitalsmile.goldberry.input.handler.Handles#onFocusWithin] — the field is
 /// told when the keyboard leaves its subtree, which is once, however many controls
 /// are in it and however they were moved between.
 ///

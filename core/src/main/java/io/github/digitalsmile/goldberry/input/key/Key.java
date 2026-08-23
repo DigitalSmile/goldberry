@@ -1,4 +1,4 @@
-package io.github.digitalsmile.goldberry.input;
+package io.github.digitalsmile.goldberry.input.key;
 
 import io.github.digitalsmile.goldberry.render.event.BackendEvent;
 

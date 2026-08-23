@@ -7,11 +7,11 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.github.digitalsmile.goldberry.RendererRequirement;
-import io.github.digitalsmile.goldberry.input.Extent;
-import io.github.digitalsmile.goldberry.input.Key;
-import io.github.digitalsmile.goldberry.input.KeyEvent;
-import io.github.digitalsmile.goldberry.input.Modifiers;
-import io.github.digitalsmile.goldberry.input.PointerEvent;
+import io.github.digitalsmile.goldberry.input.hit.Extent;
+import io.github.digitalsmile.goldberry.input.key.Key;
+import io.github.digitalsmile.goldberry.input.event.KeyEvent;
+import io.github.digitalsmile.goldberry.input.key.Modifiers;
+import io.github.digitalsmile.goldberry.input.event.PointerEvent;
 import io.github.digitalsmile.goldberry.kdl.KdlParser;
 import io.github.digitalsmile.goldberry.widget.Attributes;
 import io.github.digitalsmile.goldberry.widget.ElementTree;
@@ -149,7 +149,7 @@ class SplitPaneTest {
             var tree = new ElementTree(split(0.5));
 
             var focusable = Described.in(tree).stream()
-                    .filter(w -> w instanceof io.github.digitalsmile.goldberry.input.Handles h
+                    .filter(w -> w instanceof io.github.digitalsmile.goldberry.input.handler.Handles h
                             && h.isFocusable())
                     .toList();
             assertEquals(1, focusable.size(), "expected only the divider, got " + focusable);

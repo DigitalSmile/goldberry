@@ -1,4 +1,7 @@
-package io.github.digitalsmile.goldberry.input;
+package io.github.digitalsmile.goldberry.input.handler;
+
+import io.github.digitalsmile.goldberry.input.event.PointerEvent;
+import io.github.digitalsmile.goldberry.input.hit.Extent;
 
 /// A widget that wants to be told what size it came out as.
 ///
@@ -10,13 +13,13 @@ package io.github.digitalsmile.goldberry.input;
 ///
 /// A scroll view's *clamp* only needs geometry when something asks it to move,
 /// so the extents on a [PointerEvent] were enough
-/// ([ADR-0116](../../../../../../book/src/adr/0116-a-scroll-view-is-a-clip-an-offset-and-two-extents.md)).
+/// ([ADR-0116](../../../../../../../book/src/adr/0116-a-scroll-view-is-a-clip-an-offset-and-two-extents.md)).
 /// A scroll**bar** is different: it has to be *drawn* in proportion to content
 /// nobody has touched. A thumb whose length says how much of the document is
 /// visible must be right on the first frame, before any input, or the widget
 /// that exists to say "there is more below" says nothing until you have already
 /// found out
-/// ([ADR-0117](../../../../../../book/src/adr/0117-a-widget-may-be-told-what-it-measured.md)).
+/// ([ADR-0117](../../../../../../../book/src/adr/0117-a-widget-may-be-told-what-it-measured.md)).
 ///
 /// So this is the other direction: not "answer a question the input asked", but
 /// "here is what you turned out to be".

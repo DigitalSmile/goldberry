@@ -2,11 +2,11 @@ package io.github.digitalsmile.goldberry.widgets.controls.select;
 
 import io.github.digitalsmile.goldberry.render.model.LogicalRect;
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
-import io.github.digitalsmile.goldberry.input.Handles;
-import io.github.digitalsmile.goldberry.input.KeyEvent;
-import io.github.digitalsmile.goldberry.input.Located;
-import io.github.digitalsmile.goldberry.input.PointerEvent;
-import io.github.digitalsmile.goldberry.input.TextEvent;
+import io.github.digitalsmile.goldberry.input.handler.Handles;
+import io.github.digitalsmile.goldberry.input.event.KeyEvent;
+import io.github.digitalsmile.goldberry.input.handler.Located;
+import io.github.digitalsmile.goldberry.input.event.PointerEvent;
+import io.github.digitalsmile.goldberry.input.event.TextEvent;
 import io.github.digitalsmile.goldberry.paint.Box;
 import io.github.digitalsmile.goldberry.widget.Attributes;
 import io.github.digitalsmile.goldberry.widget.Paints;
@@ -128,7 +128,7 @@ record SelectField(
             return;
         }
         var plain = event.modifiers().none();
-        var alt = event.modifiers().only(io.github.digitalsmile.goldberry.input.Mod.ALT);
+        var alt = event.modifiers().only(io.github.digitalsmile.goldberry.input.key.Mod.ALT);
         var opens = switch (event.key()) {
             case SPACE -> plain;
             case DOWN, UP -> (plain || alt) && !open;

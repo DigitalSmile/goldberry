@@ -111,8 +111,8 @@ class ElevationTest {
                             .position(io.github.digitalsmile.goldberry.natives.yoga.PositionType.ABSOLUTE)
                             .inset(io.github.digitalsmile.goldberry.natives.yoga.Insets.all(
                                     StyleLength.points(0)))));
-            var regions = io.github.digitalsmile.goldberry.input.HitTest.capture(tree);
-            var hit = io.github.digitalsmile.goldberry.input.HitTest.at(regions, 10, 10);
+            var regions = io.github.digitalsmile.goldberry.input.hit.HitTest.capture(tree);
+            var hit = io.github.digitalsmile.goldberry.input.hit.HitTest.at(regions, 10, 10);
             assertTrue(hit.isPresent(), "nothing was hit");
             assertEquals("b", hit.get(),
                     "the box drawn on top was not the one clicked; a header you can"

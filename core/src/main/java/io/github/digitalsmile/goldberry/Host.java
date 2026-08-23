@@ -51,7 +51,7 @@ public interface Host {
     /// The form to reach for: a `Shortcut` built this way cannot be misspelled,
     /// where a string is only checked when it is parsed
     /// ([ADR-0095](../../../../../book/src/adr/0095-a-shortcut-is-built-from-enums.md)).
-    void shortcut(io.github.digitalsmile.goldberry.input.Shortcut accelerator, Runnable action);
+    void shortcut(io.github.digitalsmile.goldberry.input.key.Shortcut accelerator, Runnable action);
 
     /// Binds a window accelerator, written the way a menu prints it — `"Ctrl+S"`.
     ///
@@ -72,7 +72,7 @@ public interface Host {
     /// removes whatever is bound to `accelerator` — including a binding somebody
     /// else made. Two things claiming `Ctrl+O` is already a conflict the last
     /// registration wins; this is the same conflict at the other end.
-    void removeShortcut(io.github.digitalsmile.goldberry.input.Shortcut accelerator);
+    void removeShortcut(io.github.digitalsmile.goldberry.input.key.Shortcut accelerator);
 
     /// Unbinds a window accelerator written the way a menu prints it.
     ///
@@ -133,7 +133,7 @@ public interface Host {
     /// Empty before the first frame, and for a node that was not painted: a
     /// rectangle for something invisible would be a lie a menu would then point
     /// at.
-    java.util.Optional<io.github.digitalsmile.goldberry.input.HitTest.Region> anchor(String id);
+    java.util.Optional<io.github.digitalsmile.goldberry.input.hit.HitTest.Region> anchor(String id);
 
     /// Opens a widget tree in a platform window of its own — a menu, a dropdown,
     /// a tooltip.

@@ -2,12 +2,12 @@ package io.github.digitalsmile.goldberry.widgets.form.textinput;
 
 import io.github.digitalsmile.goldberry.render.Cursor;
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
-import io.github.digitalsmile.goldberry.input.Extent;
-import io.github.digitalsmile.goldberry.input.Handles;
-import io.github.digitalsmile.goldberry.input.KeyEvent;
-import io.github.digitalsmile.goldberry.input.Measured;
-import io.github.digitalsmile.goldberry.input.PointerEvent;
-import io.github.digitalsmile.goldberry.input.TextEvent;
+import io.github.digitalsmile.goldberry.input.hit.Extent;
+import io.github.digitalsmile.goldberry.input.handler.Handles;
+import io.github.digitalsmile.goldberry.input.event.KeyEvent;
+import io.github.digitalsmile.goldberry.input.handler.Measured;
+import io.github.digitalsmile.goldberry.input.event.PointerEvent;
+import io.github.digitalsmile.goldberry.input.event.TextEvent;
 import io.github.digitalsmile.goldberry.paint.Box;
 import io.github.digitalsmile.goldberry.natives.yoga.Insets;
 import io.github.digitalsmile.goldberry.natives.yoga.PositionType;

@@ -1,6 +1,10 @@
-package io.github.digitalsmile.goldberry.input;
+package io.github.digitalsmile.goldberry.input.handler;
 
 import io.github.digitalsmile.goldberry.widget.Widget;
+import io.github.digitalsmile.goldberry.input.event.KeyEvent;
+import io.github.digitalsmile.goldberry.input.event.PointerEvent;
+import io.github.digitalsmile.goldberry.input.event.TextEvent;
+import io.github.digitalsmile.goldberry.input.FocusScope;
 
 /// A widget that reacts to the pointer.
 ///
@@ -33,7 +37,7 @@ public interface Handles extends Widget {
     /// position along the **track** — measuring it along the whole control would
     /// make the far end of the track read as 88% rather than 100%, silently, by
     /// exactly the width of the label
-    /// ([ADR-0080](../../../../../../book/src/adr/0080-a-value-is-measured-along-a-part.md)).
+    /// ([ADR-0080](../../../../../../../book/src/adr/0080-a-value-is-measured-along-a-part.md)).
     ///
     /// Named as a **CSS type**, which is the vocabulary a part already has
     /// ([ADR-0065]): the first descendant whose [Styled#cssType()] matches, in
@@ -115,12 +119,12 @@ public interface Handles extends Widget {
     /// to cross is the thing this prevents, and it is a property of the *group*
     /// rather than of any radio in it — which is why it is asked here and
     /// answered by the router, exactly as Tab is
-    /// ([ADR-0073](../../../../../../book/src/adr/0073-a-composite-is-one-tab-stop.md)).
+    /// ([ADR-0073](../../../../../../../book/src/adr/0073-a-composite-is-one-tab-stop.md)).
     ///
     /// The axis is the widget's because only it knows what it means by the other
     /// pair: a vertical menu's `Right` opens a submenu, and a scope that roved on
     /// it would move focus down the list whenever an item had none
-    /// ([ADR-0078](../../../../../../book/src/adr/0078-a-focus-scope-has-an-axis.md)).
+    /// ([ADR-0078](../../../../../../../book/src/adr/0078-a-focus-scope-has-an-axis.md)).
     /// `radio-group` answers [FocusScope#BOTH], because its direction is its
     /// stylesheet's rather than its own.
     ///

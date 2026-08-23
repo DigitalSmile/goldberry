@@ -32,7 +32,7 @@ import io.github.digitalsmile.goldberry.render.model.LogicalRect;
 /// ([ADR-0119](../../../../../../../../book/src/adr/0119-a-widget-may-be-told-where-it-is.md)).
 ///
 /// So the shape is: a widget that wants to be seen implements
-/// [io.github.digitalsmile.goldberry.input.Located], is told its own rectangle and
+/// [io.github.digitalsmile.goldberry.input.handler.Located], is told its own rectangle and
 /// the one that clips it, and passes both to [#reveal]. Two rectangles in, a
 /// scroll out.
 ///
@@ -76,7 +76,7 @@ public final class ScrollController {
     /// Scrolls the least it can to bring `self` inside `clip`.
     ///
     /// Both in the window's logical coordinates — which is exactly the pair
-    /// [io.github.digitalsmile.goldberry.input.Located] hands a widget, so the
+    /// [io.github.digitalsmile.goldberry.input.handler.Located] hands a widget, so the
     /// call site is one line and does no arithmetic of its own.
     ///
     /// Does nothing when the rectangle is already inside, so calling it on a

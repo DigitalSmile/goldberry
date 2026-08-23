@@ -1,4 +1,4 @@
-package io.github.digitalsmile.goldberry.input;
+package io.github.digitalsmile.goldberry.input.key;
 
 /// One modifier key, as a bit.
 ///
@@ -23,7 +23,7 @@ package io.github.digitalsmile.goldberry.input;
 /// application composes modifiers is [#and(Mod)], which can only ever produce
 /// [Modifiers], and [#and(Key)], which can only ever produce a [Shortcut]. The
 /// chain reads left to right in the order a menu prints it
-/// ([ADR-0095](../../../../../../book/src/adr/0095-a-shortcut-is-built-from-enums.md)).
+/// ([ADR-0095](../../../../../../../book/src/adr/0095-a-shortcut-is-built-from-enums.md)).
 ///
 /// ## Left and right are one modifier
 ///

@@ -59,7 +59,7 @@ import java.util.List;
 ///
 /// **`F10` focuses the bar**, which is §8's "`Alt`-style keyboard activation" as
 /// far as this toolkit can express it: a bare `Alt` tap is a *modifier* released
-/// with nothing in between, and [io.github.digitalsmile.goldberry.input.Shortcut]
+/// with nothing in between, and [io.github.digitalsmile.goldberry.input.key.Shortcut]
 /// is a key with modifiers — `Key` has no `ALT` to name, deliberately, because a
 /// shortcut on a modifier alone can never fire. `F10` is the companion binding on
 /// every platform that has the `Alt` one.

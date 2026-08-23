@@ -1,4 +1,4 @@
-package io.github.digitalsmile.goldberry.input;
+package io.github.digitalsmile.goldberry.input.key;
 
 import java.util.EnumSet;
 import java.util.Set;
@@ -17,7 +17,7 @@ import java.util.Set;
 /// `new Modifiers(true, false, false, false)` — which is four chances to get the
 /// order wrong and no way for the compiler to notice. It is one `int` now, and
 /// the only way to *make* one is from [Mod] values
-/// ([ADR-0095](../../../../../../book/src/adr/0095-a-shortcut-is-built-from-enums.md)).
+/// ([ADR-0095](../../../../../../../book/src/adr/0095-a-shortcut-is-built-from-enums.md)).
 ///
 /// The mask is not the API even so: [#mask()] exists for the backend boundary and
 /// for tests, and everything else asks [#has(Mod)]. A raw `int` parameter would

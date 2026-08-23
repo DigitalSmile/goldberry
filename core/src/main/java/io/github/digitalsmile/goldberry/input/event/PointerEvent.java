@@ -1,7 +1,10 @@
-package io.github.digitalsmile.goldberry.input;
+package io.github.digitalsmile.goldberry.input.event;
 
 import io.github.digitalsmile.goldberry.widget.Element;
 import java.util.Objects;
+import io.github.digitalsmile.goldberry.input.hit.Extent;
+import io.github.digitalsmile.goldberry.input.handler.Handles;
+import io.github.digitalsmile.goldberry.input.key.Modifiers;
 
 /// A pointer event as a widget sees it.
 ///
@@ -226,7 +229,7 @@ public final class PointerEvent {
     /// rather than latched from the last key event: a window that loses focus
     /// while Shift is held never sees the key release, and a latched flag would
     /// stay stuck down
-    /// ([ADR-0089](../../../../../../book/src/adr/0089-a-knobs-gesture-is-a-rate.md)).
+    /// ([ADR-0089](../../../../../../../book/src/adr/0089-a-knobs-gesture-is-a-rate.md)).
     public Modifiers modifiers() {
         return modifiers;
     }
@@ -369,7 +372,7 @@ public final class PointerEvent {
     /// A gesture is a sequence of events and a widget is a value rebuilt every
     /// frame, so a widget cannot remember where a drag started. The router can:
     /// it already takes an implicit capture on the press
-    /// ([ADR-0058](../../../../../../book/src/adr/0058-a-press-captures-the-pointer.md)),
+    /// ([ADR-0058](../../../../../../../book/src/adr/0058-a-press-captures-the-pointer.md)),
     /// which is the same span this is defined over, and it is the only thing in
     /// the toolkit that sees both ends. The argument is the one already written
     /// on Tab and on arrow keys: the router owns what the widget cannot see.

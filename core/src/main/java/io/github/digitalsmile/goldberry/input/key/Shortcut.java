@@ -1,7 +1,8 @@
-package io.github.digitalsmile.goldberry.input;
+package io.github.digitalsmile.goldberry.input.key;
 
 import java.util.Locale;
 import java.util.Objects;
+import io.github.digitalsmile.goldberry.input.event.KeyEvent;
 
 /// A key with modifiers, as an accelerator table names one (§7.2).
 ///
@@ -39,7 +40,7 @@ public record Shortcut(Key key, Modifiers modifiers) {
     /// `Shortcut.of(Key.S, Mod.CTRL, Mod.SHIFT)` for code that has the modifiers
     /// in an array already. [Mod#and(Key)] reads better when they are literals,
     /// because it puts them in the order a menu prints them
-    /// ([ADR-0095](../../../../../../book/src/adr/0095-a-shortcut-is-built-from-enums.md)).
+    /// ([ADR-0095](../../../../../../../book/src/adr/0095-a-shortcut-is-built-from-enums.md)).
     public static Shortcut of(Key key, Mod... mods) {
         return new Shortcut(key, Modifiers.of(mods));
     }

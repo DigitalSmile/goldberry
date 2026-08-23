@@ -53,6 +53,14 @@ module io.github.digitalsmile.goldberry.core {
     // that turns it into events, pseudo-classes and focus (§7, ADR-0054).
     exports io.github.digitalsmile.goldberry.input;
 
+    // Input, by the part it plays (ADR-0172): the events a widget is handed, the
+    // keyboard vocabulary an accelerator is written in, the hit-test snapshot the
+    // router works off, and the interfaces a widget implements to hear any of it.
+    exports io.github.digitalsmile.goldberry.input.event;
+    exports io.github.digitalsmile.goldberry.input.key;
+    exports io.github.digitalsmile.goldberry.input.hit;
+    exports io.github.digitalsmile.goldberry.input.handler;
+
     // The frame clock, the three easing curves, and the per-node animation
     // overlay CSS transitions run through (design-system.md §1.7, ADR-0067).
     // Exported because an application supplies the clock -- a test drives a

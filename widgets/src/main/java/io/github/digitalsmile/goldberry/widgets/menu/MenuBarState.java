@@ -3,7 +3,7 @@ package io.github.digitalsmile.goldberry.widgets.menu;
 import io.github.digitalsmile.goldberry.Host;
 import io.github.digitalsmile.goldberry.Placement;
 import io.github.digitalsmile.goldberry.Popup;
-import io.github.digitalsmile.goldberry.input.Shortcut;
+import io.github.digitalsmile.goldberry.input.key.Shortcut;
 import io.github.digitalsmile.goldberry.widget.Attributes;
 import io.github.digitalsmile.goldberry.widget.BuildContext;
 import io.github.digitalsmile.goldberry.widget.State;
@@ -202,7 +202,7 @@ final class MenuBarState extends State<MenuBar> {
         // F10 is the keyboard's way in. Registered with the accelerators so it
         // goes away with them, and reported as bound for the same reason.
         if (!bound.isEmpty() || !widget().children().isEmpty()) {
-            var focusBar = Shortcut.of(io.github.digitalsmile.goldberry.input.Key.F10);
+            var focusBar = Shortcut.of(io.github.digitalsmile.goldberry.input.key.Key.F10);
             host.shortcut(focusBar, this::activateFromKeyboard);
             var all = new java.util.LinkedHashSet<>(bound);
             all.add(focusBar);

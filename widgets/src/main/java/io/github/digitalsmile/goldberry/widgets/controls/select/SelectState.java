@@ -35,7 +35,7 @@ final class SelectState extends State<Select> {
     /// Where the last frame painted the field, and what clipped it.
     ///
     /// **Not `setState`**: nothing drawn depends on it, and marking the element
-    /// dirty from [io.github.digitalsmile.goldberry.input.Located] is how a
+    /// dirty from [io.github.digitalsmile.goldberry.input.handler.Located] is how a
     /// widget told where it is ends up rebuilding forever (ADR-0119).
     private LogicalRect field = LogicalRect.of(0, 0, 0, 0);
 

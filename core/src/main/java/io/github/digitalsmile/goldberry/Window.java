@@ -10,7 +10,7 @@ import io.github.digitalsmile.goldberry.render.PixelBuffer;
 import io.github.digitalsmile.goldberry.render.model.PixelFormat;
 import io.github.digitalsmile.goldberry.render.window.WindowSpec;
 import io.github.digitalsmile.goldberry.render.popup.BackendPopup;
-import io.github.digitalsmile.goldberry.input.Modifiers;
+import io.github.digitalsmile.goldberry.input.key.Modifiers;
 import io.github.digitalsmile.goldberry.natives.log.Logs;
 import io.github.digitalsmile.goldberry.natives.log.Startup;
 import java.util.List;
@@ -494,7 +494,7 @@ public final class Window implements AutoCloseable {
         /// @return true when the press has been dealt with — a context menu
         ///         opening takes it, so the press does not also travel to whatever
         ///         it landed on
-        boolean pressed(io.github.digitalsmile.goldberry.input.PointerEvent.Button button,
+        boolean pressed(io.github.digitalsmile.goldberry.input.event.PointerEvent.Button button,
                 float x, float y);
 
         /// A key went down somewhere in this window.
@@ -507,8 +507,8 @@ public final class Window implements AutoCloseable {
         /// open ([ADR-0104]).
         ///
         /// @return true when the key has been dealt with
-        boolean keyPressed(io.github.digitalsmile.goldberry.input.Key key,
-                io.github.digitalsmile.goldberry.input.Modifiers modifiers, boolean repeat);
+        boolean keyPressed(io.github.digitalsmile.goldberry.input.key.Key key,
+                io.github.digitalsmile.goldberry.input.key.Modifiers modifiers, boolean repeat);
 
         /// The pointer left this window — or the platform says it did.
         ///
@@ -639,26 +639,26 @@ public final class Window implements AutoCloseable {
 
     /// SDL numbers buttons from 1, left first. Anything past the three the
     /// toolkit names is dropped rather than guessed at.
-    private static io.github.digitalsmile.goldberry.input.PointerEvent.Button toButton(int sdlButton) {
+    private static io.github.digitalsmile.goldberry.input.event.PointerEvent.Button toButton(int sdlButton) {
         return switch (sdlButton) {
-            case 1 -> io.github.digitalsmile.goldberry.input.PointerEvent.Button.PRIMARY;
-            case 2 -> io.github.digitalsmile.goldberry.input.PointerEvent.Button.MIDDLE;
-            case 3 -> io.github.digitalsmile.goldberry.input.PointerEvent.Button.SECONDARY;
+            case 1 -> io.github.digitalsmile.goldberry.input.event.PointerEvent.Button.PRIMARY;
+            case 2 -> io.github.digitalsmile.goldberry.input.event.PointerEvent.Button.MIDDLE;
+            case 3 -> io.github.digitalsmile.goldberry.input.event.PointerEvent.Button.SECONDARY;
             default -> null;
         };
     }
 
     void handleKeyPressed(int keycode, int modifiers, boolean repeat) {
         if (inputWatcher != null && inputWatcher.keyPressed(
-                io.github.digitalsmile.goldberry.input.Key.fromSdl(keycode),
+                io.github.digitalsmile.goldberry.input.key.Key.fromSdl(keycode),
                 Modifiers.fromSdl(modifiers), repeat)) {
             repaintIfRestyled();
             return;
         }
         if (router != null) {
             router.keyPressed(
-                    io.github.digitalsmile.goldberry.input.Key.fromSdl(keycode),
-                    io.github.digitalsmile.goldberry.input.Modifiers.fromSdl(modifiers),
+                    io.github.digitalsmile.goldberry.input.key.Key.fromSdl(keycode),
+                    io.github.digitalsmile.goldberry.input.key.Modifiers.fromSdl(modifiers),
                     repeat);
             repaintIfRestyled();
         }
@@ -667,8 +667,8 @@ public final class Window implements AutoCloseable {
     void handleKeyReleased(int keycode, int modifiers) {
         if (router != null) {
             router.keyReleased(
-                    io.github.digitalsmile.goldberry.input.Key.fromSdl(keycode),
-                    io.github.digitalsmile.goldberry.input.Modifiers.fromSdl(modifiers));
+                    io.github.digitalsmile.goldberry.input.key.Key.fromSdl(keycode),
+                    io.github.digitalsmile.goldberry.input.key.Modifiers.fromSdl(modifiers));
         }
     }
 

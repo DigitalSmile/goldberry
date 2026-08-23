@@ -4,7 +4,7 @@ import io.github.digitalsmile.goldberry.render.popup.BackendPopup;
 import io.github.digitalsmile.goldberry.render.model.LogicalPoint;
 import io.github.digitalsmile.goldberry.render.model.LogicalSize;
 import io.github.digitalsmile.goldberry.render.model.LogicalRect;
-import io.github.digitalsmile.goldberry.input.HitTest;
+import io.github.digitalsmile.goldberry.input.hit.HitTest;
 import io.github.digitalsmile.goldberry.input.PointerRouter;
 import io.github.digitalsmile.goldberry.paint.tree.RenderTree;
 import io.github.digitalsmile.goldberry.widget.ElementTree;
@@ -107,16 +107,16 @@ public final class Popup implements AutoCloseable {
         window.inputWatcher(new Window.InputWatcher() {
             @Override
             public boolean pressed(
-                    io.github.digitalsmile.goldberry.input.PointerEvent.Button button,
+                    io.github.digitalsmile.goldberry.input.event.PointerEvent.Button button,
                     float x, float y) {
                 // A press inside a popup is somebody choosing an item.
                 return false;
             }
 
             @Override
-            public boolean keyPressed(io.github.digitalsmile.goldberry.input.Key key,
-                    io.github.digitalsmile.goldberry.input.Modifiers modifiers, boolean repeat) {
-                if (key == io.github.digitalsmile.goldberry.input.Key.ESCAPE) {
+            public boolean keyPressed(io.github.digitalsmile.goldberry.input.key.Key key,
+                    io.github.digitalsmile.goldberry.input.key.Modifiers modifiers, boolean repeat) {
+                if (key == io.github.digitalsmile.goldberry.input.key.Key.ESCAPE) {
                     dismissedByInput();
                     return true;
                 }
@@ -276,8 +276,8 @@ public final class Popup implements AutoCloseable {
     /// by arrows either way ([ADR-0104]).
     ///
     /// @return whether the popup's router did something with it
-    boolean handleKey(io.github.digitalsmile.goldberry.input.Key key,
-            io.github.digitalsmile.goldberry.input.Modifiers modifiers, boolean repeat) {
+    boolean handleKey(io.github.digitalsmile.goldberry.input.key.Key key,
+            io.github.digitalsmile.goldberry.input.key.Modifiers modifiers, boolean repeat) {
         if (!isOpen()) {
             return false;
         }

@@ -11,7 +11,7 @@ import io.github.digitalsmile.goldberry.widget.Widget;
 /// ## Two moments, and the second one is the interesting one
 ///
 /// §4 says "run on blur and on submit". Blur is the first: the field is told by
-/// [io.github.digitalsmile.goldberry.input.Handles#onFocusWithin] when the
+/// [io.github.digitalsmile.goldberry.input.handler.Handles#onFocusWithin] when the
 /// keyboard leaves its subtree, which happens once however many controls are in
 /// it.
 ///

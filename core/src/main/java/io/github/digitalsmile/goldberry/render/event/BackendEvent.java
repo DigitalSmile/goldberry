@@ -131,7 +131,7 @@ public sealed interface BackendEvent {
     /// across events, so a slow trackpad eventually reports a click that no
     /// single event's float is large enough to produce.
     /// @param modifiers the platform's modifier bitmask, as
-    ///                  [io.github.digitalsmile.goldberry.input.Modifiers#fromSdl]
+    ///                  [io.github.digitalsmile.goldberry.input.key.Modifiers#fromSdl]
     ///                  reads it. Every pointer event carries it because §3 asks a
     ///                  knob for a "modifier for fine adjustment" and §2.3 asks
     ///                  for `Ctrl+click`, and because a backend is the only layer

@@ -1,4 +1,4 @@
-package io.github.digitalsmile.goldberry.input;
+package io.github.digitalsmile.goldberry.input.event;
 
 import io.github.digitalsmile.goldberry.widget.Element;
 import java.util.Objects;

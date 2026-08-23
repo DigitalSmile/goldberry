@@ -162,7 +162,7 @@ class MenuTest {
         // traversal collects nodes that handle input, and this handles none. The
         // compiler enforces it — `Separator` does not implement the interface, so
         // this is a statement about the type rather than about a flag.
-        assertFalse(io.github.digitalsmile.goldberry.input.Handles.class
+        assertFalse(io.github.digitalsmile.goldberry.input.handler.Handles.class
                 .isAssignableFrom(Separator.class));
     }
 

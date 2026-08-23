@@ -2,8 +2,8 @@ package io.github.digitalsmile.goldberry.widgets.overlay.tour;
 
 import io.github.digitalsmile.goldberry.render.model.LogicalRect;
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
-import io.github.digitalsmile.goldberry.input.Handles;
-import io.github.digitalsmile.goldberry.input.KeyEvent;
+import io.github.digitalsmile.goldberry.input.handler.Handles;
+import io.github.digitalsmile.goldberry.input.event.KeyEvent;
 import io.github.digitalsmile.goldberry.paint.Box;
 import io.github.digitalsmile.goldberry.natives.yoga.Insets;
 import io.github.digitalsmile.goldberry.natives.yoga.PositionType;
@@ -45,7 +45,7 @@ record TourStop(
         Runnable onBack, Runnable onNext, Runnable onSkip,
         java.util.function.Consumer<LogicalRect> onWindow)
         implements Widget.Leaf, Styled, Paints, Handles,
-                io.github.digitalsmile.goldberry.input.Located {
+                io.github.digitalsmile.goldberry.input.handler.Located {
 
     /// How far the card sits from the target, and from the window's edge.
     private static final float GAP = 12;
@@ -88,7 +88,7 @@ record TourStop(
     /// style, so reading the resolved style gives nothing
     /// ([ADR-0121](../../../../../../../../book/src/adr/0121-a-tour-is-a-veil-and-a-sequence.md)).
     ///
-    /// Safe against [io.github.digitalsmile.goldberry.input.Located]'s rule: what
+    /// Safe against [io.github.digitalsmile.goldberry.input.handler.Located]'s rule: what
     /// this reports is fixed by the overlay's insets, so nothing drawn inside it
     /// can change what is reported.
     @Override

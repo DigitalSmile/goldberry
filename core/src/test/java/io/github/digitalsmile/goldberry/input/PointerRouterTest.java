@@ -17,11 +17,14 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import io.github.digitalsmile.goldberry.input.event.PointerEvent;
+import io.github.digitalsmile.goldberry.input.hit.HitTest;
+import io.github.digitalsmile.goldberry.input.handler.Handles;
 
 /// Dispatch, pseudo-classes and focus, without a window.
 ///
 /// The hit-test snapshot is supplied directly rather than captured from a paint,
-/// so these are about the routing rules and not about Yoga. [HitTestTest] covers
+/// so these are about the routing rules and not about Yoga. [io.github.digitalsmile.goldberry.input.hit.HitTestTest] covers
 /// the other half.
 class PointerRouterTest {
 

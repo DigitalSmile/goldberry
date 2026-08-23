@@ -14,10 +14,10 @@ import io.github.digitalsmile.goldberry.css.ComputedStyle;
 import io.github.digitalsmile.goldberry.css.value.CssLength;
 import io.github.digitalsmile.goldberry.css.cascade.StyleResolver;
 import io.github.digitalsmile.goldberry.css.Theme;
-import io.github.digitalsmile.goldberry.input.Key;
-import io.github.digitalsmile.goldberry.input.KeyEvent;
-import io.github.digitalsmile.goldberry.input.Modifiers;
-import io.github.digitalsmile.goldberry.input.PointerEvent;
+import io.github.digitalsmile.goldberry.input.key.Key;
+import io.github.digitalsmile.goldberry.input.event.KeyEvent;
+import io.github.digitalsmile.goldberry.input.key.Modifiers;
+import io.github.digitalsmile.goldberry.input.event.PointerEvent;
 import io.github.digitalsmile.goldberry.kdl.KdlParser;
 import io.github.digitalsmile.goldberry.natives.yoga.StyleLength;
 import io.github.digitalsmile.goldberry.widget.ElementTree;
@@ -80,7 +80,7 @@ class KnobTest {
             assertEquals(75.0, asked(knob, drag(200, 150, Modifiers.NONE, 50)).getFirst(), 1e-9);
         }
 
-        /// The whole of why [io.github.digitalsmile.goldberry.input.Handles#gestureAnchor()]
+        /// The whole of why [io.github.digitalsmile.goldberry.input.handler.Handles#gestureAnchor()]
         /// exists: the same pointer position means a different value depending on
         /// where the drag started. A slider cannot tell you this, because for a
         /// slider it is not true.

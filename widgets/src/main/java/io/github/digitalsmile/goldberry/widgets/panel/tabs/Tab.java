@@ -4,10 +4,10 @@ import io.github.digitalsmile.goldberry.render.model.LogicalRect;
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
 import io.github.digitalsmile.goldberry.css.value.Transform;
 import io.github.digitalsmile.goldberry.icon.Icon;
-import io.github.digitalsmile.goldberry.input.Handles;
-import io.github.digitalsmile.goldberry.input.Key;
-import io.github.digitalsmile.goldberry.input.KeyEvent;
-import io.github.digitalsmile.goldberry.input.PointerEvent;
+import io.github.digitalsmile.goldberry.input.handler.Handles;
+import io.github.digitalsmile.goldberry.input.key.Key;
+import io.github.digitalsmile.goldberry.input.event.KeyEvent;
+import io.github.digitalsmile.goldberry.input.event.PointerEvent;
 import io.github.digitalsmile.goldberry.paint.Box;
 import io.github.digitalsmile.goldberry.widget.Attributed;
 import io.github.digitalsmile.goldberry.widget.Attributes;
@@ -83,7 +83,7 @@ public record Tab(
                 LogicalRect> reveal,
         Attributes attributes)
         implements Widget.Leaf, Styled, Paints, Handles,
-                io.github.digitalsmile.goldberry.input.Located, Attributed<Tab> {
+                io.github.digitalsmile.goldberry.input.handler.Located, Attributed<Tab> {
 
     public Tab {
         Objects.requireNonNull(value, "value");
@@ -127,7 +127,7 @@ public record Tab(
     ///
     /// `reveal` is non-null only for a tab that has just been selected and has
     /// not yet been brought into view. A tab that carries one implements
-    /// [io.github.digitalsmile.goldberry.input.Located] in effect: it is told
+    /// [io.github.digitalsmile.goldberry.input.handler.Located] in effect: it is told
     /// where it is once a frame, hands both rectangles over and is then wired
     /// without one again ([ADR-0120]).
     Tab wired(boolean isSelected, Runnable select, Runnable close,
