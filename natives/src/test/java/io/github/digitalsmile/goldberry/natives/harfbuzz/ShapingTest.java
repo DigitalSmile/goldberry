@@ -14,6 +14,7 @@ import java.util.List;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import io.github.digitalsmile.goldberry.natives.harfbuzz.enums.TextDirection;
 
 /// Shaping, checked without a font file.
 ///

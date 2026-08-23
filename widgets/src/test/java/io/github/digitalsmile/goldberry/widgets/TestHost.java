@@ -15,7 +15,7 @@ import io.github.digitalsmile.goldberry.render.model.LogicalSize;
 import io.github.digitalsmile.goldberry.render.window.BackendWindow;
 import io.github.digitalsmile.goldberry.input.hit.HitTest;
 import io.github.digitalsmile.goldberry.input.key.Shortcut;
-import io.github.digitalsmile.goldberry.text.Fonts;
+import io.github.digitalsmile.goldberry.text.font.Fonts;
 import io.github.digitalsmile.goldberry.widget.style.Corner;
 import io.github.digitalsmile.goldberry.widget.Widget;
 import java.time.Duration;

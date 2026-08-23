@@ -5,6 +5,7 @@ import java.lang.foreign.MemorySegment;
 import java.lang.foreign.ValueLayout;
 import java.nio.charset.StandardCharsets;
 import java.util.Objects;
+import io.github.digitalsmile.goldberry.natives.harfbuzz.enums.TextDirection;
 
 /// The run of text being shaped, and afterwards the glyphs it produced.
 ///

@@ -14,7 +14,7 @@ import io.github.digitalsmile.goldberry.css.Stylesheet;
 import io.github.digitalsmile.goldberry.paint.Box;
 import io.github.digitalsmile.goldberry.natives.yoga.style.PositionType;
 import io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength;
-import io.github.digitalsmile.goldberry.text.Font;
+import io.github.digitalsmile.goldberry.text.font.Font;
 import io.github.digitalsmile.goldberry.widget.style.Corner;
 import io.github.digitalsmile.goldberry.widget.ElementTree;
 import io.github.digitalsmile.goldberry.widget.style.Paints;

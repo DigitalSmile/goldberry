@@ -1,4 +1,5 @@
-package io.github.digitalsmile.goldberry.natives.harfbuzz;
+package io.github.digitalsmile.goldberry.natives.harfbuzz.enums;
+
 
 /// What HarfBuzz may do with bytes it is handed — `hb_memory_mode_t`.
 ///

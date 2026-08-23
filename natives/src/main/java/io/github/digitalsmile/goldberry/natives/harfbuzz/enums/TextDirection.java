@@ -1,4 +1,6 @@
-package io.github.digitalsmile.goldberry.natives.harfbuzz;
+package io.github.digitalsmile.goldberry.natives.harfbuzz.enums;
+
+import io.github.digitalsmile.goldberry.natives.harfbuzz.ShapingBuffer;
 
 /// Which way a run of text advances — `hb_direction_t`.
 ///

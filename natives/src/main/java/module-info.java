@@ -33,6 +33,7 @@ module io.github.digitalsmile.goldberry.natives {
     exports io.github.digitalsmile.goldberry.natives.blend2d.enums;
     exports io.github.digitalsmile.goldberry.natives.blend2d.error;
     exports io.github.digitalsmile.goldberry.natives.harfbuzz;
+    exports io.github.digitalsmile.goldberry.natives.harfbuzz.enums;
     exports io.github.digitalsmile.goldberry.natives.sdl;
     exports io.github.digitalsmile.goldberry.natives.sdl.event;
     exports io.github.digitalsmile.goldberry.natives.sdl.window;

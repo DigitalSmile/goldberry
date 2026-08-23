@@ -7,7 +7,7 @@ import io.github.digitalsmile.goldberry.render.model.LogicalRect;
 import io.github.digitalsmile.goldberry.render.model.LogicalSize;
 import io.github.digitalsmile.goldberry.render.window.BackendWindow;
 import io.github.digitalsmile.goldberry.stats.FrameStats;
-import io.github.digitalsmile.goldberry.text.Fonts;
+import io.github.digitalsmile.goldberry.text.font.Fonts;
 import io.github.digitalsmile.goldberry.widget.style.Corner;
 import io.github.digitalsmile.goldberry.widget.Widget;
 

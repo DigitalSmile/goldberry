@@ -8,7 +8,7 @@ import io.github.digitalsmile.goldberry.css.value.CssLength;
 /// One record rather than four components on [ComputedStyle], for the reason the
 /// other grouped record has: they travel together. All four **inherit**, all four
 /// are read together by the one thing that turns them into a
-/// [io.github.digitalsmile.goldberry.text.Font], and a caller that has one
+/// [io.github.digitalsmile.goldberry.text.font.Font], and a caller that has one
 /// invariably wants the rest.
 ///
 /// ## Why the weight is an enum and not a number

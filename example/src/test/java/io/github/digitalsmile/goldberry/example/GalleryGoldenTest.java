@@ -9,7 +9,7 @@ import io.github.digitalsmile.goldberry.example.ui.Screen;
 import io.github.digitalsmile.goldberry.golden.GoldenImage;
 import io.github.digitalsmile.goldberry.icon.Icon;
 import io.github.digitalsmile.goldberry.paint.BoxPainter;
-import io.github.digitalsmile.goldberry.text.Font;
+import io.github.digitalsmile.goldberry.text.font.Font;
 import io.github.digitalsmile.goldberry.widget.ElementTree;
 import io.github.digitalsmile.goldberry.widget.WidgetRenderer;
 import io.github.digitalsmile.goldberry.widgets.Controls;

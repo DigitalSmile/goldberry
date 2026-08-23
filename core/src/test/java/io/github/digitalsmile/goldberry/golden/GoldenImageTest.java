@@ -12,7 +12,7 @@ import io.github.digitalsmile.goldberry.css.Stylesheet;
 import io.github.digitalsmile.goldberry.css.Theme;
 import io.github.digitalsmile.goldberry.paint.Box;
 import io.github.digitalsmile.goldberry.paint.BoxPainter;
-import io.github.digitalsmile.goldberry.text.Font;
+import io.github.digitalsmile.goldberry.text.font.Font;
 import io.github.digitalsmile.goldberry.text.Paragraph;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;

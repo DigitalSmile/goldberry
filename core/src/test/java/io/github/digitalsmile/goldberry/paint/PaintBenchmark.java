@@ -9,7 +9,7 @@ import io.github.digitalsmile.goldberry.icon.Icon;
 import io.github.digitalsmile.goldberry.natives.yoga.style.Align;
 import io.github.digitalsmile.goldberry.natives.yoga.style.FlexDirection;
 import io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength;
-import io.github.digitalsmile.goldberry.text.Font;
+import io.github.digitalsmile.goldberry.text.font.Font;
 import io.github.digitalsmile.goldberry.text.Paragraph;
 import java.util.Arrays;
 import java.util.List;

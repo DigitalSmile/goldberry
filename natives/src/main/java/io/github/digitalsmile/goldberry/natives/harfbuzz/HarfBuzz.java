@@ -7,6 +7,8 @@ import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.SymbolLookup;
 import java.lang.foreign.ValueLayout;
+import io.github.digitalsmile.goldberry.natives.harfbuzz.enums.MemoryMode;
+import io.github.digitalsmile.goldberry.natives.harfbuzz.enums.TextDirection;
 
 /// HarfBuzz's shaping calls.
 ///

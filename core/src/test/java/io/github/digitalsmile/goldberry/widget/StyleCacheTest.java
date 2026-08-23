@@ -15,7 +15,7 @@ import io.github.digitalsmile.goldberry.css.select.Selector.PseudoClass;
 import io.github.digitalsmile.goldberry.css.Stylesheet;
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
 import io.github.digitalsmile.goldberry.paint.Box;
-import io.github.digitalsmile.goldberry.text.Font;
+import io.github.digitalsmile.goldberry.text.font.Font;
 import java.util.List;
 import java.util.Set;
 import org.junit.jupiter.api.AfterEach;

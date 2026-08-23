@@ -4,7 +4,7 @@ import io.github.digitalsmile.goldberry.css.ComputedStyle;
 import io.github.digitalsmile.goldberry.paint.Box;
 import io.github.digitalsmile.goldberry.paint.tree.RenderTree;
 import io.github.digitalsmile.goldberry.stats.FrameStats;
-import io.github.digitalsmile.goldberry.text.Font;
+import io.github.digitalsmile.goldberry.text.font.Font;
 import io.github.digitalsmile.goldberry.text.Paragraph;
 import java.util.List;
 import io.github.digitalsmile.goldberry.widget.Widget;
@@ -40,7 +40,7 @@ public interface Paints extends Widget {
         /// a button's label is Inter 600 and the paragraph beside it is Inter 400,
         /// and both are resolved by the cascade rather than chosen by the widget.
         ///
-        /// Backed by a [io.github.digitalsmile.goldberry.text.Fonts] book, so
+        /// Backed by a [io.github.digitalsmile.goldberry.text.font.Fonts] book, so
         /// asking again for a size already open is a map lookup and not a parse.
         Font font(ComputedStyle style);
 

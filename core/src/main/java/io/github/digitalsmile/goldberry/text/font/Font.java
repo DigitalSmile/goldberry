@@ -1,4 +1,4 @@
-package io.github.digitalsmile.goldberry.text;
+package io.github.digitalsmile.goldberry.text.font;
 
 import io.github.digitalsmile.goldberry.paint.Frame;
 import io.github.digitalsmile.goldberry.assets.BundledAssets;
@@ -9,6 +9,7 @@ import io.github.digitalsmile.goldberry.natives.harfbuzz.GlyphRun;
 import io.github.digitalsmile.goldberry.natives.harfbuzz.ShapedFont;
 import io.github.digitalsmile.goldberry.natives.harfbuzz.ShapingBuffer;
 import java.util.Objects;
+import io.github.digitalsmile.goldberry.text.Paragraph;
 
 /// One typeface at one size, shaped by HarfBuzz and drawn by Blend2D.
 ///

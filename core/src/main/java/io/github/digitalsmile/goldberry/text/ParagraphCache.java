@@ -3,6 +3,7 @@ package io.github.digitalsmile.goldberry.text;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
+import io.github.digitalsmile.goldberry.text.font.Font;
 
 /// Shaped paragraphs, kept so the same text is not shaped twice.
 ///

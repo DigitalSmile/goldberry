@@ -10,6 +10,7 @@ import java.text.BreakIterator;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import io.github.digitalsmile.goldberry.text.font.Font;
 
 /// A run of text that knows how to wrap itself, and therefore how to be laid out.
 ///

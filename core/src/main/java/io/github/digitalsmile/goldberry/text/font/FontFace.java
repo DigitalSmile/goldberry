@@ -1,4 +1,4 @@
-package io.github.digitalsmile.goldberry.text;
+package io.github.digitalsmile.goldberry.text.font;
 
 import io.github.digitalsmile.goldberry.assets.BundledAssets;
 import io.github.digitalsmile.goldberry.assets.BundledFont;

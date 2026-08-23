@@ -1,8 +1,8 @@
 package io.github.digitalsmile.goldberry.widgets.controls;
 
 import io.github.digitalsmile.goldberry.assets.BundledFont;
-import io.github.digitalsmile.goldberry.text.Font;
-import io.github.digitalsmile.goldberry.text.Fonts;
+import io.github.digitalsmile.goldberry.text.font.Font;
+import io.github.digitalsmile.goldberry.text.font.Fonts;
 import org.junit.jupiter.api.Assumptions;
 
 /// A real font book for the tests that render, and a skip for the machines with

@@ -137,7 +137,7 @@ public final class Frame {
     /// The primitive, not the text API. It takes a font and a buffer of
     /// positioned glyphs because that is what a rasterizer draws; deciding
     /// *which* glyphs, at what positions, is shaping, and
-    /// [Font][io.github.digitalsmile.goldberry.text.Font] is what joins the two.
+    /// [Font][io.github.digitalsmile.goldberry.text.font.Font] is what joins the two.
     /// Call that instead unless there is a reason not to.
     ///
     /// `baseline` is the line the letters sit on — an `a` is above it, a `g`

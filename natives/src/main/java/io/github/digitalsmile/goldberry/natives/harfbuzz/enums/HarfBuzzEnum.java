@@ -1,4 +1,4 @@
-package io.github.digitalsmile.goldberry.natives.harfbuzz;
+package io.github.digitalsmile.goldberry.natives.harfbuzz.enums;
 
 import java.util.Arrays;
 import java.util.List;

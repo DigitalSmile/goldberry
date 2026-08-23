@@ -10,7 +10,7 @@ import io.github.digitalsmile.goldberry.example.ui.Scrolling;
 import io.github.digitalsmile.goldberry.golden.GoldenImage;
 import io.github.digitalsmile.goldberry.input.hit.HitTest;
 import io.github.digitalsmile.goldberry.paint.tree.RenderTree;
-import io.github.digitalsmile.goldberry.text.Fonts;
+import io.github.digitalsmile.goldberry.text.font.Fonts;
 import io.github.digitalsmile.goldberry.widget.ElementTree;
 import io.github.digitalsmile.goldberry.widget.WidgetRenderer;
 import io.github.digitalsmile.goldberry.widgets.Controls;

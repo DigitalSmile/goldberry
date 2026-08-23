@@ -99,7 +99,7 @@ class BoxStyleTest {
         // The only test here that needs a real font, and so the only one that
         // needs the native library: a Paragraph cannot exist without one.
         io.github.digitalsmile.goldberry.RendererRequirement.enforce();
-        try (var font = io.github.digitalsmile.goldberry.text.Font.bundled(
+        try (var font = io.github.digitalsmile.goldberry.text.font.Font.bundled(
                 io.github.digitalsmile.goldberry.assets.BundledFont.UI, 14)) {
 
             var style = ComputedStyle.of(

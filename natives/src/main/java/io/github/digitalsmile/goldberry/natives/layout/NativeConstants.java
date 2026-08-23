@@ -1,7 +1,7 @@
 package io.github.digitalsmile.goldberry.natives.layout;
 
 import io.github.digitalsmile.goldberry.natives.blend2d.enums.BlendEnum;
-import io.github.digitalsmile.goldberry.natives.harfbuzz.HarfBuzzEnum;
+import io.github.digitalsmile.goldberry.natives.harfbuzz.enums.HarfBuzzEnum;
 import io.github.digitalsmile.goldberry.natives.sdl.event.SdlEventType;
 import io.github.digitalsmile.goldberry.natives.sdl.window.SdlPixelFormat;
 import io.github.digitalsmile.goldberry.natives.sdl.desktop.SdlSystemCursor;

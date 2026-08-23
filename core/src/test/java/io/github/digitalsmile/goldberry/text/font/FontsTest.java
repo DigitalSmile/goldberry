@@ -1,4 +1,4 @@
-package io.github.digitalsmile.goldberry.text;
+package io.github.digitalsmile.goldberry.text.font;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;

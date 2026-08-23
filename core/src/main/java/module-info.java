@@ -93,6 +93,12 @@ module io.github.digitalsmile.goldberry.core {
     // to the one thing they must agree on: the units a glyph position is in.
     exports io.github.digitalsmile.goldberry.text;
 
+    // The font chain -- a face, a sized font, and the fallback list a
+    // paragraph is shaped against -- separately from the paragraph itself
+    // (ADR-0172). An application picks a font source; it does not lay out a
+    // line by hand.
+    exports io.github.digitalsmile.goldberry.text.font;
+
     // The backend SPI, and the one backend that needs no platform under it.
     // `sdl3` will live here too and will be what makes this module `requires`
     // the natives module; `headless` deliberately does not, so tests of

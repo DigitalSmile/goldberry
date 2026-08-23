@@ -15,7 +15,7 @@ import java.util.Objects;
 /// why an icon carries a [#strokeWidth()] as well as a path, and why drawing one
 /// with `fill` produces a blob rather than a symbol.
 ///
-/// **An icon belongs to a size**, the way a [io.github.digitalsmile.goldberry.text.Font]
+/// **An icon belongs to a size**, the way a [io.github.digitalsmile.goldberry.text.font.Font]
 /// does and for the same reason (ADR-0034): the path is built scaled, so the
 /// coordinates handed to Blend2D are already the ones it rasterizes, and there
 /// is no transform to get wrong at draw time. Drawing the same symbol at two
@@ -111,7 +111,7 @@ public final class Icon implements AutoCloseable {
     }
 
     /// The path, for anything that wants to draw it differently. Exposed the way
-    /// [io.github.digitalsmile.goldberry.text.Font] exposes its Blend2D objects:
+    /// [io.github.digitalsmile.goldberry.text.font.Font] exposes its Blend2D objects:
     /// `:core` builds them and `Frame` draws them, and hiding the type would
     /// mean a second drawing API that only this class could reach.
     public BlendPath path() {

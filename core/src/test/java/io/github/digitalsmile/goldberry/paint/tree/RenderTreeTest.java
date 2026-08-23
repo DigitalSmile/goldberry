@@ -14,7 +14,7 @@ import io.github.digitalsmile.goldberry.natives.yoga.style.FlexDirection;
 import io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength;
 import io.github.digitalsmile.goldberry.paint.Box;
 import io.github.digitalsmile.goldberry.paint.BoxPainter;
-import io.github.digitalsmile.goldberry.text.Font;
+import io.github.digitalsmile.goldberry.text.font.Font;
 import io.github.digitalsmile.goldberry.text.Paragraph;
 import io.github.digitalsmile.goldberry.text.ParagraphCache;
 import java.util.ArrayList;

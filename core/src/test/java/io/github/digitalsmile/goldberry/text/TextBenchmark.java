@@ -16,6 +16,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
+import io.github.digitalsmile.goldberry.text.font.Font;
+import io.github.digitalsmile.goldberry.text.font.FontFace;
 
 /// What the text path costs, measured rather than assumed.
 ///

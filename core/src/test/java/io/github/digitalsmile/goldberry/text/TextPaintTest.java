@@ -12,6 +12,7 @@ import java.util.OptionalInt;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import io.github.digitalsmile.goldberry.text.font.Font;
 
 /// The ink itself: what reached the buffer when text was drawn.
 ///

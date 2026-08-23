@@ -8,7 +8,7 @@ import io.github.digitalsmile.goldberry.assets.BundledFont;
 import io.github.digitalsmile.goldberry.natives.yoga.style.Align;
 import io.github.digitalsmile.goldberry.natives.yoga.style.FlexDirection;
 import io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength;
-import io.github.digitalsmile.goldberry.text.Font;
+import io.github.digitalsmile.goldberry.text.font.Font;
 import io.github.digitalsmile.goldberry.text.Paragraph;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
