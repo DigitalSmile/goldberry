@@ -4,10 +4,10 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 
-import io.github.digitalsmile.goldberry.css.CascadeLayer;
+import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
-import io.github.digitalsmile.goldberry.css.CssLength;
-import io.github.digitalsmile.goldberry.css.StyleResolver;
+import io.github.digitalsmile.goldberry.css.value.CssLength;
+import io.github.digitalsmile.goldberry.css.cascade.StyleResolver;
 import io.github.digitalsmile.goldberry.css.Stylesheet;
 import io.github.digitalsmile.goldberry.natives.yoga.Align;
 import io.github.digitalsmile.goldberry.natives.yoga.FlexDirection;
@@ -41,7 +41,7 @@ class BoxStyleTest {
         }
 
         @Override
-        public boolean hasState(io.github.digitalsmile.goldberry.css.Selector.PseudoClass state) {
+        public boolean hasState(io.github.digitalsmile.goldberry.css.select.Selector.PseudoClass state) {
             return false;
         }
     }

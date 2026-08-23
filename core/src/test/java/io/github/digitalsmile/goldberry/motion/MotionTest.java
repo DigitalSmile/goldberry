@@ -9,11 +9,11 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
-import io.github.digitalsmile.goldberry.css.CssColor;
-import io.github.digitalsmile.goldberry.css.Transform;
-import io.github.digitalsmile.goldberry.css.Transitions;
-import io.github.digitalsmile.goldberry.css.Transitions.Animatable;
-import io.github.digitalsmile.goldberry.css.Transitions.Timing;
+import io.github.digitalsmile.goldberry.css.value.CssColor;
+import io.github.digitalsmile.goldberry.css.value.Transform;
+import io.github.digitalsmile.goldberry.css.cascade.Transitions;
+import io.github.digitalsmile.goldberry.css.cascade.Transitions.Animatable;
+import io.github.digitalsmile.goldberry.css.cascade.Transitions.Timing;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;

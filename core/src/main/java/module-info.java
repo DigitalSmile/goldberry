@@ -23,6 +23,14 @@ module io.github.digitalsmile.goldberry.core {
     // stylesheet and choosing a theme are things an application does.
     exports io.github.digitalsmile.goldberry.css;
 
+    // The engine's stages, each its own package (ADR-0172): the tokenizer and
+    // parser that read a stylesheet, the selectors it is indexed by, the cascade
+    // that picks a winner, and the value types a declaration resolves to.
+    exports io.github.digitalsmile.goldberry.css.parse;
+    exports io.github.digitalsmile.goldberry.css.select;
+    exports io.github.digitalsmile.goldberry.css.cascade;
+    exports io.github.digitalsmile.goldberry.css.value;
+
     // KDL 2.0 markup and the inflater registry (§9, ADR-0051). Exported
     // because an application registers its own widgets in the same registry the
     // built-ins use.

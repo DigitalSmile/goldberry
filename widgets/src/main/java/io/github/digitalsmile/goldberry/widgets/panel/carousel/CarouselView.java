@@ -1,7 +1,7 @@
 package io.github.digitalsmile.goldberry.widgets.panel.carousel;
 
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
-import io.github.digitalsmile.goldberry.css.Transform;
+import io.github.digitalsmile.goldberry.css.value.Transform;
 import io.github.digitalsmile.goldberry.input.FocusScope;
 import io.github.digitalsmile.goldberry.input.Handles;
 import io.github.digitalsmile.goldberry.input.Key;

@@ -1,6 +1,7 @@
-package io.github.digitalsmile.goldberry.css;
+package io.github.digitalsmile.goldberry.css.select;
 
 import java.util.Objects;
+import io.github.digitalsmile.goldberry.css.StyleElement;
 
 /// Decides whether a [Selector] applies to a [StyleElement].
 ///

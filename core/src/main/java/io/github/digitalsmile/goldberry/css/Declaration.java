@@ -2,6 +2,8 @@ package io.github.digitalsmile.goldberry.css;
 
 import java.util.List;
 import java.util.Objects;
+import io.github.digitalsmile.goldberry.css.parse.Token;
+import io.github.digitalsmile.goldberry.css.parse.TokenType;
 
 /// One `property: value` pair, with the value left as tokens.
 ///

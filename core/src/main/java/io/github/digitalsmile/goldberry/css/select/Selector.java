@@ -1,4 +1,4 @@
-package io.github.digitalsmile.goldberry.css;
+package io.github.digitalsmile.goldberry.css.select;
 
 import java.util.List;
 import java.util.Objects;
@@ -134,7 +134,7 @@ public record Selector(List<Part> parts) {
         /// A widget's own state rather than the router's, like `:checked`: the
         /// pointer and the keyboard know nothing about it, and what decides it is
         /// a comparison between two rectangles the widget was told about
-        /// ([ADR-0119](../../../../../../book/src/adr/0119-a-widget-may-be-told-where-it-is.md)).
+        /// ([ADR-0119](../../../../../../../book/src/adr/0119-a-widget-may-be-told-where-it-is.md)).
         ///
         /// It exists so a sticky header can gain a shadow **the moment it lifts**,
         /// which is the whole visual point of the widget and is not expressible any
@@ -152,7 +152,9 @@ public record Selector(List<Part> parts) {
             return name().toLowerCase(java.util.Locale.ROOT).replace('_', '-');
         }
 
-        static PseudoClass parse(String name) {
+        /// Public because the parser that calls it is `css.parse`'s and a
+        /// selector is `css.select`'s ([ADR-0172](../../../../../../../book/src/adr/0172-a-package-is-a-role-and-the-module-is-the-fence.md)).
+        public static PseudoClass parse(String name) {
             for (var candidate : values()) {
                 if (candidate.cssName().equalsIgnoreCase(name)) {
                     return candidate;

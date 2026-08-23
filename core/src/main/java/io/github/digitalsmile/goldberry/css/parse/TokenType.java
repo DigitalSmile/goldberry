@@ -1,4 +1,4 @@
-package io.github.digitalsmile.goldberry.css;
+package io.github.digitalsmile.goldberry.css.parse;
 
 /// The token kinds Goldberry's CSS subset needs.
 ///

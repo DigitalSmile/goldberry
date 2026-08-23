@@ -1,8 +1,11 @@
-package io.github.digitalsmile.goldberry.css;
+package io.github.digitalsmile.goldberry.css.value;
 
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import io.github.digitalsmile.goldberry.css.parse.CssTokenizer;
+import io.github.digitalsmile.goldberry.css.parse.Token;
+import io.github.digitalsmile.goldberry.css.parse.TokenType;
 
 /// Reads a CSS colour into the `0xAARRGGBB` int the paint layer takes.
 ///

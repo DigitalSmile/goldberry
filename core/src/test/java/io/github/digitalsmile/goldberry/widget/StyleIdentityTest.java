@@ -8,9 +8,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.github.digitalsmile.goldberry.RendererRequirement;
 import io.github.digitalsmile.goldberry.assets.BundledFont;
-import io.github.digitalsmile.goldberry.css.CascadeLayer;
+import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
-import io.github.digitalsmile.goldberry.css.Selector;
+import io.github.digitalsmile.goldberry.css.select.Selector;
 import io.github.digitalsmile.goldberry.css.Stylesheet;
 import io.github.digitalsmile.goldberry.paint.Box;
 import io.github.digitalsmile.goldberry.text.Font;
@@ -181,7 +181,7 @@ class StyleIdentityTest {
     @Test
     @DisplayName("a typeless node's state reaches nothing, because nothing can name it")
     void typelessNodeReachesNothing() {
-        var resolver = new io.github.digitalsmile.goldberry.css.StyleResolver(
+        var resolver = new io.github.digitalsmile.goldberry.css.cascade.StyleResolver(
                 List.of(Stylesheet.parse(CascadeLayer.APPLICATION,
                         "checkbox:hover check-indicator { background: #bf616a }")));
 
@@ -197,7 +197,7 @@ class StyleIdentityTest {
     @Test
     @DisplayName("an untyped ancestor compound keeps its state conservative")
     void untypedAncestorIsConservative() {
-        var resolver = new io.github.digitalsmile.goldberry.css.StyleResolver(
+        var resolver = new io.github.digitalsmile.goldberry.css.cascade.StyleResolver(
                 List.of(Stylesheet.parse(CascadeLayer.APPLICATION,
                         ".section:affixed > affix-content { background: #bf616a }")));
 

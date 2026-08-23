@@ -27,7 +27,7 @@ import org.slf4j.Logger;
 /// failure is logged once with its position, and the next save gets another go.
 ///
 /// That is the opposite of the load-time strictness in
-/// [io.github.digitalsmile.goldberry.css.CssSyntaxException], and deliberately:
+/// [io.github.digitalsmile.goldberry.css.parse.CssSyntaxException], and deliberately:
 /// at start-up a broken stylesheet is a bug worth stopping for; at 2pm on a
 /// Tuesday with the editor open it is just Tuesday.
 ///

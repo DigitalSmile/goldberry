@@ -2,7 +2,7 @@ package io.github.digitalsmile.goldberry.widgets;
 
 
 
-import io.github.digitalsmile.goldberry.css.CascadeLayer;
+import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
 import io.github.digitalsmile.goldberry.css.Stylesheet;
 import io.github.digitalsmile.goldberry.css.Theme;
 

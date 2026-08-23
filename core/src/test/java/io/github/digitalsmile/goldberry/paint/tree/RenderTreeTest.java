@@ -8,7 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import io.github.digitalsmile.goldberry.RendererRequirement;
 import io.github.digitalsmile.goldberry.paint.TestFrames;
 import io.github.digitalsmile.goldberry.assets.BundledFont;
-import io.github.digitalsmile.goldberry.css.Transform;
+import io.github.digitalsmile.goldberry.css.value.Transform;
 import io.github.digitalsmile.goldberry.natives.yoga.ComputedLayout;
 import io.github.digitalsmile.goldberry.natives.yoga.FlexDirection;
 import io.github.digitalsmile.goldberry.natives.yoga.StyleLength;
@@ -335,7 +335,7 @@ class RenderTreeTest {
                                         Transform.Length.px(100), Transform.Length.ZERO)))
                                 .children(sized(20, 20))));
 
-                var transforms = new ArrayList<io.github.digitalsmile.goldberry.css.Affine>();
+                var transforms = new ArrayList<io.github.digitalsmile.goldberry.css.value.Affine>();
                 tree.forEachPlacedBox(placed -> transforms.add(placed.transform()));
 
                 assertTrue(transforms.get(0).isIdentity(), "the root is where it was laid out");

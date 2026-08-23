@@ -1,6 +1,6 @@
 package io.github.digitalsmile.goldberry.paint;
 
-import io.github.digitalsmile.goldberry.css.Affine;
+import io.github.digitalsmile.goldberry.css.value.Affine;
 
 /// The rectangle a subtree is confined to, in the frame's logical coordinates.
 ///

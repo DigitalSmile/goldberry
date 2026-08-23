@@ -1,6 +1,7 @@
 package io.github.digitalsmile.goldberry.css;
 
 import io.github.digitalsmile.goldberry.assets.BundledFont;
+import io.github.digitalsmile.goldberry.css.value.CssLength;
 
 /// Which face text is drawn with, and how big — `docs/design-system.md` §1.4.
 ///

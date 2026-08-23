@@ -72,14 +72,14 @@ public final class ElementTree {
     /// composition node in the hover chain has no cache and no resolver, and
     /// treating that as "unknown, be conservative" re-resolved the whole tree on
     /// every click (ADR-0149).
-    private io.github.digitalsmile.goldberry.css.StyleResolver styleResolver;
+    private io.github.digitalsmile.goldberry.css.cascade.StyleResolver styleResolver;
 
     /// Told by the renderer at the start of every frame.
-    public void styleResolver(io.github.digitalsmile.goldberry.css.StyleResolver resolver) {
+    public void styleResolver(io.github.digitalsmile.goldberry.css.cascade.StyleResolver resolver) {
         this.styleResolver = resolver;
     }
 
-    io.github.digitalsmile.goldberry.css.StyleResolver styleResolver() {
+    io.github.digitalsmile.goldberry.css.cascade.StyleResolver styleResolver() {
         return styleResolver;
     }
 

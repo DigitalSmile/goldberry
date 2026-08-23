@@ -1,4 +1,6 @@
-package io.github.digitalsmile.goldberry.css;
+package io.github.digitalsmile.goldberry.css.parse;
+
+import io.github.digitalsmile.goldberry.css.ComputedStyle;
 
 /// One CSS token, and where it came from.
 ///

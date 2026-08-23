@@ -2,7 +2,7 @@ package io.github.digitalsmile.goldberry.widgets.panel.tabs;
 
 import io.github.digitalsmile.goldberry.render.model.LogicalRect;
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
-import io.github.digitalsmile.goldberry.css.Transform;
+import io.github.digitalsmile.goldberry.css.value.Transform;
 import io.github.digitalsmile.goldberry.icon.Icon;
 import io.github.digitalsmile.goldberry.input.Handles;
 import io.github.digitalsmile.goldberry.input.Key;

@@ -1,7 +1,7 @@
 package io.github.digitalsmile.goldberry.input;
 
 import io.github.digitalsmile.goldberry.render.Cursor;
-import io.github.digitalsmile.goldberry.css.Selector.PseudoClass;
+import io.github.digitalsmile.goldberry.css.select.Selector.PseudoClass;
 import io.github.digitalsmile.goldberry.render.model.LogicalRect;
 import io.github.digitalsmile.goldberry.widget.Element;
 import io.github.digitalsmile.goldberry.widget.Widget;

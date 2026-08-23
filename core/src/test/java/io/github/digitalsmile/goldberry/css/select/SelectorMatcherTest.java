@@ -1,4 +1,4 @@
-package io.github.digitalsmile.goldberry.css;
+package io.github.digitalsmile.goldberry.css.select;
 
 import static io.github.digitalsmile.goldberry.css.TestElement.element;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -7,6 +7,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import io.github.digitalsmile.goldberry.css.parse.CssParser;
+import io.github.digitalsmile.goldberry.css.StyleElement;
 
 class SelectorMatcherTest {
 

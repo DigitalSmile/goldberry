@@ -5,6 +5,8 @@ import java.io.InputStream;
 import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Locale;
+import io.github.digitalsmile.goldberry.css.parse.CssSyntaxException;
+import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
 
 /// The themes that ship with the toolkit.
 ///

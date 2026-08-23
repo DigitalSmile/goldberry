@@ -1,6 +1,9 @@
 package io.github.digitalsmile.goldberry.css;
 
 import java.util.Set;
+import io.github.digitalsmile.goldberry.css.parse.Token;
+import io.github.digitalsmile.goldberry.css.select.Selector;
+import io.github.digitalsmile.goldberry.css.cascade.StyleResolver;
 
 /// What the cascade needs to know about a node to style it.
 ///

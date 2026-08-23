@@ -5,8 +5,8 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.github.digitalsmile.goldberry.RendererRequirement;
-import io.github.digitalsmile.goldberry.css.Affine;
-import io.github.digitalsmile.goldberry.css.Transform;
+import io.github.digitalsmile.goldberry.css.value.Affine;
+import io.github.digitalsmile.goldberry.css.value.Transform;
 import io.github.digitalsmile.goldberry.golden.ScaleInvariance;
 import io.github.digitalsmile.goldberry.input.HitTest;
 import io.github.digitalsmile.goldberry.natives.yoga.FlexDirection;

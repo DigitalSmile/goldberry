@@ -2,9 +2,9 @@ package io.github.digitalsmile.goldberry.paint;
 
 import io.github.digitalsmile.goldberry.render.Cursor;
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
-import io.github.digitalsmile.goldberry.css.CssColor;
+import io.github.digitalsmile.goldberry.css.value.CssColor;
 import io.github.digitalsmile.goldberry.css.Decoration;
-import io.github.digitalsmile.goldberry.css.Transform;
+import io.github.digitalsmile.goldberry.css.value.Transform;
 import io.github.digitalsmile.goldberry.icon.Icon;
 import io.github.digitalsmile.goldberry.natives.yoga.Align;
 import io.github.digitalsmile.goldberry.natives.yoga.FlexDirection;

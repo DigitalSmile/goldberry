@@ -1,4 +1,4 @@
-package io.github.digitalsmile.goldberry.css;
+package io.github.digitalsmile.goldberry.css.parse;
 
 import java.util.ArrayList;
 import java.util.List;

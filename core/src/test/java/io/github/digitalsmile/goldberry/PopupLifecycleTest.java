@@ -12,7 +12,7 @@ import io.github.digitalsmile.goldberry.render.backend.headless.HeadlessBackend;
 import io.github.digitalsmile.goldberry.render.backend.headless.HeadlessPopup;
 import io.github.digitalsmile.goldberry.render.backend.headless.HeadlessWindow;
 import io.github.digitalsmile.goldberry.render.model.LogicalRect;
-import io.github.digitalsmile.goldberry.css.CascadeLayer;
+import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
 import io.github.digitalsmile.goldberry.css.Stylesheet;
 import io.github.digitalsmile.goldberry.input.Key;

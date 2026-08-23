@@ -4,14 +4,19 @@ import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
+import io.github.digitalsmile.goldberry.css.select.Selector;
 
 /// A [StyleElement] tree, built by hand.
+///
+/// Public because the CSS engine's stages are packages of their own now and
+/// each of them tests against this same hand-built tree
+/// ([ADR-0172](../../../../../../book/src/adr/0172-a-package-is-a-role-and-the-module-is-the-fence.md)).
 ///
 /// Stands in for the element tree of ADR-0004, which does not exist yet. That is
 /// exactly what [StyleElement] is for: the cascade can be built and tested
 /// against something this small, and the real tree implements the same four
 /// questions later.
-final class TestElement implements StyleElement {
+public final class TestElement implements StyleElement {
 
     private final String type;
     private String id;
@@ -26,7 +31,7 @@ final class TestElement implements StyleElement {
 
     /// `element("button.primary#apply")` — a tiny selector-shaped shorthand, so a
     /// test tree reads like the CSS it is being matched against.
-    static TestElement element(String description) {
+    public static TestElement element(String description) {
         var element = new TestElement(leadingType(description));
         var rest = description.substring(element.type == null ? 0 : element.type.length());
         var i = 0;
@@ -57,7 +62,7 @@ final class TestElement implements StyleElement {
         return end == 0 ? null : description.substring(0, end);
     }
 
-    TestElement with(TestElement... kids) {
+    public TestElement with(TestElement... kids) {
         for (var kid : kids) {
             kid.parent = this;
             children.add(kid);
@@ -67,7 +72,7 @@ final class TestElement implements StyleElement {
 
     /// The element at the end of a chain of first children — how a test names the
     /// leaf of a tree it just built.
-    TestElement descend(int depth) {
+    public TestElement descend(int depth) {
         var current = this;
         for (var i = 0; i < depth; i++) {
             current = current.children.getFirst();

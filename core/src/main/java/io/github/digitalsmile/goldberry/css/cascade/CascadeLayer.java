@@ -1,4 +1,6 @@
-package io.github.digitalsmile.goldberry.css;
+package io.github.digitalsmile.goldberry.css.cascade;
+
+import io.github.digitalsmile.goldberry.css.Declaration;
 
 /// Where a stylesheet sits in the cascade.
 ///

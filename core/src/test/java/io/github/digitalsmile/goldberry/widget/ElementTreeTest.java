@@ -434,13 +434,13 @@ class ElementTreeTest {
             var element = tree.root();
 
             assertTrue(element.setPseudoClass(
-                    io.github.digitalsmile.goldberry.css.Selector.PseudoClass.HOVER, true));
+                    io.github.digitalsmile.goldberry.css.select.Selector.PseudoClass.HOVER, true));
             element.update(new Counter("c2"));
 
             // A button does not stop being hovered because its parent
             // re-described it.
             assertTrue(element.hasState(
-                    io.github.digitalsmile.goldberry.css.Selector.PseudoClass.HOVER));
+                    io.github.digitalsmile.goldberry.css.select.Selector.PseudoClass.HOVER));
         }
 
         @Test

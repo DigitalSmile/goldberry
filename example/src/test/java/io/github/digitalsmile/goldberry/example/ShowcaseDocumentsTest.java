@@ -197,7 +197,7 @@ class ShowcaseDocumentsTest {
     @DisplayName("the showcase stylesheet loads and is not empty")
     void stylesheetLoads() {
         var sheet = io.github.digitalsmile.goldberry.css.Stylesheet.resource(
-                io.github.digitalsmile.goldberry.css.CascadeLayer.APPLICATION,
+                io.github.digitalsmile.goldberry.css.cascade.CascadeLayer.APPLICATION,
                 Showcase.class, "showcase.css");
 
         assertFalse(sheet.rules().isEmpty());

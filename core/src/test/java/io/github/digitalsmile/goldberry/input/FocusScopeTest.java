@@ -5,7 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import io.github.digitalsmile.goldberry.css.Selector.PseudoClass;
+import io.github.digitalsmile.goldberry.css.select.Selector.PseudoClass;
 import io.github.digitalsmile.goldberry.widget.Element;
 import io.github.digitalsmile.goldberry.widget.ElementTree;
 import io.github.digitalsmile.goldberry.widget.Styled;
@@ -142,10 +142,10 @@ class FocusScopeTest {
             assertTrue(router.moveFocus(1, false));
 
             assertSame(before, router.focused());
-            assertTrue(before.hasState(io.github.digitalsmile.goldberry.css.Selector.PseudoClass.FOCUS),
+            assertTrue(before.hasState(io.github.digitalsmile.goldberry.css.select.Selector.PseudoClass.FOCUS),
                     "it is focused, so an arrow has somewhere to start");
             assertFalse(before.hasState(
-                            io.github.digitalsmile.goldberry.css.Selector.PseudoClass.FOCUS_VISIBLE),
+                            io.github.digitalsmile.goldberry.css.select.Selector.PseudoClass.FOCUS_VISIBLE),
                     "and nothing is lit, because nobody pressed anything");
         }
 
@@ -156,7 +156,7 @@ class FocusScopeTest {
             tab();
 
             assertTrue(router.focused().hasState(
-                            io.github.digitalsmile.goldberry.css.Selector.PseudoClass.FOCUS_VISIBLE),
+                            io.github.digitalsmile.goldberry.css.select.Selector.PseudoClass.FOCUS_VISIBLE),
                     "the keyboard moved it, so the keyboard's affordance is drawn");
         }
 
@@ -166,7 +166,7 @@ class FocusScopeTest {
             assertTrue(router.moveFocus(1));
 
             assertTrue(router.focused().hasState(
-                    io.github.digitalsmile.goldberry.css.Selector.PseudoClass.FOCUS_VISIBLE));
+                    io.github.digitalsmile.goldberry.css.select.Selector.PseudoClass.FOCUS_VISIBLE));
         }
     }
 

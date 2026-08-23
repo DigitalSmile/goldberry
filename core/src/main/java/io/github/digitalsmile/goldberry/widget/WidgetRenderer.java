@@ -1,9 +1,9 @@
 package io.github.digitalsmile.goldberry.widget;
 
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
-import io.github.digitalsmile.goldberry.css.CssLength;
-import io.github.digitalsmile.goldberry.css.Selector.PseudoClass;
-import io.github.digitalsmile.goldberry.css.StyleResolver;
+import io.github.digitalsmile.goldberry.css.value.CssLength;
+import io.github.digitalsmile.goldberry.css.select.Selector.PseudoClass;
+import io.github.digitalsmile.goldberry.css.cascade.StyleResolver;
 import io.github.digitalsmile.goldberry.css.Stylesheet;
 import io.github.digitalsmile.goldberry.paint.Box;
 import io.github.digitalsmile.goldberry.motion.Clock;

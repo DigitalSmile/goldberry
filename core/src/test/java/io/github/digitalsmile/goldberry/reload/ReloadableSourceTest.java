@@ -5,8 +5,8 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import io.github.digitalsmile.goldberry.css.CascadeLayer;
-import io.github.digitalsmile.goldberry.css.CssSyntaxException;
+import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
+import io.github.digitalsmile.goldberry.css.parse.CssSyntaxException;
 import io.github.digitalsmile.goldberry.css.Stylesheet;
 import java.io.IOException;
 import java.nio.file.Files;

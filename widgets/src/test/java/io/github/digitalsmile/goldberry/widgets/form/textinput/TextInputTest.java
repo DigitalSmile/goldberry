@@ -830,9 +830,9 @@ class TextInputTest {
             // repeated here.
             var element = tree.root().children().getFirst();
             var style = io.github.digitalsmile.goldberry.css.ComputedStyle.of(
-                    new io.github.digitalsmile.goldberry.css.StyleResolver(
+                    new io.github.digitalsmile.goldberry.css.cascade.StyleResolver(
                             Controls.stylesheets(Theme.NORD_DARK)).resolve(element),
-                    io.github.digitalsmile.goldberry.css.CssLength.Context.DEFAULT);
+                    io.github.digitalsmile.goldberry.css.value.CssLength.Context.DEFAULT);
             var field = field(tree);
             var children = field.children().stream()
                     .map(child -> ((io.github.digitalsmile.goldberry.widget.Paints) child)

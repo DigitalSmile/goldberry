@@ -1,10 +1,11 @@
-package io.github.digitalsmile.goldberry.css;
+package io.github.digitalsmile.goldberry.css.cascade;
 
 import io.github.digitalsmile.goldberry.motion.Easing;
 import java.util.EnumMap;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import io.github.digitalsmile.goldberry.css.ComputedStyle;
 
 /// Which of a node's properties move rather than snap, and how —
 /// `docs/design-system.md` §1.7.
@@ -46,7 +47,7 @@ public record Transitions(Map<Animatable, Timing> byProperty) {
     /// transform the painter applies and hit testing does not would produce a
     /// control that looks right and does not respond where it looks like it
     /// should — a failure with no error and no wrong pixel
-    /// ([ADR-0068](../../../../../../book/src/adr/0068-the-transform-stack-is-java-side.md)).
+    /// ([ADR-0068](../../../../../../../book/src/adr/0068-the-transform-stack-is-java-side.md)).
     public enum Animatable {
 
         /// Fades. The one every control uses for `:disabled`.

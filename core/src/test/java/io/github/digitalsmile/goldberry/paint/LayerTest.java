@@ -6,7 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.github.digitalsmile.goldberry.RendererRequirement;
-import io.github.digitalsmile.goldberry.css.Transform;
+import io.github.digitalsmile.goldberry.css.value.Transform;
 import io.github.digitalsmile.goldberry.natives.yoga.FlexDirection;
 import io.github.digitalsmile.goldberry.natives.yoga.StyleLength;
 import io.github.digitalsmile.goldberry.paint.tree.RenderTree;

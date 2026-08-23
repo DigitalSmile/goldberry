@@ -1,5 +1,5 @@
 package io.github.digitalsmile.goldberry.paint;
-import io.github.digitalsmile.goldberry.css.Affine;
+import io.github.digitalsmile.goldberry.css.value.Affine;
 import io.github.digitalsmile.goldberry.natives.blend2d.BlendPath;
 import io.github.digitalsmile.goldberry.natives.blend2d.BlendStrokeCap;
 import io.github.digitalsmile.goldberry.natives.blend2d.BlendStrokeJoin;

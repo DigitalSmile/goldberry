@@ -1,4 +1,4 @@
-package io.github.digitalsmile.goldberry.css;
+package io.github.digitalsmile.goldberry.css.value;
 
 /// Colour interpolation in OKLCH — `docs/design-system.md` §1.7.
 ///

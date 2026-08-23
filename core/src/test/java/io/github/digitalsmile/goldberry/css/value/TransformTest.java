@@ -1,4 +1,4 @@
-package io.github.digitalsmile.goldberry.css;
+package io.github.digitalsmile.goldberry.css.value;
 
 import static io.github.digitalsmile.goldberry.css.TestElement.element;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -14,6 +14,10 @@ import io.github.digitalsmile.goldberry.paint.Box;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
+import io.github.digitalsmile.goldberry.css.cascade.StyleResolver;
+import io.github.digitalsmile.goldberry.css.ComputedStyle;
+import io.github.digitalsmile.goldberry.css.Stylesheet;
 
 /// The matrix, the property, and the arithmetic between them — ADR-0068.
 class TransformTest {

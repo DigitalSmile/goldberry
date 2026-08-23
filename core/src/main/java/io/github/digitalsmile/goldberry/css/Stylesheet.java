@@ -2,6 +2,9 @@ package io.github.digitalsmile.goldberry.css;
 
 import java.util.List;
 import java.util.Objects;
+import io.github.digitalsmile.goldberry.css.parse.CssParser;
+import io.github.digitalsmile.goldberry.css.parse.CssSyntaxException;
+import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
 
 /// A parsed stylesheet and the layer it belongs to.
 ///

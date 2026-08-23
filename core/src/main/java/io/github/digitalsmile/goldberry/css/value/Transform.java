@@ -1,9 +1,12 @@
-package io.github.digitalsmile.goldberry.css;
+package io.github.digitalsmile.goldberry.css.value;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
+import io.github.digitalsmile.goldberry.css.parse.Token;
+import io.github.digitalsmile.goldberry.css.parse.TokenType;
+import io.github.digitalsmile.goldberry.css.Decoration;
 
 /// CSS's `transform` and `transform-origin`, as the cascade resolves them.
 ///
@@ -412,7 +415,9 @@ public record Transform(List<Function> functions, Origin origin) {
     /// Null rather than an exception, because §8's rule for a declaration that
     /// does not parse is to drop it and carry on. A transform that half-parsed
     /// would be worse than none: the box would move somewhere nobody wrote.
-    static Transform parse(List<Token> value, Origin origin) {
+    /// Public because the computed style that calls it is the `css` package's
+    /// and a value type is `css.value`'s ([ADR-0172](../../../../../../../book/src/adr/0172-a-package-is-a-role-and-the-module-is-the-fence.md)).
+    public static Transform parse(List<Token> value, Origin origin) {
         var tokens = value.stream().filter(t -> !t.is(TokenType.WHITESPACE)).toList();
         if (tokens.isEmpty()) {
             return null;
@@ -659,7 +664,8 @@ public record Transform(List<Function> functions, Origin origin) {
     /// One or two components, each a length, a percentage or one of CSS's five
     /// keywords. A single component sets the horizontal one and leaves the
     /// vertical centred, which is CSS's rule.
-    static Origin parseOrigin(List<Token> value) {
+    /// Public for the same reason [#parse(List, Origin)] is.
+    public static Origin parseOrigin(List<Token> value) {
         var parts = new ArrayList<List<Token>>();
         var current = new ArrayList<Token>();
         for (var token : value) {

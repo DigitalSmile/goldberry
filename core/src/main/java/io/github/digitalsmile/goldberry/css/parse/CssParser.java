@@ -1,9 +1,12 @@
-package io.github.digitalsmile.goldberry.css;
+package io.github.digitalsmile.goldberry.css.parse;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
+import io.github.digitalsmile.goldberry.css.Declaration;
+import io.github.digitalsmile.goldberry.css.select.Selector;
+import io.github.digitalsmile.goldberry.css.StyleRule;
 
 /// Turns [Token]s into [StyleRule]s.
 ///

@@ -12,7 +12,7 @@ import io.github.digitalsmile.goldberry.widgets.text.Text;
 import io.github.digitalsmile.goldberry.RendererRequirement;
 import io.github.digitalsmile.goldberry.paint.TestFrames;
 import io.github.digitalsmile.goldberry.assets.BundledFont;
-import io.github.digitalsmile.goldberry.css.CascadeLayer;
+import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
 import io.github.digitalsmile.goldberry.css.Stylesheet;
 import io.github.digitalsmile.goldberry.css.Theme;
 import io.github.digitalsmile.goldberry.paint.Box;
@@ -387,7 +387,7 @@ class FrameBenchmark {
         var renderer = renderer();
         renderer.render(tree);
 
-        var resolver = new io.github.digitalsmile.goldberry.css.StyleResolver(
+        var resolver = new io.github.digitalsmile.goldberry.css.cascade.StyleResolver(
                 List.of(sheet(), Theme.NORD_DARK.load()));
 
         // Every element in the tree, so the numbers below are per *frame* rather
@@ -419,7 +419,7 @@ class FrameBenchmark {
         // and colours out of tokens. Separate from matching, because they would
         // be fixed by different things.
         var declarations = new java.util.ArrayList<java.util.Map<String,
-                List<io.github.digitalsmile.goldberry.css.Token>>>();
+                List<io.github.digitalsmile.goldberry.css.parse.Token>>>();
         for (var element : elements) {
             declarations.add(resolver.resolve(element));
         }
@@ -428,7 +428,7 @@ class FrameBenchmark {
             for (var declared : declarations) {
                 total += io.github.digitalsmile.goldberry.css.ComputedStyle.of(
                         declared,
-                        io.github.digitalsmile.goldberry.css.CssLength.Context.DEFAULT).hashCode();
+                        io.github.digitalsmile.goldberry.css.value.CssLength.Context.DEFAULT).hashCode();
             }
             return total;
         });

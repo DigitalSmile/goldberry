@@ -1,4 +1,4 @@
-package io.github.digitalsmile.goldberry.css;
+package io.github.digitalsmile.goldberry.css.parse;
 
 /// A stylesheet that could not be read, with the place that stopped it.
 ///

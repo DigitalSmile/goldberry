@@ -1,4 +1,4 @@
-package io.github.digitalsmile.goldberry.css;
+package io.github.digitalsmile.goldberry.css.cascade;
 
 import io.github.digitalsmile.goldberry.natives.log.Logs;
 import java.util.ArrayList;
@@ -11,6 +11,15 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import org.slf4j.Logger;
+import io.github.digitalsmile.goldberry.css.parse.Token;
+import io.github.digitalsmile.goldberry.css.parse.TokenType;
+import io.github.digitalsmile.goldberry.css.select.Selector;
+import io.github.digitalsmile.goldberry.css.select.SelectorMatcher;
+import io.github.digitalsmile.goldberry.css.ComputedStyle;
+import io.github.digitalsmile.goldberry.css.Declaration;
+import io.github.digitalsmile.goldberry.css.StyleElement;
+import io.github.digitalsmile.goldberry.css.StyleRule;
+import io.github.digitalsmile.goldberry.css.Stylesheet;
 
 /// Runs the cascade for one element and substitutes `var()`.
 ///
@@ -62,7 +71,7 @@ public final class StyleResolver {
     /// showcase: four stylesheets, some two thousand rules, matched in full
     /// against every element — and then again against every one of its ancestors,
     /// because custom properties are collected by walking to the root
-    /// ([ADR-0152](../../../../../../book/src/adr/0152-the-cascade-looks-at-rules-that-could-match.md)).
+    /// ([ADR-0152](../../../../../../../book/src/adr/0152-the-cascade-looks-at-rules-that-could-match.md)).
     private final java.util.Map<String, List<Candidate>> byType = new java.util.HashMap<>();
 
     /// Rules whose rightmost compound names no type — `.primary`, `#gain`, `*`.
@@ -158,7 +167,7 @@ public final class StyleResolver {
     /// check-indicator` means yes for `:hover` on a `checkbox`; nothing in any
     /// sheet says `column:hover …`, so hovering a `column` — which is what a
     /// click on empty space does — changes that node and nothing under it
-    /// ([ADR-0149](../../../../../../book/src/adr/0149-a-state-invalidates-what-it-can-reach.md)).
+    /// ([ADR-0149](../../../../../../../book/src/adr/0149-a-state-invalidates-what-it-can-reach.md)).
     ///
     /// Conservative in both directions it can be: an untyped ancestor compound
     /// makes its pseudo-class reach everything, and a caller with no type of its

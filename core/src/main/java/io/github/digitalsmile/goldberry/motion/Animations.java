@@ -1,9 +1,9 @@
 package io.github.digitalsmile.goldberry.motion;
 
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
-import io.github.digitalsmile.goldberry.css.Transform;
-import io.github.digitalsmile.goldberry.css.Transitions;
-import io.github.digitalsmile.goldberry.css.Transitions.Animatable;
+import io.github.digitalsmile.goldberry.css.value.Transform;
+import io.github.digitalsmile.goldberry.css.cascade.Transitions;
+import io.github.digitalsmile.goldberry.css.cascade.Transitions.Animatable;
 import java.util.EnumMap;
 import java.util.Map;
 import java.util.Objects;
@@ -263,7 +263,7 @@ public final class Animations {
         return switch (property) {
             case OPACITY -> (Double) from + ((Double) to - (Double) from) * t;
             case BACKGROUND_COLOR, BORDER_COLOR, COLOR ->
-                    (double) io.github.digitalsmile.goldberry.css.CssColor.mix(
+                    (double) io.github.digitalsmile.goldberry.css.value.CssColor.mix(
                             argb(from), argb(to), t);
             case TRANSFORM -> ((Transform) from).mix((Transform) to, t);
         };

@@ -1,6 +1,7 @@
 package io.github.digitalsmile.goldberry.css;
 
 import io.github.digitalsmile.goldberry.paint.Box;
+import io.github.digitalsmile.goldberry.css.value.CssColor;
 
 /// What is drawn *around* a box rather than in it: the corner radius, the border
 /// and the focus ring.

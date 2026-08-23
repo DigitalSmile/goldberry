@@ -1,10 +1,10 @@
 package io.github.digitalsmile.goldberry.widget;
 
 import io.github.digitalsmile.goldberry.bind.Subscription;
-import io.github.digitalsmile.goldberry.css.Selector;
+import io.github.digitalsmile.goldberry.css.select.Selector;
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
 import io.github.digitalsmile.goldberry.css.StyleElement;
-import io.github.digitalsmile.goldberry.css.StyleResolver;
+import io.github.digitalsmile.goldberry.css.cascade.StyleResolver;
 import io.github.digitalsmile.goldberry.motion.Animations;
 import io.github.digitalsmile.goldberry.stats.FrameStats;
 
@@ -101,19 +101,19 @@ public final class Element implements BuildContext, StyleElement {
     // and the root -- eleven of them at the showcase's depth, and the largest
     // term left in a frame (ADR-0152).
 
-    private java.util.Map<String, java.util.List<io.github.digitalsmile.goldberry.css.Token>>
+    private java.util.Map<String, java.util.List<io.github.digitalsmile.goldberry.css.parse.Token>>
             customProperties;
 
     private StyleResolver customPropertiesResolver;
 
-    private java.util.Map<String, java.util.List<io.github.digitalsmile.goldberry.css.Token>>
+    private java.util.Map<String, java.util.List<io.github.digitalsmile.goldberry.css.parse.Token>>
             customPropertiesInherited;
 
     @Override
-    public java.util.Map<String, java.util.List<io.github.digitalsmile.goldberry.css.Token>>
+    public java.util.Map<String, java.util.List<io.github.digitalsmile.goldberry.css.parse.Token>>
             cachedCustomProperties(StyleResolver resolver,
                     java.util.Map<String,
-                            java.util.List<io.github.digitalsmile.goldberry.css.Token>> inherited) {
+                            java.util.List<io.github.digitalsmile.goldberry.css.parse.Token>> inherited) {
         return customPropertiesResolver == resolver && customPropertiesInherited == inherited
                 ? customProperties
                 : null;
@@ -121,8 +121,8 @@ public final class Element implements BuildContext, StyleElement {
 
     @Override
     public void cacheCustomProperties(StyleResolver resolver,
-            java.util.Map<String, java.util.List<io.github.digitalsmile.goldberry.css.Token>> inherited,
-            java.util.Map<String, java.util.List<io.github.digitalsmile.goldberry.css.Token>> resolved) {
+            java.util.Map<String, java.util.List<io.github.digitalsmile.goldberry.css.parse.Token>> inherited,
+            java.util.Map<String, java.util.List<io.github.digitalsmile.goldberry.css.parse.Token>> resolved) {
         this.customPropertiesResolver = resolver;
         this.customPropertiesInherited = inherited;
         this.customProperties = resolved;
