@@ -3,6 +3,8 @@ package io.github.digitalsmile.goldberry.render;
 import io.github.digitalsmile.goldberry.render.event.EventSink;
 import io.github.digitalsmile.goldberry.render.popup.BackendPopup;
 import io.github.digitalsmile.goldberry.render.popup.PopupSpec;
+import io.github.digitalsmile.goldberry.render.tray.BackendTray;
+import io.github.digitalsmile.goldberry.render.tray.TraySpec;
 import io.github.digitalsmile.goldberry.render.window.BackendWindow;
 import io.github.digitalsmile.goldberry.render.window.WindowSpec;
 
@@ -32,11 +34,12 @@ import java.util.Optional;
 ///
 /// ## What is not here yet
 ///
-/// The §4 sketch also lists tray icons and a GPU surface. They are absent from
-/// this cut, not dropped — each needs a consumer before its shape can be decided,
-/// and an interface designed against nothing is an interface that gets designed
-/// twice (ADR-0019). Popups were on that list until §7's menus, tooltips and
-/// `select` gave them one, and **the clipboard was until `text-input` did**.
+/// The §4 sketch also lists a GPU surface, which is absent from this cut and not
+/// dropped: it needs a consumer before its shape can be decided, and an interface
+/// designed against nothing is an interface that gets designed twice (ADR-0019).
+/// Popups were on that list until §7's menus, tooltips and `select` gave them
+/// one, **the clipboard was until `text-input` did**, and the **tray** was until
+/// §9's `tray-icon` did. `canvas3d` is the one left.
 public interface Backend extends AutoCloseable {
 
     /// A name for logs and diagnostics: `sdl3`, `headless`.
@@ -74,6 +77,29 @@ public interface Backend extends AutoCloseable {
     /// @return the popup, or empty if this backend or its driver has no popups
     /// @throws BackendException if the platform refuses a popup it should support
     default Optional<BackendPopup> createPopup(BackendWindow owner, PopupSpec spec) {
+        return Optional.empty();
+    }
+
+    /// Puts an icon in the desktop's notification area.
+    ///
+    /// **Empty is a normal answer**, and it covers more than a missing feature
+    /// usually does: a Linux session with no AppIndicator library, a desktop that
+    /// removed its notification area, a container with no shell at all. Unlike
+    /// [#createPopup], no error is read to tell absence from refusal — the Linux
+    /// path reports a missing library, which is an absence wearing the words of a
+    /// failure, and `core-widgets.md` §9 asks for absence to be reported either
+    /// way. A caller that gets empty has nowhere else to put a tray icon and is
+    /// expected to carry on without one.
+    ///
+    /// Process-global rather than per window, like the clipboard: an application
+    /// has a tray presence, a window does not.
+    ///
+    /// The menu these rows describe is drawn by the **platform**, not by
+    /// Goldberry — see [TrayItem].
+    ///
+    /// @param spec the icon, the tooltip and the menu
+    /// @return the tray, or empty if this desktop has none
+    default Optional<BackendTray> createTray(TraySpec spec) {
         return Optional.empty();
     }
 

@@ -1006,6 +1006,23 @@ final class Launcher implements Host {
         return GoldberryRuntime.get().backend().clipboard();
     }
 
+    /// The tray is the backend's, like the clipboard, because both belong to the
+    /// application rather than to the window this launcher runs.
+    ///
+    /// **Every row is given the window's repaint**, and without it a tray menu
+    /// looks broken in a way nothing reports: a row's handler runs inside the
+    /// platform's own pump and produces no event, so nothing asks for a frame,
+    /// so the model sweep at the top of [#paint] never runs and a handler that
+    /// set a field changed nothing anybody looks at. It is the only input in the
+    /// toolkit that arrives without an event behind it, which is why this is the
+    /// one call site that has to say so
+    /// ([ADR-0191](../../../../../book/src/adr/0191-a-tray-is-a-menu-somebody-else-draws.md)).
+    @Override
+    public java.util.Optional<io.github.digitalsmile.goldberry.render.tray.BackendTray> tray(
+            io.github.digitalsmile.goldberry.render.tray.TraySpec spec) {
+        return GoldberryRuntime.get().backend().createTray(spec.andThen(this::repaint));
+    }
+
     @Override
     public void textInput(boolean active) {
         window.backendWindow().textInput(active);

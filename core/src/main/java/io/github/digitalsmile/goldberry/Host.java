@@ -395,6 +395,26 @@ public interface Host {
     /// nothing and always reads empty.
     Clipboard clipboard();
 
+    /// Puts an icon in the desktop's notification area — `docs/core-widgets.md`
+    /// §9's `tray-icon`.
+    ///
+    /// **Empty is an ordinary answer**: a session with no notification area, a
+    /// Linux desktop without the AppIndicator library, a container with no shell.
+    /// Every platform's own guidance says a tray-using application must work
+    /// without one, so this reports the absence rather than throwing and the
+    /// caller carries on.
+    ///
+    /// On [Host] rather than on a window because a tray belongs to the
+    /// *application*, like the clipboard — and unlike a popup, which is anchored
+    /// to something painted. The rows it describes are drawn by the platform, so
+    /// none of the toolkit's styling, layout or input reaches them; see
+    /// [io.github.digitalsmile.goldberry.render.tray.TrayItem].
+    ///
+    /// @param spec the icon, the tooltip and the menu
+    /// @return the tray, or empty if this desktop has none
+    java.util.Optional<io.github.digitalsmile.goldberry.render.tray.BackendTray> tray(
+            io.github.digitalsmile.goldberry.render.tray.TraySpec spec);
+
     /// Asks the platform to start or stop delivering committed text to this
     /// window.
     ///

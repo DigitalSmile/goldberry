@@ -149,6 +149,14 @@ record TourTestHost(List<HitTest.Region> regions) implements Host {
         return Clipboard.none();
     }
 
+    /// No tray: this host exists to drive a `tour` and has no desktop under it,
+    /// which is the answer a session without a notification area gives anyway.
+    @Override
+    public java.util.Optional<io.github.digitalsmile.goldberry.render.tray.BackendTray> tray(
+            io.github.digitalsmile.goldberry.render.tray.TraySpec spec) {
+        return java.util.Optional.empty();
+    }
+
     @Override
     public void textInput(boolean active) {
     }

@@ -13,9 +13,10 @@ page is the other half: it says what works and what it cost to find out.
 | [M0 — Skeleton](#m0--skeleton) | **done** | One native library on four targets, two backends, a window at the right fractional DPI |
 | [M1 — Vertical slice](#m1--vertical-slice) | **started** | Blend2D rasterizes, HarfBuzz shapes, text lays out, and a frame's cost is measured |
 | [M2 — Widgets & style](#m2--widgets--style) | **done** | CSS, KDL, the three trees, input, motion — and every §3 control, `select` included |
-| [M3 — Shell](#m3--shell) | **started** | **The whole of §7**, `menubar`, §5's containers, the whole `scroll` family and §4's fields — with the clipboard, text input, a focus trap and a third rank of every semantic hue that nothing had asked for |
+| [M3 — Shell](#m3--shell) | **started** | **The whole of §7**, §9's `tray-icon`, `menubar`, §5's containers, the whole `scroll` family and §4's fields — with the clipboard, text input, a focus trap and a third rank of every semantic hue that nothing had asked for |
 | [M4 — GPU](#m4--gpu) | not started | `canvas3d`, GPU composition |
 | [M5 — Hardening](#m5--hardening) | not started | Text editing depth, AccessKit bridge, IME preedit, docs, 0.1 release |
+| [Content modules](#content-modules) | not started | Eleven optional artifacts in `docs/content-widgets.md`; nothing exists, nothing scheduled |
 
 ## Foundation
 
@@ -3242,14 +3243,94 @@ is the `scroll` box's.
   component to what it already holds; verified by swapping two same-typed
   arguments in `Select.placeholder`. Five widgets refuse the values it invents and
   are named in the failure message rather than skipped quietly.
-- **Still open: a popup hangs when the application loses focus to another
-  window.** ADR-0144's mechanism is wired, so this is a fault inside it rather
-  than a gap, and it needs a real compositor to diagnose
-  ([ADR-0185](adr/0185-a-list-that-hangs-off-a-field-does-not-take-the-keyboard.md))
+- ~~**Still open: a popup hangs when the application loses focus to another
+  window.**~~ **Closed.** ADR-0144's mechanism was wired and the fault was inside
+  it: `anyWindowFocused()` counts popup windows, so a popup holding the platform
+  keyboard kept the check true and the dismissal never fired. No popup of any
+  kind is focusable now, which costs nothing — the owner has forwarded keys to
+  whatever popup is open since ADR-0104, because SDL focuses `POPUP_MENU` windows
+  on some drivers and not others
+  ([ADR-0185](adr/0185-a-list-that-hangs-off-a-field-does-not-take-the-keyboard.md),
+  [ADR-0186](adr/0186-a-panel-that-hangs-off-a-field-is-not-a-menu.md),
+  [ADR-0189](adr/0189-no-popup-holds-the-keyboard.md))
+- **`SelectLoopTest` drives §3's select family through the real loop**, which the
+  three defects above argued for, and it found a seventh on its first run: a click
+  opened the list and closed it again in one gesture, because the press focused the
+  editor — which opens it — and the click then toggled from a stale `open` flag. An
+  editable control opens on **one** signal now, and the signal is focus
+  ([ADR-0188](adr/0188-a-control-opens-on-one-signal.md)). What the harness still
+  cannot reach is the platform's window flags: reverting `NOT_FOCUSABLE` fails
+  nothing, because the headless backend has none.
+- **Still open: `flex-wrap` is not in §8's subset**, and `select multiple` is the
+  first thing that wanted it — a row of chips shrinks rather than wrapping. Yoga
+  has `setFlexWrap` bound and `Box` has no field for it, which is where
+  `min-width` was before ADR-0181
+  ([ADR-0187](adr/0187-a-panel-takes-the-pointer-and-leaves-the-keyboard.md))
+
+### `tray-icon`, and the first widening of the export list
+
+- **§9's `tray-icon` is built**, and it is the first thing M3 owed that begins in
+  `goldberry.symbols` rather than in a widget. Eleven symbols — nine tray calls,
+  plus `SDL_CreateSurfaceFrom` and `SDL_DestroySurface`, which are how a painted
+  BGRA buffer becomes an icon — took the list from **192 to 203**, and the five
+  `SDL_TRAYENTRY_*` values went into the constant probe with everything else. The
+  one that pays for the probe is `DISABLED`: `0x80000000` is a negative `int`,
+  and a mask assembled in one is wrong in a way nothing else would have noticed.
+  `SDL_UpdateTrays` is deliberately unbound — SDL calls it from its own event
+  loop, and this toolkit pumps events.
+  ([ADR-0191](adr/0191-a-tray-is-a-menu-somebody-else-draws.md))
+- **It is the first entry in the catalog Goldberry does not draw.** A tray menu is
+  a GTK menu, an `NSMenu` or a Win32 popup: the shell owns the font, the row
+  height, the highlight and the click. So the parity invariant's third clause has
+  nothing to attach to, and a `TrayIcon` is a **value** like a `Toast` rather than
+  a widget — `Trays.show(host, tray)` is what puts one on the desktop.
+- **The menu it holds is an ordinary `Menu`**, which is ADR-0163's finding used a
+  second time: what is short-lived about a menu is the popup and not the
+  description, and a tray menu is the longest-lived opening there is. An author
+  writes one description and shows it in a window, in a context menu, or here.
+  What the platform has no vocabulary for is **dropped with a warning** — an
+  icon, an accelerator, any widget that is not an `item` or a `separator` —
+  because a tray that quietly ignored half a description would be a menu somebody
+  kept editing without effect.
+- **Absence is reported and no error string is read to decide it.** A popup's
+  caller reads SDL's `not supported` to tell a driver's limit from a caller's
+  mistake; the tray has no such line, because the Linux path fails with
+  `Could not load AppIndicator libraries` — an absence wearing the words of a
+  failure. Every null is empty, logged at debug with SDL's own words, and the
+  showcase says `tray unavailable on this desktop` and carries on.
+- **`HeadlessTray` is the only place a tray menu can be observed at all.** There
+  is no golden image of a GTK popup and nothing to hit-test, so `choose("Recent/
+  report.pdf")` is the click the shell would have delivered, applied in the
+  platform's order: a checkbox toggles **before** its handler runs, because SDL
+  applies the click itself and the handler reads the result. A test that toggled
+  afterwards would be asserting an order no platform uses.
+- **It ran for real**, which for this widget is the only proof available: the
+  natives test created a live tray on this machine's session under
+  libayatana-appindicator, and the showcase puts one up on start — six rows, a
+  submenu among them — and takes it down in `stop`, because a tray left behind is
+  a picture in somebody's notification area that the shell will not clean away.
+- **Every row but `Quit` did nothing, and that was found by running it.** A tray
+  row is the only input in the toolkit that arrives with **no event behind it**:
+  it is delivered from inside `SDL_PumpEvents` by way of `SDL_UpdateTrays`, so no
+  pointer moved, no key arrived, and nothing asked for a frame. A jar-bound model
+  is swept at the top of a frame, so a handler that set the theme set it where
+  nobody was looking. `Quit` worked because closing a window is a platform effect
+  rather than a model change — which is exactly the shape that makes this look
+  like "the tray is broken" rather than "the loop is asleep". `Host.tray` gives
+  every row the window's repaint now, and both the value and the widget layer
+  assert it. The lesson generalizes: a source of input the frame loop cannot see
+  has to say so itself, and this is the first one whose failure was silent.
+- **The `libayatana-appindicator is deprecated` warning on Linux is the
+  distribution's, not the toolkit's.** SDL's loader tries
+  `libayatana-appindicator3.so.1` and `libappindicator3.so.1`; the `-glib`
+  successor the message names is not on its list, so silencing it is a change to
+  SDL on a pinned commit.
+- **Not verified on Windows or macOS.** Those paths are SDL's, are compiled, and
+  nobody has looked at them. Said here rather than implied by silence.
 
 ### Not started
 
-Tray, client-side decorations and charts, the rest of §4 —
+Client-side decorations and charts, the rest of §4 —
 the pickers, `code-input` and autocomplete. §7 is **complete**, mechanism and
 all: §3's **sibling reflow** is built, and it was the last thing the group owed.
 All of §4's leftovers reuse
@@ -3265,6 +3346,51 @@ Everything outstanding is in [TODO.md](TODO.md).
 
 **Not started.** Text editing depth, the AccessKit bridge, IME preedit, docs, and the
 0.1 release.
+
+## Content modules
+
+**None started, and none scheduled.** `docs/content-widgets.md` specifies eleven
+optional modules — HTML/markdown, PDF, plotting, code, terminal, vector, media,
+camera, microphone, emoji and the parked web engine — and the plan they now sit
+in is `docs/ARCHITECTURE.md` §11.1 with
+[ADR-0190](adr/0190-a-content-module-brings-its-own-natives.md) under it. No
+Gradle subproject, no artifact and no line of code exists for any of them.
+
+Two of the eleven are not modules at all in what ships, and both were decided
+before the document was written: the **chart** widgets belong to `:widgets`
+([ADR-0014](adr/0014-single-widgets-module.md)), and the **emoji** font belongs
+to core's text stack — which is where core picks up the one licence obligation an
+application cannot discharge with a notice file. Both are in
+`ARCHITECTURE.md` §17.1 as disagreements rather than edits.
+
+What is built that they would stand on, stated so the estimate is honest:
+
+- **A borrowed pixel buffer wrapped as a `BLImage` costs nothing to hand over**
+  ([ADR-0031](adr/0031-blend2d-and-the-borrowed-buffer.md)), which is exactly the
+  handover PDFium, ThorVG and libVLC each want.
+- **A leaf render object measured by a callback** is what `html-view`,
+  `pdf-view` and `camera-view` all are — the same shape `text` already uses,
+  where Yoga asks and the widget answers.
+- **A repaint boundary is a subtree's own raster**
+  ([ADR-0071](adr/0071-a-layer-is-a-subtrees-raster.md)), so a page, a video
+  frame or a camera preview updating off the UI cadence is a layer that
+  re-uploads rather than a tree that rebuilds.
+- **Golden-image CI is deterministic on three OSes**, so every one of these
+  widgets is testable without hardware — which is why camera and microphone
+  specify synthetic sources rather than acquiring them later.
+
+And the two facts that make the first one cost more than it reads:
+
+- **The export list has no gradient, no rounded geometry and no
+  `bl_context_save`.** 203 symbols reach Java, and the twenty `bl_context_*`
+  among them are the ones the toolkit's own painter uses. A native litehtml
+  container needs more, so `goldberry-html` starts by widening `libgoldberry`'s
+  paint surface — work `goldberry-vector` and `goldberry-terminal` would share.
+- **None of the 59 `SDL_*` symbols is audio or camera.** "Zero new natives" is
+  true of the binary and not of the surface — which is no longer a prediction:
+  `tray-icon` reached that file first and paid eleven symbols for it
+  ([ADR-0191](adr/0191-a-tray-is-a-menu-somebody-else-draws.md)), and camera and
+  microphone are the same widening again.
 
 ## Module layout
 

@@ -123,6 +123,31 @@ SDL_SetClipboardText
 SDL_HasClipboardText
 SDL_free
 
+# The system tray (sec. 9's `tray-icon`). SDL owns the platform menu here --
+# these entries are drawn by the desktop shell and not by Goldberry, which is
+# why a tray menu is a *description* handed over rather than a widget tree.
+# SDL_UpdateTrays is deliberately absent: SDL calls it from its own event loop,
+# and this toolkit pumps events.
+#
+# SDL_GetTrayEntryChecked is the one read-back: SDL toggles a checkbox itself
+# before it calls back, so it is the only way to learn what the user chose.
+SDL_CreateTray
+SDL_DestroyTray
+SDL_SetTrayIcon
+SDL_SetTrayTooltip
+SDL_CreateTrayMenu
+SDL_CreateTraySubmenu
+SDL_InsertTrayEntryAt
+SDL_SetTrayEntryCallback
+SDL_GetTrayEntryChecked
+
+# A surface over pixels of ours, which the tray icon is: SDL wants an
+# SDL_Surface and Goldberry has a painted BGRA buffer. Nothing is copied -- the
+# surface is a view, so the buffer must outlive it, which is the same rule
+# BlendImage states for the frame path.
+SDL_CreateSurfaceFrom
+SDL_DestroySurface
+
 # --- Blend2D (sec. 5, paint & raster) ----------------------------------------
 # The image and context surface: enough to rasterize a frame into the buffer the
 # platform lends us. Paths, gradients, strokes and text follow. See ADR-0031.

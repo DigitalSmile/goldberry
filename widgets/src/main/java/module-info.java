@@ -162,4 +162,10 @@ module io.github.digitalsmile.goldberry.widgets {
     /// which is the half that opens one — a widget cannot, because opening needs
     /// a `Host` (ADR-0106).
     exports io.github.digitalsmile.goldberry.widgets.menu;
+
+    /// `docs/core-widgets.md` §9's `widget.shell`, opening with `tray-icon`.
+    /// The one group whose first member is **not a widget**: the desktop's shell
+    /// draws a tray menu, so there is no box, no cascade and no event to route,
+    /// and what is exported is a value plus the call that shows it (ADR-0191).
+    exports io.github.digitalsmile.goldberry.widgets.shell.tray;
 }

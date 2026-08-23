@@ -275,6 +275,18 @@ static const goldberry_layout_entry_t GOLDBERRY_LAYOUTS[] = {
     GB_CONSTANT("SDL_WINDOW_TRANSPARENT", SDL_WINDOW_TRANSPARENT),
 
     /*
+     * Tray entry flags (sec. 9's `tray-icon`). Exactly one of BUTTON, CHECKBOX
+     * and SUBMENU is mandatory per entry, and the two optional ones live in the
+     * high bits -- DISABLED is 0x80000000, which is a negative `int` in Java and
+     * is exactly the kind of value a hand-copied constant gets wrong quietly.
+     */
+    GB_CONSTANT("SDL_TRAYENTRY_BUTTON", SDL_TRAYENTRY_BUTTON),
+    GB_CONSTANT("SDL_TRAYENTRY_CHECKBOX", SDL_TRAYENTRY_CHECKBOX),
+    GB_CONSTANT("SDL_TRAYENTRY_SUBMENU", SDL_TRAYENTRY_SUBMENU),
+    GB_CONSTANT("SDL_TRAYENTRY_DISABLED", SDL_TRAYENTRY_DISABLED),
+    GB_CONSTANT("SDL_TRAYENTRY_CHECKED", SDL_TRAYENTRY_CHECKED),
+
+    /*
      * Which way round a wheel event's values are. FLIPPED is what "natural
      * scrolling" sets, and a reader that ignores it scrolls backwards.
      */

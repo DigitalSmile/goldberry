@@ -8,6 +8,8 @@ import io.github.digitalsmile.goldberry.render.window.BackendWindow;
 import io.github.digitalsmile.goldberry.render.Clipboard;
 import io.github.digitalsmile.goldberry.render.event.EventSink;
 import io.github.digitalsmile.goldberry.render.popup.PopupSpec;
+import io.github.digitalsmile.goldberry.render.tray.BackendTray;
+import io.github.digitalsmile.goldberry.render.tray.TraySpec;
 import io.github.digitalsmile.goldberry.render.window.WindowSpec;
 import io.github.digitalsmile.goldberry.natives.sdl.Sdl;
 import io.github.digitalsmile.goldberry.natives.sdl.desktop.SdlCursors;
@@ -86,6 +88,12 @@ public final class Sdl3Backend implements Backend {
     private final Map<Integer, Sdl3Window> windowsById = new LinkedHashMap<>();
     private final SdlEventBuffer eventBuffer = new SdlEventBuffer();
     private final Clipboard clipboard = new Sdl3Clipboard();
+
+    /// The trays this application has up. Held so that closing the backend
+    /// takes them down: a tray icon left in the notification area after the
+    /// process it belongs to has gone is the desktop equivalent of a leaked
+    /// window, and the shell does not clean it up.
+    private final List<Sdl3Tray> trays = new ArrayList<>();
     private final FramePacer pacer = FramePacer.fromProperties();
 
     /// The system cursors, created on first use.
@@ -765,6 +773,13 @@ public final class Sdl3Backend implements Backend {
             window.close();
         }
         windowsById.clear();
+        // Before SDL_Quit, and for the same reason the watch is: a tray holds
+        // upcall stubs the shell can still call, and the arena holding them is
+        // released by closing the tray.
+        for (var tray : List.copyOf(trays)) {
+            tray.close();
+        }
+        trays.clear();
         if (cursors != null) {
             cursors.close();
             cursors = null;
@@ -786,6 +801,31 @@ public final class Sdl3Backend implements Backend {
 
     /// The session's clipboard, through SDL.
     ///
+    @Override
+    public Optional<BackendTray> createTray(TraySpec spec) {
+        requireUiThread();
+        requireOpen();
+        Objects.requireNonNull(spec, "spec");
+
+        var tray = Sdl3Tray.open(this, spec);
+        if (tray.isEmpty()) {
+            // No AppIndicator, no notification area, no shell. Absence rather
+            // than failure -- see the SPI note; the application carries on
+            // without a tray icon, which is what every platform's own guidance
+            // says a tray-using application must be able to do anyway.
+            LOG.debug("this desktop has no system tray");
+            return Optional.empty();
+        }
+        trays.add((Sdl3Tray) tray.get());
+        LOG.debug("created SDL tray with {} rows, tooltip {}",
+                spec.items().size(), spec.tooltip());
+        return tray;
+    }
+
+    void forget(Sdl3Tray tray) {
+        trays.remove(tray);
+    }
+
     /// One instance, held rather than made per call: what it holds is four
     /// symbol addresses, and looking them up again per copy would be four hash
     /// lookups to do the same thing (ADR-0161).

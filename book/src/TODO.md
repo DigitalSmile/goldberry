@@ -14,10 +14,13 @@ got out of it.
 **Where the documents disagree with each other** — as opposed to with the code —
 is listed in `docs/ARCHITECTURE.md` §17.1. `docs/design-system.md` and
 `docs/core-widgets.md` are the authority; the architecture document is a summary
-of them and records where it knowingly departs. The four open ones are the
+of them and records where it knowingly departs. The seven open ones are the
 platform primary modifier for accelerators, whether the catalog is one module or
-two, `text style=` against `text class=`, and a disabled container disabling its
-descendants. **Pixel-precise wheel deltas left this list** —
+two, `text style=` against `text class=`, a disabled container disabling its
+descendants, and — since `docs/content-widgets.md` joined the plan — where the
+emoji font lives and who owes its attribution, whether `goldberry-charts` is an
+artifact, and what "zero new natives" costs (see [Content
+modules](#content-modules)). **Pixel-precise wheel deltas left this list** —
 [ADR-0115](adr/0115-a-wheel-reports-a-fraction-and-a-detent.md) settled it as a
 difference rather than an agreement: what §2.4 wanted from "pixel-precise" is
 scrolling that does not quantize, and a fractional line delivers that without
@@ -786,6 +789,132 @@ the mechanism the sentence named.
   accessible path generates `target::method`, which does not compile for a static
   method, and the private path writes `findVirtual`. Nothing refuses one explicitly; it
   was broken before ADR-0098 and remains so, because no model has ever wanted one.
+
+## The shell: the tray, and what it cannot say
+
+§9's `tray-icon` ships ([ADR-0191](adr/0191-a-tray-is-a-menu-somebody-else-draws.md)).
+What follows is what it does not do, and in three cases what no platform lets it
+do — recorded here rather than left to be rediscovered by an author whose
+description had no effect.
+
+- **§9's "activate event" is not built, and SDL has no callback for it.** The
+  sentence asks for icon, tooltip, menu **and an activate event**; SDL3's tray API
+  registers a callback per *entry* and none for the icon itself. So a click on the
+  icon opens the menu and nothing else can be attached to it. Doing this properly
+  means going around SDL to three platform APIs, which is the move
+  [ADR-0056](adr/0056-the-wheel-is-lines-and-the-sign-is-ours.md) declined when the
+  wheel wanted it; the workable answer is a first row that means "open the window",
+  which is what most tray applications ship anyway.
+- **A checkbox's tick can end up disagreeing with the application.** The shell
+  toggles it *before* the handler runs and an `Item`'s command takes no argument,
+  so a handler that declines leaves the platform showing a tick nobody believes
+  in. `SDL_SetTrayEntryChecked` is deliberately unbound — correcting one row would
+  be the only mutation in an otherwise rebuilt-from-a-description menu — so the
+  way to say no is to close the tray and show it again.
+- **The menu cannot change while the icon is up.** `BackendTray` sets the icon and
+  the tooltip and nothing else: its rows are platform objects the shell may have
+  open, and replacing one would mean re-inserting entries underneath a user. A
+  declarative caller closes and reopens, which is correct and is also a flicker
+  in the notification area on some shells.
+- **Nothing paints a tray icon for you, and nothing swaps it on a theme switch.**
+  The mechanism is there — `TrayIcon.icon(pixels)` and `BackendTray.icon` — and
+  §9's "theme-aware light/dark variants" is an application's two `PixelBuffer`s
+  and a `restyle` handler it has to write. The toolkit ships no default mark of
+  its own, so a tray with no icon is whatever the desktop draws for an
+  application that supplied none.
+- **An accelerator on a tray row is dropped**, with a warning. A shortcut is bound
+  to a window and a tray has none. The same `Item` in a `menubar` still registers
+  one, which makes this the first place in the catalog where one value means two
+  different things depending on who draws it.
+- **The deprecation warning on Linux is SDL's to fix.** Loading a tray prints
+  `libayatana-appindicator is deprecated. Please use libayatana-appindicator-glib`,
+  from the distribution's library as SDL opens it. SDL's `appindicator_names` list
+  holds `libayatana-appindicator3.so.1` and `libappindicator3.so.1` and not the
+  successor, so the only ways out are a patched SDL or a newer pinned one —
+  neither worth doing for a line on stderr that no user of an application ever
+  sees.
+- **Windows and macOS are unverified.** The Linux path ran for real — in
+  `SdlTrayTest` against this machine's session and in the showcase — and the other
+  two are SDL's code, compiled and never looked at. A tray is the one widget CI
+  cannot cover: there is no notification area on a runner and no golden image of a
+  GTK popup.
+- **A tray callback arriving off the UI thread is logged, not handled.** Every
+  platform dispatches it from inside the pump the UI thread is already in, so the
+  warning in `SdlTray.invoke` is the only evidence there would be if one ever does
+  not. Doing better means posting to the loop, which is a second delivery path
+  for one hypothetical.
+
+## Content modules
+
+`docs/content-widgets.md` specifies eleven optional modules; **none of them
+exists**, and none is scheduled while M3 still owes tray, client-side
+decorations, charts and the rest of §4. The shape they share is
+[ADR-0190](adr/0190-a-content-module-brings-its-own-natives.md) and the summary
+is `docs/ARCHITECTURE.md` §11.1. What follows is what each is actually waiting
+on, which in four cases is the same thing.
+
+- **The export list has no paint surface wide enough for a native
+  `document_container`.** `goldberry-html` puts litehtml's C++ container inside
+  its own native library because FFM cannot implement a virtual class, and that
+  container draws through `libgoldberry`'s exported C symbols. There are twenty
+  `bl_context_*` entries and they are the ones the toolkit's own painter needs:
+  no gradient, no rounded geometry, and no `bl_context_save` — the symbol file
+  says why in its own comment, that there is only ever one clip depth here.
+  `content-widgets.md` §1.5 promises linear and radial gradients and
+  `border-radius`, and CSS state nests. So the first commit of `goldberry-html`
+  is a widening of the toolkit's own native surface, reviewable on its own, and
+  it is *shared* work: `goldberry-vector` and `goldberry-terminal` want the same
+  surface. Statically linking a second Blend2D into the module is the way out
+  that does not work — two runtimes in one process, and a `BLContext` handed
+  across them is undefined behaviour. —
+  [ADR-0190](adr/0190-a-content-module-brings-its-own-natives.md),
+  [ADR-0007](adr/0007-jpms-modules-enforce-the-native-boundary.md)
+- **No SDL audio or camera symbol is exported**, so `goldberry-camera`,
+  `goldberry-mic` and the core `Sound` API that `content-widgets.md` §8 hands to
+  SDL audio for UI effect sounds all begin at the same file. This is no longer a
+  guess about what that costs: `tray-icon` began there too and paid eleven
+  symbols, two binding classes and five probe constants for it
+  ([ADR-0191](adr/0191-a-tray-is-a-menu-somebody-else-draws.md)). Of the 59
+  `SDL_*` entries now on the list, every one is video, window, event, clipboard
+  or tray. The modules' "zero new natives" claim is true of the binary and not of
+  the surface.
+- **The backend SPI has no PTY.** `goldberry-terminal` needs
+  `Optional<Pty> openPty(cmd, env, size)` — `forkpty`/`openpty` on Linux and
+  macOS, **ConPTY** on Windows — which is the same optional-capability shape as
+  `gpuSurface()` and is the real platform work in that module. libvterm itself is
+  a state machine and a cell grid, which is the part the text stack is already
+  good at.
+- **`goldberry-media` breaks the one-library assumption.** LGPL relinkability
+  means libVLC stays a separate shared object with its plugin tree beside it, and
+  every packaging rule in `:natives` — one static library, hidden visibility, one
+  export list — assumes the opposite. It also needs a codec/patent note written
+  before it gets code, which `content-widgets.md` §8 says and this list repeats
+  because it is a gate rather than a caveat.
+- **`goldberry-pdf` is the only module that vendors a prebuilt.** PDFium's own
+  build wants gn/depot_tools, so `:natives-pdf` consumes pinned,
+  checksum-verified community binaries — which is a different supply-chain
+  posture from every other native in the toolkit, where the superbuild compiles
+  from a pinned commit ([ADR-0030](adr/0030-pin-blend2d-and-asmjit-by-commit-sha.md)).
+  Worth an ADR of its own before the first jar.
+- **`goldberry-code` has a consumer before it has a widget.** md4c's code fences
+  want a highlighter, so `goldberry-html` either depends on it optionally or
+  renders fences plain. The optional-dependency mechanic — a module that improves
+  when another is on the module path — does not exist in the toolkit yet, and
+  `goldberry-vector` needs the same thing for `image/svg+xml`. One mechanism, two
+  callers, and JPMS services are the obvious shape.
+- **`goldberry-plot`'s colormaps are data with a provenance.** viridis-class
+  tables are public domain, which is a claim the licence tooling has never had to
+  check for something that is neither a font nor a library.
+  `./gradlew checkLicenses` knows about artifacts.
+- **Text selection in `html-view` is deferred**, and it is the same
+  character-quad work as text-editing depth (`ARCHITECTURE.md` §17) and as
+  `pdf-view`'s selection.
+  Three widgets waiting on one mechanism is an argument for building it once, in
+  core, rather than in whichever module lands first.
+- **`goldberry-web` is parked, not deferred.** libservo is Rust-only against a
+  deliberately unstable API, so the module would own a `cdylib` shim and its
+  breakage. Revisit when libservo ships semver guarantees or Verso-style
+  embedding stabilizes; CEF-OSR stays the documented escape hatch until then.
 
 ## Layout
 

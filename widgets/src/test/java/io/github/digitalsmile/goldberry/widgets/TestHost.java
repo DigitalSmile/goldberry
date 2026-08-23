@@ -348,6 +348,29 @@ public class TestHost implements Host {
         return clipboard;
     }
 
+    /// A real headless backend, made on first use, so that a tray shown through
+    /// this host is one a test can *choose a row of*.
+    ///
+    /// The same argument the clipboard above makes: a tray that refused would
+    /// make every test of the rows pass for the wrong reason — and the rows are
+    /// the only part of a tray Goldberry is responsible for, since the desktop
+    /// draws them.
+    private io.github.digitalsmile.goldberry.render.backend.headless.HeadlessBackend trayBackend;
+
+    @Override
+    public java.util.Optional<io.github.digitalsmile.goldberry.render.tray.BackendTray> tray(
+            io.github.digitalsmile.goldberry.render.tray.TraySpec spec) {
+        if (trayBackend == null) {
+            trayBackend = new io.github.digitalsmile.goldberry.render.backend.headless
+                    .HeadlessBackend();
+        }
+        // `andThen(this::repaint)` is the launcher's, and it is here because a
+        // test host that skipped it would pass the one thing the real one got
+        // wrong: a tray row arrives with no event behind it, so nothing asks for
+        // a frame unless the row does (ADR-0191).
+        return trayBackend.createTray(spec.andThen(this::repaint));
+    }
+
     @Override
     public void textInput(boolean active) {
         this.textInputActive = active;

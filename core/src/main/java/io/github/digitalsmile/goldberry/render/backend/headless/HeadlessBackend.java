@@ -11,6 +11,8 @@ import io.github.digitalsmile.goldberry.render.model.DisplayScale;
 import io.github.digitalsmile.goldberry.render.event.EventSink;
 import io.github.digitalsmile.goldberry.render.model.LogicalRect;
 import io.github.digitalsmile.goldberry.render.popup.PopupSpec;
+import io.github.digitalsmile.goldberry.render.tray.BackendTray;
+import io.github.digitalsmile.goldberry.render.tray.TraySpec;
 import io.github.digitalsmile.goldberry.render.window.WindowSpec;
 import io.github.digitalsmile.goldberry.log.Logs;
 import java.time.Duration;
@@ -172,6 +174,38 @@ public final class HeadlessBackend implements Backend {
         return Optional.of(popup);
     }
 
+    /// The trays this backend has open. Never more than an application asked
+    /// for; a real desktop imposes no limit either.
+    private final List<HeadlessTray> trays = new ArrayList<>();
+
+    /// A tray, which this backend has for the reason it has popups: the SPI's
+    /// rules need somewhere to be checked without a platform.
+    ///
+    /// **Never empty**, unlike a real desktop's — see [HeadlessTray] for why this
+    /// is the only place a tray menu's behaviour can be observed at all.
+    @Override
+    public Optional<BackendTray> createTray(TraySpec spec) {
+        requireUiThread();
+        requireOpen();
+        Objects.requireNonNull(spec, "spec");
+
+        var tray = new HeadlessTray(this, spec);
+        trays.add(tray);
+        LOG.debug("created headless tray with {} rows, tooltip {}",
+                spec.items().size(), spec.tooltip());
+        return Optional.of(tray);
+    }
+
+    /// The trays currently up, for a test that wants to find one it did not keep.
+    public List<HeadlessTray> trays() {
+        requireUiThread();
+        return List.copyOf(trays);
+    }
+
+    void forget(HeadlessTray tray) {
+        trays.remove(tray);
+    }
+
     @Override
     public Clipboard clipboard() {
         return clipboard;
@@ -255,6 +289,11 @@ public final class HeadlessBackend implements Backend {
         // Copied, because HeadlessWindow.close() removes itself from the list.
         for (var window : List.copyOf(windows)) {
             window.close();
+        }
+        // And the trays, which belong to the application rather than to a window
+        // and would otherwise outlive the backend that made them.
+        for (var tray : List.copyOf(trays)) {
+            tray.close();
         }
         windows.clear();
         pending.clear();

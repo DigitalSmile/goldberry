@@ -113,6 +113,7 @@ module io.github.digitalsmile.goldberry.core {
     exports io.github.digitalsmile.goldberry.render.backend.sdl3;
     exports io.github.digitalsmile.goldberry.render.model;
     exports io.github.digitalsmile.goldberry.render.popup;
+    exports io.github.digitalsmile.goldberry.render.tray;
     exports io.github.digitalsmile.goldberry.render.window;
     exports io.github.digitalsmile.goldberry.render.event;
     exports io.github.digitalsmile.goldberry.render;

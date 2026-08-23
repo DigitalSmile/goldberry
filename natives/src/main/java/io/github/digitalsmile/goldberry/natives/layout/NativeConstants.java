@@ -5,6 +5,7 @@ import io.github.digitalsmile.goldberry.natives.harfbuzz.enums.HarfBuzzEnum;
 import io.github.digitalsmile.goldberry.natives.sdl.event.SdlEventType;
 import io.github.digitalsmile.goldberry.natives.sdl.window.SdlPixelFormat;
 import io.github.digitalsmile.goldberry.natives.sdl.desktop.SdlSystemCursor;
+import io.github.digitalsmile.goldberry.natives.sdl.desktop.SdlTrayEntryFlag;
 import io.github.digitalsmile.goldberry.natives.sdl.event.SdlWheelDirection;
 import io.github.digitalsmile.goldberry.natives.sdl.window.SdlWindowFlag;
 import io.github.digitalsmile.goldberry.natives.yoga.style.YogaEnum;
@@ -39,6 +40,11 @@ public final class NativeConstants {
         // Ordinals in an enum SDL has already inserted into the middle of once.
         for (var cursor : SdlSystemCursor.values()) {
             constants.add(new NativeConstant(cursor.nativeName(), cursor.value()));
+        }
+        // Tray entry kinds and their two optional bits, one of which is
+        // 0x80000000 and is therefore the one a hand-copied `int` gets wrong.
+        for (var flag : SdlTrayEntryFlag.values()) {
+            constants.add(new NativeConstant(flag.nativeName(), flag.bit()));
         }
         // Every enumerator of every Yoga enum the bindings model. The list comes
         // from the sealed interface rather than from here, so an enum added to

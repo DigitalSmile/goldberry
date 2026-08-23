@@ -21,6 +21,8 @@ import io.github.digitalsmile.goldberry.widgets.menu.Item;
 import io.github.digitalsmile.goldberry.widgets.menu.Menu;
 import io.github.digitalsmile.goldberry.widgets.menu.Menus;
 import io.github.digitalsmile.goldberry.widgets.menu.Separator;
+import io.github.digitalsmile.goldberry.widgets.shell.tray.TrayIcon;
+import io.github.digitalsmile.goldberry.widgets.shell.tray.Trays;
 import io.github.digitalsmile.goldberry.widgets.text.Text;
 import io.github.digitalsmile.goldberry.widgets.overlay.dialog.Dialog;
 import io.github.digitalsmile.goldberry.widgets.overlay.dialog.DialogAction;
@@ -122,6 +124,13 @@ public final class Showcase implements Application {
     private Icon plusIcon;
     private Screen screen;
 
+    /// §9's `tray-icon`, while this desktop has one. Empty on a session with no
+    /// notification area, which is an ordinary answer and not a failure — every
+    /// platform's own guidance says an application must run without one.
+    private java.util.Optional<
+            io.github.digitalsmile.goldberry.render.tray.BackendTray> tray =
+                    java.util.Optional.empty();
+
     // --- Application ---------------------------------------------------------
 
     @Override
@@ -216,6 +225,25 @@ public final class Showcase implements Application {
         // mentions the stack again: it holds a controller and raises values
         // through it from wherever they happen (ADR-0177).
         Toasts.at(host, toasts, Corner.BOTTOM_END);
+
+        // §9's tray, which is the one thing in this application Goldberry does
+        // not draw: the rows below are handed to the desktop's shell, which
+        // themes them, spaces them and clicks them. The description is an
+        // ordinary `Menu` -- the same value a `menubar` holds -- so the theme
+        // toggle here and the one in the menu bar are one command written once
+        // (ADR-0191).
+        tray = Trays.show(host, TrayIcon.of("Goldberry — showcase", new Menu(List.of(
+                new Item("Toggle theme", actions::toggleTheme),
+                new Item("Toggle density", actions::toggleDensity),
+                new Separator(),
+                new Item("Screens").submenu(
+                        new Item("Controls", () -> actions.pickScreen("controls")),
+                        new Item("Overlays", () -> actions.pickScreen("overlays")),
+                        new Item("Forms", () -> actions.pickScreen("forms"))),
+                new Separator(),
+                new Item("Quit", () -> host.window().close())),
+                io.github.digitalsmile.goldberry.widget.attr.Attributes.NONE)));
+        LOG.info("tray {}", tray.isPresent() ? "shown" : "unavailable on this desktop");
 
         host.window().onResize(size -> LOG.info("resized to {}", size));
         host.window().onScaleChange(scale -> LOG.info("scale is now {}", scale));
@@ -443,6 +471,11 @@ public final class Showcase implements Application {
     /// referenced by a widget that has not been collected.
     @Override
     public void stop() {
+        // The tray first, and for a reason the icons do not have: an icon left
+        // open leaks memory inside this process, while a tray left up leaves a
+        // picture in somebody's notification area that the shell will not clean
+        // away.
+        tray.ifPresent(io.github.digitalsmile.goldberry.render.tray.BackendTray::close);
         plusIcon.close();
         paletteIcon.close();
     }

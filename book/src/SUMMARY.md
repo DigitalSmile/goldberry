@@ -199,6 +199,8 @@
 - [ADR-0187 A panel takes the pointer and leaves the keyboard](adr/0187-a-panel-takes-the-pointer-and-leaves-the-keyboard.md)
 - [ADR-0188 A control opens on one signal, and the loop is what proves it](adr/0188-a-control-opens-on-one-signal.md)
 - [ADR-0189 No popup holds the keyboard](adr/0189-no-popup-holds-the-keyboard.md)
+- [ADR-0190 A content module brings its own natives](adr/0190-a-content-module-brings-its-own-natives.md)
+- [ADR-0191 A tray is a menu somebody else draws](adr/0191-a-tray-is-a-menu-somebody-else-draws.md)
 
 ---
 

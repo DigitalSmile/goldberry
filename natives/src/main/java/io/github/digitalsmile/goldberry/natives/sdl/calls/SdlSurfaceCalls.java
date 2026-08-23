@@ -10,7 +10,8 @@ import java.lang.foreign.MemorySegment;
 import java.lang.foreign.SymbolLookup;
 import java.lang.invoke.MethodHandle;
 
-/// SDL's window surface — the pixels a frame is painted into.
+/// SDL's surfaces — the window's own, which a frame is painted into, and one
+/// wrapped around pixels of Goldberry's, which is what a tray icon is.
 ///
 /// One holder per function: its handle, its address, and a `call` whose
 /// parameters are the C prototype’s. See [Downcalls] for why the handle is a
@@ -18,7 +19,9 @@ import java.lang.invoke.MethodHandle;
 public record SdlSurfaceCalls(
         GetWindowSurface getWindowSurface,
         UpdateWindowSurfaceRects updateWindowSurfaceRects,
-        DestroyWindowSurface destroyWindowSurface) {
+        DestroyWindowSurface destroyWindowSurface,
+        CreateSurfaceFrom createSurfaceFrom,
+        DestroySurface destroySurface) {
 
     /// Binds every function above.
     ///
@@ -27,7 +30,9 @@ public record SdlSurfaceCalls(
         return new SdlSurfaceCalls(
                 new GetWindowSurface(lookup),
                 new UpdateWindowSurfaceRects(lookup),
-                new DestroyWindowSurface(lookup));
+                new DestroyWindowSurface(lookup),
+                new CreateSurfaceFrom(lookup),
+                new DestroySurface(lookup));
     }
 
     /// Borrows the window’s own drawing surface.
@@ -116,6 +121,72 @@ public record SdlSurfaceCalls(
                 return (boolean) FD_SDL_DestroyWindowSurface.invokeExact(address, window);
             } catch (Throwable t) {
                 throw Downcalls.failure("SDL_DestroyWindowSurface", t);
+            }
+        }
+    }
+
+    /// Wraps pixels the caller owns as a surface, copying nothing.
+    ///
+    /// The mirror of [io.github.digitalsmile.goldberry.natives.blend2d.BlendImage]
+    /// on SDL's side, and it carries the same obligation: **the buffer must
+    /// outlive the surface.** A tray icon is the one caller — SDL wants an
+    /// `SDL_Surface*` and Goldberry has a painted BGRA buffer, and the platform
+    /// consumes the pixels inside `SDL_CreateTray`, so the surface is destroyed
+    /// as soon as that returns.
+    ///
+    /// `void* SDL_CreateSurfaceFrom(int, int, int, void*, int)`
+    ///
+    /// @param width  in pixels
+    /// @param height in pixels
+    /// @param format an `SDL_PixelFormat`
+    /// @param pixels the first pixel; the caller keeps ownership
+    /// @param pitch  bytes per row
+    /// @return an `SDL_Surface*`, or NULL on failure
+    public static final class CreateSurfaceFrom {
+
+        private static final MethodHandle FD_SDL_CreateSurfaceFrom =
+                Downcalls.link(FunctionDescriptor.of(
+                        ADDRESS, JAVA_INT, JAVA_INT, JAVA_INT, ADDRESS, JAVA_INT));
+
+        private final MemorySegment address;
+
+        CreateSurfaceFrom(SymbolLookup lookup) {
+            this.address = Downcalls.symbol(lookup, "SDL_CreateSurfaceFrom");
+        }
+
+        public MemorySegment call(
+                int width, int height, int format, MemorySegment pixels, int pitch) {
+            try {
+                return (MemorySegment) FD_SDL_CreateSurfaceFrom.invokeExact(
+                        address, width, height, format, pixels, pitch);
+            } catch (Throwable t) {
+                throw Downcalls.failure("SDL_CreateSurfaceFrom", t);
+            }
+        }
+    }
+
+    /// Releases a surface. Borrowed pixels are untouched — they were never SDL's
+    /// to free.
+    ///
+    /// `void SDL_DestroySurface(void*)`
+    ///
+    /// @param surface the surface to release
+    public static final class DestroySurface {
+
+        private static final MethodHandle FD_SDL_DestroySurface =
+                Downcalls.link(FunctionDescriptor.ofVoid(ADDRESS));
+
+        private final MemorySegment address;
+
+        DestroySurface(SymbolLookup lookup) {
+            this.address = Downcalls.symbol(lookup, "SDL_DestroySurface");
+        }
+
+        public void call(MemorySegment surface) {
+            try {
+                FD_SDL_DestroySurface.invokeExact(address, surface);
+            } catch (Throwable t) {
+                throw Downcalls.failure("SDL_DestroySurface", t);
             }
         }
     }
