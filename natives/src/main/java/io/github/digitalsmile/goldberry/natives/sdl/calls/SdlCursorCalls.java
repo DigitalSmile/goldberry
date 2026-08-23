@@ -10,10 +10,12 @@ import java.lang.foreign.MemorySegment;
 import java.lang.foreign.SymbolLookup;
 import java.lang.invoke.MethodHandle;
 
-/// SDL's cursor functions, one holder each.
+/// SDL's cursors — the shapes, and showing or hiding them.
 ///
-/// See [io.github.digitalsmile.goldberry.natives.calls] for why the holders
-/// live in a package of their own.
+/// One holder per function: its handle, its address, and a `call` whose
+/// parameters are the C prototype’s. See
+/// [io.github.digitalsmile.goldberry.natives.calls] for why the handle is a
+/// `static final` constant and why these live in a package of their own.
 public record SdlCursorCalls(
         CreateSystemCursor createSystemCursor,
         SetCursor setCursor,
@@ -22,6 +24,8 @@ public record SdlCursorCalls(
         HideCursor hideCursor) {
 
     /// Binds every function above.
+    ///
+    /// @param lookup the loaded `libgoldberry`
     public static SdlCursorCalls bind(SymbolLookup lookup) {
         return new SdlCursorCalls(
                 new CreateSystemCursor(lookup),
@@ -31,7 +35,15 @@ public record SdlCursorCalls(
                 new HideCursor(lookup));
     }
 
+    /// Makes one of the platform’s own cursor shapes.
+    ///
+    /// NULL when the platform has no such shape, which is not an error — it is a
+    /// cursor to fall back from.
+    ///
     /// `void* SDL_CreateSystemCursor(int)`
+    ///
+    /// @param shape an `SDL_SystemCursor`
+    /// @return an `SDL_Cursor*`, or NULL
     public static final class CreateSystemCursor {
 
         private static final MethodHandle FD_SDL_CreateSystemCursor =
@@ -43,16 +55,21 @@ public record SdlCursorCalls(
             this.address = Downcalls.symbol(lookup, "SDL_CreateSystemCursor");
         }
 
-        public MemorySegment call(int a1) {
+        public MemorySegment call(int shape) {
             try {
-                return (MemorySegment) FD_SDL_CreateSystemCursor.invokeExact(address, a1);
+                return (MemorySegment) FD_SDL_CreateSystemCursor.invokeExact(address, shape);
             } catch (Throwable t) {
                 throw Downcalls.failure("SDL_CreateSystemCursor", t);
             }
         }
     }
 
+    /// Sets the active cursor.
+    ///
     /// `_Bool SDL_SetCursor(void*)`
+    ///
+    /// @param cursor the cursor to show
+    /// @return false if SDL refused it
     public static final class SetCursor {
 
         private static final MethodHandle FD_SDL_SetCursor =
@@ -64,16 +81,20 @@ public record SdlCursorCalls(
             this.address = Downcalls.symbol(lookup, "SDL_SetCursor");
         }
 
-        public boolean call(MemorySegment a1) {
+        public boolean call(MemorySegment cursor) {
             try {
-                return (boolean) FD_SDL_SetCursor.invokeExact(address, a1);
+                return (boolean) FD_SDL_SetCursor.invokeExact(address, cursor);
             } catch (Throwable t) {
                 throw Downcalls.failure("SDL_SetCursor", t);
             }
         }
     }
 
+    /// Releases a cursor.
+    ///
     /// `void SDL_DestroyCursor(void*)`
+    ///
+    /// @param cursor the cursor to release
     public static final class DestroyCursor {
 
         private static final MethodHandle FD_SDL_DestroyCursor =
@@ -85,16 +106,20 @@ public record SdlCursorCalls(
             this.address = Downcalls.symbol(lookup, "SDL_DestroyCursor");
         }
 
-        public void call(MemorySegment a1) {
+        public void call(MemorySegment cursor) {
             try {
-                FD_SDL_DestroyCursor.invokeExact(address, a1);
+                FD_SDL_DestroyCursor.invokeExact(address, cursor);
             } catch (Throwable t) {
                 throw Downcalls.failure("SDL_DestroyCursor", t);
             }
         }
     }
 
+    /// Makes the cursor visible.
+    ///
     /// `_Bool SDL_ShowCursor(void)`
+    ///
+    /// @return false only when there is no video subsystem
     public static final class ShowCursor {
 
         private static final MethodHandle FD_SDL_ShowCursor =
@@ -115,7 +140,11 @@ public record SdlCursorCalls(
         }
     }
 
+    /// Hides the cursor.
+    ///
     /// `_Bool SDL_HideCursor(void)`
+    ///
+    /// @return false only when there is no video subsystem
     public static final class HideCursor {
 
         private static final MethodHandle FD_SDL_HideCursor =

@@ -62,12 +62,12 @@ public record ImageCalls(
         }
 
         public int call(
-        MemorySegment image, int width, int height, int format, MemorySegment pixels, long stride,
-                int accessFlags, MemorySegment destroyFunc, MemorySegment userData) {
+                MemorySegment image, int width, int height, int format, MemorySegment pixels,
+                long stride, int accessFlags, MemorySegment destroyFunc, MemorySegment userData) {
             try {
                 return (int) FD_bl_image_init_as_from_data.invokeExact(
-                address, image, width, height, format, pixels, stride, accessFlags, destroyFunc,
-                        userData);
+                        address, image, width, height, format, pixels, stride, accessFlags,
+                        destroyFunc, userData);
             } catch (Throwable t) {
                 throw Downcalls.failure("bl_image_init_as_from_data", t);
             }

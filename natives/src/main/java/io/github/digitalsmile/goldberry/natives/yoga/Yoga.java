@@ -1,6 +1,9 @@
 package io.github.digitalsmile.goldberry.natives.yoga;
 
-import io.github.digitalsmile.goldberry.natives.yoga.calls.YogaCalls;
+import io.github.digitalsmile.goldberry.natives.yoga.calls.ConfigCalls;
+import io.github.digitalsmile.goldberry.natives.yoga.calls.LayoutCalls;
+import io.github.digitalsmile.goldberry.natives.yoga.calls.NodeCalls;
+import io.github.digitalsmile.goldberry.natives.yoga.calls.StyleCalls;
 import io.github.digitalsmile.goldberry.natives.NativeLibrary;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.SymbolLookup;
@@ -38,7 +41,8 @@ import io.github.digitalsmile.goldberry.natives.yoga.style.YogaEnum;
 /// [YogaEnum#all()].
 final class Yoga {
 
-    // What this class holds is a `YogaCalls`: one holder per Yoga function,
+    // What this class holds is four `…Calls` records -- the config, the tree, the
+    // style and the results -- each one holder per Yoga function,
     // each keeping its own address and naming its own handle. The invocation
     // helpers that used to be at the bottom of this file -- one per signature,
     // so that a constant was read by the method that called it (ADR-0161) --
@@ -53,40 +57,46 @@ final class Yoga {
     /// Held per property rather than in [YogaCalls] beside the rest, because
     /// which of them is called depends on the *value* -- see
     /// [#applyLength]. Everything else is a function this class names.
-    private final YogaCalls.LengthCalls width;
-    private final YogaCalls.LengthCalls height;
-    private final YogaCalls.LengthCalls minWidth;
-    private final YogaCalls.LengthCalls minHeight;
-    private final YogaCalls.LengthCalls maxWidth;
-    private final YogaCalls.LengthCalls maxHeight;
-    private final YogaCalls.LengthCalls flexBasis;
-    private final YogaCalls.KeyedLengthCalls position;
-    private final YogaCalls.KeyedLengthCalls margin;
-    private final YogaCalls.KeyedLengthCalls padding;
-    private final YogaCalls.KeyedLengthCalls gap;
+    private final StyleCalls.LengthCalls width;
+    private final StyleCalls.LengthCalls height;
+    private final StyleCalls.LengthCalls minWidth;
+    private final StyleCalls.LengthCalls minHeight;
+    private final StyleCalls.LengthCalls maxWidth;
+    private final StyleCalls.LengthCalls maxHeight;
+    private final StyleCalls.LengthCalls flexBasis;
+    private final StyleCalls.KeyedLengthCalls position;
+    private final StyleCalls.KeyedLengthCalls margin;
+    private final StyleCalls.KeyedLengthCalls padding;
+    private final StyleCalls.KeyedLengthCalls gap;
 
-    private final YogaCalls calls;
+    private final ConfigCalls configCalls;
+    private final NodeCalls nodeCalls;
+    private final StyleCalls styleCalls;
+    private final LayoutCalls layoutCalls;
 
     private Yoga(SymbolLookup lookup) {
-        this.calls = YogaCalls.bind(lookup);
+        this.configCalls = ConfigCalls.bind(lookup);
+        this.nodeCalls = NodeCalls.bind(lookup);
+        this.styleCalls = StyleCalls.bind(lookup);
+        this.layoutCalls = LayoutCalls.bind(lookup);
 
-        this.width = YogaCalls.LengthCalls.bind(lookup, "Width", true);
-        this.height = YogaCalls.LengthCalls.bind(lookup, "Height", true);
+        this.width = StyleCalls.LengthCalls.bind(lookup, "Width", true);
+        this.height = StyleCalls.LengthCalls.bind(lookup, "Height", true);
         // No YGNodeStyleSetMinWidthAuto or MaxWidthAuto exists in Yoga, so a
         // caller asking for `auto` on a bound is refused by name rather than
         // silently dropped. See applyLength.
-        this.minWidth = YogaCalls.LengthCalls.bind(lookup, "MinWidth", false);
-        this.minHeight = YogaCalls.LengthCalls.bind(lookup, "MinHeight", false);
-        this.maxWidth = YogaCalls.LengthCalls.bind(lookup, "MaxWidth", false);
-        this.maxHeight = YogaCalls.LengthCalls.bind(lookup, "MaxHeight", false);
-        this.flexBasis = YogaCalls.LengthCalls.bind(lookup, "FlexBasis", true);
+        this.minWidth = StyleCalls.LengthCalls.bind(lookup, "MinWidth", false);
+        this.minHeight = StyleCalls.LengthCalls.bind(lookup, "MinHeight", false);
+        this.maxWidth = StyleCalls.LengthCalls.bind(lookup, "MaxWidth", false);
+        this.maxHeight = StyleCalls.LengthCalls.bind(lookup, "MaxHeight", false);
+        this.flexBasis = StyleCalls.LengthCalls.bind(lookup, "FlexBasis", true);
 
         // Inset has no `auto` in Yoga 3.1 -- CSS's `inset: auto` has no
         // equivalent to bind to.
-        this.position = YogaCalls.KeyedLengthCalls.bind(lookup, "Position", false);
-        this.margin = YogaCalls.KeyedLengthCalls.bind(lookup, "Margin", true);
-        this.padding = YogaCalls.KeyedLengthCalls.bind(lookup, "Padding", false);
-        this.gap = YogaCalls.KeyedLengthCalls.bind(lookup, "Gap", false);
+        this.position = StyleCalls.KeyedLengthCalls.bind(lookup, "Position", false);
+        this.margin = StyleCalls.KeyedLengthCalls.bind(lookup, "Margin", true);
+        this.padding = StyleCalls.KeyedLengthCalls.bind(lookup, "Padding", false);
+        this.gap = StyleCalls.KeyedLengthCalls.bind(lookup, "Gap", false);
     }
 
     static Yoga get() {
@@ -96,38 +106,38 @@ final class Yoga {
     // --- config ------------------------------------------------------------
 
     MemorySegment configNew() {
-        return calls.configNew().call();
+        return configCalls.configNew().call();
     }
 
     void configFree(MemorySegment config) {
-        calls.configFree().call(config);
+        configCalls.configFree().call(config);
     }
 
     void configPointScaleFactor(MemorySegment config, float factor) {
-        calls.configSetPointScaleFactor().call(config, factor);
+        configCalls.configSetPointScaleFactor().call(config, factor);
     }
 
     float configPointScaleFactor(MemorySegment config) {
-        return calls.configGetPointScaleFactor().call(config);
+        return configCalls.configGetPointScaleFactor().call(config);
     }
 
     void configUseWebDefaults(MemorySegment config, boolean useWebDefaults) {
-        calls.configSetUseWebDefaults().call(config, useWebDefaults);
+        configCalls.configSetUseWebDefaults().call(config, useWebDefaults);
     }
 
     boolean configUseWebDefaults(MemorySegment config) {
-        return calls.configGetUseWebDefaults().call(config);
+        return configCalls.configGetUseWebDefaults().call(config);
     }
 
     // --- node lifecycle and tree -------------------------------------------
 
     MemorySegment nodeNew() {
-        return calls.nodeNew().call();
+        return nodeCalls.nodeNew().call();
     }
 
     MemorySegment nodeNew(MemorySegment config) {
         MemorySegment node;
-        node = calls.nodeNewWithConfig().call(config);
+        node = nodeCalls.nodeNewWithConfig().call(config);
         return requireNonNull(node, "YGNodeNewWithConfig");
     }
 
@@ -135,115 +145,115 @@ final class Yoga {
     /// refer to which pointers and frees them one at a time so that each wrapper
     /// can be marked dead as its pointer goes.
     void nodeFree(MemorySegment node) {
-        calls.nodeFree().call(node);
+        nodeCalls.nodeFree().call(node);
     }
 
     void nodeInsertChild(MemorySegment node, MemorySegment child, long index) {
-        calls.nodeInsertChild().call(node, child, index);
+        nodeCalls.nodeInsertChild().call(node, child, index);
     }
 
     void nodeRemoveChild(MemorySegment node, MemorySegment child) {
-        calls.nodeRemoveChild().call(node, child);
+        nodeCalls.nodeRemoveChild().call(node, child);
     }
 
     void nodeRemoveAllChildren(MemorySegment node) {
-        calls.nodeRemoveAllChildren().call(node);
+        nodeCalls.nodeRemoveAllChildren().call(node);
     }
 
     long nodeChildCount(MemorySegment node) {
-        return calls.nodeGetChildCount().call(node);
+        return nodeCalls.nodeGetChildCount().call(node);
     }
 
     /// Attaches a `YGMeasureFunc`, or clears it when `stub` is
     /// [MemorySegment#NULL].
     void nodeMeasureFunc(MemorySegment node, MemorySegment stub) {
-        calls.nodeSetMeasureFunc().call(node, stub);
+        nodeCalls.nodeSetMeasureFunc().call(node, stub);
     }
 
     boolean nodeHasMeasureFunc(MemorySegment node) {
-        return calls.nodeHasMeasureFunc().call(node);
+        return nodeCalls.nodeHasMeasureFunc().call(node);
     }
 
     void nodeMarkDirty(MemorySegment node) {
-        calls.nodeMarkDirty().call(node);
+        nodeCalls.nodeMarkDirty().call(node);
     }
 
     boolean nodeIsDirty(MemorySegment node) {
-        return calls.nodeIsDirty().call(node);
+        return nodeCalls.nodeIsDirty().call(node);
     }
 
     boolean nodeHasNewLayout(MemorySegment node) {
-        return calls.nodeGetHasNewLayout().call(node);
+        return nodeCalls.nodeGetHasNewLayout().call(node);
     }
 
     void nodeHasNewLayout(MemorySegment node, boolean hasNewLayout) {
-        calls.nodeSetHasNewLayout().call(node, hasNewLayout);
+        nodeCalls.nodeSetHasNewLayout().call(node, hasNewLayout);
     }
 
     void nodeCalculateLayout(
             MemorySegment node, float availableWidth, float availableHeight, Direction ownerDirection) {
-        calls.nodeCalculateLayout().call(node, availableWidth, availableHeight,
+        nodeCalls.nodeCalculateLayout().call(node, availableWidth, availableHeight,
                 ownerDirection.nativeValue());
     }
 
     // --- style -------------------------------------------------------------
 
     void styleDirection(MemorySegment node, Direction value) {
-        calls.styleSetDirection().call(node, value.nativeValue());
+        styleCalls.styleSetDirection().call(node, value.nativeValue());
     }
 
     void styleFlexDirection(MemorySegment node, FlexDirection value) {
-        calls.styleSetFlexDirection().call(node, value.nativeValue());
+        styleCalls.styleSetFlexDirection().call(node, value.nativeValue());
     }
 
     void styleJustifyContent(MemorySegment node, Justify value) {
-        calls.styleSetJustifyContent().call(node, value.nativeValue());
+        styleCalls.styleSetJustifyContent().call(node, value.nativeValue());
     }
 
     void styleAlignContent(MemorySegment node, Align value) {
-        calls.styleSetAlignContent().call(node, value.nativeValue());
+        styleCalls.styleSetAlignContent().call(node, value.nativeValue());
     }
 
     void styleAlignItems(MemorySegment node, Align value) {
-        calls.styleSetAlignItems().call(node, value.nativeValue());
+        styleCalls.styleSetAlignItems().call(node, value.nativeValue());
     }
 
     void styleAlignSelf(MemorySegment node, Align value) {
-        calls.styleSetAlignSelf().call(node, value.nativeValue());
+        styleCalls.styleSetAlignSelf().call(node, value.nativeValue());
     }
 
     void stylePositionType(MemorySegment node, PositionType value) {
-        calls.styleSetPositionType().call(node, value.nativeValue());
+        styleCalls.styleSetPositionType().call(node, value.nativeValue());
     }
 
     void styleFlexWrap(MemorySegment node, Wrap value) {
-        calls.styleSetFlexWrap().call(node, value.nativeValue());
+        styleCalls.styleSetFlexWrap().call(node, value.nativeValue());
     }
 
     void styleOverflow(MemorySegment node, Overflow value) {
-        calls.styleSetOverflow().call(node, value.nativeValue());
+        styleCalls.styleSetOverflow().call(node, value.nativeValue());
     }
 
     void styleDisplay(MemorySegment node, Display value) {
-        calls.styleSetDisplay().call(node, value.nativeValue());
+        styleCalls.styleSetDisplay().call(node, value.nativeValue());
     }
 
     void styleFlexGrow(MemorySegment node, float value) {
-        calls.styleSetFlexGrow().call(node, value);
+        styleCalls.styleSetFlexGrow().call(node, value);
     }
 
     void styleFlexShrink(MemorySegment node, float value) {
-        calls.styleSetFlexShrink().call(node, value);
+        styleCalls.styleSetFlexShrink().call(node, value);
     }
 
     void styleAspectRatio(MemorySegment node, float value) {
-        calls.styleSetAspectRatio().call(node, value);
+        styleCalls.styleSetAspectRatio().call(node, value);
     }
 
     /// Border is points-only: there is no percent or auto function for it, which
     /// matches CSS -- a percentage `border-width` is not a thing.
     void styleBorder(MemorySegment node, Edge edge, float value) {
-        calls.styleSetBorder().call(node, edge.nativeValue(), value);
+        styleCalls.styleSetBorder().call(node, edge.nativeValue(), value);
     }
 
     void styleWidth(MemorySegment node, StyleLength value) {
@@ -294,27 +304,27 @@ final class Yoga {
 
     ComputedLayout layout(MemorySegment node) {
         return new ComputedLayout(
-                calls.layoutGetLeft().call(node),
-                calls.layoutGetTop().call(node),
-                calls.layoutGetWidth().call(node),
-                calls.layoutGetHeight().call(node));
+                layoutCalls.layoutGetLeft().call(node),
+                layoutCalls.layoutGetTop().call(node),
+                layoutCalls.layoutGetWidth().call(node),
+                layoutCalls.layoutGetHeight().call(node));
     }
 
     float layoutMargin(MemorySegment node, Edge edge) {
-        return calls.layoutGetMargin().call(node, edge.nativeValue());
+        return layoutCalls.layoutGetMargin().call(node, edge.nativeValue());
     }
 
     float layoutBorder(MemorySegment node, Edge edge) {
-        return calls.layoutGetBorder().call(node, edge.nativeValue());
+        return layoutCalls.layoutGetBorder().call(node, edge.nativeValue());
     }
 
     float layoutPadding(MemorySegment node, Edge edge) {
-        return calls.layoutGetPadding().call(node, edge.nativeValue());
+        return layoutCalls.layoutGetPadding().call(node, edge.nativeValue());
     }
 
     Direction layoutDirection(MemorySegment node) {
         int value;
-        value = calls.layoutGetDirection().call(node);
+        value = layoutCalls.layoutGetDirection().call(node);
         // Converted outside the try: a value Yoga does not define is a
         // diagnostic worth keeping, and wrapping it as a failed downcall would
         // bury it.
@@ -322,13 +332,13 @@ final class Yoga {
     }
 
     boolean layoutHadOverflow(MemorySegment node) {
-        return calls.layoutGetHadOverflow().call(node);
+        return layoutCalls.layoutGetHadOverflow().call(node);
     }
 
     // --- the length dispatch -----------------------------------------------
 
     private static void applyLength(
-            YogaCalls.LengthCalls calls, String property, MemorySegment node, StyleLength length) {
+            StyleCalls.LengthCalls calls, String property, MemorySegment node, StyleLength length) {
         switch (length) {
             case StyleLength.Points(var value) -> calls.points().call(node, value);
             case StyleLength.Percent(var value) -> calls.percent().call(node, value);
@@ -343,7 +353,7 @@ final class Yoga {
     }
 
     private static void applyKeyedLength(
-            YogaCalls.KeyedLengthCalls calls, String property, MemorySegment node, int key,
+            StyleCalls.KeyedLengthCalls calls, String property, MemorySegment node, int key,
             StyleLength length) {
         switch (length) {
             case StyleLength.Points(var value) -> calls.points().call(node, key, value);

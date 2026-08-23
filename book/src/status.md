@@ -2918,6 +2918,16 @@ check("bl_context_end", calls.contextEnd().call(context));
   409, `Blend2D` 821 → 561, `SdlVideo` 837 → 653, `HarfBuzz` 393 → 249, `Sdl`
   296 → 198 — and all of it was plumbing. Thirty-six per-shape invocation
   helpers are gone with it.
+- **A record is one subject, not one library.** `Blend2DCalls` was forty-six
+  functions; it is now `ImageCalls`, `ContextCalls`, `PathCalls`, `FontCalls` and
+  `RuntimeCalls`, and the 821-line `Blend2D` binding split the same way into
+  `Blend2dImage`, `Blend2dContext`, `Blend2dPath`, `Blend2dFont` and
+  `Blend2dRuntime` — 78 to 248 lines each, one per wrapper. Yoga, HarfBuzz and
+  SDL's records are split the same way; their binding classes hold several.
+- **Every `call` names its parameters and says what they are.** `call(a1, a2)`
+  is now `call(context, rect, argb)`, with a summary, the C prototype, and a
+  `@param` for each — 134 functions' worth, recovered from the call sites that
+  already named them and then written out.
 - **A failure names the function it was.** `Blend2D`'s four shared `invoke`
   helpers reported `"a Blend2D call"` for any of the eighteen symbols that went
   through them, because a shared helper had no way to know which.

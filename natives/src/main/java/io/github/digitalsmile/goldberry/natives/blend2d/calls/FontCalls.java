@@ -97,11 +97,11 @@ public record FontCalls(
         }
 
         public int call(
-        MemorySegment fontData, MemorySegment bytes, long length, MemorySegment destroyFunc,
-                MemorySegment userData) {
+                MemorySegment fontData, MemorySegment bytes, long length,
+                MemorySegment destroyFunc, MemorySegment userData) {
             try {
                 return (int) FD_bl_font_data_create_from_data.invokeExact(
-                address, fontData, bytes, length, destroyFunc, userData);
+                        address, fontData, bytes, length, destroyFunc, userData);
             } catch (Throwable t) {
                 throw Downcalls.failure("bl_font_data_create_from_data", t);
             }
@@ -179,7 +179,7 @@ public record FontCalls(
         public int call(MemorySegment face, MemorySegment fontData, int faceIndex) {
             try {
                 return (int) FD_bl_font_face_create_from_data.invokeExact(
-                address, face, fontData, faceIndex);
+                        address, face, fontData, faceIndex);
             } catch (Throwable t) {
                 throw Downcalls.failure("bl_font_face_create_from_data", t);
             }

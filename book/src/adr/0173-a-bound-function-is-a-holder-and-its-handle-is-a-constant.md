@@ -68,8 +68,12 @@ public static final class ContextEnd {
 }
 ```
 
-**The holders of one library are grouped in a record**, which is what a binding
-class keeps instead of forty `MemorySegment` fields:
+**The holders are grouped in a record per subject** — not per library. A
+`Blend2DCalls` of forty-six functions is a list, not a type; `ImageCalls`,
+`ContextCalls`, `PathCalls`, `FontCalls` and `RuntimeCalls` are each the surface
+of one object, and the binding class that holds one is the surface of one object
+too. A record is what a binding class keeps instead of forty `MemorySegment`
+fields:
 
 ```java
 check("bl_context_end", calls.contextEnd().call(context));
@@ -154,7 +158,16 @@ was plumbing:
 
 Thirty-six per-shape invocation helpers are gone, along with every
 `MemorySegment` field and every function name written as a string argument. A
-Yoga setter is now one line: `calls.styleSetFlexGrow().call(node, value)`.
+Yoga setter is now one line: `styleCalls.styleSetFlexGrow().call(node, value)`.
+`Blend2D` went further and split into five classes of 78 to 248 lines, one per
+Blend2D object, each holding the one record that is its own surface.
+
+**Every `call` states its parameters.** `call(a1, a2, a3)` is `call(context,
+rect, argb)`, under a summary, the C prototype it binds, and a `@param` for each
+argument. The names were not invented: the wrapper method at each call site
+already named them — `contextFillRect(MemorySegment context, MemorySegment rect,
+int argb)` passes them straight through — so they were read back out of the
+source and only the twenty-two that were literals had to be written by hand.
 
 **A failure names the function it was.** `Blend2D`'s four `invoke` helpers
 reported `"a Blend2D call"` for any of the eighteen symbols that went through

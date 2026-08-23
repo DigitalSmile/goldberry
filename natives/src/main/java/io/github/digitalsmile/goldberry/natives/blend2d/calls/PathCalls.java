@@ -228,7 +228,7 @@ public record PathCalls(
         public int call(MemorySegment path, double controlX, double controlY, double x, double y) {
             try {
                 return (int) FD_bl_path_quad_to.invokeExact(
-                address, path, controlX, controlY, x, y);
+                        address, path, controlX, controlY, x, y);
             } catch (Throwable t) {
                 throw Downcalls.failure("bl_path_quad_to", t);
             }
@@ -256,11 +256,11 @@ public record PathCalls(
         }
 
         public int call(
-        MemorySegment path, double control1X, double control1Y, double control2X,
+                MemorySegment path, double control1X, double control1Y, double control2X,
                 double control2Y, double x, double y) {
             try {
                 return (int) FD_bl_path_cubic_to.invokeExact(
-                address, path, control1X, control1Y, control2X, control2Y, x, y);
+                        address, path, control1X, control1Y, control2X, control2Y, x, y);
             } catch (Throwable t) {
                 throw Downcalls.failure("bl_path_cubic_to", t);
             }
@@ -322,10 +322,10 @@ public record PathCalls(
         }
 
         public int call(
-        MemorySegment path, double control2X, double control2Y, double x, double y) {
+                MemorySegment path, double control2X, double control2Y, double x, double y) {
             try {
                 return (int) FD_bl_path_smooth_cubic_to.invokeExact(
-                address, path, control2X, control2Y, x, y);
+                        address, path, control2X, control2Y, x, y);
             } catch (Throwable t) {
                 throw Downcalls.failure("bl_path_smooth_cubic_to", t);
             }
@@ -360,11 +360,11 @@ public record PathCalls(
         }
 
         public int call(
-        MemorySegment path, double radiusX, double radiusY, double xAxisRotation,
+                MemorySegment path, double radiusX, double radiusY, double xAxisRotation,
                 boolean largeArc, boolean sweep, double x, double y) {
             try {
                 return (int) FD_bl_path_elliptic_arc_to.invokeExact(
-                address, path, radiusX, radiusY, xAxisRotation, largeArc, sweep, x, y);
+                        address, path, radiusX, radiusY, xAxisRotation, largeArc, sweep, x, y);
             } catch (Throwable t) {
                 throw Downcalls.failure("bl_path_elliptic_arc_to", t);
             }

@@ -43,7 +43,7 @@ public final class SdlClipboard {
         private static final SdlClipboard INSTANCE = new SdlClipboard(NativeLibrary.get().lookup());
     }
 
-    private final SdlClipboardCalls calls;
+    private final SdlClipboardCalls sdlClipboardCalls;
 
     /// The process's clipboard.
     public static SdlClipboard get() {
@@ -51,7 +51,7 @@ public final class SdlClipboard {
     }
 
     SdlClipboard(SymbolLookup lookup) {
-        this.calls = SdlClipboardCalls.bind(lookup);
+        this.sdlClipboardCalls = SdlClipboardCalls.bind(lookup);
     }
 
     /// Whether the clipboard holds any non-empty text.
@@ -60,7 +60,7 @@ public final class SdlClipboard {
     /// **round trip to the owning client** and this one is answered from what the
     /// compositor already told us.
     public boolean hasText() {
-        return calls.hasClipboardText().call();
+        return sdlClipboardCalls.hasClipboardText().call();
     }
 
     /// The clipboard's text, or `""` when it holds none.
@@ -70,7 +70,7 @@ public final class SdlClipboard {
     /// returns an empty string rather than NULL on failure, so there is no third
     /// state to report.
     public String text() {
-        var pointer = calls.getClipboardText().call();
+        var pointer = sdlClipboardCalls.getClipboardText().call();
         if (MemorySegment.NULL.equals(pointer)) {
             return "";
         }
@@ -91,7 +91,7 @@ public final class SdlClipboard {
     /// @return whether SDL accepted it
     public boolean text(String text) {
         try (var arena = Arena.ofConfined()) {
-            var accepted = calls.setClipboardText()
+            var accepted = sdlClipboardCalls.setClipboardText()
                     .call(arena.allocateFrom(text == null ? "" : text));
             if (!accepted) {
                 LOG.debug("SDL_SetClipboardText() refused: {}", Sdl.get().lastError());
@@ -103,7 +103,7 @@ public final class SdlClipboard {
     /// `void SDL_free(void*)` — SDL's allocator, for the string it just handed
     /// over. See the note on this class.
     private void release(MemorySegment pointer) {
-        calls.free().call(pointer);
+        sdlClipboardCalls.free().call(pointer);
     }
 
     // Restricted: the string's extent is not known until it is walked, which is

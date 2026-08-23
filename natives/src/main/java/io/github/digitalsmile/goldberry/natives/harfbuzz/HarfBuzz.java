@@ -1,6 +1,9 @@
 package io.github.digitalsmile.goldberry.natives.harfbuzz;
 
-import io.github.digitalsmile.goldberry.natives.harfbuzz.calls.HarfBuzzCalls;
+import io.github.digitalsmile.goldberry.natives.harfbuzz.calls.BufferCalls;
+import io.github.digitalsmile.goldberry.natives.harfbuzz.calls.FontCalls;
+import io.github.digitalsmile.goldberry.natives.harfbuzz.calls.ShapingCalls;
+import io.github.digitalsmile.goldberry.natives.harfbuzz.calls.VersionCalls;
 import io.github.digitalsmile.goldberry.natives.NativeLibrary;
 import io.github.digitalsmile.goldberry.natives.layout.Layouts;
 import java.lang.foreign.Arena;
@@ -36,10 +39,16 @@ final class HarfBuzz {
         private static final HarfBuzz INSTANCE = new HarfBuzz(NativeLibrary.get().lookup());
     }
 
-    private final HarfBuzzCalls calls;
+    private final VersionCalls versionCalls;
+    private final FontCalls fontCalls;
+    private final BufferCalls bufferCalls;
+    private final ShapingCalls shapingCalls;
 
     private HarfBuzz(SymbolLookup lookup) {
-        this.calls = HarfBuzzCalls.bind(lookup);
+        this.versionCalls = VersionCalls.bind(lookup);
+        this.fontCalls = FontCalls.bind(lookup);
+        this.bufferCalls = BufferCalls.bind(lookup);
+        this.shapingCalls = ShapingCalls.bind(lookup);
     }
 
     static HarfBuzz get() {
@@ -53,7 +62,7 @@ final class HarfBuzz {
             var major = out.asSlice(0, 4);
             var minor = out.asSlice(4, 4);
             var micro = out.asSlice(8, 4);
-            calls.version().call(major, minor, micro);
+            versionCalls.version().call(major, minor, micro);
             return new HarfBuzzVersion(
                     out.getAtIndex(ValueLayout.JAVA_INT, 0),
                     out.getAtIndex(ValueLayout.JAVA_INT, 1),
@@ -68,20 +77,20 @@ final class HarfBuzz {
     /// Always [MemoryMode#DUPLICATE]: the alternative is promising that a Java
     /// array's memory outlives the face, which nothing here can promise.
     MemorySegment blobCreate(MemorySegment data, int length) {
-        return calls.blobCreate().call(data, length, MemoryMode.DUPLICATE.nativeValue(),
+        return fontCalls.blobCreate().call(data, length, MemoryMode.DUPLICATE.nativeValue(),
                 MemorySegment.NULL, MemorySegment.NULL);
     }
 
     void blobDestroy(MemorySegment blob) {
-        calls.blobDestroy().call(blob);
+        fontCalls.blobDestroy().call(blob);
     }
 
     MemorySegment faceCreate(MemorySegment blob, int index) {
-        return calls.faceCreate().call(blob, index);
+        return fontCalls.faceCreate().call(blob, index);
     }
 
     void faceDestroy(MemorySegment face) {
-        calls.faceDestroy().call(face);
+        fontCalls.faceDestroy().call(face);
     }
 
     /// HarfBuzz's immortal empty face — a valid face with no glyphs.
@@ -89,7 +98,7 @@ final class HarfBuzz {
     /// It is a singleton HarfBuzz owns, so it must **not** be destroyed. That is
     /// why [ShapedFont] tracks whether its face was borrowed.
     MemorySegment faceEmpty() {
-        return calls.faceGetEmpty().call();
+        return fontCalls.faceGetEmpty().call();
     }
 
     /// The face's units per em — the grid its outlines are designed on.
@@ -99,33 +108,33 @@ final class HarfBuzz {
     /// with (ADR-0034). Commonly 1000 for a PostScript-flavoured face and 2048
     /// for a TrueType one, and free to be anything.
     int faceUpem(MemorySegment face) {
-        return calls.faceGetUpem().call(face);
+        return fontCalls.faceGetUpem().call(face);
     }
 
     MemorySegment fontCreate(MemorySegment face) {
-        return calls.fontCreate().call(face);
+        return fontCalls.fontCreate().call(face);
     }
 
     void fontDestroy(MemorySegment font) {
-        calls.fontDestroy().call(font);
+        fontCalls.fontDestroy().call(font);
     }
 
     void fontScale(MemorySegment font, int xScale, int yScale) {
-        calls.fontSetScale().call(font, xScale, yScale);
+        fontCalls.fontSetScale().call(font, xScale, yScale);
     }
 
     // --- buffers -----------------------------------------------------------
 
     MemorySegment bufferCreate() {
-        return calls.bufferCreate().call();
+        return bufferCalls.bufferCreate().call();
     }
 
     void bufferDestroy(MemorySegment buffer) {
-        calls.bufferDestroy().call(buffer);
+        bufferCalls.bufferDestroy().call(buffer);
     }
 
     void bufferReset(MemorySegment buffer) {
-        calls.bufferReset().call(buffer);
+        bufferCalls.bufferReset().call(buffer);
     }
 
     /// Adds UTF-16 code units, with context either side of the part to shape.
@@ -139,44 +148,44 @@ final class HarfBuzz {
     /// UTF-16, so the text crosses without being transcoded.
     void bufferAddUtf16(
             MemorySegment buffer, MemorySegment text, int textLength, int itemOffset, int itemLength) {
-        calls.bufferAddUtf16().call(buffer, text, textLength, itemOffset, itemLength);
+        bufferCalls.bufferAddUtf16().call(buffer, text, textLength, itemOffset, itemLength);
     }
 
     void bufferGuessSegmentProperties(MemorySegment buffer) {
-        calls.bufferGuessSegmentProperties().call(buffer);
+        bufferCalls.bufferGuessSegmentProperties().call(buffer);
     }
 
     void bufferDirection(MemorySegment buffer, TextDirection direction) {
-        calls.bufferSetDirection().call(buffer, direction.nativeValue());
+        bufferCalls.bufferSetDirection().call(buffer, direction.nativeValue());
     }
 
     TextDirection bufferDirection(MemorySegment buffer) {
         int value;
-        value = calls.bufferGetDirection().call(buffer);
+        value = bufferCalls.bufferGetDirection().call(buffer);
         return TextDirection.of(value);
     }
 
     void bufferScript(MemorySegment buffer, int scriptTag) {
-        calls.bufferSetScript().call(buffer, scriptTag);
+        bufferCalls.bufferSetScript().call(buffer, scriptTag);
     }
 
     void bufferLanguage(MemorySegment buffer, MemorySegment language) {
-        calls.bufferSetLanguage().call(buffer, language);
+        bufferCalls.bufferSetLanguage().call(buffer, language);
     }
 
     int bufferLength(MemorySegment buffer) {
-        return calls.bufferGetLength().call(buffer);
+        return bufferCalls.bufferGetLength().call(buffer);
     }
 
     /// A four-character script tag, e.g. `Latn`.
     int scriptFromString(MemorySegment name, int length) {
-        return calls.scriptFromString().call(name, length);
+        return shapingCalls.scriptFromString().call(name, length);
     }
 
     /// An `hb_language_t`, which is an interned pointer HarfBuzz owns forever
     /// and that must not be freed.
     MemorySegment languageFromString(MemorySegment name, int length) {
-        return calls.languageFromString().call(name, length);
+        return shapingCalls.languageFromString().call(name, length);
     }
 
     // --- shaping -----------------------------------------------------------
@@ -186,7 +195,7 @@ final class HarfBuzz {
     /// Features are NULL/0 until the CSS layer has `font-feature-settings` to
     /// compile into them.
     void shape(MemorySegment font, MemorySegment buffer) {
-        calls.shape().call(font, buffer, MemorySegment.NULL, 0);
+        shapingCalls.shape().call(font, buffer, MemorySegment.NULL, 0);
     }
 
     /// Reads the shaped glyphs out of HarfBuzz's own arrays.
@@ -201,8 +210,8 @@ final class HarfBuzz {
             return GlyphRun.EMPTY;
         }
 
-        var infos = calls.bufferGetGlyphInfos().call(buffer, MemorySegment.NULL);
-        var positions = calls.bufferGetGlyphPositions().call(buffer, MemorySegment.NULL);
+        var infos = bufferCalls.bufferGetGlyphInfos().call(buffer, MemorySegment.NULL);
+        var positions = bufferCalls.bufferGetGlyphPositions().call(buffer, MemorySegment.NULL);
 
         // Both arrive as zero-length segments -- a bare pointer carries no
         // extent -- so they are resized to exactly the stride the layout table

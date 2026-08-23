@@ -30,7 +30,7 @@ public final class SdlCursors implements AutoCloseable {
 
     private static final Logger LOG = Logs.of(SdlCursors.class);
 
-    private final SdlCursorCalls calls;
+    private final SdlCursorCalls sdlCursorCalls;
 
     private final Map<SdlSystemCursor, MemorySegment> cursors = new EnumMap<>(SdlSystemCursor.class);
     private SdlSystemCursor current;
@@ -41,7 +41,7 @@ public final class SdlCursors implements AutoCloseable {
     }
 
     SdlCursors(SymbolLookup lookup) {
-        this.calls = SdlCursorCalls.bind(lookup);
+        this.sdlCursorCalls = SdlCursorCalls.bind(lookup);
     }
 
     /// Shows `shape`, creating it the first time it is asked for.
@@ -77,13 +77,13 @@ public final class SdlCursors implements AutoCloseable {
     public void show() {
         // The result is dropped: SDL returns false only when there is no video
         // subsystem, and there is one by the time anything here runs.
-        var ignoredShow = calls.showCursor().call();
+        var ignoredShow = sdlCursorCalls.showCursor().call();
     }
 
     /// Hides the cursor without confining it — what a text editor does while
     /// typing, and what a full-screen player does after a few idle seconds.
     public void hide() {
-        var ignoredHide = calls.hideCursor().call();
+        var ignoredHide = sdlCursorCalls.hideCursor().call();
     }
 
     /// Destroys every cursor created here.
@@ -103,7 +103,7 @@ public final class SdlCursors implements AutoCloseable {
         }
         for (var entry : cursors.entrySet()) {
             if (!MemorySegment.NULL.equals(entry.getValue())) {
-                calls.destroyCursor().call(entry.getValue());
+                sdlCursorCalls.destroyCursor().call(entry.getValue());
             }
         }
         cursors.clear();
@@ -111,7 +111,7 @@ public final class SdlCursors implements AutoCloseable {
     }
 
     private MemorySegment create(SdlSystemCursor shape) {
-        var cursor = calls.createSystemCursor().call(shape.value());
+        var cursor = sdlCursorCalls.createSystemCursor().call(shape.value());
         if (MemorySegment.NULL.equals(cursor)) {
             LOG.debug("SDL has no {} cursor on this platform: {}", shape, Sdl.get().lastError());
         }
@@ -120,7 +120,7 @@ public final class SdlCursors implements AutoCloseable {
 
     /// `bool SDL_SetCursor(SDL_Cursor*)` — false when SDL refused it.
     private boolean setCursor(MemorySegment cursor) {
-        return calls.setCursor().call(cursor);
+        return sdlCursorCalls.setCursor().call(cursor);
     }
 
 }

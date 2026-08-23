@@ -74,7 +74,7 @@ public final class SdlEventWatch implements AutoCloseable {
     }
 
     private final Handler handler;
-    private final SdlEventWatchCalls calls;
+    private final SdlEventWatchCalls sdlEventWatchCalls;
     private final Arena arena;
     private final MemorySegment stub;
 
@@ -92,7 +92,7 @@ public final class SdlEventWatch implements AutoCloseable {
 
     SdlEventWatch(SymbolLookup lookup, Handler handler) {
         this.handler = handler;
-        this.calls = SdlEventWatchCalls.bind(lookup);
+        this.sdlEventWatchCalls = SdlEventWatchCalls.bind(lookup);
 
         // Shared rather than confined, because the stub is not called on one
         // thread: SDL runs a watch on whichever thread pushed the event, and a
@@ -120,7 +120,7 @@ public final class SdlEventWatch implements AutoCloseable {
             return;
         }
         closed = true;
-        calls.removeEventWatch().call(stub, MemorySegment.NULL);
+        sdlEventWatchCalls.removeEventWatch().call(stub, MemorySegment.NULL);
         arena.close();
     }
 
@@ -142,7 +142,7 @@ public final class SdlEventWatch implements AutoCloseable {
     /// `bool SDL_AddEventWatch(SDL_EventFilter, void *userdata)` — SDL's own
     /// answer, which is false when it could not grow its watch list.
     private boolean added() {
-        return calls.addEventWatch().call(stub, MemorySegment.NULL);
+        return sdlEventWatchCalls.addEventWatch().call(stub, MemorySegment.NULL);
     }
 
     // Restricted: see MeasureCallback -- same obligation, and a far simpler

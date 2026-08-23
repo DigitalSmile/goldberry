@@ -40,10 +40,10 @@ public final class Sdl {
         private static final Sdl INSTANCE = new Sdl(NativeLibrary.get().lookup());
     }
 
-    private final SdlCoreCalls calls;
+    private final SdlCoreCalls sdlCoreCalls;
 
     private Sdl(SymbolLookup lookup) {
-        this.calls = SdlCoreCalls.bind(lookup);
+        this.sdlCoreCalls = SdlCoreCalls.bind(lookup);
     }
 
     /// The SDL bindings, loading `libgoldberry` on first call.
@@ -56,13 +56,13 @@ public final class Sdl {
     /// Static linking makes this a build fact rather than a runtime one, which is
     /// the point: there is no system SDL to disagree with.
     public SdlVersion version() {
-        return SdlVersion.decode(calls.getVersion().call());
+        return SdlVersion.decode(sdlCoreCalls.getVersion().call());
     }
 
     /// SDL's source revision string. Empty when SDL was built from a tarball
     /// rather than a checkout.
     public String revision() {
-        return readString(calls.getRevision().call());
+        return readString(sdlCoreCalls.getRevision().call());
     }
 
     /// The hint naming the video driver to use — `SDL_VIDEO_DRIVER`.
@@ -92,7 +92,7 @@ public final class Sdl {
     /// @return whether SDL accepted it
     public boolean setHint(String name, String value) {
         try (var arena = Arena.ofConfined()) {
-            return calls.setHint().call(arena.allocateFrom(name), arena.allocateFrom(value));
+            return sdlCoreCalls.setHint().call(arena.allocateFrom(name), arena.allocateFrom(value));
         }
     }
 
@@ -105,7 +105,7 @@ public final class Sdl {
     ///
     /// Empty until video is initialized.
     public String videoDriver() {
-        return readString(calls.getCurrentVideoDriver().call());
+        return readString(sdlCoreCalls.getCurrentVideoDriver().call());
     }
 
     /// The modifier keys held **right now**, as SDL's `SDL_Keymod` bitmask.
@@ -128,14 +128,14 @@ public final class Sdl {
     /// scalar row is what says so, and binding it as `JAVA_INT` would read two
     /// bytes of whatever follows it in the return register.
     public int modifierState() {
-        return calls.getModState().call() & 0xFFFF;
+        return sdlCoreCalls.getModState().call() & 0xFFFF;
     }
 
     /// Initializes SDL.
     ///
     /// @throws SdlException if SDL refuses
     public void initialize(Collection<SdlSubsystem> subsystems) {
-        if (!calls.init().call(SdlSubsystem.mask(subsystems))) {
+        if (!sdlCoreCalls.init().call(SdlSubsystem.mask(subsystems))) {
             throw new SdlException("SDL_Init", lastError());
         }
     }
@@ -144,14 +144,14 @@ public final class Sdl {
     ///
     /// @throws SdlException if SDL refuses
     public void initializeSubsystems(Collection<SdlSubsystem> subsystems) {
-        if (!calls.initSubSystem().call(SdlSubsystem.mask(subsystems))) {
+        if (!sdlCoreCalls.initSubSystem().call(SdlSubsystem.mask(subsystems))) {
             throw new SdlException("SDL_InitSubSystem", lastError());
         }
     }
 
     /// Shuts specific subsystems down. Cannot fail, by SDL's design.
     public void quitSubsystems(Collection<SdlSubsystem> subsystems) {
-        calls.quitSubSystem().call(SdlSubsystem.mask(subsystems));
+        sdlCoreCalls.quitSubSystem().call(SdlSubsystem.mask(subsystems));
     }
 
     /// Which subsystems are currently initialized.
@@ -159,13 +159,13 @@ public final class Sdl {
     /// Usually a superset of what was requested, because SDL initializes implied
     /// subsystems too — video brings events with it.
     public Set<SdlSubsystem> wasInit() {
-        return SdlSubsystem.decode(calls.wasInit().call(0));
+        return SdlSubsystem.decode(sdlCoreCalls.wasInit().call(0));
     }
 
     /// Shuts SDL down entirely. Process-global: this undoes every initialization,
     /// not only the caller's.
     public void quit() {
-        calls.quit().call();
+        sdlCoreCalls.quit().call();
     }
 
     /// The current thread's SDL error, empty when there is none.
@@ -173,12 +173,12 @@ public final class Sdl {
     /// Rarely useful directly — a failing call raises [SdlException] with this
     /// message already attached.
     public String lastError() {
-        return readString(calls.getError().call());
+        return readString(sdlCoreCalls.getError().call());
     }
 
     /// Clears the current thread's SDL error.
     public void clearError() {
-        calls.clearError().call();
+        sdlCoreCalls.clearError().call();
     }
 
     /// SDL's strings are NUL-terminated and owned by SDL. The returned pointer is

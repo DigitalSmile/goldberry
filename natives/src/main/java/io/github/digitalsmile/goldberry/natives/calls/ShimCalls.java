@@ -9,16 +9,22 @@ import java.lang.foreign.MemorySegment;
 import java.lang.foreign.SymbolLookup;
 import java.lang.invoke.MethodHandle;
 
-/// The three functions `libgoldberry` exports for itself, one holder each.
+/// The three functions `libgoldberry` exports for itself.
 ///
-/// The shape every `…calls` record has, and the smallest example of it — see
-/// [io.github.digitalsmile.goldberry.natives.calls] for why the package exists.
+/// The smallest example of the shape every `…Calls` record has.
+///
+/// One holder per function: its handle, its address, and a `call` whose
+/// parameters are the C prototype’s. See
+/// [io.github.digitalsmile.goldberry.natives.calls] for why the handle is a
+/// `static final` constant and why these live in a package of their own.
 public record ShimCalls(
         AbiVersion abiVersion,
         LayoutTable layoutTable,
         LayoutCount layoutCount) {
 
-    /// Binds all three. Throws if `libgoldberry` exports any of them.
+    /// Binds every function above.
+    ///
+    /// @param lookup the loaded `libgoldberry`
     public static ShimCalls bind(SymbolLookup lookup) {
         return new ShimCalls(
                 new AbiVersion(lookup),
@@ -26,7 +32,15 @@ public record ShimCalls(
                 new LayoutCount(lookup));
     }
 
+    /// The ABI version the loaded `libgoldberry` reports.
+    ///
+    /// Checked against `GoldberryShim.SUPPORTED_ABI_VERSION` on first use: a
+    /// mismatched pair of artifacts is a link error worth raising at start-up
+    /// rather than at the first call that reads a struct differently.
+    ///
     /// `int goldberry_abi_version(void)`
+    ///
+    /// @return the library’s ABI version
     public static final class AbiVersion {
 
         private static final MethodHandle FD_goldberry_abi_version =
@@ -47,7 +61,16 @@ public record ShimCalls(
         }
     }
 
-    /// `const goldberry_layout_entry* goldberry_layout_table(void)`
+    /// The first entry of the layout table.
+    ///
+    /// The table is how the hand-written struct layouts are checked against the
+    /// library actually compiled for this machine (ADR-0010). The segment is
+    /// zero-length — a bare pointer carries no extent — so the caller resizes it
+    /// against [ShimCalls.LayoutCount].
+    ///
+    /// `void* goldberry_layout_table(void)`
+    ///
+    /// @return a `const goldberry_layout_entry*`
     public static final class LayoutTable {
 
         private static final MethodHandle FD_goldberry_layout_table =
@@ -68,7 +91,11 @@ public record ShimCalls(
         }
     }
 
+    /// How many entries the layout table holds.
+    ///
     /// `int goldberry_layout_count(void)`
+    ///
+    /// @return the entry count
     public static final class LayoutCount {
 
         private static final MethodHandle FD_goldberry_layout_count =

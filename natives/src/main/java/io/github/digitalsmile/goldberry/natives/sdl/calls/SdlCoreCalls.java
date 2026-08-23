@@ -11,10 +11,12 @@ import java.lang.foreign.MemorySegment;
 import java.lang.foreign.SymbolLookup;
 import java.lang.invoke.MethodHandle;
 
-/// SDL's process-wide functions: init, quit, errors, hints and version.
+/// SDL's process-wide lifecycle, error and version calls.
 ///
-/// See [io.github.digitalsmile.goldberry.natives.calls] for why the holders
-/// live in a package of their own.
+/// One holder per function: its handle, its address, and a `call` whose
+/// parameters are the C prototype’s. See
+/// [io.github.digitalsmile.goldberry.natives.calls] for why the handle is a
+/// `static final` constant and why these live in a package of their own.
 public record SdlCoreCalls(
         Init init,
         InitSubSystem initSubSystem,
@@ -30,6 +32,8 @@ public record SdlCoreCalls(
         GetModState getModState) {
 
     /// Binds every function above.
+    ///
+    /// @param lookup the loaded `libgoldberry`
     public static SdlCoreCalls bind(SymbolLookup lookup) {
         return new SdlCoreCalls(
                 new Init(lookup),
@@ -46,7 +50,12 @@ public record SdlCoreCalls(
                 new GetModState(lookup));
     }
 
+    /// Initialises SDL and the subsystems named.
+    ///
     /// `_Bool SDL_Init(int)`
+    ///
+    /// @param subsystems a mask of `SDL_INIT_*` flags
+    /// @return false if SDL refused
     public static final class Init {
 
         private static final MethodHandle FD_SDL_Init =
@@ -58,16 +67,21 @@ public record SdlCoreCalls(
             this.address = Downcalls.symbol(lookup, "SDL_Init");
         }
 
-        public boolean call(int a1) {
+        public boolean call(int subsystems) {
             try {
-                return (boolean) FD_SDL_Init.invokeExact(address, a1);
+                return (boolean) FD_SDL_Init.invokeExact(address, subsystems);
             } catch (Throwable t) {
                 throw Downcalls.failure("SDL_Init", t);
             }
         }
     }
 
+    /// Initialises further subsystems on top of an existing [SdlCoreCalls.Init].
+    ///
     /// `_Bool SDL_InitSubSystem(int)`
+    ///
+    /// @param subsystems a mask of `SDL_INIT_*` flags
+    /// @return false if SDL refused
     public static final class InitSubSystem {
 
         private static final MethodHandle FD_SDL_InitSubSystem =
@@ -79,16 +93,20 @@ public record SdlCoreCalls(
             this.address = Downcalls.symbol(lookup, "SDL_InitSubSystem");
         }
 
-        public boolean call(int a1) {
+        public boolean call(int subsystems) {
             try {
-                return (boolean) FD_SDL_InitSubSystem.invokeExact(address, a1);
+                return (boolean) FD_SDL_InitSubSystem.invokeExact(address, subsystems);
             } catch (Throwable t) {
                 throw Downcalls.failure("SDL_InitSubSystem", t);
             }
         }
     }
 
+    /// Shuts specific subsystems down. Cannot fail, by SDL’s design.
+    ///
     /// `void SDL_QuitSubSystem(int)`
+    ///
+    /// @param subsystems a mask of `SDL_INIT_*` flags
     public static final class QuitSubSystem {
 
         private static final MethodHandle FD_SDL_QuitSubSystem =
@@ -100,16 +118,24 @@ public record SdlCoreCalls(
             this.address = Downcalls.symbol(lookup, "SDL_QuitSubSystem");
         }
 
-        public void call(int a1) {
+        public void call(int subsystems) {
             try {
-                FD_SDL_QuitSubSystem.invokeExact(address, a1);
+                FD_SDL_QuitSubSystem.invokeExact(address, subsystems);
             } catch (Throwable t) {
                 throw Downcalls.failure("SDL_QuitSubSystem", t);
             }
         }
     }
 
+    /// Which subsystems are initialised.
+    ///
+    /// Usually a superset of what was asked for, because SDL initialises implied
+    /// subsystems too — video brings events with it.
+    ///
     /// `int SDL_WasInit(int)`
+    ///
+    /// @param subsystems a mask to test, or 0 for "tell me everything"
+    /// @return a mask of `SDL_INIT_*` flags
     public static final class WasInit {
 
         private static final MethodHandle FD_SDL_WasInit =
@@ -121,15 +147,19 @@ public record SdlCoreCalls(
             this.address = Downcalls.symbol(lookup, "SDL_WasInit");
         }
 
-        public int call(int a1) {
+        public int call(int subsystems) {
             try {
-                return (int) FD_SDL_WasInit.invokeExact(address, a1);
+                return (int) FD_SDL_WasInit.invokeExact(address, subsystems);
             } catch (Throwable t) {
                 throw Downcalls.failure("SDL_WasInit", t);
             }
         }
     }
 
+    /// Shuts SDL down entirely.
+    ///
+    /// Process-global: this undoes every initialisation, not only the caller’s.
+    ///
     /// `void SDL_Quit(void)`
     public static final class Quit {
 
@@ -150,7 +180,11 @@ public record SdlCoreCalls(
         }
     }
 
+    /// The calling thread’s last SDL error.
+    ///
     /// `void* SDL_GetError(void)`
+    ///
+    /// @return a NUL-terminated string SDL owns, empty when there is none
     public static final class GetError {
 
         private static final MethodHandle FD_SDL_GetError =
@@ -171,7 +205,11 @@ public record SdlCoreCalls(
         }
     }
 
+    /// Clears the calling thread’s error.
+    ///
     /// `_Bool SDL_ClearError(void)`
+    ///
+    /// @return always true
     public static final class ClearError {
 
         private static final MethodHandle FD_SDL_ClearError =
@@ -192,7 +230,11 @@ public record SdlCoreCalls(
         }
     }
 
+    /// The version of SDL linked into `libgoldberry`.
+    ///
     /// `int SDL_GetVersion(void)`
+    ///
+    /// @return a packed version, `major * 1000000 + minor * 1000 + patch`
     public static final class GetVersion {
 
         private static final MethodHandle FD_SDL_GetVersion =
@@ -213,7 +255,11 @@ public record SdlCoreCalls(
         }
     }
 
+    /// The source revision SDL was built from.
+    ///
     /// `void* SDL_GetRevision(void)`
+    ///
+    /// @return a NUL-terminated string SDL owns
     public static final class GetRevision {
 
         private static final MethodHandle FD_SDL_GetRevision =
@@ -234,7 +280,15 @@ public record SdlCoreCalls(
         }
     }
 
+    /// The video driver SDL chose — `wayland`, `x11`, `windows`, `cocoa`.
+    ///
+    /// Worth checking before believing anything about windowing behaviour: a
+    /// Wayland session running through XWayland behaves like X11, and nothing
+    /// else in the process gives that away. Empty until video is initialised.
+    ///
     /// `void* SDL_GetCurrentVideoDriver(void)`
+    ///
+    /// @return a NUL-terminated string SDL owns
     public static final class GetCurrentVideoDriver {
 
         private static final MethodHandle FD_SDL_GetCurrentVideoDriver =
@@ -255,7 +309,16 @@ public record SdlCoreCalls(
         }
     }
 
+    /// Sets an SDL hint.
+    ///
+    /// Hints are SDL’s configuration channel; most must be set before the
+    /// subsystem they affect is initialised.
+    ///
     /// `_Bool SDL_SetHint(void*, void*)`
+    ///
+    /// @param name the hint’s name, NUL-terminated
+    /// @param value the value, NUL-terminated
+    /// @return false if SDL refused it
     public static final class SetHint {
 
         private static final MethodHandle FD_SDL_SetHint =
@@ -267,16 +330,28 @@ public record SdlCoreCalls(
             this.address = Downcalls.symbol(lookup, "SDL_SetHint");
         }
 
-        public boolean call(MemorySegment a1, MemorySegment a2) {
+        public boolean call(MemorySegment name, MemorySegment value) {
             try {
-                return (boolean) FD_SDL_SetHint.invokeExact(address, a1, a2);
+                return (boolean) FD_SDL_SetHint.invokeExact(address, name, value);
             } catch (Throwable t) {
                 throw Downcalls.failure("SDL_SetHint", t);
             }
         }
     }
 
+    /// The modifier keys held **right now**.
+    ///
+    /// Polled rather than carried on the event, because SDL’s mouse events have
+    /// no `mod` field where its keyboard events do. Read at the moment an event
+    /// is translated, which is inside the same pump that produced it.
+    ///
+    /// Returns `SDL_Keymod`, a `Uint16` — the layout table’s "Uint16" scalar row
+    /// is what says so, and binding it as `JAVA_INT` would read two bytes of
+    /// whatever follows it in the return register.
+    ///
     /// `short SDL_GetModState(void)`
+    ///
+    /// @return an `SDL_Keymod` bitmask
     public static final class GetModState {
 
         private static final MethodHandle FD_SDL_GetModState =

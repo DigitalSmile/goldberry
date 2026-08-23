@@ -9,22 +9,35 @@ import java.lang.foreign.MemorySegment;
 import java.lang.foreign.SymbolLookup;
 import java.lang.invoke.MethodHandle;
 
-/// The two functions an SDL event watch is added and removed with.
+/// SDL's event watches — a callback SDL runs as events arrive.
 ///
-/// See [io.github.digitalsmile.goldberry.natives.calls] for why the holders
-/// live in a package of their own.
+/// One holder per function: its handle, its address, and a `call` whose
+/// parameters are the C prototype’s. See
+/// [io.github.digitalsmile.goldberry.natives.calls] for why the handle is a
+/// `static final` constant and why these live in a package of their own.
 public record SdlEventWatchCalls(
         AddEventWatch addEventWatch,
         RemoveEventWatch removeEventWatch) {
 
     /// Binds every function above.
+    ///
+    /// @param lookup the loaded `libgoldberry`
     public static SdlEventWatchCalls bind(SymbolLookup lookup) {
         return new SdlEventWatchCalls(
                 new AddEventWatch(lookup),
                 new RemoveEventWatch(lookup));
     }
 
+    /// Registers a callback SDL runs for every event, as it is queued.
+    ///
+    /// The only way to paint during a modal resize loop: the platform does not
+    /// return to the event pump while the user drags an edge.
+    ///
     /// `_Bool SDL_AddEventWatch(void*, void*)`
+    ///
+    /// @param filter an `SDL_EventFilter` upcall stub
+    /// @param userData passed to the filter; NULL here, because the stub already knows
+    /// @return false if SDL could not grow its watch list
     public static final class AddEventWatch {
 
         private static final MethodHandle FD_SDL_AddEventWatch =
@@ -36,16 +49,21 @@ public record SdlEventWatchCalls(
             this.address = Downcalls.symbol(lookup, "SDL_AddEventWatch");
         }
 
-        public boolean call(MemorySegment a1, MemorySegment a2) {
+        public boolean call(MemorySegment filter, MemorySegment userData) {
             try {
-                return (boolean) FD_SDL_AddEventWatch.invokeExact(address, a1, a2);
+                return (boolean) FD_SDL_AddEventWatch.invokeExact(address, filter, userData);
             } catch (Throwable t) {
                 throw Downcalls.failure("SDL_AddEventWatch", t);
             }
         }
     }
 
+    /// Unregisters a watch. Both arguments must match the registration.
+    ///
     /// `void SDL_RemoveEventWatch(void*, void*)`
+    ///
+    /// @param filter the stub that was registered
+    /// @param userData the same value it was registered with
     public static final class RemoveEventWatch {
 
         private static final MethodHandle FD_SDL_RemoveEventWatch =
@@ -57,9 +75,9 @@ public record SdlEventWatchCalls(
             this.address = Downcalls.symbol(lookup, "SDL_RemoveEventWatch");
         }
 
-        public void call(MemorySegment a1, MemorySegment a2) {
+        public void call(MemorySegment filter, MemorySegment userData) {
             try {
-                FD_SDL_RemoveEventWatch.invokeExact(address, a1, a2);
+                FD_SDL_RemoveEventWatch.invokeExact(address, filter, userData);
             } catch (Throwable t) {
                 throw Downcalls.failure("SDL_RemoveEventWatch", t);
             }

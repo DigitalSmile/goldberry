@@ -9,11 +9,21 @@
 /// the `try`/`catch` that names the function in the failure all live in one place
 /// instead of at each of the two hundred and eighty call sites.
 ///
-/// Each holder's doc line is its **C prototype**, in C's words rather than
+/// Each holder carries its **C prototype** in its doc, in C's words rather than
 /// Java's: `_Bool` is one byte and not the four an `int` would take, `int64_t`
 /// is what `JAVA_LONG` carries, and `void*` is any pointer. That line and the
 /// `call` under it are two statements of one signature — one in layouts, one in
 /// Java types — and `HolderShapeTest` is what checks they agree.
+///
+/// ## One record per subject, not per library
+///
+/// A library's functions are grouped by what they act on rather than by which
+/// `.so` they came from: `ImageCalls`, `ContextCalls`, `PathCalls` and
+/// `FontCalls` rather than one `Blend2DCalls` of forty-six; `ConfigCalls`,
+/// `NodeCalls`, `StyleCalls` and `LayoutCalls` rather than one `YogaCalls`.
+/// Each is the surface of one object, so the binding class that holds it is the
+/// surface of one object too — `Blend2dContext` holds `ContextCalls`, and
+/// `BlendContext` is the wrapper over both.
 ///
 /// ## Why this is a package and not a nested class of the binding
 ///

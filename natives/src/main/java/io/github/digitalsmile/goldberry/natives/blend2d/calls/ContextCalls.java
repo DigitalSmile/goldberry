@@ -196,7 +196,7 @@ public record ContextCalls(
         public int call(MemorySegment context, int op, MemorySegment data) {
             try {
                 return (int) FD_bl_context_apply_transform_op.invokeExact(
-                address, context, op, data);
+                        address, context, op, data);
             } catch (Throwable t) {
                 throw Downcalls.failure("bl_context_apply_transform_op", t);
             }
@@ -306,7 +306,7 @@ public record ContextCalls(
         public int call(MemorySegment context, MemorySegment rect, int argb) {
             try {
                 return (int) FD_bl_context_fill_rect_d_rgba32.invokeExact(
-                address, context, rect, argb);
+                        address, context, rect, argb);
             } catch (Throwable t) {
                 throw Downcalls.failure("bl_context_fill_rect_d_rgba32", t);
             }
@@ -340,11 +340,11 @@ public record ContextCalls(
         }
 
         public int call(
-        MemorySegment context, MemorySegment origin, MemorySegment font, MemorySegment glyphRun,
-                int argb) {
+                MemorySegment context, MemorySegment origin, MemorySegment font,
+                MemorySegment glyphRun, int argb) {
             try {
                 return (int) FD_bl_context_fill_glyph_run_d_rgba32.invokeExact(
-                address, context, origin, font, glyphRun, argb);
+                        address, context, origin, font, glyphRun, argb);
             } catch (Throwable t) {
                 throw Downcalls.failure("bl_context_fill_glyph_run_d_rgba32", t);
             }
@@ -460,7 +460,7 @@ public record ContextCalls(
         public int call(MemorySegment context, MemorySegment origin, MemorySegment path, int argb) {
             try {
                 return (int) FD_bl_context_fill_path_d_rgba32.invokeExact(
-                address, context, origin, path, argb);
+                        address, context, origin, path, argb);
             } catch (Throwable t) {
                 throw Downcalls.failure("bl_context_fill_path_d_rgba32", t);
             }
@@ -490,7 +490,7 @@ public record ContextCalls(
         public int call(MemorySegment context, MemorySegment origin, MemorySegment path, int argb) {
             try {
                 return (int) FD_bl_context_stroke_path_d_rgba32.invokeExact(
-                address, context, origin, path, argb);
+                        address, context, origin, path, argb);
             } catch (Throwable t) {
                 throw Downcalls.failure("bl_context_stroke_path_d_rgba32", t);
             }
@@ -521,10 +521,11 @@ public record ContextCalls(
         }
 
         public int call(
-        MemorySegment context, MemorySegment origin, MemorySegment image, MemorySegment imageArea) {
+                MemorySegment context, MemorySegment origin, MemorySegment image,
+                MemorySegment imageArea) {
             try {
                 return (int) FD_bl_context_blit_image_d.invokeExact(
-                address, context, origin, image, imageArea);
+                        address, context, origin, image, imageArea);
             } catch (Throwable t) {
                 throw Downcalls.failure("bl_context_blit_image_d", t);
             }
@@ -554,10 +555,11 @@ public record ContextCalls(
         }
 
         public int call(
-        MemorySegment context, MemorySegment rect, MemorySegment image, MemorySegment imageArea) {
+                MemorySegment context, MemorySegment rect, MemorySegment image,
+                MemorySegment imageArea) {
             try {
                 return (int) FD_bl_context_blit_scaled_image_d.invokeExact(
-                address, context, rect, image, imageArea);
+                        address, context, rect, image, imageArea);
             } catch (Throwable t) {
                 throw Downcalls.failure("bl_context_blit_scaled_image_d", t);
             }
