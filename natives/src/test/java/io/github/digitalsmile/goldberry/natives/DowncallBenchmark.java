@@ -6,6 +6,7 @@ import java.lang.foreign.MemorySegment;
 import java.lang.foreign.ValueLayout;
 import java.lang.invoke.MethodHandle;
 import java.util.Locale;
+import io.github.digitalsmile.goldberry.natives.calls.ShimCalls;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
@@ -36,15 +37,37 @@ class DowncallBenchmark {
     private static final FunctionDescriptor ABI_VERSION =
             FunctionDescriptor.of(ValueLayout.JAVA_INT);
 
+    /// The unbound constant, held the way a holder holds it: `static final` on a
+    /// class the image is told to initialise.
+    private static final MethodHandle UNBOUND = Downcalls.link(ABI_VERSION);
+
     private static MemorySegment address;
     private static MethodHandle bound;
+    private static ShimCalls.AbiVersion holder;
+    private static Naive naive;
+
+    /// The handle as an **instance** field -- the obvious way to pair a handle
+    /// with an address, and the one ADR-0173 rejected: an image cannot fold a
+    /// value read from an object, so this is 4540 ns/call there.
+    private record Naive(MethodHandle handle, MemorySegment address) {
+        int call() {
+            try {
+                return (int) handle.invokeExact(address);
+            } catch (Throwable t) {
+                throw new IllegalStateException("goldberry_abi_version() failed", t);
+            }
+        }
+    }
 
     @BeforeAll
     @SuppressWarnings("restricted")
     static void bind() {
         NativeLibraryRequirement.enforce();
-        address = Downcalls.symbol(NativeLibrary.get().lookup(), "goldberry_abi_version");
+        var lookup = NativeLibrary.get().lookup();
+        address = Downcalls.symbol(lookup, "goldberry_abi_version");
         bound = Linker.nativeLinker().downcallHandle(address, ABI_VERSION);
+        holder = ShimCalls.bind(lookup).abiVersion();
+        naive = new Naive(UNBOUND, address);
     }
 
     @Test
@@ -63,10 +86,9 @@ class DowncallBenchmark {
     /// Whether the constant has to be read by the method that calls it.
     ///
     /// It does, in an image: **8.9 ns when the helper names the constant itself,
-    /// 810 ns when the same constant is passed in as a parameter.** That is the
-    /// measurement behind [Downcalls] holding one handle per *signature* rather
-    /// than one per function — the binding classes call through shape-generic
-    /// helpers, and a helper shared by forty symbols cannot name one of them.
+    /// 810 ns when the same constant is passed in as a parameter.** That is why a
+    /// holder's `call` names its own `FD_…` field rather than taking a handle —
+    /// see [io.github.digitalsmile.goldberry.natives.calls] and ADR-0173.
     ///
     /// On the JVM the two are equal, because the JIT inlines the helper and
     /// folds the argument. Nothing here reproduces the gap; only an image does.
@@ -113,7 +135,7 @@ class DowncallBenchmark {
         var sink = 0;
         var target = address;
         for (var i = 0L; i < iterations; i++) {
-            sink += (int) Downcalls.INT__VOID.invokeExact(target);
+            sink += (int) UNBOUND.invokeExact(target);
         }
         return sink;
     }
@@ -131,7 +153,7 @@ class DowncallBenchmark {
         var sink = 0;
         var target = address;
         for (var i = 0L; i < iterations; i++) {
-            sink += callPassed(Downcalls.INT__VOID, target);
+            sink += callPassed(UNBOUND, target);
         }
         return sink;
     }
@@ -139,7 +161,7 @@ class DowncallBenchmark {
     /// What every invocation helper in the binding classes looks like.
     private static int callInside(MemorySegment function) {
         try {
-            return (int) Downcalls.INT__VOID.invokeExact(function);
+            return (int) UNBOUND.invokeExact(function);
         } catch (Throwable t) {
             throw new IllegalStateException("goldberry_abi_version() failed", t);
         }
@@ -154,5 +176,38 @@ class DowncallBenchmark {
         } catch (Throwable t) {
             throw new IllegalStateException("goldberry_abi_version() failed", t);
         }
+    }
+
+    /// The two shapes ADR-0173 chose between: a holder, whose handle is a
+    /// `static final` constant its own `call` names, and the naive pairing, whose
+    /// handle travels in the object.
+    ///
+    /// **On the JVM these are equal**, like everything else here. In an image the
+    /// holder is 8 ns and the naive pairing is 4540.
+    @Test
+    @DisplayName("a holder's call, and the same pair with the handle in a field")
+    void holderAgainstTheNaivePair() throws Throwable {
+        holderLoop(WARMUP);
+        naiveLoop(WARMUP);
+
+        System.out.printf(Locale.ROOT,
+                "pair      holder %.2f ns/call   handle in a field %.2f ns/call%n",
+                time(this::holderLoop), time(this::naiveLoop));
+    }
+
+    private int holderLoop(long iterations) {
+        var sink = 0;
+        for (var i = 0L; i < iterations; i++) {
+            sink += holder.call();
+        }
+        return sink;
+    }
+
+    private int naiveLoop(long iterations) {
+        var sink = 0;
+        for (var i = 0L; i < iterations; i++) {
+            sink += naive.call();
+        }
+        return sink;
     }
 }

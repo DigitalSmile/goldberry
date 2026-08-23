@@ -1,6 +1,6 @@
 package io.github.digitalsmile.goldberry.natives.yoga;
 
-import io.github.digitalsmile.goldberry.natives.Downcalls;
+import io.github.digitalsmile.goldberry.natives.yoga.calls.YogaCalls;
 import io.github.digitalsmile.goldberry.natives.NativeLibrary;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.SymbolLookup;
@@ -48,144 +48,58 @@ final class Yoga {
     }
 
     // --- config ------------------------------------------------------------
-    private final MemorySegment configNew;
-    private final MemorySegment configFree;
-    private final MemorySegment configSetPointScaleFactor;
-    private final MemorySegment configGetPointScaleFactor;
-    private final MemorySegment configSetUseWebDefaults;
-    private final MemorySegment configGetUseWebDefaults;
 
     // --- node lifecycle and tree -------------------------------------------
-    private final MemorySegment nodeNew;
-    private final MemorySegment nodeNewWithConfig;
-    private final MemorySegment nodeFree;
-    private final MemorySegment nodeInsertChild;
-    private final MemorySegment nodeRemoveChild;
-    private final MemorySegment nodeRemoveAllChildren;
-    private final MemorySegment nodeGetChildCount;
-    private final MemorySegment nodeSetMeasureFunc;
-    private final MemorySegment nodeHasMeasureFunc;
-    private final MemorySegment nodeMarkDirty;
-    private final MemorySegment nodeIsDirty;
-    private final MemorySegment nodeGetHasNewLayout;
-    private final MemorySegment nodeSetHasNewLayout;
-    private final MemorySegment nodeCalculateLayout;
 
     // --- style: enum-valued ------------------------------------------------
-    private final MemorySegment styleSetDirection;
-    private final MemorySegment styleSetFlexDirection;
-    private final MemorySegment styleSetJustifyContent;
-    private final MemorySegment styleSetAlignContent;
-    private final MemorySegment styleSetAlignItems;
-    private final MemorySegment styleSetAlignSelf;
-    private final MemorySegment styleSetPositionType;
-    private final MemorySegment styleSetFlexWrap;
-    private final MemorySegment styleSetOverflow;
-    private final MemorySegment styleSetDisplay;
 
     // --- style: plain floats -----------------------------------------------
-    private final MemorySegment styleSetFlexGrow;
-    private final MemorySegment styleSetFlexShrink;
-    private final MemorySegment styleSetAspectRatio;
-    private final MemorySegment styleSetBorder;
 
     // --- style: lengths ----------------------------------------------------
-    private final LengthCalls width;
-    private final LengthCalls height;
-    private final LengthCalls minWidth;
-    private final LengthCalls minHeight;
-    private final LengthCalls maxWidth;
-    private final LengthCalls maxHeight;
-    private final LengthCalls flexBasis;
-    private final KeyedLengthCalls position;
-    private final KeyedLengthCalls margin;
-    private final KeyedLengthCalls padding;
-    private final KeyedLengthCalls gap;
+    private final YogaCalls.LengthCalls width;
+    private final YogaCalls.LengthCalls height;
+    private final YogaCalls.LengthCalls minWidth;
+    private final YogaCalls.LengthCalls minHeight;
+    private final YogaCalls.LengthCalls maxWidth;
+    private final YogaCalls.LengthCalls maxHeight;
+    private final YogaCalls.LengthCalls flexBasis;
+    private final YogaCalls.KeyedLengthCalls position;
+    private final YogaCalls.KeyedLengthCalls margin;
+    private final YogaCalls.KeyedLengthCalls padding;
+    private final YogaCalls.KeyedLengthCalls gap;
 
     // --- computed layout ---------------------------------------------------
-    private final MemorySegment layoutGetLeft;
-    private final MemorySegment layoutGetTop;
-    private final MemorySegment layoutGetWidth;
-    private final MemorySegment layoutGetHeight;
-    private final MemorySegment layoutGetMargin;
-    private final MemorySegment layoutGetBorder;
-    private final MemorySegment layoutGetPadding;
-    private final MemorySegment layoutGetDirection;
-    private final MemorySegment layoutGetHadOverflow;
+
+    private final YogaCalls calls;
 
     private Yoga(SymbolLookup lookup) {
-        this.configNew = Downcalls.symbol(lookup, "YGConfigNew");
-        this.configFree = Downcalls.symbol(lookup, "YGConfigFree");
-        this.configSetPointScaleFactor =
-                Downcalls.symbol(lookup, "YGConfigSetPointScaleFactor");
-        this.configGetPointScaleFactor =
-                Downcalls.symbol(lookup, "YGConfigGetPointScaleFactor");
-        this.configSetUseWebDefaults = Downcalls.symbol(lookup, "YGConfigSetUseWebDefaults");
-        this.configGetUseWebDefaults =
-                Downcalls.symbol(lookup, "YGConfigGetUseWebDefaults");
+        this.calls = YogaCalls.bind(lookup);
 
-        this.nodeNew = Downcalls.symbol(lookup, "YGNodeNew");
-        this.nodeNewWithConfig = Downcalls.symbol(lookup, "YGNodeNewWithConfig");
-        this.nodeFree = Downcalls.symbol(lookup, "YGNodeFree");
         // size_t, which is 8 bytes on every target Goldberry builds for -- the
         // "size_t" scalar row in the layout table is what says so.
-        this.nodeInsertChild = Downcalls.symbol(lookup, "YGNodeInsertChild");
-        this.nodeRemoveChild = Downcalls.symbol(lookup, "YGNodeRemoveChild");
-        this.nodeRemoveAllChildren = Downcalls.symbol(lookup, "YGNodeRemoveAllChildren");
-        this.nodeGetChildCount = Downcalls.symbol(lookup, "YGNodeGetChildCount");
-        this.nodeSetMeasureFunc = Downcalls.symbol(lookup, "YGNodeSetMeasureFunc");
-        this.nodeHasMeasureFunc = Downcalls.symbol(lookup, "YGNodeHasMeasureFunc");
-        this.nodeMarkDirty = Downcalls.symbol(lookup, "YGNodeMarkDirty");
-        this.nodeIsDirty = Downcalls.symbol(lookup, "YGNodeIsDirty");
-        this.nodeGetHasNewLayout = Downcalls.symbol(lookup, "YGNodeGetHasNewLayout");
-        this.nodeSetHasNewLayout = Downcalls.symbol(lookup, "YGNodeSetHasNewLayout");
-        this.nodeCalculateLayout = Downcalls.symbol(lookup, "YGNodeCalculateLayout");
 
-        this.styleSetDirection = Downcalls.symbol(lookup, "YGNodeStyleSetDirection");
-        this.styleSetFlexDirection = Downcalls.symbol(lookup, "YGNodeStyleSetFlexDirection");
-        this.styleSetJustifyContent = Downcalls.symbol(lookup, "YGNodeStyleSetJustifyContent");
-        this.styleSetAlignContent = Downcalls.symbol(lookup, "YGNodeStyleSetAlignContent");
-        this.styleSetAlignItems = Downcalls.symbol(lookup, "YGNodeStyleSetAlignItems");
-        this.styleSetAlignSelf = Downcalls.symbol(lookup, "YGNodeStyleSetAlignSelf");
-        this.styleSetPositionType = Downcalls.symbol(lookup, "YGNodeStyleSetPositionType");
-        this.styleSetFlexWrap = Downcalls.symbol(lookup, "YGNodeStyleSetFlexWrap");
-        this.styleSetOverflow = Downcalls.symbol(lookup, "YGNodeStyleSetOverflow");
-        this.styleSetDisplay = Downcalls.symbol(lookup, "YGNodeStyleSetDisplay");
 
-        this.styleSetFlexGrow = Downcalls.symbol(lookup, "YGNodeStyleSetFlexGrow");
-        this.styleSetFlexShrink = Downcalls.symbol(lookup, "YGNodeStyleSetFlexShrink");
-        this.styleSetAspectRatio = Downcalls.symbol(lookup, "YGNodeStyleSetAspectRatio");
         // Border is points-only: there is no percent or auto function for it,
         // which matches CSS -- a percentage border-width is not a thing.
-        this.styleSetBorder = Downcalls.symbol(lookup, "YGNodeStyleSetBorder");
 
-        this.width = lengths(lookup, "Width", true);
-        this.height = lengths(lookup, "Height", true);
+        this.width = YogaCalls.LengthCalls.bind(lookup, "Width", true);
+        this.height = YogaCalls.LengthCalls.bind(lookup, "Height", true);
         // No YGNodeStyleSetMinWidthAuto or MaxWidthAuto exists in Yoga, so a
         // caller asking for `auto` on a bound is refused by name rather than
         // silently dropped. See applyLength.
-        this.minWidth = lengths(lookup, "MinWidth", false);
-        this.minHeight = lengths(lookup, "MinHeight", false);
-        this.maxWidth = lengths(lookup, "MaxWidth", false);
-        this.maxHeight = lengths(lookup, "MaxHeight", false);
-        this.flexBasis = lengths(lookup, "FlexBasis", true);
+        this.minWidth = YogaCalls.LengthCalls.bind(lookup, "MinWidth", false);
+        this.minHeight = YogaCalls.LengthCalls.bind(lookup, "MinHeight", false);
+        this.maxWidth = YogaCalls.LengthCalls.bind(lookup, "MaxWidth", false);
+        this.maxHeight = YogaCalls.LengthCalls.bind(lookup, "MaxHeight", false);
+        this.flexBasis = YogaCalls.LengthCalls.bind(lookup, "FlexBasis", true);
 
         // Inset has no `auto` in Yoga 3.1 -- CSS's `inset: auto` has no
         // equivalent to bind to.
-        this.position = keyedLengths(lookup, "Position", false);
-        this.margin = keyedLengths(lookup, "Margin", true);
-        this.padding = keyedLengths(lookup, "Padding", false);
-        this.gap = keyedLengths(lookup, "Gap", false);
+        this.position = YogaCalls.KeyedLengthCalls.bind(lookup, "Position", false);
+        this.margin = YogaCalls.KeyedLengthCalls.bind(lookup, "Margin", true);
+        this.padding = YogaCalls.KeyedLengthCalls.bind(lookup, "Padding", false);
+        this.gap = YogaCalls.KeyedLengthCalls.bind(lookup, "Gap", false);
 
-        this.layoutGetLeft = Downcalls.symbol(lookup, "YGNodeLayoutGetLeft");
-        this.layoutGetTop = Downcalls.symbol(lookup, "YGNodeLayoutGetTop");
-        this.layoutGetWidth = Downcalls.symbol(lookup, "YGNodeLayoutGetWidth");
-        this.layoutGetHeight = Downcalls.symbol(lookup, "YGNodeLayoutGetHeight");
-        this.layoutGetMargin = Downcalls.symbol(lookup, "YGNodeLayoutGetMargin");
-        this.layoutGetBorder = Downcalls.symbol(lookup, "YGNodeLayoutGetBorder");
-        this.layoutGetPadding = Downcalls.symbol(lookup, "YGNodeLayoutGetPadding");
-        this.layoutGetDirection = Downcalls.symbol(lookup, "YGNodeLayoutGetDirection");
-        this.layoutGetHadOverflow = Downcalls.symbol(lookup, "YGNodeLayoutGetHadOverflow");
     }
 
     static Yoga get() {
@@ -195,46 +109,38 @@ final class Yoga {
     // --- config ------------------------------------------------------------
 
     MemorySegment configNew() {
-        return pointer(configNew, "YGConfigNew");
+        return calls.configNew().call();
     }
 
     void configFree(MemorySegment config) {
-        call(configFree, "YGConfigFree", config);
+        calls.configFree().call(config);
     }
 
     void configPointScaleFactor(MemorySegment config, float factor) {
-        call(configSetPointScaleFactor, "YGConfigSetPointScaleFactor", config, factor);
+        calls.configSetPointScaleFactor().call(config, factor);
     }
 
     float configPointScaleFactor(MemorySegment config) {
-        return getFloat(configGetPointScaleFactor, "YGConfigGetPointScaleFactor", config);
+        return calls.configGetPointScaleFactor().call(config);
     }
 
     void configUseWebDefaults(MemorySegment config, boolean useWebDefaults) {
-        try {
-            Downcalls.VOID__PTR_BOOL.invokeExact(configSetUseWebDefaults, config, useWebDefaults);
-        } catch (Throwable t) {
-            throw failure("YGConfigSetUseWebDefaults", t);
-        }
+        calls.configSetUseWebDefaults().call(config, useWebDefaults);
     }
 
     boolean configUseWebDefaults(MemorySegment config) {
-        return getBoolean(configGetUseWebDefaults, "YGConfigGetUseWebDefaults", config);
+        return calls.configGetUseWebDefaults().call(config);
     }
 
     // --- node lifecycle and tree -------------------------------------------
 
     MemorySegment nodeNew() {
-        return pointer(nodeNew, "YGNodeNew");
+        return calls.nodeNew().call();
     }
 
     MemorySegment nodeNew(MemorySegment config) {
         MemorySegment node;
-        try {
-            node = (MemorySegment) Downcalls.PTR__PTR.invokeExact(nodeNewWithConfig, config);
-        } catch (Throwable t) {
-            throw failure("YGNodeNewWithConfig", t);
-        }
+        node = calls.nodeNewWithConfig().call(config);
         return requireNonNull(node, "YGNodeNewWithConfig");
     }
 
@@ -242,137 +148,113 @@ final class Yoga {
     /// refer to which pointers and frees them one at a time so that each wrapper
     /// can be marked dead as its pointer goes.
     void nodeFree(MemorySegment node) {
-        call(nodeFree, "YGNodeFree", node);
+        calls.nodeFree().call(node);
     }
 
     void nodeInsertChild(MemorySegment node, MemorySegment child, long index) {
-        try {
-            Downcalls.VOID__PTR_PTR_LONG.invokeExact(nodeInsertChild, node, child, index);
-        } catch (Throwable t) {
-            throw failure("YGNodeInsertChild", t);
-        }
+        calls.nodeInsertChild().call(node, child, index);
     }
 
     void nodeRemoveChild(MemorySegment node, MemorySegment child) {
-        try {
-            Downcalls.VOID__PTR_PTR.invokeExact(nodeRemoveChild, node, child);
-        } catch (Throwable t) {
-            throw failure("YGNodeRemoveChild", t);
-        }
+        calls.nodeRemoveChild().call(node, child);
     }
 
     void nodeRemoveAllChildren(MemorySegment node) {
-        call(nodeRemoveAllChildren, "YGNodeRemoveAllChildren", node);
+        calls.nodeRemoveAllChildren().call(node);
     }
 
     long nodeChildCount(MemorySegment node) {
-        try {
-            return (long) Downcalls.LONG__PTR.invokeExact(nodeGetChildCount, node);
-        } catch (Throwable t) {
-            throw failure("YGNodeGetChildCount", t);
-        }
+        return calls.nodeGetChildCount().call(node);
     }
 
     /// Attaches a `YGMeasureFunc`, or clears it when `stub` is
     /// [MemorySegment#NULL].
     void nodeMeasureFunc(MemorySegment node, MemorySegment stub) {
-        try {
-            Downcalls.VOID__PTR_PTR.invokeExact(nodeSetMeasureFunc, node, stub);
-        } catch (Throwable t) {
-            throw failure("YGNodeSetMeasureFunc", t);
-        }
+        calls.nodeSetMeasureFunc().call(node, stub);
     }
 
     boolean nodeHasMeasureFunc(MemorySegment node) {
-        return getBoolean(nodeHasMeasureFunc, "YGNodeHasMeasureFunc", node);
+        return calls.nodeHasMeasureFunc().call(node);
     }
 
     void nodeMarkDirty(MemorySegment node) {
-        call(nodeMarkDirty, "YGNodeMarkDirty", node);
+        calls.nodeMarkDirty().call(node);
     }
 
     boolean nodeIsDirty(MemorySegment node) {
-        return getBoolean(nodeIsDirty, "YGNodeIsDirty", node);
+        return calls.nodeIsDirty().call(node);
     }
 
     boolean nodeHasNewLayout(MemorySegment node) {
-        return getBoolean(nodeGetHasNewLayout, "YGNodeGetHasNewLayout", node);
+        return calls.nodeGetHasNewLayout().call(node);
     }
 
     void nodeHasNewLayout(MemorySegment node, boolean hasNewLayout) {
-        try {
-            Downcalls.VOID__PTR_BOOL.invokeExact(nodeSetHasNewLayout, node, hasNewLayout);
-        } catch (Throwable t) {
-            throw failure("YGNodeSetHasNewLayout", t);
-        }
+        calls.nodeSetHasNewLayout().call(node, hasNewLayout);
     }
 
     void nodeCalculateLayout(
             MemorySegment node, float availableWidth, float availableHeight, Direction ownerDirection) {
-        try {
-            Downcalls.VOID__PTR_FLOAT_FLOAT_INT.invokeExact(nodeCalculateLayout,
-                    node, availableWidth, availableHeight, ownerDirection.nativeValue());
-        } catch (Throwable t) {
-            throw failure("YGNodeCalculateLayout", t);
-        }
+        calls.nodeCalculateLayout().call(node, availableWidth, availableHeight,
+                ownerDirection.nativeValue());
     }
 
     // --- style -------------------------------------------------------------
 
     void styleDirection(MemorySegment node, Direction value) {
-        callEnum(styleSetDirection, "YGNodeStyleSetDirection", node, value);
+        calls.styleSetDirection().call(node, value.nativeValue());
     }
 
     void styleFlexDirection(MemorySegment node, FlexDirection value) {
-        callEnum(styleSetFlexDirection, "YGNodeStyleSetFlexDirection", node, value);
+        calls.styleSetFlexDirection().call(node, value.nativeValue());
     }
 
     void styleJustifyContent(MemorySegment node, Justify value) {
-        callEnum(styleSetJustifyContent, "YGNodeStyleSetJustifyContent", node, value);
+        calls.styleSetJustifyContent().call(node, value.nativeValue());
     }
 
     void styleAlignContent(MemorySegment node, Align value) {
-        callEnum(styleSetAlignContent, "YGNodeStyleSetAlignContent", node, value);
+        calls.styleSetAlignContent().call(node, value.nativeValue());
     }
 
     void styleAlignItems(MemorySegment node, Align value) {
-        callEnum(styleSetAlignItems, "YGNodeStyleSetAlignItems", node, value);
+        calls.styleSetAlignItems().call(node, value.nativeValue());
     }
 
     void styleAlignSelf(MemorySegment node, Align value) {
-        callEnum(styleSetAlignSelf, "YGNodeStyleSetAlignSelf", node, value);
+        calls.styleSetAlignSelf().call(node, value.nativeValue());
     }
 
     void stylePositionType(MemorySegment node, PositionType value) {
-        callEnum(styleSetPositionType, "YGNodeStyleSetPositionType", node, value);
+        calls.styleSetPositionType().call(node, value.nativeValue());
     }
 
     void styleFlexWrap(MemorySegment node, Wrap value) {
-        callEnum(styleSetFlexWrap, "YGNodeStyleSetFlexWrap", node, value);
+        calls.styleSetFlexWrap().call(node, value.nativeValue());
     }
 
     void styleOverflow(MemorySegment node, Overflow value) {
-        callEnum(styleSetOverflow, "YGNodeStyleSetOverflow", node, value);
+        calls.styleSetOverflow().call(node, value.nativeValue());
     }
 
     void styleDisplay(MemorySegment node, Display value) {
-        callEnum(styleSetDisplay, "YGNodeStyleSetDisplay", node, value);
+        calls.styleSetDisplay().call(node, value.nativeValue());
     }
 
     void styleFlexGrow(MemorySegment node, float value) {
-        call(styleSetFlexGrow, "YGNodeStyleSetFlexGrow", node, value);
+        calls.styleSetFlexGrow().call(node, value);
     }
 
     void styleFlexShrink(MemorySegment node, float value) {
-        call(styleSetFlexShrink, "YGNodeStyleSetFlexShrink", node, value);
+        calls.styleSetFlexShrink().call(node, value);
     }
 
     void styleAspectRatio(MemorySegment node, float value) {
-        call(styleSetAspectRatio, "YGNodeStyleSetAspectRatio", node, value);
+        calls.styleSetAspectRatio().call(node, value);
     }
 
     void styleBorder(MemorySegment node, Edge edge, float value) {
-        callKeyed(styleSetBorder, "YGNodeStyleSetBorder", node, edge.nativeValue(), value);
+        calls.styleSetBorder().call(node, edge.nativeValue(), value);
     }
 
     void styleWidth(MemorySegment node, StyleLength value) {
@@ -423,31 +305,27 @@ final class Yoga {
 
     ComputedLayout layout(MemorySegment node) {
         return new ComputedLayout(
-                getFloat(layoutGetLeft, "YGNodeLayoutGetLeft", node),
-                getFloat(layoutGetTop, "YGNodeLayoutGetTop", node),
-                getFloat(layoutGetWidth, "YGNodeLayoutGetWidth", node),
-                getFloat(layoutGetHeight, "YGNodeLayoutGetHeight", node));
+                calls.layoutGetLeft().call(node),
+                calls.layoutGetTop().call(node),
+                calls.layoutGetWidth().call(node),
+                calls.layoutGetHeight().call(node));
     }
 
     float layoutMargin(MemorySegment node, Edge edge) {
-        return getFloatKeyed(layoutGetMargin, "YGNodeLayoutGetMargin", node, edge);
+        return calls.layoutGetMargin().call(node, edge.nativeValue());
     }
 
     float layoutBorder(MemorySegment node, Edge edge) {
-        return getFloatKeyed(layoutGetBorder, "YGNodeLayoutGetBorder", node, edge);
+        return calls.layoutGetBorder().call(node, edge.nativeValue());
     }
 
     float layoutPadding(MemorySegment node, Edge edge) {
-        return getFloatKeyed(layoutGetPadding, "YGNodeLayoutGetPadding", node, edge);
+        return calls.layoutGetPadding().call(node, edge.nativeValue());
     }
 
     Direction layoutDirection(MemorySegment node) {
         int value;
-        try {
-            value = (int) Downcalls.INT__PTR.invokeExact(layoutGetDirection, node);
-        } catch (Throwable t) {
-            throw failure("YGNodeLayoutGetDirection", t);
-        }
+        value = calls.layoutGetDirection().call(node);
         // Converted outside the try: a value Yoga does not define is a
         // diagnostic worth keeping, and wrapping it as a failed downcall would
         // bury it.
@@ -455,60 +333,37 @@ final class Yoga {
     }
 
     boolean layoutHadOverflow(MemorySegment node) {
-        return getBoolean(layoutGetHadOverflow, "YGNodeLayoutGetHadOverflow", node);
+        return calls.layoutGetHadOverflow().call(node);
     }
 
     // --- the length dispatch -----------------------------------------------
 
-    /// The functions a length-valued property is set through.
-    ///
-    /// `auto` is null for the properties Yoga has no `*Auto` function for. There
-    /// is no undefined variant: Yoga's way to unset a property is to pass
-    /// `YGUndefined` — a NaN — to the points function.
-    ///
-    /// `symbol` is the C name the three share as a prefix, kept for the failure
-    /// message: composed handles would otherwise report a CSS property name for
-    /// what is really a broken binding to a named symbol.
-    private record LengthCalls(
-            String symbol, MemorySegment points, MemorySegment percent, MemorySegment auto) {
-    }
-
-    /// The same, for a property keyed by an [Edge] or a [Gutter]. The C shape is
-    /// identical — `(node, int, float)` — so one record serves both.
-    private record KeyedLengthCalls(
-            String symbol, MemorySegment points, MemorySegment percent, MemorySegment auto) {
-    }
-
     private static void applyLength(
-            LengthCalls calls, String property, MemorySegment node, StyleLength length) {
+            YogaCalls.LengthCalls calls, String property, MemorySegment node, StyleLength length) {
         switch (length) {
-            case StyleLength.Points(var value) -> call(calls.points(), calls.symbol(), node, value);
-            case StyleLength.Percent(var value) ->
-                    call(calls.percent(), calls.symbol() + "Percent", node, value);
+            case StyleLength.Points(var value) -> calls.points().call(node, value);
+            case StyleLength.Percent(var value) -> calls.percent().call(node, value);
             case StyleLength.Keyword keyword -> {
                 switch (keyword) {
                     // The auto function takes the node and nothing else.
-                    case AUTO -> call(
-                            requireAuto(calls.auto(), property), calls.symbol() + "Auto", node);
-                    case UNDEFINED -> call(calls.points(), calls.symbol(), node, Float.NaN);
+                    case AUTO -> requireAuto(calls.auto(), property).call(node);
+                    case UNDEFINED -> calls.points().call(node, Float.NaN);
                 }
             }
         }
     }
 
     private static void applyKeyedLength(
-            KeyedLengthCalls calls, String property, MemorySegment node, int key, StyleLength length) {
+            YogaCalls.KeyedLengthCalls calls, String property, MemorySegment node, int key,
+            StyleLength length) {
         switch (length) {
-            case StyleLength.Points(var value) ->
-                    callKeyed(calls.points(), calls.symbol(), node, key, value);
-            case StyleLength.Percent(var value) ->
-                    callKeyed(calls.percent(), calls.symbol() + "Percent", node, key, value);
+            case StyleLength.Points(var value) -> calls.points().call(node, key, value);
+            case StyleLength.Percent(var value) -> calls.percent().call(node, key, value);
             case StyleLength.Keyword keyword -> {
                 switch (keyword) {
                     // The auto function takes the edge but no value.
-                    case AUTO -> callKeyedVoid(
-                            requireAuto(calls.auto(), property), calls.symbol() + "Auto", node, key);
-                    case UNDEFINED -> callKeyed(calls.points(), calls.symbol(), node, key, Float.NaN);
+                    case AUTO -> requireAuto(calls.auto(), property).call(node, key);
+                    case UNDEFINED -> calls.points().call(node, key, Float.NaN);
                 }
             }
         }
@@ -517,39 +372,13 @@ final class Yoga {
     /// Yoga exports no `*Auto` function for every property, and a property that
     /// has none cannot be told `auto` at all. Refusing by name beats dropping the
     /// value, which would read as a stylesheet that has no effect.
-    private static MemorySegment requireAuto(MemorySegment auto, String property) {
+    private static <T> T requireAuto(T auto, String property) {
         if (auto == null) {
             throw new IllegalArgumentException(
                     "Yoga has no `auto` for " + property + " — it exports no setter for it,"
                             + " so there is nothing to translate the value into");
         }
         return auto;
-    }
-
-    // --- binding helpers ---------------------------------------------------
-
-    /// Binds the two or three functions behind a length-valued property.
-    ///
-    /// The names are mechanical — `YGNodeStyleSetWidth`, `...WidthPercent`,
-    /// `...WidthAuto` — so they are composed rather than written out three times.
-    /// Composing a name that does not exist is not a silent failure: the lookup
-    /// throws, naming the missing symbol.
-    private static LengthCalls lengths(SymbolLookup lookup, String property, boolean hasAuto) {
-        var prefix = "YGNodeStyleSet" + property;
-        return new LengthCalls(
-                prefix,
-                Downcalls.symbol(lookup, prefix),
-                Downcalls.symbol(lookup, prefix + "Percent"),
-                hasAuto ? Downcalls.symbol(lookup, prefix + "Auto") : null);
-    }
-
-    private static KeyedLengthCalls keyedLengths(SymbolLookup lookup, String property, boolean hasAuto) {
-        var prefix = "YGNodeStyleSet" + property;
-        return new KeyedLengthCalls(
-                prefix,
-                Downcalls.symbol(lookup, prefix),
-                Downcalls.symbol(lookup, prefix + "Percent"),
-                hasAuto ? Downcalls.symbol(lookup, prefix + "Auto") : null);
     }
 
     // --- invocation helpers ------------------------------------------------
@@ -559,84 +388,6 @@ final class Yoga {
     // both compilers can lower it into a direct call to the stub (ADR-0161).
     // That matters here in a way it does not for SDL -- a layout pass touches
     // every node in the tree, and these are the calls it makes.
-
-    private static void call(MemorySegment function, String name, MemorySegment node) {
-        try {
-            Downcalls.VOID__PTR.invokeExact(function, node);
-        } catch (Throwable t) {
-            throw failure(name, t);
-        }
-    }
-
-    private static void call(MemorySegment function, String name, MemorySegment node, float value) {
-        try {
-            Downcalls.VOID__PTR_FLOAT.invokeExact(function, node, value);
-        } catch (Throwable t) {
-            throw failure(name, t);
-        }
-    }
-
-    private static void callEnum(
-            MemorySegment function, String name, MemorySegment node, YogaEnum value) {
-        try {
-            Downcalls.VOID__PTR_INT.invokeExact(function, node, value.nativeValue());
-        } catch (Throwable t) {
-            throw failure(name, t);
-        }
-    }
-
-    private static void callKeyed(
-            MemorySegment function, String name, MemorySegment node, int key, float value) {
-        try {
-            Downcalls.VOID__PTR_INT_FLOAT.invokeExact(function, node, key, value);
-        } catch (Throwable t) {
-            throw failure(name, t);
-        }
-    }
-
-    private static void callKeyedVoid(
-            MemorySegment function, String name, MemorySegment node, int key) {
-        try {
-            Downcalls.VOID__PTR_INT.invokeExact(function, node, key);
-        } catch (Throwable t) {
-            throw failure(name, t);
-        }
-    }
-
-    private static float getFloat(MemorySegment function, String name, MemorySegment node) {
-        try {
-            return (float) Downcalls.FLOAT__PTR.invokeExact(function, node);
-        } catch (Throwable t) {
-            throw failure(name, t);
-        }
-    }
-
-    private static float getFloatKeyed(
-            MemorySegment function, String name, MemorySegment node, Edge edge) {
-        try {
-            return (float) Downcalls.FLOAT__PTR_INT.invokeExact(function, node, edge.nativeValue());
-        } catch (Throwable t) {
-            throw failure(name, t);
-        }
-    }
-
-    private static boolean getBoolean(MemorySegment function, String name, MemorySegment node) {
-        try {
-            return (boolean) Downcalls.BOOL__PTR.invokeExact(function, node);
-        } catch (Throwable t) {
-            throw failure(name, t);
-        }
-    }
-
-    private static MemorySegment pointer(MemorySegment function, String name) {
-        MemorySegment result;
-        try {
-            result = (MemorySegment) Downcalls.PTR__VOID.invokeExact(function);
-        } catch (Throwable t) {
-            throw failure(name, t);
-        }
-        return requireNonNull(result, name);
-    }
 
     private static MemorySegment requireNonNull(MemorySegment pointer, String name) {
         if (MemorySegment.NULL.equals(pointer)) {

@@ -1,6 +1,6 @@
 package io.github.digitalsmile.goldberry.natives.yoga;
 
-import io.github.digitalsmile.goldberry.natives.Downcalls;
+import io.github.digitalsmile.goldberry.natives.yoga.calls.ProbeCalls;
 import io.github.digitalsmile.goldberry.natives.NativeLibrary;
 import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;
@@ -29,10 +29,9 @@ public final class MeasureProbe {
     ///                              float *out_width, float *out_height);
     /// ```
     ///
-    /// — which is [Downcalls#V_PFIFIPP], the constant the call below names.
+    /// — which is [ProbeCalls.ProbeMeasure], the holder the call below names.
     private static final class Holder {
-        private static final MemorySegment PROBE =
-                Downcalls.symbol(NativeLibrary.get().lookup(), "goldberry_probe_measure");
+        private static final ProbeCalls CALLS = ProbeCalls.bind(NativeLibrary.get().lookup());
     }
 
     private MeasureProbe() {
@@ -61,19 +60,14 @@ public final class MeasureProbe {
             var outWidth = out.asSlice(0, ValueLayout.JAVA_FLOAT.byteSize());
             var outHeight = out.asSlice(ValueLayout.JAVA_FLOAT.byteSize(), ValueLayout.JAVA_FLOAT.byteSize());
 
-            try {
-                Downcalls.VOID__PTR_FLOAT_INT_FLOAT_INT_PTR_PTR.invokeExact(
-                        Holder.PROBE,
-                        callback.pointer(),
-                        width,
-                        widthMode.nativeValue(),
-                        height,
-                        heightMode.nativeValue(),
-                        outWidth,
-                        outHeight);
-            } catch (Throwable t) {
-                throw new IllegalStateException("goldberry_probe_measure() failed", t);
-            }
+            Holder.CALLS.probeMeasure().call(
+                    callback.pointer(),
+                    width,
+                    widthMode.nativeValue(),
+                    height,
+                    heightMode.nativeValue(),
+                    outWidth,
+                    outHeight);
 
             measuredWidth = out.getAtIndex(ValueLayout.JAVA_FLOAT, 0);
             measuredHeight = out.getAtIndex(ValueLayout.JAVA_FLOAT, 1);
