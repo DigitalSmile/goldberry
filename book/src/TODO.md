@@ -686,9 +686,13 @@ the mechanism the sentence named.
   built too: `TextInput.suggesting(options)` offers a `SelectList` under the
   field, the rows commit on `Enter` rather than following the focus, and the
   field's text is never rewritten without the user choosing.
-  **`select autocomplete=#true` is still not built** — the combobox form makes
-  the *closed control* editable, which is its own decision about where the
-  editing state lives — and `tree=#true` still waits on `tree`. —
+  **`select autocomplete=#true` is built too** ([ADR-0183](adr/0183-a-combobox-is-a-select-you-can-type-in.md)):
+  the closed control holds a real `text-input`, so the editing model, the undo
+  history, the clipboard and the caret stay where their rules already are; the
+  field stops being a Tab stop and delegates focus, so a combobox is one stop;
+  `Esc` restores and a free-typed value is refused unless `free`, both off one
+  nullable string of offered text that `TextInputState.follow` already knew how
+  to honour. **`tree=#true` is the last of the line** and still waits on `tree`. —
   [ADR-0182](adr/0182-a-select-may-hold-more-than-one.md),
   [ADR-0141](adr/0141-a-select-is-a-closed-control-and-a-list.md)
 - **Autocomplete is Java-only, and `SelectList` is in the wrong package.** §4 says

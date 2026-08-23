@@ -62,9 +62,9 @@ final class SelectState extends State<Select> {
             close();
         }
         return new SelectField(
-                select.label(), select.selected() == null, chips(select), isOpen(),
-                select.disabled(), select.attributes(),
-                this::toggle, this::typeahead, this::located);
+                select.label(), select.selected() == null, chips(select), editor(select),
+                isOpen(), select.disabled(), select.attributes(),
+                this::toggle, this::typeahead, this::restore, this::settle, this::located);
     }
 
     /// §3's "renders the selection as `badge` chips ... each with a remove
@@ -86,6 +86,99 @@ final class SelectState extends State<Select> {
             out.add(new SelectChip(option.label(), () -> choose(option.value())));
         }
         return java.util.List.copyOf(out);
+    }
+
+    /// What the editable control currently holds, or null while it is showing the
+    /// committed value.
+    ///
+    /// The **offered** text, in `TextInput`'s sense: it is handed down as that
+    /// widget's `value`, and `TextInputState.follow` overwrites the field only
+    /// when this *changes* — so typing is never fought, and setting it back to
+    /// the committed label is exactly how `Esc` restores ([ADR-0183]).
+    private String typedText;
+
+    /// §3's editable closed control, or null for a `select` you cannot type in.
+    ///
+    /// A real [io.github.digitalsmile.goldberry.widgets.form.textinput.TextInput],
+    /// because §3 says "makes the closed control an editable `text-input`" and
+    /// because everything an editable field needs — the edit model, the undo
+    /// history, the clipboard, the caret's blink — already lives there and has
+    /// rules in it. A second editor would be a second set of those rules.
+    private Widget editor(Select select) {
+        if (!select.autocomplete()) {
+            return null;
+        }
+        var shown = typedText != null ? typedText : committedLabel(select);
+        return new io.github.digitalsmile.goldberry.widgets.form.textinput.TextInput(
+                        shown, this::typed)
+                .placeholder(select.placeholder())
+                .disabled(select.disabled());
+    }
+
+    /// The label of the value the model currently holds — what `Esc` restores to
+    /// and what a refused free-typed value falls back to.
+    private static String committedLabel(Select select) {
+        var option = select.selected();
+        return option == null ? "" : option.label();
+    }
+
+    /// A keystroke in the editable control.
+    ///
+    /// Two things happen and they are separate on purpose: the query goes **up**
+    /// for the application to filter on, and the list is opened if it was not.
+    /// Nothing is selected and nothing is committed — a user typing is narrowing,
+    /// not choosing (§3).
+    private void typed(String text) {
+        setState(() -> typedText = text);
+        var onQuery = widget().onQuery();
+        if (onQuery != null) {
+            onQuery.accept(text);
+        }
+        if (!isOpen()) {
+            open();
+        } else {
+            reopenRows();
+        }
+    }
+
+    /// §3: "`Esc` restores the last committed value rather than clearing".
+    ///
+    /// Which is the sentence that tells a combobox apart from a search box: the
+    /// control holds a value, typing is a way of *reaching* one, and abandoning
+    /// the attempt leaves the value alone. Clearing would throw away something
+    /// the user never asked to lose.
+    void restore() {
+        close();
+        setState(() -> typedText = null);
+    }
+
+    /// §3: "a free-typed value is refused unless `free=#true`".
+    ///
+    /// Called when the editable control loses the keyboard, which is the moment a
+    /// half-typed value stops being an attempt and starts being an answer. A
+    /// `free` control keeps whatever was typed and reports it; every other one
+    /// puts the committed value back, because a combobox is a **set** of values
+    /// and text naming none of them is a mistake rather than a new member.
+    void settle() {
+        var select = widget();
+        if (!select.autocomplete() || typedText == null) {
+            return;
+        }
+        var typed = typedText;
+        var matches = select.options().stream()
+                .anyMatch(option -> option.label().equals(typed) || option.value().equals(typed));
+        if (matches || !select.free()) {
+            // A match is already the committed value, or is about to be reported
+            // by whatever chose it; either way the editor goes back to showing
+            // the model rather than a string that happens to agree with it.
+            restore();
+            return;
+        }
+        setState(() -> typedText = null);
+        var onChange = select.onChange();
+        if (onChange != null) {
+            onChange.accept(typed);
+        }
     }
 
     @Override
@@ -172,6 +265,11 @@ final class SelectState extends State<Select> {
     private void choose(String value) {
         if (!widget().multiple()) {
             close();
+            // The editor goes back to showing the model, which the `change` below
+            // is about to move. Cleared rather than set to the new label, because
+            // what the control shows is the *application's* answer and not this
+            // control's guess at it (ADR-0063).
+            setState(() -> typedText = null);
         }
         var onChange = widget().onChange();
         if (onChange != null) {

@@ -192,6 +192,7 @@
 - [ADR-0180 The keyboard goes back where it was](adr/0180-the-keyboard-goes-back-where-it-was.md)
 - [ADR-0181 A box may say how small and how large](adr/0181-a-box-may-say-how-small-and-how-large.md)
 - [ADR-0182 A select may hold more than one, and a field may suggest](adr/0182-a-select-may-hold-more-than-one.md)
+- [ADR-0183 A combobox is a select you can type in](adr/0183-a-combobox-is-a-select-you-can-type-in.md)
 
 ---
 

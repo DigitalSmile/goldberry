@@ -1100,6 +1100,28 @@ select-chip-remove:hover {
   opacity: 1;
 }
 
+/* §3's `autocomplete` option puts a real `text-input` inside the closed control,
+   which is what the sentence asks for and would otherwise draw a *second* border
+   and a second surface inside the `select`'s own. The editor is the select's
+   interior, not a control sitting in it: no edge, no fill, no radius, and it
+   grows to fill the room the chevron leaves (ADR-0183). */
+select text-input {
+  border: none;
+  background: none;
+  border-radius: 0;
+  padding: 0;
+  flex-grow: 1;
+  flex-shrink: 1;
+}
+
+/* The focus ring belongs to the whole control rather than to the field inside
+   it, for the same reason: what the user focused is a `select`. `:focus-within`
+   is what lets the outer node say so, which is the notification §4's `field`
+   already brought (ADR-0169). */
+select text-input:focus {
+  outline: none;
+}
+
 /* A field holding chips is a row of them that may wrap, and it is taller than
    one holding a word. `align-items` rather than a height, so the control grows
    with what is in it -- a select with five values chosen is genuinely a taller

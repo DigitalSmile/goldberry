@@ -89,12 +89,20 @@ import java.util.function.Consumer;
 ///                    value it does not recognise falls back to
 /// @param multiple    §3's `multiple=#true` — the selection is a *set*, drawn as
 ///                    chips in the closed control. See [#resolvedAll()]
+/// @param autocomplete §3's `autocomplete=#true` — the closed control becomes an
+///                    editable `text-input` and typing raises [#onQuery]
+/// @param free        whether a typed value the options do not offer is kept.
+///                    False refuses it and restores the last committed one, which
+///                    is §3's default: a combobox is a *set* of values
+/// @param onQuery     what was typed, for the application to filter on. Filtering
+///                    is deliberately not this control's — see [#onQuery]
 /// @param disabled    whether the whole control refuses to open
 /// @param attributes  `id` and `class`, exactly as on the primitives
 @Markup("select")
 public record Select(
         String value, List<Widget> children, Observable<?> source, Consumer<String> onChange,
-        String placeholder, boolean multiple, boolean disabled, Attributes attributes)
+        String placeholder, boolean multiple, boolean autocomplete, boolean free,
+        Consumer<String> onQuery, boolean disabled, Attributes attributes)
         implements Widget.Stateful, Attributed<Select>, Bindable<Select> {
 
     public Select {
@@ -106,12 +114,14 @@ public record Select(
     /// A select with a value and a handler, unbound — the Java spelling of
     /// `select value="…" change="…"`.
     public Select(String value, Consumer<String> onChange, Option... options) {
-        this(value, List.of(options), null, onChange, "", false, false, Attributes.NONE);
+        this(value, List.of(options), null, onChange, "", false, false, false, null, false,
+                Attributes.NONE);
     }
 
     /// A select that is not wired yet — what a layout preview builds.
     public Select(Option... options) {
-        this(null, List.of(options), null, null, "", false, false, Attributes.NONE);
+        this(null, List.of(options), null, null, "", false, false, false, null, false,
+                Attributes.NONE);
     }
 
     /// A select that follows a property. The Java spelling of `bind=`.
@@ -119,18 +129,20 @@ public record Select(
     /// @param source read-only by construction ([ADR-0063])
     public static Select of(Observable<?> source, Consumer<String> onChange, Option... options) {
         return new Select(null, List.of(options),
-                Objects.requireNonNull(source, "source"), onChange, "", false, false,
-                Attributes.NONE);
+                Objects.requireNonNull(source, "source"), onChange, "", false, false, false, null,
+                false, Attributes.NONE);
     }
 
     /// This select with the text its closed form reads when nothing is chosen.
     public Select placeholder(String value) {
-        return new Select(this.value, children, source, onChange, value, multiple, disabled, attributes);
+        return new Select(this.value, children, source, onChange, value, multiple, autocomplete,
+                free, onQuery, disabled, attributes);
     }
 
     /// This select, disabled or not.
     public Select disabled(boolean value) {
-        return new Select(this.value, children, source, onChange, placeholder, multiple, value, attributes);
+        return new Select(this.value, children, source, onChange, placeholder, multiple,
+                autocomplete, free, onQuery, value, attributes);
     }
 
     /// Which option is selected **right now** — the bound value, or [#value()].
@@ -150,8 +162,42 @@ public record Select(
 
     /// This select taking more than one value — §3's `multiple=#true`.
     public Select multiple(boolean value) {
-        return new Select(this.value, children, source, onChange, placeholder, value, disabled,
-                attributes);
+        return new Select(this.value, children, source, onChange, placeholder, value, autocomplete,
+                free, onQuery, disabled, attributes);
+    }
+
+    /// This select with an editable closed control — §3's `autocomplete=#true`.
+    ///
+    /// ## Filtering is the application's
+    ///
+    /// The control raises what was typed through `query` and renders **whatever
+    /// options it is handed back**; it filters nothing itself. §3 says so and
+    /// gives the reason: a remote-backed autocomplete is then the same widget
+    /// with a slower model, and nothing in the toolkit has to guess what
+    /// "matches" means for a street address or a species name.
+    ///
+    /// So an application answers `query` by rebuilding this select with the
+    /// options it wants offered — the same round trip `change` already makes, and
+    /// the same one §4's free-text
+    /// [io.github.digitalsmile.goldberry.widgets.form.textinput.TextInput#suggesting]
+    /// makes ([ADR-0183]).
+    ///
+    /// @param onQuery told what was typed, or null for a control nobody filters
+    public Select autocomplete(Consumer<String> onQuery) {
+        return new Select(value, children, source, onChange, placeholder, multiple, true, free,
+                onQuery, disabled, attributes);
+    }
+
+    /// This select keeping a typed value its options do not offer.
+    ///
+    /// **False by default, which is §3's rule**: a combobox is a set of values
+    /// with a faster way to reach them, so text that names none of them is a
+    /// mistake rather than a new value, and the last committed one comes back.
+    /// `free=#true` is the other reading — the suggestions are a convenience and
+    /// any value is legal, which is what §4's free-text form always is.
+    public Select free(boolean value) {
+        return new Select(this.value, children, source, onChange, placeholder, multiple,
+                autocomplete, value, onQuery, disabled, attributes);
     }
 
     /// Every value selected right now, in the order the options were written.
@@ -252,12 +298,14 @@ public record Select(
 
     @Override
     public Select bound(Observable<?> source) {
-        return new Select(value, children, source, onChange, placeholder, multiple, disabled, attributes);
+        return new Select(value, children, source, onChange, placeholder, multiple, autocomplete,
+                free, onQuery, disabled, attributes);
     }
 
     @Override
     public Select withAttributes(Attributes attributes) {
-        return new Select(value, children, source, onChange, placeholder, multiple, disabled, attributes);
+        return new Select(value, children, source, onChange, placeholder, multiple, autocomplete,
+                free, onQuery, disabled, attributes);
     }
 
     @Override
@@ -283,6 +331,8 @@ public record Select(
         return new Select(node.stringProperty("value"), children,
                 wiring.bound(node), wiring.valued(node, "change"),
                 node.stringProperty("placeholder"), node.booleanProperty("multiple"),
+                node.booleanProperty("autocomplete"), node.booleanProperty("free"),
+                wiring.valued(node, "query"),
                 Wiring.disabled(node), Attributes.of(node));
     }
 }

@@ -55,7 +55,7 @@ class SelectTest {
     }
 
     private static Select select(Option... options) {
-        return new Select("dark", List.of(options), null, null, "", false, false,
+        return new Select("dark", List.of(options), null, null, "", false, false, false, null, false,
                 io.github.digitalsmile.goldberry.widget.attr.Attributes.NONE);
     }
 
@@ -106,7 +106,8 @@ class SelectTest {
         @DisplayName("a value no option carries selects nothing rather than the first")
         void unknown() {
             var it = new Select("nord", List.of(new Option("light", "Light")), null, null,
-                    "Pick one", false, false, io.github.digitalsmile.goldberry.widget.attr.Attributes.NONE);
+                    "Pick one", false, false, false, null, false,
+                    io.github.digitalsmile.goldberry.widget.attr.Attributes.NONE);
 
             assertNull(it.selected(), "guessing would report a value nobody picked");
             assertEquals("Pick one", it.label(), "so it falls back to the placeholder");
@@ -136,7 +137,7 @@ class SelectTest {
             var it = new Select("dark",
                     List.of(new io.github.digitalsmile.goldberry.widgets.text.Text("Themes"),
                             new Option("dark", "Dark")),
-                    null, null, "", false, false,
+                    null, null, "", false, false, false, null, false,
                     io.github.digitalsmile.goldberry.widget.attr.Attributes.NONE);
 
             assertEquals(2, it.children().size());
@@ -386,7 +387,7 @@ class SelectTest {
             var picked = new ArrayList<String>();
             var tree = tree(new Select("dark", List.of(
                     new Option("light", "Light"), new Option("dark", "Dark")),
-                    null, picked::add, "", false, false,
+                    null, picked::add, "", false, false, false, null, false,
                     io.github.digitalsmile.goldberry.widget.attr.Attributes.NONE));
             click(field(tree));
 
@@ -574,7 +575,7 @@ class SelectTest {
         @DisplayName("typing on a disabled select does nothing")
         void disabled() {
             var tree = new ElementTree(new Select("dark",
-                    List.of(new Option("light", "Light")), null, picked::add, "", false, true,
+                    List.of(new Option("light", "Light")), null, picked::add, "", false, false, false, null, true,
                     io.github.digitalsmile.goldberry.widget.attr.Attributes.NONE));
 
             type(tree, "l");
@@ -646,7 +647,8 @@ class SelectTest {
             var source = bound == null ? null
                     : io.github.digitalsmile.goldberry.bind.Property.of(bound);
             return new Select(null, List.of(options), source, picked::add, "Pick some", true,
-                    false, io.github.digitalsmile.goldberry.widget.attr.Attributes.NONE);
+                    false, false, null, false,
+                    io.github.digitalsmile.goldberry.widget.attr.Attributes.NONE);
         }
 
         private final List<String> picked = new java.util.ArrayList<>();
@@ -759,6 +761,150 @@ class SelectTest {
         private void click(SelectField f) {
             f.onPointer(new PointerEvent(PointerEvent.Kind.CLICKED, 0, 0,
                     PointerEvent.Button.PRIMARY, 1, null));
+        }
+    }
+
+
+    /// §3's `autocomplete=#true`: "makes the closed control an editable
+    /// `text-input`: typing filters the options, the popup stays open and
+    /// narrows, `Esc` restores the last committed value rather than clearing, and
+    /// a free-typed value is refused unless `free=#true`" ([ADR-0183]).
+    @Nested
+    @DisplayName("typing in it")
+    class Autocompleting {
+
+        private final StubHost host = new StubHost();
+        private final List<String> queries = new java.util.ArrayList<>();
+        private final List<String> changes = new java.util.ArrayList<>();
+
+        private static final Option LIGHT = new Option("light", "Light");
+        private static final Option DARK = new Option("dark", "Dark");
+
+        private Select combo(String value, boolean free, Option... options) {
+            return new Select(value, List.of(options), null, changes::add, "Pick", false,
+                    true, free, queries::add, false,
+                    io.github.digitalsmile.goldberry.widget.attr.Attributes.NONE);
+        }
+
+        private ElementTree tree(Select select) {
+            return new ElementTree(select, host);
+        }
+
+        private io.github.digitalsmile.goldberry.widgets.form.textinput.TextInput editor(
+                ElementTree tree) {
+            return io.github.digitalsmile.goldberry.widgets.panel.Described.first(tree,
+                    io.github.digitalsmile.goldberry.widgets.form.textinput.TextInput.class);
+        }
+
+        @Test
+        @DisplayName("the closed control is an editable text-input showing the committed label")
+        void theFieldIsEditable() {
+            var tree = tree(combo("dark", false, LIGHT, DARK));
+
+            assertEquals("Dark", editor(tree).value(),
+                    "the label and not the value -- that is what the two words are for");
+            assertEquals("Pick", editor(tree).placeholder());
+        }
+
+        /// One Tab stop. A field that was focusable *and* held a focusable editor
+        /// would make a combobox two stops where a document wrote one control.
+        @Test
+        @DisplayName("the field is not a tab stop, and hands a press to the editor")
+        void oneTabStop() {
+            var tree = tree(combo("dark", false, LIGHT, DARK));
+
+            assertFalse(field(tree).isFocusable());
+            assertTrue(field(tree).delegatesFocus());
+        }
+
+        /// Filtering is the application's: the control raises what was typed and
+        /// renders whatever it is handed back.
+        @Test
+        @DisplayName("typing raises the query and opens the list")
+        void typingRaisesTheQuery() {
+            var tree = tree(combo("dark", false, LIGHT, DARK));
+
+            editor(tree).onChange().accept("Li");
+            tree.flush();
+
+            assertEquals(List.of("Li"), queries, "nothing was raised for the application to filter on");
+            assertEquals(1, host.opened.size(), "the list did not open under the typing");
+            assertEquals(List.of(), changes, "typing chose something");
+        }
+
+        /// The sentence that tells a combobox apart from a search box: the
+        /// control holds a value, typing is a way of reaching one, and abandoning
+        /// the attempt leaves the value alone.
+        @Test
+        @DisplayName("Esc restores the committed value rather than clearing")
+        void escRestores() {
+            var tree = tree(combo("dark", false, LIGHT, DARK));
+            editor(tree).onChange().accept("Li");
+            tree.flush();
+            assertEquals("Li", editor(tree).value());
+
+            field(tree).onKey(new KeyEvent(KeyEvent.Kind.PRESSED, Key.ESCAPE, Modifiers.NONE,
+                    false, null));
+            tree.flush();
+
+            assertEquals("Dark", editor(tree).value(), "it cleared, or it kept the attempt");
+            assertEquals(List.of(), changes, "abandoning an attempt reported a change");
+        }
+
+        /// A combobox is a **set** of values, so text naming none of them is a
+        /// mistake rather than a new member.
+        @Test
+        @DisplayName("a free-typed value is refused when free is off")
+        void refusedUnlessFree() {
+            var tree = tree(combo("dark", false, LIGHT, DARK));
+            editor(tree).onChange().accept("Purple");
+            tree.flush();
+
+            field(tree).onFocusWithin(false, true);
+            tree.flush();
+
+            assertEquals("Dark", editor(tree).value(), "a value nobody offers was kept");
+            assertEquals(List.of(), changes);
+        }
+
+        /// The other reading, which §4's free-text form always is: the
+        /// suggestions are a convenience and any value is legal.
+        @Test
+        @DisplayName("free=#true keeps it and reports it")
+        void freeKeepsIt() {
+            var tree = tree(combo("dark", true, LIGHT, DARK));
+            editor(tree).onChange().accept("Purple");
+            tree.flush();
+
+            field(tree).onFocusWithin(false, true);
+            tree.flush();
+
+            assertEquals(List.of("Purple"), changes, "a legal value was thrown away");
+        }
+
+        @Test
+        @DisplayName("a plain select has no editor at all")
+        void plainIsUnchanged() {
+            var tree = tree(select(LIGHT, DARK));
+
+            assertEquals(0, io.github.digitalsmile.goldberry.widgets.panel.Described.of(tree,
+                    io.github.digitalsmile.goldberry.widgets.form.textinput.TextInput.class).size());
+            assertTrue(field(tree).isFocusable());
+            assertFalse(field(tree).delegatesFocus());
+        }
+
+        /// §3 lists `Space` as a way to open a *closed* control, and a combobox is
+        /// not one — a space is a character.
+        @Test
+        @DisplayName("Space types a space rather than opening the list")
+        void spaceIsACharacter() {
+            var tree = tree(combo("dark", false, LIGHT, DARK));
+
+            field(tree).onKey(new KeyEvent(KeyEvent.Kind.PRESSED, Key.SPACE, Modifiers.NONE,
+                    false, null));
+            tree.flush();
+
+            assertTrue(host.opened.isEmpty(), "Space opened the list in an editable control");
         }
     }
 

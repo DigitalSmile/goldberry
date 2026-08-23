@@ -47,17 +47,23 @@ import java.util.function.Consumer;
 /// @param chips       §3's "`badge` chips inside the closed control", one per
 ///                    value a `select multiple` holds, or empty for the ordinary
 ///                    single-valued control
+/// @param editor      §3's `autocomplete=#true`: the editable `text-input` that
+///                    replaces the value, or null for a control you cannot type
+///                    in
 /// @param open        whether the list is showing, which is `.open` to a
 ///                    stylesheet
 /// @param disabled    whether it refuses to open and matches `:disabled`
 /// @param attributes  the `id` and classes the document wrote on the `select`
 /// @param onToggle    what a click, `Space` or `Alt+Down` does
 /// @param onTypeahead what a printed character means — §3's typeahead
+/// @param onRestore   §3's `Esc`: put the last committed value back
+/// @param onSettle    the keyboard left — decide what a typed value meant
 /// @param onLocated   where the last frame put this, and what clips it
 record SelectField(
-        String text, boolean placeholder, List<Widget> chips, boolean open, boolean disabled,
-        Attributes attributes,
+        String text, boolean placeholder, List<Widget> chips, Widget editor,
+        boolean open, boolean disabled, Attributes attributes,
         Runnable onToggle, Consumer<String> onTypeahead,
+        Runnable onRestore, Runnable onSettle,
         BiConsumer<LogicalRect, LogicalRect> onLocated)
         implements Widget.Leaf, Styled, Paints, Handles, Located {
 
@@ -101,9 +107,25 @@ record SelectField(
         return attributes.key();
     }
 
+    /// **Not a Tab stop when it holds an editor**, which is the whole of §3's
+    /// "one Tab stop": the `text-input` inside is the focusable thing, and a
+    /// field that was also focusable would make a combobox two stops where a
+    /// document wrote one control.
     @Override
     public boolean isFocusable() {
-        return !disabled;
+        return !disabled && editor == null;
+    }
+
+    /// ...and a press on the field's own chrome — its padding, its chevron —
+    /// hands the keyboard to the editor inside, which is what makes the whole
+    /// plate behave like the one control it looks like.
+    ///
+    /// `field`'s mechanism, reached for the same reason: the thing that takes the
+    /// press is a *sibling* of the thing that should end up focused
+    /// ([ADR-0170]).
+    @Override
+    public boolean delegatesFocus() {
+        return editor != null;
     }
 
     @Override
@@ -117,12 +139,25 @@ record SelectField(
     }
 
     /// Opens or closes the list on a click anywhere in the field.
+    ///
+    /// **An editable field opens rather than toggling.** A click in a combobox is
+    /// a user putting the caret somewhere, and closing the list under them
+    /// because it happened to be open would take the choices away mid-gesture —
+    /// where a plain `select` has nothing else a click could mean. Nor is it
+    /// consumed: the editor underneath needs the same click to place its caret.
     @Override
     public void onPointer(PointerEvent event) {
-        if (event.kind() == PointerEvent.Kind.CLICKED) {
-            toggle();
-            event.consume();
+        if (event.kind() != PointerEvent.Kind.CLICKED) {
+            return;
         }
+        if (editor != null) {
+            if (!open) {
+                toggle();
+            }
+            return;
+        }
+        toggle();
+        event.consume();
     }
 
     /// §3's "keyboard open (Space/Alt+Down)", with the bare arrows as well.
@@ -144,13 +179,41 @@ record SelectField(
         var plain = event.modifiers().none();
         var alt = event.modifiers().only(io.github.digitalsmile.goldberry.input.key.Mod.ALT);
         var opens = switch (event.key()) {
-            case SPACE -> plain;
+            // **Not `Space` in an editable field**, where a space is a character.
+            // §3 lists `Space` as a way to open a *closed* control, and a
+            // combobox is not one.
+            case SPACE -> plain && editor == null;
             case DOWN, UP -> (plain || alt) && !open;
             default -> false;
         };
         if (opens) {
             toggle();
             event.consume();
+            return;
+        }
+        // §3: "`Esc` restores the last committed value rather than clearing" —
+        // the sentence that tells a combobox apart from a search box. On the
+        // **bubble** phase, so the editor inside keeps whatever it wanted first,
+        // and only for an editable control: a plain `select`'s `Esc` belongs to
+        // the popup, which is already watching for it.
+        if (editor != null && event.key() == io.github.digitalsmile.goldberry.input.key.Key.ESCAPE
+                && plain) {
+            onRestore.run();
+            event.consume();
+        }
+    }
+
+    /// The keyboard left this control — the moment a half-typed value stops
+    /// being an attempt and starts being an answer (§3's `free`).
+    ///
+    /// `onFocusWithin` and not `onFocusChanged`, because the thing that has the
+    /// keyboard is the editor *inside* this node: focus moving from the editor to
+    /// the next control is what has to be heard, and this node never had it to
+    /// lose ([ADR-0169]'s notification, in its third consumer).
+    @Override
+    public void onFocusWithin(boolean within, boolean fromKeyboard) {
+        if (!within && editor != null) {
+            onSettle.run();
         }
     }
 
@@ -179,11 +242,16 @@ record SelectField(
     /// chips cannot say.
     @Override
     public List<Widget> children() {
-        var parts = new java.util.ArrayList<Widget>(chips.size() + 1);
-        if (chips.isEmpty()) {
+        var parts = new java.util.ArrayList<Widget>(chips.size() + 2);
+        parts.addAll(chips);
+        if (editor != null) {
+            // §3: "makes the closed control an editable `text-input`" — literally
+            // one, rather than an editor this control grows of its own. The
+            // editing model, the undo history, the clipboard and the caret are
+            // `text-input`'s and stay there.
+            parts.add(editor);
+        } else if (chips.isEmpty()) {
             parts.add(new SelectValue(text, placeholder));
-        } else {
-            parts.addAll(chips);
         }
         parts.add(new SelectChevron());
         return List.copyOf(parts);

@@ -3157,6 +3157,34 @@ is the `scroll` box's.
   it settles in one frame
   ([ADR-0182](adr/0182-a-select-may-hold-more-than-one.md))
 
+### A combobox, which is a select you can type in
+
+- **§3's `autocomplete` is built, and the editor is a real `text-input`.** The
+  sentence says "makes the closed control an editable `text-input`" and it is
+  meant literally: everything an editable field needs — the edit model, the undo
+  history, the clipboard, the caret, IME — already lives there and has rules in
+  it, and a second editor grown inside `select` would be a second copy of those
+  rules with the first drift going unnoticed.
+- **One Tab stop.** The field stops being focusable when it holds an editor and
+  delegates focus instead, which is `field`'s mechanism for its own reason: the
+  thing that takes the press is a *sibling* of the thing that should end up
+  focused. Two keys change meaning with it — `Space` types a space, because §3
+  lists it as a way to open a *closed* control and a combobox is not one, and a
+  click opens rather than toggling, because a click in a combobox is a user
+  putting the caret somewhere.
+- **One nullable string does all the work.** What the user has typed is handed to
+  the `TextInput` as its `value`, and `follow` overwrites the field only when the
+  offered value *changes* — so typing is never fought, `Esc` restores by setting
+  it back to null, and choosing clears it for the same reason. No new rule was
+  needed anywhere.
+- **Refusing is a blur-time decision**, because that is when a half-typed value
+  stops being an attempt and starts being an answer. Heard through
+  `onFocusWithin` rather than `onFocusChanged`, since the thing that has the
+  keyboard is the editor *inside* the field.
+- **The editor is drawn as the select's interior**, checked rather than assumed:
+  left alone it brought a `text-input`'s border, fill, radius and focus ring
+  inside the `select`'s own ([ADR-0183](adr/0183-a-combobox-is-a-select-you-can-type-in.md))
+
 ### Not started
 
 Tray, client-side decorations and charts, the rest of §4 —

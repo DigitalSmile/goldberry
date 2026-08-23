@@ -368,7 +368,7 @@ class RadioGoldenTest {
                         new Select("dark",
                                 List.of(new Option("light", "Light"),
                                         new Option("dark", "Dark")),
-                                null, null, "", false, false, id("theme"))),
+                                null, null, "", false, false, false, null, false, id("theme"))),
                 id("panel"));
     }
 
