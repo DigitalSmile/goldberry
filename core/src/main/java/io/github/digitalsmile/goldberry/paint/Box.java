@@ -62,6 +62,10 @@ public record Box(
         Text text,
         Glyph icon,
         Mark mark,
+        // §1's `canvas`: the one content slot whose drawing is not the toolkit's.
+        // Null for every box that is not one, which is all but a handful
+        // (ADR-0193).
+        Painter painting,
         List<Box> children,
         Object owner) {
 
@@ -367,7 +371,7 @@ public record Box(
                 null,
                 null,
                 null,
-                List.of(),
+                null, List.of(),
                 null);
     }
 
@@ -391,7 +395,7 @@ public record Box(
     public Box elevated(boolean value) {
         return new Box(background, decoration, opacity, transform, cursor, direction,
                 justifyContent, alignItems, wrap, width, height, limits, padding, gap, flexGrow, flexShrink,
-                position, inset, value, overflow, text, icon, mark, children, owner);
+                position, inset, value, overflow, text, icon, mark, painting, children, owner);
     }
 
     /// A box whose size comes from the text in it.
@@ -408,7 +412,7 @@ public record Box(
 
     public Box text(Text value) {
         return new Box(background, decoration, opacity, transform, cursor, direction, justifyContent, alignItems,
-                wrap, width, height, limits, padding, gap, flexGrow, flexShrink, position, inset, elevated, overflow, value, icon, mark, children, owner);
+                wrap, width, height, limits, padding, gap, flexGrow, flexShrink, position, inset, elevated, overflow, value, icon, mark, painting, children, owner);
     }
 
     /// A box that is one icon, sized by it.
@@ -427,7 +431,7 @@ public record Box(
 
     public Box icon(Glyph value) {
         return new Box(background, decoration, opacity, transform, cursor, direction, justifyContent, alignItems,
-                wrap, width, height, limits, padding, gap, flexGrow, flexShrink, position, inset, elevated, overflow, text, value, mark, children, owner);
+                wrap, width, height, limits, padding, gap, flexGrow, flexShrink, position, inset, elevated, overflow, text, value, mark, painting, children, owner);
     }
 
     /// A box that is one indicator — a checkbox's tick, a radio's dot.
@@ -436,9 +440,20 @@ public record Box(
     /// drawn to fill whatever rectangle it is given, and the design system puts
     /// that number — a 16px glyph (§3) — in a stylesheet where an application can
     /// override it.
+    /// A box that draws whatever `value` draws — §1's `canvas`.
+    ///
+    /// The painter is handed the frame translated to this box's content corner
+    /// and clipped to it, inside a `save`/`restore` pair, so it may leave the
+    /// context however it likes (ADR-0193).
+    public Box painting(Painter value) {
+        return new Box(background, decoration, opacity, transform, cursor, direction, justifyContent, alignItems,
+                wrap, width, height, limits, padding, gap, flexGrow, flexShrink, position, inset, elevated, overflow,
+                text, icon, mark, value, children, owner);
+    }
+
     public Box mark(Mark value) {
         return new Box(background, decoration, opacity, transform, cursor, direction, justifyContent, alignItems,
-                wrap, width, height, limits, padding, gap, flexGrow, flexShrink, position, inset, elevated, overflow, text, icon, value, children, owner);
+                wrap, width, height, limits, padding, gap, flexGrow, flexShrink, position, inset, elevated, overflow, text, icon, value, painting, children, owner);
     }
 
     /// A box filled with `argb` — `0xAARRGGBB`, not premultiplied, exactly as
@@ -455,12 +470,12 @@ public record Box(
     public Box cursor(Cursor value) {
         return new Box(background, decoration, opacity, transform, Objects.requireNonNull(value, "cursor"), direction,
                 justifyContent, alignItems, wrap, width, height, limits, padding, gap, flexGrow, flexShrink, position, inset, elevated, overflow, text, icon,
-                mark, children, owner);
+                mark, painting, children, owner);
     }
 
     public Box background(int argb) {
         return new Box(argb, decoration, opacity, transform, cursor, direction, justifyContent, alignItems,
-                wrap, width, height, limits, padding, gap, flexGrow, flexShrink, position, inset, elevated, overflow, text, icon, mark, children, owner);
+                wrap, width, height, limits, padding, gap, flexGrow, flexShrink, position, inset, elevated, overflow, text, icon, mark, painting, children, owner);
     }
 
     /// How opaque this box **and everything under it** is drawn.
@@ -470,7 +485,7 @@ public record Box(
     /// its effect is, because it applies to the rendered subtree.
     public Box opacity(double value) {
         return new Box(background, decoration, value, transform, cursor, direction, justifyContent,
-                alignItems, wrap, width, height, limits, padding, gap, flexGrow, flexShrink, position, inset, elevated, overflow, text, icon, mark, children,
+                alignItems, wrap, width, height, limits, padding, gap, flexGrow, flexShrink, position, inset, elevated, overflow, text, icon, mark, painting, children,
                 owner);
     }
 
@@ -490,29 +505,29 @@ public record Box(
     public Box transform(Transform value) {
         return new Box(background, decoration, opacity, Objects.requireNonNull(value, "transform"),
                 cursor, direction, justifyContent, alignItems, wrap, width, height, limits, padding, gap,
-                flexGrow, flexShrink, position, inset, elevated, overflow, text, icon, mark, children, owner);
+                flexGrow, flexShrink, position, inset, elevated, overflow, text, icon, mark, painting, children, owner);
     }
 
     /// The radius, border and focus ring drawn around this box.
     public Box decoration(Decoration value) {
         return new Box(background, Objects.requireNonNull(value, "decoration"), opacity, transform, cursor, direction,
                 justifyContent, alignItems, wrap, width, height, limits, padding, gap, flexGrow, flexShrink, position, inset, elevated, overflow, text, icon,
-                mark, children, owner);
+                mark, painting, children, owner);
     }
 
     public Box direction(FlexDirection value) {
         return new Box(background, decoration, opacity, transform, cursor, value, justifyContent, alignItems,
-                wrap, width, height, limits, padding, gap, flexGrow, flexShrink, position, inset, elevated, overflow, text, icon, mark, children, owner);
+                wrap, width, height, limits, padding, gap, flexGrow, flexShrink, position, inset, elevated, overflow, text, icon, mark, painting, children, owner);
     }
 
     public Box justifyContent(Justify value) {
         return new Box(background, decoration, opacity, transform, cursor, direction, value, alignItems,
-                wrap, width, height, limits, padding, gap, flexGrow, flexShrink, position, inset, elevated, overflow, text, icon, mark, children, owner);
+                wrap, width, height, limits, padding, gap, flexGrow, flexShrink, position, inset, elevated, overflow, text, icon, mark, painting, children, owner);
     }
 
     public Box alignItems(Align value) {
         return new Box(background, decoration, opacity, transform, cursor, direction, justifyContent, value,
-                wrap, width, height, limits, padding, gap, flexGrow, flexShrink, position, inset, elevated, overflow, text, icon, mark, children, owner);
+                wrap, width, height, limits, padding, gap, flexGrow, flexShrink, position, inset, elevated, overflow, text, icon, mark, painting, children, owner);
     }
 
     /// Whether a row that overruns falls onto a second line — CSS's `flex-wrap`.
@@ -523,12 +538,12 @@ public record Box(
     public Box wrap(Wrap value) {
         return new Box(background, decoration, opacity, transform, cursor, direction, justifyContent, alignItems,
                 Objects.requireNonNull(value, "wrap"), width, height, limits, padding, gap, flexGrow, flexShrink,
-                position, inset, elevated, overflow, text, icon, mark, children, owner);
+                position, inset, elevated, overflow, text, icon, mark, painting, children, owner);
     }
 
     public Box size(StyleLength w, StyleLength h) {
         return new Box(background, decoration, opacity, transform, cursor, direction, justifyContent, alignItems,
-                wrap, w, h, limits, padding, gap, flexGrow, flexShrink, position, inset, elevated, overflow, text, icon, mark, children, owner);
+                wrap, w, h, limits, padding, gap, flexGrow, flexShrink, position, inset, elevated, overflow, text, icon, mark, painting, children, owner);
     }
 
     /// The same padding on every edge — the common case, and what most of the
@@ -546,12 +561,12 @@ public record Box(
     /// ([ADR-0181](../../../../../book/src/adr/0181-a-box-may-say-how-small-and-how-large.md)).
     public Box limits(Limits value) {
         return new Box(background, decoration, opacity, transform, cursor, direction, justifyContent, alignItems,
-                wrap, width, height, value, padding, gap, flexGrow, flexShrink, position, inset, elevated, overflow, text, icon, mark, children, owner);
+                wrap, width, height, value, padding, gap, flexGrow, flexShrink, position, inset, elevated, overflow, text, icon, mark, painting, children, owner);
     }
 
     public Box padding(Insets value) {
         return new Box(background, decoration, opacity, transform, cursor, direction, justifyContent, alignItems,
-                wrap, width, height, limits, value, gap, flexGrow, flexShrink, position, inset, elevated, overflow, text, icon, mark, children, owner);
+                wrap, width, height, limits, value, gap, flexGrow, flexShrink, position, inset, elevated, overflow, text, icon, mark, painting, children, owner);
     }
 
     /// Whether this box is laid out in flow, and what it is a containing block
@@ -567,7 +582,7 @@ public record Box(
         return new Box(background, decoration, opacity, transform, cursor, direction, justifyContent,
                 alignItems, wrap, width, height, limits, padding, gap, flexGrow, flexShrink,
                 Objects.requireNonNull(value, "position"), inset, elevated, overflow,
-                text, icon, mark, children, owner);
+                text, icon, mark, painting, children, owner);
     }
 
     /// How far each edge sits from the containing block's — CSS's `inset`, and
@@ -581,18 +596,18 @@ public record Box(
         return new Box(background, decoration, opacity, transform, cursor, direction, justifyContent,
                 alignItems, wrap, width, height, limits, padding, gap, flexGrow, flexShrink,
                 position, Objects.requireNonNull(value, "inset"), elevated, overflow,
-                text, icon, mark, children, owner);
+                text, icon, mark, painting, children, owner);
     }
 
     public Box gap(StyleLength value) {
         return new Box(background, decoration, opacity, transform, cursor, direction, justifyContent, alignItems,
-                wrap, width, height, limits, padding, value, flexGrow, flexShrink, position, inset, elevated, overflow, text, icon, mark, children, owner);
+                wrap, width, height, limits, padding, value, flexGrow, flexShrink, position, inset, elevated, overflow, text, icon, mark, painting, children, owner);
     }
 
     /// Share of the free space this box takes along its parent's main axis.
     public Box grow(double value) {
         return new Box(background, decoration, opacity, transform, cursor, direction, justifyContent, alignItems,
-                wrap, width, height, limits, padding, gap, value, flexShrink, position, inset, elevated, overflow, text, icon, mark, children, owner);
+                wrap, width, height, limits, padding, gap, value, flexShrink, position, inset, elevated, overflow, text, icon, mark, painting, children, owner);
     }
 
     /// How much this box gives back when its parent runs out of room.
@@ -605,7 +620,7 @@ public record Box(
     /// ([ADR-0076](../../../../../../book/src/adr/0076-a-glyph-does-not-negotiate.md)).
     public Box shrink(double value) {
         return new Box(background, decoration, opacity, transform, cursor, direction, justifyContent, alignItems,
-                wrap, width, height, limits, padding, gap, flexGrow, value, position, inset, elevated, overflow, text, icon, mark, children, owner);
+                wrap, width, height, limits, padding, gap, flexGrow, value, position, inset, elevated, overflow, text, icon, mark, painting, children, owner);
     }
 
     /// This box tagged with whatever produced it.
@@ -614,12 +629,12 @@ public record Box(
     /// at it.
     public Box owner(Object value) {
         return new Box(background, decoration, opacity, transform, cursor, direction, justifyContent, alignItems,
-                wrap, width, height, limits, padding, gap, flexGrow, flexShrink, position, inset, elevated, overflow, text, icon, mark, children, value);
+                wrap, width, height, limits, padding, gap, flexGrow, flexShrink, position, inset, elevated, overflow, text, icon, mark, painting, children, value);
     }
 
     public Box children(Box... value) {
         return new Box(background, decoration, opacity, transform, cursor, direction, justifyContent, alignItems,
-                wrap, width, height, limits, padding, gap, flexGrow, flexShrink, position, inset, elevated, overflow, text, icon, mark, List.of(value), owner);
+                wrap, width, height, limits, padding, gap, flexGrow, flexShrink, position, inset, elevated, overflow, text, icon, mark, painting, List.of(value), owner);
     }
 
     /// This box with every colour it carries faded by `alpha`.
@@ -661,7 +676,7 @@ public record Box(
                 text == null ? null : new Text(text.paragraph(), CssColor.fade(text.argb(), alpha)),
                 icon == null ? null : new Glyph(icon.icon(), CssColor.fade(icon.argb(), alpha)),
                 mark == null ? null : mark.fade(alpha),
-                // Not applied to the children here. The painter walks the tree
+                painting, // Not applied to the children here. The painter walks the tree
                 // and accumulates, so a nested opacity multiplies once per level
                 // rather than once per level per ancestor.
                 children,
@@ -700,7 +715,7 @@ public record Box(
         return new Box(background, decoration, opacity, transform, cursor, direction, justifyContent,
                 alignItems, wrap, width, height, limits, padding, gap, flexGrow, flexShrink,
                 position, inset, elevated, Objects.requireNonNull(value, "overflow"),
-                text, icon, mark, children, owner);
+                text, icon, mark, painting, children, owner);
     }
 
     /// Applying it here would fade a parent and leave its children at full
@@ -738,7 +753,7 @@ public record Box(
                 mark == null ? null
                         : new Mark(mark.kind(), style.color(), mark.thickness(),
                                 mark.start(), mark.sweep()),
-                children,
+                painting, children,
                 owner);
     }
 }

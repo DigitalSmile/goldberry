@@ -185,6 +185,10 @@ public final class BoxPainter {
             paintMark(frame, path, box.mark(), x, y, width, height);
         }
 
+        if (box.painting() != null) {
+            paintCanvas(frame, box, x, y, width, height);
+        }
+
         if (decoration.hasOutline()) {
             // Outward by the offset plus half the width, so the *inside* edge of
             // the ring sits exactly `outline-offset` from the border box —
@@ -409,6 +413,61 @@ public final class BoxPainter {
             case StyleLength.Percent percent -> percent.value() / 100.0 * base;
             case StyleLength.Keyword ignored -> 0;
         };
+    }
+
+    /// Hands the frame to an application's own painter — §1's `canvas`.
+    ///
+    /// Three things happen around the call and each is load-bearing.
+    ///
+    /// **Saved and restored**, because this is the one painter in the toolkit
+    /// that is not trusted to unset what it set. `resetClip` would not do: it
+    /// goes back to the whole frame rather than to the clip in force before, so a
+    /// canvas inside a `scroll` would paint over the viewport's edge — which is
+    /// the whole reason `bl_context_save` is on the export list
+    /// ([ADR-0193](../../../../../../book/src/adr/0193-a-canvas-is-a-second-clip-depth.md)).
+    ///
+    /// **Clipped to the content box**, so a painter's arithmetic mistake is a
+    /// picture that is wrong inside its own rectangle rather than one that has
+    /// drawn over the rest of the window.
+    ///
+    /// **Translated**, so the painter works in its own coordinates from `(0, 0)`
+    /// and never has to know where the layout put it. That is what makes the same
+    /// painter usable in a `row`, in a `scroll` and in a golden test.
+    ///
+    /// Inside the padding, for [ADR-0111]'s reason: a box with `padding: 8px`
+    /// around a canvas means eight pixels of surface, and painting at the box's
+    /// own origin would put all of them on the right and the bottom.
+    private static void paintCanvas(
+            Frame frame, Box box, double x, double y, double width, double height) {
+
+        var left = resolve(box.padding().left(), width);
+        var top = resolve(box.padding().top(), height);
+        var right = resolve(box.padding().right(), width);
+        var bottom = resolve(box.padding().bottom(), height);
+        var contentWidth = width - left - right;
+        var contentHeight = height - top - bottom;
+        if (!(contentWidth > 0) || !(contentHeight > 0)) {
+            // A canvas laid out to nothing is not an error -- a collapsed split
+            // pane or a zero-height row produces one -- and `clipTo` refuses a
+            // non-positive size, so the painter is simply not called.
+            return;
+        }
+
+        frame.save();
+        try {
+            frame.clipTo(x + left, y + top, contentWidth, contentHeight);
+            frame.transform(1, 0, 0, 1, x + left, y + top);
+            box.painting().paint(frame,
+                    new io.github.digitalsmile.goldberry.render.model.LogicalSize(
+                            (float) contentWidth, (float) contentHeight));
+        } finally {
+            // In a finally, because a painter that throws is an application bug
+            // and must not also be a window that draws wrong from then on. The
+            // exception still propagates: swallowing it would make a canvas that
+            // silently drew nothing, which is worse to diagnose than a stack
+            // trace.
+            frame.restore();
+        }
     }
 
     /// @param clip what an `overflow` above this box confines it to, or

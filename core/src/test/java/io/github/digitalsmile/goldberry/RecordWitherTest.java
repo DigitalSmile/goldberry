@@ -81,6 +81,10 @@ class RecordWitherTest {
                 null,
                 null,
                 new Box.Mark(Box.Mark.Kind.CHECK, 0xFF445566, 2),
+                // A painter that draws nothing: the wither check needs a value
+                // no other component equals, and a lambda's identity is that by
+                // construction.
+                (frame, size) -> { },
                 List.of(Box.of()),
                 "owner");
     }

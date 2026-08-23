@@ -59,6 +59,7 @@ module io.github.digitalsmile.goldberry.widgets {
     /// had no other use for.
     exports io.github.digitalsmile.goldberry.widgets.core;
     exports io.github.digitalsmile.goldberry.widgets.core.affix;
+    exports io.github.digitalsmile.goldberry.widgets.core.canvas;
     exports io.github.digitalsmile.goldberry.widgets.core.scroll;
     exports io.github.digitalsmile.goldberry.widgets.text;
     exports io.github.digitalsmile.goldberry.widgets.panel;

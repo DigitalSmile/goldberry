@@ -18,7 +18,8 @@ import java.util.List;
 
 
 /// The KDL registry for `docs/core-widgets.md` §1, §2 and §5's structural
-/// widgets: `text`, `row`, `column`, `panel`, `spacer`, `scroll`, `affix`.
+/// widgets: `text`, `row`, `column`, `panel`, `spacer`, `scroll`, `affix`,
+/// `canvas`.
 ///
 /// These used to live in `:core` as nested records inside a `Widgets` class,
 /// because the engines needed *something* to prove the widget tree against before
@@ -47,6 +48,6 @@ public final class Primitives {
         // `scroll` and not `scroll-content`: the parity test checks the names a
         // document may write, and the content node is one this widget builds
         // for itself.
-        return List.of("text", "row", "column", "panel", "spacer", "scroll", "affix");
+        return List.of("text", "row", "column", "panel", "spacer", "scroll", "affix", "canvas");
     }
 }

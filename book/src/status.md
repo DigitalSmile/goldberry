@@ -3370,8 +3370,34 @@ is the `scroll` box's.
   features belong in a desktop toolkit, which are `goldberry-plot`'s, and which
   are dashboard machinery a *toolkit* must not grow (query editors, field
   overrides, auto-refresh, dual y-axes).
-- **Not built: the `canvas` widget itself**, its `Box` content slot, the chart
-  substrate and the five widgets. What exists is the layer underneath.
+- **`canvas` is built** — §1's last unbuilt primitive, and the substrate the five
+  chart widgets sit on. A `Painter` is a content slot on `Box` beside `text`,
+  `icon` and `mark`, and `paintOne` hands it the frame **translated to the box's
+  content corner and clipped to it**, inside the `save`/`restore` pair above. So
+  a painter draws in its own coordinates from `(0, 0)`, cannot escape its
+  rectangle however wrong its arithmetic is, and may leave the context in any
+  state at all — which is what makes it safe to hand an application the toolkit's
+  own rasterizer.
+- **Three guarantees, asserted in pixels rather than in calls.** A painter that
+  fills `(-50, -50, 200, 200)` paints its own 40×40 and nothing else; a painter
+  that clips to a 2px sliver, translates and returns leaves the box drawn after
+  it whole; a painter that throws propagates its exception *and* restores, so an
+  application's bug is a stack trace rather than a window that draws wrong from
+  then on. A canvas laid out to nothing is skipped rather than throwing, because
+  a collapsed split pane produces one.
+- **It draws inside the padding**, which is ADR-0111's rule for text applied to
+  the one content that is not text: `canvas { padding: 8px }` is eight pixels of
+  surface, not eight pixels of drawing.
+- **Markup writes one and names no painter.** A `canvas` node inflates to a
+  styled, sized surface that draws nothing, so the parity invariant holds — a
+  document says how big it is and what it sits on, and the drawing is Java.
+  Naming a painter from markup needs the registry indirection `icon` and `action`
+  use, and the shape of that registry depends on whether a painter is a value or
+  a method. Filed rather than guessed at.
+- **Not built: the chart substrate and the five widgets.** `canvas` is the floor
+  they stand on and it is now in the corpus — `canvas-dark` is a themed surface
+  with a border and a radius from CSS and two bars from a painter, which is the
+  picture that says the two halves compose.
 
 ### Not started
 

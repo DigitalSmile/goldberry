@@ -844,6 +844,29 @@ description had no effect.
   not. Doing better means posting to the loop, which is a second delivery path
   for one hypothetical.
 
+## `canvas`, and what a document cannot say
+
+- **Markup cannot name a painter.** A `canvas` node inflates to a styled, sized
+  surface that draws nothing; the drawing is Java. `icon` solved the same problem
+  with a registry the application owns
+  ([ADR-0043](adr/0043-icons-are-stroked-paths.md)) and `action` with another, so
+  the shape is known — what is not known is whether a painter is a *value* a
+  registry holds or a *method* on a model, which is the same question `@Action`
+  answered for commands and would have to answer again here. Nothing has needed
+  it: every consumer so far is a chart widget written in Java.
+- **A canvas has no intrinsic size**, so one in a `row` with nothing else to size
+  it is zero wide and silently invisible. A measure function that guessed would be
+  a number the toolkit invented and the application drew into; a diagnostic when a
+  canvas is laid out to nothing would be noise in the collapsed-split-pane case,
+  which is legitimate. Left as a documented sharp edge.
+- **A painter is called on every paint of its box**, not only when it says
+  something changed. That is what immediate-mode means and it is right for a
+  chart whose data changed; it is wasteful for a canvas whose drawing is static
+  and expensive. The seam for fixing it exists — a canvas that wants caching is a
+  repaint boundary with a `Layer`
+  ([ADR-0071](adr/0071-a-layer-is-a-subtrees-raster.md)) — and nothing has
+  measured a case that needs it.
+
 ## Content modules
 
 `docs/content-widgets.md` specifies eleven optional modules; **none of them
