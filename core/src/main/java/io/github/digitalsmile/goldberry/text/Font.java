@@ -1,6 +1,6 @@
 package io.github.digitalsmile.goldberry.text;
 
-import io.github.digitalsmile.goldberry.Frame;
+import io.github.digitalsmile.goldberry.paint.Frame;
 import io.github.digitalsmile.goldberry.assets.BundledAssets;
 import io.github.digitalsmile.goldberry.assets.BundledFont;
 import io.github.digitalsmile.goldberry.natives.blend2d.BlendFont;

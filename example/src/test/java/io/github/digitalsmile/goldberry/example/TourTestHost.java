@@ -1,11 +1,15 @@
 package io.github.digitalsmile.goldberry.example;
 
-import io.github.digitalsmile.goldberry.FrameStats;
+import io.github.digitalsmile.goldberry.stats.FrameStats;
 import io.github.digitalsmile.goldberry.Host;
 import io.github.digitalsmile.goldberry.Overlay;
 import io.github.digitalsmile.goldberry.Popup;
 import io.github.digitalsmile.goldberry.Window;
-import io.github.digitalsmile.goldberry.backend.LogicalRect;
+import io.github.digitalsmile.goldberry.render.Clipboard;
+import io.github.digitalsmile.goldberry.render.event.EventLoop;
+import io.github.digitalsmile.goldberry.render.model.LogicalRect;
+import io.github.digitalsmile.goldberry.render.model.LogicalPoint;
+import io.github.digitalsmile.goldberry.render.model.LogicalSize;
 import io.github.digitalsmile.goldberry.input.HitTest;
 import io.github.digitalsmile.goldberry.text.Fonts;
 import io.github.digitalsmile.goldberry.widget.Corner;
@@ -95,20 +99,20 @@ record TourTestHost(List<HitTest.Region> regions) implements Host {
 
     @Override
     public Optional<Popup> popup(Widget content,
-            io.github.digitalsmile.goldberry.backend.LogicalPoint at,
-            io.github.digitalsmile.goldberry.backend.LogicalSize size) {
+            LogicalPoint at,
+            LogicalSize size) {
         return Optional.empty();
     }
 
     @Override
     public Optional<Popup> tooltip(Widget content,
-            io.github.digitalsmile.goldberry.backend.LogicalPoint at,
-            io.github.digitalsmile.goldberry.backend.LogicalSize size) {
+            LogicalPoint at,
+            LogicalSize size) {
         return Optional.empty();
     }
 
     @Override
-    public io.github.digitalsmile.goldberry.backend.EventLoop.Timer after(
+    public EventLoop.Timer after(
             java.time.Duration delay, Runnable action) {
         throw new UnsupportedOperationException("no event loop here");
     }
@@ -128,8 +132,8 @@ record TourTestHost(List<HitTest.Region> regions) implements Host {
     }
 
     @Override
-    public io.github.digitalsmile.goldberry.backend.Clipboard clipboard() {
-        return io.github.digitalsmile.goldberry.backend.Clipboard.none();
+    public Clipboard clipboard() {
+        return Clipboard.none();
     }
 
     @Override

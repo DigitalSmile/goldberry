@@ -6,7 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.github.digitalsmile.goldberry.RendererRequirement;
-import io.github.digitalsmile.goldberry.backend.EventLoop;
+import io.github.digitalsmile.goldberry.render.event.EventLoop;
 import io.github.digitalsmile.goldberry.input.FocusScope;
 import io.github.digitalsmile.goldberry.input.Key;
 import io.github.digitalsmile.goldberry.input.KeyEvent;
@@ -54,7 +54,7 @@ class CarouselTest {
         public EventLoop.Timer after(Duration delay, Runnable action) {
             scheduled.add(action);
             delays.add(delay);
-            var timer = io.github.digitalsmile.goldberry.backend.TestTimers.pending();
+            var timer = io.github.digitalsmile.goldberry.render.event.TestTimers.pending();
             handed.add(timer);
             return timer;
         }

@@ -1,6 +1,6 @@
 package io.github.digitalsmile.goldberry;
 
-import io.github.digitalsmile.goldberry.backend.LogicalRect;
+import io.github.digitalsmile.goldberry.render.model.LogicalRect;
 
 /// What to do when a widget that named a context menu is right-clicked —
 /// [Host#onContextMenu].

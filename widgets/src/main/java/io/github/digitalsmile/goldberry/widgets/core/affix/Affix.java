@@ -1,5 +1,6 @@
 package io.github.digitalsmile.goldberry.widgets.core.affix;
 
+import io.github.digitalsmile.goldberry.render.model.LogicalRect;
 import io.github.digitalsmile.goldberry.widget.Attributed;
 import io.github.digitalsmile.goldberry.widget.Attributes;
 import io.github.digitalsmile.goldberry.widget.State;
@@ -73,8 +74,8 @@ import io.github.digitalsmile.goldberry.widgets.Markup;
 public record Affix(
         List<Widget> children, Edge edge, double offset,
         java.util.function.BiConsumer<
-                io.github.digitalsmile.goldberry.backend.LogicalRect,
-                io.github.digitalsmile.goldberry.backend.LogicalRect> onReveal,
+                LogicalRect,
+                LogicalRect> onReveal,
         Attributes attributes)
         implements Widget.Stateful, Attributed<Affix> {
 
@@ -95,8 +96,8 @@ public record Affix(
     /// This affix, telling `listener` where its hole is — see the class note.
     public Affix revealedBy(
             java.util.function.BiConsumer<
-                    io.github.digitalsmile.goldberry.backend.LogicalRect,
-                    io.github.digitalsmile.goldberry.backend.LogicalRect> listener) {
+                    LogicalRect,
+                    LogicalRect> listener) {
         return new Affix(children, edge, offset, listener, attributes);
     }
 

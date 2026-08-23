@@ -1,7 +1,7 @@
 package io.github.digitalsmile.goldberry.widgets.panel.carousel;
 
 import io.github.digitalsmile.goldberry.Host;
-import io.github.digitalsmile.goldberry.backend.EventLoop;
+import io.github.digitalsmile.goldberry.render.event.EventLoop;
 import io.github.digitalsmile.goldberry.widget.BuildContext;
 import io.github.digitalsmile.goldberry.widget.State;
 import io.github.digitalsmile.goldberry.widget.Widget;

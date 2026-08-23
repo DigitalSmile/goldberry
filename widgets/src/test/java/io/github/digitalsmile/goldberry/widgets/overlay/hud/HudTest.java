@@ -5,13 +5,13 @@ import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import io.github.digitalsmile.goldberry.FrameStats;
+import io.github.digitalsmile.goldberry.stats.FrameStats;
 import io.github.digitalsmile.goldberry.RendererRequirement;
 import io.github.digitalsmile.goldberry.css.CascadeLayer;
 import io.github.digitalsmile.goldberry.css.Stylesheet;
 import io.github.digitalsmile.goldberry.css.Theme;
 import io.github.digitalsmile.goldberry.kdl.KdlParser;
-import io.github.digitalsmile.goldberry.layout.Box;
+import io.github.digitalsmile.goldberry.paint.Box;
 import io.github.digitalsmile.goldberry.widget.Attributes;
 import io.github.digitalsmile.goldberry.widget.ElementTree;
 import io.github.digitalsmile.goldberry.widget.Styled;
@@ -27,7 +27,7 @@ import io.github.digitalsmile.goldberry.widgets.Widgets;
 
 /// `hud` — the numbers, where they come from, and the two ways it can be wrong.
 ///
-/// The interesting half is not the arithmetic ([io.github.digitalsmile.goldberry.FrameRingTest]
+/// The interesting half is not the arithmetic ([io.github.digitalsmile.goldberry.stats.FrameRingTest]
 /// covers that): it is that the numbers arrive on the **render context** rather
 /// than in the widget, which is what lets a bare `hud` node in a document show
 /// live figures and lets this test show figures it chose.
@@ -211,7 +211,7 @@ class HudTest {
     /// **A reading colours itself against a budget** — [ADR-0150].
     ///
     /// The class comes from
-    /// [Styled#classes(io.github.digitalsmile.goldberry.FrameStats)] rather than
+    /// [Styled#classes(FrameStats)] rather than
     /// from `classes()`, because the cascade reads a node's classes before its
     /// `render` runs and the statistics only arrive in `render`.
     @Test

@@ -1,9 +1,9 @@
 package io.github.digitalsmile.goldberry.widgets.core.affix;
 
-import io.github.digitalsmile.goldberry.backend.LogicalRect;
+import io.github.digitalsmile.goldberry.render.model.LogicalRect;
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
 import io.github.digitalsmile.goldberry.input.Located;
-import io.github.digitalsmile.goldberry.layout.Box;
+import io.github.digitalsmile.goldberry.paint.Box;
 import io.github.digitalsmile.goldberry.natives.yoga.FlexDirection;
 import io.github.digitalsmile.goldberry.widget.Attributes;
 import io.github.digitalsmile.goldberry.widget.Paints;

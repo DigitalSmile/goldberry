@@ -1,6 +1,6 @@
 package io.github.digitalsmile.goldberry;
 
-import io.github.digitalsmile.goldberry.backend.LogicalSize;
+import io.github.digitalsmile.goldberry.render.model.LogicalSize;
 import io.github.digitalsmile.goldberry.css.Stylesheet;
 import io.github.digitalsmile.goldberry.widget.Widget;
 import java.util.List;

@@ -5,8 +5,9 @@ import io.github.digitalsmile.goldberry.css.CssLength;
 import io.github.digitalsmile.goldberry.css.Selector.PseudoClass;
 import io.github.digitalsmile.goldberry.css.StyleResolver;
 import io.github.digitalsmile.goldberry.css.Stylesheet;
-import io.github.digitalsmile.goldberry.layout.Box;
+import io.github.digitalsmile.goldberry.paint.Box;
 import io.github.digitalsmile.goldberry.motion.Clock;
+import io.github.digitalsmile.goldberry.stats.FrameStats;
 import io.github.digitalsmile.goldberry.text.Font;
 import io.github.digitalsmile.goldberry.text.Fonts;
 import io.github.digitalsmile.goldberry.text.ParagraphCache;
@@ -37,8 +38,8 @@ public final class WidgetRenderer {
     /// What the frame loop is managing, for the widgets that draw it. Nothing
     /// until a window says otherwise, because a renderer with no loop over it —
     /// a test, a layer — has no frames to report.
-    private io.github.digitalsmile.goldberry.FrameStats frames =
-            io.github.digitalsmile.goldberry.FrameStats.none();
+    private FrameStats frames =
+            FrameStats.none();
 
     /// Whether `prefers-reduced-motion` is on — §1.7's rule 6.
     private boolean reducedMotion;
@@ -123,7 +124,7 @@ public final class WidgetRenderer {
             }
 
             @Override
-            public io.github.digitalsmile.goldberry.FrameStats frames() {
+            public FrameStats frames() {
                 return frames;
             }
         };
@@ -159,10 +160,10 @@ public final class WidgetRenderer {
     /// [Paints.Context#frames()].
     ///
     /// The launcher points this at the window's; a test hands in
-    /// [io.github.digitalsmile.goldberry.FrameStats#of] so a golden image of a
+    /// [FrameStats#of] so a golden image of a
     /// HUD shows numbers somebody chose rather than whatever the machine that ran
     /// the test managed.
-    public WidgetRenderer frames(io.github.digitalsmile.goldberry.FrameStats value) {
+    public WidgetRenderer frames(FrameStats value) {
         this.frames = Objects.requireNonNull(value, "frames");
         return this;
     }

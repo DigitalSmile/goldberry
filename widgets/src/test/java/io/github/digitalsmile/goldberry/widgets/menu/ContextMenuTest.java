@@ -8,11 +8,12 @@ import io.github.digitalsmile.goldberry.Goldberry;
 import io.github.digitalsmile.goldberry.GoldberryTestAccess;
 import io.github.digitalsmile.goldberry.Host;
 import io.github.digitalsmile.goldberry.RendererRequirement;
-import io.github.digitalsmile.goldberry.backend.BackendEvent;
-import io.github.digitalsmile.goldberry.backend.LogicalSize;
-import io.github.digitalsmile.goldberry.backend.headless.HeadlessBackend;
-import io.github.digitalsmile.goldberry.backend.headless.HeadlessPopup;
-import io.github.digitalsmile.goldberry.backend.headless.HeadlessWindow;
+import io.github.digitalsmile.goldberry.render.event.BackendEvent;
+import io.github.digitalsmile.goldberry.render.model.LogicalSize;
+import io.github.digitalsmile.goldberry.render.backend.headless.HeadlessBackend;
+import io.github.digitalsmile.goldberry.render.backend.headless.HeadlessPopup;
+import io.github.digitalsmile.goldberry.render.backend.headless.HeadlessWindow;
+import io.github.digitalsmile.goldberry.render.model.LogicalPoint;
 import io.github.digitalsmile.goldberry.css.CascadeLayer;
 import io.github.digitalsmile.goldberry.css.Stylesheet;
 import io.github.digitalsmile.goldberry.css.Theme;
@@ -113,7 +114,7 @@ class ContextMenuTest {
     @DisplayName("a right-click on a widget that named a menu opens it, where the pointer is")
     void opensAtThePointer() {
         var count = new int[1];
-        var offset = new io.github.digitalsmile.goldberry.backend.LogicalPoint[1];
+        var offset = new LogicalPoint[1];
         var page = new Column(List.of(new Text("right-click me")),
                 new io.github.digitalsmile.goldberry.widget.Attributes("page",
                         java.util.Set.of(), "page", null, "rows"));

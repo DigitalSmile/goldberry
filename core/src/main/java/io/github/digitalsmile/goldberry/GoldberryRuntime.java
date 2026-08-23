@@ -1,11 +1,11 @@
 package io.github.digitalsmile.goldberry;
 
-import io.github.digitalsmile.goldberry.backend.Backend;
-import io.github.digitalsmile.goldberry.backend.BackendEvent;
-import io.github.digitalsmile.goldberry.backend.BackendException;
-import io.github.digitalsmile.goldberry.backend.BackendWindow;
-import io.github.digitalsmile.goldberry.backend.EventLoop;
-import io.github.digitalsmile.goldberry.backend.sdl3.Sdl3Backend;
+import io.github.digitalsmile.goldberry.render.Backend;
+import io.github.digitalsmile.goldberry.render.event.BackendEvent;
+import io.github.digitalsmile.goldberry.render.BackendException;
+import io.github.digitalsmile.goldberry.render.window.BackendWindow;
+import io.github.digitalsmile.goldberry.render.event.EventLoop;
+import io.github.digitalsmile.goldberry.render.backend.sdl3.Sdl3Backend;
 import io.github.digitalsmile.goldberry.natives.log.Logs;
 import io.github.digitalsmile.goldberry.natives.log.Startup;
 import java.util.IdentityHashMap;

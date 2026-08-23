@@ -1,5 +1,7 @@
 package io.github.digitalsmile.goldberry.widget;
 
+import io.github.digitalsmile.goldberry.stats.FrameStats;
+
 import java.util.Set;
 
 /// A widget that a stylesheet can name.
@@ -107,7 +109,7 @@ public interface Styled extends Widget {
     ///
     /// @param frames what the loop has been doing, never null
     default java.util.Set<String> classes(
-            io.github.digitalsmile.goldberry.FrameStats frames) {
+            FrameStats frames) {
         return java.util.Set.of();
     }
 

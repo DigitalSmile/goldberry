@@ -1,5 +1,6 @@
 package io.github.digitalsmile.goldberry.widgets.controls.button;
 
+import io.github.digitalsmile.goldberry.render.Cursor;
 import io.github.digitalsmile.goldberry.widget.Attributes;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -22,7 +23,7 @@ import io.github.digitalsmile.goldberry.input.KeyEvent;
 import io.github.digitalsmile.goldberry.input.Modifiers;
 import io.github.digitalsmile.goldberry.input.PointerEvent;
 import io.github.digitalsmile.goldberry.kdl.KdlParser;
-import io.github.digitalsmile.goldberry.layout.Box;
+import io.github.digitalsmile.goldberry.paint.Box;
 import io.github.digitalsmile.goldberry.natives.yoga.Insets;
 import io.github.digitalsmile.goldberry.natives.yoga.StyleLength;
 import io.github.digitalsmile.goldberry.widget.Element;
@@ -32,7 +33,7 @@ import io.github.digitalsmile.goldberry.bind.ActionRegistry;
 import io.github.digitalsmile.goldberry.widgets.Controls;
 import io.github.digitalsmile.goldberry.widgets.Icons;
 import io.github.digitalsmile.goldberry.widgets.controls.TestFont;
-import io.github.digitalsmile.goldberry.widgets.controls.button.Button;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -326,7 +327,7 @@ class ButtonTest {
         @Test
         @DisplayName("the pointer becomes a hand over it")
         void cursor() {
-            assertEquals(io.github.digitalsmile.goldberry.backend.Cursor.POINTER, style(null).cursor());
+            assertEquals(Cursor.POINTER, style(null).cursor());
         }
 
         @Test
@@ -555,7 +556,7 @@ class ButtonTest {
             assertEquals(0.45, style.opacity(), 1e-9);
             assertEquals(enabled.background(), style.background(),
                     "still the danger colour, faded rather than remapped");
-            assertEquals(io.github.digitalsmile.goldberry.backend.Cursor.NOT_ALLOWED, style.cursor());
+            assertEquals(Cursor.NOT_ALLOWED, style.cursor());
         }
 
         @Test

@@ -7,7 +7,7 @@ import java.util.Map;
 /// Reads a CSS colour into the `0xAARRGGBB` int the paint layer takes.
 ///
 /// That packing is not this class's choice — it is what
-/// [io.github.digitalsmile.goldberry.Frame] already takes, **not premultiplied**
+/// [io.github.digitalsmile.goldberry.paint.Frame] already takes, **not premultiplied**
 /// (ADR-0031). Converting here rather than at the paint call keeps one spelling
 /// of a colour in the toolkit.
 ///

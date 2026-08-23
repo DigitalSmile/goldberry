@@ -6,11 +6,12 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.github.digitalsmile.goldberry.Goldberry;
 import io.github.digitalsmile.goldberry.Window;
-import io.github.digitalsmile.goldberry.backend.DisplayScale;
-import io.github.digitalsmile.goldberry.backend.LogicalSize;
-import io.github.digitalsmile.goldberry.backend.WindowSpec;
-import io.github.digitalsmile.goldberry.backend.headless.HeadlessBackend;
-import io.github.digitalsmile.goldberry.backend.headless.HeadlessWindow;
+import io.github.digitalsmile.goldberry.render.event.BackendEvent;
+import io.github.digitalsmile.goldberry.render.model.DisplayScale;
+import io.github.digitalsmile.goldberry.render.model.LogicalSize;
+import io.github.digitalsmile.goldberry.render.window.WindowSpec;
+import io.github.digitalsmile.goldberry.render.backend.headless.HeadlessBackend;
+import io.github.digitalsmile.goldberry.render.backend.headless.HeadlessWindow;
 import io.github.digitalsmile.goldberry.css.Selector.PseudoClass;
 import io.github.digitalsmile.goldberry.widget.Element;
 import io.github.digitalsmile.goldberry.widget.ElementTree;
@@ -30,7 +31,7 @@ import org.junit.jupiter.api.Timeout;
 /// [PointerRouterTest] drives the router directly, which says nothing about
 /// whether anything reaches it. This drives the *backend*, through the same
 /// dispatch a real SDL event takes, and needs no display because the headless
-/// backend posts the same [io.github.digitalsmile.goldberry.backend.BackendEvent]
+/// backend posts the same [BackendEvent]
 /// types the sdl3 one translates into.
 class PointerPlumbingTest {
 

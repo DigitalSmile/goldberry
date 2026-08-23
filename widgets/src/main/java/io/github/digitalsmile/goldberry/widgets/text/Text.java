@@ -2,7 +2,7 @@ package io.github.digitalsmile.goldberry.widgets.text;
 
 import io.github.digitalsmile.goldberry.bind.Observable;
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
-import io.github.digitalsmile.goldberry.layout.Box;
+import io.github.digitalsmile.goldberry.paint.Box;
 import io.github.digitalsmile.goldberry.widget.Attributed;
 import io.github.digitalsmile.goldberry.widget.Bindable;
 import io.github.digitalsmile.goldberry.widget.Attributes;

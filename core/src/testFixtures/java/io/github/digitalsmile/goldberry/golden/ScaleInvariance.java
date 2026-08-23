@@ -1,7 +1,7 @@
 package io.github.digitalsmile.goldberry.golden;
 
-import io.github.digitalsmile.goldberry.Frame;
-import io.github.digitalsmile.goldberry.TestFrames;
+import io.github.digitalsmile.goldberry.paint.Frame;
+import io.github.digitalsmile.goldberry.paint.TestFrames;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;

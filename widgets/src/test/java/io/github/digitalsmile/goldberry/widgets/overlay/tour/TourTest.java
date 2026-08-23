@@ -6,25 +6,17 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import io.github.digitalsmile.goldberry.FrameStats;
 import io.github.digitalsmile.goldberry.Host;
-import io.github.digitalsmile.goldberry.Overlay;
-import io.github.digitalsmile.goldberry.Popup;
-import io.github.digitalsmile.goldberry.Window;
-import io.github.digitalsmile.goldberry.backend.LogicalRect;
-import io.github.digitalsmile.goldberry.input.HitTest;
+import io.github.digitalsmile.goldberry.render.model.LogicalRect;
 import io.github.digitalsmile.goldberry.input.Key;
 import io.github.digitalsmile.goldberry.input.KeyEvent;
 import io.github.digitalsmile.goldberry.input.Modifiers;
-import io.github.digitalsmile.goldberry.text.Fonts;
 import io.github.digitalsmile.goldberry.widget.Element;
 import io.github.digitalsmile.goldberry.widget.ElementTree;
 import io.github.digitalsmile.goldberry.widget.Widget;
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
+
 import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;

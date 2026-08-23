@@ -1,5 +1,6 @@
 package io.github.digitalsmile.goldberry.widgets.controls.knob;
 
+import io.github.digitalsmile.goldberry.paint.Box;
 import io.github.digitalsmile.goldberry.widget.Attributes;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -22,9 +23,7 @@ import io.github.digitalsmile.goldberry.natives.yoga.StyleLength;
 import io.github.digitalsmile.goldberry.widget.ElementTree;
 import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widgets.Controls;
-import io.github.digitalsmile.goldberry.widgets.controls.button.Button;
-import io.github.digitalsmile.goldberry.widgets.controls.knob.Knob;
-import io.github.digitalsmile.goldberry.widgets.controls.knob.KnobDial;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -303,7 +302,7 @@ class KnobTest {
 
             var box = dial.render(style, List.of(), null);
 
-            assertEquals(io.github.digitalsmile.goldberry.layout.Box.Mark.Kind.POINTER,
+            assertEquals(Box.Mark.Kind.POINTER,
                     box.mark().kind());
             assertEquals(Knob.angleAt(0.5), box.mark().start(), 1e-9);
         }

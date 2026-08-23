@@ -1,7 +1,8 @@
 package io.github.digitalsmile.goldberry.widgets.overlay.popover;
 
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
-import io.github.digitalsmile.goldberry.layout.Box;
+import io.github.digitalsmile.goldberry.paint.Box;
+import io.github.digitalsmile.goldberry.paint.tree.RenderTree;
 import io.github.digitalsmile.goldberry.widget.Attributed;
 import io.github.digitalsmile.goldberry.widget.Attributes;
 import io.github.digitalsmile.goldberry.widget.Paints;
@@ -106,7 +107,7 @@ public record Popover(List<Widget> children, Attributes attributes)
     /// not: `flex-grow` on a root with a definite available size grows *into* it,
     /// so a growing panel measures as whatever it was measured against — which is
     /// how the first version of this opened a menu the size of the whole window
-    /// (see [io.github.digitalsmile.goldberry.layout.RenderTree#measure]).
+    /// (see [RenderTree#measure]).
     @Override
     public Box render(ComputedStyle style, List<Box> boxes, Context context) {
         return Box.of().style(style).children(boxes.toArray(Box[]::new));

@@ -1,13 +1,15 @@
 package io.github.digitalsmile.goldberry;
 
-import io.github.digitalsmile.goldberry.backend.BackendWindow;
-import io.github.digitalsmile.goldberry.backend.DamageRect;
-import io.github.digitalsmile.goldberry.backend.DisplayScale;
-import io.github.digitalsmile.goldberry.backend.LogicalSize;
-import io.github.digitalsmile.goldberry.backend.PhysicalSize;
-import io.github.digitalsmile.goldberry.backend.PixelBuffer;
-import io.github.digitalsmile.goldberry.backend.PixelFormat;
-import io.github.digitalsmile.goldberry.backend.WindowSpec;
+import io.github.digitalsmile.goldberry.render.window.BackendWindow;
+import io.github.digitalsmile.goldberry.render.Cursor;
+import io.github.digitalsmile.goldberry.render.DamageRect;
+import io.github.digitalsmile.goldberry.render.model.DisplayScale;
+import io.github.digitalsmile.goldberry.render.model.LogicalSize;
+import io.github.digitalsmile.goldberry.render.model.PhysicalSize;
+import io.github.digitalsmile.goldberry.render.PixelBuffer;
+import io.github.digitalsmile.goldberry.render.model.PixelFormat;
+import io.github.digitalsmile.goldberry.render.window.WindowSpec;
+import io.github.digitalsmile.goldberry.render.popup.BackendPopup;
 import io.github.digitalsmile.goldberry.input.Modifiers;
 import io.github.digitalsmile.goldberry.natives.log.Logs;
 import io.github.digitalsmile.goldberry.natives.log.Startup;
@@ -15,7 +17,11 @@ import java.util.List;
 import java.util.Objects;
 import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
+
+import io.github.digitalsmile.goldberry.stats.FrameRing;
+import io.github.digitalsmile.goldberry.stats.FrameStats;
 import org.slf4j.Logger;
+import io.github.digitalsmile.goldberry.paint.Frame;
 
 /// A window on the screen.
 ///
@@ -185,7 +191,7 @@ public final class Window implements AutoCloseable {
         if (!window.isOpen()) {
             return;
         }
-        if (window instanceof io.github.digitalsmile.goldberry.backend.BackendPopup) {
+        if (window instanceof BackendPopup) {
             // A popup opens and closes as often as a menu is used; at INFO it
             // would be the only thing in an application's log.
             LOG.debug("popup closed");
@@ -254,7 +260,7 @@ public final class Window implements AutoCloseable {
     /// they fail independently:
     ///
     /// 1. the backend promises the buffer keeps its contents
-    ///    ([io.github.digitalsmile.goldberry.backend.BackendWindow#retainsFrameContents()]);
+    ///    ([BackendWindow#retainsFrameContents()]);
     /// 2. it is the *same* buffer as last frame, not a rotated or reallocated one;
     /// 3. there was a last frame at this size at all.
     ///
@@ -358,7 +364,7 @@ public final class Window implements AutoCloseable {
         // it has not finished with shows a half-drawn frame. The `finally` is
         // what keeps a painter that throws from leaving the context attached to
         // the platform's surface.
-        var frame = new Frame(target, window.scale());
+        var frame = Frame.over(target, window.scale());
         var built = traced ? System.nanoTime() : 0L;
         long drawn;
         try {
@@ -546,7 +552,7 @@ public final class Window implements AutoCloseable {
     /// [#pointerRouter] has this set from the widget under the pointer on every
     /// move, so the two do not mix: whichever spoke last wins, and the router
     /// speaks on the next pointer motion.
-    public Window cursor(io.github.digitalsmile.goldberry.backend.Cursor cursor) {
+    public Window cursor(Cursor cursor) {
         window.setCursor(Objects.requireNonNull(cursor, "cursor"));
         return this;
     }

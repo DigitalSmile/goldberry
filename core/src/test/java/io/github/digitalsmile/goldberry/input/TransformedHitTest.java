@@ -5,11 +5,13 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.github.digitalsmile.goldberry.RendererRequirement;
-import io.github.digitalsmile.goldberry.TestFrames;
+import io.github.digitalsmile.goldberry.paint.TestFrames;
 import io.github.digitalsmile.goldberry.css.Transform;
-import io.github.digitalsmile.goldberry.layout.Box;
+import io.github.digitalsmile.goldberry.paint.Box;
 import io.github.digitalsmile.goldberry.natives.yoga.StyleLength;
 import java.util.List;
+
+import io.github.digitalsmile.goldberry.render.Cursor;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -173,13 +175,13 @@ class TransformedHitTest {
                 .size(StyleLength.points(200), StyleLength.points(200))
                 .children(Box.filled(0xFF00FF00)
                         .size(StyleLength.points(40), StyleLength.points(40))
-                        .cursor(io.github.digitalsmile.goldberry.backend.Cursor.POINTER)
+                        .cursor(Cursor.POINTER)
                         .transform(Transform.of(new Transform.Function.Translate(
                                 Transform.Length.px(100), Transform.Length.px(100))))));
 
-        assertEquals(io.github.digitalsmile.goldberry.backend.Cursor.POINTER,
+        assertEquals(Cursor.POINTER,
                 HitTest.cursorAt(regions, 120, 120));
-        assertEquals(io.github.digitalsmile.goldberry.backend.Cursor.DEFAULT,
+        assertEquals(Cursor.DEFAULT,
                 HitTest.cursorAt(regions, 20, 20));
     }
 }

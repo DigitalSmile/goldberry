@@ -1,5 +1,6 @@
 package io.github.digitalsmile.goldberry.example.ui;
 
+import io.github.digitalsmile.goldberry.render.model.LogicalRect;
 import io.github.digitalsmile.goldberry.widget.Attributes;
 import io.github.digitalsmile.goldberry.widget.BuildContext;
 import io.github.digitalsmile.goldberry.widget.State;
@@ -135,8 +136,8 @@ public record Scrolling(Runnable startTour) implements Widget.Stateful {
         /// moved — a section already in view is a request that has been met, and
         /// leaving it outstanding would make the next frame act on a stale one.
         private void revealed(
-                io.github.digitalsmile.goldberry.backend.LogicalRect self,
-                io.github.digitalsmile.goldberry.backend.LogicalRect clip) {
+                LogicalRect self,
+                LogicalRect clip) {
             list.reveal(self, clip);
             setState(() -> wanted = null);
         }

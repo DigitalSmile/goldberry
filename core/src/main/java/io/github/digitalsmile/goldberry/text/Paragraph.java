@@ -1,6 +1,6 @@
 package io.github.digitalsmile.goldberry.text;
 
-import io.github.digitalsmile.goldberry.Frame;
+import io.github.digitalsmile.goldberry.paint.Frame;
 import io.github.digitalsmile.goldberry.natives.harfbuzz.GlyphRun;
 import io.github.digitalsmile.goldberry.natives.yoga.MeasureFunction;
 import io.github.digitalsmile.goldberry.natives.yoga.MeasureMode;

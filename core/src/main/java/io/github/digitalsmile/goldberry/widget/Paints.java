@@ -1,7 +1,9 @@
 package io.github.digitalsmile.goldberry.widget;
 
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
-import io.github.digitalsmile.goldberry.layout.Box;
+import io.github.digitalsmile.goldberry.paint.Box;
+import io.github.digitalsmile.goldberry.paint.tree.RenderTree;
+import io.github.digitalsmile.goldberry.stats.FrameStats;
 import io.github.digitalsmile.goldberry.text.Font;
 import io.github.digitalsmile.goldberry.text.Paragraph;
 import java.util.List;
@@ -13,7 +15,7 @@ import java.util.List;
 ///
 /// The [Box] it returns is a **value**, and that is what makes ADR-0004's third
 /// tree possible without changing anything here. The retained render tree
-/// ([io.github.digitalsmile.goldberry.layout.RenderTree]) is reconciled *against*
+/// ([RenderTree]) is reconciled *against*
 /// this box tree rather than replacing it: an immutable description is the ideal
 /// thing to diff, and it keeps a widget's job "describe yourself" rather than
 /// "mutate your render object"
@@ -81,14 +83,14 @@ public interface Paints extends Widget {
         /// looking for it itself would find a different answer than the widget
         /// beside it. Two HUDs in one window report one rate.
         ///
-        /// [io.github.digitalsmile.goldberry.FrameStats#none()] unless something
-        /// told the renderer otherwise — a render into a [io.github.digitalsmile.goldberry.Layer],
+        /// [FrameStats#none()] unless something
+        /// told the renderer otherwise — a render into a [io.github.digitalsmile.goldberry.paint.Layer],
         /// or a test, has no frame loop over it and honestly reports no frames.
         ///
         /// **Read, never recorded.** A widget observes the loop; it does not
         /// contribute to it, and nothing here lets it try.
-        default io.github.digitalsmile.goldberry.FrameStats frames() {
-            return io.github.digitalsmile.goldberry.FrameStats.none();
+        default FrameStats frames() {
+            return FrameStats.none();
         }
 
         /// Whether the user asked for less movement (§1.7).

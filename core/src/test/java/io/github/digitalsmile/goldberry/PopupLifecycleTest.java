@@ -5,17 +5,18 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import io.github.digitalsmile.goldberry.backend.BackendEvent;
-import io.github.digitalsmile.goldberry.backend.LogicalPoint;
-import io.github.digitalsmile.goldberry.backend.LogicalSize;
-import io.github.digitalsmile.goldberry.backend.headless.HeadlessBackend;
-import io.github.digitalsmile.goldberry.backend.headless.HeadlessPopup;
-import io.github.digitalsmile.goldberry.backend.headless.HeadlessWindow;
+import io.github.digitalsmile.goldberry.render.event.BackendEvent;
+import io.github.digitalsmile.goldberry.render.model.LogicalPoint;
+import io.github.digitalsmile.goldberry.render.model.LogicalSize;
+import io.github.digitalsmile.goldberry.render.backend.headless.HeadlessBackend;
+import io.github.digitalsmile.goldberry.render.backend.headless.HeadlessPopup;
+import io.github.digitalsmile.goldberry.render.backend.headless.HeadlessWindow;
+import io.github.digitalsmile.goldberry.render.model.LogicalRect;
 import io.github.digitalsmile.goldberry.css.CascadeLayer;
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
 import io.github.digitalsmile.goldberry.css.Stylesheet;
 import io.github.digitalsmile.goldberry.input.Key;
-import io.github.digitalsmile.goldberry.layout.Box;
+import io.github.digitalsmile.goldberry.paint.Box;
 import io.github.digitalsmile.goldberry.widget.Attributes;
 import io.github.digitalsmile.goldberry.widget.Paints;
 import io.github.digitalsmile.goldberry.widget.Styled;
@@ -294,10 +295,10 @@ class PopupLifecycleTest {
         Goldberry.launch(new TestApp(
                 host -> {
                     wide[0] = host.popup(new Sized("menu"),
-                            io.github.digitalsmile.goldberry.backend.LogicalRect.of(0, 0, 10, 10),
+                            LogicalRect.of(0, 0, 10, 10),
                             Placement.BELOW, 320).orElseThrow().bounds().size();
                     narrow[0] = host.popup(new Sized("menu2"),
-                            io.github.digitalsmile.goldberry.backend.LogicalRect.of(0, 0, 10, 10),
+                            LogicalRect.of(0, 0, 10, 10),
                             Placement.BELOW, 100).orElseThrow().bounds().size();
                 },
                 host -> { }),
@@ -440,7 +441,7 @@ class PopupLifecycleTest {
         Goldberry.launch(new TestApp(
                 host -> {
                     opened[0] = host.popup(new Sized("menu"),
-                            io.github.digitalsmile.goldberry.backend.LogicalRect.of(40, 40, 100, 30),
+                            LogicalRect.of(40, 40, 100, 30),
                             Placement.BELOW).orElseThrow();
                     backing[0] = onlyPopup();
                 },
@@ -511,7 +512,7 @@ class PopupLifecycleTest {
 
     private static void opened(Host host, float x, float y) {
         host.popup(new Sized("menu"),
-                io.github.digitalsmile.goldberry.backend.LogicalRect.of(x, y, 100, 30),
+                LogicalRect.of(x, y, 100, 30),
                 Placement.BELOW).orElseThrow();
     }
 
@@ -531,7 +532,7 @@ class PopupLifecycleTest {
                 host -> {
                     host.popup(new Menu(List.of(
                                     new Item("one", focused), new Item("two", focused))),
-                            io.github.digitalsmile.goldberry.backend.LogicalRect.of(0, 0, 10, 10),
+                            LogicalRect.of(0, 0, 10, 10),
                             Placement.BELOW).orElseThrow();
                     // Queued behind the frames the popup needs to build its tree:
                     // focus traversal walks elements, and there are none until it

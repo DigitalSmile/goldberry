@@ -1,7 +1,7 @@
 package io.github.digitalsmile.goldberry.widgets.form.textarea;
 
 import io.github.digitalsmile.goldberry.Host;
-import io.github.digitalsmile.goldberry.backend.EventLoop;
+import io.github.digitalsmile.goldberry.render.event.EventLoop;
 import io.github.digitalsmile.goldberry.input.Extent;
 import io.github.digitalsmile.goldberry.text.Paragraph;
 import io.github.digitalsmile.goldberry.text.TextLine;

@@ -1,12 +1,13 @@
 package io.github.digitalsmile.goldberry.input;
 
-import io.github.digitalsmile.goldberry.Frame;
-import io.github.digitalsmile.goldberry.backend.Cursor;
+import io.github.digitalsmile.goldberry.paint.Frame;
+import io.github.digitalsmile.goldberry.render.Cursor;
+import io.github.digitalsmile.goldberry.render.model.LogicalRect;
 import io.github.digitalsmile.goldberry.css.Affine;
-import io.github.digitalsmile.goldberry.layout.Box;
-import io.github.digitalsmile.goldberry.layout.BoxPainter;
-import io.github.digitalsmile.goldberry.layout.Clip;
-import io.github.digitalsmile.goldberry.layout.RenderTree;
+import io.github.digitalsmile.goldberry.paint.Box;
+import io.github.digitalsmile.goldberry.paint.BoxPainter;
+import io.github.digitalsmile.goldberry.paint.Clip;
+import io.github.digitalsmile.goldberry.paint.tree.RenderTree;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -106,7 +107,7 @@ public final class HitTest {
         /// is what stops two inversions disagreeing (ADR-0068). Going forwards
         /// means inverting it back, which is exact for the translations this is
         /// ever asked about.
-        public io.github.digitalsmile.goldberry.backend.LogicalRect painted() {
+        public LogicalRect painted() {
             if (inverse == null) {
                 return bounds();
             }
@@ -114,14 +115,14 @@ public final class HitTest {
             if (forward == null) {
                 return bounds();
             }
-            return io.github.digitalsmile.goldberry.backend.LogicalRect.of(
+            return LogicalRect.of(
                     (float) (forward.a() * left + forward.c() * top + forward.e()),
                     (float) (forward.b() * left + forward.d() * top + forward.f()),
                     (float) (forward.a() * width), (float) (forward.d() * height));
         }
 
-        public io.github.digitalsmile.goldberry.backend.LogicalRect bounds() {
-            return io.github.digitalsmile.goldberry.backend.LogicalRect.of(
+        public LogicalRect bounds() {
+            return LogicalRect.of(
                     left, top, width, height);
         }
 

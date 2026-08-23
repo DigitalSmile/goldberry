@@ -1,5 +1,7 @@
 package io.github.digitalsmile.goldberry.input;
 
+import io.github.digitalsmile.goldberry.render.event.BackendEvent;
+
 import java.util.HashMap;
 import java.util.Map;
 
@@ -7,7 +9,7 @@ import java.util.Map;
 ///
 /// Deliberately **not** every key on a keyboard. §7.1 splits keys from text:
 /// anything that produces a character arrives as
-/// [io.github.digitalsmile.goldberry.backend.BackendEvent.TextInput], already
+/// [BackendEvent.TextInput], already
 /// translated through the platform's own layout, compose and IME handling. What
 /// is left — and what is here — is the keys that *do* something rather than type
 /// something: navigation, editing, modifiers, function keys.

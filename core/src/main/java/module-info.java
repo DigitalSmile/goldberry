@@ -52,11 +52,6 @@ module io.github.digitalsmile.goldberry.core {
     // because `Easing` is named by a `transition` a stylesheet writes.
     exports io.github.digitalsmile.goldberry.motion;
 
-    // Where Yoga's layout meets Blend2D's painting (ADR-0033). Not the widget
-    // model -- that is still open (ADR-0004) -- but the join between the two
-    // engines, so the seam is exercised before a widget tree lands on it.
-    exports io.github.digitalsmile.goldberry.layout;
-
     // Icons: the bundled Lucide set and the SVG path reader that gets it onto a
     // Blend2D path (ADR-0043). Separate from `text` because an icon shares
     // nothing with the font chain except the context it is drawn into.
@@ -71,7 +66,14 @@ module io.github.digitalsmile.goldberry.core {
     // `sdl3` will live here too and will be what makes this module `requires`
     // the natives module; `headless` deliberately does not, so tests of
     // everything above the SPI need no native library at all (ADR-0019).
-    exports io.github.digitalsmile.goldberry.backend;
-    exports io.github.digitalsmile.goldberry.backend.headless;
-    exports io.github.digitalsmile.goldberry.backend.sdl3;
+    exports io.github.digitalsmile.goldberry.render.backend.headless;
+    exports io.github.digitalsmile.goldberry.render.backend.sdl3;
+    exports io.github.digitalsmile.goldberry.render.model;
+    exports io.github.digitalsmile.goldberry.render.popup;
+    exports io.github.digitalsmile.goldberry.render.window;
+    exports io.github.digitalsmile.goldberry.render.event;
+    exports io.github.digitalsmile.goldberry.render;
+    exports io.github.digitalsmile.goldberry.stats;
+    exports io.github.digitalsmile.goldberry.paint.tree;
+    exports io.github.digitalsmile.goldberry.paint;
 }

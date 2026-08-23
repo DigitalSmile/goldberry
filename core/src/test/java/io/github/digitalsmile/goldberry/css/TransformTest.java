@@ -9,6 +9,8 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.List;
+
+import io.github.digitalsmile.goldberry.paint.Box;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -314,7 +316,7 @@ class TransformTest {
         @DisplayName("a transform reaches the box through `style`")
         void reachesTheBox() {
             var style = compute("button { transform: rotate(45deg) }");
-            var box = io.github.digitalsmile.goldberry.layout.Box.of().style(style);
+            var box = Box.of().style(style);
             assertEquals(style.transform(), box.transform());
         }
     }

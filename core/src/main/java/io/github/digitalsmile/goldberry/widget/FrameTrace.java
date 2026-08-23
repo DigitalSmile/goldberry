@@ -1,5 +1,7 @@
 package io.github.digitalsmile.goldberry.widget;
 
+import io.github.digitalsmile.goldberry.stats.FrameStats;
+
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -13,7 +15,7 @@ import java.util.Map;
 ///
 /// ## Why this is not logging
 ///
-/// The stage timings ([io.github.digitalsmile.goldberry.FrameStats]) say *which*
+/// The stage timings ([FrameStats]) say *which*
 /// part of a frame is expensive. They cannot say why, and the two times that has
 /// mattered the answer was a count rather than a duration: the style cache
 /// missing on every element ([ADR-0142](../../../../../../book/src/adr/0142-a-style-handed-down-keeps-its-identity.md)),

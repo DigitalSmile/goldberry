@@ -1,7 +1,8 @@
 package io.github.digitalsmile.goldberry.css;
 
 import io.github.digitalsmile.goldberry.assets.BundledFont;
-import io.github.digitalsmile.goldberry.backend.Cursor;
+import io.github.digitalsmile.goldberry.paint.Box;
+import io.github.digitalsmile.goldberry.render.Cursor;
 import io.github.digitalsmile.goldberry.motion.Easing;
 import io.github.digitalsmile.goldberry.natives.log.Logs;
 import io.github.digitalsmile.goldberry.natives.yoga.Align;
@@ -40,7 +41,7 @@ import org.slf4j.Logger;
 /// §8's full list also has `flex-wrap`, `margin`, `min/max`, `position`, `inset`,
 /// `aspect-ratio`, `overflow`, shadows, transforms, transitions and the font
 /// properties. They are absent because
-/// [io.github.digitalsmile.goldberry.layout.Box] cannot express them yet, and a
+/// [Box] cannot express them yet, and a
 /// property that resolves into nothing is a property with no test that means
 /// anything. Each arrives with the thing that paints it — which is why
 /// [#decoration()] is here now and was not before: the design system's radii

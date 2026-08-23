@@ -3,7 +3,10 @@ package io.github.digitalsmile.goldberry.widgets.menu;
 import io.github.digitalsmile.goldberry.Host;
 import io.github.digitalsmile.goldberry.Placement;
 import io.github.digitalsmile.goldberry.Popup;
-import io.github.digitalsmile.goldberry.backend.LogicalRect;
+import io.github.digitalsmile.goldberry.render.event.EventLoop;
+import io.github.digitalsmile.goldberry.render.model.LogicalRect;
+import io.github.digitalsmile.goldberry.render.model.LogicalPoint;
+import io.github.digitalsmile.goldberry.render.model.LogicalSize;
 import io.github.digitalsmile.goldberry.widget.Attributes;
 import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widgets.core.scroll.Scroll;
@@ -260,7 +263,7 @@ public final class Menus {
     /// Static because there is one pointer: two menus cannot both be being
     /// hovered, and a per-menu timer would let a submenu open after the pointer
     /// had already moved to a different menu entirely.
-    private static io.github.digitalsmile.goldberry.backend.EventLoop.Timer pending;
+    private static EventLoop.Timer pending;
 
     /// What the pointer arriving on a row means, after [#HOVER_INTENT].
     ///
@@ -318,10 +321,10 @@ public final class Menus {
         // submenu anchored to the item alone opens *on top of* the border of the
         // menu it came from, which is what it looked like (ADR-0113).
         var menu = parent.bounds();
-        var beside = new io.github.digitalsmile.goldberry.backend.LogicalRect(
-                new io.github.digitalsmile.goldberry.backend.LogicalPoint(
+        var beside = new LogicalRect(
+                new LogicalPoint(
                         menu.left(), row.get().top()),
-                new io.github.digitalsmile.goldberry.backend.LogicalSize(
+                new LogicalSize(
                         menu.width(), row.get().height()));
 
         // `AFTER` and not `BELOW`: a submenu sits beside its menu, and flips to

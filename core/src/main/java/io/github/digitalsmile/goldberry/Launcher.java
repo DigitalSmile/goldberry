@@ -1,10 +1,17 @@
 package io.github.digitalsmile.goldberry;
 
-import io.github.digitalsmile.goldberry.backend.LogicalSize;
+import io.github.digitalsmile.goldberry.render.event.EventLoop;
+import io.github.digitalsmile.goldberry.render.model.LogicalSize;
+import io.github.digitalsmile.goldberry.render.model.LogicalPoint;
+import io.github.digitalsmile.goldberry.render.Clipboard;
+import io.github.digitalsmile.goldberry.render.model.LogicalRect;
+import io.github.digitalsmile.goldberry.render.popup.PopupKind;
+import io.github.digitalsmile.goldberry.render.popup.PopupSpec;
 import io.github.digitalsmile.goldberry.bind.Property;
 import io.github.digitalsmile.goldberry.input.HitTest;
 import io.github.digitalsmile.goldberry.input.PointerRouter;
-import io.github.digitalsmile.goldberry.layout.RenderTree;
+import io.github.digitalsmile.goldberry.paint.tree.RenderTree;
+import io.github.digitalsmile.goldberry.stats.FrameStats;
 import io.github.digitalsmile.goldberry.text.Fonts;
 import io.github.digitalsmile.goldberry.widget.Corner;
 import io.github.digitalsmile.goldberry.widget.ElementTree;
@@ -249,7 +256,7 @@ final class Launcher implements Host {
         return renderer;
     }
 
-    private void paint(io.github.digitalsmile.goldberry.Frame frame) {
+    private void paint(io.github.digitalsmile.goldberry.paint.Frame frame) {
         // Four timestamps rather than four `if (traced)` pairs: the stages are
         // what a `hud` shows, so they are measured on every frame or the number
         // on screen would be a different frame's. Five `nanoTime` calls against a
@@ -311,7 +318,7 @@ final class Launcher implements Host {
         regions = HitTest.capture(render);
         // Before the regions, because a `Located` widget is told what clips it and
         // "nothing clips me" resolves to this (ADR-0119).
-        router.windowBounds(io.github.digitalsmile.goldberry.backend.LogicalRect.of(
+        router.windowBounds(LogicalRect.of(
                 0, 0, frame.size().width(), frame.size().height()));
         router.updateRegions(regions);
 
@@ -391,9 +398,9 @@ final class Launcher implements Host {
                 // what every desktop does and what makes two right-clicks in one
                 // list open two menus in two places.
                 contextMenus.open(named,
-                        new io.github.digitalsmile.goldberry.backend.LogicalRect(
-                                new io.github.digitalsmile.goldberry.backend.LogicalPoint(x, y),
-                                new io.github.digitalsmile.goldberry.backend.LogicalSize(0, 0)));
+                        new LogicalRect(
+                                new LogicalPoint(x, y),
+                                new LogicalSize(0, 0)));
                 return true;
             }
         }
@@ -441,7 +448,7 @@ final class Launcher implements Host {
     private io.github.digitalsmile.goldberry.widget.Element tooltipOwner;
 
     /// The delay in flight, cancelled by anything that moves.
-    private io.github.digitalsmile.goldberry.backend.EventLoop.Timer tooltipTimer;
+    private EventLoop.Timer tooltipTimer;
 
     /// The pointer moved to a different node, or focus did.
     ///
@@ -535,7 +542,7 @@ final class Launcher implements Host {
 
     /// The painted rectangle of an element, by identity — [#anchor] by id, for
     /// the case where the caller has the element itself.
-    private java.util.Optional<io.github.digitalsmile.goldberry.backend.LogicalRect> anchorOf(
+    private java.util.Optional<LogicalRect> anchorOf(
             io.github.digitalsmile.goldberry.widget.Element element) {
         for (var region : regions) {
             if (region.owner() == element) {
@@ -556,7 +563,7 @@ final class Launcher implements Host {
     }
 
     /// The pending "has the application really lost focus" check, or null.
-    private io.github.digitalsmile.goldberry.backend.EventLoop.Timer focusCheck;
+    private EventLoop.Timer focusCheck;
 
     /// How long to wait before believing a focus-lost.
     ///
@@ -738,33 +745,33 @@ final class Launcher implements Host {
 
     @Override
     public java.util.Optional<Popup> popup(Widget content,
-            io.github.digitalsmile.goldberry.backend.LogicalPoint at,
-            io.github.digitalsmile.goldberry.backend.LogicalSize size) {
+            LogicalPoint at,
+            LogicalSize size) {
         return popup(content, at, size,
-                io.github.digitalsmile.goldberry.backend.PopupKind.MENU);
+                PopupKind.MENU);
     }
 
     @Override
     public java.util.Optional<Popup> tooltip(Widget content,
-            io.github.digitalsmile.goldberry.backend.LogicalPoint at,
-            io.github.digitalsmile.goldberry.backend.LogicalSize size) {
+            LogicalPoint at,
+            LogicalSize size) {
         return popup(content, at, size,
-                io.github.digitalsmile.goldberry.backend.PopupKind.TOOLTIP);
+                PopupKind.TOOLTIP);
     }
 
     private java.util.Optional<Popup> popup(Widget content,
-            io.github.digitalsmile.goldberry.backend.LogicalPoint at,
-            io.github.digitalsmile.goldberry.backend.LogicalSize size,
-            io.github.digitalsmile.goldberry.backend.PopupKind kind) {
+            LogicalPoint at,
+            LogicalSize size,
+            PopupKind kind) {
 
         Objects.requireNonNull(content, "content");
         return open(new ElementTree(content, this), RenderTree.create(),
-                new io.github.digitalsmile.goldberry.backend.PopupSpec(at, size, kind));
+                new PopupSpec(at, size, kind));
     }
 
     /// Asks the backend for the window and wires the trees to it.
     private java.util.Optional<Popup> open(ElementTree tree, RenderTree render,
-            io.github.digitalsmile.goldberry.backend.PopupSpec spec) {
+            PopupSpec spec) {
 
         var backend = GoldberryRuntime.get().backend()
                 .createPopup(window.backendWindow(), spec);
@@ -787,24 +794,24 @@ final class Launcher implements Host {
 
     @Override
     public java.util.Optional<Popup> popup(Widget content,
-            io.github.digitalsmile.goldberry.backend.LogicalRect anchor, Placement placement) {
+                                           LogicalRect anchor, Placement placement) {
         return placed(content, anchor, placement,
-                io.github.digitalsmile.goldberry.backend.PopupKind.MENU, 0);
+                PopupKind.MENU, 0);
     }
 
     @Override
     public java.util.Optional<Popup> popup(Widget content,
-            io.github.digitalsmile.goldberry.backend.LogicalRect anchor, Placement placement,
-            float minimumWidth) {
+                                           LogicalRect anchor, Placement placement,
+                                           float minimumWidth) {
         return placed(content, anchor, placement,
-                io.github.digitalsmile.goldberry.backend.PopupKind.MENU, minimumWidth);
+                PopupKind.MENU, minimumWidth);
     }
 
     /// Measure, place, open — the three steps `popover` is made of (ADR-0104),
     /// shared by the menu form and the tooltip one because only the kind differs.
     private java.util.Optional<Popup> placed(Widget content,
-            io.github.digitalsmile.goldberry.backend.LogicalRect anchor, Placement placement,
-            io.github.digitalsmile.goldberry.backend.PopupKind kind, float minimumWidth) {
+                                             LogicalRect anchor, Placement placement,
+                                             PopupKind kind, float minimumWidth) {
 
         Objects.requireNonNull(content, "content");
         Objects.requireNonNull(anchor, "anchor");
@@ -818,7 +825,7 @@ final class Launcher implements Host {
         var size = measure(tree, render, minimumWidth);
         var placed = placement.place(anchor, size, placeableArea());
         return open(tree, render,
-                new io.github.digitalsmile.goldberry.backend.PopupSpec(placed.at(), size, kind));
+                new PopupSpec(placed.at(), size, kind));
     }
 
     /// A tooltip's popup: above by preference, never light-dismissed.
@@ -828,9 +835,9 @@ final class Launcher implements Host {
     /// whatever it is describing — closing it a moment before it was going to
     /// close anyway, and taking the *next* tooltip's timer with it.
     private java.util.Optional<Popup> tooltipPopup(Widget content,
-            io.github.digitalsmile.goldberry.backend.LogicalRect anchor) {
+            LogicalRect anchor) {
         return placed(content, anchor, Placement.ABOVE.align(Placement.Align.CENTER),
-                io.github.digitalsmile.goldberry.backend.PopupKind.TOOLTIP, 0)
+                PopupKind.TOOLTIP, 0)
                 .map(popup -> popup.lightDismiss(false));
     }
 
@@ -864,7 +871,7 @@ final class Launcher implements Host {
     /// The height is never bounded here. A menu taller than the screen is
     /// [Placement]'s to clamp, and it can only clamp a number that means the
     /// content.
-    private io.github.digitalsmile.goldberry.backend.LogicalSize measure(
+    private LogicalSize measure(
             ElementTree tree, RenderTree render, float minimumWidth) {
         var box = renderer().render(tree);
         var natural = render.measure(box, window.scale(), Float.NaN, Float.NaN);
@@ -884,7 +891,7 @@ final class Launcher implements Host {
         // Content that will not stretch -- something with a width of its own --
         // still gets the window the floor asked for, because the floor is about
         // where the popup's *edges* are and not about what is drawn in it.
-        return new io.github.digitalsmile.goldberry.backend.LogicalSize(
+        return new LogicalSize(
                 Math.max(laid.width(), floor), laid.height());
     }
 
@@ -899,13 +906,13 @@ final class Launcher implements Host {
     /// bounds stand in. That is a worse answer and not a wrong one: a popup kept
     /// inside its owner is always on the screen.
     @Override
-    public io.github.digitalsmile.goldberry.backend.LogicalRect placeableArea() {
+    public LogicalRect placeableArea() {
         var backendWindow = window.backendWindow();
         var origin = backendWindow.position();
         var area = backendWindow.workArea();
         if (origin.isEmpty() || area.isEmpty()) {
-            return new io.github.digitalsmile.goldberry.backend.LogicalRect(
-                    io.github.digitalsmile.goldberry.backend.LogicalPoint.ZERO, window.size());
+            return new LogicalRect(
+                    LogicalPoint.ZERO, window.size());
         }
         return area.get().offsetBy(-origin.get().x(), -origin.get().y());
     }
@@ -916,7 +923,7 @@ final class Launcher implements Host {
     }
 
     @Override
-    public io.github.digitalsmile.goldberry.backend.EventLoop.Timer after(
+    public EventLoop.Timer after(
             java.time.Duration delay, Runnable action) {
         return GoldberryRuntime.get().loop().after(delay, action);
     }
@@ -932,7 +939,7 @@ final class Launcher implements Host {
     }
 
     @Override
-    public io.github.digitalsmile.goldberry.backend.Clipboard clipboard() {
+    public Clipboard clipboard() {
         return GoldberryRuntime.get().backend().clipboard();
     }
 

@@ -1,8 +1,8 @@
 package io.github.digitalsmile.goldberry;
 
-import io.github.digitalsmile.goldberry.backend.LogicalPoint;
-import io.github.digitalsmile.goldberry.backend.LogicalRect;
-import io.github.digitalsmile.goldberry.backend.LogicalSize;
+import io.github.digitalsmile.goldberry.render.model.LogicalPoint;
+import io.github.digitalsmile.goldberry.render.model.LogicalRect;
+import io.github.digitalsmile.goldberry.render.model.LogicalSize;
 import java.util.Objects;
 
 /// Where a popup goes relative to the thing that opened it, and what happens

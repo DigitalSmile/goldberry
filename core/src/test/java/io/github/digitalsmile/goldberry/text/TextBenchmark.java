@@ -2,9 +2,9 @@ package io.github.digitalsmile.goldberry.text;
 
 import io.github.digitalsmile.goldberry.RendererRequirement;
 import io.github.digitalsmile.goldberry.assets.BundledFont;
-import io.github.digitalsmile.goldberry.layout.Box;
-import io.github.digitalsmile.goldberry.layout.BoxPainter;
-import io.github.digitalsmile.goldberry.TestFrames;
+import io.github.digitalsmile.goldberry.paint.Box;
+import io.github.digitalsmile.goldberry.paint.BoxPainter;
+import io.github.digitalsmile.goldberry.paint.TestFrames;
 import io.github.digitalsmile.goldberry.natives.yoga.MeasureCallback;
 import io.github.digitalsmile.goldberry.natives.yoga.MeasureMode;
 import io.github.digitalsmile.goldberry.natives.yoga.MeasureProbe;

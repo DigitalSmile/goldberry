@@ -1,7 +1,7 @@
 package io.github.digitalsmile.goldberry.widgets.controls.select;
 
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
-import io.github.digitalsmile.goldberry.layout.Box;
+import io.github.digitalsmile.goldberry.paint.Box;
 import io.github.digitalsmile.goldberry.widget.Paints;
 import io.github.digitalsmile.goldberry.widget.Styled;
 import io.github.digitalsmile.goldberry.widget.Widget;
@@ -17,7 +17,7 @@ import java.util.Set;
 /// painter mark for the same reason: an icon owns native memory that must be
 /// closed exactly once (ADR-0043), and a widget is rebuilt every frame.
 ///
-/// [io.github.digitalsmile.goldberry.layout.Box.Mark.Kind#CHEVRON_DOWN] and not
+/// [Box.Mark.Kind#CHEVRON_DOWN] and not
 /// `CHEVRON_END` turned: §8's subset has no transform on a mark, and the two
 /// point at different places anyway — one says *beside*, the other says *below*.
 record SelectChevron() implements Widget.Leaf, Styled, Paints {

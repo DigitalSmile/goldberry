@@ -16,6 +16,7 @@ import io.github.digitalsmile.goldberry.input.Modifiers;
 import io.github.digitalsmile.goldberry.input.PointerEvent;
 import io.github.digitalsmile.goldberry.input.TextEvent;
 import io.github.digitalsmile.goldberry.kdl.KdlParser;
+import io.github.digitalsmile.goldberry.paint.Box;
 import io.github.digitalsmile.goldberry.widget.ElementTree;
 import io.github.digitalsmile.goldberry.widget.WidgetRenderer;
 import io.github.digitalsmile.goldberry.widgets.Controls;
@@ -822,7 +823,7 @@ class TextInputTest {
         /// The boxes the field describes, rendered by hand — the only way to see
         /// where a caret actually goes, since its position is a measurement
         /// rather than anything a stylesheet or a layout decides.
-        private List<io.github.digitalsmile.goldberry.layout.Box> parts(ElementTree tree) {
+        private List<Box> parts(ElementTree tree) {
             var context = TestFont.context();
             // The **real** resolved style, so the padding this asserts against is
             // the one `controls.css` actually gives a field rather than a number

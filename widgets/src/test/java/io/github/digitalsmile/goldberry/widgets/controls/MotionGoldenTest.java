@@ -1,5 +1,6 @@
 package io.github.digitalsmile.goldberry.widgets.controls;
 
+import io.github.digitalsmile.goldberry.paint.Box;
 import io.github.digitalsmile.goldberry.widget.Attributes;
 import io.github.digitalsmile.goldberry.widgets.core.Row;
 
@@ -14,7 +15,7 @@ import io.github.digitalsmile.goldberry.css.Selector;
 import io.github.digitalsmile.goldberry.css.Stylesheet;
 import io.github.digitalsmile.goldberry.css.Theme;
 import io.github.digitalsmile.goldberry.golden.GoldenImage;
-import io.github.digitalsmile.goldberry.layout.BoxPainter;
+import io.github.digitalsmile.goldberry.paint.BoxPainter;
 import io.github.digitalsmile.goldberry.motion.Clock;
 import io.github.digitalsmile.goldberry.widget.ElementTree;
 import io.github.digitalsmile.goldberry.widget.WidgetRenderer;
@@ -198,7 +199,7 @@ class MotionGoldenTest {
         assertNotEquals(arrived, midway);
     }
 
-    private static int background(io.github.digitalsmile.goldberry.layout.Box root, int child) {
+    private static int background(Box root, int child) {
         return root.children().get(child).background();
     }
 

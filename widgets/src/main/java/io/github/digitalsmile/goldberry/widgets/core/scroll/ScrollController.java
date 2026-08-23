@@ -1,6 +1,6 @@
 package io.github.digitalsmile.goldberry.widgets.core.scroll;
 
-import io.github.digitalsmile.goldberry.backend.LogicalRect;
+import io.github.digitalsmile.goldberry.render.model.LogicalRect;
 
 /// A handle on a [Scroll] that something outside it can hold —
 /// `docs/core-widgets.md` §1's `scrollIntoView(widget)` API.

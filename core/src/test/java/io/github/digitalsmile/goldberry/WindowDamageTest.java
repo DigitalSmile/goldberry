@@ -4,12 +4,12 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import io.github.digitalsmile.goldberry.backend.DamageRect;
-import io.github.digitalsmile.goldberry.backend.DisplayScale;
-import io.github.digitalsmile.goldberry.backend.LogicalSize;
-import io.github.digitalsmile.goldberry.backend.WindowSpec;
-import io.github.digitalsmile.goldberry.backend.headless.HeadlessBackend;
-import io.github.digitalsmile.goldberry.backend.headless.HeadlessWindow;
+import io.github.digitalsmile.goldberry.render.DamageRect;
+import io.github.digitalsmile.goldberry.render.model.DisplayScale;
+import io.github.digitalsmile.goldberry.render.model.LogicalSize;
+import io.github.digitalsmile.goldberry.render.window.WindowSpec;
+import io.github.digitalsmile.goldberry.render.backend.headless.HeadlessBackend;
+import io.github.digitalsmile.goldberry.render.backend.headless.HeadlessWindow;
 import java.util.List;
 import java.util.function.Consumer;
 import org.junit.jupiter.api.AfterEach;
@@ -17,6 +17,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
+import io.github.digitalsmile.goldberry.paint.Frame;
 
 /// What the frame loop tells the platform changed.
 ///

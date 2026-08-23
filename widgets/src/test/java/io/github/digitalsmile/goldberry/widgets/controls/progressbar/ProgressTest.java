@@ -1,5 +1,6 @@
 package io.github.digitalsmile.goldberry.widgets.controls.progressbar;
 
+import io.github.digitalsmile.goldberry.paint.Box;
 import io.github.digitalsmile.goldberry.widget.Attributes;
 import io.github.digitalsmile.goldberry.widgets.core.Row;
 
@@ -25,7 +26,7 @@ import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widget.WidgetRenderer;
 import io.github.digitalsmile.goldberry.widgets.Controls;
 import io.github.digitalsmile.goldberry.widgets.controls.TestFont;
-import io.github.digitalsmile.goldberry.widgets.controls.progressbar.Progress;
+
 import java.util.List;
 import java.util.Set;
 import org.junit.jupiter.api.DisplayName;
@@ -46,7 +47,7 @@ class ProgressTest {
             new Attributes("p", Set.of(), "p");
 
     /// The box tree a renderer produces for `widget` at `now` on a virtual clock.
-    private static io.github.digitalsmile.goldberry.layout.Box paint(Widget widget, double now) {
+    private static Box paint(Widget widget, double now) {
         var clock = Clock.virtual();
         var renderer = new WidgetRenderer(Controls.stylesheets(Theme.NORD_DARK), TestFont.get())
                 .clock(clock);
@@ -54,7 +55,7 @@ class ProgressTest {
         return renderer.render(new ElementTree(widget));
     }
 
-    private static io.github.digitalsmile.goldberry.layout.Box fillOf(Widget widget, double now) {
+    private static Box fillOf(Widget widget, double now) {
         return paint(widget, now).children().getFirst();
     }
 
@@ -262,7 +263,7 @@ class ProgressTest {
             assertTrue(fill.transform().isNone());
         }
 
-        private static double translateOf(io.github.digitalsmile.goldberry.layout.Box box) {
+        private static double translateOf(Box box) {
             if (box.transform().functions().getFirst()
                     instanceof Transform.Function.Translate(var x, var ignored)) {
                 assertTrue(x.percentage(), "the travel is a proportion of the bar itself");

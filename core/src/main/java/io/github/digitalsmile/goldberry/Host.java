@@ -1,5 +1,12 @@
 package io.github.digitalsmile.goldberry;
 
+import io.github.digitalsmile.goldberry.render.Clipboard;
+import io.github.digitalsmile.goldberry.render.event.EventLoop;
+import io.github.digitalsmile.goldberry.render.model.LogicalPoint;
+import io.github.digitalsmile.goldberry.render.model.LogicalRect;
+import io.github.digitalsmile.goldberry.render.model.LogicalSize;
+import io.github.digitalsmile.goldberry.render.window.BackendWindow;
+import io.github.digitalsmile.goldberry.stats.FrameStats;
 import io.github.digitalsmile.goldberry.text.Fonts;
 import io.github.digitalsmile.goldberry.widget.Corner;
 import io.github.digitalsmile.goldberry.widget.Widget;
@@ -157,14 +164,14 @@ public interface Host {
     ///                measure against
     /// @return the popup, or empty if the platform has no popup windows
     java.util.Optional<Popup> popup(Widget content,
-            io.github.digitalsmile.goldberry.backend.LogicalPoint at,
-            io.github.digitalsmile.goldberry.backend.LogicalSize size);
+            LogicalPoint at,
+            LogicalSize size);
 
     /// [#popup(Widget, LogicalPoint, LogicalSize)] as a tooltip: never focusable,
     /// and treated as a tooltip by the window manager.
     java.util.Optional<Popup> tooltip(Widget content,
-            io.github.digitalsmile.goldberry.backend.LogicalPoint at,
-            io.github.digitalsmile.goldberry.backend.LogicalSize size);
+            LogicalPoint at,
+            LogicalSize size);
 
     /// Opens a popup **against a rectangle**, sized to its own content and moved
     /// to stay on the screen.
@@ -191,7 +198,7 @@ public interface Host {
     /// Empty for [#popup(Widget, LogicalPoint, LogicalSize)]'s reason: the
     /// platform may have no popup windows.
     java.util.Optional<Popup> popup(Widget content,
-            io.github.digitalsmile.goldberry.backend.LogicalRect anchor, Placement placement);
+                                    LogicalRect anchor, Placement placement);
 
     /// [#popup(Widget, LogicalRect, Placement)] with a floor under the width.
     ///
@@ -213,8 +220,8 @@ public interface Host {
     ///
     /// @param minimumWidth the least the popup may be, in logical pixels
     java.util.Optional<Popup> popup(Widget content,
-            io.github.digitalsmile.goldberry.backend.LogicalRect anchor, Placement placement,
-            float minimumWidth);
+                                    LogicalRect anchor, Placement placement,
+                                    float minimumWidth);
 
     /// Where a popup is allowed to be, in this window's coordinates.
     ///
@@ -228,7 +235,7 @@ public interface Host {
     /// **A rectangle and not just a height**, because the same question arises
     /// horizontally for a wide popup and answering half of it would mean
     /// answering it twice.
-    io.github.digitalsmile.goldberry.backend.LogicalRect placeableArea();
+    LogicalRect placeableArea();
 
     /// [#popup(Widget, LogicalRect, Placement)] against the node with this id —
     /// "open this under that button", in one call.
@@ -268,7 +275,7 @@ public interface Host {
     /// rather than a thread ([ADR-0105](../../../../../book/src/adr/0105-a-tooltip-is-an-attribute-not-a-widget.md)).
     ///
     /// @return a handle that cancels it
-    io.github.digitalsmile.goldberry.backend.EventLoop.Timer after(
+    EventLoop.Timer after(
             java.time.Duration delay, Runnable action);
 
     /// What the frame loop has been managing lately.
@@ -290,16 +297,16 @@ public interface Host {
     /// exists to avoid (ADR-0140).
     ///
     /// Never null: a platform with no clipboard reports
-    /// [io.github.digitalsmile.goldberry.backend.Clipboard#none()], which accepts
+    /// [Clipboard#none()], which accepts
     /// nothing and always reads empty.
-    io.github.digitalsmile.goldberry.backend.Clipboard clipboard();
+    Clipboard clipboard();
 
     /// Asks the platform to start or stop delivering committed text to this
     /// window.
     ///
     /// What a field calls when focus arrives and when it leaves. Off by default
     /// and per window — see
-    /// [io.github.digitalsmile.goldberry.backend.BackendWindow#textInput(boolean)]
+    /// [BackendWindow#textInput(boolean)]
     /// for why a toolkit must not simply turn it on and leave it on.
     void textInput(boolean active);
 

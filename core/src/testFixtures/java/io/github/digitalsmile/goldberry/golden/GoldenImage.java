@@ -1,6 +1,6 @@
 package io.github.digitalsmile.goldberry.golden;
 
-import io.github.digitalsmile.goldberry.TestFrames;
+import io.github.digitalsmile.goldberry.paint.TestFrames;
 import java.nio.ByteOrder;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -74,7 +74,7 @@ public final class GoldenImage {
     ///
     /// @param name the golden's file name without an extension
     public static void assertMatches(
-            String name, int width, int height, float scale, Consumer<io.github.digitalsmile.goldberry.Frame> scene) {
+            String name, int width, int height, float scale, Consumer<io.github.digitalsmile.goldberry.paint.Frame> scene) {
 
         var target = TestFrames.of(width, height, scale);
         try {

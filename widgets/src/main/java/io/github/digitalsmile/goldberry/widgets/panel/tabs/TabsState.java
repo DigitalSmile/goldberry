@@ -1,5 +1,6 @@
 package io.github.digitalsmile.goldberry.widgets.panel.tabs;
 
+import io.github.digitalsmile.goldberry.render.model.LogicalRect;
 import io.github.digitalsmile.goldberry.widget.BuildContext;
 import io.github.digitalsmile.goldberry.widgets.core.scroll.ScrollController;
 import io.github.digitalsmile.goldberry.widget.State;
@@ -72,8 +73,8 @@ final class TabsState extends State<Tabs> {
     /// Handed the selected header's rectangle and the one that clips it, which is
     /// the strip's viewport — the controller turns those two into a distance and
     /// the viewport clamps it ([ADR-0119], [ADR-0120]).
-    private void revealed(io.github.digitalsmile.goldberry.backend.LogicalRect self,
-            io.github.digitalsmile.goldberry.backend.LogicalRect clip) {
+    private void revealed(LogicalRect self,
+                          LogicalRect clip) {
         if (pendingReveal == null) {
             return;
         }

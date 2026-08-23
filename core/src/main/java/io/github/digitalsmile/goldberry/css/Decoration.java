@@ -1,10 +1,12 @@
 package io.github.digitalsmile.goldberry.css;
 
+import io.github.digitalsmile.goldberry.paint.Box;
+
 /// What is drawn *around* a box rather than in it: the corner radius, the border
 /// and the focus ring.
 ///
 /// One record rather than six components on [ComputedStyle] and six more on
-/// [io.github.digitalsmile.goldberry.layout.Box], because they are only ever read
+/// [Box], because they are only ever read
 /// together — the painter that draws a border needs the radius to draw it along,
 /// and the ring needs both to sit outside them. Splitting them would put six
 /// arguments through every constructor call in the cascade for no reader's
@@ -110,7 +112,7 @@ public record Decoration(
     /// This decoration with every colour's alpha scaled by `alpha`.
     ///
     /// How `opacity` reaches a border and a ring — see
-    /// [io.github.digitalsmile.goldberry.layout.Box#fade(double)], which is where
+    /// [Box#fade(double)], which is where
     /// the reasoning for multiplying alpha rather than compositing a layer is
     /// written down.
     public Decoration fade(double alpha) {

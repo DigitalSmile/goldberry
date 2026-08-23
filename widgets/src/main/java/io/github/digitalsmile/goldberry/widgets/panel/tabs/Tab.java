@@ -1,5 +1,6 @@
 package io.github.digitalsmile.goldberry.widgets.panel.tabs;
 
+import io.github.digitalsmile.goldberry.render.model.LogicalRect;
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
 import io.github.digitalsmile.goldberry.css.Transform;
 import io.github.digitalsmile.goldberry.icon.Icon;
@@ -7,7 +8,7 @@ import io.github.digitalsmile.goldberry.input.Handles;
 import io.github.digitalsmile.goldberry.input.Key;
 import io.github.digitalsmile.goldberry.input.KeyEvent;
 import io.github.digitalsmile.goldberry.input.PointerEvent;
-import io.github.digitalsmile.goldberry.layout.Box;
+import io.github.digitalsmile.goldberry.paint.Box;
 import io.github.digitalsmile.goldberry.widget.Attributed;
 import io.github.digitalsmile.goldberry.widget.Attributes;
 import io.github.digitalsmile.goldberry.widget.Paints;
@@ -78,8 +79,8 @@ public record Tab(
         java.util.function.BooleanSupplier animating,
         java.util.function.DoubleUnaryOperator visibility,
         java.util.function.BiConsumer<
-                io.github.digitalsmile.goldberry.backend.LogicalRect,
-                io.github.digitalsmile.goldberry.backend.LogicalRect> reveal,
+                LogicalRect,
+                LogicalRect> reveal,
         Attributes attributes)
         implements Widget.Leaf, Styled, Paints, Handles,
                 io.github.digitalsmile.goldberry.input.Located, Attributed<Tab> {
@@ -133,15 +134,15 @@ public record Tab(
             java.util.function.BooleanSupplier isAnimating,
             java.util.function.DoubleUnaryOperator howVisible,
             java.util.function.BiConsumer<
-                    io.github.digitalsmile.goldberry.backend.LogicalRect,
-                    io.github.digitalsmile.goldberry.backend.LogicalRect> reveal) {
+                    LogicalRect,
+                    LogicalRect> reveal) {
         return new Tab(value, label, icon, colour, closable, content, isSelected, select, close,
                 isAnimating, howVisible, reveal, attributes);
     }
 
     @Override
-    public void located(io.github.digitalsmile.goldberry.backend.LogicalRect self,
-            io.github.digitalsmile.goldberry.backend.LogicalRect clip) {
+    public void located(LogicalRect self,
+                        LogicalRect clip) {
         if (reveal != null) {
             reveal.accept(self, clip);
         }

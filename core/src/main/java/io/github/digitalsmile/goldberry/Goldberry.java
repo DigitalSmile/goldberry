@@ -1,5 +1,7 @@
 package io.github.digitalsmile.goldberry;
 
+import io.github.digitalsmile.goldberry.render.BackendException;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
@@ -44,7 +46,7 @@ public final class Goldberry {
     /// whenever nothing is happening — an application that draws nothing costs
     /// nothing.
     ///
-    /// @throws io.github.digitalsmile.goldberry.backend.BackendException if no
+    /// @throws BackendException if no
     ///         window has been opened, or if called off the UI thread
     public static void run() {
         if (!GoldberryRuntime.isStarted()) {

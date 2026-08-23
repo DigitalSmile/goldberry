@@ -1,6 +1,6 @@
 package io.github.digitalsmile.goldberry.input;
 
-import io.github.digitalsmile.goldberry.backend.LogicalRect;
+import io.github.digitalsmile.goldberry.render.model.LogicalRect;
 import io.github.digitalsmile.goldberry.widget.Widget;
 
 /// A widget that wants to be told **where** it ended up, and what confines it.

@@ -1,17 +1,18 @@
 package io.github.digitalsmile.goldberry.widgets;
 
 import io.github.digitalsmile.goldberry.ContextMenuHandler;
-import io.github.digitalsmile.goldberry.FrameStats;
+import io.github.digitalsmile.goldberry.stats.FrameStats;
 import io.github.digitalsmile.goldberry.Host;
 import io.github.digitalsmile.goldberry.Overlay;
 import io.github.digitalsmile.goldberry.Placement;
 import io.github.digitalsmile.goldberry.Popup;
 import io.github.digitalsmile.goldberry.Window;
-import io.github.digitalsmile.goldberry.backend.Clipboard;
-import io.github.digitalsmile.goldberry.backend.EventLoop;
-import io.github.digitalsmile.goldberry.backend.LogicalPoint;
-import io.github.digitalsmile.goldberry.backend.LogicalRect;
-import io.github.digitalsmile.goldberry.backend.LogicalSize;
+import io.github.digitalsmile.goldberry.render.Clipboard;
+import io.github.digitalsmile.goldberry.render.event.EventLoop;
+import io.github.digitalsmile.goldberry.render.model.LogicalPoint;
+import io.github.digitalsmile.goldberry.render.model.LogicalRect;
+import io.github.digitalsmile.goldberry.render.model.LogicalSize;
+import io.github.digitalsmile.goldberry.render.window.BackendWindow;
 import io.github.digitalsmile.goldberry.input.HitTest;
 import io.github.digitalsmile.goldberry.input.Shortcut;
 import io.github.digitalsmile.goldberry.text.Fonts;
@@ -204,7 +205,7 @@ public class TestHost implements Host {
     public EventLoop.Timer after(Duration delay, Runnable action) {
         scheduled.add(action);
         delays.add(delay);
-        var timer = io.github.digitalsmile.goldberry.backend.TestTimers.pending();
+        var timer = io.github.digitalsmile.goldberry.render.event.TestTimers.pending();
         timers.add(timer);
         return timer;
     }
@@ -283,7 +284,7 @@ public class TestHost implements Host {
 
     /// Whether a field asked the platform to start delivering committed text —
     /// the contract
-    /// [io.github.digitalsmile.goldberry.backend.BackendWindow#textInput(boolean)]
+    /// [BackendWindow#textInput(boolean)]
     /// puts on anything editable.
     public boolean isTextInputActive() {
         return textInputActive;

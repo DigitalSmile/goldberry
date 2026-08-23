@@ -1,6 +1,6 @@
 package io.github.digitalsmile.goldberry.widgets.overlay.hud;
 
-import io.github.digitalsmile.goldberry.FrameStats;
+import io.github.digitalsmile.goldberry.stats.FrameStats;
 import java.util.Locale;
 
 /// One number a [Hud] can show.

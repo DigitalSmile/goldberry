@@ -1,7 +1,8 @@
 package io.github.digitalsmile.goldberry.widgets.overlay.hud;
 
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
-import io.github.digitalsmile.goldberry.layout.Box;
+import io.github.digitalsmile.goldberry.paint.Box;
+import io.github.digitalsmile.goldberry.stats.FrameStats;
 import io.github.digitalsmile.goldberry.widget.Paints;
 import io.github.digitalsmile.goldberry.widget.Styled;
 import io.github.digitalsmile.goldberry.widget.Widget;
@@ -44,7 +45,7 @@ record HudCaption() implements Widget.Leaf, Styled, Paints {
     }
 
     /// What the numbers are, in the fewest words that are still true.
-    private static String text(io.github.digitalsmile.goldberry.FrameStats frames) {
+    private static String text(FrameStats frames) {
         if (frames == null || frames.isEmpty()) {
             return "no frames measured";
         }

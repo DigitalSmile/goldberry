@@ -1,7 +1,8 @@
 package io.github.digitalsmile.goldberry.widgets.overlay.hud;
 
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
-import io.github.digitalsmile.goldberry.layout.Box;
+import io.github.digitalsmile.goldberry.paint.Box;
+import io.github.digitalsmile.goldberry.stats.FrameStats;
 import io.github.digitalsmile.goldberry.widget.Paints;
 import io.github.digitalsmile.goldberry.widget.Styled;
 import io.github.digitalsmile.goldberry.widget.Widget;
@@ -35,7 +36,7 @@ record HudReading(Reading reading) implements Widget.Leaf, Styled, Paints {
     /// ([ADR-0150](../../../../../../../../book/src/adr/0150-a-hud-reads-itself-against-a-budget.md)).
     ///
     /// **The level cannot be in [#classes()]**, and that is what
-    /// [Styled#classes(io.github.digitalsmile.goldberry.FrameStats)] exists for:
+    /// [Styled#classes(FrameStats)] exists for:
     /// the cascade reads a node's classes before that node's `render` runs, and
     /// the frame statistics only arrive in `render`. A widget is a value, so it
     /// cannot hold the answer between the two either.
@@ -45,7 +46,7 @@ record HudReading(Reading reading) implements Widget.Leaf, Styled, Paints {
     }
 
     @Override
-    public Set<String> classes(io.github.digitalsmile.goldberry.FrameStats frames) {
+    public Set<String> classes(FrameStats frames) {
         return Set.of(reading.level(frames).cssClass());
     }
 

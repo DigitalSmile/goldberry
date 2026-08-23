@@ -1,7 +1,8 @@
 package io.github.digitalsmile.goldberry.widgets.overlay.hud;
 
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
-import io.github.digitalsmile.goldberry.layout.Box;
+import io.github.digitalsmile.goldberry.paint.Box;
+import io.github.digitalsmile.goldberry.stats.FrameStats;
 import io.github.digitalsmile.goldberry.widget.Attributed;
 import io.github.digitalsmile.goldberry.widget.Attributes;
 import io.github.digitalsmile.goldberry.widget.Paints;
@@ -44,7 +45,7 @@ import io.github.digitalsmile.goldberry.widgets.Markup;
 ///
 /// ## The numbers come down the render context
 ///
-/// [io.github.digitalsmile.goldberry.FrameStats] arrives on
+/// [FrameStats] arrives on
 /// [Paints.Context#frames()], beside the frame clock and for the same reason: it
 /// is a fact about the frame being rendered rather than about this node, and two
 /// HUDs in one window must not disagree. Nothing is passed in when one is built,
@@ -52,7 +53,7 @@ import io.github.digitalsmile.goldberry.widgets.Markup;
 /// hand the renderer numbers it chose and get a golden image out.
 ///
 /// A HUD rendered with no frame loop over it — inside a unit test, or into a
-/// [io.github.digitalsmile.goldberry.Layer] — draws dashes rather than zeroes. A
+/// [io.github.digitalsmile.goldberry.paint.Layer] — draws dashes rather than zeroes. A
 /// zero is a measurement.
 ///
 /// @param readings   which readings to show, in order. Never empty

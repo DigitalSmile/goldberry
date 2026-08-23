@@ -6,6 +6,8 @@ import io.github.digitalsmile.goldberry.css.ComputedStyle;
 import io.github.digitalsmile.goldberry.css.StyleElement;
 import io.github.digitalsmile.goldberry.css.StyleResolver;
 import io.github.digitalsmile.goldberry.motion.Animations;
+import io.github.digitalsmile.goldberry.stats.FrameStats;
+
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -193,7 +195,7 @@ public final class Element implements BuildContext, StyleElement {
     /// The narrow half of [#invalidateStyle], for the caller that has asked
     /// whether the subtree can be affected and been told no (ADR-0149).
     /// The classes this node's widget computed from the frame — see
-    /// [Styled#classes(io.github.digitalsmile.goldberry.FrameStats)].
+    /// [Styled#classes(FrameStats)].
     private Set<String> frameClasses = Set.of();
 
     /// Told by the renderer, before the cascade is asked.

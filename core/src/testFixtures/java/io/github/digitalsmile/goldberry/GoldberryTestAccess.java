@@ -1,6 +1,6 @@
 package io.github.digitalsmile.goldberry;
 
-import io.github.digitalsmile.goldberry.backend.Backend;
+import io.github.digitalsmile.goldberry.render.Backend;
 
 /// Reaches the package-private runtime from a test in another package.
 ///

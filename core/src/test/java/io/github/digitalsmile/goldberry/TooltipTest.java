@@ -4,16 +4,18 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import io.github.digitalsmile.goldberry.backend.BackendEvent;
-import io.github.digitalsmile.goldberry.backend.LogicalSize;
-import io.github.digitalsmile.goldberry.backend.PopupKind;
-import io.github.digitalsmile.goldberry.backend.headless.HeadlessBackend;
-import io.github.digitalsmile.goldberry.backend.headless.HeadlessPopup;
-import io.github.digitalsmile.goldberry.backend.headless.HeadlessWindow;
+import io.github.digitalsmile.goldberry.render.event.BackendEvent;
+import io.github.digitalsmile.goldberry.render.Cursor;
+import io.github.digitalsmile.goldberry.render.event.EventLoop;
+import io.github.digitalsmile.goldberry.render.model.LogicalSize;
+import io.github.digitalsmile.goldberry.render.popup.PopupKind;
+import io.github.digitalsmile.goldberry.render.backend.headless.HeadlessBackend;
+import io.github.digitalsmile.goldberry.render.backend.headless.HeadlessPopup;
+import io.github.digitalsmile.goldberry.render.backend.headless.HeadlessWindow;
 import io.github.digitalsmile.goldberry.css.CascadeLayer;
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
 import io.github.digitalsmile.goldberry.css.Stylesheet;
-import io.github.digitalsmile.goldberry.layout.Box;
+import io.github.digitalsmile.goldberry.paint.Box;
 import io.github.digitalsmile.goldberry.widget.Attributed;
 import io.github.digitalsmile.goldberry.widget.Attributes;
 import io.github.digitalsmile.goldberry.widget.Paints;
@@ -208,7 +210,7 @@ class TooltipTest {
 
     /// Runs `action` on the UI thread after `millis`.
     ///
-    /// Waiting on a virtual thread rather than on [io.github.digitalsmile.goldberry.backend.EventLoop#after],
+    /// Waiting on a virtual thread rather than on [EventLoop#after],
     /// deliberately: the loop's own timer is what is under test here, and a test
     /// that measured it with itself would pass whatever it did.
     /// The cursor the owner window is showing, and what it is hovering — the two
@@ -217,7 +219,7 @@ class TooltipTest {
     @Timeout(20)
     @DisplayName("a tooltip appearing does not take the hover off what it describes")
     void doesNotDisturbTheHover() {
-        var cursorAfter = new io.github.digitalsmile.goldberry.backend.Cursor[1];
+        var cursorAfter = new Cursor[1];
         var hoveredAfter = new boolean[1];
         Goldberry.launch(new TestApp(
                 new Target(Attributes.NONE.tooltip("Save the document")).id("target"),
@@ -229,7 +231,7 @@ class TooltipTest {
                         }))));
 
         assertTrue(hoveredAfter[0], "the tooltip is up");
-        assertEquals(io.github.digitalsmile.goldberry.backend.Cursor.POINTER, cursorAfter[0],
+        assertEquals(Cursor.POINTER, cursorAfter[0],
                 "and the pointer still shows what it is over");
     }
 

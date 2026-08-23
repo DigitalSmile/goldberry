@@ -1,7 +1,9 @@
 package io.github.digitalsmile.goldberry.widget;
 
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
-import io.github.digitalsmile.goldberry.layout.Box;
+import io.github.digitalsmile.goldberry.paint.Box;
+import io.github.digitalsmile.goldberry.paint.tree.RenderTree;
+
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
@@ -44,7 +46,7 @@ public record TooltipPanel(String text) implements Widget.Leaf, Styled, Paints {
 
     /// One text box, sized by the text.
     ///
-    /// Not growing, for [io.github.digitalsmile.goldberry.layout.RenderTree#measure]'s
+    /// Not growing, for [RenderTree#measure]'s
     /// reason: this is measured with nothing definite to find out how big its
     /// window should be, and a root that grows fills whatever it was measured
     /// against.

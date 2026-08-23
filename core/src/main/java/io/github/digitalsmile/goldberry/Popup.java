@@ -1,17 +1,19 @@
 package io.github.digitalsmile.goldberry;
 
-import io.github.digitalsmile.goldberry.backend.BackendPopup;
-import io.github.digitalsmile.goldberry.backend.LogicalPoint;
-import io.github.digitalsmile.goldberry.backend.LogicalSize;
+import io.github.digitalsmile.goldberry.render.popup.BackendPopup;
+import io.github.digitalsmile.goldberry.render.model.LogicalPoint;
+import io.github.digitalsmile.goldberry.render.model.LogicalSize;
+import io.github.digitalsmile.goldberry.render.model.LogicalRect;
 import io.github.digitalsmile.goldberry.input.HitTest;
 import io.github.digitalsmile.goldberry.input.PointerRouter;
-import io.github.digitalsmile.goldberry.layout.RenderTree;
+import io.github.digitalsmile.goldberry.paint.tree.RenderTree;
 import io.github.digitalsmile.goldberry.widget.ElementTree;
 import io.github.digitalsmile.goldberry.widget.WidgetRenderer;
 import java.util.Objects;
 import java.util.function.Supplier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import io.github.digitalsmile.goldberry.paint.Frame;
 
 /// A widget tree in a platform window of its own — a menu, a dropdown, a
 /// tooltip.
@@ -141,7 +143,7 @@ public final class Popup implements AutoCloseable {
     /// item that opens a submenu has to ask the popup it is in — and the answer
     /// is translated by this popup's own offset, because that is the space
     /// `Host.popup` places in.
-    public java.util.Optional<io.github.digitalsmile.goldberry.backend.LogicalRect> anchor(
+    public java.util.Optional<LogicalRect> anchor(
             String id) {
         Objects.requireNonNull(id, "id");
         for (var region : regions) {
@@ -163,8 +165,8 @@ public final class Popup implements AutoCloseable {
     /// padding and its border — an item's right edge is a few pixels inside the
     /// menu's, so a submenu anchored to the item overlaps the border of the menu
     /// it came from ([ADR-0113](../../../../../book/src/adr/0113-a-submenu-is-placed-beside-its-menu.md)).
-    public io.github.digitalsmile.goldberry.backend.LogicalRect bounds() {
-        return new io.github.digitalsmile.goldberry.backend.LogicalRect(
+    public LogicalRect bounds() {
+        return new LogicalRect(
                 backend.offset(), window.size());
     }
 
@@ -254,7 +256,7 @@ public final class Popup implements AutoCloseable {
         // machinery for a saving nobody can measure on a 180×132 menu.
         render.paint(frame);
         regions = HitTest.capture(render);
-        router.windowBounds(io.github.digitalsmile.goldberry.backend.LogicalRect.of(
+        router.windowBounds(LogicalRect.of(
                 0, 0, frame.size().width(), frame.size().height()));
         router.updateRegions(regions);
         if (!focused) {
