@@ -25,7 +25,7 @@ import java.lang.foreign.MemorySegment;
 /// Confined to the thread that created it, and must be closed.
 public final class BlendPath implements AutoCloseable {
 
-    private final Blend2D blend2d = Blend2D.get();
+    private final Blend2dPath calls = Blend2dPath.get();
     private final Arena arena;
     private final MemorySegment path;
     private final Thread owner = Thread.currentThread();
@@ -36,7 +36,7 @@ public final class BlendPath implements AutoCloseable {
         this.arena = Arena.ofConfined();
         try {
             this.path = arena.allocate(Layouts.BL_PATH_CORE.layout());
-            blend2d.pathInit(path);
+            calls.pathInit(path);
         } catch (RuntimeException | Error e) {
             arena.close();
             throw e;
@@ -51,39 +51,39 @@ public final class BlendPath implements AutoCloseable {
     /// Starts a new sub-path at `(x, y)` — SVG's `M`.
     public void moveTo(double x, double y) {
         requireUsable();
-        blend2d.pathMoveTo(path, x, y);
+        calls.pathMoveTo(path, x, y);
     }
 
     /// A straight segment to `(x, y)` — SVG's `L`.
     public void lineTo(double x, double y) {
         requireUsable();
-        blend2d.pathLineTo(path, x, y);
+        calls.pathLineTo(path, x, y);
     }
 
     /// A quadratic curve through control `(x1, y1)` to `(x2, y2)` — SVG's `Q`.
     public void quadTo(double x1, double y1, double x2, double y2) {
         requireUsable();
-        blend2d.pathQuadTo(path, x1, y1, x2, y2);
+        calls.pathQuadTo(path, x1, y1, x2, y2);
     }
 
     /// A cubic curve through two controls to `(x3, y3)` — SVG's `C`.
     public void cubicTo(double x1, double y1, double x2, double y2, double x3, double y3) {
         requireUsable();
-        blend2d.pathCubicTo(path, x1, y1, x2, y2, x3, y3);
+        calls.pathCubicTo(path, x1, y1, x2, y2, x3, y3);
     }
 
     /// A quadratic whose control is the reflection of the previous one — SVG's
     /// `T`.
     public void smoothQuadTo(double x2, double y2) {
         requireUsable();
-        blend2d.pathSmoothQuadTo(path, x2, y2);
+        calls.pathSmoothQuadTo(path, x2, y2);
     }
 
     /// A cubic whose first control is the reflection of the previous second
     /// one — SVG's `S`.
     public void smoothCubicTo(double x2, double y2, double x3, double y3) {
         requireUsable();
-        blend2d.pathSmoothCubicTo(path, x2, y2, x3, y3);
+        calls.pathSmoothCubicTo(path, x2, y2, x3, y3);
     }
 
     /// An elliptic arc to `(x, y)` — SVG's `A`.
@@ -102,7 +102,7 @@ public final class BlendPath implements AutoCloseable {
             double rx, double ry, double rotation, boolean largeArc, boolean sweep,
             double x, double y) {
         requireUsable();
-        blend2d.pathEllipticArcTo(path, rx, ry, rotation, largeArc, sweep, x, y);
+        calls.pathEllipticArcTo(path, rx, ry, rotation, largeArc, sweep, x, y);
     }
 
     /// Closes the current sub-path — SVG's `Z`.
@@ -112,13 +112,13 @@ public final class BlendPath implements AutoCloseable {
     /// mean `try-with-resources` silently drawing a closing segment.
     public void closeSubPath() {
         requireUsable();
-        blend2d.pathClose(path);
+        calls.pathClose(path);
     }
 
     /// Discards every command, keeping the path usable.
     public void reset() {
         requireUsable();
-        blend2d.pathReset(path);
+        calls.pathReset(path);
     }
 
     /// How many vertices the path holds.
@@ -128,7 +128,7 @@ public final class BlendPath implements AutoCloseable {
     /// distinguishable from one that silently swallowed its input.
     public long vertexCount() {
         requireUsable();
-        return blend2d.pathSize(path);
+        return calls.pathSize(path);
     }
 
     /// Whether the path holds no commands at all.
@@ -152,7 +152,7 @@ public final class BlendPath implements AutoCloseable {
         requireOwner();
         closed = true;
         try {
-            blend2d.pathDestroy(path);
+            calls.pathDestroy(path);
         } finally {
             arena.close();
         }

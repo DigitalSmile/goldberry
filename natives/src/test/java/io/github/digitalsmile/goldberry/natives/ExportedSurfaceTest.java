@@ -162,18 +162,73 @@ class ExportedSurfaceTest {
     }
 
     @Test
-    @DisplayName("keeps each library's binding class out of reach")
-    void bindingClassesAreNotPublic() throws ClassNotFoundException {
-        var bindings = List.of(
-                "io.github.digitalsmile.goldberry.natives.blend2d.Blend2D",
-                "io.github.digitalsmile.goldberry.natives.yoga.Yoga",
-                "io.github.digitalsmile.goldberry.natives.harfbuzz.HarfBuzz");
-        for (var name : bindings) {
-            var type = Class.forName(name, false, ExportedSurfaceTest.class.getClassLoader());
-            assertFalse(Modifier.isPublic(type.getModifiers()),
-                    name + " is the raw downcall layer. It is package-private so that only the "
-                            + "wrappers beside it can call it; making it public to reach it from "
-                            + "another package would be the split going one class too far.");
+    @DisplayName("keeps the holders themselves out of reach")
+    void holderPackagesAreNotExported() throws ClassNotFoundException {
+        var root = classesRoot();
+        var exported = exportedPackages();
+        var leaked = new ArrayList<String>();
+        var found = 0;
+
+        for (var name : classNames(root)) {
+            if (!name.endsWith("Calls") && !name.contains("Calls$")) {
+                continue;
+            }
+            found++;
+            if (exported.contains(packageOf(name))) {
+                leaked.add(name);
+            }
         }
+
+        assertTrue(found > 100,
+                "found only " + found + " holder classes; this test discovers them by walking the "
+                        + "compiled classes, and finding almost none means it checks nothing");
+        assertTrue(leaked.isEmpty(),
+                "a holder's `call` takes and returns raw addresses, and its package is what "
+                        + "--initialize-at-build-time names (ADR-0173). Exporting one puts the "
+                        + "foreign boundary in an application's reach: " + leaked);
+    }
+
+    @Test
+    @DisplayName("keeps a wrapped library's binding classes package-private")
+    void wrappedLibraryBindingsAreNotPublic() throws ClassNotFoundException {
+        // Blend2D, Yoga and HarfBuzz are reached only through wrappers that own
+        // the handle -- `BlendContext`, `YogaNode`, `ShapedFont` -- so their
+        // binding classes are package-private and there is no second way in.
+        //
+        // SDL is deliberately not in this list: `:core` drives it directly, which
+        // is why `Sdl` and `SdlVideo` are public. What keeps *that* safe is the
+        // check above -- they traffic in `SdlWindowHandle`, never in an address.
+        var wrapped = List.of(
+                "io.github.digitalsmile.goldberry.natives.blend2d",
+                "io.github.digitalsmile.goldberry.natives.yoga",
+                "io.github.digitalsmile.goldberry.natives.harfbuzz");
+
+        var root = classesRoot();
+        var wrong = new ArrayList<String>();
+        var found = 0;
+
+        for (var name : classNames(root)) {
+            if (!wrapped.contains(packageOf(name))) {
+                continue;
+            }
+            var type = Class.forName(name, false, ExportedSurfaceTest.class.getClassLoader());
+            var holdsCalls = Stream.of(type.getDeclaredFields())
+                    .anyMatch(f -> f.getType().getSimpleName().endsWith("Calls"));
+            if (!holdsCalls) {
+                continue;
+            }
+            found++;
+            if (Modifier.isPublic(type.getModifiers())) {
+                wrong.add(name);
+            }
+        }
+
+        assertTrue(found >= 7,
+                "found only " + found + " binding classes across " + wrapped
+                        + "; this test discovers them by their `…Calls` field, and finding almost "
+                        + "none means it checks nothing");
+        assertTrue(wrong.isEmpty(),
+                "these are public, so there is a way to the library that does not go through the "
+                        + "wrapper that owns the handle: " + wrong);
     }
 }

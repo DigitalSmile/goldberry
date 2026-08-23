@@ -45,7 +45,7 @@ import io.github.digitalsmile.goldberry.natives.blend2d.error.BlendException;
 /// Confined to the thread that created it, and must be closed.
 public final class BlendFont implements AutoCloseable {
 
-    private final Blend2D blend2d = Blend2D.get();
+    private final Blend2dFont calls = Blend2dFont.get();
     private final Thread owner = Thread.currentThread();
     private final Arena arena;
     private final BlendFontFace face;
@@ -65,15 +65,15 @@ public final class BlendFont implements AutoCloseable {
         var created = false;
         try {
             stagedFont = arena.allocate(Layouts.BL_OBJECT_DETAIL.layout());
-            blend2d.fontInit(stagedFont);
+            calls.fontInit(stagedFont);
             created = true;
-            blend2d.fontCreate(stagedFont, face.pointer(), size);
+            calls.fontCreate(stagedFont, face.pointer(), size);
         } catch (RuntimeException | Error e) {
             // An object that was `init`ed but whose `create` failed still holds
             // Blend2D's default instance and has to be destroyed.
             if (created) {
                 var initialised = stagedFont;
-                BlendFontFace.destroyQuietly(() -> blend2d.fontDestroy(initialised));
+                BlendFontFace.destroyQuietly(() -> calls.fontDestroy(initialised));
             }
             arena.close();
             if (ownsFace) {
@@ -138,7 +138,7 @@ public final class BlendFont implements AutoCloseable {
 
     /// The font's metrics at that size, already scaled.
     public BlendFontMetrics metrics() {
-        return blend2d.fontMetrics(pointer());
+        return calls.fontMetrics(pointer());
     }
 
     /// Whether the font has been closed.
@@ -163,7 +163,7 @@ public final class BlendFont implements AutoCloseable {
         requireOwner();
         closed = true;
         try {
-            BlendFontFace.destroyQuietly(() -> blend2d.fontDestroy(font));
+            BlendFontFace.destroyQuietly(() -> calls.fontDestroy(font));
         } finally {
             try {
                 arena.close();

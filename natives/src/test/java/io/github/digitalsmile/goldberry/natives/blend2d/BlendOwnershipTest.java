@@ -193,7 +193,7 @@ class BlendOwnershipTest {
         // pointer is touched, which is why NULL is enough to reach it.
         var thrown = assertThrows(
                 IllegalArgumentException.class,
-                () -> Blend2D.get().contextTransform(
+                () -> Blend2dContext.get().contextTransform(
                         MemorySegment.NULL, BlendTransformOp.RESET, 1, 1));
 
         assertTrue(thrown.getMessage().contains("void*"), thrown.getMessage());

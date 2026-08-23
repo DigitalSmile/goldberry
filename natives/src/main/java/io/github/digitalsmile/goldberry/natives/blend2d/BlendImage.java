@@ -25,7 +25,7 @@ import io.github.digitalsmile.goldberry.natives.blend2d.enums.BlendFormat;
 /// Confined to the thread that created it, and must be closed.
 public final class BlendImage implements AutoCloseable {
 
-    private final Blend2D blend2d = Blend2D.get();
+    private final Blend2dImage calls = Blend2dImage.get();
     private final Arena arena;
     private final MemorySegment image;
     private final Thread owner = Thread.currentThread();
@@ -44,7 +44,7 @@ public final class BlendImage implements AutoCloseable {
             // Every Blend2D core object is one BLObjectDetail and nothing else.
             // The layout table asserts that BLImageCore really is that shape.
             this.image = arena.allocate(Layouts.BL_OBJECT_DETAIL.layout());
-            blend2d.imageInitFromData(
+            calls.imageInitFromData(
                     image, width, height, format, addressOf(pixels), stride);
         } catch (RuntimeException | Error e) {
             arena.close();
@@ -133,7 +133,7 @@ public final class BlendImage implements AutoCloseable {
         requireOwner();
         closed = true;
         try {
-            blend2d.imageDestroy(image);
+            calls.imageDestroy(image);
         } finally {
             arena.close();
         }
@@ -149,8 +149,8 @@ public final class BlendImage implements AutoCloseable {
 
     /// Where Blend2D thinks the pixels are. Package-private, for the test that
     /// asserts this really is a view rather than a copy.
-    Blend2D.ImageData data() {
-        return blend2d.imageData(pointer());
+    Blend2dImage.ImageData data() {
+        return calls.imageData(pointer());
     }
 
     /// The address of a direct buffer's contents.

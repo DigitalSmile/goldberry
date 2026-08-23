@@ -201,7 +201,7 @@ class BlendPaintTest {
     @Test
     @DisplayName("Blend2D reports which build is linked in")
     void versionIsReported() {
-        var version = Blend2D.get().version();
+        var version = Blend2dRuntime.get().version();
 
         assertTrue(version.major() >= 0, "a major version");
         assertTrue(

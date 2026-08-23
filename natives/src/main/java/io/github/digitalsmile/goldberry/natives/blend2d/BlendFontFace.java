@@ -32,7 +32,7 @@ import io.github.digitalsmile.goldberry.natives.blend2d.error.BlendException;
 /// Confined to the thread that created it, and must be closed.
 public final class BlendFontFace implements AutoCloseable {
 
-    private final Blend2D blend2d = Blend2D.get();
+    private final Blend2dFont calls = Blend2dFont.get();
     private final Thread owner = Thread.currentThread();
     private final Arena arena;
     private final MemorySegment fontData;
@@ -54,14 +54,14 @@ public final class BlendFontFace implements AutoCloseable {
             MemorySegment.copy(data, 0, bytes, ValueLayout.JAVA_BYTE, 0, data.length);
 
             stagedData = arena.allocate(Layouts.BL_OBJECT_DETAIL.layout());
-            blend2d.fontDataInit(stagedData);
+            calls.fontDataInit(stagedData);
             stage = 1;
-            blend2d.fontDataCreate(stagedData, bytes, data.length);
+            calls.fontDataCreate(stagedData, bytes, data.length);
 
             stagedFace = arena.allocate(Layouts.BL_OBJECT_DETAIL.layout());
-            blend2d.fontFaceInit(stagedFace);
+            calls.fontFaceInit(stagedFace);
             stage = 2;
-            blend2d.fontFaceCreate(stagedFace, stagedData, faceIndex);
+            calls.fontFaceCreate(stagedFace, stagedData, faceIndex);
         } catch (RuntimeException | Error e) {
             unwind(stage, stagedData, stagedFace);
             arena.close();
@@ -134,10 +134,10 @@ public final class BlendFontFace implements AutoCloseable {
     /// than after it.
     private void unwind(int stage, MemorySegment fontData, MemorySegment face) {
         if (stage >= 2) {
-            destroyQuietly(() -> blend2d.fontFaceDestroy(face));
+            destroyQuietly(() -> calls.fontFaceDestroy(face));
         }
         if (stage >= 1) {
-            destroyQuietly(() -> blend2d.fontDataDestroy(fontData));
+            destroyQuietly(() -> calls.fontDataDestroy(fontData));
         }
     }
 

@@ -57,7 +57,7 @@ public final class BlendContext implements AutoCloseable {
     private static final long CREATE_THREAD_COUNT =
             Layouts.BL_CONTEXT_CREATE_INFO.offsetOf("thread_count");
 
-    private final Blend2D blend2d = Blend2D.get();
+    private final Blend2dContext calls = Blend2dContext.get();
     private final Arena arena;
     private final MemorySegment context;
     private final MemorySegment rect;
@@ -113,7 +113,7 @@ public final class BlendContext implements AutoCloseable {
 
         if (scale != 1.0) {
             try {
-                blend2d.contextTransform(context, BlendTransformOp.SCALE, scale, scale);
+                calls.contextTransform(context, BlendTransformOp.SCALE, scale, scale);
             } catch (RuntimeException | Error e) {
                 // The context is attached but unusable. Detach before rethrowing
                 // or the image is left with a reference nothing will release.
@@ -132,7 +132,7 @@ public final class BlendContext implements AutoCloseable {
             // NULL create-info asks for the defaults: synchronous, on this
             // thread. This is still the right answer for a small surface, where
             // handing work to a band scheduler costs more than doing it.
-            blend2d.contextBegin(context, image.pointer(), MemorySegment.NULL);
+            calls.contextBegin(context, image.pointer(), MemorySegment.NULL);
             return 0;
         }
 
@@ -142,7 +142,7 @@ public final class BlendContext implements AutoCloseable {
         var createInfo = arena.allocate(Layouts.BL_CONTEXT_CREATE_INFO.layout());
         createInfo.set(ValueLayout.JAVA_INT, CREATE_THREAD_COUNT, requested);
         try {
-            blend2d.contextBegin(context, image.pointer(), createInfo);
+            calls.contextBegin(context, image.pointer(), createInfo);
             return requested;
         } catch (BlendException e) {
             // Blend2D refuses asynchronous mode when it cannot acquire a worker
@@ -153,7 +153,7 @@ public final class BlendContext implements AutoCloseable {
             // magic constant that nothing in the layout table checks.
             LOG.debug("Blend2D refused {} worker thread(s) ({}); painting synchronously",
                     requested, e.getMessage());
-            blend2d.contextBegin(context, image.pointer(), MemorySegment.NULL);
+            calls.contextBegin(context, image.pointer(), MemorySegment.NULL);
             return 0;
         }
     }
@@ -220,7 +220,7 @@ public final class BlendContext implements AutoCloseable {
     /// @param argb a colour as `0xAARRGGBB`, not premultiplied
     public void fillAll(int argb) {
         requireUsable();
-        blend2d.contextFillAll(context, argb);
+        calls.contextFillAll(context, argb);
     }
 
     /// Replaces everything, alpha included.
@@ -233,13 +233,13 @@ public final class BlendContext implements AutoCloseable {
     /// @param argb a colour as `0xAARRGGBB`, not premultiplied
     public void clearTo(int argb) {
         requireUsable();
-        blend2d.contextCompOp(context, BlendCompOp.SRC_COPY);
+        calls.contextCompOp(context, BlendCompOp.SRC_COPY);
         try {
-            blend2d.contextFillAll(context, argb);
+            calls.contextFillAll(context, argb);
         } finally {
             // Restored unconditionally: leaving SRC_COPY set would make every
             // subsequent fill in the frame punch a hole instead of blending.
-            blend2d.contextCompOp(context, BlendCompOp.SRC_OVER);
+            calls.contextCompOp(context, BlendCompOp.SRC_OVER);
         }
     }
 
@@ -271,7 +271,7 @@ public final class BlendContext implements AutoCloseable {
         rect.set(ValueLayout.JAVA_DOUBLE, RECT_Y, y);
         rect.set(ValueLayout.JAVA_DOUBLE, RECT_W, width);
         rect.set(ValueLayout.JAVA_DOUBLE, RECT_H, height);
-        blend2d.contextFillRect(context, rect, argb);
+        calls.contextFillRect(context, rect, argb);
     }
 
     /// Draws a run of glyphs with `(x, y)` on the **baseline**.
@@ -308,7 +308,7 @@ public final class BlendContext implements AutoCloseable {
         }
         origin.set(ValueLayout.JAVA_DOUBLE, POINT_X, x);
         origin.set(ValueLayout.JAVA_DOUBLE, POINT_Y, y);
-        blend2d.contextFillGlyphRun(context, origin, font.pointer(), glyphs.pointer(), argb);
+        calls.contextFillGlyphRun(context, origin, font.pointer(), glyphs.pointer(), argb);
     }
 
     /// Replaces the context's transform with `[a b c d e f]`, on top of the
@@ -344,7 +344,7 @@ public final class BlendContext implements AutoCloseable {
         matrix.set(ValueLayout.JAVA_DOUBLE, MATRIX_M11, d * scale);
         matrix.set(ValueLayout.JAVA_DOUBLE, MATRIX_M20, e * scale);
         matrix.set(ValueLayout.JAVA_DOUBLE, MATRIX_M21, f * scale);
-        blend2d.contextTransform(context, matrix);
+        calls.contextTransform(context, matrix);
     }
 
     /// Draws `layer` into the logical rectangle `(x, y, width, height)`.
@@ -375,7 +375,7 @@ public final class BlendContext implements AutoCloseable {
         rect.set(ValueLayout.JAVA_DOUBLE, RECT_Y, y);
         rect.set(ValueLayout.JAVA_DOUBLE, RECT_W, width);
         rect.set(ValueLayout.JAVA_DOUBLE, RECT_H, height);
-        blend2d.contextBlitScaledImage(context, rect, layer.pointer());
+        calls.contextBlitScaledImage(context, rect, layer.pointer());
     }
 
     /// Draws `layer` with its top-left corner at logical `(x, y)`, one image
@@ -392,7 +392,7 @@ public final class BlendContext implements AutoCloseable {
         requireDrawableOrigin(x, y);
         origin.set(ValueLayout.JAVA_DOUBLE, POINT_X, x);
         origin.set(ValueLayout.JAVA_DOUBLE, POINT_Y, y);
-        blend2d.contextBlitImage(context, origin, layer.pointer());
+        calls.contextBlitImage(context, origin, layer.pointer());
     }
 
     /// Scales the alpha of everything drawn after this call.
@@ -415,7 +415,7 @@ public final class BlendContext implements AutoCloseable {
             throw new IllegalArgumentException(
                     "a global alpha is between 0 and 1, and " + alpha + " is not");
         }
-        blend2d.contextGlobalAlpha(context, alpha);
+        calls.contextGlobalAlpha(context, alpha);
     }
 
     /// Restricts drawing to `(x, y, width, height)` in logical coordinates.
@@ -435,13 +435,13 @@ public final class BlendContext implements AutoCloseable {
         rect.set(ValueLayout.JAVA_DOUBLE, RECT_Y, y);
         rect.set(ValueLayout.JAVA_DOUBLE, RECT_W, width);
         rect.set(ValueLayout.JAVA_DOUBLE, RECT_H, height);
-        blend2d.contextClipToRect(context, rect);
+        calls.contextClipToRect(context, rect);
     }
 
     /// Back to the whole surface.
     public void resetClip() {
         requireUsable();
-        blend2d.contextRestoreClipping(context);
+        calls.contextRestoreClipping(context);
     }
 
     /// Back to plain scaled user space — what every box that has no transform of
@@ -464,7 +464,7 @@ public final class BlendContext implements AutoCloseable {
         requireDrawableOrigin(x, y);
         origin.set(ValueLayout.JAVA_DOUBLE, POINT_X, x);
         origin.set(ValueLayout.JAVA_DOUBLE, POINT_Y, y);
-        blend2d.contextFillPath(context, origin, path.pointer(), argb);
+        calls.contextFillPath(context, origin, path.pointer(), argb);
     }
 
     /// Strokes `path` at the current [#strokeWidth], cap and join, offset so its
@@ -477,7 +477,7 @@ public final class BlendContext implements AutoCloseable {
         requireDrawableOrigin(x, y);
         origin.set(ValueLayout.JAVA_DOUBLE, POINT_X, x);
         origin.set(ValueLayout.JAVA_DOUBLE, POINT_Y, y);
-        blend2d.contextStrokePath(context, origin, path.pointer(), argb);
+        calls.contextStrokePath(context, origin, path.pointer(), argb);
     }
 
     /// Sets the stroke width, in the context's own units — logical pixels when
@@ -492,21 +492,21 @@ public final class BlendContext implements AutoCloseable {
             throw new IllegalArgumentException(
                     "a stroke width must be a positive, finite number, and " + width + " is not");
         }
-        blend2d.contextSetStrokeWidth(context, width);
+        calls.contextSetStrokeWidth(context, width);
     }
 
     /// Sets what both ends of an open sub-path look like.
     public void strokeCaps(BlendStrokeCap cap) {
         requireUsable();
         Objects.requireNonNull(cap, "cap");
-        blend2d.contextSetStrokeCaps(context, cap);
+        calls.contextSetStrokeCaps(context, cap);
     }
 
     /// Sets what a corner between two segments looks like.
     public void strokeJoin(BlendStrokeJoin join) {
         requireUsable();
         Objects.requireNonNull(join, "join");
-        blend2d.contextSetStrokeJoin(context, join);
+        calls.contextSetStrokeJoin(context, join);
     }
 
     /// Whether the context has been closed.
@@ -540,8 +540,8 @@ public final class BlendContext implements AutoCloseable {
         requireOwner();
         ended = true;
         try {
-            blend2d.contextEnd(context);
-            blend2d.contextDestroy(context);
+            calls.contextEnd(context);
+            calls.contextDestroy(context);
         } finally {
             arena.close();
         }
@@ -558,8 +558,8 @@ public final class BlendContext implements AutoCloseable {
     private void closeQuietly() {
         ended = true;
         try {
-            blend2d.contextEnd(context);
-            blend2d.contextDestroy(context);
+            calls.contextEnd(context);
+            calls.contextDestroy(context);
         } catch (RuntimeException | Error ignored) {
             // Already failing; a second failure here would replace the cause.
         } finally {
