@@ -93,6 +93,25 @@ foreign memory — `BlendVersion`, `SdlException`, `HarfBuzzVersion`, `Insets`,
 `NativeConstants` — is *about* a specific native library even when it does not
 call into one.
 
+**Nothing from `:core` or `:widgets` qualified either**, and the reason is worth
+writing down because the question will be asked again. `:natives` references
+`:core` in not one file, so nothing above is *needed* below; a type that moved
+down would be moving away from its only user. The one real duplication across the
+boundary is `SdlVideo.SdlSize` against `render.model.PhysicalSize` — the same two
+integers, validated the same way, converted by `Sdl3Window` at two call sites —
+and `SdlRect` against `DamageRect` beside it. They stay two types. `PhysicalSize`
+is not a tuple: it is the backend SPI's vocabulary, with `of`, `isEmpty` and
+`pixelCount` on it, and moving the SPI's own types below the FFM boundary to save
+four lines of conversion would put them in a module the SPI cannot see. The
+conversion is also the seam where "SDL's idea of a size" becomes "the toolkit's",
+which is where a future disagreement between them belongs.
+
+`:widgets` cannot contribute at all: it is the top of the graph, so nothing in it
+can be needed by anything below. The only cross-module name collisions are
+`Edge` — `yoga.style.Edge` is nine `YGEdge` enumerators, `widgets…affix.Edge` is
+four sides of a viewport — and `FontCalls`, one per library. Neither is a
+duplicate of anything.
+
 ## Consequences
 
 **A sixth published artifact, `goldberry-common`**, holding two classes. That is

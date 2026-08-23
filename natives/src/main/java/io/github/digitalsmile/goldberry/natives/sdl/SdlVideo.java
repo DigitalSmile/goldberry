@@ -634,16 +634,25 @@ public final class SdlVideo {
     public record SurfaceBuffer(ByteBuffer pixels, int width, int height, int stride) {
     }
 
-    /// A size in SDL's terms. Deliberately not `:core`'s `PhysicalSize` — this
-    /// module does not depend on that one, and the backend converts.
     /// A point in SDL's window coordinates.
     public record SdlPoint(int x, int y) {
     }
 
     /// A rectangle in SDL's window coordinates — an `SDL_Rect`, read back.
+    ///
+    /// Deliberately not `:core`'s `DamageRect`, for the reason [SdlSize] gives.
     public record SdlRect(int x, int y, int width, int height) {
     }
 
+    /// A size in SDL's terms.
+    ///
+    /// Deliberately **not** `:core`'s `PhysicalSize`, though the two hold the same
+    /// two integers. This module does not depend on that one and must not: a
+    /// backend SPI type is `:core`'s vocabulary, and moving it below the FFM
+    /// boundary would put it in a module the SPI cannot see. The backend converts,
+    /// which is also where "SDL's idea of a size" becomes "the toolkit's" and
+    /// where a future disagreement between them would have somewhere to live
+    /// ([ADR-0174](../../../../../../book/src/adr/0174-what-both-halves-need-is-its-own-module.md)).
     public record SdlSize(int width, int height) {
 
         public SdlSize {
