@@ -223,6 +223,52 @@ public interface Host {
                                     LogicalRect anchor, Placement placement,
                                     float minimumWidth);
 
+    /// [#popup(Widget, LogicalRect, Placement, float)] with a say in what happens
+    /// when the content turns out not to fit.
+    ///
+    /// The measure step above is "separately observable" and until now it was
+    /// not: the facility measured, placed and opened, and a caller that needed to
+    /// know how big its content came out had no way to ask. So both callers that
+    /// needed it **guessed** — a menu decided whether it would be taller than the
+    /// screen from its row count times an assumed height, and a `select` did not
+    /// try, which is why a long list lost its bottom
+    /// ([ADR-0179](../../../../../book/src/adr/0179-a-popup-says-what-it-measured.md)).
+    ///
+    /// @param fit consulted between the measure and the place, or null for the
+    ///            behaviour of the overload above
+    java.util.Optional<Popup> popup(Widget content,
+                                    LogicalRect anchor, Placement placement,
+                                    float minimumWidth, Fit fit);
+
+    /// What a caller does with a measurement, between the measure and the place.
+    ///
+    /// ## Why the facility asks rather than deciding
+    ///
+    /// **Whether content that does not fit should scroll or be clamped is a fact
+    /// about the content.** A menu that lost its last three commands is the worst
+    /// kind of wrong and wants a viewport; a tooltip that scrolled would be
+    /// absurd and would rather be clamped — or rather should have been a dialog
+    /// ([ADR-0118](../../../../../book/src/adr/0118-a-popup-that-does-not-fit-scrolls.md)).
+    /// `:core` could not act on the answer anyway: a viewport is a widget, and
+    /// `:core` has none
+    /// ([ADR-0092](../../../../../book/src/adr/0092-a-primitive-is-a-widget-like-any-other.md)).
+    ///
+    /// So the facility reports and the caller answers. Returning `content`
+    /// unchanged is the ordinary answer and costs nothing; returning anything
+    /// else is paid for by a second measurement, which is the right way round —
+    /// nearly every popup fits.
+    @FunctionalInterface
+    interface Fit {
+
+        /// @param content  what was measured, so a lambda need capture nothing
+        /// @param measured what it came out as, before any placement clamped it
+        /// @param available where the popup may be placed — [#placeableArea()],
+        ///                  which is what the content has to fit inside
+        /// @return what to open: `content` itself when it fits, or something
+        ///         that does when it does not
+        Widget fit(Widget content, LogicalSize measured, LogicalRect available);
+    }
+
     /// Where a popup is allowed to be, in this window's coordinates.
     ///
     /// The display's work area, which [Placement] already places against. Exposed

@@ -6,12 +6,15 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.github.digitalsmile.goldberry.input.handler.Handles;
+import io.github.digitalsmile.goldberry.widget.BuildContext;
 import io.github.digitalsmile.goldberry.widget.Element;
 import io.github.digitalsmile.goldberry.widget.ElementTree;
+import io.github.digitalsmile.goldberry.widget.State;
 import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widget.style.Styled;
 import java.util.ArrayList;
 import java.util.List;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -251,6 +254,203 @@ class FocusTrapTest {
             router.focusRoot(tree.root());
 
             assertEquals(List.of("z", "z"), tabbing(2));
+        }
+    }
+
+    /// A screen that can put its modal up and take it down, which is the only
+    /// shape in which "closing a dialog" can be tested: the trap's other cases
+    /// are all about a tree that stands still, and this one is entirely about a
+    /// tree that changes under the router ([ADR-0180]).
+    static final class Screen implements Widget.Stateful {
+
+        /// The live state, so a test can close the modal from outside. A `dialog`
+        /// has a controller for this; a test widget has three lines.
+        static ScreenState live;
+
+        @Override
+        public State<?> createState() {
+            return new ScreenState();
+        }
+    }
+
+    static final class ScreenState extends State<Screen> {
+
+        private boolean showing;
+
+        @Override
+        protected void initState() {
+            Screen.live = this;
+        }
+
+        @Override
+        public Widget build(BuildContext context) {
+            var kids = new ArrayList<Widget>(3);
+            kids.add(new Item("a"));
+            kids.add(new Item("b"));
+            if (showing) {
+                kids.add(new Box("panel", true, new Item("x"), new Item("y")));
+            }
+            return new Box("window", false, kids.toArray(Widget[]::new));
+        }
+
+        void open() {
+            setState(() -> showing = true);
+        }
+
+        void close() {
+            setState(() -> showing = false);
+        }
+    }
+
+    @Nested
+    @DisplayName("giving the keyboard back")
+    class Restoring {
+
+        private ElementTree screen;
+        private PointerRouter router;
+
+        @BeforeEach
+        void setUp() {
+            screen = new ElementTree(new Screen());
+            router = new PointerRouter();
+            router.focusRoot(screen.root());
+        }
+
+        private Element in(String id) {
+            return find(screen.root(), id);
+        }
+
+        /// Opens the modal and lets the tree settle, as a frame would.
+        private void openModal() {
+            Screen.live.open();
+            screen.flush();
+        }
+
+        private void closeModal() {
+            Screen.live.close();
+            screen.flush();
+            // What a window does after it paints. Without it the router is still
+            // holding last frame's answer, which is the whole point of the check.
+            router.refocus();
+        }
+
+        private String focusedId() {
+            return router.focused() == null ? "(none)" : router.focused().id();
+        }
+
+        /// The bug under the feature, and the one nobody could see: `unmount`
+        /// tells the element tree and nothing else, so the router went on holding
+        /// an element that had left it — receiving keys, keeping a dead subtree
+        /// reachable.
+        @Test
+        @DisplayName("the router never holds an element that has left the tree")
+        void neverHoldsADeadElement() {
+            openModal();
+            router.focus(in("x"), true);
+            assertEquals("x", focusedId());
+
+            closeModal();
+
+            assertTrue(router.focused() == null || router.focused().isMounted(),
+                    "the router is holding " + focusedId() + ", which is not in the tree");
+        }
+
+        /// §7: each overlay "wraps a `focus-scope` and restores focus on close".
+        @Test
+        @DisplayName("focus goes back to what had it before the modal opened")
+        void restoredOnClose() {
+            router.focus(in("a"), true);
+
+            openModal();
+            // The trap takes it: the first thing inside the modal, not `a`.
+            router.focus(in("b"), true);
+            assertEquals("x", focusedId(), "the trap did not take the keyboard");
+
+            closeModal();
+
+            assertEquals("a", focusedId(), "the keyboard landed nowhere in particular");
+        }
+
+        /// §7.2 keeps `:focus` and `:focus-visible` distinct, so putting the
+        /// keyboard back has to put the **ring** back with it: a dialog dismissed
+        /// with `Escape` should leave things as the user last saw them.
+        @Test
+        @DisplayName("what comes back comes back in the state it left in")
+        void restoresTheRing() {
+            router.focus(in("a"), true);
+            openModal();
+            router.focus(in("b"), true);
+            closeModal();
+
+            assertTrue(in("a").hasState(
+                    io.github.digitalsmile.goldberry.css.select.Selector.PseudoClass.FOCUS_VISIBLE),
+                    "the ring did not come back with the keyboard");
+
+            // And the other way round: focus taken from a pointer comes back
+            // without one, or a ring appears that nobody asked for.
+            router.focus(in("a"), false);
+            openModal();
+            router.focus(in("b"), true);
+            closeModal();
+
+            assertEquals("a", focusedId());
+            assertFalse(in("a").hasState(
+                    io.github.digitalsmile.goldberry.css.select.Selector.PseudoClass.FOCUS_VISIBLE),
+                    "a ring appeared under a pointer that nobody moved");
+        }
+
+        /// Nothing had the keyboard before the modal went up — a dialog opened
+        /// from a menu command, or on the first frame of a window. There is
+        /// nothing to give back, and holding a dead element rather than admitting
+        /// that is the bug above.
+        @Test
+        @DisplayName("nothing to go back to means letting go, not holding on")
+        void nothingToRestore() {
+            openModal();
+            router.focus(in("x"), true);
+
+            closeModal();
+
+            assertEquals("(none)", focusedId());
+        }
+
+        /// One slot, and the outermost answer wins — which is the one the user
+        /// will still be looking at when everything has closed. The inner modal
+        /// closing must not spend it, or the keyboard never finds its way home.
+        @Test
+        @DisplayName("a nested modal closing keeps the answer for the outer one")
+        void nestedKeepsTheAnswer() {
+            router.focus(in("a"), true);
+            openModal();
+            router.focus(in("b"), true);
+            assertEquals("x", focusedId());
+
+            // The modal goes and comes straight back, which is what a second
+            // dialog opened over the first looks like to a one-slot memory: the
+            // keyboard must still find `a` at the end of it.
+            closeModal();
+            openModal();
+            router.focus(in("b"), true);
+            closeModal();
+
+            assertEquals("a", focusedId());
+        }
+
+        /// A `select` inside a dialog, and the dialog's own action removing the
+        /// row it was opened from: what the keyboard was going to go back to is
+        /// gone too, and the router must notice rather than restore a corpse.
+        @Test
+        @DisplayName("a restore target that leaves the tree is dropped, not restored")
+        void targetThatWentAway() {
+            router.focus(in("a"), true);
+            openModal();
+            router.focus(in("b"), true);
+
+            // Everything goes at once, which is a window closing.
+            screen.unmount();
+            router.refocus();
+
+            assertTrue(router.focused() == null || router.focused().isMounted());
         }
     }
 }

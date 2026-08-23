@@ -38,6 +38,10 @@ final class ToasterState extends State<Toaster> {
     /// §3: "out: `opacity` **base**" — 160ms.
     static final double EXIT_MILLIS = 160;
 
+    /// §3: "siblings reflow via `translate` **base**" — the same 160ms, and the
+    /// same number [Phase] already calls base.
+    static final double REFLOW_MILLIS = Phase.DURATION_MILLIS;
+
     /// One toast on screen, and everything that is true of it but not of the
     /// value it is showing.
     static final class Entry {
@@ -64,6 +68,18 @@ final class ToasterState extends State<Toaster> {
         /// Whether the pointer is on it — §7's "hover-pause".
         boolean hovered;
 
+        /// How tall it came out on the last frame that painted it, in logical
+        /// pixels, or 0 for one that has never been drawn.
+        ///
+        /// Banked rather than asked for, because by the time it is wanted the
+        /// toast is gone: the hole a departing toast leaves is exactly this tall
+        /// and there is nothing left to measure ([ToastBox#measured]).
+        double height;
+
+        /// Where it is on its way to because a sibling went, or null when it is
+        /// where it belongs.
+        ToastBox.Reflow reflow;
+
         Entry(int number, Toast toast) {
             this.number = number;
             this.toast = toast;
@@ -85,6 +101,10 @@ final class ToasterState extends State<Toaster> {
 
     /// The last frame's clock reading. See the class note.
     private double now;
+
+    /// The space `toaster` keeps between two toasts, in logical pixels, as the
+    /// cascade last resolved it — see [ToasterBox.OnFrame].
+    private double gap;
 
     private Host host;
 
@@ -124,16 +144,19 @@ final class ToasterState extends State<Toaster> {
         var boxes = new ArrayList<Widget>(entries.size());
         for (var entry : entries) {
             boxes.add(new ToastBox(entry.toast, entry.number, widget().corner(), entry.phase,
-                    entry.isLeaving(),
+                    entry.isLeaving(), entry.reflow,
                     hovered -> hover(entry, hovered),
-                    () -> pressed(entry)));
+                    () -> pressed(entry),
+                    height -> entry.height = height));
         }
         return new ToasterBox(boxes, widget().corner(), this::frame);
     }
 
-    /// What every frame tells this state: what time it is.
-    private void frame(double millis) {
+    /// What every frame tells this state: what time it is, and how far apart the
+    /// stylesheet is keeping the toasts.
+    private void frame(double millis, double columnGap) {
         now = millis;
+        gap = columnGap;
     }
 
     // --- what the controller asks for ----------------------------------------
@@ -251,8 +274,73 @@ final class ToasterState extends State<Toaster> {
     }
 
     private void remove(Entry entry) {
+        var index = entries.indexOf(entry);
         entries.remove(entry);
+        if (index >= 0) {
+            closeTheGap(index, entry.height);
+        }
         promote();
+    }
+
+    /// §3's **sibling reflow**: the toasts left behind travel to where the stack
+    /// now puts them rather than jumping there.
+    ///
+    /// ## Only the older ones move
+    ///
+    /// Which is not obvious, and falls out of where the column is pinned. A
+    /// `toaster` sits in a corner and is as tall as its contents, so it is
+    /// anchored by whichever end is against the corner — and that end is the
+    /// **newest** toast, by the `column` / `column-reverse` rule `controls.css`
+    /// uses to put the newest nearest the corner. Take one out of the middle and
+    /// everything between it and the corner is still exactly where it was; it is
+    /// the far side of the hole, the older half, that moves in to close it.
+    ///
+    /// So this walks the entries *before* the departed one, and every one of them
+    /// travels the same distance: the height of the hole plus the gap it was
+    /// keeping. Which direction that is, is the corner's, and [ToastBox] reads it
+    /// there rather than being handed a signed number.
+    ///
+    /// **A toast on its way out travels too.** It is still in the column for
+    /// another 160ms, and one that stood still while the column moved under it
+    /// would be the only thing on screen that was not part of the stack.
+    private void closeTheGap(int index, double height) {
+        if (!(height > 0)) {
+            // Nothing to close. A toast dismissed before a frame ever painted it
+            // has no height — `Measured` is last frame's ([ADR-0117]) — and a
+            // stack that guessed one would move its survivors somewhere no toast
+            // had ever been. The check is on the **height** and not on the total,
+            // because the gap alone is a real number and would send the whole
+            // stack 8px in a direction nothing asked for.
+            return;
+        }
+        var distance = height + gap;
+        // Everything before the hole. `index` came from the list this entry was
+        // just taken out of, so it is the count of the toasts older than it.
+        for (var older : entries.subList(0, index)) {
+            older.reflow = travel(older, distance);
+        }
+    }
+
+    /// A fresh journey for one toast, **adding** to whatever it had left of the
+    /// last one.
+    ///
+    /// Adding, and not replacing. Two toasts going in quick succession are two
+    /// holes, and a survivor that restarted for the second would arrive short by
+    /// however far it still had to go on the first — it would settle a toast's
+    /// height above where it belongs and stay there. That is not a corner case:
+    /// it is what [#clear] looks like, and what a burst timing out one after
+    /// another looks like.
+    ///
+    /// This is the one thing §1.7's `AnimationController` was still owed for
+    /// (`book/src/TODO.md`), and it is four lines: read what is left, add the new
+    /// distance, start again. A controller for a single consumer would be a
+    /// mechanism where an arithmetic is
+    /// ([ADR-0178](../../../../../../../../book/src/adr/0178-a-stack-closes-its-own-hole.md)).
+    private ToastBox.Reflow travel(Entry entry, double distance) {
+        var left = entry.reflow == null ? 0
+                : entry.reflow.distance() * (1 - entry.reflow.phase().progressAt(now));
+        return new ToastBox.Reflow(left + distance,
+                new Phase(Phase.Kind.ENTERING, REFLOW_MILLIS));
     }
 
     /// Brings the oldest waiting toast forward, if there is room.

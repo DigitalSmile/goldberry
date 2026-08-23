@@ -47,6 +47,29 @@ public final class PointerRouter {
     private Element focused;
     private boolean focusFromKeyboard;
 
+    /// Where the keyboard goes back to when the thing holding it leaves the tree
+    /// — §7's "restores focus on close".
+    ///
+    /// **The first state the focus trap has held**, and it was deferred for as
+    /// long as it could be. Everything else about the trap is a question about
+    /// the tree, asked fresh: [#deepestModal] walks it on every focus change,
+    /// which is exactly why a dialog opened from inside a dialog gives the first
+    /// one back for nothing when it unmounts. A remembered element cannot be
+    /// derived that way — what had focus before a modal opened is a fact about
+    /// the *past*, and the tree does not record it
+    /// ([ADR-0180](../../../../../../book/src/adr/0180-the-keyboard-goes-back-where-it-was.md)).
+    ///
+    /// So it is kept to one slot, written at exactly one moment — the trap taking
+    /// focus — and it is allowed to go stale on purpose: [#refocus] drops it the
+    /// moment what it points at leaves the tree, rather than anything having to
+    /// keep it true.
+    private Element restoreTo;
+
+    /// Whether [#restoreTo] had the ring when it lost focus, so that giving the
+    /// keyboard back gives back the state it was in. A dialog dismissed with
+    /// `Escape` should leave the ring where the user last saw it.
+    private boolean restoreFromKeyboard;
+
     /// Who is receiving pointer events regardless of where the pointer is.
     ///
     /// §7.1 asks for pointer capture on drag, and a drag is exactly the case
@@ -99,8 +122,63 @@ public final class PointerRouter {
     /// Replaces the hit-test snapshot, normally right after a frame is painted.
     public void updateRegions(List<HitTest.Region> regions) {
         this.regions = List.copyOf(Objects.requireNonNull(regions, "regions"));
+        refocus();
         notifyMeasured();
         notifyLocated();
+    }
+
+    /// Puts the keyboard back when whatever had it has left the tree.
+    ///
+    /// ## What this fixes, which is more than it sounds
+    ///
+    /// [Element#unmount] tells the tree and nothing else, so a router whose
+    /// focused element was inside a closing dialog went on **holding it** — an
+    /// unmounted element, receiving key events, keeping its whole dead subtree
+    /// reachable. "Focus is not restored" was the half of that anybody could see.
+    ///
+    /// So this is two rules, and the first has nothing to do with dialogs:
+    ///
+    ///  1. **The router never holds an element that is not in the tree.** A tab
+    ///     that switched, a list that shortened and a dialog that closed all end
+    ///     the same way, and letting go is right for all three.
+    ///  2. **If there is somewhere to put the keyboard back, put it there** —
+    ///     §7's "restores focus on close", from the one slot [#restoreTo] keeps.
+    ///
+    /// ## Called once a frame, and separately callable
+    ///
+    /// From [#updateRegions], which every window runs after it paints. Public and
+    /// not folded into it because the question is about the **element tree**
+    /// rather than about the frame: a test that closes a dialog without drawing
+    /// anything still needs the answer, and passing an empty region list to get it
+    /// would throw the hit-test snapshot away.
+    ///
+    /// Being a frame late is not a compromise here. Nothing can press a key
+    /// between a tree flushing and the frame it produces, which is the same
+    /// argument [Measured] makes ([ADR-0117]).
+    public void refocus() {
+        // What we were going to hand back to may itself have gone -- a dialog
+        // opened from a row of a list that the dialog's own action then removed.
+        if (restoreTo != null && !restoreTo.isMounted()) {
+            restoreTo = null;
+        }
+        if (focused == null || focused.isMounted()) {
+            return;
+        }
+        // Reachability is checked because a *nested* modal closing leaves an
+        // outer one still up, and the keyboard may not leave it. The slot is
+        // kept rather than spent in that case, so the answer survives until the
+        // outer modal goes too.
+        if (restoreTo != null && isFocusable(restoreTo) && isReachable(restoreTo)) {
+            var target = restoreTo;
+            restoreTo = null;
+            focus(target, restoreFromKeyboard);
+            return;
+        }
+        // Nothing to go back to, so let go. `focus(null, …)` is the router's own
+        // word for "nobody", and it is what a press on empty space already does —
+        // a modal still being up does not change that, because a null focus is
+        // reachable from anywhere.
+        focus(null, false);
     }
 
     /// The window's own rectangle, for a [Located] widget nothing clips.
@@ -535,6 +613,18 @@ public final class PointerRouter {
             var inside = firstFocusableIn(modal);
             if (inside == null || inside == element) {
                 return;
+            }
+            // The one moment [#restoreTo] is written: the trap is taking the
+            // keyboard off something outside the modal, and that something is
+            // what a close should give it back to.
+            //
+            // Guarded on being empty, so focus moving *within* a modal never
+            // overwrites where it came from — and so a second, nested modal does
+            // not either. One slot means the outermost answer wins, which is the
+            // one the user will still be looking at when everything has closed.
+            if (restoreTo == null && focused != null && !isReachable(focused)) {
+                restoreTo = focused;
+                restoreFromKeyboard = focusFromKeyboard;
             }
             element = inside;
         }

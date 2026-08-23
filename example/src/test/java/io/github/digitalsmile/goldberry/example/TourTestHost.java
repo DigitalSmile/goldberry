@@ -98,6 +98,13 @@ record TourTestHost(List<HitTest.Region> regions) implements Host {
     }
 
     @Override
+    public Optional<Popup> popup(Widget content, LogicalRect anchor,
+            io.github.digitalsmile.goldberry.Placement placement, float minimumWidth,
+            Fit fit) {
+        return Optional.empty();
+    }
+
+    @Override
     public Optional<Popup> popup(Widget content,
             LogicalPoint at,
             LogicalSize size) {

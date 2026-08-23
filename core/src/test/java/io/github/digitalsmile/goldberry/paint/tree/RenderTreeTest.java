@@ -367,4 +367,92 @@ class RenderTreeTest {
             }
         }
     }
+
+    /// §8's `min-width` / `max-width` / `min-height` / `max-height`, applied to
+    /// the Yoga node — which is where a style nothing reads would be caught, and
+    /// where a unit test on `ComputedStyle` cannot look ([ADR-0181]).
+    @Nested
+    @DisplayName("how small and how large")
+    class Limits {
+
+        /// The rectangle a box of `content` size comes out as under `limits`.
+        private ComputedLayout laidOut(io.github.digitalsmile.goldberry.natives.yoga.Limits limits,
+                float width, float height) {
+            var box = Box.filled(0xFF000000)
+                    .size(StyleLength.points(width), StyleLength.points(height))
+                    .limits(limits);
+            var out = new ArrayList<ComputedLayout>();
+            BoxPainter.forEachBox(target.frame(), box, (b, layout) -> out.add(layout));
+            return out.getFirst();
+        }
+
+        /// The one §2 asks a `dialog` for and that was "genuinely missing": a
+        /// dialog with three words in it used to be three words wide.
+        @Test
+        @DisplayName("a minimum widens a box that asked to be smaller")
+        void minimumWidens() {
+            var laid = laidOut(
+                    io.github.digitalsmile.goldberry.natives.yoga.Limits.NONE
+                            .minWidth(StyleLength.points(320)),
+                    120, 40);
+
+            assertEquals(320, laid.width(), 0.5, "the minimum did not reach Yoga");
+        }
+
+        @Test
+        @DisplayName("a maximum narrows a box that asked to be bigger")
+        void maximumNarrows() {
+            var laid = laidOut(
+                    io.github.digitalsmile.goldberry.natives.yoga.Limits.NONE
+                            .maxWidth(StyleLength.points(200)),
+                    600, 40);
+
+            assertEquals(200, laid.width(), 0.5);
+        }
+
+        @Test
+        @DisplayName("both axes, and a box between its limits is left alone")
+        void bothAxesAndTheMiddle() {
+            var limits = new io.github.digitalsmile.goldberry.natives.yoga.Limits(
+                    StyleLength.points(100), StyleLength.points(300),
+                    StyleLength.points(50), StyleLength.points(150));
+
+            var tall = laidOut(limits, 40, 400);
+            assertEquals(100, tall.width(), 0.5);
+            assertEquals(150, tall.height(), 0.5);
+
+            var comfortable = laidOut(limits, 200, 100);
+            assertEquals(200, comfortable.width(), 0.5, "a box inside its limits was moved");
+            assertEquals(100, comfortable.height(), 0.5);
+        }
+
+        /// The guard in `apply` skips the four setters when neither frame had a
+        /// limit, which is nearly every node. A guard that skipped one Yoga
+        /// needed would give a correct first frame and a wrong second one — the
+        /// failure `staysIdenticalAcrossFrames` exists for, asked of these.
+        @Test
+        @DisplayName("a limit that arrives after the first frame still reaches Yoga")
+        void appliedOnAFrameThatChanged() {
+            var plain = Box.filled(0xFF000000)
+                    .size(StyleLength.points(600), StyleLength.points(40));
+            var capped = plain.limits(
+                    io.github.digitalsmile.goldberry.natives.yoga.Limits.NONE
+                            .maxWidth(StyleLength.points(200)));
+
+            try (var tree = RenderTree.create()) {
+                tree.update(target.frame(), plain);
+                assertEquals(600, layouts(tree).getFirst().width(), 0.5);
+
+                tree.update(target.frame(), capped);
+                assertEquals(200, layouts(tree).getFirst().width(), 0.5,
+                        "the limit was skipped by the guard that exists to make"
+                                + " an unlimited box cheap");
+
+                // And away again, which is the half a one-way guard would miss.
+                tree.update(target.frame(), plain);
+                assertEquals(600, layouts(tree).getFirst().width(), 0.5,
+                        "the limit stayed after the declaration went");
+            }
+        }
+    }
 }

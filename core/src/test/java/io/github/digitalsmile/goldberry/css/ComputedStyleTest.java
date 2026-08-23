@@ -2,6 +2,7 @@ package io.github.digitalsmile.goldberry.css;
 
 import static io.github.digitalsmile.goldberry.css.TestElement.element;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -679,6 +680,74 @@ class ComputedStyleTest {
                     compute("button { align-items: flex-start }").alignItems());
             assertEquals(ComputedStyle.INITIAL.alignItems(),
                     compute("button { align-items: start }").alignItems());
+        }
+    }
+
+    /// §8 has listed `min-width` / `max-width` from the start and nothing had
+    /// needed them, so three widgets wrote a **width** where they meant a maximum
+    /// and one had no minimum at all ([ADR-0181]).
+    @Nested
+    @DisplayName("how small and how large")
+    class Limits {
+
+        @Test
+        @DisplayName("all four are read, and each lands on its own axis and end")
+        void allFour() {
+            var style = compute("""
+                    button {
+                        min-width: 320px; max-width: 640px;
+                        min-height: 40px; max-height: 80px;
+                    }
+                    """);
+
+            assertEquals(StyleLength.points(320), style.limits().minWidth());
+            assertEquals(StyleLength.points(640), style.limits().maxWidth());
+            assertEquals(StyleLength.points(40), style.limits().minHeight());
+            assertEquals(StyleLength.points(80), style.limits().maxHeight());
+        }
+
+        /// The form `dialog` needs: §2 asks for "max 80% window", and a
+        /// percentage is the only way to say that without measuring a window.
+        @Test
+        @DisplayName("a percentage stays a percentage, for the containing block to resolve")
+        void percentages() {
+            var style = compute("button { max-width: 80% }");
+
+            assertEquals(StyleLength.percent(80), style.limits().maxWidth());
+        }
+
+        /// Undefined, not zero. A minimum of zero constrains nothing, but a
+        /// maximum of zero is a box that may not exist — so "no limit" cannot be
+        /// spelled the same way as "a limit of none".
+        @Test
+        @DisplayName("a box that says nothing has no limit on any axis")
+        void noneByDefault() {
+            var none = ComputedStyle.INITIAL.limits();
+
+            assertTrue(none.isNone());
+            assertEquals(StyleLength.UNDEFINED, none.maxWidth());
+            assertEquals(io.github.digitalsmile.goldberry.natives.yoga.Limits.NONE, none);
+        }
+
+        /// Setting one leaves the other three alone, which is the whole reason
+        /// they are one value: a caller that handled three of four would have a
+        /// bug nobody would find.
+        @Test
+        @DisplayName("declaring one limit does not clear the others")
+        void oneAtATime() {
+            var style = compute("button { min-width: 320px }");
+
+            assertEquals(StyleLength.points(320), style.limits().minWidth());
+            assertEquals(StyleLength.UNDEFINED, style.limits().maxWidth());
+            assertEquals(StyleLength.UNDEFINED, style.limits().minHeight());
+            assertFalse(style.limits().isNone());
+        }
+
+        @Test
+        @DisplayName("a value that is not a length is dropped, like every other")
+        void rubbishIsDropped() {
+            assertEquals(ComputedStyle.INITIAL.limits(),
+                    compute("button { max-width: banana }").limits());
         }
     }
 }

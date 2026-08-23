@@ -1873,6 +1873,14 @@ popover button {
  */
 tooltip {
   padding: 8px 12px;
+  /* **A maximum, and the number is a judgement.** §2's metrics row for `tooltip`
+     gives a padding, a radius and two delays and no width at all — so this is
+     `Toaster.DEFAULT_MAXIMUM`'s kind of decision rather than a specified one:
+     without it a tooltip is one line as wide as its string, and a sentence of
+     help text becomes a ribbon across the window that is harder to read than no
+     tooltip. 320 because a tooltip is "a label rather than a surface" and should
+     not be able to reach a `dialog`'s minimum width (ADR-0181). */
+  max-width: 320px;
   border-radius: 8px;
   background: var(--gb-hud-bg);
   border: 1px solid var(--gb-hud-border);
@@ -2297,6 +2305,14 @@ scroll-thumb.dragging { background: var(--gb-accent) }
    its last commands silently dropped (ADR-0118). The height is the opener's,
    because nothing in a stylesheet knows how tall the display is. */
 scroll.menu-viewport { flex-grow: 0 }
+
+/* And a `select`'s list, which had the same problem for longer: it never capped
+   itself at all, so a list of more options than the display is tall lost its
+   bottom to the placement clamp. Same rule, because it is the same viewport
+   doing the same job -- two classes rather than one so that a stylesheet can
+   tell a menu's from a list's without either inheriting the other's future
+   (ADR-0179). */
+scroll.select-viewport { flex-grow: 0 }
 
 /* --- affix (§1) ------------------------------------------------------- */
 
@@ -2974,24 +2990,37 @@ message-dismiss:focus-visible {
  * way: a raised thing is told apart by its edge. Here the veil does most of that
  * work, which is why a dialog needs it least of the three elevations.
  */
+/* **No padding across, and that is what makes `max-width: 80%` mean what §2
+   says.** A percentage resolves against the containing block, and a dialog's is
+   this — so 24px of padding here would make the dialog's maximum 80% of *the
+   window less 48px*, which in a narrow window squeezes a dialog below the width
+   §2 allows it. The padding was the de-facto maximum before there was a real
+   one; now there is, and the two would be fighting (ADR-0181).
+
+   Down the page it stays: a tall dialog still has to be kept off the top and
+   bottom edges, and no maximum on the height is doing that job. */
 dialog-scrim {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 24px;
+  padding: 24px 0;
   background: var(--gb-scrim);
 }
 
-/* **No `min-width` and no `max-width`**, and §2 asks for both — "min width 320,
-   max 80% window". §8's subset has neither property; Yoga has the setters and
-   `Box` has no field for them, so this is a gap in the style engine rather than
-   a decision about dialogs, and TODO.md files it as one.
-   What holds in the meantime: the panel is content-sized, and the scrim's 24 of
-   padding is a de-facto maximum, because a centred child of a padded column
-   cannot be wider than what is left. The minimum is genuinely missing — a dialog
-   with three words in it is three words wide. */
+/* §2: "min width 320, max 80% window". Both are real declarations now
+   (ADR-0181); until the subset had `min-width` and `max-width` the scrim's
+   padding was a de-facto maximum and there was no minimum at all, so a dialog
+   with three words in it was three words wide.
+
+   The maximum is a **percentage**, which is the whole reason it can be written
+   at all: it resolves against the containing block, and a dialog's is a scrim
+   that fills the window. So "80% of the window" needs nothing to measure a
+   window — see the note on `dialog-scrim` for why that scrim now has no padding
+   across. */
 dialog {
   flex-direction: column;
+  min-width: 320px;
+  max-width: 80%;
   padding: 24px;
   gap: 8px;
   background: var(--gb-surface-raised);
@@ -3058,10 +3087,12 @@ toaster.top-start, toaster.top-end {
   flex-direction: column-reverse;
 }
 
-/* 360 is §2's, and it is a **width** rather than a maximum because the subset
-   has no `max-width` (see `dialog`): a toast is a line or two of text and a
-   button, and giving every one of them the same width is what makes a stack of
-   three read as a stack rather than as a ragged pile. */
+/* 360 is §2's, and it stays a **width** rather than becoming a maximum now that
+   the subset has one (ADR-0181). The original note gave two reasons and only the
+   first has expired: a toast is a line or two of text and a button, and giving
+   every one of them the same width is what makes a stack of three read as a
+   stack rather than as a ragged pile. A maximum would size each toast to its own
+   string, which is exactly the pile. */
 toast {
   flex-direction: row;
   align-items: center;

@@ -106,8 +106,36 @@ public class TestHost implements Host {
     @Override
     public Optional<Popup> popup(Widget content, LogicalRect anchor, Placement placement,
             float minimumWidth) {
-        opened.add(new Opened(content, anchor, placement, minimumWidth));
+        return popup(content, anchor, placement, minimumWidth, null);
+    }
+
+    @Override
+    public Optional<Popup> popup(Widget content, LogicalRect anchor, Placement placement,
+            float minimumWidth, Fit fit) {
+        // The `Fit` is **consulted**, which is the whole reason a test double
+        // bothers: the real facility answers it with a measurement, and a widget
+        // that reacts to one has nothing to react to otherwise. What it is told
+        // is [#measuring]'s, because nothing here lays anything out.
+        var toOpen = fit == null || measured == null
+                ? content
+                : fit.fit(content, measured, placeableArea());
+        opened.add(new Opened(toOpen, anchor, placement, minimumWidth));
         return Optional.empty();
+    }
+
+    /// What a real window is missing.
+    private LogicalSize measured;
+
+    /// Says what a popup's content will be told it measured.
+    ///
+    /// Unset by default, and while it is unset a [Host.Fit] is **not consulted at
+    /// all** — so a test that does not care what fits sees exactly what it saw
+    /// before this existed. A test that does care states a size and gets the
+    /// widget the caller decided to open, which is the only observable a `Fit`
+    /// has ([ADR-0179]).
+    public TestHost measuring(float width, float height) {
+        this.measured = new LogicalSize(width, height);
+        return this;
     }
 
     @Override

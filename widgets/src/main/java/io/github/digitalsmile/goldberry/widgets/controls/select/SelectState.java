@@ -8,6 +8,7 @@ import io.github.digitalsmile.goldberry.widget.BuildContext;
 import io.github.digitalsmile.goldberry.widget.State;
 import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widgets.controls.option.Option;
+import io.github.digitalsmile.goldberry.widgets.core.scroll.Fitted;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -97,6 +98,10 @@ final class SelectState extends State<Select> {
     /// an error: a golden image and a layout preview build the same widget with no
     /// host behind it, and a control that threw there could not be drawn at all
     /// (ADR-0140).
+    /// A list taller than the screen scrolls rather than losing its bottom — the
+    /// answer `menu` gives to the same question, from the same helper.
+    private static final Fitted VIEWPORT = new Fitted("select-viewport");
+
     private void open() {
         var select = widget();
         if (host == null || select.disabled() || select.options().isEmpty()) {
@@ -130,8 +135,14 @@ final class SelectState extends State<Select> {
         // list narrower than the control it hangs off reads as a mistake rather
         // than as a menu, and no measurement of the *content* can know how wide
         // the field turned out (ADR-0145).
+        // ... and no taller than the screen. A list longer than the display used
+        // to be clamped to the near edge with its last options silently dropped,
+        // which is the same gap `menu` had and the same fix: the popup facility
+        // says what it measured, and a list that does not fit becomes a list of
+        // the screen's height with the options scrolling inside it
+        // ([ADR-0179](../../../../../../../../book/src/adr/0179-a-popup-says-what-it-measured.md)).
         var opened = host.popup(new SelectList(rows), field, Placement.BELOW,
-                field.size().width());
+                field.size().width(), VIEWPORT);
         if (opened.isEmpty()) {
             // No popup windows on this driver. The list stays closed rather than
             // falling back to an in-window overlay, because the overlay would be

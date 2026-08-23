@@ -187,6 +187,10 @@
 - [ADR-0175 A banner says its kind twice](adr/0175-a-banner-says-its-kind-twice.md)
 - [ADR-0176 A dialog is a widget, and showing one is not](adr/0176-a-dialog-is-a-widget-and-showing-one-is-not.md)
 - [ADR-0177 A toast is a queue, and the stack is the widget](adr/0177-a-toast-is-a-queue-and-the-stack-is-the-widget.md)
+- [ADR-0178 A stack closes its own hole](adr/0178-a-stack-closes-its-own-hole.md)
+- [ADR-0179 A popup says what it measured](adr/0179-a-popup-says-what-it-measured.md)
+- [ADR-0180 The keyboard goes back where it was](adr/0180-the-keyboard-goes-back-where-it-was.md)
+- [ADR-0181 A box may say how small and how large](adr/0181-a-box-may-say-how-small-and-how-large.md)
 
 ---
 

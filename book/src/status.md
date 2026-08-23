@@ -2971,16 +2971,167 @@ is the `scroll` box's.
   The two tests that would have caught it assert on `isAnimating` directly, and
   they exist now.
 
+### The sibling reflow, and §7 is finished
+
+- **Only the older toasts move**, which is not obvious and is not the widget's
+  doing: a `toaster` is a corner overlay, so the column is anchored along the
+  edge it is against, and `controls.css` puts the newest toast at that end. The
+  column is therefore anchored by its *newest* member — so a hole in the middle
+  leaves everything between it and the corner exactly where it was, and the older
+  half comes in to close it. The corner decides which way, as it already decides
+  which edge a toast arrives from.
+- **The ordinary case moves nothing**, and that is correct. A stack whose toasts
+  share a timeout loses its oldest first, and the oldest has nothing older to
+  move. The reflow is what a dismissal *from the middle* looks like — an action
+  button, a `clear()`, a burst with uneven timeouts.
+- **The translate runs backwards.** Yoga has already put the survivor where it
+  belongs; the transform puts it back where it was for one frame and then lets
+  go. Same shape as the arrival, and they compose on two axes rather than taking
+  turns — a toast can still be sliding in when the one beside it is dismissed.
+- **The two numbers are read, not invented.** The height of the hole comes from
+  `Measured` and is banked every frame, because by the time it is wanted the
+  toast is gone; the gap comes from `toaster { gap }` through the channel
+  ADR-0177 opened for the frame clock. A toast dismissed before it was ever
+  painted has no height, and that reads as *no hole* rather than a hole of
+  nothing — the check is on the height, because the gap alone is a real number.
+- **The `AnimationController` §3 names did not appear.** `Phase` already does the
+  start and the end; the interruption — a second toast going while the first
+  reflow runs — turned out to be three lines of arithmetic rather than a
+  mechanism. ADR-0081's finding one level up. The overlay enter/exit sequence is
+  the specification's one remaining subject.
+- **The golden had to be taken in a real window**, and that is the first decision
+  above making itself felt: every other picture in `ToastGoldenTest` is of a
+  column on its own, which is top-anchored, so it would photograph the *newer*
+  toast moving. Overlay placement is not assertable as a number, which
+  `HudGoldenTest` found first
+  ([ADR-0178](adr/0178-a-stack-closes-its-own-hole.md))
+
+### What a popup measured, said out loud
+
+- **The measure step was never observable, and `Host` had always claimed it was.**
+  Measure, place, open — "and each is separately observable" — but a caller that
+  needed to know how big its content came out had no way to ask, and `Placement`
+  clamps anything taller than the work area to the near edge with everything below
+  it silently dropped.
+- **So both callers who needed the number worked around it, differently.** `Menus`
+  guessed — rows times an assumed 34px, rounded up so it erred towards wrapping a
+  menu that would have fitted — and kept a second copy of
+  `--gb-menu-item-height` to do it. `select` did not try at all, so a list with
+  more options than the display is tall lost its bottom: the same defect `menu`
+  had before ADR-0118, still shipping in the control §3 most expects to be long.
+- **`Host.Fit` is the report**, taken between the measure and the place: handed
+  what the content measured and the room it has, answering with what to open.
+  Returning the content unchanged is the ordinary answer and costs nothing;
+  returning anything else costs a second element tree, which is the right way
+  round — nearly every popup fits, and only the one that did not pays.
+- **The facility asks rather than decides**, for two unchanged reasons: whether
+  long content should scroll or be clamped is a fact about the content — a tooltip
+  that scrolled would be absurd — and `:core` has no widgets to wrap anything in
+  anyway. Reporting in `:core`, policy in `:widgets`, which is the fence the
+  modules already draw.
+- **One policy now, held once.** `Fitted` is what both callers answer with, beside
+  the `Scroll` it builds. The 8px margin came out of `Menus` and was never anything
+  to do with menus: a panel flush against both edges of the screen looks cut off
+  even when it is not.
+- **A twenty-row menu measures 667px where the estimate said 696** — close enough
+  that the guess was never wrong on a full-height display, and 29px of menu
+  needlessly wrapped on a short one. The end-to-end test opens that menu into
+  240px of work area through the real launcher, and fails at 667 without the fix
+  ([ADR-0179](adr/0179-a-popup-says-what-it-measured.md))
+
+### The keyboard, given back — and the stale pointer under it
+
+- **`Element.unmount` tells the element tree and nothing else.** The router is not
+  a listener, so a dialog closing left `PointerRouter.focused` pointing at an
+  element that had left the tree: unmounted, still receiving key events, still
+  keeping its whole dead subtree reachable. "Focus is not restored when a modal
+  closes" was the half of that anybody could see, and it was on the list; this
+  was not, because nothing had looked.
+- **So it is two rules, and the first is not about dialogs.** The router never
+  holds an element that is not in the tree — a switched tab, a shortened list and
+  a closed dialog strand the same pointer — and *then*, if there is somewhere to
+  put the keyboard back, it goes there.
+- **`refocus()` runs once a frame** from `updateRegions`, beside `notifyMeasured`
+  and `notifyLocated`, and is public where they are private: the question is about
+  the element tree rather than the painted frame, and a test that closes a dialog
+  without drawing anything still needs the answer.
+- **One slot, and it is the first state the focus trap has ever held.** TODO was
+  right to flag the cost. Everything else about the trap is a question about the
+  tree asked fresh — which is why a nested dialog gives the first one back for
+  nothing — and this cannot be: what had focus before a modal opened is a fact
+  about the past. So it is written at exactly one moment, never overwritten by
+  focus moving inside a modal, kept rather than spent when a nested modal closes,
+  and allowed to go stale on purpose.
+- **The ring goes back with the keyboard**, because §7.2 keeps `:focus` and
+  `:focus-visible` apart and restoring one without the other would either lose a
+  ring the user was looking at or conjure one under a pointer nobody moved.
+- **The two popup entries turned out to be wrong about the cause.** A probe through
+  the real launcher — a widget logging every focus change, a menu opened over it
+  and closed — recorded no focus loss at all. A popup has its own tree and its own
+  router and touches neither of the owner's, so a `select`'s field keeps its focus
+  and its ring for as long as the list is up. What may still be missing is the
+  *platform's* window focus, which the headless backend cannot show. Those entries
+  say that now instead ([ADR-0180](adr/0180-the-keyboard-goes-back-where-it-was.md))
+
+### How small and how large, which three widgets had been writing around
+
+- **§8's subset gained `min-width`, `max-width`, `min-height` and `max-height`**,
+  and `dialog` has the two numbers §2 has asked it for since it was specified. It
+  was never only about dialogs: `toast`'s 360 is a *width* and `controls.css` says
+  outright that it is one "because the subset has no `max-width`", a `tooltip` has
+  no maximum and so runs a long one onto a single line, and `popover` takes
+  `minimumWidth` as a Java argument doing a declaration's job. Three widgets
+  writing a width where they meant a maximum is a missing property rather than
+  three choices.
+- **One value, not four components.** `Limits`, beside `Insets`. The `Insets`
+  argument applies — the four are only meaningful together, and `Box` and
+  `ComputedStyle` would each have grown four where they now grow one, across 45
+  positional reconstructions. The extra argument is that these are the *same
+  question asked four ways*: a caller handling three of them has a bug nobody
+  would find, and one value makes that impossible.
+- **Undefined, not zero**, because a minimum of zero constrains nothing but a
+  maximum of zero is a box that may not exist. "No limit" and "a limit of none"
+  cannot share a spelling.
+- **The scrim lost its padding across, and that is the whole trick.** §2 wants
+  "80% of the window" and a percentage resolves against the containing block — a
+  dialog's is the scrim, which fills the window, so 80% means what §2 says only
+  once the scrim stops insetting it. Measured rather than assumed: with the 24px
+  still there the dialog came out at 330 in a window where §2 permits 339. Down
+  the page the padding stays, because nothing else keeps a tall dialog off the
+  top and bottom edges.
+- **All four dialog goldens changed, and the change is the spec being applied**:
+  the dialog wanted 85% of the window and is capped at 80%, so its message wraps.
+  That is what a maximum does, and it is the first evidence the property is real.
+- **Of the four consumers waiting, one wanted converting.** `tooltip` has a
+  maximum now — 320, a judgement rather than a specified number, because without
+  one a sentence of help text is a ribbon across the window. The other three were
+  not consumers: `toast`'s width is a *design* argument its own note already made
+  (the same 360 on every toast is what makes a stack read as a stack, and a
+  maximum gives the ragged pile back), `popover`'s `minimumWidth` is a runtime
+  measurement no declaration can express, and `text-area`'s max rows is built and
+  is a row count.
+- **The 24-component record has a test rather than a refactor.** One failure mode
+  follows from a positional constructor that long — an argument in the wrong slot,
+  compiling and running and wrong in a way no golden shows. `RecordWitherTest`
+  asks every wither on `Box` and `ComputedStyle` to set its component to the value
+  it already holds and requires an equal record back, which catches a wrong slot,
+  a wrong read and a doubled component alike, needs nothing per component, and
+  covers whatever is added next the moment its wither exists. Verified by planting
+  a `width`/`height` swap the compiler cannot see. The structural answer — group
+  the components until no argument list is long enough to get wrong, which is what
+  `Insets` and `Limits` already do — would turn `box.width()` into
+  `box.layout().width()` across the toolkit for a benefit this already has
+  ([ADR-0181](adr/0181-a-box-may-say-how-small-and-how-large.md))
+
 ### Not started
 
 Tray, client-side decorations and charts, the rest of §4 —
-the pickers, `code-input` and autocomplete. §7 is **complete**. All of §4's
-leftovers reuse
+the pickers, `code-input` and autocomplete. §7 is **complete**, mechanism and
+all: §3's **sibling reflow** is built, and it was the last thing the group owed.
+All of §4's leftovers reuse
 `TextEdit` and `EditHistory` for their editing and `field` for their contract,
 which are the parts with rules in them, so each is ordinary widget work now.
-What §7 still owes is not a widget but a mechanism: §3's **sibling reflow**, the
-one sanctioned movement effect, which `toast` is now the only thing in a position
-to build. Everything outstanding is in [TODO.md](TODO.md).
+Everything outstanding is in [TODO.md](TODO.md).
 
 ## M4 — GPU
 

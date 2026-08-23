@@ -141,6 +141,17 @@ public final class RenderObject implements AutoCloseable {
         if (previous == null || !previous.height().equals(box.height())) {
             node.setHeight(box.height());
         }
+        // The four limits, together, because they arrive together. Skipped
+        // wholesale when neither frame had any -- which is nearly every node --
+        // so a box that never mentions a minimum costs one comparison rather
+        // than four foreign calls (ADR-0181).
+        var limits = box.limits();
+        if (previous == null ? !limits.isNone() : !previous.limits().equals(limits)) {
+            node.setMinWidth(limits.minWidth());
+            node.setMaxWidth(limits.maxWidth());
+            node.setMinHeight(limits.minHeight());
+            node.setMaxHeight(limits.maxHeight());
+        }
         var padding = box.padding();
         if (previous == null || !previous.padding().equals(padding)) {
             // Per edge rather than Edge.ALL, because `padding: 0 12px` is what a

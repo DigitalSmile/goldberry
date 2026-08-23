@@ -796,7 +796,7 @@ final class Launcher implements Host {
     public java.util.Optional<Popup> popup(Widget content,
                                            LogicalRect anchor, Placement placement) {
         return placed(content, anchor, placement,
-                PopupKind.MENU, 0);
+                PopupKind.MENU, 0, null);
     }
 
     @Override
@@ -804,14 +804,26 @@ final class Launcher implements Host {
                                            LogicalRect anchor, Placement placement,
                                            float minimumWidth) {
         return placed(content, anchor, placement,
-                PopupKind.MENU, minimumWidth);
+                PopupKind.MENU, minimumWidth, null);
+    }
+
+    @Override
+    public java.util.Optional<Popup> popup(Widget content,
+                                           LogicalRect anchor, Placement placement,
+                                           float minimumWidth, Fit fit) {
+        return placed(content, anchor, placement,
+                PopupKind.MENU, minimumWidth, fit);
     }
 
     /// Measure, place, open — the three steps `popover` is made of (ADR-0104),
     /// shared by the menu form and the tooltip one because only the kind differs.
+    ///
+    /// A [Host.Fit] sits between the first two: it is handed what the content
+    /// measured and answers with what to open, which is nearly always the same
+    /// widget ([ADR-0179]).
     private java.util.Optional<Popup> placed(Widget content,
                                              LogicalRect anchor, Placement placement,
-                                             PopupKind kind, float minimumWidth) {
+                                             PopupKind kind, float minimumWidth, Fit fit) {
 
         Objects.requireNonNull(content, "content");
         Objects.requireNonNull(anchor, "anchor");
@@ -823,6 +835,24 @@ final class Launcher implements Host {
         var tree = new ElementTree(content, this);
         var render = RenderTree.create();
         var size = measure(tree, render, minimumWidth);
+
+        if (fit != null) {
+            var refitted = fit.fit(content, size, placeableArea());
+            Objects.requireNonNull(refitted, "a Fit answered with no content at all");
+            if (refitted != content) {
+                // The content changed, so everything measured against the old one
+                // is worthless -- including the element tree, which is why this
+                // is the expensive branch and why it is only taken when a caller
+                // actually rewrote what it is opening. Nearly every popup fits
+                // and never comes in here.
+                tree.unmount();
+                render.close();
+                tree = new ElementTree(refitted, this);
+                render = RenderTree.create();
+                size = measure(tree, render, minimumWidth);
+            }
+        }
+
         var placed = placement.place(anchor, size, placeableArea());
         return open(tree, render,
                 new PopupSpec(placed.at(), size, kind));
@@ -837,7 +867,7 @@ final class Launcher implements Host {
     private java.util.Optional<Popup> tooltipPopup(Widget content,
             LogicalRect anchor) {
         return placed(content, anchor, Placement.ABOVE.align(Placement.Align.CENTER),
-                PopupKind.TOOLTIP, 0)
+                PopupKind.TOOLTIP, 0, null)
                 .map(popup -> popup.lightDismiss(false));
     }
 

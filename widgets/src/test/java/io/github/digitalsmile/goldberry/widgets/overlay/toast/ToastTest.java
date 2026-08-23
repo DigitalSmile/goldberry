@@ -2,14 +2,24 @@ package io.github.digitalsmile.goldberry.widgets.overlay.toast;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.github.digitalsmile.goldberry.RendererRequirement;
+import io.github.digitalsmile.goldberry.css.Theme;
+import io.github.digitalsmile.goldberry.css.value.Transform;
 import io.github.digitalsmile.goldberry.input.event.PointerEvent;
+import io.github.digitalsmile.goldberry.input.hit.Extent;
+import io.github.digitalsmile.goldberry.motion.Clock;
+import io.github.digitalsmile.goldberry.paint.Box;
 import io.github.digitalsmile.goldberry.widget.ElementTree;
+import io.github.digitalsmile.goldberry.widget.WidgetRenderer;
 import io.github.digitalsmile.goldberry.widget.style.Corner;
+import io.github.digitalsmile.goldberry.widgets.Controls;
 import io.github.digitalsmile.goldberry.widgets.TestHost;
+import io.github.digitalsmile.goldberry.widgets.controls.TestFont;
 import io.github.digitalsmile.goldberry.widgets.controls.button.Button;
 import io.github.digitalsmile.goldberry.widgets.panel.Described;
 import java.time.Duration;
@@ -299,6 +309,238 @@ class ToastTest {
             host.tickAll();
             tree.flush();
             assertEquals(List.of(), texts(tree), "the queue put another one up");
+        }
+    }
+
+    /// §3's "siblings reflow via `translate` base — the one sanctioned movement
+    /// effect", and the last thing §7 owed
+    /// ([ADR-0178](../../../../../../../../../book/src/adr/0178-a-stack-closes-its-own-hole.md)).
+    ///
+    /// Every test here builds a **real renderer**, which the rest of this file
+    /// mostly does not need, because the reflow reads two things only a frame
+    /// has: `toaster`'s resolved `gap`, and the clock a [io.github.digitalsmile.goldberry.widgets.core.Phase]
+    /// runs on.
+    @Nested
+    @DisplayName("the sibling reflow")
+    class Reflowing {
+
+        /// What every toast in these tests is measured at. Any number would do —
+        /// what matters is that the stack uses the one it was told rather than
+        /// one it worked out.
+        private static final float HEIGHT = 44;
+
+        /// `toaster { gap: 8px }` in `controls.css`. Written here as the number
+        /// the stylesheet says, so that changing one and not the other fails.
+        private static final double GAP = 8;
+
+        private Clock.Virtual clock;
+        private WidgetRenderer renderer;
+
+        @BeforeEach
+        void renderer() {
+            clock = Clock.virtual();
+            renderer = new WidgetRenderer(
+                    List.of(Controls.baseStylesheet(), Theme.NORD_DARK.load()),
+                    TestFont.get()).clock(clock);
+        }
+
+        /// Three toasts that never go on their own and can each be dismissed,
+        /// measured and drawn once.
+        private ElementTree three(Corner corner) {
+            return three(corner, true);
+        }
+
+        /// @param measured whether a frame has reported how tall they came out.
+        ///                 Fed by hand because a widget test has no window: it is
+        ///                 the router that tells a `Measured` widget what the
+        ///                 frame made of it ([ADR-0117]), and there is no router
+        ///                 here.
+        private ElementTree three(Corner corner, boolean measured) {
+            var tree = new ElementTree(new Toaster(toasts, corner), host);
+            for (var text : List.of("one", "two", "three")) {
+                toasts.show(new Toast(text).action("Undo", () -> pressed.add(text))
+                        .timeout(Duration.ZERO));
+            }
+            tree.flush();
+            renderer.render(tree);
+            if (measured) {
+                for (var box : Described.of(tree, ToastBox.class)) {
+                    box.measured(new Extent(360, HEIGHT), new Extent(360, HEIGHT));
+                }
+            }
+            return tree;
+        }
+
+        /// Presses one toast's action button and lets its exit finish.
+        ///
+        /// Both halves matter: the survivors move when the toast is **gone**
+        /// rather than when it starts going, because until then it is still
+        /// holding its place in the column and there is no hole.
+        private void dismiss(ElementTree tree, String text) {
+            var index = texts(tree).indexOf(text);
+            assertTrue(index >= 0, "no toast says \"" + text + "\": " + texts(tree));
+            Described.of(tree, Button.class).get(index).onPress().run();
+            tree.flush();
+            host.tickAll();
+            tree.flush();
+        }
+
+        /// Where each toast is going, oldest first, with null for one that is
+        /// where it belongs.
+        private List<ToastBox.Reflow> reflows(ElementTree tree) {
+            return Described.of(tree, ToastBox.class).stream()
+                    .map(ToastBox::reflow).toList();
+        }
+
+        /// The vertical translate on the toast at `index` of the painted column,
+        /// which describes its children oldest first whichever corner it is in.
+        private double translateY(ElementTree tree, int index) {
+            var column = renderer.render(tree);
+            for (var function : column.children().get(index).transform().functions()) {
+                if (function instanceof Transform.Function.Translate(var ignored, var y)) {
+                    return y.value();
+                }
+            }
+            return 0;
+        }
+
+        /// The stack is anchored by the toast nearest the corner, which is the
+        /// newest — so a hole in the middle is closed from the **far** side.
+        @Test
+        @DisplayName("the toasts older than the one that went travel, and the newer ones do not")
+        void onlyTheOlderOnesMove() {
+            var tree = three(Corner.BOTTOM_END);
+
+            dismiss(tree, "two");
+
+            assertEquals(List.of("one", "three"), texts(tree));
+            var going = reflows(tree);
+            assertNotNull(going.getFirst(),
+                    "the toast on the far side of the hole did not move, so the hole is still there");
+            assertNull(going.getLast(),
+                    "a toast between the hole and the corner moved, and nothing had moved it");
+        }
+
+        @Test
+        @DisplayName("the distance is the height of the hole plus the gap it was keeping")
+        void theHoleAndTheGap() {
+            var tree = three(Corner.BOTTOM_END);
+
+            dismiss(tree, "two");
+
+            assertEquals(HEIGHT + GAP, reflows(tree).getFirst().distance(), 0.001,
+                    "the stack is closing a hole of a size nothing measured");
+        }
+
+        /// The translate runs **backwards**: the layout has already closed the
+        /// gap, so the first frame puts the toast back where it was and the rest
+        /// let go of it.
+        @Test
+        @DisplayName("it is drawn where it was and travels to where it now is")
+        void backwards() {
+            var tree = three(Corner.BOTTOM_END);
+
+            dismiss(tree, "two");
+
+            assertEquals(-(HEIGHT + GAP), translateY(tree, 0), 0.001,
+                    "the first frame jumped rather than staying put");
+            clock.advance(ToasterState.REFLOW_MILLIS / 2);
+            assertEquals(-(HEIGHT + GAP) / 2, translateY(tree, 0), 1.0);
+            clock.advance(ToasterState.REFLOW_MILLIS);
+            assertEquals(0, translateY(tree, 0), 0.001, "it never arrived");
+        }
+
+        /// A stack at the top of the window grows downwards, so its older toasts
+        /// are **below** the hole and close it by coming up — which means being
+        /// drawn below where the layout now puts them.
+        @Test
+        @DisplayName("a stack at the top closes its hole the other way round")
+        void theCornerDecidesWhichWay() {
+            var tree = three(Corner.TOP_START);
+
+            dismiss(tree, "two");
+
+            assertEquals(HEIGHT + GAP, translateY(tree, 0), 0.001,
+                    "a stack at the top is closing its hole away from its corner");
+        }
+
+        /// Two toasts going in quick succession are two holes. A survivor that
+        /// restarted for the second would arrive short by however far it still
+        /// had to go on the first, and settle a toast's height from where it
+        /// belongs — which is what clearing a stack looks like.
+        @Test
+        @DisplayName("a second departure adds to what was left of the first")
+        void twoHoles() {
+            var tree = three(Corner.BOTTOM_END);
+            dismiss(tree, "two");
+            renderer.render(tree);
+            // Half of the first journey has run when the second one starts.
+            clock.advance(ToasterState.REFLOW_MILLIS / 2);
+            renderer.render(tree);
+
+            dismiss(tree, "three");
+
+            assertEquals((HEIGHT + GAP) * 1.5, reflows(tree).getFirst().distance(), 1.0,
+                    "the second hole threw away what was left of the first");
+        }
+
+        /// [ADR-0176]'s lesson, asserted the only way it can be: a widget that
+        /// says it has stopped moving is a widget nobody repaints, and one nobody
+        /// repaints does not move — it stands still and then is somewhere else.
+        /// A golden would photograph that happily.
+        @Test
+        @DisplayName("a travelling toast asks for the frames it travels on")
+        void asksForItsFrames() {
+            var tree = three(Corner.BOTTOM_END);
+            // Let the arrivals finish first, or this passes for the wrong reason.
+            clock.advance(500);
+            renderer.render(tree);
+            renderer.render(tree);
+            assertFalse(renderer.isAnimating(), "something is still arriving");
+
+            dismiss(tree, "two");
+            renderer.render(tree);
+
+            assertTrue(renderer.isAnimating(),
+                    "nothing will repaint the survivors, so they will not travel");
+
+            clock.advance(ToasterState.REFLOW_MILLIS + 1);
+            renderer.render(tree);
+            renderer.render(tree);
+            assertFalse(renderer.isAnimating(), "it arrived and kept asking for frames");
+        }
+
+        /// §1.7: reduced motion turns the movement off, not the outcome. The hole
+        /// is closed either way — it is closed *at once*.
+        @Test
+        @DisplayName("reduced motion closes the hole without travelling")
+        void reducedMotion() {
+            var tree = three(Corner.BOTTOM_END);
+            renderer.reducedMotion(true);
+
+            dismiss(tree, "two");
+
+            assertEquals(0, translateY(tree, 0), 0.001, "something moved");
+            // The second frame is the one that can answer: `isAnimating` reports
+            // the render it was sampled during, and the render above is the one
+            // that did the skipping.
+            renderer.render(tree);
+            assertFalse(renderer.isAnimating(), "it is still asking for frames to move on");
+        }
+
+        /// `Measured` is last frame's, so a toast raised and dismissed inside one
+        /// frame has no height. The stack must read that as no hole rather than
+        /// as a hole of nothing — the gap alone is a real number, and 8px in a
+        /// direction nobody asked for is worse than the jump this replaces.
+        @Test
+        @DisplayName("a toast dismissed before it was ever drawn leaves no hole")
+        void neverDrawnLeavesNoHole() {
+            var tree = three(Corner.BOTTOM_END, false);
+
+            dismiss(tree, "two");
+
+            assertTrue(reflows(tree).stream().allMatch(java.util.Objects::isNull),
+                    "the stack moved to close a hole nothing had ever filled");
         }
     }
 

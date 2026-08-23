@@ -44,7 +44,7 @@ class TooltipGoldenTest {
                                 """)),
                 TestFont.get());
 
-        GoldenImage.assertMatches(name, width, 48, 1.0f,
+        GoldenImage.assertMatches(name, width, name.contains("wrapping") ? 96 : 48, 1.0f,
                 frame -> BoxPainter.paint(frame, renderer.render(new ElementTree(scene))));
     }
 
@@ -85,5 +85,19 @@ class TooltipGoldenTest {
 
         GoldenImage.assertMatches("tooltip-magnified", 540, 120, 3.0f,
                 frame -> BoxPainter.paint(frame, renderer.render(new ElementTree(scene))));
+    }
+
+    /// The maximum §2 never gave it ([ADR-0181]). Without one a tooltip is a
+    /// single line as wide as its string, so a sentence of help text becomes a
+    /// ribbon across the window that is harder to read than no tooltip at all.
+    ///
+    /// The picture is the assertion: the plate stops well inside a 600px frame
+    /// and the sentence wraps, where before it would have run off the side.
+    @Test
+    @DisplayName("a tooltip long enough to need its maximum wraps inside it")
+    void wrapsAtItsMaximum() {
+        paint("tooltip-wrapping", Theme.NORD_DARK, 600,
+                "Opens a platform popup window, which is the only kind that may"
+                        + " leave the window it was opened from.");
     }
 }

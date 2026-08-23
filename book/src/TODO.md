@@ -85,17 +85,20 @@ the mechanism the sentence named.
 - ~~**A `message` cannot go away with a fade.**~~ **It can, by reversing the
   order**: the × fades the banner while it is still described and tells the
   application when the fade is over, so nothing has to outlive the description.
-- **The sibling reflow is still not built, and `toast` is now the thing that
-  could build it.** §3 asks for "siblings reflow via `translate`, base (explicit
-  controller — the one sanctioned movement effect)": when one of a stack goes,
-  the others should travel to their new places rather than jump. It needs the
-  departing entry's **height**, and the stack can have it —
-  `Host.anchor(id)` returns a node's painted rectangle, so the shift is one
-  lookup and a `Phase` per surviving sibling. It is the last thing §3 asks of the
-  overlay group, and a column of `message`es still cannot have it, because a
-  banner has no owner to hold the list. —
-  [ADR-0177](adr/0177-a-toast-is-a-queue-and-the-stack-is-the-widget.md),
-  [ADR-0175](adr/0175-a-banner-says-its-kind-twice.md)
+- ~~**The sibling reflow is still not built, and `toast` is now the thing that
+  could build it.**~~ **It is built, and which toasts move turned out to be a
+  fact about the overlay layer rather than about the widget.** A `toaster` is
+  pinned to a corner and `controls.css` puts the newest toast at that end, so the
+  column is anchored by its *newest* member: a hole in the middle leaves
+  everything between it and the corner alone, and the **older** half travels in
+  to close it. The ordinary case therefore moves nothing — a stack that shares a
+  timeout loses its oldest first, and the oldest has nothing older to move.
+  Neither number was `Host.anchor(id)` in the end: the height comes from
+  `Measured`, banked every frame because the toast is gone by the time it is
+  wanted, and the gap comes from `toaster { gap }` through the channel ADR-0177
+  opened for the frame clock. A column of `message`es still cannot have it, for
+  ADR-0175's unchanged reason: a banner has no owner to hold the list. —
+  [ADR-0178](adr/0178-a-stack-closes-its-own-hole.md)
 - **A toast cannot be dismissed by clicking it**, so one with `Duration.ZERO` and
   no action button can only be removed by `ToastController.clear()`. §7 gives a
   toast an action button and no ×, and this is that shape followed exactly —
@@ -114,6 +117,18 @@ the mechanism the sentence named.
   corpus cannot catch this class of bug **by construction** — an assertion on
   `isAnimating` is the only thing that can. —
   [ADR-0176](adr/0176-a-dialog-is-a-widget-and-showing-one-is-not.md)
+- ~~**A tooltip is plain text and has no maximum width of its own**~~ **It has one
+  now: 320, and the number is a judgement rather than a specification.** §2's
+  metrics row gives a tooltip a padding, a radius and two delays and no width, so
+  this is `Toaster.DEFAULT_MAXIMUM`'s kind of decision — without it a sentence of
+  help text is a ribbon across the window that is harder to read than no tooltip.
+  The other three "consumers" of `max-width` turned out not to be: **`toast` keeps
+  its width** on the design argument its own note already made — the same 360 on
+  every toast is what makes a stack read as a stack, and a maximum would give the
+  ragged pile back; **`popover`'s `minimumWidth` is a runtime measurement**
+  (`field.size().width()`) that no declaration can express (ADR-0145); and
+  **`text-area`'s max rows is built** and is a row count rather than a length. —
+  [ADR-0181](adr/0181-a-box-may-say-how-small-and-how-large.md)
 - **A `message` takes no `bind=`, so a banner whose text comes from a model has
   to be described away rather than emptied.** A bound banner would be *present
   and empty* when the value was blank — a bordered box with 12px of padding
@@ -159,20 +174,25 @@ the mechanism the sentence named.
   "the hovered or focused node moved" needs a real listener list *and* a decision
   about what it means for two things to react to one hover. —
   [ADR-0105](adr/0105-a-tooltip-is-an-attribute-not-a-widget.md)
-- **A menu caps itself by estimate, not by measurement.** `Menus` decides whether
-  a menu would be taller than the screen from rows times an assumed 34px, because
-  it cannot lay anything out and the popup facility that can does not know what a
-  menu row costs. It rounds up, so it errs towards wrapping a menu that would
-  have fitted — invisible — rather than clamping one that does not. A real
-  measurement would need the popup facility to hand back what it measured, which
-  is a change to a call that currently only takes content in. —
+- ~~**A menu caps itself by estimate, not by measurement.**~~ **It measures now,
+  and so does `select`.** The popup facility takes a `Host.Fit` — a callback
+  handed what the content measured and the room it has, between the measure and
+  the place — so the guess and the second copy of `--gb-menu-item-height` are both
+  gone. A twenty-row menu measures 667px where the estimate said 696, which is 29px
+  of menu needlessly wrapped on a short display and nothing at all on a tall one.
+  Returning the content unchanged costs nothing; returning something else costs a
+  second element tree, which is the right way round because nearly every popup
+  fits. —
+  [ADR-0179](adr/0179-a-popup-says-what-it-measured.md),
   [ADR-0118](adr/0118-a-popup-that-does-not-fit-scrolls.md)
-- **`Placement` still clamps, and only menus have stopped asking it to.** A popup
-  taller than the work area is clamped to the near edge exactly as before; what
-  changed is that `Menus` caps its own content first. Any other caller that opens
-  an oversized popup gets the old behaviour, which is right for a facility that
-  cannot know what its content means — a tooltip that scrolled would be a
+- **`Placement` still clamps, and now two callers have stopped asking it to.** A
+  popup taller than the work area is clamped to the near edge exactly as before;
+  what changed is that `menu` and `select` cap their own content first, from a
+  measurement rather than a guess. Any other caller that opens an oversized popup
+  and offers no `Host.Fit` gets the old behaviour, which is right for a facility
+  that cannot know what its content means — a tooltip that scrolled would be a
   tooltip that should have been a dialog. —
+  [ADR-0179](adr/0179-a-popup-says-what-it-measured.md),
   [ADR-0104](adr/0104-a-popup-is-measured-then-placed.md),
   [ADR-0118](adr/0118-a-popup-that-does-not-fit-scrolls.md)
 - **Nothing re-places an open popup.** Move or resize the window with a menu open
@@ -180,11 +200,17 @@ the mechanism the sentence named.
   `popover` that follows a scrolling anchor is the case that needs it, and it
   needs to know the anchor moved, which today nothing reports. —
   [ADR-0104](adr/0104-a-popup-is-measured-then-placed.md)
-- **Focus is not restored when a popup closes.** §7 says each overlay "wraps a
-  `focus-scope` and restores focus on close". Focus never *leaves* the owner
-  window — the popup borrows the keyboard — so there is nothing to restore in the
-  common case, but a menu opened from the keyboard should return focus to the
-  control that opened it, and nothing remembers which that was. —
+- **A popup may not give the *platform's* keyboard focus back, and the widget
+  layer has nothing to do with it** — **the second half of this entry was wrong
+  and has been measured.** A popup gets its own tree and its own router, and
+  nothing in the open or close path touches the owner's: a probe through the real
+  launcher, with a widget logging every focus change, saw a menu open and close
+  over a focused control without that control losing focus once. So there is
+  nothing to remember and nothing to restore at the router level. What is left is
+  the platform's own window focus — SDL gives a `POPUP_MENU` window focus on some
+  drivers and not on others — which the headless backend cannot show and which no
+  test here can currently reach. —
+  [ADR-0180](adr/0180-the-keyboard-goes-back-where-it-was.md),
   [ADR-0104](adr/0104-a-popup-is-measured-then-placed.md)
 - **Two popups do not know about each other.** A submenu chain — opening one closes its
   siblings but not its parent — is `menu`'s to arrange; the launcher's light dismissal
@@ -225,16 +251,20 @@ the mechanism the sentence named.
   frame the loop never reached is not. "3 late" needs the pacer's view as well as the
   painter's, and the pacer belongs to the `sdl3` backend. —
   [ADR-0101](adr/0101-a-diagnostic-must-not-be-the-thing-it-measures.md)
-- **The overlay enter/exit lifecycle and the imperative `AnimationController` are
-  specifications without subjects — and two of the controller's three subjects turned
-  out not to need one.** `opening → open → closing → removed` applies to menus,
-  popovers, tooltips, dialogs and toasts, none of which exist. The controller was to
-  drive indeterminate progress, the spinner and toast reflow; the first two ship as
-  **functions of the frame clock with no state at all**, because a loop that never ends
-  has nothing to remember and a controller would be a per-element copy of the time that
-  puts two spinners permanently out of phase. What is left for it is the work with a
-  real lifecycle — a start, an end, and an interruption to reverse from — which is toast
-  reflow and the overlay sequence, and both are M3. —
+- **The overlay enter/exit lifecycle is a specification without a subject, and the
+  imperative `AnimationController` has now lost all three of its own.**
+  `opening → open → closing → removed` applies to menus, popovers, tooltips, dialogs
+  and toasts, which now exist — so this is a survey of five built widgets that each
+  arrive and depart their own way, rather than a mechanism nobody could write. The
+  controller was to drive indeterminate progress, the spinner and toast reflow. The
+  first two ship as **functions of the frame clock with no state at all**, because a
+  loop that never ends has nothing to remember and a controller would be a per-element
+  copy of the time that puts two spinners permanently out of phase. **The third ships
+  without one too**: `Phase` was already the start and the end, and the interruption —
+  a second toast going while the first reflow is still running — turned out to be three
+  lines of arithmetic on the distance that was left. What is left for the controller is
+  the overlay sequence alone, which is now the whole of its case. —
+  [ADR-0178](adr/0178-a-stack-closes-its-own-hole.md),
   [ADR-0081](adr/0081-a-perpetual-loop-has-no-state.md),
   [ADR-0067](adr/0067-motion-is-an-overlay-on-a-frame-clock.md)
 
@@ -338,23 +368,29 @@ the mechanism the sentence named.
   nothing in the toolkit writes them. —
   [ADR-0176](adr/0176-a-dialog-is-a-widget-and-showing-one-is-not.md),
   [ADR-0170](adr/0170-a-document-names-an-object-and-a-label-hands-focus-down.md)
-- **Nothing restores focus when a modal closes.** Focus was somewhere before the
-  dialog opened, the trap moved it inside, and when the dialog goes the focused
-  element goes with it — so the keyboard lands nowhere in particular. Every real
-  toolkit puts it back, and doing so means the router remembering the previously
-  focused element for the life of the modal, which is a fourth thing it would
-  hold and the first piece of *state* the trap has needed. —
-  [ADR-0176](adr/0176-a-dialog-is-a-widget-and-showing-one-is-not.md)
-- **`min-width` and `max-width` are not in the CSS subset**, and §2 asks a dialog
-  for "min width 320, max 80% window". Yoga has the setters bound
-  (`YogaNode.setMinWidth`) and `Box` has no field for them, so it is four
-  components on `Box`, four properties on `ComputedStyle` and four lines in the
-  render tree — a gap in the style engine rather than a decision about dialogs.
-  Meanwhile the scrim's padding is a de-facto maximum and there is no minimum at
-  all: a dialog with three words in it is three words wide. `popover`'s
-  `minimumWidth` argument and `text-area`'s max rows are the other two consumers
-  waiting. —
-  [ADR-0176](adr/0176-a-dialog-is-a-widget-and-showing-one-is-not.md)
+- ~~**Nothing restores focus when a modal closes.**~~ **It does, and the entry
+  understated the problem.** "The keyboard lands nowhere in particular" was the
+  visible half; `Element.unmount` tells the element tree and nothing else, so the
+  router went on **holding** the element that had left it — an unmounted node
+  receiving key events and keeping its dead subtree reachable. So the fix is two
+  rules: the router never holds an element that is not in the tree (right for a
+  switched tab and a shortened list as much as for a dialog), and if there is
+  somewhere to put the keyboard back, it goes there. The remembered element is
+  indeed the first state the trap has held, kept to one slot, written at exactly
+  one moment, and allowed to go stale on purpose. —
+  [ADR-0180](adr/0180-the-keyboard-goes-back-where-it-was.md)
+- ~~**`min-width` and `max-width` are not in the CSS subset**~~ **All four are,
+  and `dialog` has the two numbers §2 asks it for.** One value rather than four
+  components — the four are only meaningful together, and they are the same
+  question asked four ways, so a caller that handled three would have a bug
+  nobody would find. The trick for "80% of the *window*" was the scrim: a
+  percentage resolves against the containing block, so the scrim's padding across
+  had to go or the maximum would have been 80% of the window less 48px — measured
+  at 330 in a window where §2 permits 339. **Four consumers are still waiting**
+  and each is now a stylesheet edit rather than an engine change: `toast`'s 360 is
+  still a width, `tooltip` still has no maximum, `popover` still takes
+  `minimumWidth` as a Java argument, and `text-area`'s max rows is unbuilt. —
+  [ADR-0181](adr/0181-a-box-may-say-how-small-and-how-large.md)
 - **`isModal` has one consumer**, which is one fewer than a mechanism should
   have. A `wizard` step and a `sheet` are the plausible seconds; it is tested in
   `:core` against bare widgets rather than through `dialog`, so the second one
@@ -487,6 +523,12 @@ the mechanism the sentence named.
   is visible — only that there is a lot. The trade every scrollbar makes, named
   here because it is a place the widget knowingly stops telling the truth. —
   [ADR-0117](adr/0117-a-widget-may-be-told-what-it-measured.md)
+- **`Measured` has a consumer whose reason is a *sibling's* geometry**, which is new:
+  a toast stack banks how tall each toast came out so that it can move the survivors
+  by the height of the hole when one goes ([ADR-0178](adr/0178-a-stack-closes-its-own-hole.md)).
+  Every other consumer reads its own box. It obeys the third rule by construction for
+  the same reason the scrollbar does — a reflow is a `transform`, so the box it moves
+  is laid out where it always was.
 - **`Measured` is a door every widget can now open and almost none should.** A
   widget that sizes itself from last frame's measurement lags its own content,
   and one that does so in a way that changes the measurement never settles.
@@ -626,12 +668,12 @@ the mechanism the sentence named.
   width, which is what a form does anyway. —
   [ADR-0141](adr/0141-a-select-is-a-closed-control-and-a-list.md),
   [ADR-0145](adr/0145-a-dropdown-is-as-wide-as-what-it-drops-from.md)
-- **A `select`'s list is clamped rather than scrolled when it is taller than the
-  screen.** `Menus` caps its own content by estimating a row height (ADR-0118)
-  and this does not, so a long list loses its bottom exactly as a long menu used
-  to. It is the same gap in one more place, and it wants the same fix: the popup
-  facility reporting what it measured, so neither caller has to guess. —
-  [ADR-0118](adr/0118-a-popup-that-does-not-fit-scrolls.md),
+- ~~**A `select`'s list is clamped rather than scrolled when it is taller than the
+  screen.**~~ **It scrolls.** The popup facility reports what it measured, so
+  neither caller has to guess, and both give the same answer from the same helper
+  — `Fitted`, which wraps content taller than the room in a viewport of the room's
+  height and leaves everything else alone. —
+  [ADR-0179](adr/0179-a-popup-says-what-it-measured.md),
   [ADR-0141](adr/0141-a-select-is-a-closed-control-and-a-list.md)
 - **`select multiple=`, `autocomplete=` and `tree=` are not built.** Two of the
   three are waiting on widgets rather than on decisions: `autocomplete=#true`
@@ -640,10 +682,13 @@ the mechanism the sentence named.
   the selection as `badge` chips with a remove affordance, which needs nothing
   that is not built, and is deferred as scope. —
   [ADR-0141](adr/0141-a-select-is-a-closed-control-and-a-list.md)
-- **A `select` opened from the keyboard does not give focus back to the field.**
-  The general form of this is already on this list — §7's "restores focus on
-  close", which nothing remembers — and this is the first control for which it is
-  a control's own problem rather than an application's. —
+- ~~**A `select` opened from the keyboard does not give focus back to the
+  field.**~~ **The field never loses it.** Measured rather than reasoned about:
+  the owner window's router is not touched by a popup opening or closing, so the
+  field keeps both its focus and its ring for as long as the list is up. What
+  remains is the platform-level question above, which is not a control's problem
+  and not this control's in particular. —
+  [ADR-0180](adr/0180-the-keyboard-goes-back-where-it-was.md),
   [ADR-0104](adr/0104-a-popup-is-measured-then-placed.md)
 - **The circular drag is not built, and §3 offers it.** "Rotary: vertical-drag primary
   (**circular-drag optional**)". The vertical drag ships; the circular one needs an

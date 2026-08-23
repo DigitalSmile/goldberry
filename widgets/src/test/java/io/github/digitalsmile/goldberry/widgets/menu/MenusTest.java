@@ -111,6 +111,73 @@ class MenusTest {
 
     private static final LogicalRect ANCHOR = LogicalRect.of(10, 10, 80, 24);
 
+    /// Measure, fit, open — end to end, and the only place the second
+    /// measurement really happens ([ADR-0179]).
+    ///
+    /// `Menus` used to decide this from an **estimate**: rows times an assumed
+    /// 34px, because nothing reported what a menu measured. The estimate rounded
+    /// up on purpose, so it erred towards giving a viewport to a menu that would
+    /// have fitted — invisible, but a thumb and a wheel handler that had no
+    /// business being there. The popup facility says what it measured now, so the
+    /// menu is capped against its real height.
+    ///
+    /// The work area is set short rather than the menu made enormous: twenty rows
+    /// is a real menu, and 240px is a real laptop with a real dock on it.
+    @Test
+    @Timeout(20)
+    @DisplayName("a menu longer than the work area opens at the work area's height")
+    void aLongMenuScrolls() {
+        backend.workArea(LogicalRect.of(0, 0, 800, 240));
+        var height = new float[1];
+        Goldberry.launch(new TestApp(host -> {
+            var items = new ArrayList<Widget>();
+            for (var index = 0; index < 20; index++) {
+                var label = "Command " + index;
+                items.add(new Item(label, () -> { }));
+            }
+            Menus.open(host, ANCHOR,
+                    new Menu(items, io.github.digitalsmile.goldberry.widget.attr.Attributes.NONE))
+                    .orElseThrow();
+
+            later(200, () -> {
+                height[0] = popups().getFirst().size().height();
+                Goldberry.stop();
+            });
+        }));
+
+        // The room, and not the work area: a menu flush against both edges of the
+        // screen looks cut off even when it is not.
+        assertTrue(height[0] <= 240 - 2 * 8 + 0.5f,
+                "a menu of twenty rows opened " + height[0] + " tall into 240px of screen,"
+                        + " so its last commands are about to be clamped away");
+        assertTrue(height[0] > 100,
+                "it opened at " + height[0] + ", which is not a menu that was measured");
+    }
+
+    /// Which is nearly every menu, and the half the estimate got wrong: nothing
+    /// is wrapped, so an ordinary menu has no viewport, no thumb and nothing that
+    /// takes the wheel.
+    @Test
+    @Timeout(20)
+    @DisplayName("a menu that fits opens at its own height, with nothing around it")
+    void aShortMenuIsUntouched() {
+        backend.workArea(LogicalRect.of(0, 0, 800, 1040));
+        var height = new float[1];
+        Goldberry.launch(new TestApp(host -> {
+            Menus.open(host, ANCHOR, new Menu(
+                    new Item("First", () -> { }),
+                    new Item("Second", () -> { }))).orElseThrow();
+
+            later(200, () -> {
+                height[0] = popups().getFirst().size().height();
+                Goldberry.stop();
+            });
+        }));
+
+        assertTrue(height[0] > 0 && height[0] < 200,
+                "two rows opened " + height[0] + " tall");
+    }
+
     /// Choosing a command runs it **and** closes the menu, which is what choosing
     /// a command does everywhere — and which `Menus` arranges so that an
     /// application cannot forget it on one row out of nine.

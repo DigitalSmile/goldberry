@@ -1,6 +1,7 @@
 package io.github.digitalsmile.goldberry.widgets.controls.select;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -319,6 +320,49 @@ class SelectTest {
             click(field(tree));
 
             assertEquals(240f, host.opened.getFirst().minimumWidth(), 0.5f);
+        }
+
+        /// The defect [ADR-0179] was written for: a `select` never capped its own
+        /// list, so one with more options than the display is tall was clamped to
+        /// the near edge by the placement and lost its bottom — the last options
+        /// simply not there, with nothing to say so. `menu` had solved this from
+        /// an estimate; a `select` could not even estimate, because it cannot lay
+        /// anything out either.
+        ///
+        /// `StubHost` is [io.github.digitalsmile.goldberry.widgets.TestHost],
+        /// which consults the `Fit` with whatever [io.github.digitalsmile.goldberry.widgets.TestHost#measuring]
+        /// says the content came out as — the one thing a test without a window
+        /// cannot get any other way.
+        @Test
+        @DisplayName("a list taller than the screen scrolls rather than losing its bottom")
+        void aLongListScrolls() {
+            host.measuring(200, 4000);
+            var tree = tree(two());
+
+            click(field(tree));
+
+            var opened = host.opened.getFirst().content();
+            var viewport = assertInstanceOf(
+                    io.github.digitalsmile.goldberry.widgets.core.scroll.Scroll.class, opened,
+                    "the list was opened at its full height and will be clamped");
+            assertEquals(600 - 2 * io.github.digitalsmile.goldberry.widgets.core.scroll.Fitted.MARGIN,
+                    viewport.height(), 0.001,
+                    "the viewport is not the height of the room the list has");
+            assertInstanceOf(SelectList.class, viewport.children().getFirst(),
+                    "the list is inside the viewport rather than replaced by it");
+        }
+
+        /// Which is nearly every `select`. A viewport around a list of three
+        /// options would draw a thumb and take the wheel for no reason.
+        @Test
+        @DisplayName("a list that fits is opened exactly as it always was")
+        void aShortListIsUntouched() {
+            host.measuring(200, 64);
+            var tree = tree(two());
+
+            click(field(tree));
+
+            assertInstanceOf(SelectList.class, host.opened.getFirst().content());
         }
 
         @Test
