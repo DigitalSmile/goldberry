@@ -78,6 +78,32 @@ public interface Paints extends Widget {
         /// microseconds apart.
         double nowMillis();
 
+        /// A custom property's value as a colour, resolved for **this node**.
+        ///
+        /// The theming mechanism (§8) reaching a widget that cannot express what
+        /// it draws as CSS properties. A chart needs eight series colours and a
+        /// node has one `color`; a stylesheet cannot say "the fourth series" and
+        /// a `canvas` has no child nodes to hang classes on. So the values live
+        /// in the theme as `--gb-chart-1…8` and are read here
+        /// ([ADR-0195](../../../../../../../book/src/adr/0195-a-painter-reads-the-theme-through-a-custom-property.md)).
+        ///
+        /// **Resolved through the cascade, so it inherits and can be overridden.**
+        /// `#revenue { --gb-chart-1: #b48ead }` recolours one chart's first
+        /// series and nothing else, which is the property a Java palette table
+        /// would not have.
+        ///
+        /// Deliberately narrow. It answers *colours*, not arbitrary values: every
+        /// other kind of custom property in the toolkit is consumed by a
+        /// declaration the cascade already resolves, and a general
+        /// token-returning accessor would invite a widget to reimplement the
+        /// parser.
+        ///
+        /// @param name     the property, `--` included
+        /// @param fallback what to answer when it is unset or unreadable — a
+        ///                 chart with a missing token should draw in a colour
+        ///                 rather than not draw
+        int color(String name, int fallback);
+
         /// What the frame loop has been managing lately.
         ///
         /// The third fact here that is about the frame rather than the node, and

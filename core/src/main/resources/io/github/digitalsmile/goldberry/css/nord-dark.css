@@ -146,6 +146,22 @@
   /* --nord11 at 66% lightness: 3.53:1 on --nord1, where --nord11 is 2.46:1. */
   --gb-danger-line: #ce858c;
 
+  /* --- chart series (charts.md §2, ADR-0194) -----------------------------
+     The same eight hue angles as the light theme at **their own lightness**, not
+     a flip of it: at L 0.62 every slot measures 2.57--2.9:1 on --gb-surface,
+     below the 3:1 a mark needs, so the dark steps are L 0.66 -- inside the dark
+     lightness band and clear of the floor. Contrast is a property of a pair and
+     the pair differs per theme, which is the argument ADR-0087 makes about the
+     semantic hues. */
+  --gb-chart-1: #73a340;   /* nord14 green */
+  --gb-chart-2: #c46fb7;   /* nord15 purple */
+  --gb-chart-3: #b88a07;   /* nord13 yellow */
+  --gb-chart-4: #5094e5;   /* nord10 blue */
+  --gb-chart-5: #da6a76;   /* nord11 red */
+  --gb-chart-6: #02a3c1;   /* nord8 cyan */
+  --gb-chart-7: #d9704f;   /* nord12 orange */
+  --gb-chart-8: #06a7a7;   /* nord7 teal */
+
   /* A semantic hue, and **the same hue at a lightness that can carry text**.
      They are two tokens because they answer two questions: `--gb-danger` is what
      danger *is*, and is what a label, an icon or a border is drawn in;

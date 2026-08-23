@@ -120,6 +120,28 @@ public final class WidgetRenderer {
                 return frameNow;
             }
 
+            /// Read against the element being rendered, which `renderBox` sets
+            /// just before it calls `render` -- the same one-field trick
+            /// `frameNow` uses, and for the same reason: the context is one
+            /// object shared by every node, and this is the one question whose
+            /// answer is per node.
+            @Override
+            public int color(String name, int fallback) {
+                java.util.Objects.requireNonNull(name, "name");
+                if (currentElement == null) {
+                    return fallback;
+                }
+                // Cached by element identity against what its parent handed
+                // down, so a chart asking for eight slots pays one cascade
+                // rather than eight (ADR-0152).
+                var tokens = resolver.customPropertiesFor(currentElement).get(name);
+                if (tokens == null) {
+                    return fallback;
+                }
+                var parsed = io.github.digitalsmile.goldberry.css.value.CssColor.parse(tokens);
+                return parsed == null ? fallback : parsed;
+            }
+
             @Override
             public boolean reducedMotion() {
                 return reducedMotion;
@@ -135,6 +157,11 @@ public final class WidgetRenderer {
     /// The time the current frame is being rendered at — see
     /// [Paints.Context#nowMillis()].
     private double frameNow;
+
+    /// The element whose box is being built, for [Paints.Context#color] — the
+    /// one question on that interface whose answer is per node rather than per
+    /// frame.
+    private io.github.digitalsmile.goldberry.widget.Element currentElement;
 
     /// See [#WidgetRenderer(List, Font, CssLength.Context)].
     public WidgetRenderer(List<Stylesheet> stylesheets, Font font) {
@@ -367,7 +394,16 @@ public final class WidgetRenderer {
         // Tagged with the element that produced it, which is how a pointer
         // event gets from a rectangle on screen back to a node (ADR-0054).
         var boxBegan = trace == null ? 0L : System.nanoTime();
-        var box = paints.render(painted, List.copyOf(children), paintContext).owner(element);
+        // Set for the duration of the call and cleared after, so a context that
+        // outlived the render -- a painter closing over it, which is exactly what
+        // `canvas` does -- cannot read a stale node's tokens.
+        currentElement = element;
+        Box box;
+        try {
+            box = paints.render(painted, List.copyOf(children), paintContext).owner(element);
+        } finally {
+            currentElement = null;
+        }
         if (trace != null) {
             trace.boxes(System.nanoTime() - boxBegan);
         }

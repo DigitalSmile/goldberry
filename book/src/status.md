@@ -3452,6 +3452,26 @@ is the `scroll` box's.
   nanometres to trillions, because a step that stops being round at some
   magnitude is a rounding bug. Plus a timing bound — it runs per axis per frame,
   so a millisecond would be a third of a frame's budget.
+- **The series palette is the theme's, not the toolkit's**
+  ([ADR-0195](adr/0195-a-painter-reads-the-theme-through-a-custom-property.md)).
+  The eight values live in `nord-light.css` and `nord-dark.css` as
+  `--gb-chart-1…8` and are read through a new `Paints.Context#color`, because a
+  chart is the one widget that **cannot express its colours as CSS properties**:
+  a node has one `color`, a stylesheet cannot say "the fourth series", and
+  ADR-0065's parts do not help because a `canvas` has no child nodes at all — its
+  content is a painter rather than a tree. A Java table would have worked and
+  would have taken colour away from the theme: two themes would share one
+  palette, an application could not recolour one chart's first series, and a
+  third theme would be a code change. Now
+  `#revenue { --gb-chart-1: #b48ead }` is an ordinary rule, and there is a test
+  that says so.
+- **It is the first thing on `Paints.Context` whose answer is per node**, and the
+  context is deliberately one object per renderer — which is why `nowMillis` is a
+  field rather than a clock call. So the renderer sets `currentElement` before
+  `render` and clears it in a `finally`, and the clearing is not tidiness: a
+  `canvas` painter **closes over the context** and runs later, during the paint,
+  so a context still holding an element would let a painter read a stale node's
+  tokens in a frame where the tree had changed under it.
 - **Not built: the other four widgets** and what they need beyond this — an axis
   that draws, a legend, a tooltip, a crosshair. `sparkline` needed none of them,
   which is why it went first.

@@ -73,6 +73,15 @@ public final class TestFont {
                 return cache.paragraph(one(), text);
             }
 
+            /// Always the fallback, because this context has no element and no
+            /// cascade behind it -- a test calling `render` by hand is not
+            /// styling a tree. A test that wants the theme's `--gb-chart-*`
+            /// drives a [WidgetRenderer], which resolves them against the node.
+            @Override
+            public int color(String name, int fallback) {
+                return fallback;
+            }
+
             /// A stopped clock, which is what a test calling `render` by hand
             /// wants: the frame it gets is the frame at zero, every time. A test
             /// that needs a moving one drives a [WidgetRenderer] with

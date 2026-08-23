@@ -150,6 +150,37 @@
   --gb-warning-line: #9e721b;
   --gb-danger-line: var(--gb-danger-fill);
 
+  /* --- chart series (charts.md §2, ADR-0194) -----------------------------
+     Eight slots, assigned in order and never cycled: a ninth series folds into
+     "Other" or becomes small multiples, because a generated ninth hue is
+     indistinguishable from one of these under CVD.
+
+     **Derived from Nord's hue angles, not taken from its palette.** Nord is a UI
+     palette -- low chroma, high lightness, built to sit quietly behind text --
+     and used literally it fails five of the six categorical checks: six of the
+     nine hues are below the chroma floor, where a hue reads as gray and stops
+     doing identity work, and nord9/nord8 are 8.5 ΔE apart because the frost
+     family spans 23 degrees of hue and two of its members are 5 apart. So each
+     slot keeps a Nord hue's *angle* and takes a chart lightness and chroma:
+     OKLCH L 0.62 here, C 0.14, clipped into sRGB.
+
+     The **order** is the CVD-safety mechanism and was searched over all 40320
+     permutations rather than chosen -- adjacent slots are what touch in a
+     stacked bar, and Nord's own numbering puts orange beside green at 0.8 ΔE
+     under deuteranopia. All six checks pass: worst adjacent 12.4 (protanopia),
+     worst normal-vision 21.9, every slot at or above 3:1 on the surface.
+
+     A series red is not --gb-danger, deliberately: one means "series 5" and the
+     other means "this is bad". */
+  --gb-chart-1: #679732;   /* nord14 green */
+  --gb-chart-2: #b663aa;   /* nord15 purple */
+  --gb-chart-3: #aa7e05;   /* nord13 yellow */
+  --gb-chart-4: #4488d8;   /* nord10 blue */
+  --gb-chart-5: #cc5e6a;   /* nord11 red */
+  --gb-chart-6: #0796b2;   /* nord8 cyan */
+  --gb-chart-7: #cb6443;   /* nord12 orange */
+  --gb-chart-8: #0d9999;   /* nord7 teal */
+
   /* The hue, and the hue at a lightness that can carry text. See nord-dark for
      the whole argument; what matters here is that **`--gb-danger-fill` is the
      same value in both files and `--gb-accent-fill` is not**. `--nord11` is a
