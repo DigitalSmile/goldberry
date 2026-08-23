@@ -244,6 +244,13 @@ record SelectField(
     public List<Widget> children() {
         var parts = new java.util.ArrayList<Widget>(chips.size() + 2);
         parts.addAll(chips);
+        if (!chips.isEmpty() && editor == null) {
+            // The chevron belongs at the far edge, and chips do not grow to put
+            // it there -- `select-value` does that job in the single-valued
+            // control and an editor does it in a combobox, so a field showing
+            // chips is the one shape with nothing between them and the mark.
+            parts.add(new io.github.digitalsmile.goldberry.widgets.core.Spacer(Attributes.NONE));
+        }
         if (editor != null) {
             // §3: "makes the closed control an editable `text-input`" — literally
             // one, rather than an editor this control grows of its own. The

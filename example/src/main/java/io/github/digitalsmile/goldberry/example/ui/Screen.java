@@ -136,6 +136,12 @@ public record Screen(ShowcaseModel model, ShowcaseModel.Actions actions,
                     // that it *goes*, and both are things an application does
                     // (ADR-0175).
                     new Tab("notifications", "Notifications", scrolled(new Notifications())),
+                    // Java for the same kind of reason as the screen above it:
+                    // a `multiple`'s set and an `autocomplete`'s filtering are
+                    // both the *application's*, and a document has no way to hand
+                    // a control a narrowed list of options back (ADR-0182,
+                    // ADR-0183).
+                    new Tab("choosers", "Choosers", scrolled(new Choosers())),
                     new Tab("tabs", "Tabs", scrolled(new TabsDemo(model, actions))),
                     // Not `scrolled`: this screen owns a viewport of its own, and
                     // §2.4 bans nested same-axis scrollers — so the screen that

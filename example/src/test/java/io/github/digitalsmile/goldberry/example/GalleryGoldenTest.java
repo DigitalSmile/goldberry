@@ -194,6 +194,19 @@ class GalleryGoldenTest {
         paint("gallery-notifications", "notifications", Theme.NORD_DARK, 900, 860);
     }
 
+    /// §3's two `select` options that a still picture of the Controls screen
+    /// cannot show: a `multiple` holding a set of chips, and a combobox whose
+    /// closed control is an editable `text-input` ([ADR-0182], [ADR-0183]).
+    ///
+    /// The screen is Java for the reason it says out loud: the set and the
+    /// filtering are both the application's, and a document has no way to hand a
+    /// control a narrowed list of options back.
+    @Test
+    @DisplayName("the Choosers screen")
+    void choosers() {
+        paint("gallery-choosers", "choosers", Theme.NORD_DARK);
+    }
+
     @Test
     @DisplayName("the Tabs screen")
     void tabs() {
