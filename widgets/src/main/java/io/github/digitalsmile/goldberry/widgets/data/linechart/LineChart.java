@@ -106,12 +106,9 @@ public record LineChart(List<Series> series, List<String> categories, Attributes
 
     @Override
     public List<Widget> children() {
-        var parts = new ArrayList<Widget>(2);
-        parts.add(new ChartPlot(series, categories));
-        if (series.size() > 1) {
-            parts.add(new ChartLegend(series));
-        }
-        return List.copyOf(parts);
+        return io.github.digitalsmile.goldberry.widgets.data.ChartParts.of(
+                series, categories,
+                io.github.digitalsmile.goldberry.widgets.data.ChartParts.Mode.LINE);
     }
 
     @Override
@@ -134,22 +131,7 @@ public record LineChart(List<Series> series, List<String> categories, Attributes
     /// as two y axes and is refused the same way — by there being nowhere to put
     /// it.
     public static Widget inflate(KdlNode node, List<Widget> children, Wiring wiring) {
-        var series = new ArrayList<Series>();
-        var categories = new ArrayList<String>();
-        for (var child : children) {
-            if (!(child instanceof ChartSeries node2)) {
-                continue;
-            }
-            if (series.isEmpty()) {
-                categories.addAll(node2.labels());
-            }
-            series.add(node2.toSeries(series.size()));
-        }
-        // Empty labels mean nobody named the points, and a row of blank labels
-        // under an axis is worse than none.
-        if (categories.stream().allMatch(String::isBlank)) {
-            categories.clear();
-        }
-        return new LineChart(series, categories, Attributes.of(node));
+        var read = io.github.digitalsmile.goldberry.widgets.data.ChartParts.read(children);
+        return new LineChart(read.series(), read.categories(), Attributes.of(node));
     }
 }

@@ -3291,7 +3291,10 @@ toast button {
    The plot has no background of its own: a chart sits on whatever surface it was
    put on, and one that painted its own would be a card inside a card wherever an
    application had already given it one. */
-line-chart {
+line-chart,
+area-chart,
+bar-chart,
+donut-chart {
   flex-direction: column;
   gap: 8px;
   color: var(--gb-text-muted);
@@ -3302,7 +3305,8 @@ line-chart {
 /* The plot takes the room the legend does not. `flex-grow` rather than a height,
    so a chart is as tall as whatever box an application put it in -- a chart with
    a height of its own would ignore the panel it was given. */
-chart-plot {
+chart-plot,
+donut-plot {
   flex-grow: 1;
 }
 
@@ -3329,4 +3333,15 @@ chart-legend-swatch {
   height: 8px;
   border-radius: 2px;
   flex-shrink: 0;
+}
+
+/* §3.2's inline data nodes. They are widgets because the KDL inflater builds a
+   document depth-first and hands a factory children that are already widgets --
+   the same reason `option` is one -- and their parent reads them rather than
+   laying them out. Zero-sized so a chart that forgot to filter them out of its
+   children would still draw correctly. */
+series,
+point {
+  width: 0;
+  height: 0;
 }

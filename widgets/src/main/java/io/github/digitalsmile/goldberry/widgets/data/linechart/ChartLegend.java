@@ -22,7 +22,7 @@ import java.util.List;
 /// everything else, and the entries wrap when the chart is narrow because §8's
 /// subset has `flex-wrap` now (ADR-0192). A legend drawn inside the canvas would
 /// have re-implemented all three.
-record ChartLegend(List<Series> series) implements Widget.Leaf, Styled, Paints {
+public record ChartLegend(List<Series> series) implements Widget.Leaf, Styled, Paints {
 
     @Override
     public String cssType() {

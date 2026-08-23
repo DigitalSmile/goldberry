@@ -67,6 +67,9 @@ module io.github.digitalsmile.goldberry.widgets {
     exports io.github.digitalsmile.goldberry.widgets.data;
     exports io.github.digitalsmile.goldberry.widgets.data.sparkline;
     exports io.github.digitalsmile.goldberry.widgets.data.linechart;
+    exports io.github.digitalsmile.goldberry.widgets.data.areachart;
+    exports io.github.digitalsmile.goldberry.widgets.data.barchart;
+    exports io.github.digitalsmile.goldberry.widgets.data.donutchart;
     exports io.github.digitalsmile.goldberry.widgets.core.scroll;
     exports io.github.digitalsmile.goldberry.widgets.text;
     exports io.github.digitalsmile.goldberry.widgets.panel;

@@ -38,8 +38,33 @@ import java.util.List;
 /// polylines go, and how wide the label gutter turned out to be. The gutter is
 /// measured from the shaped paragraphs, so an axis reading `1,000,000` reserves
 /// more room than one reading `5` without anybody writing a number down.
-record ChartPlot(List<Series> series, List<String> categories) implements Widget.Leaf, Styled,
-        Paints {
+public record ChartPlot(List<Series> series, List<String> categories, Mode mode)
+        implements Widget.Leaf, Styled, Paints {
+
+    /// What the plot draws. One part rather than three, because the axes, the
+    /// gridlines, the gutter measurement and the label collision rule are the
+    /// same for all of them — and three copies of that would be three chances to
+    /// have a chart whose gridlines are a pixel off its labels.
+    public enum Mode {
+
+        /// A polyline per series.
+        LINE,
+
+        /// Filled bands, **stacked**. Overlapping translucent areas are the
+        /// classic unreadable chart: with three series there are seven possible
+        /// colours on screen and none of them is in the legend. Stacked, the
+        /// bands add up to the total, which is what a reader assumes an area
+        /// chart means anyway.
+        AREA,
+
+        /// A bar per point, **grouped** side by side when there is more than one
+        /// series.
+        BAR
+    }
+
+    ChartPlot(List<Series> series, List<String> categories) {
+        this(series, categories, Mode.LINE);
+    }
 
     /// How many y labels to aim for. Five is what a dashboard-sized chart reads
     /// well at; `Ticks` treats it as a preference and will answer four or six if
@@ -64,6 +89,19 @@ record ChartPlot(List<Series> series, List<String> categories) implements Widget
     public Box render(ComputedStyle style, List<Box> children, Context context) {
         var min = series.stream().mapToDouble(Series::min).min().orElse(0);
         var max = series.stream().mapToDouble(Series::max).max().orElse(0);
+        if (mode == Mode.AREA) {
+            // A stack is as tall as its total, not as its tallest member.
+            max = Math.max(max, stackedMax());
+        }
+        if (mode != Mode.LINE) {
+            // **A bar or a band must start at zero.** A bar chart with a
+            // non-zero baseline makes a 3% difference look like a doubling, and
+            // it is the single most common way a chart lies. A line chart is the
+            // one form where a zoomed baseline is honest, because a line encodes
+            // its value by position rather than by area.
+            min = Math.min(min, 0);
+            max = Math.max(max, 0);
+        }
         if (!Double.isFinite(min) || !Double.isFinite(max)) {
             min = 0;
             max = 0;
@@ -91,8 +129,24 @@ record ChartPlot(List<Series> series, List<String> categories) implements Widget
         var grid = CssColor.fade(style.color(), 0.14);
         var ink = style.color();
         var plot = new Painted(labelling, List.copyOf(labels), List.copyOf(xLabels),
-                List.copyOf(colours), grid, ink, series);
+                List.copyOf(colours), grid, ink, series, mode);
         return Box.of().style(style).painting(plot::paint);
+    }
+
+    /// The tallest column of a stack — what an [Mode#AREA] axis has to reach.
+    private double stackedMax() {
+        var longest = series.stream().mapToInt(s -> s.values().size()).max().orElse(0);
+        var tallest = 0.0;
+        for (var i = 0; i < longest; i++) {
+            var total = 0.0;
+            for (var one : series) {
+                if (i < one.values().size()) {
+                    total += Math.max(0, one.values().get(i));
+                }
+            }
+            tallest = Math.max(tallest, total);
+        }
+        return tallest;
     }
 
     /// A number as an axis label.
@@ -117,7 +171,7 @@ record ChartPlot(List<Series> series, List<String> categories) implements Widget
     /// Everything the painter needs, decided while the cascade was in hand.
     private record Painted(
             Ticks.Labelling labelling, List<Paragraph> labels, List<Paragraph> xLabels,
-            List<Integer> colours, int grid, int ink, List<Series> series) {
+            List<Integer> colours, int grid, int ink, List<Series> series, Mode mode) {
 
         void paint(Frame frame, LogicalSize size) {
             if (labels.isEmpty() || size.width() <= 0 || size.height() <= 0) {
@@ -147,7 +201,11 @@ record ChartPlot(List<Series> series, List<String> categories) implements Widget
             var y = Scale.linear(labelling.min(), labelling.max(), top + plotHeight, top);
 
             paintGrid(frame, left, size.width(), y, lineHeight, gutter);
-            paintSeries(frame, left, plotWidth, y);
+            switch (mode) {
+                case LINE -> paintLines(frame, left, plotWidth, y);
+                case AREA -> paintBands(frame, left, plotWidth, y);
+                case BAR -> paintBars(frame, left, plotWidth, y);
+            }
             paintCategories(frame, left, plotWidth, top + plotHeight + GAP);
         }
 
@@ -169,7 +227,7 @@ record ChartPlot(List<Series> series, List<String> categories) implements Widget
             }
         }
 
-        private void paintSeries(Frame frame, double left, double plotWidth, Scale y) {
+        private void paintLines(Frame frame, double left, double plotWidth, Scale y) {
             try (var path = BlendPath.create()) {
                 for (var s = 0; s < series.size(); s++) {
                     var values = series.get(s).values();
@@ -192,6 +250,88 @@ record ChartPlot(List<Series> series, List<String> categories) implements Widget
             }
         }
 
+        /// Stacked bands, drawn back to front so each sits on the one below.
+        ///
+        /// The running total per index is the band's top and the previous total
+        /// is its bottom, which is what makes the bands add up to the number a
+        /// reader assumes an area chart is showing.
+        private void paintBands(Frame frame, double left, double plotWidth, Scale y) {
+            var longest = series.stream().mapToInt(s -> s.values().size()).max().orElse(0);
+            if (longest < 2) {
+                return;
+            }
+            var x = Scale.linear(0, longest - 1, left, left + plotWidth);
+            var beneath = new double[longest];
+
+            try (var path = BlendPath.create()) {
+                for (var s = 0; s < series.size(); s++) {
+                    var values = series.get(s).values();
+                    var top = new double[longest];
+                    for (var i = 0; i < longest; i++) {
+                        var value = i < values.size() ? Math.max(0, values.get(i)) : 0;
+                        top[i] = beneath[i] + value;
+                    }
+
+                    path.reset();
+                    path.moveTo(x.at(0), y.at(top[0]));
+                    for (var i = 1; i < longest; i++) {
+                        path.lineTo(x.at(i), y.at(top[i]));
+                    }
+                    // Back along the band beneath, so the fill is the difference
+                    // between the two rather than everything under the top.
+                    for (var i = longest - 1; i >= 0; i--) {
+                        path.lineTo(x.at(i), y.at(beneath[i]));
+                    }
+                    path.closeSubPath();
+                    // Nearly opaque: a stack's bands do not overlap, so there is
+                    // nothing to see through them, and translucency here would
+                    // only mix each band with the gridlines behind it.
+                    frame.fillPath(0, 0, path, CssColor.fade(colours.get(s), 0.85));
+
+                    System.arraycopy(top, 0, beneath, 0, longest);
+                }
+            }
+        }
+
+        /// A bar per point, grouped side by side when there is more than one
+        /// series.
+        ///
+        /// The band per category is the plot divided by the point count; the bars
+        /// share it with a gap between groups, which is what makes a group read
+        /// as one category rather than as *n* separate ones.
+        private void paintBars(Frame frame, double left, double plotWidth, Scale y) {
+            var points = series.stream().mapToInt(s -> s.values().size()).max().orElse(0);
+            if (points == 0 || series.isEmpty()) {
+                return;
+            }
+            var band = plotWidth / points;
+            // A fifth of the band as the gap between groups, which is the
+            // proportion that reads as grouped at every size anybody uses.
+            var groupWidth = band * 0.8;
+            var barWidth = groupWidth / series.size();
+            var zero = y.at(0);
+
+            for (var i = 0; i < points; i++) {
+                var bandLeft = left + i * band + (band - groupWidth) / 2;
+                for (var s = 0; s < series.size(); s++) {
+                    var values = series.get(s).values();
+                    if (i >= values.size()) {
+                        continue;
+                    }
+                    var at = y.at(values.get(i));
+                    // Drawn from the baseline in whichever direction the value
+                    // went, so a negative bar hangs below zero rather than
+                    // being drawn upside down or not at all.
+                    var barTop = Math.min(at, zero);
+                    var height = Math.abs(at - zero);
+                    frame.fillRect(
+                            (float) (bandLeft + s * barWidth), (float) barTop,
+                            (float) Math.max(1, barWidth - 1), (float) Math.max(1, height),
+                            colours.get(s));
+                }
+            }
+        }
+
         /// The x labels, one per category, centred under their point.
         ///
         /// Every *n*th label when they would collide, because a chart with
@@ -202,7 +342,14 @@ record ChartPlot(List<Series> series, List<String> categories) implements Widget
             if (xLabels.isEmpty()) {
                 return;
             }
-            var x = Scale.linear(0, Math.max(1, xLabels.size() - 1), left, left + plotWidth);
+            // Bars sit *in* a band and lines sit *on* a point, so a label is
+            // centred on the band's middle for one and on the point for the
+            // other. Getting this wrong puts every bar chart's labels half a
+            // band to the left, which looks like a rounding error and is not.
+            var x = mode == Mode.BAR
+                    ? Scale.linear(0, xLabels.size(), left, left + plotWidth)
+                    : Scale.linear(0, Math.max(1, xLabels.size() - 1), left, left + plotWidth);
+            var bandOffset = mode == Mode.BAR ? plotWidth / xLabels.size() / 2 : 0;
             var widest = 0.0;
             for (var label : xLabels) {
                 widest = Math.max(widest, label.layout(Paragraph.UNCONSTRAINED).width());
@@ -218,7 +365,7 @@ record ChartPlot(List<Series> series, List<String> categories) implements Widget
                 // each hangs outside the box and is clipped -- which the golden
                 // showed as a "Sun" reading "Su". Nudging beats dropping them:
                 // the ends of a time axis are the two labels a reader most wants.
-                var centred = x.at(i) - layout.width() / 2;
+                var centred = x.at(i) + bandOffset - layout.width() / 2;
                 var clamped = Math.max(left,
                         Math.min(centred, left + plotWidth - layout.width()));
                 label.paint(frame, clamped, baseline, Paragraph.UNCONSTRAINED, ink);

@@ -3510,9 +3510,46 @@ is the `scroll` box's.
   options are, and for exactly that reason. The alternative was teaching the
   inflater that some children are data, which is a change to the one mechanism
   every widget goes through, for a case two widgets have.
-- **Not built: `bar-chart`, `area-chart`, `donut-chart`**, and the interaction
-  layer `charts.md` §3.1 lists — tooltip, crosshair, stacking, thresholds, log
-  scales, time axes, and clicking a legend entry to isolate a series.
+- **All five of §11's charts are built.** `area-chart` and `bar-chart` are modes
+  of the same `chart-plot`, because the axes, the gridlines, the gutter
+  measurement and the label-collision rule are the same for all three and three
+  copies would be three chances for a chart whose gridlines are a pixel off its
+  labels. `ChartParts` holds the two rules every chart shares — what its children
+  are, and how §3.2's inline data is read — for the same reason.
+- **A bar and a band start at zero and cannot be talked out of it.** A bar
+  encodes its value as a *length*, so a baseline at 90 makes a 3% difference look
+  like a doubling; `line-chart` is the only one of the five that may zoom its
+  baseline, because a line encodes by position rather than by area. A negative
+  bar hangs below the zero line rather than being drawn upside down, which is the
+  one thing every naive bar renderer gets wrong.
+- **An area chart is stacked, always.** Overlapping translucent bands are the
+  classic unreadable chart: three series make seven possible colours on screen
+  and none of them is in the legend. Stacked, the bands add to the total — which
+  is what a reader assumes an area chart means anyway. So the choice between the
+  two is real: `line-chart` for separate quantities, whose total is meaningless;
+  `area-chart` for parts of one.
+- **Bars sit *in* a band and lines sit *on* a point**, which decides where a
+  label goes. Getting it wrong puts every bar chart's labels half a band to the
+  left, and it looks like a rounding error rather than a category error.
+- **`donut-chart` refuses two slices and refuses nine**, at construction, which
+  is where `dialog` refuses two affirmative buttons and for the same reason. Two
+  is a ratio and reads better as `progress`; nine has arcs too narrow to compare
+  and more parts than there are distinguishable hues, and `bar-chart` answers the
+  same question at forty categories. It also **always** has a legend, unlike the
+  axis charts: an axis chart with one series is named by its title, and an arc
+  has nowhere to write a name.
+- **The ring starts at twelve o'clock and goes clockwise**, because that is where
+  a reader's eye starts; the maths starts at three o'clock if nobody intervenes.
+  The gap between slices is taken *out of* each slice rather than drawn over it,
+  so a slice's area stays its share.
+- **Four goldens**, one per chart, and each caught something a test could not
+  have asserted: the clipped `Su`, the stacking order, the band-versus-point
+  label offset, and the arc direction — `largeArc` set wrongly draws the
+  *complement* of a slice, which is exactly wrong rather than obviously wrong.
+- **Not built: the interaction layer** `charts.md` §3.1 lists — tooltip,
+  crosshair, thresholds, log scales, time axes, and clicking a legend entry to
+  isolate a series. The five widgets exist; what they do when a pointer arrives
+  is the next piece.
 
 ### Not started
 
