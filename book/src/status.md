@@ -3425,8 +3425,35 @@ is the `scroll` box's.
 - **Two goldens**: `canvas-dark`, a themed surface with a border and a radius
   from CSS and two bars from a painter — the picture that says the two halves
   compose — and `sparkline-dark`, filled and marked, in `--gb-accent`.
-- **Not built: the other four widgets and the substrate they need** — scales,
-  Wilkinson ticks, legend, tooltip, crosshair. `sparkline` needed none of them,
+- **The axis substrate is built: `Ticks` and `Scale`.**
+  `Ticks.extended` is §3.1's Wilkinson algorithm in Talbot, Lin and Hanrahan's
+  2010 extension, which scores candidate labellings on simplicity, coverage,
+  density and legibility and takes the best. It exists because nice numbers are
+  not a rounding problem: `0…97` at five labels is either `0, 20, 40, 60, 80`,
+  leaving a quarter of the axis unlabelled, or `0, 12.5, 25 …`, which asks the
+  reader to do arithmetic to place a point — two failures pulling opposite ways,
+  which is why one number cannot decide it. **Legibility is a constant 1**, and
+  that is stated rather than dropped: the paper weighs font size and label
+  overlap, which need a decided axis width this does not have yet.
+- **`Scale` has no "inverted" flag**, and that is the design. A frame's y grows
+  downward and a chart's values grow upward; every bug in this area is
+  remembering that in one place and forgetting it in another. So a y scale is
+  `linear(min, max, height, 0)` — a *swapped range* — and the arithmetic never
+  knows which axis it is. A flat domain maps to the middle rather than to an
+  edge or a `NaN`, so the next four charts inherit the rule `sparkline` had to
+  state for itself.
+- **`sparkline` was moved onto it and the golden did not move a pixel**, which is
+  the check that says the substrate is the same arithmetic rather than a second
+  opinion about it.
+- **Twenty tests on eleven lines of algorithm, and the ratio is the point.** The
+  tick tests are ranges chosen to be awkward: `0…97`, `1000…1004` (which must not
+  fall back to labelling from zero, or the whole series sits in the last
+  thousandth of the axis), negatives, and the same range at five magnitudes from
+  nanometres to trillions, because a step that stops being round at some
+  magnitude is a rounding bug. Plus a timing bound — it runs per axis per frame,
+  so a millisecond would be a third of a frame's budget.
+- **Not built: the other four widgets** and what they need beyond this — an axis
+  that draws, a legend, a tooltip, a crosshair. `sparkline` needed none of them,
   which is why it went first.
 
 ### Not started

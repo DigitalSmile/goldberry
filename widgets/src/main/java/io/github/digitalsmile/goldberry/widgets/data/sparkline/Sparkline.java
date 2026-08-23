@@ -15,6 +15,7 @@ import io.github.digitalsmile.goldberry.widget.style.Paints;
 import io.github.digitalsmile.goldberry.widget.style.Styled;
 import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widgets.data.Lttb;
+import io.github.digitalsmile.goldberry.widgets.data.Scale;
 import io.github.digitalsmile.goldberry.widgets.markup.Markup;
 import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
 import java.util.ArrayList;
@@ -167,17 +168,17 @@ public record Sparkline(List<Double> values, boolean fill, boolean marker, Attri
         var inset = STROKE / 2 + (marker ? MARKER : 0);
         var top = inset;
         var bottom = Math.max(inset, size.height() - inset);
-        var range = max - min;
+
+        // The y range is **swapped** -- bottom for the minimum -- which is the
+        // whole of "a frame's y grows down and a chart's values grow up", stated
+        // once where the answer is known. A flat series centres, which is
+        // `Scale`'s rule rather than this widget's.
+        var x = Scale.linear(0, values.size() - 1, 0, size.width());
+        var y = Scale.linear(min, max, bottom, top);
 
         var points = new ArrayList<double[]>(kept.length);
-        var lastIndex = values.size() - 1;
         for (var index : kept) {
-            var x = lastIndex == 0 ? 0 : (double) index / lastIndex * size.width();
-            // A flat series is centred rather than divided by zero: every value
-            // is the maximum and the minimum at once, and the honest picture of
-            // "it did not change" is a line down the middle.
-            var t = range == 0 ? 0.5 : (values.get(index) - min) / range;
-            points.add(new double[] {x, bottom - t * (bottom - top)});
+            points.add(new double[] {x.at(index), y.at(values.get(index))});
         }
 
         // One path per paint. A `BlendPath` is a native allocation, which is why
