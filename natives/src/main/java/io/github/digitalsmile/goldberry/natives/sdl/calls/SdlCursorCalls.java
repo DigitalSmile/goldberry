@@ -13,8 +13,7 @@ import java.lang.invoke.MethodHandle;
 /// SDL's cursors — the shapes, and showing or hiding them.
 ///
 /// One holder per function: its handle, its address, and a `call` whose
-/// parameters are the C prototype’s. See
-/// [io.github.digitalsmile.goldberry.natives.calls] for why the handle is a
+/// parameters are the C prototype’s. See [Downcalls] for why the handle is a
 /// `static final` constant and why these live in a package of their own.
 public record SdlCursorCalls(
         CreateSystemCursor createSystemCursor,

@@ -88,7 +88,7 @@ class DowncallBenchmark {
     /// It does, in an image: **8.9 ns when the helper names the constant itself,
     /// 810 ns when the same constant is passed in as a parameter.** That is why a
     /// holder's `call` names its own `FD_…` field rather than taking a handle —
-    /// see [io.github.digitalsmile.goldberry.natives.calls] and ADR-0173.
+    /// see [Downcalls] and ADR-0173.
     ///
     /// On the JVM the two are equal, because the JIT inlines the helper and
     /// folds the argument. Nothing here reproduces the gap; only an image does.
