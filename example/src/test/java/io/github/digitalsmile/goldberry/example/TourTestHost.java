@@ -121,6 +121,12 @@ record TourTestHost(List<HitTest.Region> regions) implements Host {
     public void onContextMenu(io.github.digitalsmile.goldberry.ContextMenuHandler handler) {
     }
 
+    /// No tree behind this host, so nothing to focus — a tour never asks.
+    @Override
+    public boolean focus(String id, boolean fromKeyboard) {
+        return false;
+    }
+
     @Override
     public FrameStats frames() {
         return FrameStats.none();

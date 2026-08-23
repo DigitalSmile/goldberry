@@ -2837,3 +2837,256 @@ carousel-dot:hover {
 carousel-dot:checked {
   background: var(--gb-accent);
 }
+
+/* --------------------------------------------------------------- message --
+ *
+ * §7's inline banner: "part of the layout, persists until the condition does,
+ * and is about the thing next to it". Everything here is `design-system.md` §2's
+ * row for it -- padding 12/16, radius 8, icon 20 with gap 12, 1px border and a
+ * 4% tint of its kind colour -- and nothing here is a number this file invented.
+ *
+ * **The tint is a token per kind and not a colour function**, because §8's subset
+ * has none: `--gb-message-danger-bg` is the hue written out at 4% as an eight-digit
+ * hex, in the theme, beside the palette entry it came from. That is the same
+ * convention `--gb-selection` uses.
+ *
+ * **The glyph and the border are the `-line` rank, not the hue.** `--gb-danger`
+ * says it is "what a label, an icon or a border is drawn in" and the first
+ * measurement of that claim disproved it: the hue is 2.46:1 on `--gb-surface` in
+ * the dark theme and three of the four fail on the light one, against §1.2's 3:1
+ * floor for anything that is not text. `--gb-danger-line` is the same hue moved
+ * until it clears, per theme, and `ContrastTest` holds it there.
+ */
+message {
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 16px;
+  border-radius: 8px;
+  border: 1px solid var(--gb-info-line);
+  background: var(--gb-message-info-bg);
+  color: var(--gb-text);
+}
+
+message.success {
+  border-color: var(--gb-success-line);
+  background: var(--gb-message-success-bg);
+}
+
+message.warning {
+  border-color: var(--gb-warning-line);
+  background: var(--gb-message-warning-bg);
+}
+
+message.danger {
+  border-color: var(--gb-danger-line);
+  background: var(--gb-message-danger-bg);
+}
+
+/* 20 per §1.6's icon size, and the size is here because a mark does not size the
+   box it is drawn on -- the glyph's geometry is a proportion of this. `flex-shrink`
+   because a long line of prose beside it must not squeeze the symbol that says
+   what kind of message this is (§1.2: the colour is not allowed to carry it
+   alone, so neither is a glyph that has been crushed to nothing). */
+message-icon {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  color: var(--gb-info-line);
+}
+
+message.success message-icon {
+  color: var(--gb-success-line);
+}
+
+message.warning message-icon {
+  color: var(--gb-warning-line);
+}
+
+message.danger message-icon {
+  color: var(--gb-danger-line);
+}
+
+/* The only part that grows, so the words wrap and the two fixed ends do not. */
+message-body {
+  flex-direction: column;
+  gap: 8px;
+  flex-grow: 1;
+  font-size: var(--gb-font-body);
+  color: var(--gb-text);
+}
+
+message-actions {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+/* An action **link**, which is what §7 calls it: its first letter sits under the
+   first letter of the sentence it belongs to. A `button.ghost` brings its own
+   horizontal padding, which is right in a toolbar and wrong here -- the padding
+   indented the link and it read as a separate block rather than as part of the
+   banner. Found by looking at the first image of one. */
+message-actions button {
+  padding-left: 0;
+  padding-right: 0;
+}
+
+/* The ×. 16 rather than the glyph's 20: it is an affordance and not the subject,
+   and it sits on the same top line as the first row of prose. Focusable, unlike
+   `tab-close` -- a banner is not a focus scope, so this is the keyboard's only
+   way out of one. */
+message-dismiss {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  border-radius: 4px;
+  color: var(--gb-text-muted);
+  cursor: pointer;
+  transition: background var(--gb-motion-fast), color var(--gb-motion-fast);
+}
+
+message-dismiss:hover {
+  background: var(--gb-overlay-hover);
+  color: var(--gb-text);
+}
+
+message-dismiss:active {
+  background: var(--gb-overlay-active);
+}
+
+message-dismiss:focus-visible {
+  outline: 2px solid var(--gb-accent);
+  outline-offset: 2px;
+}
+
+/* ---------------------------------------------------------------- dialog --
+ *
+ * §7's modal. Every number here is `design-system.md` §2's row for it — padding
+ * 24, action bar gap 8 with 24 above it, min width 320, max 80% of the window —
+ * and §1.5's radius 12 for a dialog, which is the widest radius in the system
+ * and the only place it is used.
+ *
+ * **Elevation 2 is an edge and a scrim, not a shadow.** §1.5 asks for
+ * `0 8px 32px rgba(0,0,0,.35)` under a dialog and §8's subset has no
+ * `box-shadow` — ADR-0164 met the same wall for `card` and answered it the same
+ * way: a raised thing is told apart by its edge. Here the veil does most of that
+ * work, which is why a dialog needs it least of the three elevations.
+ */
+dialog-scrim {
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: var(--gb-scrim);
+}
+
+/* **No `min-width` and no `max-width`**, and §2 asks for both — "min width 320,
+   max 80% window". §8's subset has neither property; Yoga has the setters and
+   `Box` has no field for them, so this is a gap in the style engine rather than
+   a decision about dialogs, and TODO.md files it as one.
+   What holds in the meantime: the panel is content-sized, and the scrim's 24 of
+   padding is a de-facto maximum, because a centred child of a padded column
+   cannot be wider than what is left. The minimum is genuinely missing — a dialog
+   with three words in it is three words wide. */
+dialog {
+  flex-direction: column;
+  padding: 24px;
+  gap: 8px;
+  background: var(--gb-surface-raised);
+  border: 1px solid var(--gb-border-strong);
+  border-radius: 12px;
+}
+
+/* §1.4's `title` rank: a dialog's heading is the largest text in the catalog
+   outside a `statistic`, because it is the only text on screen that the reader
+   has been stopped to look at. */
+dialog-title {
+  font-size: var(--gb-font-title);
+  font-weight: 600;
+  color: var(--gb-text);
+  flex-shrink: 0;
+}
+
+dialog-body {
+  flex-direction: column;
+  gap: 8px;
+  color: var(--gb-text);
+}
+
+/* §2: "action bar gap 8, top margin 24". The margin is `padding-top` on this
+   node rather than a margin on the panel, because §8's subset has no `margin`
+   and a gap on the panel would apply between the title and the body as well —
+   which §2 puts at 8, not 24.
+ *
+ * `flex-end` is affirmative-right, which is macOS' and Linux' order and what
+ * ships. **A Windows theme flips the bar with one declaration**:
+ * `dialog-actions { flex-direction: row-reverse }` — the buttons are written in
+ * a canonical order and the direction is the theme's, which is what §7's
+ * "theme-controlled" has to mean for a widget that describes its children long
+ * before anything has asked the platform anything. */
+dialog-actions {
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  padding-top: 24px;
+  flex-shrink: 0;
+}
+
+/* ----------------------------------------------------------------- toast --
+ *
+ * §7's non-modal notification, and §2's row for it: width 360, padding 12/16,
+ * radius 8. It sits in the window's own overlay layer at a corner, so the
+ * `toaster` below is what the overlay holds and the `toast`es are its children.
+ */
+toaster {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+/* **Which end of the column is the newest.** A stack at the bottom of the window
+   grows upwards, so its newest toast is nearest the corner — the *end* of a
+   column. A stack at the top grows down, so its newest is at the start, and
+   `column-reverse` is how a node that describes its children oldest-first says
+   so without the widget having to reverse a list it would then have to reverse
+   again for the keyboard. */
+toaster.top-start, toaster.top-end {
+  flex-direction: column-reverse;
+}
+
+/* 360 is §2's, and it is a **width** rather than a maximum because the subset
+   has no `max-width` (see `dialog`): a toast is a line or two of text and a
+   button, and giving every one of them the same width is what makes a stack of
+   three read as a stack rather than as a ragged pile. */
+toast {
+  flex-direction: row;
+  align-items: center;
+  gap: 12px;
+  width: 360px;
+  padding: 12px 16px;
+  border-radius: 8px;
+  background: var(--gb-surface-raised);
+  border: 1px solid var(--gb-border-strong);
+  color: var(--gb-text);
+  flex-shrink: 0;
+}
+
+/* The words take the width and the button does not, so a long notification wraps
+   instead of pushing its own action off the end. */
+toast-text {
+  flex-grow: 1;
+  font-size: var(--gb-font-body);
+  color: var(--gb-text);
+}
+
+/* The action's own rule, so it is a *link* rather than a button parked in a
+   corner: flush with the words, like a `message`'s. */
+toast button {
+  flex-shrink: 0;
+  padding-left: 0;
+  padding-right: 0;
+}

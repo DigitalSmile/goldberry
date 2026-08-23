@@ -47,8 +47,24 @@
    there is no remaining height for a child to claim. The `scroll` rule in
    `controls.css` is where the growth is, and it is the container that grows. */
 #screen-controls, #screen-values, #screen-overlays,
-#screen-text, #screen-tabs, #screen-panels, #screen-forms
+#screen-text, #screen-tabs, #screen-panels, #screen-forms,
+#screen-notifications
            { flex-direction: column; gap: 16px; padding-top: 16px }
+
+/* The three stacks of banners on the Notifications screen.
+ *
+ * **A `column` has no gap of its own**, which is the toolkit's rule everywhere:
+ * a widget does not decide how far it sits from its neighbours, because the
+ * neighbour it is next to is not its business. The first version of this screen
+ * left it out and the banners touched -- four bordered blocks sharing edges,
+ * which reads as one control with rules through it rather than as four notices.
+ *
+ * 12 rather than §1.3's 8 for related controls or 16 for groups: these are
+ * neither. Each banner is a block of prose with a border round it, and 8 makes
+ * two of them look joined while 16 puts a hole between things that arrived
+ * together. It is on the ramp, which is what §1.3 asks of a number. */
+#notice-kinds, #notice-summary, #notices
+           { flex-direction: column; gap: 12px }
 
 /* The Forms screen's groups, side by side. Each is a `card`, because a form is a
    set of groups rather than a list of lines, and columns are what make the set

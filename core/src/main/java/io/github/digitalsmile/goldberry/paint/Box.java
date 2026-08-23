@@ -163,6 +163,42 @@ public record Box(
             /// before `radio` is.
             DOT,
 
+            /// An `i` in a circle — what a `message kind="info"` says before its
+            /// words do.
+            ///
+            /// The first of four **enclosed glyphs**, and the four are here for
+            /// one reason: `docs/design-system.md` §1.2 forbids colour as the only
+            /// carrier of meaning, so `docs/core-widgets.md` §7's `kind` has to set
+            /// a symbol as well as a hue — and a banner that is built and thrown
+            /// away every frame cannot own an [io.github.digitalsmile.goldberry.icon.Icon],
+            /// which is native memory somebody has to close exactly once
+            /// ([#CROSS] gives the same argument for the same reason).
+            ///
+            /// They are drawn to Lucide's own `info`, `circle-check`,
+            /// `circle-alert` and `triangle-alert` — the set §1.6 names — so a
+            /// banner's glyph and an application's icon beside it are the same
+            /// drawing rather than two hands.
+            CIRCLE_INFO,
+
+            /// A tick in a circle — `kind="success"`.
+            ///
+            /// Not a bare [#CHECK]: a tick on its own is a checkbox's, and a
+            /// banner is not something you have ticked.
+            CIRCLE_CHECK,
+
+            /// A `!` in a circle — `kind="danger"`.
+            ///
+            /// Not a [#CROSS]: a × inside a banner is the thing that closes it,
+            /// and the toolkit draws one of those in the same row.
+            CIRCLE_ALERT,
+
+            /// A `!` in a triangle — `kind="warning"`.
+            ///
+            /// The one enclosed glyph that is not a circle, and the shape is the
+            /// point: warning and danger are the two kinds nobody may confuse, and
+            /// §1.2's floor is about not leaning on the hue to tell them apart.
+            TRIANGLE_ALERT,
+
             /// A ring, or any part of one — a `spinner`'s three quarters, and a
             /// `knob`'s 270° track and the fraction of it the value fills.
             ///

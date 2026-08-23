@@ -135,8 +135,25 @@ module io.github.digitalsmile.goldberry.widgets {
     /// layer ([io.github.digitalsmile.goldberry.Overlay]), where `toast` and a
     /// `dialog`'s scrim will join it, while `menu`, `tooltip` and `popover` wait
     /// for the backend popup windows §4 reserves.
+    /// `dialog` — §7's modal, and [io.github.digitalsmile.goldberry.widgets.overlay.dialog.Dialogs],
+    /// which is the half that shows one. A modal needs a window to cover and a
+    /// widget has none, so the split is `menu`'s exactly (ADR-0106, ADR-0176).
+    exports io.github.digitalsmile.goldberry.widgets.overlay.dialog;
     exports io.github.digitalsmile.goldberry.widgets.overlay.hud;
+
+    /// `message` — §7's inline banner, and the one member of the overlay group
+    /// that never floats: it is a child in somebody's column and persists until
+    /// the condition it describes does. It is here because §7 is where the
+    /// catalog put it, next to the `toast` it is deliberately not.
+    exports io.github.digitalsmile.goldberry.widgets.overlay.message;
     exports io.github.digitalsmile.goldberry.widgets.overlay.popover;
+
+    /// `toast` — §7's last widget, and the only one in the group whose *widget*
+    /// an application never builds: it holds a
+    /// [io.github.digitalsmile.goldberry.widgets.overlay.toast.ToastController]
+    /// and raises values through it, because whatever raises a notification is by
+    /// definition somewhere else (ADR-0177).
+    exports io.github.digitalsmile.goldberry.widgets.overlay.toast;
     exports io.github.digitalsmile.goldberry.widgets.overlay.tour;
 
     /// `docs/core-widgets.md` §8's `menu` group: the panel, its items and its

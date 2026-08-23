@@ -205,4 +205,25 @@ public interface Handles extends Widget {
     default boolean delegatesFocus() {
         return false;
     }
+
+    /// Whether the keyboard is **trapped inside** this widget — `docs/core-widgets.md`
+    /// §7's "focus trap", which a `dialog` is the first thing to need.
+    ///
+    /// A modal widget answers two questions at once and they are the same
+    /// question: Tab enumerates its subtree instead of the window's, and focus
+    /// that is anywhere else is moved into it. There is no third rule and no
+    /// bookkeeping to keep in step — the invariant is simply that while a modal
+    /// is mounted, the focused node is inside it.
+    ///
+    /// **The pointer is not this flag's business.** A dialog is unreachable by
+    /// mouse because its scrim covers the window and takes every press, which is
+    /// what a filling [io.github.digitalsmile.goldberry.Overlay] already does for
+    /// `tour`'s veil — modality by geometry rather than by a rule. This is the
+    /// half geometry cannot express, because the keyboard has no position.
+    ///
+    /// The **deepest** modal wins, so a dialog opened from a dialog traps inside
+    /// the second one and gives the first back when it closes.
+    default boolean isModal() {
+        return false;
+    }
 }

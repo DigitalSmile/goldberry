@@ -42,6 +42,16 @@ public final class Phase {
     /// ([ADR-0109](../../../../../../../../book/src/adr/0109-a-tab-arrives-and-departs-on-the-frame-clock.md)).
     public static final double DURATION_MILLIS = 160;
 
+    /// How long *this* phase takes, which is [#DURATION_MILLIS] unless somebody
+    /// said otherwise.
+    ///
+    /// A field rather than the constant everywhere, because §1.7 gives an
+    /// entrance and an exit different durations: `docs/design-system.md` §3 asks
+    /// `message` for "in … base · out: `opacity` **fast**", and a departure that
+    /// took as long as an arrival would make dismissing something feel like a
+    /// negotiation. Every other phase in the catalog leaves this alone.
+    private final double duration;
+
     /// What this phase is.
     public enum Kind {
 
@@ -63,7 +73,25 @@ public final class Phase {
     private double startedAt = Double.NaN;
 
     public Phase(Kind kind) {
+        this(kind, DURATION_MILLIS);
+    }
+
+    /// A phase of a chosen length — see [#duration].
+    ///
+    /// @throws IllegalArgumentException if the duration is not positive and finite
+    public Phase(Kind kind, double durationMillis) {
+        if (!Double.isFinite(durationMillis) || durationMillis <= 0) {
+            throw new IllegalArgumentException(
+                    "a phase takes a positive, finite number of milliseconds, not "
+                            + durationMillis);
+        }
         this.kind = kind;
+        this.duration = durationMillis;
+    }
+
+    /// How long this phase takes, in milliseconds.
+    public double duration() {
+        return duration;
     }
 
     public Kind kind() {
@@ -92,13 +120,13 @@ public final class Phase {
             startedAt = now;
         }
         var elapsed = now - startedAt;
-        if (elapsed >= DURATION_MILLIS) {
+        if (elapsed >= duration) {
             if (kind == Kind.ENTERING) {
                 kind = Kind.SETTLED;
             }
             return 1;
         }
-        return Math.max(0, elapsed / DURATION_MILLIS);
+        return Math.max(0, elapsed / duration);
     }
 
     /// Whether this phase still has frames to draw.
@@ -109,7 +137,7 @@ public final class Phase {
     /// Whether a departure has finished, so the thing may be dropped.
     public boolean hasDeparted(double now) {
         return kind == Kind.LEAVING && !Double.isNaN(startedAt)
-                && now - startedAt >= DURATION_MILLIS;
+                && now - startedAt >= duration;
     }
 
     /// Ends the phase immediately — what reduced motion does to both of them.

@@ -13,7 +13,7 @@ page is the other half: it says what works and what it cost to find out.
 | [M0 — Skeleton](#m0--skeleton) | **done** | One native library on four targets, two backends, a window at the right fractional DPI |
 | [M1 — Vertical slice](#m1--vertical-slice) | **started** | Blend2D rasterizes, HarfBuzz shapes, text lays out, and a frame's cost is measured |
 | [M2 — Widgets & style](#m2--widgets--style) | **done** | CSS, KDL, the three trees, input, motion — and every §3 control, `select` included |
-| [M3 — Shell](#m3--shell) | **started** | Both places an overlay can go, `menubar`, §5's containers, the whole `scroll` family, and §4's first field — with the clipboard and text input the platform had never been asked for |
+| [M3 — Shell](#m3--shell) | **started** | **The whole of §7**, `menubar`, §5's containers, the whole `scroll` family and §4's fields — with the clipboard, text input, a focus trap and a third rank of every semantic hue that nothing had asked for |
 | [M4 — GPU](#m4--gpu) | not started | `canvas3d`, GPU composition |
 | [M5 — Hardening](#m5--hardening) | not started | Text editing depth, AccessKit bridge, IME preedit, docs, 0.1 release |
 
@@ -2848,13 +2848,139 @@ is the `scroll` box's.
   show its first guess until something unrelated repainted
   ([ADR-0171](adr/0171-a-column-is-an-x-and-a-width-arrives-late.md))
 
+### `message`, and the sentence §1.2 had nothing behind it
+
+- **The kind is said twice, which is the whole of the widget.** §7 asks for four
+  kinds and says the icon is not decorative — §1.2 forbids colour as the only
+  carrier of meaning — so a `kind` sets a glyph *and* a hue. The glyphs are four
+  new `Box.Mark` kinds rather than four Lucide icons, for `tab-close`'s reason
+  with one more on top: an `Icon` is native memory that must be closed exactly
+  once, and a banner is described afresh on every build.
+- **The theme's own claim about its hues was untrue, and measuring it is what
+  found out.** Both files documented `--gb-danger` as "what a label, an icon or a
+  border is drawn in"; this is the first widget that draws one, and five of the
+  eight hue/surface pairs are below §1.2's 3:1 floor — the dark theme's danger at
+  2.46:1 and the light theme's warning at **1.28:1**. A hue has three ranks now:
+  itself, `-fill` for words on top of it, and `-line` for a stroke on the page.
+  `ContrastTest` gained a second sweep, so the rule has a check under it rather
+  than a sentence.
+- **It is stateful and holds one timestamp**, which is what §3's entrance costs:
+  a newly mounted element starts no transition, so an arrival is a function of
+  the frame clock and needs a beginning. One correction to `collapse` and
+  `carousel` came with it — they decide at *build* time whether they are
+  animating and nothing rebuilds a banner, so this asks the `Phase` and actually
+  goes quiet.
+- **The exit works, and the trick is the order.** "A banner goes away because
+  the application stopped describing it, so there is nothing left to fade" looked
+  airtight and was a false choice: the × starts the fade **in the widget** while
+  the description is still in the tree, and tells the application when it is over.
+  No owner needed, which is what a lone banner has not got. `Phase` carries a
+  duration now, because §3 asks for 160ms in and 100ms out.
+- **§4's error summary is drawn at last** — `Message.summary(errors)`, empty when
+  nothing is wrong, which is the register [ADR-0169] built and nothing consumed.
+- **A gallery image is the second frame now.** The Overlays screen's first
+  picture showed four banners at zero opacity, holding their space and drawing
+  nothing, because the gallery painted the frame before every arrival starts.
+  That is half of the entry ADR-0171 filed under `text-area`.
+- **The showcase has a ninth screen, and it is Java on purpose.** Everything
+  worth seeing about a banner is a *change* — it arrives, and it goes — and both
+  are the application's doing, which is the same fact that keeps `bind=` off the
+  widget. So **Notifications** has four buttons that spawn one and a × that
+  actually removes it, where a `dismiss=` in a document can only report; the four
+  resident banners at the top of it are the four kinds, and §4's summary is under
+  them. `NotificationsScreenTest` presses the buttons, because a golden cannot.
+- **Four banners in a column touched**, because a `column` has no gap of its own
+  and nothing had stacked two blocks with borders before. 12px in the showcase's
+  own stylesheet, where every other gap on that screen is — and a note for
+  `toast`, which stacks them with no container an author could write
+  ([ADR-0175](adr/0175-a-banner-says-its-kind-twice.md))
+
+### `dialog`, and the two mechanisms it was waiting on
+
+- **A modal is two different things and only one of them is code.** The pointer's
+  modality is *geometry* — the scrim is a filling overlay, and a filling overlay
+  takes every press wherever it draws, which `tour`'s veil discovered and which
+  needed nothing new. The keyboard has no position, so its half had to be said
+  out loud: `Handles.isModal()`, read by the router as one sentence — **while
+  something modal is mounted, the focused node is inside it**.
+- **The trap is enforced where focus is *set***, not at the routes that move it.
+  The routes are Tab, a press, a roving arrow, a control focusing itself and
+  whatever asks next; a trap that covered four of five would be no trap. Nothing
+  is registered when a dialog opens, so a dialog removed by any route at all
+  gives the keyboard back.
+- **`Host.focus(id)` exists**, which three separate TODO entries were waiting on,
+  and the rule that makes it useful is the fallback: a node that cannot take
+  focus resolves to the first focusable thing *inside* it. A dialog's panel is
+  not focusable, so without that the one caller that most needed this could not
+  have used it.
+- **The roles are values and the order is the theme's.** `Esc`, `Enter` and §7's
+  platform button order all need the dialog to know which button is which, so a
+  `DialogAction` carries one — and two affirmatives is refused when the dialog is
+  built, because `Enter` cannot be a coin toss. The order itself is one CSS
+  declaration: the bar writes neutral, dismissive, affirmative, and a Windows
+  theme reverses it. A widget that read the operating system to lay itself out
+  would be a widget whose goldens differ per machine.
+- **Both keys bubble.** `Handles.onKeyCapture`'s own doc says "where a dialog
+  swallows Escape", and this dialog deliberately does not: a `text-area` keeps
+  `Enter` and an open `select` keeps `Esc` by consuming them, and the control is
+  the reason the dialog is open.
+- **Closing runs before the application is told**, which is §1.7's overlay
+  lifecycle and `message`'s order from the same day — so a handler that removes
+  the overlay immediately still gets the fade, and no application writes a line
+  about the animation
+  ([ADR-0176](adr/0176-a-dialog-is-a-widget-and-showing-one-is-not.md))
+
+### `toast`, and §7 is complete
+
+- **The value is not a widget**, which is the one place in the catalog that is
+  true. §7 draws the line itself — a message is part of the layout and a toast is
+  "something that just happened" — so a `Toast` is a record raised through a
+  controller and there is no node an author can write. A document describes a
+  screen; a toast is an event, and a screen that described one would raise it
+  again on every reload.
+- **The stack is the widget, and holding the list is the point.** Both things
+  ADR-0175 filed as impossible for a lone banner fall out of owning a queue: a
+  toast can outlive its own dismissal long enough to fade, and something finally
+  knows what a notification's siblings are.
+- **"Queued" is a cap of three**, which is a judgement §7 does not make: four in
+  a corner is a wall nobody reads and one at a time makes a burst take half a
+  minute. A departing toast gives up its place immediately, so the stack briefly
+  holds four rather than making a burst stutter.
+- **The hover-pause is a pause.** `Host.after` gives a timer and no way to ask
+  how much of it has run, so resuming needs a clock — and the only clock a widget
+  has is the one `render` is handed, which the stack reports back on every frame.
+  A toast you glanced at for two seconds gets its remaining three, not another
+  five.
+- **The corner decides three things** — where the stack sits, which edge a toast
+  slides in from, and which end of the column is newest — because they are one
+  decision. The last is a CSS rule (`column-reverse` for the top corners) rather
+  than a list the widget reverses and then has to reverse again for the keyboard
+  ([ADR-0177](adr/0177-a-toast-is-a-queue-and-the-stack-is-the-widget.md))
+
+### A dialog that would not fade, found by being asked for it
+
+- **`isAnimating` answered `!closing && phase.isRunning()`**, so the instant a
+  dialog started closing it stopped asking for frames — and a widget nobody asks
+  to repaint does not fade: it stood still for 160ms and vanished. Two flags were
+  doing one job. `closing` means *input is off* from the moment an answer is
+  given (§1.7's "no ghost clicks"); only a second flag, *there is nothing left to
+  draw*, may switch the animation off.
+- **Every golden passed**, which is the part worth keeping. A golden drives
+  `render` by hand and never asks whether the frame loop would have, so the four
+  dialog images were pictures of an animation that never ran in a real window.
+  The two tests that would have caught it assert on `isAnimating` directly, and
+  they exist now.
+
 ### Not started
 
-Tray, dialogs, client-side decorations and charts, and the rest of §4 —
-the pickers, `code-input` and autocomplete. All of those reuse
+Tray, client-side decorations and charts, the rest of §4 —
+the pickers, `code-input` and autocomplete. §7 is **complete**. All of §4's
+leftovers reuse
 `TextEdit` and `EditHistory` for their editing and `field` for their contract,
-which are the parts with rules in them, so each is ordinary widget work now. Everything outstanding is in
-[TODO.md](TODO.md).
+which are the parts with rules in them, so each is ordinary widget work now.
+What §7 still owes is not a widget but a mechanism: §3's **sibling reflow**, the
+one sanctioned movement effect, which `toast` is now the only thing in a position
+to build. Everything outstanding is in [TODO.md](TODO.md).
 
 ## M4 — GPU
 

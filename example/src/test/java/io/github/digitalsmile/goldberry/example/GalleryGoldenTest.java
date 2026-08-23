@@ -102,8 +102,30 @@ class GalleryGoldenTest {
         // — it failed by 113 pixels and a channel delta of 144, which is a
         // spinner caught a few degrees round. A virtual clock at zero is the
         // frame every machine gets.
-        var renderer = new WidgetRenderer(sheets, font)
-                .clock(io.github.digitalsmile.goldberry.motion.Clock.virtual());
+        var clock = io.github.digitalsmile.goldberry.motion.Clock.virtual();
+        var renderer = new WidgetRenderer(sheets, font).clock(clock);
+
+        // **Two frames, not one.** The first mounts the tree; the second is the
+        // one that is drawn. A newly mounted element deliberately starts no
+        // transition and a clock-driven arrival has no beginning until something
+        // reads the clock, so a screen painted once shows every arriving widget
+        // at the *start* of its entrance — which for §7's `message` means four
+        // banners at zero opacity, holding their space and drawing nothing. The
+        // real loop paints the second frame 16ms later and nobody ever sees the
+        // first.
+        //
+        // 200ms is past `Phase.DURATION_MILLIS`, so everything that arrives has
+        // arrived. It is still a frozen clock and still deterministic: the
+        // `spinner` on the Values screen and the `skeleton`s on Panels are at
+        // whatever they are at 200ms, on every machine.
+        //
+        // This is half of the entry TODO.md files under `text-area`. The other
+        // half — feeding the hit-test regions back between the two frames, so a
+        // widget that measures itself sees a real width — is still open, and is
+        // why the `text-area` in the Forms image still wraps as if it were
+        // narrow.
+        renderer.render(tree);
+        clock.advance(200);
 
         GoldenImage.assertMatches(name, width, height, 1.0f,
                 frame -> BoxPainter.paint(frame, renderer.render(tree)));
@@ -158,6 +180,18 @@ class GalleryGoldenTest {
     @DisplayName("the Forms screen")
     void forms() {
         paint("gallery-forms", "forms", Theme.NORD_DARK);
+    }
+
+    /// The Notifications screen, which is where §7's `message` lives.
+    ///
+    /// Taller than the window on purpose: the four kinds, §4's error summary and
+    /// the spawning bar are three groups and the picture is worth having whole.
+    /// What it cannot show is the screen's actual subject — a banner arriving and
+    /// a banner going — which is `NotificationsScreenTest`'s job.
+    @Test
+    @DisplayName("the Notifications screen")
+    void notifications() {
+        paint("gallery-notifications", "notifications", Theme.NORD_DARK, 900, 860);
     }
 
     @Test

@@ -264,6 +264,33 @@ public interface Host {
     /// two menus opening.
     void onContextMenu(ContextMenuHandler handler);
 
+    /// Moves the keyboard focus to the node with this `id`.
+    ///
+    /// The door for the thing a widget cannot describe: a dialog putting the
+    /// caret in its first field, a form jumping to its first error, a wizard
+    /// focusing the step it just opened. Everything else about focus is a
+    /// property of the tree — where a press lands, what Tab enumerates — and is
+    /// handled without anybody asking.
+    ///
+    /// **By id**, for [#anchor]'s reason: a widget has no element and never will,
+    /// and an id is the one name a description and a tree agree on. It is also
+    /// the name a document can write, so this works for a KDL screen as well as a
+    /// Java one.
+    ///
+    /// Refused rather than obeyed when the node cannot take focus, is disabled,
+    /// or is **outside a modal that is open** — a dialog's focus trap is not
+    /// something a stray call gets to step around
+    /// ([ADR-0176](../../../../../book/src/adr/0176-a-dialog-is-a-widget-and-showing-one-is-not.md)).
+    ///
+    /// @param id           the `id` of the node to focus
+    /// @param fromKeyboard whether to show the focus ring — §7.2's
+    ///                     `:focus-visible` distinction. A dialog opened by a
+    ///                     keyboard shortcut says true; one opened by a click
+    ///                     says false, or the ring appears under a pointer that
+    ///                     nobody moved
+    /// @return whether focus moved
+    boolean focus(String id, boolean fromKeyboard);
+
     /// Runs `action` on the UI thread after `delay`.
     ///
     /// The frame loop's own timer: it shortens its next wait so the action lands

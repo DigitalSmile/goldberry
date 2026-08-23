@@ -82,6 +82,72 @@ the mechanism the sentence named.
   "this is the branch that is open" — which is what a chevron rotating or a row
   staying highlighted would say. —
   [ADR-0113](adr/0113-a-submenu-is-placed-beside-its-menu.md)
+- ~~**A `message` cannot go away with a fade.**~~ **It can, by reversing the
+  order**: the × fades the banner while it is still described and tells the
+  application when the fade is over, so nothing has to outlive the description.
+- **The sibling reflow is still not built, and `toast` is now the thing that
+  could build it.** §3 asks for "siblings reflow via `translate`, base (explicit
+  controller — the one sanctioned movement effect)": when one of a stack goes,
+  the others should travel to their new places rather than jump. It needs the
+  departing entry's **height**, and the stack can have it —
+  `Host.anchor(id)` returns a node's painted rectangle, so the shift is one
+  lookup and a `Phase` per surviving sibling. It is the last thing §3 asks of the
+  overlay group, and a column of `message`es still cannot have it, because a
+  banner has no owner to hold the list. —
+  [ADR-0177](adr/0177-a-toast-is-a-queue-and-the-stack-is-the-widget.md),
+  [ADR-0175](adr/0175-a-banner-says-its-kind-twice.md)
+- **A toast cannot be dismissed by clicking it**, so one with `Duration.ZERO` and
+  no action button can only be removed by `ToastController.clear()`. §7 gives a
+  toast an action button and no ×, and this is that shape followed exactly —
+  worth knowing before somebody ships a notification nobody can get rid of. —
+  [ADR-0177](adr/0177-a-toast-is-a-queue-and-the-stack-is-the-widget.md)
+- **A toast is not announced**, which is M5's AccessKit bridge like every other
+  widget's semantics — and the one place in the catalog where the absence really
+  costs something, because a notification nobody sees is exactly what §7's "live
+  region" is for. —
+  [ADR-0177](adr/0177-a-toast-is-a-queue-and-the-stack-is-the-widget.md)
+- **A closing overlay used not to animate at all**, and every golden passed. A
+  golden drives `render` by hand and never asks whether the frame loop would
+  have, so a widget that answered `isAnimating` with `false` while it was fading
+  produced perfect pictures of an animation that never ran. `dialog` had it and
+  it is fixed; the general lesson has nowhere to live except here, because the
+  corpus cannot catch this class of bug **by construction** — an assertion on
+  `isAnimating` is the only thing that can. —
+  [ADR-0176](adr/0176-a-dialog-is-a-widget-and-showing-one-is-not.md)
+- **A `message` takes no `bind=`, so a banner whose text comes from a model has
+  to be described away rather than emptied.** A bound banner would be *present
+  and empty* when the value was blank — a bordered box with 12px of padding
+  saying nothing — and §8's subset has no `display`, so no widget can take itself
+  out of a layout. Whatever describes it can, which is why
+  `Message.summary` returns an `Optional`, and why the showcase's **Notifications**
+  screen is Java where its neighbours are documents. What would close this
+  properly is a way for a widget to describe *nothing*, which the element tree has
+  no word for and which `collapse`, `group-box` and `field-message` have each
+  worked around differently. —
+  [ADR-0175](adr/0175-a-banner-says-its-kind-twice.md)
+- **`--gb-*-line` has one consumer, and the widgets that should be next have not
+  been looked at.** The third rank exists because §7's banner draws a hue as a
+  glyph and a border; a `field`'s `:invalid` edge and a `badge`'s border are the
+  same thing and still read the hue directly. `ContrastTest`'s 3:1 sweep covers
+  the *tokens*, not every widget that draws one, so this is a survey somebody has
+  to do rather than a failure waiting to happen. —
+  [ADR-0175](adr/0175-a-banner-says-its-kind-twice.md)
+- **Every clock-driven arrival costs one wasted frame.** The renderer asks
+  whether a node is animating *before* it draws it, so the frame that finishes an
+  arrival still reports one more and the frame after it is the one that goes
+  quiet. Harmless and worth writing down: it is why a golden of an arrival has to
+  render three times, and it is the shape of every `Phase` in the catalog rather
+  than anything about banners. —
+  [ADR-0175](adr/0175-a-banner-says-its-kind-twice.md)
+- **`collapse` and `carousel` never stop asking for frames.** Both decide at
+  *build* time whether their part is animating — `showing ? this::visibility :
+  null` — so an open section reports `isAnimating` for as long as it is open,
+  and only a rebuild takes it back out of the loop. §1.7's "the frame loop is
+  fully idle when no animation is active" is therefore false for any window with
+  an open `collapse` on it. `message` asks its `Phase` instead and does not have
+  the bug; the fix for the other two is the same three lines. —
+  [ADR-0175](adr/0175-a-banner-says-its-kind-twice.md),
+  [ADR-0166](adr/0166-a-raised-thing-is-told-apart-by-its-edge.md)
 - **A tooltip is plain text, has no maximum width of its own and does not follow
   the pointer.** All three as `docs/core-widgets.md` §7 specifies for v1, and all
   three are what "rich content" would change. The 500ms delay is not configurable
@@ -262,17 +328,50 @@ the mechanism the sentence named.
   which is one fewer than a mechanism should have — `group-box` and `card` are
   candidates and neither has asked. —
   [ADR-0170](adr/0170-a-document-names-an-object-and-a-label-hands-focus-down.md)
-- **`Host.focus` still does not exist**, and click-to-focus did not need it: what
-  `field` wanted was a rule about where a *press* lands, not the ability to move
-  focus from anywhere. Something that wants to focus a control from a handler — a
-  dialog putting the caret in its first field, a form jumping to its first error —
-  still cannot. That is the entry this one leaves behind. —
+- ~~**`Host.focus` still does not exist.**~~ **It does**, and `dialog` is what
+  needed it: `host.focus(id, fromKeyboard)`, by **id** for `Host.anchor`'s reason
+  — a widget has no element and never will. The rule that makes it useful was not
+  the obvious one: a node that cannot take focus resolves to **the first
+  focusable thing inside it**, so "focus this dialog" and "focus this form" mean
+  what a caller intends. It is refused for anything outside an open modal. **A
+  form jumping to its first error is now two lines an application writes**, and
+  nothing in the toolkit writes them. —
+  [ADR-0176](adr/0176-a-dialog-is-a-widget-and-showing-one-is-not.md),
   [ADR-0170](adr/0170-a-document-names-an-object-and-a-label-hands-focus-down.md)
-- **A `field`'s error summary is a list and not a widget.** §4 says failures
-  "register in the form's error summary"; `FormController.errors()` is that
-  register, and nothing draws it. What should is `message` (§7), which is not
-  built — a summary drawn by `form` itself would be a second banner widget with
-  no `kind`, no icon and no dismiss. —
+- **Nothing restores focus when a modal closes.** Focus was somewhere before the
+  dialog opened, the trap moved it inside, and when the dialog goes the focused
+  element goes with it — so the keyboard lands nowhere in particular. Every real
+  toolkit puts it back, and doing so means the router remembering the previously
+  focused element for the life of the modal, which is a fourth thing it would
+  hold and the first piece of *state* the trap has needed. —
+  [ADR-0176](adr/0176-a-dialog-is-a-widget-and-showing-one-is-not.md)
+- **`min-width` and `max-width` are not in the CSS subset**, and §2 asks a dialog
+  for "min width 320, max 80% window". Yoga has the setters bound
+  (`YogaNode.setMinWidth`) and `Box` has no field for them, so it is four
+  components on `Box`, four properties on `ComputedStyle` and four lines in the
+  render tree — a gap in the style engine rather than a decision about dialogs.
+  Meanwhile the scrim's padding is a de-facto maximum and there is no minimum at
+  all: a dialog with three words in it is three words wide. `popover`'s
+  `minimumWidth` argument and `text-area`'s max rows are the other two consumers
+  waiting. —
+  [ADR-0176](adr/0176-a-dialog-is-a-widget-and-showing-one-is-not.md)
+- **`isModal` has one consumer**, which is one fewer than a mechanism should
+  have. A `wizard` step and a `sheet` are the plausible seconds; it is tested in
+  `:core` against bare widgets rather than through `dialog`, so the second one
+  finds a mechanism rather than a dialog-shaped hole. —
+  [ADR-0176](adr/0176-a-dialog-is-a-widget-and-showing-one-is-not.md)
+- ~~**A `field`'s error summary is a list and not a widget.**~~ **`message` is
+  built and `Message.summary(errors)` is the summary** — one `danger` banner with
+  a line per failure, and **empty** when nothing is wrong, because a summary of no
+  errors is not an empty banner. It is a factory rather than a child `form` adds,
+  for two reasons that were not obvious until the widget existed: a form does not
+  know where its summary belongs (above the fields is the convention, below is
+  what a long form wants, a dialog's header is what a dialog wants), and a form
+  that drew one would have to rebuild whenever any field's message changed —
+  which is a notification from `Validated` to `FormAccess` that nothing else
+  needs. **What is still open is a `form summary=#true`** that does exactly that,
+  and it is waiting on that notification rather than on the banner. —
+  [ADR-0175](adr/0175-a-banner-says-its-kind-twice.md),
   [ADR-0169](adr/0169-a-field-is-silent-until-you-leave-it.md)
 - **A `Validator` is over a `String`, and `date-picker` will want otherwise.**
   What a user typed is text until something parses it, which is right for
@@ -287,12 +386,14 @@ the mechanism the sentence named.
   since both want to decide the height — or a second bar implementation. Neither
   is obviously right. —
   [ADR-0171](adr/0171-a-column-is-an-x-and-a-width-arrives-late.md)
-- **A golden of a `text-area` is a golden of its first frame.** The gallery
-  renders once, and a settled wrap needs the measurement only a painted frame
-  produces — so the image shows the control before it knows its width. Fixing it
-  means the golden painting twice and feeding the hit-test regions back between,
-  which is what the real loop does and would make every screen's image more
-  faithful, not just this one. —
+- **A golden of a `text-area` is a golden of its first frame** — **half fixed.**
+  The gallery renders **twice** now and asserts on the second, 200ms in, which
+  §7's `message` forced: a screen painted once shows every arriving widget at the
+  *start* of its entrance, so four banners held their space and drew nothing. The
+  other half is still open and is the half a `text-area` needs — feeding the
+  hit-test regions back between the two frames, so a widget that measures itself
+  sees a real width rather than the guess it made before anything was laid out. —
+  [ADR-0175](adr/0175-a-banner-says-its-kind-twice.md),
   [ADR-0171](adr/0171-a-column-is-an-x-and-a-width-arrives-late.md)
 - **A guard at the top of `onPointer` is a guard on every pointer kind, and the
   kinds do not carry the same fields.** `text-input` tested

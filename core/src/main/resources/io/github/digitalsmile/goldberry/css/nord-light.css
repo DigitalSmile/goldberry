@@ -135,6 +135,21 @@
   --gb-success: var(--nord14);
   --gb-info: var(--nord9);
 
+  /* The hue at a lightness you can draw a line with -- see nord-dark for the whole
+     argument. **Three of the four are derived here and one aliases**, which is the
+     mirror of that file: a light theme's trouble is the pale end of the palette,
+     and `--nord13` at 1.28:1 on `--gb-surface` is the worst measurement in either
+     theme. The red is the one hue that already carries: it borrows
+     `--gb-danger-fill`, which was derived for words and clears the line floor with
+     room to spare, rather than adding a fifth nearly-identical red. */
+  /* --nord9 at 49% lightness: 3.54:1 on --nord5, where --nord9 is 2.21:1. */
+  --gb-info-line: #537da8;
+  /* --nord14 at 40% lightness: 3.62:1 on --nord5, where --nord14 is 1.67:1. */
+  --gb-success-line: #638149;
+  /* --nord13 at 36% lightness: 3.54:1 on --nord5, where --nord13 is 1.28:1. */
+  --gb-warning-line: #9e721b;
+  --gb-danger-line: var(--gb-danger-fill);
+
   /* The hue, and the hue at a lightness that can carry text. See nord-dark for
      the whole argument; what matters here is that **`--gb-danger-fill` is the
      same value in both files and `--gb-accent-fill` is not**. `--nord11` is a
@@ -335,6 +350,19 @@
 
   --gb-badge-info-bg: var(--gb-info);
   --gb-badge-info-text: var(--nord0);
+
+  /* A banner's tint -- `design-system.md` §2's "4% tint of its kind colour" for
+     §7's `message`. The hue written out at 4% as `#rrggbbaa`, because §8's subset
+     has no colour functions and `--gb-selection` set the convention: the palette
+     entry it derives from stays visible in the value.
+
+     Four percent is faint on purpose. A banner is told apart by its glyph and its
+     border, which is §1.2's rule -- the tint says "this block is a unit", not
+     "this block is red". */
+  --gb-message-info-bg: #81a1c10a;
+  --gb-message-success-bg: #a3be8c0a;
+  --gb-message-warning-bg: #ebcb8b0a;
+  --gb-message-danger-bg: #bf616a0a;
 
   /* A black wash, because a light theme's surfaces are already bright. */
   --gb-overlay-hover: #00000012;

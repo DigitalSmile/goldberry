@@ -291,9 +291,97 @@ public final class BoxPainter {
                 frame.fillPath(x, y, path, mark.argb());
                 return;
             }
+            // The four enclosed glyphs. Each is a stroked outline with a symbol
+            // inside it, and three of the four end in a **dot** -- which is a
+            // filled circle rather than part of the stroke, because a zero-length
+            // subpath is not reliably a round cap. So they draw themselves and
+            // return, the way DOT does.
+            case CIRCLE_INFO -> {
+                enclosure(path, width, height, mark);
+                // The stem of the `i`, below its dot: Lucide's info runs 16 -> 12
+                // in the 24 box, which is 0.67 -> 0.5 of the height.
+                path.moveTo(width * 0.5, height * 0.67);
+                path.lineTo(width * 0.5, height * 0.5);
+                strokeMark(frame, path, mark, x, y);
+                dot(frame, path, mark, x, y, width * 0.5, height * 0.33);
+                return;
+            }
+            case CIRCLE_CHECK -> {
+                enclosure(path, width, height, mark);
+                // Lucide's `m9 12 2 2 4-4`, in the same proportions the bare
+                // CHECK uses -- tucked in, because this tick has a ring round it
+                // and the bare one has the whole box.
+                path.moveTo(width * 0.375, height * 0.5);
+                path.lineTo(width * 0.458, height * 0.583);
+                path.lineTo(width * 0.625, height * 0.417);
+                strokeMark(frame, path, mark, x, y);
+                return;
+            }
+            case CIRCLE_ALERT -> {
+                enclosure(path, width, height, mark);
+                // The bar of the `!`, above its dot -- CIRCLE_INFO upside down,
+                // which is exactly what Lucide draws and is why the two are
+                // legible as different things at 20px.
+                path.moveTo(width * 0.5, height * 0.33);
+                path.lineTo(width * 0.5, height * 0.5);
+                strokeMark(frame, path, mark, x, y);
+                dot(frame, path, mark, x, y, width * 0.5, height * 0.67);
+                return;
+            }
+            case TRIANGLE_ALERT -> {
+                enclosure(path, width, height, mark);
+                path.moveTo(width * 0.5, height * 0.375);
+                path.lineTo(width * 0.5, height * 0.542);
+                strokeMark(frame, path, mark, x, y);
+                dot(frame, path, mark, x, y, width * 0.5, height * 0.71);
+                return;
+            }
         }
         // Round caps and joins: the tick's corner is the one place in the toolkit
         // where a mitre would put a spike outside the 16px glyph.
+        strokeMark(frame, path, mark, x, y);
+    }
+
+    /// The ring or the triangle an enclosed glyph sits in, appended to `path`.
+    ///
+    /// Inset by half the stroke for [Box.Mark.Kind#ARC]'s reason: the outline's
+    /// *outer* edge is the box, so a 20px banner glyph draws inside its 20px slot
+    /// instead of a stroke's width outside it all the way round.
+    private static void enclosure(BlendPath path, double width, double height, Box.Mark mark) {
+        var inset = mark.thickness() / 2;
+        if (mark.kind() == Box.Mark.Kind.TRIANGLE_ALERT) {
+            // Lucide's triangle-alert has rounded corners drawn as arcs; a round
+            // *join* gives the same reading at 20px for three line segments
+            // instead of six curves. The apex is high and the base wide, because
+            // a triangle inscribed in its box is what says "not a circle" at a
+            // glance -- which is the whole job of this kind.
+            path.moveTo(width * 0.5, inset);
+            path.lineTo(width - inset, height - inset);
+            path.lineTo(inset, height - inset);
+            path.closeSubPath();
+            return;
+        }
+        Arc.addTo(path, width / 2, height / 2,
+                Math.min(width, height) / 2 - inset, 0, 2 * Math.PI);
+    }
+
+    /// The dot under an `i` or over a `!`.
+    ///
+    /// Filled at the stroke's own radius, so it reads as the same pen that drew
+    /// the bar above it. Resets the path first: the outline and the symbol have
+    /// already been stroked by the time this runs.
+    private static void dot(Frame frame, BlendPath path, Box.Mark mark,
+            double x, double y, double cx, double cy) {
+
+        var radius = mark.thickness() / 2;
+        path.reset();
+        RoundRect.addTo(path, cx - radius, cy - radius, radius * 2, radius * 2, radius);
+        frame.fillPath(x, y, path, mark.argb());
+    }
+
+    /// Strokes whatever is in `path` as a mark — see the note on caps and joins
+    /// at the end of [#paintMark].
+    private static void strokeMark(Frame frame, BlendPath path, Box.Mark mark, double x, double y) {
         frame.strokePath(x, y, path, mark.thickness(),
                 BlendStrokeCap.ROUND, BlendStrokeJoin.ROUND, mark.argb());
     }

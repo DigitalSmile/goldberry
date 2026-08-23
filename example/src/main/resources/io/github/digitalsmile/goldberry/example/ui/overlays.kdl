@@ -22,12 +22,25 @@ column id="screen-overlays" {
            tooltip="A platform popup window, free of this window's bounds" "Menu"
     button id="hud-button" class="ghost" press="app.toggle-hud" \
            tooltip="A frame-rate readout in the window's own overlay layer" "HUD"
+    // sec. 7's `dialog`. A third place a thing can be: not a platform window and
+    // not a corner of this one, but *over* it -- a veil that takes every press
+    // and a panel that holds the keyboard until it is answered (ADR-0176).
+    button id="dialog-button" press="app.open-dialog" \
+           tooltip="A modal: a veil over the window and a focus trap in it" "Dialog"
+    // sec. 7's `toast`, and the one widget on this screen an application never
+    // builds: it raises a *value* through a controller and the stack in the
+    // bottom-right corner decides the rest -- when it arrives, how long it
+    // stays, and what happens when three of them are up at once (ADR-0177).
+    button id="toast-button" class="ghost" press="app.raise-toast" \
+           tooltip="A notification: it stacks, it waits its turn, and it pauses \
+while the pointer is on it" "Toast"
   }
 
   text class="caption" id="overlay-note" \
        "The menu is a second platform window: it is placed against the button, \
 flips above it near the bottom of the screen, and takes the keyboard while it is \
-open. The HUD floats in this window's own layer and is clipped to it."
+open. The HUD floats in this window's own layer and is clipped to it. The dialog \
+covers the window: try Tab with it open, and the keyboard never leaves it."
 
   text class="screen-title" "A menu bar"
 

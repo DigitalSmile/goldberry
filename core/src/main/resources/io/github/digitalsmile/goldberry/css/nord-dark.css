@@ -126,6 +126,26 @@
   --gb-success: var(--nord14);
   --gb-info: var(--nord9);
 
+  /* **The hue at a lightness you can draw a line with.** The third rank, and the
+     first widget to need it was §7's `message` -- the first one whose job is to
+     draw the aurora hues as a *glyph and a border on a surface* rather than as a
+     fill under text.
+
+     `--gb-danger` is documented above as "what a label, an icon or a border is
+     drawn in", and measuring it found that untrue in five of the eight cases: on
+     `--gb-surface` this theme's danger is 2.46:1 against §1.2's 3:1 floor for
+     non-text, and on the light theme three of the four hues fail. So a hue now
+     has three ranks -- itself, `-fill` for words on top of it, and `-line` for a
+     stroke drawn on the page -- and `ContrastTest` measures every one of them.
+
+     Three of the four alias straight through here: a dark theme's problem is the
+     dark end of the palette, and only the red is at it. */
+  --gb-info-line: var(--gb-info);
+  --gb-success-line: var(--gb-success);
+  --gb-warning-line: var(--gb-warning);
+  /* --nord11 at 66% lightness: 3.53:1 on --nord1, where --nord11 is 2.46:1. */
+  --gb-danger-line: #ce858c;
+
   /* A semantic hue, and **the same hue at a lightness that can carry text**.
      They are two tokens because they answer two questions: `--gb-danger` is what
      danger *is*, and is what a label, an icon or a border is drawn in;
@@ -378,6 +398,19 @@
 
   --gb-badge-info-bg: var(--gb-info);
   --gb-badge-info-text: var(--nord0);
+
+  /* A banner's tint -- `design-system.md` §2's "4% tint of its kind colour" for
+     §7's `message`. The hue written out at 4% as `#rrggbbaa`, because §8's subset
+     has no colour functions and `--gb-selection` set the convention: the palette
+     entry it derives from stays visible in the value.
+
+     Four percent is faint on purpose. A banner is told apart by its glyph and its
+     border, which is §1.2's rule -- the tint says "this block is a unit", not
+     "this block is red". */
+  --gb-message-info-bg: #81a1c10a;
+  --gb-message-success-bg: #a3be8c0a;
+  --gb-message-warning-bg: #ebcb8b0a;
+  --gb-message-danger-bg: #bf616a0a;
 
   /* A white wash, for controls that have no surface of their own. */
   --gb-overlay-hover: #ffffff14;

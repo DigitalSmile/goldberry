@@ -521,6 +521,23 @@ public final class PointerRouter {
         if (element != null && !isFocusable(element)) {
             return;
         }
+        // §7's focus trap, and the whole of it: while something modal is mounted,
+        // the focused node is inside it. Enforced here rather than at each of the
+        // routes that move focus, because "each of the routes" is Tab, a press, a
+        // roving arrow, a control focusing itself and whatever asks next -- and a
+        // trap that covered four of five would be no trap at all.
+        //
+        // This is also what focuses a dialog when it opens: the first frame after
+        // it mounts, something asks for focus somewhere outside it, and the
+        // request is redirected to the first thing inside.
+        var modal = deepestModal(focusRoot);
+        if (modal != null && !isReachable(element)) {
+            var inside = firstFocusableIn(modal);
+            if (inside == null || inside == element) {
+                return;
+            }
+            element = inside;
+        }
         if (focused == element && focusFromKeyboard == fromKeyboard) {
             return;
         }
@@ -804,11 +821,12 @@ public final class PointerRouter {
     /// touched the keyboard is a menu that looks like it has already chosen
     /// ([ADR-0112](../../../../../../book/src/adr/0112-a-menu-follows-the-pointer-and-lights-for-the-keyboard.md)).
     public boolean moveFocus(int direction, boolean fromKeyboard) {
-        if (focusRoot == null) {
+        var root = traversalRoot();
+        if (root == null) {
             return false;
         }
         var focusable = new ArrayList<Element>();
-        collectFocusable(focusRoot, focusable);
+        collectFocusable(root, focusable);
         if (focusable.isEmpty()) {
             return false;
         }
@@ -819,6 +837,124 @@ public final class PointerRouter {
                 : Math.floorMod(current + direction, focusable.size());
         focus(focusable.get(next), fromKeyboard);
         return true;
+    }
+
+    /// Where Tab enumerates from: the deepest mounted modal, or the whole window.
+    ///
+    /// `docs/core-widgets.md` §7's focus trap, and it is one method rather than a
+    /// mechanism because a trap is exactly this — traversal starting somewhere
+    /// else. Nothing is registered when a dialog opens and nothing has to be
+    /// unregistered when it closes; the answer is recomputed from the tree, so a
+    /// modal that goes away by any route at all gives the keyboard back
+    /// ([ADR-0176](../../../../../../book/src/adr/0176-a-dialog-is-a-widget-and-showing-one-is-not.md)).
+    ///
+    /// The walk costs the size of the tree and happens on a Tab press, which is
+    /// an order of magnitude rarer than a frame.
+    private Element traversalRoot() {
+        var modal = deepestModal(focusRoot);
+        return modal != null ? modal : focusRoot;
+    }
+
+    /// The topmost modal under `element`, or null.
+    ///
+    /// Deepest first, so a dialog opened from inside a dialog traps within the
+    /// second one — and gives the first one back when it unmounts, because this
+    /// is a question about the tree rather than a stack somebody maintains.
+    ///
+    /// **Children in reverse**, because two modals that are siblings are two
+    /// overlays on one window and the later one is drawn on top. Walking
+    /// forwards would hand the keyboard to the dialog *underneath* the one the
+    /// user is looking at.
+    private static Element deepestModal(Element element) {
+        if (element == null) {
+            return null;
+        }
+        var children = element.children();
+        for (var i = children.size() - 1; i >= 0; i--) {
+            var found = deepestModal(children.get(i));
+            if (found != null) {
+                return found;
+            }
+        }
+        return element.widget() instanceof Handles handles && handles.isModal() ? element : null;
+    }
+
+    /// Whether `element` is inside the modal that currently has the keyboard —
+    /// vacuously true when nothing is modal.
+    private boolean isReachable(Element element) {
+        var modal = deepestModal(focusRoot);
+        if (modal == null || element == null) {
+            return true;
+        }
+        for (var current = element; current != null; current = parentOf(current)) {
+            if (current == modal) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /// Focuses the node with this `id`, if there is one and it can take focus.
+    ///
+    /// The programmatic door — §4's "a form jumping to its first error", a
+    /// dialog putting the caret in its first field. By **id** rather than by
+    /// element for [io.github.digitalsmile.goldberry.Host#anchor]'s reason: a
+    /// widget has no element and never will, and an id is the one name a
+    /// description and a tree agree on.
+    ///
+    /// Not from the keyboard, so no focus ring appears: nobody pressed anything.
+    /// A caller that wants the ring — a dialog opening on a keyboard shortcut —
+    /// says so.
+    ///
+    /// **`focusById` and not an overload of [#focus(Element, boolean)]**, because
+    /// `focus(null, false)` is a real call this class makes — it is how focus is
+    /// dropped — and two overloads taking a nullable reference make it ambiguous.
+    /// A name is cheaper than a cast at every call site that clears focus.
+    ///
+    /// @return whether focus moved
+    public boolean focusById(String id, boolean fromKeyboard) {
+        var found = findById(focusRoot, id);
+        if (found == null) {
+            return false;
+        }
+        // A container resolves to **the first focusable thing inside it**, which
+        // is what makes "focus this dialog" and "focus this form" mean what a
+        // caller intends. A dialog's panel takes no focus itself -- a panel that
+        // was a Tab stop would be a stop with nothing to do on it -- so without
+        // this, the one caller that most needs this method could not use it.
+        var target = isFocusable(found) ? found : firstFocusableIn(found);
+        if (target == null || !isFocusable(target) || !isReachable(target)) {
+            return false;
+        }
+        focus(target, fromKeyboard);
+        return true;
+    }
+
+    /// The first focusable node under `element`, in document order.
+    ///
+    /// What a modal is given when focus is outside it. Not [#collectFocusable]'s
+    /// whole list: this is asked on every focus change, and the answer is the
+    /// first entry.
+    private static Element firstFocusableIn(Element element) {
+        var found = new ArrayList<Element>();
+        collectFocusable(element, found);
+        return found.isEmpty() ? null : found.getFirst();
+    }
+
+    private static Element findById(Element element, String id) {
+        if (element == null || id == null) {
+            return null;
+        }
+        if (id.equals(element.id())) {
+            return element;
+        }
+        for (var child : element.children()) {
+            var found = findById(child, id);
+            if (found != null) {
+                return found;
+            }
+        }
+        return null;
     }
 
     /// Every Tab stop under `element`, in document order — with a composite

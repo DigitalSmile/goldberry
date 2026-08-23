@@ -121,7 +121,7 @@ public record Screen(ShowcaseModel model, ShowcaseModel.Actions actions,
         public Widget build(BuildContext context) {
             var model = widget().model();
             var actions = widget().actions();
-            // The gallery: one strip, seven screens, none of them closable. It is
+            // The gallery: one strip, nine screens, none of them closable. It is
             // bound like every other control — `Ctrl+1`… and the strip itself are
             // two ways to set one property rather than two copies of a selection.
             var gallery = new Tabs(null, List.of(
@@ -131,6 +131,11 @@ public record Screen(ShowcaseModel model, ShowcaseModel.Actions actions,
                     new Tab("overlays", "Overlays", scrolled(overlays)),
                     new Tab("panels", "Panels", scrolled(panels)),
                     new Tab("forms", "Forms", scrolled(forms)),
+                    // Java rather than a document, and the screen says why: what
+                    // is worth seeing about a banner is that it *arrives* and
+                    // that it *goes*, and both are things an application does
+                    // (ADR-0175).
+                    new Tab("notifications", "Notifications", scrolled(new Notifications())),
                     new Tab("tabs", "Tabs", scrolled(new TabsDemo(model, actions))),
                     // Not `scrolled`: this screen owns a viewport of its own, and
                     // §2.4 bans nested same-axis scrollers — so the screen that

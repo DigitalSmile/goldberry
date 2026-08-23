@@ -24,6 +24,7 @@ Rules:
 
 - Aurora hues (`nord11–15`) appear **only with semantic meaning** (danger/warning/success/info, chart series) or in expressive surfaces (about pages, empty-state art) — never as decoration on controls.
 - Every text/surface pair meets **WCAG 4.5:1** (3:1 for large text ≥ 20px). Contrast is validated in CI against both themes, including the frost worst-case floor (§1.5).
+- **Every non-text pair meets 3:1**, and a semantic hue has three ranks rather than two: `--gb-danger` is what danger *is*, `--gb-danger-fill` is what you may put words on top of, and `--gb-danger-line` is what you may draw a glyph or a border with **on** a surface. The third rank exists because the first measurement of the second sentence disproved it — five of the eight hue/surface pairs were below this floor, `--nord13` on the light theme worst at 1.28:1, in a rule both themes had documented for months ([ADR-0175](../book/src/adr/0175-a-banner-says-its-kind-twice.md)). The rank is what makes the icon in the rule above a *carrier* of meaning rather than a claim to be one, and `ContrastTest` sweeps it beside the 4.5:1 pairs.
 - Light and dark are peer themes, both shipped, switchable at runtime; `system` mode follows `prefers-color-scheme`.
 
 ### 1.3 Spacing and sizing

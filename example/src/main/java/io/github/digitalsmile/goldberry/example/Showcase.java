@@ -21,7 +21,14 @@ import io.github.digitalsmile.goldberry.widgets.menu.Item;
 import io.github.digitalsmile.goldberry.widgets.menu.Menu;
 import io.github.digitalsmile.goldberry.widgets.menu.Menus;
 import io.github.digitalsmile.goldberry.widgets.menu.Separator;
+import io.github.digitalsmile.goldberry.widgets.text.Text;
+import io.github.digitalsmile.goldberry.widgets.overlay.dialog.Dialog;
+import io.github.digitalsmile.goldberry.widgets.overlay.dialog.DialogAction;
+import io.github.digitalsmile.goldberry.widgets.overlay.dialog.Dialogs;
 import io.github.digitalsmile.goldberry.widgets.overlay.hud.Hud;
+import io.github.digitalsmile.goldberry.widgets.overlay.toast.Toast;
+import io.github.digitalsmile.goldberry.widgets.overlay.toast.ToastController;
+import io.github.digitalsmile.goldberry.widgets.overlay.toast.Toasts;
 import io.github.digitalsmile.goldberry.widgets.overlay.tour.Stop;
 import io.github.digitalsmile.goldberry.widgets.overlay.tour.Tours;
 import java.util.ArrayList;
@@ -81,9 +88,25 @@ public final class Showcase implements Application {
 
     private final ShowcaseModel model = new ShowcaseModel();
     private final ShowcaseModel.Actions actions = new ShowcaseModel.Actions(model);
-    private final WindowActions window = new WindowActions(this::toggleMenu, this::toggleHud);
+    private final WindowActions window =
+            new WindowActions(this::toggleMenu, this::toggleHud, this::openDialog,
+                    this::raiseToast);
 
     private Host host;
+
+    /// The dialog that is showing, or null. One at a time: a second `Ctrl+O`
+    /// while one is up would put a modal over a modal, which the router handles
+    /// and which this application has no reason to demonstrate.
+    private Overlay open;
+
+    /// §7's toast stack, attached once and raised through for ever after.
+    ///
+    /// A field rather than something reached through the tree, which is the whole
+    /// point of a controller: what raises a notification is by definition
+    /// somewhere else (ADR-0177).
+    private final ToastController toasts = new ToastController();
+
+    private int toastsRaised;
 
     /// The frame-rate readout, while it is on screen. Null when it is not — see
     /// [#toggleHud].
@@ -168,7 +191,7 @@ public final class Showcase implements Application {
         // *during* a resize or a drag, when there is something to watch.
         host.shortcut(Mod.CTRL.and(Key.F), this::toggleHud);
 
-        // One accelerator per screen, which is what a gallery of seven wants —
+        // One accelerator per screen, which is what a gallery of nine wants —
         // and three ways to set one property rather than three copies of a
         // selection: the strip, these keys, and the menu (ADR-0110).
         //
@@ -176,9 +199,9 @@ public final class Showcase implements Application {
         // landed on the fourth strip position would be a gallery with two
         // orders in it.
         var screens = List.of("controls", "values", "text", "overlays", "panels", "forms",
-                "tabs", "scrolling");
+                "notifications", "tabs", "scrolling");
         var digits = List.of(Key.DIGIT_1, Key.DIGIT_2, Key.DIGIT_3, Key.DIGIT_4, Key.DIGIT_5,
-                Key.DIGIT_6, Key.DIGIT_7, Key.DIGIT_8);
+                Key.DIGIT_6, Key.DIGIT_7, Key.DIGIT_8, Key.DIGIT_9);
         for (var index = 0; index < screens.size(); index++) {
             var name = screens.get(index);
             host.shortcut(Mod.CTRL.and(digits.get(index)), () -> actions.pickScreen(name));
@@ -188,6 +211,11 @@ public final class Showcase implements Application {
         // what the names mean. The toolkit notices the right-click and finds the
         // name; only the catalog can turn a name into a menu (ADR-0108).
         Menus.contextMenus(host, java.util.Map.of("content", menuContent()));
+
+        // §7's toast stack, attached once. After this line the application never
+        // mentions the stack again: it holds a controller and raises values
+        // through it from wherever they happen (ADR-0177).
+        Toasts.at(host, toasts, Corner.BOTTOM_END);
 
         host.window().onResize(size -> LOG.info("resized to {}", size));
         host.window().onScaleChange(scale -> LOG.info("scale is now {}", scale));
@@ -304,6 +332,60 @@ public final class Showcase implements Application {
                 open -> menu = open,
                 () -> LOG.info("nowhere to put a menu: either this video driver has no popup"
                         + " windows, or the button has not been painted yet"));
+    }
+
+    /// Raises a toast — §7's last widget, and the shortest thing in this class.
+    ///
+    /// No `Host`, no widget, no overlay: the stack was attached once when the
+    /// window started, and everything after that goes through the controller
+    /// (ADR-0177). Every third one carries an action, because a toast with a
+    /// button and a toast without are different shapes and a demonstration of
+    /// one is not a demonstration of the other.
+    private void raiseToast() {
+        var number = ++toastsRaised;
+        var toast = new Toast("Notification " + number + " — this one goes on its own.");
+        toasts.show(number % 3 == 0
+                ? new Toast("Message " + number + " sent.")
+                        .action("Undo", () -> actions.setStatus("Undone message " + number))
+                : toast);
+    }
+
+    /// The modal — §7's `dialog`, opened the way ADR-0176 says one is: it is a
+    /// widget, and showing it is `Dialogs.show`.
+    ///
+    /// The three roles are all here, because the three-button save dialog is the
+    /// case that makes the roles worth having: `Enter` presses Discard, `Esc` and
+    /// a press on the veil press Keep editing, and "Don't save" has no key at
+    /// all. The bar puts the affirmative on the right without being told to.
+    ///
+    /// Each handler ends by removing the overlay, and gets the closing animation
+    /// for nothing: every route out fades the panel first and calls the handler
+    /// when the fade is over.
+    private void openDialog() {
+        if (open != null && open.isAttached()) {
+            return;
+        }
+        open = Dialogs.show(host, new Dialog("Unsaved changes", List.of(
+                new Text("Your draft has not been saved. Discarding it cannot be undone."),
+                new DialogAction("Don't save", DialogAction.Role.NEUTRAL,
+                        () -> answered("Not saved")),
+                new DialogAction("Keep editing", DialogAction.Role.DISMISSIVE,
+                        () -> answered("Still editing")),
+                new DialogAction("Discard", DialogAction.Role.AFFIRMATIVE,
+                        () -> answered("Discarded"))),
+                io.github.digitalsmile.goldberry.widget.attr.Attributes.NONE).id("unsaved"));
+    }
+
+    /// What every one of the dialog's buttons does: say so, and take the dialog
+    /// away. Removing the overlay is the application's — only it knows the
+    /// question has been answered — and by the time this runs the panel has
+    /// already faded.
+    private void answered(String what) {
+        actions.setStatus(what);
+        if (open != null) {
+            open.remove();
+            open = null;
+        }
     }
 
     /// What the menu contains: three things that do something visible, so that

@@ -190,6 +190,26 @@ public class TestHost implements Host {
         contextMenus = handler;
     }
 
+    private final java.util.List<String> focused = new java.util.ArrayList<>();
+
+    /// Records the request and reports that it worked.
+    ///
+    /// There is no element tree behind this host, so there is nothing to focus
+    /// and nothing to refuse: what a widget test wants to know is **that it
+    /// asked**, and for which id. The real rule — refused for a node that cannot
+    /// take focus or is outside an open modal — is `PointerRouter`'s and is tested
+    /// against a real tree in `FocusTrapTest`.
+    @Override
+    public boolean focus(String id, boolean fromKeyboard) {
+        focused.add(id);
+        return true;
+    }
+
+    /// The ids something has asked to focus, in order.
+    public java.util.List<String> focusRequests() {
+        return java.util.List.copyOf(focused);
+    }
+
     private final java.util.List<Runnable> scheduled = new java.util.ArrayList<>();
     private final java.util.List<Duration> delays = new java.util.ArrayList<>();
     private final java.util.List<EventLoop.Timer> timers = new java.util.ArrayList<>();
@@ -214,6 +234,29 @@ public class TestHost implements Host {
     public void tick() {
         if (!scheduled.isEmpty()) {
             scheduled.removeLast().run();
+        }
+    }
+
+    /// Fires the **oldest** pending timer.
+    ///
+    /// [#tick()] fires the newest, which is right for a widget that has one timer
+    /// at a time — a caret, a tooltip, a closing dialog. A `toast` stack has one
+    /// per toast, and the one that goes off first is the one that was scheduled
+    /// first, so a test of a queue needs this end of the list.
+    public void tickFirst() {
+        if (!scheduled.isEmpty()) {
+            scheduled.removeFirst().run();
+        }
+    }
+
+    /// Fires everything pending, oldest first, including anything scheduled while
+    /// this is running — which is what a queue does to itself.
+    ///
+    /// Bounded, because a widget that reschedules on every fire would otherwise
+    /// spin here for ever rather than failing.
+    public void tickAll() {
+        for (var i = 0; i < 100 && !scheduled.isEmpty(); i++) {
+            scheduled.removeFirst().run();
         }
     }
 

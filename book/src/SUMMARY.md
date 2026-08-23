@@ -184,6 +184,9 @@
 - [ADR-0172 A package is a role, and the module is the fence](adr/0172-a-package-is-a-role-and-the-module-is-the-fence.md)
 - [ADR-0173 A bound function is a holder, and its handle is a constant](adr/0173-a-bound-function-is-a-holder-and-its-handle-is-a-constant.md)
 - [ADR-0174 What both halves need is its own module](adr/0174-what-both-halves-need-is-its-own-module.md)
+- [ADR-0175 A banner says its kind twice](adr/0175-a-banner-says-its-kind-twice.md)
+- [ADR-0176 A dialog is a widget, and showing one is not](adr/0176-a-dialog-is-a-widget-and-showing-one-is-not.md)
+- [ADR-0177 A toast is a queue, and the stack is the widget](adr/0177-a-toast-is-a-queue-and-the-stack-is-the-widget.md)
 
 ---
 

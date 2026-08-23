@@ -923,6 +923,11 @@ final class Launcher implements Host {
     }
 
     @Override
+    public boolean focus(String id, boolean fromKeyboard) {
+        return router.focusById(id, fromKeyboard);
+    }
+
+    @Override
     public EventLoop.Timer after(
             java.time.Duration delay, Runnable action) {
         return GoldberryRuntime.get().loop().after(delay, action);

@@ -59,6 +59,13 @@ class ContrastTest {
     /// §1.2's floor for text under 20px, which is all of it.
     private static final double FLOOR = 4.5;
 
+    /// §1.2's floor for anything that is **not** text — a glyph, a border, an
+    /// indicator. Lower because a shape is not read letter by letter, and it is
+    /// still a floor: a warning triangle nobody can see is §1.2's own failure
+    /// mode, since the rule that forbids colour as the only carrier of meaning
+    /// assumes the thing carrying it is visible.
+    private static final double LINE_FLOOR = 3.0;
+
     /// The pairs that do not meet [#FLOOR], and there are none.
     ///
     /// Deliberately still here rather than deleted with the last entry. An empty
@@ -186,6 +193,54 @@ class ContrastTest {
                 () -> "the pairs below §1.2's " + FLOOR + ":1 floor are not the ones on record."
                         + " A pair that was fixed must come off KNOWN_FAILURES; a pair that"
                         + " newly broke must be fixed. Measured:" + report);
+    }
+
+    /// Every semantic hue, drawn as a **line** on every surface a window paints.
+    ///
+    /// The sweep above measures words on a fill. This measures the other thing
+    /// §1.2's hues are used for and the thing nothing checked until §7's
+    /// `message` drew one: a glyph and a border **on** the page.
+    ///
+    /// It is here because the first measurement disagreed with the theme. Both
+    /// files documented `--gb-danger` as "what a label, an icon or a border is
+    /// drawn in", and the hue is 2.46:1 on the dark theme's `--gb-surface` and
+    /// 1.28:1 for `--nord13` on the light one — five of eight pairs below this
+    /// floor, in a sentence that had been true-looking for months. The `-line`
+    /// rank is the fix and this is what holds it.
+    @Test
+    @DisplayName("every semantic hue is visible as a line on every surface, on both themes")
+    void everyLineIsVisible() {
+        var failures = new ArrayList<String>();
+        var report = new StringBuilder();
+
+        for (var theme : List.of(Theme.NORD_DARK, Theme.NORD_LIGHT)) {
+            for (var hue : List.of("info", "success", "warning", "danger")) {
+                // A banner sits on the page or inside a panel, and `--gb-surface-2`
+                // is where a `card` or a `group-box` would put one.
+                for (var surface : List.of("bg", "surface", "surface-2")) {
+                    var css = "text { background: var(--gb-" + surface
+                            + "); color: var(--gb-" + hue + "-line) }";
+                    var sheets = new ArrayList<>(Controls.stylesheets(theme));
+                    sheets.add(Stylesheet.parse(CascadeLayer.APPLICATION, css));
+                    var style = ComputedStyle.of(
+                            new StyleResolver(sheets).resolve(new ElementTree(new Text("Aa")).root()),
+                            CssLength.Context.DEFAULT);
+
+                    var name = themeName(theme) + " --gb-" + hue + "-line on --gb-" + surface;
+                    var ratio = contrast(style.background(), style.color());
+                    report.append(String.format(Locale.ROOT, "%n  %-46s %5.2f:1", name, ratio));
+                    if (ratio < LINE_FLOOR) {
+                        failures.add(name);
+                    }
+                }
+            }
+        }
+
+        assertEquals(List.of(), failures,
+                () -> "a semantic hue is invisible as a line on a surface the toolkit"
+                        + " paints. The fix is the one ADR-0087 used for fills: move the"
+                        + " hue's lightness in that theme until it clears, and write the"
+                        + " measurement beside it. Measured:" + report);
     }
 
     /// Nothing is exempt, stated separately from the sweep.
