@@ -53,6 +53,22 @@ final class TextInputState extends State<TextInput> implements TextEditor {
     /// what [BuildContext#host()] allows.
     private Host host;
 
+    /// §4's autocomplete: the popover of suggestions under the field, or null.
+    ///
+    /// The same panel a `select` opens and the same keyboard — `Option.inAList()`
+    /// makes the arrows move the focus and `Enter` commit, which is exactly what
+    /// "the field's text is never rewritten without the user choosing" needs
+    /// ([ADR-0182]).
+    private io.github.digitalsmile.goldberry.Popup suggestions;
+
+    /// Where the last frame painted this field, for anchoring the popover.
+    private io.github.digitalsmile.goldberry.render.model.LogicalRect fieldBounds;
+
+    /// A list taller than the screen scrolls rather than losing its bottom, which
+    /// is `menu`'s and `select`'s answer from the same helper (ADR-0179).
+    private static final io.github.digitalsmile.goldberry.widgets.core.scroll.Fitted VIEWPORT =
+            new io.github.digitalsmile.goldberry.widgets.core.scroll.Fitted("select-viewport");
+
     private boolean focused;
     private boolean caretShown = true;
     private EventLoop.Timer blink;
@@ -125,6 +141,13 @@ final class TextInputState extends State<TextInput> implements TextEditor {
         var input = widget();
         mask = Mask.of(edit.text(), input.password());
 
+        // Opened, narrowed or closed to match what the application just handed
+        // back. Done in `build` rather than in the key handler because the
+        // suggestions arrive by *rebuild*: the field reports what was typed, the
+        // application answers with a list, and this is the first place that
+        // answer is visible.
+        syncSuggestions(input);
+
         var showPlaceholder = edit.isEmpty() && !input.placeholder().isEmpty();
         return new TextField(
                 showPlaceholder ? input.placeholder() : mask.display(),
@@ -138,8 +161,79 @@ final class TextInputState extends State<TextInput> implements TextEditor {
                 this);
     }
 
+    /// Opens, re-describes or closes the popover so that it says what the widget
+    /// currently offers.
+    ///
+    /// **Only while the field has the keyboard.** A list of suggestions under a
+    /// field nobody is typing in is a panel floating over the application for no
+    /// reason, and it would take the next click.
+    private void syncSuggestions(TextInput input) {
+        var wanted = input.disabled() || input.readOnly() || !focused
+                ? java.util.List.<io.github.digitalsmile.goldberry.widgets.controls.option.Option>of()
+                : input.suggestions();
+        if (wanted.isEmpty() || host == null || fieldBounds == null) {
+            closeSuggestions();
+            return;
+        }
+        var list = new io.github.digitalsmile.goldberry.widgets.controls.select.SelectList(
+                rows(wanted));
+        if (suggestions != null && suggestions.isOpen()) {
+            // Narrowed rather than reopened: §4 says the popup "stays open and
+            // narrows", and closing and opening a platform window per keystroke
+            // flickers and loses the keyboard's place (ADR-0182).
+            suggestions.content(list);
+            return;
+        }
+        // At least as wide as the field, for `select`'s reason: a panel narrower
+        // than the control it hangs off reads as a mistake (ADR-0145).
+        host.popup(list, fieldBounds,
+                        io.github.digitalsmile.goldberry.Placement.BELOW,
+                        fieldBounds.size().width(), VIEWPORT)
+                .ifPresent(popup -> suggestions = popup.lightDismiss(true));
+    }
+
+    /// One row per suggestion, each reporting its value when it is chosen.
+    private java.util.List<Widget> rows(
+            java.util.List<io.github.digitalsmile.goldberry.widgets.controls.option.Option> offered) {
+        var rows = new java.util.ArrayList<Widget>(offered.size());
+        var index = 0;
+        for (var option : offered) {
+            rows.add(option
+                    .within(false, () -> chooseSuggestion(option.value()), false)
+                    .inAList()
+                    .id("suggestion-" + index++));
+        }
+        return java.util.List.copyOf(rows);
+    }
+
+    /// A suggestion was chosen: report it and put the list away.
+    ///
+    /// Reported rather than applied. §4: "the field's text is never rewritten
+    /// without the user choosing" — and this *is* the user choosing, so what
+    /// happens next is still the application's to decide, exactly as it is for a
+    /// keystroke (ADR-0063). A handler that ignores it leaves the field as typed.
+    private void chooseSuggestion(String value) {
+        closeSuggestions();
+        var onChange = widget().onChange();
+        if (onChange != null) {
+            onChange.accept(value);
+        }
+    }
+
+    private void closeSuggestions() {
+        var open = suggestions;
+        suggestions = null;
+        if (open != null && open.isOpen()) {
+            open.close();
+        }
+    }
+
     @Override
     protected void dispose() {
+        // A field that goes away with its suggestions showing would leave a
+        // platform window parented to nothing -- the one leak a widget can cause,
+        // because a popup is not a value and is not collected with the tree.
+        closeSuggestions();
         stopBlinking();
         if (focused && host != null) {
             // The window would otherwise keep an on-screen keyboard up for a
@@ -285,6 +379,29 @@ final class TextInputState extends State<TextInput> implements TextEditor {
             // about the text changed.
             history.endRun();
             setState(() -> caretShown = true);
+        }
+    }
+
+    @Override
+    public void located(io.github.digitalsmile.goldberry.render.model.LogicalRect self,
+            io.github.digitalsmile.goldberry.render.model.LogicalRect clip) {
+        if (self.equals(fieldBounds)) {
+            return;
+        }
+        fieldBounds = self;
+        // A rebuild, but **only** when something is waiting to be shown and only
+        // on a change. Without it a field focused with suggestions already in
+        // hand would offer nothing until some unrelated frame rebuilt it: the
+        // rectangle arrives after the paint, and nothing else was going to ask
+        // for another one (§1.7's idle loop).
+        //
+        // It settles in one frame rather than driving the loop, which is what
+        // [Located]'s "must not move itself" rule is really asking for: the
+        // rebuild describes the same field at the same size, so the next
+        // rectangle is equal and this returns above.
+        if (suggestions == null && !widget().suggestions().isEmpty()) {
+            setState(() -> {
+            });
         }
     }
 

@@ -85,6 +85,17 @@ interface TextEditor {
     /// clamped against.
     void measured(Extent bounds);
 
+    /// Where the last frame painted this field, in the window's coordinates, and
+    /// what clips it.
+    ///
+    /// A **rectangle** where [#measured] is a size, and the difference is the
+    /// whole reason both exist: a caret is placed from a width, and a popover of
+    /// suggestions is anchored to a *position* that no widget can compute and
+    /// only the painted frame knows ([ADR-0119]). §4's autocomplete is what
+    /// needed it.
+    void located(io.github.digitalsmile.goldberry.render.model.LogicalRect self,
+            io.github.digitalsmile.goldberry.render.model.LogicalRect clip);
+
     /// A frame is being described: here is the paragraph the field's text shaped
     /// into, and how far in from the left edge the text starts.
     ///

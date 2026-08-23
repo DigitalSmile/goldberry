@@ -76,7 +76,27 @@ class SelectGoldenTest {
                 List.of(new Option("light", "Light"),
                         new Option("dark", "Dark"),
                         new Option("dim", "Dim")),
-                null, null, "Choose a theme", false, id("theme"));
+                null, null, "Choose a theme", false, false, id("theme"));
+    }
+
+    /// §3's `multiple=#true`: "renders the selection as `badge` chips inside the
+    /// closed control, each with a remove affordance" ([ADR-0182]).
+    ///
+    /// The picture is what the sentence cannot carry: three chips in a 220px
+    /// field wrap onto a second row and the control grows to hold them, which is
+    /// the decision `select.multiple { flex-wrap: wrap; height: auto }` makes.
+    /// Clipping them instead would hide what the user picked.
+    @Test
+    @DisplayName("a select holding three values, as chips")
+    void multipleDark() {
+        paint("select-multiple-dark", Theme.NORD_DARK, 220, 76,
+                new Row(List.of(new Select(null,
+                        List.of(new Option("light", "Light"),
+                                new Option("dark", "Dark"),
+                                new Option("dim", "Dim")),
+                        io.github.digitalsmile.goldberry.bind.Property.of(
+                                List.of("light", "dark", "dim")),
+                        null, "Choose a theme", true, false, id("theme"))), id("row")));
     }
 
     /// The control at rest: a value, an edge, and a mark saying there is more.

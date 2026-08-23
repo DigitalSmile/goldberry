@@ -145,6 +145,36 @@ public final class ElementTree {
         return built;
     }
 
+    /// Describes this tree's root again, keeping the elements under it.
+    ///
+    /// What a **popup whose content changed while it was open** needs. A popup is
+    /// an element tree of its own with its own build schedule
+    /// ([ADR-0103](../../../../../../book/src/adr/0103-a-popup-is-a-tree-in-a-window.md)),
+    /// so a `setState` in the widget that opened it reaches that widget's tree and
+    /// nothing in the window the popup is drawn in — and until this existed, the
+    /// only way to show a popup something new was to close it and open another
+    /// one, which flickers and loses the keyboard's place
+    /// ([ADR-0182](../../../../../../book/src/adr/0182-a-select-may-hold-more-than-one.md)).
+    ///
+    /// Reconciliation from the root down, exactly as a rebuild anywhere else: the
+    /// elements, their state and their focus survive, and only what the new
+    /// description changed is rebuilt.
+    ///
+    /// @param root the new description, which must be the same kind of widget as
+    ///             the old one — a different type is a different tree, and
+    ///             replacing one wholesale is [#unmount] and a new tree
+    /// @throws IllegalArgumentException if it is not
+    public void update(Widget root) {
+        Objects.requireNonNull(root, "root");
+        if (!this.root.canUpdateTo(root)) {
+            throw new IllegalArgumentException(
+                    "a tree rooted at " + this.root.widget().getClass().getSimpleName()
+                            + " cannot be re-described as a " + root.getClass().getSimpleName()
+                            + "; that is a different tree, not a new description of this one");
+        }
+        this.root.update(root);
+    }
+
     /// Tears the tree down, disposing every state.
     public void unmount() {
         root.unmount();

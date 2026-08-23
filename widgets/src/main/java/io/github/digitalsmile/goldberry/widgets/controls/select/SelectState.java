@@ -62,8 +62,30 @@ final class SelectState extends State<Select> {
             close();
         }
         return new SelectField(
-                select.label(), select.selected() == null, isOpen(), select.disabled(),
-                select.attributes(), this::toggle, this::typeahead, this::located);
+                select.label(), select.selected() == null, chips(select), isOpen(),
+                select.disabled(), select.attributes(),
+                this::toggle, this::typeahead, this::located);
+    }
+
+    /// §3's "renders the selection as `badge` chips ... each with a remove
+    /// affordance", and empty for every select that is not `multiple`.
+    ///
+    /// A chip's × reports the value through `change` exactly as picking it from
+    /// the list does, because in a multiple control **`change` is a toggle**: the
+    /// set is the application's, and asking for a value that is already in it can
+    /// only mean taking it out ([ADR-0182]). One channel rather than two is also
+    /// what keeps `select multiple=` inside the `Consumer<String>` every other
+    /// valued control reports through.
+    private java.util.List<Widget> chips(Select select) {
+        if (!select.multiple()) {
+            return java.util.List.of();
+        }
+        var chosen = select.selectedOptions();
+        var out = new java.util.ArrayList<Widget>(chosen.size());
+        for (var option : chosen) {
+            out.add(new SelectChip(option.label(), () -> choose(option.value())));
+        }
+        return java.util.List.copyOf(out);
     }
 
     @Override
@@ -92,44 +114,22 @@ final class SelectState extends State<Select> {
         open();
     }
 
+    /// A list taller than the screen scrolls rather than losing its bottom — the
+    /// answer `menu` gives to the same question, from the same helper.
+    private static final Fitted VIEWPORT = new Fitted("select-viewport");
+
     /// Opens the list under the field.
     ///
     /// Nothing happens without a window, and that is a normal outcome rather than
     /// an error: a golden image and a layout preview build the same widget with no
     /// host behind it, and a control that threw there could not be drawn at all
     /// (ADR-0140).
-    /// A list taller than the screen scrolls rather than losing its bottom — the
-    /// answer `menu` gives to the same question, from the same helper.
-    private static final Fitted VIEWPORT = new Fitted("select-viewport");
-
     private void open() {
         var select = widget();
         if (host == null || select.disabled() || select.options().isEmpty()) {
             return;
         }
-        var rows = new ArrayList<Widget>(select.children().size());
-        var current = select.resolved();
-        var chosen = (String) null;
-        var index = 0;
-        for (var child : select.children()) {
-            if (child instanceof Option option) {
-                var isSelected = option.value().equals(current);
-                var id = "select-option-" + index++;
-                var row = option
-                        .within(isSelected, () -> choose(option.value()), select.disabled())
-                        .inAList()
-                        .id(id);
-                if (isSelected) {
-                    chosen = id;
-                }
-                rows.add(row);
-            } else {
-                // Kept, uncounted and unwired -- a heading between two groups of
-                // options is not an option, exactly as it is not a segment in a
-                // `segmented` bar.
-                rows.add(child);
-            }
-        }
+        var chosen = chosenId(select);
 
         // At least as wide as the field, and wider when an option is longer. A
         // list narrower than the control it hangs off reads as a mistake rather
@@ -141,7 +141,7 @@ final class SelectState extends State<Select> {
         // says what it measured, and a list that does not fit becomes a list of
         // the screen's height with the options scrolling inside it
         // ([ADR-0179](../../../../../../../../book/src/adr/0179-a-popup-says-what-it-measured.md)).
-        var opened = host.popup(new SelectList(rows), field, Placement.BELOW,
+        var opened = host.popup(new SelectList(rows()), field, Placement.BELOW,
                 field.size().width(), VIEWPORT);
         if (opened.isEmpty()) {
             // No popup windows on this driver. The list stays closed rather than
@@ -157,15 +157,101 @@ final class SelectState extends State<Select> {
         setState(() -> list = opened.get());
     }
 
-    /// Reports a value and puts the list away.
+    /// Reports a value and puts the list away — unless there is more to choose.
     ///
-    /// The order matters: the list closes first, so an application that opens a
-    /// dialog from its `change` handler does not open it behind a popup window.
+    /// **A `multiple` keeps its list open**, which is not a flourish: the whole
+    /// point of the mode is picking several, and a list that shut after each one
+    /// would make choosing three values three round trips through a popup that
+    /// has to be measured, placed and opened again each time. §3 says the control
+    /// "renders the selection" in the closed field, which is a sentence about a
+    /// control the user has finished with.
+    ///
+    /// For the single-valued control the order matters and has not changed: the
+    /// list closes **first**, so an application that opens a dialog from its
+    /// `change` handler does not open it behind a popup window.
     private void choose(String value) {
-        close();
+        if (!widget().multiple()) {
+            close();
+        }
         var onChange = widget().onChange();
         if (onChange != null) {
             onChange.accept(value);
+        }
+        // The list is still up and the model has moved under it, so the rows have
+        // to be described again for the ticks to follow. A single-valued select
+        // never reaches this, because its list has already gone.
+        if (widget().multiple() && isOpen()) {
+            reopenRows();
+        }
+    }
+
+    /// The list's rows, described from the model as it is right now.
+    ///
+    /// Shared by opening and by re-describing an open list, which a `multiple`
+    /// does after every pick — two copies of this would be two answers to "which
+    /// rows are ticked", and the second one would be the stale one.
+    ///
+    /// **Which options read as selected differs by mode**: a single-valued select
+    /// marks the one [Select#resolved()] names, and a `multiple` marks every one
+    /// in [Select#resolvedAll()]. A non-[Option] child is kept, uncounted and
+    /// unwired — a heading between two groups of options is not an option,
+    /// exactly as it is not a segment in a `segmented` bar.
+    private java.util.List<Widget> rows() {
+        var select = widget();
+        var current = select.resolved();
+        var all = select.resolvedAll();
+        var rows = new ArrayList<Widget>(select.children().size());
+        var index = 0;
+        for (var child : select.children()) {
+            if (child instanceof Option option) {
+                var isSelected = select.multiple()
+                        ? all.contains(option.value())
+                        : option.value().equals(current);
+                rows.add(option
+                        .within(isSelected, () -> choose(option.value()), select.disabled())
+                        .inAList()
+                        .id("select-option-" + index++));
+            } else {
+                rows.add(child);
+            }
+        }
+        return java.util.List.copyOf(rows);
+    }
+
+    /// The id of the row the keyboard should open on, so `Down` moves from the
+    /// value rather than from the top of the list.
+    ///
+    /// The **first** selected one for a `multiple`, which is the only answer that
+    /// is not arbitrary when there are several.
+    private String chosenId(Select select) {
+        var wanted = select.multiple()
+                ? (select.resolvedAll().isEmpty() ? null : select.resolvedAll().getFirst())
+                : select.resolved();
+        if (wanted == null) {
+            return null;
+        }
+        var index = 0;
+        for (var child : select.children()) {
+            if (child instanceof Option option) {
+                if (option.value().equals(wanted)) {
+                    return "select-option-" + index;
+                }
+                index++;
+            }
+        }
+        return null;
+    }
+
+    /// Rebuilds the open list against the model as it now is.
+    ///
+    /// A popup is an element tree of its own with its own build schedule
+    /// ([ADR-0103]), so a `setState` here reaches this control's field and
+    /// nothing in the window the list is drawn in. Closing and reopening would
+    /// flicker and lose the keyboard's place, so the list's tree is asked to
+    /// rebuild where it stands.
+    private void reopenRows() {
+        if (list != null) {
+            list.content(new SelectList(rows()));
         }
     }
 

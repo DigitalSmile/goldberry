@@ -8,6 +8,7 @@ import io.github.digitalsmile.goldberry.input.hit.HitTest;
 import io.github.digitalsmile.goldberry.input.PointerRouter;
 import io.github.digitalsmile.goldberry.paint.tree.RenderTree;
 import io.github.digitalsmile.goldberry.widget.ElementTree;
+import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widget.WidgetRenderer;
 import java.util.Objects;
 import java.util.function.Supplier;
@@ -210,6 +211,24 @@ public final class Popup implements AutoCloseable {
 
     public boolean isOpen() {
         return !closed && backend.isOpen();
+    }
+
+    /// Shows this popup something new, without closing it.
+    ///
+    /// A `select multiple` is what needed it: its list stays open while values
+    /// are picked, so the rows have to follow a model that moves under them
+    /// ([ADR-0182](../../../book/src/adr/0182-a-select-may-hold-more-than-one.md)).
+    /// Reconciled from the root rather than rebuilt, so the keyboard keeps its
+    /// place and nothing flickers.
+    ///
+    /// @param content the new description — the same kind of widget the popup was
+    ///                opened with, see [io.github.digitalsmile.goldberry.widget.ElementTree#update]
+    public void content(Widget content) {
+        if (!isOpen()) {
+            return;
+        }
+        tree.update(Objects.requireNonNull(content, "content"));
+        window.repaint();
     }
 
     /// Asks for another frame.

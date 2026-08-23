@@ -45,10 +45,11 @@ import java.util.function.DoubleConsumer;
 /// @param reflow   where it is on its way to because a sibling went, or null
 /// @param onHover  told when the pointer arrives or leaves
 /// @param onAction told when the action button is pressed
+/// @param onDismiss told when it is clicked — see [#onPointer]
 /// @param onHeight told how tall it came out — see [#measured]
 record ToastBox(
         Toast toast, int number, Corner corner, Phase phase, boolean leaving,
-        Reflow reflow, Consumer<Boolean> onHover, Runnable onAction,
+        Reflow reflow, Consumer<Boolean> onHover, Runnable onAction, Runnable onDismiss,
         DoubleConsumer onHeight)
         implements Widget.Leaf, Styled, Paints, Handles, Measured {
 
@@ -105,10 +106,32 @@ record ToastBox(
         return List.copyOf(parts);
     }
 
-    /// §7's hover-pause, reported rather than handled — see the class note.
+    /// §7's hover-pause, reported rather than handled — see the class note. And
+    /// the click that takes it away.
     ///
-    /// A leaving toast reports nothing: its clock has already stopped, and the
-    /// pointer arriving during the last 160ms must not restart anything.
+    /// ## Why a click dismisses, when §7 gives a toast no ×
+    ///
+    /// §7 gives a `message` a dismiss affordance and gives a toast an action
+    /// button and nothing else, and that shape was followed exactly — which left
+    /// a toast with `Duration.ZERO` and no action button removable only by
+    /// `ToastController.clear()`. **A notification nobody can get rid of** is not
+    /// what the omission of a × meant; what it meant is that a toast does not
+    /// need a *second* affordance competing with its action for a 360×40 plate.
+    ///
+    /// So the plate itself is the affordance. It costs no vocabulary, no glyph
+    /// and no room, it makes every toast dispellable rather than only the
+    /// persistent ones, and the click was already being swallowed: the plate is
+    /// hit-testable, so a click on it never reached the application underneath
+    /// and simply did nothing.
+    ///
+    /// The trade-off, stated because it is real: a click aimed at the action
+    /// button that misses it dismisses the toast without acting. The button is
+    /// told first — a click bubbles from the node it hit — so a hit is never lost
+    /// to this, and dismissing twice is what [ToasterState] already ignores.
+    ///
+    /// A leaving toast reports nothing at all: its clock has stopped, and neither
+    /// the pointer arriving nor a click during the last 160ms may restart or
+    /// re-end anything (§1.7's "no ghost clicks").
     @Override
     public void onPointer(PointerEvent event) {
         if (leaving) {
@@ -117,6 +140,7 @@ record ToastBox(
         switch (event.kind()) {
             case ENTERED -> onHover.accept(true);
             case EXITED -> onHover.accept(false);
+            case CLICKED -> onDismiss.run();
             default -> {
             }
         }

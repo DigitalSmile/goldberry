@@ -3123,6 +3123,40 @@ is the `scroll` box's.
   `box.layout().width()` across the toolkit for a benefit this already has
   ([ADR-0181](adr/0181-a-box-may-say-how-small-and-how-large.md))
 
+### A set of things, and a way to give one back
+
+- **A toast's plate is its own dismiss affordance.** §7 gives a `message` a × and
+  a toast an action button and nothing else, and that was followed exactly — which
+  left a `Duration.ZERO` toast with no action removable only by `clear()`. What
+  the missing × meant is that a toast does not need a *second* affordance
+  competing with its action on a 360×40 plate. The click was already being
+  swallowed and doing nothing.
+- **`select multiple=` is built**, and `change` is a **toggle** in that mode: the
+  set is the application's, so asking for a value it already holds can only mean
+  taking it out. One channel keeps a chip's × and a click on a chosen row from
+  being two ways of saying one thing. The order is the options' rather than the
+  model's, so removing a chip and putting the value back does not move it to the
+  end of the row.
+- **A popup's content may now change while it is open**, which the toolkit could
+  not do: a popup is an element tree with its own build schedule, so a `setState`
+  in the widget that opened it reached nothing in the popup's window, and showing
+  it something new meant closing and reopening. `ElementTree.update` reconciles
+  from the root, so elements, state and focus survive.
+- **§4's free-text autocomplete is built.** The field raises the query through
+  `change`, the application answers by handing back a list, and choosing reports
+  through the same channel — so "the field's text is never rewritten without the
+  user choosing" falls out of the shape rather than being enforced.
+  `Option.inAList()` is what makes the panel right: arrows move the focus and
+  `Enter` commits, where follow-the-focus is a `select`'s behaviour and would
+  rewrite the field under a user who is only looking.
+- **A field that learns where it is asks for one frame**, and that was a real bug
+  rather than a test artifact: a field focused with suggestions in hand offered
+  nothing until some unrelated frame rebuilt it, because the rectangle arrives
+  after the paint and §1.7's idle loop was never going to ask for another one. The
+  rebuild is asked for only on a *change* and only when something is waiting, so
+  it settles in one frame
+  ([ADR-0182](adr/0182-a-select-may-hold-more-than-one.md))
+
 ### Not started
 
 Tray, client-side decorations and charts, the rest of §4 —

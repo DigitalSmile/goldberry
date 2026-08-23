@@ -936,4 +936,137 @@ class TextInputTest {
             assertTrue(parts.get(2) instanceof io.github.digitalsmile.goldberry.widgets.form.parts.Caret);
         }
     }
+
+    /// §4's autocomplete: "`text-input autocomplete=#true` attaches a `popover` of
+    /// suggestions to the field: the widget raises the query, the application
+    /// supplies the list, and the field's text is never rewritten without the
+    /// user choosing" ([ADR-0182]).
+    @Nested
+    @DisplayName("suggesting")
+    class Suggesting {
+
+        private final List<String> reported = new java.util.ArrayList<>();
+
+        /// Mounts, focuses and **locates** the field, which is what a window
+        /// does after it paints: a popover is anchored to a rectangle only the
+        /// painted frame knows ([ADR-0119]), and a widget test has no router to
+        /// report one.
+        private ElementTree offering(TextInput input) {
+            var tree = mounted(input);
+            focus(tree, true, false);
+            TextInputTest.this.field(tree).located(
+                    io.github.digitalsmile.goldberry.render.model.LogicalRect.of(10, 20, 200, 32),
+                    io.github.digitalsmile.goldberry.render.model.LogicalRect.of(0, 0, 800, 600));
+            render(tree);
+            return tree;
+        }
+
+        private io.github.digitalsmile.goldberry.widgets.controls.select.SelectList offered() {
+            return (io.github.digitalsmile.goldberry.widgets.controls.select.SelectList)
+                    host.opened.getFirst().content();
+        }
+
+        private TextInput field(String value, String... options) {
+            var offered = java.util.Arrays.stream(options)
+                    .map(o -> new io.github.digitalsmile.goldberry.widgets.controls.option.Option(o))
+                    .toList();
+            return new TextInput(value, reported::add).suggesting(offered);
+        }
+
+        /// The whole channel: what was typed goes up through `change`, and the
+        /// application answers by handing back a list. Nothing in the widget
+        /// decides what "matches" means, which is what makes a remote-backed
+        /// autocomplete the same widget with a slower model.
+        @Test
+        @DisplayName("typing reports the query, and the suggestions come back as a rebuild")
+        void theQueryGoesUp() {
+            var tree = mounted(new TextInput("", reported::add));
+
+            focus(tree, true, false);
+            type(tree, "L");
+            type(tree, "o");
+
+            assertEquals(List.of("L", "Lo"), reported,
+                    "the field did not raise what was typed, keystroke by keystroke");
+        }
+
+        /// A list under a field nobody is typing in is a panel floating over the
+        /// application for no reason, and it would take the next click.
+        @Test
+        @DisplayName("nothing is offered until the field has the keyboard")
+        void onlyWhileFocused() {
+            var unfocused = mounted(field("", "London", "Lisbon"));
+            TextInputTest.this.field(unfocused).located(
+                    io.github.digitalsmile.goldberry.render.model.LogicalRect.of(10, 20, 200, 32),
+                    io.github.digitalsmile.goldberry.render.model.LogicalRect.of(0, 0, 800, 600));
+            render(unfocused);
+
+            assertTrue(host.opened.isEmpty(), "a panel opened over an unfocused field");
+
+            offering(field("", "London", "Lisbon"));
+
+            assertEquals(1, host.opened.size(), "nothing was offered to a focused field");
+        }
+
+        @Test
+        @DisplayName("the panel is the same list a select opens, one row per suggestion")
+        void theRowsAreTheSuggestions() {
+            offering(field("", "London", "Lisbon"));
+
+            var list = offered();
+            assertEquals(2, list.children().size());
+            assertEquals(List.of("London", "Lisbon"),
+                    list.children().stream()
+                            .map(io.github.digitalsmile.goldberry.widgets.controls.option.Option.class::cast)
+                            .map(io.github.digitalsmile.goldberry.widgets.controls.option.Option::value)
+                            .toList());
+        }
+
+        /// §4's own sentence, and it falls out of the shape rather than being
+        /// enforced: choosing reports, and what happens next is the
+        /// application's. A handler that ignores it leaves the field as typed.
+        @Test
+        @DisplayName("choosing a suggestion reports it and rewrites nothing itself")
+        void choosingReports() {
+            var tree = offering(field("Lo", "London"));
+
+            var row = (io.github.digitalsmile.goldberry.widgets.controls.option.Option)
+                    offered().children().getFirst();
+            row.onSelect().run();
+
+            assertEquals(List.of("London"), reported);
+            assertEquals("Lo", text(tree),
+                    "the field rewrote itself, which is the one thing §4 forbids");
+        }
+
+        /// Arrows move the focus and `Enter` commits — `Option.inAList()` — so a
+        /// user arrowing through suggestions never has the field rewritten under
+        /// them. The alternative, follow-the-focus, is a `select`'s and is wrong
+        /// here for exactly that reason.
+        @Test
+        @DisplayName("the rows commit on Enter rather than on arrival")
+        void arrowsDoNotChoose() {
+            offering(field("", "London", "Lisbon"));
+
+            var row = (io.github.digitalsmile.goldberry.widgets.controls.option.Option)
+                    offered().children().getFirst();
+
+            assertFalse(row.roving(),
+                    "the suggestions would rewrite the field as the keyboard passed over them");
+        }
+
+        @Test
+        @DisplayName("an ordinary field offers nothing and opens nothing")
+        void anOrdinaryFieldIsUnchanged() {
+            var tree = offering(new TextInput("hello", reported::add));
+
+            assertEquals(List.of(), widget(tree).suggestions());
+            assertTrue(host.opened.isEmpty());
+        }
+
+        private TextInput widget(ElementTree tree) {
+            return (TextInput) tree.root().widget();
+        }
+    }
+
 }

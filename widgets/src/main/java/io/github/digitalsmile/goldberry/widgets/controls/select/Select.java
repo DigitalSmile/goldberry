@@ -87,12 +87,14 @@ import java.util.function.Consumer;
 /// @param placeholder what the closed control reads when nothing is selected.
 ///                    Empty for a blank field, which is what a select with a
 ///                    value it does not recognise falls back to
+/// @param multiple    §3's `multiple=#true` — the selection is a *set*, drawn as
+///                    chips in the closed control. See [#resolvedAll()]
 /// @param disabled    whether the whole control refuses to open
 /// @param attributes  `id` and `class`, exactly as on the primitives
 @Markup("select")
 public record Select(
         String value, List<Widget> children, Observable<?> source, Consumer<String> onChange,
-        String placeholder, boolean disabled, Attributes attributes)
+        String placeholder, boolean multiple, boolean disabled, Attributes attributes)
         implements Widget.Stateful, Attributed<Select>, Bindable<Select> {
 
     public Select {
@@ -104,12 +106,12 @@ public record Select(
     /// A select with a value and a handler, unbound — the Java spelling of
     /// `select value="…" change="…"`.
     public Select(String value, Consumer<String> onChange, Option... options) {
-        this(value, List.of(options), null, onChange, "", false, Attributes.NONE);
+        this(value, List.of(options), null, onChange, "", false, false, Attributes.NONE);
     }
 
     /// A select that is not wired yet — what a layout preview builds.
     public Select(Option... options) {
-        this(null, List.of(options), null, null, "", false, Attributes.NONE);
+        this(null, List.of(options), null, null, "", false, false, Attributes.NONE);
     }
 
     /// A select that follows a property. The Java spelling of `bind=`.
@@ -117,17 +119,18 @@ public record Select(
     /// @param source read-only by construction ([ADR-0063])
     public static Select of(Observable<?> source, Consumer<String> onChange, Option... options) {
         return new Select(null, List.of(options),
-                Objects.requireNonNull(source, "source"), onChange, "", false, Attributes.NONE);
+                Objects.requireNonNull(source, "source"), onChange, "", false, false,
+                Attributes.NONE);
     }
 
     /// This select with the text its closed form reads when nothing is chosen.
     public Select placeholder(String value) {
-        return new Select(this.value, children, source, onChange, value, disabled, attributes);
+        return new Select(this.value, children, source, onChange, value, multiple, disabled, attributes);
     }
 
     /// This select, disabled or not.
     public Select disabled(boolean value) {
-        return new Select(this.value, children, source, onChange, placeholder, value, attributes);
+        return new Select(this.value, children, source, onChange, placeholder, multiple, value, attributes);
     }
 
     /// Which option is selected **right now** — the bound value, or [#value()].
@@ -143,6 +146,72 @@ public record Select(
         }
         var current = source.get();
         return current == null ? null : String.valueOf(current);
+    }
+
+    /// This select taking more than one value — §3's `multiple=#true`.
+    public Select multiple(boolean value) {
+        return new Select(this.value, children, source, onChange, placeholder, value, disabled,
+                attributes);
+    }
+
+    /// Every value selected right now, in the order the options were written.
+    ///
+    /// [#resolved()]'s rule, applied to a set: a bound `Collection` becomes the
+    /// strings its elements stringify to, and anything else becomes one value —
+    /// so a property that starts as a single value and becomes a list, or the
+    /// other way round, does not have to be a different kind of binding. A null
+    /// is nothing selected rather than one null selected.
+    ///
+    /// Ordered by the **options** and not by the model, so removing a chip and
+    /// putting the value back does not move it to the end of the row. Duplicates
+    /// in the model collapse, because two chips saying the same word are two
+    /// affordances doing one thing.
+    public List<String> resolvedAll() {
+        var wanted = boundValues();
+        if (wanted.isEmpty()) {
+            return List.of();
+        }
+        var out = new ArrayList<String>(wanted.size());
+        for (var option : options()) {
+            if (wanted.contains(option.value()) && !out.contains(option.value())) {
+                out.add(option.value());
+            }
+        }
+        return List.copyOf(out);
+    }
+
+    /// The values the model names, before the options have had a say — unordered
+    /// and possibly naming options this select does not offer.
+    private java.util.Set<String> boundValues() {
+        if (source == null) {
+            return value == null || value.isEmpty()
+                    ? java.util.Set.of() : java.util.Set.of(value);
+        }
+        return switch (source.get()) {
+            case null -> java.util.Set.of();
+            case java.util.Collection<?> many -> {
+                var set = new java.util.LinkedHashSet<String>();
+                for (var element : many) {
+                    if (element != null) {
+                        set.add(String.valueOf(element));
+                    }
+                }
+                yield set;
+            }
+            case Object one -> java.util.Set.of(String.valueOf(one));
+        };
+    }
+
+    /// The options [#resolvedAll()] names, as options.
+    public List<Option> selectedOptions() {
+        var chosen = resolvedAll();
+        var out = new ArrayList<Option>(chosen.size());
+        for (var option : options()) {
+            if (chosen.contains(option.value())) {
+                out.add(option);
+            }
+        }
+        return List.copyOf(out);
     }
 
     /// The options this select offers, in the order they were written.
@@ -183,12 +252,12 @@ public record Select(
 
     @Override
     public Select bound(Observable<?> source) {
-        return new Select(value, children, source, onChange, placeholder, disabled, attributes);
+        return new Select(value, children, source, onChange, placeholder, multiple, disabled, attributes);
     }
 
     @Override
     public Select withAttributes(Attributes attributes) {
-        return new Select(value, children, source, onChange, placeholder, disabled, attributes);
+        return new Select(value, children, source, onChange, placeholder, multiple, disabled, attributes);
     }
 
     @Override
@@ -213,6 +282,7 @@ public record Select(
     public static Widget inflate(KdlNode node, List<Widget> children, Wiring wiring) {
         return new Select(node.stringProperty("value"), children,
                 wiring.bound(node), wiring.valued(node, "change"),
-                node.stringProperty("placeholder"), Wiring.disabled(node), Attributes.of(node));
+                node.stringProperty("placeholder"), node.booleanProperty("multiple"),
+                Wiring.disabled(node), Attributes.of(node));
     }
 }

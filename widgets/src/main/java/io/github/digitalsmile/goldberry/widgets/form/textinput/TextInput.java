@@ -77,13 +77,16 @@ import java.util.function.Consumer;
 /// @param password    whether it masks what it holds and refuses to copy it out
 /// @param readOnly    whether it takes focus and a caret but no edits
 /// @param filter      what it will accept — see [TextFilter]
+/// @param suggestions §4's autocomplete: what to offer under the field **right
+///                    now**, or empty for an ordinary field. See [#suggestions]
 /// @param disabled    whether it refuses focus and matches `:disabled`
 /// @param attributes  the `id`, classes and key the document wrote
 @Markup("text-input")
 public record TextInput(
         String value, Observable<?> source, Consumer<String> onChange, String placeholder,
-        int maxLength, boolean password, boolean readOnly, TextFilter filter, boolean disabled,
-        Attributes attributes)
+        int maxLength, boolean password, boolean readOnly, TextFilter filter,
+        java.util.List<io.github.digitalsmile.goldberry.widgets.controls.option.Option> suggestions,
+        boolean disabled, Attributes attributes)
         implements Widget.Stateful, Attributed<TextInput>, Bindable<TextInput> {
 
     private static final org.slf4j.Logger LOG = Logs.of(TextInput.class);
@@ -92,6 +95,8 @@ public record TextInput(
     public static final int UNLIMITED = -1;
 
     public TextInput {
+        suggestions = java.util.List.copyOf(
+                suggestions == null ? java.util.List.<io.github.digitalsmile.goldberry.widgets.controls.option.Option>of() : suggestions);
         value = value == null ? "" : value;
         placeholder = placeholder == null ? "" : placeholder;
         filter = filter == null ? TextFilter.NONE : filter;
@@ -105,12 +110,12 @@ public record TextInput(
 
     /// An empty field.
     public TextInput() {
-        this("", null, null, "", UNLIMITED, false, false, TextFilter.NONE, false, Attributes.NONE);
+        this("", null, null, "", UNLIMITED, false, false, TextFilter.NONE, java.util.List.of(), false, Attributes.NONE);
     }
 
     /// A field holding `value`, reporting every change.
     public TextInput(String value, Consumer<String> onChange) {
-        this(value, null, onChange, "", UNLIMITED, false, false, TextFilter.NONE, false,
+        this(value, null, onChange, "", UNLIMITED, false, false, TextFilter.NONE, java.util.List.of(), false,
                 Attributes.NONE);
     }
 
@@ -120,25 +125,25 @@ public record TextInput(
     ///               model even by accident ([ADR-0063])
     public static TextInput of(Observable<?> source, Consumer<String> onChange) {
         return new TextInput("", Objects.requireNonNull(source, "source"), onChange, "",
-                UNLIMITED, false, false, TextFilter.NONE, false, Attributes.NONE);
+                UNLIMITED, false, false, TextFilter.NONE, java.util.List.of(), false, Attributes.NONE);
     }
 
     /// This field with `text` shown when it is empty.
     public TextInput placeholder(String text) {
         return new TextInput(value, source, onChange, text, maxLength, password, readOnly,
-                filter, disabled, attributes);
+                filter, suggestions, disabled, attributes);
     }
 
     /// This field holding at most `characters`, or [#UNLIMITED].
     public TextInput maxLength(int characters) {
         return new TextInput(value, source, onChange, placeholder, characters, password, readOnly,
-                filter, disabled, attributes);
+                filter, suggestions, disabled, attributes);
     }
 
     /// This field masked, and refusing to copy its contents out.
     public TextInput password(boolean masked) {
         return new TextInput(value, source, onChange, placeholder, maxLength, masked, readOnly,
-                filter, disabled, attributes);
+                filter, suggestions, disabled, attributes);
     }
 
     /// This field taking a caret and a selection but no edits.
@@ -149,19 +154,19 @@ public record TextInput(
     /// the conversation.
     public TextInput readOnly(boolean value) {
         return new TextInput(this.value, source, onChange, placeholder, maxLength, password, value,
-                filter, disabled, attributes);
+                filter, suggestions, disabled, attributes);
     }
 
     /// This field accepting only what `filter` allows.
     public TextInput filter(TextFilter value) {
         return new TextInput(this.value, source, onChange, placeholder, maxLength, password,
-                readOnly, value, disabled, attributes);
+                readOnly, value, suggestions, disabled, attributes);
     }
 
     /// This field, disabled or not.
     public TextInput disabled(boolean value) {
         return new TextInput(this.value, source, onChange, placeholder, maxLength, password,
-                readOnly, filter, value, attributes);
+                readOnly, filter, suggestions, value, attributes);
     }
 
     /// What this field starts from — the bound value, or [#value()].
@@ -187,13 +192,38 @@ public record TextInput(
     @Override
     public TextInput bound(Observable<?> value) {
         return new TextInput(this.value, value, onChange, placeholder, maxLength, password,
-                readOnly, filter, disabled, attributes);
+                readOnly, filter, suggestions, disabled, attributes);
     }
 
     @Override
     public TextInput withAttributes(Attributes value) {
         return new TextInput(this.value, source, onChange, placeholder, maxLength, password,
-                readOnly, filter, disabled, value);
+                readOnly, filter, suggestions, disabled, value);
+    }
+
+    /// This field offering `options` under itself — §4's autocomplete.
+    ///
+    /// ## The field's text is never rewritten without the user choosing
+    ///
+    /// Which is §4's own sentence, and it falls out of this shape rather than
+    /// being enforced anywhere: the widget reports what was typed through
+    /// `change` and offers back whatever it is handed, and choosing a suggestion
+    /// reports *that* through the same `change`. Nothing here sets anything
+    /// ([ADR-0063]) — so a handler that ignores a suggestion leaves the field
+    /// exactly as the user typed it, which is the visible form of "the model did
+    /// not change".
+    ///
+    /// **Filtering is the application's**, for the reason §3 gives the combobox
+    /// form: a remote-backed autocomplete is then the same widget with a slower
+    /// model, and nothing in the toolkit has to guess what "matches" means for a
+    /// street address or a species name.
+    ///
+    /// Empty is an ordinary field with nothing under it, which is what every
+    /// field that has never called this is.
+    public TextInput suggesting(
+            java.util.List<io.github.digitalsmile.goldberry.widgets.controls.option.Option> options) {
+        return new TextInput(value, source, onChange, placeholder, maxLength, password, readOnly,
+                filter, options, disabled, attributes);
     }
 
     @Override
@@ -226,6 +256,14 @@ public record TextInput(
                 node.booleanProperty("password"),
                 node.booleanProperty("read-only"),
                 filter(node),
+                // Not from markup, and deliberately. §4 says the *application*
+                // supplies the list — "the widget raises the query, the
+                // application supplies the list" — so the suggestions arrive by
+                // rebuilding this widget with new ones in answer to `change`,
+                // which is a channel a document does not have. A document may
+                // still write the field; it simply offers nothing under it
+                // (ADR-0182).
+                java.util.List.of(),
                 Wiring.disabled(node),
                 Attributes.of(node));
     }

@@ -544,6 +544,90 @@ class ToastTest {
         }
     }
 
+    /// The way out §7's shape left missing: a toast with `Duration.ZERO` and no
+    /// action button could only be removed by `ToastController.clear()`, which is
+    /// a notification nobody can get rid of ([ADR-0182]).
+    @Nested
+    @DisplayName("dismissing one")
+    class Dismissing {
+
+        private PointerEvent click() {
+            return new PointerEvent(PointerEvent.Kind.CLICKED, 0, 0,
+                    PointerEvent.Button.PRIMARY, 1, null);
+        }
+
+        @Test
+        @DisplayName("a click on the plate takes it away")
+        void clickDismisses() {
+            var tree = stack();
+            toasts.show(new Toast("Copy failed").timeout(Duration.ZERO));
+            tree.flush();
+
+            Described.first(tree, ToastBox.class).onPointer(click());
+            tree.flush();
+
+            assertTrue(Described.first(tree, ToastBox.class).leaving(),
+                    "the one kind of toast that cannot go on its own still cannot go");
+        }
+
+        /// Dismissing is not answering. A toast clicked anywhere but its button
+        /// runs no handler — which is what tells the plate apart from the action
+        /// on it.
+        @Test
+        @DisplayName("dismissing runs no handler")
+        void dismissIsNotAnAnswer() {
+            var tree = stack();
+            toasts.show(new Toast("Message sent")
+                    .action("Undo", () -> pressed.add("undo")).timeout(Duration.ZERO));
+            tree.flush();
+
+            Described.first(tree, ToastBox.class).onPointer(click());
+            tree.flush();
+
+            assertEquals(List.of(), pressed, "a dismissal was taken for an answer");
+            assertTrue(Described.first(tree, ToastBox.class).leaving());
+        }
+
+        /// The button is told first — a click bubbles from the node it hit — so a
+        /// hit on the action is never lost to the plate underneath it, and the
+        /// second dismissal is the one the stack already ignores.
+        @Test
+        @DisplayName("the action still acts, and dismissing twice is harmless")
+        void theActionStillActs() {
+            var tree = stack();
+            toasts.show(new Toast("Message sent")
+                    .action("Undo", () -> pressed.add("undo")).timeout(Duration.ZERO));
+            tree.flush();
+
+            Described.first(tree, Button.class).onPress().run();
+            // ...and then the same click reaches the plate, as it does on screen.
+            Described.first(tree, ToastBox.class).onPointer(click());
+            tree.flush();
+
+            assertEquals(List.of("undo"), pressed, "the action ran twice, or not at all");
+            assertTrue(Described.first(tree, ToastBox.class).leaving());
+        }
+
+        /// §1.7's "no ghost clicks": input is off from the moment an answer is
+        /// given, so a click landing during the 160ms exit must not re-end
+        /// anything.
+        @Test
+        @DisplayName("a toast on its way out ignores a click")
+        void leavingIgnoresIt() {
+            var tree = stack();
+            toasts.show("Saved");
+            tree.flush();
+            tickOldest();
+            tree.flush();
+
+            var going = Described.first(tree, ToastBox.class);
+            going.onPointer(click());
+
+            assertTrue(going.leaving());
+            assertEquals(List.of("Saved"), texts(tree), "it went early");
+        }
+    }
+
     @Nested
     @DisplayName("the corner")
     class Corners {

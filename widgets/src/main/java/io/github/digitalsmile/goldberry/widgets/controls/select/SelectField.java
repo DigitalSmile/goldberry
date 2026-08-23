@@ -41,8 +41,12 @@ import java.util.function.Consumer;
 /// holds trivially: this node does nothing at all with the rectangle, and hands
 /// it to the state, which uses it only when something is clicked.
 ///
-/// @param text        the chosen option's label, or the placeholder
+/// @param text        the chosen option's label, or the placeholder. Ignored
+///                    when `chips` is non-empty — see [#children()]
 /// @param placeholder whether `text` is the placeholder
+/// @param chips       §3's "`badge` chips inside the closed control", one per
+///                    value a `select multiple` holds, or empty for the ordinary
+///                    single-valued control
 /// @param open        whether the list is showing, which is `.open` to a
 ///                    stylesheet
 /// @param disabled    whether it refuses to open and matches `:disabled`
@@ -51,7 +55,8 @@ import java.util.function.Consumer;
 /// @param onTypeahead what a printed character means — §3's typeahead
 /// @param onLocated   where the last frame put this, and what clips it
 record SelectField(
-        String text, boolean placeholder, boolean open, boolean disabled, Attributes attributes,
+        String text, boolean placeholder, List<Widget> chips, boolean open, boolean disabled,
+        Attributes attributes,
         Runnable onToggle, Consumer<String> onTypeahead,
         BiConsumer<LogicalRect, LogicalRect> onLocated)
         implements Widget.Leaf, Styled, Paints, Handles, Located {
@@ -66,7 +71,9 @@ record SelectField(
         return attributes.id();
     }
 
-    /// The document's classes, plus `open` while the list is showing.
+    /// The document's classes, plus `open` while the list is showing and
+    /// `multiple` while it is holding chips — both classes rather than
+    /// pseudo-classes, see below.
     ///
     /// A class and not a pseudo-class: §8's subset has none meaning "expanded",
     /// and one invented for a single widget would be a language nobody else can
@@ -74,11 +81,18 @@ record SelectField(
     /// against, which a private pseudo-class would not be (ADR-0141).
     @Override
     public Set<String> classes() {
-        if (!open) {
+        if (!open && chips.isEmpty()) {
             return attributes.classes();
         }
         var all = new java.util.LinkedHashSet<>(attributes.classes());
-        all.add("open");
+        if (open) {
+            all.add("open");
+        }
+        // Only when it is *showing* chips, so the rule that lets a row of them
+        // wrap costs nothing on the control that never has any.
+        if (!chips.isEmpty()) {
+            all.add("multiple");
+        }
         return all;
     }
 
@@ -156,9 +170,23 @@ record SelectField(
         event.consume();
     }
 
+    /// The value, or the chips, and then the chevron.
+    ///
+    /// **The chips replace the value rather than joining it.** A `select
+    /// multiple` showing "Two selected" *and* two chips would be saying the same
+    /// thing twice in a control §3 already calls narrow; and a multiple with
+    /// nothing chosen falls back to the placeholder, which is the one thing the
+    /// chips cannot say.
     @Override
     public List<Widget> children() {
-        return List.of(new SelectValue(text, placeholder), new SelectChevron());
+        var parts = new java.util.ArrayList<Widget>(chips.size() + 1);
+        if (chips.isEmpty()) {
+            parts.add(new SelectValue(text, placeholder));
+        } else {
+            parts.addAll(chips);
+        }
+        parts.add(new SelectChevron());
+        return List.copyOf(parts);
     }
 
     @Override

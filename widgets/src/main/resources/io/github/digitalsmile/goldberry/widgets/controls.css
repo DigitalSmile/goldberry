@@ -1049,7 +1049,14 @@ spinner {
  * preamble says "anything not listed does not animate", so the absence of a
  * `transition` is the specification being followed rather than an omission.
  */
-badge {
+/* `select-chip` is here rather than with the rest of `select` because §3 asks a
+   `select multiple` for "**`badge` chips**", and one rule saying so is better
+   than two rules that have to be kept agreeing. The chip is not the `badge`
+   *widget* — a badge is a leaf with text and a chip has to hold a × beside its
+   label — but it is a badge to look at, and this is where that is decided
+   (ADR-0182). */
+badge,
+select-chip {
   height: 20px;
   padding: 0 8px;
   border-radius: 10px;
@@ -1059,6 +1066,51 @@ badge {
   line-height: var(--gb-line-caption);
   background: var(--gb-badge-bg);
   color: var(--gb-badge-text);
+}
+
+/* A chip is a row: its words, then the affordance that takes it away. Both
+   shrink to nothing rather than pushing the chevron off the end of a narrow
+   field -- a `select` is given its width by whatever is around it, and a row of
+   five chips must not be able to grow past it. */
+select-chip {
+  flex-direction: row;
+  gap: 4px;
+  flex-shrink: 1;
+}
+
+select-chip-label {
+  flex-shrink: 1;
+}
+
+/* Small, and dimmer than the label until the pointer is on it: the chip says
+   what is selected and the × is how to change it, which is the lesser of the two
+   things on a 20px plate. §2.2's hit target is the chip's own height, because
+   the mark is centred in a box as tall as the row. */
+select-chip-remove {
+  width: 12px;
+  height: 12px;
+  flex-shrink: 0;
+  color: var(--gb-badge-text);
+  opacity: 0.6;
+  cursor: pointer;
+  transition: opacity var(--gb-motion-fast);
+}
+
+select-chip-remove:hover {
+  opacity: 1;
+}
+
+/* A field holding chips is a row of them that may wrap, and it is taller than
+   one holding a word. `align-items` rather than a height, so the control grows
+   with what is in it -- a select with five values chosen is genuinely a taller
+   control, and clipping it would hide what the user picked. */
+select.multiple {
+  flex-wrap: wrap;
+  gap: 4px;
+  height: auto;
+  min-height: 32px;
+  padding: 4px 8px;
+  align-items: center;
 }
 
 /* §1.2's semantic hues, and each pins its **own** foreground rather than

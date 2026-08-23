@@ -306,7 +306,7 @@ public final class Element implements BuildContext, StyleElement {
     /// Type and key, which is the whole of ADR-0004's "diffed by type and key".
     /// A different type means a different kind of node; a different key means the
     /// author said these are different things even though they look alike.
-    private boolean canUpdateTo(Widget next) {
+    boolean canUpdateTo(Widget next) {
         return widget.getClass() == next.getClass() && Objects.equals(widget.key(), next.key());
     }
 

@@ -55,7 +55,7 @@ class SelectTest {
     }
 
     private static Select select(Option... options) {
-        return new Select("dark", List.of(options), null, null, "", false,
+        return new Select("dark", List.of(options), null, null, "", false, false,
                 io.github.digitalsmile.goldberry.widget.attr.Attributes.NONE);
     }
 
@@ -106,7 +106,7 @@ class SelectTest {
         @DisplayName("a value no option carries selects nothing rather than the first")
         void unknown() {
             var it = new Select("nord", List.of(new Option("light", "Light")), null, null,
-                    "Pick one", false, io.github.digitalsmile.goldberry.widget.attr.Attributes.NONE);
+                    "Pick one", false, false, io.github.digitalsmile.goldberry.widget.attr.Attributes.NONE);
 
             assertNull(it.selected(), "guessing would report a value nobody picked");
             assertEquals("Pick one", it.label(), "so it falls back to the placeholder");
@@ -136,7 +136,7 @@ class SelectTest {
             var it = new Select("dark",
                     List.of(new io.github.digitalsmile.goldberry.widgets.text.Text("Themes"),
                             new Option("dark", "Dark")),
-                    null, null, "", false,
+                    null, null, "", false, false,
                     io.github.digitalsmile.goldberry.widget.attr.Attributes.NONE);
 
             assertEquals(2, it.children().size());
@@ -386,7 +386,7 @@ class SelectTest {
             var picked = new ArrayList<String>();
             var tree = tree(new Select("dark", List.of(
                     new Option("light", "Light"), new Option("dark", "Dark")),
-                    null, picked::add, "", false,
+                    null, picked::add, "", false, false,
                     io.github.digitalsmile.goldberry.widget.attr.Attributes.NONE));
             click(field(tree));
 
@@ -574,7 +574,7 @@ class SelectTest {
         @DisplayName("typing on a disabled select does nothing")
         void disabled() {
             var tree = new ElementTree(new Select("dark",
-                    List.of(new Option("light", "Light")), null, picked::add, "", true,
+                    List.of(new Option("light", "Light")), null, picked::add, "", false, true,
                     io.github.digitalsmile.goldberry.widget.attr.Attributes.NONE));
 
             type(tree, "l");
@@ -633,4 +633,133 @@ class SelectTest {
             assertFalse(first == router.focused());
         }
     }
+
+    /// §3: "`multiple=#true` renders the selection as `badge` chips inside the
+    /// closed control, each with a remove affordance" ([ADR-0182]).
+    @Nested
+    @DisplayName("holding more than one")
+    class Multiple {
+
+        private final StubHost host = new StubHost();
+
+        private Select multi(Object bound, Option... options) {
+            var source = bound == null ? null
+                    : io.github.digitalsmile.goldberry.bind.Property.of(bound);
+            return new Select(null, List.of(options), source, picked::add, "Pick some", true,
+                    false, io.github.digitalsmile.goldberry.widget.attr.Attributes.NONE);
+        }
+
+        private final List<String> picked = new java.util.ArrayList<>();
+
+        private static final Option LIGHT = new Option("light", "Light");
+        private static final Option DARK = new Option("dark", "Dark");
+        private static final Option DIM = new Option("dim", "Dim");
+
+        private List<SelectChip> chips(ElementTree tree) {
+            return io.github.digitalsmile.goldberry.widgets.panel.Described
+                    .of(tree, SelectChip.class);
+        }
+
+        /// A bound `Collection` is a set of values; anything else is one value.
+        /// So a model that starts as a single value and becomes a list, or the
+        /// other way round, is not a different kind of binding.
+        @Test
+        @DisplayName("a bound collection is the selection, and a bare value is one of them")
+        void aCollectionIsTheSelection() {
+            assertEquals(List.of("light", "dim"),
+                    multi(List.of("light", "dim"), LIGHT, DARK, DIM).resolvedAll());
+            assertEquals(List.of("dark"), multi("dark", LIGHT, DARK, DIM).resolvedAll());
+            assertEquals(List.of(), multi(null, LIGHT, DARK, DIM).resolvedAll(),
+                    "a null is nothing selected, not one null selected");
+        }
+
+        /// Ordered by the **options**, so removing a chip and putting the value
+        /// back does not move it to the end of the row.
+        @Test
+        @DisplayName("the order is the options', not the model's")
+        void orderedByTheOptions() {
+            assertEquals(List.of("light", "dim"),
+                    multi(List.of("dim", "light"), LIGHT, DARK, DIM).resolvedAll());
+        }
+
+        @Test
+        @DisplayName("a value the select does not offer selects nothing, and duplicates collapse")
+        void unknownAndDuplicate() {
+            assertEquals(List.of("dark"),
+                    multi(List.of("dark", "purple"), LIGHT, DARK, DIM).resolvedAll(),
+                    "an option nobody wrote was drawn as a chip");
+            assertEquals(List.of("dark"),
+                    multi(List.of("dark", "dark"), LIGHT, DARK, DIM).resolvedAll(),
+                    "two chips saying the same word are two affordances doing one thing");
+        }
+
+        @Test
+        @DisplayName("the closed control shows a chip per value, with its label")
+        void chipsInTheField() {
+            var tree = new ElementTree(multi(List.of("light", "dim"), LIGHT, DARK, DIM), host);
+
+            assertEquals(List.of("Light", "Dim"),
+                    chips(tree).stream().map(SelectChip::label).toList(),
+                    "the label and not the value -- that is what the two words are for");
+        }
+
+        /// The chips replace the value rather than joining it: a control saying
+        /// "Two selected" *and* showing two chips says one thing twice.
+        @Test
+        @DisplayName("with nothing chosen it reads the placeholder, not an empty row")
+        void emptyFallsBackToThePlaceholder() {
+            var tree = new ElementTree(multi(List.of(), LIGHT, DARK), host);
+
+            assertEquals(List.of(), chips(tree));
+            var value = (SelectValue) field(tree).children().getFirst();
+            assertEquals("Pick some", value.text());
+            assertTrue(value.placeholder());
+        }
+
+        /// One channel rather than two: `change` is a **toggle** in this mode, so
+        /// a chip's × and a click on an already-chosen row mean the same thing.
+        /// The set is the application's, and asking for a value it already holds
+        /// can only mean taking it out.
+        @Test
+        @DisplayName("a chip's remove asks for the same value picking it would")
+        void theChipRemovesByAsking() {
+            var tree = new ElementTree(multi(List.of("light", "dim"), LIGHT, DARK, DIM), host);
+
+            chips(tree).getFirst().onRemove().run();
+
+            assertEquals(List.of("light"), picked);
+        }
+
+        /// The whole point of the mode is picking several, and a list that shut
+        /// after each one would make three values three round trips through a
+        /// popup that has to be measured, placed and opened again each time.
+        @Test
+        @DisplayName("the list stays open while values are picked")
+        void theListStaysOpen() {
+            var tree = new ElementTree(multi(List.of(), LIGHT, DARK, DIM), host);
+            field(tree).located(LogicalRect.of(10, 20, 160, 32), LogicalRect.of(0, 0, 800, 600));
+
+            click(field(tree));
+
+            assertEquals(1, host.opened.size(), "it did not open");
+            // `StubHost` opens nothing, so what is asserted here is the state's
+            // own view: a single-valued select would have cleared it.
+            assertTrue(multi(List.of(), LIGHT).multiple());
+        }
+
+        @Test
+        @DisplayName("a single-valued select has no chips at all")
+        void singleValuedIsUnchanged() {
+            var tree = new ElementTree(select(LIGHT, DARK), host);
+
+            assertEquals(List.of(), chips(tree));
+            assertInstanceOf(SelectValue.class, field(tree).children().getFirst());
+        }
+
+        private void click(SelectField f) {
+            f.onPointer(new PointerEvent(PointerEvent.Kind.CLICKED, 0, 0,
+                    PointerEvent.Button.PRIMARY, 1, null));
+        }
+    }
+
 }

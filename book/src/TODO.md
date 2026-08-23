@@ -99,11 +99,14 @@ the mechanism the sentence named.
   opened for the frame clock. A column of `message`es still cannot have it, for
   ADR-0175's unchanged reason: a banner has no owner to hold the list. —
   [ADR-0178](adr/0178-a-stack-closes-its-own-hole.md)
-- **A toast cannot be dismissed by clicking it**, so one with `Duration.ZERO` and
-  no action button can only be removed by `ToastController.clear()`. §7 gives a
-  toast an action button and no ×, and this is that shape followed exactly —
-  worth knowing before somebody ships a notification nobody can get rid of. —
-  [ADR-0177](adr/0177-a-toast-is-a-queue-and-the-stack-is-the-widget.md)
+- ~~**A toast cannot be dismissed by clicking it**~~ **The plate is the
+  affordance now.** What §7's omission of a × meant is that a toast does not need
+  a *second* affordance competing with its action for a 360×40 plate — not that a
+  persistent one should be undismissable. The click was already being swallowed,
+  because the plate is hit-testable and a click on it reached nothing and did
+  nothing. The trade-off, stated: a click aimed at the action button that misses
+  it dismisses without acting; the button is told first, so a hit is never lost. —
+  [ADR-0182](adr/0182-a-select-may-hold-more-than-one.md)
 - **A toast is not announced**, which is M5's AccessKit bridge like every other
   widget's semantics — and the one place in the catalog where the absence really
   costs something, because a notification nobody sees is exactly what §7's "live
@@ -675,13 +678,28 @@ the mechanism the sentence named.
   height and leaves everything else alone. —
   [ADR-0179](adr/0179-a-popup-says-what-it-measured.md),
   [ADR-0141](adr/0141-a-select-is-a-closed-control-and-a-list.md)
-- **`select multiple=`, `autocomplete=` and `tree=` are not built.** Two of the
-  three are waiting on widgets rather than on decisions: `autocomplete=#true`
-  makes the closed control an editable `text-input` and `tree=#true` takes a
-  `tree`'s model, and neither of those widgets exists. `multiple=#true` renders
-  the selection as `badge` chips with a remove affordance, which needs nothing
-  that is not built, and is deferred as scope. —
+- ~~**`select multiple=` … is not built**~~ **It is.** The selection is a set,
+  `change` is a **toggle** in that mode — the set is the application's, so asking
+  for a value it already holds can only mean taking it out — and the list stays
+  open while values are picked, which needed a popup whose content can change
+  while it is open (`Popup.content`, new). §4's **free-text autocomplete** is
+  built too: `TextInput.suggesting(options)` offers a `SelectList` under the
+  field, the rows commit on `Enter` rather than following the focus, and the
+  field's text is never rewritten without the user choosing.
+  **`select autocomplete=#true` is still not built** — the combobox form makes
+  the *closed control* editable, which is its own decision about where the
+  editing state lives — and `tree=#true` still waits on `tree`. —
+  [ADR-0182](adr/0182-a-select-may-hold-more-than-one.md),
   [ADR-0141](adr/0141-a-select-is-a-closed-control-and-a-list.md)
+- **Autocomplete is Java-only, and `SelectList` is in the wrong package.** §4 says
+  the application supplies the list, and it arrives by rebuilding the widget in
+  answer to `change` — a channel a document does not have, so a document may write
+  the field and it simply offers nothing under it; giving markup a named
+  suggestion source is a decision about `Wiring`. And `SelectList` now has two
+  callers, which is what moved `Option` into a package of its own; it stayed put
+  because the CSS type it carries is `select-list`, so moving it renames a type in
+  every stylesheet and every golden rather than editing one file. —
+  [ADR-0182](adr/0182-a-select-may-hold-more-than-one.md)
 - ~~**A `select` opened from the keyboard does not give focus back to the
   field.**~~ **The field never loses it.** Measured rather than reasoned about:
   the owner window's router is not touched by a popup opening or closing, so the

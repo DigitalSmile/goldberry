@@ -147,6 +147,7 @@ final class ToasterState extends State<Toaster> {
                     entry.isLeaving(), entry.reflow,
                     hovered -> hover(entry, hovered),
                     () -> pressed(entry),
+                    () -> dismissed(entry),
                     height -> entry.height = height));
         }
         return new ToasterBox(boxes, widget().corner(), this::frame);
@@ -250,6 +251,18 @@ final class ToasterState extends State<Toaster> {
         if (action != null) {
             action.run();
         }
+    }
+
+    /// A click on the plate — §7's missing way out, see [ToastBox#onPointer].
+    ///
+    /// No handler to run and nothing to report: dismissing a notification is not
+    /// an answer to it, which is exactly what tells it apart from the action
+    /// button above.
+    private void dismissed(Entry entry) {
+        if (entry.isLeaving()) {
+            return;
+        }
+        setState(() -> leave(entry));
     }
 
     // --- going ----------------------------------------------------------------

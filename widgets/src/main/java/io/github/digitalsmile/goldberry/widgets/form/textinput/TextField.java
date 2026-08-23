@@ -67,7 +67,8 @@ import java.util.Set;
 record TextField(
         String display, boolean placeholder, TextEdit edit, boolean focused, boolean caretShown,
         boolean disabled, boolean readOnly, Attributes attributes, TextEditor editor)
-        implements Widget.Leaf, Styled, Paints, Handles, Measured {
+        implements Widget.Leaf, Styled, Paints, Handles, Measured,
+        io.github.digitalsmile.goldberry.input.handler.Located {
 
     /// How wide the caret is, in logical pixels.
     ///
@@ -78,6 +79,15 @@ record TextField(
     /// what every desktop draws; a theme that wants a fat caret is a
     /// `--gb-caret-width` token and a design-system decision (Principle 3).
     private static final double CARET_WIDTH = 1;
+
+    /// Where the frame put this, handed straight to the state — which uses it
+    /// only to anchor a popover, so [io.github.digitalsmile.goldberry.input.handler.Located]'s
+    /// rule that a widget told where it is must not move itself holds trivially.
+    @Override
+    public void located(io.github.digitalsmile.goldberry.render.model.LogicalRect self,
+            io.github.digitalsmile.goldberry.render.model.LogicalRect clip) {
+        editor.located(self, clip);
+    }
 
     @Override
     public String cssType() {

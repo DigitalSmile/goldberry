@@ -32,10 +32,26 @@ import java.util.Set;
 /// Horizontal roving is absent for `menu`'s reason: a list is one column, and
 /// `Left` and `Right` are not its to take.
 ///
+/// ## Two callers now
+///
+/// §4's autocomplete is the second: "attaches a `popover` of suggestions to the
+/// field", which is this panel with this keyboard and this drawing. It is public
+/// rather than copied for the reason
+/// [io.github.digitalsmile.goldberry.widgets.controls.option.Option] was moved
+/// into a package of its own the day *it* had two callers — and moving this one
+/// the same way is the follow-up that has not been taken, because the CSS type
+/// it carries is `select-list` and renaming that is a change to every stylesheet
+/// and every golden rather than to this file ([ADR-0182]).
+///
+/// `Option.inAList()` is what makes it right for both: the arrows move the
+/// focus and `Enter` commits, so a suggestion list never rewrites the field
+/// under a user who is only looking (§4).
+///
 /// @param children the rows — the options, already told what they are
-record SelectList(List<Widget> children) implements Widget.Leaf, Styled, Paints, Handles {
+public record SelectList(List<Widget> children)
+        implements Widget.Leaf, Styled, Paints, Handles {
 
-    SelectList {
+    public SelectList {
         children = List.copyOf(children == null ? List.of() : children);
     }
 
