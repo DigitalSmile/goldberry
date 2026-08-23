@@ -212,9 +212,22 @@ record SelectField(
     /// lose ([ADR-0169]'s notification, in its third consumer).
     @Override
     public void onFocusWithin(boolean within, boolean fromKeyboard) {
-        if (!within && editor != null) {
-            onSettle.run();
+        if (editor == null) {
+            return;
         }
+        if (within) {
+            // **Opened on focus, not on the click.** The editor consumes the
+            // press to place its caret, so a click that reached the plate could
+            // not be relied on to arrive — and a combobox the user is inside with
+            // no options showing is a text box that has forgotten what it is
+            // ([ADR-0185]). Focus is the honest signal: it is what the click, the
+            // Tab and `Alt+Down` all produce.
+            if (!open) {
+                onToggle.run();
+            }
+            return;
+        }
+        onSettle.run();
     }
 
     /// §3's typeahead: what the user typed, handed up to the state, which is the

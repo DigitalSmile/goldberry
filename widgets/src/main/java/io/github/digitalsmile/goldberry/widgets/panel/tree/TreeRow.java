@@ -98,19 +98,35 @@ record TreeRow(TreeNode node, int depth, boolean expanded, boolean selectable, b
     public List<Widget> children() {
         var parts = new ArrayList<Widget>(3);
         parts.add(new TreeIndent(depth));
-        parts.add(new TreeChevron(node.mayHaveChildren(), expanded));
+        parts.add(new TreeChevron(node.mayHaveChildren(), expanded, onToggle));
         parts.add(new TreeLabel(node.label()));
         return List.copyOf(parts);
     }
 
-    /// A click chooses, and a click on the chevron opens — the chevron consumes
-    /// its own, so opening a folder does not also select it.
+    /// A click on the chevron opens; a click on the rest of the row chooses, or
+    /// opens when there is nothing to choose.
+    ///
+    /// The last clause is the one that was missing and it is not a nicety: in a
+    /// **leaf-only** tree a parent is not an answer, so a click on "Europe" had
+    /// nothing to do and did nothing — the chevron was the only way in, and the
+    /// chevron had no handler either. A tree whose branches cannot be opened with
+    /// a mouse is not a tree ([ADR-0185]).
+    ///
+    /// So: choose if it is an answer, and otherwise open it. A row that is both —
+    /// a parent in an `any` tree — chooses, because that is what the click on its
+    /// label means; its chevron is how it opens, which is every file manager's
+    /// arrangement.
     @Override
     public void onPointer(PointerEvent event) {
-        if (event.kind() == PointerEvent.Kind.CLICKED && selectable) {
-            onSelect.run();
-            event.consume();
+        if (event.kind() != PointerEvent.Kind.CLICKED) {
+            return;
         }
+        if (selectable) {
+            onSelect.run();
+        } else if (node.mayHaveChildren()) {
+            onToggle.run();
+        }
+        event.consume();
     }
 
     /// §3: "`Right` expands or moves to the first child, `Left` collapses or
@@ -188,7 +204,7 @@ record TreeRow(TreeNode node, int depth, boolean expanded, boolean selectable, b
     ///
     /// The cost is the animation, and it is the whole cost: the two marks are the
     /// two ends the rotation would have interpolated between.
-    record TreeChevron(boolean present, boolean expanded)
+    record TreeChevron(boolean present, boolean expanded, Runnable onToggle)
             implements Widget.Leaf, Styled, Paints, Handles {
 
         @Override
@@ -204,6 +220,18 @@ record TreeRow(TreeNode node, int depth, boolean expanded, boolean selectable, b
         @Override
         public boolean isFocusable() {
             return false;
+        }
+
+        /// **Consumed**, so opening a folder does not also select it — `TabClose`'s
+        /// rule and the same mistake it exists to avoid.
+        @Override
+        public void onPointer(PointerEvent event) {
+            if (event.kind() == PointerEvent.Kind.CLICKED && present) {
+                if (onToggle != null) {
+                    onToggle.run();
+                }
+                event.consume();
+            }
         }
 
         @Override

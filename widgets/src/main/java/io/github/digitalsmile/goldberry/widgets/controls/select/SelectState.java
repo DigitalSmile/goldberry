@@ -61,6 +61,13 @@ final class SelectState extends State<Select> {
         if (select.disabled()) {
             close();
         }
+        // The open list, told what the model now says. Here rather than at the
+        // moment of the click, because this is the first place the application's
+        // answer is visible -- see [#choose]. Cheap and idempotent: a popup whose
+        // description has not changed reconciles to nothing.
+        if (isOpen() && (select.multiple() || select.isTree())) {
+            list.content(panel());
+        }
         return new SelectField(
                 select.label(), select.selected() == null, chips(select), editor(select),
                 isOpen(), select.disabled(), select.attributes(),
@@ -247,7 +254,16 @@ final class SelectState extends State<Select> {
         }
         // The row that is already chosen, so `Down` moves from the value rather
         // than from the top of the list.
-        opened.get().focusOn(chosen);
+        //
+        // **Unless it is a combobox**, where the keyboard belongs to the editor:
+        // a list that focused a row on opening would swallow the second keystroke
+        // and every one after it. The arrows still reach it, because the owner
+        // forwards keys to whatever popup is open (ADR-0104, ADR-0185).
+        if (select.autocomplete()) {
+            opened.get().takesFocus(false);
+        } else {
+            opened.get().focusOn(chosen);
+        }
         setState(() -> list = opened.get());
     }
 
@@ -276,12 +292,13 @@ final class SelectState extends State<Select> {
         if (onChange != null) {
             onChange.accept(value);
         }
-        // The list is still up and the model has moved under it, so the rows have
-        // to be described again for the ticks to follow. A single-valued select
-        // never reaches this, because its list has already gone.
-        if (widget().multiple() && isOpen()) {
-            reopenRows();
-        }
+        // **Not re-described here.** The model has moved, but this control has not
+        // been rebuilt yet -- `onChange` above has only just told the application,
+        // and `widget()` is still the description that was current when the click
+        // arrived. Re-describing the rows from it would draw the selection the
+        // list had *before* the pick, which is exactly what "the chip appears and
+        // the row stays grey" looked like. The refresh belongs in `build`, which
+        // is by definition the first moment the new model is visible (ADR-0185).
     }
 
     /// What goes in the popup: §3's flat list, or a `tree` when one was given.
@@ -367,7 +384,11 @@ final class SelectState extends State<Select> {
         return null;
     }
 
-    /// Rebuilds the open list against the model as it now is.
+    /// Re-describes the open list — §3's "the popup stays open and narrows".
+    ///
+    /// Called from [#typed], where it *is* safe to read `widget()`: the query is
+    /// this control's own state and does not travel through the application
+    /// before the list has to show it.
     ///
     /// A popup is an element tree of its own with its own build schedule
     /// ([ADR-0103]), so a `setState` here reaches this control's field and

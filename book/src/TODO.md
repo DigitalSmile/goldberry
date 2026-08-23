@@ -1273,6 +1273,26 @@ the mechanism the sentence named.
   by different people. —
   [ADR-0153](adr/0153-a-rate-is-counted-a-refresh-is-asked-for.md)
 
+- **A popup hangs on screen when the application loses focus to another window.**
+  The window hides and the popup stays where it was. The mechanism
+  [ADR-0144](adr/0144-a-popup-goes-away-when-the-application-does.md) describes is
+  wired — the launcher watches `FocusChanged` and calls `dismissPopups` after a
+  settle delay if no window of the application is focused — so this is a fault
+  *inside* it rather than a missing feature. Two candidates and no evidence yet:
+  a popup window still reporting focused, so `anyWindowFocused` never goes false;
+  or the platform not sending `FocusChanged` at all when the owner is hidden
+  rather than deactivated. Diagnosing it needs a real window and a real
+  compositor. —
+  [ADR-0185](adr/0185-a-list-that-hangs-off-a-field-does-not-take-the-keyboard.md)
+- **Nothing drives §3's select family through the real loop.** All three defects
+  ADR-0185 fixed were found by running the application and were green in CI,
+  because every test drives the widget by hand and each fault lives in the seam
+  between the widget and a running window — the application's rebuild, the
+  platform's focus, the pointer. `MenusTest` does drive the real launcher against
+  the headless backend and is the shape that would have caught them. Closing this
+  is worth more than the three bugs were. —
+  [ADR-0185](adr/0185-a-list-that-hangs-off-a-field-does-not-take-the-keyboard.md)
+
 ## Answered
 
 Kept rather than deleted: each is a trap somebody hit, and the reasoning that got

@@ -325,4 +325,78 @@ class TreeTest {
             assertThrows(IllegalArgumentException.class, () -> TreeNode.leaf("  ", "x"));
         }
     }
+
+    /// Found by running the application: none of these branches would open,
+    /// because nothing handled a **click** at all. The keyboard tests above all
+    /// passed ([ADR-0185]).
+    @Nested
+    @DisplayName("the pointer")
+    class Pointer {
+
+        private static void click(TreeRow row) {
+            row.onPointer(new io.github.digitalsmile.goldberry.input.event.PointerEvent(
+                    io.github.digitalsmile.goldberry.input.event.PointerEvent.Kind.CLICKED, 0, 0,
+                    io.github.digitalsmile.goldberry.input.event.PointerEvent.Button.PRIMARY,
+                    1, null));
+        }
+
+        private static TreeRow.TreeChevron chevronOf(TreeRow row) {
+            return (TreeRow.TreeChevron) row.children().get(1);
+        }
+
+        /// A leaf-only tree makes a parent unselectable, so a click on it had
+        /// nothing to do and did nothing — and the chevron had no handler either,
+        /// which left no way at all to open a branch with a mouse.
+        @Test
+        @DisplayName("clicking a branch that is not an answer opens it")
+        void clickingAHeadingOpens() {
+            var tree = world(null);
+
+            click(row(tree, "europe"));
+            tree.flush();
+
+            assertEquals(List.of("europe", "no", "se", "asia"), rows(tree));
+            assertEquals(List.of(), chosen, "opening a branch reported a choice");
+        }
+
+        @Test
+        @DisplayName("clicking the chevron opens, and does not also choose")
+        void chevronOpens() {
+            var tree = tree(new Tree(world(), null, chosen::add).anyNode(true));
+
+            var event = new io.github.digitalsmile.goldberry.input.event.PointerEvent(
+                    io.github.digitalsmile.goldberry.input.event.PointerEvent.Kind.CLICKED, 0, 0,
+                    io.github.digitalsmile.goldberry.input.event.PointerEvent.Button.PRIMARY,
+                    1, null);
+            chevronOf(row(tree, "europe")).onPointer(event);
+            tree.flush();
+
+            assertTrue(event.isConsumed(), "the click went on to select the row it opened");
+            assertEquals(List.of("europe", "no", "se", "asia"), rows(tree));
+            assertEquals(List.of(), chosen);
+        }
+
+        @Test
+        @DisplayName("clicking a leaf chooses it")
+        void clickingALeafChooses() {
+            var tree = world(null);
+            click(row(tree, "europe"));
+            tree.flush();
+
+            click(row(tree, "no"));
+
+            assertEquals(List.of("no"), chosen);
+        }
+
+        @Test
+        @DisplayName("a leaf has no chevron to click")
+        void aLeafHasNoChevron() {
+            var tree = world(null);
+            click(row(tree, "europe"));
+            tree.flush();
+
+            assertFalse(chevronOf(row(tree, "no")).present());
+        }
+    }
+
 }

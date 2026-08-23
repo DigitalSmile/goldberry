@@ -3213,6 +3213,40 @@ is the `scroll` box's.
   `transform` on a mark
   ([ADR-0184](adr/0184-a-tree-is-a-list-that-remembers-what-is-open.md))
 
+### Three defects found by running it, and one still open
+
+- **A `multiple`'s chip appeared and the row stayed grey.** The list was
+  re-described at the moment of the click, where `widget()` is still the
+  description from *before* the application was told — so it drew the selection
+  the list already had. The rule worth keeping: after reporting upward, a
+  controlled widget knows nothing new until it is rebuilt, and reading `widget()`
+  there is reading the past. The refresh moved into `build`.
+- **An `autocomplete` took one character and went dead.** The list focused its
+  first row on opening and took the keyboard off the editor being typed into. So
+  a popup that hangs off a field does not take focus — the arrows still reach it,
+  because the owner forwards keys to whatever popup is open, which is a mechanism
+  that existed for another reason and turns out to make this safe rather than a
+  compromise. It opens on **focus** rather than on the click, because the editor
+  consumes the press to place its caret.
+- **A `tree` would not open with a mouse.** Nothing handled a click: a row
+  selected when selectable, and in a leaf-only tree a parent is not — so a click
+  on "Europe" did nothing, and the chevron had no handler either. Every keyboard
+  test passed.
+- **All three were green in CI**, which is the part worth keeping. Each lives in
+  the seam between the widget and a running window, and every test drives the
+  widget by hand. `MenusTest` drives the real launcher against the headless
+  backend and nothing in §3's select family does — closing that is worth more
+  than the three bugs were.
+- **The wither check now covers the catalog.** `WidgetWitherTest` walks the
+  compiled classes and asks every wither on every widget record to set its
+  component to what it already holds; verified by swapping two same-typed
+  arguments in `Select.placeholder`. Five widgets refuse the values it invents and
+  are named in the failure message rather than skipped quietly.
+- **Still open: a popup hangs when the application loses focus to another
+  window.** ADR-0144's mechanism is wired, so this is a fault inside it rather
+  than a gap, and it needs a real compositor to diagnose
+  ([ADR-0185](adr/0185-a-list-that-hangs-off-a-field-does-not-take-the-keyboard.md))
+
 ### Not started
 
 Tray, client-side decorations and charts, the rest of §4 —

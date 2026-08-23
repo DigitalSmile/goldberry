@@ -330,6 +330,26 @@ public final class Popup implements AutoCloseable {
         this.focusId = id;
     }
 
+    /// Whether this popup takes the keyboard when it opens. On by default.
+    ///
+    /// **Off for a popup that hangs off something the user is typing in.** A
+    /// suggestion list under a combobox must not take the keyboard: the field is
+    /// what is being typed into, and a list that focused its first row on opening
+    /// swallowed the second keystroke and every one after it — which is what "it
+    /// allows only one character and then is disabled" was
+    /// ([ADR-0185](../../../book/src/adr/0185-a-list-that-hangs-off-a-field-does-not-take-the-keyboard.md)).
+    ///
+    /// The arrows still reach it. A popup may or may not have the platform's
+    /// focus either way, so the owner forwards keys to whatever popup is open
+    /// ([ADR-0104](../../../book/src/adr/0104-a-popup-is-measured-then-placed.md))
+    /// — which is the mechanism that makes this safe rather than a compromise.
+    public Popup takesFocus(boolean value) {
+        this.takesFocus = value;
+        return this;
+    }
+
+    private boolean takesFocus = true;
+
     /// Puts the keyboard on this popup's first focusable node.
     ///
     /// Called after its first frame, because focus traversal walks the element
@@ -347,6 +367,9 @@ public final class Popup implements AutoCloseable {
         // `select` row focused *from the keyboard* would be selected on the spot
         // by the option's own follow-the-focus rule, so opening the list would
         // report a change nobody asked for.
+        if (!takesFocus) {
+            return;
+        }
         var chosen = focusId == null ? null : elementWithId(tree.root(), focusId);
         if (chosen != null) {
             router.focus(chosen, false);

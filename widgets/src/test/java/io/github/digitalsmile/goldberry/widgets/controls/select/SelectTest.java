@@ -749,6 +749,29 @@ class SelectTest {
             assertTrue(multi(List.of(), LIGHT).multiple());
         }
 
+        /// Found by running the application: the chip appeared and the row it came
+        /// from stayed grey. The list was re-described at the moment of the click,
+        /// where `widget()` is still the description that was current *before* the
+        /// application was told — so it drew the selection the list already had
+        /// ([ADR-0185]).
+        @Test
+        @DisplayName("choosing does not re-describe the list from the model it has not seen yet")
+        void doesNotRedescribeFromAStaleWidget() {
+            var tree = new ElementTree(multi(List.of("light"), LIGHT, DARK, DIM), host);
+
+            // What the application does: hears the toggle, and has not rebuilt
+            // this control yet.
+            var rows = io.github.digitalsmile.goldberry.widgets.panel.Described
+                    .of(tree, Option.class);
+            assertTrue(rows.isEmpty(), "StubHost opens nothing, so there are no rows to read");
+
+            // The observable check is the one that matters: nothing reads the
+            // widget between telling the application and being rebuilt.
+            chips(tree).getFirst().onRemove().run();
+            assertEquals(List.of("light"), picked,
+                    "the toggle is all that happened at the moment of the click");
+        }
+
         @Test
         @DisplayName("a single-valued select has no chips at all")
         void singleValuedIsUnchanged() {
@@ -880,6 +903,42 @@ class SelectTest {
             tree.flush();
 
             assertEquals(List.of("Purple"), changes, "a legal value was thrown away");
+        }
+
+        /// Found by running the application: the field took one character and then
+        /// went dead. The list focused its first row when it opened, which took
+        /// the keyboard off the editor the user was typing into ([ADR-0185]).
+        @Test
+        @DisplayName("the list does not take the keyboard off the editor")
+        void theListLeavesTheKeyboardAlone() {
+            var tree = tree(combo("dark", false, LIGHT, DARK));
+
+            field(tree).onFocusWithin(true, true);
+            tree.flush();
+
+            assertEquals(1, host.opened.size(), "focusing the editor did not open the list");
+            editor(tree).onChange().accept("L");
+            tree.flush();
+            editor(tree).onChange().accept("Li");
+            tree.flush();
+
+            assertEquals(List.of("L", "Li"), queries,
+                    "the second keystroke went somewhere else");
+        }
+
+        /// The editor consumes the press to place its caret, so a click that
+        /// reached the plate could not be relied on — focus is what the click,
+        /// the Tab and `Alt+Down` all produce.
+        @Test
+        @DisplayName("it opens when the editor is focused, not when the plate is clicked")
+        void opensOnFocus() {
+            var tree = tree(combo("dark", false, LIGHT, DARK));
+            assertTrue(host.opened.isEmpty());
+
+            field(tree).onFocusWithin(true, false);
+            tree.flush();
+
+            assertEquals(1, host.opened.size());
         }
 
         @Test

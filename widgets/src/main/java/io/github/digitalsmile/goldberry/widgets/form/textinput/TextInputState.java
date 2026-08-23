@@ -189,7 +189,7 @@ final class TextInputState extends State<TextInput> implements TextEditor {
         host.popup(list, fieldBounds,
                         io.github.digitalsmile.goldberry.Placement.BELOW,
                         fieldBounds.size().width(), VIEWPORT)
-                .ifPresent(popup -> suggestions = popup.lightDismiss(true));
+                .ifPresent(popup -> suggestions = popup.lightDismiss(true).takesFocus(false));
     }
 
     /// One row per suggestion, each reporting its value when it is chosen.
