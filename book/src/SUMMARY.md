@@ -197,6 +197,7 @@
 - [ADR-0185 A list that hangs off a field does not take the keyboard](adr/0185-a-list-that-hangs-off-a-field-does-not-take-the-keyboard.md)
 - [ADR-0186 A panel that hangs off a field is not a menu](adr/0186-a-panel-that-hangs-off-a-field-is-not-a-menu.md)
 - [ADR-0187 A panel takes the pointer and leaves the keyboard](adr/0187-a-panel-takes-the-pointer-and-leaves-the-keyboard.md)
+- [ADR-0188 A control opens on one signal, and the loop is what proves it](adr/0188-a-control-opens-on-one-signal.md)
 
 ---
 

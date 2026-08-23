@@ -151,9 +151,12 @@ record SelectField(
             return;
         }
         if (editor != null) {
-            if (!open) {
-                toggle();
-            }
+            // **Nothing.** The press that produced this click already focused the
+            // editor, and focus is what opens an editable control — so a click
+            // that also toggled would arrive *after* the list was open and read
+            // `open` from the description built before it, see false, and shut it
+            // again. Two paths opening one list is how a control opens and closes
+            // in a single gesture ([ADR-0188]).
             return;
         }
         toggle();

@@ -1299,7 +1299,15 @@ the mechanism the sentence named.
   rather than deactivated. Diagnosing it needs a real window and a real
   compositor. —
   [ADR-0185](adr/0185-a-list-that-hangs-off-a-field-does-not-take-the-keyboard.md)
-- **Nothing drives §3's select family through the real loop.** All three defects
+- ~~**Nothing drives §3's select family through the real loop.**~~ **`SelectLoopTest`
+  does**, and found a seventh defect on its first run: a click opened the list and
+  closed it again in the same gesture, because the press focused the editor (which
+  opens it) and the click then toggled from a stale `open` flag. One signal opens
+  an editable control now, and the signal is focus. What the harness still cannot
+  reach is the platform's window flags — reverting `NOT_FOCUSABLE` fails nothing,
+  because the headless backend has none. —
+  [ADR-0188](adr/0188-a-control-opens-on-one-signal.md)
+- **(was) Nothing drives §3's select family through the real loop.** All three defects
   ADR-0185 fixed were found by running the application and were green in CI,
   because every test drives the widget by hand and each fault lives in the seam
   between the widget and a running window — the application's rebuild, the
