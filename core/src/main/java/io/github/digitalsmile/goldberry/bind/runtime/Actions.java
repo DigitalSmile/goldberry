@@ -1,9 +1,12 @@
-package io.github.digitalsmile.goldberry.bind;
+package io.github.digitalsmile.goldberry.bind.runtime;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
+import io.github.digitalsmile.goldberry.bind.Action;
+import io.github.digitalsmile.goldberry.bind.Bind;
+import io.github.digitalsmile.goldberry.bind.Model;
 
 /// A class whose `@Action` methods are what markup can call.
 ///
@@ -25,7 +28,7 @@ import java.lang.annotation.Target;
 /// nothing anybody would call a model. Marking it `@Model` said otherwise on
 /// every one of them — including, at its worst, on a class that also implemented
 /// `Application`
-/// ([ADR-0139](../../../../../../book/src/adr/0139-actions-are-annotated-as-actions.md)).
+/// ([ADR-0139](../../../../../../../book/src/adr/0139-actions-are-annotated-as-actions.md)).
 ///
 /// ## What it may not have
 ///
@@ -43,7 +46,7 @@ import java.lang.annotation.Target;
 /// `Host` and have no business on anything holding application values. They get a
 /// small `@Actions` record of their own, which is what keeps the annotation off
 /// the class implementing `Application`
-/// ([ADR-0138](../../../../../../book/src/adr/0138-a-window-s-actions-are-a-model-of-their-own.md)).
+/// ([ADR-0138](../../../../../../../book/src/adr/0138-a-window-s-actions-are-a-model-of-their-own.md)).
 ///
 /// ## Read at build time, kept at run time
 ///

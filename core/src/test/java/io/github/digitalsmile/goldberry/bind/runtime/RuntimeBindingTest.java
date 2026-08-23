@@ -1,4 +1,4 @@
-package io.github.digitalsmile.goldberry.bind;
+package io.github.digitalsmile.goldberry.bind.runtime;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -12,6 +12,11 @@ import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import io.github.digitalsmile.goldberry.bind.Action;
+import io.github.digitalsmile.goldberry.bind.Bind;
+import io.github.digitalsmile.goldberry.bind.Model;
+import io.github.digitalsmile.goldberry.bind.Observable;
+import io.github.digitalsmile.goldberry.bind.Property;
 
 /// What a model does in a jar the weaver never ran over (ADR-0155).
 ///

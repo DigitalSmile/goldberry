@@ -1,4 +1,4 @@
-package io.github.digitalsmile.goldberry.bind;
+package io.github.digitalsmile.goldberry.bind.runtime;
 
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
@@ -18,13 +18,21 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import io.github.digitalsmile.goldberry.bind.registry.ActionRegistry;
+import io.github.digitalsmile.goldberry.bind.registry.BindingRegistry;
+import io.github.digitalsmile.goldberry.bind.Action;
+import io.github.digitalsmile.goldberry.bind.Bind;
+import io.github.digitalsmile.goldberry.bind.Model;
+import io.github.digitalsmile.goldberry.bind.Observable;
+import io.github.digitalsmile.goldberry.bind.Property;
+import io.github.digitalsmile.goldberry.bind.Subscription;
 
 /// A [Model] bound by reflection, for a build that did not run the weaver.
 ///
 /// The second of the two implementations of [BoundModel], and the one an ordinary
 /// jar uses. The weaver rewrites the compiled class so that `gain++` notifies;
 /// this reads the same annotations at run time and notices afterwards
-/// ([ADR-0155](../../../../../../book/src/adr/0155-a-jar-binds-at-run-time-an-image-is-woven.md)).
+/// ([ADR-0155](../../../../../../../book/src/adr/0155-a-jar-binds-at-run-time-an-image-is-woven.md)).
 ///
 /// ## What it can do, and the one thing it cannot
 ///

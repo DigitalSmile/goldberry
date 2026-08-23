@@ -4,9 +4,9 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import io.github.digitalsmile.goldberry.bind.ActionRegistry;
-import io.github.digitalsmile.goldberry.bind.BindingRegistry;
-import io.github.digitalsmile.goldberry.bind.Models;
+import io.github.digitalsmile.goldberry.bind.registry.ActionRegistry;
+import io.github.digitalsmile.goldberry.bind.registry.BindingRegistry;
+import io.github.digitalsmile.goldberry.bind.runtime.Models;
 import io.github.digitalsmile.goldberry.weaver.models.Counter;
 import io.github.digitalsmile.goldberry.weaver.models.EveryType;
 import java.util.ArrayList;

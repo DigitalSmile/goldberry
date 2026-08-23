@@ -1,6 +1,13 @@
-package io.github.digitalsmile.goldberry.bind;
+package io.github.digitalsmile.goldberry.bind.runtime;
 
 import java.util.Objects;
+import io.github.digitalsmile.goldberry.bind.registry.ActionRegistry;
+import io.github.digitalsmile.goldberry.bind.registry.BindingRegistry;
+import io.github.digitalsmile.goldberry.bind.Action;
+import io.github.digitalsmile.goldberry.bind.Bind;
+import io.github.digitalsmile.goldberry.bind.Model;
+import io.github.digitalsmile.goldberry.bind.Observable;
+import io.github.digitalsmile.goldberry.bind.Subscription;
 
 /// The two registries a [Model] publishes — §9's `bind` and `action` halves.
 ///
@@ -19,7 +26,7 @@ import java.util.Objects;
 /// ## Two ways in, and an application cannot tell which it got
 ///
 /// There are two implementations of [BoundModel] and this is what picks between
-/// them ([ADR-0155](../../../../../../book/src/adr/0155-a-jar-binds-at-run-time-an-image-is-woven.md)):
+/// them ([ADR-0155](../../../../../../../book/src/adr/0155-a-jar-binds-at-run-time-an-image-is-woven.md)):
 ///
 /// - the model's **own class**, if the weaver rewrote it. Nothing is reflected,
 ///   nothing is looked up, and a change notifies from inside the assignment that
@@ -60,7 +67,7 @@ public final class Models {
     /// document does — `bind="app.tab"` in KDL and `observable(model, "app.tab")`
     /// in Java resolve the same path against the same registry, so there is one
     /// way a value is named rather than two
-    /// ([ADR-0129](../../../../../../book/src/adr/0129-a-value-is-named-one-way.md)).
+    /// ([ADR-0129](../../../../../../../book/src/adr/0129-a-value-is-named-one-way.md)).
     ///
     /// This replaces the per-path accessor a model used to carry — nine
     /// `public Observable<String> tab() { … }` methods that existed only because
@@ -101,7 +108,7 @@ public final class Models {
     /// repaint — a line with no meaning of its own, present in every method,
     /// and wrong only by being absent. A model changing is *already* the signal;
     /// this is where a window subscribes to it
-    /// ([ADR-0128](../../../../../../book/src/adr/0128-a-change-is-its-own-frame-request.md)).
+    /// ([ADR-0128](../../../../../../../book/src/adr/0128-a-change-is-its-own-frame-request.md)).
     ///
     /// ```java
     /// Models.onRepaint(model, host::repaint);
@@ -122,7 +129,7 @@ public final class Models {
     ///
     /// Wired by whatever installed the model, so an application declares
     /// `@Bind(value = "app.theme", restyle = true)` and says nothing else
-    /// ([ADR-0133](../../../../../../book/src/adr/0133-a-restyle-is-declared.md)).
+    /// ([ADR-0133](../../../../../../../book/src/adr/0133-a-restyle-is-declared.md)).
     ///
     /// @return a subscription that stops the notifications
     /// @throws IllegalStateException if `model` publishes nothing

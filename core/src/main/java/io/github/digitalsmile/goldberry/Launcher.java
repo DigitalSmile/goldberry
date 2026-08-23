@@ -146,8 +146,8 @@ final class Launcher implements Host {
         // (ADR-0128, ADR-0133).
         models = List.copyOf(application.models());
         for (var model : models) {
-            io.github.digitalsmile.goldberry.bind.Models.onRestyle(model, this::restyle);
-            io.github.digitalsmile.goldberry.bind.Models.onRepaint(model, window::repaint);
+            io.github.digitalsmile.goldberry.bind.runtime.Models.onRestyle(model, this::restyle);
+            io.github.digitalsmile.goldberry.bind.runtime.Models.onRepaint(model, window::repaint);
         }
 
         // The application's root goes *under* the window's own node, from the
@@ -275,7 +275,7 @@ final class Launcher implements Host {
         // Nothing at all for a woven model: `refresh` returns false without
         // looking, which is what makes this line free in a native image.
         for (var model : models) {
-            io.github.digitalsmile.goldberry.bind.Models.refresh(model);
+            io.github.digitalsmile.goldberry.bind.runtime.Models.refresh(model);
         }
 
         // Every setState since the last frame settles here, once, however many of

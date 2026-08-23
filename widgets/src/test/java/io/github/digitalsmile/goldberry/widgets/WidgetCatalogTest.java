@@ -165,7 +165,7 @@ class WidgetCatalogTest {
 
             wiring.actions().resolve("right.act").run();
 
-            assertEquals("moved", io.github.digitalsmile.goldberry.bind.Models
+            assertEquals("moved", io.github.digitalsmile.goldberry.bind.runtime.Models
                     .observable(model, "right.value").get());
         }
 

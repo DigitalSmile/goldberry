@@ -4,6 +4,7 @@ import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
+import io.github.digitalsmile.goldberry.bind.runtime.Models;
 
 /// A class whose `@Bind` fields are rewired into bindings by the build.
 ///

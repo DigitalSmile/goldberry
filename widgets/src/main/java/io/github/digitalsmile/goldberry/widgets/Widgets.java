@@ -3,8 +3,8 @@ package io.github.digitalsmile.goldberry.widgets;
 import io.github.digitalsmile.goldberry.kdl.KdlInflater;
 import io.github.digitalsmile.goldberry.widget.Widget;
 import java.util.ServiceLoader;
-import io.github.digitalsmile.goldberry.bind.ActionRegistry;
-import io.github.digitalsmile.goldberry.bind.BindingRegistry;
+import io.github.digitalsmile.goldberry.bind.registry.ActionRegistry;
+import io.github.digitalsmile.goldberry.bind.registry.BindingRegistry;
 
 /// Turns markup into widgets, with every widget module on the path already in it.
 ///
@@ -77,8 +77,8 @@ public final class Widgets {
     /// call. An overload that compiles and means something else is worse than no
     /// overload.
     public static KdlInflater<Widget> inflater(
-            io.github.digitalsmile.goldberry.bind.ActionRegistry actions, Icons icons,
-            io.github.digitalsmile.goldberry.bind.BindingRegistry bindings) {
+            io.github.digitalsmile.goldberry.bind.registry.ActionRegistry actions, Icons icons,
+            io.github.digitalsmile.goldberry.bind.registry.BindingRegistry bindings) {
         return inflater(new Wiring(actions, icons, bindings));
     }
 
@@ -87,14 +87,14 @@ public final class Widgets {
     /// The explicit door a test uses: registries assembled by hand rather than
     /// read off a model.
     public static KdlInflater<Widget> inflater(
-            io.github.digitalsmile.goldberry.bind.ActionRegistry actions, Icons icons) {
+            io.github.digitalsmile.goldberry.bind.registry.ActionRegistry actions, Icons icons) {
         return inflater(new Wiring(actions, icons,
-                io.github.digitalsmile.goldberry.bind.BindingRegistry.none()));
+                io.github.digitalsmile.goldberry.bind.registry.BindingRegistry.none()));
     }
 
     /// An inflater with actions bound and no icons.
     public static KdlInflater<Widget> inflater(
-            io.github.digitalsmile.goldberry.bind.ActionRegistry actions) {
+            io.github.digitalsmile.goldberry.bind.registry.ActionRegistry actions) {
         return inflater(actions, Icons.none());
     }
 

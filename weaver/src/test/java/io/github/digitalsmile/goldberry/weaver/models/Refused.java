@@ -124,7 +124,7 @@ public final class Refused {
     }
 
     /// `@Actions` on a class that holds values — that is a `@Model`.
-    @io.github.digitalsmile.goldberry.bind.Actions
+    @io.github.digitalsmile.goldberry.bind.runtime.Actions
     public static final class ActionsWithValues {
         @Bind("a.b") int value;
 
@@ -134,7 +134,7 @@ public final class Refused {
     }
 
     /// `@Actions` on a class with no actions.
-    @io.github.digitalsmile.goldberry.bind.Actions
+    @io.github.digitalsmile.goldberry.bind.runtime.Actions
     public static final class NoActions {
         @SuppressWarnings("unused")
         private int value;
@@ -146,7 +146,7 @@ public final class Refused {
 
     /// Both markers. A class holds values or it does not.
     @Model
-    @io.github.digitalsmile.goldberry.bind.Actions
+    @io.github.digitalsmile.goldberry.bind.runtime.Actions
     public static final class BothMarkers {
         @Bind("a.b") int value;
 

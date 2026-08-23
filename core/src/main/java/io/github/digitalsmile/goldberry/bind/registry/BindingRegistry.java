@@ -1,10 +1,13 @@
-package io.github.digitalsmile.goldberry.bind;
+package io.github.digitalsmile.goldberry.bind.registry;
 
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.regex.Pattern;
+import io.github.digitalsmile.goldberry.bind.Model;
+import io.github.digitalsmile.goldberry.bind.Observable;
+import io.github.digitalsmile.goldberry.bind.Property;
 
 /// What a path in markup means (§9's `bind` half).
 ///
@@ -18,13 +21,13 @@ import java.util.regex.Pattern;
 /// runtime re-resolves every path against the same registry, so the new tree's
 /// controls are bound to the same properties the old one had, and the values
 /// survive the reload
-/// ([ADR-0051](../../../../../../book/src/adr/0051-kdl-is-parsed-here-and-reloading-is-forgiving.md)).
+/// ([ADR-0051](../../../../../../../book/src/adr/0051-kdl-is-parsed-here-and-reloading-is-forgiving.md)).
 ///
 /// ## Dotted paths, and nothing else
 ///
 /// A path is `identifier(.identifier)*` — `frost`, `prefs.frost`,
 /// `prefs.window.opacity` — and that is the entire grammar
-/// ([ADR-0062](../../../../../../book/src/adr/0062-bind-is-a-path-and-nothing-else.md)).
+/// ([ADR-0062](../../../../../../../book/src/adr/0062-bind-is-a-path-and-nothing-else.md)).
 /// `!prefs.frost`, `prefs.frost == true` and `prefs.frost ? "on" : "off"` are
 /// **refused at inflation**, with the path quoted in the message, rather than
 /// resolving to nothing and leaving a control that never updates.

@@ -3,7 +3,7 @@ package io.github.digitalsmile.goldberry.widgets.bind;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import io.github.digitalsmile.goldberry.bind.Models;
+import io.github.digitalsmile.goldberry.bind.runtime.Models;
 import java.util.ArrayList;
 import java.util.List;
 import org.junit.jupiter.api.DisplayName;

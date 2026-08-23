@@ -216,7 +216,7 @@ public final class ShowcaseModel {
                 .bind("app.port-rule", portRule);
     }
 
-    @io.github.digitalsmile.goldberry.bind.Actions
+    @io.github.digitalsmile.goldberry.bind.runtime.Actions
     public record Actions(ShowcaseModel values) {
 
         // --- the gallery ---------------------------------------------------------

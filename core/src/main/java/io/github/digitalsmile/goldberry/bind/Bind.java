@@ -4,6 +4,9 @@ import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
+import io.github.digitalsmile.goldberry.bind.registry.BindingRegistry;
+import io.github.digitalsmile.goldberry.bind.runtime.BoundField;
+import io.github.digitalsmile.goldberry.bind.runtime.Models;
 
 /// The path a field answers to in markup — `bind="app.gain"`.
 ///

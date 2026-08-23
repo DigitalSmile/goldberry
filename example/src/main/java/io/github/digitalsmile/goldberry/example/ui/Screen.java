@@ -1,6 +1,6 @@
 package io.github.digitalsmile.goldberry.example.ui;
 
-import io.github.digitalsmile.goldberry.bind.Models;
+import io.github.digitalsmile.goldberry.bind.runtime.Models;
 
 import io.github.digitalsmile.goldberry.example.ShowcaseModel;
 import io.github.digitalsmile.goldberry.icon.Icon;

@@ -10,9 +10,9 @@ import java.util.Objects;
 /// [Icons]'s shape, and the third registry for the third kind of thing markup can
 /// refer to and cannot describe. The set is now:
 ///
-/// - [io.github.digitalsmile.goldberry.bind.ActionRegistry] — what `press=` names.
+/// - [io.github.digitalsmile.goldberry.bind.registry.ActionRegistry] — what `press=` names.
 ///   A method.
-/// - [io.github.digitalsmile.goldberry.bind.BindingRegistry] — what `bind=` names.
+/// - [io.github.digitalsmile.goldberry.bind.registry.BindingRegistry] — what `bind=` names.
 ///   A **value that changes**.
 /// - [Icons] — what `icon=` names. A resource with a lifetime.
 /// - this — what `controller=` and `validator=` name. An object that does not
@@ -44,7 +44,7 @@ public final class Named {
     }
 
     /// A registry that refuses an unknown name — the right default, for the
-    /// reason [io.github.digitalsmile.goldberry.bind.ActionRegistry#strict()]
+    /// reason [io.github.digitalsmile.goldberry.bind.registry.ActionRegistry#strict()]
     /// gives: `controller="signip"` is a typo, and a form that silently cannot
     /// be submitted is the hardest kind of bug to notice.
     public static Named strict() {

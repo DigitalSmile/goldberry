@@ -57,6 +57,13 @@ module io.github.digitalsmile.goldberry.core {
     // them, and registers the paths a markup file may name.
     exports io.github.digitalsmile.goldberry.bind;
 
+    // The registries an application fills in, and the machinery a woven or a
+    // reflectively-bound model runs on (ADR-0172). Both are exported because the
+    // weaver writes call sites into an application's own classes, and those call
+    // sites have to be able to name what they call.
+    exports io.github.digitalsmile.goldberry.bind.registry;
+    exports io.github.digitalsmile.goldberry.bind.runtime;
+
     // Pointer input: hit testing against the painted frame, and the dispatch
     // that turns it into events, pseudo-classes and focus (§7, ADR-0054).
     exports io.github.digitalsmile.goldberry.input;

@@ -1,11 +1,17 @@
-package io.github.digitalsmile.goldberry.bind;
+package io.github.digitalsmile.goldberry.bind.runtime;
+
+import io.github.digitalsmile.goldberry.bind.registry.ActionRegistry;
+import io.github.digitalsmile.goldberry.bind.registry.BindingRegistry;
+import io.github.digitalsmile.goldberry.bind.Action;
+import io.github.digitalsmile.goldberry.bind.Bind;
+import io.github.digitalsmile.goldberry.bind.Model;
 
 /// What the weaver makes a [Model] class implement.
 ///
 /// Four methods, none of which appear in the author's source: the model is
 /// written as plain Java with plain fields, and this interface is added to its
 /// bytecode by the build step that rewires those fields
-/// ([ADR-0125](../../../../../../book/src/adr/0125-a-raw-field-is-woven-into-a-binding.md)).
+/// ([ADR-0125](../../../../../../../book/src/adr/0125-a-raw-field-is-woven-into-a-binding.md)).
 ///
 /// ## It is not what an application calls
 ///

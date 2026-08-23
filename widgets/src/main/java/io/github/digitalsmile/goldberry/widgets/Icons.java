@@ -1,6 +1,6 @@
 package io.github.digitalsmile.goldberry.widgets;
 
-import io.github.digitalsmile.goldberry.bind.ActionRegistry;
+import io.github.digitalsmile.goldberry.bind.registry.ActionRegistry;
 import io.github.digitalsmile.goldberry.icon.Icon;
 import java.util.LinkedHashMap;
 import java.util.Map;

@@ -67,14 +67,20 @@ public final class ModelWeaver {
 
     private static final String BIND_PACKAGE = "io.github.digitalsmile.goldberry.bind.";
 
+    /// The registries an application fills in, and the runtime a woven model
+    /// leans on. Two packages of their own since ADR-0172, so the descriptors
+    /// this weaver writes are built from three prefixes rather than one.
+    private static final String REGISTRY_PACKAGE = BIND_PACKAGE + "registry.";
+    private static final String RUNTIME_PACKAGE = BIND_PACKAGE + "runtime.";
+
     private static final ClassDesc CD_MODEL = ClassDesc.of(BIND_PACKAGE + "Model");
-    private static final ClassDesc CD_ACTIONS_MARKER = ClassDesc.of(BIND_PACKAGE + "Actions");
+    private static final ClassDesc CD_ACTIONS_MARKER = ClassDesc.of(RUNTIME_PACKAGE + "Actions");
     private static final ClassDesc CD_BIND = ClassDesc.of(BIND_PACKAGE + "Bind");
     private static final ClassDesc CD_ACTION = ClassDesc.of(BIND_PACKAGE + "Action");
-    private static final ClassDesc CD_BOUND_MODEL = ClassDesc.of(BIND_PACKAGE + "BoundModel");
-    private static final ClassDesc CD_FIELD_LISTENERS = ClassDesc.of(BIND_PACKAGE + "FieldListeners");
-    private static final ClassDesc CD_BINDINGS = ClassDesc.of(BIND_PACKAGE + "BindingRegistry");
-    private static final ClassDesc CD_ACTIONS = ClassDesc.of(BIND_PACKAGE + "ActionRegistry");
+    private static final ClassDesc CD_BOUND_MODEL = ClassDesc.of(RUNTIME_PACKAGE + "BoundModel");
+    private static final ClassDesc CD_FIELD_LISTENERS = ClassDesc.of(RUNTIME_PACKAGE + "FieldListeners");
+    private static final ClassDesc CD_BINDINGS = ClassDesc.of(REGISTRY_PACKAGE + "BindingRegistry");
+    private static final ClassDesc CD_ACTIONS = ClassDesc.of(REGISTRY_PACKAGE + "ActionRegistry");
     private static final ClassDesc CD_OBSERVABLE = ClassDesc.of(BIND_PACKAGE + "Observable");
     private static final ClassDesc CD_PROPERTY = ClassDesc.of(BIND_PACKAGE + "Property");
 
@@ -962,7 +968,7 @@ public final class ModelWeaver {
     /// The two attribute mappers this needs, named once.
     ///
     /// All five annotations are `RUNTIME`-retained: `@Model` and `@Actions` so
-    /// that [io.github.digitalsmile.goldberry.bind.Models] can tell an annotated
+    /// that [io.github.digitalsmile.goldberry.bind.runtime.Models] can tell an annotated
     /// class from an ordinary one, and `@Bind` and `@Action` because a jar that
     /// was never woven binds from them reflectively (ADR-0155). This reads the
     /// class file, where the distinction is only which attribute an annotation

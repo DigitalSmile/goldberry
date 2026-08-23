@@ -1,6 +1,6 @@
 package io.github.digitalsmile.goldberry.widgets.controls.radio;
 
-import io.github.digitalsmile.goldberry.bind.ActionRegistry;
+import io.github.digitalsmile.goldberry.bind.registry.ActionRegistry;
 import io.github.digitalsmile.goldberry.widget.attr.Attributed;
 import io.github.digitalsmile.goldberry.widget.attr.Bindable;
 import io.github.digitalsmile.goldberry.widget.attr.Attributes;

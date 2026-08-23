@@ -1,6 +1,6 @@
 package io.github.digitalsmile.goldberry.weaver;
 
-import io.github.digitalsmile.goldberry.bind.Models;
+import io.github.digitalsmile.goldberry.bind.runtime.Models;
 import io.github.digitalsmile.goldberry.bind.Observable;
 import io.github.digitalsmile.goldberry.weaver.models.Clicker;
 import io.github.digitalsmile.goldberry.weaver.models.Counter;

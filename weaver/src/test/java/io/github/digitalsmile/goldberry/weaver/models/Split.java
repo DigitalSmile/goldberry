@@ -28,7 +28,7 @@ public final class Split {
         @Bind(value = "split.quiet", repaint = false) private int quiet;
     }
 
-    @io.github.digitalsmile.goldberry.bind.Actions
+    @io.github.digitalsmile.goldberry.bind.runtime.Actions
     public record Actions(Values values) {
 
         @Action("split.bump")

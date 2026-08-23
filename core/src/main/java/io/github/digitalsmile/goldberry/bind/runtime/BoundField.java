@@ -1,7 +1,11 @@
-package io.github.digitalsmile.goldberry.bind;
+package io.github.digitalsmile.goldberry.bind.runtime;
 
 import java.util.Objects;
 import java.util.function.Consumer;
+import io.github.digitalsmile.goldberry.bind.registry.BindingRegistry;
+import io.github.digitalsmile.goldberry.bind.Observable;
+import io.github.digitalsmile.goldberry.bind.Property;
+import io.github.digitalsmile.goldberry.bind.Subscription;
 
 /// One woven field, seen as the value a widget can read and watch.
 ///
@@ -10,7 +14,7 @@ import java.util.function.Consumer;
 /// [BindingRegistry] hands to the widget tree. A widget cannot tell the two apart, and
 /// that is the point — [Observable] is the whole contract, and where the value
 /// is actually stored is the model's business
-/// ([ADR-0063](../../../../../../book/src/adr/0063-data-flows-down-events-flow-up.md)).
+/// ([ADR-0063](../../../../../../../book/src/adr/0063-data-flows-down-events-flow-up.md)).
 ///
 /// Instantiated by woven bytecode, once per path, when a model builds its
 /// [BindingRegistry]. Nothing else has any reason to create one.

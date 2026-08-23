@@ -153,11 +153,11 @@ class NativeImageComplianceTest {
         // `invokestatic`, which is the whole point. If this ever fails it is
         // because somebody put a lookup or a proxy behind one of them.
         for (var runtime : List.of(
-                io.github.digitalsmile.goldberry.bind.FieldListeners.class,
-                io.github.digitalsmile.goldberry.bind.BoundField.class,
-                io.github.digitalsmile.goldberry.bind.BindingRegistry.class,
-                io.github.digitalsmile.goldberry.bind.ActionRegistry.class,
-                io.github.digitalsmile.goldberry.bind.Models.class)) {
+                io.github.digitalsmile.goldberry.bind.runtime.FieldListeners.class,
+                io.github.digitalsmile.goldberry.bind.runtime.BoundField.class,
+                io.github.digitalsmile.goldberry.bind.registry.BindingRegistry.class,
+                io.github.digitalsmile.goldberry.bind.registry.ActionRegistry.class,
+                io.github.digitalsmile.goldberry.bind.runtime.Models.class)) {
 
             for (var call : callsIn(Woven.bytesOf(runtime))) {
                 assertFalse(CLOSED_WORLD_HOSTILE.contains(call),
@@ -185,13 +185,13 @@ class NativeImageComplianceTest {
         // this stays true when somebody adds a field to Counter: what it asserts
         // is that reflection sees exactly what the weaver saw.
         var woven = Woven.instance(Counter.class);
-        assertEquals(io.github.digitalsmile.goldberry.bind.Models.bindings(woven).bound().size(),
+        assertEquals(io.github.digitalsmile.goldberry.bind.runtime.Models.bindings(woven).bound().size(),
                 java.util.Arrays.stream(Counter.class.getDeclaredFields())
                         .filter(f -> f.isAnnotationPresent(
                                 io.github.digitalsmile.goldberry.bind.Bind.class))
                         .count(),
                 "every @Bind field is still readable at run time");
-        assertEquals(io.github.digitalsmile.goldberry.bind.Models.actions(woven).bound().size(),
+        assertEquals(io.github.digitalsmile.goldberry.bind.runtime.Models.actions(woven).bound().size(),
                 java.util.Arrays.stream(Counter.class.getDeclaredMethods())
                         .filter(m -> m.isAnnotationPresent(
                                 io.github.digitalsmile.goldberry.bind.Action.class))

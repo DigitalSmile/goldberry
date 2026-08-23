@@ -1,7 +1,7 @@
 package io.github.digitalsmile.goldberry.example;
 
 import io.github.digitalsmile.goldberry.bind.Action;
-import io.github.digitalsmile.goldberry.bind.Actions;
+import io.github.digitalsmile.goldberry.bind.runtime.Actions;
 import java.util.Objects;
 
 /// The two actions that belong to the **window** rather than to what it shows.
