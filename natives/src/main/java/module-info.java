@@ -23,10 +23,23 @@ module io.github.digitalsmile.goldberry.natives {
     // What is exported below traffics in Java types -- SdlWindowHandle wraps the
     // pointer, MeasureCallback wraps the stub, PixelBuffer arrives as a
     // ByteBuffer (ADR-0019).
+    //
+    // Each library's wrappers are split by what they are, not by which library
+    // they came from a second time (ADR-0172): the owning wrappers that hold a
+    // handle stay in the library's own package, beside the binding class they
+    // are the only callers of, and the enums and plain values -- which touch no
+    // foreign memory at all -- get packages of their own.
     exports io.github.digitalsmile.goldberry.natives.blend2d;
+    exports io.github.digitalsmile.goldberry.natives.blend2d.enums;
+    exports io.github.digitalsmile.goldberry.natives.blend2d.error;
     exports io.github.digitalsmile.goldberry.natives.harfbuzz;
     exports io.github.digitalsmile.goldberry.natives.sdl;
+    exports io.github.digitalsmile.goldberry.natives.sdl.event;
+    exports io.github.digitalsmile.goldberry.natives.sdl.window;
+    exports io.github.digitalsmile.goldberry.natives.sdl.desktop;
     exports io.github.digitalsmile.goldberry.natives.yoga;
+    exports io.github.digitalsmile.goldberry.natives.yoga.style;
+    exports io.github.digitalsmile.goldberry.natives.yoga.measure;
 
     // Toolkit plumbing, not application surface.
     //

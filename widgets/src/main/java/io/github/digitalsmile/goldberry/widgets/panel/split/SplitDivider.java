@@ -162,13 +162,13 @@ record SplitDivider(
         return Box.of().style(style)
                 .cursor(axis.isVertical() ? Cursor.NS_RESIZE : Cursor.EW_RESIZE)
                 .size(axis.isVertical()
-                                ? io.github.digitalsmile.goldberry.natives.yoga.StyleLength.UNDEFINED
-                                : io.github.digitalsmile.goldberry.natives.yoga.StyleLength
+                                ? io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength.UNDEFINED
+                                : io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength
                                         .points(SplitPaneView.DIVIDER),
                         axis.isVertical()
-                                ? io.github.digitalsmile.goldberry.natives.yoga.StyleLength
+                                ? io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength
                                         .points(SplitPaneView.DIVIDER)
-                                : io.github.digitalsmile.goldberry.natives.yoga.StyleLength.UNDEFINED)
+                                : io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength.UNDEFINED)
                 .shrink(0)
                 .grow(0)
                 .children(children.toArray(Box[]::new));

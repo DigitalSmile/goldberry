@@ -10,8 +10,8 @@ import io.github.digitalsmile.goldberry.input.event.PointerEvent;
 import io.github.digitalsmile.goldberry.input.event.TextEvent;
 import io.github.digitalsmile.goldberry.paint.Box;
 import io.github.digitalsmile.goldberry.natives.yoga.Insets;
-import io.github.digitalsmile.goldberry.natives.yoga.PositionType;
-import io.github.digitalsmile.goldberry.natives.yoga.StyleLength;
+import io.github.digitalsmile.goldberry.natives.yoga.style.PositionType;
+import io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength;
 import io.github.digitalsmile.goldberry.widget.attr.Attributes;
 import io.github.digitalsmile.goldberry.widget.style.Paints;
 import io.github.digitalsmile.goldberry.widget.style.Styled;
@@ -317,7 +317,7 @@ record TextField(
                 // Read by Yoga for sizing and by the painter as a clip
                 // (ADR-0114). Without it a field would draw its text over the
                 // control beside it the moment the text outgrew the box.
-                .overflow(io.github.digitalsmile.goldberry.natives.yoga.Overflow.HIDDEN);
+                .overflow(io.github.digitalsmile.goldberry.natives.yoga.style.Overflow.HIDDEN);
     }
 
     /// The field's left padding in logical pixels, or 0 when the style gives none

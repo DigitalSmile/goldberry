@@ -841,8 +841,8 @@ class TextInputTest {
             return field.render(style, children, context).children();
         }
 
-        private static float points(io.github.digitalsmile.goldberry.natives.yoga.StyleLength length) {
-            return length instanceof io.github.digitalsmile.goldberry.natives.yoga.StyleLength.Points p
+        private static float points(io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength length) {
+            return length instanceof io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength.Points p
                     ? p.value() : Float.NaN;
         }
 

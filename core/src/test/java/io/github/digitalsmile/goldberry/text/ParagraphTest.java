@@ -8,7 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.github.digitalsmile.goldberry.RendererRequirement;
 import io.github.digitalsmile.goldberry.assets.BundledFont;
-import io.github.digitalsmile.goldberry.natives.yoga.MeasureMode;
+import io.github.digitalsmile.goldberry.natives.yoga.measure.MeasureMode;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;

@@ -24,7 +24,7 @@ import io.github.digitalsmile.goldberry.input.event.KeyEvent;
 import io.github.digitalsmile.goldberry.input.key.Modifiers;
 import io.github.digitalsmile.goldberry.input.event.PointerEvent;
 import io.github.digitalsmile.goldberry.kdl.KdlParser;
-import io.github.digitalsmile.goldberry.natives.yoga.StyleLength;
+import io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength;
 import io.github.digitalsmile.goldberry.widget.ElementTree;
 import io.github.digitalsmile.goldberry.bind.registry.ActionRegistry;
 import io.github.digitalsmile.goldberry.widgets.Controls;

@@ -20,7 +20,7 @@ import io.github.digitalsmile.goldberry.css.Theme;
 import io.github.digitalsmile.goldberry.css.value.Transform;
 import io.github.digitalsmile.goldberry.kdl.KdlParser;
 import io.github.digitalsmile.goldberry.motion.Clock;
-import io.github.digitalsmile.goldberry.natives.yoga.StyleLength;
+import io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength;
 import io.github.digitalsmile.goldberry.widget.ElementTree;
 import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widget.WidgetRenderer;

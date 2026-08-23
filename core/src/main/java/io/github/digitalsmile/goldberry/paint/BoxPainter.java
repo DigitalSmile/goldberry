@@ -1,9 +1,9 @@
 package io.github.digitalsmile.goldberry.paint;
 import io.github.digitalsmile.goldberry.css.value.Affine;
 import io.github.digitalsmile.goldberry.natives.blend2d.BlendPath;
-import io.github.digitalsmile.goldberry.natives.blend2d.BlendStrokeCap;
-import io.github.digitalsmile.goldberry.natives.blend2d.BlendStrokeJoin;
-import io.github.digitalsmile.goldberry.natives.yoga.StyleLength;
+import io.github.digitalsmile.goldberry.natives.blend2d.enums.BlendStrokeCap;
+import io.github.digitalsmile.goldberry.natives.blend2d.enums.BlendStrokeJoin;
+import io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength;
 import io.github.digitalsmile.goldberry.natives.yoga.ComputedLayout;
 import io.github.digitalsmile.goldberry.paint.tree.RenderTree;
 

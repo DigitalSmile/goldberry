@@ -7,6 +7,11 @@ import java.lang.foreign.MemorySegment;
 import java.lang.foreign.ValueLayout;
 import java.util.Objects;
 import org.slf4j.Logger;
+import io.github.digitalsmile.goldberry.natives.blend2d.enums.BlendCompOp;
+import io.github.digitalsmile.goldberry.natives.blend2d.enums.BlendStrokeCap;
+import io.github.digitalsmile.goldberry.natives.blend2d.enums.BlendStrokeJoin;
+import io.github.digitalsmile.goldberry.natives.blend2d.enums.BlendTransformOp;
+import io.github.digitalsmile.goldberry.natives.blend2d.error.BlendException;
 
 /// A rendering context — the thing that actually draws.
 ///

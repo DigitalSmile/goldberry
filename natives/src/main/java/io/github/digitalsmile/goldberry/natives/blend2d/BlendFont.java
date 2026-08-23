@@ -5,6 +5,8 @@ import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.ValueLayout;
 import java.util.Objects;
+import io.github.digitalsmile.goldberry.natives.blend2d.enums.BlendGlyphPlacementType;
+import io.github.digitalsmile.goldberry.natives.blend2d.error.BlendException;
 
 /// A font, as Blend2D sees it: a typeface plus the size it is drawn at.
 ///

@@ -2,7 +2,7 @@ package io.github.digitalsmile.goldberry.widgets.core;
 
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
 import io.github.digitalsmile.goldberry.paint.Box;
-import io.github.digitalsmile.goldberry.natives.yoga.FlexDirection;
+import io.github.digitalsmile.goldberry.natives.yoga.style.FlexDirection;
 import io.github.digitalsmile.goldberry.widget.attr.Attributed;
 import io.github.digitalsmile.goldberry.widget.attr.Attributes;
 import io.github.digitalsmile.goldberry.widget.style.Paints;

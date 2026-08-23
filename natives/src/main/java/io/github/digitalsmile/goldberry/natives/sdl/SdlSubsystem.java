@@ -59,7 +59,7 @@ public enum SdlSubsystem {
     /// reports what SDL initialized, and a future SDL may initialize something
     /// this enum predates; failing on it would turn a routine dependency bump
     /// into a crash. That is the opposite of the rule in
-    /// [io.github.digitalsmile.goldberry.natives.yoga.MeasureMode#of(int)], where
+    /// [io.github.digitalsmile.goldberry.natives.yoga.measure.MeasureMode#of(int)], where
     /// an unrecognised value means the binding signature is wrong rather than
     /// that the world moved on.
     public static Set<SdlSubsystem> decode(int flags) {

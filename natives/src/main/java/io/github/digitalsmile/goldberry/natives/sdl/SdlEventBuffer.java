@@ -6,6 +6,8 @@ import java.lang.foreign.MemoryLayout;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.ValueLayout;
 import java.util.Objects;
+import io.github.digitalsmile.goldberry.natives.sdl.event.SdlEventType;
+import io.github.digitalsmile.goldberry.natives.sdl.event.SdlWheelDirection;
 
 /// Scratch space for one `SDL_Event`, reused for the life of the event loop.
 ///

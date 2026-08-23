@@ -10,8 +10,8 @@ import io.github.digitalsmile.goldberry.natives.blend2d.BlendFont;
 import io.github.digitalsmile.goldberry.natives.blend2d.BlendGlyphBuffer;
 import io.github.digitalsmile.goldberry.natives.blend2d.BlendImage;
 import io.github.digitalsmile.goldberry.natives.blend2d.BlendPath;
-import io.github.digitalsmile.goldberry.natives.blend2d.BlendStrokeCap;
-import io.github.digitalsmile.goldberry.natives.blend2d.BlendStrokeJoin;
+import io.github.digitalsmile.goldberry.natives.blend2d.enums.BlendStrokeCap;
+import io.github.digitalsmile.goldberry.natives.blend2d.enums.BlendStrokeJoin;
 import io.github.digitalsmile.goldberry.Window;
 
 /// The surface a [Window] paints into.

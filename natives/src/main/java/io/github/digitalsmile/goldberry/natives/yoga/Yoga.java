@@ -4,6 +4,18 @@ import io.github.digitalsmile.goldberry.natives.Downcalls;
 import io.github.digitalsmile.goldberry.natives.NativeLibrary;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.SymbolLookup;
+import io.github.digitalsmile.goldberry.natives.yoga.style.Align;
+import io.github.digitalsmile.goldberry.natives.yoga.style.Direction;
+import io.github.digitalsmile.goldberry.natives.yoga.style.Display;
+import io.github.digitalsmile.goldberry.natives.yoga.style.Edge;
+import io.github.digitalsmile.goldberry.natives.yoga.style.FlexDirection;
+import io.github.digitalsmile.goldberry.natives.yoga.style.Gutter;
+import io.github.digitalsmile.goldberry.natives.yoga.style.Justify;
+import io.github.digitalsmile.goldberry.natives.yoga.style.Overflow;
+import io.github.digitalsmile.goldberry.natives.yoga.style.PositionType;
+import io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength;
+import io.github.digitalsmile.goldberry.natives.yoga.style.Wrap;
+import io.github.digitalsmile.goldberry.natives.yoga.style.YogaEnum;
 
 /// Yoga's node, style, layout and config calls.
 ///

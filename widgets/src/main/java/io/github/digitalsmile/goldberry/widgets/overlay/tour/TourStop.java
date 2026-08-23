@@ -6,8 +6,8 @@ import io.github.digitalsmile.goldberry.input.handler.Handles;
 import io.github.digitalsmile.goldberry.input.event.KeyEvent;
 import io.github.digitalsmile.goldberry.paint.Box;
 import io.github.digitalsmile.goldberry.natives.yoga.Insets;
-import io.github.digitalsmile.goldberry.natives.yoga.PositionType;
-import io.github.digitalsmile.goldberry.natives.yoga.StyleLength;
+import io.github.digitalsmile.goldberry.natives.yoga.style.PositionType;
+import io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength;
 import io.github.digitalsmile.goldberry.widget.attr.Attributes;
 import io.github.digitalsmile.goldberry.widget.style.Paints;
 import io.github.digitalsmile.goldberry.widget.style.Styled;
@@ -179,8 +179,8 @@ record TourStop(
         // of the screen. The veil is unaffected either way: it states all four
         // insets, so there is nothing left for an alignment to decide.
         return Box.of().style(style)
-                .direction(io.github.digitalsmile.goldberry.natives.yoga.FlexDirection.COLUMN)
-                .alignItems(io.github.digitalsmile.goldberry.natives.yoga.Align.FLEX_START)
+                .direction(io.github.digitalsmile.goldberry.natives.yoga.style.FlexDirection.COLUMN)
+                .alignItems(io.github.digitalsmile.goldberry.natives.yoga.style.Align.FLEX_START)
                 .children(
                 veil.position(PositionType.ABSOLUTE)
                         .inset(Insets.all(StyleLength.points(0))),

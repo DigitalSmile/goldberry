@@ -8,6 +8,15 @@ import java.lang.foreign.MemorySegment;
 import java.lang.foreign.SymbolLookup;
 import java.lang.foreign.ValueLayout;
 import java.nio.charset.StandardCharsets;
+import io.github.digitalsmile.goldberry.natives.blend2d.enums.BlendCompOp;
+import io.github.digitalsmile.goldberry.natives.blend2d.enums.BlendDataAccess;
+import io.github.digitalsmile.goldberry.natives.blend2d.enums.BlendFormat;
+import io.github.digitalsmile.goldberry.natives.blend2d.enums.BlendGlyphPlacementType;
+import io.github.digitalsmile.goldberry.natives.blend2d.enums.BlendRuntimeInfoType;
+import io.github.digitalsmile.goldberry.natives.blend2d.enums.BlendStrokeCap;
+import io.github.digitalsmile.goldberry.natives.blend2d.enums.BlendStrokeJoin;
+import io.github.digitalsmile.goldberry.natives.blend2d.enums.BlendTransformOp;
+import io.github.digitalsmile.goldberry.natives.blend2d.error.BlendException;
 
 /// Blend2D's image and rendering-context calls.
 ///

@@ -1,6 +1,6 @@
 package io.github.digitalsmile.goldberry.css.value;
 
-import io.github.digitalsmile.goldberry.natives.yoga.StyleLength;
+import io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength;
 import java.util.List;
 import io.github.digitalsmile.goldberry.css.parse.Token;
 import io.github.digitalsmile.goldberry.css.parse.TokenType;

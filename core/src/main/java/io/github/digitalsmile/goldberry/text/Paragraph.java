@@ -2,9 +2,9 @@ package io.github.digitalsmile.goldberry.text;
 
 import io.github.digitalsmile.goldberry.paint.Frame;
 import io.github.digitalsmile.goldberry.natives.harfbuzz.GlyphRun;
-import io.github.digitalsmile.goldberry.natives.yoga.MeasureFunction;
-import io.github.digitalsmile.goldberry.natives.yoga.MeasureMode;
-import io.github.digitalsmile.goldberry.natives.yoga.MeasuredSize;
+import io.github.digitalsmile.goldberry.natives.yoga.measure.MeasureFunction;
+import io.github.digitalsmile.goldberry.natives.yoga.measure.MeasureMode;
+import io.github.digitalsmile.goldberry.natives.yoga.measure.MeasuredSize;
 import java.text.Bidi;
 import java.text.BreakIterator;
 import java.util.ArrayList;

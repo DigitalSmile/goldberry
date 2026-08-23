@@ -9,6 +9,13 @@ import io.github.digitalsmile.goldberry.natives.NativeLibraryRequirement;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import io.github.digitalsmile.goldberry.natives.yoga.style.Direction;
+import io.github.digitalsmile.goldberry.natives.yoga.style.Display;
+import io.github.digitalsmile.goldberry.natives.yoga.style.Edge;
+import io.github.digitalsmile.goldberry.natives.yoga.style.FlexDirection;
+import io.github.digitalsmile.goldberry.natives.yoga.style.Gutter;
+import io.github.digitalsmile.goldberry.natives.yoga.style.PositionType;
+import io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength;
 
 /// Real layout passes through the bound node API.
 ///

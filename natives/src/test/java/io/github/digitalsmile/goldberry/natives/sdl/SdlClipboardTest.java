@@ -11,6 +11,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import io.github.digitalsmile.goldberry.natives.sdl.desktop.SdlClipboard;
 
 /// The clipboard through the real `libgoldberry`.
 ///

@@ -13,6 +13,11 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.MethodSource;
+import io.github.digitalsmile.goldberry.natives.yoga.style.Align;
+import io.github.digitalsmile.goldberry.natives.yoga.style.Direction;
+import io.github.digitalsmile.goldberry.natives.yoga.style.Edge;
+import io.github.digitalsmile.goldberry.natives.yoga.style.Justify;
+import io.github.digitalsmile.goldberry.natives.yoga.style.YogaEnum;
 
 /// The Java side of Yoga's enums.
 ///

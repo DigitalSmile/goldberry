@@ -275,13 +275,13 @@ class FrameBenchmark {
         for (var i = 0; i < frames.length; i++) {
             // One small box changing colour, over an otherwise identical tree.
             frames[i] = Box.of()
-                    .direction(io.github.digitalsmile.goldberry.natives.yoga.FlexDirection.COLUMN)
+                    .direction(io.github.digitalsmile.goldberry.natives.yoga.style.FlexDirection.COLUMN)
                     .children(
                             renderer.render(tree),
                             Box.filled(0xFF000000 | (i * 0x101010))
-                                    .size(io.github.digitalsmile.goldberry.natives.yoga.StyleLength
+                                    .size(io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength
                                             .points(60),
-                                            io.github.digitalsmile.goldberry.natives.yoga.StyleLength
+                                            io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength
                                             .points(24)));
         }
 

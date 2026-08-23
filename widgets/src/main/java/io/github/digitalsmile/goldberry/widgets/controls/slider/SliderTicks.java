@@ -2,9 +2,9 @@ package io.github.digitalsmile.goldberry.widgets.controls.slider;
 
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
 import io.github.digitalsmile.goldberry.paint.Box;
-import io.github.digitalsmile.goldberry.natives.yoga.Align;
-import io.github.digitalsmile.goldberry.natives.yoga.Justify;
-import io.github.digitalsmile.goldberry.natives.yoga.StyleLength;
+import io.github.digitalsmile.goldberry.natives.yoga.style.Align;
+import io.github.digitalsmile.goldberry.natives.yoga.style.Justify;
+import io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength;
 import io.github.digitalsmile.goldberry.widget.style.Paints;
 import io.github.digitalsmile.goldberry.widget.style.Styled;
 import io.github.digitalsmile.goldberry.widget.Widget;

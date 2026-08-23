@@ -8,7 +8,7 @@ import io.github.digitalsmile.goldberry.RendererRequirement;
 import io.github.digitalsmile.goldberry.paint.TestFrames;
 import io.github.digitalsmile.goldberry.css.value.Transform;
 import io.github.digitalsmile.goldberry.paint.Box;
-import io.github.digitalsmile.goldberry.natives.yoga.StyleLength;
+import io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength;
 import java.util.List;
 
 import io.github.digitalsmile.goldberry.render.Cursor;

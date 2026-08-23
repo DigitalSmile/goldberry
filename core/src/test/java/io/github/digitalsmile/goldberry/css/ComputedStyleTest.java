@@ -7,11 +7,11 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.github.digitalsmile.goldberry.assets.BundledFont;
 import io.github.digitalsmile.goldberry.motion.Easing;
-import io.github.digitalsmile.goldberry.natives.yoga.Align;
-import io.github.digitalsmile.goldberry.natives.yoga.FlexDirection;
-import io.github.digitalsmile.goldberry.natives.yoga.Justify;
+import io.github.digitalsmile.goldberry.natives.yoga.style.Align;
+import io.github.digitalsmile.goldberry.natives.yoga.style.FlexDirection;
+import io.github.digitalsmile.goldberry.natives.yoga.style.Justify;
 import io.github.digitalsmile.goldberry.natives.yoga.Insets;
-import io.github.digitalsmile.goldberry.natives.yoga.StyleLength;
+import io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength;
 import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -665,7 +665,7 @@ class ComputedStyleTest {
                 var style = compute("button { align-items: start; gap: 4px }");
                 assertEquals(ComputedStyle.INITIAL.alignItems(), style.alignItems(),
                         "a value this toolkit has not got must never be applied");
-                assertEquals(io.github.digitalsmile.goldberry.natives.yoga.StyleLength.points(4),
+                assertEquals(io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength.points(4),
                         style.gap(), "and the declarations around it still are");
             }
         }
@@ -675,7 +675,7 @@ class ComputedStyleTest {
         @Test
         @DisplayName("`start` is not `flex-start`, which is the typo that started this")
         void startIsNotFlexStart() {
-            assertEquals(io.github.digitalsmile.goldberry.natives.yoga.Align.FLEX_START,
+            assertEquals(io.github.digitalsmile.goldberry.natives.yoga.style.Align.FLEX_START,
                     compute("button { align-items: flex-start }").alignItems());
             assertEquals(ComputedStyle.INITIAL.alignItems(),
                     compute("button { align-items: start }").alignItems());

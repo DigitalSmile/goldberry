@@ -5,7 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.github.digitalsmile.goldberry.RendererRequirement;
 import io.github.digitalsmile.goldberry.paint.TestFrames;
-import io.github.digitalsmile.goldberry.natives.yoga.StyleLength;
+import io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -77,7 +77,7 @@ class ElevationTest {
         var target = TestFrames.of(200, 200, 1.0f, 0);
         try (var tree = RenderTree.create()) {
             tree.update(target.frame(), Box.of()
-                    .direction(io.github.digitalsmile.goldberry.natives.yoga.FlexDirection.COLUMN)
+                    .direction(io.github.digitalsmile.goldberry.natives.yoga.style.FlexDirection.COLUMN)
                     .children(row("a"), row("b").elevated(true), row("c")));
             var tops = new java.util.HashMap<String, Float>();
             tree.forEachPlacedBox(placed -> {
@@ -104,11 +104,11 @@ class ElevationTest {
             // last and must therefore be *hit* first. `HitTest.at` scans
             // backwards, so this is the same fact stated twice on purpose.
             tree.update(target.frame(), Box.of().children(
-                    row("a").position(io.github.digitalsmile.goldberry.natives.yoga.PositionType.ABSOLUTE)
+                    row("a").position(io.github.digitalsmile.goldberry.natives.yoga.style.PositionType.ABSOLUTE)
                             .inset(io.github.digitalsmile.goldberry.natives.yoga.Insets.all(
                                     StyleLength.points(0))),
                     row("b").elevated(true)
-                            .position(io.github.digitalsmile.goldberry.natives.yoga.PositionType.ABSOLUTE)
+                            .position(io.github.digitalsmile.goldberry.natives.yoga.style.PositionType.ABSOLUTE)
                             .inset(io.github.digitalsmile.goldberry.natives.yoga.Insets.all(
                                     StyleLength.points(0)))));
             var regions = io.github.digitalsmile.goldberry.input.hit.HitTest.capture(tree);

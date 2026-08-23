@@ -5,6 +5,8 @@ import io.github.digitalsmile.goldberry.natives.NativeLibrary;
 import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.ValueLayout;
+import io.github.digitalsmile.goldberry.natives.yoga.measure.MeasureMode;
+import io.github.digitalsmile.goldberry.natives.yoga.measure.MeasuredSize;
 
 /// Calls a [MeasureCallback] from C and reports what arrived.
 ///

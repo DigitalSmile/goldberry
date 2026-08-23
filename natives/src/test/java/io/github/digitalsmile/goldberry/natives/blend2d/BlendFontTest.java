@@ -8,6 +8,7 @@ import java.nio.ByteOrder;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import io.github.digitalsmile.goldberry.natives.blend2d.error.BlendException;
 
 /// The font chain's arguments and lifetime, without a font file.
 ///

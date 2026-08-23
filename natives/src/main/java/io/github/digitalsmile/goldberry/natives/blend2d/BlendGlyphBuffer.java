@@ -4,6 +4,7 @@ import io.github.digitalsmile.goldberry.natives.layout.Layouts;
 import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.ValueLayout;
+import io.github.digitalsmile.goldberry.natives.blend2d.enums.BlendGlyphPlacementType;
 
 /// Positioned glyphs, staged in the shape Blend2D reads them in.
 ///

@@ -6,7 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import io.github.digitalsmile.goldberry.RendererRequirement;
 import io.github.digitalsmile.goldberry.css.value.Transform;
 import io.github.digitalsmile.goldberry.golden.ScaleInvariance;
-import io.github.digitalsmile.goldberry.natives.yoga.StyleLength;
+import io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -123,7 +123,7 @@ class TransformPaintTest {
         try {
             BoxPainter.paint(target.frame(), Box.filled(0xFF000000)
                     .size(StyleLength.points(200), StyleLength.points(200))
-                    .direction(io.github.digitalsmile.goldberry.natives.yoga.FlexDirection.COLUMN)
+                    .direction(io.github.digitalsmile.goldberry.natives.yoga.style.FlexDirection.COLUMN)
                     .children(
                             Box.filled(0xFFFF0000)
                                     .size(StyleLength.points(40), StyleLength.points(40))

@@ -13,6 +13,8 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
+import io.github.digitalsmile.goldberry.natives.yoga.measure.MeasureMode;
+import io.github.digitalsmile.goldberry.natives.yoga.measure.MeasuredSize;
 
 /// The proof that a `YGSize` returned **by value** from a Java upcall arrives
 /// intact in C.

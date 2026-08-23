@@ -13,7 +13,7 @@ import io.github.digitalsmile.goldberry.css.cascade.StyleResolver;
 import io.github.digitalsmile.goldberry.css.Stylesheet;
 import io.github.digitalsmile.goldberry.css.Theme;
 import io.github.digitalsmile.goldberry.css.parse.Token;
-import io.github.digitalsmile.goldberry.natives.yoga.StyleLength;
+import io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength;
 import java.util.List;
 import java.util.Set;
 import org.junit.jupiter.api.DisplayName;

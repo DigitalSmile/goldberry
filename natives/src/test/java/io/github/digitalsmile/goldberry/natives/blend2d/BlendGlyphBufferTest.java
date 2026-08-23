@@ -9,6 +9,7 @@ import io.github.digitalsmile.goldberry.natives.layout.Layouts;
 import java.lang.foreign.ValueLayout;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import io.github.digitalsmile.goldberry.natives.blend2d.enums.BlendGlyphPlacementType;
 
 /// The staging buffer, checked by reading back the bytes Blend2D will read.
 ///

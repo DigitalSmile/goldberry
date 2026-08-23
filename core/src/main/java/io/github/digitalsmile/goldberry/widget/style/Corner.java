@@ -1,7 +1,7 @@
 package io.github.digitalsmile.goldberry.widget.style;
 
 import io.github.digitalsmile.goldberry.natives.yoga.Insets;
-import io.github.digitalsmile.goldberry.natives.yoga.StyleLength;
+import io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength;
 
 /// One of a box's four corners, named the way a stylesheet names them.
 ///

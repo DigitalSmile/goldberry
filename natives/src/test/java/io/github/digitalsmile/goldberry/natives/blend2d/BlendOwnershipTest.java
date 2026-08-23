@@ -15,6 +15,9 @@ import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import io.github.digitalsmile.goldberry.natives.blend2d.enums.BlendTransformOp;
+import io.github.digitalsmile.goldberry.natives.blend2d.error.BlendException;
+import io.github.digitalsmile.goldberry.natives.blend2d.error.BlendResultCode;
 
 /// What the wrappers refuse, and why each refusal is cheaper than the crash it
 /// replaces.

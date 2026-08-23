@@ -1,13 +1,13 @@
 package io.github.digitalsmile.goldberry.natives.layout;
 
-import io.github.digitalsmile.goldberry.natives.blend2d.BlendEnum;
+import io.github.digitalsmile.goldberry.natives.blend2d.enums.BlendEnum;
 import io.github.digitalsmile.goldberry.natives.harfbuzz.HarfBuzzEnum;
-import io.github.digitalsmile.goldberry.natives.sdl.SdlEventType;
-import io.github.digitalsmile.goldberry.natives.sdl.SdlPixelFormat;
-import io.github.digitalsmile.goldberry.natives.sdl.SdlSystemCursor;
-import io.github.digitalsmile.goldberry.natives.sdl.SdlWheelDirection;
-import io.github.digitalsmile.goldberry.natives.sdl.SdlWindowFlag;
-import io.github.digitalsmile.goldberry.natives.yoga.YogaEnum;
+import io.github.digitalsmile.goldberry.natives.sdl.event.SdlEventType;
+import io.github.digitalsmile.goldberry.natives.sdl.window.SdlPixelFormat;
+import io.github.digitalsmile.goldberry.natives.sdl.desktop.SdlSystemCursor;
+import io.github.digitalsmile.goldberry.natives.sdl.event.SdlWheelDirection;
+import io.github.digitalsmile.goldberry.natives.sdl.window.SdlWindowFlag;
+import io.github.digitalsmile.goldberry.natives.yoga.style.YogaEnum;
 import java.util.ArrayList;
 import java.util.List;
 

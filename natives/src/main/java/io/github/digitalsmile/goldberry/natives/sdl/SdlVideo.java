@@ -13,6 +13,9 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
 import org.slf4j.Logger;
+import io.github.digitalsmile.goldberry.natives.sdl.event.SdlEventType;
+import io.github.digitalsmile.goldberry.natives.sdl.window.SdlPixelFormat;
+import io.github.digitalsmile.goldberry.natives.sdl.window.SdlWindowFlag;
 
 /// SDL3's windowing, event and CPU presentation calls.
 ///

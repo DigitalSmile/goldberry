@@ -11,6 +11,7 @@ import java.nio.ByteOrder;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import io.github.digitalsmile.goldberry.natives.blend2d.enums.BlendFormat;
 
 /// What Blend2D actually put in the buffer.
 ///

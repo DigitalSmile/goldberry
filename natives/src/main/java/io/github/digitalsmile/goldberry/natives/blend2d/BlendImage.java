@@ -5,6 +5,7 @@ import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;
 import java.nio.ByteBuffer;
 import java.util.Objects;
+import io.github.digitalsmile.goldberry.natives.blend2d.enums.BlendFormat;
 
 /// A Blend2D image over pixels somebody else owns.
 ///

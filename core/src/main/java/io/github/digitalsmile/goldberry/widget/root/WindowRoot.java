@@ -5,7 +5,7 @@ import io.github.digitalsmile.goldberry.bind.Observable;
 import io.github.digitalsmile.goldberry.bind.Property;
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
 import io.github.digitalsmile.goldberry.paint.Box;
-import io.github.digitalsmile.goldberry.natives.yoga.PositionType;
+import io.github.digitalsmile.goldberry.natives.yoga.style.PositionType;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -130,7 +130,7 @@ public record WindowRoot(Widget content, Property<List<Overlay>> overlays)
                     // corner. One flag, no second placement path (ADR-0121).
                     .inset(entry.isFilling()
                             ? io.github.digitalsmile.goldberry.natives.yoga.Insets.all(
-                                    io.github.digitalsmile.goldberry.natives.yoga.StyleLength.points(0))
+                                    io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength.points(0))
                             : entry.corner().insets(entry.margin())));
         }
         return Box.of().style(style).children(boxes.toArray(Box[]::new));

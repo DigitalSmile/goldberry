@@ -10,6 +10,8 @@ import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
 import java.util.Objects;
+import io.github.digitalsmile.goldberry.natives.yoga.measure.MeasureFunction;
+import io.github.digitalsmile.goldberry.natives.yoga.measure.MeasureMode;
 
 /// A [MeasureFunction] as a native function pointer Yoga can call.
 ///
