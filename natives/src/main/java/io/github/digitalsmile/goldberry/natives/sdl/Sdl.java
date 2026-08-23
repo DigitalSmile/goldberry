@@ -40,7 +40,6 @@ public final class Sdl {
         private static final Sdl INSTANCE = new Sdl(NativeLibrary.get().lookup());
     }
 
-
     private final SdlCoreCalls calls;
 
     private Sdl(SymbolLookup lookup) {
@@ -125,6 +124,9 @@ public final class Sdl {
     /// Widened to an int here, because the mask is unsigned and Java's short is
     /// not -- SDL's `SDL_KMOD_*` bits stop at 0x4000, but sign extension would
     /// still be a bug waiting for the day one is added above it.
+    /// `SDL_Keymod` is a `Uint16`, not an int — the layout table's "Uint16"
+    /// scalar row is what says so, and binding it as `JAVA_INT` would read two
+    /// bytes of whatever follows it in the return register.
     public int modifierState() {
         return calls.getModState().call() & 0xFFFF;
     }

@@ -50,7 +50,6 @@ public final class SdlVideo {
         private static final SdlVideo INSTANCE = new SdlVideo(NativeLibrary.get().lookup());
     }
 
-
     private final SdlVideoCalls calls;
 
     private SdlVideo(SymbolLookup lookup) {
@@ -618,7 +617,6 @@ public final class SdlVideo {
         }
         return new IllegalStateException(name + "() failed", cause);
     }
-
 
     /// SDL's own drawing surface, borrowed.
     ///

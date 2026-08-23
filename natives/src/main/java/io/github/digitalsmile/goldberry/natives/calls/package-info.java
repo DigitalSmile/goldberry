@@ -9,6 +9,12 @@
 /// the `try`/`catch` that names the function in the failure all live in one place
 /// instead of at each of the two hundred and eighty call sites.
 ///
+/// Each holder's doc line is its **C prototype**, in C's words rather than
+/// Java's: `_Bool` is one byte and not the four an `int` would take, `int64_t`
+/// is what `JAVA_LONG` carries, and `void*` is any pointer. That line and the
+/// `call` under it are two statements of one signature — one in layouts, one in
+/// Java types — and `HolderShapeTest` is what checks they agree.
+///
 /// ## Why this is a package and not a nested class of the binding
 ///
 /// Because of the flag. ADR-0161 measured that a downcall handle is 450× slower

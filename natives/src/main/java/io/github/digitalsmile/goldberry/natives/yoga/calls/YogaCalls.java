@@ -1132,6 +1132,10 @@ public record YogaCalls(
 
         /// Binds `YGNodeStyleSet<property>`, its `Percent` twin, and its `Auto`
         /// one when Yoga has it.
+        ///
+        /// The names are mechanical, so they are composed rather than written out
+        /// three times. Composing one that does not exist is not a silent
+        /// failure: the lookup throws, naming the missing symbol.
         public static LengthCalls bind(SymbolLookup lookup, String property, boolean hasAuto) {
             var prefix = "YGNodeStyleSet" + property;
             return new LengthCalls(

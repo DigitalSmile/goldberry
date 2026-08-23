@@ -38,24 +38,21 @@ import io.github.digitalsmile.goldberry.natives.yoga.style.YogaEnum;
 /// [YogaEnum#all()].
 final class Yoga {
 
-    // Yoga's whole surface is seven signatures, and the invocation helpers at
-    // the bottom of this file are one per signature -- so the shape a symbol was
-    // bound with is named exactly once, by the helper that calls it, rather than
-    // twice (ADR-0161). What each field holds is an address, not a handle.
+    // What this class holds is a `YogaCalls`: one holder per Yoga function,
+    // each keeping its own address and naming its own handle. The invocation
+    // helpers that used to be at the bottom of this file -- one per signature,
+    // so that a constant was read by the method that called it (ADR-0161) --
+    // are the holders' `call` methods now (ADR-0173).
 
     private static final class Holder {
         private static final Yoga INSTANCE = new Yoga(NativeLibrary.get().lookup());
     }
 
-    // --- config ------------------------------------------------------------
-
-    // --- node lifecycle and tree -------------------------------------------
-
-    // --- style: enum-valued ------------------------------------------------
-
-    // --- style: plain floats -----------------------------------------------
-
-    // --- style: lengths ----------------------------------------------------
+    /// The two or three functions each length-valued property is set through.
+    ///
+    /// Held per property rather than in [YogaCalls] beside the rest, because
+    /// which of them is called depends on the *value* -- see
+    /// [#applyLength]. Everything else is a function this class names.
     private final YogaCalls.LengthCalls width;
     private final YogaCalls.LengthCalls height;
     private final YogaCalls.LengthCalls minWidth;
@@ -68,19 +65,10 @@ final class Yoga {
     private final YogaCalls.KeyedLengthCalls padding;
     private final YogaCalls.KeyedLengthCalls gap;
 
-    // --- computed layout ---------------------------------------------------
-
     private final YogaCalls calls;
 
     private Yoga(SymbolLookup lookup) {
         this.calls = YogaCalls.bind(lookup);
-
-        // size_t, which is 8 bytes on every target Goldberry builds for -- the
-        // "size_t" scalar row in the layout table is what says so.
-
-
-        // Border is points-only: there is no percent or auto function for it,
-        // which matches CSS -- a percentage border-width is not a thing.
 
         this.width = YogaCalls.LengthCalls.bind(lookup, "Width", true);
         this.height = YogaCalls.LengthCalls.bind(lookup, "Height", true);
@@ -99,7 +87,6 @@ final class Yoga {
         this.margin = YogaCalls.KeyedLengthCalls.bind(lookup, "Margin", true);
         this.padding = YogaCalls.KeyedLengthCalls.bind(lookup, "Padding", false);
         this.gap = YogaCalls.KeyedLengthCalls.bind(lookup, "Gap", false);
-
     }
 
     static Yoga get() {
@@ -253,6 +240,8 @@ final class Yoga {
         calls.styleSetAspectRatio().call(node, value);
     }
 
+    /// Border is points-only: there is no percent or auto function for it, which
+    /// matches CSS -- a percentage `border-width` is not a thing.
     void styleBorder(MemorySegment node, Edge edge, float value) {
         calls.styleSetBorder().call(node, edge.nativeValue(), value);
     }

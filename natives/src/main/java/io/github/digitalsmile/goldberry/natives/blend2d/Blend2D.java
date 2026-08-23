@@ -58,84 +58,10 @@ final class Blend2D {
         private static final Blend2D INSTANCE = new Blend2D(NativeLibrary.get().lookup());
     }
 
-
-
-
-
-
     private final Blend2DCalls calls;
 
     private Blend2D(SymbolLookup lookup) {
         this.calls = Blend2DCalls.bind(lookup);
-
-        // BLResult bl_image_init_as_from_data(BLImageCore*, int w, int h, BLFormat,
-        //     void* pixel_data, intptr_t stride, BLDataAccessFlags,
-        //     BLDestroyExternalDataFunc, void* user_data)
-        //
-        // intptr_t is 8 bytes on every target here -- the "pointer" scalar row is
-        // what says so. It is signed: a negative stride means the image starts at
-        // the bottom-left, which Goldberry never produces but must not silently
-        // reinterpret.
-
-        // BLResult bl_context_fill_glyph_run_d_rgba32(BLContextCore*,
-        //     const BLPoint* origin, const BLFontCore*, const BLGlyphRun*, uint32_t)
-        //
-        // The `_d` suffix is the origin's type: doubles, so a baseline can land
-        // between physical pixels. The `_i` variant takes a BLPointI and is not
-        // bound, because rounding the baseline is exactly what ADR-0031 went to
-        // some trouble to stop doing for rectangles.
-
-        // Stroke state (ADR-0043). Width is in the context's own units, so a
-        // scaled context strokes in logical pixels like everything else.
-        // `_caps`, plural: it sets both ends at once. The singular
-        // bl_context_set_stroke_cap takes a BLStrokeCapPosition as well, and
-        // nothing wants a path capped differently at each end.
-        // BLResult bl_context_{fill,stroke}_path_d_rgba32(BLContextCore*,
-        //     const BLPoint* origin, const BLPathCore*, uint32_t)
-        //
-        // The origin translates the path without transforming the context, which
-        // is what lets one 24x24 icon path be drawn at several places in a frame
-        // without being rebuilt or the context's transform being saved.
-
-        // Compositing a layer back onto its parent (ADR-0071). The last argument
-        // is a `const BLRectI*` naming a sub-rectangle of the source, and it is
-        // always NULL here -- Blend2D reads that as the whole image, which is
-        // what a layer always wants -- so no BLRectI ever crosses.
-        // The same, into a destination BLRect rather than at a point -- which is
-        // what reconciles a raster measured in physical pixels with a context
-        // measured in logical ones (ADR-0157). Same NULL `img_area`.
-
-        // Restricting a frame to the region that changed (ADR-0072). The rect is
-        // a BLRect -- four doubles, in the context's own units, so a clip is
-        // stated in logical coordinates like every other call on the context.
-
-        // Paths. Every command is (BLPathCore*, doubles...) and returns BLResult,
-        // which is what makes this a long list of near-identical rows rather than
-        // a design.
-        // size_t, not BLResult -- the one path call that is not an operation.
-        // SVG's `S` and `T`: the first control point is the reflection of the
-        // previous one. Blend2D does that reflection itself, against the command
-        // it actually recorded -- which is the definition SVG gives, and not the
-        // one a caller tracking "the last control point" in Java would arrive at
-        // after a `Z` or a bare `M`.
-        // BLResult bl_path_elliptic_arc_to(BLPathCore*, double rx, double ry,
-        //     double x_axis_rotation, bool large_arc, bool sweep, double x1, double y1)
-        //
-        // SVG's `A` command, argument for argument and flag for flag. The two
-        // `bool`s are C `_Bool`, one byte -- JAVA_BOOLEAN, not JAVA_INT, which
-        // would put four bytes where the ABI expects one and shift every
-        // argument after them.
-
-        // The three font objects. Each `create` REPLACES what the handle holds,
-        // so each one has to be `init`ed first -- Blend2D releases the previous
-        // instance, and releasing an uninitialised one reads a pointer that was
-        // never written.
-        // BLResult bl_font_data_create_from_data(BLFontDataCore*, const void* data,
-        //     size_t data_size, BLDestroyExternalDataFunc, void* user_data)
-
-
-        // The size is a `float`, not a double: Blend2D's own choice, and the one
-        // place in the paint path where a coordinate narrows.
     }
 
     static Blend2D get() {
@@ -175,6 +101,14 @@ final class Blend2D {
     /// The destroy callback and its user data are both NULL: the buffer's
     /// lifetime is Java's, and telling Blend2D to free it would be handing it
     /// memory it did not allocate.
+    /// `BLResult bl_image_init_as_from_data(BLImageCore*, int w, int h, BLFormat,`
+    /// `void* pixel_data, intptr_t stride, BLDataAccessFlags,`
+    /// `BLDestroyExternalDataFunc, void* user_data)`
+    ///
+    /// `intptr_t` is 8 bytes on every target here — the "pointer" scalar row is
+    /// what says so. It is signed: a negative stride means the image starts at
+    /// the bottom-left, which Goldberry never produces but must not silently
+    /// reinterpret.
     void imageInitFromData(
             MemorySegment image, int width, int height, BlendFormat format,
             MemorySegment pixels, long stride) {
@@ -304,6 +238,13 @@ final class Blend2D {
     /// `glyphRun` is a descriptor pointing at arrays the caller still owns, so
     /// those arrays must outlive the call — which they do, because
     /// [BlendGlyphBuffer] holds all three in one arena.
+    /// `BLResult bl_context_fill_glyph_run_d_rgba32(BLContextCore*,`
+    /// `const BLPoint* origin, const BLFontCore*, const BLGlyphRun*, uint32_t)`
+    ///
+    /// The `_d` suffix is the origin's type: doubles, so a baseline can land
+    /// between physical pixels. The `_i` variant takes a `BLPointI` and is not
+    /// bound, because rounding the baseline is exactly what ADR-0031 went to some
+    /// trouble to stop doing for rectangles.
     void contextFillGlyphRun(
             MemorySegment context, MemorySegment origin, MemorySegment font,
             MemorySegment glyphRun, int argb) {
@@ -313,13 +254,21 @@ final class Blend2D {
     }
 
     // --- paths and strokes (ADR-0043) -----------------------------------------
+    //
+    // Every path command is (BLPathCore*, doubles...) returning BLResult, which
+    // is what makes this a long list of near-identical rows rather than a design.
 
+    /// Stroke state (ADR-0043). The width is in the context's own units, so a
+    /// scaled context strokes in logical pixels like everything else.
     void contextSetStrokeWidth(MemorySegment context, double width) {
         int result;
         result = calls.contextSetStrokeWidth().call(context, width);
         check("bl_context_set_stroke_width", result);
     }
 
+    /// `_caps`, plural: it sets both ends at once. The singular
+    /// `bl_context_set_stroke_cap` takes a `BLStrokeCapPosition` as well, and
+    /// nothing wants a path capped differently at each end.
     void contextSetStrokeCaps(MemorySegment context, BlendStrokeCap cap) {
         int result;
         result = calls.contextSetStrokeCaps().call(context, cap.nativeValue());
@@ -332,6 +281,12 @@ final class Blend2D {
         check("bl_context_set_stroke_join", result);
     }
 
+    /// `BLResult bl_context_{fill,stroke}_path_d_rgba32(BLContextCore*,`
+    /// `const BLPoint* origin, const BLPathCore*, uint32_t)`
+    ///
+    /// The origin translates the path without transforming the context, which is
+    /// what lets one 24×24 icon path be drawn at several places in a frame
+    /// without being rebuilt or the context's transform being saved.
     void contextFillPath(MemorySegment context, MemorySegment origin, MemorySegment path, int argb) {
         int result;
         result = calls.contextFillPathDRgba32().call(context, origin, path, argb);
@@ -349,6 +304,10 @@ final class Blend2D {
     ///
     /// The whole image: `img_area` crosses as NULL, which Blend2D reads as the
     /// full source rectangle.
+    /// Compositing a layer back onto its parent (ADR-0071). The last argument is
+    /// a `const BLRectI*` naming a sub-rectangle of the source, and it is always
+    /// NULL here — Blend2D reads that as the whole image, which is what a layer
+    /// always wants — so no `BLRectI` ever crosses.
     void contextBlitImage(MemorySegment context, MemorySegment origin, MemorySegment image) {
         int result;
         result = calls.contextBlitImageD().call(context, origin, image, MemorySegment.NULL);
@@ -357,6 +316,9 @@ final class Blend2D {
 
     /// The same, into `rect` -- a `BLRect` of four doubles in the context's own
     /// units, so the image is drawn to that size rather than one pixel per unit.
+    /// The same, into a destination `BLRect` rather than at a point — which is
+    /// what reconciles a raster measured in physical pixels with a context
+    /// measured in logical ones (ADR-0157). Same NULL `img_area`.
     void contextBlitScaledImage(MemorySegment context, MemorySegment rect, MemorySegment image) {
         int result;
         result = calls.contextBlitScaledImageD().call(context, rect, image, MemorySegment.NULL);
@@ -376,6 +338,9 @@ final class Blend2D {
 
     /// Restricts drawing to the `BLRect` in `rect`, intersected with whatever
     /// clip is already in force.
+    /// Restricting a frame to the region that changed (ADR-0072). The rect is a
+    /// `BLRect` — four doubles, in the context's own units, so a clip is stated in
+    /// logical coordinates like every other call on the context.
     void contextClipToRect(MemorySegment context, MemorySegment rect) {
         int result;
         result = calls.contextClipToRectD().call(context, rect);
@@ -407,6 +372,7 @@ final class Blend2D {
 
     /// How many vertices the path holds. Used by the tests, which is how "the
     /// parser really issued the commands" becomes a number rather than a claim.
+    /// `size_t`, not `BLResult` — the one path call that is not an operation.
     long pathSize(MemorySegment path) {
         return calls.pathGetSize().call(path);
     }
@@ -437,6 +403,11 @@ final class Blend2D {
         check("bl_path_cubic_to", result);
     }
 
+    /// SVG's `S` and `T`: the first control point is the reflection of the
+    /// previous one. Blend2D does that reflection itself, against the command it
+    /// actually recorded — which is the definition SVG gives, and not the one a
+    /// caller tracking "the last control point" in Java would arrive at after a
+    /// `Z` or a bare `M`.
     void pathSmoothQuadTo(MemorySegment path, double x2, double y2) {
         int result;
         result = calls.pathSmoothQuadTo().call(path, x2, y2);
@@ -449,6 +420,13 @@ final class Blend2D {
         check("bl_path_smooth_cubic_to", result);
     }
 
+    /// `BLResult bl_path_elliptic_arc_to(BLPathCore*, double rx, double ry,`
+    /// `double x_axis_rotation, bool large_arc, bool sweep, double x1, double y1)`
+    ///
+    /// SVG's `A` command, argument for argument and flag for flag. The two
+    /// `bool`s are C `_Bool`, one byte — `JAVA_BOOLEAN`, not `JAVA_INT`, which
+    /// would put four bytes where the ABI expects one and shift every argument
+    /// after them.
     void pathEllipticArcTo(
             MemorySegment path,
             double rx, double ry, double rotation, boolean largeArc, boolean sweep,
@@ -463,6 +441,10 @@ final class Blend2D {
 
     // --- fonts ---------------------------------------------------------------
 
+    /// The three font objects. Each `create` **replaces** what the handle holds,
+    /// so each one has to be `init`ed first — Blend2D releases the previous
+    /// instance, and releasing an uninitialised one reads a pointer that was never
+    /// written.
     void fontDataInit(MemorySegment fontData) {
         check("bl_font_data_init", calls.fontDataInit().call(fontData));
     }
@@ -473,6 +455,8 @@ final class Blend2D {
     /// [#imageInitFromData] passes NULL: the bytes belong to Java, and handing
     /// Blend2D a free function for memory it did not allocate is how a heap gets
     /// corrupted. The caller keeps them alive instead.
+    /// `BLResult bl_font_data_create_from_data(BLFontDataCore*, const void* data,`
+    /// `size_t data_size, BLDestroyExternalDataFunc, void* user_data)`
     void fontDataCreate(MemorySegment fontData, MemorySegment bytes, long length) {
         int result;
         result = calls.fontDataCreateFromData().call(fontData, bytes, length, MemorySegment.NULL,
@@ -513,6 +497,8 @@ final class Blend2D {
     /// This is where the font matrix comes from — `size / units-per-em` — and
     /// therefore where the units of every glyph placement are decided. See
     /// [BlendGlyphPlacementType].
+    /// The size is a `float`, not a double: Blend2D's own choice, and the one
+    /// place in the paint path where a coordinate narrows.
     void fontCreate(MemorySegment font, MemorySegment face, float size) {
         int result;
         result = calls.fontCreateFromFace().call(font, face, size);
