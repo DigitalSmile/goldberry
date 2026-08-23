@@ -3282,3 +3282,51 @@ toast button {
   padding-left: 0;
   padding-right: 0;
 }
+
+/* --- §11's data widgets ---------------------------------------------------
+   A chart is a column: the plot, then the legend. Everything about its
+   *appearance* is here and everything about its *shape* is the painter's, which
+   is the same split every other canvas-based widget will want.
+
+   The plot has no background of its own: a chart sits on whatever surface it was
+   put on, and one that painted its own would be a card inside a card wherever an
+   application had already given it one. */
+line-chart {
+  flex-direction: column;
+  gap: 8px;
+  color: var(--gb-text-muted);
+  font-size: var(--gb-font-caption);
+  line-height: var(--gb-line-caption);
+}
+
+/* The plot takes the room the legend does not. `flex-grow` rather than a height,
+   so a chart is as tall as whatever box an application put it in -- a chart with
+   a height of its own would ignore the panel it was given. */
+chart-plot {
+  flex-grow: 1;
+}
+
+/* Wrapping, because a legend is the part of a chart most likely to be wider than
+   the chart (ADR-0192). `flex-wrap` exists for exactly this shape. */
+chart-legend {
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  align-items: center;
+}
+
+chart-legend-entry {
+  flex-direction: row;
+  gap: 6px;
+  align-items: center;
+}
+
+/* A 8x8 chip with a small radius: big enough to read a hue from, small enough
+   that it reads as a key rather than as a swatch chart. Its colour is the
+   palette's and not this rule's -- see ChartLegendEntry. */
+chart-legend-swatch {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}

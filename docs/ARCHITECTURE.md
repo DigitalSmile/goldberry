@@ -390,7 +390,7 @@ Of those, **`button` and `checkbox` are built**; the other eleven are not. `radi
 
 **Menus & shell (`goldberry-widgets`):** `menubar`, `menu`, `item`, `context-menu` (any widget: `context-menu=` reference), all rendered in backend popup windows (`SDL_CreatePopupWindow`) so they can escape the window bounds; **`tray-icon` is built** (SDL3 tray API, ADR-0191) with menu + tooltip — and is a *value* rather than a widget, because the desktop's shell draws its rows; **window decorations** — native by default, optional client-side decorated `titlebar` widget (frost material, window buttons per-platform ordering).
 
-**Data (`goldberry-widgets`):** built on `canvas` with the theme palette: **`sparkline` is built** — one series, so it takes `color` like text, with `Lttb` downsampling behind it (ADR-0194, `charts.md`) — plus `line-chart`, `bar-chart`, `area-chart`, `donut-chart`. Axes/legend/tooltip primitives shared; deliberately small — not a plotting library. (Charts shipped as their own module in the original design; see ADR-0014.)
+**Data (`goldberry-widgets`):** built on `canvas` with the theme palette: **`sparkline` and `line-chart` are built** — the first takes `color` because it is one series, the second reads `--gb-chart-1…8` from the theme (ADR-0194, ADR-0195) and is a canvas plot plus a legend of real widgets — plus `bar-chart`, `area-chart`, `donut-chart`. `charts.md` is the contract. Axes/legend/tooltip primitives shared; deliberately small — not a plotting library. (Charts shipped as their own module in the original design; see ADR-0014.)
 
 **3D (`goldberry-gpu`):** `canvas3d` — see §12.
 

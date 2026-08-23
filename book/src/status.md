@@ -3472,9 +3472,47 @@ is the `scroll` box's.
   `canvas` painter **closes over the context** and runs later, during the paint,
   so a context still holding an element would let a painter read a stale node's
   tokens in a frame where the tree had changed under it.
-- **Not built: the other four widgets** and what they need beyond this — an axis
-  that draws, a legend, a tooltip, a crosshair. `sparkline` needed none of them,
-  which is why it went first.
+- **`line-chart` is built** — the first chart with axes, and the first widget in
+  the toolkit with more than one of anything. It is **two halves**: a `chart-plot`
+  that is a canvas, because a chart of a thousand points must not be a tree of a
+  thousand nodes; and a `chart-legend` that is ordinary widgets, because a legend
+  is text and a swatch — the two things the toolkit is already good at — and
+  making them nodes means a stylesheet reaches them, the shaping cache serves
+  them, and the entries **wrap** when the chart is narrow, which is what
+  ADR-0192's `flex-wrap` was added for. Drawing the legend inside the canvas
+  would have re-implemented all three.
+- **The legend is present for two series and absent for one**, which is a rule
+  and not an option: with one line the title names it and a box repeating that is
+  noise; with two, colour is the only thing telling them apart, so identity must
+  never be colour alone.
+- **What happens in `render` and what happens in the painter is the design.** The
+  cascade and the text stack are only available in `render`, so the tick
+  labelling, the series colours and the **shaping** of every label happen there —
+  a chart that shaped its axis inside the painter would re-shape five unchanged
+  numbers sixty times a second, at 56 µs each (ADR-0037). The painter gets the
+  size, so it decides where the gridlines go and **how wide the gutter turned
+  out to be**: measured from the shaped paragraphs, so an axis reading
+  `1,000,000` reserves more room than one reading `5` and nobody wrote a number
+  down.
+- **Axis labels are formatted in the root locale**, which is `hud`'s rule with a
+  stronger reason: a golden image of a chart formatted in the machine's locale is
+  a test that passes in one country. Decimals come from the *step* rather than
+  the value, so an axis stepping by 0.5 labels `1.0` and not `1` — a column where
+  one label has a decimal point and the rest do not reads as ragged.
+- **The golden found a defect immediately.** The last x label read `Su`: it is
+  centred on its point, the last point is at the right edge, and half of it hung
+  outside the clip. Edge labels are pulled back inside the plot now — nudging
+  beats dropping them, because the two ends of an axis are the labels a reader
+  most wants.
+- **§3.2's inline KDL data works, via `option`'s precedent.** The inflater builds
+  depth-first and hands a factory children that are already widgets, so `series`
+  and `point` are registered nodes that draw nothing — exactly what `select`'s
+  options are, and for exactly that reason. The alternative was teaching the
+  inflater that some children are data, which is a change to the one mechanism
+  every widget goes through, for a case two widgets have.
+- **Not built: `bar-chart`, `area-chart`, `donut-chart`**, and the interaction
+  layer `charts.md` §3.1 lists — tooltip, crosshair, stacking, thresholds, log
+  scales, time axes, and clicking a legend entry to isolate a series.
 
 ### Not started
 

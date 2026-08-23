@@ -1,0 +1,155 @@
+package io.github.digitalsmile.goldberry.widgets.data.linechart;
+
+import io.github.digitalsmile.goldberry.css.ComputedStyle;
+import io.github.digitalsmile.goldberry.kdl.KdlNode;
+import io.github.digitalsmile.goldberry.paint.Box;
+import io.github.digitalsmile.goldberry.widget.attr.Attributed;
+import io.github.digitalsmile.goldberry.widget.attr.Attributes;
+import io.github.digitalsmile.goldberry.widget.style.Paints;
+import io.github.digitalsmile.goldberry.widget.style.Styled;
+import io.github.digitalsmile.goldberry.widget.Widget;
+import io.github.digitalsmile.goldberry.widgets.data.Series;
+import io.github.digitalsmile.goldberry.widgets.markup.Markup;
+import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
+
+/// A trend with axes — `docs/core-widgets.md` §11's `line-chart`.
+///
+/// ```java
+/// new LineChart(List.of(
+///         Series.of("Downloads", 12, 19, 15, 27, 31),
+///         Series.of("Installs", 8, 11, 9, 18, 21)))
+///     .categories(List.of("0.1", "0.2", "0.3", "0.4", "0.5"));
+/// ```
+///
+/// ```kdl
+/// line-chart {
+///     series name="downloads" { point "0.1" 1200; point "0.2" 3400 }
+/// }
+/// ```
+///
+/// ## Two halves, and the split is the design
+///
+/// A **plot**, which is a `canvas` — one painter, one polyline per series, no
+/// node per point, because a chart of a thousand points is not a tree of a
+/// thousand nodes. And a **legend**, which is ordinary widgets: text and a
+/// swatch, so a stylesheet reaches them, the shaping cache serves them, and the
+/// entries wrap when the chart is narrow. Drawing the legend inside the canvas
+/// would have re-implemented all three.
+///
+/// The legend appears for **two or more series and not for one**: with one line
+/// the title names it, and a box repeating that is noise; with two, the colour is
+/// the only thing telling them apart, so identity must never be colour alone.
+///
+/// ## What it does not have yet
+///
+/// A tooltip, a crosshair, stacking, thresholds, log scales, time axes and
+/// clicking the legend to isolate a series — `charts.md` §3.1 is the list and
+/// this is the first cut of the widget under it. The x is the point **index**;
+/// [#categories] labels the points and a `java.time` axis is §3.1's and is not
+/// built.
+///
+/// **No dual y-axis, ever.** Two measures at different scales are two charts, or
+/// one indexed to a common base; a second y-scale is the most reliable way to
+/// make a chart say something untrue, and `charts.md` §3.4 refuses it in as many
+/// words.
+///
+/// @param series     the lines, in order — which is also their colour order
+///                   (ADR-0194)
+/// @param categories a label per point, or empty for no x labels
+/// @param attributes `id` and `class`, exactly as on the primitives
+@Markup("line-chart")
+public record LineChart(List<Series> series, List<String> categories, Attributes attributes)
+        implements Widget.Leaf, Styled, Paints, Attributed<LineChart> {
+
+    public LineChart {
+        series = List.copyOf(series == null ? List.of() : series);
+        categories = List.copyOf(categories == null ? List.of() : categories);
+        attributes = attributes == null ? Attributes.NONE : attributes;
+    }
+
+    public LineChart(List<Series> series) {
+        this(series, List.of(), Attributes.NONE);
+    }
+
+    /// This chart with a label under each point.
+    public LineChart categories(List<String> values) {
+        return new LineChart(series, values, attributes);
+    }
+
+    @Override
+    public String cssType() {
+        return "line-chart";
+    }
+
+    @Override
+    public String id() {
+        return attributes.id();
+    }
+
+    @Override
+    public Set<String> classes() {
+        return attributes.classes();
+    }
+
+    @Override
+    public Object key() {
+        return attributes.key();
+    }
+
+    @Override
+    public LineChart withAttributes(Attributes value) {
+        return new LineChart(series, categories, value);
+    }
+
+    @Override
+    public List<Widget> children() {
+        var parts = new ArrayList<Widget>(2);
+        parts.add(new ChartPlot(series, categories));
+        if (series.size() > 1) {
+            parts.add(new ChartLegend(series));
+        }
+        return List.copyOf(parts);
+    }
+
+    @Override
+    public Box render(ComputedStyle style, List<Box> children, Context context) {
+        return Box.of().style(style).children(children.toArray(Box[]::new));
+    }
+
+    /// Builds a `line-chart` from markup — §3.2's inline form, for small static
+    /// data.
+    ///
+    /// ```kdl
+    /// line-chart {
+    ///     series name="downloads" { point "0.1" 1200; point "0.2" 3400 }
+    /// }
+    /// ```
+    ///
+    /// The categories come from the **first** series' point names, because they
+    /// are the x axis and a chart has one: a second series naming its points
+    /// differently would be two x axes in one picture, which is the same mistake
+    /// as two y axes and is refused the same way — by there being nowhere to put
+    /// it.
+    public static Widget inflate(KdlNode node, List<Widget> children, Wiring wiring) {
+        var series = new ArrayList<Series>();
+        var categories = new ArrayList<String>();
+        for (var child : children) {
+            if (!(child instanceof ChartSeries node2)) {
+                continue;
+            }
+            if (series.isEmpty()) {
+                categories.addAll(node2.labels());
+            }
+            series.add(node2.toSeries(series.size()));
+        }
+        // Empty labels mean nobody named the points, and a row of blank labels
+        // under an axis is worse than none.
+        if (categories.stream().allMatch(String::isBlank)) {
+            categories.clear();
+        }
+        return new LineChart(series, categories, Attributes.of(node));
+    }
+}
