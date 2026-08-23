@@ -1,6 +1,6 @@
 package io.github.digitalsmile.goldberry;
 
-import io.github.digitalsmile.goldberry.widget.Corner;
+import io.github.digitalsmile.goldberry.widget.style.Corner;
 import io.github.digitalsmile.goldberry.widget.Widget;
 
 import java.util.Objects;
@@ -29,7 +29,7 @@ import java.util.Objects;
 ///
 /// Here beside [Window] rather than in the widget package, because it is the
 /// window's list an overlay is on and [Host] is what puts it there. The node that
-/// *draws* it is [io.github.digitalsmile.goldberry.widget.WindowRoot].
+/// *draws* it is [io.github.digitalsmile.goldberry.widget.root.WindowRoot].
 ///
 /// Confined to the UI thread, like the tree it appears in.
 public final class Overlay {
@@ -56,7 +56,7 @@ public final class Overlay {
     ///
     /// [Host#overlay(Widget, Corner)] is how one gets onto a window and is what
     /// almost every caller wants. This is the constructor behind it, public
-    /// because [io.github.digitalsmile.goldberry.widget.WindowRoot] is — an
+    /// because [io.github.digitalsmile.goldberry.widget.root.WindowRoot] is — an
     /// application assembling its own root, and every test of the overlay layer,
     /// needs to be able to say "this widget, that corner" without a launcher.
     ///

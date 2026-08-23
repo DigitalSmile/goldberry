@@ -5,7 +5,7 @@ import io.github.digitalsmile.goldberry.css.select.Selector.PseudoClass;
 import io.github.digitalsmile.goldberry.render.model.LogicalRect;
 import io.github.digitalsmile.goldberry.widget.Element;
 import io.github.digitalsmile.goldberry.widget.Widget;
-import io.github.digitalsmile.goldberry.widget.Styled;
+import io.github.digitalsmile.goldberry.widget.style.Styled;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;

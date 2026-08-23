@@ -14,6 +14,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import io.github.digitalsmile.goldberry.widget.style.Styled;
 
 /// The persistent instantiation of a [Widget] — the second of ADR-0004's three
 /// trees.

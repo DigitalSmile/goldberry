@@ -91,7 +91,7 @@ class TabMotionTest {
         }
         return new Tabs("a", tabs,
                 null, ignored -> { }, ignored -> { }, null,
-                io.github.digitalsmile.goldberry.widget.Attributes.NONE);
+                io.github.digitalsmile.goldberry.widget.attr.Attributes.NONE);
     }
 
     /// The headers a strip is currently drawing, by value — including any that are

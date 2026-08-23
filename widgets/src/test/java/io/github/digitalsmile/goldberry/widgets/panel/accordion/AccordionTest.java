@@ -39,7 +39,7 @@ class AccordionTest {
                 new Collapse("One", new Text("body one")),
                 new Collapse("Two", new Text("body two")),
                 new Collapse("Three", new Text("body three"))),
-                io.github.digitalsmile.goldberry.widget.Attributes.NONE);
+                io.github.digitalsmile.goldberry.widget.attr.Attributes.NONE);
     }
 
     /// The headers, in order — what a click has to be aimed at.
@@ -50,7 +50,7 @@ class AccordionTest {
     }
 
     private static void collect(Element element, List<Element> into) {
-        if (element.widget() instanceof io.github.digitalsmile.goldberry.widget.Styled styled
+        if (element.widget() instanceof io.github.digitalsmile.goldberry.widget.style.Styled styled
                 && "collapse-header".equals(styled.cssType())) {
             into.add(element);
         }
@@ -134,7 +134,7 @@ class AccordionTest {
         var heading = new Text("Settings");
         var tree = new ElementTree(new Accordion(Accordion.NONE, null,
                 List.of(heading, new Collapse("One", new Text("body one"))),
-                io.github.digitalsmile.goldberry.widget.Attributes.NONE));
+                io.github.digitalsmile.goldberry.widget.attr.Attributes.NONE));
 
         assertTrue(showing(tree, "Settings"));
     }
@@ -148,7 +148,7 @@ class AccordionTest {
                 List.of(
                         new Collapse("Controlled", false, asked::set, new Text("body")),
                         new Collapse("Ordinary", new Text("other"))),
-                io.github.digitalsmile.goldberry.widget.Attributes.NONE));
+                io.github.digitalsmile.goldberry.widget.attr.Attributes.NONE));
 
         click(tree, 0);
 

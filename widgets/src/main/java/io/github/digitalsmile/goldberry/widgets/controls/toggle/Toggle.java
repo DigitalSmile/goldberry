@@ -1,8 +1,8 @@
 package io.github.digitalsmile.goldberry.widgets.controls.toggle;
 
-import io.github.digitalsmile.goldberry.widget.Attributed;
-import io.github.digitalsmile.goldberry.widget.Bindable;
-import io.github.digitalsmile.goldberry.widget.Attributes;
+import io.github.digitalsmile.goldberry.widget.attr.Attributed;
+import io.github.digitalsmile.goldberry.widget.attr.Bindable;
+import io.github.digitalsmile.goldberry.widget.attr.Attributes;
 import io.github.digitalsmile.goldberry.widgets.text.Text;
 
 import io.github.digitalsmile.goldberry.bind.Observable;
@@ -12,8 +12,8 @@ import io.github.digitalsmile.goldberry.input.key.Key;
 import io.github.digitalsmile.goldberry.input.event.KeyEvent;
 import io.github.digitalsmile.goldberry.input.event.PointerEvent;
 import io.github.digitalsmile.goldberry.paint.Box;
-import io.github.digitalsmile.goldberry.widget.Paints;
-import io.github.digitalsmile.goldberry.widget.Styled;
+import io.github.digitalsmile.goldberry.widget.style.Paints;
+import io.github.digitalsmile.goldberry.widget.style.Styled;
 import io.github.digitalsmile.goldberry.widget.Widget;
 import java.util.ArrayList;
 import java.util.List;

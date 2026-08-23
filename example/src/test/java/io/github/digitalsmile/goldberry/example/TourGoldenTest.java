@@ -83,7 +83,7 @@ class TourGoldenTest {
                     host, () -> { });
             // Through WindowRoot, because that is where a filling overlay gets
             // its insets -- a tour laid out in flow has no size at all.
-            var tree = new ElementTree(new io.github.digitalsmile.goldberry.widget.WindowRoot(
+            var tree = new ElementTree(new io.github.digitalsmile.goldberry.widget.root.WindowRoot(
                     screen,
                     io.github.digitalsmile.goldberry.bind.Property.of(
                             List.of(io.github.digitalsmile.goldberry.Overlay.filling(tour)))));

@@ -60,10 +60,10 @@ public record TabsDemo(ShowcaseModel model, ShowcaseModel.Actions actions)
                 new Text("A strip that gains and loses tabs").styled("screen-title"),
                 new Tabs(null, strip, Models.observable(model, "app.tab"),
                         actions::pickTab, actions::closeTab, actions::newTab,
-                        io.github.digitalsmile.goldberry.widget.Attributes.NONE)
+                        io.github.digitalsmile.goldberry.widget.attr.Attributes.NONE)
                         .id("demo-tabs"),
                 new Text(NOTE).styled("caption").id("tabs-note")),
-                io.github.digitalsmile.goldberry.widget.Attributes.NONE)
+                io.github.digitalsmile.goldberry.widget.attr.Attributes.NONE)
                 .id("screen-tabs");
     }
 }

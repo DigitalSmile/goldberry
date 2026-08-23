@@ -58,9 +58,9 @@ public final class TestFont {
     /// the *same instance* across calls — and a test that skipped it would not
     /// exercise the identity the retained render tree reads to keep a measure
     /// callback (ADR-0069).
-    public static io.github.digitalsmile.goldberry.widget.Paints.Context context() {
+    public static io.github.digitalsmile.goldberry.widget.style.Paints.Context context() {
         var cache = io.github.digitalsmile.goldberry.text.ParagraphCache.create();
-        return new io.github.digitalsmile.goldberry.widget.Paints.Context() {
+        return new io.github.digitalsmile.goldberry.widget.style.Paints.Context() {
 
             @Override
             public Font font(io.github.digitalsmile.goldberry.css.ComputedStyle style) {

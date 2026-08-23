@@ -19,7 +19,7 @@ import io.github.digitalsmile.goldberry.paint.Layer;
 /// worth stating: nothing here is updated by time passing. A loop that goes idle
 /// leaves the last frames in the window and the numbers freeze at whatever the
 /// loop was managing when it stopped. That is deliberate — see
-/// [io.github.digitalsmile.goldberry.widget.WindowRoot] for why a diagnostic must
+/// [io.github.digitalsmile.goldberry.widget.root.WindowRoot] for why a diagnostic must
 /// not be the thing keeping the loop awake — and it is self-correcting: the next
 /// frame after an idle second carries that second in its interval, so the rate
 /// falls the moment there is anything to fall in front of.

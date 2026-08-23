@@ -148,7 +148,7 @@ public final class Popup implements AutoCloseable {
         Objects.requireNonNull(id, "id");
         for (var region : regions) {
             if (region.owner() instanceof io.github.digitalsmile.goldberry.widget.Element element
-                    && element.widget() instanceof io.github.digitalsmile.goldberry.widget.Styled styled
+                    && element.widget() instanceof io.github.digitalsmile.goldberry.widget.style.Styled styled
                     && id.equals(styled.id())) {
                 var bounds = region.bounds();
                 return java.util.Optional.of(
@@ -343,7 +343,7 @@ public final class Popup implements AutoCloseable {
     /// carries a rectangle where this needs the element itself.
     private static io.github.digitalsmile.goldberry.widget.Element elementWithId(
             io.github.digitalsmile.goldberry.widget.Element element, String id) {
-        if (element.widget() instanceof io.github.digitalsmile.goldberry.widget.Styled styled
+        if (element.widget() instanceof io.github.digitalsmile.goldberry.widget.style.Styled styled
                 && id.equals(styled.id())) {
             return element;
         }

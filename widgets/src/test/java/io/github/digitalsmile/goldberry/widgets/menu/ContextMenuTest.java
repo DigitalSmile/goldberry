@@ -116,7 +116,7 @@ class ContextMenuTest {
         var count = new int[1];
         var offset = new LogicalPoint[1];
         var page = new Column(List.of(new Text("right-click me")),
-                new io.github.digitalsmile.goldberry.widget.Attributes("page",
+                new io.github.digitalsmile.goldberry.widget.attr.Attributes("page",
                         java.util.Set.of(), "page", null, "rows"));
 
         Goldberry.launch(new TestApp(page, host -> {
@@ -149,7 +149,7 @@ class ContextMenuTest {
     void primaryButtonDoesNot() {
         var count = new int[1];
         var page = new Column(List.of(new Text("click me")),
-                new io.github.digitalsmile.goldberry.widget.Attributes("page",
+                new io.github.digitalsmile.goldberry.widget.attr.Attributes("page",
                         java.util.Set.of(), "page", null, "rows"));
 
         Goldberry.launch(new TestApp(page, host -> {
@@ -175,7 +175,7 @@ class ContextMenuTest {
     void noNameNoMenu() {
         var count = new int[1];
         var page = new Column(List.of(new Text("nothing here")),
-                new io.github.digitalsmile.goldberry.widget.Attributes("page",
+                new io.github.digitalsmile.goldberry.widget.attr.Attributes("page",
                         java.util.Set.of(), "page"));
 
         Goldberry.launch(new TestApp(page, host -> {
@@ -203,7 +203,7 @@ class ContextMenuTest {
         var count = new int[1];
         var survived = new boolean[1];
         var page = new Column(List.of(new Text("right-click me")),
-                new io.github.digitalsmile.goldberry.widget.Attributes("page",
+                new io.github.digitalsmile.goldberry.widget.attr.Attributes("page",
                         java.util.Set.of(), "page", null, "nothing-by-that-name"));
 
         Goldberry.launch(new TestApp(page, host -> {

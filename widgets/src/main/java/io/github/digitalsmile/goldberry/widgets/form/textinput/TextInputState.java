@@ -14,8 +14,8 @@ import java.time.Duration;
 ///
 /// ## The caret blinks on a timer, not on the frame clock
 ///
-/// A spinner draws itself from [io.github.digitalsmile.goldberry.widget.Paints.Context#nowMillis]
-/// and says [io.github.digitalsmile.goldberry.widget.Paints#isAnimating], which
+/// A spinner draws itself from [io.github.digitalsmile.goldberry.widget.style.Paints.Context#nowMillis]
+/// and says [io.github.digitalsmile.goldberry.widget.style.Paints#isAnimating], which
 /// asks for a frame every frame — right for something that moves continuously,
 /// and badly wrong for a caret. A caret changes **twice a second**, so animating
 /// it would run the frame loop at the display's rate for the whole time a field

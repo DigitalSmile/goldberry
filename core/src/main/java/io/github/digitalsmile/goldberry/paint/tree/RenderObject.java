@@ -69,7 +69,7 @@ public final class RenderObject implements AutoCloseable {
     /// Identity rather than equality, deliberately: the callback closes over one
     /// `Paragraph`, and an equal-but-distinct one would wrap against a different
     /// memo. `ParagraphCache` is what makes this stable frame to frame, which is
-    /// why [io.github.digitalsmile.goldberry.widget.Paints.Context] shapes through
+    /// why [io.github.digitalsmile.goldberry.widget.style.Paints.Context] shapes through
     /// it rather than letting widgets call `Paragraph.of`.
     private Object measured;
 

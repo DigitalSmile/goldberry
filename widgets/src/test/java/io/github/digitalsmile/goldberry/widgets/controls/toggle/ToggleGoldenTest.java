@@ -1,6 +1,6 @@
 package io.github.digitalsmile.goldberry.widgets.controls.toggle;
 
-import io.github.digitalsmile.goldberry.widget.Attributes;
+import io.github.digitalsmile.goldberry.widget.attr.Attributes;
 import io.github.digitalsmile.goldberry.widgets.core.Row;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;

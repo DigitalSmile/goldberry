@@ -209,7 +209,7 @@ class ScrollTest {
             rows.add(new Text("row " + i));
         }
         return new Scroll(List.of(new Column(rows.toArray(Widget[]::new))),
-                ScrollAxis.VERTICAL, io.github.digitalsmile.goldberry.widget.Attributes.NONE);
+                ScrollAxis.VERTICAL, io.github.digitalsmile.goldberry.widget.attr.Attributes.NONE);
     }
 
     @Nested

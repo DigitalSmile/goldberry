@@ -1,8 +1,10 @@
-package io.github.digitalsmile.goldberry.widget;
+package io.github.digitalsmile.goldberry.widget.attr;
 
 import io.github.digitalsmile.goldberry.kdl.KdlNode;
 import java.util.LinkedHashSet;
 import java.util.Set;
+import io.github.digitalsmile.goldberry.widget.style.Styled;
+import io.github.digitalsmile.goldberry.widget.Widget;
 
 /// `id`, `class` and the reconciler's key — what every widget carries and no
 /// widget decides.
@@ -16,7 +18,7 @@ import java.util.Set;
 ///
 /// It stayed in `:core` when `text`, `row`, `column`, `panel` and `spacer` left
 /// for `:widgets`
-/// ([ADR-0092](../../../../../../book/src/adr/0092-a-primitive-is-a-widget-like-any-other.md)),
+/// ([ADR-0092](../../../../../../../book/src/adr/0092-a-primitive-is-a-widget-like-any-other.md)),
 /// because it is not a widget — it is part of the widget **contract**. [Styled]
 /// asks a widget for its `id` and its classes and the cascade matches on the
 /// answers; [Widget#key()] is what the reconciler pairs two builds by. A widget
@@ -41,7 +43,7 @@ public record Attributes(
     /// Kept because `new Attributes(id, classes, key)` appears in every widget in
     /// the catalog and in most of its tests, and because a fourth positional
     /// argument on all of them would be four hundred edits to say `null`
-    /// ([ADR-0105](../../../../../../book/src/adr/0105-a-tooltip-is-an-attribute-not-a-widget.md)).
+    /// ([ADR-0105](../../../../../../../book/src/adr/0105-a-tooltip-is-an-attribute-not-a-widget.md)).
     public Attributes(String id, Set<String> classes, Object key) {
         this(id, classes, key, null, null);
     }
@@ -64,7 +66,7 @@ public record Attributes(
     /// A *name*, not a menu: what the name means is a registry's, exactly as it is
     /// for `press=` and `icon=`. A widget holding a menu would be a widget holding
     /// a thing that has to be opened, and opening needs a window
-    /// ([ADR-0108](../../../../../../book/src/adr/0108-a-context-menu-is-a-name-on-a-widget.md)).
+    /// ([ADR-0108](../../../../../../../book/src/adr/0108-a-context-menu-is-a-name-on-a-widget.md)).
     public Attributes contextMenu(String menuId) {
         return new Attributes(id, classes, key, tooltip,
                 menuId == null || menuId.isBlank() ? null : menuId);

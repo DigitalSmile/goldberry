@@ -1,6 +1,6 @@
 package io.github.digitalsmile.goldberry.widgets.controls.badge;
 
-import io.github.digitalsmile.goldberry.widget.Attributes;
+import io.github.digitalsmile.goldberry.widget.attr.Attributes;
 import io.github.digitalsmile.goldberry.widgets.core.Row;
 import io.github.digitalsmile.goldberry.widgets.panel.Panel;
 

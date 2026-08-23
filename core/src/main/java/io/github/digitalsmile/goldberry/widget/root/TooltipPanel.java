@@ -1,4 +1,4 @@
-package io.github.digitalsmile.goldberry.widget;
+package io.github.digitalsmile.goldberry.widget.root;
 
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
 import io.github.digitalsmile.goldberry.paint.Box;
@@ -7,6 +7,9 @@ import io.github.digitalsmile.goldberry.paint.tree.RenderTree;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+import io.github.digitalsmile.goldberry.widget.style.Paints;
+import io.github.digitalsmile.goldberry.widget.style.Styled;
+import io.github.digitalsmile.goldberry.widget.Widget;
 
 /// The little plate a `tooltip="…"` shows — `docs/core-widgets.md` §7's
 /// `tooltip`, "plain text v1".
@@ -17,7 +20,7 @@ import java.util.Set;
 /// widget and opened by the toolkit when the pointer rests on that widget, so
 /// there is no call site an application could pass a widget to — and the thing
 /// doing the opening is the launcher, which is `:core`'s and cannot see the
-/// catalog ([ADR-0092](../../../../../../book/src/adr/0092-a-primitive-is-a-widget-like-any-other.md)
+/// catalog ([ADR-0092](../../../../../../../book/src/adr/0092-a-primitive-is-a-widget-like-any-other.md)
 /// is the record of `:core` not shipping widgets, and this is [WindowRoot]'s
 /// exception rather than a hole in it).
 ///

@@ -835,7 +835,7 @@ class TextInputTest {
                     io.github.digitalsmile.goldberry.css.value.CssLength.Context.DEFAULT);
             var field = field(tree);
             var children = field.children().stream()
-                    .map(child -> ((io.github.digitalsmile.goldberry.widget.Paints) child)
+                    .map(child -> ((io.github.digitalsmile.goldberry.widget.style.Paints) child)
                             .render(style, List.of(), context))
                     .toList();
             return field.render(style, children, context).children();
@@ -907,7 +907,7 @@ class TextInputTest {
             // twice -- `scroll`'s and `tabs`' arrangement.
             assertEquals("text-input", field(tree).cssType());
             assertNotEquals("text-input",
-                    root.widget() instanceof io.github.digitalsmile.goldberry.widget.Styled styled
+                    root.widget() instanceof io.github.digitalsmile.goldberry.widget.style.Styled styled
                             ? styled.cssType() : "");
         }
 
@@ -915,7 +915,7 @@ class TextInputTest {
         @DisplayName("carries the document's id and classes")
         void carriesAttributes() {
             var input = new TextInput().withAttributes(
-                    io.github.digitalsmile.goldberry.widget.Attributes.of(
+                    io.github.digitalsmile.goldberry.widget.attr.Attributes.of(
                             KdlParser.parse("text-input id=\"name\" class=\"wide\"").getFirst()));
             var tree = mounted(input);
 

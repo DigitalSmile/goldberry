@@ -349,7 +349,7 @@ class TextAreaTest {
 
             assertEquals("text-area", box(tree).cssType());
             assertNotEquals("text-area",
-                    tree.root().widget() instanceof io.github.digitalsmile.goldberry.widget.Styled s
+                    tree.root().widget() instanceof io.github.digitalsmile.goldberry.widget.style.Styled s
                             ? s.cssType() : "");
         }
     }

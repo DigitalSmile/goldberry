@@ -1,4 +1,4 @@
-package io.github.digitalsmile.goldberry.widget;
+package io.github.digitalsmile.goldberry.widget.style;
 
 import io.github.digitalsmile.goldberry.natives.yoga.Insets;
 import io.github.digitalsmile.goldberry.natives.yoga.StyleLength;

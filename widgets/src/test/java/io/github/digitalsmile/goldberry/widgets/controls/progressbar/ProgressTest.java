@@ -1,7 +1,7 @@
 package io.github.digitalsmile.goldberry.widgets.controls.progressbar;
 
 import io.github.digitalsmile.goldberry.paint.Box;
-import io.github.digitalsmile.goldberry.widget.Attributes;
+import io.github.digitalsmile.goldberry.widget.attr.Attributes;
 import io.github.digitalsmile.goldberry.widgets.core.Row;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;

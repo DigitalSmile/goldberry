@@ -8,7 +8,7 @@ import io.github.digitalsmile.goldberry.input.FocusScope;
 
 /// A widget that reacts to the pointer.
 ///
-/// Opt-in, like [io.github.digitalsmile.goldberry.widget.Paints]. A widget that
+/// Opt-in, like [io.github.digitalsmile.goldberry.widget.style.Paints]. A widget that
 /// does not implement this is not asked, which keeps dispatch proportional to the
 /// number of interested nodes rather than to the depth of the tree.
 public interface Handles extends Widget {

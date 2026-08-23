@@ -1,4 +1,6 @@
-package io.github.digitalsmile.goldberry.widget;
+package io.github.digitalsmile.goldberry.widget.attr;
+
+import io.github.digitalsmile.goldberry.widget.Widget;
 
 /// A widget that carries [Attributes] and can hand back a copy carrying
 /// different ones.

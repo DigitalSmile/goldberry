@@ -13,11 +13,11 @@ import io.github.digitalsmile.goldberry.input.PointerRouter;
 import io.github.digitalsmile.goldberry.paint.tree.RenderTree;
 import io.github.digitalsmile.goldberry.stats.FrameStats;
 import io.github.digitalsmile.goldberry.text.Fonts;
-import io.github.digitalsmile.goldberry.widget.Corner;
+import io.github.digitalsmile.goldberry.widget.style.Corner;
 import io.github.digitalsmile.goldberry.widget.ElementTree;
 import io.github.digitalsmile.goldberry.widget.WidgetRenderer;
 import io.github.digitalsmile.goldberry.widget.Widget;
-import io.github.digitalsmile.goldberry.widget.WindowRoot;
+import io.github.digitalsmile.goldberry.widget.root.WindowRoot;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -389,7 +389,7 @@ final class Launcher implements Host {
         for (var node = router.hovered(); node != null;
                 node = node.parent() instanceof io.github.digitalsmile.goldberry.widget.Element parent
                         ? parent : null) {
-            var named = node.widget() instanceof io.github.digitalsmile.goldberry.widget.Attributed<?> a
+            var named = node.widget() instanceof io.github.digitalsmile.goldberry.widget.attr.Attributed<?> a
                     ? a.attributes().contextMenu()
                     : null;
             if (named != null) {
@@ -499,7 +499,7 @@ final class Launcher implements Host {
     }
 
     private static String tooltipTextOf(io.github.digitalsmile.goldberry.widget.Element element) {
-        return element.widget() instanceof io.github.digitalsmile.goldberry.widget.Attributed<?> a
+        return element.widget() instanceof io.github.digitalsmile.goldberry.widget.attr.Attributed<?> a
                 ? a.attributes().tooltip()
                 : null;
     }
@@ -522,7 +522,7 @@ final class Launcher implements Host {
         // that closed it would close it in the same gesture that opened whatever
         // was clicked.
         tooltip = tooltipPopup(
-                new io.github.digitalsmile.goldberry.widget.TooltipPanel(text),
+                new io.github.digitalsmile.goldberry.widget.root.TooltipPanel(text),
                 anchor.get())
                 .orElse(null);
         tooltipOpenedAt = tooltip == null ? 0 : System.nanoTime();
@@ -735,7 +735,7 @@ final class Launcher implements Host {
         Objects.requireNonNull(id, "id");
         for (var region : regions) {
             if (region.owner() instanceof io.github.digitalsmile.goldberry.widget.Element element
-                    && element.widget() instanceof io.github.digitalsmile.goldberry.widget.Styled styled
+                    && element.widget() instanceof io.github.digitalsmile.goldberry.widget.style.Styled styled
                     && id.equals(styled.id())) {
                 return java.util.Optional.of(region);
             }

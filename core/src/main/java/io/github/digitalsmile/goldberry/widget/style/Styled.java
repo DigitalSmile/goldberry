@@ -1,8 +1,10 @@
-package io.github.digitalsmile.goldberry.widget;
+package io.github.digitalsmile.goldberry.widget.style;
 
 import io.github.digitalsmile.goldberry.stats.FrameStats;
 
 import java.util.Set;
+import io.github.digitalsmile.goldberry.widget.Widget;
+import io.github.digitalsmile.goldberry.widget.WidgetRenderer;
 
 /// A widget that a stylesheet can name.
 ///
@@ -65,7 +67,7 @@ public interface Styled extends Widget {
     /// animation observes, so it moves under `transition` like any other
     /// property: a segmented control's indicator translates between segments
     /// because this method puts the translation where the transition can see it
-    /// ([ADR-0099](../../../../../../book/src/adr/0099-an-indicator-travels-on-a-grid.md)).
+    /// ([ADR-0099](../../../../../../../book/src/adr/0099-an-indicator-travels-on-a-grid.md)).
     ///
     /// ## What it is not
     ///
@@ -93,7 +95,7 @@ public interface Styled extends Widget {
     /// Empty for every widget but one, and the one is the point: a `hud` reading
     /// carries `over` or `near` depending on how the number it is about to draw
     /// compares with its budget, and a stylesheet has to be able to colour that
-    /// ([ADR-0150](../../../../../../book/src/adr/0150-a-hud-reads-itself-against-a-budget.md)).
+    /// ([ADR-0150](../../../../../../../book/src/adr/0150-a-hud-reads-itself-against-a-budget.md)).
     ///
     /// **Why it cannot be [#classes()]**: the cascade reads a node's classes
     /// before that node's `render` runs, and the frame statistics only arrive in

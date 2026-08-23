@@ -48,7 +48,7 @@ class MenusTest {
 
         @Override
         public Widget root() {
-            return new Column(List.of(), io.github.digitalsmile.goldberry.widget.Attributes.NONE);
+            return new Column(List.of(), io.github.digitalsmile.goldberry.widget.attr.Attributes.NONE);
         }
 
         @Override

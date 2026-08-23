@@ -1,7 +1,7 @@
 package io.github.digitalsmile.goldberry.widgets.controls.button;
 
 import io.github.digitalsmile.goldberry.render.Cursor;
-import io.github.digitalsmile.goldberry.widget.Attributes;
+import io.github.digitalsmile.goldberry.widget.attr.Attributes;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;

@@ -55,7 +55,7 @@ class SelectTest {
 
     private static Select select(Option... options) {
         return new Select("dark", List.of(options), null, null, "", false,
-                io.github.digitalsmile.goldberry.widget.Attributes.NONE);
+                io.github.digitalsmile.goldberry.widget.attr.Attributes.NONE);
     }
 
     /// A host that records every popup it was asked for and opens none.
@@ -105,7 +105,7 @@ class SelectTest {
         @DisplayName("a value no option carries selects nothing rather than the first")
         void unknown() {
             var it = new Select("nord", List.of(new Option("light", "Light")), null, null,
-                    "Pick one", false, io.github.digitalsmile.goldberry.widget.Attributes.NONE);
+                    "Pick one", false, io.github.digitalsmile.goldberry.widget.attr.Attributes.NONE);
 
             assertNull(it.selected(), "guessing would report a value nobody picked");
             assertEquals("Pick one", it.label(), "so it falls back to the placeholder");
@@ -136,7 +136,7 @@ class SelectTest {
                     List.of(new io.github.digitalsmile.goldberry.widgets.text.Text("Themes"),
                             new Option("dark", "Dark")),
                     null, null, "", false,
-                    io.github.digitalsmile.goldberry.widget.Attributes.NONE);
+                    io.github.digitalsmile.goldberry.widget.attr.Attributes.NONE);
 
             assertEquals(2, it.children().size());
             assertEquals(1, it.options().size(), "a heading is not an option");
@@ -154,11 +154,11 @@ class SelectTest {
             var field = field(tree);
 
             assertEquals("select", field.cssType());
-            assertFalse((Widget) select() instanceof io.github.digitalsmile.goldberry.widget.Styled,
+            assertFalse((Widget) select() instanceof io.github.digitalsmile.goldberry.widget.style.Styled,
                     "a stateful widget that was also styled would style two nodes");
             assertEquals(List.of("select-value", "select-chevron"),
                     field.children().stream()
-                            .map(child -> ((io.github.digitalsmile.goldberry.widget.Styled) child)
+                            .map(child -> ((io.github.digitalsmile.goldberry.widget.style.Styled) child)
                                     .cssType())
                             .toList());
         }
@@ -343,7 +343,7 @@ class SelectTest {
             var tree = tree(new Select("dark", List.of(
                     new Option("light", "Light"), new Option("dark", "Dark")),
                     null, picked::add, "", false,
-                    io.github.digitalsmile.goldberry.widget.Attributes.NONE));
+                    io.github.digitalsmile.goldberry.widget.attr.Attributes.NONE));
             click(field(tree));
 
             var rows = ((SelectList) host.opened.getFirst().content()).children();
@@ -531,7 +531,7 @@ class SelectTest {
         void disabled() {
             var tree = new ElementTree(new Select("dark",
                     List.of(new Option("light", "Light")), null, picked::add, "", true,
-                    io.github.digitalsmile.goldberry.widget.Attributes.NONE));
+                    io.github.digitalsmile.goldberry.widget.attr.Attributes.NONE));
 
             type(tree, "l");
 

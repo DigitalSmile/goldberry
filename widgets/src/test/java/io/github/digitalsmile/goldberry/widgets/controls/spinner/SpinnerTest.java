@@ -1,6 +1,6 @@
 package io.github.digitalsmile.goldberry.widgets.controls.spinner;
 
-import io.github.digitalsmile.goldberry.widget.Attributes;
+import io.github.digitalsmile.goldberry.widget.attr.Attributes;
 import io.github.digitalsmile.goldberry.widgets.core.Row;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;

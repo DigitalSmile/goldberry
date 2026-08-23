@@ -7,7 +7,7 @@ import io.github.digitalsmile.goldberry.css.Theme;
 import io.github.digitalsmile.goldberry.golden.GoldenImage;
 import io.github.digitalsmile.goldberry.paint.BoxPainter;
 import io.github.digitalsmile.goldberry.widget.ElementTree;
-import io.github.digitalsmile.goldberry.widget.TooltipPanel;
+import io.github.digitalsmile.goldberry.widget.root.TooltipPanel;
 import io.github.digitalsmile.goldberry.widget.WidgetRenderer;
 import io.github.digitalsmile.goldberry.widgets.Controls;
 import io.github.digitalsmile.goldberry.widgets.controls.TestFont;
@@ -34,7 +34,7 @@ class TooltipGoldenTest {
 
     private void paint(String name, Theme theme, int width, String text) {
         var scene = new Row(List.of(new TooltipPanel(text)),
-                new io.github.digitalsmile.goldberry.widget.Attributes(
+                new io.github.digitalsmile.goldberry.widget.attr.Attributes(
                         "scene", Set.of(), "scene"));
         var renderer = new WidgetRenderer(
                 List.of(Controls.baseStylesheet(), theme.load(),
@@ -73,7 +73,7 @@ class TooltipGoldenTest {
     @DisplayName("a tooltip, magnified")
     void magnified() {
         var scene = new Row(List.of(new TooltipPanel("Save the document")),
-                new io.github.digitalsmile.goldberry.widget.Attributes(
+                new io.github.digitalsmile.goldberry.widget.attr.Attributes(
                         "scene", Set.of(), "scene"));
         var renderer = new WidgetRenderer(
                 List.of(Controls.baseStylesheet(), Theme.NORD_DARK.load(),

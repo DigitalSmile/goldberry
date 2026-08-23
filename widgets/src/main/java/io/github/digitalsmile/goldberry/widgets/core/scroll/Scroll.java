@@ -1,7 +1,7 @@
 package io.github.digitalsmile.goldberry.widgets.core.scroll;
 
-import io.github.digitalsmile.goldberry.widget.Attributed;
-import io.github.digitalsmile.goldberry.widget.Attributes;
+import io.github.digitalsmile.goldberry.widget.attr.Attributed;
+import io.github.digitalsmile.goldberry.widget.attr.Attributes;
 import io.github.digitalsmile.goldberry.widget.State;
 import io.github.digitalsmile.goldberry.widget.Widget;
 import java.util.List;

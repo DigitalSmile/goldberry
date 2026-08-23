@@ -2,7 +2,7 @@ package io.github.digitalsmile.goldberry.widgets.controls.radio;
 
 import io.github.digitalsmile.goldberry.widgets.controls.select.Select;
 import io.github.digitalsmile.goldberry.widgets.controls.option.Option;
-import io.github.digitalsmile.goldberry.widget.Attributes;
+import io.github.digitalsmile.goldberry.widget.attr.Attributes;
 import io.github.digitalsmile.goldberry.widgets.core.Column;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;

@@ -1,4 +1,4 @@
-package io.github.digitalsmile.goldberry.widget;
+package io.github.digitalsmile.goldberry.widget.style;
 
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
 import io.github.digitalsmile.goldberry.paint.Box;
@@ -7,6 +7,8 @@ import io.github.digitalsmile.goldberry.stats.FrameStats;
 import io.github.digitalsmile.goldberry.text.Font;
 import io.github.digitalsmile.goldberry.text.Paragraph;
 import java.util.List;
+import io.github.digitalsmile.goldberry.widget.Widget;
+import io.github.digitalsmile.goldberry.widget.WidgetRenderer;
 
 /// A widget that becomes something on screen.
 ///
@@ -19,7 +21,7 @@ import java.util.List;
 /// this box tree rather than replacing it: an immutable description is the ideal
 /// thing to diff, and it keeps a widget's job "describe yourself" rather than
 /// "mutate your render object"
-/// ([ADR-0069](../../../../../../book/src/adr/0069-the-render-tree-is-retained.md)).
+/// ([ADR-0069](../../../../../../../book/src/adr/0069-the-render-tree-is-retained.md)).
 public interface Paints extends Widget {
 
     /// What a render pass can offer a widget that needs more than its style.
@@ -69,7 +71,7 @@ public interface Paints extends Widget {
         /// bar have no two states to move between, and §8's subset has no
         /// `@keyframes` to express a loop with. So they are drawn as a function
         /// of this
-        /// ([ADR-0081](../../../../../../book/src/adr/0081-a-perpetual-loop-has-no-state.md)).
+        /// ([ADR-0081](../../../../../../../book/src/adr/0081-a-perpetual-loop-has-no-state.md)).
         ///
         /// Read **once per frame** by the renderer and handed to every node, so
         /// two spinners in one window are on the same tick rather than a few

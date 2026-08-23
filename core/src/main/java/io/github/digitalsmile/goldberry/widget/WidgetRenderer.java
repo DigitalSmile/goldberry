@@ -14,6 +14,8 @@ import io.github.digitalsmile.goldberry.text.ParagraphCache;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import io.github.digitalsmile.goldberry.widget.style.Paints;
+import io.github.digitalsmile.goldberry.widget.style.Styled;
 
 /// Turns a built element tree into a box tree, styling every node on the way.
 ///

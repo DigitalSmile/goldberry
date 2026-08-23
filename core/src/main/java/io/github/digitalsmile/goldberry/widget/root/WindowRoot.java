@@ -1,4 +1,4 @@
-package io.github.digitalsmile.goldberry.widget;
+package io.github.digitalsmile.goldberry.widget.root;
 
 import io.github.digitalsmile.goldberry.Overlay;
 import io.github.digitalsmile.goldberry.bind.Observable;
@@ -10,6 +10,11 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+import io.github.digitalsmile.goldberry.widget.style.Corner;
+import io.github.digitalsmile.goldberry.widget.style.Paints;
+import io.github.digitalsmile.goldberry.widget.style.Styled;
+import io.github.digitalsmile.goldberry.widget.ElementTree;
+import io.github.digitalsmile.goldberry.widget.Widget;
 
 /// The window's own node in the widget tree: the application's root, and whatever
 /// is floating over it.

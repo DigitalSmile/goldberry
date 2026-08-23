@@ -44,6 +44,14 @@ module io.github.digitalsmile.goldberry.core {
     // state hang off.
     exports io.github.digitalsmile.goldberry.widget;
 
+    // The widget layer, split by what each part does (ADR-0172): the attributes
+    // markup fills in, the styling a widget declares about itself, and the roots
+    // the toolkit supplies. `WidgetRenderer` stays beside `Element` on purpose --
+    // it is the element tree's own paint pass and shares its style cache.
+    exports io.github.digitalsmile.goldberry.widget.attr;
+    exports io.github.digitalsmile.goldberry.widget.style;
+    exports io.github.digitalsmile.goldberry.widget.root;
+
     // Observable values and the paths markup binds to (§9, ADR-0062). Exported
     // because the properties are the application's: it declares them, writes to
     // them, and registers the paths a markup file may name.
