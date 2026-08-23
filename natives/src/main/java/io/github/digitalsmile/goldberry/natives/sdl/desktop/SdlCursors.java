@@ -1,6 +1,6 @@
 package io.github.digitalsmile.goldberry.natives.sdl.desktop;
 
-import io.github.digitalsmile.goldberry.natives.Downcalls;
+import io.github.digitalsmile.goldberry.natives.sdl.calls.SdlCursorCalls;
 import io.github.digitalsmile.goldberry.natives.NativeLibrary;
 import io.github.digitalsmile.goldberry.natives.log.Logs;
 import java.lang.foreign.MemorySegment;
@@ -30,11 +30,7 @@ public final class SdlCursors implements AutoCloseable {
 
     private static final Logger LOG = Logs.of(SdlCursors.class);
 
-    private final MemorySegment createSystemCursor;
-    private final MemorySegment setCursor;
-    private final MemorySegment destroyCursor;
-    private final MemorySegment showCursor;
-    private final MemorySegment hideCursor;
+    private final SdlCursorCalls calls;
 
     private final Map<SdlSystemCursor, MemorySegment> cursors = new EnumMap<>(SdlSystemCursor.class);
     private SdlSystemCursor current;
@@ -45,11 +41,7 @@ public final class SdlCursors implements AutoCloseable {
     }
 
     SdlCursors(SymbolLookup lookup) {
-        this.createSystemCursor = Downcalls.symbol(lookup, "SDL_CreateSystemCursor");
-        this.setCursor = Downcalls.symbol(lookup, "SDL_SetCursor");
-        this.destroyCursor = Downcalls.symbol(lookup, "SDL_DestroyCursor");
-        this.showCursor = Downcalls.symbol(lookup, "SDL_ShowCursor");
-        this.hideCursor = Downcalls.symbol(lookup, "SDL_HideCursor");
+        this.calls = SdlCursorCalls.bind(lookup);
     }
 
     /// Shows `shape`, creating it the first time it is asked for.
@@ -83,13 +75,15 @@ public final class SdlCursors implements AutoCloseable {
 
     /// Makes the cursor visible. It is by default.
     public void show() {
-        toggle(showCursor, "SDL_ShowCursor");
+        // The result is dropped: SDL returns false only when there is no video
+        // subsystem, and there is one by the time anything here runs.
+        var ignoredShow = calls.showCursor().call();
     }
 
     /// Hides the cursor without confining it — what a text editor does while
     /// typing, and what a full-screen player does after a few idle seconds.
     public void hide() {
-        toggle(hideCursor, "SDL_HideCursor");
+        var ignoredHide = calls.hideCursor().call();
     }
 
     /// Destroys every cursor created here.
@@ -109,11 +103,7 @@ public final class SdlCursors implements AutoCloseable {
         }
         for (var entry : cursors.entrySet()) {
             if (!MemorySegment.NULL.equals(entry.getValue())) {
-                try {
-                    Downcalls.VOID__PTR.invokeExact(destroyCursor, entry.getValue());
-                } catch (Throwable t) {
-                    throw new IllegalStateException("SDL_DestroyCursor() failed", t);
-                }
+                calls.destroyCursor().call(entry.getValue());
             }
         }
         cursors.clear();
@@ -121,13 +111,7 @@ public final class SdlCursors implements AutoCloseable {
     }
 
     private MemorySegment create(SdlSystemCursor shape) {
-        MemorySegment cursor;
-        try {
-            cursor = (MemorySegment) Downcalls.PTR__INT.invokeExact(
-                    createSystemCursor, shape.value());
-        } catch (Throwable t) {
-            throw new IllegalStateException("SDL_CreateSystemCursor() failed", t);
-        }
+        var cursor = calls.createSystemCursor().call(shape.value());
         if (MemorySegment.NULL.equals(cursor)) {
             LOG.debug("SDL has no {} cursor on this platform: {}", shape, Sdl.get().lastError());
         }
@@ -136,21 +120,7 @@ public final class SdlCursors implements AutoCloseable {
 
     /// `bool SDL_SetCursor(SDL_Cursor*)` — false when SDL refused it.
     private boolean setCursor(MemorySegment cursor) {
-        try {
-            return (boolean) Downcalls.BOOL__PTR.invokeExact(setCursor, cursor);
-        } catch (Throwable t) {
-            throw new IllegalStateException("SDL_SetCursor() failed", t);
-        }
+        return calls.setCursor().call(cursor);
     }
 
-    /// `bool SDL_ShowCursor(void)` and its twin. The result is dropped: SDL
-    /// returns false only when there is no video subsystem, and there is one by
-    /// the time anything here runs.
-    private static void toggle(MemorySegment function, String name) {
-        try {
-            var ignored = (boolean) Downcalls.BOOL__VOID.invokeExact(function);
-        } catch (Throwable t) {
-            throw new IllegalStateException(name + "() failed", t);
-        }
-    }
 }

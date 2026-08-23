@@ -1,6 +1,6 @@
 package io.github.digitalsmile.goldberry.natives.sdl;
 
-import io.github.digitalsmile.goldberry.natives.Downcalls;
+import io.github.digitalsmile.goldberry.natives.sdl.calls.SdlEventWatchCalls;
 import io.github.digitalsmile.goldberry.natives.NativeLibrary;
 import io.github.digitalsmile.goldberry.natives.log.Logs;
 import java.lang.foreign.Arena;
@@ -74,8 +74,7 @@ public final class SdlEventWatch implements AutoCloseable {
     }
 
     private final Handler handler;
-    private final MemorySegment addEventWatch;
-    private final MemorySegment removeEventWatch;
+    private final SdlEventWatchCalls calls;
     private final Arena arena;
     private final MemorySegment stub;
 
@@ -93,8 +92,7 @@ public final class SdlEventWatch implements AutoCloseable {
 
     SdlEventWatch(SymbolLookup lookup, Handler handler) {
         this.handler = handler;
-        this.addEventWatch = Downcalls.symbol(lookup, "SDL_AddEventWatch");
-        this.removeEventWatch = Downcalls.symbol(lookup, "SDL_RemoveEventWatch");
+        this.calls = SdlEventWatchCalls.bind(lookup);
 
         // Shared rather than confined, because the stub is not called on one
         // thread: SDL runs a watch on whichever thread pushed the event, and a
@@ -122,11 +120,7 @@ public final class SdlEventWatch implements AutoCloseable {
             return;
         }
         closed = true;
-        try {
-            Downcalls.VOID__PTR_PTR.invokeExact(removeEventWatch, stub, MemorySegment.NULL);
-        } catch (Throwable t) {
-            throw new IllegalStateException("SDL_RemoveEventWatch() failed", t);
-        }
+        calls.removeEventWatch().call(stub, MemorySegment.NULL);
         arena.close();
     }
 
@@ -148,12 +142,7 @@ public final class SdlEventWatch implements AutoCloseable {
     /// `bool SDL_AddEventWatch(SDL_EventFilter, void *userdata)` — SDL's own
     /// answer, which is false when it could not grow its watch list.
     private boolean added() {
-        try {
-            return (boolean) Downcalls.BOOL__PTR_PTR.invokeExact(
-                    addEventWatch, stub, MemorySegment.NULL);
-        } catch (Throwable t) {
-            throw new IllegalStateException("SDL_AddEventWatch() failed", t);
-        }
+        return calls.addEventWatch().call(stub, MemorySegment.NULL);
     }
 
     // Restricted: see MeasureCallback -- same obligation, and a far simpler

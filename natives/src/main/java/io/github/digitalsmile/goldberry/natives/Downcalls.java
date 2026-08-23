@@ -124,10 +124,32 @@ public final class Downcalls {
         return lookup.find(symbol).orElse(null);
     }
 
-    // Restricted: linking a foreign signature is this class's entire purpose. No
-    // address is named here and none is checked -- the obligation that the
-    // signature matches the C prototype sits at the call site, where the
-    // argument types are, and ADR-0010 accepted it there.
+    /// The unbound handle for `descriptor`, which is what a holder's `FD_…`
+    /// constant is.
+    ///
+    /// Public because the holders are in packages of their own -- see
+    /// [io.github.digitalsmile.goldberry.natives.calls] -- and this is the one
+    /// linker they all share.
+    ///
+    /// Restricted: linking a foreign signature is this class's entire purpose. No
+    /// address is named here and none is checked -- the obligation that the
+    /// signature matches the C prototype sits on the holder, whose `call` states
+    /// the Java types, and ADR-0010 accepted that obligation.
+    @SuppressWarnings("restricted")
+    public static MethodHandle link(FunctionDescriptor descriptor) {
+        return LINKER.downcallHandle(descriptor);
+    }
+
+    /// What a binding raises when the crossing itself fails.
+    ///
+    /// Not a bad result code -- that is the caller's to check -- but the call not
+    /// happening: a signature that does not match the stub, or a handle that could
+    /// not be linked. Every binding class used to spell this for itself, in these
+    /// words.
+    public static IllegalStateException failure(String name, Throwable cause) {
+        return new IllegalStateException(name + "() failed", cause);
+    }
+
     @SuppressWarnings("restricted")
     private static MethodHandle of(MemoryLayout returns, MemoryLayout... arguments) {
         return LINKER.downcallHandle(FunctionDescriptor.of(returns, arguments));

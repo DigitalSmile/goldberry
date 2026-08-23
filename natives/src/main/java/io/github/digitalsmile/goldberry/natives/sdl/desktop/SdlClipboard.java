@@ -1,7 +1,7 @@
 package io.github.digitalsmile.goldberry.natives.sdl.desktop;
 
-import io.github.digitalsmile.goldberry.natives.Downcalls;
 import io.github.digitalsmile.goldberry.natives.NativeLibrary;
+import io.github.digitalsmile.goldberry.natives.sdl.calls.SdlClipboardCalls;
 import io.github.digitalsmile.goldberry.natives.log.Logs;
 import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;
@@ -43,10 +43,7 @@ public final class SdlClipboard {
         private static final SdlClipboard INSTANCE = new SdlClipboard(NativeLibrary.get().lookup());
     }
 
-    private final MemorySegment getClipboardText;
-    private final MemorySegment setClipboardText;
-    private final MemorySegment hasClipboardText;
-    private final MemorySegment free;
+    private final SdlClipboardCalls calls;
 
     /// The process's clipboard.
     public static SdlClipboard get() {
@@ -54,10 +51,7 @@ public final class SdlClipboard {
     }
 
     SdlClipboard(SymbolLookup lookup) {
-        this.getClipboardText = Downcalls.symbol(lookup, "SDL_GetClipboardText");
-        this.setClipboardText = Downcalls.symbol(lookup, "SDL_SetClipboardText");
-        this.hasClipboardText = Downcalls.symbol(lookup, "SDL_HasClipboardText");
-        this.free = Downcalls.symbol(lookup, "SDL_free");
+        this.calls = SdlClipboardCalls.bind(lookup);
     }
 
     /// Whether the clipboard holds any non-empty text.
@@ -66,11 +60,7 @@ public final class SdlClipboard {
     /// **round trip to the owning client** and this one is answered from what the
     /// compositor already told us.
     public boolean hasText() {
-        try {
-            return (boolean) Downcalls.BOOL__VOID.invokeExact(hasClipboardText);
-        } catch (Throwable t) {
-            throw new IllegalStateException("SDL_HasClipboardText() failed", t);
-        }
+        return calls.hasClipboardText().call();
     }
 
     /// The clipboard's text, or `""` when it holds none.
@@ -80,12 +70,7 @@ public final class SdlClipboard {
     /// returns an empty string rather than NULL on failure, so there is no third
     /// state to report.
     public String text() {
-        MemorySegment pointer;
-        try {
-            pointer = (MemorySegment) Downcalls.PTR__VOID.invokeExact(getClipboardText);
-        } catch (Throwable t) {
-            throw new IllegalStateException("SDL_GetClipboardText() failed", t);
-        }
+        var pointer = calls.getClipboardText().call();
         if (MemorySegment.NULL.equals(pointer)) {
             return "";
         }
@@ -106,7 +91,8 @@ public final class SdlClipboard {
     /// @return whether SDL accepted it
     public boolean text(String text) {
         try (var arena = Arena.ofConfined()) {
-            var accepted = setText(arena.allocateFrom(text == null ? "" : text));
+            var accepted = calls.setClipboardText()
+                    .call(arena.allocateFrom(text == null ? "" : text));
             if (!accepted) {
                 LOG.debug("SDL_SetClipboardText() refused: {}", Sdl.get().lastError());
             }
@@ -114,22 +100,10 @@ public final class SdlClipboard {
         }
     }
 
-    private boolean setText(MemorySegment text) {
-        try {
-            return (boolean) Downcalls.BOOL__PTR.invokeExact(setClipboardText, text);
-        } catch (Throwable t) {
-            throw new IllegalStateException("SDL_SetClipboardText() failed", t);
-        }
-    }
-
     /// `void SDL_free(void*)` — SDL's allocator, for the string it just handed
     /// over. See the note on this class.
     private void release(MemorySegment pointer) {
-        try {
-            Downcalls.VOID__PTR.invokeExact(free, pointer);
-        } catch (Throwable t) {
-            throw new IllegalStateException("SDL_free() failed", t);
-        }
+        calls.free().call(pointer);
     }
 
     // Restricted: the string's extent is not known until it is walked, which is

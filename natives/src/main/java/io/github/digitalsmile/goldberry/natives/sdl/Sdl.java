@@ -1,6 +1,6 @@
 package io.github.digitalsmile.goldberry.natives.sdl;
 
-import io.github.digitalsmile.goldberry.natives.Downcalls;
+import io.github.digitalsmile.goldberry.natives.sdl.calls.SdlCoreCalls;
 import io.github.digitalsmile.goldberry.natives.NativeLibrary;
 import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;
@@ -40,36 +40,11 @@ public final class Sdl {
         private static final Sdl INSTANCE = new Sdl(NativeLibrary.get().lookup());
     }
 
-    private final MemorySegment init;
-    private final MemorySegment initSubSystem;
-    private final MemorySegment quitSubSystem;
-    private final MemorySegment wasInit;
-    private final MemorySegment quit;
-    private final MemorySegment getError;
-    private final MemorySegment clearError;
-    private final MemorySegment getVersion;
-    private final MemorySegment getRevision;
-    private final MemorySegment getCurrentVideoDriver;
-    private final MemorySegment setHint;
-    private final MemorySegment getModState;
+
+    private final SdlCoreCalls calls;
 
     private Sdl(SymbolLookup lookup) {
-        // `bool` is C's _Bool -- one byte, not the four an int would take.
-        this.init = Downcalls.symbol(lookup, "SDL_Init");
-        this.initSubSystem = Downcalls.symbol(lookup, "SDL_InitSubSystem");
-        this.quitSubSystem = Downcalls.symbol(lookup, "SDL_QuitSubSystem");
-        this.wasInit = Downcalls.symbol(lookup, "SDL_WasInit");
-        this.quit = Downcalls.symbol(lookup, "SDL_Quit");
-        this.getError = Downcalls.symbol(lookup, "SDL_GetError");
-        this.clearError = Downcalls.symbol(lookup, "SDL_ClearError");
-        this.getVersion = Downcalls.symbol(lookup, "SDL_GetVersion");
-        this.getRevision = Downcalls.symbol(lookup, "SDL_GetRevision");
-        this.getCurrentVideoDriver = Downcalls.symbol(lookup, "SDL_GetCurrentVideoDriver");
-        this.setHint = Downcalls.symbol(lookup, "SDL_SetHint");
-        // `SDL_Keymod` is a Uint16, not an int -- the layout table's "Uint16"
-        // scalar row is what says so, and binding it as JAVA_INT would read two
-        // bytes of whatever follows it in the return register.
-        this.getModState = Downcalls.symbol(lookup, "SDL_GetModState");
+        this.calls = SdlCoreCalls.bind(lookup);
     }
 
     /// The SDL bindings, loading `libgoldberry` on first call.
@@ -82,13 +57,13 @@ public final class Sdl {
     /// Static linking makes this a build fact rather than a runtime one, which is
     /// the point: there is no system SDL to disagree with.
     public SdlVersion version() {
-        return SdlVersion.decode(callInt(getVersion, "SDL_GetVersion"));
+        return SdlVersion.decode(calls.getVersion().call());
     }
 
     /// SDL's source revision string. Empty when SDL was built from a tarball
     /// rather than a checkout.
     public String revision() {
-        return readString(callPointer(getRevision, "SDL_GetRevision"));
+        return readString(calls.getRevision().call());
     }
 
     /// The hint naming the video driver to use — `SDL_VIDEO_DRIVER`.
@@ -118,16 +93,7 @@ public final class Sdl {
     /// @return whether SDL accepted it
     public boolean setHint(String name, String value) {
         try (var arena = Arena.ofConfined()) {
-            return invokeHint(setHint, arena.allocateFrom(name), arena.allocateFrom(value));
-        }
-    }
-
-    private static boolean invokeHint(
-            MemorySegment function, MemorySegment name, MemorySegment value) {
-        try {
-            return (boolean) Downcalls.BOOL__PTR_PTR.invokeExact(function, name, value);
-        } catch (Throwable t) {
-            throw new IllegalStateException("SDL_SetHint() failed", t);
+            return calls.setHint().call(arena.allocateFrom(name), arena.allocateFrom(value));
         }
     }
 
@@ -140,7 +106,7 @@ public final class Sdl {
     ///
     /// Empty until video is initialized.
     public String videoDriver() {
-        return readString(callPointer(getCurrentVideoDriver, "SDL_GetCurrentVideoDriver"));
+        return readString(calls.getCurrentVideoDriver().call());
     }
 
     /// The modifier keys held **right now**, as SDL's `SDL_Keymod` bitmask.
@@ -160,14 +126,14 @@ public final class Sdl {
     /// not -- SDL's `SDL_KMOD_*` bits stop at 0x4000, but sign extension would
     /// still be a bug waiting for the day one is added above it.
     public int modifierState() {
-        return callShort(getModState, "SDL_GetModState") & 0xFFFF;
+        return calls.getModState().call() & 0xFFFF;
     }
 
     /// Initializes SDL.
     ///
     /// @throws SdlException if SDL refuses
     public void initialize(Collection<SdlSubsystem> subsystems) {
-        if (!callBoolean(init, "SDL_Init", SdlSubsystem.mask(subsystems))) {
+        if (!calls.init().call(SdlSubsystem.mask(subsystems))) {
             throw new SdlException("SDL_Init", lastError());
         }
     }
@@ -176,14 +142,14 @@ public final class Sdl {
     ///
     /// @throws SdlException if SDL refuses
     public void initializeSubsystems(Collection<SdlSubsystem> subsystems) {
-        if (!callBoolean(initSubSystem, "SDL_InitSubSystem", SdlSubsystem.mask(subsystems))) {
+        if (!calls.initSubSystem().call(SdlSubsystem.mask(subsystems))) {
             throw new SdlException("SDL_InitSubSystem", lastError());
         }
     }
 
     /// Shuts specific subsystems down. Cannot fail, by SDL's design.
     public void quitSubsystems(Collection<SdlSubsystem> subsystems) {
-        callVoid(quitSubSystem, "SDL_QuitSubSystem", SdlSubsystem.mask(subsystems));
+        calls.quitSubSystem().call(SdlSubsystem.mask(subsystems));
     }
 
     /// Which subsystems are currently initialized.
@@ -191,13 +157,13 @@ public final class Sdl {
     /// Usually a superset of what was requested, because SDL initializes implied
     /// subsystems too — video brings events with it.
     public Set<SdlSubsystem> wasInit() {
-        return SdlSubsystem.decode(callInt(wasInit, "SDL_WasInit", 0));
+        return SdlSubsystem.decode(calls.wasInit().call(0));
     }
 
     /// Shuts SDL down entirely. Process-global: this undoes every initialization,
     /// not only the caller's.
     public void quit() {
-        callVoid(quit, "SDL_Quit");
+        calls.quit().call();
     }
 
     /// The current thread's SDL error, empty when there is none.
@@ -205,76 +171,12 @@ public final class Sdl {
     /// Rarely useful directly — a failing call raises [SdlException] with this
     /// message already attached.
     public String lastError() {
-        return readString(callPointer(getError, "SDL_GetError"));
+        return readString(calls.getError().call());
     }
 
     /// Clears the current thread's SDL error.
     public void clearError() {
-        callBoolean(clearError, "SDL_ClearError");
-    }
-
-    private static boolean callBoolean(MemorySegment function, String name, int flags) {
-        try {
-            return (boolean) Downcalls.BOOL__INT.invokeExact(function, flags);
-        } catch (Throwable t) {
-            throw new IllegalStateException(name + "() failed", t);
-        }
-    }
-
-    private static boolean callBoolean(MemorySegment function, String name) {
-        try {
-            return (boolean) Downcalls.BOOL__VOID.invokeExact(function);
-        } catch (Throwable t) {
-            throw new IllegalStateException(name + "() failed", t);
-        }
-    }
-
-    private static short callShort(MemorySegment function, String name) {
-        try {
-            return (short) Downcalls.SHORT__VOID.invokeExact(function);
-        } catch (Throwable t) {
-            throw new IllegalStateException(name + "() failed", t);
-        }
-    }
-
-    private static int callInt(MemorySegment function, String name) {
-        try {
-            return (int) Downcalls.INT__VOID.invokeExact(function);
-        } catch (Throwable t) {
-            throw new IllegalStateException(name + "() failed", t);
-        }
-    }
-
-    private static int callInt(MemorySegment function, String name, int flags) {
-        try {
-            return (int) Downcalls.INT__INT.invokeExact(function, flags);
-        } catch (Throwable t) {
-            throw new IllegalStateException(name + "() failed", t);
-        }
-    }
-
-    private static MemorySegment callPointer(MemorySegment function, String name) {
-        try {
-            return (MemorySegment) Downcalls.PTR__VOID.invokeExact(function);
-        } catch (Throwable t) {
-            throw new IllegalStateException(name + "() failed", t);
-        }
-    }
-
-    private static void callVoid(MemorySegment function, String name) {
-        try {
-            Downcalls.VOID__VOID.invokeExact(function);
-        } catch (Throwable t) {
-            throw new IllegalStateException(name + "() failed", t);
-        }
-    }
-
-    private static void callVoid(MemorySegment function, String name, int flags) {
-        try {
-            Downcalls.VOID__INT.invokeExact(function, flags);
-        } catch (Throwable t) {
-            throw new IllegalStateException(name + "() failed", t);
-        }
+        calls.clearError().call();
     }
 
     /// SDL's strings are NUL-terminated and owned by SDL. The returned pointer is

@@ -1,6 +1,6 @@
 package io.github.digitalsmile.goldberry.natives.sdl;
 
-import io.github.digitalsmile.goldberry.natives.Downcalls;
+import io.github.digitalsmile.goldberry.natives.sdl.calls.SdlVideoCalls;
 import io.github.digitalsmile.goldberry.natives.NativeLibrary;
 import io.github.digitalsmile.goldberry.natives.layout.Layouts;
 import io.github.digitalsmile.goldberry.natives.log.Logs;
@@ -50,56 +50,24 @@ public final class SdlVideo {
         private static final SdlVideo INSTANCE = new SdlVideo(NativeLibrary.get().lookup());
     }
 
-    private final MemorySegment createWindow;
-    private final MemorySegment createPopupWindow;
-    private final MemorySegment setWindowPosition;
-    private final MemorySegment setWindowSize;
-    private final MemorySegment getWindowPosition;
-    private final MemorySegment getDisplayUsableBounds;
-    private final MemorySegment destroyWindow;
-    private final MemorySegment showWindow;
-    private final MemorySegment setWindowTitle;
-    private final MemorySegment getWindowSize;
-    private final MemorySegment getWindowSizeInPixels;
-    private final MemorySegment getWindowDisplayScale;
-    private final MemorySegment getDisplayForWindow;
-    private final MemorySegment getCurrentDisplayMode;
-    private final MemorySegment getWindowId;
-    private final MemorySegment getWindowSurface;
-    private final MemorySegment updateWindowSurfaceRects;
-    private final MemorySegment destroyWindowSurface;
-    private final MemorySegment startTextInput;
-    private final MemorySegment stopTextInput;
-    private final MemorySegment textInputActive;
-    private final MemorySegment pollEvent;
-    private final MemorySegment waitEventTimeout;
-    private final MemorySegment pushEvent;
+
+    private final SdlVideoCalls calls;
 
     private SdlVideo(SymbolLookup lookup) {
-        this.createWindow = Downcalls.symbol(lookup, "SDL_CreateWindow");
-        this.createPopupWindow = Downcalls.symbol(lookup, "SDL_CreatePopupWindow");
-        this.setWindowPosition = Downcalls.symbol(lookup, "SDL_SetWindowPosition");
-        this.setWindowSize = Downcalls.symbol(lookup, "SDL_SetWindowSize");
-        this.getWindowPosition = Downcalls.symbol(lookup, "SDL_GetWindowPosition");
-        this.getDisplayUsableBounds = Downcalls.symbol(lookup, "SDL_GetDisplayUsableBounds");
-        this.destroyWindow = Downcalls.symbol(lookup, "SDL_DestroyWindow");
-        this.showWindow = Downcalls.symbol(lookup, "SDL_ShowWindow");
-        this.setWindowTitle = Downcalls.symbol(lookup, "SDL_SetWindowTitle");
-        this.getWindowSize = Downcalls.symbol(lookup, "SDL_GetWindowSize");
-        this.getWindowSizeInPixels = Downcalls.symbol(lookup, "SDL_GetWindowSizeInPixels");
-        this.getWindowDisplayScale = Downcalls.symbol(lookup, "SDL_GetWindowDisplayScale");
-        this.getDisplayForWindow = optionalSymbol(lookup, "SDL_GetDisplayForWindow");
-        this.getCurrentDisplayMode = optionalSymbol(lookup, "SDL_GetCurrentDisplayMode");
-        this.getWindowId = Downcalls.symbol(lookup, "SDL_GetWindowID");
-        this.getWindowSurface = Downcalls.symbol(lookup, "SDL_GetWindowSurface");
-        this.updateWindowSurfaceRects = Downcalls.symbol(lookup, "SDL_UpdateWindowSurfaceRects");
-        this.destroyWindowSurface = Downcalls.symbol(lookup, "SDL_DestroyWindowSurface");
-        this.startTextInput = Downcalls.symbol(lookup, "SDL_StartTextInput");
-        this.stopTextInput = Downcalls.symbol(lookup, "SDL_StopTextInput");
-        this.textInputActive = Downcalls.symbol(lookup, "SDL_TextInputActive");
-        this.pollEvent = Downcalls.symbol(lookup, "SDL_PollEvent");
-        this.waitEventTimeout = Downcalls.symbol(lookup, "SDL_WaitEventTimeout");
-        this.pushEvent = Downcalls.symbol(lookup, "SDL_PushEvent");
+        this.calls = SdlVideoCalls.bind(lookup);
+        // Everything else is bound with `Downcalls.symbol`, which fails loudly,
+        // because a missing symbol there means a window cannot open and the export
+        // list is simply wrong. The display-mode pair is different: it feeds the
+        // frame pacer, which already has a defined answer for "the platform will
+        // not say" -- do not pace (ADR-0047). Making them mandatory would mean a
+        // `libgoldberry` built before they were added stops opening windows at
+        // all, to enable an optimization.
+        if (!calls.getDisplayForWindow().isAvailable()
+                || !calls.getCurrentDisplayMode().isAvailable()) {
+            LOG.debug("libgoldberry does not export SDL_GetDisplayForWindow and"
+                    + " SDL_GetCurrentDisplayMode; the frame loop will not be paced"
+                    + " to the display");
+        }
     }
 
     public static SdlVideo get() {
@@ -116,13 +84,12 @@ public final class SdlVideo {
         MemorySegment pointer;
         try (var arena = Arena.ofConfined()) {
             var titleSegment = arena.allocateFrom(title);
-            pointer = callPointer(createWindow, "SDL_CreateWindow",
-                    titleSegment, width, height, SdlWindowFlag.mask(flags));
+            pointer = calls.createWindow().call(titleSegment, width, height, SdlWindowFlag.mask(flags));
         }
         if (MemorySegment.NULL.equals(pointer)) {
             throw new SdlException("SDL_CreateWindow", Sdl.get().lastError());
         }
-        var id = callInt(getWindowId, "SDL_GetWindowID", pointer);
+        var id = calls.getWindowId().call(pointer);
         return new SdlWindowHandle(pointer, id);
     }
 
@@ -157,8 +124,7 @@ public final class SdlVideo {
             Collection<SdlWindowFlag> flags) {
 
         Objects.requireNonNull(parent, "parent");
-        var pointer = callPointer(createPopupWindow, "SDL_CreatePopupWindow",
-                parent.pointer(), offsetX, offsetY, width, height, SdlWindowFlag.mask(flags));
+        var pointer = calls.createPopupWindow().call(parent.pointer(), offsetX, offsetY, width, height, SdlWindowFlag.mask(flags));
         if (MemorySegment.NULL.equals(pointer)) {
             var error = Sdl.get().lastError();
             // SDL's own word for "the driver cannot do this", set by
@@ -170,7 +136,7 @@ public final class SdlVideo {
             }
             throw new SdlException("SDL_CreatePopupWindow", error);
         }
-        var id = callInt(getWindowId, "SDL_GetWindowID", pointer);
+        var id = calls.getWindowId().call(pointer);
         return java.util.Optional.of(new SdlWindowHandle(pointer, id));
     }
 
@@ -185,8 +151,7 @@ public final class SdlVideo {
         try (var arena = Arena.ofConfined()) {
             var x = arena.allocate(ValueLayout.JAVA_INT);
             var y = arena.allocate(ValueLayout.JAVA_INT);
-            if (!callBoolean(getWindowPosition, "SDL_GetWindowPosition",
-                    window.pointer(), x, y)) {
+            if (!calls.getWindowPosition().call(window.pointer(), x, y)) {
                 throw new SdlException("SDL_GetWindowPosition", Sdl.get().lastError());
             }
             return new SdlPoint(x.get(ValueLayout.JAVA_INT, 0), y.get(ValueLayout.JAVA_INT, 0));
@@ -205,8 +170,7 @@ public final class SdlVideo {
     private SdlRect displayUsableBounds(int displayId) {
         try (var arena = Arena.ofConfined()) {
             var rect = arena.allocate(RECT_SIZE);
-            if (!callBoolean(getDisplayUsableBounds, "SDL_GetDisplayUsableBounds",
-                    displayId, rect)) {
+            if (!calls.getDisplayUsableBounds().call(displayId, rect)) {
                 throw new SdlException("SDL_GetDisplayUsableBounds", Sdl.get().lastError());
             }
             return new SdlRect(
@@ -223,8 +187,7 @@ public final class SdlVideo {
     /// to answer with" state [#refreshRate] treats as unknowable rather than as a
     /// failure, and for the same reason: a menu still has to open.
     public java.util.Optional<SdlRect> windowUsableBounds(SdlWindowHandle window) {
-        var display = callInt(getDisplayForWindow, "SDL_GetDisplayForWindow",
-                window.pointer());
+        var display = calls.getDisplayForWindow().call(window.pointer());
         if (display == 0) {
             return java.util.Optional.empty();
         }
@@ -234,16 +197,14 @@ public final class SdlVideo {
     /// Moves a window. For a popup the coordinates are its parent's; for a
     /// top-level one they are the display's.
     public void setWindowPosition(SdlWindowHandle window, int x, int y) {
-        if (!callBoolean(setWindowPosition, "SDL_SetWindowPosition",
-                window.pointer(), x, y)) {
+        if (!calls.setWindowPosition().call(window.pointer(), x, y)) {
             throw new SdlException("SDL_SetWindowPosition", Sdl.get().lastError());
         }
     }
 
     /// Resizes a window, in logical pixels.
     public void setWindowSize(SdlWindowHandle window, int width, int height) {
-        if (!callBoolean(setWindowSize, "SDL_SetWindowSize",
-                window.pointer(), width, height)) {
+        if (!calls.setWindowSize().call(window.pointer(), width, height)) {
             throw new SdlException("SDL_SetWindowSize", Sdl.get().lastError());
         }
     }
@@ -254,19 +215,18 @@ public final class SdlVideo {
         }
         var pointer = window.pointer();
         window.markDestroyed();
-        callVoid(destroyWindow, "SDL_DestroyWindow", pointer);
+        calls.destroyWindow().call(pointer);
     }
 
     public void showWindow(SdlWindowHandle window) {
-        if (!callBoolean(showWindow, "SDL_ShowWindow", window.pointer())) {
+        if (!calls.showWindow().call(window.pointer())) {
             throw new SdlException("SDL_ShowWindow", Sdl.get().lastError());
         }
     }
 
     public void setWindowTitle(SdlWindowHandle window, String title) {
         try (var arena = Arena.ofConfined()) {
-            if (!callBoolean(setWindowTitle, "SDL_SetWindowTitle",
-                    window.pointer(), arena.allocateFrom(title))) {
+            if (!calls.setWindowTitle().call(window.pointer(), arena.allocateFrom(title))) {
                 throw new SdlException("SDL_SetWindowTitle", Sdl.get().lastError());
             }
         }
@@ -292,7 +252,7 @@ public final class SdlVideo {
     /// window over it would be worse than a field that only takes what the key
     /// events carry.
     public void startTextInput(SdlWindowHandle window) {
-        if (!callBoolean(startTextInput, "SDL_StartTextInput", window.pointer())) {
+        if (!calls.startTextInput().call(window.pointer())) {
             LOG.debug("SDL_StartTextInput() refused: {}", Sdl.get().lastError());
         }
     }
@@ -300,7 +260,7 @@ public final class SdlVideo {
     /// Stops delivering committed text to `window` — what focus leaving the last
     /// editable field does, and what lowers an on-screen keyboard.
     public void stopTextInput(SdlWindowHandle window) {
-        if (!callBoolean(stopTextInput, "SDL_StopTextInput", window.pointer())) {
+        if (!calls.stopTextInput().call(window.pointer())) {
             LOG.debug("SDL_StopTextInput() refused: {}", Sdl.get().lastError());
         }
     }
@@ -310,12 +270,12 @@ public final class SdlVideo {
     /// SDL's own answer rather than a flag kept here, so it stays right across
     /// anything else in the process that touches the same window.
     public boolean textInputActive(SdlWindowHandle window) {
-        return callBoolean(textInputActive, "SDL_TextInputActive", window.pointer());
+        return calls.textInputActive().call(window.pointer());
     }
 
     /// The window's size in logical pixels.
     public SdlSize windowSize(SdlWindowHandle window) {
-        return readSize(getWindowSize, "SDL_GetWindowSize", window);
+        return readSize(calls.getWindowSize()::call, "SDL_GetWindowSize", window);
     }
 
     /// The window's size in physical pixels — the size of its backing store.
@@ -324,14 +284,14 @@ public final class SdlVideo {
     /// actually gave it, and on a fractional scale that can differ by a pixel from
     /// anything computed. This is the number the frame must be rasterized at.
     public SdlSize windowSizeInPixels(SdlWindowHandle window) {
-        return readSize(getWindowSizeInPixels, "SDL_GetWindowSizeInPixels", window);
+        return readSize(
+                calls.getWindowSizeInPixels()::call, "SDL_GetWindowSizeInPixels", window);
     }
 
     /// The display scale of the monitor this window is on. Fractional in the
     /// ordinary case.
     public float displayScale(SdlWindowHandle window) {
-        var scale = callFloat(
-                getWindowDisplayScale, "SDL_GetWindowDisplayScale", window.pointer());
+        var scale = calls.getWindowDisplayScale().call(window.pointer());
         if (scale <= 0f) {
             throw new SdlException("SDL_GetWindowDisplayScale", Sdl.get().lastError());
         }
@@ -353,16 +313,17 @@ public final class SdlVideo {
     ///
     /// @return the refresh rate in Hz, or 0 if the platform will not say
     public float refreshRate(SdlWindowHandle window) {
-        if (getDisplayForWindow == null || getCurrentDisplayMode == null) {
+        if (!calls.getDisplayForWindow().isAvailable()
+                || !calls.getCurrentDisplayMode().isAvailable()) {
             // A libgoldberry built before these were exported. See
             // optionalSymbol(): an unpaced loop, not a dead window.
             return 0f;
         }
-        var displayId = callInt(getDisplayForWindow, "SDL_GetDisplayForWindow", window.pointer());
+        var displayId = calls.getDisplayForWindow().call(window.pointer());
         if (displayId == 0) {
             return 0f;
         }
-        var mode = callPointer(getCurrentDisplayMode, "SDL_GetCurrentDisplayMode", displayId);
+        var mode = calls.getCurrentDisplayMode().call(displayId);
         if (MemorySegment.NULL.equals(mode)) {
             return 0f;
         }
@@ -384,7 +345,7 @@ public final class SdlVideo {
         var traced = LOG.isTraceEnabled();
         var started = traced ? System.nanoTime() : 0L;
 
-        var surface = callPointer(getWindowSurface, "SDL_GetWindowSurface", window.pointer());
+        var surface = calls.getWindowSurface().call(window.pointer());
         if (MemorySegment.NULL.equals(surface)) {
             throw new SdlException("SDL_GetWindowSurface", Sdl.get().lastError());
         }
@@ -445,7 +406,7 @@ public final class SdlVideo {
     /// @throws SdlException if the surface is unavailable or in a format
     ///         Goldberry cannot paint into
     public SurfaceBuffer acquireSurface(SdlWindowHandle window) {
-        var surface = callPointer(getWindowSurface, "SDL_GetWindowSurface", window.pointer());
+        var surface = calls.getWindowSurface().call(window.pointer());
         if (MemorySegment.NULL.equals(surface)) {
             throw new SdlException("SDL_GetWindowSurface", Sdl.get().lastError());
         }
@@ -483,15 +444,14 @@ public final class SdlVideo {
     ///
     /// Called after a resize: SDL keeps the old surface alive until asked.
     public void invalidateSurface(SdlWindowHandle window) {
-        var ignored = callBoolean(
-                destroyWindowSurface, "SDL_DestroyWindowSurface", window.pointer());
+        var ignored = calls.destroyWindowSurface().call(window.pointer());
     }
 
     /// Takes the next queued event without waiting.
     ///
     /// @return whether an event was written into `buffer`
     public boolean pollEvent(SdlEventBuffer buffer) {
-        return callBoolean(pollEvent, "SDL_PollEvent", buffer.segment());
+        return calls.pollEvent().call(buffer.segment());
     }
 
     /// Waits up to `timeoutMillis` for an event.
@@ -501,8 +461,7 @@ public final class SdlVideo {
     ///
     /// @return whether an event was written into `buffer`
     public boolean waitEvent(SdlEventBuffer buffer, int timeoutMillis) {
-        return callBoolean(waitEventTimeout, "SDL_WaitEventTimeout",
-                buffer.segment(), timeoutMillis);
+        return calls.waitEventTimeout().call(buffer.segment(), timeoutMillis);
     }
 
     /// Posts a no-op user event, waking a [#waitEvent] in progress.
@@ -515,7 +474,7 @@ public final class SdlVideo {
             var event = arena.allocate(Layouts.SDL_EVENT.layout());
             event.fill((byte) 0);
             event.set(ValueLayout.JAVA_INT, 0, SdlEventType.USER.value());
-            var ignored = callBoolean(pushEvent, "SDL_PushEvent", event);
+            var ignored = calls.pushEvent().call(event);
         }
     }
 
@@ -529,15 +488,24 @@ public final class SdlVideo {
     ///
     /// @return whether SDL accepted it; an event watch may refuse one
     public boolean push(SdlEventBuffer buffer) {
-        return callBoolean(pushEvent, "SDL_PushEvent",
-                Objects.requireNonNull(buffer, "buffer").segment());
+        return calls.pushEvent().call(Objects.requireNonNull(buffer, "buffer").segment());
     }
 
-    private SdlSize readSize(MemorySegment function, String name, SdlWindowHandle window) {
+    /// `SDL_GetWindowSize` and `SDL_GetWindowSizeInPixels` are the same C shape
+    /// and the same three lines of arena work, so they share this. The holder is
+    /// passed as its own `call` rather than as itself: the two are separate types,
+    /// which is what keeps each one's handle a constant (ADR-0173), and a method
+    /// reference is how one function takes either.
+    @FunctionalInterface
+    private interface SizeQuery {
+        boolean call(MemorySegment window, MemorySegment width, MemorySegment height);
+    }
+
+    private SdlSize readSize(SizeQuery function, String name, SdlWindowHandle window) {
         try (var arena = Arena.ofConfined()) {
             var width = arena.allocate(ValueLayout.JAVA_INT);
             var height = arena.allocate(ValueLayout.JAVA_INT);
-            if (!callBoolean(function, name, window.pointer(), width, height)) {
+            if (!function.call(window.pointer(), width, height)) {
                 throw new SdlException(name, Sdl.get().lastError());
             }
             return new SdlSize(width.get(ValueLayout.JAVA_INT, 0), height.get(ValueLayout.JAVA_INT, 0));
@@ -566,8 +534,7 @@ public final class SdlVideo {
                             damage[i * 4 + 2], damage[i * 4 + 3]);
                 }
             }
-            if (!callBoolean(updateWindowSurfaceRects, "SDL_UpdateWindowSurfaceRects",
-                    window.pointer(), rects, count)) {
+            if (!calls.updateWindowSurfaceRects().call(window.pointer(), rects, count)) {
                 throw new SdlException("SDL_UpdateWindowSurfaceRects", Sdl.get().lastError());
             }
         }
@@ -642,137 +609,6 @@ public final class SdlVideo {
     // every call and — worse — meant the shape was decided at run time from the
     // arguments rather than at compile time from the constant (ADR-0161).
 
-    private static MemorySegment callPointer(
-            MemorySegment function, String name, MemorySegment title, int width, int height,
-            long flags) {
-        try {
-            return (MemorySegment) Downcalls.PTR__PTR_INT_INT_LONG.invokeExact(
-                    function, title, width, height, flags);
-        } catch (Throwable t) {
-            throw failure(name, t);
-        }
-    }
-
-    private static MemorySegment callPointer(
-            MemorySegment function, String name, MemorySegment parent, int offsetX, int offsetY,
-            int width, int height, long flags) {
-        try {
-            return (MemorySegment) Downcalls.PTR__PTR_INT_INT_INT_INT_LONG.invokeExact(
-                    function, parent, offsetX, offsetY, width, height, flags);
-        } catch (Throwable t) {
-            throw failure(name, t);
-        }
-    }
-
-    private static MemorySegment callPointer(MemorySegment function, String name, int display) {
-        try {
-            return (MemorySegment) Downcalls.PTR__INT.invokeExact(function, display);
-        } catch (Throwable t) {
-            throw failure(name, t);
-        }
-    }
-
-    private static MemorySegment callPointer(
-            MemorySegment function, String name, MemorySegment argument) {
-        try {
-            return (MemorySegment) Downcalls.PTR__PTR.invokeExact(function, argument);
-        } catch (Throwable t) {
-            throw failure(name, t);
-        }
-    }
-
-    private static int callInt(MemorySegment function, String name, MemorySegment argument) {
-        try {
-            return (int) Downcalls.INT__PTR.invokeExact(function, argument);
-        } catch (Throwable t) {
-            throw failure(name, t);
-        }
-    }
-
-    private static float callFloat(MemorySegment function, String name, MemorySegment argument) {
-        try {
-            return (float) Downcalls.FLOAT__PTR.invokeExact(function, argument);
-        } catch (Throwable t) {
-            throw failure(name, t);
-        }
-    }
-
-    private static void callVoid(MemorySegment function, String name, MemorySegment argument) {
-        try {
-            Downcalls.VOID__PTR.invokeExact(function, argument);
-        } catch (Throwable t) {
-            throw failure(name, t);
-        }
-    }
-
-    private static boolean callBoolean(
-            MemorySegment function, String name, MemorySegment argument) {
-        try {
-            return (boolean) Downcalls.BOOL__PTR.invokeExact(function, argument);
-        } catch (Throwable t) {
-            throw failure(name, t);
-        }
-    }
-
-    private static boolean callBoolean(
-            MemorySegment function, String name, int display, MemorySegment out) {
-        try {
-            return (boolean) Downcalls.BOOL__INT_PTR.invokeExact(function, display, out);
-        } catch (Throwable t) {
-            throw failure(name, t);
-        }
-    }
-
-    private static boolean callBoolean(
-            MemorySegment function, String name, MemorySegment window, int value) {
-        try {
-            return (boolean) Downcalls.BOOL__PTR_INT.invokeExact(function, window, value);
-        } catch (Throwable t) {
-            throw failure(name, t);
-        }
-    }
-
-    private static boolean callBoolean(
-            MemorySegment function, String name, MemorySegment window, MemorySegment argument) {
-        try {
-            return (boolean) Downcalls.BOOL__PTR_PTR.invokeExact(function, window, argument);
-        } catch (Throwable t) {
-            throw failure(name, t);
-        }
-    }
-
-    private static boolean callBoolean(
-            MemorySegment function, String name, MemorySegment window, int first, int second) {
-        try {
-            return (boolean) Downcalls.BOOL__PTR_INT_INT.invokeExact(
-                    function, window, first, second);
-        } catch (Throwable t) {
-            throw failure(name, t);
-        }
-    }
-
-    private static boolean callBoolean(
-            MemorySegment function, String name, MemorySegment window, MemorySegment first,
-            MemorySegment second) {
-        try {
-            return (boolean) Downcalls.BOOL__PTR_PTR_PTR.invokeExact(
-                    function, window, first, second);
-        } catch (Throwable t) {
-            throw failure(name, t);
-        }
-    }
-
-    private static boolean callBoolean(
-            MemorySegment function, String name, MemorySegment window, MemorySegment rects,
-            int count) {
-        try {
-            return (boolean) Downcalls.BOOL__PTR_PTR_INT.invokeExact(
-                    function, window, rects, count);
-        } catch (Throwable t) {
-            throw failure(name, t);
-        }
-    }
-
     /// An SdlException raised on the way out of a call is SDL's answer, not a
     /// broken binding, and is rethrown untouched — which is what the old
     /// `invokeWithArguments` helper did and for the same reason.
@@ -783,26 +619,6 @@ public final class SdlVideo {
         return new IllegalStateException(name + "() failed", cause);
     }
 
-
-    /// Binds a symbol the toolkit can do without.
-    ///
-    /// Everything else here is bound with [Downcalls#symbol], which fails loudly,
-    /// because a missing symbol there means a window cannot open and the export
-    /// list is simply wrong. The display-mode calls are different: they feed the
-    /// frame pacer, which already has a defined answer for "the platform will not
-    /// say" — do not pace (ADR-0047). Making them mandatory would mean a
-    /// `libgoldberry` built before they were added stops opening windows at all,
-    /// to enable an optimization.
-    ///
-    /// @return the address, or null if this library does not export it
-    private static MemorySegment optionalSymbol(SymbolLookup lookup, String symbol) {
-        var address = Downcalls.optionalSymbol(lookup, symbol);
-        if (address == null) {
-            LOG.debug("libgoldberry does not export {}; the frame loop will not be paced"
-                    + " to the display", symbol);
-        }
-        return address;
-    }
 
     /// SDL's own drawing surface, borrowed.
     ///

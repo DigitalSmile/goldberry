@@ -1,5 +1,6 @@
 package io.github.digitalsmile.goldberry.natives;
 
+import io.github.digitalsmile.goldberry.natives.calls.ShimCalls;
 import io.github.digitalsmile.goldberry.natives.log.Logs;
 import io.github.digitalsmile.goldberry.natives.log.Startup;
 import java.lang.foreign.MemorySegment;
@@ -9,9 +10,9 @@ import org.slf4j.Logger;
 /// BindingRegistry for libgoldberry's own three exported functions.
 ///
 /// This is the first hand-written binding (ADR-0010) and the template for every
-/// other: look the symbol up once, keep its address in a final field, call it
-/// through the [Downcalls] constant that names its signature exactly, and never
-/// let a [MemorySegment] out of the `natives` module untyped.
+/// other: declare what is bound as a [ShimCalls], call each function by name, and
+/// never let a [MemorySegment] out of the `natives` module untyped. The holder
+/// keeps the address and the signature together, so this class has neither.
 public final class GoldberryShim {
 
     /// The ABI this Java code was written against. `goldberry_shim.c` must agree.
@@ -29,19 +30,10 @@ public final class GoldberryShim {
         private static final GoldberryShim INSTANCE = create();
     }
 
-    /// `int goldberry_abi_version(void)`
-    private final MemorySegment abiVersion;
-
-    /// `const goldberry_layout_entry* goldberry_layout_table(void)`
-    private final MemorySegment layoutTable;
-
-    /// `int goldberry_layout_count(void)`
-    private final MemorySegment layoutCount;
+    private final ShimCalls calls;
 
     private GoldberryShim(SymbolLookup lookup) {
-        this.abiVersion = Downcalls.symbol(lookup, "goldberry_abi_version");
-        this.layoutTable = Downcalls.symbol(lookup, "goldberry_layout_table");
-        this.layoutCount = Downcalls.symbol(lookup, "goldberry_layout_count");
+        this.calls = ShimCalls.bind(lookup);
     }
 
     /// The shim bindings, loading and ABI-checking the library on first call.
@@ -51,11 +43,7 @@ public final class GoldberryShim {
 
     /// The ABI version reported by the loaded library.
     public int abiVersion() {
-        try {
-            return (int) Downcalls.INT__VOID.invokeExact(abiVersion);
-        } catch (Throwable t) {
-            throw new IllegalStateException("goldberry_abi_version() failed", t);
-        }
+        return calls.abiVersion().call();
     }
 
     /// Pointer to the first entry of the layout table.
@@ -63,20 +51,12 @@ public final class GoldberryShim {
     /// The returned segment is zero-length; callers resize it against
     /// [#layoutCount()] rather than trusting the pointer's own bounds.
     public MemorySegment layoutTable() {
-        try {
-            return (MemorySegment) Downcalls.PTR__VOID.invokeExact(layoutTable);
-        } catch (Throwable t) {
-            throw new IllegalStateException("goldberry_layout_table() failed", t);
-        }
+        return calls.layoutTable().call();
     }
 
     /// Number of entries in the layout table.
     public int layoutCount() {
-        try {
-            return (int) Downcalls.INT__VOID.invokeExact(layoutCount);
-        } catch (Throwable t) {
-            throw new IllegalStateException("goldberry_layout_count() failed", t);
-        }
+        return calls.layoutCount().call();
     }
 
     private static GoldberryShim create() {
