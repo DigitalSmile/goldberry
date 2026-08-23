@@ -142,6 +142,55 @@ class FrameTest {
         assertDoesNotThrow(frame::end, "ending twice does nothing");
     }
 
+    @Test
+    @DisplayName("over() is the way in from another package, and ends the same way")
+    void theFactoryIsTheBoundary() {
+        // `Window` lives in the shell package and this one is `paint`, so the
+        // constructor it used to call is out of reach and this factory is what it
+        // calls instead
+        // ([ADR-0172](../../../../../../../book/src/adr/0172-a-package-is-a-role-and-the-module-is-the-fence.md)).
+        // The contract that used to be kept by package-privacy -- a frame is
+        // valid only until it ends -- has to be kept by the frame now.
+        var buffer = PixelBuffer.allocate(new PhysicalSize(4, 4), PixelFormat.BGRA32_PREMULTIPLIED);
+        var frame = Frame.over(buffer, DisplayScale.ONE);
+
+        assertEquals(new LogicalSize(4, 4), frame.size());
+        assertDoesNotThrow(() -> frame.fill(0xFF102030));
+        frame.end();
+
+        assertThrows(IllegalStateException.class, () -> frame.fill(0xFFFFFFFF),
+                "a frame handed out through the factory is no more usable after ending"
+                        + " than one built in its own package");
+        assertDoesNotThrow(frame::end, "ending twice does nothing");
+    }
+
+    @Test
+    @DisplayName("over() with a pinned worker count paints what the automatic one does")
+    void pinnedWorkersPaintTheSamePixels() {
+        var automatic = PixelBuffer.allocate(
+                new PhysicalSize(4, 4), PixelFormat.BGRA32_PREMULTIPLIED);
+        var pinned = PixelBuffer.allocate(
+                new PhysicalSize(4, 4), PixelFormat.BGRA32_PREMULTIPLIED);
+
+        var one = Frame.over(automatic, DisplayScale.ONE);
+        one.fillRect(1, 1, 2, 2, 0x80204060);
+        one.end();
+
+        // Zero is synchronous, which is what a 4x4 surface gets from
+        // `PaintThreads` anyway -- the point is that the three-argument factory
+        // reaches the same code and not that threading changes the picture.
+        var other = Frame.over(pinned, DisplayScale.ONE, 0);
+        other.fillRect(1, 1, 2, 2, 0x80204060);
+        other.end();
+
+        for (var y = 0; y < 4; y++) {
+            for (var x = 0; x < 4; x++) {
+                assertEquals(pixel(automatic, x, y), pixel(pinned, x, y),
+                        "pixel (" + x + ", " + y + ")");
+            }
+        }
+    }
+
     /// The pixel at `(x, y)` as `0xAARRGGBB`. The buffer is already normalised
     /// to little-endian by [PixelBuffer].
     private static int pixel(PixelBuffer buffer, int x, int y) {

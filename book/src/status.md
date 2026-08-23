@@ -2895,6 +2895,68 @@ is what enforces the rule that raw `MemorySegment` never escapes `:natives`, and
 it is what makes `--enable-native-access` targetable under JEP 472. See
 [ADR-0007](adr/0007-jpms-modules-enforce-the-native-boundary.md).
 
+## Package layout
+
+**Done.** `:widgets` had been split by group and then by control
+([ADR-0091](adr/0091-one-module-a-package-per-control.md),
+[ADR-0065](adr/0065-a-part-is-styleable-and-not-constructible.md)); `:core` and
+`:natives` had not, and four packages carried a third of the toolkit —
+`…goldberry.css` at 23 types, `…goldberry.backend` at 21, `…natives.yoga` at 22,
+`…natives.blend2d` at 20. A package that size is a folder, not a boundary.
+
+Every package is now named for **the part its contents play**
+([ADR-0172](adr/0172-a-package-is-a-role-and-the-module-is-the-fence.md)), and
+`docs/ARCHITECTURE.md` §2.1 is the map.
+
+| Module | Packages before | After | Largest package |
+|---|---|---|---|
+| `:core` | 15 | 35 | 10 |
+| `:natives` | 7 | 15 | 12 |
+| `:widgets` | 38 | 39 | 11 |
+
+- **The CSS engine is a compiler, so it reads like one** — `css.parse`,
+  `css.select`, `css.cascade`, `css.value`, with `css` itself holding the sheet an
+  application loads and the `ComputedStyle` it produces.
+- **Input is split by the part it plays** — what arrives (`input.event`), the
+  vocabulary an accelerator is written in (`input.key`), the snapshot it is routed
+  against (`input.hit`), and the interfaces a widget implements to hear any of it
+  (`input.handler`).
+- **A native library is split where the foreign memory stops.** The wrappers that
+  hold a handle stay beside the binding class they are the only callers of; the
+  enums, which map a C constant to a Java name and touch nothing, get packages of
+  their own. `MeasureCallback`, `MeasureProbe`, `SdlWindowHandle`,
+  `SdlEventBuffer` and `SdlEventWatch` were each moved out and moved back the
+  moment they turned out to traffic in `MemorySegment`.
+- **Eleven members became public**, each with a doc comment saying why. The one
+  worth watching is `Frame.end()`: it used to be unreachable from outside its
+  package and is now merely wrong to call, so the frame enforces its own lifetime
+  instead — ending twice is a no-op, painting afterwards throws.
+- **Two splits were tried and reverted.** `WidgetRenderer` reads and writes
+  `Element`'s package-private style cache, so it is the element tree's own paint
+  pass rather than a neighbouring role. And the root `…goldberry` package keeps
+  its ten types because `Launcher` and `GoldberryRuntime` make twenty-one calls
+  into `Window`'s package-private event intake — a toolkit whose `Window` offers
+  an application a `handlePointerMoved` has published its event loop by accident.
+
+Two things now hold this in place that are tests rather than prose, and both were
+checked against a deliberate break:
+
+- **`ExportedSurfaceTest`** (`:natives`) reads the module's own descriptor and its
+  own class files and fails if any member reachable from outside mentions a
+  `MemorySegment`. It discovers its subject rather than listing it, so a package
+  added next month is checked next month. This is `docs/ARCHITECTURE.md` §3.1
+  becoming a check instead of a claim.
+- **`WrittenNamesTest`** (`:weaver`) resolves every class name the weavers write
+  into bytecode as text. Splitting `bind` turned `ModelWeaver`'s one package
+  prefix into three, and nothing in the compiler would have caught getting that
+  wrong: the weave would succeed and a woven native image would fail to start much
+  later with a `NoClassDefFoundError` naming a package that no longer exists.
+
+The moves were made by `tools/refactor/move_package.py`, which is kept in the
+tree. A package move is four edits, and the fourth is the one nobody does by
+hand: the file *left behind* that used a type without an import, because it used
+to share a package with it.
+
 ## Native artifacts
 
 Every artifact is built on a native runner ([ADR-0012](adr/0012-native-ci-runners-with-a-pinned-glibc.md));

@@ -58,6 +58,52 @@ Non-goals for v1: mobile/touch profiles, embedded HTML, RTL text layout, full IM
 └────────────────────────────┴───────────────────────────┘
 ```
 
+### 2.1 Package map
+
+A package is named for the **part its contents play**, not for the library or
+the file they came from (ADR-0172). Read down a module's package list and you
+should be reading the pipeline above.
+
+**`:core`** — 35 packages. The root `io.github.digitalsmile.goldberry` holds the
+running shell and nothing else: `Goldberry`, `Application`, `Host`, `Launcher`,
+`GoldberryRuntime`, `Window`, `Popup`, `Placement`, `Overlay`,
+`ContextMenuHandler`. Those ten are one role — `Launcher` and `GoldberryRuntime`
+make twenty-one calls into `Window`'s package-private event intake, and splitting
+them would publish it (ADR-0172 records the count and the decision).
+
+| group | packages |
+| --- | --- |
+| style | `css` (the sheet and the computed result) · `css.parse` · `css.select` · `css.cascade` · `css.value` |
+| widgets | `widget` (the three trees and the renderer over them) · `widget.attr` · `widget.style` · `widget.root` |
+| input | `input` (the router) · `input.event` · `input.key` · `input.hit` · `input.handler` |
+| binding | `bind` (what a model declares) · `bind.registry` · `bind.runtime` |
+| paint | `paint` (the frame, the layer and the box painter) · `paint.tree` (the retained render tree) · `stats` |
+| backend | `render` (the SPI) · `render.model` · `render.event` · `render.window` · `render.popup` · `render.backend.sdl3` · `render.backend.headless` |
+| text | `text` (paragraphs and lines) · `text.font` |
+| the rest | `kdl` · `motion` · `icon` · `assets` · `reload` |
+
+**`:natives`** — 15 packages, split where the foreign memory stops. Each
+library's **wrappers that hold a handle** stay beside the binding class they are
+the only callers of; the enums and values, which touch no foreign memory at all,
+get packages of their own. So `blend2d` keeps `BlendContext` next to `Blend2D`,
+and `blend2d.enums` holds the tables of C constants; `yoga` keeps `YogaNode` and
+`MeasureCallback`, `yoga.style` holds the flexbox vocabulary and `yoga.measure`
+the rest of the measure protocol; `sdl` keeps `SdlVideo`, `SdlWindowHandle` and
+the event plumbing, with `sdl.event`, `sdl.window` and `sdl.desktop` beside it.
+`natives` itself and `natives.layout` stay unexported, per §3.1.
+
+**`:widgets`** — 39 packages, one per control since ADR-0091 and ADR-0065. The
+module root holds the four pieces of furniture an application wires a window up
+with (`Widgets`, `Controls`, `Icons`, `Density`); `widgets.markup` holds the
+contract a widget *author* names — `@Markup`, `Inflatable`, `WidgetCatalog`,
+`Wiring`.
+
+Two rules keep this from decaying, and both are tests rather than prose:
+`ExportedSurfaceTest` reads `:natives`' own descriptor and fails if anything
+reachable from outside it mentions a `MemorySegment` (§3.1), and
+`WrittenNamesTest` resolves every class name the weaver writes into bytecode as
+text — the one kind of package reference no compiler checks.
+
 ## 3. Native core
 
 | Library      | Role                          | Notes |

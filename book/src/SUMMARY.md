@@ -181,6 +181,7 @@
 - [ADR-0169 A field is silent until you leave it](adr/0169-a-field-is-silent-until-you-leave-it.md)
 - [ADR-0170 A document names an object, and a label hands focus down](adr/0170-a-document-names-an-object-and-a-label-hands-focus-down.md)
 - [ADR-0171 A column is an x, and a width arrives late](adr/0171-a-column-is-an-x-and-a-width-arrives-late.md)
+- [ADR-0172 A package is a role, and the module is the fence](adr/0172-a-package-is-a-role-and-the-module-is-the-fence.md)
 
 ---
 
