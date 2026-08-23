@@ -63,6 +63,7 @@ class RecordWitherTest {
                 io.github.digitalsmile.goldberry.natives.yoga.style.FlexDirection.COLUMN,
                 io.github.digitalsmile.goldberry.natives.yoga.style.Justify.CENTER,
                 io.github.digitalsmile.goldberry.natives.yoga.style.Align.FLEX_END,
+                io.github.digitalsmile.goldberry.natives.yoga.style.Wrap.WRAP_REVERSE,
                 length(11),
                 length(22),
                 new io.github.digitalsmile.goldberry.natives.yoga.Limits(
@@ -91,6 +92,7 @@ class RecordWitherTest {
                 .direction(io.github.digitalsmile.goldberry.natives.yoga.style.FlexDirection.COLUMN)
                 .justifyContent(io.github.digitalsmile.goldberry.natives.yoga.style.Justify.CENTER)
                 .alignItems(io.github.digitalsmile.goldberry.natives.yoga.style.Align.FLEX_END)
+                .wrap(io.github.digitalsmile.goldberry.natives.yoga.style.Wrap.WRAP_REVERSE)
                 .width(length(11))
                 .height(length(22))
                 .limits(new io.github.digitalsmile.goldberry.natives.yoga.Limits(

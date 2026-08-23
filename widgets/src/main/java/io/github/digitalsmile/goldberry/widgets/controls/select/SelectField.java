@@ -258,14 +258,14 @@ record SelectField(
     /// chips cannot say.
     @Override
     public List<Widget> children() {
-        var parts = new java.util.ArrayList<Widget>(chips.size() + 2);
-        parts.addAll(chips);
-        if (!chips.isEmpty() && editor == null) {
-            // The chevron belongs at the far edge, and chips do not grow to put
-            // it there -- `select-value` does that job in the single-valued
-            // control and an editor does it in a combobox, so a field showing
-            // chips is the one shape with nothing between them and the mark.
-            parts.add(new io.github.digitalsmile.goldberry.widgets.core.Spacer(Attributes.NONE));
+        var parts = new java.util.ArrayList<Widget>(3);
+        if (!chips.isEmpty()) {
+            // One box holding all of them, rather than the chips as siblings of
+            // the chevron. That box is what wraps -- a *field* that wrapped would
+            // drop the chevron onto a second line under the chips, which is what
+            // it did until a golden image showed it (ADR-0192) -- and it grows,
+            // which is the job the spacer here used to do.
+            parts.add(new SelectChips(chips));
         }
         if (editor != null) {
             // §3: "makes the closed control an editable `text-input`" — literally

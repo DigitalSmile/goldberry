@@ -1126,17 +1126,34 @@ select text-input:focus {
    one holding a word. `align-items` rather than a height, so the control grows
    with what is in it -- a select with five values chosen is genuinely a taller
    control, and clipping it would hide what the user picked. */
-/* **No `flex-wrap`**, and the chips therefore shrink rather than wrapping onto a
-   second line. §8's subset has no such property -- Yoga has the setter bound and
-   `Box` has no field for it -- so writing one only logged "ignoring unsupported
-   property" once per frame and did nothing (ADR-0187). What holds instead: a
-   chip shrinks, and a field with more chips than it can show shows fewer of them
-   whole. Adding `flex-wrap` to the subset is the real answer and is filed. */
+/* A field holding chips is taller than one holding a word, and grows with what
+   is in it: `height: auto` with a minimum, so a select with five values chosen
+   is genuinely a taller control and clipping it would hide what the user picked.
+   The field itself does **not** wrap -- see `select-chips` below. */
 select.multiple {
   gap: 4px;
   height: auto;
   min-height: 32px;
   padding: 4px 8px;
+  align-items: center;
+}
+
+/* The rule §8's subset gained `flex-wrap` for (ADR-0192). Before it the chips
+   shrank -- Yoga's default is one line however much it overflows, and shrinking
+   is what a flex item does when there is nowhere else to go -- so a field with
+   five values chosen showed five squeezed chips rather than two rows of whole
+   ones.
+
+   It is on the chips' own box rather than on the field because the field is a
+   row of the chips *and the chevron*: wrapping there drops the mark onto a
+   second line under them, which is a worse picture than the one it was fixing.
+   `flex-grow` is what pushes the chevron to the far edge, a job the field used
+   to give a `spacer`. */
+select-chips {
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 4px;
+  flex-grow: 1;
   align-items: center;
 }
 

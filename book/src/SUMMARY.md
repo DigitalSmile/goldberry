@@ -201,6 +201,7 @@
 - [ADR-0189 No popup holds the keyboard](adr/0189-no-popup-holds-the-keyboard.md)
 - [ADR-0190 A content module brings its own natives](adr/0190-a-content-module-brings-its-own-natives.md)
 - [ADR-0191 A tray is a menu somebody else draws](adr/0191-a-tray-is-a-menu-somebody-else-draws.md)
+- [ADR-0192 A row of chips wraps, and the chevron does not](adr/0192-a-row-of-chips-wraps-and-the-chevron-does-not.md)
 
 ---
 

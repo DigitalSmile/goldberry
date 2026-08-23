@@ -10,6 +10,7 @@ import io.github.digitalsmile.goldberry.natives.yoga.style.FlexDirection;
 import io.github.digitalsmile.goldberry.natives.yoga.Insets;
 import io.github.digitalsmile.goldberry.natives.yoga.Limits;
 import io.github.digitalsmile.goldberry.natives.yoga.style.PositionType;
+import io.github.digitalsmile.goldberry.natives.yoga.style.Wrap;
 import io.github.digitalsmile.goldberry.natives.yoga.style.Justify;
 import io.github.digitalsmile.goldberry.natives.yoga.style.Overflow;
 import io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength;
@@ -64,6 +65,10 @@ public record ComputedStyle(
         FlexDirection direction,
         Justify justifyContent,
         Align alignItems,
+        // §8 has listed `flex-wrap` from the start and nothing had needed it
+        // either: every row in the catalog was a row that fitted, until `select
+        // multiple` grew a row of chips (ADR-0192).
+        Wrap wrap,
         StyleLength width,
         StyleLength height,
         // §8 listed `min-width` / `max-width` from the start and nothing had
@@ -116,6 +121,8 @@ public record ComputedStyle(
             FlexDirection.ROW,
             Justify.FLEX_START,
             Align.STRETCH,
+            // One line, however much it overflows -- Yoga's default and CSS's.
+            Wrap.NO_WRAP,
             StyleLength.UNDEFINED,
             StyleLength.UNDEFINED,
             // No limit on any axis, which is Yoga's default and CSS's. Undefined
@@ -245,6 +252,15 @@ public record ComputedStyle(
 
             case "align-items" -> keyword(value, Align.class)
                     .map(this::alignItems)
+                    .orElseGet(() -> dropped(property, value));
+
+            // Not `keyword(value, Wrap.class)`: CSS spells the default `nowrap`
+            // as one word and `YGWrap` spells it `NoWrap`, so the two disagree
+            // by a hyphen the generic parser inserts. `wrap-reverse` and `wrap`
+            // agree, which is what makes this a one-keyword exception rather
+            // than a table.
+            case "flex-wrap" -> wrap(value)
+                    .map(this::wrap)
                     .orElseGet(() -> dropped(property, value));
 
             case "width" -> length(value, context)
@@ -523,42 +539,49 @@ public record ComputedStyle(
 
     public ComputedStyle direction(FlexDirection v) {
         return new ComputedStyle(
-                v, justifyContent, alignItems, width, height, limits, padding, gap, flexGrow, flexShrink,
+                v, justifyContent, alignItems, wrap, width, height, limits, padding, gap, flexGrow, flexShrink,
                 position, inset, overflow, background, color, opacity, decoration, typography, transitions,
                 transform, cursor);
     }
 
     public ComputedStyle justifyContent(Justify v) {
         return new ComputedStyle(
-                direction, v, alignItems, width, height, limits, padding, gap, flexGrow, flexShrink,
+                direction, v, alignItems, wrap, width, height, limits, padding, gap, flexGrow, flexShrink,
                 position, inset, overflow, background, color, opacity, decoration, typography, transitions,
                 transform, cursor);
     }
 
     public ComputedStyle alignItems(Align v) {
         return new ComputedStyle(
-                direction, justifyContent, v, width, height, limits, padding, gap, flexGrow, flexShrink,
+                direction, justifyContent, v, wrap, width, height, limits, padding, gap, flexGrow, flexShrink,
+                position, inset, overflow, background, color, opacity, decoration, typography, transitions,
+                transform, cursor);
+    }
+
+    public ComputedStyle wrap(Wrap v) {
+        return new ComputedStyle(
+                direction, justifyContent, alignItems, v, width, height, limits, padding, gap, flexGrow, flexShrink,
                 position, inset, overflow, background, color, opacity, decoration, typography, transitions,
                 transform, cursor);
     }
 
     public ComputedStyle width(StyleLength v) {
         return new ComputedStyle(
-                direction, justifyContent, alignItems, v, height, limits, padding, gap, flexGrow,
+                direction, justifyContent, alignItems, wrap, v, height, limits, padding, gap, flexGrow,
                 flexShrink, position, inset, overflow, background, color, opacity, decoration, typography,
                 transitions, transform, cursor);
     }
 
     public ComputedStyle height(StyleLength v) {
         return new ComputedStyle(
-                direction, justifyContent, alignItems, width, v, limits, padding, gap, flexGrow,
+                direction, justifyContent, alignItems, wrap, width, v, limits, padding, gap, flexGrow,
                 flexShrink, position, inset, overflow, background, color, opacity, decoration, typography,
                 transitions, transform, cursor);
     }
 
     public ComputedStyle padding(Insets v) {
         return new ComputedStyle(
-                direction, justifyContent, alignItems, width, height, limits, v, gap, flexGrow, flexShrink,
+                direction, justifyContent, alignItems, wrap, width, height, limits, v, gap, flexGrow, flexShrink,
                 position, inset, overflow, background, color, opacity, decoration, typography, transitions,
                 transform, cursor);
     }
@@ -567,105 +590,105 @@ public record ComputedStyle(
     /// cascade builds a style one declaration at a time.
     public ComputedStyle limits(Limits v) {
         return new ComputedStyle(
-                direction, justifyContent, alignItems, width, height, v, padding, gap, flexGrow,
+                direction, justifyContent, alignItems, wrap, width, height, v, padding, gap, flexGrow,
                 flexShrink, position, inset, overflow, background, color, opacity, decoration, typography,
                 transitions, transform, cursor);
     }
 
     public ComputedStyle gap(StyleLength v) {
         return new ComputedStyle(
-                direction, justifyContent, alignItems, width, height, limits, padding, v, flexGrow,
+                direction, justifyContent, alignItems, wrap, width, height, limits, padding, v, flexGrow,
                 flexShrink, position, inset, overflow, background, color, opacity, decoration, typography,
                 transitions, transform, cursor);
     }
 
     public ComputedStyle flexGrow(double v) {
         return new ComputedStyle(
-                direction, justifyContent, alignItems, width, height, limits, padding, gap, v, flexShrink,
+                direction, justifyContent, alignItems, wrap, width, height, limits, padding, gap, v, flexShrink,
                 position, inset, overflow, background, color, opacity, decoration, typography, transitions,
                 transform, cursor);
     }
 
     public ComputedStyle flexShrink(double v) {
         return new ComputedStyle(
-                direction, justifyContent, alignItems, width, height, limits, padding, gap, flexGrow, v,
+                direction, justifyContent, alignItems, wrap, width, height, limits, padding, gap, flexGrow, v,
                 position, inset, overflow, background, color, opacity, decoration, typography, transitions,
                 transform, cursor);
     }
 
     public ComputedStyle position(PositionType v) {
         return new ComputedStyle(
-                direction, justifyContent, alignItems, width, height, limits, padding, gap, flexGrow,
+                direction, justifyContent, alignItems, wrap, width, height, limits, padding, gap, flexGrow,
                 flexShrink, v, inset, overflow, background, color, opacity, decoration, typography,
                 transitions, transform, cursor);
     }
 
     public ComputedStyle inset(Insets v) {
         return new ComputedStyle(
-                direction, justifyContent, alignItems, width, height, limits, padding, gap, flexGrow,
+                direction, justifyContent, alignItems, wrap, width, height, limits, padding, gap, flexGrow,
                 flexShrink, position, v, overflow, background, color, opacity, decoration, typography,
                 transitions, transform, cursor);
     }
 
     public ComputedStyle overflow(Overflow v) {
         return new ComputedStyle(
-                direction, justifyContent, alignItems, width, height, limits, padding, gap, flexGrow,
+                direction, justifyContent, alignItems, wrap, width, height, limits, padding, gap, flexGrow,
                 flexShrink, position, inset, v, background, color, opacity, decoration, typography,
                 transitions, transform, cursor);
     }
 
     public ComputedStyle background(int v) {
         return new ComputedStyle(
-                direction, justifyContent, alignItems, width, height, limits, padding, gap, flexGrow,
+                direction, justifyContent, alignItems, wrap, width, height, limits, padding, gap, flexGrow,
                 flexShrink, position, inset, overflow, v, color, opacity, decoration, typography,
                 transitions, transform, cursor);
     }
 
     public ComputedStyle color(int v) {
         return new ComputedStyle(
-                direction, justifyContent, alignItems, width, height, limits, padding, gap, flexGrow,
+                direction, justifyContent, alignItems, wrap, width, height, limits, padding, gap, flexGrow,
                 flexShrink, position, inset, overflow, background, v, opacity, decoration, typography,
                 transitions, transform, cursor);
     }
 
     public ComputedStyle opacity(double v) {
         return new ComputedStyle(
-                direction, justifyContent, alignItems, width, height, limits, padding, gap, flexGrow,
+                direction, justifyContent, alignItems, wrap, width, height, limits, padding, gap, flexGrow,
                 flexShrink, position, inset, overflow, background, color, v, decoration, typography,
                 transitions, transform, cursor);
     }
 
     public ComputedStyle decoration(Decoration v) {
         return new ComputedStyle(
-                direction, justifyContent, alignItems, width, height, limits, padding, gap, flexGrow,
+                direction, justifyContent, alignItems, wrap, width, height, limits, padding, gap, flexGrow,
                 flexShrink, position, inset, overflow, background, color, opacity, v, typography,
                 transitions, transform, cursor);
     }
 
     public ComputedStyle typography(Typography v) {
         return new ComputedStyle(
-                direction, justifyContent, alignItems, width, height, limits, padding, gap, flexGrow,
+                direction, justifyContent, alignItems, wrap, width, height, limits, padding, gap, flexGrow,
                 flexShrink, position, inset, overflow, background, color, opacity, decoration, v,
                 transitions, transform, cursor);
     }
 
     public ComputedStyle transitions(Transitions v) {
         return new ComputedStyle(
-                direction, justifyContent, alignItems, width, height, limits, padding, gap, flexGrow,
+                direction, justifyContent, alignItems, wrap, width, height, limits, padding, gap, flexGrow,
                 flexShrink, position, inset, overflow, background, color, opacity, decoration, typography, v,
                 transform, cursor);
     }
 
     public ComputedStyle transform(Transform v) {
         return new ComputedStyle(
-                direction, justifyContent, alignItems, width, height, limits, padding, gap, flexGrow,
+                direction, justifyContent, alignItems, wrap, width, height, limits, padding, gap, flexGrow,
                 flexShrink, position, inset, overflow, background, color, opacity, decoration, typography,
                 transitions, v, cursor);
     }
 
     public ComputedStyle cursor(Cursor v) {
         return new ComputedStyle(
-                direction, justifyContent, alignItems, width, height, limits, padding, gap, flexGrow,
+                direction, justifyContent, alignItems, wrap, width, height, limits, padding, gap, flexGrow,
                 flexShrink, position, inset, overflow, background, color, opacity, decoration, typography,
                 transitions, transform, v);
     }
@@ -1044,6 +1067,22 @@ public record ComputedStyle(
         } catch (IllegalArgumentException e) {
             return java.util.Optional.empty();
         }
+    }
+
+    /// CSS's `flex-wrap`, whose default keyword is spelled without the hyphen
+    /// [#keyword] would need.
+    ///
+    /// `nowrap` is one word in CSS and `NO_WRAP` is two in the
+    /// enum, so the generic keyword parser turns `nowrap` into `NOWRAP` and
+    /// finds nothing. The other two spellings agree, so this special-cases one
+    /// word and defers.
+    private static java.util.Optional<Wrap> wrap(List<Token> value) {
+        var tokens = value.stream().filter(t -> !t.is(TokenType.WHITESPACE)).toList();
+        if (tokens.size() == 1 && tokens.getFirst().is(TokenType.IDENT)
+                && tokens.getFirst().text().equalsIgnoreCase("nowrap")) {
+            return java.util.Optional.of(Wrap.NO_WRAP);
+        }
+        return keyword(value, Wrap.class);
     }
 
     /// CSS's `overflow`, which has one more keyword than Yoga does.

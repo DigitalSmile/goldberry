@@ -12,6 +12,7 @@ import io.github.digitalsmile.goldberry.css.value.Transform;
 import io.github.digitalsmile.goldberry.natives.yoga.ComputedLayout;
 import io.github.digitalsmile.goldberry.natives.yoga.style.FlexDirection;
 import io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength;
+import io.github.digitalsmile.goldberry.natives.yoga.style.Wrap;
 import io.github.digitalsmile.goldberry.paint.Box;
 import io.github.digitalsmile.goldberry.paint.BoxPainter;
 import io.github.digitalsmile.goldberry.text.font.Font;
@@ -132,6 +133,40 @@ class RenderTreeTest {
                 tree.update(target.frame(), root.children(sized(90, 20)));
                 assertEquals(90, layouts(tree).get(1).width(),
                         "the second frame's width never reached Yoga");
+            }
+        }
+
+        @Test
+        @DisplayName("a row that wraps puts the overflowing child on a second line")
+        void flexWrap() {
+            // §8's subset gained `flex-wrap` for `select multiple`'s chips, which
+            // shrank instead of wrapping. Three 80px children in a 200px row: two
+            // fit, and the third is either squeezed onto the first line or is on
+            // a second one, which is the whole difference.
+            try (var tree = RenderTree.create()) {
+                var row = Box.of()
+                        .direction(FlexDirection.ROW)
+                        .size(StyleLength.points(200), StyleLength.points(200))
+                        .children(sized(80, 20), sized(80, 20), sized(80, 20));
+
+                tree.update(target.frame(), row.wrap(Wrap.NO_WRAP));
+                var squeezed = layouts(tree);
+                assertEquals(0, squeezed.get(3).top(),
+                        "without wrapping every child stays on one line");
+                assertTrue(squeezed.get(3).width() < 80,
+                        "and the third one shrinks to fit, which is what a flex item does"
+                                + " when there is nowhere else to go");
+
+                tree.update(target.frame(), row.wrap(Wrap.WRAP));
+                var wrapped = layouts(tree);
+                assertEquals(80, wrapped.get(3).width(), "wrapped, it keeps its width");
+                assertEquals(0, wrapped.get(3).left(), "at the start of the next line");
+                // 100 rather than 20: the row is 200 tall and holds two lines,
+                // which share the cross axis between them. What is being
+                // asserted is that there *is* a second line -- the exact offset
+                // is Yoga distributing the height, and a chip row that is as
+                // tall as its content puts it at 20.
+                assertEquals(100, wrapped.get(3).top(), "on a second line");
             }
         }
 

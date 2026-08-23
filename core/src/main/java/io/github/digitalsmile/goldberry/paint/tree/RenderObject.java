@@ -135,6 +135,9 @@ public final class RenderObject implements AutoCloseable {
         if (previous == null || previous.alignItems() != box.alignItems()) {
             node.setAlignItems(box.alignItems());
         }
+        if (previous == null || previous.wrap() != box.wrap()) {
+            node.setFlexWrap(box.wrap());
+        }
         if (previous == null || !previous.width().equals(box.width())) {
             node.setWidth(box.width());
         }

@@ -122,6 +122,30 @@ class ComputedStyleTest {
         }
 
         @Test
+        @DisplayName("`flex-wrap` takes CSS's three spellings, `nowrap` included")
+        void flexWrap() {
+            assertEquals(io.github.digitalsmile.goldberry.natives.yoga.style.Wrap.WRAP,
+                    compute("button { flex-wrap: wrap }").wrap());
+            assertEquals(io.github.digitalsmile.goldberry.natives.yoga.style.Wrap.WRAP_REVERSE,
+                    compute("button { flex-wrap: wrap-reverse }").wrap());
+            // The one that needs its own line of code: CSS spells the default as
+            // one word and `YGWrap` spells it as two, so the generic keyword
+            // parser turns `nowrap` into `NOWRAP` and finds nothing.
+            assertEquals(io.github.digitalsmile.goldberry.natives.yoga.style.Wrap.NO_WRAP,
+                    compute("button { flex-wrap: nowrap }").wrap());
+        }
+
+        @Test
+        @DisplayName("one line is what a box wraps as until a rule says otherwise")
+        void flexWrapDefaultsToOneLine() {
+            assertEquals(io.github.digitalsmile.goldberry.natives.yoga.style.Wrap.NO_WRAP,
+                    ComputedStyle.INITIAL.wrap());
+            assertEquals(ComputedStyle.INITIAL.wrap(),
+                    compute("button { flex-wrap: sideways }").wrap(),
+                    "a keyword CSS has not got is dropped like any other");
+        }
+
+        @Test
         @DisplayName("lengths become points, percents and auto")
         void lengths() {
             var style = compute("button { width: 120px; height: 50%; padding: 8px }");

@@ -1417,14 +1417,19 @@ on, which in four cases is the same thing.
   [ADR-0186](adr/0186-a-panel-that-hangs-off-a-field-is-not-a-menu.md), so they
   can no longer be it. The next step is a real window and a log of `FocusChanged`
   per window id, which the headless backend cannot produce.
-- **`flex-wrap` is not in §8's subset**, and `select multiple` is the first thing
-  that wanted it: a row of chips shrinks rather than wrapping onto a second line.
-  Yoga has `setFlexWrap` bound and `Box` has no field for it, which is exactly
-  where `min-width` was before [ADR-0181](adr/0181-a-box-may-say-how-small-and-how-large.md)
-  and would take the same shape — one component, one property, one line in the
-  render tree, and the churn across every positional copy that the wither tests
-  now guard. —
-  [ADR-0187](adr/0187-a-panel-takes-the-pointer-and-leaves-the-keyboard.md)
+- ~~**`flex-wrap` is not in §8's subset.**~~ **It is, and it took the shape this
+  entry predicted** — one component on `Box`, one on `ComputedStyle`, one line in
+  the render tree, and 48 positional reconstructions. What it did not predict is
+  the half that mattered: putting the property on the *field* wraps the chevron
+  onto a second line under the chips, so the chips needed a box of their own. A
+  golden image is what said so; nothing in the CSS looked wrong. —
+  [ADR-0192](adr/0192-a-row-of-chips-wraps-and-the-chevron-does-not.md)
+- **`align-content` is still absent**, which is what decides how wrapped *lines*
+  share the cross axis. It does not matter to a chip row, whose height is its
+  content, and it would to a wrapped row in a box with a fixed height — where
+  Yoga spreads the lines and CSS's default packs them. Nothing in the catalog
+  wants one yet, which is the rule §8's subset has grown by all along. —
+  [ADR-0192](adr/0192-a-row-of-chips-wraps-and-the-chevron-does-not.md)
   The window hides and the popup stays where it was. The mechanism
   [ADR-0144](adr/0144-a-popup-goes-away-when-the-application-does.md) describes is
   wired — the launcher watches `FocusChanged` and calls `dismissPopups` after a

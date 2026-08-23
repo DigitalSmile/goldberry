@@ -82,10 +82,36 @@ class SelectGoldenTest {
     /// §3's `multiple=#true`: "renders the selection as `badge` chips inside the
     /// closed control, each with a remove affordance" ([ADR-0182]).
     ///
-    /// The picture is what the sentence cannot carry: three chips in a 220px
-    /// field wrap onto a second row and the control grows to hold them, which is
-    /// the decision `select.multiple { flex-wrap: wrap; height: auto }` makes.
-    /// Clipping them instead would hide what the user picked.
+    /// The picture is what the sentence cannot carry: three chips, each whole,
+    /// with the chevron still at the far edge. Three fit in a 220px field —
+    /// [#multipleWraps] is the one where they do not.
+    /// The row that wrapping was added for (ADR-0192).
+    ///
+    /// Five values in the same 220px field: before §8's subset had `flex-wrap`
+    /// the chips shrank, so a field with more values than it could show showed
+    /// all of them squeezed and none of them whole. Now they fall onto a second
+    /// line and the control grows, which `height: auto` was always written for.
+    ///
+    /// **The chevron stays at the far edge of the first line**, which is the
+    /// half a stylesheet gets wrong: wrapping the *field* drops the mark under
+    /// the chips instead, and it took this picture to see it. The chips have a
+    /// box of their own now, and that box is what wraps.
+    @Test
+    @DisplayName("a select holding more chips than fit, wrapped")
+    void multipleWraps() {
+        paint("select-multiple-wraps", Theme.NORD_DARK, 220, 96,
+                new Row(List.of(new Select(null,
+                        List.of(new Option("light", "Light"),
+                                new Option("dark", "Dark"),
+                                new Option("dim", "Dim"),
+                                new Option("nord", "Nord"),
+                                new Option("aurora", "Aurora")),
+                        io.github.digitalsmile.goldberry.bind.Property.of(
+                                List.of("light", "dark", "dim", "nord", "aurora")),
+                        null, "Choose a theme", true, false, false, null, List.of(), false,
+                        id("theme"))), id("row")));
+    }
+
     @Test
     @DisplayName("a select holding three values, as chips")
     void multipleDark() {

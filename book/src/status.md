@@ -3261,11 +3261,18 @@ is the `scroll` box's.
   ([ADR-0188](adr/0188-a-control-opens-on-one-signal.md)). What the harness still
   cannot reach is the platform's window flags: reverting `NOT_FOCUSABLE` fails
   nothing, because the headless backend has none.
-- **Still open: `flex-wrap` is not in §8's subset**, and `select multiple` is the
-  first thing that wanted it — a row of chips shrinks rather than wrapping. Yoga
-  has `setFlexWrap` bound and `Box` has no field for it, which is where
-  `min-width` was before ADR-0181
-  ([ADR-0187](adr/0187-a-panel-takes-the-pointer-and-leaves-the-keyboard.md))
+- ~~**Still open: `flex-wrap` is not in §8's subset.**~~ **It is now**, and the
+  chips wrap ([ADR-0192](adr/0192-a-row-of-chips-wraps-and-the-chevron-does-not.md)).
+  The gap was in one place — Yoga had the setter bound and the enum written, and
+  nothing above the native boundary could say it — so the work was one component
+  on `Box`, one on `ComputedStyle`, one parser case and 48 positional
+  reconstructions, which is the churn ADR-0181 grouped four properties to avoid.
+  **Where** the wrapping goes had to be seen rather than reasoned about: on the
+  field it drops the *chevron* onto a second line under the chips, which is a
+  worse picture than the shrinking it fixes, and only the golden image said so.
+  The chips have a box of their own now — `select-chips`, a part in ADR-0065's
+  sense — and a second golden holds five chips in a 220px field, because the
+  existing one has three that fit and its javadoc claimed they wrapped.
 
 ### `tray-icon`, and the first widening of the export list
 
