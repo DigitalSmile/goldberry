@@ -53,6 +53,10 @@ import java.util.Set;
 ///   ([ADR-0195](../../../../../../../book/src/adr/0195-a-painter-reads-the-theme-through-a-custom-property.md)).
 /// - **A sparkline inherits `color`**, so the one inside a `statistic` is drawn
 ///   in the delta's hue without being told.
+/// - **A `java.time` axis.** The `p99 latency` card's x is *when* rather than
+///   *which*: its ninth scrape is twenty minutes after its eighth, and the axis
+///   is twenty minutes wide there rather than one step like every other
+///   ([ADR-0203](../../../../../../../book/src/adr/0203-a-time-axis-is-time-not-a-relabelled-index.md)).
 /// - **A limit is not a series.** The `p99 latency` card carries a threshold
 ///   band in the semantic warning hue, which is the one colour on this screen
 ///   that is *not* from the palette — a limit is a statement about the data
@@ -155,6 +159,12 @@ public record Charts() implements Widget.Stateful {
                             card("p99 latency",
                                     new LineChart(List.of(new Series("p99", LATENCY)),
                                             List.of(), id("latency"))
+                                            // §3.1's `java.time` axis. The ninth
+                                            // scrape is twenty minutes after the
+                                            // eighth, and the axis shows that as
+                                            // twenty minutes rather than as one
+                                            // more step (ADR-0203).
+                                            .times(SCRAPES, java.time.ZoneOffset.UTC)
                                             // A band rather than a line, because
                                             // what matters is the *region* the
                                             // series went into. In a semantic hue,
@@ -204,6 +214,28 @@ public record Charts() implements Widget.Stateful {
 
         private static final List<Double> LATENCY = List.of(
                 128.0, 131.0, 126.0, 149.0, 142.0, 138.0, 133.0, 129.0, 124.0, 121.0);
+
+        /// When each of [#LATENCY]'s scrapes happened — every five minutes, with
+        /// **one missed window** between the eighth and the ninth.
+        ///
+        /// Written down rather than counted from a clock, for this screen's rule
+        /// about constants: a showcase screen is also a golden image. **And in
+        /// `UTC`**, which an application would not do — the zone is the user's,
+        /// and `times(list)` reads the machine's. A picture that changes when the
+        /// developer flies somewhere is not a picture you can compare with
+        /// yesterday's, which is the same argument that keeps every label in this
+        /// toolkit in the root locale.
+        private static final List<java.time.Instant> SCRAPES = List.of(
+                java.time.Instant.parse("2026-03-14T09:00:00Z"),
+                java.time.Instant.parse("2026-03-14T09:05:00Z"),
+                java.time.Instant.parse("2026-03-14T09:10:00Z"),
+                java.time.Instant.parse("2026-03-14T09:15:00Z"),
+                java.time.Instant.parse("2026-03-14T09:20:00Z"),
+                java.time.Instant.parse("2026-03-14T09:25:00Z"),
+                java.time.Instant.parse("2026-03-14T09:30:00Z"),
+                java.time.Instant.parse("2026-03-14T09:35:00Z"),
+                java.time.Instant.parse("2026-03-14T09:55:00Z"),
+                java.time.Instant.parse("2026-03-14T10:00:00Z"));
 
         /// Twelve readings with three missing, arranged so that both shapes a
         /// hole can make are on screen.

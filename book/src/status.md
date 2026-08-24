@@ -3587,8 +3587,9 @@ is the `scroll` box's.
   What a chart says when it has no numbers is built too — see [What a chart says
   when it has not got the
   numbers](#what-a-chart-says-when-it-has-not-got-the-numbers), and so are
-  thresholds. Log scales, time axes, interpolation, soft bounds, gradient fills
-  and a crosshair shared between charts are still outstanding.
+  thresholds, and so is the `java.time` axis. Log scales, interpolation, soft
+  bounds, gradient fills and a crosshair shared between charts are still
+  outstanding.
 
 ### Two things found by scrolling the wall of charts
 
@@ -3917,6 +3918,53 @@ is the `scroll` box's.
   own pixels because the two windows differ everywhere else. The first version of
   that test passed without the fix — the scroll bar reacts to the same pointer, so
   the frame changed for a reason that had nothing to do with the chart.
+
+### A time axis, which is where the points go and not how they are labelled
+
+- **`content-widgets.md` §3.1's `java.time` axis is built**, and the decision it
+  turns on is not the labelling
+  ([ADR-0203](adr/0203-a-time-axis-is-time-not-a-relabelled-index.md)). Every
+  chart's x has been the point **index**: a metric scraped every 15 seconds that
+  missed four minutes had exactly one step of gap, the same step as every reading
+  that was on time. That is a picture of a schedule nobody kept, and relabelling
+  the index would have left it there.
+- **The ticks step in `java.time`, and that is the whole of why the class
+  exists.** `Ticks` is Wilkinson's algorithm for numbers and a nice number is a
+  round multiple; time has no round multiples. A step of `2 592 000 000 ms` is a
+  month only in a year with no February in it and has drifted five days by
+  December; a step of `86 400 000 ms` is a day except on the two days a year a
+  zone changes offset. `TimeTicks` picks a rung — the steps a clock is read in, 1
+  through 30 seconds, up to decades — snaps to a boundary of that rung's own unit
+  and advances with `ZonedDateTime.plus`.
+- **The DST case is a test because nobody writes one.** A day step across
+  Berlin's spring-forward is 23 hours and still lands on local midnight; a month
+  step over a year lands on the first of twelve different-length months. Both are
+  asserted, and both are what stepping in milliseconds gets wrong in a way that
+  looks like an off-by-one.
+- **The zone is the application's and the format is the root locale**, which land
+  on opposite sides of a question that looks like one question. A locale changes
+  *how* a number is written and a zone changes *which* number it is: an axis in
+  the machine's language is an unfamiliar picture and an axis in the machine's
+  zone is the correct one. `times(list)` reads the machine's zone; a test passes
+  `UTC`.
+- **A sampling gap is not a hole, and the two compose.** The axis makes an
+  unscraped stretch wide; the line still crosses it, because both ends are
+  readings that happened. An application that means "nothing was measured in
+  between" writes a `NaN` and `NullPolicy` breaks the line — two mechanisms, two
+  meanings, and a test that says so.
+- **A bar chart ignores it.** A bar has a width and sits *in* a band, and bands of
+  unequal width are a different chart; half-applying the axis would put labels
+  where the bars are not.
+- **The first version of the axis labels read `09:00, 09:30, 09:45`** — it dropped
+  colliding labels one at a time, which keeps two neighbours and loses the one
+  between them, so a reader cannot tell what the spacing is. It strides now, like
+  the categorical labels, with room for the end labels being clamped inward.
+- **`ChartOptions` earned itself first.** Everything about a chart that is not its
+  numbers is one record now — the state, the null policy, the limits and what the
+  x means — which is what ADR-0202 said the next feature should find rather than
+  a seventh component on three charts.
+- **The showcase's `p99 latency` card is a real time series**: its ninth scrape is
+  twenty minutes after its eighth, and the axis is twenty minutes wide there.
 
 ### Not started
 

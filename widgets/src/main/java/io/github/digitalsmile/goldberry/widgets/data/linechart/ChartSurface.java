@@ -64,6 +64,13 @@ record ChartSurface(
         java.util.function.IntPredicate onHover, java.util.function.IntPredicate onWalk)
         implements Widget.Leaf, Styled, Paints, Handles {
 
+    /// How many labels a time axis aims for.
+    ///
+    /// Fewer than a y axis wants, because a time label is wide — `12 Mar` is
+    /// four times the width of `35` — and the collision rule that thins them out
+    /// costs a reader a label rather than a pixel.
+    private static final int TIME_LABELS = 4;
+
     /// How many y labels to aim for. Five is what a dashboard-sized chart reads
     /// well at; `Ticks` treats it as a preference and will answer four or six if
     /// those are rounder.
@@ -203,9 +210,36 @@ record ChartSurface(
         for (var value : labelling.values()) {
             labels.add(context.paragraph(style, format(value, labelling.step())));
         }
+        // **A time axis, when there is one and it covers the data.** The labels
+        // come from `TimeTicks` rather than from `categories`, and the x
+        // positions come from the instants -- so a series that missed four
+        // minutes shows four minutes of gap rather than one step like every
+        // other. It does not apply to a bar chart: a bar has a width and sits
+        // *in* a band, and bands of unequal width are a different chart
+        // (ADR-0203).
+        var timed = mode != ChartPlot.Mode.BAR
+                && options.time() != null && options.time().covers(points());
+        var timeAxis = timed ? options.time() : null;
         var xLabels = new ArrayList<Paragraph>(categories.size());
-        for (var category : categories) {
-            xLabels.add(context.paragraph(style, category));
+        var timeTicks = new ArrayList<Double>();
+        if (timed) {
+            var ticks = io.github.digitalsmile.goldberry.widgets.data.TimeTicks.of(
+                    timeAxis.first(), timeAxis.last(), TIME_LABELS, timeAxis.zone());
+            for (var tick : ticks.values()) {
+                xLabels.add(context.paragraph(style, ticks.label(tick, timeAxis.zone())));
+                timeTicks.add((double) tick.toEpochMilli());
+            }
+        } else {
+            for (var category : categories) {
+                xLabels.add(context.paragraph(style, category));
+            }
+        }
+        var pointTimes = (double[]) null;
+        if (timed) {
+            pointTimes = new double[points()];
+            for (var i = 0; i < pointTimes.length; i++) {
+                pointTimes[i] = timeAxis.millisAt(i);
+            }
         }
         var colours = new ArrayList<Integer>(series.size());
         for (var i = 0; i < series.size(); i++) {
@@ -227,7 +261,7 @@ record ChartSurface(
         }
         var plot = new Painted(labelling, List.copyOf(labels), List.copyOf(xLabels),
                 List.copyOf(colours), grid, ink, resolved, mode, min, max,
-                List.copyOf(limits), isolated,
+                List.copyOf(limits), pointTimes, List.copyOf(timeTicks), isolated,
                 readout(style, context, resolved), hovered, painted);
         return Box.of().style(style).painting(plot::paint);
     }
@@ -251,9 +285,15 @@ record ChartSurface(
         // what `hud` is, and a chart that invented a fourth surface token would
         // be a chart the theme cannot restyle with the others (ADR-0195's
         // mechanism, `hud`'s palette).
-        var title = index < categories.size() && !categories.get(index).isBlank()
-                ? categories.get(index)
-                : "#" + (index + 1);
+        // **When**, for a chart whose x is time: `#4` is a reading nobody can
+        // use, and the category list is usually empty on a timed chart because
+        // the axis is labelling itself.
+        var time = options.time();
+        var title = time != null && time.covers(points())
+                ? readableTime(time, index)
+                : index < categories.size() && !categories.get(index).isBlank()
+                        ? categories.get(index)
+                        : "#" + (index + 1);
         var rows = new ArrayList<Row>(series.size());
         for (var s = 0; s < series.size(); s++) {
             if (!shows(s)) {
@@ -443,6 +483,23 @@ record ChartSurface(
     /// A number as a **readout**, which is a different question from an axis
     /// label.
     ///
+    /// The instant of point `index`, written the way a readout should say it.
+    ///
+    /// **To the second**, which is finer than the axis: an axis label is a
+    /// position and a readout is *the* reading, so `14:32:07` is what the reader
+    /// asked for even on an axis stepping in hours. The date comes with it only
+    /// when the chart spans more than a day, because repeating today's date under
+    /// every point is noise.
+    private static String readableTime(
+            io.github.digitalsmile.goldberry.widgets.data.TimeAxis axis, int index) {
+
+        var at = axis.at(index).atZone(axis.zone());
+        var span = java.time.Duration.between(axis.first(), axis.last());
+        var pattern = span.toHours() >= 24 ? "d MMM HH:mm:ss" : "HH:mm:ss";
+        return java.time.format.DateTimeFormatter
+                .ofPattern(pattern, java.util.Locale.ROOT).format(at);
+    }
+
     /// An axis rounds to its step, because a column of labels has to line up and
     /// the reader interpolates between them. A readout is the opposite: it exists
     /// to say what the number *is*, so it keeps the value's own precision. An
@@ -491,7 +548,7 @@ record ChartSurface(
             List<Integer> colours, int grid, int ink,
             List<io.github.digitalsmile.goldberry.widgets.data.Gaps.Resolved> series,
             ChartPlot.Mode mode, double domainMin, double domainMax,
-            List<PaintedThreshold> thresholds,
+            List<PaintedThreshold> thresholds, double[] times, List<Double> timeTicks,
             int isolated, Readout readout, int hovered, PaintedGeometry painted) {
 
         private boolean shows(int index) {
@@ -507,13 +564,27 @@ record ChartSurface(
         }
 
         /// The x scale for a chart of `points` points.
+        ///
+        /// **In index space unless the chart is timed**, in which case the
+        /// positions come from the instants and this is not used at all — see
+        /// [#xAt].
         private Scale xScale(PlotGeometry geometry, int points) {
             return Scale.linear(0, Math.max(1, points - 1), geometry.left(), geometry.right());
         }
 
+        /// Where point `index` sits horizontally.
+        ///
+        /// One place, so a line, a band, a crosshair and a marker cannot disagree
+        /// about where a point is — which is what would happen with a time axis
+        /// bolted onto four call sites that each did their own arithmetic.
+        private double xAt(PlotGeometry geometry, Scale indexScale, int index) {
+            return geometry.isTimed() ? geometry.xOf(index, points(), false)
+                    : indexScale.at(index);
+        }
+
         void paint(Frame frame, LogicalSize size) {
             var geometry = PlotGeometry.of(labels, !xLabels.isEmpty(), labelling,
-                    domainMin, domainMax, size.width(), size.height());
+                    domainMin, domainMax, size.width(), size.height(), times);
             // Left for the pointer that arrives after this frame, including the
             // null: a plot that has become too small to draw is one no point can
             // be hovered in.
@@ -589,7 +660,8 @@ record ChartSurface(
                                 // itself outside the box -- and half a dot reads
                                 // as an artifact rather than as a reading.
                                 var at = Math.max(geometry.left() + STROKE,
-                                        Math.min(x.at(run[0]), geometry.right() - STROKE));
+                                        Math.min(xAt(geometry, x, run[0]),
+                                                geometry.right() - STROKE));
                                 dot(frame, path, at,
                                         geometry.y().at(values.get(run[0])), colours.get(s));
                             }
@@ -605,10 +677,10 @@ record ChartSurface(
                                 Math.max(3, budget));
 
                         path.reset();
-                        path.moveTo(x.at(run[0] + kept[0]),
+                        path.moveTo(xAt(geometry, x, run[0] + kept[0]),
                                 geometry.y().at(values.get(run[0] + kept[0])));
                         for (var i = 1; i < kept.length; i++) {
-                            path.lineTo(x.at(run[0] + kept[i]),
+                            path.lineTo(xAt(geometry, x, run[0] + kept[i]),
                                     geometry.y().at(values.get(run[0] + kept[i])));
                         }
                         frame.strokePath(0, 0, path, STROKE,
@@ -695,6 +767,51 @@ record ChartSurface(
                     Paragraph.UNCONSTRAINED, limit.colour());
         }
 
+        /// The x labels of a **time** axis, each under the instant it names.
+        ///
+        /// Two things differ from the categorical path and both follow from the
+        /// same fact — a tick is a *time* rather than a point.
+        ///
+        /// The label is placed by the **time scale**, so it lands under its own
+        /// instant whether or not a reading happened there: a chart scraped every
+        /// 15 seconds that missed four minutes still has `09:05` where 09:05 is.
+        ///
+        /// And a crowded axis is **strided**, exactly as a categorical one is:
+        /// every *n*th tick, for the smallest *n* that fits. Dropping the
+        /// colliding labels individually was the first version and it reads as
+        /// broken — `09:00, 09:30, 09:45` keeps two neighbours and loses the one
+        /// between them, so the reader cannot tell what the spacing is. Time
+        /// ticks are evenly spaced in time and a linear scale keeps them evenly
+        /// spaced in pixels, so a stride is exact here rather than approximate.
+        private void paintTimeLabels(Frame frame, PlotGeometry geometry) {
+            var baseline = geometry.bottom() + PlotGeometry.GAP;
+            var scale = geometry.timeScale();
+            var widest = 0.0;
+            for (var label : xLabels) {
+                widest = Math.max(widest, label.layout(Paragraph.UNCONSTRAINED).width());
+            }
+            var perLabel = geometry.plotWidth() / Math.max(1, xLabels.size() - 1);
+            // Half a label of slack, because the **first and last are clamped**
+            // inward by up to that much and a stride computed from the unclamped
+            // spacing lets the first two touch. The end labels are the ones that
+            // move, so the room they need is the room every slot is given.
+            var stride = Math.max(1, (int) Math.ceil((widest * 1.5 + PlotGeometry.GAP)
+                    / Math.max(1, perLabel)));
+
+            for (var i = 0; i < xLabels.size() && i < timeTicks.size(); i += stride) {
+                var label = xLabels.get(i);
+                var layout = label.layout(Paragraph.UNCONSTRAINED);
+                // Centred on its tick, then pulled back inside the plot -- the
+                // rule the categorical labels follow, and for its reason: the two
+                // ends of an axis are the labels a reader most wants, and half of
+                // one hanging outside the box is clipped away.
+                var centred = scale.at(timeTicks.get(i)) - layout.width() / 2;
+                var clamped = Math.max(geometry.left(),
+                        Math.min(centred, geometry.right() - layout.width()));
+                label.paint(frame, clamped, baseline, Paragraph.UNCONSTRAINED, ink);
+            }
+        }
+
         /// A lone reading, drawn as a disc because it has no neighbour to make a
         /// segment with.
         ///
@@ -766,22 +883,23 @@ record ChartSurface(
                                 var i = run[0];
                                 var high = geometry.y().at(top[i]);
                                 var low = geometry.y().at(beneath[i]);
-                                frame.fillRect((float) x.at(i), (float) Math.min(high, low),
+                                frame.fillRect((float) xAt(geometry, x, i),
+                                        (float) Math.min(high, low),
                                         1, (float) Math.max(1, Math.abs(low - high)),
                                         CssColor.fade(colours.get(s), 0.85));
                             }
                             continue;
                         }
                         path.reset();
-                        path.moveTo(x.at(run[0]), geometry.y().at(top[run[0]]));
+                        path.moveTo(xAt(geometry, x, run[0]), geometry.y().at(top[run[0]]));
                         for (var i = run[0] + 1; i < run[1]; i++) {
-                            path.lineTo(x.at(i), geometry.y().at(top[i]));
+                            path.lineTo(xAt(geometry, x, i), geometry.y().at(top[i]));
                         }
                         // Back along the band beneath, so the fill is the
                         // difference between the two rather than everything under
                         // the top.
                         for (var i = run[1] - 1; i >= run[0]; i--) {
-                            path.lineTo(x.at(i), geometry.y().at(beneath[i]));
+                            path.lineTo(xAt(geometry, x, i), geometry.y().at(beneath[i]));
                         }
                         path.closeSubPath();
                         // Nearly opaque: a stack's bands do not overlap, so there
@@ -848,6 +966,10 @@ record ChartSurface(
         /// widths are finally known.
         private void paintCategories(Frame frame, PlotGeometry geometry) {
             if (xLabels.isEmpty()) {
+                return;
+            }
+            if (geometry.isTimed()) {
+                paintTimeLabels(frame, geometry);
                 return;
             }
             var baseline = geometry.bottom() + PlotGeometry.GAP;

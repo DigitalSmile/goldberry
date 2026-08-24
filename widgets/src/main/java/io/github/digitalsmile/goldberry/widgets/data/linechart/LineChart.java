@@ -72,9 +72,16 @@ import java.util.Set;
 /// limit you have not reached is still on screen
 /// ([ADR-0202](../../../../../../../../book/src/adr/0202-a-limit-is-not-a-series.md)).
 ///
+/// ## When, rather than which
+///
+/// [#times] gives the chart one `Instant` per point, and the x becomes time: an
+/// unscraped stretch is as wide as it was long, and the labels step across
+/// second, minute, hour, day, month and year boundaries
+/// ([ADR-0203](../../../../../../../../book/src/adr/0203-a-time-axis-is-time-not-a-relabelled-index.md)).
+///
 /// ## What it does not have yet
 ///
-/// Log scales, time axes, interpolation and a crosshair shared with
+/// Log scales, interpolation and a crosshair shared with
 /// the chart beside it — `charts.md` §3.1 is the list. The x is the point
 /// **index**; [#categories] labels the points and a `java.time` axis is §3.1's
 /// and is not built.

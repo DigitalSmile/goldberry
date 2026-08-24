@@ -27,6 +27,56 @@ class PlotGeometryTest {
                 Scale.linear(0, 40, 118, 7));
     }
 
+    /// The same plot, with four points at **one minute, one minute and ten
+    /// minutes** apart — a series that missed a scrape.
+    private static PlotGeometry timed() {
+        var minute = 60_000d;
+        return new PlotGeometry(36, 7, 203, 111, 30, 14,
+                Scale.linear(0, 40, 118, 7),
+                new double[] {0, minute, 2 * minute, 12 * minute});
+    }
+
+    @Test
+    @DisplayName("a timed point sits at its own instant, not at its index")
+    void unevenSamplingIsDrawnUnevenly() {
+        var geometry = timed();
+
+        // The first three points are in the first sixth of the axis, because
+        // that is when they happened. Spacing them evenly would be a picture of
+        // a schedule nobody kept.
+        assertEquals(geometry.left(), geometry.xOf(0, 4, false), 1e-6);
+        assertEquals(geometry.right(), geometry.xOf(3, 4, false), 1e-6);
+        assertEquals(geometry.left() + geometry.plotWidth() / 12,
+                geometry.xOf(1, 4, false), 1e-6);
+        assertEquals(geometry.left() + geometry.plotWidth() / 6,
+                geometry.xOf(2, 4, false), 1e-6);
+    }
+
+    @Test
+    @DisplayName("a pointer picks the nearest point in time, not the nearest index")
+    void theNearestReadingWins() {
+        var geometry = timed();
+
+        // Two thirds across is a long way from anything, and the reading on the
+        // right is nearer: an index-based search would answer 2 because 2 is the
+        // second of four.
+        assertEquals(3, geometry.indexAt(
+                geometry.left() + geometry.plotWidth() * 2 / 3, 4, false));
+        // And just past the cluster, the last of the cluster is still nearest.
+        assertEquals(2, geometry.indexAt(
+                geometry.left() + geometry.plotWidth() * 0.2, 4, false));
+    }
+
+    @Test
+    @DisplayName("the round trip holds on a time axis too")
+    void timedPointsFindThemselves() {
+        var geometry = timed();
+        for (var index = 0; index < 4; index++) {
+            assertEquals(index, geometry.indexAt(geometry.xOf(index, 4, false), 4, false),
+                    "point " + index + " of a timed chart");
+        }
+    }
+
     @Test
     @DisplayName("a pointer on a point picks that point, for every point")
     void theRoundTripHoldsOnPoints() {

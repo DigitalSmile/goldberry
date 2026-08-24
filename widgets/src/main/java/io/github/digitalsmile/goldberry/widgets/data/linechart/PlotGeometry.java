@@ -34,9 +34,17 @@ import java.util.List;
 /// @param gutter      how wide the widest y label turned out to be
 /// @param lineHeight  the tallest label's height
 /// @param y           values to vertical positions, already swapped (see [Scale])
+/// @param times       epoch milliseconds per point index when this chart has a
+///                    time axis, or null when its x is the point index
 record PlotGeometry(
         double left, double top, double plotWidth, double plotHeight,
-        double gutter, double lineHeight, Scale y) {
+        double gutter, double lineHeight, Scale y, double[] times) {
+
+    /// A plot whose x is the point index — every chart without a time axis.
+    PlotGeometry(double left, double top, double plotWidth, double plotHeight,
+            double gutter, double lineHeight, Scale y) {
+        this(left, top, plotWidth, plotHeight, gutter, lineHeight, y, null);
+    }
 
     /// The gap between the axis labels and the plot, in logical pixels.
     static final double GAP = 6;
@@ -64,6 +72,18 @@ record PlotGeometry(
             List<Paragraph> labels, boolean hasXLabels, Ticks.Labelling labelling,
             double domainMin, double domainMax, double width, double height) {
 
+        return of(labels, hasXLabels, labelling, domainMin, domainMax, width, height, null);
+    }
+
+    /// The same, for a chart whose x is **time**.
+    ///
+    /// `times` is one epoch-millisecond value per point index, so an unevenly
+    /// sampled series is drawn unevenly — which is the whole of what a time axis
+    /// buys over labelling the indices ([TimeAxis]).
+    static PlotGeometry of(
+            List<Paragraph> labels, boolean hasXLabels, Ticks.Labelling labelling,
+            double domainMin, double domainMax, double width, double height, double[] times) {
+
         if (labels.isEmpty() || width <= 0 || height <= 0) {
             return null;
         }
@@ -86,7 +106,8 @@ record PlotGeometry(
                 Scale.linear(
                         Math.min(labelling.min(), domainMin),
                         Math.max(labelling.max(), domainMax),
-                        top + plotHeight, top));
+                        top + plotHeight, top),
+                times);
     }
 
     /// The right-hand edge of the plot area.
@@ -110,6 +131,9 @@ record PlotGeometry(
         if (points <= 0) {
             return left;
         }
+        if (times != null && index >= 0 && index < times.length) {
+            return timeScale().at(times[index]);
+        }
         if (banded) {
             var band = plotWidth / points;
             return left + index * band + band / 2;
@@ -126,6 +150,23 @@ record PlotGeometry(
     int indexAt(double x, int points, boolean banded) {
         if (points <= 0) {
             return -1;
+        }
+        if (times != null && times.length > 0) {
+            // **The nearest point in time**, which on an unevenly sampled series
+            // is not the nearest index: a reader pointing at a gap in the
+            // sampling means the reading on one side of it, and which side is a
+            // question about pixels rather than about position in a list.
+            var wanted = timeScale().from(x);
+            var nearest = 0;
+            var closest = Double.POSITIVE_INFINITY;
+            for (var i = 0; i < times.length && i < points; i++) {
+                var distance = Math.abs(times[i] - wanted);
+                if (distance < closest) {
+                    closest = distance;
+                    nearest = i;
+                }
+            }
+            return nearest;
         }
         if (banded) {
             var band = plotWidth / points;
@@ -146,6 +187,21 @@ record PlotGeometry(
     /// crossed the numbers would be a chart that reacts to being read.
     boolean holds(double x, double yPosition) {
         return x >= left && x <= right() && yPosition >= top && yPosition <= bottom();
+    }
+
+    /// Milliseconds to horizontal positions, for a chart with a time axis.
+    ///
+    /// Built on demand rather than held, because a `record` with an array in it
+    /// is compared by identity anyway and this is three field reads.
+    Scale timeScale() {
+        var first = times[0];
+        var last = times[times.length - 1];
+        return Scale.linear(first, last, left, right());
+    }
+
+    /// Whether this chart's x is time.
+    boolean isTimed() {
+        return times != null && times.length > 0;
     }
 
     private static int clamp(int index, int points) {

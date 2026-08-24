@@ -103,7 +103,7 @@ feature lands and why.
 
 | Grafana feature | Verdict | Note |
 |---|---|---|
-| Time series line, multi-series | **v1** | `line-chart`; `java.time` axes are already specified (§3.1) |
+| Time series line, multi-series | **built** | `line-chart` and `area-chart` take one `Instant` per point, so an unscraped stretch is *wide* rather than one more step; ticks step across sec/min/hour/day/month/year boundaries in `java.time` (ADR-0203). A bar chart keeps its bands |
 | Area, single and stacked | **v1** | `area-chart`; stacking normal and 100% |
 | Bar chart, grouped and stacked | **v1** | `bar-chart`; horizontal orientation for long category names |
 | Sparkline (no axes, no legend) | **v1** | `sparkline`, and `statistic`'s missing child |

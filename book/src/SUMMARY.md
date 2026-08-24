@@ -212,6 +212,7 @@
 - [ADR-0200 A chart with no data says so](adr/0200-a-chart-with-no-data-says-so.md)
 - [ADR-0201 A hole is not a zero](adr/0201-a-hole-is-not-a-zero.md)
 - [ADR-0202 A limit is not a series](adr/0202-a-limit-is-not-a-series.md)
+- [ADR-0203 A time axis is time, not a relabelled index](adr/0203-a-time-axis-is-time-not-a-relabelled-index.md)
 
 ---
 
