@@ -43,13 +43,19 @@ import java.util.Set;
 /// the title names it, and a box repeating that is noise; with two, the colour is
 /// the only thing telling them apart, so identity must never be colour alone.
 ///
+/// ## What a pointer does
+///
+/// Hovering draws a **crosshair** at the nearest point, a marker on each series
+/// there, and a readout of what they read; clicking a **legend entry** shows that
+/// series alone and clicking it again puts them all back
+/// ([ADR-0198](../../../../../../../../book/src/adr/0198-a-charts-readout-is-painted-and-its-legend-is-a-control.md)).
+///
 /// ## What it does not have yet
 ///
-/// A tooltip, a crosshair, stacking, thresholds, log scales, time axes and
-/// clicking the legend to isolate a series — `charts.md` §3.1 is the list and
-/// this is the first cut of the widget under it. The x is the point **index**;
-/// [#categories] labels the points and a `java.time` axis is §3.1's and is not
-/// built.
+/// Thresholds, log scales, time axes, null handling, interpolation and a
+/// crosshair shared with the chart beside it — `charts.md` §3.1 is the list. The
+/// x is the point **index**; [#categories] labels the points and a `java.time`
+/// axis is §3.1's and is not built.
 ///
 /// **No dual y-axis, ever.** Two measures at different scales are two charts, or
 /// one indexed to a common base; a second y-scale is the most reliable way to
@@ -62,7 +68,8 @@ import java.util.Set;
 /// @param attributes `id` and `class`, exactly as on the primitives
 @Markup("line-chart")
 public record LineChart(List<Series> series, List<String> categories, Attributes attributes)
-        implements Widget.Leaf, Styled, Paints, Attributed<LineChart> {
+        implements Widget.Stateful, io.github.digitalsmile.goldberry.widgets.data.ChartSpec,
+                Attributed<LineChart> {
 
     public LineChart {
         series = List.copyOf(series == null ? List.of() : series);
@@ -79,19 +86,22 @@ public record LineChart(List<Series> series, List<String> categories, Attributes
         return new LineChart(series, values, attributes);
     }
 
+    /// The type of the box this chart's view draws — see
+    /// [io.github.digitalsmile.goldberry.widgets.data.ChartSpec#chartType()].
     @Override
-    public String cssType() {
+    public String chartType() {
         return "line-chart";
     }
 
     @Override
-    public String id() {
-        return attributes.id();
+    public io.github.digitalsmile.goldberry.widgets.data.ChartParts.Mode mode() {
+        return io.github.digitalsmile.goldberry.widgets.data.ChartParts.Mode.LINE;
     }
 
+    /// The state both halves of this chart read — which series is isolated.
     @Override
-    public Set<String> classes() {
-        return attributes.classes();
+    public io.github.digitalsmile.goldberry.widget.State<?> createState() {
+        return io.github.digitalsmile.goldberry.widgets.data.ChartParts.state();
     }
 
     @Override
@@ -102,18 +112,6 @@ public record LineChart(List<Series> series, List<String> categories, Attributes
     @Override
     public LineChart withAttributes(Attributes value) {
         return new LineChart(series, categories, value);
-    }
-
-    @Override
-    public List<Widget> children() {
-        return io.github.digitalsmile.goldberry.widgets.data.ChartParts.of(
-                series, categories,
-                io.github.digitalsmile.goldberry.widgets.data.ChartParts.Mode.LINE);
-    }
-
-    @Override
-    public Box render(ComputedStyle style, List<Box> children, Context context) {
-        return Box.of().style(style).children(children.toArray(Box[]::new));
     }
 
     /// Builds a `line-chart` from markup — §3.2's inline form, for small static

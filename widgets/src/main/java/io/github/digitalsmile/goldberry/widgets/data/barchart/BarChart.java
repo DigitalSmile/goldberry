@@ -37,7 +37,8 @@ import java.util.Set;
 /// down, which is the one thing every naive bar renderer gets wrong.
 @Markup("bar-chart")
 public record BarChart(List<Series> series, List<String> categories, Attributes attributes)
-        implements Widget.Leaf, Styled, Paints, Attributed<BarChart> {
+        implements Widget.Stateful, io.github.digitalsmile.goldberry.widgets.data.ChartSpec,
+                Attributed<BarChart> {
 
     public BarChart {
         series = List.copyOf(series == null ? List.of() : series);
@@ -54,19 +55,22 @@ public record BarChart(List<Series> series, List<String> categories, Attributes 
         return new BarChart(series, values, attributes);
     }
 
+    /// The type of the box this chart's view draws — see
+    /// [io.github.digitalsmile.goldberry.widgets.data.ChartSpec#chartType()].
     @Override
-    public String cssType() {
+    public String chartType() {
         return "bar-chart";
     }
 
     @Override
-    public String id() {
-        return attributes.id();
+    public io.github.digitalsmile.goldberry.widgets.data.ChartParts.Mode mode() {
+        return io.github.digitalsmile.goldberry.widgets.data.ChartParts.Mode.BAR;
     }
 
+    /// The state both halves of this chart read — which series is isolated.
     @Override
-    public Set<String> classes() {
-        return attributes.classes();
+    public io.github.digitalsmile.goldberry.widget.State<?> createState() {
+        return io.github.digitalsmile.goldberry.widgets.data.ChartParts.state();
     }
 
     @Override
@@ -77,16 +81,6 @@ public record BarChart(List<Series> series, List<String> categories, Attributes 
     @Override
     public BarChart withAttributes(Attributes value) {
         return new BarChart(series, categories, value);
-    }
-
-    @Override
-    public List<Widget> children() {
-        return ChartParts.of(series, categories, ChartParts.Mode.BAR);
-    }
-
-    @Override
-    public Box render(ComputedStyle style, List<Box> children, Context context) {
-        return Box.of().style(style).children(children.toArray(Box[]::new));
     }
 
     /// Builds a `bar-chart` from markup — §3.2's inline form.

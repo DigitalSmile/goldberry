@@ -40,7 +40,8 @@ import java.util.Set;
 /// proportion that lies.
 @Markup("area-chart")
 public record AreaChart(List<Series> series, List<String> categories, Attributes attributes)
-        implements Widget.Leaf, Styled, Paints, Attributed<AreaChart> {
+        implements Widget.Stateful, io.github.digitalsmile.goldberry.widgets.data.ChartSpec,
+                Attributed<AreaChart> {
 
     public AreaChart {
         series = List.copyOf(series == null ? List.of() : series);
@@ -57,19 +58,22 @@ public record AreaChart(List<Series> series, List<String> categories, Attributes
         return new AreaChart(series, values, attributes);
     }
 
+    /// The type of the box this chart's view draws — see
+    /// [io.github.digitalsmile.goldberry.widgets.data.ChartSpec#chartType()].
     @Override
-    public String cssType() {
+    public String chartType() {
         return "area-chart";
     }
 
     @Override
-    public String id() {
-        return attributes.id();
+    public io.github.digitalsmile.goldberry.widgets.data.ChartParts.Mode mode() {
+        return io.github.digitalsmile.goldberry.widgets.data.ChartParts.Mode.AREA;
     }
 
+    /// The state both halves of this chart read — which series is isolated.
     @Override
-    public Set<String> classes() {
-        return attributes.classes();
+    public io.github.digitalsmile.goldberry.widget.State<?> createState() {
+        return io.github.digitalsmile.goldberry.widgets.data.ChartParts.state();
     }
 
     @Override
@@ -80,16 +84,6 @@ public record AreaChart(List<Series> series, List<String> categories, Attributes
     @Override
     public AreaChart withAttributes(Attributes value) {
         return new AreaChart(series, categories, value);
-    }
-
-    @Override
-    public List<Widget> children() {
-        return ChartParts.of(series, categories, ChartParts.Mode.AREA);
-    }
-
-    @Override
-    public Box render(ComputedStyle style, List<Box> children, Context context) {
-        return Box.of().style(style).children(children.toArray(Box[]::new));
     }
 
     /// Builds an `area-chart` from markup — §3.2's inline form.

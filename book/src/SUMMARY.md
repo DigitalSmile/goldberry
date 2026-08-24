@@ -207,6 +207,7 @@
 - [ADR-0195 A painter reads the theme through a custom property](adr/0195-a-painter-reads-the-theme-through-a-custom-property.md)
 - [ADR-0196 A masonry is a layout that reads last frame](adr/0196-a-masonry-is-a-layout-that-reads-last-frame.md)
 - [ADR-0197 A painter's transform composes onto its ancestors'](adr/0197-a-painters-transform-composes-onto-its-ancestors.md)
+- [ADR-0198 A chart's readout is painted, and its legend is a control](adr/0198-a-charts-readout-is-painted-and-its-legend-is-a-control.md)
 
 ---
 

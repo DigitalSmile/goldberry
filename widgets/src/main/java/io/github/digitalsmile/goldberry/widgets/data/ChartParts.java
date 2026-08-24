@@ -25,20 +25,49 @@ public final class ChartParts {
     private ChartParts() {
     }
 
-    /// The plot, plus a legend when it is needed.
+    /// The state a [ChartSpec] creates — one class for all three axis charts.
+    ///
+    /// Here rather than exposed directly because [ChartState] is this package's
+    /// and the charts are not: a chart says "my state is the chart state" and
+    /// does not get to know what is in it.
+    public static io.github.digitalsmile.goldberry.widget.State<?> state() {
+        return new ChartState();
+    }
+
+    /// The plot, plus a legend when it is needed — for a chart nobody can
+    /// interact with.
+    ///
+    /// What `donut-chart` builds, and what a test that only cares about the
+    /// shape asks for.
+    public static List<Widget> of(List<Series> series, List<String> categories, Mode mode) {
+        return of(series, categories, mode, -1, null);
+    }
+
+    /// The same, for a chart whose legend can isolate a series.
     ///
     /// **Two series or more.** With one line the title names it and a legend box
     /// repeats it; with two, colour is the only thing telling them apart, so
     /// identity must never be colour alone.
-    public static List<Widget> of(List<Series> series, List<String> categories, Mode mode) {
+    ///
+    /// `isolated` reaches **both** halves, which is the whole reason it is
+    /// threaded from above rather than held by either: the plot draws one series
+    /// and the legend dims the rest, and a picture where those two disagreed
+    /// would be a legend that names a line nobody can see.
+    ///
+    /// @param isolated  the series shown alone, or -1 for all of them
+    /// @param onIsolate what a legend entry's click reports, or null for a
+    ///                  legend that is a key rather than a control
+    public static List<Widget> of(List<Series> series, List<String> categories, Mode mode,
+            int isolated, java.util.function.IntConsumer onIsolate) {
+
         var parts = new ArrayList<Widget>(2);
         parts.add(new ChartPlot(series, categories, switch (mode) {
             case LINE -> ChartPlot.Mode.LINE;
             case AREA -> ChartPlot.Mode.AREA;
             case BAR -> ChartPlot.Mode.BAR;
-        }));
+        }, isolated));
         if (series.size() > 1) {
-            parts.add(new ChartLegend(series));
+            parts.add(new ChartLegend(series, isolated, onIsolate));
         }
         return List.copyOf(parts);
     }

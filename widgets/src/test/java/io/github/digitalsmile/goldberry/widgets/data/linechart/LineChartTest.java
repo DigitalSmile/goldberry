@@ -51,19 +51,28 @@ class LineChartTest {
         // With one line the title names it and a legend box repeats it; with two
         // the colour is the only thing telling them apart, so identity must not
         // be colour alone.
-        var one = new LineChart(List.of(Series.of("Downloads", 1, 2, 3)));
-        var two = new LineChart(two());
+        // Through `ChartParts`, which is where the rule lives and what all four
+        // charts call -- a chart itself is a stateful widget now and has no
+        // children of its own to count.
+        var one = io.github.digitalsmile.goldberry.widgets.data.ChartParts.of(
+                List.of(Series.of("Downloads", 1, 2, 3)), List.of(),
+                io.github.digitalsmile.goldberry.widgets.data.ChartParts.Mode.LINE);
+        var two = io.github.digitalsmile.goldberry.widgets.data.ChartParts.of(
+                two(), List.of(),
+                io.github.digitalsmile.goldberry.widgets.data.ChartParts.Mode.LINE);
 
-        assertEquals(1, one.children().size(), "one series: the plot and nothing else");
-        assertTrue(one.children().getFirst() instanceof ChartPlot);
-        assertEquals(2, two.children().size());
-        assertTrue(two.children().getLast() instanceof ChartLegend);
+        assertEquals(1, one.size(), "one series: the plot and nothing else");
+        assertTrue(one.getFirst() instanceof ChartPlot);
+        assertEquals(2, two.size());
+        assertTrue(two.getLast() instanceof ChartLegend);
     }
 
     @Test
     @DisplayName("the legend names every series, in the order their colours were assigned")
     void legendEntriesFollowTheSeriesOrder() {
-        var legend = (ChartLegend) new LineChart(two()).children().getLast();
+        var legend = (ChartLegend) io.github.digitalsmile.goldberry.widgets.data.ChartParts.of(
+                two(), List.of(),
+                io.github.digitalsmile.goldberry.widgets.data.ChartParts.Mode.LINE).getLast();
 
         var entries = legend.children();
         assertEquals(2, entries.size());

@@ -16,12 +16,18 @@ golden-image corpus (`content-widgets.md` §3).
 
 ## 1. What is built on
 
-**`canvas` is not built yet, and everything here waits on it.** It is a §1
-primitive in `goldberry-core` — an immediate-mode Blend2D surface with
-`onPaint(ctx, size)` and `invalidate()` — and it is already blocking one shipped
-widget: `statistic`'s sparkline is specified and absent for want of it
-(`status.md`, ADR-0164). So the order is `canvas`, then the chart substrate, then
-the widgets; a chart is the second consumer of `canvas`, not the first.
+**`canvas` is built, and everything here sits on it.** It is a §1 primitive in
+`goldberry-core` — a painter slot on `Box`, handed a frame translated to the
+box's content corner and clipped to it (ADR-0193), composing onto whatever
+transform its ancestors set (ADR-0197). The order was `canvas`, then the chart
+substrate (`Ticks`, `Scale`, `Lttb`, `PlotGeometry`), then the five widgets, and
+that is the order it happened in; `statistic`'s sparkline was the first consumer
+and a chart is the second.
+
+A chart's **interaction** sits on it too, and not entirely: the crosshair and the
+hover readout are painted, and the legend is real widgets that a pointer clicks
+(ADR-0198). Which half a piece of a chart belongs in is decided by whether it
+participates in layout, not by whether it is text.
 
 ---
 
@@ -103,8 +109,8 @@ feature lands and why.
 | Sparkline (no axes, no legend) | **v1** | `sparkline`, and `statistic`'s missing child |
 | Donut / pie | **v1, narrowed** | Part-to-whole only, ≥ 3 slices, share labels shown. A two-slice donut is a meter and a many-slice donut is a stacked bar — both are refused rather than drawn badly |
 | Legend: placement, list mode | **v1** | Present for ≥ 2 series, absent for one — the title names a lone series |
-| Tooltip: single series, all series | **v1** | Hover on bar/donut, crosshair + tooltip on line/area |
-| Shared crosshair across charts | **v1** | Linked by a shared `CrosshairGroup`; cheap because it is one value two widgets read |
+| Tooltip: single series, all series | **built, less donut** | Crosshair + readout on line/area, band highlight on bar (ADR-0198). Hover on `donut-chart` is not built |
+| Shared crosshair across charts | **v1** | Linked by a shared `CrosshairGroup`; cheap because it is one value two widgets read. Not built — the per-chart crosshair it hangs off now exists |
 | Null handling: gap / connect / zero | **v1** | Three-way, explicit. A gap drawn as zero is a lie about the data and the default is the gap |
 | Interpolation: linear, smooth, step | **v1** | Step matters for state-ish series; smooth is monotone-cubic, which cannot overshoot into impossible values |
 | Fill opacity, gradient fill | **v1** | Gradient is a linear OKLCH fade of the series colour to transparent |
@@ -113,7 +119,7 @@ feature lands and why.
 | Log axis | **v1** | With correct log tick labelling |
 | Thresholds: lines and shaded regions | **v1** | Drawn in the *semantic* hues, never a series slot |
 | Value formatting per axis | **v1, app-supplied** | See §3.4 |
-| Series toggle by clicking the legend | **v1** | Click isolates, click again restores — the one interaction Grafana users reach for first |
+| Series toggle by clicking the legend | **built** | Click isolates, click again restores; the others are dimmed rather than dropped (ADR-0198) |
 | Empty / loading / error states | **v1** | A chart with no data draws a themed message, never an empty grid |
 
 ### 3.2 In `goldberry-plot` (post-v1) — science-grade, not dashboard-grade

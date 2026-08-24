@@ -80,8 +80,6 @@ class ChartsGoldenTest {
         // difference look like a doubling. A bar encodes its value as a length,
         // so the length has to start where the value does.
         var chart = new BarChart(List.of(Series.of("Uptime", 99.1, 99.4, 99.2)));
-        var plot = (io.github.digitalsmile.goldberry.widgets.data.linechart.ChartPlot)
-                chart.children().getFirst();
 
         // Rendered, because the domain is decided in `render` where the cascade
         // is -- reading it any other way would be reading a different number.
@@ -91,8 +89,8 @@ class ChartsGoldenTest {
 
         var labelling = Ticks.extended(0, 99.4, 5);
         assertEquals(0.0, labelling.min(), "the axis this data gets must start at zero");
-        assertTrue(plot.mode() == io.github.digitalsmile.goldberry.widgets.data.linechart
-                .ChartPlot.Mode.BAR);
+        assertEquals(ChartParts.Mode.BAR, chart.mode(),
+                "and it is the mode that decides it, for every bar chart");
     }
 
     @Test
@@ -162,10 +160,22 @@ class ChartsGoldenTest {
     @Test
     @DisplayName("all three axis charts share one legend rule")
     void oneLegendRule() {
+        // Counted in the **boxes**, because a chart is a stateful widget now and
+        // its parts are its state's rather than its own -- and because what the
+        // rule is about is whether a legend is on the screen.
         var one = List.of(Series.of("Only", 1, 2));
-        assertEquals(1, new AreaChart(one).children().size());
-        assertEquals(1, new BarChart(one).children().size());
-        assertEquals(2, new AreaChart(two()).children().size());
-        assertEquals(2, new BarChart(two()).children().size());
+        assertEquals(1, partsOf(new AreaChart(one)), "one series: the plot, and no legend");
+        assertEquals(1, partsOf(new BarChart(one)));
+        assertEquals(2, partsOf(new AreaChart(two())), "two series: a legend as well");
+        assertEquals(2, partsOf(new BarChart(two())));
+        assertEquals(2, partsOf(new io.github.digitalsmile.goldberry.widgets.data.linechart
+                .LineChart(two())), "and the third chart obeys the same one");
+    }
+
+    /// How many parts `chart` painted — one for the plot, two with a legend.
+    private static int partsOf(Widget chart) {
+        var renderer = new WidgetRenderer(
+                List.of(Controls.baseStylesheet(), Theme.NORD_DARK.load()), TestFont.get());
+        return renderer.render(new ElementTree(chart)).children().size();
     }
 }

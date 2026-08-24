@@ -23,7 +23,17 @@ import io.github.digitalsmile.goldberry.natives.blend2d.BlendPath;
 /// approximation — about one part in 10,000 of the radius, which at a 12px corner
 /// is a thousandth of a pixel and well inside the golden images' tolerance
 /// ([ADR-0050]).
-final class RoundRect {
+///
+/// ## Why it is public
+///
+/// It was package-private while the only caller was [BoxPainter], and stopped
+/// being so when a `canvas` painter needed one: a chart's readout is a rounded
+/// rectangle drawn by a widget, and the alternative was a second derivation of
+/// the four cubics above in `:widgets` — two implementations of a corner that
+/// must agree, which is the whole thing this class exists to prevent. Public
+/// takes nothing new across the native boundary: it is the already-exported
+/// `bl_path_cubic_to` and arithmetic.
+public final class RoundRect {
 
     /// `4 * (sqrt(2) - 1) / 3` — the control-point distance that best fits a
     /// quarter circle.
@@ -38,7 +48,7 @@ final class RoundRect {
     /// The radius is clamped to half the shorter side, which is what makes
     /// `border-radius: 9999px` a pill rather than a rendering error — CSS's own
     /// rule, and the one the design system's `full` radius relies on.
-    static void addTo(BlendPath path, double x, double y, double width, double height,
+    public static void addTo(BlendPath path, double x, double y, double width, double height,
             double radius) {
 
         var r = Math.min(radius, Math.min(width, height) / 2);

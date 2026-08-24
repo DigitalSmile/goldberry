@@ -3328,6 +3328,23 @@ chart-legend-entry {
   align-items: center;
 }
 
+/* A legend entry is a **control** when the chart it belongs to can isolate a
+   series: one click shows that series alone, the next puts them all back
+   (ADR-0198). On a class and not on the type, because whether it is one depends
+   on the chart -- `donut-chart`'s entries are a key, and a pointer cursor would
+   promise them an affordance they do not have. */
+chart-legend-entry.interactive {
+  cursor: pointer;
+}
+
+/* The entries whose series is currently hidden. Not `:disabled`, which this is
+   the opposite of: a muted entry is the most clickable thing on the chart,
+   because clicking it is how the rest come back. 0.45 is the step a disabled
+   control uses, so there is one dimming in the design system rather than two. */
+chart-legend-entry.muted {
+  opacity: 0.45;
+}
+
 /* A 8x8 chip with a small radius: big enough to read a hue from, small enough
    that it reads as a key rather than as a swatch chart. Its colour is the
    palette's and not this rule's -- see ChartLegendEntry. */

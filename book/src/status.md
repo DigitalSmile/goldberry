@@ -3580,10 +3580,80 @@ is the `scroll` box's.
   image and the entry said so. A masonry cannot be photographed at all without
   it, which made the gap concrete enough to close; the Forms picture is now the
   one the running application shows.
-- **Not built: the interaction layer** `charts.md` §3.1 lists — tooltip,
-  crosshair, thresholds, log scales, time axes, and clicking a legend entry to
-  isolate a series. The five widgets exist; what they do when a pointer arrives
-  is the next piece.
+- **The interaction layer** `charts.md` §3.1 lists was next, and its first half
+  is built — see [What a chart does when a pointer
+  arrives](#what-a-chart-does-when-a-pointer-arrives). Thresholds, log scales,
+  time axes and a shared crosshair are still outstanding.
+
+### What a chart does when a pointer arrives
+
+- **A crosshair, a marker per series, and a readout beside it** on `line-chart`
+  and `area-chart`; a **band highlight** on `bar-chart`, because a hairline down
+  the middle of a group of bars points at the gap between two of them. This is
+  the first half of `charts.md` §3.1's interaction list
+  ([ADR-0198](adr/0198-a-charts-readout-is-painted-and-its-legend-is-a-control.md)).
+- **The plot's geometry is one arithmetic used in two directions.** `PlotGeometry`
+  turns a point index into an x and an x back into a point index, and the test
+  that matters is the round trip over every point count from 1 to 40 in both
+  modes — because a crosshair two pixels left of the point the pointer chose is a
+  chart that looks broken at one window size and fine at every other. It also
+  settles where bars differ from lines in one place: a bar owns a **band** and a
+  line passes through a **point**, which decides the label offset, the crosshair
+  and the pointer mapping at once.
+- **The pointer resolves against the frame that was painted.** The gutter is
+  measured from the shaped axis labels, so the geometry is only known inside the
+  painter — and a pointer event carries a rectangle and no text stack. So the
+  painter leaves its answer in a `PaintedGeometry` and the handler reads it,
+  which is ADR-0054's rule one level down: the toolkit already routes a pointer
+  against the frame the user was looking at when they pointed.
+- **The readout is painted and the legend is not, and the difference is not
+  taste.** A legend wraps, is selected by a stylesheet and is in the same place
+  every frame, so it is nodes (ADR-0192's `flex-wrap` was added for it). A
+  readout is positioned in plot coordinates, flips side at the middle of the
+  plot, and must not participate in layout — as widgets it would need absolute
+  positioning against a gutter `children()` cannot see, so it would read a
+  geometry one frame late to produce a node that must not be laid out. Its text
+  is still shaped by the text stack, in `render`, where the hovered index is
+  known: one point's worth of strings, and the cache serves the repeats.
+- **It takes `hud`'s tokens**, through ADR-0195's `Paints.Context#color`. A
+  floating overlay over content the reader is looking through it at *is* a HUD,
+  and a chart inventing a fourth surface token would be one the theme cannot
+  restyle with the rest.
+- **Clicking a legend entry isolates its series, and clicking it again puts them
+  all back** — §3.1's "the one interaction Grafana users reach for first". The
+  entries that are not isolated are **dimmed rather than dropped**, because a
+  legend that changed width as you clicked it would take the way back with it.
+- **Isolation is an index, not a set of hidden series.** Unhiding a set requires
+  remembering what you hid, and a chart showing three of eight series has a
+  legend that no longer says what the picture is. Isolating **rescales the axis**,
+  which is the point of asking for one series: a flat line at the bottom of a
+  chart scaled to a bigger one has nothing to read.
+- **The isolated series keeps its own colour**, which is why the series list is
+  never filtered: the index *is* the palette slot (ADR-0194), so filtering would
+  redraw an isolated fourth series in the first slot's hue and its own swatch
+  would then disagree with it.
+- **Three charts became stateful and the box tree did not change.** A hovered
+  point and an isolated series are state, and a widget is a value — so
+  `ChartPlot` is stateful above the canvas, and `line-chart`, `area-chart` and
+  `bar-chart` are stateful above both halves, because the click lands on the
+  legend and changes what the plot draws. What they build is a `ChartView`
+  carrying the chart's own CSS type, `id` and classes, so every rule in
+  `controls.css` still lands where it did and **all four chart goldens are
+  unchanged, to the pixel**. A stateful widget occupies an element and no box.
+- **Driven through the real router in tests**, which render, lay out, *paint* —
+  the step a hover cannot work without — and then dispatch. They compare pictures
+  to pictures rather than coordinates, because the hovered index is deliberately
+  not readable from outside: hovering draws something, two positions over one
+  point draw the same thing, the gutter draws nothing, and leaving clears it.
+  Three new goldens say what it looks like.
+- **`RoundRect` is public**, with a comment saying why: a canvas painter needs a
+  rounded rectangle and the alternative was a second derivation of ADR-0064's
+  four cubics in `:widgets`. No new symbol crosses the native boundary.
+- **Still owed from §3.1**: thresholds, log axes, `java.time` axes, null handling,
+  interpolation, soft bounds, gradient fills, empty and error states, a shared
+  `CrosshairGroup` across charts, hover on `donut-chart`, and §3.5's keyboard
+  operation — arrow keys walking the crosshair, which now has somewhere to keep
+  its index and no keys bound to it.
 
 ### Two things found by scrolling the wall of charts
 
