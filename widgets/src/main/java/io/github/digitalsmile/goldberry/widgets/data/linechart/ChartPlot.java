@@ -32,7 +32,9 @@ import java.util.List;
 ///                 reach the plot and they are siblings ([io.github.digitalsmile.goldberry.widgets.data.ChartSpec])
 public record ChartPlot(
         List<Series> series, List<String> categories, Mode mode,
-        io.github.digitalsmile.goldberry.widgets.data.NullPolicy nulls, int isolated)
+        io.github.digitalsmile.goldberry.widgets.data.NullPolicy nulls,
+        List<io.github.digitalsmile.goldberry.widgets.data.Threshold> thresholds,
+        int isolated)
         implements Widget.Stateful {
 
     /// Which shape the plot draws.
@@ -59,11 +61,12 @@ public record ChartPlot(
         mode = mode == null ? Mode.LINE : mode;
         nulls = nulls == null
                 ? io.github.digitalsmile.goldberry.widgets.data.NullPolicy.GAP : nulls;
+        thresholds = List.copyOf(thresholds == null ? List.of() : thresholds);
     }
 
     public ChartPlot(List<Series> series, List<String> categories, Mode mode) {
         this(series, categories, mode,
-                io.github.digitalsmile.goldberry.widgets.data.NullPolicy.GAP, -1);
+                io.github.digitalsmile.goldberry.widgets.data.NullPolicy.GAP, List.of(), -1);
     }
 
     ChartPlot(List<Series> series, List<String> categories) {
@@ -91,8 +94,8 @@ public record ChartPlot(
         @Override
         public Widget build(io.github.digitalsmile.goldberry.widget.BuildContext context) {
             return new ChartSurface(widget().series(), widget().categories(), widget().mode(),
-                    widget().nulls(), widget().isolated(), hovered, painted,
-                    this::hover, this::walk);
+                    widget().nulls(), widget().thresholds(), widget().isolated(), hovered,
+                    painted, this::hover, this::walk);
         }
 
         /// Moves the crosshair, and asks for a frame only when it actually moved.

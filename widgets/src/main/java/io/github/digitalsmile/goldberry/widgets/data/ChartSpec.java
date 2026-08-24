@@ -53,6 +53,9 @@ public interface ChartSpec extends Widget {
     /// interpret without being told which line is which kind.
     NullPolicy nulls();
 
+    /// The limits drawn across this chart, in the semantic hues — [Threshold].
+    List<Threshold> thresholds();
+
     /// Whether this chart has its data, is waiting for it, or could not get it.
     ///
     /// On the interface for isolation's reason turned round: every axis chart

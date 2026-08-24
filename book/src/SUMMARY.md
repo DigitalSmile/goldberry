@@ -211,6 +211,7 @@
 - [ADR-0199 A chart answers the keyboard, and a step is relative](adr/0199-a-chart-answers-the-keyboard-and-a-step-is-relative.md)
 - [ADR-0200 A chart with no data says so](adr/0200-a-chart-with-no-data-says-so.md)
 - [ADR-0201 A hole is not a zero](adr/0201-a-hole-is-not-a-zero.md)
+- [ADR-0202 A limit is not a series](adr/0202-a-limit-is-not-a-series.md)
 
 ---
 

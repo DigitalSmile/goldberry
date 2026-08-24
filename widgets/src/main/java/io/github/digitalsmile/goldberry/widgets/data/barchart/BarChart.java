@@ -39,6 +39,7 @@ import java.util.Set;
 public record BarChart(List<Series> series, List<String> categories,
         io.github.digitalsmile.goldberry.widgets.data.ChartStatus status,
         io.github.digitalsmile.goldberry.widgets.data.NullPolicy nulls,
+        List<io.github.digitalsmile.goldberry.widgets.data.Threshold> thresholds,
         Attributes attributes)
         implements Widget.Stateful, io.github.digitalsmile.goldberry.widgets.data.ChartSpec,
                 Attributed<BarChart> {
@@ -51,13 +52,35 @@ public record BarChart(List<Series> series, List<String> categories,
                 ? io.github.digitalsmile.goldberry.widgets.data.ChartStatus.READY : status;
         nulls = nulls == null
                 ? io.github.digitalsmile.goldberry.widgets.data.NullPolicy.GAP : nulls;
+        thresholds = List.copyOf(thresholds == null ? List.of() : thresholds);
     }
 
     /// The ordinary form: a chart that has its data.
     public BarChart(List<Series> series, List<String> categories, Attributes attributes) {
         this(series, categories,
                 io.github.digitalsmile.goldberry.widgets.data.ChartStatus.READY,
-                io.github.digitalsmile.goldberry.widgets.data.NullPolicy.GAP, attributes);
+                io.github.digitalsmile.goldberry.widgets.data.NullPolicy.GAP,
+                List.of(), attributes);
+    }
+
+    /// This chart with `limit` drawn across it — a line or a shaded region, in
+    /// one of the four semantic hues.
+    ///
+    /// Additive, so several limits read as several calls:
+    /// `chart.threshold(warn).threshold(fail)`. A threshold is part of the
+    /// domain, so one you have not crossed yet is still on screen
+    /// ([io.github.digitalsmile.goldberry.widgets.data.Threshold]).
+    public BarChart threshold(io.github.digitalsmile.goldberry.widgets.data.Threshold limit) {
+        var next = new java.util.ArrayList<>(thresholds);
+        next.add(java.util.Objects.requireNonNull(limit, "limit"));
+        return new BarChart(series, categories, status, nulls, List.copyOf(next), attributes);
+    }
+
+    /// This chart with exactly these limits, replacing whatever it had.
+    public BarChart thresholds(
+            List<io.github.digitalsmile.goldberry.widgets.data.Threshold> limits) {
+
+        return new BarChart(series, categories, status, nulls, limits, attributes);
     }
 
     /// This chart, told what to do where a series has no value.
@@ -65,7 +88,7 @@ public record BarChart(List<Series> series, List<String> categories,
     /// The default is [io.github.digitalsmile.goldberry.widgets.data.NullPolicy#GAP],
     /// which is the only one of the three that invents nothing.
     public BarChart nulls(io.github.digitalsmile.goldberry.widgets.data.NullPolicy value) {
-        return new BarChart(series, categories, status, value, attributes);
+        return new BarChart(series, categories, status, value, thresholds, attributes);
     }
 
     /// This chart, waiting for its data — it keeps its box and says so.
@@ -84,7 +107,7 @@ public record BarChart(List<Series> series, List<String> categories,
     /// This chart with `value` as its state — see
     /// [io.github.digitalsmile.goldberry.widgets.data.ChartStatus].
     public BarChart status(io.github.digitalsmile.goldberry.widgets.data.ChartStatus value) {
-        return new BarChart(series, categories, value, nulls, attributes);
+        return new BarChart(series, categories, value, nulls, thresholds, attributes);
     }
 
     public BarChart(List<Series> series) {
@@ -93,7 +116,7 @@ public record BarChart(List<Series> series, List<String> categories,
 
     /// This chart with a label under each group.
     public BarChart categories(List<String> values) {
-        return new BarChart(series, values, status, nulls, attributes);
+        return new BarChart(series, values, status, nulls, thresholds, attributes);
     }
 
     /// The type of the box this chart's view draws — see
@@ -121,7 +144,7 @@ public record BarChart(List<Series> series, List<String> categories,
 
     @Override
     public BarChart withAttributes(Attributes value) {
-        return new BarChart(series, categories, status, nulls, value);
+        return new BarChart(series, categories, status, nulls, thresholds, value);
     }
 
     /// Builds a `bar-chart` from markup — §3.2's inline form.

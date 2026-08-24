@@ -3586,9 +3586,9 @@ is the `scroll` box's.
   pointer](#a-donut-under-the-pointer-and-every-chart-under-the-keyboard).
   What a chart says when it has no numbers is built too — see [What a chart says
   when it has not got the
-  numbers](#what-a-chart-says-when-it-has-not-got-the-numbers). Thresholds, log
-  scales, time axes, interpolation and a crosshair shared between charts are
-  still outstanding.
+  numbers](#what-a-chart-says-when-it-has-not-got-the-numbers), and so are
+  thresholds. Log scales, time axes, interpolation, soft bounds, gradient fills
+  and a crosshair shared between charts are still outstanding.
 
 ### Two things found by scrolling the wall of charts
 
@@ -3846,6 +3846,39 @@ is the `scroll` box's.
   edge. The scale is the union of the labelling and the data now; the gridlines
   stay on the round numbers, which is what every chart a reader has seen already
   does. Six goldens moved, all of them by a few pixels of scale.
+
+### A limit drawn across a chart, and the grey it turned out to be
+
+- **Thresholds are built** — `charts.md` §3.1's lines and shaded regions, in one
+  of four semantic levels with **no way to pass a colour**
+  ([ADR-0202](adr/0202-a-limit-is-not-a-series.md)). That refusal is the decision:
+  the series palette exists to keep the things being *compared* apart, and a limit
+  is a statement about them, so a threshold from the palette would read as one
+  more series and steal a real one's hue. It reads `--gb-<level>-line`, which is
+  the rank §1.2 added for a stroke drawn on the page rather than for a label or a
+  fill.
+- **A band is a wash and its edges, and that was a measurement rather than a
+  taste.** The first version was a wash alone, and this theme's warning hue at 16%
+  over the dark surface computes to `(76, 76, 76)` — *exactly* neutral grey. A
+  band whose semantic colour a reader cannot perceive says "something" rather than
+  "warning". Each finite edge is drawn at full strength now, and the test asserts
+  both halves: that the edges are in the warning hue, and that the wash really is
+  the grey that made them necessary.
+- **A threshold is part of the domain.** The axis stretches to reach it, so "we
+  are a long way from the limit" is a reading a chart can give. One that only
+  appeared once it had been breached would be a warning light that comes on after
+  the fire.
+- **A band goes under the data**, because a warning that hid what it was warning
+  about would cost you the reading you came for. `NaN` is refused at construction
+  with a message naming `NullPolicy`: it is the one place in this area where a
+  `NaN` means something specific, and a limit that is missing is not a limit.
+- **The showcase's `p99 latency` card has an SLO band on it**, which is also the
+  only colour on that screen that is not from the series palette — the decision,
+  visible on the wall.
+- **The three axis charts now have six components**, and the next §3.1 item makes
+  it seven. ADR-0202 records that the next one should bundle everything that is
+  not the data into a `ChartOptions`, with the withers kept as the public surface;
+  doing it in the same change as the feature would have hidden the feature.
 
 ### Not started
 

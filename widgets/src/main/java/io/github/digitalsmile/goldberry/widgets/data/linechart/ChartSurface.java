@@ -60,6 +60,7 @@ import java.util.List;
 record ChartSurface(
         List<Series> series, List<String> categories, ChartPlot.Mode mode,
         io.github.digitalsmile.goldberry.widgets.data.NullPolicy nulls,
+        List<io.github.digitalsmile.goldberry.widgets.data.Threshold> thresholds,
         int isolated, int hovered, PaintedGeometry painted,
         java.util.function.IntPredicate onHover, java.util.function.IntPredicate onWalk)
         implements Widget.Leaf, Styled, Paints, Handles {
@@ -176,6 +177,13 @@ record ChartSurface(
             // A stack is as tall as its total, not as its tallest member.
             max = Math.max(max, stackedMax(resolved));
         }
+        // **A threshold is part of the domain.** A limit you have not crossed yet
+        // is the one that matters most, and one that only appeared once it had
+        // been breached would be a warning light that comes on after the fire.
+        for (var threshold : thresholds) {
+            min = Math.min(min, threshold.domainMin());
+            max = Math.max(max, threshold.domainMax());
+        }
         if (mode != ChartPlot.Mode.LINE) {
             // **A bar or a band must start at zero.** A bar chart with a
             // non-zero baseline makes a 3% difference look like a doubling, and
@@ -211,8 +219,16 @@ record ChartSurface(
         // *structural* line, which a gridline is not.
         var grid = CssColor.fade(style.color(), 0.14);
         var ink = style.color();
+        var limits = new ArrayList<PaintedThreshold>(thresholds.size());
+        for (var threshold : thresholds) {
+            limits.add(new PaintedThreshold(threshold.from(), threshold.to(),
+                    threshold.colour(context),
+                    threshold.label() == null
+                            ? null : context.paragraph(style, threshold.label())));
+        }
         var plot = new Painted(labelling, List.copyOf(labels), List.copyOf(xLabels),
-                List.copyOf(colours), grid, ink, resolved, mode, min, max, isolated,
+                List.copyOf(colours), grid, ink, resolved, mode, min, max,
+                List.copyOf(limits), isolated,
                 readout(style, context, resolved), hovered, painted);
         return Box.of().style(style).painting(plot::paint);
     }
@@ -452,6 +468,15 @@ record ChartSurface(
     }
 
     /// One line of a readout: a series' colour, its name, and its value here.
+    /// A threshold with its colour resolved and its word shaped — decided in
+    /// `render`, where the cascade and the text stack are.
+    private record PaintedThreshold(double from, double to, int colour, Paragraph label) {
+
+        boolean isLine() {
+            return from == to;
+        }
+    }
+
     private record Row(int colour, Paragraph name, Paragraph value) {
     }
 
@@ -467,6 +492,7 @@ record ChartSurface(
             List<Integer> colours, int grid, int ink,
             List<io.github.digitalsmile.goldberry.widgets.data.Gaps.Resolved> series,
             ChartPlot.Mode mode, double domainMin, double domainMax,
+            List<PaintedThreshold> thresholds,
             int isolated, Readout readout, int hovered, PaintedGeometry painted) {
 
         private boolean shows(int index) {
@@ -500,6 +526,11 @@ record ChartSurface(
             }
 
             paintGrid(frame, geometry, size.width());
+            // **Under the data and over the gridlines.** A threshold is a
+            // statement about the series, so it must not cover one -- a warning
+            // that hid what it was warning about would cost you the reading you
+            // came for.
+            paintThresholds(frame, geometry);
             switch (mode) {
                 case LINE -> paintLines(frame, geometry);
                 case AREA -> paintBands(frame, geometry);
@@ -586,6 +617,83 @@ record ChartSurface(
                     }
                 }
             }
+        }
+
+        /// The limits, as lines and shaded regions.
+        ///
+        /// A band is clamped to the plot, so `above(90)` fills from 90 to the top
+        /// edge rather than to positive infinity — which is what "no top" means
+        /// once it has to be a rectangle.
+        private void paintThresholds(Frame frame, PlotGeometry geometry) {
+            for (var limit : thresholds) {
+                if (limit.isLine()) {
+                    var at = geometry.y().at(limit.from());
+                    if (at < geometry.top() || at > geometry.bottom()) {
+                        continue;
+                    }
+                    // A pixel, where a series is two: a limit is read *against*
+                    // the data and a line as heavy as the data competes with it.
+                    frame.fillRect((float) geometry.left(), (float) at,
+                            (float) geometry.plotWidth(), 1, limit.colour());
+                    label(frame, geometry, limit, at);
+                    continue;
+                }
+                var high = Double.isFinite(limit.to())
+                        ? geometry.y().at(limit.to()) : geometry.top();
+                var low = Double.isFinite(limit.from())
+                        ? geometry.y().at(limit.from()) : geometry.bottom();
+                var top = Math.max(geometry.top(), Math.min(high, low));
+                var bottom = Math.min(geometry.bottom(), Math.max(high, low));
+                if (bottom - top <= 0) {
+                    continue;
+                }
+                // **A wash and its edges.** The wash alone does not work: this
+                // theme's warning hue at 16% over the dark surface computes to
+                // (76, 76, 76), which is *exactly* neutral grey -- a band whose
+                // semantic colour a reader cannot perceive is a band that says
+                // "something" rather than "warning". So the fill stays low enough
+                // to read the data through and each finite edge is drawn at full
+                // strength, which is where the hue lives.
+                frame.fillRect((float) geometry.left(), (float) top,
+                        (float) geometry.plotWidth(), (float) (bottom - top),
+                        CssColor.fade(limit.colour(), 0.18));
+                if (Double.isFinite(limit.to())) {
+                    frame.fillRect((float) geometry.left(), (float) top,
+                            (float) geometry.plotWidth(), 1, limit.colour());
+                }
+                if (Double.isFinite(limit.from())) {
+                    frame.fillRect((float) geometry.left(), (float) (bottom - 1),
+                            (float) geometry.plotWidth(), 1, limit.colour());
+                }
+                label(frame, geometry, limit, top);
+            }
+        }
+
+        /// A threshold's word, right-aligned just above its line.
+        ///
+        /// At the right-hand end because the left is where the axis labels are,
+        /// and above the line because below it is where the next gridline's
+        /// number sits. Skipped when the plot is too narrow to hold it, for the
+        /// reason the x labels thin out: a label that overlaps the data is worse
+        /// than no label.
+        private static void label(
+                Frame frame, PlotGeometry geometry, PaintedThreshold limit, double at) {
+
+            if (limit.label() == null) {
+                return;
+            }
+            var layout = limit.label().layout(Paragraph.UNCONSTRAINED);
+            if (layout.width() > geometry.plotWidth() / 2) {
+                return;
+            }
+            var top = at - layout.height();
+            if (top < geometry.top()) {
+                // No room above the line -- which happens to a threshold at the
+                // very top of the axis -- so it goes below instead.
+                top = at + 1;
+            }
+            limit.label().paint(frame, geometry.right() - layout.width(), top,
+                    Paragraph.UNCONSTRAINED, limit.colour());
         }
 
         /// A lone reading, drawn as a disc because it has no neighbour to make a

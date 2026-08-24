@@ -7,6 +7,7 @@ import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widgets.core.Column;
 import io.github.digitalsmile.goldberry.widgets.data.NullPolicy;
 import io.github.digitalsmile.goldberry.widgets.data.Series;
+import io.github.digitalsmile.goldberry.widgets.data.Threshold;
 import io.github.digitalsmile.goldberry.widgets.data.areachart.AreaChart;
 import io.github.digitalsmile.goldberry.widgets.data.barchart.BarChart;
 import io.github.digitalsmile.goldberry.widgets.data.donutchart.DonutChart;
@@ -52,6 +53,11 @@ import java.util.Set;
 ///   ([ADR-0195](../../../../../../../book/src/adr/0195-a-painter-reads-the-theme-through-a-custom-property.md)).
 /// - **A sparkline inherits `color`**, so the one inside a `statistic` is drawn
 ///   in the delta's hue without being told.
+/// - **A limit is not a series.** The `p99 latency` card carries a threshold
+///   band in the semantic warning hue, which is the one colour on this screen
+///   that is *not* from the palette — a limit is a statement about the data
+///   rather than one of the things being compared
+///   ([ADR-0202](../../../../../../../book/src/adr/0202-a-limit-is-not-a-series.md)).
 /// - **A hole is not a zero**, which is the last card: the same twelve readings
 ///   drawn twice, under the two
 ///   [io.github.digitalsmile.goldberry.widgets.data.NullPolicy] settings that
@@ -144,10 +150,21 @@ public record Charts() implements Widget.Stateful {
                                     id("errors-card")),
 
                             // The card whose stylesheet rule recolours one series
-                            // -- see the class note.
+                            // -- see the class note -- and the one with a limit
+                            // drawn across it.
                             card("p99 latency",
                                     new LineChart(List.of(new Series("p99", LATENCY)),
-                                            List.of(), id("latency")),
+                                            List.of(), id("latency"))
+                                            // A band rather than a line, because
+                                            // what matters is the *region* the
+                                            // series went into. In a semantic hue,
+                                            // never a series slot: a limit is a
+                                            // statement about the data rather than
+                                            // one of the things being compared
+                                            // (ADR-0202).
+                                            .threshold(Threshold
+                                                    .above(145, Threshold.Level.WARNING)
+                                                    .labelled("SLO")),
                                     id("latency-card")),
 
                             card("Active users",

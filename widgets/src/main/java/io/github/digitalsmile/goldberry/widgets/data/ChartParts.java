@@ -71,13 +71,15 @@ public final class ChartParts {
     public static List<Widget> of(List<Series> series, List<String> categories, Mode mode,
             int isolated, java.util.function.IntConsumer onIsolate, ChartStatus status) {
 
-        return of(series, categories, mode, isolated, onIsolate, status, NullPolicy.GAP);
+        return of(series, categories, mode, isolated, onIsolate, status, NullPolicy.GAP,
+                List.of());
     }
 
-    /// The same, told what to do where a series has no value.
+    /// The same, told what to do where a series has no value and what limits to
+    /// draw across it.
     public static List<Widget> of(List<Series> series, List<String> categories, Mode mode,
             int isolated, java.util.function.IntConsumer onIsolate, ChartStatus status,
-            NullPolicy nulls) {
+            NullPolicy nulls, List<Threshold> thresholds) {
 
         var message = messageFor(status, hasData(series));
         if (message != null) {
@@ -88,7 +90,7 @@ public final class ChartParts {
             case LINE -> ChartPlot.Mode.LINE;
             case AREA -> ChartPlot.Mode.AREA;
             case BAR -> ChartPlot.Mode.BAR;
-        }, nulls, isolated));
+        }, nulls, thresholds, isolated));
         if (series.size() > 1) {
             parts.add(new ChartLegend(series, isolated, onIsolate));
         }

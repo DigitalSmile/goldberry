@@ -117,7 +117,7 @@ feature lands and why.
 | Point markers, size, show-always/never/auto | **v1** | ≥ 8px hit target when hoverable |
 | Axis min/max, soft min/max | **v1** | Soft bounds are what stop a flat series rendering as noise |
 | Log axis | **v1** | With correct log tick labelling |
-| Thresholds: lines and shaded regions | **v1** | Drawn in the *semantic* hues, never a series slot |
+| Thresholds: lines and shaded regions | **built** | Four semantic levels and no way to pass a colour; a band is a wash **and its edges**, because the wash alone measured as neutral grey (ADR-0202). Part of the domain, so a limit you have not reached is on screen |
 | Value formatting per axis | **v1, app-supplied** | See §3.4 |
 | Series toggle by clicking the legend | **built** | Click isolates, click again restores; the others are dimmed rather than dropped (ADR-0198) |
 | Empty / loading / error states | **built** | A themed message, never an empty grid — and it keeps the chart's box, so a wall of loading cards does not reflow when the data lands (ADR-0200) |
