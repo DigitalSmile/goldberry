@@ -59,8 +59,7 @@ import java.util.List;
 ///                 arrows between two frames would move the crosshair once
 record ChartSurface(
         List<Series> series, List<String> categories, ChartPlot.Mode mode,
-        io.github.digitalsmile.goldberry.widgets.data.NullPolicy nulls,
-        List<io.github.digitalsmile.goldberry.widgets.data.Threshold> thresholds,
+        io.github.digitalsmile.goldberry.widgets.data.ChartOptions options,
         int isolated, int hovered, PaintedGeometry painted,
         java.util.function.IntPredicate onHover, java.util.function.IntPredicate onWalk)
         implements Widget.Leaf, Styled, Paints, Handles {
@@ -144,7 +143,7 @@ record ChartSurface(
                 io.github.digitalsmile.goldberry.widgets.data.Gaps.Resolved>(series.size());
         for (var one : series) {
             out.add(io.github.digitalsmile.goldberry.widgets.data.Gaps.resolve(
-                    one.values(), nulls));
+                    one.values(), options.nulls()));
         }
         return out;
     }
@@ -180,7 +179,7 @@ record ChartSurface(
         // **A threshold is part of the domain.** A limit you have not crossed yet
         // is the one that matters most, and one that only appeared once it had
         // been breached would be a warning light that comes on after the fire.
-        for (var threshold : thresholds) {
+        for (var threshold : options.thresholds()) {
             min = Math.min(min, threshold.domainMin());
             max = Math.max(max, threshold.domainMax());
         }
@@ -219,8 +218,8 @@ record ChartSurface(
         // *structural* line, which a gridline is not.
         var grid = CssColor.fade(style.color(), 0.14);
         var ink = style.color();
-        var limits = new ArrayList<PaintedThreshold>(thresholds.size());
-        for (var threshold : thresholds) {
+        var limits = new ArrayList<PaintedThreshold>(options.thresholds().size());
+        for (var threshold : options.thresholds()) {
             limits.add(new PaintedThreshold(threshold.from(), threshold.to(),
                     threshold.colour(context),
                     threshold.label() == null

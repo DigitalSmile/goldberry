@@ -24,16 +24,16 @@ import java.util.List;
 /// a bar — and three copies of that would be three chances to have a chart whose
 /// gridlines are a pixel off its labels.
 ///
-/// @param nulls    what to do where a series has no value — decided above this
-///                 widget too, because it is one convention per picture
-///                 ([io.github.digitalsmile.goldberry.widgets.data.NullPolicy])
+/// @param options  everything about the chart that is not its numbers — decided
+///                 above this widget, because every one of those is one
+///                 convention per picture
+///                 ([io.github.digitalsmile.goldberry.widgets.data.ChartOptions])
 /// @param isolated the series shown alone, or -1 for all of them — decided
 ///                 above this widget, because a legend entry's click has to
 ///                 reach the plot and they are siblings ([io.github.digitalsmile.goldberry.widgets.data.ChartSpec])
 public record ChartPlot(
         List<Series> series, List<String> categories, Mode mode,
-        io.github.digitalsmile.goldberry.widgets.data.NullPolicy nulls,
-        List<io.github.digitalsmile.goldberry.widgets.data.Threshold> thresholds,
+        io.github.digitalsmile.goldberry.widgets.data.ChartOptions options,
         int isolated)
         implements Widget.Stateful {
 
@@ -59,14 +59,13 @@ public record ChartPlot(
         series = List.copyOf(series == null ? List.of() : series);
         categories = List.copyOf(categories == null ? List.of() : categories);
         mode = mode == null ? Mode.LINE : mode;
-        nulls = nulls == null
-                ? io.github.digitalsmile.goldberry.widgets.data.NullPolicy.GAP : nulls;
-        thresholds = List.copyOf(thresholds == null ? List.of() : thresholds);
+        options = options == null
+                ? io.github.digitalsmile.goldberry.widgets.data.ChartOptions.DEFAULTS : options;
     }
 
     public ChartPlot(List<Series> series, List<String> categories, Mode mode) {
         this(series, categories, mode,
-                io.github.digitalsmile.goldberry.widgets.data.NullPolicy.GAP, List.of(), -1);
+                io.github.digitalsmile.goldberry.widgets.data.ChartOptions.DEFAULTS, -1);
     }
 
     ChartPlot(List<Series> series, List<String> categories) {
@@ -94,7 +93,7 @@ public record ChartPlot(
         @Override
         public Widget build(io.github.digitalsmile.goldberry.widget.BuildContext context) {
             return new ChartSurface(widget().series(), widget().categories(), widget().mode(),
-                    widget().nulls(), widget().thresholds(), widget().isolated(), hovered,
+                    widget().options(), widget().isolated(), hovered,
                     painted, this::hover, this::walk);
         }
 

@@ -60,28 +60,19 @@ public final class ChartParts {
     public static List<Widget> of(List<Series> series, List<String> categories, Mode mode,
             int isolated, java.util.function.IntConsumer onIsolate) {
 
-        return of(series, categories, mode, isolated, onIsolate, ChartStatus.READY);
+        return of(series, categories, mode, isolated, onIsolate, ChartOptions.DEFAULTS);
     }
 
-    /// The same, for a chart that may not have its data yet.
+    /// The same, told everything about the chart that is not its numbers.
     ///
-    /// **A sentence instead of a picture, and nothing else.** No legend, no
-    /// plot: a legend keying series nobody can see is noise, and a grid over no
-    /// data asserts a scale nobody supplied (`charts.md` §3.1, ADR-0200).
+    /// **A sentence instead of a picture, and nothing else**, when there is
+    /// nothing to draw: no legend, no plot — a legend keying series nobody can
+    /// see is noise, and a grid over no data asserts a scale nobody supplied
+    /// (`charts.md` §3.1, ADR-0200).
     public static List<Widget> of(List<Series> series, List<String> categories, Mode mode,
-            int isolated, java.util.function.IntConsumer onIsolate, ChartStatus status) {
+            int isolated, java.util.function.IntConsumer onIsolate, ChartOptions options) {
 
-        return of(series, categories, mode, isolated, onIsolate, status, NullPolicy.GAP,
-                List.of());
-    }
-
-    /// The same, told what to do where a series has no value and what limits to
-    /// draw across it.
-    public static List<Widget> of(List<Series> series, List<String> categories, Mode mode,
-            int isolated, java.util.function.IntConsumer onIsolate, ChartStatus status,
-            NullPolicy nulls, List<Threshold> thresholds) {
-
-        var message = messageFor(status, hasData(series));
+        var message = messageFor(options.status(), hasData(series));
         if (message != null) {
             return List.of(message);
         }
@@ -90,7 +81,7 @@ public final class ChartParts {
             case LINE -> ChartPlot.Mode.LINE;
             case AREA -> ChartPlot.Mode.AREA;
             case BAR -> ChartPlot.Mode.BAR;
-        }, nulls, thresholds, isolated));
+        }, options, isolated));
         if (series.size() > 1) {
             parts.add(new ChartLegend(series, isolated, onIsolate));
         }

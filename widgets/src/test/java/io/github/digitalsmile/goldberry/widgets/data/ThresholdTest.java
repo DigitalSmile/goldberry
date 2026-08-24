@@ -171,8 +171,8 @@ class ThresholdTest {
                 .threshold(Threshold.at(140, Threshold.Level.WARNING))
                 .threshold(Threshold.above(160, Threshold.Level.DANGER));
 
-        assertEquals(2, chart.thresholds().size());
-        assertEquals(List.of(), chart.thresholds(List.of()).thresholds(),
+        assertEquals(2, chart.options().thresholds().size());
+        assertEquals(List.of(), chart.thresholds(List.of()).options().thresholds(),
                 "and replacing them is the other call");
     }
 

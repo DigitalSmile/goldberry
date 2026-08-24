@@ -40,9 +40,7 @@ import java.util.Set;
 /// proportion that lies.
 @Markup("area-chart")
 public record AreaChart(List<Series> series, List<String> categories,
-        io.github.digitalsmile.goldberry.widgets.data.ChartStatus status,
-        io.github.digitalsmile.goldberry.widgets.data.NullPolicy nulls,
-        List<io.github.digitalsmile.goldberry.widgets.data.Threshold> thresholds,
+        io.github.digitalsmile.goldberry.widgets.data.ChartOptions options,
         Attributes attributes)
         implements Widget.Stateful, io.github.digitalsmile.goldberry.widgets.data.ChartSpec,
                 Attributed<AreaChart> {
@@ -51,19 +49,37 @@ public record AreaChart(List<Series> series, List<String> categories,
         series = List.copyOf(series == null ? List.of() : series);
         categories = List.copyOf(categories == null ? List.of() : categories);
         attributes = attributes == null ? Attributes.NONE : attributes;
-        status = status == null
-                ? io.github.digitalsmile.goldberry.widgets.data.ChartStatus.READY : status;
-        nulls = nulls == null
-                ? io.github.digitalsmile.goldberry.widgets.data.NullPolicy.GAP : nulls;
-        thresholds = List.copyOf(thresholds == null ? List.of() : thresholds);
+        options = options == null
+                ? io.github.digitalsmile.goldberry.widgets.data.ChartOptions.DEFAULTS : options;
     }
 
     /// The ordinary form: a chart that has its data.
     public AreaChart(List<Series> series, List<String> categories, Attributes attributes) {
         this(series, categories,
-                io.github.digitalsmile.goldberry.widgets.data.ChartStatus.READY,
-                io.github.digitalsmile.goldberry.widgets.data.NullPolicy.GAP,
-                List.of(), attributes);
+                io.github.digitalsmile.goldberry.widgets.data.ChartOptions.DEFAULTS, attributes);
+    }
+
+    /// This chart with `value` as everything that is not its numbers.
+    public AreaChart options(io.github.digitalsmile.goldberry.widgets.data.ChartOptions value) {
+        return new AreaChart(series, categories, value, attributes);
+    }
+
+    /// This chart with a **time axis**: one instant per point, so the x is when
+    /// rather than which.
+    ///
+    /// A gap in the sampling becomes a gap on the axis, and the labels step
+    /// across second, minute, hour, day, month and year boundaries
+    /// ([io.github.digitalsmile.goldberry.widgets.data.TimeAxis]).
+    public AreaChart times(List<java.time.Instant> value) {
+        return options(options.time(
+                io.github.digitalsmile.goldberry.widgets.data.TimeAxis.of(value)));
+    }
+
+    /// The same, in a zone the application chooses — a server's clock, or `UTC`
+    /// for a test.
+    public AreaChart times(List<java.time.Instant> value, java.time.ZoneId zone) {
+        return options(options.time(
+                io.github.digitalsmile.goldberry.widgets.data.TimeAxis.of(value).in(zone)));
     }
 
     /// This chart with `limit` drawn across it — a line or a shaded region, in
@@ -74,16 +90,14 @@ public record AreaChart(List<Series> series, List<String> categories,
     /// domain, so one you have not crossed yet is still on screen
     /// ([io.github.digitalsmile.goldberry.widgets.data.Threshold]).
     public AreaChart threshold(io.github.digitalsmile.goldberry.widgets.data.Threshold limit) {
-        var next = new java.util.ArrayList<>(thresholds);
-        next.add(java.util.Objects.requireNonNull(limit, "limit"));
-        return new AreaChart(series, categories, status, nulls, List.copyOf(next), attributes);
+        return options(options.threshold(limit));
     }
 
     /// This chart with exactly these limits, replacing whatever it had.
     public AreaChart thresholds(
             List<io.github.digitalsmile.goldberry.widgets.data.Threshold> limits) {
 
-        return new AreaChart(series, categories, status, nulls, limits, attributes);
+        return options(options.thresholds(limits));
     }
 
     /// This chart, told what to do where a series has no value.
@@ -91,7 +105,7 @@ public record AreaChart(List<Series> series, List<String> categories,
     /// The default is [io.github.digitalsmile.goldberry.widgets.data.NullPolicy#GAP],
     /// which is the only one of the three that invents nothing.
     public AreaChart nulls(io.github.digitalsmile.goldberry.widgets.data.NullPolicy value) {
-        return new AreaChart(series, categories, status, value, thresholds, attributes);
+        return options(options.nulls(value));
     }
 
     /// This chart, waiting for its data — it keeps its box and says so.
@@ -110,7 +124,7 @@ public record AreaChart(List<Series> series, List<String> categories,
     /// This chart with `value` as its state — see
     /// [io.github.digitalsmile.goldberry.widgets.data.ChartStatus].
     public AreaChart status(io.github.digitalsmile.goldberry.widgets.data.ChartStatus value) {
-        return new AreaChart(series, categories, value, nulls, thresholds, attributes);
+        return options(options.status(value));
     }
 
     public AreaChart(List<Series> series) {
@@ -119,7 +133,7 @@ public record AreaChart(List<Series> series, List<String> categories,
 
     /// This chart with a label under each point.
     public AreaChart categories(List<String> values) {
-        return new AreaChart(series, values, status, nulls, thresholds, attributes);
+        return new AreaChart(series, values, options, attributes);
     }
 
     /// The type of the box this chart's view draws — see
@@ -147,7 +161,7 @@ public record AreaChart(List<Series> series, List<String> categories,
 
     @Override
     public AreaChart withAttributes(Attributes value) {
-        return new AreaChart(series, categories, status, nulls, thresholds, value);
+        return new AreaChart(series, categories, options, value);
     }
 
     /// Builds an `area-chart` from markup — §3.2's inline form.
