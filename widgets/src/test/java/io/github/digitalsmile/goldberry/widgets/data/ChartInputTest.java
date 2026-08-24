@@ -25,6 +25,9 @@ import io.github.digitalsmile.goldberry.widget.WidgetRenderer;
 import io.github.digitalsmile.goldberry.widgets.Controls;
 import io.github.digitalsmile.goldberry.widgets.controls.TestFont;
 import io.github.digitalsmile.goldberry.widgets.core.Column;
+import io.github.digitalsmile.goldberry.widgets.core.scroll.Scroll;
+import io.github.digitalsmile.goldberry.widgets.core.scroll.ScrollAxis;
+import io.github.digitalsmile.goldberry.widgets.text.Text;
 import io.github.digitalsmile.goldberry.widgets.data.donutchart.DonutChart;
 import io.github.digitalsmile.goldberry.widgets.data.linechart.LineChart;
 import java.util.ArrayList;
@@ -160,6 +163,94 @@ class ChartInputTest {
 
                 GoldenImage.assertMatches("donut-chart-hover-dark", WIDTH, HEIGHT, 1.0f,
                         harness::paintInto);
+            }
+        }
+    }
+
+    @Nested
+    @DisplayName("a chart that has been scrolled")
+    class Scrolled {
+
+        /// `plot` without the strip a scroll bar sits over.
+        ///
+        /// The bar is the viewport's and is drawn on top of whatever is under it,
+        /// so it is a real difference between the two windows and not one about
+        /// the chart.
+        private LogicalRect readable(LogicalRect plot) {
+            return LogicalRect.of(plot.left(), plot.top(), plot.width() - 16, plot.height());
+        }
+
+        /// The chart, pushed down a viewport so that reading it means scrolling
+        /// first — which is every chart on a dashboard taller than its window.
+        private Widget inAViewport() {
+            return new Column(List.of(new Scroll(List.of(new Column(List.of(
+                    new Text("filler", new Attributes("spacer", Set.of(), "spacer")),
+                    new LineChart(two(),
+                            List.of("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"),
+                            new Attributes("plot", Set.of(), "plot"))),
+                    Attributes.NONE)), ScrollAxis.VERTICAL,
+                    new Attributes("viewport", Set.of(), "viewport"))),
+                    new Attributes("frame", Set.of(), "frame"));
+        }
+
+        @Test
+        @DisplayName("still highlights the point under the pointer")
+        void scrollingDoesNotBreakTheCrosshair() {
+            try (var harness = new Harness(inAViewport())) {
+                harness.frame();
+                // Down far enough that the plot is on screen at all -- the
+                // spacer above it is taller than the viewport -- and therefore
+                // drawn a long way from where it was laid out.
+                harness.wheel(6);
+                harness.frame();
+                var plot = harness.plotRect("chart-plot");
+                // The plot's own pixels, so that a scroll bar reacting to the
+                // same pointer cannot make this pass on its own.
+                var quiet = harness.crop(readable(plot));
+
+                harness.move(plot.left() + plot.width() * 0.6f,
+                        plot.top() + plot.height() / 2);
+
+                // A `scroll` moves its content with a transform, so the plot is
+                // laid out where it always was and painted somewhere else. The
+                // pointer reached it either way -- hit testing has always undone
+                // the matrix -- and *where inside* did not, so the crosshair
+                // stopped the moment the panel moved.
+                assertFalse(java.util.Arrays.equals(quiet, harness.crop(readable(plot))),
+                        "a scrolled chart still answers the pointer");
+            }
+        }
+
+        @Test
+        @DisplayName("and highlights exactly what the same chart highlights on its own")
+        void theSamePointEitherWay() {
+            // The plot's **own pixels**, cropped out of each frame: the two
+            // windows differ everywhere else, and the claim is about the chart.
+            int[] alone;
+            try (var harness = new Harness(lineChart())) {
+                harness.frame();
+                var plot = harness.plotRect("chart-plot");
+                harness.move(plot.left() + plot.width() * 0.6f,
+                        plot.top() + plot.height() / 2);
+                harness.frame();
+                alone = harness.crop(readable(plot));
+            }
+
+            try (var harness = new Harness(inAViewport())) {
+                harness.frame();
+                // To the bottom, where the whole plot is on screen.
+                harness.wheel(20);
+                harness.frame();
+                var plot = harness.plotRect("chart-plot");
+                harness.move(plot.left() + plot.width() * 0.6f,
+                        plot.top() + plot.height() / 2);
+                harness.frame();
+
+                // Six tenths across is the same point wherever the panel has been
+                // scrolled to. Before the fix this crop was a chart with no
+                // crosshair on it at all.
+                assertArrayEquals(alone, harness.crop(readable(plot)),
+                        "the point under the pointer does not depend on the scroll offset");
             }
         }
     }
@@ -339,6 +430,8 @@ class ChartInputTest {
                         Stylesheet.parse(CascadeLayer.APPLICATION, """
                                 #frame { padding: 12px; background: var(--gb-bg) }
                                 #plot  { width: 296px; height: 156px }
+                                #viewport { height: 160px }
+                                #spacer { height: 120px }
                                 """)),
                 TestFont.get());
         private final ElementTree tree;
@@ -380,6 +473,29 @@ class ChartInputTest {
 
         void exit() {
             router.pointerExited();
+        }
+
+        /// The pixels inside `rect`, which is how two windows that differ
+        /// everywhere else are compared over the one widget they share.
+        int[] crop(LogicalRect rect) {
+            var whole = frame();
+            var left = Math.round(rect.left());
+            var top = Math.round(rect.top());
+            var width = Math.round(rect.width());
+            var height = Math.round(rect.height());
+            var out = new int[width * height];
+            for (var y = 0; y < height; y++) {
+                for (var x = 0; x < width; x++) {
+                    out[y * width + x] = whole[(top + y) * WIDTH + (left + x)];
+                }
+            }
+            return out;
+        }
+
+        /// Turns the wheel over the middle of the window, then lets the next
+        /// frame apply it.
+        void wheel(float lines) {
+            router.pointerWheel(WIDTH / 2f, HEIGHT / 2f, 0, lines, Modifiers.NONE);
         }
 
         /// Puts the keyboard on the part named `cssType`, as a Tab traversal

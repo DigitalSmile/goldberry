@@ -3880,6 +3880,44 @@ is the `scroll` box's.
   not the data into a `ChartOptions`, with the withers kept as the public surface;
   doing it in the same change as the feature would have hidden the feature.
 
+### The same mistake twice: where a pointer is inside a scrolled box
+
+- **Scroll a panel and a chart stops highlighting**, which is what running it
+  said. Every pointer event still arrived — hover, press, click, the cursor, all
+  of it — and the crosshair simply never appeared once the panel had moved.
+- **`localTo` subtracted the layout origin from the window point.** A hit-test
+  region holds the rectangle a box was *laid out* in plus the **inverse** of the
+  matrix it was painted with, because a `scroll` moves its content with a
+  transform and Yoga never saw it (ADR-0054, ADR-0068). `Region.contains` maps
+  the pointer through that inverse; the router's *where inside* did not. So a
+  control 300px down a scrolled panel was told the pointer was at `y = -290`:
+  every widget asking "am I inside" got no, for the whole length of the scroll,
+  while every one of them still received the event.
+- **Two arithmetics for one question**, which is the shape this codebase keeps
+  finding: `PlotGeometry` exists because a crosshair and a painter must not each
+  work out where a point goes, and `Scale` exists because a value becomes a
+  position in exactly one place. This was the same defect one level up, in the
+  method that had no second reader until a chart arrived.
+- **It is the second time in a week that something ignored the ambient
+  transform.** `paintCanvas` assigned its matrix over its ancestors'
+  ([ADR-0197](adr/0197-a-painters-transform-composes-onto-its-ancestors.md)) and
+  this dropped the inverse; both were invisible until a widget that *reads*
+  geometry was put inside a `scroll`. The pattern worth remembering: anything
+  that mixes a window coordinate with a layout coordinate is wrong unless it says
+  which space it is in.
+- **The chart was not the only casualty.** `text-area` places its caret from
+  `local().y()`, so a text area below the fold put the caret on the first line;
+  anything measuring vertically inside a scrolled panel had the same answer. A
+  vertical scroll leaves `x` alone, which is why a `slider` — which reads
+  `fractionX` — looked fine and hid the bug.
+- **Guarded at both levels.** `LocalUnderTransformTest` asserts the arithmetic in
+  `:core` with a hand-built region, which is where the defect is; `ChartInputTest`
+  scrolls a real viewport with the wheel and asserts a scrolled chart highlights
+  *exactly what the same chart highlights on its own*, compared over the plot's
+  own pixels because the two windows differ everywhere else. The first version of
+  that test passed without the fix — the scroll bar reacts to the same pointer, so
+  the frame changed for a reason that had nothing to do with the chart.
+
 ### Not started
 
 Client-side decorations, the rest of §4 —

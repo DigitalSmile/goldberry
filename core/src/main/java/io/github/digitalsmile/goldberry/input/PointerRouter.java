@@ -1536,8 +1536,23 @@ public final class PointerRouter {
     private PointerEvent.Local localTo(Element element, PointerEvent event) {
         for (var region : regions) {
             if (region.owner() == element) {
+                // **Through the inverse first**, which is the same arithmetic
+                // [HitTest.Region#contains] uses and for the same reason: a
+                // region holds the rectangle the box was *laid out* in, and a box
+                // inside a `scroll` is painted a long way from there. Subtracting
+                // the layout origin from the window point answers in a coordinate
+                // system nobody is in -- off by exactly the scroll offset, so a
+                // control kept receiving events and started reading a position
+                // from outside itself.
+                //
+                // Two answers to "where inside this box" is how a chart stops
+                // highlighting halfway down a panel while every one of its
+                // pointer events still arrives (ADR-0054, ADR-0068).
+                var inverse = region.inverse();
+                var x = inverse == null ? event.x() : (float) inverse.mapX(event.x(), event.y());
+                var y = inverse == null ? event.y() : (float) inverse.mapY(event.x(), event.y());
                 return new PointerEvent.Local(
-                        event.x() - region.left(), event.y() - region.top(),
+                        x - region.left(), y - region.top(),
                         region.width(), region.height());
             }
         }

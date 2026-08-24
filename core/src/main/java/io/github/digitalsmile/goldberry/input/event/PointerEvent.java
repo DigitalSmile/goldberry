@@ -112,6 +112,15 @@ public final class PointerEvent {
     }
 
     /// See [Local].
+    ///
+    /// **In the box's own coordinates**, which is not the window's and not the
+    /// layout's when something above this widget is transformed: a box inside a
+    /// `scroll` is laid out where it always was and painted a long way from
+    /// there, and this is measured from the corner the *user* is pointing at.
+    /// The router maps the event through the region's inverse to get here, which
+    /// is the same arithmetic
+    /// [io.github.digitalsmile.goldberry.input.hit.HitTest.Region#contains]
+    /// uses to decide the event belongs to this widget at all.
     public Local local() {
         return local;
     }
