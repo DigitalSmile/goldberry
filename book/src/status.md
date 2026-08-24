@@ -3587,7 +3587,7 @@ is the `scroll` box's.
   What a chart says when it has no numbers is built too — see [What a chart says
   when it has not got the
   numbers](#what-a-chart-says-when-it-has-not-got-the-numbers), and so are
-  thresholds, the `java.time` axis and interpolation. Log scales, soft bounds,
+  thresholds, the `java.time` axis, interpolation and log scales. Soft bounds,
   gradient fills, point markers and a crosshair shared between charts are still
   outstanding.
 
@@ -4004,6 +4004,44 @@ is the `scroll` box's.
   computed on the pixels the painter is about to draw: an unevenly sampled series
   on a time axis curves correctly for free, a `GAP` run curves per run, and an
   isolated series curves alone.
+
+### A log axis, and the readings it cannot take
+
+- **§3.1's log axis is built**, and it is the first thing in the toolkit that is
+  not affine ([ADR-0205](adr/0205-a-log-axis-has-no-room-for-zero.md)). Every
+  scale — the sparkline's included — has mapped a domain onto a range linearly;
+  `Scale.log` maps `log10(value)` instead, as a **flag** rather than a subtype,
+  because every caller wants *a scale* and none of them wants to know which kind.
+- **Wilkinson is the wrong algorithm again**, for the reason it was wrong for
+  time: it scores how round a number is against how evenly the labels cover the
+  range, and on a log axis those pull apart completely — `1, 10, 100, 1000` is
+  the only labelling anybody wants and it is, in value space, wildly uneven.
+  `LogTicks` labels decades, strides them when there are too many, and subdivides
+  by the **1-2-5** mantissas when there are too few. Not every integer, which
+  crowds the bottom of each decade where a log axis has least room.
+- **The subdivision is the one nearest the target, not the first to reach it.**
+  The first rule here turned `1…1000` at five labels — four whole decades — into
+  `1, 5, 10, 50, 100, 500, 1000`: a decade axis made into a half-decade one to
+  gain a label it did not need. Caught by the first test written against it.
+- **A zero has no logarithm, and the chart says so.** `Gaps.positiveOnly` turns a
+  non-positive reading into a hole and `NullPolicy` draws it as one, so the line
+  **breaks** there rather than sliding off the bottom of the picture. That is the
+  honest rendering of "there is nowhere to put this", and it is why a log axis is
+  opt-in rather than something a chart could choose when its numbers span enough
+  decades: choosing it costs data, and only the application knows whether the
+  zeroes matter.
+- **Only `line-chart` draws one.** A bar and a band encode their value as a
+  length *from zero*, and zero is infinitely far down; a chart drawing one anyway
+  would have to pick a bottom, and every choice is a number nobody gave it.
+- **A series with nothing positive in it falls back and keeps its data.** The
+  first version filtered and *then* discovered it had nothing left, and drew an
+  empty grid — worse than either honest answer. `Scale.log` refuses a non-positive
+  domain and a paint pass must not turn that into an exception, because a query
+  can return zeroes.
+- **Measured rather than asserted by eye**: the six quiet readings of a series
+  that spikes four decades get **two rows** of a 156px plot on a linear axis and
+  **thirteen** on a log one. The test compares the multiple rather than the
+  difference, because what the axis promises is proportional.
 
 ### Not started
 

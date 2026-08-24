@@ -88,7 +88,8 @@ import java.util.Set;
 ///
 /// ## What it does not have yet
 ///
-/// Log scales and a crosshair shared with the chart beside it — `charts.md` §3.1 is the list. The x is the point
+/// Soft bounds, gradient fills, point markers and a crosshair shared with the
+/// chart beside it — `charts.md` §3.1 is the list. The x is the point
 /// **index**; [#categories] labels the points and a `java.time` axis is §3.1's
 /// and is not built.
 ///
@@ -120,6 +121,22 @@ public record LineChart(List<Series> series, List<String> categories,
     public LineChart(List<Series> series, List<String> categories, Attributes attributes) {
         this(series, categories,
                 io.github.digitalsmile.goldberry.widgets.data.ChartOptions.DEFAULTS, attributes);
+    }
+
+    /// This chart with a **logarithmic** value axis.
+    ///
+    /// For a series that spends its life at 3 and spikes to 30 000: on a linear
+    /// axis every reading anybody cares about is in the bottom pixel. A log axis
+    /// gives each decade the same room.
+    ///
+    /// **It costs the zeroes.** `log10(0)` is negative infinity, so a
+    /// non-positive reading has no position and becomes a hole — the line breaks
+    /// there rather than sliding off the bottom
+    /// ([ADR-0205](../../../../../../../../book/src/adr/0205-a-log-axis-has-no-room-for-zero.md)).
+    /// Only `line-chart` draws one: a bar and a band are lengths from zero, and
+    /// zero is not on the axis.
+    public LineChart logY() {
+        return options(options.logY(true));
     }
 
     /// This chart with a different interpolation — how the line gets from one

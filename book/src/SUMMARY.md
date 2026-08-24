@@ -214,6 +214,7 @@
 - [ADR-0202 A limit is not a series](adr/0202-a-limit-is-not-a-series.md)
 - [ADR-0203 A time axis is time, not a relabelled index](adr/0203-a-time-axis-is-time-not-a-relabelled-index.md)
 - [ADR-0204 A smooth line cannot overshoot](adr/0204-a-smooth-line-cannot-overshoot.md)
+- [ADR-0205 A log axis has no room for zero](adr/0205-a-log-axis-has-no-room-for-zero.md)
 
 ---
 

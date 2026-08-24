@@ -28,14 +28,15 @@ import java.util.Objects;
 /// @param thresholds the limits drawn across it, in the semantic hues
 /// @param time       what the x axis means, or null for the point index
 /// @param curve      how a line gets from one point to the next
+/// @param logY       whether the value axis is logarithmic
 public record ChartOptions(
         ChartStatus status, NullPolicy nulls, List<Threshold> thresholds, TimeAxis time,
-        Curve curve) {
+        Curve curve, boolean logY) {
 
     /// What a chart that has been told nothing does: it has its data, a hole is
     /// a hole, there are no limits, and x is the point index.
     public static final ChartOptions DEFAULTS = new ChartOptions(
-            ChartStatus.READY, NullPolicy.GAP, List.of(), null, Curve.LINEAR);
+            ChartStatus.READY, NullPolicy.GAP, List.of(), null, Curve.LINEAR, false);
 
     public ChartOptions {
         status = status == null ? ChartStatus.READY : status;
@@ -46,33 +47,38 @@ public record ChartOptions(
 
     /// These options with a different state.
     public ChartOptions status(ChartStatus value) {
-        return new ChartOptions(value, nulls, thresholds, time, curve);
+        return new ChartOptions(value, nulls, thresholds, time, curve, logY);
     }
 
     /// These options with a different null policy.
     public ChartOptions nulls(NullPolicy value) {
-        return new ChartOptions(status, value, thresholds, time, curve);
+        return new ChartOptions(status, value, thresholds, time, curve, logY);
     }
 
     /// These options with one more limit.
     public ChartOptions threshold(Threshold limit) {
         var next = new java.util.ArrayList<>(thresholds);
         next.add(Objects.requireNonNull(limit, "limit"));
-        return new ChartOptions(status, nulls, List.copyOf(next), time, curve);
+        return new ChartOptions(status, nulls, List.copyOf(next), time, curve, logY);
     }
 
     /// These options with exactly these limits.
     public ChartOptions thresholds(List<Threshold> limits) {
-        return new ChartOptions(status, nulls, limits, time, curve);
+        return new ChartOptions(status, nulls, limits, time, curve, logY);
     }
 
     /// These options with a different interpolation.
     public ChartOptions curve(Curve value) {
-        return new ChartOptions(status, nulls, thresholds, time, value);
+        return new ChartOptions(status, nulls, thresholds, time, value, logY);
+    }
+
+    /// These options with a logarithmic value axis, or a linear one.
+    public ChartOptions logY(boolean value) {
+        return new ChartOptions(status, nulls, thresholds, time, curve, value);
     }
 
     /// These options with a time axis, or null for the point index.
     public ChartOptions time(TimeAxis value) {
-        return new ChartOptions(status, nulls, thresholds, value, curve);
+        return new ChartOptions(status, nulls, thresholds, value, curve, logY);
     }
 }

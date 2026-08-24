@@ -69,20 +69,33 @@ record PlotGeometry(
     /// @param domainMin the smallest value that has to fit, before labelling
     /// @param domainMax the largest
     static PlotGeometry of(
-            List<Paragraph> labels, boolean hasXLabels, Ticks.Labelling labelling,
-            double domainMin, double domainMax, double width, double height) {
+            List<Paragraph> labels, boolean hasXLabels,
+            double axisMin, double axisMax, double width, double height) {
 
-        return of(labels, hasXLabels, labelling, domainMin, domainMax, width, height, null);
+        return of(labels, hasXLabels, axisMin, axisMax, false, width, height, null);
     }
 
-    /// The same, for a chart whose x is **time**.
+    /// The same, for a chart whose x is **time** or whose y is **logarithmic**.
     ///
     /// `times` is one epoch-millisecond value per point index, so an unevenly
     /// sampled series is drawn unevenly — which is the whole of what a time axis
     /// buys over labelling the indices ([TimeAxis]).
+    ///
+    /// `axisMin`/`axisMax` are the range the axis has to reach, **already
+    /// including its labels**: `Ticks.extended` scores a candidate labelling on
+    /// four things and coverage is only one of them, so the nicest labels for
+    /// `12…36` are `10, 15 … 35` — which stops short of the data. Scaling to the
+    /// *labels* would draw the last point above the top gridline and, near enough
+    /// to the edge, clip it out of the picture: a chart that has dropped its
+    /// maximum, which is the one point a reader is most likely to have come for.
+    /// The caller unions the two and the gridlines stay on the round numbers.
+    ///
+    /// @param logarithmic whether the value axis maps the logarithm — see
+    ///                    [Scale#log]
     static PlotGeometry of(
-            List<Paragraph> labels, boolean hasXLabels, Ticks.Labelling labelling,
-            double domainMin, double domainMax, double width, double height, double[] times) {
+            List<Paragraph> labels, boolean hasXLabels,
+            double axisMin, double axisMax, boolean logarithmic,
+            double width, double height, double[] times) {
 
         if (labels.isEmpty() || width <= 0 || height <= 0) {
             return null;
@@ -102,12 +115,11 @@ record PlotGeometry(
         if (plotWidth <= 0 || plotHeight <= 0) {
             return null;
         }
+        var y = logarithmic && axisMin > 0 && axisMax > 0
+                ? Scale.log(axisMin, axisMax, top + plotHeight, top)
+                : Scale.linear(axisMin, axisMax, top + plotHeight, top);
         return new PlotGeometry(left, top, plotWidth, plotHeight, gutter, lineHeight,
-                Scale.linear(
-                        Math.min(labelling.min(), domainMin),
-                        Math.max(labelling.max(), domainMax),
-                        top + plotHeight, top),
-                times);
+                y, times);
     }
 
     /// The right-hand edge of the plot area.

@@ -162,6 +162,43 @@ record ChartSurface(
         // the raw series would leave a substituted point off the top of a chart
         // that is drawing it.
         var resolved = resolved();
+        // **A log axis only draws what a logarithm has a place for.** Only a
+        // line: a bar and a band are lengths from zero, and zero is not on the
+        // axis at all (ADR-0205).
+        var logarithmic = options.logY() && mode == ChartPlot.Mode.LINE;
+        if (logarithmic) {
+            // **Decided before anything is filtered.** A series with nothing
+            // positive in it cannot have a log axis at all -- `Scale.log` refuses
+            // the domain, and a chart must not turn that into an exception in a
+            // paint pass, because a query can return zeroes. So it falls back to
+            // a linear axis *and keeps its data*: filtering first and falling
+            // back afterwards drew an empty grid, which is the one outcome worse
+            // than either.
+            var anyPositive = false;
+            for (var s = 0; s < resolved.size() && !anyPositive; s++) {
+                if (!shows(s)) {
+                    continue;
+                }
+                for (var value : resolved.get(s).values()) {
+                    if (io.github.digitalsmile.goldberry.widgets.data.Gaps.isValue(value)
+                            && value > 0) {
+                        anyPositive = true;
+                        break;
+                    }
+                }
+            }
+            logarithmic = anyPositive;
+        }
+        if (logarithmic) {
+            var positive = new ArrayList<
+                    io.github.digitalsmile.goldberry.widgets.data.Gaps.Resolved>(
+                            resolved.size());
+            for (var one : resolved) {
+                positive.add(
+                        io.github.digitalsmile.goldberry.widgets.data.Gaps.positiveOnly(one));
+            }
+            resolved = positive;
+        }
         var min = Double.POSITIVE_INFINITY;
         var max = Double.NEGATIVE_INFINITY;
         // **Over what is shown**, so isolating a small series rescales the axis
@@ -205,10 +242,39 @@ record ChartSurface(
         }
 
         // The labelling, and the colours, decided here where the cascade is.
-        var labelling = Ticks.extended(min, max, Y_LABELS);
-        var labels = new ArrayList<Paragraph>(labelling.count());
-        for (var value : labelling.values()) {
-            labels.add(context.paragraph(style, format(value, labelling.step())));
+        //
+        // **A log axis is labelled in decades**, which is a different algorithm
+        // rather than the same one on other numbers: Wilkinson scores how round a
+        // number is against how evenly the labels cover the range, and on a log
+        // axis those pull apart completely (LogTicks).
+        var gridValues = new ArrayList<Double>();
+        var labels = new ArrayList<Paragraph>();
+        var axisMin = min;
+        var axisMax = max;
+        if (logarithmic && min > 0 && max > 0) {
+            var ticks = io.github.digitalsmile.goldberry.widgets.data.LogTicks.of(
+                    min, max, Y_LABELS);
+            for (var value : ticks.values()) {
+                gridValues.add(value);
+                labels.add(context.paragraph(style, ticks.label(value)));
+            }
+        } else {
+            logarithmic = false;
+            var labelling = Ticks.extended(min, max, Y_LABELS);
+            for (var value : labelling.values()) {
+                gridValues.add(value);
+                labels.add(context.paragraph(style, format(value, labelling.step())));
+            }
+            // The axis reaches its labels as well as its data -- see PlotGeometry.
+            axisMin = Math.min(labelling.min(), min);
+            axisMax = Math.max(labelling.max(), max);
+        }
+        if (labels.isEmpty()) {
+            // A log axis whose range holds no round number at all. One label is
+            // better than an unlabelled grid, and the range's own bottom is the
+            // one a reader can place the rest against.
+            gridValues.add(min);
+            labels.add(context.paragraph(style, format(min, min)));
         }
         // **A time axis, when there is one and it covers the data.** The labels
         // come from `TimeTicks` rather than from `categories`, and the x
@@ -259,10 +325,10 @@ record ChartSurface(
                     threshold.label() == null
                             ? null : context.paragraph(style, threshold.label())));
         }
-        var plot = new Painted(labelling, List.copyOf(labels), List.copyOf(xLabels),
+        var plot = new Painted(List.copyOf(labels), List.copyOf(xLabels),
                 List.copyOf(colours), grid, ink, resolved, mode, min, max,
                 List.copyOf(limits), pointTimes, List.copyOf(timeTicks), options.curve(),
-                isolated,
+                List.copyOf(gridValues), logarithmic, axisMin, axisMax, isolated,
                 readout(style, context, resolved), hovered, painted);
         return Box.of().style(style).painting(plot::paint);
     }
@@ -545,12 +611,13 @@ record ChartSurface(
 
     /// Everything the painter needs, decided while the cascade was in hand.
     private record Painted(
-            Ticks.Labelling labelling, List<Paragraph> labels, List<Paragraph> xLabels,
+            List<Paragraph> labels, List<Paragraph> xLabels,
             List<Integer> colours, int grid, int ink,
             List<io.github.digitalsmile.goldberry.widgets.data.Gaps.Resolved> series,
             ChartPlot.Mode mode, double domainMin, double domainMax,
             List<PaintedThreshold> thresholds, double[] times, List<Double> timeTicks,
             io.github.digitalsmile.goldberry.widgets.data.Curve curve,
+            List<Double> gridValues, boolean logarithmic, double axisMin, double axisMax,
             int isolated, Readout readout, int hovered, PaintedGeometry painted) {
 
         private boolean shows(int index) {
@@ -585,8 +652,8 @@ record ChartSurface(
         }
 
         void paint(Frame frame, LogicalSize size) {
-            var geometry = PlotGeometry.of(labels, !xLabels.isEmpty(), labelling,
-                    domainMin, domainMax, size.width(), size.height(), times);
+            var geometry = PlotGeometry.of(labels, !xLabels.isEmpty(),
+                    axisMin, axisMax, logarithmic, size.width(), size.height(), times);
             // Left for the pointer that arrives after this frame, including the
             // null: a plot that has become too small to draw is one no point can
             // be hovered in.
@@ -617,7 +684,7 @@ record ChartSurface(
 
         /// A gridline and its label per tick.
         private void paintGrid(Frame frame, PlotGeometry geometry, double width) {
-            var values = labelling.values();
+            var values = gridValues;
             for (var i = 0; i < values.size(); i++) {
                 var at = geometry.y().at(values.get(i));
                 frame.fillRect((float) geometry.left(), (float) at,

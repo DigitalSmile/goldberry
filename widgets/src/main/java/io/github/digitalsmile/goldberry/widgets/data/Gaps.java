@@ -123,6 +123,38 @@ public final class Gaps {
         return List.copyOf(runs);
     }
 
+    /// `resolved` with every non-positive value turned into a hole — what a
+    /// **logarithmic** axis can actually draw.
+    ///
+    /// `log10(0)` is negative infinity and `log10` of a negative number is not a
+    /// number, so a zero has no position on a log axis and neither has anything
+    /// below it. There is no rendering to argue about; the only question is
+    /// whether the chart says so, and it does: the value becomes a hole and
+    /// [NullPolicy] draws it as one, so the line **breaks** where the data went
+    /// to zero rather than sliding off the bottom of the picture.
+    ///
+    /// That is also why a log axis is opt-in rather than something a chart could
+    /// choose for itself when the numbers span enough decades: choosing it costs
+    /// data, and only the application knows whether the zeroes matter.
+    public static Resolved positiveOnly(Resolved resolved) {
+        var any = false;
+        for (var value : resolved.values()) {
+            if (isValue(value) && value <= 0) {
+                any = true;
+                break;
+            }
+        }
+        if (!any) {
+            return resolved;
+        }
+        var out = new ArrayList<Double>(resolved.values().size());
+        for (var value : resolved.values()) {
+            out.add(isValue(value) && value > 0 ? value : Double.NaN);
+        }
+        var kept = List.copyOf(out);
+        return new Resolved(kept, runsOf(kept));
+    }
+
     /// The runs a **stack** can be drawn over — the indices where every one of
     /// `series` has a value.
     ///
