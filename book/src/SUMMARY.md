@@ -209,6 +209,8 @@
 - [ADR-0197 A painter's transform composes onto its ancestors'](adr/0197-a-painters-transform-composes-onto-its-ancestors.md)
 - [ADR-0198 A chart's readout is painted, and its legend is a control](adr/0198-a-charts-readout-is-painted-and-its-legend-is-a-control.md)
 - [ADR-0199 A chart answers the keyboard, and a step is relative](adr/0199-a-chart-answers-the-keyboard-and-a-step-is-relative.md)
+- [ADR-0200 A chart with no data says so](adr/0200-a-chart-with-no-data-says-so.md)
+- [ADR-0201 A hole is not a zero](adr/0201-a-hole-is-not-a-zero.md)
 
 ---
 

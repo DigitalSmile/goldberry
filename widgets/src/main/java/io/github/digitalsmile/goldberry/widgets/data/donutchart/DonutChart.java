@@ -53,7 +53,10 @@ import java.util.Set;
 /// @param slices     the parts, in order — which is also their colour order
 /// @param attributes `id` and `class`, exactly as on the primitives
 @Markup("donut-chart")
-public record DonutChart(List<Series> slices, Attributes attributes)
+public record DonutChart(
+        List<Series> slices,
+        io.github.digitalsmile.goldberry.widgets.data.ChartStatus status,
+        Attributes attributes)
         implements Widget.Leaf, Styled, Paints, Attributed<DonutChart> {
 
     /// The fewest slices that are a whole rather than a ratio. See the class
@@ -66,6 +69,8 @@ public record DonutChart(List<Series> slices, Attributes attributes)
     public DonutChart {
         slices = List.copyOf(slices == null ? List.of() : slices);
         attributes = attributes == null ? Attributes.NONE : attributes;
+        status = status == null
+                ? io.github.digitalsmile.goldberry.widgets.data.ChartStatus.READY : status;
         if (!slices.isEmpty() && slices.size() < MIN_SLICES) {
             throw new IllegalArgumentException(
                     "a donut of " + slices.size() + " is a ratio rather than a whole; use"
@@ -79,8 +84,29 @@ public record DonutChart(List<Series> slices, Attributes attributes)
         }
     }
 
+    /// The ordinary form: a donut that has its data.
+    public DonutChart(List<Series> slices, Attributes attributes) {
+        this(slices, io.github.digitalsmile.goldberry.widgets.data.ChartStatus.READY,
+                attributes);
+    }
+
     public DonutChart(List<Series> slices) {
         this(slices, Attributes.NONE);
+    }
+
+    /// This donut, waiting for its data — it keeps its box and says so.
+    public DonutChart loading() {
+        return status(io.github.digitalsmile.goldberry.widgets.data.ChartStatus.loading());
+    }
+
+    /// This donut, in the application's own words about why there is nothing.
+    public DonutChart failed(String message) {
+        return status(io.github.digitalsmile.goldberry.widgets.data.ChartStatus.failed(message));
+    }
+
+    /// This donut with `value` as its state.
+    public DonutChart status(io.github.digitalsmile.goldberry.widgets.data.ChartStatus value) {
+        return new DonutChart(slices, value, attributes);
     }
 
     @Override
@@ -105,7 +131,7 @@ public record DonutChart(List<Series> slices, Attributes attributes)
 
     @Override
     public DonutChart withAttributes(Attributes value) {
-        return new DonutChart(slices, value);
+        return new DonutChart(slices, status, value);
     }
 
     /// The ring, and a legend — which a donut **always** has, unlike the axis
@@ -116,6 +142,14 @@ public record DonutChart(List<Series> slices, Attributes attributes)
     /// not optional here: without it the chart is a set of coloured shapes.
     @Override
     public List<Widget> children() {
+        // A ring of nothing is the same problem as a grid over nothing: an arc
+        // asserts a share, and there is none. The one difference is what counts
+        // as empty here -- a donut of three zeroes has no whole to be part of
+        // (charts.md §3.1, ADR-0200).
+        var message = ChartParts.messageFor(status, hasWhole());
+        if (message != null) {
+            return List.of(message);
+        }
         var values = new ArrayList<Double>(slices.size());
         var labels = new ArrayList<String>(slices.size());
         for (var slice : slices) {
@@ -136,6 +170,17 @@ public record DonutChart(List<Series> slices, Attributes attributes)
     @Override
     public Box render(ComputedStyle style, List<Box> children, Context context) {
         return Box.of().style(style).children(children.toArray(Box[]::new));
+    }
+
+    /// Whether these slices add up to anything.
+    ///
+    /// **A positive total**, not just a slice: three zeroes are three names and
+    /// no whole, which is what a query returning rows of nulls looks like.
+    private boolean hasWhole() {
+        return slices.stream()
+                .mapToDouble(one -> one.values().isEmpty() ? 0 : one.values().getFirst())
+                .filter(value -> value > 0)
+                .sum() > 0;
     }
 
     /// Builds a `donut-chart` from markup — §3.2's inline form, one point per

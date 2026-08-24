@@ -31,7 +31,7 @@ final class ChartState extends State<ChartSpec> {
         var chart = widget();
         return new ChartView(chart.chartType(),
                 ChartParts.of(chart.series(), chart.categories(), chart.mode(),
-                        isolated, this::isolate),
+                        isolated, this::isolate, chart.status(), chart.nulls()),
                 chart.attributes());
     }
 

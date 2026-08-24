@@ -59,6 +59,7 @@ import java.util.List;
 ///                 arrows between two frames would move the crosshair once
 record ChartSurface(
         List<Series> series, List<String> categories, ChartPlot.Mode mode,
+        io.github.digitalsmile.goldberry.widgets.data.NullPolicy nulls,
         int isolated, int hovered, PaintedGeometry painted,
         java.util.function.IntPredicate onHover, java.util.function.IntPredicate onWalk)
         implements Widget.Leaf, Styled, Paints, Handles {
@@ -132,18 +133,48 @@ record ChartSurface(
         return visible;
     }
 
+    /// Every series with its holes resolved, in the original order.
+    ///
+    /// Once per render, so the policy is applied in one place and the painter,
+    /// the axis and the readout all read the same answer
+    /// ([io.github.digitalsmile.goldberry.widgets.data.Gaps]).
+    private List<io.github.digitalsmile.goldberry.widgets.data.Gaps.Resolved> resolved() {
+        var out = new ArrayList<
+                io.github.digitalsmile.goldberry.widgets.data.Gaps.Resolved>(series.size());
+        for (var one : series) {
+            out.add(io.github.digitalsmile.goldberry.widgets.data.Gaps.resolve(
+                    one.values(), nulls));
+        }
+        return out;
+    }
+
     @Override
     public Box render(ComputedStyle style, List<Box> children, Context context) {
+        // **The resolved values**, so a `ZERO` chart's axis reaches zero and a
+        // `CONNECT` chart's reaches its interpolated values -- an axis scaled to
+        // the raw series would leave a substituted point off the top of a chart
+        // that is drawing it.
+        var resolved = resolved();
+        var min = Double.POSITIVE_INFINITY;
+        var max = Double.NEGATIVE_INFINITY;
         // **Over what is shown**, so isolating a small series rescales the axis
         // to it. That is the point of isolating one: a series that was a flat
         // line at the bottom of a chart scaled to a big one has nothing to read,
         // and re-labelling the axis is what turns it back into a chart.
-        var shown = shown();
-        var min = shown.stream().mapToDouble(Series::min).min().orElse(0);
-        var max = shown.stream().mapToDouble(Series::max).max().orElse(0);
+        for (var s = 0; s < resolved.size(); s++) {
+            if (!shows(s)) {
+                continue;
+            }
+            for (var value : resolved.get(s).values()) {
+                if (io.github.digitalsmile.goldberry.widgets.data.Gaps.isValue(value)) {
+                    min = Math.min(min, value);
+                    max = Math.max(max, value);
+                }
+            }
+        }
         if (mode == ChartPlot.Mode.AREA) {
             // A stack is as tall as its total, not as its tallest member.
-            max = Math.max(max, stackedMax());
+            max = Math.max(max, stackedMax(resolved));
         }
         if (mode != ChartPlot.Mode.LINE) {
             // **A bar or a band must start at zero.** A bar chart with a
@@ -181,8 +212,8 @@ record ChartSurface(
         var grid = CssColor.fade(style.color(), 0.14);
         var ink = style.color();
         var plot = new Painted(labelling, List.copyOf(labels), List.copyOf(xLabels),
-                List.copyOf(colours), grid, ink, series, mode, isolated,
-                readout(style, context), hovered, painted);
+                List.copyOf(colours), grid, ink, resolved, mode, isolated,
+                readout(style, context, resolved), hovered, painted);
         return Box.of().style(style).painting(plot::paint);
     }
 
@@ -193,7 +224,9 @@ record ChartSurface(
     /// the hovered index is part of this widget: one point's worth of text,
     /// re-shaped when the pointer moves to a different point and served from the
     /// cache when it moves within one (ADR-0037).
-    private Readout readout(ComputedStyle style, Context context) {
+    private Readout readout(ComputedStyle style, Context context,
+            List<io.github.digitalsmile.goldberry.widgets.data.Gaps.Resolved> resolved) {
+
         var index = hovered;
         if (index < 0 || index >= points() || series.isEmpty()) {
             return null;
@@ -211,15 +244,16 @@ record ChartSurface(
             if (!shows(s)) {
                 continue;
             }
-            var values = series.get(s).values();
-            if (index >= values.size()) {
-                // A series that stops early has nothing at this point, and a row
-                // reading zero would be a lie about missing data. Left out.
+            if (!resolved.get(s).has(index)) {
+                // A series that stops early, or has a hole here, has nothing at
+                // this point -- and a row reading zero would be a lie about
+                // missing data. Left out, which is also what makes the readout
+                // say *which* series was missing: the one that is not in it.
                 continue;
             }
             rows.add(new Row(SeriesPalette.of(context, s),
                     context.paragraph(style, series.get(s).name()),
-                    context.paragraph(style, readable(values.get(index)))));
+                    context.paragraph(style, readable(resolved.get(s).at(index)))));
         }
         if (rows.isEmpty()) {
             return null;
@@ -355,15 +389,16 @@ record ChartSurface(
 
     /// The tallest column of a stack — what an [ChartPlot.Mode#AREA] axis has to
     /// reach.
-    private double stackedMax() {
+    private double stackedMax(
+            List<io.github.digitalsmile.goldberry.widgets.data.Gaps.Resolved> resolved) {
+
         var longest = points();
         var tallest = 0.0;
         for (var i = 0; i < longest; i++) {
             var total = 0.0;
-            for (var s = 0; s < series.size(); s++) {
-                var one = series.get(s);
-                if (shows(s) && i < one.values().size()) {
-                    total += Math.max(0, one.values().get(i));
+            for (var s = 0; s < resolved.size(); s++) {
+                if (shows(s) && resolved.get(s).has(i)) {
+                    total += Math.max(0, resolved.get(s).at(i));
                 }
             }
             tallest = Math.max(tallest, total);
@@ -429,7 +464,9 @@ record ChartSurface(
     /// Everything the painter needs, decided while the cascade was in hand.
     private record Painted(
             Ticks.Labelling labelling, List<Paragraph> labels, List<Paragraph> xLabels,
-            List<Integer> colours, int grid, int ink, List<Series> series, ChartPlot.Mode mode,
+            List<Integer> colours, int grid, int ink,
+            List<io.github.digitalsmile.goldberry.widgets.data.Gaps.Resolved> series,
+            ChartPlot.Mode mode,
             int isolated, Readout readout, int hovered, PaintedGeometry painted) {
 
         private boolean shows(int index) {
@@ -442,6 +479,11 @@ record ChartSurface(
 
         private int points() {
             return series.stream().mapToInt(s -> s.values().size()).max().orElse(0);
+        }
+
+        /// The x scale for a chart of `points` points.
+        private Scale xScale(PlotGeometry geometry, int points) {
+            return Scale.linear(0, Math.max(1, points - 1), geometry.left(), geometry.right());
         }
 
         void paint(Frame frame, LogicalSize size) {
@@ -486,31 +528,69 @@ record ChartSurface(
             }
         }
 
+        /// A polyline per **run** of values that are actually there.
+        ///
+        /// One run for a whole series, which is every chart in practice, and one
+        /// per stretch for a series with holes in it — so a gap is a gap on
+        /// screen rather than a segment drawn through values nobody reported
+        /// ([io.github.digitalsmile.goldberry.widgets.data.NullPolicy]).
         private void paintLines(Frame frame, PlotGeometry geometry) {
+            var points = points();
             try (var path = BlendPath.create()) {
                 for (var s = 0; s < series.size(); s++) {
                     if (!shows(s)) {
                         continue;
                     }
-                    var values = series.get(s).values();
-                    if (values.size() < 2) {
-                        continue;
-                    }
-                    // One point per pixel at most, keeping the shape rather than
-                    // the stride -- see Lttb.
-                    var kept = Lttb.indices(values,
-                            Math.max(3, (int) Math.ceil(geometry.plotWidth()) + 1));
-                    var x = Scale.linear(0, values.size() - 1, geometry.left(), geometry.right());
+                    var resolved = series.get(s);
+                    var values = resolved.values();
+                    var x = xScale(geometry, values.size());
+                    for (var run : resolved.runs()) {
+                        var length = run[1] - run[0];
+                        if (length < 2) {
+                            // A single point with holes either side has no
+                            // segment to draw, so it gets a dot -- a run of one
+                            // is data, and dropping it would be a chart quietly
+                            // omitting a reading.
+                            if (length == 1) {
+                                dot(frame, path, x.at(run[0]),
+                                        geometry.y().at(values.get(run[0])), colours.get(s));
+                            }
+                            continue;
+                        }
+                        // One point per pixel at most, keeping the shape rather
+                        // than the stride -- see Lttb. Per run, with the budget
+                        // shared out by length, because the alternative is
+                        // downsampling across a hole.
+                        var budget = (int) Math.ceil(
+                                geometry.plotWidth() * length / Math.max(1, points)) + 1;
+                        var kept = Lttb.indices(values.subList(run[0], run[1]),
+                                Math.max(3, budget));
 
-                    path.reset();
-                    path.moveTo(x.at(kept[0]), geometry.y().at(values.get(kept[0])));
-                    for (var i = 1; i < kept.length; i++) {
-                        path.lineTo(x.at(kept[i]), geometry.y().at(values.get(kept[i])));
+                        path.reset();
+                        path.moveTo(x.at(run[0] + kept[0]),
+                                geometry.y().at(values.get(run[0] + kept[0])));
+                        for (var i = 1; i < kept.length; i++) {
+                            path.lineTo(x.at(run[0] + kept[i]),
+                                    geometry.y().at(values.get(run[0] + kept[i])));
+                        }
+                        frame.strokePath(0, 0, path, STROKE,
+                                BlendStrokeCap.ROUND, BlendStrokeJoin.ROUND, colours.get(s));
                     }
-                    frame.strokePath(0, 0, path, STROKE,
-                            BlendStrokeCap.ROUND, BlendStrokeJoin.ROUND, colours.get(s));
                 }
             }
+        }
+
+        /// A lone reading, drawn as a disc because it has no neighbour to make a
+        /// segment with.
+        private static void dot(
+                Frame frame, BlendPath path, double x, double y, int colour) {
+
+            path.reset();
+            path.moveTo(x - STROKE / 2, y);
+            path.ellipticArcTo(STROKE / 2, STROKE / 2, 0, false, true, x + STROKE / 2, y);
+            path.ellipticArcTo(STROKE / 2, STROKE / 2, 0, false, true, x - STROKE / 2, y);
+            path.closeSubPath();
+            frame.fillPath(0, 0, path, colour);
         }
 
         /// Stacked bands, drawn back to front so each sits on the one below.
@@ -523,36 +603,70 @@ record ChartSurface(
             if (longest < 2) {
                 return;
             }
-            var x = Scale.linear(0, longest - 1, geometry.left(), geometry.right());
+            var x = xScale(geometry, longest);
             var beneath = new double[longest];
+            // **A hole in one series is a hole in the whole stack.** A band's y is
+            // a running total, so an index where one component is missing is an
+            // index where the total is unknown -- and drawing the bands above it
+            // as though the missing one were zero would put them at a height
+            // nobody reported (Gaps#stackRuns).
+            var shownSeries = new ArrayList<
+                    io.github.digitalsmile.goldberry.widgets.data.Gaps.Resolved>();
+            for (var s = 0; s < series.size(); s++) {
+                if (shows(s)) {
+                    shownSeries.add(series.get(s));
+                }
+            }
+            var runs = io.github.digitalsmile.goldberry.widgets.data.Gaps.stackRuns(
+                    shownSeries, longest);
 
             try (var path = BlendPath.create()) {
                 for (var s = 0; s < series.size(); s++) {
                     if (!shows(s)) {
                         continue;
                     }
-                    var values = series.get(s).values();
+                    var resolved = series.get(s);
                     var top = new double[longest];
                     for (var i = 0; i < longest; i++) {
-                        var value = i < values.size() ? Math.max(0, values.get(i)) : 0;
+                        var value = resolved.has(i) ? Math.max(0, resolved.at(i)) : 0;
                         top[i] = beneath[i] + value;
                     }
 
-                    path.reset();
-                    path.moveTo(x.at(0), geometry.y().at(top[0]));
-                    for (var i = 1; i < longest; i++) {
-                        path.lineTo(x.at(i), geometry.y().at(top[i]));
+                    for (var run : runs) {
+                        if (run[1] - run[0] < 2) {
+                            // A band needs two columns to have an area, and a
+                            // lone one still happened: drawn as its own
+                            // cross-section, a pixel wide, because a chart that
+                            // dropped it would be omitting a reading it was
+                            // given -- which is the objection LTTB exists to
+                            // answer, one point instead of a spike.
+                            if (run[1] - run[0] == 1) {
+                                var i = run[0];
+                                var high = geometry.y().at(top[i]);
+                                var low = geometry.y().at(beneath[i]);
+                                frame.fillRect((float) x.at(i), (float) Math.min(high, low),
+                                        1, (float) Math.max(1, Math.abs(low - high)),
+                                        CssColor.fade(colours.get(s), 0.85));
+                            }
+                            continue;
+                        }
+                        path.reset();
+                        path.moveTo(x.at(run[0]), geometry.y().at(top[run[0]]));
+                        for (var i = run[0] + 1; i < run[1]; i++) {
+                            path.lineTo(x.at(i), geometry.y().at(top[i]));
+                        }
+                        // Back along the band beneath, so the fill is the
+                        // difference between the two rather than everything under
+                        // the top.
+                        for (var i = run[1] - 1; i >= run[0]; i--) {
+                            path.lineTo(x.at(i), geometry.y().at(beneath[i]));
+                        }
+                        path.closeSubPath();
+                        // Nearly opaque: a stack's bands do not overlap, so there
+                        // is nothing to see through them, and translucency here
+                        // would only mix each band with the gridlines behind it.
+                        frame.fillPath(0, 0, path, CssColor.fade(colours.get(s), 0.85));
                     }
-                    // Back along the band beneath, so the fill is the difference
-                    // between the two rather than everything under the top.
-                    for (var i = longest - 1; i >= 0; i--) {
-                        path.lineTo(x.at(i), geometry.y().at(beneath[i]));
-                    }
-                    path.closeSubPath();
-                    // Nearly opaque: a stack's bands do not overlap, so there is
-                    // nothing to see through them, and translucency here would
-                    // only mix each band with the gridlines behind it.
-                    frame.fillPath(0, 0, path, CssColor.fade(colours.get(s), 0.85));
 
                     System.arraycopy(top, 0, beneath, 0, longest);
                 }
@@ -583,11 +697,14 @@ record ChartSurface(
                     if (!shows(s)) {
                         continue;
                     }
-                    var values = series.get(s).values();
-                    if (i >= values.size()) {
+                    // **No bar where there is no value.** A bar is a length from
+                    // zero, so a missing reading has no length -- and a
+                    // zero-height bar is what `ZERO` asks for and draws by
+                    // itself, one pixel high at the baseline.
+                    if (!series.get(s).has(i)) {
                         continue;
                     }
-                    var at = geometry.y().at(values.get(i));
+                    var at = geometry.y().at(series.get(s).at(i));
                     // Drawn from the baseline in whichever direction the value
                     // went, so a negative bar hangs below zero rather than
                     // being drawn upside down or not at all.
@@ -677,11 +794,12 @@ record ChartSurface(
                     if (!shows(s)) {
                         continue;
                     }
-                    var values = series.get(s).values();
-                    if (hovered >= values.size()) {
+                    // Nothing to mark where there is nothing -- and the readout
+                    // leaves the row out for the same reason.
+                    if (!series.get(s).has(hovered)) {
                         continue;
                     }
-                    var y = geometry.y().at(values.get(hovered));
+                    var y = geometry.y().at(series.get(s).at(hovered));
                     // Two half-arcs, because SVG's `A` -- which is what a
                     // Blend2D path takes -- cannot draw a full circle in one
                     // segment: the start and end points would coincide and the

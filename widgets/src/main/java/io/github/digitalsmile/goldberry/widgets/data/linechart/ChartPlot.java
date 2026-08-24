@@ -24,11 +24,15 @@ import java.util.List;
 /// a bar — and three copies of that would be three chances to have a chart whose
 /// gridlines are a pixel off its labels.
 ///
+/// @param nulls    what to do where a series has no value — decided above this
+///                 widget too, because it is one convention per picture
+///                 ([io.github.digitalsmile.goldberry.widgets.data.NullPolicy])
 /// @param isolated the series shown alone, or -1 for all of them — decided
 ///                 above this widget, because a legend entry's click has to
 ///                 reach the plot and they are siblings ([io.github.digitalsmile.goldberry.widgets.data.ChartSpec])
 public record ChartPlot(
-        List<Series> series, List<String> categories, Mode mode, int isolated)
+        List<Series> series, List<String> categories, Mode mode,
+        io.github.digitalsmile.goldberry.widgets.data.NullPolicy nulls, int isolated)
         implements Widget.Stateful {
 
     /// Which shape the plot draws.
@@ -53,14 +57,17 @@ public record ChartPlot(
         series = List.copyOf(series == null ? List.of() : series);
         categories = List.copyOf(categories == null ? List.of() : categories);
         mode = mode == null ? Mode.LINE : mode;
+        nulls = nulls == null
+                ? io.github.digitalsmile.goldberry.widgets.data.NullPolicy.GAP : nulls;
     }
 
     public ChartPlot(List<Series> series, List<String> categories, Mode mode) {
-        this(series, categories, mode, -1);
+        this(series, categories, mode,
+                io.github.digitalsmile.goldberry.widgets.data.NullPolicy.GAP, -1);
     }
 
     ChartPlot(List<Series> series, List<String> categories) {
-        this(series, categories, Mode.LINE, -1);
+        this(series, categories, Mode.LINE);
     }
 
     @Override
@@ -84,7 +91,8 @@ public record ChartPlot(
         @Override
         public Widget build(io.github.digitalsmile.goldberry.widget.BuildContext context) {
             return new ChartSurface(widget().series(), widget().categories(), widget().mode(),
-                    widget().isolated(), hovered, painted, this::hover, this::walk);
+                    widget().nulls(), widget().isolated(), hovered, painted,
+                    this::hover, this::walk);
         }
 
         /// Moves the crosshair, and asks for a frame only when it actually moved.

@@ -139,14 +139,17 @@ class LineChartTest {
     }
 
     @Test
-    @DisplayName("a chart with no series draws nothing rather than failing")
+    @DisplayName("a chart with no series says so rather than drawing an empty grid")
     void emptyIsNotAnError() {
         var renderer = new WidgetRenderer(
                 List.of(Controls.baseStylesheet(), Theme.NORD_DARK.load()), TestFont.get());
 
         var box = renderer.render(new ElementTree(new LineChart(List.of())));
 
-        assertEquals(1, box.children().size(), "the plot, and no legend");
+        // One part, and it is a sentence rather than a plot: gridlines are an
+        // assertion about a scale, and there is none (ADR-0200). What it says is
+        // `ChartStatusTest`'s.
+        assertEquals(1, box.children().size(), "the message, and nothing else");
     }
 
     @Test

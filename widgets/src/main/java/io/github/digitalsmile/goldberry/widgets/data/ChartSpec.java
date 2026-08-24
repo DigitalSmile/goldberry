@@ -45,4 +45,19 @@ public interface ChartSpec extends Widget {
     /// `id` and `class`, which the view carries so a rule that names the chart
     /// still lands on the chart's own box.
     Attributes attributes();
+
+    /// What this chart does where a series has no value.
+    ///
+    /// One convention per picture, for [NullPolicy]'s reason: two series in one
+    /// chart treating their holes differently is a chart a reader cannot
+    /// interpret without being told which line is which kind.
+    NullPolicy nulls();
+
+    /// Whether this chart has its data, is waiting for it, or could not get it.
+    ///
+    /// On the interface for isolation's reason turned round: every axis chart
+    /// answers it the same way, and the widget that draws the sentence instead
+    /// of the picture is the same one for all three
+    /// ([ChartMessage]).
+    ChartStatus status();
 }

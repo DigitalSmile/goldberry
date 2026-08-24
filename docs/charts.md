@@ -111,7 +111,7 @@ feature lands and why.
 | Legend: placement, list mode | **v1** | Present for ≥ 2 series, absent for one — the title names a lone series |
 | Tooltip: single series, all series | **built** | Crosshair + readout on line/area, band highlight on bar (ADR-0198), share in the hole on donut (ADR-0199) |
 | Shared crosshair across charts | **v1** | Linked by a shared `CrosshairGroup`; cheap because it is one value two widgets read. Not built — the per-chart crosshair it hangs off now exists |
-| Null handling: gap / connect / zero | **v1** | Three-way, explicit. A gap drawn as zero is a lie about the data and the default is the gap |
+| Null handling: gap / connect / zero | **built** | Three-way, explicit, `GAP` by default — the only one that invents nothing (ADR-0201). A hole is `NaN`, a `null` is read as one, and a stack breaks where any component is missing |
 | Interpolation: linear, smooth, step | **v1** | Step matters for state-ish series; smooth is monotone-cubic, which cannot overshoot into impossible values |
 | Fill opacity, gradient fill | **v1** | Gradient is a linear OKLCH fade of the series colour to transparent |
 | Point markers, size, show-always/never/auto | **v1** | ≥ 8px hit target when hoverable |
@@ -120,7 +120,7 @@ feature lands and why.
 | Thresholds: lines and shaded regions | **v1** | Drawn in the *semantic* hues, never a series slot |
 | Value formatting per axis | **v1, app-supplied** | See §3.4 |
 | Series toggle by clicking the legend | **built** | Click isolates, click again restores; the others are dimmed rather than dropped (ADR-0198) |
-| Empty / loading / error states | **v1** | A chart with no data draws a themed message, never an empty grid |
+| Empty / loading / error states | **built** | A themed message, never an empty grid — and it keeps the chart's box, so a wall of loading cards does not reflow when the data lands (ADR-0200) |
 
 ### 3.2 In `goldberry-plot` (post-v1) — science-grade, not dashboard-grade
 

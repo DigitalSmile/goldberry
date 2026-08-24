@@ -3310,6 +3310,31 @@ donut-plot {
   flex-grow: 1;
 }
 
+/* What a chart shows when it has nothing to show -- charts.md §3.1's "a themed
+   message, never an empty grid" (ADR-0200). It takes the plot's `flex-grow`
+   because it *is* the plot for as long as it is there, so a loading chart is
+   exactly as tall as the chart it is about to be and a panel of them does not
+   reflow when the data lands.
+
+   Centred both ways, and that is the whole of its layout: the sentence is the
+   content. */
+chart-message {
+  flex-grow: 1;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: var(--gb-text-muted);
+}
+
+/* A failure is the one of the three that is not a neutral absence, so it is the
+   one that takes a colour. `--gb-danger` on the text and no border or background:
+   §1.2 draws the aurora hues as a glyph and a border on a surface rather than as
+   a filled block, and a chart-sized red panel would read as an alarm rather than
+   as "this one query did not answer". */
+chart-message.failed {
+  color: var(--gb-danger);
+}
+
 /* A plot is **focusable**, so a chart can be read without a pointer (charts.md
    §3.5, §2.2): Tab reaches it and Left/Right walk the crosshair. So it takes the
    ring every other focusable control takes -- on `:focus-visible` and not

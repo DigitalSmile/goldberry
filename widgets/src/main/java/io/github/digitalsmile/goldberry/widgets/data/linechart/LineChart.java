@@ -55,12 +55,22 @@ import java.util.Set;
 /// `Escape` lets go
 /// ([ADR-0199](../../../../../../../../book/src/adr/0199-a-chart-answers-the-keyboard-and-a-step-is-relative.md)).
 ///
+/// ## Missing values
+///
+/// A hole is `Double.NaN` and a `null` is read as one, and what happens there is
+/// [#nulls]: a **gap** by default, because it is the only one of the three that
+/// invents nothing
+/// ([ADR-0201](../../../../../../../../book/src/adr/0201-a-hole-is-not-a-zero.md)).
+/// A chart with no values at all says so rather than drawing an empty grid
+/// ([ADR-0200](../../../../../../../../book/src/adr/0200-a-chart-with-no-data-says-so.md)),
+/// and [#loading] and [#failed] are how an application says the rest.
+///
 /// ## What it does not have yet
 ///
-/// Thresholds, log scales, time axes, null handling, interpolation and a
-/// crosshair shared with the chart beside it — `charts.md` §3.1 is the list. The
-/// x is the point **index**; [#categories] labels the points and a `java.time`
-/// axis is §3.1's and is not built.
+/// Thresholds, log scales, time axes, interpolation and a crosshair shared with
+/// the chart beside it — `charts.md` §3.1 is the list. The x is the point
+/// **index**; [#categories] labels the points and a `java.time` axis is §3.1's
+/// and is not built.
 ///
 /// **No dual y-axis, ever.** Two measures at different scales are two charts, or
 /// one indexed to a common base; a second y-scale is the most reliable way to
@@ -72,7 +82,10 @@ import java.util.Set;
 /// @param categories a label per point, or empty for no x labels
 /// @param attributes `id` and `class`, exactly as on the primitives
 @Markup("line-chart")
-public record LineChart(List<Series> series, List<String> categories, Attributes attributes)
+public record LineChart(List<Series> series, List<String> categories,
+        io.github.digitalsmile.goldberry.widgets.data.ChartStatus status,
+        io.github.digitalsmile.goldberry.widgets.data.NullPolicy nulls,
+        Attributes attributes)
         implements Widget.Stateful, io.github.digitalsmile.goldberry.widgets.data.ChartSpec,
                 Attributed<LineChart> {
 
@@ -80,6 +93,44 @@ public record LineChart(List<Series> series, List<String> categories, Attributes
         series = List.copyOf(series == null ? List.of() : series);
         categories = List.copyOf(categories == null ? List.of() : categories);
         attributes = attributes == null ? Attributes.NONE : attributes;
+        status = status == null
+                ? io.github.digitalsmile.goldberry.widgets.data.ChartStatus.READY : status;
+        nulls = nulls == null
+                ? io.github.digitalsmile.goldberry.widgets.data.NullPolicy.GAP : nulls;
+    }
+
+    /// The ordinary form: a chart that has its data.
+    public LineChart(List<Series> series, List<String> categories, Attributes attributes) {
+        this(series, categories,
+                io.github.digitalsmile.goldberry.widgets.data.ChartStatus.READY,
+                io.github.digitalsmile.goldberry.widgets.data.NullPolicy.GAP, attributes);
+    }
+
+    /// This chart, told what to do where a series has no value.
+    ///
+    /// The default is [io.github.digitalsmile.goldberry.widgets.data.NullPolicy#GAP],
+    /// which is the only one of the three that invents nothing.
+    public LineChart nulls(io.github.digitalsmile.goldberry.widgets.data.NullPolicy value) {
+        return new LineChart(series, categories, status, value, attributes);
+    }
+
+    /// This chart, waiting for its data — it keeps its box and says so.
+    ///
+    /// The box is the point: a panel whose charts vanished while their queries
+    /// resolved would reflow twice per chart (ChartStatus).
+    public LineChart loading() {
+        return status(io.github.digitalsmile.goldberry.widgets.data.ChartStatus.loading());
+    }
+
+    /// This chart, in the application's own words about why there is nothing.
+    public LineChart failed(String message) {
+        return status(io.github.digitalsmile.goldberry.widgets.data.ChartStatus.failed(message));
+    }
+
+    /// This chart with `value` as its state — see
+    /// [io.github.digitalsmile.goldberry.widgets.data.ChartStatus].
+    public LineChart status(io.github.digitalsmile.goldberry.widgets.data.ChartStatus value) {
+        return new LineChart(series, categories, value, nulls, attributes);
     }
 
     public LineChart(List<Series> series) {
@@ -88,7 +139,7 @@ public record LineChart(List<Series> series, List<String> categories, Attributes
 
     /// This chart with a label under each point.
     public LineChart categories(List<String> values) {
-        return new LineChart(series, values, attributes);
+        return new LineChart(series, values, status, nulls, attributes);
     }
 
     /// The type of the box this chart's view draws — see
@@ -116,7 +167,7 @@ public record LineChart(List<Series> series, List<String> categories, Attributes
 
     @Override
     public LineChart withAttributes(Attributes value) {
-        return new LineChart(series, categories, value);
+        return new LineChart(series, categories, status, nulls, value);
     }
 
     /// Builds a `line-chart` from markup — §3.2's inline form, for small static

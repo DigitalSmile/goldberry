@@ -60,12 +60,35 @@ public final class ChartParts {
     public static List<Widget> of(List<Series> series, List<String> categories, Mode mode,
             int isolated, java.util.function.IntConsumer onIsolate) {
 
+        return of(series, categories, mode, isolated, onIsolate, ChartStatus.READY);
+    }
+
+    /// The same, for a chart that may not have its data yet.
+    ///
+    /// **A sentence instead of a picture, and nothing else.** No legend, no
+    /// plot: a legend keying series nobody can see is noise, and a grid over no
+    /// data asserts a scale nobody supplied (`charts.md` §3.1, ADR-0200).
+    public static List<Widget> of(List<Series> series, List<String> categories, Mode mode,
+            int isolated, java.util.function.IntConsumer onIsolate, ChartStatus status) {
+
+        return of(series, categories, mode, isolated, onIsolate, status, NullPolicy.GAP);
+    }
+
+    /// The same, told what to do where a series has no value.
+    public static List<Widget> of(List<Series> series, List<String> categories, Mode mode,
+            int isolated, java.util.function.IntConsumer onIsolate, ChartStatus status,
+            NullPolicy nulls) {
+
+        var message = messageFor(status, hasData(series));
+        if (message != null) {
+            return List.of(message);
+        }
         var parts = new ArrayList<Widget>(2);
         parts.add(new ChartPlot(series, categories, switch (mode) {
             case LINE -> ChartPlot.Mode.LINE;
             case AREA -> ChartPlot.Mode.AREA;
             case BAR -> ChartPlot.Mode.BAR;
-        }, isolated));
+        }, nulls, isolated));
         if (series.size() > 1) {
             parts.add(new ChartLegend(series, isolated, onIsolate));
         }
@@ -100,6 +123,34 @@ public final class ChartParts {
             categories.clear();
         }
         return new Read(List.copyOf(series), List.copyOf(categories));
+    }
+
+    /// Whether there is anything to draw — a series with at least one point.
+    ///
+    /// A chart of three named series with no numbers in them is as empty as a
+    /// chart of none, and it is the shape an application gets from a query that
+    /// returned no rows.
+    public static boolean hasData(List<Series> series) {
+        // A **value**, not a point: a series of nothing but holes is as empty as
+        // a series of no points, and it is what a query returning rows of nulls
+        // produces (Series#valueCount).
+        return series != null && series.stream().anyMatch(one -> one.valueCount() > 0);
+    }
+
+    /// The part a chart draws instead of its data, or **null** when it has some.
+    ///
+    /// Shared by all five charts, because "what a chart says when it has nothing
+    /// to show" is one answer and four copies of it would drift.
+    ///
+    /// @param status  what the application said
+    /// @param hasData whether the data it passed has anything in it
+    public static Widget messageFor(ChartStatus status, boolean hasData) {
+        var text = (status == null ? ChartStatus.READY : status).messageFor(hasData);
+        if (text == null) {
+            return null;
+        }
+        return new ChartMessage(text,
+                (status == null ? ChartStatus.READY : status).styleClass(hasData));
     }
 
     /// What [#read] found.

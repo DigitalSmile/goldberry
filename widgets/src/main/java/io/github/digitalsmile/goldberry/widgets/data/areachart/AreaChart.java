@@ -39,7 +39,10 @@ import java.util.Set;
 /// is its area, and an area measured from a baseline nobody stated is a
 /// proportion that lies.
 @Markup("area-chart")
-public record AreaChart(List<Series> series, List<String> categories, Attributes attributes)
+public record AreaChart(List<Series> series, List<String> categories,
+        io.github.digitalsmile.goldberry.widgets.data.ChartStatus status,
+        io.github.digitalsmile.goldberry.widgets.data.NullPolicy nulls,
+        Attributes attributes)
         implements Widget.Stateful, io.github.digitalsmile.goldberry.widgets.data.ChartSpec,
                 Attributed<AreaChart> {
 
@@ -47,6 +50,44 @@ public record AreaChart(List<Series> series, List<String> categories, Attributes
         series = List.copyOf(series == null ? List.of() : series);
         categories = List.copyOf(categories == null ? List.of() : categories);
         attributes = attributes == null ? Attributes.NONE : attributes;
+        status = status == null
+                ? io.github.digitalsmile.goldberry.widgets.data.ChartStatus.READY : status;
+        nulls = nulls == null
+                ? io.github.digitalsmile.goldberry.widgets.data.NullPolicy.GAP : nulls;
+    }
+
+    /// The ordinary form: a chart that has its data.
+    public AreaChart(List<Series> series, List<String> categories, Attributes attributes) {
+        this(series, categories,
+                io.github.digitalsmile.goldberry.widgets.data.ChartStatus.READY,
+                io.github.digitalsmile.goldberry.widgets.data.NullPolicy.GAP, attributes);
+    }
+
+    /// This chart, told what to do where a series has no value.
+    ///
+    /// The default is [io.github.digitalsmile.goldberry.widgets.data.NullPolicy#GAP],
+    /// which is the only one of the three that invents nothing.
+    public AreaChart nulls(io.github.digitalsmile.goldberry.widgets.data.NullPolicy value) {
+        return new AreaChart(series, categories, status, value, attributes);
+    }
+
+    /// This chart, waiting for its data — it keeps its box and says so.
+    ///
+    /// The box is the point: a panel whose charts vanished while their queries
+    /// resolved would reflow twice per chart (ChartStatus).
+    public AreaChart loading() {
+        return status(io.github.digitalsmile.goldberry.widgets.data.ChartStatus.loading());
+    }
+
+    /// This chart, in the application's own words about why there is nothing.
+    public AreaChart failed(String message) {
+        return status(io.github.digitalsmile.goldberry.widgets.data.ChartStatus.failed(message));
+    }
+
+    /// This chart with `value` as its state — see
+    /// [io.github.digitalsmile.goldberry.widgets.data.ChartStatus].
+    public AreaChart status(io.github.digitalsmile.goldberry.widgets.data.ChartStatus value) {
+        return new AreaChart(series, categories, value, nulls, attributes);
     }
 
     public AreaChart(List<Series> series) {
@@ -55,7 +96,7 @@ public record AreaChart(List<Series> series, List<String> categories, Attributes
 
     /// This chart with a label under each point.
     public AreaChart categories(List<String> values) {
-        return new AreaChart(series, values, attributes);
+        return new AreaChart(series, values, status, nulls, attributes);
     }
 
     /// The type of the box this chart's view draws — see
@@ -83,7 +124,7 @@ public record AreaChart(List<Series> series, List<String> categories, Attributes
 
     @Override
     public AreaChart withAttributes(Attributes value) {
-        return new AreaChart(series, categories, value);
+        return new AreaChart(series, categories, status, nulls, value);
     }
 
     /// Builds an `area-chart` from markup — §3.2's inline form.

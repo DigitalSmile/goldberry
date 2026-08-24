@@ -3584,8 +3584,11 @@ is the `scroll` box's.
   of it is built — see [What a chart does when a pointer
   arrives](#what-a-chart-does-when-a-pointer-arrives) and [A donut under the
   pointer](#a-donut-under-the-pointer-and-every-chart-under-the-keyboard).
-  Thresholds, log scales, time axes, null handling and a crosshair shared between
-  charts are still outstanding.
+  What a chart says when it has no numbers is built too — see [What a chart says
+  when it has not got the
+  numbers](#what-a-chart-says-when-it-has-not-got-the-numbers). Thresholds, log
+  scales, time axes, interpolation and a crosshair shared between charts are
+  still outstanding.
 
 ### Two things found by scrolling the wall of charts
 
@@ -3751,6 +3754,69 @@ is the `scroll` box's.
   that matters asserts `End` and a pointer at the right-hand edge produce *the
   same frame* — not two descriptions of one intent. It was also the test that
   caught the defect above, by pressing an arrow twice without a frame in between.
+
+### What a chart says when it has not got the numbers
+
+- **A chart with no data says so**, where it used to draw five gridlines and five
+  labels over nothing — every one of those numbers invented. An empty grid is not
+  a neutral picture: gridlines are an assertion about a scale, and asserting one
+  over no data is the same class of untruth as a bar chart baselined at 90
+  ([ADR-0200](adr/0200-a-chart-with-no-data-says-so.md)).
+- **Three states and one of them is derived.** `LOADING` and `FAILED` are the
+  application's to say — only it knows whether a query is in flight or came back
+  angry — and **empty is not**: a chart whose series are empty is `READY`, and the
+  widget notices. A fourth state an application had to declare would be one that
+  can disagree with the list beside it.
+- **It keeps the box, and that is why the chart owns this at all.** An application
+  can write `loading ? spinner : chart` in a line; what that costs is the height.
+  `chart-message` takes the plot's `flex-grow`, so a chart in a 156px card is
+  156px while it loads, and a `masonry` of cards whose charts came and went as
+  their queries resolved would reflow the wall twice per panel. Asserted by
+  measuring the laid-out height in all three states rather than argued.
+- **The message is widgets and the hover readout is paint**, which looks
+  inconsistent until you ask the question that decides it: does it participate in
+  layout? A readout is placed in plot coordinates and must not affect the box; a
+  message is centred, wraps, and *is* the content.
+- **Two more strings the toolkit writes rather than the application** — `No data`
+  and `Loading…`, after `Field.REQUIRED_MESSAGE` and for its exact reason: an
+  application that passed an empty list has supplied no words. Both are
+  overridable. **No spinner**: §1.7 keeps the frame loop idle when nothing
+  animates, and a dashboard's charts are all waiting at once.
+- **A hole is not a zero**, which is `charts.md` §3.1's sentence and now three
+  ways of drawing one ([ADR-0201](adr/0201-a-hole-is-not-a-zero.md)). `GAP` is the
+  default because it is the only one of the three that invents nothing; `CONNECT`
+  interpolates the interior holes, which is the straight segment for a line and
+  the same shape filled for a band; `ZERO` says the value was zero, which is right
+  for a counter and a lie everywhere else.
+- **And it was a live defect rather than a gap in a feature list.** `Math.min`
+  propagates `NaN`, so one missing reading made `Series.min()` answer `NaN`, the
+  axis found its domain was not finite, fell back to `0…0` and **collapsed the
+  whole chart onto one line**. A single absent sample destroyed the picture,
+  silently, because no test had a hole in it.
+- **A `null` is read as a hole rather than refused.** `List.copyOf` rejects nulls,
+  so before this a series read out of a nullable column had to be converted by its
+  caller — and the obvious conversion is `orElse(0)`, which is exactly the answer
+  the policy exists to prevent.
+- **One place applies the policy.** `Gaps.resolve` produces the substituted values
+  *and* the runs of consecutive drawable indices, so a polyline, a band and a bar
+  read one answer and no mode can quietly disagree about where a hole is. LTTB
+  runs per run, because downsampling across a hole would invent a segment through
+  it.
+- **A hole in one series is a hole in the whole stack.** A band's y is a running
+  total, so an index where one component is missing is an index where the total is
+  unknown; drawing the bands above it as though the missing one were zero would
+  put them at a height nobody reported.
+- **Nothing is dropped silently.** A run of one has no segment, so a line draws a
+  dot and a stacked band draws its cross-section a pixel wide — the objection LTTB
+  exists to answer, applied to one point rather than to a spike in a hundred
+  thousand. The area golden showed the dropped Monday before the fix.
+- **The policy is the chart's, not the series'.** One picture, one convention: two
+  series treating their holes differently is a chart nobody can read without being
+  told which line is which kind, which is the argument that gives a chart one x
+  axis and refuses it a second y.
+- **Four new goldens, and the assertion that matters is that three of them
+  differ.** Null handling wired up but never applied would pass every unit test
+  about the arithmetic and draw one picture for all three policies.
 
 ### Not started
 
