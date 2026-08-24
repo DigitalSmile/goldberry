@@ -56,6 +56,49 @@ public record BarChart(List<Series> series, List<String> categories,
                 io.github.digitalsmile.goldberry.widgets.data.ChartOptions.DEFAULTS, attributes);
     }
 
+    /// This chart with an axis that reaches **at least** `min…max`, and further
+    /// if the data does.
+    ///
+    /// What stops a flat series rendering as noise: an uptime between 99.91 and
+    /// 99.99 auto-scaled is a mountain range made of eight hundredths of a
+    /// percent, and `softAxis(99, 100)` draws it as the flat line near the top
+    /// that it is — while still showing an outage, because a reading of 40 pushes
+    /// the axis down to meet it
+    /// ([io.github.digitalsmile.goldberry.widgets.data.Bounds]).
+    public BarChart softAxis(double min, double max) {
+        return options(options.bounds(
+                io.github.digitalsmile.goldberry.widgets.data.Bounds.soft(min, max)));
+    }
+
+    /// This chart with an axis that is **exactly** `min…max`, whatever the data
+    /// does.
+    ///
+    /// For a range that is a definition rather than an observation — a percentage
+    /// of a whole, a gauge with a physical stop. Data outside it is drawn outside
+    /// the plot and clipped, which is the correct rendering of a promise that was
+    /// wrong.
+    public BarChart axis(double min, double max) {
+        return options(options.bounds(
+                io.github.digitalsmile.goldberry.widgets.data.Bounds.hard(min, max)));
+    }
+
+    /// This chart sharing its crosshair with every other chart in `group`.
+    ///
+    /// Pointing at Tuesday here puts the crosshair on Tuesday on all of them,
+    /// which is how a reader asks what the other panel was doing at the same
+    /// moment. Only the chart under the pointer draws the readout
+    /// ([io.github.digitalsmile.goldberry.widgets.data.CrosshairGroup]).
+    public BarChart crosshair(
+            io.github.digitalsmile.goldberry.widgets.data.CrosshairGroup group) {
+
+        return options(options.crosshair(group));
+    }
+
+    /// This chart with a different marker rule — a dot at each reading, or not.
+    public BarChart markers(io.github.digitalsmile.goldberry.widgets.data.Markers value) {
+        return options(options.markers(value));
+    }
+
     /// This chart with a **logarithmic** value axis.
     ///
     /// For a series that spends its life at 3 and spikes to 30 000: on a linear

@@ -114,8 +114,11 @@ class ChartLogTest {
     @Test
     @DisplayName("a log axis gives the quiet data room the linear one spends on the spike")
     void theWholePointOfIt() {
-        var linear = pixels(line(SPIKY));
-        var logarithmic = pixels(line(SPIKY).logY());
+        // Markers off on both, so what is measured is the *line's* spread: a dot
+        // is three pixels tall wherever it is, and counting them would credit the
+        // linear chart with room its readings do not have.
+        var linear = pixels(line(SPIKY).markers(Markers.NEVER));
+        var logarithmic = pixels(line(SPIKY).logY().markers(Markers.NEVER));
 
         assertFalse(java.util.Arrays.equals(linear, logarithmic));
         // On a linear axis the six readings between 3 and 12 are all in the

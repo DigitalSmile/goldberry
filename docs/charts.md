@@ -113,9 +113,9 @@ feature lands and why.
 | Shared crosshair across charts | **v1** | Linked by a shared `CrosshairGroup`; cheap because it is one value two widgets read. Not built — the per-chart crosshair it hangs off now exists |
 | Null handling: gap / connect / zero | **built** | Three-way, explicit, `GAP` by default — the only one that invents nothing (ADR-0201). A hole is `NaN`, a `null` is read as one, and a stack breaks where any component is missing |
 | Interpolation: linear, smooth, step | **built** | `LINEAR` by default — the weakest claim. `SMOOTH` is Fritsch–Carlson monotone cubic and the no-overshoot property is sampled and asserted; `STEP` holds forward, which is what a reading means (ADR-0204) |
-| Fill opacity, gradient fill | **v1** | Gradient is a linear OKLCH fade of the series colour to transparent |
-| Point markers, size, show-always/never/auto | **v1** | ≥ 8px hit target when hoverable |
-| Axis min/max, soft min/max | **v1** | Soft bounds are what stop a flat series rendering as noise |
+| Fill opacity, gradient fill | **fill built, gradient deferred** | A band's opacity is set. The gradient needs a Blend2D gradient on the export list — shared work with `goldberry-html`, tracked in `TODO.md` rather than faked with translucent strips |
+| Point markers, size, show-always/never/auto | **built** | `AUTO` by default, measured in pixels so the same chart shows dots at seven readings and none at seven hundred (ADR-0206) |
+| Axis min/max, soft min/max | **built** | `softAxis` reaches at least that far and further if the data does; `axis` does not move (ADR-0206) |
 | Log axis | **built** | `line-chart` only — a bar and a band are lengths from zero, and zero is infinitely far down. Decades, strided when there are too many and subdivided 1-2-5 when too few; a non-positive reading becomes a hole rather than being drawn somewhere it never was (ADR-0205) |
 | Thresholds: lines and shaded regions | **built** | Four semantic levels and no way to pass a colour; a band is a wash **and its edges**, because the wash alone measured as neutral grey (ADR-0202). Part of the domain, so a limit you have not reached is on screen |
 | Value formatting per axis | **v1, app-supplied** | See §3.4 |

@@ -3587,9 +3587,9 @@ is the `scroll` box's.
   What a chart says when it has no numbers is built too — see [What a chart says
   when it has not got the
   numbers](#what-a-chart-says-when-it-has-not-got-the-numbers), and so are
-  thresholds, the `java.time` axis, interpolation and log scales. Soft bounds,
-  gradient fills, point markers and a crosshair shared between charts are still
-  outstanding.
+  thresholds, the `java.time` axis, interpolation, log scales, soft bounds,
+  point markers and the shared crosshair. **Only the gradient fill is
+  outstanding**, and it is waiting on a native symbol rather than on a decision.
 
 ### Two things found by scrolling the wall of charts
 
@@ -4042,6 +4042,53 @@ is the `scroll` box's.
   that spikes four decades get **two rows** of a 156px plot on a linear axis and
   **thirteen** on a log one. The test compares the multiple rather than the
   difference, because what the axis promises is proportional.
+
+### The last three of §3.1, and the one that needs a symbol
+
+- **Soft bounds stop a flat series rendering as noise**
+  ([ADR-0206](adr/0206-a-crosshair-may-be-shared-and-a-bound-may-be-soft.md)). An
+  uptime reading `99.94, 99.97, 99.91, 99.99` auto-scaled fills the plot with the
+  difference between 99.91 and 99.99 — a mountain range made of eight hundredths
+  of a percent, shouting loudest exactly when the news is good. `softAxis(99,
+  100)` draws the flat line near the top that it is, and an outage still pushes
+  the axis down to meet it, because "at least this far" is what soft means. A
+  **hard** bound does not move, and data outside it is clipped — the correct
+  rendering of a promise that was wrong. Asserted rather than argued: the same
+  readings use **more than three times** the vertical room auto-scaled that they
+  use bounded.
+- **Point markers are `AUTO` by default, and this changed every sparse chart in
+  the toolkit.** A dot appears when its neighbours are more than four
+  marker-widths away — **in pixels**, because what makes a dotted mess is how
+  close the dots are on screen rather than how many there are, so the same chart
+  shows dots at seven readings, none at seven hundred, and shows them again when
+  the window is widened. Deliberate: a dot per reading is the difference between
+  a measurement and a trace, and the goldens moved with it.
+- **A crosshair can be shared.** `CrosshairGroup` is a mutable holder an
+  application owns — a `ToastController`'s shape (ADR-0177) — and what travels is
+  the point **index**, so the charts in one are assumed to be sampled together.
+  Every chart in the group draws the line; **only the one under the pointer draws
+  the readout**, because a dashboard with six floating boxes on it, five about a
+  chart nobody is pointing at, is worse than no linking at all.
+- **Which needed the crosshair and the readout to stop being one condition.**
+  `paintHover` returned early when the readout was null, so a linked chart drew
+  nothing at all; and the hover marker's ring colour was read off the `Readout`,
+  so a chart drawing markers without one crashed. Both were the same assumption —
+  that a chart draws a crosshair exactly when it has something to say — and it
+  held right up until two charts shared one.
+- **The showcase links its two seven-day charts.** `Requests per day` and `Bytes
+  served` are the same week, which is what a group needs; pointing at Thursday on
+  either puts the crosshair on Thursday on both.
+- **A leak is tested for rather than reasoned about.** A chart that stayed
+  subscribed would hold the group's listener list — and through it the last
+  window's charts — alive; `CrosshairGroup.listenerCount()` exists for that test
+  and nothing else. Writing it also found that the test harness was never
+  unmounting its element tree, so `dispose` had never run in any of these files.
+- **§3.1 is complete except the gradient fill**, which is the one row that needs
+  a **native symbol**: Blend2D has gradients and the export list does not, because
+  it holds what the toolkit's own painter needs. That is shared work with
+  `goldberry-html` and `goldberry-vector` (ADR-0190) and is now in
+  [TODO.md](TODO.md) with the reason a stack of translucent strips is not the way
+  out.
 
 ### Not started
 

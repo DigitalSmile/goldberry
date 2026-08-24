@@ -215,6 +215,7 @@
 - [ADR-0203 A time axis is time, not a relabelled index](adr/0203-a-time-axis-is-time-not-a-relabelled-index.md)
 - [ADR-0204 A smooth line cannot overshoot](adr/0204-a-smooth-line-cannot-overshoot.md)
 - [ADR-0205 A log axis has no room for zero](adr/0205-a-log-axis-has-no-room-for-zero.md)
+- [ADR-0206 A crosshair may be shared, and a bound may be soft](adr/0206-a-crosshair-may-be-shared-and-a-bound-may-be-soft.md)
 
 ---
 

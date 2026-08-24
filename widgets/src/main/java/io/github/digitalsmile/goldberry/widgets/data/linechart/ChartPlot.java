@@ -85,6 +85,50 @@ public record ChartPlot(
         /// and not the chart plus a crosshair.
         private int hovered = -1;
 
+        /// The group's registration, while there is one.
+        private io.github.digitalsmile.goldberry.bind.Subscription linked;
+
+        /// The group this state is currently registered with, so a rebuild that
+        /// changes it re-registers rather than listening to the old one for ever.
+        private io.github.digitalsmile.goldberry.widgets.data.CrosshairGroup group;
+
+        @Override
+        protected void initState() {
+            link();
+        }
+
+        @Override
+        protected void didUpdateWidget(ChartPlot previous) {
+            if (widget().options().crosshair() != group) {
+                link();
+            }
+        }
+
+        @Override
+        protected void dispose() {
+            if (linked != null) {
+                linked.close();
+                linked = null;
+            }
+            group = null;
+        }
+
+        /// Registers with the widget's group, unregistering from any previous one.
+        ///
+        /// A chart that stayed subscribed to a group it is no longer in would be
+        /// rebuilt by a crosshair it does not draw — and would hold the group's
+        /// listener list, and through it the last window's charts, alive.
+        private void link() {
+            if (linked != null) {
+                linked.close();
+                linked = null;
+            }
+            group = widget().options().crosshair();
+            if (group != null) {
+                linked = group.subscribe(() -> setState(() -> { }));
+            }
+        }
+
         /// Where the painter leaves the geometry the pointer needs. Owned by the
         /// state rather than by the widget, because the widget is a new value
         /// every frame and this has to outlive them (see [PaintedGeometry]).
@@ -92,8 +136,14 @@ public record ChartPlot(
 
         @Override
         public Widget build(io.github.digitalsmile.goldberry.widget.BuildContext context) {
+            // **The group draws the crosshair; the pointer draws the readout.**
+            // A dashboard with six floating boxes on it, five of them about a
+            // chart nobody is pointing at, is worse than no linking at all -- so
+            // the shared index moves the line on every chart and this one's own
+            // `hovered` decides whether it also says what the numbers are.
+            var shared = group == null ? hovered : group.hovered();
             return new ChartSurface(widget().series(), widget().categories(), widget().mode(),
-                    widget().options(), widget().isolated(), hovered,
+                    widget().options(), widget().isolated(), shared, hovered >= 0,
                     painted, this::hover, this::walk);
         }
 
@@ -108,6 +158,11 @@ public record ChartPlot(
                 return false;
             }
             setState(() -> hovered = index);
+            // Told after this state's own field moves, so the group's
+            // notification finds a chart that already knows where its pointer is.
+            if (group != null) {
+                group.hover(index);
+            }
             return true;
         }
 

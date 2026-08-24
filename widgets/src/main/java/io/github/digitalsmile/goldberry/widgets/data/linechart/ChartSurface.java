@@ -60,7 +60,7 @@ import java.util.List;
 record ChartSurface(
         List<Series> series, List<String> categories, ChartPlot.Mode mode,
         io.github.digitalsmile.goldberry.widgets.data.ChartOptions options,
-        int isolated, int hovered, PaintedGeometry painted,
+        int isolated, int hovered, boolean owns, PaintedGeometry painted,
         java.util.function.IntPredicate onHover, java.util.function.IntPredicate onWalk)
         implements Widget.Leaf, Styled, Paints, Handles {
 
@@ -240,6 +240,18 @@ record ChartSurface(
             min = 0;
             max = 0;
         }
+        // **What the axis has to reach**, which is not always what the data
+        // reached: a flat series auto-scaled fills the plot with its own noise
+        // (ADR-0206). Applied before the labelling, so the round numbers are
+        // chosen for the axis the reader will see.
+        if (options.bounds().isSet()) {
+            var lower = options.bounds().applyMin(min);
+            var upper = options.bounds().applyMax(max);
+            if (lower < upper || (lower == upper && options.bounds().hard())) {
+                min = lower;
+                max = upper;
+            }
+        }
 
         // The labelling, and the colours, decided here where the cascade is.
         //
@@ -328,7 +340,9 @@ record ChartSurface(
         var plot = new Painted(List.copyOf(labels), List.copyOf(xLabels),
                 List.copyOf(colours), grid, ink, resolved, mode, min, max,
                 List.copyOf(limits), pointTimes, List.copyOf(timeTicks), options.curve(),
-                List.copyOf(gridValues), logarithmic, axisMin, axisMax, isolated,
+                List.copyOf(gridValues), logarithmic, axisMin, axisMax, options.markers(),
+                context.color("--gb-hud-bg", 0xE61C212A),
+                isolated,
                 readout(style, context, resolved), hovered, painted);
         return Box.of().style(style).painting(plot::paint);
     }
@@ -344,7 +358,10 @@ record ChartSurface(
             List<io.github.digitalsmile.goldberry.widgets.data.Gaps.Resolved> resolved) {
 
         var index = hovered;
-        if (index < 0 || index >= points() || series.isEmpty()) {
+        if (!owns || index < 0 || index >= points() || series.isEmpty()) {
+            // Not this chart's pointer. It still draws the crosshair -- that is
+            // what sharing one means -- and the readout belongs where the reader
+            // is looking (CrosshairGroup).
             return null;
         }
         // The HUD's tokens, not the surface's. A readout is a floating overlay
@@ -618,6 +635,13 @@ record ChartSurface(
             List<PaintedThreshold> thresholds, double[] times, List<Double> timeTicks,
             io.github.digitalsmile.goldberry.widgets.data.Curve curve,
             List<Double> gridValues, boolean logarithmic, double axisMin, double axisMax,
+            io.github.digitalsmile.goldberry.widgets.data.Markers markers,
+            // `ring` is the colour drawn around a hovered point's disc. Resolved
+            // in `render` beside the readout's colours but held *here* rather
+            // than on the Readout, because a chart sharing a CrosshairGroup draws
+            // markers with no readout at all -- and reading the colour off the
+            // thing that is null was exactly the crash.
+            int ring,
             int isolated, Readout readout, int hovered, PaintedGeometry painted) {
 
         private boolean shows(int index) {
@@ -755,6 +779,13 @@ record ChartSurface(
                         addRun(path, xs, ys, true);
                         frame.strokePath(0, 0, path, STROKE,
                                 BlendStrokeCap.ROUND, BlendStrokeJoin.ROUND, colours.get(s));
+                        if (marked(geometry, points)) {
+                            // A dot per reading, so a sparse series reads as
+                            // readings rather than as a continuous measurement.
+                            for (var i = 0; i < xs.length; i++) {
+                                dot(frame, path, xs[i], ys[i], colours.get(s));
+                            }
+                        }
                     }
                 }
             }
@@ -973,6 +1004,23 @@ record ChartSurface(
             }
         }
 
+        /// Whether this chart draws a dot at each reading.
+        ///
+        /// [io.github.digitalsmile.goldberry.widgets.data.Markers#AUTO] measures
+        /// rather than assumes: a marker appears when its neighbours are more
+        /// than four marker-widths away, so the same chart shows dots at seven
+        /// points and none at seven hundred — and shows them again when the
+        /// window is made wider. In **pixels**, because what makes a dotted mess
+        /// is how close the dots are on screen rather than how many there are.
+        private boolean marked(PlotGeometry geometry, int points) {
+            return switch (markers) {
+                case ALWAYS -> true;
+                case NEVER -> false;
+                case AUTO -> points > 1
+                        && geometry.plotWidth() / (points - 1) > STROKE * 4;
+            };
+        }
+
         /// A lone reading, drawn as a disc because it has no neighbour to make a
         /// segment with.
         ///
@@ -1167,9 +1215,18 @@ record ChartSurface(
         }
 
         /// The crosshair, the markers on it, and the readout beside it.
+        ///
+        /// **The readout is the only part that needs one.** The crosshair is
+        /// drawn for a hovered point whether or not this chart has anything to
+        /// say about it, which is what makes a shared one work: every chart in a
+        /// [io.github.digitalsmile.goldberry.widgets.data.CrosshairGroup] draws
+        /// the line and only the one under the pointer draws the box
+        /// (ADR-0206). Guarding both on the readout was the same condition twice
+        /// until the groups arrived, and then it was a linked chart that drew
+        /// nothing at all.
         private void paintHover(Frame frame, PlotGeometry geometry) {
             var points = points();
-            if (hovered < 0 || hovered >= points || readout == null) {
+            if (hovered < 0 || hovered >= points) {
                 return;
             }
             var x = geometry.xOf(hovered, points, banded());
@@ -1188,7 +1245,9 @@ record ChartSurface(
                         (float) geometry.plotHeight(), CssColor.fade(ink, 0.45));
                 paintMarkers(frame, geometry, x);
             }
-            paintReadout(frame, geometry, x);
+            if (readout != null) {
+                paintReadout(frame, geometry, x);
+            }
         }
 
         /// A disc on each series' value at the hovered point.
@@ -1223,13 +1282,13 @@ record ChartSurface(
                     dot.ellipticArcTo(MARKER, MARKER, 0, false, true, x + MARKER, y);
                     dot.ellipticArcTo(MARKER, MARKER, 0, false, true, x - MARKER, y);
                     dot.closeSubPath();
-                    // A ring in the readout's background rather than in the
-                    // surface's: the marker sits on the series line, and a ring
+                    // A ring in the **readout's** surface colour rather than the
+                    // page's: the marker sits on the series line, and a ring
                     // the colour of the page would cut the line in half wherever
                     // the chart is on a card.
                     frame.strokePath(0, 0, dot, 2,
                             BlendStrokeCap.BUTT, BlendStrokeJoin.MITER_CLIP,
-                            readout.background());
+                            ring);
                     frame.fillPath(0, 0, dot, colours.get(s));
                 }
             }

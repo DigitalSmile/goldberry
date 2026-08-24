@@ -5,6 +5,7 @@ import io.github.digitalsmile.goldberry.widget.BuildContext;
 import io.github.digitalsmile.goldberry.widget.State;
 import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widgets.core.Column;
+import io.github.digitalsmile.goldberry.widgets.data.CrosshairGroup;
 import io.github.digitalsmile.goldberry.widgets.data.Curve;
 import io.github.digitalsmile.goldberry.widgets.data.NullPolicy;
 import io.github.digitalsmile.goldberry.widgets.data.Series;
@@ -54,6 +55,12 @@ import java.util.Set;
 ///   ([ADR-0195](../../../../../../../book/src/adr/0195-a-painter-reads-the-theme-through-a-custom-property.md)).
 /// - **A sparkline inherits `color`**, so the one inside a `statistic` is drawn
 ///   in the delta's hue without being told.
+/// - **One crosshair over two charts.** `Requests per day` and `Bytes served`
+///   are the same seven days and share a
+///   [io.github.digitalsmile.goldberry.widgets.data.CrosshairGroup]: pointing at
+///   Thursday on either puts the crosshair on Thursday on both, and only the one
+///   under the pointer says what the numbers are
+///   ([ADR-0206](../../../../../../../book/src/adr/0206-a-crosshair-may-be-shared-and-a-bound-may-be-soft.md)).
 /// - **A monotone curve.** The `Bytes served` stack is drawn with
 ///   [io.github.digitalsmile.goldberry.widgets.data.Curve#SMOOTH], which cannot
 ///   overshoot: a spline that swung past its own readings would put a band below
@@ -85,6 +92,18 @@ public record Charts() implements Widget.Stateful {
     }
 
     static final class ChartsState extends State<Charts> {
+
+        /// The crosshair `Requests per day` and `Bytes served` share.
+        ///
+        /// The two of them are the same seven days, which is what a group needs:
+        /// what travels is the point **index**, so the charts in one have to be
+        /// sampled together. Pointing at Thursday on either puts the crosshair on
+        /// Thursday on both, which is how a reader asks what the bytes were doing
+        /// when the requests spiked (ADR-0206).
+        ///
+        /// A field on the state rather than a constant, because it is mutable and
+        /// belongs to this window — the shape a `ToastController` has.
+        private final CrosshairGroup week = new CrosshairGroup();
 
         private static Attributes id(String id, String... classes) {
             return new Attributes(id, Set.of(classes), id);
@@ -127,7 +146,8 @@ public record Charts() implements Widget.Stateful {
                                     new LineChart(List.of(
                                             Series.of("Downloads", 12, 19, 15, 27, 31, 28, 36),
                                             Series.of("Installs", 8, 11, 9, 18, 21, 19, 24)),
-                                            DAYS, id("requests")),
+                                            DAYS, id("requests"))
+                                            .crosshair(week),
                                     id("requests-card")),
 
                             card("Uptime",
@@ -154,7 +174,8 @@ public record Charts() implements Widget.Stateful {
                                             // curved top over a straight
                                             // underside would be a band thicker
                                             // than its own numbers (ADR-0204).
-                                            .curve(Curve.SMOOTH),
+                                            .curve(Curve.SMOOTH)
+                                            .crosshair(week),
                                     id("bytes-card")),
 
                             card("Errors by status",

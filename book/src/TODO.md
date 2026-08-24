@@ -852,6 +852,21 @@ description had no effect.
 
 ## `canvas`, and what a document cannot say
 
+- **A gradient fill needs a symbol the export list does not have.**
+  `charts.md` §3.1 asks for "gradient fill — a linear OKLCH fade of the series
+  colour to transparent", under an `area-chart`'s bands and a `line-chart`'s
+  line. Blend2D has gradients; the export list does not, because it holds what
+  the toolkit's own painter needs and no painter has needed one
+  ([ADR-0190](adr/0190-a-content-module-brings-its-own-natives.md) is where the
+  list's shape is argued). So the first commit of this is a widening of the
+  native surface — `bl_gradient_*` plus the fill-style call that takes one — and
+  it is **shared work**: `goldberry-html` needs the same gradients for CSS's, and
+  `goldberry-vector` for SVG's.
+  Faking it with a stack of translucent strips is the way out that does not work:
+  forty rectangles per band per frame to draw a fade, banding visible on any
+  gradient shallower than the strip height, and a `Layer`'s worth of overdraw on
+  a chart that is otherwise two paths. Everything else in §3.1 is built
+  ([ADR-0206](adr/0206-a-crosshair-may-be-shared-and-a-bound-may-be-soft.md)).
 - **Markup cannot name a painter.** A `canvas` node inflates to a styled, sized
   surface that draws nothing; the drawing is Java. `icon` solved the same problem
   with a registry the application owns

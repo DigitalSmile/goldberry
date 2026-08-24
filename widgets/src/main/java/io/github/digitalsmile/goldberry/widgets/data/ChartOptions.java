@@ -29,56 +29,79 @@ import java.util.Objects;
 /// @param time       what the x axis means, or null for the point index
 /// @param curve      how a line gets from one point to the next
 /// @param logY       whether the value axis is logarithmic
+/// @param bounds     what the value axis has to reach
+/// @param markers    whether a dot is drawn at each reading
+/// @param crosshair  the group whose crosshair this chart shares, or null
 public record ChartOptions(
         ChartStatus status, NullPolicy nulls, List<Threshold> thresholds, TimeAxis time,
-        Curve curve, boolean logY) {
+        Curve curve, boolean logY, Bounds bounds, Markers markers, CrosshairGroup crosshair) {
 
     /// What a chart that has been told nothing does: it has its data, a hole is
     /// a hole, there are no limits, and x is the point index.
     public static final ChartOptions DEFAULTS = new ChartOptions(
-            ChartStatus.READY, NullPolicy.GAP, List.of(), null, Curve.LINEAR, false);
+            ChartStatus.READY, NullPolicy.GAP, List.of(), null, Curve.LINEAR, false,
+            Bounds.NONE, Markers.AUTO, null);
 
     public ChartOptions {
         status = status == null ? ChartStatus.READY : status;
         nulls = nulls == null ? NullPolicy.GAP : nulls;
         thresholds = List.copyOf(thresholds == null ? List.of() : thresholds);
         curve = curve == null ? Curve.LINEAR : curve;
+        bounds = bounds == null ? Bounds.NONE : bounds;
+        markers = markers == null ? Markers.AUTO : markers;
     }
 
     /// These options with a different state.
     public ChartOptions status(ChartStatus value) {
-        return new ChartOptions(value, nulls, thresholds, time, curve, logY);
+        return new ChartOptions(value, nulls, thresholds, time, curve, logY, bounds, markers, crosshair);
     }
 
     /// These options with a different null policy.
     public ChartOptions nulls(NullPolicy value) {
-        return new ChartOptions(status, value, thresholds, time, curve, logY);
+        return new ChartOptions(status, value, thresholds, time, curve, logY, bounds, markers, crosshair);
     }
 
     /// These options with one more limit.
     public ChartOptions threshold(Threshold limit) {
         var next = new java.util.ArrayList<>(thresholds);
         next.add(Objects.requireNonNull(limit, "limit"));
-        return new ChartOptions(status, nulls, List.copyOf(next), time, curve, logY);
+        return new ChartOptions(status, nulls, List.copyOf(next), time, curve, logY, bounds, markers, crosshair);
     }
 
     /// These options with exactly these limits.
     public ChartOptions thresholds(List<Threshold> limits) {
-        return new ChartOptions(status, nulls, limits, time, curve, logY);
+        return new ChartOptions(status, nulls, limits, time, curve, logY, bounds, markers, crosshair);
     }
 
     /// These options with a different interpolation.
     public ChartOptions curve(Curve value) {
-        return new ChartOptions(status, nulls, thresholds, time, value, logY);
+        return new ChartOptions(status, nulls, thresholds, time, value, logY, bounds, markers, crosshair);
     }
 
     /// These options with a logarithmic value axis, or a linear one.
     public ChartOptions logY(boolean value) {
-        return new ChartOptions(status, nulls, thresholds, time, curve, value);
+        return new ChartOptions(status, nulls, thresholds, time, curve, value, bounds, markers, crosshair);
+    }
+
+    /// These options with what the value axis has to reach.
+    public ChartOptions bounds(Bounds value) {
+        return new ChartOptions(status, nulls, thresholds, time, curve, logY, value, markers, crosshair);
+    }
+
+    /// These options with a different marker rule.
+    public ChartOptions markers(Markers value) {
+        return new ChartOptions(status, nulls, thresholds, time, curve, logY, bounds, value, crosshair);
+    }
+
+    /// These options with a shared crosshair, or null for a chart that keeps its
+    /// own.
+    public ChartOptions crosshair(CrosshairGroup value) {
+        return new ChartOptions(
+                status, nulls, thresholds, time, curve, logY, bounds, markers, value);
     }
 
     /// These options with a time axis, or null for the point index.
     public ChartOptions time(TimeAxis value) {
-        return new ChartOptions(status, nulls, thresholds, value, curve, logY);
+        return new ChartOptions(status, nulls, thresholds, value, curve, logY, bounds, markers, crosshair);
     }
 }
