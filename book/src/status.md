@@ -3587,8 +3587,8 @@ is the `scroll` box's.
   What a chart says when it has no numbers is built too — see [What a chart says
   when it has not got the
   numbers](#what-a-chart-says-when-it-has-not-got-the-numbers), and so are
-  thresholds, and so is the `java.time` axis. Log scales, interpolation, soft
-  bounds, gradient fills and a crosshair shared between charts are still
+  thresholds, the `java.time` axis and interpolation. Log scales, soft bounds,
+  gradient fills, point markers and a crosshair shared between charts are still
   outstanding.
 
 ### Two things found by scrolling the wall of charts
@@ -3965,6 +3965,45 @@ is the `scroll` box's.
   a seventh component on three charts.
 - **The showcase's `p99 latency` card is a real time series**: its ninth scrape is
   twenty minutes after its eighth, and the axis is twenty minutes wide there.
+
+### A curve is a claim about what happened in between
+
+- **Interpolation is built** — `linear`, `smooth` and `step`, with `LINEAR` the
+  default because it makes the weakest claim and a chart should not make a
+  stronger one unasked
+  ([ADR-0204](adr/0204-a-smooth-line-cannot-overshoot.md)).
+- **`SMOOTH` is monotone cubic, and the point is what it refuses to draw.** A
+  Catmull-Rom or a natural spline through `0, 0, 100, 100` dips **below zero**
+  before it climbs and overshoots above a hundred after — which is what those
+  splines are for, and wrong for data: on a percentage the overshoot is not
+  inaccurate but impossible, and it lands exactly where a reader is looking
+  because it lands where the interesting thing happened.
+- **Two limits, and the second is the one that was missing.** Fritsch–Carlson's
+  `α² + β² > 9` circle scales a pair of tangents back; a **local extremum needs a
+  flat tangent**, which the circle does not give. Averaging the secants at the top
+  of `1, 9, 2` gives `+0.5` and the curve reaches 9.0013 on a series whose maximum
+  is 9 — a chart drawing a number nobody recorded, at the one point a reader is
+  looking at.
+- **The test found it**, which is the reason it is written the way it is: every
+  assertion **samples the curve** densely and checks the bounds rather than
+  inspecting the coefficients. A property one missing `if` away from being false
+  is not one to argue from the algorithm.
+- **`STEP` holds forward.** A value read at 09:00 is what was true from 09:00
+  until somebody looked again, so the horizontal comes first and the jump lands on
+  the next reading. Holding backwards would say the new value was already true
+  before it was observed, which is the one direction the data cannot support.
+- **One emitter, used by a line and by both edges of a band.** A smooth band whose
+  underside was straight would be thicker than its own numbers wherever the top
+  bulged; the underside is the same curve reversed, which for a cubic is its
+  control points in reverse order. The showcase's `Bytes served` stack is smooth,
+  which is the case that would show a mismatched pair.
+- **`Curves` is public and pure** — no renderer, no natives, no path. The painter
+  asks for tangents and control points and does the drawing, so `goldberry-plot`
+  gets the arithmetic without the widget.
+- **And it composes with everything already there**, because the tangents are
+  computed on the pixels the painter is about to draw: an unevenly sampled series
+  on a time axis curves correctly for free, a `GAP` run curves per run, and an
+  isolated series curves alone.
 
 ### Not started
 

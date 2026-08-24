@@ -5,6 +5,7 @@ import io.github.digitalsmile.goldberry.widget.BuildContext;
 import io.github.digitalsmile.goldberry.widget.State;
 import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widgets.core.Column;
+import io.github.digitalsmile.goldberry.widgets.data.Curve;
 import io.github.digitalsmile.goldberry.widgets.data.NullPolicy;
 import io.github.digitalsmile.goldberry.widgets.data.Series;
 import io.github.digitalsmile.goldberry.widgets.data.Threshold;
@@ -53,6 +54,11 @@ import java.util.Set;
 ///   ([ADR-0195](../../../../../../../book/src/adr/0195-a-painter-reads-the-theme-through-a-custom-property.md)).
 /// - **A sparkline inherits `color`**, so the one inside a `statistic` is drawn
 ///   in the delta's hue without being told.
+/// - **A monotone curve.** The `Bytes served` stack is drawn with
+///   [io.github.digitalsmile.goldberry.widgets.data.Curve#SMOOTH], which cannot
+///   overshoot: a spline that swung past its own readings would put a band below
+///   zero on a chart of a byte count
+///   ([ADR-0204](../../../../../../../book/src/adr/0204-a-smooth-line-cannot-overshoot.md)).
 /// - **A `java.time` axis.** The `p99 latency` card's x is *when* rather than
 ///   *which*: its ninth scrape is twenty minutes after its eighth, and the axis
 ///   is twenty minutes wide there rather than one step like every other
@@ -142,7 +148,13 @@ public record Charts() implements Widget.Stateful {
                                     new AreaChart(List.of(
                                             Series.of("Cache", 40, 52, 44, 61, 58, 66, 71),
                                             Series.of("Origin", 12, 9, 15, 11, 14, 10, 13)),
-                                            DAYS, id("bytes")),
+                                            DAYS, id("bytes"))
+                                            // Both edges of both bands, so the
+                                            // stack still nests exactly -- a
+                                            // curved top over a straight
+                                            // underside would be a band thicker
+                                            // than its own numbers (ADR-0204).
+                                            .curve(Curve.SMOOTH),
                                     id("bytes-card")),
 
                             card("Errors by status",

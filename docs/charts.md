@@ -112,7 +112,7 @@ feature lands and why.
 | Tooltip: single series, all series | **built** | Crosshair + readout on line/area, band highlight on bar (ADR-0198), share in the hole on donut (ADR-0199) |
 | Shared crosshair across charts | **v1** | Linked by a shared `CrosshairGroup`; cheap because it is one value two widgets read. Not built — the per-chart crosshair it hangs off now exists |
 | Null handling: gap / connect / zero | **built** | Three-way, explicit, `GAP` by default — the only one that invents nothing (ADR-0201). A hole is `NaN`, a `null` is read as one, and a stack breaks where any component is missing |
-| Interpolation: linear, smooth, step | **v1** | Step matters for state-ish series; smooth is monotone-cubic, which cannot overshoot into impossible values |
+| Interpolation: linear, smooth, step | **built** | `LINEAR` by default — the weakest claim. `SMOOTH` is Fritsch–Carlson monotone cubic and the no-overshoot property is sampled and asserted; `STEP` holds forward, which is what a reading means (ADR-0204) |
 | Fill opacity, gradient fill | **v1** | Gradient is a linear OKLCH fade of the series colour to transparent |
 | Point markers, size, show-always/never/auto | **v1** | ≥ 8px hit target when hoverable |
 | Axis min/max, soft min/max | **v1** | Soft bounds are what stop a flat series rendering as noise |

@@ -27,44 +27,52 @@ import java.util.Objects;
 /// @param nulls      what to do where a series has no value
 /// @param thresholds the limits drawn across it, in the semantic hues
 /// @param time       what the x axis means, or null for the point index
+/// @param curve      how a line gets from one point to the next
 public record ChartOptions(
-        ChartStatus status, NullPolicy nulls, List<Threshold> thresholds, TimeAxis time) {
+        ChartStatus status, NullPolicy nulls, List<Threshold> thresholds, TimeAxis time,
+        Curve curve) {
 
     /// What a chart that has been told nothing does: it has its data, a hole is
     /// a hole, there are no limits, and x is the point index.
-    public static final ChartOptions DEFAULTS =
-            new ChartOptions(ChartStatus.READY, NullPolicy.GAP, List.of(), null);
+    public static final ChartOptions DEFAULTS = new ChartOptions(
+            ChartStatus.READY, NullPolicy.GAP, List.of(), null, Curve.LINEAR);
 
     public ChartOptions {
         status = status == null ? ChartStatus.READY : status;
         nulls = nulls == null ? NullPolicy.GAP : nulls;
         thresholds = List.copyOf(thresholds == null ? List.of() : thresholds);
+        curve = curve == null ? Curve.LINEAR : curve;
     }
 
     /// These options with a different state.
     public ChartOptions status(ChartStatus value) {
-        return new ChartOptions(value, nulls, thresholds, time);
+        return new ChartOptions(value, nulls, thresholds, time, curve);
     }
 
     /// These options with a different null policy.
     public ChartOptions nulls(NullPolicy value) {
-        return new ChartOptions(status, value, thresholds, time);
+        return new ChartOptions(status, value, thresholds, time, curve);
     }
 
     /// These options with one more limit.
     public ChartOptions threshold(Threshold limit) {
         var next = new java.util.ArrayList<>(thresholds);
         next.add(Objects.requireNonNull(limit, "limit"));
-        return new ChartOptions(status, nulls, List.copyOf(next), time);
+        return new ChartOptions(status, nulls, List.copyOf(next), time, curve);
     }
 
     /// These options with exactly these limits.
     public ChartOptions thresholds(List<Threshold> limits) {
-        return new ChartOptions(status, nulls, limits, time);
+        return new ChartOptions(status, nulls, limits, time, curve);
+    }
+
+    /// These options with a different interpolation.
+    public ChartOptions curve(Curve value) {
+        return new ChartOptions(status, nulls, thresholds, time, value);
     }
 
     /// These options with a time axis, or null for the point index.
     public ChartOptions time(TimeAxis value) {
-        return new ChartOptions(status, nulls, thresholds, value);
+        return new ChartOptions(status, nulls, thresholds, value, curve);
     }
 }

@@ -261,7 +261,8 @@ record ChartSurface(
         }
         var plot = new Painted(labelling, List.copyOf(labels), List.copyOf(xLabels),
                 List.copyOf(colours), grid, ink, resolved, mode, min, max,
-                List.copyOf(limits), pointTimes, List.copyOf(timeTicks), isolated,
+                List.copyOf(limits), pointTimes, List.copyOf(timeTicks), options.curve(),
+                isolated,
                 readout(style, context, resolved), hovered, painted);
         return Box.of().style(style).painting(plot::paint);
     }
@@ -549,6 +550,7 @@ record ChartSurface(
             List<io.github.digitalsmile.goldberry.widgets.data.Gaps.Resolved> series,
             ChartPlot.Mode mode, double domainMin, double domainMax,
             List<PaintedThreshold> thresholds, double[] times, List<Double> timeTicks,
+            io.github.digitalsmile.goldberry.widgets.data.Curve curve,
             int isolated, Readout readout, int hovered, PaintedGeometry painted) {
 
         private boolean shows(int index) {
@@ -676,13 +678,14 @@ record ChartSurface(
                         var kept = Lttb.indices(values.subList(run[0], run[1]),
                                 Math.max(3, budget));
 
-                        path.reset();
-                        path.moveTo(xAt(geometry, x, run[0] + kept[0]),
-                                geometry.y().at(values.get(run[0] + kept[0])));
-                        for (var i = 1; i < kept.length; i++) {
-                            path.lineTo(xAt(geometry, x, run[0] + kept[i]),
-                                    geometry.y().at(values.get(run[0] + kept[i])));
+                        var xs = new double[kept.length];
+                        var ys = new double[kept.length];
+                        for (var i = 0; i < kept.length; i++) {
+                            xs[i] = xAt(geometry, x, run[0] + kept[i]);
+                            ys[i] = geometry.y().at(values.get(run[0] + kept[i]));
                         }
+                        path.reset();
+                        addRun(path, xs, ys, true);
                         frame.strokePath(0, 0, path, STROKE,
                                 BlendStrokeCap.ROUND, BlendStrokeJoin.ROUND, colours.get(s));
                     }
@@ -812,6 +815,97 @@ record ChartSurface(
             }
         }
 
+        /// Adds the points `xs`/`ys` to `path` as one figure, in whichever
+        /// [io.github.digitalsmile.goldberry.widgets.data.Curve] this chart asked
+        /// for.
+        ///
+        /// **One place**, because a line and the top edge of a band are the same
+        /// figure drawn twice — and a chart whose band was straight where its
+        /// line was smooth would be two charts. `moveTo` is the caller's, so a
+        /// band can start somewhere else and come back along its own underside.
+        private void addRun(BlendPath path, double[] xs, double[] ys, boolean start) {
+            if (xs.length == 0) {
+                return;
+            }
+            if (start) {
+                path.moveTo(xs[0], ys[0]);
+            }
+            switch (curve) {
+                case STEP -> {
+                    // Hold, then jump: the value read at `i` was what was true
+                    // until the next reading, so the horizontal comes first.
+                    for (var i = 1; i < xs.length; i++) {
+                        path.lineTo(xs[i], ys[i - 1]);
+                        path.lineTo(xs[i], ys[i]);
+                    }
+                }
+                case SMOOTH -> {
+                    var m = io.github.digitalsmile.goldberry.widgets.data.Curves
+                            .tangents(xs, ys);
+                    for (var i = 0; i < xs.length - 1; i++) {
+                        var from = io.github.digitalsmile.goldberry.widgets.data.Curves
+                                .controlFrom(xs, ys, m, i);
+                        var to = io.github.digitalsmile.goldberry.widgets.data.Curves
+                                .controlTo(xs, ys, m, i);
+                        path.cubicTo(from[0], from[1], to[0], to[1], xs[i + 1], ys[i + 1]);
+                    }
+                }
+                default -> {
+                    for (var i = 1; i < xs.length; i++) {
+                        path.lineTo(xs[i], ys[i]);
+                    }
+                }
+            }
+        }
+
+        /// The same, **backwards** — for the underside of a band, which is the
+        /// series beneath it drawn in reverse.
+        ///
+        /// A cubic reversed is its own control points in reverse order, so a
+        /// smooth band's two edges are the same curve and the fill between them
+        /// is the difference the reader is being shown. Drawing the underside
+        /// straight while the top curved would make a band that is thicker than
+        /// its own numbers wherever the curve bulges.
+        private void addRunReversed(BlendPath path, double[] xs, double[] ys) {
+            var n = xs.length;
+            if (n == 0) {
+                return;
+            }
+            var flippedX = new double[n];
+            var flippedY = new double[n];
+            for (var i = 0; i < n; i++) {
+                flippedX[i] = -xs[n - 1 - i];
+                flippedY[i] = ys[n - 1 - i];
+            }
+            // Mirrored in x so the points are increasing again -- which is what
+            // the tangents require -- and mirrored back as each one is emitted.
+            switch (curve) {
+                case STEP -> {
+                    for (var i = n - 2; i >= 0; i--) {
+                        path.lineTo(xs[i], ys[i + 1]);
+                        path.lineTo(xs[i], ys[i]);
+                    }
+                }
+                case SMOOTH -> {
+                    var m = io.github.digitalsmile.goldberry.widgets.data.Curves
+                            .tangents(flippedX, flippedY);
+                    for (var i = 0; i < n - 1; i++) {
+                        var from = io.github.digitalsmile.goldberry.widgets.data.Curves
+                                .controlFrom(flippedX, flippedY, m, i);
+                        var to = io.github.digitalsmile.goldberry.widgets.data.Curves
+                                .controlTo(flippedX, flippedY, m, i);
+                        path.cubicTo(-from[0], from[1], -to[0], to[1],
+                                -flippedX[i + 1], flippedY[i + 1]);
+                    }
+                }
+                default -> {
+                    for (var i = n - 2; i >= 0; i--) {
+                        path.lineTo(xs[i], ys[i]);
+                    }
+                }
+            }
+        }
+
         /// A lone reading, drawn as a disc because it has no neighbour to make a
         /// segment with.
         ///
@@ -890,17 +984,24 @@ record ChartSurface(
                             }
                             continue;
                         }
-                        path.reset();
-                        path.moveTo(xAt(geometry, x, run[0]), geometry.y().at(top[run[0]]));
-                        for (var i = run[0] + 1; i < run[1]; i++) {
-                            path.lineTo(xAt(geometry, x, i), geometry.y().at(top[i]));
+                        var span = run[1] - run[0];
+                        var xs = new double[span];
+                        var overs = new double[span];
+                        var unders = new double[span];
+                        for (var i = 0; i < span; i++) {
+                            xs[i] = xAt(geometry, x, run[0] + i);
+                            overs[i] = geometry.y().at(top[run[0] + i]);
+                            unders[i] = geometry.y().at(beneath[run[0] + i]);
                         }
+                        path.reset();
+                        addRun(path, xs, overs, true);
                         // Back along the band beneath, so the fill is the
                         // difference between the two rather than everything under
-                        // the top.
-                        for (var i = run[1] - 1; i >= run[0]; i--) {
-                            path.lineTo(xAt(geometry, x, i), geometry.y().at(beneath[i]));
-                        }
+                        // the top -- and in the **same curve**, or a smooth band
+                        // would be thicker than its own numbers wherever the top
+                        // bulged.
+                        path.lineTo(xs[span - 1], unders[span - 1]);
+                        addRunReversed(path, xs, unders);
                         path.closeSubPath();
                         // Nearly opaque: a stack's bands do not overlap, so there
                         // is nothing to see through them, and translucency here

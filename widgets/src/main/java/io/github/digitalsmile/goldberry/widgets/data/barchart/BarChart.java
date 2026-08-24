@@ -56,6 +56,16 @@ public record BarChart(List<Series> series, List<String> categories,
                 io.github.digitalsmile.goldberry.widgets.data.ChartOptions.DEFAULTS, attributes);
     }
 
+    /// This chart with a different interpolation — how the line gets from one
+    /// point to the next.
+    ///
+    /// The default is [io.github.digitalsmile.goldberry.widgets.data.Curve#LINEAR],
+    /// which makes the weakest claim about what happened in between. A
+    /// `bar-chart` ignores it: a bar is a length rather than a path.
+    public BarChart curve(io.github.digitalsmile.goldberry.widgets.data.Curve value) {
+        return options(options.curve(value));
+    }
+
     /// This chart with `value` as everything that is not its numbers.
     public BarChart options(io.github.digitalsmile.goldberry.widgets.data.ChartOptions value) {
         return new BarChart(series, categories, value, attributes);

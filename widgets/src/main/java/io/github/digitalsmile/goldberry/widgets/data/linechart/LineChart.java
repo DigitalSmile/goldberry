@@ -79,10 +79,16 @@ import java.util.Set;
 /// second, minute, hour, day, month and year boundaries
 /// ([ADR-0203](../../../../../../../../book/src/adr/0203-a-time-axis-is-time-not-a-relabelled-index.md)).
 ///
+/// ## Straight, smooth or stepped
+///
+/// [#curve] decides what the line claims happened between two readings. The
+/// default is straight; **smooth is monotone**, so it cannot draw a percentage
+/// below zero on its way up
+/// ([ADR-0204](../../../../../../../../book/src/adr/0204-a-smooth-line-cannot-overshoot.md)).
+///
 /// ## What it does not have yet
 ///
-/// Log scales, interpolation and a crosshair shared with
-/// the chart beside it — `charts.md` §3.1 is the list. The x is the point
+/// Log scales and a crosshair shared with the chart beside it — `charts.md` §3.1 is the list. The x is the point
 /// **index**; [#categories] labels the points and a `java.time` axis is §3.1's
 /// and is not built.
 ///
@@ -114,6 +120,16 @@ public record LineChart(List<Series> series, List<String> categories,
     public LineChart(List<Series> series, List<String> categories, Attributes attributes) {
         this(series, categories,
                 io.github.digitalsmile.goldberry.widgets.data.ChartOptions.DEFAULTS, attributes);
+    }
+
+    /// This chart with a different interpolation — how the line gets from one
+    /// point to the next.
+    ///
+    /// The default is [io.github.digitalsmile.goldberry.widgets.data.Curve#LINEAR],
+    /// which makes the weakest claim about what happened in between. A
+    /// `bar-chart` ignores it: a bar is a length rather than a path.
+    public LineChart curve(io.github.digitalsmile.goldberry.widgets.data.Curve value) {
+        return options(options.curve(value));
     }
 
     /// This chart with `value` as everything that is not its numbers.
