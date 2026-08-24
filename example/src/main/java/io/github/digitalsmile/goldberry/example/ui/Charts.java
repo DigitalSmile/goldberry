@@ -5,6 +5,7 @@ import io.github.digitalsmile.goldberry.widget.BuildContext;
 import io.github.digitalsmile.goldberry.widget.State;
 import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widgets.core.Column;
+import io.github.digitalsmile.goldberry.widgets.data.NullPolicy;
 import io.github.digitalsmile.goldberry.widgets.data.Series;
 import io.github.digitalsmile.goldberry.widgets.data.areachart.AreaChart;
 import io.github.digitalsmile.goldberry.widgets.data.barchart.BarChart;
@@ -51,6 +52,15 @@ import java.util.Set;
 ///   ([ADR-0195](../../../../../../../book/src/adr/0195-a-painter-reads-the-theme-through-a-custom-property.md)).
 /// - **A sparkline inherits `color`**, so the one inside a `statistic` is drawn
 ///   in the delta's hue without being told.
+/// - **A hole is not a zero**, which is the last card: the same twelve readings
+///   drawn twice, under the two
+///   [io.github.digitalsmile.goldberry.widgets.data.NullPolicy] settings that
+///   disagree about what a missing one means
+///   ([ADR-0201](../../../../../../../book/src/adr/0201-a-hole-is-not-a-zero.md)).
+///   **One card and not two**, because the wrong picture is only obviously wrong
+///   *beside* the right one — on its own a line diving to the baseline looks like
+///   data — and a masonry places by column height, so two cards could not be
+///   promised to stay together.
 public record Charts() implements Widget.Stateful {
 
     @Override
@@ -69,6 +79,23 @@ public record Charts() implements Widget.Stateful {
             return new Card(List.of(
                     new Text(title, Attributes.NONE.classes("card-title")),
                     content), attributes);
+        }
+
+        /// A card of alternating charts and captions — the one tile on this
+        /// screen that is making an argument rather than showing a number.
+        ///
+        /// Captions only here: one under every tile would be a wall of reading
+        /// rather than a wall of charts.
+        private static Widget captioned(String title, Attributes attributes, Widget... parts) {
+            var children = new java.util.ArrayList<Widget>(parts.length + 1);
+            children.add(new Text(title, Attributes.NONE.classes("card-title")));
+            children.addAll(List.of(parts));
+            return new Card(List.copyOf(children), attributes);
+        }
+
+        /// A line of prose under a chart.
+        private static Widget caption(String text) {
+            return new Text(text, Attributes.NONE.classes("caption"));
         }
 
         @Override
@@ -128,7 +155,23 @@ public record Charts() implements Widget.Stateful {
                                             Statistic.Direction.DOWN,
                                             new Sparkline(USERS, false, true, Attributes.NONE),
                                             Attributes.NONE),
-                                    id("users-card"))),
+                                    id("users-card")),
+
+                            // The card that makes §3.1's sentence visible: the
+                            // same twelve readings, three of them missing, drawn
+                            // under the two policies that disagree about what
+                            // that means (ADR-0201).
+                            captioned("Signal strength", id("dropouts-card"),
+                                    new LineChart(List.of(new Series("dBm", SIGNAL)),
+                                            List.of(), id("signal")),
+                                    caption("Gap — the default. The line stops where"
+                                            + " readings never arrived; a lone one between"
+                                            + " two holes is a dot."),
+                                    new LineChart(List.of(new Series("dBm", SIGNAL)),
+                                            List.of(), id("signal-zero"))
+                                            .nulls(NullPolicy.ZERO),
+                                    caption("Zero — the same numbers, claiming the signal"
+                                            + " died. It did not: nobody was listening."))),
                             3, id("wall"))),
                     id("charts"));
         }
@@ -144,5 +187,20 @@ public record Charts() implements Widget.Stateful {
 
         private static final List<Double> LATENCY = List.of(
                 128.0, 131.0, 126.0, 149.0, 142.0, 138.0, 133.0, 129.0, 124.0, 121.0);
+
+        /// Twelve readings with three missing, arranged so that both shapes a
+        /// hole can make are on screen.
+        ///
+        /// A **two-sample dropout** (indices 3 and 4) leaves a hole between two
+        /// segments. A single reading with a hole on either side (index 5) leaves
+        /// a **dot**: a run of one point has no segment to draw, and dropping it
+        /// would be the chart quietly omitting a reading it was given — the same
+        /// objection `Lttb` exists to answer.
+        ///
+        /// `NaN` is how a hole is spelled; a `null` in this list would be read as
+        /// one ([Series]).
+        private static final List<Double> SIGNAL = java.util.Arrays.asList(
+                -62.0, -58.0, -61.0, Double.NaN, Double.NaN, -57.0,
+                Double.NaN, -59.0, -60.0, -56.0, -55.0, -54.0);
     }
 }

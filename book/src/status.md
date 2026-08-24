@@ -3818,6 +3818,35 @@ is the `scroll` box's.
   differ.** Null handling wired up but never applied would pass every unit test
   about the arithmetic and draw one picture for all three policies.
 
+### Three things the wall of charts said about holes
+
+- **The showcase has the argument on it.** The Charts screen's last card draws
+  the same twelve readings twice — three of them missing — under `GAP` and under
+  `ZERO`, with a line of prose under each. One card and not two, because a
+  `masonry` places by column height and could not be promised to keep a pair
+  together; and because the wrong picture is only obviously wrong *beside* the
+  right one. On its own, a line diving to the baseline looks like data.
+- **The data was chosen to show both shapes a hole makes.** A two-sample dropout
+  leaves a hole between two segments; a single reading with a hole on either side
+  leaves a **dot**. The first draft had no lone reading in it and the caption
+  promised one, which is the sort of thing a screenshot catches and an assertion
+  does not.
+- **A lone reading was nearly invisible, twice over.** It was drawn as a disc of
+  the stroke *radius* — a couple of pixels, indistinguishable from the gridline
+  behind it — and when it fell on the last index it sat exactly on the plot's
+  right edge with half of itself outside the box. So the one rendering that exists
+  to stop a reading being dropped was dropping it. It is a disc of the stroke
+  *width* now, pulled back inside the plot at the ends, which is the rule the x
+  labels already follow and for the same reason.
+- **And the axis did not have to cover the data.** `Ticks.extended` scores a
+  candidate labelling on four things and coverage is only one of them, so the
+  nicest labels for `12…36` are `10, 15 … 35` — which stops short. The scale was
+  the *labelling's*, so the last point was drawn above the top gridline, inside
+  the headroom by luck rather than by rule, and a 4px disc there hung over the
+  edge. The scale is the union of the labelling and the data now; the gridlines
+  stay on the round numbers, which is what every chart a reader has seen already
+  does. Six goldens moved, all of them by a few pixels of scale.
+
 ### Not started
 
 Client-side decorations, the rest of §4 —

@@ -47,9 +47,22 @@ record PlotGeometry(
     /// Null rather than an exception or a zero-sized answer: a collapsed split
     /// pane and a chart in a row that has not been given a height both produce
     /// it, and the caller's answer in every case is to draw nothing.
+    ///
+    /// **The domain is not the labelling.** `Ticks.extended` scores a candidate
+    /// labelling on four things and coverage is only one of them, so the nicest
+    /// labels for `12…36` are `10, 15, 20, 25, 30, 35` — which stops short of the
+    /// data. Scaling to the *labels* would then draw the last point above the top
+    /// gridline and, when it is near enough to the edge, clip it out of the
+    /// picture altogether: a chart that has dropped its maximum, which is the one
+    /// point a reader is most likely to have come for. So the scale spans the
+    /// union of the two and the gridlines stay on the round numbers, which is
+    /// what every chart a reader has seen already does.
+    ///
+    /// @param domainMin the smallest value that has to fit, before labelling
+    /// @param domainMax the largest
     static PlotGeometry of(
             List<Paragraph> labels, boolean hasXLabels, Ticks.Labelling labelling,
-            double width, double height) {
+            double domainMin, double domainMax, double width, double height) {
 
         if (labels.isEmpty() || width <= 0 || height <= 0) {
             return null;
@@ -70,7 +83,10 @@ record PlotGeometry(
             return null;
         }
         return new PlotGeometry(left, top, plotWidth, plotHeight, gutter, lineHeight,
-                Scale.linear(labelling.min(), labelling.max(), top + plotHeight, top));
+                Scale.linear(
+                        Math.min(labelling.min(), domainMin),
+                        Math.max(labelling.max(), domainMax),
+                        top + plotHeight, top));
     }
 
     /// The right-hand edge of the plot area.

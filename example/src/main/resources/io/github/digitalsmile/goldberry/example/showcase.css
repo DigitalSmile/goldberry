@@ -408,6 +408,15 @@ panel.surface-demo {
   height: 148px;
 }
 
+/* The two plots in the dropout card, sized as one: the argument they make is
+   that the *same* numbers read two ways, so a difference in height between them
+   would be a difference the reader has to rule out first. Shorter than the
+   charts above because there are two of them in one card, each with a line of
+   prose under it (ADR-0201). */
+#signal, #signal-zero {
+  height: 96px;
+}
+
 #cache {
   height: 168px;
 }

@@ -212,7 +212,7 @@ record ChartSurface(
         var grid = CssColor.fade(style.color(), 0.14);
         var ink = style.color();
         var plot = new Painted(labelling, List.copyOf(labels), List.copyOf(xLabels),
-                List.copyOf(colours), grid, ink, resolved, mode, isolated,
+                List.copyOf(colours), grid, ink, resolved, mode, min, max, isolated,
                 readout(style, context, resolved), hovered, painted);
         return Box.of().style(style).painting(plot::paint);
     }
@@ -466,7 +466,7 @@ record ChartSurface(
             Ticks.Labelling labelling, List<Paragraph> labels, List<Paragraph> xLabels,
             List<Integer> colours, int grid, int ink,
             List<io.github.digitalsmile.goldberry.widgets.data.Gaps.Resolved> series,
-            ChartPlot.Mode mode,
+            ChartPlot.Mode mode, double domainMin, double domainMax,
             int isolated, Readout readout, int hovered, PaintedGeometry painted) {
 
         private boolean shows(int index) {
@@ -487,8 +487,8 @@ record ChartSurface(
         }
 
         void paint(Frame frame, LogicalSize size) {
-            var geometry = PlotGeometry.of(
-                    labels, !xLabels.isEmpty(), labelling, size.width(), size.height());
+            var geometry = PlotGeometry.of(labels, !xLabels.isEmpty(), labelling,
+                    domainMin, domainMax, size.width(), size.height());
             // Left for the pointer that arrives after this frame, including the
             // null: a plot that has become too small to draw is one no point can
             // be hovered in.
@@ -552,7 +552,15 @@ record ChartSurface(
                             // is data, and dropping it would be a chart quietly
                             // omitting a reading.
                             if (length == 1) {
-                                dot(frame, path, x.at(run[0]),
+                                // **Pulled back inside the plot**, which is the
+                                // rule the x labels already follow and for the
+                                // same reason: the first and last points sit on
+                                // the edges, so a disc centred on one has half of
+                                // itself outside the box -- and half a dot reads
+                                // as an artifact rather than as a reading.
+                                var at = Math.max(geometry.left() + STROKE,
+                                        Math.min(x.at(run[0]), geometry.right() - STROKE));
+                                dot(frame, path, at,
                                         geometry.y().at(values.get(run[0])), colours.get(s));
                             }
                             continue;
@@ -582,13 +590,20 @@ record ChartSurface(
 
         /// A lone reading, drawn as a disc because it has no neighbour to make a
         /// segment with.
+        ///
+        /// **As wide as the line is thick, not half of it.** A disc of the stroke
+        /// *radius* is a couple of pixels and disappears into the gridline behind
+        /// it at any real chart size — which would make the one rendering that
+        /// exists to stop a reading being dropped a rendering that drops it
+        /// anyway. This is the smallest mark that reads as a point rather than as
+        /// dirt on the screen.
         private static void dot(
                 Frame frame, BlendPath path, double x, double y, int colour) {
 
             path.reset();
-            path.moveTo(x - STROKE / 2, y);
-            path.ellipticArcTo(STROKE / 2, STROKE / 2, 0, false, true, x + STROKE / 2, y);
-            path.ellipticArcTo(STROKE / 2, STROKE / 2, 0, false, true, x - STROKE / 2, y);
+            path.moveTo(x - STROKE, y);
+            path.ellipticArcTo(STROKE, STROKE, 0, false, true, x + STROKE, y);
+            path.ellipticArcTo(STROKE, STROKE, 0, false, true, x - STROKE, y);
             path.closeSubPath();
             frame.fillPath(0, 0, path, colour);
         }
