@@ -109,7 +109,7 @@ feature lands and why.
 | Sparkline (no axes, no legend) | **v1** | `sparkline`, and `statistic`'s missing child |
 | Donut / pie | **v1, narrowed** | Part-to-whole only, ≥ 3 slices, share labels shown. A two-slice donut is a meter and a many-slice donut is a stacked bar — both are refused rather than drawn badly |
 | Legend: placement, list mode | **v1** | Present for ≥ 2 series, absent for one — the title names a lone series |
-| Tooltip: single series, all series | **built, less donut** | Crosshair + readout on line/area, band highlight on bar (ADR-0198). Hover on `donut-chart` is not built |
+| Tooltip: single series, all series | **built** | Crosshair + readout on line/area, band highlight on bar (ADR-0198), share in the hole on donut (ADR-0199) |
 | Shared crosshair across charts | **v1** | Linked by a shared `CrosshairGroup`; cheap because it is one value two widgets read. Not built — the per-chart crosshair it hangs off now exists |
 | Null handling: gap / connect / zero | **v1** | Three-way, explicit. A gap drawn as zero is a lie about the data and the default is the gap |
 | Interpolation: linear, smooth, step | **v1** | Step matters for state-ish series; smooth is monotone-cubic, which cannot overshoot into impossible values |
@@ -181,11 +181,15 @@ and each would be a mistake here.
 Three things that matter more here than they do in a browser, and are easy to miss
 in a parity list:
 
-- **Keyboard operation of the chart itself.** Arrow keys walk the crosshair
-  point-by-point, `Home`/`End` jump to the ends, `Tab` moves between series. A
-  browser dashboard is a pointer surface; a desktop application is not, and §2.2
-  requires everything to be reachable. Grafana is weak here and it is not a model
-  to copy.
+- **Keyboard operation of the chart itself.** **Built** (ADR-0199):
+  `Left`/`Right` walk the crosshair — clamping on an axis, wrapping on a ring —
+  `Home`/`End` are the ends, and `Escape` lets go. `Up` and `Down` are left for
+  whatever is scrolling, and **`Tab` does not move between series**: `Tab` is the
+  focus traversal (ADR-0073), and the readout names every series at the point
+  rather than one at a time, which is what this asked for. That one refusal is
+  recorded in `ARCHITECTURE.md` §17.1. A browser dashboard is a pointer surface;
+  a desktop application is not, and §2.2 requires everything to be reachable.
+  Grafana is weak here and it is not a model to copy.
 - **Selection and copy.** `Ctrl+C` on a focused chart copying the hovered value —
   or the series — as text is the desktop convention and costs a clipboard call
   the toolkit already has.

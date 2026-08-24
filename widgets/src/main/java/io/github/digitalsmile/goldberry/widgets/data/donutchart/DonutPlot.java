@@ -1,122 +1,95 @@
 package io.github.digitalsmile.goldberry.widgets.data.donutchart;
 
-import io.github.digitalsmile.goldberry.css.ComputedStyle;
-import io.github.digitalsmile.goldberry.natives.blend2d.BlendPath;
-import io.github.digitalsmile.goldberry.paint.Box;
-import io.github.digitalsmile.goldberry.paint.Frame;
-import io.github.digitalsmile.goldberry.render.model.LogicalSize;
-import io.github.digitalsmile.goldberry.widget.style.Paints;
-import io.github.digitalsmile.goldberry.widget.style.Styled;
+import io.github.digitalsmile.goldberry.widget.BuildContext;
+import io.github.digitalsmile.goldberry.widget.State;
 import io.github.digitalsmile.goldberry.widget.Widget;
-import io.github.digitalsmile.goldberry.widgets.data.SeriesPalette;
-import java.util.ArrayList;
 import java.util.List;
 
-/// The ring of a [DonutChart] — a **part**, so it is CSS-selectable and not
-/// constructible.
+/// The ring of a [DonutChart].
 ///
-/// ## Twelve o'clock, clockwise
+/// **Stateful, because a hovered slice is state.** What it builds is
+/// [DonutSurface], which is the `donut-plot` part itself — the canvas, the
+/// painter, and the node that hears the pointer and the keyboard. The split is
+/// the one the axis charts have and it is there for the same reason: a widget is
+/// a value rebuilt every frame, and which slice is being read has to outlive
+/// those rebuilds
+/// ([ADR-0198](../../../../../../../../book/src/adr/0198-a-charts-readout-is-painted-and-its-legend-is-a-control.md)).
 ///
-/// Where a donut starts is not arbitrary: a reader's eye goes to the top and
-/// travels clockwise, so the first slice starts at −π/2 and each one follows.
-/// Starting at three o'clock — which is where the maths starts if nobody
-/// intervenes — puts the largest slice somewhere nobody looks first.
-///
-/// ## The hole
-///
-/// 0.62 of the outer radius. Below about a half it reads as a pie with a dot
-/// punched in it; above about three quarters the slices become arcs too thin to
-/// compare. The number is here rather than in a stylesheet because §8's subset
-/// has no way to express "a fraction of the smaller dimension", and a fixed
-/// pixel radius would make a donut in a small panel a ring and one in a large
-/// panel a hoop.
-record DonutPlot(List<Double> values, List<String> labels) implements Widget.Leaf, Styled, Paints {
-
-    /// The hole, as a fraction of the outer radius. See the class note.
-    private static final double HOLE = 0.62;
-
-    /// The gap between slices, in radians at the outer edge — §14's 2px surface
-    /// gap, expressed as an angle because that is what an arc takes.
-    private static final double GAP = 0.012;
+/// A donut has no second piece of interaction state to keep. Its legend is a key
+/// rather than a control: isolating one slice of a part-to-whole chart leaves a
+/// chart that no longer shows a whole, so there is nothing above this to hold
+/// (`ChartSpec`).
+record DonutPlot(List<Double> values, List<String> labels) implements Widget.Stateful {
 
     @Override
-    public String cssType() {
-        return "donut-plot";
+    public State<?> createState() {
+        return new DonutPlotState();
     }
 
-    @Override
-    public Box render(ComputedStyle style, List<Box> children, Context context) {
-        var colours = new ArrayList<Integer>(values.size());
-        for (var i = 0; i < values.size(); i++) {
-            colours.add(SeriesPalette.of(context, i));
+    /// Which slice is being read.
+    static final class DonutPlotState extends State<DonutPlot> {
+
+        /// The slice under the pointer or the keyboard, or -1 for none — which is
+        /// what an untouched donut reads, so a golden image of one is the chart
+        /// and not the chart plus a readout.
+        private int hovered = -1;
+
+        @Override
+        public Widget build(BuildContext context) {
+            return new DonutSurface(
+                    widget().values(), widget().labels(), hovered, this::hover, this::walk);
         }
-        var painted = new Painted(List.copyOf(values), List.copyOf(colours));
-        return Box.of().style(style).painting(painted::paint);
-    }
 
-    private record Painted(List<Double> values, List<Integer> colours) {
-
-        void paint(Frame frame, LogicalSize size) {
-            var total = values.stream().mapToDouble(Double::doubleValue).filter(v -> v > 0).sum();
-            if (total <= 0 || size.width() <= 0 || size.height() <= 0) {
-                // Every share is zero, so there is no whole to be part of. A ring
-                // drawn anyway would be a chart asserting a division nobody made.
-                return;
+        /// Moves the readout, and asks for a frame only when it actually moved.
+        ///
+        /// The guard is the idle frame loop rather than an optimization: a pointer
+        /// crossing one slice sends an event per pixel, and a `setState` for each
+        /// would rebuild and repaint the chart sixty times a second to draw the
+        /// same two words (§1.7, ADR-0122).
+        private boolean hover(int slice) {
+            if (slice == hovered) {
+                return false;
             }
+            setState(() -> hovered = slice);
+            return true;
+        }
 
-            var cx = size.width() / 2;
-            var cy = size.height() / 2;
-            var outer = Math.min(size.width(), size.height()) / 2;
-            var inner = outer * HOLE;
-            if (outer <= 1) {
-                return;
+        /// Moves the readout `direction` slices round the ring, **from where it
+        /// actually is** — skipping the slices that are not drawn.
+        ///
+        /// In the state rather than in the widget because a widget is the
+        /// description the last frame was built from: two arrow presses between
+        /// two frames would both step from the slice before either of them, and
+        /// the second one would do nothing.
+        ///
+        /// **Wrapping**, unlike an axis chart's crosshair, which stops at the
+        /// ends. A ring has no ends; stopping somewhere on it would be an edge
+        /// the picture does not have.
+        private boolean walk(int direction) {
+            var values = widget().values();
+            var slices = values.size();
+            if (slices == 0) {
+                return false;
             }
-
-            // Twelve o'clock, clockwise -- see the class note.
-            var angle = -Math.PI / 2;
-            try (var path = BlendPath.create()) {
-                for (var i = 0; i < values.size(); i++) {
-                    var value = Math.max(0, values.get(i));
-                    if (value <= 0) {
-                        continue;
+            var from = hovered;
+            if (from < 0) {
+                // Nothing is being read yet, so an arrow starts at the end it
+                // came from rather than stepping off nowhere.
+                for (var i = 0; i < slices; i++) {
+                    var candidate = direction > 0 ? i : slices - 1 - i;
+                    if (values.get(candidate) > 0) {
+                        return hover(candidate);
                     }
-                    var sweep = value / total * Math.PI * 2;
-                    // The gap comes out of the slice rather than being drawn over
-                    // it, so a slice's *area* stays its share -- painting a
-                    // separator on top would make every slice slightly smaller
-                    // than the number it stands for.
-                    var from = angle + GAP / 2;
-                    var to = angle + sweep - GAP / 2;
-                    if (to > from) {
-                        arc(path, cx, cy, outer, inner, from, to);
-                        frame.fillPath(0, 0, path, colours.get(i));
-                    }
-                    angle += sweep;
+                }
+                return false;
+            }
+            for (var i = 1; i <= slices; i++) {
+                var candidate = Math.floorMod(from + direction * i, slices);
+                if (values.get(candidate) > 0) {
+                    return hover(candidate);
                 }
             }
-        }
-
-        /// One slice: out along the outer edge, in at the end, back along the
-        /// inner edge.
-        ///
-        /// Two arcs rather than one, because SVG's `A` — which is what Blend2D's
-        /// path takes — draws an arc *to* a point and a full circle has nowhere
-        /// to go. `largeArc` is the flag that decides which way round a sweep of
-        /// more than half a turn goes, and getting it wrong draws the complement
-        /// of the slice, which is a picture that is exactly wrong rather than
-        /// obviously wrong.
-        private static void arc(BlendPath path, double cx, double cy,
-                double outer, double inner, double from, double to) {
-
-            var large = (to - from) > Math.PI;
-            path.reset();
-            path.moveTo(cx + outer * Math.cos(from), cy + outer * Math.sin(from));
-            path.ellipticArcTo(outer, outer, 0, large, true,
-                    cx + outer * Math.cos(to), cy + outer * Math.sin(to));
-            path.lineTo(cx + inner * Math.cos(to), cy + inner * Math.sin(to));
-            path.ellipticArcTo(inner, inner, 0, large, false,
-                    cx + inner * Math.cos(from), cy + inner * Math.sin(from));
-            path.closeSubPath();
+            return false;
         }
     }
 }

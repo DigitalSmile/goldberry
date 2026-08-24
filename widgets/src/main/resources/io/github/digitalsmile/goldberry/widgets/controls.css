@@ -3310,6 +3310,17 @@ donut-plot {
   flex-grow: 1;
 }
 
+/* A plot is **focusable**, so a chart can be read without a pointer (charts.md
+   §3.5, §2.2): Tab reaches it and Left/Right walk the crosshair. So it takes the
+   ring every other focusable control takes -- on `:focus-visible` and not
+   `:focus`, which is what keeps a chart clicked with a mouse from growing an
+   outline nobody asked for. */
+chart-plot:focus-visible,
+donut-plot:focus-visible {
+  outline: 2px solid var(--gb-focus);
+  outline-offset: 2px;
+}
+
 /* Wrapping, because a legend is the part of a chart most likely to be wider than
    the chart (ADR-0192). `flex-wrap` exists for exactly this shape. */
 /* One value, because §8's `gap` is a single length -- the two-value row/column

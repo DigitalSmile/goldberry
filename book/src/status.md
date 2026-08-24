@@ -3580,10 +3580,52 @@ is the `scroll` box's.
   image and the entry said so. A masonry cannot be photographed at all without
   it, which made the gap concrete enough to close; the Forms picture is now the
   one the running application shows.
-- **The interaction layer** `charts.md` §3.1 lists was next, and its first half
-  is built — see [What a chart does when a pointer
-  arrives](#what-a-chart-does-when-a-pointer-arrives). Thresholds, log scales,
-  time axes and a shared crosshair are still outstanding.
+- **The interaction layer** `charts.md` §3.1 lists was next, and the hover half
+  of it is built — see [What a chart does when a pointer
+  arrives](#what-a-chart-does-when-a-pointer-arrives) and [A donut under the
+  pointer](#a-donut-under-the-pointer-and-every-chart-under-the-keyboard).
+  Thresholds, log scales, time axes, null handling and a crosshair shared between
+  charts are still outstanding.
+
+### Two things found by scrolling the wall of charts
+
+- **A chart did not move with the panel it was on.** Scrolling the Charts screen
+  slid the cards, the headings and the axis labels, and left the five plots
+  where they were laid out — clipped by a viewport travelling over them. One
+  line: `paintCanvas` moved the painter's origin to the box's content corner
+  with `Frame.transform`, and that call **assigns** rather than composes
+  (ADR-0068 chose that: the walk accumulates the matrix in Java, and each box
+  assigns the answer, so a run of untransformed boxes costs no native call). A
+  `scroll` moves its content with a `translate`, so the canvas replaced the
+  scroll's matrix with its own. `paintOne` now takes the ambient matrix and the
+  canvas composes onto it
+  ([ADR-0197](adr/0197-a-painters-transform-composes-onto-its-ancestors.md)).
+- **The clip in the same method was already right**, which is why the symptom
+  was a chart standing still rather than one that vanished: a clip lands in the
+  context's *current* user space and Blend2D intersects, so the two halves of
+  one method disagreed about which space they were in. Both are now written down
+  beside each other.
+- **Nothing could have caught it.** Every canvas test paints at the root, and a
+  golden is captured at scroll offset zero — where `ScrollContent` puts no
+  transform on the context at all, because an unscrolled viewport should not.
+  `CanvasPaintTest` now paints a canvas under a `translate` and reads the moved
+  rectangle; it fails on the old code with the square exactly where it was laid
+  out.
+- **The gallery had two orders in it, and one of them was a crash.** The strip
+  lists eleven screens; `Showcase` held its own copy of the list for the
+  `Ctrl+1`… accelerators, and `charts` went into that copy *instead of*
+  `choosers` rather than after it. So `Ctrl+8` selected the ninth tab, and the
+  loop asked a nine-element digit list for its tenth entry — an
+  `IndexOutOfBoundsException` in `start`, which is a window that never opens.
+  `Screen.GALLERY` is the one order now: the strip is built through
+  `Screen.inGalleryOrder`, which **throws** when the tabs and the list do not
+  name the same screens, and the accelerators are bound from it.
+- **Ten digits, eleven screens**, said out loud rather than papered over.
+  `Ctrl+0` is the tenth and the eleventh has none; which screen goes without is
+  the order's decision, and it is the tour screen, which is opened by name
+  anyway. `GalleryOrderTest` runs each bound accelerator to find out *which*
+  screen it picks, because a key bound to the wrong screen is invisible in a
+  picture — both tabs render correctly.
 
 ### What a chart does when a pointer arrives
 
@@ -3655,45 +3697,60 @@ is the `scroll` box's.
   operation — arrow keys walking the crosshair, which now has somewhere to keep
   its index and no keys bound to it.
 
-### Two things found by scrolling the wall of charts
+### A donut under the pointer, and every chart under the keyboard
 
-- **A chart did not move with the panel it was on.** Scrolling the Charts screen
-  slid the cards, the headings and the axis labels, and left the five plots
-  where they were laid out — clipped by a viewport travelling over them. One
-  line: `paintCanvas` moved the painter's origin to the box's content corner
-  with `Frame.transform`, and that call **assigns** rather than composes
-  (ADR-0068 chose that: the walk accumulates the matrix in Java, and each box
-  assigns the answer, so a run of untransformed boxes costs no native call). A
-  `scroll` moves its content with a `translate`, so the canvas replaced the
-  scroll's matrix with its own. `paintOne` now takes the ambient matrix and the
-  canvas composes onto it
-  ([ADR-0197](adr/0197-a-painters-transform-composes-onto-its-ancestors.md)).
-- **The clip in the same method was already right**, which is why the symptom
-  was a chart standing still rather than one that vanished: a clip lands in the
-  context's *current* user space and Blend2D intersects, so the two halves of
-  one method disagreed about which space they were in. Both are now written down
-  beside each other.
-- **Nothing could have caught it.** Every canvas test paints at the root, and a
-  golden is captured at scroll offset zero — where `ScrollContent` puts no
-  transform on the context at all, because an unscrolled viewport should not.
-  `CanvasPaintTest` now paints a canvas under a `translate` and reads the moved
-  rectangle; it fails on the old code with the square exactly where it was laid
-  out.
-- **The gallery had two orders in it, and one of them was a crash.** The strip
-  lists eleven screens; `Showcase` held its own copy of the list for the
-  `Ctrl+1`… accelerators, and `charts` went into that copy *instead of*
-  `choosers` rather than after it. So `Ctrl+8` selected the ninth tab, and the
-  loop asked a nine-element digit list for its tenth entry — an
-  `IndexOutOfBoundsException` in `start`, which is a window that never opens.
-  `Screen.GALLERY` is the one order now: the strip is built through
-  `Screen.inGalleryOrder`, which **throws** when the tabs and the list do not
-  name the same screens, and the accelerators are bound from it.
-- **Ten digits, eleven screens**, said out loud rather than papered over.
-  `Ctrl+0` is the tenth and the eleventh has none; which screen goes without is
-  the order's decision, and it is the tour screen, which is opened by name
-  anyway. `GalleryOrderTest` runs each bound accelerator to find out *which*
-  screen it picks, because a key bound to the wrong screen is invisible in a
-  picture — both tabs render correctly.
+- **A donut reads its slices now**, which closes the hole ADR-0198 left in its
+  own parity row. The hovered slice keeps its colour, the others fade, and the
+  hovered one's name and **share** go in the hole
+  ([ADR-0199](adr/0199-a-chart-answers-the-keyboard-and-a-step-is-relative.md)).
+  The share rather than the value, because a part-to-whole chart is about the
+  proportion and a reader who wanted the raw number wanted a bar chart; `<1%`
+  rather than `0%` for a sliver, because a readout must not contradict a visible
+  arc.
+- **The hole is where a donut's readout belongs**, and it is the one placement
+  decision in the five charts that needed no arithmetic: an axis chart's readout
+  has to be placed, flipped and clamped, and a ring has already reserved an empty
+  circle that cannot cover the data and cannot be clipped by the box. Only what
+  fits is drawn — a hole is a circle and text is a rectangle, so a long name is
+  left out and the share is not.
+- **A ring needs no banked geometry.** `DonutGeometry` follows from the box
+  alone, so unlike `PlotGeometry` — whose gutter is measured from shaped labels
+  and has to be left behind for the pointer — it is computed fresh on both sides.
+  Which is why its test needs no renderer at all.
+- **The gaps between slices belong to a slice.** The painter trims a sliver off
+  each arc so they do not touch; a hit test that respected those slivers would
+  put a ring of two-pixel dead wedges through the chart, and a pointer crossing
+  one would drop the readout and pick it up again. There is a test that walks 720
+  angles and finds a slice at every one.
+- **Every chart can be read without a pointer**, which is §3.5's first item and
+  the one it is most insistent about. A plot with data is a Tab stop and takes the
+  same focus ring as every other control; `Left`/`Right` walk, `Home`/`End` are
+  the ends, `Escape` lets go and is consumed **only if it cleared something**, so
+  it still closes the dialog the chart is sitting in. An axis **clamps** at its
+  ends and a ring **wraps**, because a line has two ends and a ring has none.
+- **`Up` and `Down` are deliberately left alone.** A chart is very often inside a
+  `scroll`, and a focused widget that consumed the vertical arrows would swallow
+  the keys that move the page — the same class of theft §2.4 bans nested scrollers
+  for. Two arrows reach every point.
+- **`Tab` does not move between series**, which is a refusal of one sentence of
+  `charts.md` §3.5: `Tab` is the focus traversal and a composite is one Tab stop
+  with roving arrows inside it (ADR-0073), and the readout already names *every*
+  series at the point rather than one at a time. Recorded in
+  `ARCHITECTURE.md` §17.1 rather than quietly not done.
+- **Writing the keyboard found a defect that has nothing to do with charts.** A
+  key handler computing "one to the right" was reading the crosshair index off
+  the **widget**, which is the description the last frame was built from — so two
+  arrow presses between two frames both stepped from the position before either
+  of them and the crosshair moved once. That is a key repeat on any machine
+  dropping frames. A step is **relative** now and only the state applies it;
+  absolute positions stay absolute, and the callbacks answer whether anything
+  changed so nothing has to consult a stale copy to decide whether to consume a
+  key. The rule generalizes to any widget whose keys move a position it reports
+  upward.
+- **The keyboard and the pointer are held to one answer, in pixels.** The test
+  that matters asserts `End` and a pointer at the right-hand edge produce *the
+  same frame* — not two descriptions of one intent. It was also the test that
+  caught the defect above, by pressing an arrow twice without a frame in between.
 
 ### Not started
 

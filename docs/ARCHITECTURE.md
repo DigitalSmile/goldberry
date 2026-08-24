@@ -571,3 +571,14 @@ tracks them alongside the implementation's own gaps.
   separately. It is an addition rather than a reading of the canon, and it is
   here rather than in `core-widgets.md` because that document is the authority
   and editing it is not the implementation's to do (ADR-0196). (§11)
+- **`Tab` does not move between a chart's series.** `charts.md` §3.5 asks for
+  keyboard operation of a chart and spells part of it "`Tab` moves between
+  series". `Tab` is this toolkit's focus traversal and a composite is one Tab stop
+  with roving *arrow* keys inside it (ADR-0073), so a control cannot also claim
+  `Tab` — and a chart is one node rather than a group of focusable series. What
+  ships is `Left`/`Right` walking the crosshair, `Home`/`End` for the ends and
+  `Escape` to let go, with the readout naming **every** series at the point
+  rather than one at a time, which is what the request was for. The vertical
+  arrows are deliberately left alone: a focused chart inside a `scroll` must not
+  swallow the keys that move the page. A refusal of one sentence of an authority
+  document, so it is recorded here (ADR-0199). (§11)

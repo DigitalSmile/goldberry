@@ -50,6 +50,11 @@ import java.util.Set;
 /// series alone and clicking it again puts them all back
 /// ([ADR-0198](../../../../../../../../book/src/adr/0198-a-charts-readout-is-painted-and-its-legend-is-a-control.md)).
 ///
+/// It answers the **keyboard** too, because §2.2 says everything is reachable:
+/// `Left` and `Right` walk the crosshair, `Home` and `End` are the ends, and
+/// `Escape` lets go
+/// ([ADR-0199](../../../../../../../../book/src/adr/0199-a-chart-answers-the-keyboard-and-a-step-is-relative.md)).
+///
 /// ## What it does not have yet
 ///
 /// Thresholds, log scales, time axes, null handling, interpolation and a

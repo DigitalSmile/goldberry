@@ -84,7 +84,7 @@ public record ChartPlot(
         @Override
         public Widget build(io.github.digitalsmile.goldberry.widget.BuildContext context) {
             return new ChartSurface(widget().series(), widget().categories(), widget().mode(),
-                    widget().isolated(), hovered, painted, this::hover);
+                    widget().isolated(), hovered, painted, this::hover, this::walk);
         }
 
         /// Moves the crosshair, and asks for a frame only when it actually moved.
@@ -93,11 +93,36 @@ public record ChartPlot(
         /// moving across one point sends an event per pixel, and a `setState` per
         /// event would rebuild and repaint the chart sixty times a second to draw
         /// the same crosshair (§1.7, ADR-0122).
-        private void hover(int index) {
+        private boolean hover(int index) {
             if (index == hovered) {
-                return;
+                return false;
             }
             setState(() -> hovered = index);
+            return true;
+        }
+
+        /// Moves the crosshair `direction` points along, **from where it
+        /// actually is**.
+        ///
+        /// The keyboard's half of the same job, and the reason it is here rather
+        /// than in the widget: a widget is the description the last frame was
+        /// built from, so two arrow presses between two frames would both be
+        /// computed from the position before either of them and the crosshair
+        /// would move once. The state's field is the only one that is current.
+        ///
+        /// **Clamped, not wrapping.** A line has two ends and a reader who walked
+        /// to one has arrived somewhere; a crosshair that jumped back to Monday
+        /// after Sunday would be a chart pretending its axis is a circle.
+        private boolean walk(int direction) {
+            var points = widget().series().stream()
+                    .mapToInt(s -> s.values().size()).max().orElse(0);
+            if (points == 0) {
+                return false;
+            }
+            if (hovered < 0) {
+                return hover(direction > 0 ? 0 : points - 1);
+            }
+            return hover(Math.max(0, Math.min(points - 1, hovered + direction)));
         }
     }
 }

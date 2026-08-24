@@ -21,7 +21,6 @@ import io.github.digitalsmile.goldberry.widgets.data.SeriesPalette;
 import io.github.digitalsmile.goldberry.widgets.data.Ticks;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.function.IntConsumer;
 
 /// The drawn half of a chart — the `chart-plot` part itself, and the node the
 /// pointer lands on.
@@ -51,10 +50,17 @@ import java.util.function.IntConsumer;
 /// @param hovered the point the pointer is over, or -1 for none
 /// @param painted where the painter leaves its geometry for the pointer
 ///                (ADR-0054)
-/// @param onHover what to tell the state when the hovered point changes
+/// @param onHover  where the pointer says the crosshair is, absolutely — and
+///                 whether that changed anything
+/// @param onWalk   a **relative** step, for the keyboard, which knows only
+///                 "the next one". Relative because a widget is a value: a
+///                 second key press in the same frame would read [#hovered]
+///                 from the description built *before* the first one, and two
+///                 arrows between two frames would move the crosshair once
 record ChartSurface(
         List<Series> series, List<String> categories, ChartPlot.Mode mode,
-        int isolated, int hovered, PaintedGeometry painted, IntConsumer onHover)
+        int isolated, int hovered, PaintedGeometry painted,
+        java.util.function.IntPredicate onHover, java.util.function.IntPredicate onWalk)
         implements Widget.Leaf, Styled, Paints, Handles {
 
     /// How many y labels to aim for. Five is what a dashboard-sized chart reads
@@ -225,6 +231,81 @@ record ChartSurface(
                 context.color("--gb-hud-text-muted", 0xFFA3ADBE));
     }
 
+    /// **Focusable**, so a chart can be read without a pointer.
+    ///
+    /// §2.2 requires everything to be reachable, and `charts.md` §3.5 says it
+    /// again with feeling: a browser dashboard is a pointer surface and a desktop
+    /// application is not, and Grafana is weak here and is not a model to copy. A
+    /// chart with no points is not a Tab stop, because there is nothing in it to
+    /// walk.
+    @Override
+    public boolean isFocusable() {
+        return points() > 0;
+    }
+
+    /// `Left` and `Right` walk the crosshair, `Home` and `End` jump to the ends,
+    /// `Escape` lets go.
+    ///
+    /// **`Up` and `Down` are left alone.** A chart is very often inside a
+    /// `scroll`, and a focused widget that consumed the vertical arrows would
+    /// swallow the keys that move the page — §2.4's own rule about not nesting
+    /// scrollers exists because that class of theft is hard to notice. One axis,
+    /// one pair of arrows.
+    ///
+    /// **And `Tab` is not one of them.** `charts.md` §3.5 asks for `Tab` to move
+    /// between series; `Tab` is this toolkit's focus traversal and cannot also be
+    /// a control's own key (ADR-0073), and there is nothing for it to do anyway —
+    /// the readout already names every series at the point rather than one of
+    /// them. Recorded in `ARCHITECTURE.md` §17.1 rather than resolved by quietly
+    /// not doing it.
+    @Override
+    public void onKey(
+            io.github.digitalsmile.goldberry.input.event.KeyEvent event) {
+
+        if (onHover == null || onWalk == null
+                || event.kind() != io.github.digitalsmile.goldberry.input.event
+                        .KeyEvent.Kind.PRESSED
+                || !event.modifiers().none()) {
+            return;
+        }
+        var points = points();
+        if (points == 0) {
+            return;
+        }
+        // A step is **relative** and an end is absolute, which is the difference
+        // between what the keyboard knows and what it does not: "one to the
+        // right" needs the crosshair's current position, and only the state has
+        // one that is not a frame old.
+        switch (event.key()) {
+            case RIGHT -> {
+                onWalk.test(1);
+                event.consume();
+            }
+            case LEFT -> {
+                onWalk.test(-1);
+                event.consume();
+            }
+            case HOME -> {
+                onHover.test(0);
+                event.consume();
+            }
+            case END -> {
+                onHover.test(points - 1);
+                event.consume();
+            }
+            case ESCAPE -> {
+                // Consumed **only if it cleared something**, so `Escape` still
+                // closes the dialog a chart happens to be sitting in. The state
+                // answers, because it is the one that knows.
+                if (onHover.test(-1)) {
+                    event.consume();
+                }
+            }
+            default -> {
+            }
+        }
+    }
+
     /// The crosshair follows the pointer, and lets go when it leaves.
     ///
     /// `MOVED` and not `PRESSED`: reading a chart is not clicking on one, and a
@@ -237,14 +318,14 @@ record ChartSurface(
             return;
         }
         switch (event.kind()) {
-            case EXITED -> onHover.accept(-1);
-            case MOVED, ENTERED, PRESSED, RELEASED, CLICKED -> onHover.accept(at(event));
+            case EXITED -> onHover.test(-1);
+            case MOVED, ENTERED, PRESSED, RELEASED, CLICKED -> onHover.test(at(event));
             case WHEEL -> {
                 // A wheel over a chart is a scroll of whatever is behind it, and
                 // the point under the pointer is about to be a different one.
                 // Dropping the crosshair is more honest than moving it to where
                 // the content used to be.
-                onHover.accept(-1);
+                onHover.test(-1);
             }
             default -> {
             }
