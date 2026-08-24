@@ -3585,6 +3585,46 @@ is the `scroll` box's.
   isolate a series. The five widgets exist; what they do when a pointer arrives
   is the next piece.
 
+### Two things found by scrolling the wall of charts
+
+- **A chart did not move with the panel it was on.** Scrolling the Charts screen
+  slid the cards, the headings and the axis labels, and left the five plots
+  where they were laid out — clipped by a viewport travelling over them. One
+  line: `paintCanvas` moved the painter's origin to the box's content corner
+  with `Frame.transform`, and that call **assigns** rather than composes
+  (ADR-0068 chose that: the walk accumulates the matrix in Java, and each box
+  assigns the answer, so a run of untransformed boxes costs no native call). A
+  `scroll` moves its content with a `translate`, so the canvas replaced the
+  scroll's matrix with its own. `paintOne` now takes the ambient matrix and the
+  canvas composes onto it
+  ([ADR-0197](adr/0197-a-painters-transform-composes-onto-its-ancestors.md)).
+- **The clip in the same method was already right**, which is why the symptom
+  was a chart standing still rather than one that vanished: a clip lands in the
+  context's *current* user space and Blend2D intersects, so the two halves of
+  one method disagreed about which space they were in. Both are now written down
+  beside each other.
+- **Nothing could have caught it.** Every canvas test paints at the root, and a
+  golden is captured at scroll offset zero — where `ScrollContent` puts no
+  transform on the context at all, because an unscrolled viewport should not.
+  `CanvasPaintTest` now paints a canvas under a `translate` and reads the moved
+  rectangle; it fails on the old code with the square exactly where it was laid
+  out.
+- **The gallery had two orders in it, and one of them was a crash.** The strip
+  lists eleven screens; `Showcase` held its own copy of the list for the
+  `Ctrl+1`… accelerators, and `charts` went into that copy *instead of*
+  `choosers` rather than after it. So `Ctrl+8` selected the ninth tab, and the
+  loop asked a nine-element digit list for its tenth entry — an
+  `IndexOutOfBoundsException` in `start`, which is a window that never opens.
+  `Screen.GALLERY` is the one order now: the strip is built through
+  `Screen.inGalleryOrder`, which **throws** when the tabs and the list do not
+  name the same screens, and the accelerators are bound from it.
+- **Ten digits, eleven screens**, said out loud rather than papered over.
+  `Ctrl+0` is the tenth and the eleventh has none; which screen goes without is
+  the order's decision, and it is the tour screen, which is opened by name
+  anyway. `GalleryOrderTest` runs each bound accelerator to find out *which*
+  screen it picks, because a key bound to the wrong screen is invisible in a
+  picture — both tabs render correctly.
+
 ### Not started
 
 Client-side decorations, the rest of §4 —

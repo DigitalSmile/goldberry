@@ -85,7 +85,7 @@ public final class BoxPainter {
                             matrix.d(), matrix.e(), matrix.f());
                     current[0] = matrix;
                 }
-                paintOne(frame, path, placed.box(), placed.layout());
+                paintOne(frame, path, placed.box(), placed.layout(), matrix);
             });
             if (!current[0].isIdentity()) {
                 // A painter that left the last subtree's matrix on the context
@@ -108,7 +108,31 @@ public final class BoxPainter {
     /// in a package of its own now: the render tree paints one retained box at a
     /// time and this is the single-box painter it calls. See
     /// [ADR-0172](../../../../../../book/src/adr/0172-a-package-is-a-role-and-the-module-is-the-fence.md).
+    ///
+    /// For a box drawn where it was laid out. A box under a `transform` — every
+    /// box inside a `scroll`, whose content is translated rather than moved —
+    /// goes through [#paintOne(Frame, BlendPath, Box, ComputedLayout, Affine)].
     public static void paintOne(Frame frame, BlendPath path, Box box, ComputedLayout layout) {
+        paintOne(frame, path, box, layout, Affine.IDENTITY);
+    }
+
+    /// The same, told **what matrix the context is already carrying**.
+    ///
+    /// Every call here draws in the context's current user space, so the ambient
+    /// matrix is already applied to all of them and none of them needs to know
+    /// it — with one exception. A `canvas` sets a transform of its own, to move
+    /// the origin to its content corner, and
+    /// [Frame#transform] *assigns* rather than composes
+    /// ([ADR-0068](../../../../../../book/src/adr/0068-the-transform-stack-is-java-side.md)):
+    /// the six numbers replace whatever was there. So a canvas that spelled its
+    /// own translation alone would **discard its ancestors'** — and a chart
+    /// inside a `scroll` would stay where it was laid out while the panel moved
+    /// under it, correctly clipped to a viewport it was no longer drawn in.
+    ///
+    /// @param ambient what the frame's transform was set to before this box —
+    ///                [Affine#IDENTITY] for the overwhelming majority of boxes
+    public static void paintOne(Frame frame, BlendPath path, Box box, ComputedLayout layout,
+            Affine ambient) {
         var decoration = box.decoration();
         var x = layout.left();
         var y = layout.top();
@@ -186,7 +210,7 @@ public final class BoxPainter {
         }
 
         if (box.painting() != null) {
-            paintCanvas(frame, box, x, y, width, height);
+            paintCanvas(frame, box, x, y, width, height, ambient);
         }
 
         if (decoration.hasOutline()) {
@@ -438,7 +462,8 @@ public final class BoxPainter {
     /// around a canvas means eight pixels of surface, and painting at the box's
     /// own origin would put all of them on the right and the bottom.
     private static void paintCanvas(
-            Frame frame, Box box, double x, double y, double width, double height) {
+            Frame frame, Box box, double x, double y, double width, double height,
+            Affine ambient) {
 
         var left = resolve(box.padding().left(), width);
         var top = resolve(box.padding().top(), height);
@@ -455,8 +480,19 @@ public final class BoxPainter {
 
         frame.save();
         try {
+            // The clip first, and in the *ambient* space: a clip lands in the
+            // context's current user space, which is the space this box's own
+            // rectangle is written in. So a canvas inside a scrolled subtree is
+            // clipped where it is drawn, and the viewport's clip -- set at
+            // identity, outside the walk -- still cuts it, because Blend2D
+            // intersects.
             frame.clipTo(x + left, y + top, contentWidth, contentHeight);
-            frame.transform(1, 0, 0, 1, x + left, y + top);
+            // Then the painter's own origin, **composed onto what was already
+            // there** rather than assigned over it: translate the painter's
+            // (0, 0) to the content corner, then everything the ancestors do.
+            var painting = Affine.translate(x + left, y + top).then(ambient);
+            frame.transform(painting.a(), painting.b(), painting.c(),
+                    painting.d(), painting.e(), painting.f());
             box.painting().paint(frame,
                     new io.github.digitalsmile.goldberry.render.model.LogicalSize(
                             (float) contentWidth, (float) contentHeight));

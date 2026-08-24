@@ -368,7 +368,8 @@ public final class RenderTree implements AutoCloseable {
         var alpha = parentAlpha * box.opacity();
         state.transform(transform);
         BoxPainter.paintOne(state.frame, state.path, box.fade(alpha),
-                new ComputedLayout((float) left, (float) top, layout.width(), layout.height()));
+                new ComputedLayout((float) left, (float) top, layout.width(), layout.height()),
+                transform);
 
         // The box itself is drawn under its *parent's* clip and the children
         // under this one's. That order is what CSS means: `overflow: hidden`
@@ -499,7 +500,7 @@ public final class RenderTree implements AutoCloseable {
         state.transform(transform);
         var computed = new ComputedLayout((float) left, (float) top,
                 layout.width(), layout.height());
-        BoxPainter.paintOne(state.frame, state.path, box.fade(alpha), computed);
+        BoxPainter.paintOne(state.frame, state.path, box.fade(alpha), computed, transform);
 
         // The promoted node's own `overflow` still clips its children, inside
         // the layer and in the layer's coordinates.

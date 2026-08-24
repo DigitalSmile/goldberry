@@ -12,6 +12,7 @@ import io.github.digitalsmile.goldberry.example.ui.Screen;
 import io.github.digitalsmile.goldberry.icon.Icon;
 import io.github.digitalsmile.goldberry.input.key.Key;
 import io.github.digitalsmile.goldberry.input.key.Mod;
+import io.github.digitalsmile.goldberry.input.key.Shortcut;
 import io.github.digitalsmile.goldberry.widget.style.Corner;
 import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.bind.runtime.Models;
@@ -200,21 +201,10 @@ public final class Showcase implements Application {
         // *during* a resize or a drag, when there is something to watch.
         host.shortcut(Mod.CTRL.and(Key.F), this::toggleHud);
 
-        // One accelerator per screen, which is what a gallery of nine wants —
-        // and three ways to set one property rather than three copies of a
-        // selection: the strip, these keys, and the menu (ADR-0110).
-        //
-        // In gallery order, so the digit and the tab agree: a `Ctrl+5` that
-        // landed on the fourth strip position would be a gallery with two
-        // orders in it.
-        var screens = List.of("controls", "values", "text", "overlays", "panels", "forms",
-                "notifications", "charts", "tabs", "scrolling");
-        var digits = List.of(Key.DIGIT_1, Key.DIGIT_2, Key.DIGIT_3, Key.DIGIT_4, Key.DIGIT_5,
-                Key.DIGIT_6, Key.DIGIT_7, Key.DIGIT_8, Key.DIGIT_9);
-        for (var index = 0; index < screens.size(); index++) {
-            var name = screens.get(index);
-            host.shortcut(Mod.CTRL.and(digits.get(index)), () -> actions.pickScreen(name));
-        }
+        // One accelerator per screen — three ways to set one property rather
+        // than three copies of a selection: the strip, these keys, and the menu
+        // (ADR-0110).
+        screenShortcuts(host::shortcut, actions::pickScreen);
 
         // §8's other half: `context-menu="…"` on any widget, and one line to say
         // what the names mean. The toolkit notices the right-click and finds the
@@ -268,6 +258,39 @@ public final class Showcase implements Application {
             // ([ADR-0155](../../../../../../book/src/adr/0155-a-jar-binds-at-run-time-an-image-is-woven.md)).
             Models.refresh(model);
         });
+    }
+
+    /// Hangs `Ctrl+1`… off the gallery, in strip order.
+    ///
+    /// **In [Screen#GALLERY]'s order**, which is the strip's own, so the digit
+    /// and the tab agree: a `Ctrl+5` that landed on the fourth strip position
+    /// would be a gallery with two orders in it, and a list copied here is a
+    /// list that drifts the first time a screen goes in the middle.
+    ///
+    /// **Ten digits, eleven screens.** `Ctrl+0` is the tenth, which is where a
+    /// keyboard's digits run out; the last screen is reached by the strip, by
+    /// the menu, and by the tour that opens it by name. Which screen goes
+    /// without is therefore the order's decision rather than this loop's, and it
+    /// is stated here because the alternative — a two-digit accelerator, or a
+    /// key that means "the next one" — is worse than a screen with two ways in
+    /// instead of three.
+    ///
+    /// Takes the binding rather than the [Host] it comes from, so that what this
+    /// binds can be asserted without a window: everything else in [#start] wants
+    /// a real one.
+    ///
+    /// @param bind what to call for each accelerator — `host::shortcut`
+    /// @param pick what a key does — `actions::pickScreen`
+    static void screenShortcuts(
+            java.util.function.BiConsumer<Shortcut, Runnable> bind,
+            java.util.function.Consumer<String> pick) {
+
+        var digits = List.of(Key.DIGIT_1, Key.DIGIT_2, Key.DIGIT_3, Key.DIGIT_4, Key.DIGIT_5,
+                Key.DIGIT_6, Key.DIGIT_7, Key.DIGIT_8, Key.DIGIT_9, Key.DIGIT_0);
+        for (var index = 0; index < Math.min(Screen.GALLERY.size(), digits.size()); index++) {
+            var name = Screen.GALLERY.get(index);
+            bind.accept(Mod.CTRL.and(digits.get(index)), () -> pick.accept(name));
+        }
     }
 
     /// The action registry the two documents resolve against: the model's

@@ -51,6 +51,55 @@ public record Screen(ShowcaseModel model, ShowcaseModel.Actions actions,
         Runnable startTour)
         implements Widget.Stateful {
 
+    /// Every screen in the gallery, in the order the strip shows them.
+    ///
+    /// **The one order.** Two things read it — the strip below, which is built
+    /// from it by [#inGalleryOrder], and [io.github.digitalsmile.goldberry.example.Showcase],
+    /// which hangs `Ctrl+1`… off it — and they used to hold a copy each. The
+    /// copies drifted the moment a screen was inserted in the middle: `Charts`
+    /// went in after `Choosers` in the strip and instead of it in the
+    /// accelerator list, so `Ctrl+8` selected the screen beside the one the
+    /// eighth tab named, and the tenth key was missing altogether. A gallery
+    /// with two orders in it is a gallery that disagrees with itself
+    /// ([ADR-0110](../../../../../../../book/src/adr/0110-the-showcase-is-a-gallery-of-screens.md)).
+    public static final List<String> GALLERY = List.of(
+            "controls", "values", "text", "overlays", "panels", "forms",
+            "notifications", "choosers", "charts", "tabs", "scrolling");
+
+    /// `tabs` in [#GALLERY] order, and a failure rather than a silent reorder
+    /// when the two do not name the same screens.
+    ///
+    /// The tabs are written where their content is built, because each carries
+    /// a paragraph about why it is a document or Java; the *order* is the list
+    /// above. Keeping them apart is only safe if disagreeing is loud, so it
+    /// throws: a screen in the strip and not in the list would be one no key
+    /// could reach, and a screen in the list and not in the strip would be a
+    /// `Ctrl+9` that selected nothing at all.
+    public static List<Tab> inGalleryOrder(List<Tab> tabs) {
+        var byName = new java.util.LinkedHashMap<String, Tab>();
+        for (var tab : tabs) {
+            if (byName.put(tab.value(), tab) != null) {
+                throw new IllegalStateException(
+                        "two tabs in the gallery are called \"" + tab.value() + "\"");
+            }
+        }
+        var ordered = new java.util.ArrayList<Tab>(GALLERY.size());
+        for (var name : GALLERY) {
+            var tab = byName.remove(name);
+            if (tab == null) {
+                throw new IllegalStateException(
+                        "Screen.GALLERY names \"" + name + "\", which the strip has no tab for");
+            }
+            ordered.add(tab);
+        }
+        if (!byName.isEmpty()) {
+            throw new IllegalStateException(
+                    "the strip has tabs Screen.GALLERY does not name, so nothing binds a key to"
+                            + " them: " + byName.keySet());
+        }
+        return List.copyOf(ordered);
+    }
+
     @Override
     public State<?> createState() {
         return new ScreenState();
@@ -121,10 +170,13 @@ public record Screen(ShowcaseModel model, ShowcaseModel.Actions actions,
         public Widget build(BuildContext context) {
             var model = widget().model();
             var actions = widget().actions();
-            // The gallery: one strip, nine screens, none of them closable. It is
-            // bound like every other control — `Ctrl+1`… and the strip itself are
-            // two ways to set one property rather than two copies of a selection.
-            var gallery = new Tabs(null, List.of(
+            // The gallery: one strip, eleven screens, none of them closable. It
+            // is bound like every other control — `Ctrl+1`… and the strip itself
+            // are two ways to set one property rather than two copies of a
+            // selection. Through `inGalleryOrder`, so the order is `GALLERY`'s
+            // and the tabs below are free to be written wherever their content
+            // is explained.
+            var gallery = new Tabs(null, List.<Widget>copyOf(inGalleryOrder(List.of(
                     new Tab("controls", "Controls", scrolled(controls)),
                     new Tab("values", "Values", scrolled(values)),
                     new Tab("text", "Text", scrolled(new Content(model, actions, widget().plus()))),
@@ -149,7 +201,7 @@ public record Screen(ShowcaseModel model, ShowcaseModel.Actions actions,
                     // Not `scrolled`: this screen owns a viewport of its own, and
                     // §2.4 bans nested same-axis scrollers — so the screen that
                     // demonstrates the rule is where the gallery has to keep it.
-                    new Tab("scrolling", "Scrolling", new Scrolling(widget().startTour()))),
+                    new Tab("scrolling", "Scrolling", new Scrolling(widget().startTour()))))),
                     Models.observable(model, "app.screen"), actions::pickScreen, null, null, Attributes.NONE)
                     .id("gallery");
 

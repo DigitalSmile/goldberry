@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.github.digitalsmile.goldberry.RendererRequirement;
+import io.github.digitalsmile.goldberry.css.value.Transform;
 import io.github.digitalsmile.goldberry.natives.yoga.Insets;
 import io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength;
 import io.github.digitalsmile.goldberry.render.model.LogicalSize;
@@ -152,6 +153,45 @@ class CanvasPaintTest {
         // canvas rather than under it: x 50..100, y 0..20.
         assertEquals(BLACK, target.pixel(55, 10), "the box after the canvas is drawn in full");
         assertEquals(BLACK, target.pixel(95, 19), "including its far corner");
+    }
+
+    @Test
+    @DisplayName("a canvas moves with a transform above it, which is what scrolling is")
+    void theCanvasMovesWithItsAncestors() {
+        var target = TestFrames.of(100, 100, 1.0f);
+        try {
+            target.frame().fill(WHITE);
+            // What a `scroll` does to its content: the viewport clips, and the
+            // content is *translated* rather than laid out somewhere else
+            // (ScrollContent). Scrolled down by 15, so the canvas at y=20 draws
+            // at y=5.
+            var box = Box.of()
+                    .size(StyleLength.points(100), StyleLength.points(100))
+                    .children(Box.of()
+                            .size(StyleLength.points(100), StyleLength.points(100))
+                            .transform(Transform.of(new Transform.Function.Translate(
+                                    Transform.Length.px(0), Transform.Length.px(-15))))
+                            .children(Box.of()
+                                    .size(StyleLength.points(40), StyleLength.points(40))
+                                    .inset(new Insets(StyleLength.points(20),
+                                            StyleLength.UNDEFINED, StyleLength.UNDEFINED,
+                                            StyleLength.points(20)))
+                                    .position(io.github.digitalsmile.goldberry.natives.yoga.style
+                                            .PositionType.ABSOLUTE)
+                                    .painting((frame, size) ->
+                                            frame.fillRect(0, 0, size.width(), size.height(),
+                                                    BLUE))));
+            BoxPainter.paint(target.frame(), box);
+        } finally {
+            target.end();
+        }
+
+        // `Frame.transform` assigns rather than composes, so a canvas that
+        // spelled only its own translation would draw at the position it was
+        // laid out at and sit still while the panel scrolled under it.
+        assertEquals(BLUE, target.pixel(25, 10), "the canvas is drawn 15 up from its layout");
+        assertEquals(BLUE, target.pixel(25, 44), "down to its scrolled bottom edge");
+        assertEquals(WHITE, target.pixel(25, 50), "and not where it was laid out");
     }
 
     @Test
