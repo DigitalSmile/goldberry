@@ -61,10 +61,16 @@ the mechanism the sentence named.
   that conflict at the other end. Fixing it means the map remembering owners, and
   `menubar` would be the only thing that used it. —
   [ADR-0163](adr/0163-a-menu-bar-owns-its-menus.md)
-- **The keyboard menu key does not open a context menu.** §8 asks for "right-click
-  **or** the keyboard menu key at the focused widget"; the key half needs
-  `Key.MENU` in the key map and an anchor from the *focused element's* rectangle,
-  which is `Host.anchor`'s element-wise form and does not exist. —
+- ~~**The keyboard menu key does not open a context menu.**~~ **It does, and so
+  does `Shift+F10`.** The entry named both pieces correctly: `Key.MENU` is SDL's
+  `SDLK_APPLICATION`, and the element-wise anchor turned out to already exist as
+  `anchorOf`, which the tooltip path had been using since ADR-0111. `Shift+F10`
+  is bound beside it because a Mac keyboard has no menu key; bare `F10` is
+  deliberately left to the `menubar` (ADR-0163). The walk up to the widget that
+  named the menu is now one method both halves call, because "a right-click on a
+  label is a right-click on the button" and "the menu key on a focused button is
+  that button's menu" are the same rule. —
+  [ADR-0208](adr/0208-a-context-menu-answers-the-keyboard.md),
   [ADR-0108](adr/0108-a-context-menu-is-a-name-on-a-widget.md)
 - **A right-click does not select what it is over.** Every file manager selects the
   row you right-click before opening its menu; that is the application's to do in

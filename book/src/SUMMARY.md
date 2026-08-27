@@ -217,6 +217,7 @@
 - [ADR-0205 A log axis has no room for zero](adr/0205-a-log-axis-has-no-room-for-zero.md)
 - [ADR-0206 A crosshair may be shared, and a bound may be soft](adr/0206-a-crosshair-may-be-shared-and-a-bound-may-be-soft.md)
 - [ADR-0207 A fill may be a ramp](adr/0207-a-fill-may-be-a-ramp.md)
+- [ADR-0208 A context menu answers the keyboard](adr/0208-a-context-menu-answers-the-keyboard.md)
 
 ---
 

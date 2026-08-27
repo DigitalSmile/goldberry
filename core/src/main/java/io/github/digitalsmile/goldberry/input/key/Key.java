@@ -49,6 +49,21 @@ public enum Key {
     PAGE_DOWN(0x4000004e),
     INSERT(0x40000049),
 
+    /// The **menu key** — the one between `AltGr` and `Ctrl` on a PC keyboard,
+    /// which opens the context menu of whatever has focus.
+    ///
+    /// SDL calls it `SDLK_APPLICATION` and its scancode comment calls it
+    /// "windows contextual menu, compose", which is the whole of its story: it
+    /// is the keyboard's way of asking the question a right-click asks, and
+    /// `docs/core-widgets.md` §7 names it as the other half of a context menu
+    /// ([ADR-0208](../../../../../../../book/src/adr/0208-a-context-menu-answers-the-keyboard.md)).
+    ///
+    /// A Mac keyboard does not have one, which is why `Shift+F10` is bound
+    /// beside it rather than instead of it — that is the companion binding on
+    /// every platform that has this key, and the only one on the platforms that
+    /// do not.
+    MENU(0x40000065),
+
     // --- function keys ---
     F1(0x4000003a),
     F2(0x4000003b),

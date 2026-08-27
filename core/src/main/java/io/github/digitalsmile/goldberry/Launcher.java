@@ -210,6 +210,23 @@ final class Launcher implements Host {
                     io.github.digitalsmile.goldberry.input.key.Modifiers modifiers, boolean repeat) {
                 var top = topmostPopup();
                 if (top == null) {
+                    // **The keyboard's right-click**, and only while nothing is
+                    // open over the window: with a menu already showing, the
+                    // menu key belongs to the menu (ADR-0208).
+                    //
+                    // `Shift+F10` beside the menu key rather than instead of it.
+                    // A Mac keyboard has no menu key at all, and a PC one that
+                    // does still has users who reach for the pair — so the two
+                    // are companions everywhere, which is what every other
+                    // desktop toolkit binds.
+                    if (key == io.github.digitalsmile.goldberry.input.key.Key.MENU
+                            && modifiers.none()) {
+                        return openContextMenuForFocus();
+                    }
+                    if (key == io.github.digitalsmile.goldberry.input.key.Key.F10
+                            && modifiers.shift() && !modifiers.control() && !modifiers.alt()) {
+                        return openContextMenuForFocus();
+                    }
                     return false;
                 }
                 if (key == io.github.digitalsmile.goldberry.input.key.Key.ESCAPE) {
@@ -383,24 +400,67 @@ final class Launcher implements Host {
     ///
     /// @return whether anything was opened
     private boolean openContextMenu(float x, float y) {
+        // A zero-sized rectangle at the pointer: a context menu is anchored to
+        // where the click was, not to the widget, which is what every desktop
+        // does and what makes two right-clicks in one list open two menus in two
+        // places.
+        return openContextMenu(router.hovered(),
+                new LogicalRect(new LogicalPoint(x, y), new LogicalSize(0, 0)));
+    }
+
+    /// Finds the menu the **keyboard** asked for, and asks for it to be opened.
+    ///
+    /// The menu key, and `Shift+F10` on the keyboards that have no menu key
+    /// ([ADR-0208](../../../book/src/adr/0208-a-context-menu-answers-the-keyboard.md)).
+    /// Two things differ from the pointer's half and both follow from there being
+    /// no pointer.
+    ///
+    /// It starts at the **focused** element rather than the hovered one, which is
+    /// what "the keyboard's position" means — and it is the reason this is worth
+    /// building at all: a right-click is a thing only a pointer can do, and §2.2
+    /// requires everything to be reachable.
+    ///
+    /// And it is anchored to that element's **painted rectangle** rather than to
+    /// a point, because there is no point to anchor to. The menu therefore hangs
+    /// off the bottom of whatever has the focus ring, which is where a reader is
+    /// already looking. The rectangle comes from the last painted frame for
+    /// [#anchor]'s reason (ADR-0054): a key event has no way to reach the
+    /// geometry, and the geometry is what a placement needs.
+    ///
+    /// A focused element that has not been painted yet has no rectangle, and
+    /// nothing opens — the same answer a right-click over nothing gives.
+    ///
+    /// @return whether anything was opened
+    private boolean openContextMenuForFocus() {
+        var focused = router.focused();
+        if (focused == null) {
+            return false;
+        }
+        var anchor = anchorOf(focused);
+        return anchor.isPresent() && openContextMenu(focused, anchor.get());
+    }
+
+    /// The half the two share: walk up from `from` to the nearest widget that
+    /// named a menu, and open it against `anchor`.
+    ///
+    /// One walk rather than two, because "a right-click on a button's label is a
+    /// right-click on the button" is the same rule as "the menu key on a focused
+    /// button is that button's menu" — and a second copy of it would be a second
+    /// chance for the two to disagree about which ancestor wins.
+    private boolean openContextMenu(
+            io.github.digitalsmile.goldberry.widget.Element from, LogicalRect anchor) {
+
         if (contextMenus == null) {
             return false;
         }
-        for (var node = router.hovered(); node != null;
+        for (var node = from; node != null;
                 node = node.parent() instanceof io.github.digitalsmile.goldberry.widget.Element parent
                         ? parent : null) {
             var named = node.widget() instanceof io.github.digitalsmile.goldberry.widget.attr.Attributed<?> a
                     ? a.attributes().contextMenu()
                     : null;
             if (named != null) {
-                // A zero-sized rectangle at the pointer: a context menu is
-                // anchored to where the click was, not to the widget, which is
-                // what every desktop does and what makes two right-clicks in one
-                // list open two menus in two places.
-                contextMenus.open(named,
-                        new LogicalRect(
-                                new LogicalPoint(x, y),
-                                new LogicalSize(0, 0)));
+                contextMenus.open(named, anchor);
                 return true;
             }
         }

@@ -193,6 +193,162 @@ class ContextMenuTest {
         assertEquals(0, count[0]);
     }
 
+    // --- the keyboard's half (ADR-0208) --------------------------------------
+
+    /// SDL's `SDLK_APPLICATION` — the key between `AltGr` and `Ctrl`.
+    private static final int MENU_KEY = 0x40000065;
+
+    /// SDL's `SDLK_F10`, which with `Shift` is the companion binding everywhere
+    /// and the only one on a keyboard that has no menu key.
+    private static final int F10 = 0x40000043;
+
+    /// SDL's left-shift mask, which is what a real event carries.
+    private static final int SHIFT = 0x0001;
+
+    /// A focusable widget carrying a menu name, so the keyboard has somewhere to
+    /// be. The pointer's tests use a `Column`, which nothing can focus.
+    private static Widget focusableRow() {
+        return new Column(List.of(
+                new io.github.digitalsmile.goldberry.widgets.controls.button.Button(
+                        "rename me", null, () -> { }, false,
+                        new io.github.digitalsmile.goldberry.widget.attr.Attributes("target",
+                                java.util.Set.of(), "target", null, "rows"))),
+                new io.github.digitalsmile.goldberry.widget.attr.Attributes("page",
+                        java.util.Set.of(), "page"));
+    }
+
+    /// Opens whatever the focused widget named, and reports where the popup
+    /// landed.
+    private void pressWithFocus(int keycode, int modifiers,
+            int[] count, LogicalPoint[] offset) {
+
+        Goldberry.launch(new TestApp(focusableRow(), host -> {
+            Menus.contextMenus(host, Map.of("rows", new Menu(
+                    new Item("Rename", () -> { }),
+                    new Item("Delete", () -> { }))));
+            later(150, () -> {
+                // By id rather than by Tab: this test is about the menu key, and
+                // routing focus through a traversal would make a focus bug look
+                // like a menu bug.
+                host.focus("target", true);
+                later(100, () -> {
+                    backend.post(new BackendEvent.KeyPressed(
+                            window(), keycode, modifiers, false));
+                    later(200, () -> {
+                        count[0] = popups().size();
+                        if (!popups().isEmpty()) {
+                            offset[0] = popups().getFirst().offset();
+                        }
+                        Goldberry.stop();
+                    });
+                });
+            });
+        }));
+    }
+
+    /// The keyboard's right-click. §7 names it and it was the half of ADR-0108
+    /// that did not ship: a right-click is a thing only a pointer can do, and
+    /// §2.2 requires everything to be reachable.
+    @Test
+    @Timeout(20)
+    @DisplayName("the menu key opens the focused widget's menu, against the widget")
+    void theMenuKeyOpensTheFocusedMenu() {
+        var count = new int[1];
+        var offset = new LogicalPoint[1];
+        pressWithFocus(MENU_KEY, 0, count, offset);
+
+        assertEquals(1, count[0], "the menu key opens the named menu");
+        // **Against the widget, not at a point.** There is no pointer to anchor
+        // to, so the menu hangs off the bottom of whatever has the focus ring —
+        // which is where the reader is already looking. A zero anchor would put
+        // it in the window's corner.
+        assertTrue(offset[0].y() > 0f,
+                () -> "anchored below the focused widget, and it is at y=" + offset[0].y());
+    }
+
+    /// The keyboards with no menu key on them, which is every Mac.
+    @Test
+    @Timeout(20)
+    @DisplayName("Shift+F10 does the same, for a keyboard with no menu key")
+    void shiftF10IsTheCompanion() {
+        var count = new int[1];
+        var offset = new LogicalPoint[1];
+        pressWithFocus(F10, SHIFT, count, offset);
+
+        assertEquals(1, count[0]);
+    }
+
+    /// `F10` alone is the menu bar's (ADR-0163) and must not be taken here, or
+    /// an application with both would open a context menu where it meant to
+    /// activate its menu bar.
+    @Test
+    @Timeout(20)
+    @DisplayName("F10 without Shift is not this, because the menu bar has it")
+    void bareF10IsNotIt() {
+        var count = new int[1];
+        var offset = new LogicalPoint[1];
+        pressWithFocus(F10, 0, count, offset);
+
+        assertEquals(0, count[0]);
+    }
+
+    /// Focus somewhere that named nothing opens nothing — the keyboard's version
+    /// of a right-click on a widget with no name.
+    @Test
+    @Timeout(20)
+    @DisplayName("the menu key over a widget that named nothing opens nothing")
+    void theMenuKeyNeedsAName() {
+        var count = new int[1];
+        var page = new Column(List.of(
+                new io.github.digitalsmile.goldberry.widgets.controls.button.Button(
+                        "no menu here", null, () -> { }, false,
+                        new io.github.digitalsmile.goldberry.widget.attr.Attributes("target",
+                                java.util.Set.of(), "target"))),
+                new io.github.digitalsmile.goldberry.widget.attr.Attributes("page",
+                        java.util.Set.of(), "page"));
+
+        Goldberry.launch(new TestApp(page, host -> {
+            Menus.contextMenus(host, Map.of("rows", new Menu(new Item("Rename", () -> { }))));
+            later(150, () -> {
+                host.focus("target", true);
+                later(100, () -> {
+                    backend.post(new BackendEvent.KeyPressed(window(), MENU_KEY, 0, false));
+                    later(200, () -> {
+                        count[0] = popups().size();
+                        Goldberry.stop();
+                    });
+                });
+            });
+        }));
+
+        assertEquals(0, count[0]);
+    }
+
+    /// With nothing focused there is no "here" for the keyboard to mean.
+    @Test
+    @Timeout(20)
+    @DisplayName("the menu key with nothing focused opens nothing")
+    void theMenuKeyNeedsAFocus() {
+        var count = new int[1];
+        var page = new Column(List.of(new Text("not focusable")),
+                new io.github.digitalsmile.goldberry.widget.attr.Attributes("page",
+                        java.util.Set.of(), "page", null, "rows"));
+
+        Goldberry.launch(new TestApp(page, host -> {
+            Menus.contextMenus(host, Map.of("rows", new Menu(new Item("Rename", () -> { }))));
+            later(150, () -> {
+                backend.post(new BackendEvent.KeyPressed(window(), MENU_KEY, 0, false));
+                later(200, () -> {
+                    count[0] = popups().size();
+                    Goldberry.stop();
+                });
+            });
+        }));
+
+        assertEquals(0, count[0],
+                "a keyboard with no position has nothing to ask about");
+    }
+
     /// A name nobody registered is logged and ignored: a right-click is not a
     /// request that can fail usefully, and taking the window down because a menu
     /// is missing is worse than the menu being missing.

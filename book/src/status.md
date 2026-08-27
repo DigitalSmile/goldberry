@@ -4134,6 +4134,26 @@ is the `scroll` box's.
   screen that could not be drawn before. It thins out before it reaches the SLO
   band, so the limit is still read *against* the data rather than through it.
 
+### The keyboard's right-click
+
+- **A context menu opens from the keyboard now**
+  ([ADR-0208](adr/0208-a-context-menu-answers-the-keyboard.md)), which is the half
+  of ADR-0108 that did not ship and left the catalog with one entry a pointer was
+  the only way into — in a toolkit whose §2.2 says everything must be reachable.
+- **`Key.MENU` and `Shift+F10`**, both rather than either: the first is SDL's
+  `SDLK_APPLICATION`, and the second is the companion binding everywhere and the
+  only one on a keyboard that has no menu key. **Bare `F10` is left alone**,
+  because it is the `menubar`'s (ADR-0163) and an application with both would
+  open a context menu where it meant to activate its bar.
+- **It anchors to the focused element's painted rectangle**, because there is no
+  point to anchor to — so the menu hangs off the bottom of whatever has the focus
+  ring. The element-wise anchor the TODO entry said "does not exist" turned out to
+  have existed since ADR-0111, where the tooltip path built it.
+- **One walk, two callers.** "A right-click on a button's label is a right-click
+  on the button" and "the menu key on a focused button is that button's menu" are
+  the same rule, so they are the same method — a second copy would be a second
+  chance for the two to disagree about which ancestor wins.
+
 ### Not started
 
 Client-side decorations, the rest of §4 —
