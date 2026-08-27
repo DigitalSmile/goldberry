@@ -485,6 +485,43 @@ public final class BlendContext implements AutoCloseable {
         calls.contextFillPath(context, origin, path.pointer(), argb);
     }
 
+    /// Fills `path` with `gradient`, offset so its own origin lands at `(x, y)`.
+    ///
+    /// **The gradient is not moved by the origin.** The path is translated and
+    /// the ramp is not, because the two answer different questions: a path is a
+    /// shape drawn somewhere, and a gradient is a statement about a region of
+    /// the surface — one placed from the top of a plot to its baseline is the
+    /// same ramp for every band drawn through it, which is what lets a chart
+    /// build one and fill several
+    /// ([ADR-0207](../../../../../../../book/src/adr/0207-a-fill-may-be-a-ramp.md)).
+    ///
+    /// The fill style is **put back to opaque black** afterwards. Blend2D's fill
+    /// style is context state and every other call on this class states its own
+    /// colour, so a gradient left set would be drawn by whatever reached for
+    /// [Blend2dContext#contextFillPathStyled] next — and the bug would be
+    /// somewhere else in the frame entirely. That is the same rule
+    /// [#globalAlpha] states and the opposite of what it does, because a global
+    /// alpha has a neutral value and a fill style does not: nothing here can ask
+    /// what the style *was*, so restoring it means choosing one.
+    ///
+    /// @throws IllegalArgumentException if the origin is not drawable
+    public void fillPath(double x, double y, BlendPath path, BlendGradient gradient) {
+        requireUsable();
+        Objects.requireNonNull(path, "path");
+        Objects.requireNonNull(gradient, "gradient");
+        requireDrawableOrigin(x, y);
+        origin.set(ValueLayout.JAVA_DOUBLE, POINT_X, x);
+        origin.set(ValueLayout.JAVA_DOUBLE, POINT_Y, y);
+        calls.contextSetFillStyle(context, gradient.pointer());
+        try {
+            calls.contextFillPathStyled(context, origin, path.pointer());
+        } finally {
+            // Unconditionally, including when the fill failed: the context is
+            // still usable and the next thing painted did not ask for a ramp.
+            calls.contextSetFillStyle(context, 0xFF000000);
+        }
+    }
+
     /// Strokes `path` at the current [#strokeWidth], cap and join, offset so its
     /// own origin lands at `(x, y)`.
     ///

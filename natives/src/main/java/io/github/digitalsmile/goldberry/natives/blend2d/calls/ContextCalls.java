@@ -30,6 +30,9 @@ public record ContextCalls(
         ContextSetStrokeCaps contextSetStrokeCaps,
         ContextSetStrokeJoin contextSetStrokeJoin,
         ContextFillPathDRgba32 contextFillPathDRgba32,
+        ContextFillPathD contextFillPathD,
+        ContextSetFillStyle contextSetFillStyle,
+        ContextSetFillStyleRgba32 contextSetFillStyleRgba32,
         ContextStrokePathDRgba32 contextStrokePathDRgba32,
         ContextBlitImageD contextBlitImageD,
         ContextBlitScaledImageD contextBlitScaledImageD,
@@ -58,6 +61,9 @@ public record ContextCalls(
                 new ContextSetStrokeCaps(lookup),
                 new ContextSetStrokeJoin(lookup),
                 new ContextFillPathDRgba32(lookup),
+                new ContextFillPathD(lookup),
+                new ContextSetFillStyle(lookup),
+                new ContextSetFillStyleRgba32(lookup),
                 new ContextStrokePathDRgba32(lookup),
                 new ContextBlitImageD(lookup),
                 new ContextBlitScaledImageD(lookup),
@@ -466,6 +472,104 @@ public record ContextCalls(
                         address, context, origin, path, argb);
             } catch (Throwable t) {
                 throw Downcalls.failure("bl_context_fill_path_d_rgba32", t);
+            }
+        }
+    }
+
+    /// Fills a path with the style **currently set**, translated by `origin`.
+    ///
+    /// The one drawing call here with no `_rgba32` suffix, and that is the whole
+    /// point of it: every other fill states its colour in the call, which is
+    /// what keeps a frame free of style state nobody set back. A gradient cannot
+    /// be an argument — it is an object with stops — so it goes on the context
+    /// through [ContextSetFillStyle] and this is what draws with it (ADR-0207).
+    ///
+    /// `int bl_context_fill_path_d(void*, void*, void*)`
+    ///
+    /// @param context the context to fill in
+    /// @param origin a `BLPoint` the path is translated by
+    /// @param path the `BLPath` to fill
+    public static final class ContextFillPathD {
+
+        private static final MethodHandle FD_bl_context_fill_path_d =
+                Downcalls.link(FunctionDescriptor.of(JAVA_INT, ADDRESS, ADDRESS, ADDRESS));
+
+        private final MemorySegment address;
+
+        ContextFillPathD(SymbolLookup lookup) {
+            this.address = Downcalls.symbol(lookup, "bl_context_fill_path_d");
+        }
+
+        public int call(MemorySegment context, MemorySegment origin, MemorySegment path) {
+            try {
+                return (int) FD_bl_context_fill_path_d.invokeExact(address, context, origin, path);
+            } catch (Throwable t) {
+                throw Downcalls.failure("bl_context_fill_path_d", t);
+            }
+        }
+    }
+
+    /// Sets an object — a gradient, here — as the fill style.
+    ///
+    /// `style` is a `const BLUnknown*`: Blend2D reads the object's own type tag
+    /// out of its first eight bytes, so a `BLGradientCore` and a `BLPatternCore`
+    /// go through the same call. It **retains** what it is given, so the caller's
+    /// gradient may be released immediately afterwards and the context keeps
+    /// drawing with it.
+    ///
+    /// `int bl_context_set_fill_style(void*, const void*)`
+    ///
+    /// @param context the context to set it on
+    /// @param style the object to fill with
+    public static final class ContextSetFillStyle {
+
+        private static final MethodHandle FD_bl_context_set_fill_style =
+                Downcalls.link(FunctionDescriptor.of(JAVA_INT, ADDRESS, ADDRESS));
+
+        private final MemorySegment address;
+
+        ContextSetFillStyle(SymbolLookup lookup) {
+            this.address = Downcalls.symbol(lookup, "bl_context_set_fill_style");
+        }
+
+        public int call(MemorySegment context, MemorySegment style) {
+            try {
+                return (int) FD_bl_context_set_fill_style.invokeExact(address, context, style);
+            } catch (Throwable t) {
+                throw Downcalls.failure("bl_context_set_fill_style", t);
+            }
+        }
+    }
+
+    /// Puts a plain colour back as the fill style.
+    ///
+    /// Bound for exactly one reason: a gradient left on the context would be
+    /// held by it until something replaced it, and the next caller to reach for
+    /// the styleless fill would draw with a ramp it never asked for. Nothing in
+    /// the toolkit *reads* the fill style, so a set is only ever undone by
+    /// another set.
+    ///
+    /// `int bl_context_set_fill_style_rgba32(void*, unsigned int)`
+    ///
+    /// @param context the context to set it on
+    /// @param argb a colour as `0xAARRGGBB`, straight alpha
+    public static final class ContextSetFillStyleRgba32 {
+
+        private static final MethodHandle FD_bl_context_set_fill_style_rgba32 =
+                Downcalls.link(FunctionDescriptor.of(JAVA_INT, ADDRESS, JAVA_INT));
+
+        private final MemorySegment address;
+
+        ContextSetFillStyleRgba32(SymbolLookup lookup) {
+            this.address = Downcalls.symbol(lookup, "bl_context_set_fill_style_rgba32");
+        }
+
+        public int call(MemorySegment context, int argb) {
+            try {
+                return (int) FD_bl_context_set_fill_style_rgba32.invokeExact(
+                        address, context, argb);
+            } catch (Throwable t) {
+                throw Downcalls.failure("bl_context_set_fill_style_rgba32", t);
             }
         }
     }

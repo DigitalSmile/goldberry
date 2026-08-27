@@ -463,6 +463,20 @@ static const goldberry_layout_entry_t GOLDBERRY_LAYOUTS[] = {
     GB_FIELD(BLMatrix2D, m21),
 
     /*
+     * Gradients (ADR-0207). BLGradientCore is BLObjectDetail-shaped like every
+     * other core object; BLLinearGradientValues is the one that matters,
+     * because it crosses bl_gradient_init_as as a `const void*` and nothing on
+     * either side of that call checks its shape. Four doubles in the order a
+     * caller writes them -- start point, then end point.
+     */
+    GB_STRUCT(BLGradientCore),
+    GB_STRUCT(BLLinearGradientValues),
+    GB_FIELD(BLLinearGradientValues, x0),
+    GB_FIELD(BLLinearGradientValues, y0),
+    GB_FIELD(BLLinearGradientValues, x1),
+    GB_FIELD(BLLinearGradientValues, y1),
+
+    /*
      * Fonts and glyph runs (ADR-0034).
      *
      * The three font objects are BLObjectDetail-shaped like every other core
@@ -606,6 +620,23 @@ static const goldberry_layout_entry_t GOLDBERRY_LAYOUTS[] = {
     GB_CONSTANT("BL_GLYPH_PLACEMENT_TYPE_DESIGN_UNITS", BL_GLYPH_PLACEMENT_TYPE_DESIGN_UNITS),
     GB_CONSTANT("BL_GLYPH_PLACEMENT_TYPE_USER_UNITS", BL_GLYPH_PLACEMENT_TYPE_USER_UNITS),
     GB_CONSTANT("BL_GLYPH_PLACEMENT_TYPE_ABSOLUTE_UNITS", BL_GLYPH_PLACEMENT_TYPE_ABSOLUTE_UNITS),
+
+    /*
+     * Gradients (ADR-0207). Two enumerators, and both are the zero of their
+     * enum -- which is exactly why they are checked: a zero that happens to be
+     * right today is indistinguishable from a field nobody wrote, and
+     * BL_GRADIENT_TYPE_LINEAR sitting at 0 is the reason a wrong `values`
+     * pointer would still produce a gradient rather than an error.
+     */
+    GB_CONSTANT("BL_GRADIENT_TYPE_LINEAR", BL_GRADIENT_TYPE_LINEAR),
+    GB_CONSTANT("BL_GRADIENT_TYPE_RADIAL", BL_GRADIENT_TYPE_RADIAL),
+    GB_CONSTANT("BL_GRADIENT_TYPE_CONIC", BL_GRADIENT_TYPE_CONIC),
+
+    /* What happens outside the two stops. PAD holds the end colours, which is
+     * what a fade under a chart's band wants and what CSS specifies. */
+    GB_CONSTANT("BL_EXTEND_MODE_PAD", BL_EXTEND_MODE_PAD),
+    GB_CONSTANT("BL_EXTEND_MODE_REPEAT", BL_EXTEND_MODE_REPEAT),
+    GB_CONSTANT("BL_EXTEND_MODE_REFLECT", BL_EXTEND_MODE_REFLECT),
 
     GB_CONSTANT("BL_RUNTIME_INFO_TYPE_BUILD", BL_RUNTIME_INFO_TYPE_BUILD),
     GB_CONSTANT("BL_RUNTIME_INFO_TYPE_SYSTEM", BL_RUNTIME_INFO_TYPE_SYSTEM),

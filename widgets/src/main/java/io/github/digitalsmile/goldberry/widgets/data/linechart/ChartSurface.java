@@ -4,6 +4,7 @@ import io.github.digitalsmile.goldberry.css.ComputedStyle;
 import io.github.digitalsmile.goldberry.css.value.CssColor;
 import io.github.digitalsmile.goldberry.input.event.PointerEvent;
 import io.github.digitalsmile.goldberry.input.handler.Handles;
+import io.github.digitalsmile.goldberry.natives.blend2d.BlendGradient;
 import io.github.digitalsmile.goldberry.natives.blend2d.BlendPath;
 import io.github.digitalsmile.goldberry.natives.blend2d.enums.BlendStrokeCap;
 import io.github.digitalsmile.goldberry.natives.blend2d.enums.BlendStrokeJoin;
@@ -14,6 +15,7 @@ import io.github.digitalsmile.goldberry.text.Paragraph;
 import io.github.digitalsmile.goldberry.widget.style.Paints;
 import io.github.digitalsmile.goldberry.widget.style.Styled;
 import io.github.digitalsmile.goldberry.widget.Widget;
+import io.github.digitalsmile.goldberry.widgets.data.Fill;
 import io.github.digitalsmile.goldberry.widgets.data.Lttb;
 import io.github.digitalsmile.goldberry.widgets.data.Scale;
 import io.github.digitalsmile.goldberry.widgets.data.Series;
@@ -87,6 +89,30 @@ record ChartSurface(
     /// anything is aiming at it: the whole plot is the hit target, and a marker
     /// this size is what makes "this point" legible against a 2px line.
     private static final double MARKER = 4;
+
+    /// How opaque a stacked band is.
+    ///
+    /// Nearly opaque, because a stack's bands do not overlap: there is nothing
+    /// to see through them, and translucency here would only mix each band with
+    /// the gridlines behind it.
+    private static final double BAND_ALPHA = 0.85;
+
+    /// How opaque a **line chart's** fill is, which is a different question.
+    ///
+    /// A band is the data; a fill under a line is a hint at magnitude while the
+    /// line stays the reading. It sits over the gridlines, the thresholds and
+    /// possibly another series' fill, so it has to be light enough to read all
+    /// three through — which is the opposite of [#BAND_ALPHA]'s reasoning and
+    /// the reason the two are separate numbers rather than one shared one.
+    private static final double UNDER_LINE_ALPHA = 0.28;
+
+    /// Where a [Fill#GRADIENT] under a line starts, before it fades to nothing.
+    ///
+    /// Higher than [#UNDER_LINE_ALPHA] because only the top of it is drawn at
+    /// this: the average across the fill is roughly half, which lands a fade and
+    /// a flat wash at about the same weight on the page. A ramp that started at
+    /// the flat value would read as a chart that had lost its fill.
+    private static final double UNDER_LINE_GRADIENT_ALPHA = 0.5;
 
     /// The padding inside the readout, and the gap between its rows.
     private static final double READOUT_PADDING = 8;
@@ -341,6 +367,11 @@ record ChartSurface(
                 List.copyOf(colours), grid, ink, resolved, mode, min, max,
                 List.copyOf(limits), pointTimes, List.copyOf(timeTicks), options.curve(),
                 List.copyOf(gridValues), logarithmic, axisMin, axisMax, options.markers(),
+                // **Resolved here rather than in the painter**, because "which
+                // fills is this chart allowed" is a fact about the mode and not
+                // about the frame: an area chart has no way of drawing nothing.
+                mode == ChartPlot.Mode.AREA && options.fill() == Fill.NONE
+                        ? Fill.SOLID : options.fill(),
                 context.color("--gb-hud-bg", 0xE61C212A),
                 isolated,
                 readout(style, context, resolved), hovered, painted);
@@ -636,6 +667,10 @@ record ChartSurface(
             io.github.digitalsmile.goldberry.widgets.data.Curve curve,
             List<Double> gridValues, boolean logarithmic, double axisMin, double axisMax,
             io.github.digitalsmile.goldberry.widgets.data.Markers markers,
+            // What is under a band or a line, already resolved for this mode:
+            // an area chart reads NONE as SOLID, because a band with no fill is
+            // not a band (Fill).
+            Fill fill,
             // `ring` is the colour drawn around a hovered point's disc. Resolved
             // in `render` beside the readout's colours but held *here* rather
             // than on the Readout, because a chart sharing a CrosshairGroup draws
@@ -775,6 +810,14 @@ record ChartSurface(
                             xs[i] = xAt(geometry, x, run[0] + kept[i]);
                             ys[i] = geometry.y().at(values.get(run[0] + kept[i]));
                         }
+                        // **Under the line and after the run is known**, so the
+                        // fill follows exactly the curve the stroke will draw --
+                        // including the smoothing and the downsampling. A fill
+                        // built from the raw values under a smoothed line would
+                        // show its own straight edges through it.
+                        if (fill != Fill.NONE) {
+                            fillUnder(frame, path, geometry, xs, ys, colours.get(s));
+                        }
                         path.reset();
                         addRun(path, xs, ys, true);
                         frame.strokePath(0, 0, path, STROKE,
@@ -788,6 +831,87 @@ record ChartSurface(
                         }
                     }
                 }
+            }
+        }
+
+        /// The region between one run of a line and the chart's baseline.
+        ///
+        /// **Which baseline is a question a log axis answers differently.** A
+        /// linear chart fills down to zero, because that is what "under the
+        /// line" means and where the reader's eye puts the area; on a log axis
+        /// zero is infinitely far down (ADR-0205), so the fill goes to the
+        /// bottom of the plot instead — which is the same thing the axis itself
+        /// already does. Clamped either way, so a chart whose data is entirely
+        /// above or below zero fills to the edge it can see rather than off it.
+        ///
+        /// The path is the run itself, down to the baseline at each end and
+        /// closed. It reuses the caller's [BlendPath] rather than making one:
+        /// this runs per run per series per frame, and a path is a native
+        /// allocation.
+        private void fillUnder(
+                Frame frame, BlendPath path, PlotGeometry geometry,
+                double[] xs, double[] ys, int colour) {
+
+            if (xs.length < 2) {
+                return;
+            }
+            var zero = logarithmic ? geometry.bottom() : geometry.y().at(0);
+            var baseline = Math.max(geometry.top(), Math.min(geometry.bottom(), zero));
+
+            path.reset();
+            path.moveTo(xs[0], baseline);
+            path.lineTo(xs[0], ys[0]);
+            addRun(path, xs, ys, false);
+            path.lineTo(xs[xs.length - 1], baseline);
+            path.closeSubPath();
+
+            if (fill == Fill.SOLID) {
+                frame.fillPath(0, 0, path, CssColor.fade(colour, UNDER_LINE_ALPHA));
+                return;
+            }
+            // **The extreme of this run, not the top of the plot.** A ramp
+            // anchored to the plot would start at whatever alpha the series
+            // happened to reach, so two series with different magnitudes would
+            // be drawn at different strengths -- and one flat series near the
+            // baseline would have almost no fill at all. Anchored to the data,
+            // every series fades across its own extent.
+            //
+            // Furthest **from the baseline** rather than highest, which is the
+            // same number for an ordinary series and the right one for a series
+            // that crosses zero: the fade then runs from the far end of the
+            // larger lobe back to the axis, whichever side that lobe is on.
+            var extreme = baseline;
+            for (var y : ys) {
+                if (Math.abs(y - baseline) > Math.abs(extreme - baseline)) {
+                    extreme = y;
+                }
+            }
+            gradient(frame, path, extreme, baseline, colour, UNDER_LINE_GRADIENT_ALPHA);
+        }
+
+        /// Fills `path` with a fade from `colour` at `from` to nothing at `to`,
+        /// vertically.
+        ///
+        /// Vertical because a fill's meaning is vertical: it is the distance
+        /// from the reading to the baseline, and a ramp across the x axis would
+        /// be saying something about *time* that is not true. Both coordinates
+        /// are the frame's own, which is what lets one ramp be right for a path
+        /// drawn at the origin (ADR-0207).
+        ///
+        /// A degenerate span — a perfectly flat series, where the two ends
+        /// coincide — is filled flat instead. A zero-length gradient is a
+        /// division by nothing in Blend2D's ramp and comes out as the last stop,
+        /// which is to say invisible.
+        private static void gradient(
+                Frame frame, BlendPath path, double from, double to, int colour, double alpha) {
+
+            var near = CssColor.fade(colour, alpha);
+            if (Math.abs(to - from) < 1) {
+                frame.fillPath(0, 0, path, near);
+                return;
+            }
+            try (var ramp = BlendGradient.fade(0, from, 0, to, near)) {
+                frame.fillPath(0, 0, path, ramp);
             }
         }
 
@@ -1095,7 +1219,7 @@ record ChartSurface(
                                 frame.fillRect((float) xAt(geometry, x, i),
                                         (float) Math.min(high, low),
                                         1, (float) Math.max(1, Math.abs(low - high)),
-                                        CssColor.fade(colours.get(s), 0.85));
+                                        CssColor.fade(colours.get(s), BAND_ALPHA));
                             }
                             continue;
                         }
@@ -1118,10 +1242,23 @@ record ChartSurface(
                         path.lineTo(xs[span - 1], unders[span - 1]);
                         addRunReversed(path, xs, unders);
                         path.closeSubPath();
-                        // Nearly opaque: a stack's bands do not overlap, so there
-                        // is nothing to see through them, and translucency here
-                        // would only mix each band with the gridlines behind it.
-                        frame.fillPath(0, 0, path, CssColor.fade(colours.get(s), 0.85));
+                        if (fill == Fill.GRADIENT) {
+                            // **Across the band's own extent**, not the plot's.
+                            // A stack's bands are adjacent, so a ramp anchored to
+                            // the plot would leave the lower ones washed out
+                            // entirely -- each band fades within itself, which is
+                            // what keeps a thin band readable under a thick one.
+                            var high = overs[0];
+                            var low = unders[0];
+                            for (var i = 0; i < span; i++) {
+                                high = Math.min(high, overs[i]);
+                                low = Math.max(low, unders[i]);
+                            }
+                            gradient(frame, path, high, low, colours.get(s), BAND_ALPHA);
+                        } else {
+                            frame.fillPath(0, 0, path,
+                                    CssColor.fade(colours.get(s), BAND_ALPHA));
+                        }
                     }
 
                     System.arraycopy(top, 0, beneath, 0, longest);

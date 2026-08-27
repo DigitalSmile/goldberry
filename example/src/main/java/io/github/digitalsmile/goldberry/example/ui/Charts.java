@@ -7,6 +7,7 @@ import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widgets.core.Column;
 import io.github.digitalsmile.goldberry.widgets.data.CrosshairGroup;
 import io.github.digitalsmile.goldberry.widgets.data.Curve;
+import io.github.digitalsmile.goldberry.widgets.data.Fill;
 import io.github.digitalsmile.goldberry.widgets.data.NullPolicy;
 import io.github.digitalsmile.goldberry.widgets.data.Series;
 import io.github.digitalsmile.goldberry.widgets.data.Threshold;
@@ -75,6 +76,12 @@ import java.util.Set;
 ///   that is *not* from the palette — a limit is a statement about the data
 ///   rather than one of the things being compared
 ///   ([ADR-0202](../../../../../../../book/src/adr/0202-a-limit-is-not-a-series.md)).
+/// - **A fill is a hint, not the reading.** The same `p99 latency` card fades
+///   from its line down toward the axis, which is what a fill under a *line* is
+///   for — the position is still the data, and the area says how much of it
+///   there is. It is the one thing on this screen that could not be drawn until
+///   the export list had gradients
+///   ([ADR-0207](../../../../../../../book/src/adr/0207-a-fill-may-be-a-ramp.md)).
 /// - **A hole is not a zero**, which is the last card: the same twelve readings
 ///   drawn twice, under the two
 ///   [io.github.digitalsmile.goldberry.widgets.data.NullPolicy] settings that
@@ -207,7 +214,16 @@ public record Charts() implements Widget.Stateful {
                                             // (ADR-0202).
                                             .threshold(Threshold
                                                     .above(145, Threshold.Level.WARNING)
-                                                    .labelled("SLO")),
+                                                    .labelled("SLO"))
+                                            // §3.1's last row. A fade rather
+                                            // than a wash, so the line stays the
+                                            // reading and the area is a hint at
+                                            // magnitude -- and it thins out
+                                            // before it reaches the SLO band, so
+                                            // the limit is still read against
+                                            // the data rather than through it
+                                            // (ADR-0207).
+                                            .fill(Fill.GRADIENT),
                                     id("latency-card")),
 
                             card("Active users",

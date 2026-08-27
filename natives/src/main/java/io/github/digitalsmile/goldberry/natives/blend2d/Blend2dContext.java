@@ -172,6 +172,42 @@ final class Blend2dContext {
         check("bl_context_fill_path_d_rgba32", result);
     }
 
+    /// Fills a path with whatever style is set, rather than with a colour of its
+    /// own.
+    ///
+    /// `BLResult bl_context_fill_path_d(BLContextCore*, const BLPoint* origin,`
+    /// `const BLPathCore*)`
+    ///
+    /// The only styleless drawing call bound, and the only way a gradient
+    /// reaches a path (ADR-0207). Its caller is responsible for what the style
+    /// is when it runs and for what it is afterwards.
+    void contextFillPathStyled(
+            MemorySegment context, MemorySegment origin, MemorySegment path) {
+        int result;
+        result = calls.contextFillPathD().call(context, origin, path);
+        check("bl_context_fill_path_d", result);
+    }
+
+    /// Sets an object -- a `BLGradientCore` -- as the fill style.
+    ///
+    /// Blend2D reads the object's type tag out of its own first bytes, so this
+    /// one call takes any style object. It **retains** what it is given, which
+    /// is what lets [BlendGradient#close()] be safe the moment the fill has been
+    /// issued.
+    void contextSetFillStyle(MemorySegment context, MemorySegment style) {
+        int result;
+        result = calls.contextSetFillStyle().call(context, style);
+        check("bl_context_set_fill_style", result);
+    }
+
+    /// Puts a plain colour back as the fill style, releasing whatever object was
+    /// there.
+    void contextSetFillStyle(MemorySegment context, int argb) {
+        int result;
+        result = calls.contextSetFillStyleRgba32().call(context, argb);
+        check("bl_context_set_fill_style_rgba32", result);
+    }
+
     void contextStrokePath(
             MemorySegment context, MemorySegment origin, MemorySegment path, int argb) {
         int result;

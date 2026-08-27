@@ -166,6 +166,21 @@ public record LineChart(List<Series> series, List<String> categories,
         return options(options.markers(value));
     }
 
+    /// This chart with something **under** the line.
+    ///
+    /// A line chart has nothing under it by default, which is what a line chart
+    /// is: the position is the reading and an area would be claiming a second
+    /// encoding for it. [io.github.digitalsmile.goldberry.widgets.data.Fill#GRADIENT]
+    /// is the dashboard convention and says what it means — the fade thins out
+    /// downward, so the line stays the data and the area is a hint at magnitude
+    /// ([ADR-0207](../../../../../../../../book/src/adr/0207-a-fill-may-be-a-ramp.md)).
+    ///
+    /// The fill runs down to **zero**, or to the bottom of the plot on a log
+    /// axis, where zero has no position at all.
+    public LineChart fill(io.github.digitalsmile.goldberry.widgets.data.Fill value) {
+        return options(options.fill(value));
+    }
+
     /// This chart with a **logarithmic** value axis.
     ///
     /// For a series that spends its life at 3 and spikes to 30 000: on a linear

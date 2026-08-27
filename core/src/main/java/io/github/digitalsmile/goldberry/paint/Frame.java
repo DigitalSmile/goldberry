@@ -8,6 +8,7 @@ import io.github.digitalsmile.goldberry.render.window.BackendWindow;
 import io.github.digitalsmile.goldberry.natives.blend2d.BlendContext;
 import io.github.digitalsmile.goldberry.natives.blend2d.BlendFont;
 import io.github.digitalsmile.goldberry.natives.blend2d.BlendGlyphBuffer;
+import io.github.digitalsmile.goldberry.natives.blend2d.BlendGradient;
 import io.github.digitalsmile.goldberry.natives.blend2d.BlendImage;
 import io.github.digitalsmile.goldberry.natives.blend2d.BlendPath;
 import io.github.digitalsmile.goldberry.natives.blend2d.enums.BlendStrokeCap;
@@ -161,6 +162,25 @@ public final class Frame {
     public void fillPath(double x, double y, BlendPath path, int argb) {
         requireOpen();
         context.fillPath(x, y, path, argb);
+    }
+
+    /// Fills `path` with `gradient`, with the path's own origin placed at
+    /// logical `(x, y)`.
+    ///
+    /// **The origin moves the path and not the ramp.** A gradient is a statement
+    /// about a *region of the surface* rather than about a shape: one placed
+    /// from the top of a plot to its baseline is the same ramp for every band
+    /// filled through it, which is what lets a chart build one gradient and draw
+    /// several figures in it
+    /// ([ADR-0207](../../../../../../book/src/adr/0207-a-fill-may-be-a-ramp.md)).
+    ///
+    /// Its coordinates are logical, like everything else here.
+    ///
+    /// The gradient is the caller's to close, and it may be closed as soon as
+    /// this returns — Blend2D retains its own reference for the fill.
+    public void fillPath(double x, double y, BlendPath path, BlendGradient gradient) {
+        requireOpen();
+        context.fillPath(x, y, path, gradient);
     }
 
     /// Strokes `path`, with the path's own origin placed at logical `(x, y)`.

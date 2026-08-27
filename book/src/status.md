@@ -4083,12 +4083,56 @@ is the `scroll` box's.
   window's charts — alive; `CrosshairGroup.listenerCount()` exists for that test
   and nothing else. Writing it also found that the test harness was never
   unmounting its element tree, so `dispose` had never run in any of these files.
-- **§3.1 is complete except the gradient fill**, which is the one row that needs
-  a **native symbol**: Blend2D has gradients and the export list does not, because
-  it holds what the toolkit's own painter needs. That is shared work with
-  `goldberry-html` and `goldberry-vector` (ADR-0190) and is now in
-  [TODO.md](TODO.md) with the reason a stack of translucent strips is not the way
-  out.
+
+### The fill that needed a wider library
+
+- **`charts.md` §3.1 is complete**, and its last row was the only one that could
+  not be built out of what the export list already had
+  ([ADR-0207](adr/0207-a-fill-may-be-a-ramp.md)). Every drawing call on that list
+  takes its colour as an `rgba32` argument, because that is what the toolkit's own
+  painter has ever needed; a gradient is an object with stops that has to exist
+  while the fill happens, and it reaches a context as *state*. So the first commit
+  of a chart feature was six symbols and two layout rows.
+- **The sixth symbol is the interesting one.** `bl_context_fill_path_d` — the
+  plain fill, with no `_rgba32` suffix — is the only styleless drawing call bound
+  and the only way a ramp reaches a path. The other five build a gradient and put
+  it on the context and take it off again, and **taking it off is not optional**:
+  a gradient left set would be drawn by whatever reached for the styleless fill
+  next, somewhere else in the frame entirely. That is `globalAlpha`'s rule and
+  the opposite of its mechanism — an alpha has a neutral value to go back to and
+  a fill style does not, so restoring one means choosing one.
+- **The OKLCH in the deferred entry turned out to be vacuous.** A fade between two
+  alphas of one hue is the same curve in every perceptual space. What actually
+  makes a fade correct is premultiplied interpolation, which Blend2D does, and
+  **repeating the colour at the far stop**, which the caller must: `0x00000000` is
+  transparent *black*, and a green fading to it goes through grey on the way out.
+  `BlendGradient.fade` is a constructor rather than two lines at each call site
+  for exactly that reason.
+- **`Fill.NONE` is the default, so nothing changed.** A line chart draws no fill,
+  which is what a line chart already was; an area chart reads `NONE` as `SOLID`,
+  because a band with no fill is not a band. Every existing golden is untouched.
+  Three values rather than an opacity number: an opacity is a number a caller
+  could want any value of, and a fill is a choice between two conventions.
+- **A ramp is anchored to the data rather than to the plot.** Under a line it runs
+  from the furthest point of that run from the baseline back to the baseline; in a
+  band it runs across the band's own extent. Anchored to the plot instead, two
+  series of different magnitudes would be drawn at different strengths and a
+  stack's lower bands would be half gone before they started — which is what the
+  test asserts, by measuring that both bands still reach their own colour
+  somewhere.
+- **The fill follows the curve the line was drawn with**, because it is built from
+  the same run of points — after smoothing and after downsampling. One built from
+  the raw values would show its own straight edges through a smoothed line.
+- **A gradient is sampled at the pixel's centre**, so the pixel sitting on the
+  start point is already half a pixel along the ramp. The native tests assert
+  *near* a stop's colour rather than equal to it; the exact form would be an
+  assertion about Blend2D's sampling grid rather than about the fade.
+- **`goldberry-html` and `goldberry-vector` start one commit further along.** Both
+  entries in [TODO.md](TODO.md) named these symbols as their own first step, which
+  is what made the width worth taking for one row of a chart table.
+- **The showcase's `p99 latency` card fades**, and it is the one thing on that
+  screen that could not be drawn before. It thins out before it reaches the SLO
+  band, so the limit is still read *against* the data rather than through it.
 
 ### Not started
 
@@ -4143,11 +4187,16 @@ What is built that they would stand on, stated so the estimate is honest:
 
 And the two facts that make the first one cost more than it reads:
 
-- **The export list has no gradient, no rounded geometry and no
-  `bl_context_save`.** 203 symbols reach Java, and the twenty `bl_context_*`
-  among them are the ones the toolkit's own painter uses. A native litehtml
-  container needs more, so `goldberry-html` starts by widening `libgoldberry`'s
-  paint surface — work `goldberry-vector` and `goldberry-terminal` would share.
+- **The export list has no rounded geometry, and it has gradients now.** 211
+  symbols reach Java, and the twenty-five `bl_context_*` among them are the ones
+  the toolkit's own painter uses — `bl_context_save` arrived with `canvas`
+  ([ADR-0193](adr/0193-a-canvas-is-a-second-clip-depth.md)) and the three
+  fill-style entries with a chart's gradient fill
+  ([ADR-0207](adr/0207-a-fill-may-be-a-ramp.md)), which is two of the three
+  things this line used to name. A native litehtml container still needs more, so
+  `goldberry-html` still starts by widening `libgoldberry`'s paint surface — but
+  it starts from a list that already has the gradients it would have added first,
+  which is what "shared work" was a prediction about.
 - **None of the 59 `SDL_*` symbols is audio or camera.** "Zero new natives" is
   true of the binary and not of the surface — which is no longer a prediction:
   `tray-icon` reached that file first and paid eleven symbols for it

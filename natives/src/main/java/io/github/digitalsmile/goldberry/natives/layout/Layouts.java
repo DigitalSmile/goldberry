@@ -533,6 +533,38 @@ public final class Layouts {
                     ValueLayout.JAVA_DOUBLE.withName("m20"),
                     ValueLayout.JAVA_DOUBLE.withName("m21")));
 
+    /// `BLGradientCore`, which is [#BL_OBJECT_DETAIL] again.
+    ///
+    /// A row of its own for [#BL_PATH_CORE]'s reason and one more: a gradient is
+    /// built incrementally too — `init_as` and then a stop per call — and it is
+    /// the first Blend2D object Goldberry constructs *inside a paint pass*
+    /// rather than once at start-up (ADR-0207).
+    public static final NativeStructLayout BL_GRADIENT_CORE = new NativeStructLayout(
+            "BLGradientCore",
+            MemoryLayout.structLayout(
+                    MemoryLayout.sequenceLayout(2, ValueLayout.JAVA_LONG)));
+
+    /// Where a linear gradient starts and ends — `BLLinearGradientValues`.
+    ///
+    /// ```c
+    /// struct BLLinearGradientValues { double x0, y0, x1, y1; };
+    /// ```
+    ///
+    /// This one earns its row the way [#BL_MATRIX2D] does: it crosses
+    /// `bl_gradient_init_as` as a `const void*` whose shape is implied by the
+    /// [io.github.digitalsmile.goldberry.natives.blend2d.enums.BlendGradientType]
+    /// beside it, so nothing on either side of the call checks it. A radial
+    /// gradient's values are six doubles and a conic's are four in a different
+    /// order — hand over the wrong one and Blend2D reads whatever is next in the
+    /// arena and returns `BL_SUCCESS`.
+    public static final NativeStructLayout BL_LINEAR_GRADIENT_VALUES = new NativeStructLayout(
+            "BLLinearGradientValues",
+            MemoryLayout.structLayout(
+                    ValueLayout.JAVA_DOUBLE.withName("x0"),
+                    ValueLayout.JAVA_DOUBLE.withName("y0"),
+                    ValueLayout.JAVA_DOUBLE.withName("x1"),
+                    ValueLayout.JAVA_DOUBLE.withName("y1")));
+
     /// A run of positioned glyphs, as Blend2D reads one — `BLGlyphRun`.
     ///
     /// A **descriptor**, not a container: two pointers into memory the caller
@@ -732,6 +764,8 @@ public final class Layouts {
                 BL_POINT_I,
                 BL_POINT,
                 BL_MATRIX2D,
+                BL_GRADIENT_CORE,
+                BL_LINEAR_GRADIENT_VALUES,
                 BL_GLYPH_RUN,
                 BL_GLYPH_PLACEMENT,
                 BL_FONT_METRICS,

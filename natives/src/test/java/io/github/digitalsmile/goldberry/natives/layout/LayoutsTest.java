@@ -66,9 +66,10 @@ class LayoutsTest {
     /// of a union would assert a structure it does not have.
     ///
     /// `BLPathCore` is the same union again under its own name, registered
-    /// separately because `BlendPath` allocates by it (ADR-0043).
+    /// separately because `BlendPath` allocates by it (ADR-0043), and
+    /// `BLGradientCore` is a third for the same reason (ADR-0207).
     private static final List<String> OPAQUE =
-            List.of("SDL_Event", "BLObjectDetail", "BLPathCore");
+            List.of("SDL_Event", "BLObjectDetail", "BLPathCore", "BLGradientCore");
 
     @Test
     @DisplayName("every registered layout is named and non-empty")

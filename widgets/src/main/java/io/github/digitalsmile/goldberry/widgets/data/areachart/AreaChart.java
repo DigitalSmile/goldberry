@@ -102,6 +102,22 @@ public record AreaChart(List<Series> series, List<String> categories,
         return options(options.markers(value));
     }
 
+    /// This chart with a different fill in its bands.
+    ///
+    /// A flat wash by default, which is the honest rendering of a stack: the
+    /// bands are adjacent rather than overlapping, they add up to the total, and
+    /// a reader compares their thicknesses.
+    /// [io.github.digitalsmile.goldberry.widgets.data.Fill#GRADIENT] fades each
+    /// band **within its own extent** rather than across the plot, so a thin
+    /// band under a thick one is still there to be read
+    /// ([ADR-0207](../../../../../../../../book/src/adr/0207-a-fill-may-be-a-ramp.md)).
+    ///
+    /// [io.github.digitalsmile.goldberry.widgets.data.Fill#NONE] is read as a
+    /// flat wash: a band with no fill is not a band.
+    public AreaChart fill(io.github.digitalsmile.goldberry.widgets.data.Fill value) {
+        return options(options.fill(value));
+    }
+
     /// This chart with a **logarithmic** value axis.
     ///
     /// For a series that spends its life at 3 and spikes to 30 000: on a linear

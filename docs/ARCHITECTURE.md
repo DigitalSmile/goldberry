@@ -434,8 +434,11 @@ Three rules the modules share, from ADR-0190:
   statically links a second copy of Blend2D or HarfBuzz — two Blend2D runtimes in
   one process make a `BLContext` handed across them undefined behaviour. Its
   symbols go on the one export list, which is why `goldberry-html` starts by
-  *widening the toolkit's own paint surface* (gradients, rounded geometry and a
-  nested state stack are not on it today) rather than by compiling litehtml.
+  *widening the toolkit's own paint surface* rather than by compiling litehtml.
+  Two of the three things that sentence used to name have since been added by
+  widgets that needed them first — the nested state stack by `canvas` (ADR-0193)
+  and **gradients by a chart's fill** (ADR-0207), which is the shared work
+  arriving from the other direction. Rounded geometry is still not on it.
 - **Everything here rasterizes on the CPU into a buffer**, so a document, a PDF
   page and a terminal grid stay golden-image testable in CI on three OSes;
   camera and microphone ship synthetic sources so their widgets are too.

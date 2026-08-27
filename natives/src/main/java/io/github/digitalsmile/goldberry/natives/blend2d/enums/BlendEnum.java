@@ -17,8 +17,9 @@ import io.github.digitalsmile.goldberry.natives.blend2d.error.BlendResultCode;
 /// against what the C compiler computed for the library that is actually loaded.
 /// The interface is sealed so the permitted list and [#all()] sit together.
 public sealed interface BlendEnum
-        permits BlendCompOp, BlendDataAccess, BlendFormat, BlendGlyphPlacementType,
-                BlendResultCode, BlendRuntimeInfoType, BlendStrokeCap, BlendStrokeJoin,
+        permits BlendCompOp, BlendDataAccess, BlendExtendMode, BlendFormat,
+                BlendGlyphPlacementType, BlendGradientType, BlendResultCode,
+                BlendRuntimeInfoType, BlendStrokeCap, BlendStrokeJoin,
                 BlendTransformOp {
 
     /// The value Blend2D's header gives this constant.
@@ -32,8 +33,10 @@ public sealed interface BlendEnum
         return Stream.<BlendEnum[]>of(
                         BlendCompOp.values(),
                         BlendDataAccess.values(),
+                        BlendExtendMode.values(),
                         BlendFormat.values(),
                         BlendGlyphPlacementType.values(),
+                        BlendGradientType.values(),
                         BlendResultCode.values(),
                         BlendRuntimeInfoType.values(),
                         BlendStrokeCap.values(),

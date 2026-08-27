@@ -85,6 +85,20 @@ SDL_GetWindowPosition
 # and Shift+click want the same thing. See ADR-0089.
 SDL_GetModState
 
+# Where the pointer is on the desktop, right now.
+#
+# Polled at the moment a pointer event is translated, like SDL_GetModState above
+# and for a sharper reason: on macOS a popup window's mouse events arrive with
+# coordinates in the OWNER window's space, and stale ones at that -- SDL only
+# rewrites them into the target window's space when the event's NSWindow is not
+# the key window, and a mouse-UP is delivered to the key window. The window a
+# popup's release is attributed to and the space its coordinates are in
+# therefore disagree, which is a click that lands nowhere (ADR-0211).
+#
+# A global position plus the owner's own position is the one reading that does
+# not depend on which window the platform thinks the event belongs to.
+SDL_GetGlobalMouseState
+
 # Event pumping, and SDL_PushEvent for the cross-thread wakeup.
 SDL_PollEvent
 SDL_WaitEventTimeout
@@ -229,6 +243,28 @@ bl_context_set_stroke_caps
 bl_context_set_stroke_join
 bl_context_fill_path_d_rgba32
 bl_context_stroke_path_d_rgba32
+
+# Gradients (sec. 5, ADR-0207). The first style on this list that is not a
+# colour: every fill until now took an `rgba32` argument, and a gradient is an
+# object with stops that has to outlive the call that sets it. Three symbols
+# build one -- construct with the geometry, add each stop, release -- and two
+# more on the context set it and put a colour back, because a fill style is
+# context state and the next thing drawn did not ask to be a gradient.
+#
+# `bl_context_fill_path_d` is the plain fill, without the `_rgba32` suffix every
+# other drawing call here carries: it fills with whatever style is set, which is
+# the only way a gradient reaches a path.
+#
+# Shared work, and the reason it is worth the width: `goldberry-html` needs
+# these for CSS gradients and `goldberry-vector` for SVG's, and both would
+# otherwise start by adding the same five lines
+# ([ADR-0190](../../../../../book/src/adr/0190-a-content-module-brings-its-own-natives.md)).
+bl_gradient_init_as
+bl_gradient_destroy
+bl_gradient_add_stop_rgba32
+bl_context_set_fill_style
+bl_context_set_fill_style_rgba32
+bl_context_fill_path_d
 
 # Layers (sec. 5, ADR-0071). A subtree rendered into an offscreen image and
 # composited back is what makes CSS group opacity mean what CSS means, and what
