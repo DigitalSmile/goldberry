@@ -83,4 +83,37 @@ class TreeGoldenTest {
     void light() {
         paint("tree-light", Theme.NORD_LIGHT);
     }
+
+    /// §3's `checkable="cascade"`, and the one state a picture is the only proof
+    /// of: **the mixed mark is a bar and not a greyed tick**.
+    ///
+    /// Norway is ticked and Scotland is not, so United Kingdom reads unchecked,
+    /// Europe reads mixed, and the difference between "some of these" and "all of
+    /// these" is a thing a reader can see at a glance rather than a claim
+    /// ([ADR-0210]).
+    @Test
+    @DisplayName("a cascade tree, with a branch that is only partly ticked")
+    void cascade() {
+        var host = new TestHost();
+        var tree = new ElementTree(new Tree(List.of(
+                TreeNode.of("europe", "Europe",
+                        TreeNode.leaf("no", "Norway"),
+                        TreeNode.of("uk", "United Kingdom",
+                                TreeNode.leaf("sct", "Scotland"))),
+                TreeNode.leaf("asia", "Asia")),
+                "no", value -> { })
+                .checkable(Checkable.CASCADE)
+                .checked(java.util.Set.of("no"), values -> { }), host);
+
+        open(tree, "europe");
+        open(tree, "uk");
+
+        var renderer = new WidgetRenderer(
+                List.of(Controls.baseStylesheet(), Theme.NORD_DARK.load(),
+                        Stylesheet.parse(CascadeLayer.APPLICATION, SCENE)),
+                TestFont.get());
+
+        GoldenImage.assertMatches("tree-cascade-dark", 240, 176, 1.0f,
+                frame -> BoxPainter.paint(frame, renderer.render(tree)));
+    }
 }

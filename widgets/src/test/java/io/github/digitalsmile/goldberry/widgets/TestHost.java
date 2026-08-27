@@ -238,6 +238,17 @@ public class TestHost implements Host {
         return java.util.List.copyOf(focused);
     }
 
+    /// Forgets them, for a test that makes several moves and wants to assert
+    /// about one at a time.
+    ///
+    /// A method rather than a mutable list out of [#focusRequests()], so the
+    /// record stays the host's — a test that cleared the returned copy would
+    /// assert against a list nothing was writing to, which is the failure mode
+    /// this replaces.
+    public void forgetFocusRequests() {
+        focused.clear();
+    }
+
     private final java.util.List<Runnable> scheduled = new java.util.ArrayList<>();
     private final java.util.List<Duration> delays = new java.util.ArrayList<>();
     private final java.util.List<EventLoop.Timer> timers = new java.util.ArrayList<>();

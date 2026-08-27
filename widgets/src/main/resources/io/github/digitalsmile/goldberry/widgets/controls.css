@@ -2448,6 +2448,29 @@ tree-chevron {
   color: var(--gb-text-muted);
 }
 
+/* §3's `checkable=`. A hit target around a borrowed `check-indicator`, which is
+   what the box actually is -- the indicator is a 16px square with no handler of
+   its own, and a row that merely nested one would have a box you could look at
+   and not tick. 24 square rather than 16 so the target clears §1.3's floor
+   without the glyph growing (ADR-0210). */
+tree-check {
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+/* The hover step lands on the glyph, exactly as `checkbox:hover` puts it there:
+   the indicator *is* the control's surface at this size. Written against the
+   row rather than against `tree-check`, because the whole row lights on hover
+   and a box that stayed flat inside a lit row reads as disabled. */
+tree-row:hover check-indicator {
+  background: var(--gb-checkbox-bg-hover);
+  border-color: var(--gb-checkbox-border-hover);
+}
+
 tree-label {
   flex-shrink: 1;
 }

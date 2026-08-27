@@ -41,11 +41,39 @@ import java.util.Set;
 /// @param selectable whether it may be chosen — false for a parent in a
 ///                   leaf-only tree (§3's `checkable`)
 /// @param selected   whether it is the chosen row
+/// ## The three keys that are the tree's rather than the row's
+///
+/// `Home`, `End` and `*` all need to know about rows this one cannot see — the
+/// first and last of the whole flattened list, and every sibling of this one — so
+/// each is a callback the tree hands down, in the shape [#onOut] already had
+/// ([ADR-0209](../../../../../../../../book/src/adr/0209-a-tree-finishes-its-keyboard.md)).
+/// Type-to-select is the same, and arrives as [TextEvent] rather than a key for
+/// `select`'s reason: what a typeahead wants is what was *typed*, and one
+/// character can take several keys.
+///
+/// @param node       the model row this draws
+/// @param depth      how many levels down it sits
+/// @param expanded   whether its children are showing
+/// @param selectable whether it may be chosen — false for a parent in a
+///                   leaf-only tree (§3's `checkable`)
+/// @param selected   whether it is a chosen row
+/// @param check      the state of its checkbox, or null when it has none
 /// @param onToggle   asked to open or close
-/// @param onSelect   asked to be chosen
+/// @param onSelect   asked to be chosen, **with the modifiers that were held** —
+///                   `Ctrl` and `Shift` mean different things in a multi-select
+///                   tree, and only the tree knows what they resolve to
 /// @param onOut      asked to move to the parent, when there is nothing to close
+/// @param onEnd      asked to move to the first or last visible row
+/// @param onSiblings asked to open every sibling of this row — §3's `*`
+/// @param onType     what was typed, for §3's type-to-select
+/// @param onCheck    asked to tick or untick, when there is a box to tick
 record TreeRow(TreeNode node, int depth, boolean expanded, boolean selectable, boolean selected,
-        Runnable onToggle, Runnable onSelect, Runnable onOut)
+        io.github.digitalsmile.goldberry.widgets.controls.checkbox.Checkbox.Value check,
+        Runnable onToggle,
+        java.util.function.Consumer<io.github.digitalsmile.goldberry.input.key.Modifiers> onSelect,
+        Runnable onOut,
+        java.util.function.IntConsumer onEnd, Runnable onSiblings,
+        java.util.function.Consumer<String> onType, Runnable onCheck)
         implements Widget.Leaf, Styled, Paints, Handles {
 
     /// §2's "indent 20 per level".
@@ -96,9 +124,16 @@ record TreeRow(TreeNode node, int depth, boolean expanded, boolean selectable, b
 
     @Override
     public List<Widget> children() {
-        var parts = new ArrayList<Widget>(3);
+        var parts = new ArrayList<Widget>(4);
         parts.add(new TreeIndent(depth));
         parts.add(new TreeChevron(node.mayHaveChildren(), expanded, onToggle));
+        if (check != null) {
+            // **Between the chevron and the label**, which is where every file
+            // manager and installer puts it: the chevron belongs to the gutter
+            // and says what the row *is*, and the box belongs to the content and
+            // says what the reader has done to it.
+            parts.add(new TreeCheck(check, onCheck));
+        }
         parts.add(new TreeLabel(node.label()));
         return List.copyOf(parts);
     }
@@ -122,7 +157,11 @@ record TreeRow(TreeNode node, int depth, boolean expanded, boolean selectable, b
             return;
         }
         if (selectable) {
-            onSelect.run();
+            // **The modifiers travel with it.** A click is `Ctrl`-clicked or
+            // `Shift`-clicked or neither, and which of the three it was decides
+            // what the new selection is — a question only the tree can answer,
+            // because a range runs over rows this one cannot see (ADR-0210).
+            onSelect.accept(event.modifiers());
         } else if (node.mayHaveChildren()) {
             onToggle.run();
         }
@@ -136,7 +175,34 @@ record TreeRow(TreeNode node, int depth, boolean expanded, boolean selectable, b
     /// set where the keyboard commits must not choose before it.
     @Override
     public void onKey(KeyEvent event) {
-        if (event.kind() != KeyEvent.Kind.PRESSED || !event.modifiers().none()) {
+        if (event.kind() != KeyEvent.Kind.PRESSED) {
+            return;
+        }
+        // **`Enter` is handled before the unmodified guard**, because it is the
+        // one key here that means something different when a modifier is held:
+        // `Ctrl+Enter` adds a row to a selection and `Shift+Enter` sweeps to it,
+        // which are the keyboard's halves of the same gestures the pointer has
+        // (ADR-0210). `Alt` and the platform key are nobody's here and fall
+        // through, so an application's `Alt+Enter` accelerator still reaches it.
+        if (event.key() == Key.ENTER) {
+            if (selectable && !event.modifiers().alt() && !event.modifiers().meta()) {
+                onSelect.accept(event.modifiers());
+                event.consume();
+            }
+            return;
+        }
+        // `Space` ticks the box, which is `checkbox`'s own key and the desktop
+        // convention — and is why `Enter` is not: `Enter` belongs to a dialog's
+        // default action, and a row that swallowed it would leave a form with no
+        // way to submit once the focus was in a tree.
+        if (event.key() == Key.SPACE && check != null && event.modifiers().none()) {
+            if (onCheck != null) {
+                onCheck.run();
+            }
+            event.consume();
+            return;
+        }
+        if (!event.modifiers().none()) {
             return;
         }
         switch (event.key()) {
@@ -156,15 +222,53 @@ record TreeRow(TreeNode node, int depth, boolean expanded, boolean selectable, b
                 }
                 event.consume();
             }
-            case ENTER -> {
-                if (selectable) {
-                    onSelect.run();
-                    event.consume();
-                }
+            // §3: "`Home`/`End` go to the first and last **visible** rows".
+            //
+            // Visible in the tree's sense -- the flattened list -- and not in the
+            // viewport's: `End` in a scrolled tree lands on the last row of the
+            // model and scrolls to it, which is what every tree does and what
+            // `Ctrl+End` means in every document. A tree's own scrolling is a
+            // `scroll` ancestor's business, and the focus ring is what asks it to
+            // follow (ADR-0120).
+            case HOME -> {
+                onEnd.accept(-1);
+                event.consume();
+            }
+            case END -> {
+                onEnd.accept(1);
+                event.consume();
             }
             default -> {
             }
         }
+    }
+
+    /// §3's `*`: "expands every sibling".
+    ///
+    /// A [TextEvent] rather than a key, because `*` is a *character* and the key
+    /// it takes differs by layout — `Shift+8` on a US keyboard, the numpad's own
+    /// key on any, and neither on AZERTY. Asking for the key would be asking for
+    /// the position, which §7.1 says this toolkit does not answer.
+    ///
+    /// Everything else typed is the typeahead. Both live here rather than in two
+    /// handlers because they arrive through one event, and the split between them
+    /// is one character.
+    @Override
+    public void onText(io.github.digitalsmile.goldberry.input.event.TextEvent event) {
+        if (event.text().isEmpty()) {
+            return;
+        }
+        if ("*".equals(event.text())) {
+            if (onSiblings != null) {
+                onSiblings.run();
+            }
+            event.consume();
+            return;
+        }
+        if (onType != null) {
+            onType.accept(event.text());
+        }
+        event.consume();
     }
 
     @Override
@@ -245,6 +349,80 @@ record TreeRow(TreeNode node, int depth, boolean expanded, boolean selectable, b
                     .mark(new Box.Mark(
                             expanded ? Box.Mark.Kind.CHEVRON_DOWN : Box.Mark.Kind.CHEVRON_END,
                             style.color(), 1.5));
+        }
+    }
+
+    /// The box §3's `checkable=` puts on a row, drawn only where there is one.
+    ///
+    /// ## It borrows `checkbox`'s indicator rather than drawing its own
+    ///
+    /// A `check-indicator` is already a 16px square that draws a tick, draws a
+    /// bar for the mixed state, and takes its colours from `:checked` and
+    /// `:indeterminate` rules a theme has already written. A second one here
+    /// would be a second thing to keep in step with the first, and the first is
+    /// where the reasoning about the tri-state lives — that the mixed mark is a
+    /// *bar* and not a greyed tick, because "some of these are on" and "all of
+    /// these are on" have to be distinguishable at a glance
+    /// ([ADR-0210](../../../../../../../../book/src/adr/0210-a-tree-checks-and-selects-two-different-things.md)).
+    ///
+    /// What this adds is the hit target and the click. The indicator is a
+    /// [Paints] leaf with no handler — it is a square inside a control, and the
+    /// control is what a pointer talks to — so a row that simply nested one would
+    /// have a box that could be looked at and not ticked.
+    ///
+    /// ## And it consumes the click
+    ///
+    /// [TreeChevron]'s rule, and the same mistake it exists to avoid: ticking a
+    /// row must not also select it. They are two values (§3 asks for both), and
+    /// a click that did both would make the checkbox unusable in a
+    /// single-selection tree — every tick would move the highlight.
+    record TreeCheck(
+            io.github.digitalsmile.goldberry.widgets.controls.checkbox.Checkbox.Value state,
+            Runnable onCheck)
+            implements Widget.Leaf, Styled, Paints, Handles {
+
+        /// The mark's stroke, in logical pixels — §1.6's icon stroke, which is
+        /// what `checkbox` draws its own tick at.
+        private static final double MARK_THICKNESS = 2;
+
+        @Override
+        public String cssType() {
+            return "tree-check";
+        }
+
+        @Override
+        public Set<String> classes() {
+            return Set.of();
+        }
+
+        @Override
+        public boolean isFocusable() {
+            // The row is the Tab stop and `Space` is how the keyboard reaches
+            // this, so a focusable box would put a second stop inside a control
+            // that §7.2 says is one.
+            return false;
+        }
+
+        @Override
+        public List<Widget> children() {
+            return List.of(
+                    new io.github.digitalsmile.goldberry.widgets.controls.checkbox.CheckIndicator(
+                            state, false, MARK_THICKNESS));
+        }
+
+        @Override
+        public void onPointer(PointerEvent event) {
+            if (event.kind() == PointerEvent.Kind.CLICKED) {
+                if (onCheck != null) {
+                    onCheck.run();
+                }
+                event.consume();
+            }
+        }
+
+        @Override
+        public Box render(ComputedStyle style, List<Box> children, Context context) {
+            return Box.of().style(style).children(children.toArray(Box[]::new));
         }
     }
 

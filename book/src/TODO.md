@@ -648,14 +648,26 @@ the mechanism the sentence named.
   expensive later — `message` against `toast`, `segmented` against `radio-group`,
   `code-input` against a styled `text-input` are all decisions that would otherwise be
   made by whoever happened to need one.
-- **`tree` is built in a first cut, and §3 asks for more.** Not built: the checkbox
-  per node with `cascade` propagating down and `indeterminate` upward — §3's "one
-  place the tri-state checkbox is not a decoration" — `*` to expand every sibling,
-  type-to-select across visible rows, multi-selection, and `Home`/`End` to the
-  first and last visible rows. Each is additive and none changes the model that
-  shipped. **§2's chevron `rotate` is two marks instead**, because §8's subset has
-  no `transform` on a mark — the wall `select`'s chevron hit — so a closed row
-  draws `>` and an open one `v`, and the cost is the animation. —
+- ~~**`tree` is built in a first cut, and §3 asks for more.**~~ **All five of the
+  leftovers are built, and one of them was never actually blocked.** The keyboard
+  three — `Home`/`End`, `*`, type-to-select — needed rows the focused one cannot
+  see, which is why they waited and why each is a callback the tree hands down
+  ([ADR-0209](adr/0209-a-tree-finishes-its-keyboard.md)). The other two are
+  `checkable=` and the selection models
+  ([ADR-0210](adr/0210-a-tree-checks-and-selects-two-different-things.md)).
+  **Multi-selection was recorded here as blocked on `list` and that reading was
+  too strict**: `tree` defined the *node* model itself for the same reason, and
+  wrote down that `list` will have to agree — the selection models are the shape
+  every desktop list has, which makes it a small promise to make on `list`'s
+  behalf. The checkbox needed a different question answered first, and it was in
+  the design document rather than in the code: §3 spends the word `checkable`
+  twice, on which rows are an *answer* and on whether rows carry a *box*. Both
+  ship, under two names, and the disagreement is now in `ARCHITECTURE.md` §17.1.
+  **§2's chevron `rotate` is two marks instead**, because §8's subset has no
+  `transform` on a mark — the wall `select`'s chevron hit — so a closed row draws
+  `>` and an open one `v`, and the cost is the animation. —
+  [ADR-0210](adr/0210-a-tree-checks-and-selects-two-different-things.md),
+  [ADR-0209](adr/0209-a-tree-finishes-its-keyboard.md),
   [ADR-0184](adr/0184-a-tree-is-a-list-that-remembers-what-is-open.md)
 - **`tree` moved from deferred to specified**, which changes what M5 owes. ARCHITECTURE
   §17 defers "tables/trees"; `table` still is, because it waits on virtualization, but

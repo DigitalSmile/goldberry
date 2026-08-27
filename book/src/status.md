@@ -4154,6 +4154,84 @@ is the `scroll` box's.
   the same rule, so they are the same method — a second copy would be a second
   chance for the two to disagree about which ancestor wins.
 
+### The rest of a tree's keyboard
+
+- **§3's `Home`/`End`, `*` and type-to-select are built**
+  ([ADR-0209](adr/0209-a-tree-finishes-its-keyboard.md)), which is three of the
+  five things ADR-0184 shipped `tree` without. They waited for one reason and it
+  is the same reason for all three: each needs to know about rows the focused one
+  cannot see, so each is a callback the tree hands down — the shape `Left`'s
+  move-to-parent already had.
+- **`Home`/`End` mean the flattened list**, not the viewport: `End` in a scrolled
+  tree goes to the last row of the model, and the focus ring asks the scroller to
+  follow (ADR-0120).
+- **`*` opens the siblings and not the descendants**, which is the reading that
+  makes it useful and the one that does not hang a lazy tree by fetching its whole
+  model on one keystroke. A lazy sibling's supplier runs exactly as it does for a
+  branch opened by hand.
+- **`*` and the typeahead both arrive as text rather than as keys.** `*` is a
+  *character* whose key differs by layout — `Shift+8`, a numpad key, or neither —
+  and asking for the key would be asking for the physical position, which §7.1
+  says this toolkit does not answer. A typeahead wants what was typed for
+  `select`'s reason (ADR-0141).
+- **Typing moves the focus and chooses nothing.** `Enter` is what chooses, which
+  is `select`'s split and ADR-0063's rule; a keystroke committing a value in a
+  controlled widget is the thing that rule exists to prevent.
+- **Type-to-select matches visible rows only**, which is §3's own wording: a
+  search that opened branches to find its match would be a search, and a lazy tree
+  cannot have one without fetching everything.
+- **A test that could not fail was found writing these.** `TestHost.focusRequests()`
+  hands back a copy, so a test making several moves and clearing it between them
+  was clearing a list nothing was writing to. `forgetFocusRequests()` is the fix,
+  and it keeps the record on the host where it belongs.
+
+### A tree checks and selects two different things
+
+- **`tree`'s last two leftovers are built**
+  ([ADR-0210](adr/0210-a-tree-checks-and-selects-two-different-things.md)), and
+  §3 owes it nothing further: `checkable=` puts a box on the rows and
+  `selection=` is none/single/multi with the Ctrl/Shift semantics.
+- **Multi-selection was recorded as blocked on `list` and that reading was too
+  strict.** `tree` defined the *node* model itself for exactly the same reason
+  (ADR-0184) and wrote down that `list` will have to agree with it; the selection
+  models are the shape every desktop list has, which is what makes that a small
+  promise to make on `list`'s behalf. The same debt, taken knowingly and in the
+  same place.
+- **The checkbox needed a question answered first, and it was in the design
+  document rather than in the code.** §3 spends the word `checkable` twice — on
+  `select tree=` it is which rows are an **answer**, and on a standalone `tree` it
+  "adds a **checkbox** per node". Both ship, under two names, and the word doing
+  two jobs is now recorded in `ARCHITECTURE.md` §17.1.
+- **Selecting and checking are two values through two callbacks.** The selection
+  is where the reader *is*; the checks are what they have *marked*. A file manager
+  where those were one thing could not copy six files, because opening the seventh
+  folder would clear the list.
+- **A cascade parent is derived and never stored.** A stored parent bit goes stale
+  the moment one child is unticked, and the row then claims "all of these" while
+  showing one that is not. A **lazy branch nobody has opened reads its own
+  membership** — fetching a model to draw a checkbox is the one thing a lazy tree
+  must not do, which is what `mayHaveChildren` exists for.
+- **Clicking a mixed branch asks for all of it**, which is
+  `Checkbox.Value.toggled()`'s rule getting a second *caller* rather than a second
+  copy — and the box itself borrows `check-indicator`, so there is one tri-state
+  mark in the toolkit and not two kept alike by hand.
+- **The whole set is reported even when it holds one.** A `Shift` range runs over
+  the flattened visible rows, which only the tree can see, so an id on its own
+  would be an answer the application could not turn back into a selection. The
+  three-argument constructor unwraps it again, so `select tree=` and every
+  existing caller see the `String` they always saw.
+- **The anchor does not move under `Shift`**, so a run of shifted presses sweeps
+  from one end rather than growing from wherever it last stopped — which is what
+  makes an over-shot range recoverable without starting again.
+- **Two tests failed first by assuming the widget remembered its own selection**,
+  which is exactly what ADR-0063 says it must not. Rewritten to apply the reported
+  set back between presses, which is what an application does and what turns them
+  into tests of the loop rather than of one call.
+- **Every existing golden is byte-identical**, because all three defaults are
+  unchanged. The new one is a cascade tree with a partly-ticked branch — the one
+  state a picture is the only proof of, that the mixed mark is a bar and not a
+  greyed tick.
+
 ### Not started
 
 Client-side decorations, the rest of §4 —
