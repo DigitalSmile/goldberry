@@ -261,14 +261,35 @@ class WaylandDecorationsTest {
     @DisplayName("reading the thread from /proc")
     class ReadingTheThread {
 
+        /// The one test here that reads the real filesystem, and therefore the
+        /// one whose right answer depends on which machine is running it.
+        ///
+        /// **Both halves are assertions, not a skip.** On Linux this is a live
+        /// check that the `/proc` parsing works against a real symlink — JUnit
+        /// runs tests on a thread the framework made, and even a plain `java`
+        /// main is not the primordial thread, so the answer must be `false`
+        /// either way. Everywhere else it is a live check of the other half of
+        /// the documented contract: a machine that cannot say produces
+        /// **silence rather than a guess**, which means empty rather than a
+        /// default, an exception, or `false` by accident.
+        ///
+        /// Gating it with `@EnabledOnOs(LINUX)` would have been the smaller edit
+        /// and would have left macOS and Windows asserting nothing at all about
+        /// the call that actually runs there — and the absence path is the one
+        /// they take.
         @Test
-        @DisplayName("this test runs on a created thread, and says so")
-        void thisJvmIsNotOnTheInitialThread() {
-            // JUnit runs tests on a thread the framework made, and even a plain
-            // `java` main is not the primordial thread. Either way this must be
-            // false here -- which is also a live check that the /proc parsing
-            // works on the machine running the build.
-            assertEquals(Optional.of(false), WaylandDecorations.onInitialThread());
+        @DisplayName("says false on a machine with /proc, and nothing at all on one without")
+        void theAnswerDependsOnWhetherProcCanGiveOne() {
+            var procCanAnswer = Files.isSymbolicLink(Path.of("/proc/thread-self"));
+
+            if (procCanAnswer) {
+                assertEquals(Optional.of(false), WaylandDecorations.onInitialThread(),
+                        "a JVM's threads are never the process's initial one, and /proc says so");
+            } else {
+                assertEquals(Optional.empty(), WaylandDecorations.onInitialThread(),
+                        "without /proc the answer is silence, not a guess -- the verdict reads "
+                                + "this as UNKNOWN and stays quiet");
+            }
         }
 
         @Test

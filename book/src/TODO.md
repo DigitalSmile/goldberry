@@ -1323,6 +1323,19 @@ on, which in four cases is the same thing.
   single red tick. A Wayland leg needs a headless compositor in CI (`weston
   --backend=headless` or `sway --headless`), which is a job nobody has written yet. —
   [ADR-0084](adr/0084-the-gtk-plugin-cannot-decorate-a-jvms-window.md)
+- ~~**`WaylandDecorationsTest` asserted `/proc` exists.**~~ **It asserts the
+  platform's own half of the contract now.** One test read the real
+  `/proc/thread-self` and asserted `Optional.of(false)` unconditionally — true on
+  Linux and false everywhere else, in a suite all three OS legs run
+  (`macos.yml` and `windows.yml` both run `:core:test` unfiltered). The fix is
+  not a skip: where `/proc` can answer it is still the live check that the
+  parsing works against a real symlink, and where it cannot the assertion is that
+  the answer is **empty** — which is `onInitialThread`'s documented contract,
+  "a machine that cannot say must produce silence rather than a guess", and the
+  branch macOS and Windows actually take. Gating with `@EnabledOnOs(LINUX)` would
+  have left two of the three platforms asserting nothing about the call that runs
+  on them. —
+  [ADR-0084](adr/0084-the-gtk-plugin-cannot-decorate-a-jvms-window.md)
 - **Native decorations on Wayland need a launcher that embeds the VM.** The GTK plugin
   is the only thing that draws decorations matching the desktop, and its one requirement
   is `getpid() == gettid()`. The stock `java` launcher runs `main` on a thread it
