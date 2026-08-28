@@ -14,6 +14,7 @@ import io.github.digitalsmile.goldberry.widget.ElementTree;
 import io.github.digitalsmile.goldberry.widgets.TestHost;
 import io.github.digitalsmile.goldberry.widgets.controls.checkbox.Checkbox;
 import io.github.digitalsmile.goldberry.widgets.panel.Described;
+import io.github.digitalsmile.goldberry.widgets.panel.list.Selection;
 import java.util.ArrayList;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;

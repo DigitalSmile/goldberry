@@ -4268,6 +4268,56 @@ is the `scroll` box's.
 - **A drag off a control still cancels its click.** The desktop reading agrees
   the pointer is outside; only the magnitude changes.
 
+### A list, and the models it was owed
+
+- **§10's `list` is built** ([ADR-0212](adr/0212-a-list-owns-the-models-a-tree-borrowed.md)),
+  which leaves `table` as the only entry in that section — still deferred, still
+  on virtualization.
+- **It was built to settle a debt as much as to fill a gap.** `tree` took
+  ADR-0184's rule twice: the widget that needs a model first defines it and
+  writes down that the other will have to agree. So `Selection` lived in
+  `panel.tree` while §3 called it "`list`'s selection models". It has moved, and
+  **nothing about its shape changed on the way** — which is the evidence that the
+  promise was a small one to make. `Checkable` stayed, because §10 gives a list no
+  checkbox and a model with one consumer belongs to that consumer.
+- **An item is the application's own type**, and three functions describe it:
+  `identity` says what it *is*, `factory` says what it *looks like*, and `text`
+  says what it *reads as*. Three lambdas rather than an interface to implement,
+  because an interface would make the trivial list — strings drawn as text — the
+  one that cost the most to write. `ListView.of(List<String>)` is that case in one
+  call.
+- **`text` is optional and its absence turns type-to-select off**, which §10 asks
+  for in as many words. The half that is not obvious is that the row must then
+  **not consume** the keystroke: one that swallowed text it could not use would
+  stop a field elsewhere from ever seeing one.
+- **§10's item context menus are named on the row**, and that is the one place
+  they can be. A menu is a name on a widget the launcher finds by walking up from
+  an element — a right-click walks up from what is under the *pointer* and the
+  menu key from what has the *focus* (ADR-0208), and the row is the only node on
+  both paths. So `ListRow` carries an `Attributes`, which no other part in the
+  catalog does.
+- **A row's focus name is scoped by its list's `id`.** `host.focus` takes a name
+  global to the window, so two lists over items with equal identities would each
+  answer to the other's `Home`. This is `tree`'s behaviour improved rather than
+  copied; what is left of the collision needs two lists, both unnamed, holding an
+  item with the same identity.
+- **The focus ring stays, where a dropdown's row has none**, and the difference is
+  which thing the arrows move. In a `select` they move the *value*, so the
+  highlight is always where the keyboard is and a ring would be a second marker
+  for one place. Here they move the **focus** and `Enter` chooses, so those are
+  genuinely two rows and need two marks — ADR-0063's split, drawn.
+- **A `none` list is still walkable and still does not eat its clicks.** §10's
+  `none` says what may be *chosen*, not what may be *read*: rows nobody can select
+  are still content a keyboard user has to reach, and a row that consumed the
+  click would stop a button the item-factory put on it from ever being pressed.
+- **The class is `ListView` and the CSS type is `list`**, because a widget record
+  named `List` would shadow `java.util.List` in every file that built one —
+  including its own, whose model is a `java.util.List`.
+- **The showcase's Choosers screen gained it**, above the `select tree=` section
+  rather than below, which is also the order that reads: "a tree instead of a
+  list" means more after a list. Every `tree` golden is byte-identical, because
+  only the enum's package moved.
+
 ### Not started
 
 Client-side decorations, the rest of §4 —

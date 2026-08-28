@@ -3,6 +3,7 @@ package io.github.digitalsmile.goldberry.widgets.panel.tree;
 import io.github.digitalsmile.goldberry.widget.BuildContext;
 import io.github.digitalsmile.goldberry.widget.State;
 import io.github.digitalsmile.goldberry.widget.Widget;
+import io.github.digitalsmile.goldberry.widgets.panel.list.Selection;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;

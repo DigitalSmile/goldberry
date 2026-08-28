@@ -2410,6 +2410,60 @@ scroll.menu-viewport { flex-grow: 0 }
    (ADR-0179). */
 scroll.select-viewport { flex-grow: 0 }
 
+/* --- list (§10) -------------------------------------------------------- */
+
+/* §3's metrics row: "`list` row: height 32 (26); padding-x 12; selection =
+   `--gb-selection` full-row". The height is the token the row shares with a
+   dropdown's rows and a tree's, which is what makes a `select` opened over a
+   list look like the same furniture.
+ *
+ * The column does not scroll itself. §10's v1 renders every row, and a list
+   taller than its box is a `scroll`'s to scroll -- so `list` sets no height and
+   no overflow, and an application that wants one wraps it, which is the same
+   arrangement `tree` has. */
+list {
+  flex-direction: column;
+  align-items: stretch;
+}
+
+/* `padding-x 12` where a tree row has 8: a tree spends the difference on its
+   indent gutter, and a list has none to spend it on. */
+list-row {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  height: var(--gb-list-row-height);
+  padding: 0 12px;
+  flex-shrink: 0;
+  color: var(--gb-text);
+  cursor: pointer;
+  transition: background-color var(--gb-motion-fast);
+}
+
+list-row:hover {
+  background: var(--gb-overlay-hover);
+}
+
+/* §3: "selection = `--gb-selection` full-row". The colour stays `--gb-text` --
+   `--gb-selection` is a translucent wash rather than a fill, so the label under
+   it does not need a foreground of its own the way a segment's does on its
+   opaque pill. Full-row is what the flat `list` box buys: nothing insets a row,
+   so the wash runs edge to edge. */
+list-row.selected {
+  background: var(--gb-selection);
+}
+
+/* The ring stays, which is the opposite of `select-list option`'s rule and the
+   difference is which thing moves. In a dropdown the arrows move the *value*, so
+   the highlight is always where the keyboard is and a ring would be a second
+   marker for one place. Here the arrows move the **focus** and `Enter` chooses,
+   so "where the keyboard is" and "what is chosen" are genuinely two rows and
+   need two marks (ADR-0063's split, drawn). */
+list-row:focus-visible {
+  outline: 2px solid var(--gb-focus);
+  outline-offset: -2px;
+}
+
 /* --- tree (§3) --------------------------------------------------------- */
 
 /* §2: "`tree` row: `list` row metrics; indent 20 per level; chevron 16 in the

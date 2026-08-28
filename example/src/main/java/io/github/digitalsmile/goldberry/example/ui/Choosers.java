@@ -7,6 +7,8 @@ import io.github.digitalsmile.goldberry.widget.attr.Attributes;
 import io.github.digitalsmile.goldberry.widgets.controls.option.Option;
 import io.github.digitalsmile.goldberry.widgets.controls.select.Select;
 import io.github.digitalsmile.goldberry.widgets.core.Column;
+import io.github.digitalsmile.goldberry.widgets.panel.list.ListView;
+import io.github.digitalsmile.goldberry.widgets.panel.list.Selection;
 import io.github.digitalsmile.goldberry.widgets.panel.tree.TreeNode;
 import io.github.digitalsmile.goldberry.widgets.text.Text;
 
@@ -58,6 +60,17 @@ public record Choosers() implements Widget.Stateful {
         private String city = "";
         private String query = "";
 
+        /// What a multi-selection `list` holds. The same shape a `multiple`
+        /// select holds and for the same reason — the set is the application's,
+        /// and the widget reports the whole of it rather than the row that was
+        /// pressed, because a `Shift` range is computed over rows only the list
+        /// can see ([ADR-0212]).
+        private java.util.Set<String> crews = java.util.Set.of("Frodo");
+
+        private void chooseCrews(java.util.Set<String> chosen) {
+            setState(() -> crews = chosen);
+        }
+
         /// §3's `tree=`: the popup is a tree and a selection is a node.
         private String region = "";
 
@@ -66,6 +79,11 @@ public record Choosers() implements Widget.Stateful {
                 new Option("rust", "Rust"),
                 new Option("kotlin", "Kotlin"),
                 new Option("zig", "Zig"));
+
+        /// The rows §10's list draws. Plain strings, which is the shape a list
+        /// most often has and the one `ListView.of` exists for.
+        private static final List<String> CREWS = List.of(
+                "Frodo", "Samwise", "Meriadoc", "Peregrin", "Aragorn", "Gimli");
 
         /// A model with a **lazy** branch in it, because that is the half of §3's
         /// tree a still list cannot show: "a node's children are fetched when it
@@ -173,6 +191,21 @@ public record Choosers() implements Widget.Stateful {
                             .placeholder("Pick a city")
                             .withAttributes(Attributes.NONE.id("city")),
                     new Text(city.isEmpty() ? "No city chosen" : "Chose: " + city)
+                            .withAttributes(Attributes.NONE.classes("caption")),
+
+                    new SectionHeader("A list that is not in a popup"),
+                    new Text("§10's list: the same rows a select drops, standing on their own."
+                            + " Multi-selection, so Ctrl adds a row and Shift sweeps a range"
+                            + " from the last row chosen without it. Typing jumps to a name and"
+                            + " chooses nothing — Enter is still what chooses.")
+                            .withAttributes(Attributes.NONE.classes("caption")),
+                    ListView.of(CREWS)
+                            .selection(Selection.MULTIPLE)
+                            .selected(crews, this::chooseCrews)
+                            .withAttributes(Attributes.NONE.id("crews")),
+                    new Text(crews.isEmpty()
+                            ? "Nobody chosen"
+                            : "Holding " + crews.size() + ": " + String.join(", ", crews))
                             .withAttributes(Attributes.NONE.classes("caption")),
 
                     new SectionHeader("A tree instead of a list"),

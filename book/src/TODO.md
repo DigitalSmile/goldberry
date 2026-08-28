@@ -667,7 +667,9 @@ the mechanism the sentence named.
   too strict**: `tree` defined the *node* model itself for the same reason, and
   wrote down that `list` will have to agree — the selection models are the shape
   every desktop list has, which makes it a small promise to make on `list`'s
-  behalf. The checkbox needed a different question answered first, and it was in
+  behalf. **`list` is built now and the promise was kept**: `Selection` moved to
+  it and `tree` imports it, and nothing about the shape changed on the way
+  ([ADR-0212](adr/0212-a-list-owns-the-models-a-tree-borrowed.md)). The checkbox needed a different question answered first, and it was in
   the design document rather than in the code: §3 spends the word `checkable`
   twice, on which rows are an *answer* and on whether rows carry a *box*. Both
   ship, under two names, and the disagreement is now in `ARCHITECTURE.md` §17.1.
@@ -677,6 +679,30 @@ the mechanism the sentence named.
   [ADR-0210](adr/0210-a-tree-checks-and-selects-two-different-things.md),
   [ADR-0209](adr/0209-a-tree-finishes-its-keyboard.md),
   [ADR-0184](adr/0184-a-tree-is-a-list-that-remembers-what-is-open.md)
+- **`list` renders every row, and `table` is still waiting on the recycler
+  neither has.** §10 says v1 instantiates its rows — "fine into the low
+  thousands" — and commits virtualization as the v1.x follow-up, "so it's a
+  performance upgrade, not an API break". The item-factory shipped in the shape
+  that promise needs: a recycler calls the same function with a different item.
+  **Whether it survives contact is untested**, and cannot be until a recycler
+  exists, which is the honest state of a promise about work not yet done. `table`
+  is deferred behind exactly this (ARCHITECTURE §17). —
+  [ADR-0212](adr/0212-a-list-owns-the-models-a-tree-borrowed.md)
+- **A `list` is Java, like `canvas` and like autocomplete.** An item-factory is a
+  function and §8's documents have no way to write one, so no markup builds a
+  list — the same wall, reached for the third time, and the third different
+  widget that would want the answer `Named` gave for controllers
+  ([ADR-0170](adr/0170-a-document-names-an-object-and-a-label-hands-focus-down.md)).
+  A named item-factory is the shape; nothing has needed it badly enough to
+  design what a document would say about a row. —
+  [ADR-0212](adr/0212-a-list-owns-the-models-a-tree-borrowed.md)
+- **A row's focus name still collides between two unnamed lists.** `host.focus`
+  takes a name global to the window, and `list` scopes its rows by the list's own
+  `id` — which settles it wherever an application named one, and leaves the case
+  of two lists, both unnamed, holding an item with the same identity. `tree` has
+  the unscoped version of the same thing. What would close it properly is a focus
+  name that is relative to a subtree, which the router has no notion of. —
+  [ADR-0212](adr/0212-a-list-owns-the-models-a-tree-borrowed.md)
 - **`tree` moved from deferred to specified**, which changes what M5 owes. ARCHITECTURE
   §17 defers "tables/trees"; `table` still is, because it waits on virtualization, but
   `tree` reuses `list`'s model and item-factory and does not — and `select tree=#true`
@@ -737,8 +763,9 @@ the mechanism the sentence named.
   `Esc` restores and a free-typed value is refused unless `free`, both off one
   nullable string of offered text that `TextInputState.follow` already knew how
   to honour. **`tree=#true` is built too** ([ADR-0184](adr/0184-a-tree-is-a-list-that-remembers-what-is-open.md)),
-  and so is a first cut of `tree` itself, which `list` will now have to agree with
-  since §3 says the two share an item-factory and `list` is not built. —
+  and so is a first cut of `tree` itself, which `list` had to agree with since §3
+  says the two share an item-factory — and does, now that `list` is built and the
+  selection models have moved to it (ADR-0212). —
   [ADR-0182](adr/0182-a-select-may-hold-more-than-one.md),
   [ADR-0141](adr/0141-a-select-is-a-closed-control-and-a-list.md)
 - **Autocomplete is Java-only, and `SelectList` is in the wrong package.** §4 says

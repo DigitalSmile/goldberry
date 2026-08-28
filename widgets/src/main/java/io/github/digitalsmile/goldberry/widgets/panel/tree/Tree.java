@@ -4,6 +4,7 @@ import io.github.digitalsmile.goldberry.widget.attr.Attributed;
 import io.github.digitalsmile.goldberry.widget.attr.Attributes;
 import io.github.digitalsmile.goldberry.widget.State;
 import io.github.digitalsmile.goldberry.widget.Widget;
+import io.github.digitalsmile.goldberry.widgets.panel.list.Selection;
 
 import java.util.LinkedHashSet;
 import java.util.List;

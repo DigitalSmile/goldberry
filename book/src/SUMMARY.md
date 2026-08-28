@@ -221,6 +221,7 @@
 - [ADR-0209 A tree finishes its keyboard](adr/0209-a-tree-finishes-its-keyboard.md)
 - [ADR-0210 A tree checks and selects two different things](adr/0210-a-tree-checks-and-selects-two-different-things.md)
 - [ADR-0211 A popup asks the desktop where the pointer is](adr/0211-a-popup-asks-the-desktop-where-the-pointer-is.md)
+- [ADR-0212 A list owns the models a tree borrowed](adr/0212-a-list-owns-the-models-a-tree-borrowed.md)
 
 ---
 
