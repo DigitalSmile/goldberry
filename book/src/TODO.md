@@ -398,10 +398,18 @@ the mechanism the sentence named.
   nobody would find. The trick for "80% of the *window*" was the scrim: a
   percentage resolves against the containing block, so the scrim's padding across
   had to go or the maximum would have been 80% of the window less 48px — measured
-  at 330 in a window where §2 permits 339. **Four consumers are still waiting**
-  and each is now a stylesheet edit rather than an engine change: `toast`'s 360 is
-  still a width, `tooltip` still has no maximum, `popover` still takes
-  `minimumWidth` as a Java argument, and `text-area`'s max rows is unbuilt. —
+  at 330 in a window where §2 permits 339. **The four consumers this entry named
+  are all resolved, and only two of them by being built.** `tooltip` has a
+  `max-width` of 320 — a judgement rather than a specified number, because §2's
+  metrics row gives it no width at all, and 320 so a label cannot reach a
+  `dialog`'s minimum. `text-area`'s max rows shipped with the widget
+  ([ADR-0171](adr/0171-a-column-is-an-x-and-a-width-arrives-late.md)). `toast`
+  **stays a width**: giving every toast the same width is what makes a stack of
+  three read as a stack, and a maximum would size each one to its own string,
+  which is the ragged pile. And `popover`'s `minimumWidth` is not a `min-width`
+  consumer at all — it is "at least as wide as the control this dropped from"
+  ([ADR-0145](adr/0145-a-dropdown-is-as-wide-as-what-it-drops-from.md)), a
+  runtime measurement of a *different node*, which no stylesheet can state. —
   [ADR-0181](adr/0181-a-box-may-say-how-small-and-how-large.md)
 - **`isModal` has one consumer**, which is one fewer than a mechanism should
   have. A `wizard` step and a `sheet` are the plausible seconds; it is tested in
