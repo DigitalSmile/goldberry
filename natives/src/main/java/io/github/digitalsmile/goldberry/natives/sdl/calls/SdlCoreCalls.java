@@ -28,7 +28,8 @@ public record SdlCoreCalls(
         GetRevision getRevision,
         GetCurrentVideoDriver getCurrentVideoDriver,
         SetHint setHint,
-        GetModState getModState) {
+        GetModState getModState,
+        GetGlobalMouseState getGlobalMouseState) {
 
     /// Binds every function above.
     ///
@@ -46,7 +47,8 @@ public record SdlCoreCalls(
                 new GetRevision(lookup),
                 new GetCurrentVideoDriver(lookup),
                 new SetHint(lookup),
-                new GetModState(lookup));
+                new GetModState(lookup),
+                new GetGlobalMouseState(lookup));
     }
 
     /// Initialises SDL and the subsystems named.
@@ -367,6 +369,40 @@ public record SdlCoreCalls(
                 return (short) FD_SDL_GetModState.invokeExact(address);
             } catch (Throwable t) {
                 throw Downcalls.failure("SDL_GetModState", t);
+            }
+        }
+    }
+
+    /// Where the pointer is on the **desktop**, right now.
+    ///
+    /// Polled at translation time for [GetModState]'s reason and one sharper
+    /// one: it is the only reading of the pointer that does not depend on which
+    /// window the platform decided an event belongs to. A popup's events on
+    /// macOS arrive attributed to the popup with coordinates in the *owner's*
+    /// space, so the per-event numbers cannot be trusted for one
+    /// ([ADR-0211](../../../../../../../../book/src/adr/0211-a-popup-asks-the-desktop-where-the-pointer-is.md)).
+    ///
+    /// `unsigned int SDL_GetGlobalMouseState(float *x, float *y)`
+    ///
+    /// @param x out-parameter for the x coordinate, in desktop logical points
+    /// @param y out-parameter for the y coordinate
+    /// @return an `SDL_MouseButtonFlags` bitmask, which nothing reads yet
+    public static final class GetGlobalMouseState {
+
+        private static final MethodHandle FD_SDL_GetGlobalMouseState =
+                Downcalls.link(FunctionDescriptor.of(JAVA_INT, ADDRESS, ADDRESS));
+
+        private final MemorySegment address;
+
+        GetGlobalMouseState(SymbolLookup lookup) {
+            this.address = Downcalls.symbol(lookup, "SDL_GetGlobalMouseState");
+        }
+
+        public int call(MemorySegment x, MemorySegment y) {
+            try {
+                return (int) FD_SDL_GetGlobalMouseState.invokeExact(address, x, y);
+            } catch (Throwable t) {
+                throw Downcalls.failure("SDL_GetGlobalMouseState", t);
             }
         }
     }

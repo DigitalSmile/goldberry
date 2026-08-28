@@ -4232,6 +4232,42 @@ is the `scroll` box's.
   state a picture is the only proof of, that the mixed mark is a bar and not a
   greyed tick.
 
+### The release that arrived in another window's space
+
+- **Every popup on macOS could be opened and hovered and not chosen**
+  ([ADR-0211](adr/0211-a-popup-asks-the-desktop-where-the-pointer-is.md)). The
+  press landed on the row and the release did not, so no click was ever
+  synthesized — a dropdown, a menu and a suggestion panel all unusable, and the
+  toolkit's own halves all correct.
+- **SDL promises coordinates in the target window's space and does not deliver
+  them here.** `Cocoa_SendMouseButtonClicks` rewrites them only when the event's
+  `NSWindow` is not the key window; a mouse-up goes to the key window, and a
+  `NOT_FOCUSABLE` popup can never be one — which it is by ADR-0189, and for a
+  reason that stands. So the press arrives in the popup's space and the release
+  in the **owner's**, both carrying the popup's id.
+- **And the owner-space value is stale**, which is worse than a fixed offset:
+  nothing updates it while the pointer is over the popup, so a release reports
+  where the pointer was before the popup opened.
+- **The bounds check is the detector and the desktop is the answer.** A
+  coordinate inside the window it was delivered to is taken as given — every
+  event on every other platform, and most of them here. One that falls outside
+  has its *space* in doubt, and only then is `SDL_GetGlobalMouseState` asked.
+- **A popup's desktop origin is its owner's position plus the offset it was asked
+  for**, because `SDL_GetWindowPosition` on a popup reports the display's
+  coordinates on some drivers and the parent's on others. Two readings that are
+  not in doubt rather than one that is.
+- **Every window is reconciled, not only popups.** A top-level window's
+  coordinates are already inside its own bounds, so the branch never fires for
+  one — and a rule that named popups would stop being checked the day something
+  else needed it.
+- **A test can push a pointer now.** `SdlEventBuffer` gained `writeMouseMotion`
+  and `writeMouseButton` for `writeWheel`'s reason (ADR-0061): all three branches
+  run under the dummy driver against the real translate. What no test here
+  reaches is SDL's *attribution* — the dummy driver refuses popups outright, and
+  the behaviour is a property of a real `NSWindow`.
+- **A drag off a control still cancels its click.** The desktop reading agrees
+  the pointer is outside; only the magnitude changes.
+
 ### Not started
 
 Client-side decorations, the rest of §4 —

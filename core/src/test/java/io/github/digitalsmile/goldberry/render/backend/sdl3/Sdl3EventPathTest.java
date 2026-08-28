@@ -2,6 +2,7 @@ package io.github.digitalsmile.goldberry.render.backend.sdl3;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -13,6 +14,7 @@ import io.github.digitalsmile.goldberry.render.window.BackendWindow;
 import io.github.digitalsmile.goldberry.render.event.EventSink;
 import io.github.digitalsmile.goldberry.render.model.LogicalSize;
 import io.github.digitalsmile.goldberry.render.window.WindowSpec;
+import io.github.digitalsmile.goldberry.natives.sdl.Sdl;
 import io.github.digitalsmile.goldberry.natives.sdl.SdlEventBuffer;
 import io.github.digitalsmile.goldberry.natives.sdl.event.SdlEventType;
 import io.github.digitalsmile.goldberry.natives.sdl.SdlVideo;
@@ -195,6 +197,94 @@ class Sdl3EventPathTest {
 
             assertEquals(1L, count(events, BackendEvent.Resized.class),
                     () -> "expected one resize, got " + names(events));
+        });
+    }
+
+    @Test
+    @DisplayName("a pointer inside its window is reported exactly as it arrived")
+    void coordinatesInsideTheWindowAreTakenAsGiven() {
+        withBackend((backend, window) -> {
+            var events = pump(backend, sink -> push(buffer ->
+                    buffer.writeMouseMotion(id(window), 100f, 80f)));
+
+            var moved = only(events, BackendEvent.PointerMoved.class);
+            // The ordinary path, and the one ADR-0211's reconciliation must not
+            // touch: every event on every platform other than a macOS popup comes
+            // through here, so a correction that fired for one of these would
+            // move the pointer on all three.
+            assertEquals(100f, moved.x());
+            assertEquals(80f, moved.y());
+        });
+    }
+
+    @Test
+    @DisplayName("a pointer at the far corner is still inside, so the bound is inclusive")
+    void theFarEdgeIsInside() {
+        withBackend((backend, window) -> {
+            var events = pump(backend, sink -> push(buffer -> buffer.writeMouseMotion(
+                    id(window), SIZE.width(), SIZE.height())));
+
+            var moved = only(events, BackendEvent.PointerMoved.class);
+            // A coordinate exactly on the far edge is a coordinate in this
+            // window's space -- an exclusive bound would send the last row of
+            // pixels through the desktop reading for no reason.
+            assertEquals(SIZE.width(), moved.x());
+            assertEquals(SIZE.height(), moved.y());
+        });
+    }
+
+    @Test
+    @DisplayName("a pointer outside its window is re-read from the desktop")
+    void coordinatesOutsideTheWindowAreReconciled() {
+        withBackend((backend, window) -> {
+            // Nowhere near a 320x240 window: the shape of a macOS popup's
+            // mouse-up, which arrives in the *owner's* space and stale
+            // (ADR-0211). The number itself is arbitrary -- what matters is that
+            // it cannot be in this window.
+            var events = pump(backend, sink -> push(buffer ->
+                    buffer.writeMouseMotion(id(window), 5000f, 5000f)));
+
+            var moved = only(events, BackendEvent.PointerMoved.class);
+            var origin = window.position();
+            if (origin.isEmpty()) {
+                // The documented fallback, asserted rather than skipped: a window
+                // that will not say where it is cannot have its coordinates
+                // second-guessed, so they arrive untouched.
+                assertEquals(5000f, moved.x());
+                assertEquals(5000f, moved.y());
+                return;
+            }
+            var pointer = Sdl.get().globalPointer();
+            assertEquals(pointer[0] - origin.get().x(), moved.x(), 1f);
+            assertEquals(pointer[1] - origin.get().y(), moved.y(), 1f);
+            // And the reading actually replaced the event's own, which is the
+            // half an equality against a computed value cannot show on a driver
+            // where both happen to be zero.
+            assertNotEquals(5000f, moved.x());
+        });
+    }
+
+    @Test
+    @DisplayName("a press and a release in different spaces are both reconciled")
+    void aPressAndAReleaseAreReconciledAlike() {
+        withBackend((backend, window) -> {
+            // The bug's own shape: the press lands in the window and the release
+            // does not, because the platform wrote it in another window's space.
+            // Both arms go through the same reconciliation, so the release is
+            // brought back somewhere the router can find it.
+            var events = pump(backend, sink -> {
+                push(buffer -> buffer.writeMouseButton(
+                        SdlEventType.MOUSE_BUTTON_DOWN, id(window), 60f, 40f, 1, 1));
+                push(buffer -> buffer.writeMouseButton(
+                        SdlEventType.MOUSE_BUTTON_UP, id(window), 4000f, 4000f, 1, 1));
+            });
+
+            var pressed = only(events, BackendEvent.PointerPressed.class);
+            assertEquals(60f, pressed.x());
+            assertEquals(40f, pressed.y());
+
+            var released = only(events, BackendEvent.PointerReleased.class);
+            assertNotEquals(4000f, released.x(), "the release kept coordinates from another space");
         });
     }
 

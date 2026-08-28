@@ -7,6 +7,7 @@ import io.github.digitalsmile.goldberry.render.popup.BackendPopup;
 import io.github.digitalsmile.goldberry.render.window.BackendWindow;
 import io.github.digitalsmile.goldberry.render.Clipboard;
 import io.github.digitalsmile.goldberry.render.event.EventSink;
+import io.github.digitalsmile.goldberry.render.model.LogicalPoint;
 import io.github.digitalsmile.goldberry.render.popup.PopupSpec;
 import io.github.digitalsmile.goldberry.render.tray.BackendTray;
 import io.github.digitalsmile.goldberry.render.tray.TraySpec;
@@ -700,13 +701,16 @@ public final class Sdl3Backend implements Backend {
             // events carry no `mod` field where its keyboard events do. Read here,
             // inside the pump that produced the event, which is the closest to
             // "when it happened" this layer can get (ADR-0089).
-            out.add(new BackendEvent.PointerMoved(window, eventBuffer.pointerX(), eventBuffer.pointerY(),
+            var at = inTheWindowsOwnSpace(window, eventBuffer.pointerX(), eventBuffer.pointerY());
+            out.add(new BackendEvent.PointerMoved(window, at[0], at[1],
                     Sdl.get().modifierState()));
         } else if (type == SdlEventType.MOUSE_BUTTON_DOWN.value()) {
-            out.add(new BackendEvent.PointerPressed(window, eventBuffer.pointerX(), eventBuffer.pointerY(),
+            var at = inTheWindowsOwnSpace(window, eventBuffer.pointerX(), eventBuffer.pointerY());
+            out.add(new BackendEvent.PointerPressed(window, at[0], at[1],
                     eventBuffer.mouseButton(), eventBuffer.clickCount(), Sdl.get().modifierState()));
         } else if (type == SdlEventType.MOUSE_BUTTON_UP.value()) {
-            out.add(new BackendEvent.PointerReleased(window, eventBuffer.pointerX(), eventBuffer.pointerY(),
+            var at = inTheWindowsOwnSpace(window, eventBuffer.pointerX(), eventBuffer.pointerY());
+            out.add(new BackendEvent.PointerReleased(window, at[0], at[1],
                     eventBuffer.mouseButton(), eventBuffer.clickCount(), Sdl.get().modifierState()));
         } else if (type == SdlEventType.MOUSE_WHEEL.value()) {
             // The buffer has already undone SDL's "natural scrolling" inversion.
@@ -735,6 +739,82 @@ public final class Sdl3Backend implements Backend {
         // reallocation for every resize event a compositor sends, which during a
         // drag is per pointer motion, and left the window with no buffer to show
         // in between (ADR-0024).
+    }
+
+    /// A pointer event's coordinates, in the coordinate space of the window the
+    /// event was attributed to.
+    ///
+    /// **Which is what SDL already promises, and does not deliver for a popup on
+    /// macOS.** SDL rewrites a mouse event's coordinates into the target window's
+    /// space only when the event's `NSWindow` is *not* the key window
+    /// (`Cocoa_SendMouseButtonClicks`), and a mouse-**up** is delivered to the
+    /// key window — which a `NOT_FOCUSABLE` popup can never be (ADR-0189). So the
+    /// press arrives in the popup's space and the release arrives in the
+    /// **owner's**, both attributed to the popup, because the window id comes
+    /// from `mouse->focus` and the coordinates come from `mouse->x/y`. Worse, the
+    /// owner-space value is stale: nothing updates it while the pointer is over
+    /// the popup, so every release reports where the pointer was before the popup
+    /// opened. The router looks for the release outside the popup's bounds, finds
+    /// nothing, and synthesizes no click — which is a dropdown whose rows cannot
+    /// be chosen
+    /// ([ADR-0211](../../../../../../../book/src/adr/0211-a-popup-asks-the-desktop-where-the-pointer-is.md)).
+    ///
+    /// **The bounds check is the detector and the desktop is the answer.** A
+    /// coordinate inside the window it was delivered to is taken as given, which
+    /// is every event on every other platform and most of them here. One that
+    /// falls outside is a coordinate whose space is in doubt, and the pointer's
+    /// desktop position minus the window's own desktop position settles it
+    /// without asking the platform what it thinks the event belongs to.
+    ///
+    /// Reconciled for **every** window rather than only for popups: a top-level
+    /// window's coordinates are already right, so the branch never fires for one,
+    /// and a rule that named popups would be a rule that stops being checked the
+    /// day something else needs it.
+    ///
+    /// A release genuinely outside its window — a drag off a control, which is
+    /// how a click is cancelled — is unaffected: the desktop reading agrees that
+    /// it is outside, and the numbers change only in magnitude.
+    ///
+    /// @return the coordinates to report, as `{x, y}`
+    private float[] inTheWindowsOwnSpace(Sdl3Window window, float x, float y) {
+        var size = window.size();
+        if (x >= 0 && y >= 0 && x <= size.width() && y <= size.height()) {
+            return new float[] {x, y};
+        }
+        var origin = desktopOrigin(window);
+        if (origin.isEmpty()) {
+            // Nothing better to offer. A window that will not say where it is
+            // cannot have its coordinates second-guessed.
+            return new float[] {x, y};
+        }
+        var pointer = Sdl.get().globalPointer();
+        var corrected = new float[] {
+                pointer[0] - origin.get().x(),
+                pointer[1] - origin.get().y()
+        };
+        if (LOG.isTraceEnabled() && (corrected[0] != x || corrected[1] != y)) {
+            LOG.trace("pointer at ({}, {}) is outside {} — the desktop says ({}, {})",
+                    x, y, size, corrected[0], corrected[1]);
+        }
+        return corrected;
+    }
+
+    /// Where `window`'s top-left corner is on the desktop.
+    ///
+    /// **A popup is not asked**, and [Sdl3Popup] says why: `SDL_GetWindowPosition`
+    /// on one reports the display's coordinates on some drivers and the parent's
+    /// on others. Its owner is an ordinary window and answers reliably, and the
+    /// offset the popup was *asked for* is the one number that means the same
+    /// thing everywhere — so a popup's desktop origin is its owner's plus its
+    /// own offset, built out of two readings that are not in doubt.
+    private static Optional<LogicalPoint> desktopOrigin(Sdl3Window window) {
+        if (window instanceof Sdl3Popup popup
+                && popup.owner() instanceof Sdl3Window owner) {
+            return owner.position().map(at -> new LogicalPoint(
+                    at.x() + popup.offset().x(),
+                    at.y() + popup.offset().y()));
+        }
+        return window.position();
     }
 
     private static boolean alreadyAskedToClose(List<BackendEvent> out, Sdl3Window window) {

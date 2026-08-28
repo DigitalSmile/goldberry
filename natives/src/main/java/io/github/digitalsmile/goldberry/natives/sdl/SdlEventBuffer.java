@@ -42,6 +42,14 @@ public final class SdlEventBuffer implements AutoCloseable {
             Layouts.SDL_MOUSE_BUTTON_EVENT.offsetOf("button");
     private static final long BUTTON_CLICKS_OFFSET =
             Layouts.SDL_MOUSE_BUTTON_EVENT.offsetOf("clicks");
+    /// The motion and button arms' own `windowID`, for [WHEEL_WINDOW_ID_OFFSET]'s
+    /// reason: the offset coincides with the window arm's because every arm starts
+    /// with the same three fields, and taking it from the layout that applies means
+    /// the coincidence is not what holds it up.
+    private static final long MOTION_WINDOW_ID_OFFSET =
+            Layouts.SDL_MOUSE_MOTION_EVENT.offsetOf("windowID");
+    private static final long BUTTON_WINDOW_ID_OFFSET =
+            Layouts.SDL_MOUSE_BUTTON_EVENT.offsetOf("windowID");
     private static final long WHEEL_X_OFFSET =
             Layouts.SDL_MOUSE_WHEEL_EVENT.offsetOf("x");
     private static final long WHEEL_Y_OFFSET =
@@ -123,9 +131,6 @@ public final class SdlEventBuffer implements AutoCloseable {
         return event.get(ValueLayout.JAVA_INT, DATA2_OFFSET);
     }
 
-    /// Zeroes the buffer. Not required by SDL, which overwrites what it fills,
-    /// but it means a stale `windowID` cannot survive into an event type that
-    /// does not set one.
     /// The pointer's window-relative x, for a mouse motion or button event.
     ///
     /// Motion and button events put `x` at different offsets, so which arm this
@@ -254,6 +259,9 @@ public final class SdlEventBuffer implements AutoCloseable {
         return pointer.reinterpret(Long.MAX_VALUE).getString(0);
     }
 
+    /// Zeroes the buffer. Not required by SDL, which overwrites what it fills,
+    /// but it means a stale `windowID` cannot survive into an event type that
+    /// does not set one.
     public void clear() {
         event.fill((byte) 0);
     }
@@ -304,6 +312,44 @@ public final class SdlEventBuffer implements AutoCloseable {
         event.set(ValueLayout.JAVA_INT, WHEEL_DIRECTION_OFFSET, direction.value());
         event.set(ValueLayout.JAVA_FLOAT, WHEEL_MOUSE_X_OFFSET, pointerX);
         event.set(ValueLayout.JAVA_FLOAT, WHEEL_MOUSE_Y_OFFSET, pointerY);
+    }
+
+    /// Fills this buffer with a mouse-motion event.
+    ///
+    /// [#writeWheel]'s reason, for a different unreachable case: a test cannot
+    /// move a pointer, and the coordinates a motion arrives with are the subject
+    /// of [ADR-0211](../../../../../../../book/src/adr/0211-a-popup-asks-the-desktop-where-the-pointer-is.md)
+    /// — a window and a coordinate that disagree about which space they are in.
+    /// Pushing one is the only way to state that disagreement on purpose.
+    ///
+    /// @param x window-relative, and deliberately allowed to be outside the window
+    public void writeMouseMotion(int windowId, float x, float y) {
+        clear();
+        event.set(ValueLayout.JAVA_INT, TYPE_OFFSET, SdlEventType.MOUSE_MOTION.value());
+        event.set(ValueLayout.JAVA_INT, MOTION_WINDOW_ID_OFFSET, windowId);
+        event.set(ValueLayout.JAVA_FLOAT, MOTION_X_OFFSET, x);
+        event.set(ValueLayout.JAVA_FLOAT, MOTION_Y_OFFSET, y);
+    }
+
+    /// Fills this buffer with a mouse-button event, down or up.
+    ///
+    /// The pair that reproduces the macOS popup case: a press whose coordinates
+    /// are in the popup's space and a release whose coordinates are in the
+    /// owner's, both carrying the popup's id (ADR-0211).
+    ///
+    /// @param type   [SdlEventType#MOUSE_BUTTON_DOWN] or [SdlEventType#MOUSE_BUTTON_UP]
+    /// @param button SDL's index, numbered from 1 with left first
+    public void writeMouseButton(
+            SdlEventType type, int windowId, float x, float y, int button, int clicks) {
+
+        Objects.requireNonNull(type, "type");
+        clear();
+        event.set(ValueLayout.JAVA_INT, TYPE_OFFSET, type.value());
+        event.set(ValueLayout.JAVA_INT, BUTTON_WINDOW_ID_OFFSET, windowId);
+        event.set(ValueLayout.JAVA_FLOAT, BUTTON_X_OFFSET, x);
+        event.set(ValueLayout.JAVA_FLOAT, BUTTON_Y_OFFSET, y);
+        event.set(ValueLayout.JAVA_BYTE, BUTTON_INDEX_OFFSET, (byte) button);
+        event.set(ValueLayout.JAVA_BYTE, BUTTON_CLICKS_OFFSET, (byte) clicks);
     }
 
     /// Fills this buffer with a window event — a resize, an expose, a close

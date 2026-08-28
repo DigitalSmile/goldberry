@@ -131,6 +131,33 @@ public final class Sdl {
         return sdlCoreCalls.getModState().call() & 0xFFFF;
     }
 
+    /// Where the pointer is on the **desktop**, in logical points.
+    ///
+    /// Polled for [#modifierState()]'s reason — read at the moment an event is
+    /// translated, inside the pump that produced it — and used for one thing: a
+    /// pointer event whose window and whose coordinates disagree about which
+    /// space they are in. That happens to every popup on macOS
+    /// ([ADR-0211](../../../../../../../book/src/adr/0211-a-popup-asks-the-desktop-where-the-pointer-is.md)),
+    /// and a desktop position plus a window's own position is the one reading
+    /// that does not depend on the platform's attribution.
+    ///
+    /// Two floats out of a confined arena per call. That is a real allocation on
+    /// a path that runs per event, and it is bounded by being asked for only when
+    /// a popup's coordinates have already failed their bounds check.
+    ///
+    /// @return the pointer's desktop position
+    public float[] globalPointer() {
+        try (var arena = Arena.ofConfined()) {
+            var x = arena.allocate(ValueLayout.JAVA_FLOAT);
+            var y = arena.allocate(ValueLayout.JAVA_FLOAT);
+            sdlCoreCalls.getGlobalMouseState().call(x, y);
+            return new float[] {
+                    x.get(ValueLayout.JAVA_FLOAT, 0),
+                    y.get(ValueLayout.JAVA_FLOAT, 0)
+            };
+        }
+    }
+
     /// Initializes SDL.
     ///
     /// @throws SdlException if SDL refuses
