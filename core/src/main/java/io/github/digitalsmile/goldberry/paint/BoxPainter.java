@@ -269,6 +269,15 @@ public final class BoxPainter {
                 path.lineTo(width * 0.5, height * 0.66);
                 path.lineTo(width * 0.74, height * 0.38);
             }
+            case CHEVRON_UP -> {
+                // CHEVRON_DOWN reflected about the box's middle, so an ascending
+                // caret and a descending one are the same glyph either way up --
+                // a sort indicator whose two states were different weights would
+                // read as two different marks.
+                path.moveTo(width * 0.26, height * 0.62);
+                path.lineTo(width * 0.5, height * 0.34);
+                path.lineTo(width * 0.74, height * 0.62);
+            }
             case PLUS -> {
                 path.moveTo(width * 0.5, height * 0.22);
                 path.lineTo(width * 0.5, height * 0.78);

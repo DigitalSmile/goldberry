@@ -223,6 +223,7 @@
 - [ADR-0211 A popup asks the desktop where the pointer is](adr/0211-a-popup-asks-the-desktop-where-the-pointer-is.md)
 - [ADR-0212 A list owns the models a tree borrowed](adr/0212-a-list-owns-the-models-a-tree-borrowed.md)
 - [ADR-0213 A virtual list is two spacers and a window](adr/0213-a-virtual-list-is-two-spacers-and-a-window.md)
+- [ADR-0214 A table is a list with columns](adr/0214-a-table-is-a-list-with-columns.md)
 
 ---
 

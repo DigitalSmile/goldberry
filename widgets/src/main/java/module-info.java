@@ -91,6 +91,7 @@ module io.github.digitalsmile.goldberry.widgets {
     exports io.github.digitalsmile.goldberry.widgets.panel.skeleton;
     exports io.github.digitalsmile.goldberry.widgets.panel.split;
     exports io.github.digitalsmile.goldberry.widgets.panel.statistic;
+    exports io.github.digitalsmile.goldberry.widgets.panel.table;
     exports io.github.digitalsmile.goldberry.widgets.panel.tree;
 
     /// `docs/core-widgets.md` §4's `form` group. `text-input` is the first of

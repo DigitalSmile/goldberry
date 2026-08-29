@@ -223,6 +223,28 @@ class GalleryGoldenTest {
         paint("gallery-choosers", "choosers", Theme.NORD_DARK);
     }
 
+    /// §10's collections. What the picture is the only proof of is the
+    /// **table's alignment** — that a header and the cells under it come out the
+    /// same width, which every count-and-key assertion in `TableTest` would pass
+    /// without (ADR-0214).
+    ///
+    /// The virtual list above it looks exactly like an ordinary one, which is the
+    /// point of it and also the reason no image can show the virtualization: the
+    /// scrollbar is an overlay and is not drawn at rest, so what a reader would
+    /// have to check is a row *count*, which is `ListVirtualTest`'s to assert.
+    @Test
+    @DisplayName("the Collections screen")
+    void collections() {
+        // Taller than the default, because the table is the second half of the
+        // screen and at the usual height the picture stops at its caption.
+        //
+        // **Two frames**, for the virtual list: its window is computed from where
+        // the frame before put it, so the first is the guess and the second is the
+        // real one -- a golden of the first would be a picture of the settling
+        // rather than of the widget (ADR-0213, and `masonry`'s reason before it).
+        paint("gallery-collections", "collections", Theme.NORD_DARK, 900, 860);
+    }
+
     @Test
     @DisplayName("the Charts screen")
     void charts() {

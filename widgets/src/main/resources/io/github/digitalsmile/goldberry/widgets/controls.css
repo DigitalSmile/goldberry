@@ -61,6 +61,10 @@
      the control height like everything else. The list's rows are
      `--gb-list-row-height`, already declared above for `list` itself: a
      dropdown's rows and a list's rows are the same rows. */
+  /* §3's `table` row: "header height 36 (30)". Taller than a body row and not
+     derived from it -- a header is a boundary as well as a label, and the four
+     pixels are what make it read as one without a second border. */
+  --gb-table-header-height: 36px;
   --gb-select-height: var(--gb-control-height);
   /* The other half of that row. One token each rather than one shared one, so
      an application can pin a field without moving every dropdown with it. */
@@ -2470,6 +2474,103 @@ list-spacer {
 list-row:focus-visible {
   outline: 2px solid var(--gb-focus);
   outline-offset: -2px;
+}
+
+/* --- table (§10) ------------------------------------------------------- */
+
+/* §3's metrics row: "header height 36 (30); row = `list` row metrics; cell
+   padding-x 12; 1px `--gb-border` under the header and none between rows".
+ *
+ * No rule between the rows is deliberate and is §1's restraint applied to the
+   densest thing in the catalog: a grid of lines is furniture competing with the
+   data in it, and the row height plus the hover wash already say where a row
+   begins. The one line that stays is under the header, because that is a
+   boundary between two *kinds* of thing rather than between two of a kind. */
+table {
+  flex-direction: column;
+  align-items: stretch;
+}
+
+table-head {
+  flex-direction: row;
+  align-items: center;
+  height: var(--gb-table-header-height);
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--gb-border);
+}
+
+/* Muted and strong together, which is the treatment every desktop table's header
+   has: the weight says "this is a heading" and the colour says "and it is not the
+   data". There are only two weights in the palette -- regular and strong -- so
+   the demotion is carried by the colour, which is §1.2's arrangement and the same
+   one the third text rank was refused for (ADR-0121). */
+table-header {
+  flex-direction: row;
+  align-items: center;
+  gap: 4px;
+  padding: 0 12px;
+  overflow: hidden;
+  color: var(--gb-text-muted);
+  font-weight: var(--gb-weight-strong);
+}
+
+table-header.sortable {
+  cursor: pointer;
+  transition: color var(--gb-motion-fast);
+}
+
+table-header.sortable:hover {
+  color: var(--gb-text);
+}
+
+/* The sorted column is the one the reader is being told about, so it takes the
+   full-strength foreground where its neighbours stay muted. */
+table-header.sorted {
+  color: var(--gb-text);
+}
+
+table-header:focus-visible {
+  outline: 2px solid var(--gb-focus);
+  outline-offset: -2px;
+}
+
+sort-caret {
+  width: 12px;
+  height: 12px;
+  flex-shrink: 0;
+}
+
+/* The label shrinks and the caret does not: a column too narrow for its header
+   loses the words rather than the arrow, because the arrow is the *value* and
+   the words are still guessable from the data underneath. */
+table-label {
+  flex-shrink: 1;
+  overflow: hidden;
+}
+
+/* A table's rows are `list`'s rows, and these two declarations are the whole
+   difference: the gutter moves from the row to the cells, because a cell has to
+   own its own padding for the columns to line up with the headers above them.
+ *
+ * Scoped by the ancestor, which is what one widget in two surroundings looks
+   like in CSS -- the same arrangement `select-list option` has, and not the
+   improvisation ADR-0065 warns about: it is one widget being told where it is. */
+table list-row {
+  padding: 0;
+}
+
+table-cells {
+  flex-direction: row;
+  align-items: center;
+  flex-grow: 1;
+  overflow: hidden;
+}
+
+table-cell {
+  flex-direction: row;
+  align-items: center;
+  padding: 0 12px;
+  overflow: hidden;
 }
 
 /* --- tree (§3) --------------------------------------------------------- */

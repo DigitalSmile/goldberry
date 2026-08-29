@@ -679,15 +679,18 @@ the mechanism the sentence named.
   [ADR-0210](adr/0210-a-tree-checks-and-selects-two-different-things.md),
   [ADR-0209](adr/0209-a-tree-finishes-its-keyboard.md),
   [ADR-0184](adr/0184-a-tree-is-a-list-that-remembers-what-is-open.md)
-- **`list` renders every row, and `table` is still waiting on the recycler
-  neither has.** §10 says v1 instantiates its rows — "fine into the low
-  thousands" — and commits virtualization as the v1.x follow-up, "so it's a
-  performance upgrade, not an API break". The item-factory shipped in the shape
-  that promise needs: a recycler calls the same function with a different item.
-  **Whether it survives contact is untested**, and cannot be until a recycler
-  exists, which is the honest state of a promise about work not yet done. `table`
-  is deferred behind exactly this (ARCHITECTURE §17). —
-  [ADR-0212](adr/0212-a-list-owns-the-models-a-tree-borrowed.md)
+- ~~**`list` renders every row, and `table` is still waiting on the recycler
+  neither has.**~~ **Both are built, and the promise held.** The item-factory
+  did survive contact: `virtualized(rowHeight)` calls the same function with the
+  same items and nothing about the API moved
+  ([ADR-0213](adr/0213-a-virtual-list-is-two-spacers-and-a-window.md)). `table`
+  turned out not to be waiting for the recycler at all but for `list` — a
+  table's rows *are* a list's rows with more than one thing in them, so it
+  composes one ([ADR-0214](adr/0214-a-table-is-a-list-with-columns.md)).
+  **What is still out is rows of varying height**, which the arithmetic rules
+  out rather than merely lacks: `index × height` is only a position if every row
+  is that height, and the usual way round it — an estimate corrected as rows are
+  measured — makes the scrollbar drift under the reader's thumb.
 - **A `list` is Java, like `canvas` and like autocomplete.** An item-factory is a
   function and §8's documents have no way to write one, so no markup builds a
   list — the same wall, reached for the third time, and the third different
@@ -696,6 +699,37 @@ the mechanism the sentence named.
   A named item-factory is the shape; nothing has needed it badly enough to
   design what a document would say about a row. —
   [ADR-0212](adr/0212-a-list-owns-the-models-a-tree-borrowed.md)
+- **A virtual list can have its focused row scrolled out of existence.** Wheel
+  far from the focus ring and the focused row leaves the window, is unmounted,
+  and the router drops it — which is ADR-0180's rule doing exactly what it should
+  to an element that has left the tree. Arrow keys are unaffected, because the
+  ring asks the viewport to follow it; only pointer-scrolling away and then
+  pressing one loses the place. Every recycling list has this unless it pins the
+  focused index, and pinning it would keep a row nobody is looking at built for
+  ever. —
+  [ADR-0213](adr/0213-a-virtual-list-is-two-spacers-and-a-window.md)
+- **A row height that disagrees with the stylesheet is a silent layout error.**
+  Nothing checks that the number handed to `virtualized` matches what the rows
+  actually measure; the symptom is rows drifting out of step with the scrollbar,
+  and it gets worse the further down the model you are. A `Measured` assertion on
+  the first built row would catch it and is not built. This is the cost of the
+  widget not being able to read `--gb-list-row-height`, which is the same door
+  `scroll`'s line height is waiting behind. —
+  [ADR-0213](adr/0213-a-virtual-list-is-two-spacers-and-a-window.md)
+- **A `table` has no column resizing and no sticky header.** §3's metrics row
+  allows for the first — "column resize: 1:1, like `split-pane`'s drag" — and
+  nothing has asked; the divider would be a `split-pane` between the headers,
+  which is a widget that already exists. The second is `affix`'s job and was left
+  alone deliberately: a pinned affix is not pushed out by the next one, so two
+  tables on one screen would overlap their headers, which is the entry above this
+  one being a blocker for something. —
+  [ADR-0214](adr/0214-a-table-is-a-list-with-columns.md)
+- **A `table` focuses rows and not cells.** Right for §10's grid semantics and
+  wrong for a spreadsheet, which is a different widget rather than an option on
+  this one. Horizontal virtualization is absent for the same reason: it is a
+  different arithmetic, and it is worth it past about fifty columns, which is
+  past where a table is the right thing to be looking at. —
+  [ADR-0214](adr/0214-a-table-is-a-list-with-columns.md)
 - **A row's focus name still collides between two unnamed lists.** `host.focus`
   takes a name global to the window, and `list` scopes its rows by the list's own
   `id` — which settles it wherever an application named one, and leaves the case

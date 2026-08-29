@@ -64,7 +64,7 @@ public record Screen(ShowcaseModel model, ShowcaseModel.Actions actions,
     /// ([ADR-0110](../../../../../../../book/src/adr/0110-the-showcase-is-a-gallery-of-screens.md)).
     public static final List<String> GALLERY = List.of(
             "controls", "values", "text", "overlays", "panels", "forms",
-            "notifications", "choosers", "charts", "tabs", "scrolling");
+            "notifications", "choosers", "collections", "charts", "tabs", "scrolling");
 
     /// `tabs` in [#GALLERY] order, and a failure rather than a silent reorder
     /// when the two do not name the same screens.
@@ -194,6 +194,13 @@ public record Screen(ShowcaseModel model, ShowcaseModel.Actions actions,
                     // a control a narrowed list of options back (ADR-0182,
                     // ADR-0183).
                     new Tab("choosers", "Choosers", scrolled(new Choosers())),
+                    // §10's collections. Its own screen rather than a section on
+                    // Choosers, because the two things worth seeing are *scale*
+                    // and *sort*: a ten-thousand-row list needs a viewport of its
+                    // own to be scrolled through, and a sortable table needs
+                    // somewhere to keep the state the sorting is done in
+                    // (ADR-0213, ADR-0214).
+                    new Tab("collections", "Collections", scrolled(new Collections())),
                     // §11's five data widgets, in the wall of cards a dashboard
                     // is made of -- which is what asked for `masonry`.
                     new Tab("charts", "Charts", scrolled(new Charts())),

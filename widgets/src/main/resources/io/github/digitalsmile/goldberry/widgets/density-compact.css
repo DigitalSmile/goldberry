@@ -29,9 +29,13 @@
      moves heights and nothing else. */
   --gb-control-height: 28px;
 
-  /* "list rows 32 / 26". No widget reads this yet -- `list` is M3 -- and it
-     ships now because the density that a `list` will have to honour is decided
-     here, not there, and an application building its own rows today has the
-     token it would otherwise hard-code. */
+  /* "list rows 32 / 26". Read by `list`, by `tree` and by a `select`'s dropdown
+     rows -- it shipped before any of them existed, because the density they
+     would have to honour was decided here rather than there. */
   --gb-list-row-height: 26px;
+
+  /* §3's `table` row: "header height 36 (30)". Its own token rather than the
+     row height plus four, because a header is a boundary as well as a label and
+     a density that closed the gap would take that away. */
+  --gb-table-header-height: 30px;
 }

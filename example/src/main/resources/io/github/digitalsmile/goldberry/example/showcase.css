@@ -393,6 +393,35 @@ panel.surface-demo {
    *columns* come out uneven. What the cards do need is a height for the plots,
    because a chart has no intrinsic size — it takes the room it is given, which
    is a stylesheet's business and not a number the toolkit should invent. */
+/* --- the Collections screen (§10) -------------------------------------- */
+
+#collections {
+  gap: 8px;
+}
+
+/* The viewport the virtual list is measured against, and the reason it has a
+   height at all: a virtual list clipped only by the screen's own scroll would
+   have a window the height of the screen, which is correct and shows nothing.
+   Eight rows is enough to see the scrollbar's thumb be honest about ten
+   thousand (ADR-0213). */
+scroll.tall-list {
+  height: 256px;
+  flex-grow: 0;
+  flex-shrink: 0;
+  background: var(--gb-surface);
+  border: 1px solid var(--gb-border);
+  border-radius: 8px;
+}
+
+/* The table gets the same plate, so the two collections on this screen read as
+   two of a kind rather than as one framed thing and one loose one. */
+#peaks {
+  background: var(--gb-surface);
+  border: 1px solid var(--gb-border);
+  border-radius: 8px;
+  padding-bottom: 4px;
+}
+
 #charts {
   gap: 12px;
 }

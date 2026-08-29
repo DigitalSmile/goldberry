@@ -156,6 +156,7 @@ Behavior and API live in `core-widgets.md`; GDS pins the numbers. Metrics ship a
 | `tabs` | tab height 36; padding-x 16; 2px active indicator in `--gb-accent` |
 | `panel` / `card` | padding 16; radius 8; card = elevation 1 |
 | `list` row | height 32 (26); padding-x 12; selection = `--gb-selection` full-row |
+| `table` | header height 36 (30); row = `list` row metrics; cell padding-x 12; gap between columns 0 — a cell's padding is the gutter; 1px `--gb-border` under the header and none between rows; sort caret 12 in the header, trailing the label |
 | `progress` | track height 4; radius `full` |
 | `badge` | height 20; padding-x 8; radius `full`; `caption`; filled variants pin their own foreground per §1.2's 4.5:1 floor — see ADR-0087 |
 | `level-meter` (mic) | segment width 3, gap 1; peak-hold 1.5s |
@@ -204,6 +205,7 @@ Durations reference §1.7 tokens (`fast`/`base`/`overlay`); enters use `ease-ent
 | `spinner` | rotation 900ms `linear` loop · reduced-motion: opacity pulse |
 | `scroll` | wheel/drag: direct · `scrollIntoView` / programmatic: overlay duration |
 | `list` | selection/hover: `background-color` fast · item add/remove: none in v1 (deferred with virtualization) |
+| `table` | `list`'s row transitions · sort change: none — the rows are re-ordered by the application and a row that travelled would be a row the model no longer has in that place · column resize: 1:1, like `split-pane`'s drag |
 | `split-pane` | drag: 1:1 · collapse/expand: instant in v1 |
 | frost surfaces | fade in/out as whole layers with their component; **blur radius never animates** |
 | `camera-view` / meters | live content is data, not motion — permission-state placeholders cross-fade fast |

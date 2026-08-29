@@ -174,6 +174,16 @@ public record Box(
             /// ([ADR-0141](../../../../../../book/src/adr/0141-a-select-is-a-closed-control-and-a-list.md)).
             CHEVRON_DOWN,
 
+            /// A single `^` — a `table`'s ascending sort caret.
+            ///
+            /// [#CHEVRON_DOWN] mirrored, and a third kind for the second one's
+            /// reason: the subset has no `transform` on a mark, and here the two
+            /// are not decoration but the *value* — a caret pointing the wrong way
+            /// says the column is sorted the other way, which is a lie a rotation
+            /// would make easy to ship
+            /// ([ADR-0214](../../../../../../book/src/adr/0214-a-table-is-a-list-with-columns.md)).
+            CHEVRON_UP,
+
             /// A filled circle — `:checked` on a radio, which is why this is here
             /// before `radio` is.
             DOT,

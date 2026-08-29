@@ -4357,6 +4357,50 @@ is the `scroll` box's.
   router drops it. Arrow keys are unaffected, because the ring asks the viewport
   to follow; only pointer-scrolling away and then pressing one loses the place.
 
+### A table, which was waiting for a list all along
+
+- **§10's `table` is built** ([ADR-0214](adr/0214-a-table-is-a-list-with-columns.md)),
+  and §10 is complete. It leaves ARCHITECTURE §17's deferred list, which had it
+  behind virtualization — correctly, as it turned out, though not for the reason
+  the entry gave.
+- **Most of the work was writing the specification.** The entry was one sentence
+  — "deferred; it awaits the virtualization work" — and `design-system.md` §3 had
+  no metrics row for it at all. §5 requires a spec **and** a metrics row **and**
+  gallery coverage before code, in that order, so all three came first.
+- **What it was waiting for was `list`.** A table's rows *are* a list's rows with
+  more than one thing in them, so `Table` builds a `ListView` whose item-factory
+  returns a row of cells, and the selection models, the typeahead, `Home`/`End`,
+  the item context menus and the ten-thousand-row window are inherited rather
+  than written twice. `TableTest` asserts the **seam** and leaves the rest to
+  `ListTest`, which is the whole argument for composing.
+- **A column's width is a number or a share, and flexbox already had both.** A
+  fixed column will not shrink; a weighted one is `flex-grow` over a **zero**
+  basis, because over `auto` a column of long strings would quietly outgrow its
+  weight. One function sizes a header and the cells under it, which is the
+  cheapest guarantee that they come out the same width.
+- **Sorting is the application's**, and the click reports *what the sort would
+  become* rather than which column was hit: which way a second click goes is a
+  rule about tables and not something every application should restate. A table
+  over a database sorts in the query, which is why the widget does not.
+- **A caret slot is kept on every sortable header, drawn or not** — and the
+  **golden image is what found that**. Without it, sorting a column takes 16px
+  away from that column's own label at the moment the reader clicks it, so every
+  header the sort visits shuffles its text. Every assertion in `TableTest` passed
+  while that was true; the picture did not.
+- **`Box.Mark.Kind.CHEVRON_UP` is new**, a third chevron for the second one's
+  reason. Here the two are not decoration but the *value*: a caret pointing the
+  wrong way says the column is sorted the other way, which is a lie a rotation
+  would have made easy to ship.
+- **No rule between the rows, and one under the header.** A grid of lines is
+  furniture competing with the data in it, and the row height and the hover wash
+  already say where a row begins. The line that stays is a boundary between two
+  *kinds* of thing rather than between two of a kind.
+- **The showcase has a Collections screen**, which is where the ten-thousand-row
+  list and the sortable table live. Its own screen rather than a section on
+  Choosers, because the two things worth seeing are *scale* and *sort*: the first
+  needs a viewport of its own to be scrolled through, and the second needs
+  somewhere to keep the state the sorting is done in.
+
 ### Not started
 
 Client-side decorations, the rest of §4 —
