@@ -224,6 +224,7 @@
 - [ADR-0212 A list owns the models a tree borrowed](adr/0212-a-list-owns-the-models-a-tree-borrowed.md)
 - [ADR-0213 A virtual list is two spacers and a window](adr/0213-a-virtual-list-is-two-spacers-and-a-window.md)
 - [ADR-0214 A table is a list with columns](adr/0214-a-table-is-a-list-with-columns.md)
+- [ADR-0215 A property the engine drops is a rule that does nothing](adr/0215-a-property-the-engine-drops-is-a-rule-that-does-nothing.md)
 
 ---
 

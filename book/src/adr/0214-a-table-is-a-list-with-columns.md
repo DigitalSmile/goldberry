@@ -115,6 +115,13 @@ begins. The line that stays is a boundary between two *kinds* of thing.
 - **Horizontal virtualization is not built either**, and is a different
   arithmetic — worth it past about fifty columns, which is past where a table is
   the right widget.
+- **The header's rule shipped as `border-bottom` and drew nothing**, which §8's
+  subset does not have — corrected in
+  [ADR-0215](0215-a-property-the-engine-drops-is-a-rule-that-does-nothing.md),
+  where it became a node and the toolkit's own stylesheets gained a lint. The
+  golden image was accepted with the line missing, which is a limit of a picture
+  worth naming beside the praise above: it caught the caret's reflow and it did
+  not catch a single absent line of pixels.
 - **`Column.sortable` takes a boolean** rather than reading as `sortable()`,
   because a record's accessor already has that name. The same reason `Table`'s
   `selection` and `tree`'s `checkable` take theirs, discovered the same way — by

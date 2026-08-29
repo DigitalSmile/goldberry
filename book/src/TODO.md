@@ -635,8 +635,17 @@ the mechanism the sentence named.
   [ADR-0109](adr/0109-a-tab-arrives-and-departs-on-the-frame-clock.md)
 - **`margin` is not in §8's subset**, which `tab-new` found after `border-bottom`
   and `currentColor`. Three properties a widget reached for and did not find, all
-  silently ignored — the subset is right to be small, and nothing warns when a
-  declaration is dropped. —
+  silently ignored — the subset is right to be small. ~~and nothing warns when a
+  declaration is dropped.~~ **Something does now, for the toolkit's own sheets:**
+  `border-bottom` was written a fourth time, in `table-head`, and drew nothing
+  ([ADR-0215](adr/0215-a-property-the-engine-drops-is-a-rule-that-does-nothing.md)).
+  `SupportedPropertyTest` resolves every rule the catalog and the showcase ship
+  through the real cascade and fails on anything reported as unsupported — so a
+  dead declaration is one failure with the property in it rather than a debug
+  line among thousands. **An application's stylesheet is still on its own**,
+  deliberately: naming `box-shadow` before it exists must not stop a window
+  opening. —
+  [ADR-0215](adr/0215-a-property-the-engine-drops-is-a-rule-that-does-nothing.md),
   [ADR-0109](adr/0109-a-tab-arrives-and-departs-on-the-frame-clock.md)
 - **The catalog's specified surface roughly tripled, and none of it is built.**
   `docs/core-widgets.md` gained twenty-one widgets and four options in one pass —

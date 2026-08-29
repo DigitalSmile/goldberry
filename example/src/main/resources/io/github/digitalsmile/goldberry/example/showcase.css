@@ -419,7 +419,9 @@ scroll.tall-list {
   background: var(--gb-surface);
   border: 1px solid var(--gb-border);
   border-radius: 8px;
-  padding-bottom: 4px;
+  /* Both edges, because `padding-bottom` is not in §8's subset -- there is one
+     `padding` and no per-edge longhands, exactly as there is one `border`. */
+  padding: 4px 0;
 }
 
 #charts {

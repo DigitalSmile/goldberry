@@ -2496,7 +2496,16 @@ table-head {
   align-items: center;
   height: var(--gb-table-header-height);
   flex-shrink: 0;
-  border-bottom: 1px solid var(--gb-border);
+}
+
+/* The line under the header. A node and not a `border-bottom`, because §8's
+   subset has one `border` and no per-edge longhands -- `menubar` documents the
+   same wall and answers it by having no rule at all, and §3's metrics row for a
+   table asks for one. So it is `separator`'s answer: a box a pixel tall. */
+table-rule {
+  height: 1px;
+  flex-shrink: 0;
+  background: var(--gb-border);
 }
 
 /* Muted and strong together, which is the treatment every desktop table's header

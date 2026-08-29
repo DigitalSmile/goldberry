@@ -151,8 +151,9 @@ public record Table<T>(List<T> items, Function<T, String> identity, List<Column<
 
     @Override
     public List<Widget> children() {
-        var parts = new ArrayList<Widget>(2);
+        var parts = new ArrayList<Widget>(3);
         parts.add(new TableHead(columns, sort, this::askForSort));
+        parts.add(new TableRule());
         var rows = new ListView<>(items, identity,
                 item -> new TableCells<>(item, columns),
                 null, null, selected, onSelect, selection, rowHeight,
@@ -162,6 +163,33 @@ public record Table<T>(List<T> items, Function<T, String> identity, List<Column<
                 attributes.id() == null ? Attributes.NONE : Attributes.NONE.id(attributes.id()));
         parts.add(rows);
         return List.copyOf(parts);
+    }
+
+    /// The line under the header — a **node**, because §8's subset has one
+    /// `border` and no per-edge longhands.
+    ///
+    /// `border-bottom` is not a declaration that exists here, and writing it got
+    /// exactly what the subset promises: silence and a debug line. `menubar` hit
+    /// the same wall and answered it by not having a rule at all (ADR-0107);
+    /// §3's metrics row for a table asks for one, so this is `separator`'s
+    /// answer instead — a box one pixel tall with a background, which is what a
+    /// rule is when a border cannot be one.
+    record TableRule() implements Widget.Leaf, Styled, Paints {
+
+        @Override
+        public String cssType() {
+            return "table-rule";
+        }
+
+        @Override
+        public Set<String> classes() {
+            return Set.of();
+        }
+
+        @Override
+        public Box render(ComputedStyle style, List<Box> children, Context context) {
+            return Box.of().style(style);
+        }
     }
 
     /// Turns "this header was clicked" into "this is what the sort becomes".

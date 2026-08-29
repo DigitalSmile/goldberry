@@ -4401,6 +4401,39 @@ is the `scroll` box's.
   needs a viewport of its own to be scrolled through, and the second needs
   somewhere to keep the state the sorting is done in.
 
+### The rule that was written and never drawn
+
+- **`table-head` shipped with `border-bottom` and drew nothing**
+  ([ADR-0215](adr/0215-a-property-the-engine-drops-is-a-rule-that-does-nothing.md)).
+  §8's subset has one `border` and no per-edge longhands, so the engine did what
+  it promises — logged at debug and carried on — and the golden was accepted with
+  the line missing. §3's metrics row asks for that line.
+- **It is the fourth time.** `TODO.md` has recorded it since ADR-0109:
+  `border-bottom`, `currentColor` and `margin` were each reached for and not
+  found, "all silently ignored… and nothing warns when a declaration is dropped".
+  `menubar` documents the same wall in a comment in the stylesheet itself.
+- **The rule is a node now** — `table-rule`, a box one pixel tall with a
+  background, which is `separator`'s answer to the same problem and the only one
+  the subset allows.
+- **And the toolkit's own stylesheets are linted.** `SupportedPropertyTest`
+  resolves every rule the catalog and the showcase ship through the **real**
+  cascade and fails on anything reported as unsupported. The asymmetry is the
+  point: an application naming `box-shadow` before it exists must not stop a
+  window opening, but the toolkit was being held to that same lenient standard
+  against itself.
+- **It asserts the behaviour rather than a copy of it.** No list of supported
+  properties to drift — it attaches an appender and reads what the cascade
+  actually said, so a property added to the engine tomorrow needs no edit here.
+- **Custom properties had to be excluded, and finding that out was the check
+  working.** `--gb-accent: …` reaches the same branch and is logged the same way,
+  because custom properties are the resolver's rather than `ComputedStyle`'s
+  (ADR-0049) — so the unfiltered version reported 158 failures on a healthy tree.
+- **And the check checks itself**: a third test feeds it `border-bottom` and
+  asserts it is caught, because a change to the log's wording would otherwise
+  make the other two pass by seeing nothing at all.
+- **Two live instances in the whole tree**, and that was all: this one, and a
+  `padding-bottom` in the showcase's own sheet.
+
 ### Not started
 
 Client-side decorations, the rest of §4 —
