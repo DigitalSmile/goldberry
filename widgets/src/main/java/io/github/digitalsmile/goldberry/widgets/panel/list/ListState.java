@@ -52,6 +52,28 @@ final class ListState<T> extends State<ListView<T>> {
     /// underneath their own selection means anyway.
     private String anchor;
 
+    /// How many rows beyond each edge of the viewport are built anyway.
+    ///
+    /// [Located] is **last frame's** (ADR-0119 rule 1), so a wheel that travels
+    /// half a viewport between two frames would show a band of nothing for one of
+    /// them. Four rows is the cheapest insurance against that — 128 logical pixels
+    /// at the default height, which is more than a detent moves — and it costs
+    /// eight built rows on a list of any size.
+    private static final int OVERSCAN = 4;
+
+    /// What the first frame builds, before anything has been laid out.
+    ///
+    /// A guess, and it has to be one: the window is computed from a painted
+    /// rectangle and the first frame is what *produces* that rectangle. The
+    /// spacers make the guess harmless — the column's total height is right from
+    /// the first frame however few rows are in it, so nothing jumps when the
+    /// second frame corrects the window.
+    private static final int FIRST_GUESS = 40;
+
+    /// The half-open range of item indices currently built, `[first, last)`.
+    private int first;
+    private int last = FIRST_GUESS;
+
     @Override
     public Widget build(BuildContext context) {
         host = context.host().orElse(null);
@@ -61,10 +83,19 @@ final class ListState<T> extends State<ListView<T>> {
         // rather than per row.
         var selectable = list.selection() != Selection.NONE && list.onSelect() != null;
         var typeahead = list.text() != null;
-        var rows = new ArrayList<Widget>(list.items().size());
-        for (var item : list.items()) {
+        var items = list.items();
+        var virtual = list.rowHeight() > 0;
+        var from = virtual ? Math.min(first, items.size()) : 0;
+        var to = virtual ? Math.min(last, items.size()) : items.size();
+
+        var children = new ArrayList<Widget>(to - from + 2);
+        if (virtual && from > 0) {
+            children.add(new ListBox.ListSpacer(from * list.rowHeight()));
+        }
+        for (var index = from; index < to; index++) {
+            var item = items.get(index);
             var id = list.identity().apply(item);
-            rows.add(new ListRow(rowId(id), selectable,
+            children.add(new ListRow(rowId(id), selectable,
                     list.selected().contains(id),
                     list.factory().apply(item),
                     menuOf(item),
@@ -72,7 +103,114 @@ final class ListState<T> extends State<ListView<T>> {
                     this::moveToEnd,
                     typeahead ? text -> typeahead(id, text) : null));
         }
-        return new ListBox(rows, list.attributes());
+        if (virtual && to < items.size()) {
+            children.add(new ListBox.ListSpacer((items.size() - to) * list.rowHeight()));
+        }
+        return new ListBox(children, virtual ? this::located : null, list.attributes());
+    }
+
+    /// Told where the frame put the list and what clips it — the whole of the
+    /// virtualization, and it is two divisions.
+    ///
+    /// `self.top()` is where the list has been **scrolled to** rather than where
+    /// it was laid out, so the distance from it down to the clip's top is exactly
+    /// how far into the model the viewport has reached ([ADR-0119]).
+    ///
+    /// It changes what is *built* and never what this node *measures*, which is
+    /// what keeps it from oscillating: the spacers absorb every row the window
+    /// leaves out, so the rectangle reported by the next frame is the one that
+    /// produced this window.
+    private void located(io.github.digitalsmile.goldberry.render.model.LogicalRect self,
+            io.github.digitalsmile.goldberry.render.model.LogicalRect clip) {
+
+        var list = widget();
+        var height = list.rowHeight();
+        if (height <= 0 || list.items().isEmpty()) {
+            return;
+        }
+        var above = clip.top() - self.top();
+        var wantedFirst = (int) Math.max(0, Math.floor(above / height) - OVERSCAN);
+        var visible = (int) Math.ceil(clip.size().height() / height) + 1 + 2 * OVERSCAN;
+        var wantedLast = Math.min(list.items().size(), wantedFirst + visible);
+        // Widened, never narrowed, by whatever the keyboard is reaching for: a
+        // row that is being focused has to exist to be focused (see #reach).
+        if (reaching >= 0) {
+            wantedFirst = Math.min(wantedFirst, reaching);
+            wantedLast = Math.max(wantedLast, reaching + 1);
+        }
+        if (wantedFirst == first && wantedLast == last) {
+            return;
+        }
+        var nextFirst = wantedFirst;
+        var nextLast = wantedLast;
+        setState(() -> {
+            first = nextFirst;
+            last = nextLast;
+        });
+    }
+
+    /// The index the keyboard is on its way to, or -1.
+    ///
+    /// **The one thing virtualization breaks and has to put back.** `Home`, `End`
+    /// and the typeahead all move the focus by *name* through `host.focus`
+    /// ([ADR-0176]), and a name resolves against the element tree — so a virtual
+    /// list asked for its last row was asking for a row that does not exist, and
+    /// `End` did nothing at all.
+    ///
+    /// So the move is two steps: build the row, then focus it. This holds the
+    /// index between them, and [#located] keeps the window over it so that a
+    /// frame arriving in the middle cannot take it away again.
+    private int reaching = -1;
+
+    /// How many turns of the loop a reach will wait for its row to be built.
+    ///
+    /// **Two, and it is a retry rather than a delay**, because the order is not
+    /// guaranteed: the frame loop fires its timers *after* the platform pump, and
+    /// whether the repaint a `setState` asked for was drawn inside that pump or is
+    /// still queued depends on the pacer. So the reach asks, and asks again if the
+    /// tree has not caught up — which is decidable, because
+    /// [io.github.digitalsmile.goldberry.Host#focus] answers whether it found
+    /// anything.
+    ///
+    /// Bounded, so an id that names no row at all costs two turns and stops rather
+    /// than re-arming a timer for the life of the window.
+    private static final int REACH_ATTEMPTS = 2;
+
+    /// Focuses the row for `id`, building it first when it is outside the window.
+    ///
+    /// The cheap path is the common one: a row already in the window is focused
+    /// on the spot, which is what every arrow key does. Only a jump to a row the
+    /// window does not hold — `End` on ten thousand, or a typeahead reaching the
+    /// far end — has to widen the window and wait for the rebuild.
+    private void reach(String id) {
+        if (host == null) {
+            return;
+        }
+        var index = indexOf(id);
+        if (widget().rowHeight() <= 0 || (index >= first && index < last)) {
+            host.focus(rowId(id), true);
+            return;
+        }
+        reaching = index;
+        setState(() -> {
+            first = Math.min(first, index);
+            last = Math.max(last, index + 1);
+        });
+        reachAgain(id, REACH_ATTEMPTS);
+    }
+
+    /// One attempt at the focus, with the ones that are left.
+    ///
+    /// Releases [#reaching] as soon as the focus lands or the attempts run out —
+    /// holding it would pin a row nobody is looking at in the window for ever.
+    private void reachAgain(String id, int attemptsLeft) {
+        host.after(java.time.Duration.ZERO, () -> {
+            if (host.focus(rowId(id), true) || attemptsLeft <= 1) {
+                reaching = -1;
+                return;
+            }
+            reachAgain(id, attemptsLeft - 1);
+        });
     }
 
     /// §10's per-item context menu, as attributes on the row.
@@ -114,7 +252,9 @@ final class ListState<T> extends State<ListView<T>> {
             return;
         }
         var item = direction < 0 ? items.getFirst() : items.getLast();
-        host.focus(rowId(widget().identity().apply(item)), true);
+        // Through #reach rather than straight to the host: on a virtual list the
+        // last row is exactly the one that is not built.
+        reach(widget().identity().apply(item));
     }
 
     /// §10's type-to-select, over the rows as they are on screen.
@@ -152,7 +292,7 @@ final class ListState<T> extends State<ListView<T>> {
             match = matching(0);
         }
         if (match != null && !match.equals(from)) {
-            host.focus(rowId(match), true);
+            reach(match);
         }
     }
 

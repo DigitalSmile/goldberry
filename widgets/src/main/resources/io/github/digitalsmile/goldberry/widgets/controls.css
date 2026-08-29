@@ -2453,6 +2453,14 @@ list-row.selected {
   background: var(--gb-selection);
 }
 
+/* The rows a virtual list is not building, as a height and nothing else
+   (ADR-0213). It draws nothing and must not be given anything to draw: a border
+   or a background here would be a band of paint where the model says there are
+   rows, which is precisely the illusion the spacer exists to maintain. */
+list-spacer {
+  flex-shrink: 0;
+}
+
 /* The ring stays, which is the opposite of `select-list option`'s rule and the
    difference is which thing moves. In a dropdown the arrows move the *value*, so
    the highlight is always where the keyboard is and a ring would be a second

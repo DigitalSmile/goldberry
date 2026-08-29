@@ -4318,6 +4318,45 @@ is the `scroll` box's.
   list" means more after a list. Every `tree` golden is byte-identical, because
   only the enum's package moved.
 
+### Ten thousand rows, and the two spacers that hold them up
+
+- **§10's virtualization is built** ([ADR-0213](adr/0213-a-virtual-list-is-two-spacers-and-a-window.md)),
+  which is the promise ADR-0212 shipped an API shape for and could not test. A
+  list of ten thousand builds about twenty rows.
+- **The window comes from [Located]**, the facility `affix` opened: `clip.top() -
+  self.top()` is how far into the model the viewport has reached, because `self`
+  is where the list has been *scrolled to* rather than where it was laid out.
+- **The spacers are the whole safety argument, not a detail.** Every facility that
+  hands geometry to a widget carries the same warning — what it triggers must not
+  change what it reports — and a list that built fewer rows would be shorter, be
+  told a new position, and oscillate at the frame rate. A spacer's height is
+  `rowCount × rowHeight`, so the column adds up to the same total however the
+  window moves and the measured node never moves. An arithmetic identity rather
+  than a rule anyone has to remember.
+- **It takes a row height rather than a flag**, because the height is the one
+  thing the widget cannot find out: a stylesheet resolves `--gb-list-row-height`
+  and no widget can read a resolved custom property. It is also where the
+  precondition becomes obvious — `index × height` is only a position if every row
+  is that height, so a list with rows of varying height must not virtualize.
+- **`Home`, `End` and the typeahead are what virtualization breaks**, and putting
+  them back is most of the work. All three move the focus by *name*, and a name
+  resolves against the element tree — so a virtual list asked for its last row was
+  asking for a row that does not exist, and `End` did nothing at all. The move is
+  two steps now: widen the window, then focus.
+- **And the second step is a retry rather than a delay.** The frame loop fires its
+  timers *after* the platform pump, so whether the repaint a `setState` asked for
+  has been drawn yet depends on the pacer. `Host.focus` returns whether it found
+  anything, which is what turns a race into a recoverable one; two attempts, so an
+  id naming no row stops rather than re-arming for ever.
+- **The tests drive real painted frames**, like `affix`'s, because the window does
+  not exist until Yoga has run and the router has captured the result. Setting the
+  row height back to zero fails seven of them, which is how the assertions were
+  checked for being load-bearing rather than decorative.
+- **What it costs: the focused row can be scrolled out of existence.** Wheel far
+  from the ring and the focused row leaves the window, is unmounted, and the
+  router drops it. Arrow keys are unaffected, because the ring asks the viewport
+  to follow; only pointer-scrolling away and then pressing one loses the place.
+
 ### Not started
 
 Client-side decorations, the rest of §4 —

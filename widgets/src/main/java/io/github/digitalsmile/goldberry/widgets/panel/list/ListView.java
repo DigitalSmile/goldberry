@@ -61,21 +61,38 @@ import java.util.function.Function;
 ///
 /// ```
 /// list                 this node. Stateful, styles nothing, holds the anchor
-/// └── list-row × n     one per item, focusable, carrying the factory's widget
-///     └── …            whatever the factory returned
+/// ├── list-spacer      the rows above the window, as a height — virtual only
+/// ├── list-row × n     one per item in the window, carrying the factory's widget
+/// │   └── …            whatever the factory returned
+/// └── list-spacer      the rows below it, likewise
 /// ```
+///
+/// The two spacers are absent entirely unless [#virtualized(double)] is on, in
+/// which case the window is every row.
 ///
 /// Stateful and unstyled for [io.github.digitalsmile.goldberry.widgets.core.scroll.Scroll]'s
 /// reason: a stateful widget that also carried the CSS type would put two `list`
 /// nodes in the cascade, one inside the other, and every rule would apply twice.
 ///
-/// ## v1 renders every row
+/// ## Every row, unless it is told a row height
 ///
-/// §10 says so — "fine into the low thousands" — and a list taller than its box
-/// is a [io.github.digitalsmile.goldberry.widgets.core.scroll.Scroll]'s to
-/// scroll, exactly as a tree is. `Home` and `End` therefore go to the ends of the
-/// **model** rather than of the viewport, and the focus ring is what asks an
-/// ancestor to follow ([ADR-0120]).
+/// §10's v1 "renders instantiated rows — fine into the low thousands", and that
+/// is what a list does by default. [#virtualized(double)] is §10's committed
+/// follow-up: told how tall a row is, the list builds **only the rows the
+/// viewport can see** and stands the rest off with two spacers
+/// ([ADR-0213](../../../../../../../../book/src/adr/0213-a-virtual-list-is-two-spacers-and-a-window.md)).
+///
+/// Opt-in, and it takes a number rather than a flag, because the number is the
+/// one thing the widget cannot find out: §8's subset resolves
+/// `--gb-list-row-height` for the cascade and no widget can read a resolved
+/// custom property. A caller that styles its rows to a different height passes
+/// that height here, and one that does not virtualize passes nothing.
+///
+/// Either way a list taller than its box is a
+/// [io.github.digitalsmile.goldberry.widgets.core.scroll.Scroll]'s to scroll,
+/// exactly as a tree is. `Home` and `End` go to the ends of the **model** rather
+/// than of the viewport, and the focus ring is what asks an ancestor to follow
+/// ([ADR-0120]).
 ///
 /// @param <T>         the item type — anything, including a record or a `String`
 /// @param items       the model, in the order it is drawn
@@ -88,11 +105,13 @@ import java.util.function.Function;
 /// @param selected    the ids of the chosen items; empty for none
 /// @param onSelect    the selection the user asked for, whole
 /// @param selection   how many rows may be chosen at once
+/// @param rowHeight   how tall a row is, in logical pixels — the number that
+///                    turns virtualization on; zero builds every row
 /// @param attributes  `id` and `class`, exactly as on the primitives
 public record ListView<T>(List<T> items, Function<T, String> identity,
         Function<T, Widget> factory, Function<T, String> text, Function<T, String> itemMenu,
         Set<String> selected, Consumer<Set<String>> onSelect, Selection selection,
-        Attributes attributes)
+        double rowHeight, Attributes attributes)
         implements Widget.Stateful, Attributed<ListView<T>> {
 
     public ListView {
@@ -104,6 +123,11 @@ public record ListView<T>(List<T> items, Function<T, String> identity,
         // and Set.copyOf's is a hash order that changes between runs.
         selected = unmodifiableOrdered(selected);
         selection = selection == null ? Selection.SINGLE : selection;
+        if (rowHeight < 0 || Double.isNaN(rowHeight)) {
+            throw new IllegalArgumentException(
+                    "a row height must be a positive number of logical pixels,"
+                            + " or zero to build every row; got " + rowHeight);
+        }
         attributes = attributes == null ? Attributes.NONE : attributes;
     }
 
@@ -119,7 +143,7 @@ public record ListView<T>(List<T> items, Function<T, String> identity,
     /// what it looks like. Everything else has one.
     public ListView(List<T> items, Function<T, String> identity, Function<T, Widget> factory) {
         this(items, identity, factory, null, null,
-                Set.of(), null, Selection.SINGLE, Attributes.NONE);
+                Set.of(), null, Selection.SINGLE, 0, Attributes.NONE);
     }
 
     /// A list of plain strings, drawn as `text` — the shape a list most often
@@ -133,7 +157,7 @@ public record ListView<T>(List<T> items, Function<T, String> identity,
     public static ListView<String> of(List<String> labels) {
         return new ListView<>(labels, java.util.function.Function.identity(), Text::new,
                 java.util.function.Function.identity(), null,
-                Set.of(), null, Selection.SINGLE, Attributes.NONE);
+                Set.of(), null, Selection.SINGLE, 0, Attributes.NONE);
     }
 
     /// The one chosen id, or null — the single-selection reading of [#selected].
@@ -152,7 +176,7 @@ public record ListView<T>(List<T> items, Function<T, String> identity,
     /// ends or neither.
     public ListView<T> selected(Set<String> values, Consumer<Set<String>> onSelect) {
         return new ListView<>(items, identity, factory, text, itemMenu,
-                values, onSelect, selection, attributes);
+                values, onSelect, selection, rowHeight, attributes);
     }
 
     /// The same, for the caller that holds **one** value.
@@ -171,14 +195,40 @@ public record ListView<T>(List<T> items, Function<T, String> identity,
     /// This list with a different selection model — §10's "none / single / multi".
     public ListView<T> selection(Selection value) {
         return new ListView<>(items, identity, factory, text, itemMenu,
-                selected, onSelect, value, attributes);
+                selected, onSelect, value, rowHeight, attributes);
     }
 
     /// This list with items that expose text, which is what §10 makes
     /// type-to-select conditional on.
     public ListView<T> text(Function<T, String> value) {
         return new ListView<>(items, identity, factory, value, itemMenu,
-                selected, onSelect, selection, attributes);
+                selected, onSelect, selection, rowHeight, attributes);
+    }
+
+    /// This list building **only the rows its viewport can see** — §10's
+    /// committed virtualization, turned on by saying how tall a row is.
+    ///
+    /// ```java
+    /// ListView.of(names).virtualized(32)      // --gb-list-row-height's default
+    /// ```
+    ///
+    /// The height is the caller's because the widget cannot find it out: a
+    /// stylesheet resolves `--gb-list-row-height` and no widget can read a
+    /// resolved custom property, so a number nobody states is a number nobody
+    /// has. A list whose rows are styled to some other height passes that
+    /// instead, and a list whose rows vary in height must not virtualize at all
+    /// — the arithmetic is index × height and there is no other way to know where
+    /// row 4,000 begins without building the 3,999 above it.
+    ///
+    /// Everything else is unchanged: the same item-factory is called with the
+    /// same items, which is what §10 means by "a performance upgrade, not an API
+    /// break". `Home`, `End` and the typeahead still reach rows that are not
+    /// built ([ADR-0213](../../../../../../../../book/src/adr/0213-a-virtual-list-is-two-spacers-and-a-window.md)).
+    ///
+    /// @param height a row's height in logical pixels, or zero to build them all
+    public ListView<T> virtualized(double height) {
+        return new ListView<>(items, identity, factory, text, itemMenu,
+                selected, onSelect, selection, height, attributes);
     }
 
     /// This list with a context menu per item — §10's "item context menus".
@@ -193,13 +243,13 @@ public record ListView<T>(List<T> items, Function<T, String> identity,
     /// the row itself ([ADR-0208]).
     public ListView<T> itemMenu(Function<T, String> value) {
         return new ListView<>(items, identity, factory, text, value,
-                selected, onSelect, selection, attributes);
+                selected, onSelect, selection, rowHeight, attributes);
     }
 
     @Override
     public ListView<T> withAttributes(Attributes value) {
         return new ListView<>(items, identity, factory, text, itemMenu,
-                selected, onSelect, selection, value);
+                selected, onSelect, selection, rowHeight, value);
     }
 
     @Override
