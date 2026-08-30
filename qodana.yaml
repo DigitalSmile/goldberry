@@ -1,0 +1,55 @@
+# Qodana Community for JVM — docs/testing.md §2's advisory dashboard.
+#
+# Advisory, not a gate. The blocking analysis is Error Prone, NullAway, PMD and
+# ArchUnit, which run on every PR in `./gradlew check`; what this adds is
+# IntelliJ's inspection set, which is broader, noisier, and occasionally sees
+# something none of the others do. A quality gate on *new* issues only, so a
+# baseline of existing findings does not have to be cleared before it is useful.
+#
+# This file is inert until a QODANA_TOKEN secret exists — see docs/testing.md §7.
+version: "1.0"
+
+# Community edition for the JVM. The paid tiers add taint analysis and a licence
+# audit; neither is what this is here for.
+linter: jetbrains/qodana-jvm-community:latest
+
+profile:
+  # Not `qodana.recommended`: this project already has four analysers, and the
+  # recommended profile's overlap with them is most of it. `qodana.starter` is
+  # the smaller set, which leaves the findings that are actually IntelliJ's own.
+  name: qodana.starter
+
+# Fail the job on new problems of high severity, and only new ones. An existing
+# finding is a thing to schedule; a new one arrived with a pull request and has
+# somebody to ask about it.
+failureConditions:
+  severityThresholds:
+    critical: 0
+    high: 0
+
+exclude:
+  - name: All
+    paths:
+      # Generated between compileJava and jar, and never edited by hand.
+      - build
+      - "**/build"
+      # jextract-shaped FFM bindings: layout tables, downcall handles and
+      # restricted calls. Every inspection either does not apply or fires on the
+      # idiom the whole module is made of -- the same reason :natives has Error
+      # Prone disabled and sits outside the coverage gates.
+      - natives/src/main/java/io/github/digitalsmile/goldberry/natives
+
+  # A widget's `build` returns one expression per branch and a painter's `render`
+  # is long because a rasterizer step is long. Neither is a defect and both are
+  # what this codebase looks like.
+  - name: LongMethod
+  - name: OverlyComplexMethod
+
+  # The toolkit's own naming: `cssType`, `nowMillis`, `toReal`. IntelliJ wants
+  # different words for some of them and it is wrong about all of them.
+  - name: NonBooleanMethodNameMayNotStartWithQuestion
+
+include:
+  # The one inspection worth turning ON: an unused declaration is dead code, and
+  # Error Prone only sees the private half of it.
+  - name: UnusedDeclaration

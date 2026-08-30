@@ -1,0 +1,77 @@
+# Qodana — docs/testing.md §2's advisory dashboard, and §7's checklist.
+#
+# The whole workflow is guarded on the QODANA_TOKEN secret existing. Without it
+# the job resolves to a single skipped step rather than a red cross on every pull
+# request: an analyser nobody has connected yet should be silent, not broken.
+#
+# The profile, the exclusions and the quality gate are in `qodana.yaml` at the
+# repository root, so they are reviewed as code rather than configured in a web
+# form nobody can diff.
+name: Qodana
+
+on:
+  pull_request:
+    branches: [main, master]
+  push:
+    branches: [main, master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  # The action writes findings into the PR's Checks tab.
+  checks: write
+  pull-requests: write
+
+jobs:
+  qodana:
+    name: Inspect
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Is Qodana connected?
+        id: gate
+        env:
+          TOKEN: ${{ secrets.QODANA_TOKEN }}
+        run: |
+          if [ -n "$TOKEN" ]; then
+            echo "connected=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "connected=false" >> "$GITHUB_OUTPUT"
+            echo "QODANA_TOKEN is not set — see docs/testing.md §7. Skipping." >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - uses: actions/checkout@v4
+        if: steps.gate.outputs.connected == 'true'
+        with:
+          # Qodana compares against the base commit to decide what is *new*,
+          # which is what the quality gate in qodana.yaml keys on.
+          fetch-depth: 0
+
+      - uses: actions/setup-java@v4
+        if: steps.gate.outputs.connected == 'true'
+        with:
+          distribution: temurin
+          java-version: '25'
+
+      - uses: gradle/actions/setup-gradle@v4
+        if: steps.gate.outputs.connected == 'true'
+
+      # Qodana inspects sources, but several inspections need the project to
+      # resolve. Building first without the native library is enough for that and
+      # saves the twenty minutes the superbuild costs.
+      - name: Compile for resolution
+        if: steps.gate.outputs.connected == 'true'
+        run: ./gradlew compileJava compileTestJava -Pgoldberry.skipNative=true --no-daemon
+
+      - uses: JetBrains/qodana-action@v2024.3
+        if: steps.gate.outputs.connected == 'true'
+        env:
+          QODANA_TOKEN: ${{ secrets.QODANA_TOKEN }}
+        with:
+          args: --baseline,qodana.sarif.json
+
+      - uses: actions/upload-artifact@v4
+        if: always() && steps.gate.outputs.connected == 'true'
+        with:
+          name: qodana
+          path: ${{ runner.temp }}/qodana/results
+          if-no-files-found: ignore

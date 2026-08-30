@@ -85,6 +85,24 @@ jobs:
           path: build/reports/jacoco/testCodeCoverageReport
           if-no-files-found: ignore
 
+      # docs/testing.md §3's PR diff coverage. Guarded on the secret existing, so
+      # the lane is silent until somebody connects Codecov rather than red on
+      # every pull request until then (§7 is the checklist).
+      #
+      # `fail_ci_if_error: false` on purpose: coverage reporting is a dashboard,
+      # and an upload that failed because a third party was down is not a reason
+      # to block a merge.
+      - name: Upload coverage to Codecov
+        if: ${{ always() && env.CODECOV_TOKEN != '' }}
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: build/reports/jacoco/testCodeCoverageReport/testCodeCoverageReport.xml
+          flags: jvm
+          fail_ci_if_error: false
+
   natives:
     name: libgoldberry (${{ matrix.target }})
     strategy:

@@ -14,11 +14,11 @@ Companion to `ARCHITECTURE.md`, `core-widgets.md`, `content-widgets.md`, `goldbe
 
 ### 1.1 Unit tests (JUnit 5)
 Pure-logic modules with exact assertions: CSS tokenizer/parser/cascade/specificity, KDL parsing and inflater errors (source positions!), Yoga property mapping, text segmentation (Bidi runs, break candidates), tick labeling (Wilkinson), M4/LTTB aggregation, OKLCH ramps, easing curves, binding path resolution.
-**Property-based tests (jqwik)** where round-trips exist: KDL parse↔serialize, CSS tokenizer on generated input, color conversions, series aggregation invariants (M4 envelope ⊆ raw min/max).
+**Property-based tests (jqwik)** where round-trips exist. Built today over the chart stack, which is where the invariants are: `Scale` is a bijection (`from(at(v))` is `v`) and order-preserving, `Lttb` returns a subsequence of its input with both ends kept, and `Ticks` produces an ordered labelling consistent with its own `count` and `step` (`SeriesPropertyTest`). KDL parse↔serialize is not among them because there is no serializer to round-trip against.
 
 ### 1.2 Widget & interaction tests (headless backend)
 The `headless` backend renders to `BLImage` and pumps synthetic events through the normal dispatch path — no display server anywhere.
-- **Semantics queries, not pixel poking:** `click(byRole(BUTTON, "Apply"))`, `type(byRole(TEXTBOX, "Name"), "…")`. This keeps tests refactor-stable and doubles as an accessibility completeness check.
+- **Semantics queries, not pixel poking** — *planned, not built*. There is no role and no name to query: the semantics tree is `ARCHITECTURE.md` prose and the AccessKit bridge is M5. Tests find widgets through `Described`, which walks the element tree by type and id. When roles exist this is where `byRole` goes, and the rewrite is mechanical.
 - **Virtual clock:** `clock.advance(160)` steps animations deterministically; tests assert mid-transition frames, enter/exit lifecycle states (`closing` disables input), and reduced-motion collapse.
 - Focus-order tests walk Tab/arrow traversal per the `core-widgets.md` keyboard maps.
 - Capture UIs test against synthetic sources (color-bar camera, sine/noise/sweep mic) — no hardware in CI.
@@ -39,12 +39,13 @@ The `headless` backend renders to `BLImage` and pumps synthetic events through t
 - Superbuild smoke: `libgoldberry` loads, version symbols match pinned dependency versions.
 - FFM lifecycle tests: arena closure invalidates wrappers with `IllegalStateException`, `Cleaner` safety net fires under leak simulation.
 
-### 1.5 Performance (JMH + frame budget)
-- JMH benches on the hot seams: shaping + paragraph cache, Yoga measure upcalls, M4 aggregation over `MemorySegment` (Vector API), damage/composite cost.
-- Frame-budget tests: scripted scenarios (resize wrapped text, scroll long list, pan 10M-point chart) on the headless backend must stay under budget; tracked over time, alert on >10% regression. Nightly, not per-PR.
+### 1.5 Performance (frame budget)
+- **Benchmarks are JUnit classes tagged `benchmark`**, run by `./gradlew benchmark` and never by `check`. They print measurements and assert almost nothing, deliberately: a timing assertion on shared CI hardware fails for reasons that have nothing to do with the code, and ADR-0028 and ADR-0031 both took their numbers this way — measured, written down, and argued about in prose.
+- Hot seams covered: shaping and the paragraph cache, Yoga measure upcalls, binding schemes (woven against reflective), and `FrameBudgetTest`'s scripted scenarios on the headless backend.
+- **JMH itself is not wired.** Its Gradle plugin generates a source set, and doing that inside a JPMS build is the integration PIT also ran into (§6). The `benchmark` task is what exists, and it runs nightly.
 
 ### 1.6 Dual-mode & native-image lanes
-- Full suite twice per PR: woven and reflection-fallback (`-Pgoldberry.weave=false`). Test runtime classpath includes weave output so woven artifacts are what's actually exercised.
+- Full suite twice per PR: reflection-fallback (the default, which is what a jar does) and woven (`-Pgoldberry.nativeImage=true`, which is what a native image does — ADR-0155). Two invocations rather than two tasks, because weaving rewrites the compiled classes in place and one build cannot hold both forms. Coverage survives the split: the exec file is named for the mode and the report reads every file it finds.
 - Native-image lane (nightly + release): build the gallery with GraalVM on all three OSes, run a scripted smoke (launch, render reference screens, compare goldens, exit). JVM lanes measure coverage; the native lane proves AOT viability — it contributes no coverage by design.
 
 ### 1.7 Accessibility & design-system checks
@@ -54,28 +55,40 @@ The `headless` backend renders to `BLImage` and pumps synthetic events through t
 
 ## 2. Architecture & static analysis gates
 
-- **ArchUnit** (JUnit): only `goldberry.natives` touches `MemorySegment`; widgets never import backend classes; nothing outside `theme` references raw Nord constants; module dependency direction matches ARCHITECTURE §2.
-- **Blocking at compile:** Spotless (palantir-java-format) + Error Prone + NullAway (JSpecify annotations on all public API).
-- **Blocking after triage:** SpotBugs + fb-contrib, PMD/CPD (duplication guard for the widget/painter corpus).
-- **Advisory dashboards:** Qodana Community for JVM (shared inspection profile in-repo, incl. structural-search rules like "no literal colors in painters — tokens only"; baseline committed, quality gate on new issues), CodeQL (security, free on public repos), Sonar/Codecov badges.
+- **ArchUnit** (`BoundaryTest`, `DeterminismTest`): a raw `MemorySegment` never leaves `:natives`; `:common` depends on nothing of Goldberry's; `:core` never reaches its own catalog; a widget never imports a backend or opens a window; and nothing in the deterministic layer reads a clock, a random source, the default locale or the default time zone.
+
+  Not built: "nothing outside `theme` references raw Nord constants". The colours live in `nord-dark.css` and `nord-light.css` and reach code only through `var(--gb-*)`, so there is no constant to reference and nothing for a rule to catch. The equivalent check — no literal colour in a painter — needs to read int literals, which ArchUnit does not do.
+- **Blocking at compile:** Spotless (palantir-java-format, all 919 files), Error Prone, NullAway. JSpecify is wired and adopted one package at a time: NullAway runs in `OnlyNullMarked` mode, so an unannotated package is invisible to it and an annotated one is checked from the moment it opts in.
+- **Blocking after triage:** PMD, with a hand-picked ruleset in `config/pmd/ruleset.xml` — PMD's defaults are a style guide, and this codebase's comments are prose and its painters are long because a rasterizer step is long. SpotBugs is not wired: two overlapping bytecode analysers is a second report to triage for the same findings.
+- **Advisory dashboards:** CodeQL (`codeql.yml`, nightly and per-PR) is live and needs no account. Qodana (`qodana.yaml`, `qodana.yml`) and Codecov (a step in `linux.yml`) are wired and **guarded on their secrets**, so both are silent until connected rather than red until then. §7 is the checklist.
 
 ## 3. Coverage
 
 - **JaCoCo** per module (toolVersion pinned latest for JDK 25 class files) + Gradle `jacoco-report-aggregation` for one project-wide XML/HTML.
 - **Merged across modes:** execution data from woven and fallback runs feed one report — a line is uncovered only if neither mode reaches it.
 - **Exclusions:** weaver *output* classes (no source mapping) excluded from reports; `natives` bindings module excluded from gates (its real test is layout agreement); the weaver *module itself* is covered normally.
-- **Gates:** per-module `jacocoTestCoverageVerification` — strict on logic (CSS, KDL, weaver, text, series), lenient on painters (goldens carry correctness there). No single global number.
-- **Codecov** (free OSS) for PR diff coverage + badge (`#A3BE8C`); same XML feeds Sonar/Qodana coverage import.
-- **PIT (pitest)** nightly on parser/cascade/inflater/aggregation modules — mutation testing catches "covered but unasserted," the failure mode golden-heavy suites develop.
+- **Gates:** per-module `jacocoTestCoverageVerification`, wired into `check`, and trivially passing in a module that declares no rules — so a floor exists only where a module has said what its own means. `:core` is at 80% line / 68% branch, `:widgets` at 87% / 71%, and the `css`, `kdl` and `bind` packages at 70%. Every number is a **ratchet set from a measured value**, not a target: it catches a change that drops coverage and never blocks one that merely fails to raise it.
+- **Codecov** for PR diff coverage — wired, guarded, not yet connected (§7).
+- **PIT (pitest)** nightly over the logic packages, run through PIT's own command line rather than `gradle-pitest-plugin`, which reads `reporting.baseDir` and so cannot be applied on Gradle 9. It completes where the test runtime is plain and its coverage minion dies where the tests run on the module path (§6).
 
 ## 4. CI matrix
 
-| Lane | Trigger | OSes | Contents |
-|------|---------|------|----------|
-| fast | every PR push | linux-x64 | Spotless/ErrorProne/NullAway, unit + widget tests (both modes), ArchUnit, goldens (linux set) |
-| full | PR label / merge queue | linux-x64, windows-x64, macos-aarch64 | everything in fast + per-OS goldens, layout agreement, SpotBugs/PMD, Qodana, coverage upload |
-| nightly | schedule | all + linux-aarch64 | JMH tracking, PIT, native-image smoke, CodeQL deep |
-| release | tag | all | full + native-image artifacts + reachability-metadata drift check (tracing agent vs shipped JSON) |
+What the workflows actually do. Every lane below exists; the column that used to
+be aspirational is now §6's business.
+
+| Lane | Workflow | Trigger | Contents |
+|------|----------|---------|----------|
+| fast | `linux.yml` (`java` job) | every push + PR | `./gradlew build checkLicenses` — Spotless, Error Prone, NullAway, PMD, ArchUnit, the coverage gates, unit + widget tests. Then the suite again woven, then the aggregate coverage report and the Codecov upload |
+| per-OS | `linux.yml`, `macos.yml`, `windows.yml` (`natives`, `verify`) | every push + PR | The superbuild, the glibc floor check, layout agreement across platforms, and the whole `:core`/`:widgets` suite against the real library — including every golden image, since Blend2D JITs its pipelines per CPU |
+| showcase | `example.yml`, `showcase.yml` | every push + PR | The example builds and runs; the self-contained image builds |
+| advisory | `codeql.yml`, `qodana.yml` | PR + schedule | CodeQL security queries; Qodana's inspection set once a token exists |
+| nightly | `nightly.yml` | 03:40 UTC | PIT mutation testing, the benchmarks, and coverage over both binding modes |
+| release | `release.yml` | tag | Every OS, the native-image artifacts, and the reachability-metadata drift check |
+
+**Goldens are on every PR, not on a `full` label.** They are the assertion for
+painters (§0.2), so gating them behind a label would mean the check that matters
+most runs least. What is on the nightly lane instead is everything whose answer
+is a number to read rather than a gate to pass.
 
 ## 5. Contributor workflow
 
@@ -102,14 +115,21 @@ status beside it reads as a description of what exists.
 - **§1.3/§5 `blessGoldens`**, per module and at the root.
 - **§2 ArchUnit.** `BoundaryTest` asserts `ARCHITECTURE.md` §2's arrows and
   §3.1's FFM boundary — seven rules the module graph cannot state.
-- **§2 Spotless with palantir-java-format**, over every file the formatter can
-  safely read — 711 of roughly 730. Plus `removeUnusedImports` and an import
-  order that keeps static imports first, where the tool's own default would have
-  moved them last. See the exclusion below.
+- **§2 Spotless with palantir-java-format**, over **all 919 Java files**, no
+  exclusions. Plus `removeUnusedImports` and an import order that keeps static
+  imports first, where the tool's own default would have moved them last.
 - **§2 Error Prone + NullAway**, blocking on `src/main`. NullAway runs in
   `OnlyNullMarked` mode; `io.github.digitalsmile.goldberry.log` is the first
   package to opt in, and a `return null` added to it fails the build.
-- **§2 PMD**, eight hand-picked rules in `config/pmd/ruleset.xml`.
+- **§2 PMD**, eight hand-picked rules in `config/pmd/ruleset.xml`, on `src/main`
+  only.
+- **510 broken ADR links repaired.** Every relative `.md` link from Java source
+  into the book resolved to nothing — the `../` depths had been wrong since they
+  were written — and the book is built and published by nothing, so there was
+  nowhere else for them to point. They are now the plain reference they always
+  effectively were, which is also what let the formatter reach every file.
+- **§4's lanes.** `nightly.yml` (PIT, benchmarks, both-mode coverage),
+  `qodana.yml` and the Codecov step, both guarded on their secrets.
 - **§3 JaCoCo**, per module and aggregated, genuinely **merged across binding
   modes**: the exec file is named for the mode, so a reflective run and a woven
   run leave two files and one report reads both. Floors on `:core` and
@@ -121,25 +141,21 @@ status beside it reads as a description of what exists.
 
 ### Deliberately narrowed
 
-- **Nineteen files are excluded from palantir-java-format**, and the reason is a
-  tool defect rather than a preference. **palantir 2.97.0 corrupts JDK 23+ `///`
-  markdown javadoc**: when a `///` line is too long to fit, it wraps the content
-  onto a new line *without* re-emitting the `///` prefix, so the doc comment
-  becomes a statement and the file stops compiling. Run over the whole tree it
-  produced 11 corrupted files and 80 compile errors, and it wrote them to disk
-  before reporting anything. `formatJavadoc(false)` does not prevent it — the
-  step treats `///` as a line comment, which that flag does not govern.
+- **Nothing is excluded from the formatter now**, and the way that was reached
+  is worth keeping. palantir 2.97.0 mishandles JDK 23+ `///` markdown javadoc:
+  when a line cannot fit at its indentation it wraps the content onto a new line
+  *without* re-emitting the `///`, so the comment becomes a statement and the
+  file stops compiling. Run over the whole tree it wrote 11 corrupted files and
+  80 compile errors to disk before reporting anything, and `formatJavadoc(false)`
+  does not prevent it — the step treats `///` as a line comment, which that flag
+  does not govern.
 
-  The trigger is this project's own convention: doc comments carry ADR links
-  whose URLs are single unbreakable tokens of ninety-odd characters. Shortening
-  those lines means shortening the URLs, which are relative paths the book
-  resolves — so the choice was between breaking links and excluding files. The
-  list is in `goldberry.java-conventions.gradle`, derived from what
-  `spotlessApply --continue` actually reported rather than guessed at, and
-  `spotlessCheck` passing is what keeps it honest.
-
-  The excluded files still get the whitespace steps. Everything else — every
-  brace, wrap and blank line in 711 files — is the formatter's decision now.
+  Nineteen files were excluded for a week. What they had in common was a token
+  the formatter could not place: an ADR link whose URL was a relative path ninety
+  characters long. Those links turned out to be broken — 510 of 511 — so the fix
+  was not a concession to the tool but a repair the tool found. The 59 doc lines
+  still over 100 characters afterwards were re-wrapped at word boundaries,
+  changing no word and skipping code fences, tables and box drawing.
 - **`ReferenceEquality` is off**, and `CloseResource` is out of the PMD set. Each
   was wrong every time it fired — the first on the thread-confinement check
   eighteen files make, the second on 47 sites where an owner holds a closeable
@@ -169,17 +185,16 @@ status beside it reads as a description of what exists.
   at a time, each checked from the moment it opts in.
 - **JMH (§1.5).** The plugin resolves; wiring it into a JPMS build with a
   generated benchmark source set is the same class of problem PIT hit. The
-  repository already measures the hot seams through its `benchmark` task, on the
-  footing ADR-0028 and ADR-0031 set: numbers printed and argued about in prose
-  rather than pinned by a threshold that fails on shared CI hardware.
+  `benchmark` task is what exists and it runs nightly, on the footing ADR-0028
+  and ADR-0031 set: numbers printed and argued about in prose rather than pinned
+  by a threshold that fails on shared CI hardware.
 - **SpotBugs + fb-contrib (§2).** Not attempted after PMD: two overlapping
   bytecode analysers on the same codebase is a second report to triage for the
   same findings, and PMD's ruleset here took three attempts to make load at all.
-- **Qodana and Codecov (§2, §3).** Both need repository secrets and an account,
-  which a commit cannot establish. CodeQL is in because it needs neither.
-- **§4's full CI matrix.** The dual-mode and coverage lanes are in `linux.yml`;
-  spreading them across the Windows and macOS workflows and adding a nightly
-  schedule is mechanical and untestable from here.
+- **Qodana and Codecov are wired but not connected.** Both need a token this
+  repository does not have. Neither fails a build in the meantime — the Qodana
+  job gates itself on the secret and skips with a note, and the Codecov step is
+  conditional on the same. §7 is the two checklists.
 
 ### Two failures worth keeping
 
@@ -195,3 +210,63 @@ Both were silent, and both were found by reading output rather than exit codes.
   are the reason `:natives` has Error Prone disabled and the reason
   `removeUnusedImports` was switched off for a while; both are fixed, and both
   were one-line edits once the cause was visible.
+
+## 7. Connecting Qodana and Codecov
+
+Both are wired and both are inert. Each needs one secret, and until it exists the
+job skips rather than fails — an analyser nobody has connected should be silent,
+not a red cross on every pull request.
+
+### Codecov — PR diff coverage
+
+Everything in the repository is done: `linux.yml` builds one aggregated JaCoCo
+XML across both binding modes and has the upload step, guarded on the secret.
+
+1. Sign in at <https://codecov.io> with the GitHub account that owns the repo and
+   add `digitalsmile/goldberry`.
+2. Copy the **repository upload token** it shows you.
+3. Add it as an Actions secret named `CODECOV_TOKEN`:
+   *Settings → Secrets and variables → Actions → New repository secret*.
+   A public repository can upload tokenless, but it is rate-limited and fails
+   opaquely on forks; the token is worth the two minutes.
+4. Nothing else. The next push to `main`/`master` uploads
+   `build/reports/jacoco/testCodeCoverageReport/testCodeCoverageReport.xml`
+   under the `jvm` flag.
+5. Optional: add the badge to `README.md`. Codecov gives you the markdown; the
+   design system's green is `#A3BE8C` if you want it to match.
+
+**What you will see first.** Around 84% line and 72% branch overall. Do not read
+that as a target to raise: more than half of `:core` is painters, where §0.2 says
+line coverage proves reachability and the goldens prove correctness. The number
+worth watching is the **diff** coverage on a pull request.
+
+**`fail_ci_if_error` is false** on purpose. Coverage reporting is a dashboard,
+and an upload that failed because a third party was down is not a reason to block
+a merge.
+
+### Qodana — IntelliJ's inspection set
+
+The profile, the exclusions and the quality gate are in `qodana.yaml` at the
+repository root, so they are reviewed as code rather than configured in a web
+form nobody can diff.
+
+1. Sign in at <https://qodana.cloud> with JetBrains or GitHub.
+2. Create an **organization**, then a **project** for this repository. Community
+   for JVM (`jetbrains/qodana-jvm-community`) is free and is what `qodana.yaml`
+   names — the paid tiers add taint analysis and a licence audit, neither of
+   which is what this is for.
+3. Copy the project token.
+4. Add it as an Actions secret named `QODANA_TOKEN`.
+5. Push. The first run has no baseline, so expect a large report; accept it as
+   the baseline in Qodana Cloud, after which the quality gate in `qodana.yaml`
+   fails only on **new** high-severity findings.
+
+**Why the gate is new-issues-only.** A baseline of existing findings does not
+have to be cleared before the tool is useful, and requiring that is how static
+analysis gets switched off. An existing finding is something to schedule; a new
+one arrived with a pull request and has somebody to ask about it.
+
+**Expect overlap.** Error Prone, NullAway, PMD and ArchUnit already run on every
+PR and block. Qodana is advisory precisely because most of what it reports will
+be one of those findings again, or a style opinion this codebase has already
+decided against. It earns its place on the few that are neither.

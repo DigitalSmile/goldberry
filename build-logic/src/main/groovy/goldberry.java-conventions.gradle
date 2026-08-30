@@ -288,7 +288,10 @@ pmd {
     ignoreFailures = false
 }
 
-tasks.named('pmdTest') {
+// Main sources only. A test that swallows an exception or builds a string in a
+// loop is usually saying so on purpose, and a gate that argues with it is one
+// people learn to silence.
+tasks.matching { it.name in ['pmdTest', 'pmdTestFixtures'] }.configureEach {
     enabled = false
 }
 
