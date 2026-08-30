@@ -1,17 +1,18 @@
 package io.github.digitalsmile.goldberry.natives.harfbuzz;
 
-import io.github.digitalsmile.goldberry.natives.harfbuzz.calls.BufferCalls;
-import io.github.digitalsmile.goldberry.natives.harfbuzz.calls.FontCalls;
-import io.github.digitalsmile.goldberry.natives.harfbuzz.calls.ShapingCalls;
-import io.github.digitalsmile.goldberry.natives.harfbuzz.calls.VersionCalls;
-import io.github.digitalsmile.goldberry.natives.NativeLibrary;
-import io.github.digitalsmile.goldberry.natives.layout.Layouts;
 import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.SymbolLookup;
 import java.lang.foreign.ValueLayout;
+
+import io.github.digitalsmile.goldberry.natives.NativeLibrary;
+import io.github.digitalsmile.goldberry.natives.harfbuzz.calls.BufferCalls;
+import io.github.digitalsmile.goldberry.natives.harfbuzz.calls.FontCalls;
+import io.github.digitalsmile.goldberry.natives.harfbuzz.calls.ShapingCalls;
+import io.github.digitalsmile.goldberry.natives.harfbuzz.calls.VersionCalls;
 import io.github.digitalsmile.goldberry.natives.harfbuzz.enums.MemoryMode;
 import io.github.digitalsmile.goldberry.natives.harfbuzz.enums.TextDirection;
+import io.github.digitalsmile.goldberry.natives.layout.Layouts;
 
 /// HarfBuzz's shaping calls.
 ///
@@ -36,7 +37,8 @@ final class HarfBuzz {
     private static final long POS_Y_OFFSET = Layouts.HB_GLYPH_POSITION.offsetOf("y_offset");
 
     private static final class Holder {
-        private static final HarfBuzz INSTANCE = new HarfBuzz(NativeLibrary.get().lookup());
+        private static final HarfBuzz INSTANCE =
+                new HarfBuzz(NativeLibrary.get().lookup());
     }
 
     private final VersionCalls versionCalls;
@@ -77,8 +79,9 @@ final class HarfBuzz {
     /// Always [MemoryMode#DUPLICATE]: the alternative is promising that a Java
     /// array's memory outlives the face, which nothing here can promise.
     MemorySegment blobCreate(MemorySegment data, int length) {
-        return fontCalls.blobCreate().call(data, length, MemoryMode.DUPLICATE.nativeValue(),
-                MemorySegment.NULL, MemorySegment.NULL);
+        return fontCalls
+                .blobCreate()
+                .call(data, length, MemoryMode.DUPLICATE.nativeValue(), MemorySegment.NULL, MemorySegment.NULL);
     }
 
     void blobDestroy(MemorySegment blob) {
@@ -146,8 +149,7 @@ final class HarfBuzz {
     ///
     /// UTF-16 is why this is the natural entry point: a Java String already is
     /// UTF-16, so the text crosses without being transcoded.
-    void bufferAddUtf16(
-            MemorySegment buffer, MemorySegment text, int textLength, int itemOffset, int itemLength) {
+    void bufferAddUtf16(MemorySegment buffer, MemorySegment text, int textLength, int itemOffset, int itemLength) {
         bufferCalls.bufferAddUtf16().call(buffer, text, textLength, itemOffset, itemLength);
     }
 
@@ -251,5 +253,4 @@ final class HarfBuzz {
     private static MemorySegment resize(MemorySegment pointer, long bytes) {
         return pointer.reinterpret(bytes);
     }
-
 }

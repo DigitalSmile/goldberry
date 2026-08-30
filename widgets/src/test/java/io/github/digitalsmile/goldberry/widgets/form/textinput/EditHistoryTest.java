@@ -5,10 +5,11 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import io.github.digitalsmile.goldberry.widgets.form.textinput.EditHistory.Kind;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+
+import io.github.digitalsmile.goldberry.widgets.form.textinput.EditHistory.Kind;
 
 /// Undo, redo, and what folds into one step.
 ///
@@ -234,8 +235,7 @@ class EditHistoryTest {
             var undone = history.undo(typed);
             var different = type(history, undone, "Tom");
 
-            assertFalse(history.canRedo(),
-                    "the future you undid your way out of is not reachable once you type");
+            assertFalse(history.canRedo(), "the future you undid your way out of is not reachable once you type");
             assertEquals("Tom", different.text());
         }
 
@@ -249,7 +249,9 @@ class EditHistoryTest {
             var redone = history.redo(undone);
             var more = type(history, redone, "berry");
 
-            assertEquals("Gold", history.undo(more).text(),
+            assertEquals(
+                    "Gold",
+                    history.undo(more).text(),
                     "the keystrokes after a redo folded into the step the redo restored");
         }
     }

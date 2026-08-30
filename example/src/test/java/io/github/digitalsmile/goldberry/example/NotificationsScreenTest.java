@@ -5,6 +5,13 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.ArrayList;
+
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+
 import io.github.digitalsmile.goldberry.RendererRequirement;
 import io.github.digitalsmile.goldberry.css.Stylesheet;
 import io.github.digitalsmile.goldberry.css.Theme;
@@ -22,13 +29,8 @@ import io.github.digitalsmile.goldberry.widget.Element;
 import io.github.digitalsmile.goldberry.widget.ElementTree;
 import io.github.digitalsmile.goldberry.widget.WidgetRenderer;
 import io.github.digitalsmile.goldberry.widgets.Controls;
-import io.github.digitalsmile.goldberry.widgets.core.Column;
 import io.github.digitalsmile.goldberry.widgets.Density;
-import java.util.ArrayList;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
+import io.github.digitalsmile.goldberry.widgets.core.Column;
 
 /// The Notifications screen, driven rather than photographed.
 ///
@@ -80,15 +82,15 @@ class NotificationsScreenTest {
         Harness() {
             target = TestFrames.of(900, HEIGHT, 1.0f, 0);
             fonts = Fonts.bundled();
-            var sheets = new ArrayList<Stylesheet>(
-                    Controls.stylesheets(Theme.NORD_DARK, Density.REGULAR));
+            var sheets = new ArrayList<Stylesheet>(Controls.stylesheets(Theme.NORD_DARK, Density.REGULAR));
             sheets.add(Stylesheet.resource(CascadeLayer.APPLICATION, Showcase.class, "showcase.css"));
             renderer = new WidgetRenderer(sheets, fonts);
             // The three cards as the Overlays screen's wall offers them, in a
             // plain column rather than a `masonry`: what this test asserts is
             // which banners are described, and a wall would put them in three
             // columns without changing one of those answers (ADR-0222).
-            tree = new ElementTree(new Column(Notifications.cards().toArray(io.github.digitalsmile.goldberry.widget.Widget[]::new)));
+            tree = new ElementTree(
+                    new Column(Notifications.cards().toArray(io.github.digitalsmile.goldberry.widget.Widget[]::new)));
             render = RenderTree.create();
             router.focusRoot(tree.root());
             router.windowBounds(LogicalRect.of(0, 0, 900, HEIGHT));
@@ -123,7 +125,8 @@ class NotificationsScreenTest {
                     found.add(LogicalRect.of(
                             (float) (m.a() * l.left() + m.c() * l.top() + m.e()),
                             (float) (m.b() * l.left() + m.d() * l.top() + m.f()),
-                            l.width(), l.height()));
+                            l.width(),
+                            l.height()));
                 }
             });
             assertEquals(1, found.size(), "expected exactly one box for that element");
@@ -192,7 +195,9 @@ class NotificationsScreenTest {
 
     private static long count(Element from, String cssType) {
         var here = from.widget() instanceof io.github.digitalsmile.goldberry.widget.style.Styled styled
-                && cssType.equals(styled.cssType()) ? 1L : 0L;
+                        && cssType.equals(styled.cssType())
+                ? 1L
+                : 0L;
         for (var child : from.children()) {
             here += count(child, cssType);
         }
@@ -223,8 +228,7 @@ class NotificationsScreenTest {
 
         assertEquals(RESIDENT + 1, harness.banners(), "the button described no banner");
         assertNotNull(harness.byId("notice-1"), "the spawned banner has no element");
-        assertNull(harness.byId("notice-empty"),
-                "\"Nothing yet\" is still there with something there");
+        assertNull(harness.byId("notice-empty"), "\"Nothing yet\" is still there with something there");
     }
 
     /// The half `overlays.kdl` could not demonstrate: a `dismiss=` in a document

@@ -1,6 +1,7 @@
 package io.github.digitalsmile.goldberry.natives.yoga.style;
 
 import java.util.Locale;
+
 import io.github.digitalsmile.goldberry.natives.yoga.YogaNode;
 
 /// A length in a Yoga style — a number and the unit it is in.

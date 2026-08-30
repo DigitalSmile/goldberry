@@ -1,39 +1,41 @@
 package io.github.digitalsmile.goldberry.render.backend.sdl3;
 
-import io.github.digitalsmile.goldberry.render.Backend;
-import io.github.digitalsmile.goldberry.render.event.BackendEvent;
-import io.github.digitalsmile.goldberry.render.BackendException;
-import io.github.digitalsmile.goldberry.render.popup.BackendPopup;
-import io.github.digitalsmile.goldberry.render.window.BackendWindow;
-import io.github.digitalsmile.goldberry.render.Clipboard;
-import io.github.digitalsmile.goldberry.render.event.EventSink;
-import io.github.digitalsmile.goldberry.render.model.LogicalPoint;
-import io.github.digitalsmile.goldberry.render.popup.PopupSpec;
-import io.github.digitalsmile.goldberry.render.tray.BackendTray;
-import io.github.digitalsmile.goldberry.render.tray.TraySpec;
-import io.github.digitalsmile.goldberry.render.window.WindowSpec;
-import io.github.digitalsmile.goldberry.natives.sdl.Sdl;
-import io.github.digitalsmile.goldberry.natives.sdl.desktop.SdlCursors;
-import io.github.digitalsmile.goldberry.natives.sdl.SdlEventBuffer;
-import io.github.digitalsmile.goldberry.natives.sdl.event.SdlEventType;
-import io.github.digitalsmile.goldberry.natives.sdl.SdlEventWatch;
-import io.github.digitalsmile.goldberry.natives.sdl.SdlException;
-import io.github.digitalsmile.goldberry.natives.sdl.SdlSubsystem;
-import io.github.digitalsmile.goldberry.natives.sdl.desktop.SdlSystemCursor;
-import io.github.digitalsmile.goldberry.natives.sdl.SdlVideo;
-import io.github.digitalsmile.goldberry.natives.sdl.window.SdlWindowFlag;
-import io.github.digitalsmile.goldberry.log.Logs;
-import io.github.digitalsmile.goldberry.log.Startup;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.LinkedHashMap;
-import java.util.Locale;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+
 import org.slf4j.Logger;
+
+import io.github.digitalsmile.goldberry.log.Logs;
+import io.github.digitalsmile.goldberry.log.Startup;
+import io.github.digitalsmile.goldberry.natives.sdl.Sdl;
+import io.github.digitalsmile.goldberry.natives.sdl.SdlEventBuffer;
+import io.github.digitalsmile.goldberry.natives.sdl.SdlEventWatch;
+import io.github.digitalsmile.goldberry.natives.sdl.SdlException;
+import io.github.digitalsmile.goldberry.natives.sdl.SdlSubsystem;
+import io.github.digitalsmile.goldberry.natives.sdl.SdlVideo;
+import io.github.digitalsmile.goldberry.natives.sdl.desktop.SdlCursors;
+import io.github.digitalsmile.goldberry.natives.sdl.desktop.SdlSystemCursor;
+import io.github.digitalsmile.goldberry.natives.sdl.event.SdlEventType;
+import io.github.digitalsmile.goldberry.natives.sdl.window.SdlWindowFlag;
+import io.github.digitalsmile.goldberry.render.Backend;
+import io.github.digitalsmile.goldberry.render.BackendException;
+import io.github.digitalsmile.goldberry.render.Clipboard;
+import io.github.digitalsmile.goldberry.render.event.BackendEvent;
+import io.github.digitalsmile.goldberry.render.event.EventSink;
+import io.github.digitalsmile.goldberry.render.model.LogicalPoint;
+import io.github.digitalsmile.goldberry.render.popup.BackendPopup;
+import io.github.digitalsmile.goldberry.render.popup.PopupSpec;
+import io.github.digitalsmile.goldberry.render.tray.BackendTray;
+import io.github.digitalsmile.goldberry.render.tray.TraySpec;
+import io.github.digitalsmile.goldberry.render.window.BackendWindow;
+import io.github.digitalsmile.goldberry.render.window.WindowSpec;
 
 /// The desktop backend (ADR-0003).
 ///
@@ -139,10 +141,11 @@ public final class Sdl3Backend implements Backend {
         try {
             selectVideoDriver();
             pacePresentToTheDisplay();
-            Startup.time("SDL video subsystem up",
-                    () -> Sdl.get().initialize(EnumSet.of(SdlSubsystem.VIDEO)));
-            LOG.info("sdl3 backend started on SDL {}, video driver {}",
-                    Sdl.get().version(), Sdl.get().videoDriver());
+            Startup.time("SDL video subsystem up", () -> Sdl.get().initialize(EnumSet.of(SdlSubsystem.VIDEO)));
+            LOG.info(
+                    "sdl3 backend started on SDL {}, video driver {}",
+                    Sdl.get().version(),
+                    Sdl.get().videoDriver());
             if (pacer.isPacing()) {
                 LOG.info("frame loop paced to one frame per {}", pacer.interval());
             }
@@ -211,11 +214,11 @@ public final class Sdl3Backend implements Backend {
             return;
         }
 
-        applyVideoDriver(PREFERRED_LINUX_DRIVERS,
-                "a Wayland session is running, and only X11 gets decorations here");
-        LOG.info("preferring X11 on this Wayland session: a Wayland window would be decorated"
-                + " by libdecor, whose default plugin cannot run in a stock-launched JVM."
-                + " Pin the driver with -D{}=wayland to use Wayland anyway.",
+        applyVideoDriver(PREFERRED_LINUX_DRIVERS, "a Wayland session is running, and only X11 gets decorations here");
+        LOG.info(
+                "preferring X11 on this Wayland session: a Wayland window would be decorated"
+                        + " by libdecor, whose default plugin cannot run in a stock-launched JVM."
+                        + " Pin the driver with -D{}=wayland to use Wayland anyway.",
                 VIDEO_DRIVER_PROPERTY);
     }
 
@@ -249,8 +252,7 @@ public final class Sdl3Backend implements Backend {
         } else {
             // Not fatal: an unpaced loop draws the same pixels, just more of them
             // than anyone will look at.
-            LOG.warn("SDL refused {}; the frame loop will not be paced to the display",
-                    Sdl.RENDER_VSYNC_HINT);
+            LOG.warn("SDL refused {}; the frame loop will not be paced to the display", Sdl.RENDER_VSYNC_HINT);
         }
     }
 
@@ -367,8 +369,7 @@ public final class Sdl3Backend implements Backend {
         var window = new Sdl3Window(this, handle, spec.title());
         windowsById.put(handle.id(), window);
         Startup.mark("SDL window " + handle.id() + " created");
-        LOG.debug("created SDL window {} \"{}\" {} flags={}",
-                handle.id(), spec.title(), spec.size(), flags);
+        LOG.debug("created SDL window {} \"{}\" {} flags={}", handle.id(), spec.title(), spec.size(), flags);
         return window;
     }
 
@@ -380,8 +381,7 @@ public final class Sdl3Backend implements Backend {
         Objects.requireNonNull(spec, "spec");
         if (!(owner instanceof Sdl3Window parent)) {
             throw new IllegalArgumentException(
-                    "a popup's owner must be a window from this backend, and " + owner
-                            + " is not");
+                    "a popup's owner must be a window from this backend, and " + owner + " is not");
         }
         if (!parent.isOpen()) {
             throw new IllegalStateException("cannot open a popup on a window that has closed");
@@ -408,8 +408,7 @@ public final class Sdl3Backend implements Backend {
         // of them makes that check mean what it says: the application is focused
         // exactly when one of its *own* windows is
         // ([ADR-0189](../../../../../../book/src/adr/0189-no-popup-holds-the-keyboard.md)).
-        var flags = EnumSet.of(SdlWindowFlag.HIGH_PIXEL_DENSITY, SdlWindowFlag.HIDDEN,
-                SdlWindowFlag.NOT_FOCUSABLE);
+        var flags = EnumSet.of(SdlWindowFlag.HIGH_PIXEL_DENSITY, SdlWindowFlag.HIDDEN, SdlWindowFlag.NOT_FOCUSABLE);
         switch (spec.kind()) {
             case MENU -> {
                 flags.add(SdlWindowFlag.POPUP_MENU);
@@ -447,8 +446,13 @@ public final class Sdl3Backend implements Backend {
 
         var popup = new Sdl3Popup(this, handle.get(), parent, spec.kind(), spec.position());
         windowsById.put(handle.get().id(), popup);
-        LOG.debug("created SDL popup {} {} at {} on window {} flags={}",
-                handle.get().id(), spec.size(), spec.position(), parent.handleId(), flags);
+        LOG.debug(
+                "created SDL popup {} {} at {} on window {} flags={}",
+                handle.get().id(),
+                spec.size(),
+                spec.position(),
+                parent.handleId(),
+                flags);
         return Optional.of(popup);
     }
 
@@ -558,8 +562,7 @@ public final class Sdl3Backend implements Backend {
         try {
             resizeWatch = SdlEventWatch.install(this::drawDuringModalLoop);
         } catch (UnsatisfiedLinkError | SdlException e) {
-            LOG.debug("no event watch, so a resize drag on Windows or macOS will not"
-                    + " redraw until it ends", e);
+            LOG.debug("no event watch, so a resize drag on Windows or macOS will not" + " redraw until it ends", e);
         }
     }
 
@@ -590,8 +593,7 @@ public final class Sdl3Backend implements Backend {
             return;
         }
         var type = event.type();
-        if (type != SdlEventType.WINDOW_RESIZED.value()
-                && type != SdlEventType.WINDOW_EXPOSED.value()) {
+        if (type != SdlEventType.WINDOW_RESIZED.value() && type != SdlEventType.WINDOW_EXPOSED.value()) {
             return;
         }
 
@@ -694,11 +696,10 @@ public final class Sdl3Backend implements Backend {
             // moving. No event of its own: the resize or scale change that
             // caused it carries the news.
         } else if (type == SdlEventType.KEY_DOWN.value()) {
-            out.add(new BackendEvent.KeyPressed(window, eventBuffer.keycode(),
-                    eventBuffer.keyModifiers(), eventBuffer.isRepeat()));
+            out.add(new BackendEvent.KeyPressed(
+                    window, eventBuffer.keycode(), eventBuffer.keyModifiers(), eventBuffer.isRepeat()));
         } else if (type == SdlEventType.KEY_UP.value()) {
-            out.add(new BackendEvent.KeyReleased(window, eventBuffer.keycode(),
-                    eventBuffer.keyModifiers()));
+            out.add(new BackendEvent.KeyReleased(window, eventBuffer.keycode(), eventBuffer.keyModifiers()));
         } else if (type == SdlEventType.TEXT_INPUT.value()) {
             // Copied out of SDL's memory here, while the event is still the
             // current one -- the pointer dies at the next pump.
@@ -709,28 +710,42 @@ public final class Sdl3Backend implements Backend {
             // inside the pump that produced the event, which is the closest to
             // "when it happened" this layer can get (ADR-0089).
             var at = inTheWindowsOwnSpace(window, eventBuffer.pointerX(), eventBuffer.pointerY());
-            out.add(new BackendEvent.PointerMoved(window, at[0], at[1],
-                    Sdl.get().modifierState()));
+            out.add(new BackendEvent.PointerMoved(
+                    window, at[0], at[1], Sdl.get().modifierState()));
         } else if (type == SdlEventType.MOUSE_BUTTON_DOWN.value()) {
             var at = inTheWindowsOwnSpace(window, eventBuffer.pointerX(), eventBuffer.pointerY());
-            out.add(new BackendEvent.PointerPressed(window, at[0], at[1],
-                    eventBuffer.mouseButton(), eventBuffer.clickCount(), Sdl.get().modifierState()));
+            out.add(new BackendEvent.PointerPressed(
+                    window,
+                    at[0],
+                    at[1],
+                    eventBuffer.mouseButton(),
+                    eventBuffer.clickCount(),
+                    Sdl.get().modifierState()));
         } else if (type == SdlEventType.MOUSE_BUTTON_UP.value()) {
             var at = inTheWindowsOwnSpace(window, eventBuffer.pointerX(), eventBuffer.pointerY());
-            out.add(new BackendEvent.PointerReleased(window, at[0], at[1],
-                    eventBuffer.mouseButton(), eventBuffer.clickCount(), Sdl.get().modifierState()));
+            out.add(new BackendEvent.PointerReleased(
+                    window,
+                    at[0],
+                    at[1],
+                    eventBuffer.mouseButton(),
+                    eventBuffer.clickCount(),
+                    Sdl.get().modifierState()));
         } else if (type == SdlEventType.MOUSE_WHEEL.value()) {
             // The buffer has already undone SDL's "natural scrolling" inversion.
             // What is left is the sign convention: SDL's y is positive *away from
             // the user*, and the SPI's is positive *down the document*, which is
             // CSS's and every scroll view's. One negation, at the boundary, once.
-            out.add(new BackendEvent.PointerWheel(window,
-                    eventBuffer.wheelPointerX(), eventBuffer.wheelPointerY(),
-                    eventBuffer.wheelX(), -eventBuffer.wheelY(),
+            out.add(new BackendEvent.PointerWheel(
+                    window,
+                    eventBuffer.wheelPointerX(),
+                    eventBuffer.wheelPointerY(),
+                    eventBuffer.wheelX(),
+                    -eventBuffer.wheelY(),
                     // Negated on the same axis and for the same reason as the
                     // float beside it. SDL accumulates these itself, so they are
                     // passed on rather than derived (ADR-0115).
-                    eventBuffer.wheelTicksX(), -eventBuffer.wheelTicksY(),
+                    eventBuffer.wheelTicksX(),
+                    -eventBuffer.wheelTicksY(),
                     Sdl.get().modifierState()));
         } else if (type == SdlEventType.WINDOW_DISPLAY_SCALE_CHANGED.value()) {
             // Usually the window moving to another monitor, which is also the one
@@ -796,12 +811,16 @@ public final class Sdl3Backend implements Backend {
         }
         var pointer = Sdl.get().globalPointer();
         var corrected = new float[] {
-                pointer[0] - origin.get().x(),
-                pointer[1] - origin.get().y()
+            pointer[0] - origin.get().x(), pointer[1] - origin.get().y()
         };
         if (LOG.isTraceEnabled() && (corrected[0] != x || corrected[1] != y)) {
-            LOG.trace("pointer at ({}, {}) is outside {} — the desktop says ({}, {})",
-                    x, y, size, corrected[0], corrected[1]);
+            LOG.trace(
+                    "pointer at ({}, {}) is outside {} — the desktop says ({}, {})",
+                    x,
+                    y,
+                    size,
+                    corrected[0],
+                    corrected[1]);
         }
         return corrected;
     }
@@ -815,11 +834,10 @@ public final class Sdl3Backend implements Backend {
     /// thing everywhere — so a popup's desktop origin is its owner's plus its
     /// own offset, built out of two readings that are not in doubt.
     private static Optional<LogicalPoint> desktopOrigin(Sdl3Window window) {
-        if (window instanceof Sdl3Popup popup
-                && popup.owner() instanceof Sdl3Window owner) {
-            return owner.position().map(at -> new LogicalPoint(
-                    at.x() + popup.offset().x(),
-                    at.y() + popup.offset().y()));
+        if (window instanceof Sdl3Popup popup && popup.owner() instanceof Sdl3Window owner) {
+            return owner.position()
+                    .map(at -> new LogicalPoint(
+                            at.x() + popup.offset().x(), at.y() + popup.offset().y()));
         }
         return window.position();
     }
@@ -904,8 +922,7 @@ public final class Sdl3Backend implements Backend {
             return Optional.empty();
         }
         trays.add((Sdl3Tray) tray.get());
-        LOG.debug("created SDL tray with {} rows, tooltip {}",
-                spec.items().size(), spec.tooltip());
+        LOG.debug("created SDL tray with {} rows, tooltip {}", spec.items().size(), spec.tooltip());
         return tray;
     }
 
@@ -939,8 +956,7 @@ public final class Sdl3Backend implements Backend {
                 cursors = new SdlCursors();
             } catch (UnsatisfiedLinkError e) {
                 cursorsUnavailable = true;
-                LOG.debug("libgoldberry exports no cursor calls; the pointer keeps its"
-                        + " default shape", e);
+                LOG.debug("libgoldberry exports no cursor calls; the pointer keeps its" + " default shape", e);
                 return;
             }
         }

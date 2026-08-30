@@ -42,9 +42,7 @@ public sealed interface NativeLibraryRequirement {
         if (available) {
             return new Run();
         }
-        var where = path == null || path.isBlank()
-                ? "no path was configured"
-                : "looked for it at " + path;
+        var where = path == null || path.isBlank() ? "no path was configured" : "looked for it at " + path;
         return required
                 ? new Fail("libgoldberry is required for this run but is not loadable — " + where
                         + ". The layout check is what the hand-written bindings rest on"
@@ -63,8 +61,7 @@ public sealed interface NativeLibraryRequirement {
                 System.getProperty(NativeLibrary.LIBRARY_PATH_PROPERTY));
 
         switch (decision) {
-            case Run ignored -> {
-            }
+            case Run ignored -> {}
             case Skip(var reason) -> Assumptions.abort(reason);
             case Fail(var reason) -> Assertions.fail(reason);
         }

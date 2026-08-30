@@ -1,23 +1,24 @@
 package io.github.digitalsmile.goldberry.widgets.panel.carousel;
 
-import io.github.digitalsmile.goldberry.css.ComputedStyle;
-import io.github.digitalsmile.goldberry.css.value.Transform;
-import io.github.digitalsmile.goldberry.input.FocusScope;
-import io.github.digitalsmile.goldberry.input.handler.Handles;
-import io.github.digitalsmile.goldberry.input.key.Key;
-import io.github.digitalsmile.goldberry.input.event.KeyEvent;
-import io.github.digitalsmile.goldberry.input.event.PointerEvent;
-import io.github.digitalsmile.goldberry.paint.Box;
-import io.github.digitalsmile.goldberry.widget.attr.Attributes;
-import io.github.digitalsmile.goldberry.widget.style.Paints;
-import io.github.digitalsmile.goldberry.widget.style.Styled;
-import io.github.digitalsmile.goldberry.widget.Widget;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.DoubleUnaryOperator;
 import java.util.function.IntConsumer;
+
+import io.github.digitalsmile.goldberry.css.ComputedStyle;
+import io.github.digitalsmile.goldberry.css.value.Transform;
+import io.github.digitalsmile.goldberry.input.FocusScope;
+import io.github.digitalsmile.goldberry.input.event.KeyEvent;
+import io.github.digitalsmile.goldberry.input.event.PointerEvent;
+import io.github.digitalsmile.goldberry.input.handler.Handles;
+import io.github.digitalsmile.goldberry.input.key.Key;
+import io.github.digitalsmile.goldberry.paint.Box;
+import io.github.digitalsmile.goldberry.widget.Widget;
+import io.github.digitalsmile.goldberry.widget.attr.Attributes;
+import io.github.digitalsmile.goldberry.widget.style.Paints;
+import io.github.digitalsmile.goldberry.widget.style.Styled;
 
 /// **This is the `carousel` a stylesheet selects.**
 ///
@@ -52,11 +53,21 @@ import java.util.function.IntConsumer;
 /// @param direction      which way the last move went, `+1` forwards; the arriving
 ///                       slide translates in from that side
 record CarouselView(
-        int index, int count, boolean loop, boolean rotates,
-        boolean canGoBack, boolean canGoForward, Widget slide, Attributes attributes,
-        IntConsumer onGo, IntConsumer onStep, Consumer<Boolean> onHover,
-        Consumer<Boolean> onFocus, Consumer<Boolean> onMotion,
-        DoubleUnaryOperator visibility, int direction)
+        int index,
+        int count,
+        boolean loop,
+        boolean rotates,
+        boolean canGoBack,
+        boolean canGoForward,
+        Widget slide,
+        Attributes attributes,
+        IntConsumer onGo,
+        IntConsumer onStep,
+        Consumer<Boolean> onHover,
+        Consumer<Boolean> onFocus,
+        Consumer<Boolean> onMotion,
+        DoubleUnaryOperator visibility,
+        int direction)
         implements Widget.Leaf, Styled, Paints, Handles {
 
     @Override
@@ -125,8 +136,7 @@ record CarouselView(
         switch (event.kind()) {
             case ENTERED -> onHover.accept(true);
             case EXITED -> onHover.accept(false);
-            default -> {
-            }
+            default -> {}
         }
     }
 
@@ -146,8 +156,7 @@ record CarouselView(
                 onGo.accept(count - 1);
                 event.consume();
             }
-            default -> {
-            }
+            default -> {}
         }
     }
 
@@ -165,8 +174,7 @@ record CarouselView(
         var parts = new ArrayList<Widget>(3);
         parts.add(new CarouselViewport(slide, visibility, direction));
         parts.add(new CarouselControls(
-                canGoBack, canGoForward, () -> onStep.accept(-1), () -> onStep.accept(1),
-                onFocus));
+                canGoBack, canGoForward, () -> onStep.accept(-1), () -> onStep.accept(1), onFocus));
         if (count > 1) {
             parts.add(new CarouselDots(index, count, onGo, onFocus));
         }
@@ -234,8 +242,7 @@ record CarouselView(
             // Reading it is what starts the arrival: the phase is stamped from the
             // frame clock on its first read, and this is the only place there is
             // one.
-            var visible = context.reducedMotion() ? 1 : visibility.applyAsDouble(
-                    context.nowMillis());
+            var visible = context.reducedMotion() ? 1 : visibility.applyAsDouble(context.nowMillis());
             if (visible >= 1) {
                 return box;
             }
@@ -244,15 +251,14 @@ record CarouselView(
             // travelling.
             var offset = (1 - visible) * TRAVEL * direction;
             return box.opacity(visible)
-                    .transform(Transform.of(new Transform.Function.Translate(
-                            Transform.Length.px(offset), Transform.Length.ZERO)));
+                    .transform(Transform.of(
+                            new Transform.Function.Translate(Transform.Length.px(offset), Transform.Length.ZERO)));
         }
     }
 
     /// `Previous` and `Next`.
     record CarouselControls(
-            boolean canGoBack, boolean canGoForward, Runnable onPrevious, Runnable onNext,
-            Consumer<Boolean> onFocus)
+            boolean canGoBack, boolean canGoForward, Runnable onPrevious, Runnable onNext, Consumer<Boolean> onFocus)
             implements Widget.Leaf, Styled, Paints {
 
         @Override
@@ -278,8 +284,7 @@ record CarouselView(
     /// Disabled at an end rather than absent, so the row does not change width as
     /// the carousel moves — and because a disabled `Next` is what says "that is
     /// all of them", which is the reason `loop` is off by default.
-    record CarouselStep(
-            boolean forward, boolean enabled, Runnable onPress, Consumer<Boolean> onFocus)
+    record CarouselStep(boolean forward, boolean enabled, Runnable onPress, Consumer<Boolean> onFocus)
             implements Widget.Leaf, Styled, Paints, Handles {
 
         @Override
@@ -317,7 +322,9 @@ record CarouselView(
 
         @Override
         public void onKey(KeyEvent event) {
-            if (!enabled || event.kind() != KeyEvent.Kind.PRESSED || event.isRepeat()
+            if (!enabled
+                    || event.kind() != KeyEvent.Kind.PRESSED
+                    || event.isRepeat()
                     || !event.modifiers().none()) {
                 return;
             }
@@ -338,8 +345,7 @@ record CarouselView(
         /// `collapse-chevron` makes the same trade for the same reason.
         @Override
         public Box render(ComputedStyle style, List<Box> children, Context context) {
-            return Box.of().style(style)
-                    .mark(new Box.Mark(Box.Mark.Kind.CHEVRON_END, style.color(), 1.5));
+            return Box.of().style(style).mark(new Box.Mark(Box.Mark.Kind.CHEVRON_END, style.color(), 1.5));
         }
     }
 

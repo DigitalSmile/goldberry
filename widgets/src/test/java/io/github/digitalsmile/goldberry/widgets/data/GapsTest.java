@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
 import java.util.List;
+
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -36,8 +37,7 @@ class GapsTest {
         var resolved = Gaps.resolve(withHole(), NullPolicy.GAP);
 
         assertEquals(withHole(), resolved.values(), "nothing is substituted");
-        assertEquals(List.of(List.of(0, 2), List.of(3, 4)), runsOf(resolved),
-                "two runs, because a hole is a hole");
+        assertEquals(List.of(List.of(0, 2), List.of(3, 4)), runsOf(resolved), "two runs, because a hole is a hole");
         assertFalse(resolved.has(2));
         assertFalse(resolved.isWhole());
     }
@@ -53,7 +53,8 @@ class GapsTest {
         assertTrue(Double.isNaN(series.values().get(1)), "a null became a hole");
         assertEquals(2, series.valueCount());
 
-        assertEquals(Gaps.resolve(withHole(), NullPolicy.GAP).values(),
+        assertEquals(
+                Gaps.resolve(withHole(), NullPolicy.GAP).values(),
                 Gaps.resolve(withHole(), null).values(),
                 "no policy is the pessimistic policy");
     }
@@ -74,8 +75,7 @@ class GapsTest {
     @Test
     @DisplayName("connect interpolates over any length of hole, in even steps")
     void connectSpansMoreThanOne() {
-        var resolved = Gaps.resolve(
-                List.of(0.0, HOLE, HOLE, HOLE, 40.0), NullPolicy.CONNECT);
+        var resolved = Gaps.resolve(List.of(0.0, HOLE, HOLE, HOLE, 40.0), NullPolicy.CONNECT);
 
         assertEquals(List.of(0.0, 10.0, 20.0, 30.0, 40.0), resolved.values());
     }
@@ -83,8 +83,7 @@ class GapsTest {
     @Test
     @DisplayName("a hole at either end stays a hole, even under connect")
     void theEndsCannotBeConnected() {
-        var resolved = Gaps.resolve(
-                List.of(HOLE, HOLE, 20.0, 30.0, HOLE), NullPolicy.CONNECT);
+        var resolved = Gaps.resolve(List.of(HOLE, HOLE, 20.0, 30.0, HOLE), NullPolicy.CONNECT);
 
         // Connecting needs two ends: a series that starts late did not have a
         // value before it started, and extending the first reading backwards
@@ -109,8 +108,7 @@ class GapsTest {
     void infinityHasNoPositionOnAnAxis() {
         // Not a missing reading, but there is nowhere on an axis to put one, and a
         // scale that included it would collapse every real point onto a pixel.
-        var resolved = Gaps.resolve(
-                List.of(1.0, Double.POSITIVE_INFINITY, 3.0), NullPolicy.GAP);
+        var resolved = Gaps.resolve(List.of(1.0, Double.POSITIVE_INFINITY, 3.0), NullPolicy.GAP);
 
         assertEquals(List.of(List.of(0, 1), List.of(2, 3)), runsOf(resolved));
     }
@@ -129,7 +127,8 @@ class GapsTest {
     void emptyIsEmpty() {
         assertEquals(List.of(), Gaps.resolve(List.of(), NullPolicy.GAP).runs());
         assertEquals(List.of(), Gaps.resolve(null, NullPolicy.ZERO).runs());
-        assertEquals(List.of(),
+        assertEquals(
+                List.of(),
                 Gaps.resolve(List.of(HOLE, HOLE), NullPolicy.CONNECT).runs(),
                 "a series of nothing but holes has nothing to draw");
     }
@@ -145,7 +144,8 @@ class GapsTest {
         // it as though the missing one were zero would put them at a height
         // nobody reported.
         var runs = Gaps.stackRuns(List.of(first, second), 4);
-        assertEquals(List.of(List.of(0, 1), List.of(2, 4)),
+        assertEquals(
+                List.of(List.of(0, 1), List.of(2, 4)),
                 runs.stream().map(run -> List.of(run[0], run[1])).toList());
     }
 
@@ -167,7 +167,6 @@ class GapsTest {
     void holesAreNotData() {
         var nothing = List.of(Series.of("Downloads", Double.NaN, Double.NaN));
 
-        assertFalse(ChartParts.hasData(nothing),
-                "which is what a query returning rows of nulls produces");
+        assertFalse(ChartParts.hasData(nothing), "which is what a query returning rows of nulls produces");
     }
 }

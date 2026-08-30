@@ -4,33 +4,35 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+
 import io.github.digitalsmile.goldberry.RendererRequirement;
-import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
 import io.github.digitalsmile.goldberry.css.Stylesheet;
 import io.github.digitalsmile.goldberry.css.Theme;
+import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
 import io.github.digitalsmile.goldberry.golden.GoldenImage;
+import io.github.digitalsmile.goldberry.input.PointerRouter;
 import io.github.digitalsmile.goldberry.input.event.PointerEvent;
 import io.github.digitalsmile.goldberry.input.hit.HitTest;
-import io.github.digitalsmile.goldberry.input.PointerRouter;
 import io.github.digitalsmile.goldberry.paint.Box;
 import io.github.digitalsmile.goldberry.paint.TestFrames;
 import io.github.digitalsmile.goldberry.paint.tree.RenderTree;
 import io.github.digitalsmile.goldberry.render.model.LogicalRect;
-import io.github.digitalsmile.goldberry.widget.attr.Attributes;
 import io.github.digitalsmile.goldberry.widget.Element;
 import io.github.digitalsmile.goldberry.widget.ElementTree;
 import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widget.WidgetRenderer;
+import io.github.digitalsmile.goldberry.widget.attr.Attributes;
 import io.github.digitalsmile.goldberry.widgets.Controls;
 import io.github.digitalsmile.goldberry.widgets.controls.TestFont;
 import io.github.digitalsmile.goldberry.widgets.core.Column;
 import io.github.digitalsmile.goldberry.widgets.data.Series;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
 
 /// Clicking a legend entry — `charts.md` §3.1's "the one interaction Grafana
 /// users reach for first".
@@ -51,13 +53,13 @@ class LegendIsolationTest {
 
     private static List<Series> two() {
         return List.of(
-                Series.of("Downloads", 12, 19, 15, 27, 31, 28, 36),
-                Series.of("Installs", 8, 11, 9, 18, 21, 19, 24));
+                Series.of("Downloads", 12, 19, 15, 27, 31, 28, 36), Series.of("Installs", 8, 11, 9, 18, 21, 19, 24));
     }
 
     private static Widget chart() {
-        return new Column(List.of(
-                new LineChart(two(),
+        return new Column(
+                List.of(new LineChart(
+                        two(),
                         List.of("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"),
                         new Attributes("plot", Set.of(), "plot"))),
                 new Attributes("frame", Set.of(), "frame"));
@@ -71,7 +73,8 @@ class LegendIsolationTest {
 
             harness.click(harness.entryRect(1));
 
-            assertFalse(java.util.Arrays.equals(everything, harness.frame()),
+            assertFalse(
+                    java.util.Arrays.equals(everything, harness.frame()),
                     "one line and two lines are not the same picture");
         }
     }
@@ -89,8 +92,7 @@ class LegendIsolationTest {
             // A control that isolated on click and needed something else to
             // restore would be one with no visible way out of the state it just
             // entered.
-            assertArrayEqualsWithMessage(everything, harness.frame(),
-                    "the chart came back exactly as it was");
+            assertArrayEqualsWithMessage(everything, harness.frame(), "the chart came back exactly as it was");
         }
     }
 
@@ -104,8 +106,8 @@ class LegendIsolationTest {
             var first = harness.frame();
             harness.click(harness.entryRect(1));
 
-            assertFalse(java.util.Arrays.equals(first, harness.frame()),
-                    "isolating Installs is not isolating Downloads");
+            assertFalse(
+                    java.util.Arrays.equals(first, harness.frame()), "isolating Installs is not isolating Downloads");
         }
     }
 
@@ -121,12 +123,9 @@ class LegendIsolationTest {
 
             // A legend that dropped the hidden series would change width as you
             // clicked it, and the way back would go with them.
-            assertEquals(before, harness.entryRect(1),
-                    "the second entry is where it was");
-            assertTrue(harness.entryClasses(1).contains("muted"),
-                    "and it says it is not currently drawn");
-            assertFalse(harness.entryClasses(0).contains("muted"),
-                    "while the isolated one does not");
+            assertEquals(before, harness.entryRect(1), "the second entry is where it was");
+            assertTrue(harness.entryClasses(1).contains("muted"), "and it says it is not currently drawn");
+            assertFalse(harness.entryClasses(0).contains("muted"), "while the isolated one does not");
         }
     }
 
@@ -141,8 +140,7 @@ class LegendIsolationTest {
             // index is the colour and filtering the list would recolour it
             // (ADR-0194) -- and on an axis relabelled to its own range, which is
             // the point of asking for it alone.
-            GoldenImage.assertMatches("line-chart-isolated-dark", WIDTH, HEIGHT, 1.0f,
-                    harness::paintInto);
+            GoldenImage.assertMatches("line-chart-isolated-dark", WIDTH, HEIGHT, 1.0f, harness::paintInto);
         }
     }
 
@@ -154,7 +152,9 @@ class LegendIsolationTest {
     private static final class Harness implements AutoCloseable {
 
         private final WidgetRenderer renderer = new WidgetRenderer(
-                List.of(Controls.baseStylesheet(), Theme.NORD_DARK.load(),
+                List.of(
+                        Controls.baseStylesheet(),
+                        Theme.NORD_DARK.load(),
                         Stylesheet.parse(CascadeLayer.APPLICATION, """
                                 #frame { padding: 12px; background: var(--gb-bg) }
                                 #plot  { width: 296px; height: 156px }
@@ -209,16 +209,14 @@ class LegendIsolationTest {
         LogicalRect entryRect(int slot) {
             var found = new ArrayList<LogicalRect>();
             render.forEachPlacedBox(placed -> {
-                if (entry(placed.box()) instanceof ChartLegendEntry candidate
-                        && candidate.slot() == slot) {
+                if (entry(placed.box()) instanceof ChartLegendEntry candidate && candidate.slot() == slot) {
                     var layout = placed.layout();
                     var matrix = placed.transform();
                     found.add(LogicalRect.of(
-                            (float) (matrix.a() * layout.left()
-                                    + matrix.c() * layout.top() + matrix.e()),
-                            (float) (matrix.b() * layout.left()
-                                    + matrix.d() * layout.top() + matrix.f()),
-                            layout.width(), layout.height()));
+                            (float) (matrix.a() * layout.left() + matrix.c() * layout.top() + matrix.e()),
+                            (float) (matrix.b() * layout.left() + matrix.d() * layout.top() + matrix.f()),
+                            layout.width(),
+                            layout.height()));
                 }
             });
             assertEquals(1, found.size(), "expected exactly one legend entry in slot " + slot);
@@ -230,8 +228,7 @@ class LegendIsolationTest {
         Set<String> entryClasses(int slot) {
             var found = new ArrayList<Set<String>>();
             render.forEachPlacedBox(placed -> {
-                if (entry(placed.box()) instanceof ChartLegendEntry candidate
-                        && candidate.slot() == slot) {
+                if (entry(placed.box()) instanceof ChartLegendEntry candidate && candidate.slot() == slot) {
                     found.add(candidate.classes());
                 }
             });

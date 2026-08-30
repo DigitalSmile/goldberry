@@ -1,13 +1,14 @@
 package io.github.digitalsmile.goldberry.widgets.form.textinput;
 
+import java.time.Duration;
+
 import io.github.digitalsmile.goldberry.Host;
-import io.github.digitalsmile.goldberry.render.event.EventLoop;
 import io.github.digitalsmile.goldberry.input.hit.Extent;
+import io.github.digitalsmile.goldberry.render.event.EventLoop;
 import io.github.digitalsmile.goldberry.text.Paragraph;
 import io.github.digitalsmile.goldberry.widget.BuildContext;
 import io.github.digitalsmile.goldberry.widget.State;
 import io.github.digitalsmile.goldberry.widget.Widget;
-import java.time.Duration;
 
 /// What a [TextInput] holds: the text, the history, the blink and how far it has
 /// scrolled.
@@ -175,8 +176,7 @@ final class TextInputState extends State<TextInput> implements TextEditor {
             closeSuggestions();
             return;
         }
-        var list = new io.github.digitalsmile.goldberry.widgets.controls.select.SelectList(
-                rows(wanted));
+        var list = new io.github.digitalsmile.goldberry.widgets.controls.select.SelectList(rows(wanted));
         if (suggestions != null && suggestions.isOpen()) {
             // Narrowed rather than reopened: §4 says the popup "stays open and
             // narrows", and closing and opening a platform window per keystroke
@@ -188,9 +188,12 @@ final class TextInputState extends State<TextInput> implements TextEditor {
         // than the control it hangs off reads as a mistake (ADR-0145).
         io.github.digitalsmile.goldberry.log.Logs.of(TextInputState.class)
                 .debug("suggestions anchored to {}", fieldBounds);
-        host.attachedPopup(list, fieldBounds,
+        host.attachedPopup(
+                        list,
+                        fieldBounds,
                         io.github.digitalsmile.goldberry.Placement.BELOW,
-                        fieldBounds.size().width(), VIEWPORT)
+                        fieldBounds.size().width(),
+                        VIEWPORT)
                 .ifPresent(popup -> suggestions = popup.lightDismiss(true).takesFocus(false));
     }
 
@@ -200,8 +203,7 @@ final class TextInputState extends State<TextInput> implements TextEditor {
         var rows = new java.util.ArrayList<Widget>(offered.size());
         var index = 0;
         for (var option : offered) {
-            rows.add(option
-                    .within(false, () -> chooseSuggestion(option.value()), false)
+            rows.add(option.within(false, () -> chooseSuggestion(option.value()), false)
                     .inAList()
                     .id("suggestion-" + index++));
         }
@@ -269,14 +271,13 @@ final class TextInputState extends State<TextInput> implements TextEditor {
         // goes to the end it was heading for. Stepping by real words would move
         // the caret by an amount that says how long they are.
         var masked = widget().password();
-        var next = switch (motion) {
-            case LEFT -> !byWord ? edit.left(extend)
-                    : masked ? edit.toStart(extend) : edit.wordLeft(extend);
-            case RIGHT -> !byWord ? edit.right(extend)
-                    : masked ? edit.toEnd(extend) : edit.wordRight(extend);
-            case START -> edit.toStart(extend);
-            case END -> edit.toEnd(extend);
-        };
+        var next =
+                switch (motion) {
+                    case LEFT -> !byWord ? edit.left(extend) : masked ? edit.toStart(extend) : edit.wordLeft(extend);
+                    case RIGHT -> !byWord ? edit.right(extend) : masked ? edit.toEnd(extend) : edit.wordRight(extend);
+                    case START -> edit.toStart(extend);
+                    case END -> edit.toEnd(extend);
+                };
         return apply(next, EditHistory.Kind.OTHER, false);
     }
 
@@ -288,15 +289,13 @@ final class TextInputState extends State<TextInput> implements TextEditor {
     @Override
     public boolean deleteBefore(boolean byWord) {
         var words = byWord && !widget().password();
-        return apply(words ? edit.deleteWordBefore() : edit.backspace(),
-                EditHistory.Kind.DELETING, true);
+        return apply(words ? edit.deleteWordBefore() : edit.backspace(), EditHistory.Kind.DELETING, true);
     }
 
     @Override
     public boolean deleteAfter(boolean byWord) {
         var words = byWord && !widget().password();
-        return apply(words ? edit.deleteWordAfter() : edit.delete(),
-                EditHistory.Kind.DELETING, true);
+        return apply(words ? edit.deleteWordAfter() : edit.delete(), EditHistory.Kind.DELETING, true);
     }
 
     /// Replaces the edit, recording it in the history and telling the model.
@@ -343,16 +342,17 @@ final class TextInputState extends State<TextInput> implements TextEditor {
         var displayOffset = paragraph.offsetAt(0, mask.display().length(), contentX);
         var offset = mask.real(displayOffset);
 
-        var next = switch (Math.min(clickCount, 3)) {
-            // A triple-click is "select the line", and a single-line field has
-            // one line -- so it is select-all, which is also what it looks like.
-            case 3 -> edit.selectAll();
-            // A masked field has no words to select: every word() call over
-            // bullets would select the whole run, which is what select-all
-            // already does and is not what a double-click means.
-            case 2 -> widget().password() ? edit.selectAll() : edit.wordAt(offset);
-            default -> edit.caretTo(offset, extend);
-        };
+        var next =
+                switch (Math.min(clickCount, 3)) {
+                    // A triple-click is "select the line", and a single-line field has
+                    // one line -- so it is select-all, which is also what it looks like.
+                    case 3 -> edit.selectAll();
+                    // A masked field has no words to select: every word() call over
+                    // bullets would select the whole run, which is what select-all
+                    // already does and is not what a double-click means.
+                    case 2 -> widget().password() ? edit.selectAll() : edit.wordAt(offset);
+                    default -> edit.caretTo(offset, extend);
+                };
         apply(next, EditHistory.Kind.OTHER, false);
     }
 
@@ -385,7 +385,8 @@ final class TextInputState extends State<TextInput> implements TextEditor {
     }
 
     @Override
-    public void located(io.github.digitalsmile.goldberry.render.model.LogicalRect self,
+    public void located(
+            io.github.digitalsmile.goldberry.render.model.LogicalRect self,
             io.github.digitalsmile.goldberry.render.model.LogicalRect clip) {
         if (self.equals(fieldBounds)) {
             return;
@@ -402,8 +403,7 @@ final class TextInputState extends State<TextInput> implements TextEditor {
         // rebuild describes the same field at the same size, so the next
         // rectangle is equal and this returns above.
         if (suggestions == null && !widget().suggestions().isEmpty()) {
-            setState(() -> {
-            });
+            setState(() -> {});
         }
     }
 

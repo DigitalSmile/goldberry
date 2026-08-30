@@ -1,27 +1,29 @@
 package io.github.digitalsmile.goldberry.golden;
 
-import io.github.digitalsmile.goldberry.RendererRequirement;
-import io.github.digitalsmile.goldberry.assets.BundledFont;
-import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
-import io.github.digitalsmile.goldberry.css.ComputedStyle;
-import io.github.digitalsmile.goldberry.css.value.CssLength;
-import io.github.digitalsmile.goldberry.css.select.Selector;
-import io.github.digitalsmile.goldberry.css.StyleElement;
-import io.github.digitalsmile.goldberry.css.cascade.StyleResolver;
-import io.github.digitalsmile.goldberry.css.Stylesheet;
-import io.github.digitalsmile.goldberry.css.Theme;
-import io.github.digitalsmile.goldberry.paint.Box;
-import io.github.digitalsmile.goldberry.paint.BoxPainter;
-import io.github.digitalsmile.goldberry.text.font.Font;
-import io.github.digitalsmile.goldberry.text.Paragraph;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
+
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+
+import io.github.digitalsmile.goldberry.RendererRequirement;
+import io.github.digitalsmile.goldberry.assets.BundledFont;
+import io.github.digitalsmile.goldberry.css.ComputedStyle;
+import io.github.digitalsmile.goldberry.css.StyleElement;
+import io.github.digitalsmile.goldberry.css.Stylesheet;
+import io.github.digitalsmile.goldberry.css.Theme;
+import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
+import io.github.digitalsmile.goldberry.css.cascade.StyleResolver;
+import io.github.digitalsmile.goldberry.css.select.Selector;
+import io.github.digitalsmile.goldberry.css.value.CssLength;
+import io.github.digitalsmile.goldberry.paint.Box;
+import io.github.digitalsmile.goldberry.paint.BoxPainter;
+import io.github.digitalsmile.goldberry.text.Paragraph;
+import io.github.digitalsmile.goldberry.text.font.Font;
 
 /// The rendered output, pinned.
 ///
@@ -134,13 +136,10 @@ class GoldenImageTest {
                 panel { background: #5e81ac; flex-grow: 1 }
                 panel.wide { background: #bf616a; flex-grow: 2 }
                 """);
-        var tree = new Node("root").with(
-                new Node("panel"),
-                new Node("panel", "wide"),
-                new Node("panel"));
+        var tree = new Node("root").with(new Node("panel"), new Node("panel", "wide"), new Node("panel"));
 
-        GoldenImage.assertMatches("flex-row", 240, 80, 1.0f,
-                frame -> BoxPainter.paint(frame, build(tree, List.of(css))));
+        GoldenImage.assertMatches(
+                "flex-row", 240, 80, 1.0f, frame -> BoxPainter.paint(frame, build(tree, List.of(css))));
     }
 
     @Test
@@ -152,26 +151,27 @@ class GoldenImageTest {
                 cell { background: #88c0d0; flex-grow: 1 }
                 row > cell.accent { background: #ebcb8b }
                 """);
-        var tree = new Node("root").with(
-                new Node("row").with(new Node("cell"), new Node("cell", "accent")),
-                new Node("row").with(new Node("cell", "accent"), new Node("cell")));
+        var tree = new Node("root")
+                .with(
+                        new Node("row").with(new Node("cell"), new Node("cell", "accent")),
+                        new Node("row").with(new Node("cell", "accent"), new Node("cell")));
 
-        GoldenImage.assertMatches("nested-column", 200, 80, 1.0f,
-                frame -> BoxPainter.paint(frame, build(tree, List.of(css))));
+        GoldenImage.assertMatches(
+                "nested-column", 200, 80, 1.0f, frame -> BoxPainter.paint(frame, build(tree, List.of(css))));
     }
 
     @Test
     @DisplayName("the same tree under nord-light and nord-dark")
     void nordLight() {
-        GoldenImage.assertMatches("nord-light", 200, 60, 1.0f,
-                frame -> BoxPainter.paint(frame, themedTree(Theme.NORD_LIGHT)));
+        GoldenImage.assertMatches(
+                "nord-light", 200, 60, 1.0f, frame -> BoxPainter.paint(frame, themedTree(Theme.NORD_LIGHT)));
     }
 
     @Test
     @DisplayName("nord-dark differs from nord-light by nothing but the theme sheet")
     void nordDark() {
-        GoldenImage.assertMatches("nord-dark", 200, 60, 1.0f,
-                frame -> BoxPainter.paint(frame, themedTree(Theme.NORD_DARK)));
+        GoldenImage.assertMatches(
+                "nord-dark", 200, 60, 1.0f, frame -> BoxPainter.paint(frame, themedTree(Theme.NORD_DARK)));
     }
 
     /// One widget stylesheet, two themes. Neither of these goldens can be right
@@ -197,8 +197,8 @@ class GoldenImageTest {
 
         // 1.5, not 1.0: every HiDPI bug hides at 100%, and text is where a
         // scale that is applied twice -- or not at all -- shows first.
-        GoldenImage.assertMatches("text-fractional-scale", 180, 48, 1.5f,
-                frame -> BoxPainter.paint(frame, build(tree, List.of(css))));
+        GoldenImage.assertMatches(
+                "text-fractional-scale", 180, 48, 1.5f, frame -> BoxPainter.paint(frame, build(tree, List.of(css))));
     }
 
     @Test
@@ -212,8 +212,8 @@ class GoldenImageTest {
 
         // The selection colour's shape (§10): alpha in a hex literal has to
         // survive parsing, packing, premultiplication and the blend.
-        GoldenImage.assertMatches("translucent-fill", 120, 60, 1.0f,
-                frame -> BoxPainter.paint(frame, build(tree, List.of(css))));
+        GoldenImage.assertMatches(
+                "translucent-fill", 120, 60, 1.0f, frame -> BoxPainter.paint(frame, build(tree, List.of(css))));
     }
 
     @Test
@@ -244,14 +244,15 @@ class GoldenImageTest {
                    so explicitly. */
                 panel.cornered { transform: scale(1.4); transform-origin: left top }
                 """);
-        var tree = new Node("root").with(
-                new Node("panel", "turned"),
-                new Node("panel", "grown"),
-                new Node("panel", "leaned"),
-                new Node("panel", "cornered"));
+        var tree = new Node("root")
+                .with(
+                        new Node("panel", "turned"),
+                        new Node("panel", "grown"),
+                        new Node("panel", "leaned"),
+                        new Node("panel", "cornered"));
 
-        GoldenImage.assertMatches("transforms", 280, 80, 1.0f,
-                frame -> BoxPainter.paint(frame, build(tree, List.of(css))));
+        GoldenImage.assertMatches(
+                "transforms", 280, 80, 1.0f, frame -> BoxPainter.paint(frame, build(tree, List.of(css))));
     }
 
     @Test
@@ -277,13 +278,10 @@ class GoldenImageTest {
                   transform: translate(-40px, 24px);
                 }
                 """);
-        var tree = new Node("root").with(
-                new Node("panel", "faded").with(
-                        new Node("panel", "lower"),
-                        new Node("panel", "upper")));
+        var tree = new Node("root")
+                .with(new Node("panel", "faded").with(new Node("panel", "lower"), new Node("panel", "upper")));
 
-        GoldenImage.assertMatches("group-opacity", 200, 130, 1.0f,
-                frame -> BoxPainter.paint(frame, build(tree, List.of(css))));
+        GoldenImage.assertMatches(
+                "group-opacity", 200, 130, 1.0f, frame -> BoxPainter.paint(frame, build(tree, List.of(css))));
     }
-
 }

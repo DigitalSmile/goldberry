@@ -1,16 +1,16 @@
 package io.github.digitalsmile.goldberry.widgets.panel.list;
 
+import java.util.List;
+import java.util.Set;
+
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
 import io.github.digitalsmile.goldberry.input.FocusScope;
 import io.github.digitalsmile.goldberry.input.handler.Handles;
 import io.github.digitalsmile.goldberry.paint.Box;
+import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widget.attr.Attributes;
 import io.github.digitalsmile.goldberry.widget.style.Paints;
 import io.github.digitalsmile.goldberry.widget.style.Styled;
-import io.github.digitalsmile.goldberry.widget.Widget;
-
-import java.util.List;
-import java.util.Set;
 
 /// The node a stylesheet calls `list`: the column the rows are stacked in.
 ///
@@ -46,12 +46,14 @@ import java.util.Set;
 /// @param children  the rows, in the model's order, with the spacers around them
 /// @param onLocated where the frame put this node and what clips it, or null when
 ///                  the list is not virtual
-record ListBox(List<Widget> children, java.util.function.BiConsumer<
-        io.github.digitalsmile.goldberry.render.model.LogicalRect,
-        io.github.digitalsmile.goldberry.render.model.LogicalRect> onLocated,
+record ListBox(
+        List<Widget> children,
+        java.util.function.BiConsumer<
+                        io.github.digitalsmile.goldberry.render.model.LogicalRect,
+                        io.github.digitalsmile.goldberry.render.model.LogicalRect>
+                onLocated,
         Attributes attributes)
-        implements Widget.Leaf, Styled, Paints, Handles,
-        io.github.digitalsmile.goldberry.input.handler.Located {
+        implements Widget.Leaf, Styled, Paints, Handles, io.github.digitalsmile.goldberry.input.handler.Located {
 
     @Override
     public String cssType() {
@@ -79,7 +81,8 @@ record ListBox(List<Widget> children, java.util.function.BiConsumer<
     }
 
     @Override
-    public void located(io.github.digitalsmile.goldberry.render.model.LogicalRect self,
+    public void located(
+            io.github.digitalsmile.goldberry.render.model.LogicalRect self,
             io.github.digitalsmile.goldberry.render.model.LogicalRect clip) {
 
         if (onLocated != null) {
@@ -119,10 +122,11 @@ record ListBox(List<Widget> children, java.util.function.BiConsumer<
 
         @Override
         public Box render(ComputedStyle style, List<Box> children, Context context) {
-            return Box.of().style(style).size(
-                    io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength.UNDEFINED,
-                    io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength
-                            .points((float) height));
+            return Box.of()
+                    .style(style)
+                    .size(
+                            io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength.UNDEFINED,
+                            io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength.points((float) height));
         }
     }
 }

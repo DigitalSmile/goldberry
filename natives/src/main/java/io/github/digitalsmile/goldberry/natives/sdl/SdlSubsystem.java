@@ -14,7 +14,6 @@ import java.util.Set;
 /// camera each imply events, and gamepad implies joystick. So what [Sdl#wasInit()]
 /// reports is generally a superset of what was asked for.
 public enum SdlSubsystem {
-
     AUDIO(0x00000010),
 
     /// Windowing and displays. SDL requires this one on the main thread.

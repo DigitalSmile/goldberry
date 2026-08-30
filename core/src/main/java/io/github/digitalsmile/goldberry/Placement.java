@@ -1,9 +1,10 @@
 package io.github.digitalsmile.goldberry;
 
+import java.util.Objects;
+
 import io.github.digitalsmile.goldberry.render.model.LogicalPoint;
 import io.github.digitalsmile.goldberry.render.model.LogicalRect;
 import io.github.digitalsmile.goldberry.render.model.LogicalSize;
-import java.util.Objects;
 
 /// Where a popup goes relative to the thing that opened it, and what happens
 /// when that would put it off the screen.
@@ -58,8 +59,7 @@ public record Placement(Side side, Align align, float gap) {
         Objects.requireNonNull(side, "side");
         Objects.requireNonNull(align, "align");
         if (!Float.isFinite(gap) || gap < 0) {
-            throw new IllegalArgumentException(
-                    "a gap is a distance from the anchor, and " + gap + " is not one");
+            throw new IllegalArgumentException("a gap is a distance from the anchor, and " + gap + " is not one");
         }
     }
 
@@ -174,14 +174,10 @@ public record Placement(Side side, Align align, float gap) {
     /// The unclamped position on `chosen`'s side, aligned by [#align].
     private LogicalPoint along(Side chosen, LogicalRect anchor, LogicalSize size) {
         if (chosen.isVertical()) {
-            var y = chosen == Side.BOTTOM
-                    ? anchor.bottom() + gap
-                    : anchor.top() - gap - size.height();
+            var y = chosen == Side.BOTTOM ? anchor.bottom() + gap : anchor.top() - gap - size.height();
             return new LogicalPoint(cross(anchor.left(), anchor.width(), size.width()), y);
         }
-        var x = chosen == Side.END
-                ? anchor.right() + gap
-                : anchor.left() - gap - size.width();
+        var x = chosen == Side.END ? anchor.right() + gap : anchor.left() - gap - size.width();
         return new LogicalPoint(x, cross(anchor.top(), anchor.height(), size.height()));
     }
 
@@ -199,14 +195,11 @@ public record Placement(Side side, Align align, float gap) {
     /// The near edge and not the far one: a popup too big for the screen has to
     /// lose an end, and the end nobody minds losing is the one furthest from
     /// where it started.
-    private static LogicalPoint shift(Side chosen, LogicalPoint at, LogicalSize size,
-            LogicalRect within) {
+    private static LogicalPoint shift(Side chosen, LogicalPoint at, LogicalSize size, LogicalRect within) {
         if (chosen.isVertical()) {
-            return new LogicalPoint(
-                    clamp(at.x(), size.width(), within.left(), within.right()), at.y());
+            return new LogicalPoint(clamp(at.x(), size.width(), within.left(), within.right()), at.y());
         }
-        return new LogicalPoint(
-                at.x(), clamp(at.y(), size.height(), within.top(), within.bottom()));
+        return new LogicalPoint(at.x(), clamp(at.y(), size.height(), within.top(), within.bottom()));
     }
 
     private static float clamp(float start, float extent, float low, float high) {

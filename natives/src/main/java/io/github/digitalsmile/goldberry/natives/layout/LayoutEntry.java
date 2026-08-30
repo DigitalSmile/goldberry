@@ -30,8 +30,7 @@ public record LayoutEntry(String structName, String fieldName, int size, int off
         // bit set; a struct's or a scalar's cannot, and a negative one there
         // still means the table is being read wrongly.
         if ((size < 0 && !CONSTANT.equals(structName)) || offset < 0 || alignment < 0) {
-            throw new IllegalArgumentException(
-                    "negative value in layout entry for " + structName + "." + fieldName);
+            throw new IllegalArgumentException("negative value in layout entry for " + structName + "." + fieldName);
         }
     }
 
@@ -41,9 +40,8 @@ public record LayoutEntry(String structName, String fieldName, int size, int off
     ///         same column means a size and reading it this way would hide a bug
     public long value() {
         if (!describesConstant()) {
-            throw new IllegalStateException(
-                    structName + "." + fieldName + " is not a constant row;"
-                            + " its size column is a size, not a value");
+            throw new IllegalStateException(structName + "." + fieldName + " is not a constant row;"
+                    + " its size column is a size, not a value");
         }
         return Integer.toUnsignedLong(size);
     }

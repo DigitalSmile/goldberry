@@ -1,13 +1,14 @@
 package io.github.digitalsmile.goldberry.widgets.data;
 
+import java.util.List;
+import java.util.Set;
+
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
 import io.github.digitalsmile.goldberry.paint.Box;
+import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widget.attr.Attributes;
 import io.github.digitalsmile.goldberry.widget.style.Paints;
 import io.github.digitalsmile.goldberry.widget.style.Styled;
-import io.github.digitalsmile.goldberry.widget.Widget;
-import java.util.List;
-import java.util.Set;
 
 /// A chart's own box — the column its plot and legend sit in.
 ///
@@ -26,8 +27,7 @@ import java.util.Set;
 /// @param cssType    the chart's own type, from [ChartSpec#chartType()]
 /// @param parts      the plot, and the legend when there is one
 /// @param attributes the chart's, so a rule naming the chart still matches
-record ChartView(String cssType, List<Widget> parts, Attributes attributes)
-        implements Widget.Leaf, Styled, Paints {
+record ChartView(String cssType, List<Widget> parts, Attributes attributes) implements Widget.Leaf, Styled, Paints {
 
     ChartView {
         parts = List.copyOf(parts == null ? List.of() : parts);

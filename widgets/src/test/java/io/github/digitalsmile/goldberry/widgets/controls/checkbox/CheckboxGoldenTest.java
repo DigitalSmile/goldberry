@@ -1,27 +1,27 @@
 package io.github.digitalsmile.goldberry.widgets.controls.checkbox;
 
-import io.github.digitalsmile.goldberry.widget.attr.Attributes;
-import io.github.digitalsmile.goldberry.widgets.core.Row;
+import java.util.List;
+import java.util.Set;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
 
 import io.github.digitalsmile.goldberry.RendererRequirement;
-import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
-import io.github.digitalsmile.goldberry.css.select.Selector;
 import io.github.digitalsmile.goldberry.css.Stylesheet;
 import io.github.digitalsmile.goldberry.css.Theme;
+import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
+import io.github.digitalsmile.goldberry.css.select.Selector;
 import io.github.digitalsmile.goldberry.golden.GoldenImage;
 import io.github.digitalsmile.goldberry.paint.BoxPainter;
 import io.github.digitalsmile.goldberry.widget.Element;
 import io.github.digitalsmile.goldberry.widget.ElementTree;
 import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widget.WidgetRenderer;
+import io.github.digitalsmile.goldberry.widget.attr.Attributes;
 import io.github.digitalsmile.goldberry.widgets.Controls;
 import io.github.digitalsmile.goldberry.widgets.controls.TestFont;
-
-import java.util.List;
-import java.util.Set;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
+import io.github.digitalsmile.goldberry.widgets.core.Row;
 
 /// What a checkbox actually looks like (§14, [ADR-0050]).
 ///
@@ -44,17 +44,13 @@ class CheckboxGoldenTest {
             state.applyTo(tree.root());
         }
         var renderer = new WidgetRenderer(
-                List.of(
-                        Controls.baseStylesheet(),
-                        theme.load(),
-                        Stylesheet.parse(CascadeLayer.APPLICATION, """
+                List.of(Controls.baseStylesheet(), theme.load(), Stylesheet.parse(CascadeLayer.APPLICATION, """
                                 #row { padding: 12px; gap: 16px; align-items: center;
                                        background: var(--gb-bg) }
                                 """)),
                 TestFont.get());
 
-        GoldenImage.assertMatches(name, 460, 56, 1.0f,
-                frame -> BoxPainter.paint(frame, renderer.render(tree)));
+        GoldenImage.assertMatches(name, 460, 56, 1.0f, frame -> BoxPainter.paint(frame, renderer.render(tree)));
     }
 
     /// Which element gets which pseudo-class. `part` reaches inside a control to
@@ -92,10 +88,13 @@ class CheckboxGoldenTest {
         // The one image that says mixed is distinguishable from both of the
         // others at a glance -- which is the whole argument for `:indeterminate`
         // being its own pseudo-class rather than a modifier on `:checked`.
-        paint("checkbox-states-dark", Theme.NORD_DARK, row(
-                box("Off", Checkbox.Value.UNCHECKED, "a"),
-                box("On", Checkbox.Value.CHECKED, "b"),
-                box("Some", Checkbox.Value.MIXED, "c")));
+        paint(
+                "checkbox-states-dark",
+                Theme.NORD_DARK,
+                row(
+                        box("Off", Checkbox.Value.UNCHECKED, "a"),
+                        box("On", Checkbox.Value.CHECKED, "b"),
+                        box("Some", Checkbox.Value.MIXED, "c")));
     }
 
     @Test
@@ -104,10 +103,13 @@ class CheckboxGoldenTest {
         // The tick is nord0 on dark and nord6 on light: a light fill needs a dark
         // mark and a dark fill needs a light one, which is why both are tokens
         // rather than one shared value (§1.2's 4.5:1).
-        paint("checkbox-states-light", Theme.NORD_LIGHT, row(
-                box("Off", Checkbox.Value.UNCHECKED, "a"),
-                box("On", Checkbox.Value.CHECKED, "b"),
-                box("Some", Checkbox.Value.MIXED, "c")));
+        paint(
+                "checkbox-states-light",
+                Theme.NORD_LIGHT,
+                row(
+                        box("Off", Checkbox.Value.UNCHECKED, "a"),
+                        box("On", Checkbox.Value.CHECKED, "b"),
+                        box("Some", Checkbox.Value.MIXED, "c")));
     }
 
     @Test
@@ -117,7 +119,10 @@ class CheckboxGoldenTest {
         // a checkbox is one Tab stop and one hit target, so it gets one ring.
         // The disabled one fades its glyph, its border and its label together at
         // 45%, because the painter multiplies opacity down the subtree.
-        paint("checkbox-interaction", Theme.NORD_DARK, row(
+        paint(
+                "checkbox-interaction",
+                Theme.NORD_DARK,
+                row(
                         box("Hover", Checkbox.Value.UNCHECKED, "a"),
                         box("Focus", Checkbox.Value.CHECKED, "b"),
                         new Checkbox("Off", Checkbox.Value.CHECKED, null, null, true, id("c"))),

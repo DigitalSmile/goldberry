@@ -4,18 +4,26 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+
 import io.github.digitalsmile.goldberry.RendererRequirement;
-import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
 import io.github.digitalsmile.goldberry.css.Stylesheet;
 import io.github.digitalsmile.goldberry.css.Theme;
+import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
 import io.github.digitalsmile.goldberry.golden.GoldenImage;
 import io.github.digitalsmile.goldberry.paint.Box;
 import io.github.digitalsmile.goldberry.paint.BoxPainter;
-import io.github.digitalsmile.goldberry.widget.attr.Attributes;
 import io.github.digitalsmile.goldberry.widget.Element;
 import io.github.digitalsmile.goldberry.widget.ElementTree;
 import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widget.WidgetRenderer;
+import io.github.digitalsmile.goldberry.widget.attr.Attributes;
 import io.github.digitalsmile.goldberry.widgets.Controls;
 import io.github.digitalsmile.goldberry.widgets.controls.TestFont;
 import io.github.digitalsmile.goldberry.widgets.core.Column;
@@ -23,12 +31,6 @@ import io.github.digitalsmile.goldberry.widgets.data.areachart.AreaChart;
 import io.github.digitalsmile.goldberry.widgets.data.barchart.BarChart;
 import io.github.digitalsmile.goldberry.widgets.data.donutchart.DonutChart;
 import io.github.digitalsmile.goldberry.widgets.data.linechart.LineChart;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
 
 /// What a chart draws when it has nothing to draw — `charts.md` §3.1's "a themed
 /// message, never an empty grid".
@@ -45,14 +47,11 @@ class ChartStatusTest {
     }
 
     private static List<Series> two() {
-        return List.of(
-                Series.of("Downloads", 12, 19, 15, 27, 31),
-                Series.of("Installs", 8, 11, 9, 18, 21));
+        return List.of(Series.of("Downloads", 12, 19, 15, 27, 31), Series.of("Installs", 8, 11, 9, 18, 21));
     }
 
     private static WidgetRenderer renderer() {
-        return new WidgetRenderer(
-                List.of(Controls.baseStylesheet(), Theme.NORD_DARK.load()), TestFont.get());
+        return new WidgetRenderer(List.of(Controls.baseStylesheet(), Theme.NORD_DARK.load()), TestFont.get());
     }
 
     /// Every [ChartMessage] in the tree `chart` renders to, as its text.
@@ -64,8 +63,7 @@ class ChartStatusTest {
     }
 
     private static void collect(Box box, List<String> into) {
-        if (box.owner() instanceof Element element
-                && element.widget() instanceof ChartMessage message) {
+        if (box.owner() instanceof Element element && element.widget() instanceof ChartMessage message) {
             into.add(message.text());
         }
         for (var child : box.children()) {
@@ -82,10 +80,8 @@ class ChartStatusTest {
 
     private static boolean plotIn(Box box) {
         if (box.owner() instanceof Element element
-                && element.widget() instanceof io.github.digitalsmile.goldberry.widget.style
-                        .Styled styled
-                && ("chart-plot".equals(styled.cssType())
-                        || "donut-plot".equals(styled.cssType()))) {
+                && element.widget() instanceof io.github.digitalsmile.goldberry.widget.style.Styled styled
+                && ("chart-plot".equals(styled.cssType()) || "donut-plot".equals(styled.cssType()))) {
             return true;
         }
         for (var child : box.children()) {
@@ -100,8 +96,7 @@ class ChartStatusTest {
     @DisplayName("a chart with no series says so instead of drawing axes")
     void emptyIsASentence() {
         assertEquals(List.of(ChartStatus.NO_DATA), messagesIn(new LineChart(List.of())));
-        assertTrue(!hasPlot(new LineChart(List.of())),
-                "and there is no grid to assert a scale nobody supplied");
+        assertTrue(!hasPlot(new LineChart(List.of())), "and there is no grid to assert a scale nobody supplied");
     }
 
     @Test
@@ -124,15 +119,16 @@ class ChartStatusTest {
     @Test
     @DisplayName("loading and failing are the application's to say, and it keeps the box")
     void theOtherTwoStates() {
-        assertEquals(List.of(ChartStatus.LOADING_MESSAGE),
+        assertEquals(
+                List.of(ChartStatus.LOADING_MESSAGE),
                 messagesIn(new LineChart(two()).loading()),
                 "data it already has does not stop it waiting for more");
-        assertEquals(List.of("Querying Prometheus…"),
-                messagesIn(new LineChart(two()).status(
-                        ChartStatus.loading("Querying Prometheus…"))));
-        assertEquals(List.of("Prometheus timed out"),
-                messagesIn(new LineChart(two()).failed("Prometheus timed out")));
-        assertEquals(List.of(ChartStatus.FAILED_MESSAGE),
+        assertEquals(
+                List.of("Querying Prometheus…"),
+                messagesIn(new LineChart(two()).status(ChartStatus.loading("Querying Prometheus…"))));
+        assertEquals(List.of("Prometheus timed out"), messagesIn(new LineChart(two()).failed("Prometheus timed out")));
+        assertEquals(
+                List.of(ChartStatus.FAILED_MESSAGE),
                 messagesIn(new LineChart(two()).failed(null)),
                 "a chart that failed silently is worse than one that admits it");
     }
@@ -145,11 +141,9 @@ class ChartStatusTest {
         // would reflow the wall twice per panel. Measured rather than argued,
         // because it is the one claim the CSS has to keep -- `chart-message` takes
         // the plot's `flex-grow`, so it fills the box the picture would have.
-        var sheet = Stylesheet.parse(CascadeLayer.APPLICATION,
-                "#plot { width: 296px; height: 156px }");
-        var render = new WidgetRenderer(
-                List.of(Controls.baseStylesheet(), Theme.NORD_DARK.load(), sheet),
-                TestFont.get());
+        var sheet = Stylesheet.parse(CascadeLayer.APPLICATION, "#plot { width: 296px; height: 156px }");
+        var render =
+                new WidgetRenderer(List.of(Controls.baseStylesheet(), Theme.NORD_DARK.load(), sheet), TestFont.get());
         var id = new Attributes("plot", Set.of(), "plot");
 
         var ready = heightOf(render, new LineChart(two(), List.of(), id));
@@ -165,12 +159,11 @@ class ChartStatusTest {
     private static float heightOf(WidgetRenderer render, Widget chart) {
         var target = io.github.digitalsmile.goldberry.paint.TestFrames.of(320, 180, 1.0f);
         try {
-            var box = render.render(new ElementTree(
-                    new Column(List.of(chart), new Attributes("frame", Set.of(), "frame"))));
+            var box = render.render(
+                    new ElementTree(new Column(List.of(chart), new Attributes("frame", Set.of(), "frame"))));
             var heights = new ArrayList<Float>();
             BoxPainter.forEachBox(target.frame(), box, (each, layout) -> {
-                if (each.owner() instanceof Element element
-                        && "plot".equals(element.id())) {
+                if (each.owner() instanceof Element element && "plot".equals(element.id())) {
                     heights.add(layout.height());
                 }
             });
@@ -187,8 +180,7 @@ class ChartStatusTest {
         assertEquals(List.of(ChartStatus.NO_DATA), messagesIn(new AreaChart(List.of())));
         assertEquals(List.of(ChartStatus.NO_DATA), messagesIn(new BarChart(List.of())));
         assertEquals(List.of(ChartStatus.NO_DATA), messagesIn(new DonutChart(List.of())));
-        assertEquals(List.of(ChartStatus.LOADING_MESSAGE),
-                messagesIn(new DonutChart(List.of()).loading()));
+        assertEquals(List.of(ChartStatus.LOADING_MESSAGE), messagesIn(new DonutChart(List.of()).loading()));
     }
 
     @Test
@@ -196,8 +188,7 @@ class ChartStatusTest {
     void aRingOfNothingIsEmpty() {
         // The one place "empty" means something different: a donut asserts that
         // its arcs are shares of something, and three zeroes are three names.
-        var zeroes = List.of(
-                Series.of("Cache", 0), Series.of("Origin", 0), Series.of("Miss", 0));
+        var zeroes = List.of(Series.of("Cache", 0), Series.of("Origin", 0), Series.of("Miss", 0));
 
         assertEquals(List.of(ChartStatus.NO_DATA), messagesIn(new DonutChart(zeroes)));
         assertTrue(!hasPlot(new DonutChart(zeroes)));
@@ -219,14 +210,14 @@ class ChartStatusTest {
                 #frame { padding: 12px; background: var(--gb-bg) }
                 #plot  { width: 296px; height: 156px }
                 """);
-        var tree = new ElementTree(new Column(List.of(
-                new LineChart(two(), List.of(), new Attributes("plot", Set.of(), "plot"))
+        var tree = new ElementTree(new Column(
+                List.of(new LineChart(two(), List.of(), new Attributes("plot", Set.of(), "plot"))
                         .failed("Prometheus timed out")),
                 new Attributes("frame", Set.of(), "frame")));
-        var render = new WidgetRenderer(
-                List.of(Controls.baseStylesheet(), Theme.NORD_DARK.load(), sheet), TestFont.get());
+        var render =
+                new WidgetRenderer(List.of(Controls.baseStylesheet(), Theme.NORD_DARK.load(), sheet), TestFont.get());
 
-        GoldenImage.assertMatches("line-chart-failed-dark", 320, 180, 1.0f,
-                frame -> BoxPainter.paint(frame, render.render(tree)));
+        GoldenImage.assertMatches(
+                "line-chart-failed-dark", 320, 180, 1.0f, frame -> BoxPainter.paint(frame, render.render(tree)));
     }
 }

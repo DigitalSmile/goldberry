@@ -1,27 +1,28 @@
 package io.github.digitalsmile.goldberry;
 
-import io.github.digitalsmile.goldberry.render.window.BackendWindow;
-import io.github.digitalsmile.goldberry.render.Cursor;
-import io.github.digitalsmile.goldberry.render.DamageRect;
-import io.github.digitalsmile.goldberry.render.model.DisplayScale;
-import io.github.digitalsmile.goldberry.render.model.LogicalSize;
-import io.github.digitalsmile.goldberry.render.model.PhysicalSize;
-import io.github.digitalsmile.goldberry.render.PixelBuffer;
-import io.github.digitalsmile.goldberry.render.model.PixelFormat;
-import io.github.digitalsmile.goldberry.render.window.WindowSpec;
-import io.github.digitalsmile.goldberry.render.popup.BackendPopup;
-import io.github.digitalsmile.goldberry.input.key.Modifiers;
-import io.github.digitalsmile.goldberry.log.Logs;
-import io.github.digitalsmile.goldberry.log.Startup;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
 
+import org.slf4j.Logger;
+
+import io.github.digitalsmile.goldberry.input.key.Modifiers;
+import io.github.digitalsmile.goldberry.log.Logs;
+import io.github.digitalsmile.goldberry.log.Startup;
+import io.github.digitalsmile.goldberry.paint.Frame;
+import io.github.digitalsmile.goldberry.render.Cursor;
+import io.github.digitalsmile.goldberry.render.DamageRect;
+import io.github.digitalsmile.goldberry.render.PixelBuffer;
+import io.github.digitalsmile.goldberry.render.model.DisplayScale;
+import io.github.digitalsmile.goldberry.render.model.LogicalSize;
+import io.github.digitalsmile.goldberry.render.model.PhysicalSize;
+import io.github.digitalsmile.goldberry.render.model.PixelFormat;
+import io.github.digitalsmile.goldberry.render.popup.BackendPopup;
+import io.github.digitalsmile.goldberry.render.window.BackendWindow;
+import io.github.digitalsmile.goldberry.render.window.WindowSpec;
 import io.github.digitalsmile.goldberry.stats.FrameRing;
 import io.github.digitalsmile.goldberry.stats.FrameStats;
-import org.slf4j.Logger;
-import io.github.digitalsmile.goldberry.paint.Frame;
 
 /// A window on the screen.
 ///
@@ -110,8 +111,12 @@ public final class Window implements AutoCloseable {
         var backendWindow = runtime.backend().createWindow(spec);
         var window = new Window(runtime, backendWindow);
         runtime.register(backendWindow, window);
-        LOG.info("window \"{}\" opened: {} at {} -> {}",
-                spec.title(), backendWindow.size(), backendWindow.scale(), backendWindow.physicalSize());
+        LOG.info(
+                "window \"{}\" opened: {} at {} -> {}",
+                spec.title(),
+                backendWindow.size(),
+                backendWindow.scale(),
+                backendWindow.physicalSize());
         Startup.mark("window \"" + spec.title() + "\" open");
         window.repaint();
         return window;
@@ -404,10 +409,7 @@ public final class Window implements AutoCloseable {
             // changed is right and there is nothing for it to do differently --
             // this window is the only thing that knows whether the buffer it is
             // about to present had valid contents to begin with.
-            window.present(target,
-                    damage == null || !partialRepaint
-                            ? List.of(DamageRect.all(frameSize))
-                            : damage);
+            window.present(target, damage == null || !partialRepaint ? List.of(DamageRect.all(frameSize)) : damage);
             damage = null;
             if (!everPresented) {
                 everPresented = true;
@@ -422,8 +424,8 @@ public final class Window implements AutoCloseable {
                 // a frame's time actually goes: attaching the context, the
                 // painter's own work, and `end` waiting for Blend2D's workers
                 // (ADR-0042, ADR-0045).
-                LOG.trace("frame {} in {}us: buffer {}, paint {} (begin {}, draw {}, end {}),"
-                                + " present {}",
+                LOG.trace(
+                        "frame {} in {}us: buffer {}, paint {} (begin {}, draw {}, end {})," + " present {}",
                         frameSize,
                         (done - started) / 1_000,
                         (allocated - started) / 1_000,
@@ -442,8 +444,7 @@ public final class Window implements AutoCloseable {
             // end the event loop mid-resize.
             var current = window.isOpen() ? window.physicalSize() : frameSize;
             if (!current.equals(frameSize)) {
-                LOG.debug("dropped a {} frame: the window became {} while it was painted",
-                        frameSize, current);
+                LOG.debug("dropped a {} frame: the window became {} while it was painted", frameSize, current);
                 repaint();
                 return;
             }
@@ -494,8 +495,7 @@ public final class Window implements AutoCloseable {
         /// @return true when the press has been dealt with — a context menu
         ///         opening takes it, so the press does not also travel to whatever
         ///         it landed on
-        boolean pressed(io.github.digitalsmile.goldberry.input.event.PointerEvent.Button button,
-                float x, float y);
+        boolean pressed(io.github.digitalsmile.goldberry.input.event.PointerEvent.Button button, float x, float y);
 
         /// A key went down somewhere in this window.
         ///
@@ -507,8 +507,10 @@ public final class Window implements AutoCloseable {
         /// open ([ADR-0104]).
         ///
         /// @return true when the key has been dealt with
-        boolean keyPressed(io.github.digitalsmile.goldberry.input.key.Key key,
-                io.github.digitalsmile.goldberry.input.key.Modifiers modifiers, boolean repeat);
+        boolean keyPressed(
+                io.github.digitalsmile.goldberry.input.key.Key key,
+                io.github.digitalsmile.goldberry.input.key.Modifiers modifiers,
+                boolean repeat);
 
         /// The pointer left this window — or the platform says it did.
         ///
@@ -604,8 +606,7 @@ public final class Window implements AutoCloseable {
         }
     }
 
-    void handlePointerWheel(float x, float y, float deltaX, float deltaY,
-            int ticksX, int ticksY, int modifiers) {
+    void handlePointerWheel(float x, float y, float deltaX, float deltaY, int ticksX, int ticksY, int modifiers) {
         if (router != null) {
             router.pointerWheel(x, y, deltaX, deltaY, ticksX, ticksY, Modifiers.fromSdl(modifiers));
         }
@@ -649,9 +650,11 @@ public final class Window implements AutoCloseable {
     }
 
     void handleKeyPressed(int keycode, int modifiers, boolean repeat) {
-        if (inputWatcher != null && inputWatcher.keyPressed(
-                io.github.digitalsmile.goldberry.input.key.Key.fromSdl(keycode),
-                Modifiers.fromSdl(modifiers), repeat)) {
+        if (inputWatcher != null
+                && inputWatcher.keyPressed(
+                        io.github.digitalsmile.goldberry.input.key.Key.fromSdl(keycode),
+                        Modifiers.fromSdl(modifiers),
+                        repeat)) {
             repaintIfRestyled();
             return;
         }

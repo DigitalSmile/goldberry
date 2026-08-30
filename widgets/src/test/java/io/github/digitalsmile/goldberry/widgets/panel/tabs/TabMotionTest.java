@@ -4,22 +4,24 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.ArrayList;
+import java.util.List;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+
 import io.github.digitalsmile.goldberry.RendererRequirement;
-import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
 import io.github.digitalsmile.goldberry.css.Stylesheet;
 import io.github.digitalsmile.goldberry.css.Theme;
-import io.github.digitalsmile.goldberry.paint.Box;
+import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
 import io.github.digitalsmile.goldberry.motion.Clock;
+import io.github.digitalsmile.goldberry.paint.Box;
 import io.github.digitalsmile.goldberry.widget.Element;
 import io.github.digitalsmile.goldberry.widget.ElementTree;
 import io.github.digitalsmile.goldberry.widget.WidgetRenderer;
 import io.github.digitalsmile.goldberry.widgets.Controls;
 import io.github.digitalsmile.goldberry.widgets.controls.TestFont;
-import java.util.ArrayList;
-import java.util.List;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
 
 /// A tab arriving and a tab leaving, on a clock a test drives.
 ///
@@ -36,9 +38,11 @@ class TabMotionTest {
         RendererRequirement.enforce();
         clock = Clock.virtual();
         renderer = new WidgetRenderer(
-                List.of(Controls.baseStylesheet(), Theme.NORD_DARK.load(),
-                        Stylesheet.parse(CascadeLayer.APPLICATION, "")),
-                TestFont.get())
+                        List.of(
+                                Controls.baseStylesheet(),
+                                Theme.NORD_DARK.load(),
+                                Stylesheet.parse(CascadeLayer.APPLICATION, "")),
+                        TestFont.get())
                 .clock(clock);
     }
 
@@ -49,8 +53,7 @@ class TabMotionTest {
     /// strip's widget directly, because that is what an application does — a tab
     /// added or closed is a **structural** change, and the toolkit rebuilds a
     /// subtree when something it watches changes (ADR-0109).
-    private record Harness(List<String> initial)
-            implements io.github.digitalsmile.goldberry.widget.Widget.Stateful {
+    private record Harness(List<String> initial) implements io.github.digitalsmile.goldberry.widget.Widget.Stateful {
 
         @Override
         public io.github.digitalsmile.goldberry.widget.State<?> createState() {
@@ -58,8 +61,7 @@ class TabMotionTest {
         }
     }
 
-    private static final class HarnessState
-            extends io.github.digitalsmile.goldberry.widget.State<Harness> {
+    private static final class HarnessState extends io.github.digitalsmile.goldberry.widget.State<Harness> {
 
         private List<String> values;
 
@@ -89,8 +91,13 @@ class TabMotionTest {
         for (var value : values) {
             tabs.add(new Tab(value, value));
         }
-        return new Tabs("a", tabs,
-                null, ignored -> { }, ignored -> { }, null,
+        return new Tabs(
+                "a",
+                tabs,
+                null,
+                ignored -> {},
+                ignored -> {},
+                null,
                 io.github.digitalsmile.goldberry.widget.attr.Attributes.NONE);
     }
 
@@ -117,10 +124,14 @@ class TabMotionTest {
         // tab-list -> [tab-rule, scroll] -> scroll-content -> the headers. The
         // viewport arrived with ADR-0118 so that a strip wider than its window
         // scrolls; it paints nothing and moves no header.
-        return box.children().getFirst()      // tab-list
-                .children().get(1)            // scroll
-                .children().getFirst()        // scroll-content
-                .children().get(index)
+        return box.children()
+                .getFirst() // tab-list
+                .children()
+                .get(1) // scroll
+                .children()
+                .getFirst() // scroll-content
+                .children()
+                .get(index)
                 .opacity();
     }
 
@@ -151,8 +162,7 @@ class TabMotionTest {
         var atStart = renderer.render(tree);
 
         assertEquals(List.of("a", "b"), drawn(tree));
-        assertEquals(0.0, opacityOf(atStart, "b", List.of("a", "b")),
-                "it starts from nothing");
+        assertEquals(0.0, opacityOf(atStart, "b", List.of("a", "b")), "it starts from nothing");
         assertTrue(renderer.isAnimating(), "and asks for the frames to finish");
 
         clock.advance(80);
@@ -187,8 +197,7 @@ class TabMotionTest {
         tree.flush();
         var leaving = renderer.render(tree);
 
-        assertEquals(List.of("a", "b"), drawn(tree),
-                "still drawn, though the application no longer has it");
+        assertEquals(List.of("a", "b"), drawn(tree), "still drawn, though the application no longer has it");
         assertEquals(1.0, opacityOf(leaving, "b", List.of("a", "b")), "starting from where it was");
         assertTrue(renderer.isAnimating());
 

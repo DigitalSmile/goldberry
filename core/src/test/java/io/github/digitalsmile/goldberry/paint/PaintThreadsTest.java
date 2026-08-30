@@ -4,12 +4,13 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import io.github.digitalsmile.goldberry.render.model.PhysicalSize;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
+
+import io.github.digitalsmile.goldberry.render.model.PhysicalSize;
 
 class PaintThreadsTest {
 
@@ -56,8 +57,7 @@ class PaintThreadsTest {
     void smallSurfacesArePaintedSynchronously(int width, int height, boolean threaded) {
         var workers = PaintThreads.resolve((long) width * height, UNSET, 8);
 
-        assertEquals(threaded, workers > 0,
-                () -> width + "x" + height + " resolved to " + workers + " worker(s)");
+        assertEquals(threaded, workers > 0, () -> width + "x" + height + " resolved to " + workers + " worker(s)");
     }
 
     @Test
@@ -78,8 +78,7 @@ class PaintThreadsTest {
         // opposite of what an enormous surface wants.
         var huge = new PhysicalSize(60_000, 40_000);
 
-        assertTrue(PaintThreads.resolve(
-                (long) huge.width() * huge.height(), UNSET, 8) > 0);
+        assertTrue(PaintThreads.resolve((long) huge.width() * huge.height(), UNSET, 8) > 0);
     }
 
     @Test

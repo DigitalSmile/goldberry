@@ -1,27 +1,27 @@
 package io.github.digitalsmile.goldberry.widgets.controls.radio;
 
-import io.github.digitalsmile.goldberry.bind.registry.ActionRegistry;
-import io.github.digitalsmile.goldberry.widget.attr.Attributed;
-import io.github.digitalsmile.goldberry.widget.attr.Bindable;
-import io.github.digitalsmile.goldberry.widget.attr.Attributes;
-import io.github.digitalsmile.goldberry.widgets.text.Text;
-
-import io.github.digitalsmile.goldberry.bind.Observable;
-import io.github.digitalsmile.goldberry.css.ComputedStyle;
-import io.github.digitalsmile.goldberry.input.FocusScope;
-import io.github.digitalsmile.goldberry.input.handler.Handles;
-import io.github.digitalsmile.goldberry.paint.Box;
-import io.github.digitalsmile.goldberry.widget.style.Paints;
-import io.github.digitalsmile.goldberry.widget.style.Styled;
-import io.github.digitalsmile.goldberry.widget.Widget;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Consumer;
+
+import io.github.digitalsmile.goldberry.bind.Observable;
+import io.github.digitalsmile.goldberry.bind.registry.ActionRegistry;
+import io.github.digitalsmile.goldberry.css.ComputedStyle;
+import io.github.digitalsmile.goldberry.input.FocusScope;
+import io.github.digitalsmile.goldberry.input.handler.Handles;
 import io.github.digitalsmile.goldberry.kdl.KdlNode;
-import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
+import io.github.digitalsmile.goldberry.paint.Box;
+import io.github.digitalsmile.goldberry.widget.Widget;
+import io.github.digitalsmile.goldberry.widget.attr.Attributed;
+import io.github.digitalsmile.goldberry.widget.attr.Attributes;
+import io.github.digitalsmile.goldberry.widget.attr.Bindable;
+import io.github.digitalsmile.goldberry.widget.style.Paints;
+import io.github.digitalsmile.goldberry.widget.style.Styled;
 import io.github.digitalsmile.goldberry.widgets.markup.Markup;
+import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
+import io.github.digitalsmile.goldberry.widgets.text.Text;
 
 /// A set of options of which exactly one is chosen (§11,
 /// `docs/core-widgets.md` §3).
@@ -80,8 +80,12 @@ import io.github.digitalsmile.goldberry.widgets.markup.Markup;
 /// @param attributes `id` and `class`, exactly as on the primitives
 @Markup("radio-group")
 public record RadioGroup(
-        String value, List<Widget> children, Observable<?> source, Consumer<String> onChange,
-        boolean disabled, Attributes attributes)
+        String value,
+        List<Widget> children,
+        Observable<?> source,
+        Consumer<String> onChange,
+        boolean disabled,
+        Attributes attributes)
         implements Widget.Leaf, Styled, Paints, Handles, Attributed<RadioGroup>, Bindable<RadioGroup> {
 
     public RadioGroup {
@@ -107,16 +111,14 @@ public record RadioGroup(
     ///
     /// @param source read-only by construction ([ADR-0063])
     public static RadioGroup of(Observable<?> source, Consumer<String> onChange, Radio... options) {
-        return new RadioGroup(null, List.of(options),
-                Objects.requireNonNull(source, "source"), onChange, false,
-                Attributes.NONE);
+        return new RadioGroup(
+                null, List.of(options), Objects.requireNonNull(source, "source"), onChange, false, Attributes.NONE);
     }
 
     /// This group, disabled or not.
     public RadioGroup disabled(boolean value) {
         return new RadioGroup(this.value, children, source, onChange, value, attributes);
     }
-
 
     /// Which option is selected **right now** — the bound value, or [#value()].
     ///
@@ -255,8 +257,12 @@ public record RadioGroup(
     /// useless without the value picked, and one action per option would make
     /// adding an option an edit in Java too (ADR-0073).
     public static Widget inflate(KdlNode node, List<Widget> children, Wiring wiring) {
-        return new RadioGroup(node.stringProperty("value"), children,
-                wiring.bound(node), wiring.valued(node, "change"),
-                Wiring.disabled(node), Attributes.of(node));
+        return new RadioGroup(
+                node.stringProperty("value"),
+                children,
+                wiring.bound(node),
+                wiring.valued(node, "change"),
+                Wiring.disabled(node),
+                Attributes.of(node));
     }
 }

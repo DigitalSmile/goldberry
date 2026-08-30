@@ -1,14 +1,15 @@
 package io.github.digitalsmile.goldberry.widgets.core.affix;
 
+import java.util.List;
+
+import io.github.digitalsmile.goldberry.kdl.KdlNode;
 import io.github.digitalsmile.goldberry.render.model.LogicalRect;
-import io.github.digitalsmile.goldberry.widget.attr.Attributed;
-import io.github.digitalsmile.goldberry.widget.attr.Attributes;
 import io.github.digitalsmile.goldberry.widget.State;
 import io.github.digitalsmile.goldberry.widget.Widget;
-import java.util.List;
-import io.github.digitalsmile.goldberry.kdl.KdlNode;
-import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
+import io.github.digitalsmile.goldberry.widget.attr.Attributed;
+import io.github.digitalsmile.goldberry.widget.attr.Attributes;
 import io.github.digitalsmile.goldberry.widgets.markup.Markup;
+import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
 
 /// A child pinned to an edge of the nearest `scroll` once it would have scrolled
 /// past it — `docs/core-widgets.md` §1's `affix`.
@@ -72,10 +73,10 @@ import io.github.digitalsmile.goldberry.widgets.markup.Markup;
 /// @param attributes `id` and `class`, exactly as on the primitives
 @Markup("affix")
 public record Affix(
-        List<Widget> children, Edge edge, double offset,
-        java.util.function.BiConsumer<
-                LogicalRect,
-                LogicalRect> onReveal,
+        List<Widget> children,
+        Edge edge,
+        double offset,
+        java.util.function.BiConsumer<LogicalRect, LogicalRect> onReveal,
         Attributes attributes)
         implements Widget.Stateful, Attributed<Affix> {
 
@@ -94,10 +95,7 @@ public record Affix(
     }
 
     /// This affix, telling `listener` where its hole is — see the class note.
-    public Affix revealedBy(
-            java.util.function.BiConsumer<
-                    LogicalRect,
-                    LogicalRect> listener) {
+    public Affix revealedBy(java.util.function.BiConsumer<LogicalRect, LogicalRect> listener) {
         return new Affix(children, edge, offset, listener, attributes);
     }
 
@@ -118,7 +116,10 @@ public record Affix(
 
     /// Builds an `affix` from markup.
     public static Widget inflate(KdlNode node, List<Widget> children, Wiring wiring) {
-        return new Affix(children, Edge.parse(node.stringProperty("edge")),
-                node.numberProperty("offset", 0), Attributes.of(node));
+        return new Affix(
+                children,
+                Edge.parse(node.stringProperty("edge")),
+                node.numberProperty("offset", 0),
+                Attributes.of(node));
     }
 }

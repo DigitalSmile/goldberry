@@ -5,8 +5,16 @@ import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.ArrayList;
+import java.util.List;
+
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
+
 import io.github.digitalsmile.goldberry.RendererRequirement;
-import io.github.digitalsmile.goldberry.paint.TestFrames;
 import io.github.digitalsmile.goldberry.assets.BundledFont;
 import io.github.digitalsmile.goldberry.css.value.Transform;
 import io.github.digitalsmile.goldberry.natives.yoga.ComputedLayout;
@@ -15,16 +23,10 @@ import io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength;
 import io.github.digitalsmile.goldberry.natives.yoga.style.Wrap;
 import io.github.digitalsmile.goldberry.paint.Box;
 import io.github.digitalsmile.goldberry.paint.BoxPainter;
-import io.github.digitalsmile.goldberry.text.font.Font;
+import io.github.digitalsmile.goldberry.paint.TestFrames;
 import io.github.digitalsmile.goldberry.text.Paragraph;
 import io.github.digitalsmile.goldberry.text.ParagraphCache;
-import java.util.ArrayList;
-import java.util.List;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.Test;
+import io.github.digitalsmile.goldberry.text.font.Font;
 
 /// The retained render tree, and the reconciliation that keeps it correct —
 /// ADR-0069.
@@ -62,8 +64,7 @@ class RenderTreeTest {
     }
 
     private static Box sized(float width, float height) {
-        return Box.filled(0xFF00FF00)
-                .size(StyleLength.points(width), StyleLength.points(height));
+        return Box.filled(0xFF00FF00).size(StyleLength.points(width), StyleLength.points(height));
     }
 
     @Nested
@@ -131,8 +132,7 @@ class RenderTreeTest {
                 assertEquals(40, layouts(tree).get(1).width());
 
                 tree.update(target.frame(), root.children(sized(90, 20)));
-                assertEquals(90, layouts(tree).get(1).width(),
-                        "the second frame's width never reached Yoga");
+                assertEquals(90, layouts(tree).get(1).width(), "the second frame's width never reached Yoga");
             }
         }
 
@@ -151,9 +151,9 @@ class RenderTreeTest {
 
                 tree.update(target.frame(), row.wrap(Wrap.NO_WRAP));
                 var squeezed = layouts(tree);
-                assertEquals(0, squeezed.get(3).top(),
-                        "without wrapping every child stays on one line");
-                assertTrue(squeezed.get(3).width() < 80,
+                assertEquals(0, squeezed.get(3).top(), "without wrapping every child stays on one line");
+                assertTrue(
+                        squeezed.get(3).width() < 80,
                         "and the third one shrinks to fit, which is what a flex item does"
                                 + " when there is nowhere else to go");
 
@@ -201,12 +201,10 @@ class RenderTreeTest {
             try (var tree = RenderTree.create()) {
                 var root = Box.of().size(StyleLength.points(200), StyleLength.points(200));
 
-                tree.update(target.frame(), root.children(
-                        Box.text(Paragraph.of(font, "hello"), 0xFFFFFFFF)));
+                tree.update(target.frame(), root.children(Box.text(Paragraph.of(font, "hello"), 0xFFFFFFFF)));
                 assertEquals(2, tree.size());
 
-                tree.update(target.frame(), root.children(
-                        Box.of().children(sized(30, 30))));
+                tree.update(target.frame(), root.children(Box.of().children(sized(30, 30))));
                 assertEquals(3, tree.size(), "the container and its child");
                 assertEquals(30, layouts(tree).get(2).width());
             }
@@ -219,9 +217,11 @@ class RenderTreeTest {
             // in common with what was there. Nothing should be reused and nothing
             // should leak.
             try (var tree = RenderTree.create()) {
-                tree.update(target.frame(), Box.of()
-                        .size(StyleLength.points(200), StyleLength.points(200))
-                        .children(sized(10, 10), sized(20, 20), sized(30, 30)));
+                tree.update(
+                        target.frame(),
+                        Box.of()
+                                .size(StyleLength.points(200), StyleLength.points(200))
+                                .children(sized(10, 10), sized(20, 20), sized(30, 30)));
                 assertEquals(4, tree.size());
 
                 tree.update(target.frame(), Box.text(Paragraph.of(font, "a screen away"), 0xFF000000));
@@ -271,19 +271,19 @@ class RenderTreeTest {
                         .size(StyleLength.points(90), StyleLength.points(200))
                         .direction(FlexDirection.COLUMN);
 
-                tree.update(target.frame(), root.children(
-                        Box.text(Paragraph.of(font, "one"), 0xFF000000)));
+                tree.update(target.frame(), root.children(Box.text(Paragraph.of(font, "one"), 0xFF000000)));
                 var shortHeight = layouts(tree).get(1).height();
 
-                tree.update(target.frame(), root.children(
-                        Box.text(Paragraph.of(font,
-                                "a much longer run of words that has to wrap several times over"),
+                tree.update(
+                        target.frame(),
+                        root.children(Box.text(
+                                Paragraph.of(font, "a much longer run of words that has to wrap several times over"),
                                 0xFF000000)));
                 var tallHeight = layouts(tree).get(1).height();
 
-                assertTrue(tallHeight > shortHeight,
-                        "the wrapped paragraph measured " + tallHeight
-                                + ", the same as the one word it replaced");
+                assertTrue(
+                        tallHeight > shortHeight,
+                        "the wrapped paragraph measured " + tallHeight + ", the same as the one word it replaced");
             }
         }
     }
@@ -325,10 +325,8 @@ class RenderTreeTest {
             tree.update(target.frame(), sized(10, 10));
             tree.close();
 
-            assertThrows(IllegalStateException.class,
-                    () -> tree.update(target.frame(), sized(10, 10)));
-            assertThrows(IllegalStateException.class,
-                    () -> tree.forEachPlacedBox(placed -> { }));
+            assertThrows(IllegalStateException.class, () -> tree.update(target.frame(), sized(10, 10)));
+            assertThrows(IllegalStateException.class, () -> tree.forEachPlacedBox(placed -> {}));
         }
 
         @Test
@@ -345,8 +343,7 @@ class RenderTreeTest {
         void neverUpdated() {
             try (var tree = RenderTree.create()) {
                 assertEquals(0, tree.size());
-                assertThrows(IllegalStateException.class,
-                        () -> tree.forEachPlacedBox(placed -> { }));
+                assertThrows(IllegalStateException.class, () -> tree.forEachPlacedBox(placed -> {}));
             }
         }
     }
@@ -362,13 +359,15 @@ class RenderTreeTest {
             // accumulation moved with it. This is the assertion that says it
             // arrived intact.
             try (var tree = RenderTree.create()) {
-                tree.update(target.frame(), Box.of()
-                        .size(StyleLength.points(200), StyleLength.points(200))
-                        .children(Box.filled(0xFF00FF00)
-                                .size(StyleLength.points(40), StyleLength.points(40))
-                                .transform(Transform.of(new Transform.Function.Translate(
-                                        Transform.Length.px(100), Transform.Length.ZERO)))
-                                .children(sized(20, 20))));
+                tree.update(
+                        target.frame(),
+                        Box.of()
+                                .size(StyleLength.points(200), StyleLength.points(200))
+                                .children(Box.filled(0xFF00FF00)
+                                        .size(StyleLength.points(40), StyleLength.points(40))
+                                        .transform(Transform.of(new Transform.Function.Translate(
+                                                Transform.Length.px(100), Transform.Length.ZERO)))
+                                        .children(sized(20, 20))));
 
                 var transforms = new ArrayList<io.github.digitalsmile.goldberry.css.value.Affine>();
                 tree.forEachPlacedBox(placed -> transforms.add(placed.transform()));
@@ -395,7 +394,8 @@ class RenderTreeTest {
                 tree.paint(target.frame());
 
                 var regions = io.github.digitalsmile.goldberry.input.hit.HitTest.capture(tree);
-                assertEquals("target",
+                assertEquals(
+                        "target",
                         io.github.digitalsmile.goldberry.input.hit.HitTest.at(regions, 20, 20)
                                 .orElseThrow());
                 assertNotEquals(0, regions.size());
@@ -411,8 +411,8 @@ class RenderTreeTest {
     class Limits {
 
         /// The rectangle a box of `content` size comes out as under `limits`.
-        private ComputedLayout laidOut(io.github.digitalsmile.goldberry.natives.yoga.Limits limits,
-                float width, float height) {
+        private ComputedLayout laidOut(
+                io.github.digitalsmile.goldberry.natives.yoga.Limits limits, float width, float height) {
             var box = Box.filled(0xFF000000)
                     .size(StyleLength.points(width), StyleLength.points(height))
                     .limits(limits);
@@ -427,9 +427,9 @@ class RenderTreeTest {
         @DisplayName("a minimum widens a box that asked to be smaller")
         void minimumWidens() {
             var laid = laidOut(
-                    io.github.digitalsmile.goldberry.natives.yoga.Limits.NONE
-                            .minWidth(StyleLength.points(320)),
-                    120, 40);
+                    io.github.digitalsmile.goldberry.natives.yoga.Limits.NONE.minWidth(StyleLength.points(320)),
+                    120,
+                    40);
 
             assertEquals(320, laid.width(), 0.5, "the minimum did not reach Yoga");
         }
@@ -438,9 +438,9 @@ class RenderTreeTest {
         @DisplayName("a maximum narrows a box that asked to be bigger")
         void maximumNarrows() {
             var laid = laidOut(
-                    io.github.digitalsmile.goldberry.natives.yoga.Limits.NONE
-                            .maxWidth(StyleLength.points(200)),
-                    600, 40);
+                    io.github.digitalsmile.goldberry.natives.yoga.Limits.NONE.maxWidth(StyleLength.points(200)),
+                    600,
+                    40);
 
             assertEquals(200, laid.width(), 0.5);
         }
@@ -468,25 +468,24 @@ class RenderTreeTest {
         @Test
         @DisplayName("a limit that arrives after the first frame still reaches Yoga")
         void appliedOnAFrameThatChanged() {
-            var plain = Box.filled(0xFF000000)
-                    .size(StyleLength.points(600), StyleLength.points(40));
+            var plain = Box.filled(0xFF000000).size(StyleLength.points(600), StyleLength.points(40));
             var capped = plain.limits(
-                    io.github.digitalsmile.goldberry.natives.yoga.Limits.NONE
-                            .maxWidth(StyleLength.points(200)));
+                    io.github.digitalsmile.goldberry.natives.yoga.Limits.NONE.maxWidth(StyleLength.points(200)));
 
             try (var tree = RenderTree.create()) {
                 tree.update(target.frame(), plain);
                 assertEquals(600, layouts(tree).getFirst().width(), 0.5);
 
                 tree.update(target.frame(), capped);
-                assertEquals(200, layouts(tree).getFirst().width(), 0.5,
-                        "the limit was skipped by the guard that exists to make"
-                                + " an unlimited box cheap");
+                assertEquals(
+                        200,
+                        layouts(tree).getFirst().width(),
+                        0.5,
+                        "the limit was skipped by the guard that exists to make" + " an unlimited box cheap");
 
                 // And away again, which is the half a one-way guard would miss.
                 tree.update(target.frame(), plain);
-                assertEquals(600, layouts(tree).getFirst().width(), 0.5,
-                        "the limit stayed after the declaration went");
+                assertEquals(600, layouts(tree).getFirst().width(), 0.5, "the limit stayed after the declaration went");
             }
         }
     }

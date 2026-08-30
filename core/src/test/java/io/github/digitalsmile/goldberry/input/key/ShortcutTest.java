@@ -5,12 +5,9 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import io.github.digitalsmile.goldberry.widget.Element;
-import io.github.digitalsmile.goldberry.widget.ElementTree;
-import io.github.digitalsmile.goldberry.widget.style.Styled;
-import io.github.digitalsmile.goldberry.widget.Widget;
 import java.util.ArrayList;
 import java.util.List;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -18,9 +15,14 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
+
+import io.github.digitalsmile.goldberry.input.PointerRouter;
 import io.github.digitalsmile.goldberry.input.event.KeyEvent;
 import io.github.digitalsmile.goldberry.input.handler.Handles;
-import io.github.digitalsmile.goldberry.input.PointerRouter;
+import io.github.digitalsmile.goldberry.widget.Element;
+import io.github.digitalsmile.goldberry.widget.ElementTree;
+import io.github.digitalsmile.goldberry.widget.Widget;
+import io.github.digitalsmile.goldberry.widget.style.Styled;
 
 /// The accelerator map §7.2 asks for, and the text it is written in.
 class ShortcutTest {
@@ -143,8 +145,7 @@ class ShortcutTest {
             router.shortcut("Ctrl+S", () -> fired.add("save"));
 
             assertFalse(router.keyPressed(Key.UNKNOWN, Modifiers.NONE, false));
-            assertFalse(router.keyPressed(
-                    Key.UNKNOWN, new Modifiers(false, true, false, false), false));
+            assertFalse(router.keyPressed(Key.UNKNOWN, new Modifiers(false, true, false, false), false));
             assertTrue(fired.isEmpty());
         }
 
@@ -239,8 +240,7 @@ class ShortcutTest {
             assertEquals(List.of("application"), fired, "and the last registration is what fires");
 
             router.removeShortcut(Shortcut.of("Ctrl+O"), application);
-            assertFalse(router.keyPressed(Key.O, ctrl, false),
-                    "the owner that does hold it gives it back");
+            assertFalse(router.keyPressed(Key.O, ctrl, false), "the owner that does hold it gives it back");
         }
 
         /// An application binds without an owner and unbinds by key, which is
@@ -262,10 +262,11 @@ class ShortcutTest {
         @DisplayName("the bound set is listed in the order it was bound")
         void listed() {
             // What a keyboard-shortcut sheet prints.
-            router.shortcut("Ctrl+S", () -> { });
-            router.shortcut("F5", () -> { });
+            router.shortcut("Ctrl+S", () -> {});
+            router.shortcut("F5", () -> {});
 
-            assertEquals(List.of(Shortcut.of("Ctrl+S"), Shortcut.of("F5")),
+            assertEquals(
+                    List.of(Shortcut.of("Ctrl+S"), Shortcut.of("F5")),
                     List.copyOf(router.shortcuts().keySet()));
         }
     }

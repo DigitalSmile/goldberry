@@ -3,32 +3,34 @@ package io.github.digitalsmile.goldberry.widgets.menu;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import io.github.digitalsmile.goldberry.Application;
-import io.github.digitalsmile.goldberry.Goldberry;
-import io.github.digitalsmile.goldberry.GoldberryTestAccess;
-import io.github.digitalsmile.goldberry.Host;
-import io.github.digitalsmile.goldberry.RendererRequirement;
-import io.github.digitalsmile.goldberry.render.event.BackendEvent;
-import io.github.digitalsmile.goldberry.render.model.LogicalSize;
-import io.github.digitalsmile.goldberry.render.backend.headless.HeadlessBackend;
-import io.github.digitalsmile.goldberry.render.backend.headless.HeadlessPopup;
-import io.github.digitalsmile.goldberry.render.backend.headless.HeadlessWindow;
-import io.github.digitalsmile.goldberry.render.model.LogicalPoint;
-import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
-import io.github.digitalsmile.goldberry.css.Stylesheet;
-import io.github.digitalsmile.goldberry.css.Theme;
-import io.github.digitalsmile.goldberry.widget.Widget;
-import io.github.digitalsmile.goldberry.widgets.Controls;
-import io.github.digitalsmile.goldberry.widgets.core.Column;
-import io.github.digitalsmile.goldberry.widgets.text.Text;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
+
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
+
+import io.github.digitalsmile.goldberry.Application;
+import io.github.digitalsmile.goldberry.Goldberry;
+import io.github.digitalsmile.goldberry.GoldberryTestAccess;
+import io.github.digitalsmile.goldberry.Host;
+import io.github.digitalsmile.goldberry.RendererRequirement;
+import io.github.digitalsmile.goldberry.css.Stylesheet;
+import io.github.digitalsmile.goldberry.css.Theme;
+import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
+import io.github.digitalsmile.goldberry.render.backend.headless.HeadlessBackend;
+import io.github.digitalsmile.goldberry.render.backend.headless.HeadlessPopup;
+import io.github.digitalsmile.goldberry.render.backend.headless.HeadlessWindow;
+import io.github.digitalsmile.goldberry.render.event.BackendEvent;
+import io.github.digitalsmile.goldberry.render.model.LogicalPoint;
+import io.github.digitalsmile.goldberry.render.model.LogicalSize;
+import io.github.digitalsmile.goldberry.widget.Widget;
+import io.github.digitalsmile.goldberry.widgets.Controls;
+import io.github.digitalsmile.goldberry.widgets.core.Column;
+import io.github.digitalsmile.goldberry.widgets.text.Text;
 
 /// §8's context menus: `context-menu="…"` on any widget, opened by the secondary
 /// button where the pointer is.
@@ -60,9 +62,10 @@ class ContextMenuTest {
 
         @Override
         public List<Stylesheet> stylesheets() {
-            return List.of(Controls.baseStylesheet(), Theme.NORD_DARK.load(),
-                    Stylesheet.parse(CascadeLayer.APPLICATION,
-                            "#page { flex-grow: 1; background: #2e3440 }"));
+            return List.of(
+                    Controls.baseStylesheet(),
+                    Theme.NORD_DARK.load(),
+                    Stylesheet.parse(CascadeLayer.APPLICATION, "#page { flex-grow: 1; background: #2e3440 }"));
         }
 
         @Override
@@ -98,13 +101,14 @@ class ContextMenuTest {
 
     private static void later(long millis, Runnable action) {
         Goldberry.async(() -> {
-            try {
-                Thread.sleep(millis);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-            }
-            return null;
-        }).thenRun(action);
+                    try {
+                        Thread.sleep(millis);
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                    }
+                    return null;
+                })
+                .thenRun(action);
     }
 
     /// The page carries a name; a right-click on it opens the menu that name means,
@@ -115,14 +119,14 @@ class ContextMenuTest {
     void opensAtThePointer() {
         var count = new int[1];
         var offset = new LogicalPoint[1];
-        var page = new Column(List.of(new Text("right-click me")),
-                new io.github.digitalsmile.goldberry.widget.attr.Attributes("page",
-                        java.util.Set.of(), "page", null, "rows"));
+        var page = new Column(
+                List.of(new Text("right-click me")),
+                new io.github.digitalsmile.goldberry.widget.attr.Attributes(
+                        "page", java.util.Set.of(), "page", null, "rows"));
 
         Goldberry.launch(new TestApp(page, host -> {
-            Menus.contextMenus(host, Map.of("rows", new Menu(
-                    new Item("Rename", () -> { }),
-                    new Item("Delete", () -> { }))));
+            Menus.contextMenus(
+                    host, Map.of("rows", new Menu(new Item("Rename", () -> {}), new Item("Delete", () -> {}))));
             later(150, () -> {
                 backend.post(new BackendEvent.PointerMoved(window(), 120, 90, 0));
                 backend.post(new BackendEvent.PointerPressed(window(), 120, 90, 3, 1, 0));
@@ -148,12 +152,13 @@ class ContextMenuTest {
     @DisplayName("a left-click opens nothing")
     void primaryButtonDoesNot() {
         var count = new int[1];
-        var page = new Column(List.of(new Text("click me")),
-                new io.github.digitalsmile.goldberry.widget.attr.Attributes("page",
-                        java.util.Set.of(), "page", null, "rows"));
+        var page = new Column(
+                List.of(new Text("click me")),
+                new io.github.digitalsmile.goldberry.widget.attr.Attributes(
+                        "page", java.util.Set.of(), "page", null, "rows"));
 
         Goldberry.launch(new TestApp(page, host -> {
-            Menus.contextMenus(host, Map.of("rows", new Menu(new Item("Rename", () -> { }))));
+            Menus.contextMenus(host, Map.of("rows", new Menu(new Item("Rename", () -> {}))));
             later(150, () -> {
                 backend.post(new BackendEvent.PointerMoved(window(), 120, 90, 0));
                 backend.post(new BackendEvent.PointerPressed(window(), 120, 90, 1, 1, 0));
@@ -174,12 +179,12 @@ class ContextMenuTest {
     @DisplayName("a widget with no name opens nothing")
     void noNameNoMenu() {
         var count = new int[1];
-        var page = new Column(List.of(new Text("nothing here")),
-                new io.github.digitalsmile.goldberry.widget.attr.Attributes("page",
-                        java.util.Set.of(), "page"));
+        var page = new Column(
+                List.of(new Text("nothing here")),
+                new io.github.digitalsmile.goldberry.widget.attr.Attributes("page", java.util.Set.of(), "page"));
 
         Goldberry.launch(new TestApp(page, host -> {
-            Menus.contextMenus(host, Map.of("rows", new Menu(new Item("Rename", () -> { }))));
+            Menus.contextMenus(host, Map.of("rows", new Menu(new Item("Rename", () -> {}))));
             later(150, () -> {
                 backend.post(new BackendEvent.PointerMoved(window(), 120, 90, 0));
                 backend.post(new BackendEvent.PointerPressed(window(), 120, 90, 3, 1, 0));
@@ -208,32 +213,31 @@ class ContextMenuTest {
     /// A focusable widget carrying a menu name, so the keyboard has somewhere to
     /// be. The pointer's tests use a `Column`, which nothing can focus.
     private static Widget focusableRow() {
-        return new Column(List.of(
-                new io.github.digitalsmile.goldberry.widgets.controls.button.Button(
-                        "rename me", null, () -> { }, false,
-                        new io.github.digitalsmile.goldberry.widget.attr.Attributes("target",
-                                java.util.Set.of(), "target", null, "rows"))),
-                new io.github.digitalsmile.goldberry.widget.attr.Attributes("page",
-                        java.util.Set.of(), "page"));
+        return new Column(
+                List.of(new io.github.digitalsmile.goldberry.widgets.controls.button.Button(
+                        "rename me",
+                        null,
+                        () -> {},
+                        false,
+                        new io.github.digitalsmile.goldberry.widget.attr.Attributes(
+                                "target", java.util.Set.of(), "target", null, "rows"))),
+                new io.github.digitalsmile.goldberry.widget.attr.Attributes("page", java.util.Set.of(), "page"));
     }
 
     /// Opens whatever the focused widget named, and reports where the popup
     /// landed.
-    private void pressWithFocus(int keycode, int modifiers,
-            int[] count, LogicalPoint[] offset) {
+    private void pressWithFocus(int keycode, int modifiers, int[] count, LogicalPoint[] offset) {
 
         Goldberry.launch(new TestApp(focusableRow(), host -> {
-            Menus.contextMenus(host, Map.of("rows", new Menu(
-                    new Item("Rename", () -> { }),
-                    new Item("Delete", () -> { }))));
+            Menus.contextMenus(
+                    host, Map.of("rows", new Menu(new Item("Rename", () -> {}), new Item("Delete", () -> {}))));
             later(150, () -> {
                 // By id rather than by Tab: this test is about the menu key, and
                 // routing focus through a traversal would make a focus bug look
                 // like a menu bug.
                 host.focus("target", true);
                 later(100, () -> {
-                    backend.post(new BackendEvent.KeyPressed(
-                            window(), keycode, modifiers, false));
+                    backend.post(new BackendEvent.KeyPressed(window(), keycode, modifiers, false));
                     later(200, () -> {
                         count[0] = popups().size();
                         if (!popups().isEmpty()) {
@@ -262,8 +266,7 @@ class ContextMenuTest {
         // to, so the menu hangs off the bottom of whatever has the focus ring —
         // which is where the reader is already looking. A zero anchor would put
         // it in the window's corner.
-        assertTrue(offset[0].y() > 0f,
-                () -> "anchored below the focused widget, and it is at y=" + offset[0].y());
+        assertTrue(offset[0].y() > 0f, () -> "anchored below the focused widget, and it is at y=" + offset[0].y());
     }
 
     /// The keyboards with no menu key on them, which is every Mac.
@@ -299,16 +302,18 @@ class ContextMenuTest {
     @DisplayName("the menu key over a widget that named nothing opens nothing")
     void theMenuKeyNeedsAName() {
         var count = new int[1];
-        var page = new Column(List.of(
-                new io.github.digitalsmile.goldberry.widgets.controls.button.Button(
-                        "no menu here", null, () -> { }, false,
-                        new io.github.digitalsmile.goldberry.widget.attr.Attributes("target",
-                                java.util.Set.of(), "target"))),
-                new io.github.digitalsmile.goldberry.widget.attr.Attributes("page",
-                        java.util.Set.of(), "page"));
+        var page = new Column(
+                List.of(new io.github.digitalsmile.goldberry.widgets.controls.button.Button(
+                        "no menu here",
+                        null,
+                        () -> {},
+                        false,
+                        new io.github.digitalsmile.goldberry.widget.attr.Attributes(
+                                "target", java.util.Set.of(), "target"))),
+                new io.github.digitalsmile.goldberry.widget.attr.Attributes("page", java.util.Set.of(), "page"));
 
         Goldberry.launch(new TestApp(page, host -> {
-            Menus.contextMenus(host, Map.of("rows", new Menu(new Item("Rename", () -> { }))));
+            Menus.contextMenus(host, Map.of("rows", new Menu(new Item("Rename", () -> {}))));
             later(150, () -> {
                 host.focus("target", true);
                 later(100, () -> {
@@ -330,12 +335,13 @@ class ContextMenuTest {
     @DisplayName("the menu key with nothing focused opens nothing")
     void theMenuKeyNeedsAFocus() {
         var count = new int[1];
-        var page = new Column(List.of(new Text("not focusable")),
-                new io.github.digitalsmile.goldberry.widget.attr.Attributes("page",
-                        java.util.Set.of(), "page", null, "rows"));
+        var page = new Column(
+                List.of(new Text("not focusable")),
+                new io.github.digitalsmile.goldberry.widget.attr.Attributes(
+                        "page", java.util.Set.of(), "page", null, "rows"));
 
         Goldberry.launch(new TestApp(page, host -> {
-            Menus.contextMenus(host, Map.of("rows", new Menu(new Item("Rename", () -> { }))));
+            Menus.contextMenus(host, Map.of("rows", new Menu(new Item("Rename", () -> {}))));
             later(150, () -> {
                 backend.post(new BackendEvent.KeyPressed(window(), MENU_KEY, 0, false));
                 later(200, () -> {
@@ -345,8 +351,7 @@ class ContextMenuTest {
             });
         }));
 
-        assertEquals(0, count[0],
-                "a keyboard with no position has nothing to ask about");
+        assertEquals(0, count[0], "a keyboard with no position has nothing to ask about");
     }
 
     /// A name nobody registered is logged and ignored: a right-click is not a
@@ -358,12 +363,13 @@ class ContextMenuTest {
     void unknownName() {
         var count = new int[1];
         var survived = new boolean[1];
-        var page = new Column(List.of(new Text("right-click me")),
-                new io.github.digitalsmile.goldberry.widget.attr.Attributes("page",
-                        java.util.Set.of(), "page", null, "nothing-by-that-name"));
+        var page = new Column(
+                List.of(new Text("right-click me")),
+                new io.github.digitalsmile.goldberry.widget.attr.Attributes(
+                        "page", java.util.Set.of(), "page", null, "nothing-by-that-name"));
 
         Goldberry.launch(new TestApp(page, host -> {
-            Menus.contextMenus(host, Map.of("rows", new Menu(new Item("Rename", () -> { }))));
+            Menus.contextMenus(host, Map.of("rows", new Menu(new Item("Rename", () -> {}))));
             later(150, () -> {
                 backend.post(new BackendEvent.PointerMoved(window(), 120, 90, 0));
                 backend.post(new BackendEvent.PointerPressed(window(), 120, 90, 3, 1, 0));
@@ -378,5 +384,4 @@ class ContextMenuTest {
         assertEquals(0, count[0]);
         assertTrue(survived[0], "and the window is still running");
     }
-
 }

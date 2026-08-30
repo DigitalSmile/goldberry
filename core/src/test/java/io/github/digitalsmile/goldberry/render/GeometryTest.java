@@ -5,15 +5,16 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import io.github.digitalsmile.goldberry.render.model.LogicalSize;
-import io.github.digitalsmile.goldberry.render.model.PhysicalSize;
-import io.github.digitalsmile.goldberry.render.window.WindowSpec;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
+
+import io.github.digitalsmile.goldberry.render.model.LogicalSize;
+import io.github.digitalsmile.goldberry.render.model.PhysicalSize;
+import io.github.digitalsmile.goldberry.render.window.WindowSpec;
 
 class GeometryTest {
 
@@ -111,9 +112,7 @@ class GeometryTest {
         @Test
         @DisplayName("a window needs a real size")
         void rejectsEmptySize() {
-            assertThrows(
-                    IllegalArgumentException.class,
-                    () -> WindowSpec.of("Goldberry", new LogicalSize(0f, 720f)));
+            assertThrows(IllegalArgumentException.class, () -> WindowSpec.of("Goldberry", new LogicalSize(0f, 720f)));
         }
 
         @Test

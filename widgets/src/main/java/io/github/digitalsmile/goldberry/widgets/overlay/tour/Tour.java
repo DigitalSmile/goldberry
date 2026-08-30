@@ -1,9 +1,10 @@
 package io.github.digitalsmile.goldberry.widgets.overlay.tour;
 
+import java.util.List;
+
 import io.github.digitalsmile.goldberry.Host;
 import io.github.digitalsmile.goldberry.widget.State;
 import io.github.digitalsmile.goldberry.widget.Widget;
-import java.util.List;
 
 /// A guided sequence of popovers over real widgets — `docs/core-widgets.md` §5.
 ///

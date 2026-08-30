@@ -7,11 +7,13 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.List;
 import java.util.Map;
+
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import io.github.digitalsmile.goldberry.css.parse.Token;
+
 import io.github.digitalsmile.goldberry.css.Stylesheet;
+import io.github.digitalsmile.goldberry.css.parse.Token;
 
 class StyleResolverTest {
 
@@ -147,7 +149,8 @@ class StyleResolverTest {
                     :root { --gb-accent: #88c0d0 }
                     button { color: var(--gb-accent) }
                     """);
-            var root = element("window").with(element("row").with(element("form").with(element("button"))));
+            var root =
+                    element("window").with(element("row").with(element("form").with(element("button"))));
 
             assertEquals("#88c0d0", value(resolver(css).resolve(root.descend(3)), "color"));
         }

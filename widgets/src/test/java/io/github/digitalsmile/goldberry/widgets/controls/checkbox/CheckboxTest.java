@@ -1,45 +1,45 @@
 package io.github.digitalsmile.goldberry.widgets.controls.checkbox;
 
-import io.github.digitalsmile.goldberry.css.Corners;
-import io.github.digitalsmile.goldberry.widget.attr.Attributes;
-import io.github.digitalsmile.goldberry.widgets.text.Text;
-
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import io.github.digitalsmile.goldberry.bind.registry.BindingRegistry;
-import io.github.digitalsmile.goldberry.bind.Property;
-import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
-import io.github.digitalsmile.goldberry.css.ComputedStyle;
-import io.github.digitalsmile.goldberry.css.value.CssLength;
-import io.github.digitalsmile.goldberry.css.select.Selector;
-import io.github.digitalsmile.goldberry.css.cascade.StyleResolver;
-import io.github.digitalsmile.goldberry.css.Stylesheet;
-import io.github.digitalsmile.goldberry.css.Theme;
-import io.github.digitalsmile.goldberry.input.key.Key;
-import io.github.digitalsmile.goldberry.input.event.KeyEvent;
-import io.github.digitalsmile.goldberry.input.key.Modifiers;
-import io.github.digitalsmile.goldberry.input.event.PointerEvent;
-import io.github.digitalsmile.goldberry.kdl.KdlParser;
-import io.github.digitalsmile.goldberry.paint.Box;
-import io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength;
-import io.github.digitalsmile.goldberry.widget.ElementTree;
-import io.github.digitalsmile.goldberry.widget.WidgetRenderer;
-import io.github.digitalsmile.goldberry.bind.registry.ActionRegistry;
-import io.github.digitalsmile.goldberry.widgets.Controls;
-import io.github.digitalsmile.goldberry.widgets.Icons;
-import io.github.digitalsmile.goldberry.widgets.controls.TestFont;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+
+import io.github.digitalsmile.goldberry.bind.Property;
+import io.github.digitalsmile.goldberry.bind.registry.ActionRegistry;
+import io.github.digitalsmile.goldberry.bind.registry.BindingRegistry;
+import io.github.digitalsmile.goldberry.css.ComputedStyle;
+import io.github.digitalsmile.goldberry.css.Corners;
+import io.github.digitalsmile.goldberry.css.Stylesheet;
+import io.github.digitalsmile.goldberry.css.Theme;
+import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
+import io.github.digitalsmile.goldberry.css.cascade.StyleResolver;
+import io.github.digitalsmile.goldberry.css.select.Selector;
+import io.github.digitalsmile.goldberry.css.value.CssLength;
+import io.github.digitalsmile.goldberry.input.event.KeyEvent;
+import io.github.digitalsmile.goldberry.input.event.PointerEvent;
+import io.github.digitalsmile.goldberry.input.key.Key;
+import io.github.digitalsmile.goldberry.input.key.Modifiers;
+import io.github.digitalsmile.goldberry.kdl.KdlParser;
+import io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength;
+import io.github.digitalsmile.goldberry.paint.Box;
+import io.github.digitalsmile.goldberry.widget.ElementTree;
+import io.github.digitalsmile.goldberry.widget.WidgetRenderer;
+import io.github.digitalsmile.goldberry.widget.attr.Attributes;
+import io.github.digitalsmile.goldberry.widgets.Controls;
+import io.github.digitalsmile.goldberry.widgets.Icons;
 import io.github.digitalsmile.goldberry.widgets.Widgets;
+import io.github.digitalsmile.goldberry.widgets.controls.TestFont;
+import io.github.digitalsmile.goldberry.widgets.text.Text;
 
 /// The second control, and the first whose *value* comes from outside it.
 ///
@@ -55,7 +55,12 @@ class CheckboxTest {
         @Test
         @DisplayName("the Java-built and KDL-built checkboxes are equal values")
         void javaAndKdlAgree() {
-            var fromJava = new Checkbox("Frost", Checkbox.Value.CHECKED, null, null, false,
+            var fromJava = new Checkbox(
+                    "Frost",
+                    Checkbox.Value.CHECKED,
+                    null,
+                    null,
+                    false,
                     new Attributes("frost", Set.of("compact"), "frost"));
 
             var fromKdl = Widgets.inflater().inflateAll(KdlParser.parse("""
@@ -68,8 +73,7 @@ class CheckboxTest {
         @Test
         @DisplayName("a checkbox is CSS-selectable by type, id and class")
         void selectable() {
-            var checkbox = new Checkbox("Frost", Checkbox.Value.UNCHECKED)
-                    .styled("compact");
+            var checkbox = new Checkbox("Frost", Checkbox.Value.UNCHECKED).styled("compact");
 
             assertEquals("checkbox", checkbox.cssType());
             assertEquals(Set.of("compact"), checkbox.classes());
@@ -88,7 +92,8 @@ class CheckboxTest {
             // A document that says both has said something contradictory, and
             // mixed is the state that cannot be reached any other way -- so
             // resolving it to "checked" would discard the more specific claim.
-            var mixed = (Checkbox) Widgets.inflater().inflateAll(KdlParser.parse("""
+            var mixed = (Checkbox)
+                    Widgets.inflater().inflateAll(KdlParser.parse("""
                     checkbox checked=#true indeterminate=#true "Some"
                     """)).getFirst();
 
@@ -124,13 +129,17 @@ class CheckboxTest {
         void mirroredToTheElement() {
             for (var value : Checkbox.Value.values()) {
                 var tree = new ElementTree(new Checkbox("Frost", value));
-                new WidgetRenderer(List.of(Controls.baseStylesheet(), Theme.NORD_DARK.load()),
-                        TestFont.get()).render(tree);
+                new WidgetRenderer(List.of(Controls.baseStylesheet(), Theme.NORD_DARK.load()), TestFont.get())
+                        .render(tree);
 
-                assertEquals(value == Checkbox.Value.CHECKED,
-                        tree.root().hasState(Selector.PseudoClass.CHECKED), value.toString());
-                assertEquals(value == Checkbox.Value.MIXED,
-                        tree.root().hasState(Selector.PseudoClass.INDETERMINATE), value.toString());
+                assertEquals(
+                        value == Checkbox.Value.CHECKED,
+                        tree.root().hasState(Selector.PseudoClass.CHECKED),
+                        value.toString());
+                assertEquals(
+                        value == Checkbox.Value.MIXED,
+                        tree.root().hasState(Selector.PseudoClass.INDETERMINATE),
+                        value.toString());
             }
         }
     }
@@ -143,12 +152,11 @@ class CheckboxTest {
         @DisplayName("the value comes from the bound property, not from the click")
         void controlled() {
             var frost = Property.of(false);
-            var checkbox = Checkbox.of("Frost", frost, () -> { });
+            var checkbox = Checkbox.of("Frost", frost, () -> {});
 
             assertEquals(Checkbox.Value.UNCHECKED, checkbox.resolved());
             frost.set(true);
-            assertEquals(Checkbox.Value.CHECKED, checkbox.resolved(),
-                    "the application moved it, so it moved");
+            assertEquals(Checkbox.Value.CHECKED, checkbox.resolved(), "the application moved it, so it moved");
         }
 
         @Test
@@ -160,11 +168,11 @@ class CheckboxTest {
             // means the state did not change -- which is a bug in the
             // application, exactly where it should be.
             var frost = Property.of(false);
-            var checkbox = Checkbox.of("Frost", frost, () -> { });
+            var checkbox = Checkbox.of("Frost", frost, () -> {});
             var element = new ElementTree(checkbox).root();
 
-            checkbox.onPointer(new PointerEvent(
-                    PointerEvent.Kind.CLICKED, 5, 5, PointerEvent.Button.PRIMARY, 1, element));
+            checkbox.onPointer(
+                    new PointerEvent(PointerEvent.Kind.CLICKED, 5, 5, PointerEvent.Button.PRIMARY, 1, element));
 
             assertEquals(Checkbox.Value.UNCHECKED, checkbox.resolved());
             assertFalse(frost.get());
@@ -177,11 +185,13 @@ class CheckboxTest {
             var checkbox = Checkbox.of("Frost", frost, () -> frost.set(!frost.get()));
             var element = new ElementTree(checkbox).root();
 
-            checkbox.onPointer(new PointerEvent(
-                    PointerEvent.Kind.CLICKED, 5, 5, PointerEvent.Button.PRIMARY, 1, element));
+            checkbox.onPointer(
+                    new PointerEvent(PointerEvent.Kind.CLICKED, 5, 5, PointerEvent.Button.PRIMARY, 1, element));
 
             assertTrue(frost.get());
-            assertEquals(Checkbox.Value.CHECKED, checkbox.resolved(),
+            assertEquals(
+                    Checkbox.Value.CHECKED,
+                    checkbox.resolved(),
                     "and the new value arrives back down through the binding");
         }
 
@@ -190,9 +200,11 @@ class CheckboxTest {
         void bothValueTypes() {
             // An application modelling a binary preference should not have to
             // import a tri-state enum to bind one.
-            assertEquals(Checkbox.Value.CHECKED,
+            assertEquals(
+                    Checkbox.Value.CHECKED,
                     Checkbox.of("a", Property.of(true), null).resolved());
-            assertEquals(Checkbox.Value.MIXED,
+            assertEquals(
+                    Checkbox.Value.MIXED,
                     Checkbox.of("a", Property.of(Checkbox.Value.MIXED), null).resolved());
         }
 
@@ -218,7 +230,8 @@ class CheckboxTest {
             var checkbox = (Checkbox) Widgets.inflater(actions, Icons.none(), bindings)
                     .inflateAll(KdlParser.parse("""
                             checkbox bind="prefs.frost" change="toggleFrost" "Frosted sidebar"
-                            """)).getFirst();
+                            """))
+                    .getFirst();
 
             assertEquals(Checkbox.Value.CHECKED, checkbox.resolved());
             checkbox.onChange().run();
@@ -232,14 +245,14 @@ class CheckboxTest {
             var checkbox = Checkbox.of("Frost", frost, null);
             new ElementTree(checkbox);
 
-            assertEquals(1, frost.listenerCount(),
-                    "the element followed the binding, exactly as `text bind=` does");
+            assertEquals(1, frost.listenerCount(), "the element followed the binding, exactly as `text bind=` does");
         }
 
         @Test
         @DisplayName("a strict registry refuses a path nobody bound")
         void strictRefuses() {
-            assertThrows(IllegalArgumentException.class,
+            assertThrows(
+                    IllegalArgumentException.class,
                     () -> Widgets.inflater(ActionRegistry.none(), Icons.none(), BindingRegistry.strict())
                             .inflateAll(KdlParser.parse("checkbox bind=\"prefs.frost\" \"Frost\"")));
         }
@@ -261,8 +274,8 @@ class CheckboxTest {
             var checkbox = checkbox();
             var element = new ElementTree(checkbox).root();
 
-            checkbox.onPointer(new PointerEvent(
-                    PointerEvent.Kind.CLICKED, 80, 16, PointerEvent.Button.PRIMARY, 1, element));
+            checkbox.onPointer(
+                    new PointerEvent(PointerEvent.Kind.CLICKED, 80, 16, PointerEvent.Button.PRIMARY, 1, element));
 
             assertEquals(List.of("changed"), fired);
         }
@@ -273,14 +286,13 @@ class CheckboxTest {
             var checkbox = checkbox();
             var element = new ElementTree(checkbox).root();
 
-            checkbox.onKey(new KeyEvent(
-                    KeyEvent.Kind.PRESSED, Key.ENTER, Modifiers.NONE, false, element));
-            assertTrue(fired.isEmpty(),
+            checkbox.onKey(new KeyEvent(KeyEvent.Kind.PRESSED, Key.ENTER, Modifiers.NONE, false, element));
+            assertTrue(
+                    fired.isEmpty(),
                     "Enter belongs to a dialog's default action (§2.3); a checkbox that"
                             + " swallowed it would leave a form unsubmittable from the keyboard");
 
-            checkbox.onKey(new KeyEvent(
-                    KeyEvent.Kind.PRESSED, Key.SPACE, Modifiers.NONE, false, element));
+            checkbox.onKey(new KeyEvent(KeyEvent.Kind.PRESSED, Key.SPACE, Modifiers.NONE, false, element));
             assertEquals(List.of("changed"), fired);
         }
 
@@ -290,8 +302,7 @@ class CheckboxTest {
             var checkbox = checkbox();
             var element = new ElementTree(checkbox).root();
 
-            checkbox.onKey(new KeyEvent(
-                    KeyEvent.Kind.PRESSED, Key.SPACE, Modifiers.NONE, true, element));
+            checkbox.onKey(new KeyEvent(KeyEvent.Kind.PRESSED, Key.SPACE, Modifiers.NONE, true, element));
 
             assertTrue(fired.isEmpty());
         }
@@ -302,10 +313,9 @@ class CheckboxTest {
             var checkbox = checkbox().disabled(true);
             var element = new ElementTree(checkbox).root();
 
-            checkbox.onPointer(new PointerEvent(
-                    PointerEvent.Kind.CLICKED, 5, 5, PointerEvent.Button.PRIMARY, 1, element));
-            checkbox.onKey(new KeyEvent(
-                    KeyEvent.Kind.PRESSED, Key.SPACE, Modifiers.NONE, false, element));
+            checkbox.onPointer(
+                    new PointerEvent(PointerEvent.Kind.CLICKED, 5, 5, PointerEvent.Button.PRIMARY, 1, element));
+            checkbox.onKey(new KeyEvent(KeyEvent.Kind.PRESSED, Key.SPACE, Modifiers.NONE, false, element));
 
             assertTrue(fired.isEmpty());
             assertFalse(checkbox.isFocusable(), "and Tab skips it");
@@ -319,12 +329,13 @@ class CheckboxTest {
         private ComputedStyle style(String type, Selector.PseudoClass... states) {
             var sheets = List.of(Controls.baseStylesheet(), Theme.NORD_DARK.load());
             var tree = new ElementTree(new Checkbox("Frost", Checkbox.Value.UNCHECKED));
-            var element = type.equals("checkbox") ? tree.root() : tree.root().children().getFirst();
+            var element = type.equals("checkbox")
+                    ? tree.root()
+                    : tree.root().children().getFirst();
             for (var state : states) {
                 element.setPseudoClass(state, true);
             }
-            return ComputedStyle.of(new StyleResolver(sheets).resolve(element),
-                    CssLength.Context.DEFAULT);
+            return ComputedStyle.of(new StyleResolver(sheets).resolve(element), CssLength.Context.DEFAULT);
         }
 
         @Test
@@ -341,7 +352,8 @@ class CheckboxTest {
             assertEquals(StyleLength.points(16), glyph.width());
             assertEquals(StyleLength.points(16), glyph.height());
             assertEquals(Corners.all(4), glyph.decoration().corners(), "§1.5's small-control corner");
-            assertTrue(glyph.decoration().hasBorder(),
+            assertTrue(
+                    glyph.decoration().hasBorder(),
                     "an unchecked box has to be visible on a surface it would otherwise match");
         }
 
@@ -372,12 +384,10 @@ class CheckboxTest {
                 var tree = new ElementTree(new Checkbox("Frost", Checkbox.Value.UNCHECKED));
                 var label = tree.root().children().get(1);
 
-                var control = ComputedStyle.of(
-                        new StyleResolver(sheets).resolve(tree.root()),
-                        CssLength.Context.DEFAULT);
-                var style = ComputedStyle.of(
-                        new StyleResolver(sheets).resolve(label),
-                        CssLength.Context.DEFAULT, control);
+                var control =
+                        ComputedStyle.of(new StyleResolver(sheets).resolve(tree.root()), CssLength.Context.DEFAULT);
+                var style =
+                        ComputedStyle.of(new StyleResolver(sheets).resolve(label), CssLength.Context.DEFAULT, control);
 
                 assertEquals(entry.getValue(), style.color(), entry.getKey() + " label");
             }
@@ -405,8 +415,8 @@ class CheckboxTest {
             var checkbox = new Checkbox("Frost", Checkbox.Value.CHECKED);
 
             assertEquals(2, checkbox.children().size());
-            assertEquals("check-indicator",
-                    ((CheckIndicator) checkbox.children().getFirst()).cssType());
+            assertEquals(
+                    "check-indicator", ((CheckIndicator) checkbox.children().getFirst()).cssType());
             assertEquals("Frost", ((Text) checkbox.children().get(1)).content());
         }
 
@@ -414,7 +424,8 @@ class CheckboxTest {
         @DisplayName("a checkbox with no label is one glyph")
         void labelless() {
             // The table-cell case: a checkbox with nothing to say.
-            assertEquals(1, new Checkbox("", Checkbox.Value.UNCHECKED).children().size());
+            assertEquals(
+                    1, new Checkbox("", Checkbox.Value.UNCHECKED).children().size());
         }
 
         @Test
@@ -435,9 +446,11 @@ class CheckboxTest {
             var indicator = new CheckIndicator(Checkbox.Value.CHECKED, false, 2);
 
             assertEquals(1, indicator.children().size());
-            assertEquals("check-mark",
-                    ((CheckMark) indicator.children().getFirst()).cssType());
-            assertNull(indicator.render(ComputedStyle.INITIAL, List.of(), TestFont.context()).mark(),
+            assertEquals("check-mark", ((CheckMark) indicator.children().getFirst()).cssType());
+            assertNull(
+                    indicator
+                            .render(ComputedStyle.INITIAL, List.of(), TestFont.context())
+                            .mark(),
                     "the glyph carries no mark itself: scaling this box would scale the"
                             + " 16px square with it, which is not the animation §3.1 asks for");
         }
@@ -454,9 +467,10 @@ class CheckboxTest {
             // The mark fills the box, so anything else on it would be drawn
             // underneath -- refused rather than rendered wrong.
             var mark = new Box.Mark(Box.Mark.Kind.CHECK, 0xFFFFFFFF, 2);
-            assertThrows(IllegalArgumentException.class,
-                    () -> Box.icon(io.github.digitalsmile.goldberry.icon.Icon.bundled("plus", 16),
-                            0xFFFFFFFF).mark(mark));
+            assertThrows(
+                    IllegalArgumentException.class,
+                    () -> Box.icon(io.github.digitalsmile.goldberry.icon.Icon.bundled("plus", 16), 0xFFFFFFFF)
+                            .mark(mark));
         }
     }
 
@@ -468,17 +482,15 @@ class CheckboxTest {
         @DisplayName("both themes answer, and the base rule names no colour")
         void bothThemes() {
             for (var theme : List.of(Theme.NORD_DARK, Theme.NORD_LIGHT)) {
-                var sheets = List.of(Controls.baseStylesheet(), theme.load(),
-                        Stylesheet.parse(CascadeLayer.APPLICATION, ""));
+                var sheets = List.of(
+                        Controls.baseStylesheet(), theme.load(), Stylesheet.parse(CascadeLayer.APPLICATION, ""));
                 var tree = new ElementTree(new Checkbox("Frost", Checkbox.Value.CHECKED));
                 var glyph = tree.root().children().getFirst();
                 glyph.setPseudoClass(Selector.PseudoClass.CHECKED, true);
 
-                var style = ComputedStyle.of(new StyleResolver(sheets).resolve(glyph),
-                        CssLength.Context.DEFAULT);
+                var style = ComputedStyle.of(new StyleResolver(sheets).resolve(glyph), CssLength.Context.DEFAULT);
 
-                assertTrue((style.background() >>> 24) != 0,
-                        theme + " left the checked glyph transparent");
+                assertTrue((style.background() >>> 24) != 0, theme + " left the checked glyph transparent");
                 assertTrue((style.color() >>> 24) != 0, theme + " left the tick invisible");
             }
         }

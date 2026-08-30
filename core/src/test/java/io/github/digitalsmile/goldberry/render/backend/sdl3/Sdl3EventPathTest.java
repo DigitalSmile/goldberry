@@ -6,24 +6,26 @@ import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import io.github.digitalsmile.goldberry.RendererRequirement;
-import io.github.digitalsmile.goldberry.render.event.BackendEvent;
-import io.github.digitalsmile.goldberry.render.window.BackendWindow;
-import io.github.digitalsmile.goldberry.render.event.EventSink;
-import io.github.digitalsmile.goldberry.render.model.LogicalSize;
-import io.github.digitalsmile.goldberry.render.window.WindowSpec;
-import io.github.digitalsmile.goldberry.natives.sdl.Sdl;
-import io.github.digitalsmile.goldberry.natives.sdl.SdlEventBuffer;
-import io.github.digitalsmile.goldberry.natives.sdl.event.SdlEventType;
-import io.github.digitalsmile.goldberry.natives.sdl.SdlVideo;
-import io.github.digitalsmile.goldberry.natives.sdl.event.SdlWheelDirection;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
+
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+
+import io.github.digitalsmile.goldberry.RendererRequirement;
+import io.github.digitalsmile.goldberry.natives.sdl.Sdl;
+import io.github.digitalsmile.goldberry.natives.sdl.SdlEventBuffer;
+import io.github.digitalsmile.goldberry.natives.sdl.SdlVideo;
+import io.github.digitalsmile.goldberry.natives.sdl.event.SdlEventType;
+import io.github.digitalsmile.goldberry.natives.sdl.event.SdlWheelDirection;
+import io.github.digitalsmile.goldberry.render.event.BackendEvent;
+import io.github.digitalsmile.goldberry.render.event.EventSink;
+import io.github.digitalsmile.goldberry.render.model.LogicalSize;
+import io.github.digitalsmile.goldberry.render.window.BackendWindow;
+import io.github.digitalsmile.goldberry.render.window.WindowSpec;
 
 /// The event path, driven through the **real** SDL.
 ///
@@ -51,8 +53,10 @@ class Sdl3EventPathTest {
     @DisplayName("a wheel event reaches the sink with the toolkit's sign, not SDL's")
     void wheelReachesTheSink() {
         withBackend((backend, window) -> {
-            var events = pump(backend, sink -> push(buffer -> buffer.writeWheel(
-                    id(window), -2f, 3f, SdlWheelDirection.NORMAL, 120f, 64f)));
+            var events = pump(
+                    backend,
+                    sink -> push(
+                            buffer -> buffer.writeWheel(id(window), -2f, 3f, SdlWheelDirection.NORMAL, 120f, 64f)));
 
             var wheel = only(events, BackendEvent.PointerWheel.class);
             assertSame(window, wheel.window());
@@ -73,8 +77,9 @@ class Sdl3EventPathTest {
     @DisplayName("a flipped wheel event is un-flipped before the sign is applied")
     void flippedWheelIsUndoneOnce() {
         withBackend((backend, window) -> {
-            var events = pump(backend, sink -> push(buffer -> buffer.writeWheel(
-                    id(window), 0f, 3f, SdlWheelDirection.FLIPPED, 10f, 10f)));
+            var events = pump(
+                    backend,
+                    sink -> push(buffer -> buffer.writeWheel(id(window), 0f, 3f, SdlWheelDirection.FLIPPED, 10f, 10f)));
 
             // Natural scrolling flips SDL's value; the SPI's negation flips it
             // back. Two flips and one sign convention, and the user who turned
@@ -87,8 +92,10 @@ class Sdl3EventPathTest {
     @DisplayName("a fractional delta survives the crossing, because a touchpad sends only those")
     void fractionalWheelSurvives() {
         withBackend((backend, window) -> {
-            var events = pump(backend, sink -> push(buffer -> buffer.writeWheel(
-                    id(window), 0f, 0.125f, SdlWheelDirection.NORMAL, 10f, 10f)));
+            var events = pump(
+                    backend,
+                    sink -> push(
+                            buffer -> buffer.writeWheel(id(window), 0f, 0.125f, SdlWheelDirection.NORMAL, 10f, 10f)));
 
             assertEquals(-0.125f, only(events, BackendEvent.PointerWheel.class).deltaY());
         });
@@ -98,8 +105,10 @@ class Sdl3EventPathTest {
     @DisplayName("a detent crosses beside its fraction, with the same sign applied")
     void detentsCrossBesideTheFraction() {
         withBackend((backend, window) -> {
-            var events = pump(backend, sink -> push(buffer -> buffer.writeWheel(
-                    id(window), -1f, 1f, -1, 1, SdlWheelDirection.NORMAL, 10f, 10f)));
+            var events = pump(
+                    backend,
+                    sink -> push(buffer ->
+                            buffer.writeWheel(id(window), -1f, 1f, -1, 1, SdlWheelDirection.NORMAL, 10f, 10f)));
 
             var wheel = only(events, BackendEvent.PointerWheel.class);
             // The vertical axis is negated on both numbers or on neither. A
@@ -120,8 +129,10 @@ class Sdl3EventPathTest {
             // this event's floats can produce: a trackpad has been reporting
             // eighths, each of which truncates to zero, and SDL's own running
             // total has just crossed a whole click.
-            var events = pump(backend, sink -> push(buffer -> buffer.writeWheel(
-                    id(window), 0f, 0.125f, 0, 1, SdlWheelDirection.NORMAL, 10f, 10f)));
+            var events = pump(
+                    backend,
+                    sink -> push(buffer ->
+                            buffer.writeWheel(id(window), 0f, 0.125f, 0, 1, SdlWheelDirection.NORMAL, 10f, 10f)));
 
             var wheel = only(events, BackendEvent.PointerWheel.class);
             assertEquals(-0.125f, wheel.deltaY());
@@ -156,8 +167,7 @@ class Sdl3EventPathTest {
                     pushed[0] = true;
                     depth[0]++;
                     try {
-                        push(buffer -> buffer.writeWindowEvent(
-                                SdlEventType.WINDOW_RESIZED, id(window), 320, 240));
+                        push(buffer -> buffer.writeWindowEvent(SdlEventType.WINDOW_RESIZED, id(window), 320, 240));
                     } finally {
                         depth[0]--;
                     }
@@ -171,9 +181,11 @@ class Sdl3EventPathTest {
             // The resize arrived *inside* the push, not from the queue afterwards.
             // Without the watch it would be at the end of the list instead, which
             // during a real drag means "when the user lets go".
-            assertTrue(nested.stream().anyMatch(BackendEvent.Resized.class::isInstance),
+            assertTrue(
+                    nested.stream().anyMatch(BackendEvent.Resized.class::isInstance),
                     () -> "the resize was not delivered from the watch: " + names(events));
-            assertTrue(nested.stream().anyMatch(BackendEvent.FrameDue.class::isInstance),
+            assertTrue(
+                    nested.stream().anyMatch(BackendEvent.FrameDue.class::isInstance),
                     () -> "no frame was drawn during the resize: " + names(events));
         });
     }
@@ -187,14 +199,12 @@ class Sdl3EventPathTest {
             // ends. A second layout pass and a second frame for a size the window
             // already has is the cost of the watch if nothing coalesces.
             var events = pump(backend, sink -> {
-                push(buffer -> buffer.writeWindowEvent(
-                        SdlEventType.WINDOW_RESIZED, id(window), 320, 240));
-                push(buffer -> buffer.writeWindowEvent(
-                        SdlEventType.WINDOW_RESIZED, id(window), 320, 240));
+                push(buffer -> buffer.writeWindowEvent(SdlEventType.WINDOW_RESIZED, id(window), 320, 240));
+                push(buffer -> buffer.writeWindowEvent(SdlEventType.WINDOW_RESIZED, id(window), 320, 240));
             });
 
-            assertEquals(1L, count(events, BackendEvent.Resized.class),
-                    () -> "expected one resize, got " + names(events));
+            assertEquals(
+                    1L, count(events, BackendEvent.Resized.class), () -> "expected one resize, got " + names(events));
         });
     }
 
@@ -202,8 +212,7 @@ class Sdl3EventPathTest {
     @DisplayName("a pointer inside its window is reported exactly as it arrived")
     void coordinatesInsideTheWindowAreTakenAsGiven() {
         withBackend((backend, window) -> {
-            var events = pump(backend, sink -> push(buffer ->
-                    buffer.writeMouseMotion(id(window), 100f, 80f)));
+            var events = pump(backend, sink -> push(buffer -> buffer.writeMouseMotion(id(window), 100f, 80f)));
 
             var moved = only(events, BackendEvent.PointerMoved.class);
             // The ordinary path, and the one ADR-0211's reconciliation must not
@@ -219,8 +228,8 @@ class Sdl3EventPathTest {
     @DisplayName("a pointer at the far corner is still inside, so the bound is inclusive")
     void theFarEdgeIsInside() {
         withBackend((backend, window) -> {
-            var events = pump(backend, sink -> push(buffer -> buffer.writeMouseMotion(
-                    id(window), SIZE.width(), SIZE.height())));
+            var events = pump(
+                    backend, sink -> push(buffer -> buffer.writeMouseMotion(id(window), SIZE.width(), SIZE.height())));
 
             var moved = only(events, BackendEvent.PointerMoved.class);
             // A coordinate exactly on the far edge is a coordinate in this
@@ -239,8 +248,7 @@ class Sdl3EventPathTest {
             // mouse-up, which arrives in the *owner's* space and stale
             // (ADR-0211). The number itself is arbitrary -- what matters is that
             // it cannot be in this window.
-            var events = pump(backend, sink -> push(buffer ->
-                    buffer.writeMouseMotion(id(window), 5000f, 5000f)));
+            var events = pump(backend, sink -> push(buffer -> buffer.writeMouseMotion(id(window), 5000f, 5000f)));
 
             var moved = only(events, BackendEvent.PointerMoved.class);
             var origin = window.position();
@@ -271,10 +279,8 @@ class Sdl3EventPathTest {
             // Both arms go through the same reconciliation, so the release is
             // brought back somewhere the router can find it.
             var events = pump(backend, sink -> {
-                push(buffer -> buffer.writeMouseButton(
-                        SdlEventType.MOUSE_BUTTON_DOWN, id(window), 60f, 40f, 1, 1));
-                push(buffer -> buffer.writeMouseButton(
-                        SdlEventType.MOUSE_BUTTON_UP, id(window), 4000f, 4000f, 1, 1));
+                push(buffer -> buffer.writeMouseButton(SdlEventType.MOUSE_BUTTON_DOWN, id(window), 60f, 40f, 1, 1));
+                push(buffer -> buffer.writeMouseButton(SdlEventType.MOUSE_BUTTON_UP, id(window), 4000f, 4000f, 1, 1));
             });
 
             var pressed = only(events, BackendEvent.PointerPressed.class);
@@ -290,10 +296,13 @@ class Sdl3EventPathTest {
     @DisplayName("an event for an unknown window is dropped rather than guessed at")
     void unknownWindowIsIgnored() {
         withBackend((backend, window) -> {
-            var events = pump(backend, sink -> push(buffer -> buffer.writeWheel(
-                    Integer.MAX_VALUE, 0f, 1f, SdlWheelDirection.NORMAL, 0f, 0f)));
+            var events = pump(
+                    backend,
+                    sink -> push(
+                            buffer -> buffer.writeWheel(Integer.MAX_VALUE, 0f, 1f, SdlWheelDirection.NORMAL, 0f, 0f)));
 
-            assertFalse(events.stream().anyMatch(BackendEvent.PointerWheel.class::isInstance),
+            assertFalse(
+                    events.stream().anyMatch(BackendEvent.PointerWheel.class::isInstance),
                     () -> "a wheel event for no window reached the sink: " + names(events));
         });
     }
@@ -352,8 +361,7 @@ class Sdl3EventPathTest {
 
     private static <T extends BackendEvent> T only(List<BackendEvent> events, Class<T> type) {
         var matching = events.stream().filter(type::isInstance).map(type::cast).toList();
-        assertEquals(1, matching.size(),
-                () -> "expected one " + type.getSimpleName() + ", got " + names(events));
+        assertEquals(1, matching.size(), () -> "expected one " + type.getSimpleName() + ", got " + names(events));
         return matching.getFirst();
     }
 

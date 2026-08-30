@@ -35,8 +35,7 @@ public final class BundledAssets {
         private static final Map<String, String> TABLE = loadIcons();
     }
 
-    private BundledAssets() {
-    }
+    private BundledAssets() {}
 
     /// Reads a bundled font's bytes.
     ///
@@ -91,11 +90,10 @@ public final class BundledAssets {
     private static byte[] read(String resource) {
         try (var in = BundledAssets.class.getResourceAsStream(resource)) {
             if (in == null) {
-                throw new UncheckedIOException(new IOException(
-                        "bundled asset " + resource + " is missing from the jar."
-                                + " It is produced by :assets — a build that skipped"
-                                + " prepareAssets produces a goldberry-core that cannot"
-                                + " render text."));
+                throw new UncheckedIOException(new IOException("bundled asset " + resource + " is missing from the jar."
+                        + " It is produced by :assets — a build that skipped"
+                        + " prepareAssets produces a goldberry-core that cannot"
+                        + " render text."));
             }
             return in.readAllBytes();
         } catch (IOException e) {

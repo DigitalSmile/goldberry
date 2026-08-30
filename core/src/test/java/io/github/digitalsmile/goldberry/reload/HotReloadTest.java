@@ -4,8 +4,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
-import io.github.digitalsmile.goldberry.css.Stylesheet;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -13,10 +11,14 @@ import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
+
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 import org.junit.jupiter.api.io.TempDir;
+
+import io.github.digitalsmile.goldberry.css.Stylesheet;
+import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
 
 /// The watcher itself.
 ///
@@ -41,8 +43,7 @@ class HotReloadTest {
     void noticesAnEdit() throws IOException, InterruptedException {
         var file = directory.resolve("app.css");
         Files.writeString(file, "button { color: red }");
-        var source = ReloadableSource.load(
-                file, css -> Stylesheet.parse(CascadeLayer.APPLICATION, css));
+        var source = ReloadableSource.load(file, css -> Stylesheet.parse(CascadeLayer.APPLICATION, css));
 
         var applied = new CountDownLatch(1);
         var appliedOn = new AtomicReference<String>();
@@ -57,15 +58,14 @@ class HotReloadTest {
             applied.countDown();
         };
 
-        var watcher = HotReload.watch(List.of(source), executor, s -> { });
+        var watcher = HotReload.watch(List.of(source), executor, s -> {});
         try {
             // Written after the watcher is up, or the change can land before the
             // directory is registered.
             Thread.sleep(200);
             Files.writeString(file, "button { color: blue }\ninput { color: red }");
 
-            assertTrue(applied.await(TIMEOUT_SECONDS, TimeUnit.SECONDS),
-                    "the edit was never noticed");
+            assertTrue(applied.await(TIMEOUT_SECONDS, TimeUnit.SECONDS), "the edit was never noticed");
         } finally {
             watcher.close();
         }
@@ -80,14 +80,12 @@ class HotReloadTest {
     void brokenEditIsNotApplied() throws IOException, InterruptedException {
         var file = directory.resolve("app.css");
         Files.writeString(file, "button { color: red }");
-        var source = ReloadableSource.load(
-                file, css -> Stylesheet.parse(CascadeLayer.APPLICATION, css));
+        var source = ReloadableSource.load(file, css -> Stylesheet.parse(CascadeLayer.APPLICATION, css));
         var good = source.current();
 
         var applications = new java.util.concurrent.atomic.AtomicInteger();
 
-        var watcher = HotReload.watch(
-                List.of(source), Runnable::run, s -> applications.incrementAndGet());
+        var watcher = HotReload.watch(List.of(source), Runnable::run, s -> applications.incrementAndGet());
         try {
             Thread.sleep(200);
             Files.writeString(file, "button { color:");
@@ -104,8 +102,7 @@ class HotReloadTest {
     @Test
     @DisplayName("watching nothing is refused rather than silently doing nothing")
     void refusesAnEmptyWatch() {
-        assertThrows(IllegalArgumentException.class,
-                () -> HotReload.watch(List.of(), Runnable::run, s -> { }));
+        assertThrows(IllegalArgumentException.class, () -> HotReload.watch(List.of(), Runnable::run, s -> {}));
     }
 
     @Test
@@ -114,8 +111,7 @@ class HotReloadTest {
     void closeStops() throws IOException, InterruptedException {
         var file = directory.resolve("app.css");
         Files.writeString(file, "button { color: red }");
-        var source = ReloadableSource.load(
-                file, css -> Stylesheet.parse(CascadeLayer.APPLICATION, css));
+        var source = ReloadableSource.load(file, css -> Stylesheet.parse(CascadeLayer.APPLICATION, css));
         var applications = new java.util.concurrent.atomic.AtomicInteger();
 
         var reload = HotReload.watch(List.of(source), Runnable::run, s -> applications.incrementAndGet());

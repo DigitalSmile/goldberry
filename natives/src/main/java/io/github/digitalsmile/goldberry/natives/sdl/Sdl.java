@@ -1,13 +1,14 @@
 package io.github.digitalsmile.goldberry.natives.sdl;
 
-import io.github.digitalsmile.goldberry.natives.sdl.calls.SdlCoreCalls;
-import io.github.digitalsmile.goldberry.natives.NativeLibrary;
 import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.SymbolLookup;
 import java.lang.foreign.ValueLayout;
 import java.util.Collection;
 import java.util.Set;
+
+import io.github.digitalsmile.goldberry.natives.NativeLibrary;
+import io.github.digitalsmile.goldberry.natives.sdl.calls.SdlCoreCalls;
 
 /// BindingRegistry for SDL3's lifecycle, error and version calls.
 ///
@@ -151,10 +152,7 @@ public final class Sdl {
             var x = arena.allocate(ValueLayout.JAVA_FLOAT);
             var y = arena.allocate(ValueLayout.JAVA_FLOAT);
             sdlCoreCalls.getGlobalMouseState().call(x, y);
-            return new float[] {
-                    x.get(ValueLayout.JAVA_FLOAT, 0),
-                    y.get(ValueLayout.JAVA_FLOAT, 0)
-            };
+            return new float[] {x.get(ValueLayout.JAVA_FLOAT, 0), y.get(ValueLayout.JAVA_FLOAT, 0)};
         }
     }
 
@@ -223,5 +221,4 @@ public final class Sdl {
 
     /// Bound on strings read back from SDL.
     private static final long MAX_STRING_LENGTH = 4096;
-
 }

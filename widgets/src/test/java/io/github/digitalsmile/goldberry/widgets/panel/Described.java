@@ -1,11 +1,12 @@
 package io.github.digitalsmile.goldberry.widgets.panel;
 
-import io.github.digitalsmile.goldberry.widget.Element;
-import io.github.digitalsmile.goldberry.widget.ElementTree;
-import io.github.digitalsmile.goldberry.widget.style.Styled;
-import io.github.digitalsmile.goldberry.widget.Widget;
 import java.util.ArrayList;
 import java.util.List;
+
+import io.github.digitalsmile.goldberry.widget.Element;
+import io.github.digitalsmile.goldberry.widget.ElementTree;
+import io.github.digitalsmile.goldberry.widget.Widget;
+import io.github.digitalsmile.goldberry.widget.style.Styled;
 
 /// Walking a built element tree, for §5's container tests.
 ///
@@ -15,8 +16,7 @@ import java.util.List;
 /// rather than present and hidden.
 public final class Described {
 
-    private Described() {
-    }
+    private Described() {}
 
     /// Every widget in the tree, depth first.
     public static List<Widget> in(ElementTree tree) {
@@ -32,17 +32,18 @@ public final class Described {
 
     /// The first widget of one kind.
     public static <T> T first(ElementTree tree, Class<T> type) {
-        return of(tree, type).stream().findFirst().orElseThrow(
-                () -> new AssertionError("nothing of type " + type.getSimpleName()
-                        + " was described; the tree holds " + types(tree)));
+        return of(tree, type).stream()
+                .findFirst()
+                .orElseThrow(() -> new AssertionError(
+                        "nothing of type " + type.getSimpleName() + " was described; the tree holds " + types(tree)));
     }
 
     /// The element carrying the first widget of one kind, for firing input at it.
     public static Element elementOf(ElementTree tree, Class<?> type) {
         var found = find(tree.root(), type);
         if (found == null) {
-            throw new AssertionError("nothing of type " + type.getSimpleName()
-                    + " was described; the tree holds " + types(tree));
+            throw new AssertionError(
+                    "nothing of type " + type.getSimpleName() + " was described; the tree holds " + types(tree));
         }
         return found;
     }
@@ -51,13 +52,14 @@ public final class Described {
     /// where the class itself may not be visible from the test's package.
     public static long counting(ElementTree tree, String cssType) {
         return in(tree).stream()
-                .filter(widget -> widget instanceof Styled styled
-                        && cssType.equals(styled.cssType()))
+                .filter(widget -> widget instanceof Styled styled && cssType.equals(styled.cssType()))
                 .count();
     }
 
     private static List<String> types(ElementTree tree) {
-        return in(tree).stream().map(widget -> widget.getClass().getSimpleName()).toList();
+        return in(tree).stream()
+                .map(widget -> widget.getClass().getSimpleName())
+                .toList();
     }
 
     private static Element find(Element element, Class<?> type) {

@@ -1,15 +1,15 @@
 package io.github.digitalsmile.goldberry.widgets.overlay.toast;
 
+import java.time.Duration;
+import java.util.ArrayList;
+import java.util.List;
+
 import io.github.digitalsmile.goldberry.Host;
 import io.github.digitalsmile.goldberry.render.event.EventLoop;
 import io.github.digitalsmile.goldberry.widget.BuildContext;
 import io.github.digitalsmile.goldberry.widget.State;
 import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widgets.core.Phase;
-
-import java.time.Duration;
-import java.util.ArrayList;
-import java.util.List;
 
 /// The queue: what is showing, what is waiting, and every clock in the widget.
 ///
@@ -143,8 +143,13 @@ final class ToasterState extends State<Toaster> {
         host = context.host().orElse(null);
         var boxes = new ArrayList<Widget>(entries.size());
         for (var entry : entries) {
-            boxes.add(new ToastBox(entry.toast, entry.number, widget().corner(), entry.phase,
-                    entry.isLeaving(), entry.reflow,
+            boxes.add(new ToastBox(
+                    entry.toast,
+                    entry.number,
+                    widget().corner(),
+                    entry.phase,
+                    entry.isLeaving(),
+                    entry.reflow,
                     hovered -> hover(entry, hovered),
                     () -> pressed(entry),
                     () -> dismissed(entry),
@@ -205,11 +210,10 @@ final class ToasterState extends State<Toaster> {
             return;
         }
         entry.startedAt = now;
-        entry.pending = host.after(Duration.ofMillis(Math.max(1, (long) entry.remaining)),
-                () -> {
-                    entry.pending = null;
-                    setState(() -> leave(entry));
-                });
+        entry.pending = host.after(Duration.ofMillis(Math.max(1, (long) entry.remaining)), () -> {
+            entry.pending = null;
+            setState(() -> leave(entry));
+        });
     }
 
     /// Stops the clock and banks what is left of it.
@@ -350,10 +354,10 @@ final class ToasterState extends State<Toaster> {
     /// mechanism where an arithmetic is
     /// ([ADR-0178](../../../../../../../../book/src/adr/0178-a-stack-closes-its-own-hole.md)).
     private ToastBox.Reflow travel(Entry entry, double distance) {
-        var left = entry.reflow == null ? 0
+        var left = entry.reflow == null
+                ? 0
                 : entry.reflow.distance() * (1 - entry.reflow.phase().progressAt(now));
-        return new ToastBox.Reflow(left + distance,
-                new Phase(Phase.Kind.ENTERING, REFLOW_MILLIS));
+        return new ToastBox.Reflow(left + distance, new Phase(Phase.Kind.ENTERING, REFLOW_MILLIS));
     }
 
     /// Brings the oldest waiting toast forward, if there is room.

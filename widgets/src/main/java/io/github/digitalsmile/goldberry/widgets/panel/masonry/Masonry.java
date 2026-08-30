@@ -1,13 +1,14 @@
 package io.github.digitalsmile.goldberry.widgets.panel.masonry;
 
+import java.util.List;
+
 import io.github.digitalsmile.goldberry.kdl.KdlNode;
-import io.github.digitalsmile.goldberry.widget.attr.Attributed;
-import io.github.digitalsmile.goldberry.widget.attr.Attributes;
 import io.github.digitalsmile.goldberry.widget.State;
 import io.github.digitalsmile.goldberry.widget.Widget;
+import io.github.digitalsmile.goldberry.widget.attr.Attributed;
+import io.github.digitalsmile.goldberry.widget.attr.Attributes;
 import io.github.digitalsmile.goldberry.widgets.markup.Markup;
 import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
-import java.util.List;
 
 /// Cards in columns, each card under the shortest one — a masonry.
 ///
@@ -70,8 +71,7 @@ public record Masonry(List<Widget> children, int columns, Attributes attributes)
         children = List.copyOf(children == null ? List.of() : children);
         attributes = attributes == null ? Attributes.NONE : attributes;
         if (columns < 1) {
-            throw new IllegalArgumentException(
-                    "a masonry needs at least one column, and " + columns + " is not one");
+            throw new IllegalArgumentException("a masonry needs at least one column, and " + columns + " is not one");
         }
     }
 

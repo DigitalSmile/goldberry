@@ -1,13 +1,14 @@
 package io.github.digitalsmile.goldberry.widgets.overlay.tour;
 
-import io.github.digitalsmile.goldberry.css.ComputedStyle;
-import io.github.digitalsmile.goldberry.paint.Box;
-import io.github.digitalsmile.goldberry.natives.yoga.style.FlexDirection;
-import io.github.digitalsmile.goldberry.widget.style.Paints;
-import io.github.digitalsmile.goldberry.widget.style.Styled;
-import io.github.digitalsmile.goldberry.widget.Widget;
 import java.util.List;
 import java.util.Set;
+
+import io.github.digitalsmile.goldberry.css.ComputedStyle;
+import io.github.digitalsmile.goldberry.natives.yoga.style.FlexDirection;
+import io.github.digitalsmile.goldberry.paint.Box;
+import io.github.digitalsmile.goldberry.widget.Widget;
+import io.github.digitalsmile.goldberry.widget.style.Paints;
+import io.github.digitalsmile.goldberry.widget.style.Styled;
 
 /// The panel a [TourStop] shows beside its target — a **part**, styled by
 /// `controls.css` and not constructible.
@@ -40,7 +41,6 @@ record TourCard(Widget content) implements Widget.Leaf, Styled, Paints {
 
     @Override
     public Box render(ComputedStyle style, List<Box> children, Context context) {
-        return Box.of().style(style).children(children.toArray(Box[]::new))
-                .direction(FlexDirection.COLUMN);
+        return Box.of().style(style).children(children.toArray(Box[]::new)).direction(FlexDirection.COLUMN);
     }
 }

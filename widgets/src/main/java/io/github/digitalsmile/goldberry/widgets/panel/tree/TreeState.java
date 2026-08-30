@@ -1,16 +1,16 @@
 package io.github.digitalsmile.goldberry.widgets.panel.tree;
 
-import io.github.digitalsmile.goldberry.widget.BuildContext;
-import io.github.digitalsmile.goldberry.widget.State;
-import io.github.digitalsmile.goldberry.widget.Widget;
-import io.github.digitalsmile.goldberry.widgets.panel.list.Selection;
-
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
+import io.github.digitalsmile.goldberry.widget.BuildContext;
+import io.github.digitalsmile.goldberry.widget.State;
+import io.github.digitalsmile.goldberry.widget.Widget;
+import io.github.digitalsmile.goldberry.widgets.panel.list.Selection;
 
 /// What is open, and what a lazy node turned out to hold.
 ///
@@ -87,13 +87,16 @@ final class TreeState extends State<Tree> {
         // **Nothing is an answer in a `NONE` tree**, which is a rule about the
         // selection and not about the node — so it is asked here rather than
         // folded into `leafOnly`, which is a rule about the node.
-        var selectable = widget().selection() != Selection.NONE
-                && (!widget().leafOnly() || !node.mayHaveChildren());
+        var selectable = widget().selection() != Selection.NONE && (!widget().leafOnly() || !node.mayHaveChildren());
         visible.add(node);
         if (parent != null) {
             parents.put(node.id(), parent);
         }
-        rows.add(new TreeRow(node, depth, isOpen, selectable,
+        rows.add(new TreeRow(
+                node,
+                depth,
+                isOpen,
+                selectable,
                 widget().selected().contains(node.id()),
                 checkStateOf(node),
                 () -> toggle(node),
@@ -146,8 +149,7 @@ final class TreeState extends State<Tree> {
                 expanded.add(sibling.id());
                 if (sibling.isLazy() && !fetched.containsKey(sibling.id())) {
                     var children = sibling.supplier().get();
-                    fetched.put(sibling.id(),
-                            List.copyOf(children == null ? List.of() : children));
+                    fetched.put(sibling.id(), List.copyOf(children == null ? List.of() : children));
                 }
             }
         });
@@ -294,8 +296,7 @@ final class TreeState extends State<Tree> {
     /// application could not turn back into a selection (ADR-0210). The
     /// three-argument [Tree] constructor unwraps it again for the callers that
     /// have one value.
-    private void select(
-            TreeNode node, io.github.digitalsmile.goldberry.input.key.Modifiers modifiers) {
+    private void select(TreeNode node, io.github.digitalsmile.goldberry.input.key.Modifiers modifiers) {
 
         var tree = widget();
         if (tree.onSelect() == null || tree.selection() == Selection.NONE) {
@@ -381,8 +382,7 @@ final class TreeState extends State<Tree> {
     /// Null and not `UNCHECKED`: "there is no box here" and "the box is empty"
     /// are different rows, and a row that drew an empty box where §3 asked for
     /// none would put a control on every heading in a `LEAF` tree.
-    private io.github.digitalsmile.goldberry.widgets.controls.checkbox.Checkbox.Value checkStateOf(
-            TreeNode node) {
+    private io.github.digitalsmile.goldberry.widgets.controls.checkbox.Checkbox.Value checkStateOf(TreeNode node) {
 
         return switch (widget().checkable()) {
             case NONE -> null;
@@ -393,8 +393,7 @@ final class TreeState extends State<Tree> {
     }
 
     /// The plain reading: is this id in the set the application handed down.
-    private io.github.digitalsmile.goldberry.widgets.controls.checkbox.Checkbox.Value membership(
-            TreeNode node) {
+    private io.github.digitalsmile.goldberry.widgets.controls.checkbox.Checkbox.Value membership(TreeNode node) {
 
         return io.github.digitalsmile.goldberry.widgets.controls.checkbox.Checkbox.Value.of(
                 widget().checked().contains(node.id()));
@@ -412,8 +411,7 @@ final class TreeState extends State<Tree> {
     /// has nothing to derive from and reads its own membership. That is the only
     /// answer available without fetching a model the user has not asked for, and
     /// it is the honest one: what was ticked was the branch.
-    private io.github.digitalsmile.goldberry.widgets.controls.checkbox.Checkbox.Value cascadeState(
-            TreeNode node) {
+    private io.github.digitalsmile.goldberry.widgets.controls.checkbox.Checkbox.Value cascadeState(TreeNode node) {
 
         var children = knownChildrenOf(node);
         if (children.isEmpty()) {
@@ -423,22 +421,16 @@ final class TreeState extends State<Tree> {
         var none = true;
         for (var child : children) {
             var state = cascadeState(child);
-            all &= state
-                    == io.github.digitalsmile.goldberry.widgets.controls.checkbox
-                            .Checkbox.Value.CHECKED;
-            none &= state
-                    == io.github.digitalsmile.goldberry.widgets.controls.checkbox
-                            .Checkbox.Value.UNCHECKED;
+            all &= state == io.github.digitalsmile.goldberry.widgets.controls.checkbox.Checkbox.Value.CHECKED;
+            none &= state == io.github.digitalsmile.goldberry.widgets.controls.checkbox.Checkbox.Value.UNCHECKED;
             if (!all && !none) {
                 // Mixed already, and nothing further down can change that.
-                return io.github.digitalsmile.goldberry.widgets.controls.checkbox
-                        .Checkbox.Value.MIXED;
+                return io.github.digitalsmile.goldberry.widgets.controls.checkbox.Checkbox.Value.MIXED;
             }
         }
         return all
                 ? io.github.digitalsmile.goldberry.widgets.controls.checkbox.Checkbox.Value.CHECKED
-                : io.github.digitalsmile.goldberry.widgets.controls.checkbox
-                        .Checkbox.Value.UNCHECKED;
+                : io.github.digitalsmile.goldberry.widgets.controls.checkbox.Checkbox.Value.UNCHECKED;
     }
 
     /// A node's children **as far as anybody knows** — what it carries, or what
@@ -470,9 +462,8 @@ final class TreeState extends State<Tree> {
         if (state == null || tree.onCheck() == null) {
             return;
         }
-        var wanted = state.toggled()
-                == io.github.digitalsmile.goldberry.widgets.controls.checkbox
-                        .Checkbox.Value.CHECKED;
+        var wanted =
+                state.toggled() == io.github.digitalsmile.goldberry.widgets.controls.checkbox.Checkbox.Value.CHECKED;
         var next = new LinkedHashSet<>(tree.checked());
         if (tree.checkable() == Checkable.CASCADE) {
             // **Down through everything known.** The parent goes in too, so a
@@ -513,8 +504,9 @@ final class TreeState extends State<Tree> {
     /// built and driven outside a window. Typeahead still works there; it is
     /// simply not drivable, and there is nothing else to read.
     private long now() {
-        return (long) (host == null
-                ? io.github.digitalsmile.goldberry.motion.Clock.system().nowMillis()
-                : host.clock().nowMillis());
+        return (long)
+                (host == null
+                        ? io.github.digitalsmile.goldberry.motion.Clock.system().nowMillis()
+                        : host.clock().nowMillis());
     }
 }

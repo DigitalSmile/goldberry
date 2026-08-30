@@ -6,27 +6,29 @@ import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.ArrayList;
+import java.util.List;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+
 import io.github.digitalsmile.goldberry.RendererRequirement;
 import io.github.digitalsmile.goldberry.bind.Property;
-import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
 import io.github.digitalsmile.goldberry.css.Stylesheet;
 import io.github.digitalsmile.goldberry.css.Theme;
+import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
 import io.github.digitalsmile.goldberry.input.FocusScope;
 import io.github.digitalsmile.goldberry.kdl.KdlParser;
 import io.github.digitalsmile.goldberry.paint.Box;
 import io.github.digitalsmile.goldberry.widget.ElementTree;
-import io.github.digitalsmile.goldberry.widget.style.Styled;
 import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widget.WidgetRenderer;
+import io.github.digitalsmile.goldberry.widget.style.Styled;
 import io.github.digitalsmile.goldberry.widgets.Controls;
+import io.github.digitalsmile.goldberry.widgets.Widgets;
 import io.github.digitalsmile.goldberry.widgets.controls.TestFont;
 import io.github.digitalsmile.goldberry.widgets.text.Text;
-import java.util.ArrayList;
-import java.util.List;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
-import io.github.digitalsmile.goldberry.widgets.Widgets;
 
 /// `tabs` — the strip, the lazy panel, and the three things a tab can be given
 /// that a stylesheet cannot supply: a label, an icon and a colour.
@@ -39,7 +41,9 @@ class TabsTest {
 
     private static WidgetRenderer renderer() {
         return new WidgetRenderer(
-                List.of(Controls.baseStylesheet(), Theme.NORD_DARK.load(),
+                List.of(
+                        Controls.baseStylesheet(),
+                        Theme.NORD_DARK.load(),
                         Stylesheet.parse(CascadeLayer.APPLICATION, "")),
                 TestFont.get());
     }
@@ -62,8 +66,7 @@ class TabsTest {
         return found;
     }
 
-    private static void collectTabs(io.github.digitalsmile.goldberry.widget.Element element,
-            List<Tab> into) {
+    private static void collectTabs(io.github.digitalsmile.goldberry.widget.Element element, List<Tab> into) {
         if (element.widget() instanceof Tab tab) {
             into.add(tab);
         }
@@ -80,8 +83,7 @@ class TabsTest {
         return found;
     }
 
-    private static void collectTypes(io.github.digitalsmile.goldberry.widget.Element element,
-            List<String> into) {
+    private static void collectTypes(io.github.digitalsmile.goldberry.widget.Element element, List<String> into) {
         if (element.widget() instanceof Styled styled) {
             into.add(styled.cssType());
         }
@@ -102,7 +104,8 @@ class TabsTest {
     }
 
     private static Tabs strip(String selected) {
-        return new Tabs(selected,
+        return new Tabs(
+                selected,
                 new Tab("a", "First", new Text("content of A")),
                 new Tab("b", "Second", new Text("content of B")));
     }
@@ -124,11 +127,13 @@ class TabsTest {
         assertEquals("tabs", types.get(0), "the styled node is the one the state builds");
         assertEquals("tab-list", types.get(1));
         assertEquals("tab-rule", types.get(2), "the rule is drawn before the headers");
-        assertEquals(1, types.stream().filter("tabs"::equals).count(),
+        assertEquals(
+                1,
+                types.stream().filter("tabs"::equals).count(),
                 "one `tabs` node, not a stateful one wrapping a styled one");
         assertTrue(types.contains("tab-panel"));
-        assertTrue(types.indexOf("tab-panel") > types.indexOf("tab"),
-                "the panel comes after the headers it belongs to");
+        assertTrue(
+                types.indexOf("tab-panel") > types.indexOf("tab"), "the panel comes after the headers it belongs to");
     }
 
     /// The selected tab is marked with `:checked`, like every other exactly-one
@@ -176,10 +181,7 @@ class TabsTest {
     @DisplayName("closing a tab asks, and removes nothing by itself")
     void closing() {
         var asked = new ArrayList<String>();
-        var tabs = new Tabs("a",
-                new Tab("a", "First").closable(true),
-                new Tab("b", "Second"))
-                .onClose(asked::add);
+        var tabs = new Tabs("a", new Tab("a", "First").closable(true), new Tab("b", "Second")).onClose(asked::add);
         var headers = headersOf(tabs);
 
         // Two parts: the underline every tab has, and the × only a closable one
@@ -220,13 +222,15 @@ class TabsTest {
         var box = render(new Tabs("a", coloured, plain));
         // The rule is the list's own child; the headers are inside the viewport
         // beside it, so they start at 0 rather than at 1 (ADR-0118).
-        var headers = box.children().getFirst()   // tab-list
-                .children().get(1)                // the scroll viewport
-                .children().getFirst()            // scroll-content
+        var headers = box.children()
+                .getFirst() // tab-list
+                .children()
+                .get(1) // the scroll viewport
+                .children()
+                .getFirst() // scroll-content
                 .children();
 
-        assertEquals(red, labelColour(headers.getFirst()),
-                "the label is drawn in the tab's own colour");
+        assertEquals(red, labelColour(headers.getFirst()), "the label is drawn in the tab's own colour");
         // The second tab is muted by `controls.css` and is emphatically not red.
         assertFalse(labelColour(headers.get(1)) == red);
     }
@@ -250,12 +254,12 @@ class TabsTest {
     @Test
     @DisplayName("a strip is one Tab stop with a horizontal roving selection")
     void keyboard() {
-        assertEquals(FocusScope.HORIZONTAL,
-                new TabStrip(List.of(), List.of(), null, null).focusScope());
+        assertEquals(FocusScope.HORIZONTAL, new TabStrip(List.of(), List.of(), null, null).focusScope());
         assertTrue(new Tab("a", "First").isFocusable());
-        assertFalse(new TabClose(() -> { }).isFocusable(),
+        assertFalse(
+                new TabClose(() -> {}).isFocusable(),
                 "a closable tab would otherwise be two stops, and nine tabs nineteen");
-        assertTrue(new TabNew(() -> { }).isFocusable());
+        assertTrue(new TabNew(() -> {}).isFocusable());
     }
 
     @Test
@@ -271,8 +275,8 @@ class TabsTest {
                 """).getFirst());
 
         var tabs = assertInstanceOf(Tabs.class, widget);
-        assertEquals("views", tabs.attributes().id(),
-                "the id rides on the model node and is passed to the node that draws");
+        assertEquals(
+                "views", tabs.attributes().id(), "the id rides on the model node and is passed to the node that draws");
         assertEquals("editor", tabs.selected());
 
         var log = (Tab) tabs.rawTabs().get(1);
@@ -284,9 +288,10 @@ class TabsTest {
     @Test
     @DisplayName("a tab needs a value, for a radio's reason")
     void refusesATabWithNoValue() {
-        var refused = assertThrows(IllegalArgumentException.class,
-                () -> Widgets.inflater().inflate(KdlParser.parse("tabs { tab \"Log\" }")
-                        .getFirst()));
+        var refused = assertThrows(
+                IllegalArgumentException.class,
+                () -> Widgets.inflater()
+                        .inflate(KdlParser.parse("tabs { tab \"Log\" }").getFirst()));
 
         assertTrue(refused.getMessage().contains("value"), refused.getMessage());
     }

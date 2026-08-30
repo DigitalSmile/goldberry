@@ -3,6 +3,7 @@ package io.github.digitalsmile.goldberry.natives.yoga.style;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Stream;
+
 import io.github.digitalsmile.goldberry.natives.yoga.measure.MeasureMode;
 
 /// A Java enum standing in for one of Yoga's C enums.
@@ -21,8 +22,17 @@ import io.github.digitalsmile.goldberry.natives.yoga.measure.MeasureMode;
 /// The interface is sealed so that the permitted list and [#all()] sit together
 /// — an enum added to one and not the other is visible on the same screen.
 public sealed interface YogaEnum
-        permits Align, Direction, Display, Edge, FlexDirection, Gutter, Justify,
-                MeasureMode, Overflow, PositionType, Wrap {
+        permits Align,
+                Direction,
+                Display,
+                Edge,
+                FlexDirection,
+                Gutter,
+                Justify,
+                MeasureMode,
+                Overflow,
+                PositionType,
+                Wrap {
 
     /// The value Yoga's header gives this constant.
     int nativeValue();

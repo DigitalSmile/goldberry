@@ -1,25 +1,26 @@
 package io.github.digitalsmile.goldberry.widgets.overlay.tour;
 
-import io.github.digitalsmile.goldberry.render.model.LogicalRect;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
+
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
-import io.github.digitalsmile.goldberry.input.handler.Handles;
 import io.github.digitalsmile.goldberry.input.event.KeyEvent;
-import io.github.digitalsmile.goldberry.paint.Box;
+import io.github.digitalsmile.goldberry.input.handler.Handles;
 import io.github.digitalsmile.goldberry.natives.yoga.Insets;
 import io.github.digitalsmile.goldberry.natives.yoga.style.PositionType;
 import io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength;
+import io.github.digitalsmile.goldberry.paint.Box;
+import io.github.digitalsmile.goldberry.render.model.LogicalRect;
+import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widget.attr.Attributes;
 import io.github.digitalsmile.goldberry.widget.style.Paints;
 import io.github.digitalsmile.goldberry.widget.style.Styled;
-import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widgets.controls.button.Button;
 import io.github.digitalsmile.goldberry.widgets.core.Column;
 import io.github.digitalsmile.goldberry.widgets.core.Row;
 import io.github.digitalsmile.goldberry.widgets.core.Spacer;
 import io.github.digitalsmile.goldberry.widgets.text.Text;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
 
 /// One stop of a [Tour]: the veil, and the card beside the target.
 ///
@@ -41,11 +42,16 @@ import java.util.Set;
 /// §5: "`Esc` skips the whole tour, not one stop." Left and Right move between
 /// stops, which is what the arrows mean in every wizard.
 record TourStop(
-        Stop stop, LogicalRect target, LogicalRect window, int index, int count,
-        Runnable onBack, Runnable onNext, Runnable onSkip,
+        Stop stop,
+        LogicalRect target,
+        LogicalRect window,
+        int index,
+        int count,
+        Runnable onBack,
+        Runnable onNext,
+        Runnable onSkip,
         java.util.function.Consumer<LogicalRect> onWindow)
-        implements Widget.Leaf, Styled, Paints, Handles,
-                io.github.digitalsmile.goldberry.input.handler.Located {
+        implements Widget.Leaf, Styled, Paints, Handles, io.github.digitalsmile.goldberry.input.handler.Located {
 
     /// How far the card sits from the target, and from the window's edge.
     private static final float GAP = 12;
@@ -116,13 +122,11 @@ record TourStop(
                 // background matches the window's, as a toolbar's does, there is
                 // no visible boundary at all.
                 new TourRing(target),
-                new TourCard(
-                        new Column(
-                                new Text(stop.title(), Attributes.NONE.classes("tour-title")),
-                                new Text(stop.body(), Attributes.NONE.classes("tour-body")),
-                                new Text((index + 1) + " of " + count,
-                                        Attributes.NONE.classes("tour-count")),
-                                new Row(buttons.toArray(Widget[]::new)))));
+                new TourCard(new Column(
+                        new Text(stop.title(), Attributes.NONE.classes("tour-title")),
+                        new Text(stop.body(), Attributes.NONE.classes("tour-body")),
+                        new Text((index + 1) + " of " + count, Attributes.NONE.classes("tour-count")),
+                        new Row(buttons.toArray(Widget[]::new)))));
     }
 
     @Override
@@ -145,8 +149,7 @@ record TourStop(
                     event.consume();
                 }
             }
-            default -> {
-            }
+            default -> {}
         }
     }
 
@@ -178,27 +181,31 @@ record TourStop(
         // `align-items: stretch` -- which made the first tour a card the height
         // of the screen. The veil is unaffected either way: it states all four
         // insets, so there is nothing left for an alignment to decide.
-        return Box.of().style(style)
+        return Box.of()
+                .style(style)
                 .direction(io.github.digitalsmile.goldberry.natives.yoga.style.FlexDirection.COLUMN)
                 .alignItems(io.github.digitalsmile.goldberry.natives.yoga.style.Align.FLEX_START)
                 .children(
-                veil.position(PositionType.ABSOLUTE)
-                        .inset(Insets.all(StyleLength.points(0))),
-                ring.position(PositionType.ABSOLUTE)
-                        .inset(new Insets(
-                                StyleLength.points(target.top() - RING),
-                                StyleLength.UNDEFINED, StyleLength.UNDEFINED,
-                                StyleLength.points(target.left() - RING)))
-                        .size(StyleLength.points(target.size().width() + RING * 2),
-                                StyleLength.points(target.size().height() + RING * 2)),
-                card.position(PositionType.ABSOLUTE)
-                        // `Insets` is in CSS order -- top, right, bottom, left.
-                        // Left and top the other way round anchors the card by
-                        // its top *and its bottom*, which stretches it down the
-                        // whole window and puts it against the left edge.
-                        .inset(new Insets(
-                                StyleLength.points(cardTop), StyleLength.UNDEFINED,
-                                StyleLength.UNDEFINED, StyleLength.points(cardLeft)))
-                        .size(StyleLength.points(WIDTH), StyleLength.UNDEFINED));
+                        veil.position(PositionType.ABSOLUTE).inset(Insets.all(StyleLength.points(0))),
+                        ring.position(PositionType.ABSOLUTE)
+                                .inset(new Insets(
+                                        StyleLength.points(target.top() - RING),
+                                        StyleLength.UNDEFINED,
+                                        StyleLength.UNDEFINED,
+                                        StyleLength.points(target.left() - RING)))
+                                .size(
+                                        StyleLength.points(target.size().width() + RING * 2),
+                                        StyleLength.points(target.size().height() + RING * 2)),
+                        card.position(PositionType.ABSOLUTE)
+                                // `Insets` is in CSS order -- top, right, bottom, left.
+                                // Left and top the other way round anchors the card by
+                                // its top *and its bottom*, which stretches it down the
+                                // whole window and puts it against the left edge.
+                                .inset(new Insets(
+                                        StyleLength.points(cardTop),
+                                        StyleLength.UNDEFINED,
+                                        StyleLength.UNDEFINED,
+                                        StyleLength.points(cardLeft)))
+                                .size(StyleLength.points(WIDTH), StyleLength.UNDEFINED));
     }
 }

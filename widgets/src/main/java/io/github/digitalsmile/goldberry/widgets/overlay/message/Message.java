@@ -1,5 +1,10 @@
 package io.github.digitalsmile.goldberry.widgets.overlay.message;
 
+import java.util.List;
+import java.util.Locale;
+import java.util.Objects;
+import java.util.Optional;
+
 import io.github.digitalsmile.goldberry.kdl.KdlNode;
 import io.github.digitalsmile.goldberry.paint.Box;
 import io.github.digitalsmile.goldberry.widget.State;
@@ -8,11 +13,6 @@ import io.github.digitalsmile.goldberry.widget.attr.Attributed;
 import io.github.digitalsmile.goldberry.widget.attr.Attributes;
 import io.github.digitalsmile.goldberry.widgets.markup.Markup;
 import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
-
-import java.util.List;
-import java.util.Locale;
-import java.util.Objects;
-import java.util.Optional;
 
 /// An inline banner about the region it sits in — `docs/core-widgets.md` §7's
 /// `message`.
@@ -75,8 +75,7 @@ import java.util.Optional;
 ///                   *condition* does is the common case, so this is opt-in
 /// @param attributes the `id` and classes, which land on the `message` node
 @Markup("message")
-public record Message(Kind kind, String text, List<Widget> actions, Runnable onDismiss,
-        Attributes attributes)
+public record Message(Kind kind, String text, List<Widget> actions, Runnable onDismiss, Attributes attributes)
         implements Widget.Stateful, Attributed<Message> {
 
     /// §7's `kind="info|success|warning|danger"`.
@@ -131,8 +130,9 @@ public record Message(Kind kind, String text, List<Widget> actions, Runnable onD
                 return valueOf(text.trim().toUpperCase(Locale.ROOT));
             } catch (IllegalArgumentException e) {
                 throw new IllegalArgumentException(
-                        "a message's kind is \"info\", \"success\", \"warning\" or \"danger\","
-                                + " not \"" + text + "\"", e);
+                        "a message's kind is \"info\", \"success\", \"warning\" or \"danger\"," + " not \"" + text
+                                + "\"",
+                        e);
             }
         }
     }
@@ -177,10 +177,11 @@ public record Message(Kind kind, String text, List<Widget> actions, Runnable onD
     ///         errors is not an empty banner, it is no banner
     public static Optional<Message> summary(List<String> errors) {
         Objects.requireNonNull(errors, "errors");
-        var lines = errors.stream().filter(Objects::nonNull).filter(line -> !line.isBlank()).toList();
-        return lines.isEmpty()
-                ? Optional.empty()
-                : Optional.of(new Message(Kind.DANGER, String.join("\n", lines)));
+        var lines = errors.stream()
+                .filter(Objects::nonNull)
+                .filter(line -> !line.isBlank())
+                .toList();
+        return lines.isEmpty() ? Optional.empty() : Optional.of(new Message(Kind.DANGER, String.join("\n", lines)));
     }
 
     /// Whether this banner draws a ×.
@@ -214,7 +215,11 @@ public record Message(Kind kind, String text, List<Widget> actions, Runnable onD
     /// be closed — nothing in a document could remove the banner anyway, because
     /// what put it there is the application's own state.
     public static Widget inflate(KdlNode node, List<Widget> children, Wiring wiring) {
-        return new Message(Kind.of(node.stringProperty("kind")), Wiring.label(node),
-                children, wiring.action(node, "dismiss"), Attributes.of(node));
+        return new Message(
+                Kind.of(node.stringProperty("kind")),
+                Wiring.label(node),
+                children,
+                wiring.action(node, "dismiss"),
+                Attributes.of(node));
     }
 }

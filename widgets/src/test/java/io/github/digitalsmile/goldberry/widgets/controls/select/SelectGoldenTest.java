@@ -1,27 +1,29 @@
 package io.github.digitalsmile.goldberry.widgets.controls.select;
 
+import java.util.List;
+import java.util.Set;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+
 import io.github.digitalsmile.goldberry.RendererRequirement;
-import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
-import io.github.digitalsmile.goldberry.css.select.Selector;
 import io.github.digitalsmile.goldberry.css.Stylesheet;
 import io.github.digitalsmile.goldberry.css.Theme;
+import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
+import io.github.digitalsmile.goldberry.css.select.Selector;
 import io.github.digitalsmile.goldberry.golden.GoldenImage;
 import io.github.digitalsmile.goldberry.paint.BoxPainter;
-import io.github.digitalsmile.goldberry.widget.attr.Attributes;
 import io.github.digitalsmile.goldberry.widget.Element;
 import io.github.digitalsmile.goldberry.widget.ElementTree;
 import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widget.WidgetRenderer;
+import io.github.digitalsmile.goldberry.widget.attr.Attributes;
 import io.github.digitalsmile.goldberry.widgets.Controls;
 import io.github.digitalsmile.goldberry.widgets.controls.TestFont;
 import io.github.digitalsmile.goldberry.widgets.controls.option.Option;
 import io.github.digitalsmile.goldberry.widgets.core.Column;
 import io.github.digitalsmile.goldberry.widgets.core.Row;
-import java.util.List;
-import java.util.Set;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
 
 /// What a `select` actually looks like, closed and open (§14, [ADR-0050]).
 ///
@@ -63,20 +65,26 @@ class SelectGoldenTest {
     private void paint(String name, Theme theme, int width, int height, Widget content) {
         var tree = new ElementTree(content);
         var renderer = new WidgetRenderer(
-                List.of(Controls.baseStylesheet(), theme.load(),
-                        Stylesheet.parse(CascadeLayer.APPLICATION, SCENE)),
+                List.of(Controls.baseStylesheet(), theme.load(), Stylesheet.parse(CascadeLayer.APPLICATION, SCENE)),
                 TestFont.get());
 
-        GoldenImage.assertMatches(name, width, height, 1.0f,
-                frame -> BoxPainter.paint(frame, renderer.render(tree)));
+        GoldenImage.assertMatches(name, width, height, 1.0f, frame -> BoxPainter.paint(frame, renderer.render(tree)));
     }
 
     private static Select themes(String value) {
-        return new Select(value,
-                List.of(new Option("light", "Light"),
-                        new Option("dark", "Dark"),
-                        new Option("dim", "Dim")),
-                null, null, "Choose a theme", false, false, false, null, List.of(), false, id("theme"));
+        return new Select(
+                value,
+                List.of(new Option("light", "Light"), new Option("dark", "Dark"), new Option("dim", "Dim")),
+                null,
+                null,
+                "Choose a theme",
+                false,
+                false,
+                false,
+                null,
+                List.of(),
+                false,
+                id("theme"));
     }
 
     /// §3's `multiple=#true`: "renders the selection as `badge` chips inside the
@@ -99,45 +107,73 @@ class SelectGoldenTest {
     @Test
     @DisplayName("a select holding more chips than fit, wrapped")
     void multipleWraps() {
-        paint("select-multiple-wraps", Theme.NORD_DARK, 220, 96,
-                new Row(List.of(new Select(null,
-                        List.of(new Option("light", "Light"),
-                                new Option("dark", "Dark"),
-                                new Option("dim", "Dim"),
-                                new Option("nord", "Nord"),
-                                new Option("aurora", "Aurora")),
-                        io.github.digitalsmile.goldberry.bind.Property.of(
-                                List.of("light", "dark", "dim", "nord", "aurora")),
-                        null, "Choose a theme", true, false, false, null, List.of(), false,
-                        id("theme"))), id("row")));
+        paint(
+                "select-multiple-wraps",
+                Theme.NORD_DARK,
+                220,
+                96,
+                new Row(
+                        List.of(new Select(
+                                null,
+                                List.of(
+                                        new Option("light", "Light"),
+                                        new Option("dark", "Dark"),
+                                        new Option("dim", "Dim"),
+                                        new Option("nord", "Nord"),
+                                        new Option("aurora", "Aurora")),
+                                io.github.digitalsmile.goldberry.bind.Property.of(
+                                        List.of("light", "dark", "dim", "nord", "aurora")),
+                                null,
+                                "Choose a theme",
+                                true,
+                                false,
+                                false,
+                                null,
+                                List.of(),
+                                false,
+                                id("theme"))),
+                        id("row")));
     }
 
     @Test
     @DisplayName("a select holding three values, as chips")
     void multipleDark() {
-        paint("select-multiple-dark", Theme.NORD_DARK, 220, 76,
-                new Row(List.of(new Select(null,
-                        List.of(new Option("light", "Light"),
-                                new Option("dark", "Dark"),
-                                new Option("dim", "Dim")),
-                        io.github.digitalsmile.goldberry.bind.Property.of(
-                                List.of("light", "dark", "dim")),
-                        null, "Choose a theme", true, false, false, null, List.of(), false, id("theme"))), id("row")));
+        paint(
+                "select-multiple-dark",
+                Theme.NORD_DARK,
+                220,
+                76,
+                new Row(
+                        List.of(new Select(
+                                null,
+                                List.of(
+                                        new Option("light", "Light"),
+                                        new Option("dark", "Dark"),
+                                        new Option("dim", "Dim")),
+                                io.github.digitalsmile.goldberry.bind.Property.of(List.of("light", "dark", "dim")),
+                                null,
+                                "Choose a theme",
+                                true,
+                                false,
+                                false,
+                                null,
+                                List.of(),
+                                false,
+                                id("theme"))),
+                        id("row")));
     }
 
     /// The control at rest: a value, an edge, and a mark saying there is more.
     @Test
     @DisplayName("a closed select with a value, on dark")
     void closedDark() {
-        paint("select-dark", Theme.NORD_DARK, 220, 56,
-                new Row(List.of(themes("dark")), id("row")));
+        paint("select-dark", Theme.NORD_DARK, 220, 56, new Row(List.of(themes("dark")), id("row")));
     }
 
     @Test
     @DisplayName("the same control on the light theme")
     void closedLight() {
-        paint("select-light", Theme.NORD_LIGHT, 220, 56,
-                new Row(List.of(themes("light")), id("row")));
+        paint("select-light", Theme.NORD_LIGHT, 220, 56, new Row(List.of(themes("light")), id("row")));
     }
 
     /// Nothing chosen, and the placeholder one rank down.
@@ -148,8 +184,7 @@ class SelectGoldenTest {
     @Test
     @DisplayName("nothing chosen reads as a placeholder, not as a value")
     void placeholder() {
-        paint("select-placeholder", Theme.NORD_DARK, 220, 56,
-                new Row(List.of(themes(null)), id("row")));
+        paint("select-placeholder", Theme.NORD_DARK, 220, 56, new Row(List.of(themes(null)), id("row")));
     }
 
     /// A field that refuses, at §2.1's 45% — over the border and the mark as well
@@ -157,7 +192,11 @@ class SelectGoldenTest {
     @Test
     @DisplayName("a disabled select fades whole")
     void disabled() {
-        paint("select-disabled", Theme.NORD_DARK, 220, 56,
+        paint(
+                "select-disabled",
+                Theme.NORD_DARK,
+                220,
+                56,
                 new Row(List.of(themes("dark").disabled(true)), id("row")));
     }
 
@@ -167,8 +206,7 @@ class SelectGoldenTest {
     @Test
     @DisplayName("a select on a panel is still a field")
     void onSurface() {
-        paint("select-on-surface", Theme.NORD_DARK, 220, 56,
-                new Column(List.of(themes("dim")), id("panel")));
+        paint("select-on-surface", Theme.NORD_DARK, 220, 56, new Column(List.of(themes("dim")), id("panel")));
     }
 
     /// The open list, with the value on one row and the keyboard on another.
@@ -189,12 +227,10 @@ class SelectGoldenTest {
         // The third row is where an arrow has moved to; the second is the value.
         highlight(tree.root().children().get(2));
 
-        var renderer = new WidgetRenderer(
-                List.of(Controls.baseStylesheet(), Theme.NORD_DARK.load()),
-                TestFont.get());
+        var renderer = new WidgetRenderer(List.of(Controls.baseStylesheet(), Theme.NORD_DARK.load()), TestFont.get());
 
-        GoldenImage.assertMatches("select-list-dark", 180, 112, 1.0f,
-                frame -> BoxPainter.paint(frame, renderer.render(tree)));
+        GoldenImage.assertMatches(
+                "select-list-dark", 180, 112, 1.0f, frame -> BoxPainter.paint(frame, renderer.render(tree)));
     }
 
     private static void highlight(Element row) {

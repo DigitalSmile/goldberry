@@ -1,14 +1,15 @@
 package io.github.digitalsmile.goldberry.widgets.controls.progressbar;
 
-import io.github.digitalsmile.goldberry.css.ComputedStyle;
-import io.github.digitalsmile.goldberry.css.value.Transform;
-import io.github.digitalsmile.goldberry.paint.Box;
-import io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength;
-import io.github.digitalsmile.goldberry.widget.style.Paints;
-import io.github.digitalsmile.goldberry.widget.style.Styled;
-import io.github.digitalsmile.goldberry.widget.Widget;
 import java.util.List;
 import java.util.Set;
+
+import io.github.digitalsmile.goldberry.css.ComputedStyle;
+import io.github.digitalsmile.goldberry.css.value.Transform;
+import io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength;
+import io.github.digitalsmile.goldberry.paint.Box;
+import io.github.digitalsmile.goldberry.widget.Widget;
+import io.github.digitalsmile.goldberry.widget.style.Paints;
+import io.github.digitalsmile.goldberry.widget.style.Styled;
 
 /// The coloured part of a [Progress] — a **part**, and the fourteenth.
 ///
@@ -48,8 +49,7 @@ import java.util.Set;
 ///
 /// @param fraction      how far along, `0..1`; ignored when indeterminate
 /// @param indeterminate which of the two drawings this is
-record ProgressFill(double fraction, boolean indeterminate)
-        implements Widget.Leaf, Styled, Paints {
+record ProgressFill(double fraction, boolean indeterminate) implements Widget.Leaf, Styled, Paints {
 
     /// §3.1's "sweep loop **1.2s** linear", in milliseconds.
     private static final double SWEEP_PERIOD = 1200;
@@ -86,8 +86,7 @@ record ProgressFill(double fraction, boolean indeterminate)
         var width = StyleLength.percent((float) ((indeterminate ? SWEEP_WIDTH : fraction) * 100));
         // Applied after `style`, so the theme still owns the colour, the height
         // and the radius of what is being placed -- the split SliderFill states.
-        return Box.of().style(style).size(width, style.height())
-                .transform(sweepAt(context));
+        return Box.of().style(style).size(width, style.height()).transform(sweepAt(context));
     }
 
     /// Where the sweeping bar is at this frame's time, or no transform at all.
@@ -104,8 +103,7 @@ record ProgressFill(double fraction, boolean indeterminate)
         // The travel is what is left of the track, measured in bars: a bar
         // covering 0.3 of the track has 0.7 to cross, which is 233% of itself.
         var offset = travelAt(phaseAt(context.nowMillis())) * (1 - SWEEP_WIDTH) / SWEEP_WIDTH * 100;
-        return Transform.of(new Transform.Function.Translate(
-                Transform.Length.percent(offset), Transform.Length.ZERO));
+        return Transform.of(new Transform.Function.Translate(Transform.Length.percent(offset), Transform.Length.ZERO));
     }
 
     /// How far across the track the bar is at `phase`, `0..1`.

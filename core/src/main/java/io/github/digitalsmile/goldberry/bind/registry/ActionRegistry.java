@@ -16,7 +16,8 @@ import java.util.function.Consumer;
 /// The indirection is what makes markup reloadable: a document reloaded at
 /// runtime re-resolves every name against the same registry, so the new tree's
 /// buttons are wired to the same handlers the old one had, without the
-/// application being asked to rebuild anything ([ADR-0051](../../../../../../../book/src/adr/0051-kdl-is-parsed-here-and-reloading-is-forgiving.md)).
+/// application being asked to rebuild anything
+/// ([ADR-0051](../../../../../../../book/src/adr/0051-kdl-is-parsed-here-and-reloading-is-forgiving.md)).
 ///
 /// Confined to the UI thread, like everything a handler will touch.
 public final class ActionRegistry {
@@ -141,9 +142,8 @@ public final class ActionRegistry {
             return value -> plain.run();
         }
         if (strict) {
-            throw new IllegalArgumentException(
-                    "no action named \"" + name + "\" is bound. Bound: "
-                            + (bound().isEmpty() ? "(none)" : String.join(", ", bound().keySet())));
+            throw new IllegalArgumentException("no action named \"" + name + "\" is bound. Bound: "
+                    + (bound().isEmpty() ? "(none)" : String.join(", ", bound().keySet())));
         }
         return null;
     }
@@ -168,15 +168,13 @@ public final class ActionRegistry {
         // would mean picking a value here -- so this says which half of the
         // registry the name is in rather than inventing an argument.
         if (valuedByName.containsKey(name)) {
-            throw new IllegalArgumentException(
-                    "\"" + name + "\" is bound to an action that expects a value,"
-                            + " and this attribute names one that takes none."
-                            + " Bind it with bind(String, Runnable) instead.");
+            throw new IllegalArgumentException("\"" + name + "\" is bound to an action that expects a value,"
+                    + " and this attribute names one that takes none."
+                    + " Bind it with bind(String, Runnable) instead.");
         }
         if (strict) {
-            throw new IllegalArgumentException(
-                    "no action named \"" + name + "\" is bound. Bound: "
-                            + (bound().isEmpty() ? "(none)" : String.join(", ", bound().keySet())));
+            throw new IllegalArgumentException("no action named \"" + name + "\" is bound. Bound: "
+                    + (bound().isEmpty() ? "(none)" : String.join(", ", bound().keySet())));
         }
         return null;
     }

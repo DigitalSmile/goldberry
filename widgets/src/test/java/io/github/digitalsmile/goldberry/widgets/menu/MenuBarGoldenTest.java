@@ -1,24 +1,26 @@
 package io.github.digitalsmile.goldberry.widgets.menu;
 
-import io.github.digitalsmile.goldberry.RendererRequirement;
-import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
-import io.github.digitalsmile.goldberry.css.select.Selector;
-import io.github.digitalsmile.goldberry.css.Stylesheet;
-import io.github.digitalsmile.goldberry.css.Theme;
-import io.github.digitalsmile.goldberry.golden.GoldenImage;
-import io.github.digitalsmile.goldberry.paint.BoxPainter;
-import io.github.digitalsmile.goldberry.widget.attr.Attributes;
-import io.github.digitalsmile.goldberry.widget.ElementTree;
-import io.github.digitalsmile.goldberry.widget.Widget;
-import io.github.digitalsmile.goldberry.widget.WidgetRenderer;
-import io.github.digitalsmile.goldberry.widgets.Controls;
-import io.github.digitalsmile.goldberry.widgets.controls.TestFont;
-import io.github.digitalsmile.goldberry.widgets.core.Column;
 import java.util.List;
 import java.util.Set;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+
+import io.github.digitalsmile.goldberry.RendererRequirement;
+import io.github.digitalsmile.goldberry.css.Stylesheet;
+import io.github.digitalsmile.goldberry.css.Theme;
+import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
+import io.github.digitalsmile.goldberry.css.select.Selector;
+import io.github.digitalsmile.goldberry.golden.GoldenImage;
+import io.github.digitalsmile.goldberry.paint.BoxPainter;
+import io.github.digitalsmile.goldberry.widget.ElementTree;
+import io.github.digitalsmile.goldberry.widget.Widget;
+import io.github.digitalsmile.goldberry.widget.WidgetRenderer;
+import io.github.digitalsmile.goldberry.widget.attr.Attributes;
+import io.github.digitalsmile.goldberry.widgets.Controls;
+import io.github.digitalsmile.goldberry.widgets.controls.TestFont;
+import io.github.digitalsmile.goldberry.widgets.core.Column;
 
 /// What a menu bar looks like (§14, [ADR-0163]).
 ///
@@ -41,8 +43,7 @@ class MenuBarGoldenTest {
         return new Attributes(value, Set.of(), value);
     }
 
-    private void paint(String name, Theme theme, int width, int height, Widget bar,
-            PseudoState... states) {
+    private void paint(String name, Theme theme, int width, int height, Widget bar, PseudoState... states) {
 
         var scene = new Column(List.of(bar), id("scene"));
         var tree = new ElementTree(scene);
@@ -50,16 +51,12 @@ class MenuBarGoldenTest {
             state.applyTo(tree);
         }
         var renderer = new WidgetRenderer(
-                List.of(
-                        Controls.baseStylesheet(),
-                        theme.load(),
-                        Stylesheet.parse(CascadeLayer.APPLICATION, """
+                List.of(Controls.baseStylesheet(), theme.load(), Stylesheet.parse(CascadeLayer.APPLICATION, """
                                 #scene { padding: 12px; background: var(--gb-bg) }
                                 """)),
                 TestFont.get());
 
-        GoldenImage.assertMatches(name, width, height, 1.0f,
-                frame -> BoxPainter.paint(frame, renderer.render(tree)));
+        GoldenImage.assertMatches(name, width, height, 1.0f, frame -> BoxPainter.paint(frame, renderer.render(tree)));
     }
 
     /// Which heading gets which pseudo-class, set by hand for `TabsGoldenTest`'s
@@ -71,22 +68,27 @@ class MenuBarGoldenTest {
     private record PseudoState(int heading, Selector.PseudoClass pseudoClass) {
 
         void applyTo(ElementTree tree) {
-            tree.root().children().getFirst()        // MenuBar, the composition node
-                    .children().getFirst()           // the menubar row it describes
-                    .children().get(heading)
+            tree.root()
+                    .children()
+                    .getFirst() // MenuBar, the composition node
+                    .children()
+                    .getFirst() // the menubar row it describes
+                    .children()
+                    .get(heading)
                     .setPseudoClass(pseudoClass, true);
         }
     }
 
     private static MenuBar bar() {
         return new MenuBar(
-                new Item("File").submenu(
-                        new Item("Open…", () -> { }).accelerator("Ctrl+O"),
-                        new Separator(),
-                        new Item("Quit", () -> { }).accelerator("Ctrl+Q")),
-                new Item("Edit").submenu(new Item("Undo", () -> { }).accelerator("Ctrl+Z")),
-                new Item("View").submenu(new Item("Zoom In", () -> { })),
-                new Item("Help").submenu(new Item("About", () -> { })));
+                new Item("File")
+                        .submenu(
+                                new Item("Open…", () -> {}).accelerator("Ctrl+O"),
+                                new Separator(),
+                                new Item("Quit", () -> {}).accelerator("Ctrl+Q")),
+                new Item("Edit").submenu(new Item("Undo", () -> {}).accelerator("Ctrl+Z")),
+                new Item("View").submenu(new Item("Zoom In", () -> {})),
+                new Item("Help").submenu(new Item("About", () -> {})));
     }
 
     /// The image this widget exists to be checked by: four headings in a row on a
@@ -106,8 +108,7 @@ class MenuBarGoldenTest {
     @Test
     @DisplayName("hover on a heading")
     void hover() {
-        paint("menubar-hover", Theme.NORD_DARK, 360, 60, bar(),
-                new PseudoState(1, Selector.PseudoClass.HOVER));
+        paint("menubar-hover", Theme.NORD_DARK, 360, 60, bar(), new PseudoState(1, Selector.PseudoClass.HOVER));
     }
 
     /// The focus ring, which is what says the bar is one tab stop that the arrows
@@ -115,8 +116,7 @@ class MenuBarGoldenTest {
     @Test
     @DisplayName("the keyboard is on a heading")
     void focusRing() {
-        paint("menubar-focus", Theme.NORD_DARK, 360, 60, bar(),
-                new PseudoState(2, Selector.PseudoClass.FOCUS_VISIBLE));
+        paint("menubar-focus", Theme.NORD_DARK, 360, 60, bar(), new PseudoState(2, Selector.PseudoClass.FOCUS_VISIBLE));
     }
 
     /// The heading whose menu is showing.
@@ -129,17 +129,24 @@ class MenuBarGoldenTest {
     @Test
     @DisplayName("the heading whose menu is showing is marked, and not as a hover")
     void open() {
-        paint("menubar-open", Theme.NORD_DARK, 360, 60, new MenuBarRow(
-                List.of(
-                        new MenuTitle("File", null, false,
-                                Attributes.NONE.id("t0").classes("open"), () -> { }, () -> { }),
-                        new MenuTitle("Edit", null, false, Attributes.NONE.id("t1"),
-                                () -> { }, () -> { }),
-                        new MenuTitle("View", null, false, Attributes.NONE.id("t2"),
-                                () -> { }, () -> { }),
-                        new MenuTitle("Help", null, false, Attributes.NONE.id("t3"),
-                                () -> { }, () -> { })),
-                Attributes.NONE));
+        paint(
+                "menubar-open",
+                Theme.NORD_DARK,
+                360,
+                60,
+                new MenuBarRow(
+                        List.of(
+                                new MenuTitle(
+                                        "File",
+                                        null,
+                                        false,
+                                        Attributes.NONE.id("t0").classes("open"),
+                                        () -> {},
+                                        () -> {}),
+                                new MenuTitle("Edit", null, false, Attributes.NONE.id("t1"), () -> {}, () -> {}),
+                                new MenuTitle("View", null, false, Attributes.NONE.id("t2"), () -> {}, () -> {}),
+                                new MenuTitle("Help", null, false, Attributes.NONE.id("t3"), () -> {}, () -> {})),
+                        Attributes.NONE));
     }
 
     /// A heading that cannot be opened, which is the one state a bar shares with
@@ -147,9 +154,14 @@ class MenuBarGoldenTest {
     @Test
     @DisplayName("a disabled heading")
     void disabled() {
-        paint("menubar-disabled", Theme.NORD_DARK, 360, 60, new MenuBar(
-                new Item("File").submenu(new Item("Open…", () -> { })),
-                new Item("Edit").submenu(new Item("Undo", () -> { })).disabled(true),
-                new Item("Help").submenu(new Item("About", () -> { }))));
+        paint(
+                "menubar-disabled",
+                Theme.NORD_DARK,
+                360,
+                60,
+                new MenuBar(
+                        new Item("File").submenu(new Item("Open…", () -> {})),
+                        new Item("Edit").submenu(new Item("Undo", () -> {})).disabled(true),
+                        new Item("Help").submenu(new Item("About", () -> {}))));
     }
 }

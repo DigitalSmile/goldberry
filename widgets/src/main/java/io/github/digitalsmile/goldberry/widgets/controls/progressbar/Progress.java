@@ -1,20 +1,20 @@
 package io.github.digitalsmile.goldberry.widgets.controls.progressbar;
 
-import io.github.digitalsmile.goldberry.widget.attr.Attributed;
-import io.github.digitalsmile.goldberry.widget.attr.Bindable;
-import io.github.digitalsmile.goldberry.widget.attr.Attributes;
+import java.util.List;
+import java.util.Set;
 
 import io.github.digitalsmile.goldberry.bind.Observable;
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
+import io.github.digitalsmile.goldberry.kdl.KdlNode;
 import io.github.digitalsmile.goldberry.paint.Box;
+import io.github.digitalsmile.goldberry.widget.Widget;
+import io.github.digitalsmile.goldberry.widget.attr.Attributed;
+import io.github.digitalsmile.goldberry.widget.attr.Attributes;
+import io.github.digitalsmile.goldberry.widget.attr.Bindable;
 import io.github.digitalsmile.goldberry.widget.style.Paints;
 import io.github.digitalsmile.goldberry.widget.style.Styled;
-import io.github.digitalsmile.goldberry.widget.Widget;
-import java.util.List;
-import java.util.Set;
-import io.github.digitalsmile.goldberry.kdl.KdlNode;
-import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
 import io.github.digitalsmile.goldberry.widgets.markup.Markup;
+import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
 
 /// How far along something is — `docs/core-widgets.md` §3's `progress`. The
 /// seventh control, and the first that is not a control at all: nothing here is
@@ -38,7 +38,8 @@ import io.github.digitalsmile.goldberry.widgets.markup.Markup;
 ///
 /// ## The determinate half places a value, and does not use a ratio to do it
 ///
-/// [io.github.digitalsmile.goldberry.widgets.controls.slider.Slider] places its thumb by flex ratio because a percentage `translate` is a
+/// [io.github.digitalsmile.goldberry.widgets.controls.slider.Slider] places its thumb by flex ratio because a
+/// percentage `translate` is a
 /// proportion of the *moving box* and could not express it
 /// ([ADR-0079](../../../../../../../../book/src/adr/0079-a-continuous-value-is-placed-by-ratio.md)).
 /// A progress bar has no thumb, so its fill is simply `width: 40%` — the plain
@@ -64,9 +65,7 @@ import io.github.digitalsmile.goldberry.widgets.markup.Markup;
 /// @param indeterminate whether this reports progress it cannot measure
 /// @param source        §9's `bind`, read-only — see [#resolved()]
 @Markup("progress")
-public record Progress(
-        double value, double max, boolean indeterminate,
-        Observable<?> source, Attributes attributes)
+public record Progress(double value, double max, boolean indeterminate, Observable<?> source, Attributes attributes)
         implements Widget.Leaf, Styled, Paints, Attributed<Progress>, Bindable<Progress> {
 
     public Progress {
@@ -108,8 +107,7 @@ public record Progress(
     /// Any `Number`, and anything else reads as [#value()], which is the rule
     /// [io.github.digitalsmile.goldberry.widgets.controls.slider.Slider#resolved()] follows.
     public double resolved() {
-        var raw = source == null ? value
-                : source.get() instanceof Number number ? number.doubleValue() : value;
+        var raw = source == null ? value : source.get() instanceof Number number ? number.doubleValue() : value;
         return Math.clamp(raw / max, 0, 1);
     }
 
@@ -180,6 +178,7 @@ public record Progress(
                 node.numberProperty("value", 0),
                 node.numberProperty("max", 1),
                 node.booleanProperty("indeterminate"),
-                wiring.bound(node), Attributes.of(node));
+                wiring.bound(node),
+                Attributes.of(node));
     }
 }

@@ -1,21 +1,21 @@
 package io.github.digitalsmile.goldberry.widgets.panel.table;
 
-import io.github.digitalsmile.goldberry.css.ComputedStyle;
-import io.github.digitalsmile.goldberry.paint.Box;
-import io.github.digitalsmile.goldberry.widget.attr.Attributed;
-import io.github.digitalsmile.goldberry.widget.attr.Attributes;
-import io.github.digitalsmile.goldberry.widget.style.Paints;
-import io.github.digitalsmile.goldberry.widget.style.Styled;
-import io.github.digitalsmile.goldberry.widget.Widget;
-import io.github.digitalsmile.goldberry.widgets.panel.list.ListView;
-import io.github.digitalsmile.goldberry.widgets.panel.list.Selection;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Function;
+
+import io.github.digitalsmile.goldberry.css.ComputedStyle;
+import io.github.digitalsmile.goldberry.paint.Box;
+import io.github.digitalsmile.goldberry.widget.Widget;
+import io.github.digitalsmile.goldberry.widget.attr.Attributed;
+import io.github.digitalsmile.goldberry.widget.attr.Attributes;
+import io.github.digitalsmile.goldberry.widget.style.Paints;
+import io.github.digitalsmile.goldberry.widget.style.Styled;
+import io.github.digitalsmile.goldberry.widgets.panel.list.ListView;
+import io.github.digitalsmile.goldberry.widgets.panel.list.Selection;
 
 /// A list with columns — `docs/core-widgets.md` §10's `table`.
 ///
@@ -73,10 +73,17 @@ import java.util.function.Function;
 /// @param selection  how many rows may be chosen at once
 /// @param rowHeight  a row's height in logical pixels, or zero to build every row
 /// @param attributes `id` and `class`, exactly as on the primitives
-public record Table<T>(List<T> items, Function<T, String> identity, List<Column<T>> columns,
-        Sort sort, Consumer<Sort> onSort,
-        Set<String> selected, Consumer<Set<String>> onSelect, Selection selection,
-        double rowHeight, Attributes attributes)
+public record Table<T>(
+        List<T> items,
+        Function<T, String> identity,
+        List<Column<T>> columns,
+        Sort sort,
+        Consumer<Sort> onSort,
+        Set<String> selected,
+        Consumer<Set<String>> onSelect,
+        Selection selection,
+        double rowHeight,
+        Attributes attributes)
         implements Widget.Leaf, Styled, Paints, Attributed<Table<T>> {
 
     public Table {
@@ -90,8 +97,7 @@ public record Table<T>(List<T> items, Function<T, String> identity, List<Column<
 
     /// A table over `items` with `columns`, choosing one row at a time.
     public Table(List<T> items, Function<T, String> identity, List<Column<T>> columns) {
-        this(items, identity, columns, null, null,
-                Set.of(), null, Selection.SINGLE, 0, Attributes.NONE);
+        this(items, identity, columns, null, null, Set.of(), null, Selection.SINGLE, 0, Attributes.NONE);
     }
 
     /// This table sorted by `sort`, and `onSort` told what a header click means.
@@ -101,27 +107,28 @@ public record Table<T>(List<T> items, Function<T, String> identity, List<Column<
     /// rule about tables ([Sort#next]) and not something every application should
     /// have to restate.
     public Table<T> sorted(Sort sort, Consumer<Sort> onSort) {
-        return new Table<>(items, identity, columns, sort, onSort,
-                selected, onSelect, selection, rowHeight, attributes);
+        return new Table<>(
+                items, identity, columns, sort, onSort, selected, onSelect, selection, rowHeight, attributes);
     }
 
     /// This table with `values` selected and `onSelect` told what was asked for.
     public Table<T> selected(Set<String> values, Consumer<Set<String>> onSelect) {
-        return new Table<>(items, identity, columns, sort, onSort,
-                values, onSelect, selection, rowHeight, attributes);
+        return new Table<>(items, identity, columns, sort, onSort, values, onSelect, selection, rowHeight, attributes);
     }
 
     /// The same, for the caller that holds one value.
     public Table<T> selected(String value, Consumer<String> onSelect) {
-        return selected(value == null ? Set.of() : Set.of(value),
-                onSelect == null ? null : chosen -> onSelect.accept(
-                        chosen.isEmpty() ? null : chosen.iterator().next()));
+        return selected(
+                value == null ? Set.of() : Set.of(value),
+                onSelect == null
+                        ? null
+                        : chosen -> onSelect.accept(
+                                chosen.isEmpty() ? null : chosen.iterator().next()));
     }
 
     /// This table with a different selection model.
     public Table<T> selection(Selection value) {
-        return new Table<>(items, identity, columns, sort, onSort,
-                selected, onSelect, value, rowHeight, attributes);
+        return new Table<>(items, identity, columns, sort, onSort, selected, onSelect, value, rowHeight, attributes);
     }
 
     /// This table building only the rows its viewport can see — `list`'s
@@ -130,8 +137,7 @@ public record Table<T>(List<T> items, Function<T, String> identity, List<Column<
     /// The header is **not** part of the window and never was: it is outside the
     /// list entirely, so it is built on every frame and costs one row.
     public Table<T> virtualized(double height) {
-        return new Table<>(items, identity, columns, sort, onSort,
-                selected, onSelect, selection, height, attributes);
+        return new Table<>(items, identity, columns, sort, onSort, selected, onSelect, selection, height, attributes);
     }
 
     @Override
@@ -154,9 +160,16 @@ public record Table<T>(List<T> items, Function<T, String> identity, List<Column<
         var parts = new ArrayList<Widget>(3);
         parts.add(new TableHead(columns, sort, this::askForSort));
         parts.add(new TableRule());
-        var rows = new ListView<>(items, identity,
+        var rows = new ListView<>(
+                items,
+                identity,
                 item -> new TableCells<>(item, columns),
-                null, null, selected, onSelect, selection, rowHeight,
+                null,
+                null,
+                selected,
+                onSelect,
+                selection,
+                rowHeight,
                 // The list keeps the table's id so a row's focus name is scoped
                 // by it, exactly as a bare list's is: two tables over the same
                 // items would otherwise answer to each other's `Home`.
@@ -201,8 +214,7 @@ public record Table<T>(List<T> items, Function<T, String> identity, List<Column<
 
     @Override
     public Table<T> withAttributes(Attributes value) {
-        return new Table<>(items, identity, columns, sort, onSort,
-                selected, onSelect, selection, rowHeight, value);
+        return new Table<>(items, identity, columns, sort, onSort, selected, onSelect, selection, rowHeight, value);
     }
 
     @Override

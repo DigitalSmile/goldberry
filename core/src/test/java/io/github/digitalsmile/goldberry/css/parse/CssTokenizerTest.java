@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.List;
+
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -286,8 +287,11 @@ class CssTokenizerTest {
         @Test
         @DisplayName("a run of whitespace collapses to one token")
         void whitespaceCollapses() {
-            assertEquals(1, CssTokenizer.tokenize("  \n\t ").stream()
-                    .filter(t -> t.is(TokenType.WHITESPACE)).count());
+            assertEquals(
+                    1,
+                    CssTokenizer.tokenize("  \n\t ").stream()
+                            .filter(t -> t.is(TokenType.WHITESPACE))
+                            .count());
         }
 
         @Test
@@ -324,7 +328,8 @@ class CssTokenizerTest {
         @DisplayName("line and column point at the token's first character")
         void positionsAreReported() {
             var tokens = significant(".a {\n  color: red;\n}");
-            var color = tokens.stream().filter(t -> t.isIdent("color")).findFirst().orElseThrow();
+            var color =
+                    tokens.stream().filter(t -> t.isIdent("color")).findFirst().orElseThrow();
             assertEquals(2, color.line());
             assertEquals(3, color.column());
         }
@@ -348,26 +353,28 @@ class CssTokenizerTest {
             var tokens = significant(".button:hover > .icon { color: var(--gb-accent); padding: 4px 8px }");
 
             var types = tokens.stream().map(Token::type).toList();
-            assertEquals(List.of(
-                    TokenType.DELIM,        // .
-                    TokenType.IDENT,        // button
-                    TokenType.COLON,
-                    TokenType.IDENT,        // hover
-                    TokenType.DELIM,        // >
-                    TokenType.DELIM,        // .
-                    TokenType.IDENT,        // icon
-                    TokenType.OPEN_BRACE,
-                    TokenType.IDENT,        // color
-                    TokenType.COLON,
-                    TokenType.FUNCTION,     // var(
-                    TokenType.IDENT,        // --gb-accent
-                    TokenType.CLOSE_PAREN,
-                    TokenType.SEMICOLON,
-                    TokenType.IDENT,        // padding
-                    TokenType.COLON,
-                    TokenType.DIMENSION,    // 4px
-                    TokenType.DIMENSION,    // 8px
-                    TokenType.CLOSE_BRACE), types);
+            assertEquals(
+                    List.of(
+                            TokenType.DELIM, // .
+                            TokenType.IDENT, // button
+                            TokenType.COLON,
+                            TokenType.IDENT, // hover
+                            TokenType.DELIM, // >
+                            TokenType.DELIM, // .
+                            TokenType.IDENT, // icon
+                            TokenType.OPEN_BRACE,
+                            TokenType.IDENT, // color
+                            TokenType.COLON,
+                            TokenType.FUNCTION, // var(
+                            TokenType.IDENT, // --gb-accent
+                            TokenType.CLOSE_PAREN,
+                            TokenType.SEMICOLON,
+                            TokenType.IDENT, // padding
+                            TokenType.COLON,
+                            TokenType.DIMENSION, // 4px
+                            TokenType.DIMENSION, // 8px
+                            TokenType.CLOSE_BRACE),
+                    types);
         }
 
         @Test

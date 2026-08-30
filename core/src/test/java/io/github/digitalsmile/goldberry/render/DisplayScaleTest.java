@@ -5,14 +5,15 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import io.github.digitalsmile.goldberry.render.model.DisplayScale;
-import io.github.digitalsmile.goldberry.render.model.LogicalSize;
-import io.github.digitalsmile.goldberry.render.model.PhysicalSize;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
+
+import io.github.digitalsmile.goldberry.render.model.DisplayScale;
+import io.github.digitalsmile.goldberry.render.model.LogicalSize;
+import io.github.digitalsmile.goldberry.render.model.PhysicalSize;
 
 class DisplayScaleTest {
 
@@ -32,9 +33,7 @@ class DisplayScaleTest {
     void scalesSizes(float factor, float width, float height, int physicalWidth, int physicalHeight) {
         var scale = new DisplayScale(factor);
 
-        assertEquals(
-                new PhysicalSize(physicalWidth, physicalHeight),
-                scale.toPhysical(new LogicalSize(width, height)));
+        assertEquals(new PhysicalSize(physicalWidth, physicalHeight), scale.toPhysical(new LogicalSize(width, height)));
     }
 
     @ParameterizedTest
@@ -74,9 +73,7 @@ class DisplayScaleTest {
             final var logical = i;
             var back = scale.toLogical(scale.toPhysical(logical));
 
-            assertTrue(
-                    Math.abs(back - logical) <= 1f,
-                    () -> "round trip of " + logical + " drifted to " + back);
+            assertTrue(Math.abs(back - logical) <= 1f, () -> "round trip of " + logical + " drifted to " + back);
         }
     }
 
@@ -108,7 +105,6 @@ class DisplayScaleTest {
     void rejectsOverflow() {
         var scale = new DisplayScale(2f);
 
-        assertThrows(
-                IllegalArgumentException.class, () -> scale.toPhysical(Float.MAX_VALUE));
+        assertThrows(IllegalArgumentException.class, () -> scale.toPhysical(Float.MAX_VALUE));
     }
 }

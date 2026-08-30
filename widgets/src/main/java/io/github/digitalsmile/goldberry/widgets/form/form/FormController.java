@@ -32,8 +32,7 @@ import java.util.List;
 public final class FormController {
 
     /// A controller with nothing attached yet.
-    public FormController() {
-    }
+    public FormController() {}
 
     /// The attached form's state, or null. Package-private and set only by
     /// [FormState], which attaches on mount and detaches on unmount.

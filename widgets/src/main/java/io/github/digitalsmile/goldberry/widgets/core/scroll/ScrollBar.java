@@ -1,15 +1,16 @@
 package io.github.digitalsmile.goldberry.widgets.core.scroll;
 
-import io.github.digitalsmile.goldberry.css.ComputedStyle;
-import io.github.digitalsmile.goldberry.input.handler.Handles;
-import io.github.digitalsmile.goldberry.input.event.PointerEvent;
-import io.github.digitalsmile.goldberry.paint.Box;
-import io.github.digitalsmile.goldberry.natives.yoga.style.FlexDirection;
-import io.github.digitalsmile.goldberry.widget.style.Paints;
-import io.github.digitalsmile.goldberry.widget.style.Styled;
-import io.github.digitalsmile.goldberry.widget.Widget;
 import java.util.List;
 import java.util.Set;
+
+import io.github.digitalsmile.goldberry.css.ComputedStyle;
+import io.github.digitalsmile.goldberry.input.event.PointerEvent;
+import io.github.digitalsmile.goldberry.input.handler.Handles;
+import io.github.digitalsmile.goldberry.natives.yoga.style.FlexDirection;
+import io.github.digitalsmile.goldberry.paint.Box;
+import io.github.digitalsmile.goldberry.widget.Widget;
+import io.github.digitalsmile.goldberry.widget.style.Paints;
+import io.github.digitalsmile.goldberry.widget.style.Styled;
 
 /// One axis's scrollbar — §2.4's overlay bar, its track and the thumb in it.
 ///
@@ -53,8 +54,12 @@ import java.util.Set;
 /// @param onDrag    told when a drag starts and ends, so the state can hold the
 ///                  bars open for its duration
 record ScrollBar(
-        boolean vertical, double viewport, double content, double offset,
-        java.util.function.DoubleConsumer onScroll, boolean dragging,
+        boolean vertical,
+        double viewport,
+        double content,
+        double offset,
+        java.util.function.DoubleConsumer onScroll,
+        boolean dragging,
         java.util.function.Consumer<Boolean> onDrag)
         implements Widget.Leaf, Styled, Paints, Handles {
 
@@ -152,8 +157,7 @@ record ScrollBar(
                     event.consume();
                 }
             }
-            default -> {
-            }
+            default -> {}
         }
     }
 
@@ -164,7 +168,9 @@ record ScrollBar(
 
     @Override
     public Box render(ComputedStyle style, List<Box> children, Context context) {
-        return Box.of().children(children.toArray(Box[]::new)).style(style)
+        return Box.of()
+                .children(children.toArray(Box[]::new))
+                .style(style)
                 .direction(vertical ? FlexDirection.COLUMN : FlexDirection.ROW);
     }
 }

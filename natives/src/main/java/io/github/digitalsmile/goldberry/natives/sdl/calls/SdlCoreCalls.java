@@ -5,11 +5,12 @@ import static java.lang.foreign.ValueLayout.JAVA_BOOLEAN;
 import static java.lang.foreign.ValueLayout.JAVA_INT;
 import static java.lang.foreign.ValueLayout.JAVA_SHORT;
 
-import io.github.digitalsmile.goldberry.natives.Downcalls;
 import java.lang.foreign.FunctionDescriptor;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.SymbolLookup;
 import java.lang.invoke.MethodHandle;
+
+import io.github.digitalsmile.goldberry.natives.Downcalls;
 
 /// SDL's process-wide lifecycle, error and version calls.
 ///
@@ -59,8 +60,7 @@ public record SdlCoreCalls(
     /// @return false if SDL refused
     public static final class Init {
 
-        private static final MethodHandle FD_SDL_Init =
-                Downcalls.link(FunctionDescriptor.of(JAVA_BOOLEAN, JAVA_INT));
+        private static final MethodHandle FD_SDL_Init = Downcalls.link(FunctionDescriptor.of(JAVA_BOOLEAN, JAVA_INT));
 
         private final MemorySegment address;
 
@@ -110,8 +110,7 @@ public record SdlCoreCalls(
     /// @param subsystems a mask of `SDL_INIT_*` flags
     public static final class QuitSubSystem {
 
-        private static final MethodHandle FD_SDL_QuitSubSystem =
-                Downcalls.link(FunctionDescriptor.ofVoid(JAVA_INT));
+        private static final MethodHandle FD_SDL_QuitSubSystem = Downcalls.link(FunctionDescriptor.ofVoid(JAVA_INT));
 
         private final MemorySegment address;
 
@@ -139,8 +138,7 @@ public record SdlCoreCalls(
     /// @return a mask of `SDL_INIT_*` flags
     public static final class WasInit {
 
-        private static final MethodHandle FD_SDL_WasInit =
-                Downcalls.link(FunctionDescriptor.of(JAVA_INT, JAVA_INT));
+        private static final MethodHandle FD_SDL_WasInit = Downcalls.link(FunctionDescriptor.of(JAVA_INT, JAVA_INT));
 
         private final MemorySegment address;
 
@@ -188,8 +186,7 @@ public record SdlCoreCalls(
     /// @return a NUL-terminated string SDL owns, empty when there is none
     public static final class GetError {
 
-        private static final MethodHandle FD_SDL_GetError =
-                Downcalls.link(FunctionDescriptor.of(ADDRESS));
+        private static final MethodHandle FD_SDL_GetError = Downcalls.link(FunctionDescriptor.of(ADDRESS));
 
         private final MemorySegment address;
 
@@ -213,8 +210,7 @@ public record SdlCoreCalls(
     /// @return always true
     public static final class ClearError {
 
-        private static final MethodHandle FD_SDL_ClearError =
-                Downcalls.link(FunctionDescriptor.of(JAVA_BOOLEAN));
+        private static final MethodHandle FD_SDL_ClearError = Downcalls.link(FunctionDescriptor.of(JAVA_BOOLEAN));
 
         private final MemorySegment address;
 
@@ -238,8 +234,7 @@ public record SdlCoreCalls(
     /// @return a packed version, `major * 1000000 + minor * 1000 + patch`
     public static final class GetVersion {
 
-        private static final MethodHandle FD_SDL_GetVersion =
-                Downcalls.link(FunctionDescriptor.of(JAVA_INT));
+        private static final MethodHandle FD_SDL_GetVersion = Downcalls.link(FunctionDescriptor.of(JAVA_INT));
 
         private final MemorySegment address;
 
@@ -263,8 +258,7 @@ public record SdlCoreCalls(
     /// @return a NUL-terminated string SDL owns
     public static final class GetRevision {
 
-        private static final MethodHandle FD_SDL_GetRevision =
-                Downcalls.link(FunctionDescriptor.of(ADDRESS));
+        private static final MethodHandle FD_SDL_GetRevision = Downcalls.link(FunctionDescriptor.of(ADDRESS));
 
         private final MemorySegment address;
 
@@ -292,8 +286,7 @@ public record SdlCoreCalls(
     /// @return a NUL-terminated string SDL owns
     public static final class GetCurrentVideoDriver {
 
-        private static final MethodHandle FD_SDL_GetCurrentVideoDriver =
-                Downcalls.link(FunctionDescriptor.of(ADDRESS));
+        private static final MethodHandle FD_SDL_GetCurrentVideoDriver = Downcalls.link(FunctionDescriptor.of(ADDRESS));
 
         private final MemorySegment address;
 
@@ -355,8 +348,7 @@ public record SdlCoreCalls(
     /// @return an `SDL_Keymod` bitmask
     public static final class GetModState {
 
-        private static final MethodHandle FD_SDL_GetModState =
-                Downcalls.link(FunctionDescriptor.of(JAVA_SHORT));
+        private static final MethodHandle FD_SDL_GetModState = Downcalls.link(FunctionDescriptor.of(JAVA_SHORT));
 
         private final MemorySegment address;
 

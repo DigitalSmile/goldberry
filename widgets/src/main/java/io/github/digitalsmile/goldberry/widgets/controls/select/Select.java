@@ -1,19 +1,20 @@
 package io.github.digitalsmile.goldberry.widgets.controls.select;
 
-import io.github.digitalsmile.goldberry.bind.Observable;
-import io.github.digitalsmile.goldberry.kdl.KdlNode;
-import io.github.digitalsmile.goldberry.widget.attr.Attributed;
-import io.github.digitalsmile.goldberry.widget.attr.Attributes;
-import io.github.digitalsmile.goldberry.widget.attr.Bindable;
-import io.github.digitalsmile.goldberry.widget.State;
-import io.github.digitalsmile.goldberry.widget.Widget;
-import io.github.digitalsmile.goldberry.widgets.markup.Markup;
-import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
-import io.github.digitalsmile.goldberry.widgets.controls.option.Option;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Consumer;
+
+import io.github.digitalsmile.goldberry.bind.Observable;
+import io.github.digitalsmile.goldberry.kdl.KdlNode;
+import io.github.digitalsmile.goldberry.widget.State;
+import io.github.digitalsmile.goldberry.widget.Widget;
+import io.github.digitalsmile.goldberry.widget.attr.Attributed;
+import io.github.digitalsmile.goldberry.widget.attr.Attributes;
+import io.github.digitalsmile.goldberry.widget.attr.Bindable;
+import io.github.digitalsmile.goldberry.widgets.controls.option.Option;
+import io.github.digitalsmile.goldberry.widgets.markup.Markup;
+import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
 
 /// A closed control with a list under it — `docs/core-widgets.md` §3's `select`.
 ///
@@ -103,16 +104,23 @@ import java.util.function.Consumer;
 /// @param attributes  `id` and `class`, exactly as on the primitives
 @Markup("select")
 public record Select(
-        String value, List<Widget> children, Observable<?> source, Consumer<String> onChange,
-        String placeholder, boolean multiple, boolean autocomplete, boolean free,
+        String value,
+        List<Widget> children,
+        Observable<?> source,
+        Consumer<String> onChange,
+        String placeholder,
+        boolean multiple,
+        boolean autocomplete,
+        boolean free,
         Consumer<String> onQuery,
         List<io.github.digitalsmile.goldberry.widgets.panel.tree.TreeNode> tree,
-        boolean disabled, Attributes attributes)
+        boolean disabled,
+        Attributes attributes)
         implements Widget.Stateful, Attributed<Select>, Bindable<Select> {
 
     public Select {
-        tree = List.copyOf(tree == null
-                ? List.<io.github.digitalsmile.goldberry.widgets.panel.tree.TreeNode>of() : tree);
+        tree = List.copyOf(
+                tree == null ? List.<io.github.digitalsmile.goldberry.widgets.panel.tree.TreeNode>of() : tree);
         children = List.copyOf(children == null ? List.of() : children);
         placeholder = placeholder == null ? "" : placeholder;
         attributes = attributes == null ? Attributes.NONE : attributes;
@@ -121,35 +129,65 @@ public record Select(
     /// A select with a value and a handler, unbound — the Java spelling of
     /// `select value="…" change="…"`.
     public Select(String value, Consumer<String> onChange, Option... options) {
-        this(value, List.of(options), null, onChange, "", false, false, false, null, List.of(), false,
-                Attributes.NONE);
+        this(value, List.of(options), null, onChange, "", false, false, false, null, List.of(), false, Attributes.NONE);
     }
 
     /// A select that is not wired yet — what a layout preview builds.
     public Select(Option... options) {
-        this(null, List.of(options), null, null, "", false, false, false, null, List.of(), false,
-                Attributes.NONE);
+        this(null, List.of(options), null, null, "", false, false, false, null, List.of(), false, Attributes.NONE);
     }
 
     /// A select that follows a property. The Java spelling of `bind=`.
     ///
     /// @param source read-only by construction ([ADR-0063])
     public static Select of(Observable<?> source, Consumer<String> onChange, Option... options) {
-        return new Select(null, List.of(options),
-                Objects.requireNonNull(source, "source"), onChange, "", false, false, false, null,
-                List.of(), false, Attributes.NONE);
+        return new Select(
+                null,
+                List.of(options),
+                Objects.requireNonNull(source, "source"),
+                onChange,
+                "",
+                false,
+                false,
+                false,
+                null,
+                List.of(),
+                false,
+                Attributes.NONE);
     }
 
     /// This select with the text its closed form reads when nothing is chosen.
     public Select placeholder(String value) {
-        return new Select(this.value, children, source, onChange, value, multiple, autocomplete,
-                free, onQuery, tree, disabled, attributes);
+        return new Select(
+                this.value,
+                children,
+                source,
+                onChange,
+                value,
+                multiple,
+                autocomplete,
+                free,
+                onQuery,
+                tree,
+                disabled,
+                attributes);
     }
 
     /// This select, disabled or not.
     public Select disabled(boolean value) {
-        return new Select(this.value, children, source, onChange, placeholder, multiple,
-                autocomplete, free, onQuery, tree, value, attributes);
+        return new Select(
+                this.value,
+                children,
+                source,
+                onChange,
+                placeholder,
+                multiple,
+                autocomplete,
+                free,
+                onQuery,
+                tree,
+                value,
+                attributes);
     }
 
     /// Which option is selected **right now** — the bound value, or [#value()].
@@ -169,8 +207,19 @@ public record Select(
 
     /// This select taking more than one value — §3's `multiple=#true`.
     public Select multiple(boolean value) {
-        return new Select(this.value, children, source, onChange, placeholder, value, autocomplete,
-                free, onQuery, tree, disabled, attributes);
+        return new Select(
+                this.value,
+                children,
+                source,
+                onChange,
+                placeholder,
+                value,
+                autocomplete,
+                free,
+                onQuery,
+                tree,
+                disabled,
+                attributes);
     }
 
     /// This select with an editable closed control — §3's `autocomplete=#true`.
@@ -191,8 +240,19 @@ public record Select(
     ///
     /// @param onQuery told what was typed, or null for a control nobody filters
     public Select autocomplete(Consumer<String> onQuery) {
-        return new Select(value, children, source, onChange, placeholder, multiple, true, free,
-                onQuery, tree, disabled, attributes);
+        return new Select(
+                value,
+                children,
+                source,
+                onChange,
+                placeholder,
+                multiple,
+                true,
+                free,
+                onQuery,
+                tree,
+                disabled,
+                attributes);
     }
 
     /// This select keeping a typed value its options do not offer.
@@ -203,8 +263,19 @@ public record Select(
     /// `free=#true` is the other reading — the suggestions are a convenience and
     /// any value is legal, which is what §4's free-text form always is.
     public Select free(boolean value) {
-        return new Select(this.value, children, source, onChange, placeholder, multiple,
-                autocomplete, value, onQuery, tree, disabled, attributes);
+        return new Select(
+                this.value,
+                children,
+                source,
+                onChange,
+                placeholder,
+                multiple,
+                autocomplete,
+                value,
+                onQuery,
+                tree,
+                disabled,
+                attributes);
     }
 
     /// This select opening a **tree** instead of a flat list — §3's `tree=#true`.
@@ -217,10 +288,20 @@ public record Select(
     /// "'Europe' is usually a heading and not an answer". A parent row is still
     /// navigable and openable; it is simply not a value
     /// ([ADR-0184](../../../../../../../../book/src/adr/0184-a-tree-is-a-list-that-remembers-what-is-open.md)).
-    public Select tree(
-            List<io.github.digitalsmile.goldberry.widgets.panel.tree.TreeNode> roots) {
-        return new Select(value, children, source, onChange, placeholder, multiple, autocomplete,
-                free, onQuery, roots, disabled, attributes);
+    public Select tree(List<io.github.digitalsmile.goldberry.widgets.panel.tree.TreeNode> roots) {
+        return new Select(
+                value,
+                children,
+                source,
+                onChange,
+                placeholder,
+                multiple,
+                autocomplete,
+                free,
+                onQuery,
+                roots,
+                disabled,
+                attributes);
     }
 
     /// Whether this select's popup is a tree.
@@ -238,9 +319,7 @@ public record Select(
         return current == null ? null : labelIn(tree, current);
     }
 
-    private static String labelIn(
-            List<io.github.digitalsmile.goldberry.widgets.panel.tree.TreeNode> nodes,
-            String id) {
+    private static String labelIn(List<io.github.digitalsmile.goldberry.widgets.panel.tree.TreeNode> nodes, String id) {
         for (var node : nodes) {
             if (node.id().equals(id)) {
                 return node.label();
@@ -283,8 +362,7 @@ public record Select(
     /// and possibly naming options this select does not offer.
     private java.util.Set<String> boundValues() {
         if (source == null) {
-            return value == null || value.isEmpty()
-                    ? java.util.Set.of() : java.util.Set.of(value);
+            return value == null || value.isEmpty() ? java.util.Set.of() : java.util.Set.of(value);
         }
         return switch (source.get()) {
             case null -> java.util.Set.of();
@@ -355,14 +433,36 @@ public record Select(
 
     @Override
     public Select bound(Observable<?> source) {
-        return new Select(value, children, source, onChange, placeholder, multiple, autocomplete,
-                free, onQuery, tree, disabled, attributes);
+        return new Select(
+                value,
+                children,
+                source,
+                onChange,
+                placeholder,
+                multiple,
+                autocomplete,
+                free,
+                onQuery,
+                tree,
+                disabled,
+                attributes);
     }
 
     @Override
     public Select withAttributes(Attributes attributes) {
-        return new Select(value, children, source, onChange, placeholder, multiple, autocomplete,
-                free, onQuery, tree, disabled, attributes);
+        return new Select(
+                value,
+                children,
+                source,
+                onChange,
+                placeholder,
+                multiple,
+                autocomplete,
+                free,
+                onQuery,
+                tree,
+                disabled,
+                attributes);
     }
 
     @Override
@@ -385,15 +485,21 @@ public record Select(
     /// The same valued action `segmented` and `radio-group` take: a set's handler
     /// is useless without the value picked (ADR-0073).
     public static Widget inflate(KdlNode node, List<Widget> children, Wiring wiring) {
-        return new Select(node.stringProperty("value"), children,
-                wiring.bound(node), wiring.valued(node, "change"),
-                node.stringProperty("placeholder"), node.booleanProperty("multiple"),
-                node.booleanProperty("autocomplete"), node.booleanProperty("free"),
+        return new Select(
+                node.stringProperty("value"),
+                children,
+                wiring.bound(node),
+                wiring.valued(node, "change"),
+                node.stringProperty("placeholder"),
+                node.booleanProperty("multiple"),
+                node.booleanProperty("autocomplete"),
+                node.booleanProperty("free"),
                 wiring.valued(node, "query"),
                 // Not from markup: a tree's model is nodes with suppliers under
                 // them, which is a shape KDL has no way to write and which §3
                 // describes as "a `tree`'s model" — the application's (ADR-0184).
                 List.of(),
-                Wiring.disabled(node), Attributes.of(node));
+                Wiring.disabled(node),
+                Attributes.of(node));
     }
 }

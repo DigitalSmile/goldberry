@@ -5,30 +5,32 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import io.github.digitalsmile.goldberry.Goldberry;
-import io.github.digitalsmile.goldberry.Window;
-import io.github.digitalsmile.goldberry.render.model.DisplayScale;
-import io.github.digitalsmile.goldberry.render.model.LogicalSize;
-import io.github.digitalsmile.goldberry.render.window.WindowSpec;
-import io.github.digitalsmile.goldberry.render.backend.headless.HeadlessBackend;
-import io.github.digitalsmile.goldberry.render.backend.headless.HeadlessWindow;
-import io.github.digitalsmile.goldberry.css.select.Selector.PseudoClass;
-import io.github.digitalsmile.goldberry.widget.Element;
-import io.github.digitalsmile.goldberry.widget.ElementTree;
-import io.github.digitalsmile.goldberry.widget.style.Styled;
-import io.github.digitalsmile.goldberry.widget.Widget;
 import java.util.ArrayList;
 import java.util.List;
+
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
+
+import io.github.digitalsmile.goldberry.Goldberry;
+import io.github.digitalsmile.goldberry.Window;
+import io.github.digitalsmile.goldberry.css.select.Selector.PseudoClass;
 import io.github.digitalsmile.goldberry.input.event.PointerEvent;
-import io.github.digitalsmile.goldberry.input.key.Modifiers;
-import io.github.digitalsmile.goldberry.input.hit.HitTest;
 import io.github.digitalsmile.goldberry.input.handler.Handles;
+import io.github.digitalsmile.goldberry.input.hit.HitTest;
+import io.github.digitalsmile.goldberry.input.key.Modifiers;
+import io.github.digitalsmile.goldberry.render.backend.headless.HeadlessBackend;
+import io.github.digitalsmile.goldberry.render.backend.headless.HeadlessWindow;
+import io.github.digitalsmile.goldberry.render.model.DisplayScale;
+import io.github.digitalsmile.goldberry.render.model.LogicalSize;
+import io.github.digitalsmile.goldberry.render.window.WindowSpec;
+import io.github.digitalsmile.goldberry.widget.Element;
+import io.github.digitalsmile.goldberry.widget.ElementTree;
+import io.github.digitalsmile.goldberry.widget.Widget;
+import io.github.digitalsmile.goldberry.widget.style.Styled;
 
 /// The wheel, and the pointer capture a drag needs (§7.1).
 ///
@@ -98,9 +100,8 @@ class WheelAndCaptureTest {
         var tree = new ElementTree(outerWidget);
         outer = tree.root();
         inner = outer.children().getFirst();
-        router.updateRegions(List.of(
-                HitTest.Region.of(outer, 0, 0, 100, 100),
-                HitTest.Region.of(inner, 20, 20, 40, 40)));
+        router.updateRegions(
+                List.of(HitTest.Region.of(outer, 0, 0, 100, 100), HitTest.Region.of(inner, 20, 20, 40, 40)));
     }
 
     @Nested
@@ -244,8 +245,7 @@ class WheelAndCaptureTest {
             router.pointerPressed(30, 30, PointerEvent.Button.PRIMARY, 1);
             router.pointerReleased(90, 90, PointerEvent.Button.PRIMARY, 1);
 
-            assertSame(inner, router.captured(),
-                    "only the widget that asked for it knows when its gesture is over");
+            assertSame(inner, router.captured(), "only the widget that asked for it knows when its gesture is over");
 
             router.releasePointer();
             assertNull(router.captured());
@@ -282,10 +282,8 @@ class WheelAndCaptureTest {
 
             // Cancelling a click by dragging off the button is a gesture people
             // rely on, and a control that fired on release could not tell.
-            assertTrue(log.stream().noneMatch(entry -> entry.contains("CLICKED")),
-                    () -> "log was " + log);
-            assertTrue(log.contains("inner:RELEASED at 90.0,90.0"),
-                    () -> "but the release still arrives: " + log);
+            assertTrue(log.stream().noneMatch(entry -> entry.contains("CLICKED")), () -> "log was " + log);
+            assertTrue(log.contains("inner:RELEASED at 90.0,90.0"), () -> "but the release still arrives: " + log);
         }
 
         @Test
@@ -297,7 +295,8 @@ class WheelAndCaptureTest {
             log.clear();
             router.pointerReleased(30, 30, PointerEvent.Button.PRIMARY, 1);
 
-            assertTrue(log.contains("outer:CLICKED at 30.0,30.0"),
+            assertTrue(
+                    log.contains("outer:CLICKED at 30.0,30.0"),
                     () -> "the click should bubble to the ancestor too: " + log);
         }
 
@@ -320,8 +319,7 @@ class WheelAndCaptureTest {
             router.pointerPressed(30, 30, PointerEvent.Button.SECONDARY, 1);
             router.pointerReleased(30, 30, PointerEvent.Button.SECONDARY, 1);
 
-            assertTrue(log.stream().noneMatch(entry -> entry.contains("CLICKED")),
-                    () -> "log was " + log);
+            assertTrue(log.stream().noneMatch(entry -> entry.contains("CLICKED")), () -> "log was " + log);
         }
 
         @Test
@@ -329,8 +327,7 @@ class WheelAndCaptureTest {
         void releaseWithoutPress() {
             router.pointerReleased(30, 30, PointerEvent.Button.PRIMARY, 1);
 
-            assertTrue(log.stream().noneMatch(entry -> entry.contains("CLICKED")),
-                    () -> "log was " + log);
+            assertTrue(log.stream().noneMatch(entry -> entry.contains("CLICKED")), () -> "log was " + log);
         }
     }
 

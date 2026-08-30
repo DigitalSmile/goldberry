@@ -1,17 +1,18 @@
 package io.github.digitalsmile.goldberry.widgets.core.affix;
 
-import io.github.digitalsmile.goldberry.render.model.LogicalRect;
-import io.github.digitalsmile.goldberry.css.ComputedStyle;
-import io.github.digitalsmile.goldberry.input.handler.Located;
-import io.github.digitalsmile.goldberry.paint.Box;
-import io.github.digitalsmile.goldberry.natives.yoga.style.FlexDirection;
-import io.github.digitalsmile.goldberry.widget.attr.Attributes;
-import io.github.digitalsmile.goldberry.widget.style.Paints;
-import io.github.digitalsmile.goldberry.widget.style.Styled;
-import io.github.digitalsmile.goldberry.widget.Widget;
 import java.util.List;
 import java.util.Set;
 import java.util.function.BiConsumer;
+
+import io.github.digitalsmile.goldberry.css.ComputedStyle;
+import io.github.digitalsmile.goldberry.input.handler.Located;
+import io.github.digitalsmile.goldberry.natives.yoga.style.FlexDirection;
+import io.github.digitalsmile.goldberry.paint.Box;
+import io.github.digitalsmile.goldberry.render.model.LogicalRect;
+import io.github.digitalsmile.goldberry.widget.Widget;
+import io.github.digitalsmile.goldberry.widget.attr.Attributes;
+import io.github.digitalsmile.goldberry.widget.style.Paints;
+import io.github.digitalsmile.goldberry.widget.style.Styled;
 
 /// The hole an [Affix] leaves behind — the CSS type `affix`, and the node that is
 /// told where it is.
@@ -22,8 +23,12 @@ import java.util.function.BiConsumer;
 /// [AffixContent], one level down, which is what stops a widget that reacts to its
 /// own position from chasing itself ([ADR-0119]).
 record AffixSlot(
-        List<Widget> children, Edge edge, double shift, boolean affixed,
-        BiConsumer<LogicalRect, LogicalRect> onLocated, Attributes attributes)
+        List<Widget> children,
+        Edge edge,
+        double shift,
+        boolean affixed,
+        BiConsumer<LogicalRect, LogicalRect> onLocated,
+        Attributes attributes)
         implements Widget.Leaf, Styled, Paints, Located {
 
     @Override
@@ -60,7 +65,9 @@ record AffixSlot(
 
     @Override
     public Box render(ComputedStyle style, List<Box> boxes, Context context) {
-        return Box.of().children(boxes.toArray(Box[]::new)).style(style)
+        return Box.of()
+                .children(boxes.toArray(Box[]::new))
+                .style(style)
                 .direction(FlexDirection.COLUMN)
                 // While pinned, this paints after its siblings — and only while
                 // pinned. Document order is paint order (ADR-0053), so a header

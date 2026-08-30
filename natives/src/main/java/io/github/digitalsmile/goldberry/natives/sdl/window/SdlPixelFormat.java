@@ -12,7 +12,6 @@ package io.github.digitalsmile.goldberry.natives.sdl.window;
 /// Anything else means the platform handed back a surface Goldberry cannot blit
 /// into, and the backend says so rather than writing a scrambled frame.
 public enum SdlPixelFormat {
-
     XRGB8888(0x16161804),
 
     ARGB8888(0x16362004);

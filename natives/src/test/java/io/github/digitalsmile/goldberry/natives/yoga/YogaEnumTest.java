@@ -8,11 +8,13 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.MethodSource;
+
 import io.github.digitalsmile.goldberry.natives.yoga.style.Align;
 import io.github.digitalsmile.goldberry.natives.yoga.style.Direction;
 import io.github.digitalsmile.goldberry.natives.yoga.style.Edge;
@@ -72,9 +74,7 @@ class YogaEnumTest {
             var seen = new HashSet<Integer>();
             for (var constant : permitted.getEnumConstants()) {
                 var value = ((YogaEnum) constant).nativeValue();
-                assertTrue(
-                        seen.add(value),
-                        () -> permitted.getSimpleName() + " has two constants with value " + value);
+                assertTrue(seen.add(value), () -> permitted.getSimpleName() + " has two constants with value " + value);
             }
         }
     }
@@ -85,8 +85,7 @@ class YogaEnumTest {
         var seen = new HashSet<String>();
         for (var constant : YogaEnum.all()) {
             assertTrue(
-                    seen.add(constant.nativeName()),
-                    () -> "two constants both claim to be " + constant.nativeName());
+                    seen.add(constant.nativeName()), () -> "two constants both claim to be " + constant.nativeName());
         }
     }
 

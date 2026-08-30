@@ -1,10 +1,11 @@
 package io.github.digitalsmile.goldberry.input.event;
 
-import io.github.digitalsmile.goldberry.widget.Element;
 import java.util.Objects;
-import io.github.digitalsmile.goldberry.input.hit.Extent;
+
 import io.github.digitalsmile.goldberry.input.handler.Handles;
+import io.github.digitalsmile.goldberry.input.hit.Extent;
 import io.github.digitalsmile.goldberry.input.key.Modifiers;
+import io.github.digitalsmile.goldberry.widget.Element;
 
 /// A pointer event as a widget sees it.
 ///
@@ -41,7 +42,9 @@ public final class PointerEvent {
 
     /// Which button, for [Kind#PRESSED] and [Kind#RELEASED].
     public enum Button {
-        PRIMARY, SECONDARY, MIDDLE
+        PRIMARY,
+        SECONDARY,
+        MIDDLE
     }
 
     private final Kind kind;
@@ -169,14 +172,22 @@ public final class PointerEvent {
     ///
     /// The router is the only caller, because it is the only thing that knows —
     /// see [#dragX()].
-    public PointerEvent(Kind kind, float x, float y, Button button, int clickCount,
-            float pressX, float pressY, Element target) {
+    public PointerEvent(
+            Kind kind, float x, float y, Button button, int clickCount, float pressX, float pressY, Element target) {
         this(kind, x, y, button, clickCount, 0, 0, pressX, pressY, Modifiers.NONE, target);
     }
 
     /// The same, with the modifier keys that were held.
-    public PointerEvent(Kind kind, float x, float y, Button button, int clickCount,
-            float pressX, float pressY, Modifiers modifiers, Element target) {
+    public PointerEvent(
+            Kind kind,
+            float x,
+            float y,
+            Button button,
+            int clickCount,
+            float pressX,
+            float pressY,
+            Modifiers modifiers,
+            Element target) {
         this(kind, x, y, button, clickCount, 0, 0, pressX, pressY, modifiers, target);
     }
 
@@ -189,31 +200,75 @@ public final class PointerEvent {
     ///
     /// The backend's constructor. Everything else truncates, which is right for a
     /// synthesized event and wrong for a real touchpad — see [#ticksY()].
-    public static PointerEvent wheel(float x, float y, float deltaX, float deltaY,
-            int ticksX, int ticksY, Modifiers modifiers, Element target) {
-        return new PointerEvent(Kind.WHEEL, x, y, null, 0, deltaX, deltaY, ticksX, ticksY,
-                Float.NaN, Float.NaN, modifiers, target);
+    public static PointerEvent wheel(
+            float x, float y, float deltaX, float deltaY, int ticksX, int ticksY, Modifiers modifiers, Element target) {
+        return new PointerEvent(
+                Kind.WHEEL, x, y, null, 0, deltaX, deltaY, ticksX, ticksY, Float.NaN, Float.NaN, modifiers, target);
     }
 
     /// A wheel event with modifiers — `Shift` for a fine step, `Ctrl` for zoom.
-    public static PointerEvent wheel(float x, float y, float deltaX, float deltaY,
-            Modifiers modifiers, Element target) {
+    public static PointerEvent wheel(
+            float x, float y, float deltaX, float deltaY, Modifiers modifiers, Element target) {
         // Truncated rather than rounded: an accumulator has not reached one
         // click at 0.5. A caller that knows better passes the detents in.
-        return new PointerEvent(Kind.WHEEL, x, y, null, 0, deltaX, deltaY,
-                (int) deltaX, (int) deltaY, Float.NaN, Float.NaN, modifiers, target);
+        return new PointerEvent(
+                Kind.WHEEL,
+                x,
+                y,
+                null,
+                0,
+                deltaX,
+                deltaY,
+                (int) deltaX,
+                (int) deltaY,
+                Float.NaN,
+                Float.NaN,
+                modifiers,
+                target);
     }
 
-    private PointerEvent(Kind kind, float x, float y, Button button, int clickCount,
-            float deltaX, float deltaY, float pressX, float pressY,
-            Modifiers modifiers, Element target) {
-        this(kind, x, y, button, clickCount, deltaX, deltaY, (int) deltaX, (int) deltaY,
-                pressX, pressY, modifiers, target);
+    private PointerEvent(
+            Kind kind,
+            float x,
+            float y,
+            Button button,
+            int clickCount,
+            float deltaX,
+            float deltaY,
+            float pressX,
+            float pressY,
+            Modifiers modifiers,
+            Element target) {
+        this(
+                kind,
+                x,
+                y,
+                button,
+                clickCount,
+                deltaX,
+                deltaY,
+                (int) deltaX,
+                (int) deltaY,
+                pressX,
+                pressY,
+                modifiers,
+                target);
     }
 
-    private PointerEvent(Kind kind, float x, float y, Button button, int clickCount,
-            float deltaX, float deltaY, int ticksX, int ticksY, float pressX, float pressY,
-            Modifiers modifiers, Element target) {
+    private PointerEvent(
+            Kind kind,
+            float x,
+            float y,
+            Button button,
+            int clickCount,
+            float deltaX,
+            float deltaY,
+            int ticksX,
+            int ticksY,
+            float pressX,
+            float pressY,
+            Modifiers modifiers,
+            Element target) {
         this.kind = Objects.requireNonNull(kind, "kind");
         this.x = x;
         this.y = y;

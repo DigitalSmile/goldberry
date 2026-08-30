@@ -1,5 +1,10 @@
 package io.github.digitalsmile.goldberry.widgets.overlay.dialog;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
+import java.util.function.Consumer;
+
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
 import io.github.digitalsmile.goldberry.css.value.Transform;
 import io.github.digitalsmile.goldberry.input.event.KeyEvent;
@@ -12,11 +17,6 @@ import io.github.digitalsmile.goldberry.widget.attr.Attributes;
 import io.github.digitalsmile.goldberry.widget.style.Paints;
 import io.github.digitalsmile.goldberry.widget.style.Styled;
 import io.github.digitalsmile.goldberry.widgets.core.Phase;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
-import java.util.function.Consumer;
 
 /// The node a stylesheet calls `dialog`: the panel, its two keys, and the focus
 /// trap.
@@ -37,9 +37,15 @@ import java.util.function.Consumer;
 /// @param onMotion   told what each frame says about the motion preference
 /// @param attributes the `id` and classes the document wrote
 record DialogPanel(
-        String title, List<Widget> content, List<Widget> buttons,
-        Runnable onEscape, Runnable onEnter,
-        Phase phase, boolean closing, boolean closed, Consumer<Boolean> onMotion,
+        String title,
+        List<Widget> content,
+        List<Widget> buttons,
+        Runnable onEscape,
+        Runnable onEnter,
+        Phase phase,
+        boolean closing,
+        boolean closed,
+        Consumer<Boolean> onMotion,
         Attributes attributes)
         implements Widget.Leaf, Styled, Paints, Handles {
 
@@ -104,7 +110,9 @@ record DialogPanel(
     /// an open `select`. See [Dialog]'s note for why capture would be wrong.
     @Override
     public void onKey(KeyEvent event) {
-        if (closing || event.kind() != KeyEvent.Kind.PRESSED || event.isRepeat()
+        if (closing
+                || event.kind() != KeyEvent.Kind.PRESSED
+                || event.isRepeat()
                 || !event.modifiers().none()) {
             return;
         }
@@ -159,8 +167,7 @@ record DialogPanel(
         // §3's "0.96→1", both axes: a panel that scaled on one would look like a
         // door opening rather than a thing arriving.
         var scale = FROM + (1 - FROM) * visible;
-        return box.opacity(visible)
-                .transform(Transform.of(new Transform.Function.Scale(scale, scale)));
+        return box.opacity(visible).transform(Transform.of(new Transform.Function.Scale(scale, scale)));
     }
 
     /// The heading. A part, so a stylesheet can reach it and nothing can build
@@ -179,8 +186,7 @@ record DialogPanel(
 
         @Override
         public Box render(ComputedStyle style, List<Box> children, Context context) {
-            return Box.of().style(style)
-                    .children(Box.text(context.paragraph(style, text), style.color()));
+            return Box.of().style(style).children(Box.text(context.paragraph(style, text), style.color()));
         }
     }
 

@@ -6,11 +6,12 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import io.github.digitalsmile.goldberry.RendererRequirement;
-import io.github.digitalsmile.goldberry.assets.BundledFont;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+
+import io.github.digitalsmile.goldberry.RendererRequirement;
+import io.github.digitalsmile.goldberry.assets.BundledFont;
 
 class FontFaceTest {
 
@@ -72,7 +73,8 @@ class FontFaceTest {
             // The size is on Blend2D's font alone (ADR-0034), so the shaping
             // result -- design units -- is identical, and only the metrics move.
             assertEquals(small.shape("Wg").length(), large.shape("Wg").length());
-            assertTrue(large.lineHeight() > small.lineHeight(),
+            assertTrue(
+                    large.lineHeight() > small.lineHeight(),
                     () -> large.lineHeight() + " should exceed " + small.lineHeight());
             assertNotEquals(small.widthOf("Goldberry"), large.widthOf("Goldberry"));
         }

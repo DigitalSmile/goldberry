@@ -1,13 +1,14 @@
 package io.github.digitalsmile.goldberry.widgets.core.scroll;
 
-import io.github.digitalsmile.goldberry.widget.attr.Attributed;
-import io.github.digitalsmile.goldberry.widget.attr.Attributes;
+import java.util.List;
+
+import io.github.digitalsmile.goldberry.kdl.KdlNode;
 import io.github.digitalsmile.goldberry.widget.State;
 import io.github.digitalsmile.goldberry.widget.Widget;
-import java.util.List;
-import io.github.digitalsmile.goldberry.kdl.KdlNode;
-import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
+import io.github.digitalsmile.goldberry.widget.attr.Attributed;
+import io.github.digitalsmile.goldberry.widget.attr.Attributes;
 import io.github.digitalsmile.goldberry.widgets.markup.Markup;
+import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
 
 /// A viewport that shows part of something taller than itself —
 /// `docs/core-widgets.md` §1's `scroll`.
@@ -60,8 +61,7 @@ import io.github.digitalsmile.goldberry.widgets.markup.Markup;
 /// @param attributes `id` and `class`, exactly as on the primitives
 @Markup("scroll")
 public record Scroll(
-        List<Widget> children, ScrollAxis axis, double height,
-        ScrollController controller, Attributes attributes)
+        List<Widget> children, ScrollAxis axis, double height, ScrollController controller, Attributes attributes)
         implements Widget.Stateful, Attributed<Scroll> {
 
     public Scroll {
@@ -119,7 +119,6 @@ public record Scroll(
 
     /// Builds a `scroll` from markup.
     public static Widget inflate(KdlNode node, List<Widget> children, Wiring wiring) {
-        return new Scroll(children, ScrollAxis.parse(node.stringProperty("axis")),
-                Attributes.of(node));
+        return new Scroll(children, ScrollAxis.parse(node.stringProperty("axis")), Attributes.of(node));
     }
 }

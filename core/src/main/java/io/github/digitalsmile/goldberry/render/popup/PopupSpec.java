@@ -1,11 +1,11 @@
 package io.github.digitalsmile.goldberry.render.popup;
 
+import java.util.Objects;
+
 import io.github.digitalsmile.goldberry.render.Backend;
-import io.github.digitalsmile.goldberry.render.window.WindowSpec;
 import io.github.digitalsmile.goldberry.render.model.LogicalPoint;
 import io.github.digitalsmile.goldberry.render.model.LogicalSize;
-
-import java.util.Objects;
+import io.github.digitalsmile.goldberry.render.window.WindowSpec;
 
 /// What to open a popup as — [Backend#createPopup]'s argument.
 ///
@@ -36,8 +36,7 @@ public record PopupSpec(LogicalPoint position, LogicalSize size, PopupKind kind)
         Objects.requireNonNull(size, "size");
         Objects.requireNonNull(kind, "kind");
         if (size.width() <= 0 || size.height() <= 0) {
-            throw new IllegalArgumentException(
-                    "a popup needs a positive size, and " + size + " has none");
+            throw new IllegalArgumentException("a popup needs a positive size, and " + size + " has none");
         }
     }
 

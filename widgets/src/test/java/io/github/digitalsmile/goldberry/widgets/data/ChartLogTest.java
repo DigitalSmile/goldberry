@@ -4,28 +4,30 @@ import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.List;
+import java.util.Set;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+
 import io.github.digitalsmile.goldberry.RendererRequirement;
-import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
 import io.github.digitalsmile.goldberry.css.Stylesheet;
 import io.github.digitalsmile.goldberry.css.Theme;
+import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
 import io.github.digitalsmile.goldberry.golden.GoldenImage;
 import io.github.digitalsmile.goldberry.paint.BoxPainter;
 import io.github.digitalsmile.goldberry.paint.TestFrames;
-import io.github.digitalsmile.goldberry.widget.attr.Attributes;
 import io.github.digitalsmile.goldberry.widget.ElementTree;
 import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widget.WidgetRenderer;
+import io.github.digitalsmile.goldberry.widget.attr.Attributes;
 import io.github.digitalsmile.goldberry.widgets.Controls;
 import io.github.digitalsmile.goldberry.widgets.controls.TestFont;
 import io.github.digitalsmile.goldberry.widgets.core.Column;
 import io.github.digitalsmile.goldberry.widgets.data.areachart.AreaChart;
 import io.github.digitalsmile.goldberry.widgets.data.barchart.BarChart;
 import io.github.digitalsmile.goldberry.widgets.data.linechart.LineChart;
-import java.util.List;
-import java.util.Set;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
 
 /// A logarithmic value axis — `charts.md` §3.1's "log axis, with correct log tick
 /// labelling".
@@ -53,7 +55,9 @@ class ChartLogTest {
 
     private static WidgetRenderer renderer() {
         return new WidgetRenderer(
-                List.of(Controls.baseStylesheet(), Theme.NORD_DARK.load(),
+                List.of(
+                        Controls.baseStylesheet(),
+                        Theme.NORD_DARK.load(),
                         Stylesheet.parse(CascadeLayer.APPLICATION, """
                                 #frame { padding: 12px; background: var(--gb-bg) }
                                 #plot  { width: 296px; height: 156px }
@@ -129,9 +133,9 @@ class ChartLogTest {
         // rather than a difference, because what the axis promises is
         // proportional -- each decade the same room — and the absolute numbers
         // depend on how tall the test's chart happens to be.
-        assertTrue(rowsWithData(logarithmic) >= rowsWithData(linear) * 4,
-                "linear used " + rowsWithData(linear) + " rows, log used "
-                        + rowsWithData(logarithmic));
+        assertTrue(
+                rowsWithData(logarithmic) >= rowsWithData(linear) * 4,
+                "linear used " + rowsWithData(linear) + " rows, log used " + rowsWithData(logarithmic));
     }
 
     @Test
@@ -172,8 +176,8 @@ class ChartLogTest {
         // that into an exception in a paint pass -- a query can return zeroes.
         var zeroes = Series.of("rate", 0, 0, 0);
 
-        assertArrayEquals(pixels(line(zeroes)), pixels(line(zeroes).logY()),
-                "it draws the linear picture rather than failing");
+        assertArrayEquals(
+                pixels(line(zeroes)), pixels(line(zeroes).logY()), "it draws the linear picture rather than failing");
     }
 
     @Test
@@ -193,7 +197,7 @@ class ChartLogTest {
         var render = renderer();
         var tree = new ElementTree(framed(line(SPIKY).logY()));
 
-        GoldenImage.assertMatches("line-chart-log-dark", WIDTH, HEIGHT, 1.0f,
-                frame -> BoxPainter.paint(frame, render.render(tree)));
+        GoldenImage.assertMatches(
+                "line-chart-log-dark", WIDTH, HEIGHT, 1.0f, frame -> BoxPainter.paint(frame, render.render(tree)));
     }
 }

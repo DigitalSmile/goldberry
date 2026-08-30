@@ -3,17 +3,19 @@ package io.github.digitalsmile.goldberry.input;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import io.github.digitalsmile.goldberry.widget.ElementTree;
-import io.github.digitalsmile.goldberry.widget.style.Styled;
-import io.github.digitalsmile.goldberry.widget.Widget;
 import java.util.ArrayList;
 import java.util.List;
+
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+
 import io.github.digitalsmile.goldberry.input.event.PointerEvent;
-import io.github.digitalsmile.goldberry.input.key.Modifiers;
-import io.github.digitalsmile.goldberry.input.hit.HitTest;
 import io.github.digitalsmile.goldberry.input.handler.Handles;
+import io.github.digitalsmile.goldberry.input.hit.HitTest;
+import io.github.digitalsmile.goldberry.input.key.Modifiers;
+import io.github.digitalsmile.goldberry.widget.ElementTree;
+import io.github.digitalsmile.goldberry.widget.Widget;
+import io.github.digitalsmile.goldberry.widget.style.Styled;
 
 /// What a gesture *started from*, which — like where it started — only the router
 /// can answer
@@ -56,8 +58,7 @@ class GestureAnchorTest {
             if (event.kind() == PointerEvent.Kind.ENTERED || event.kind() == PointerEvent.Kind.EXITED) {
                 return;
             }
-            log.add(event.kind() + " anchor " + event.anchor()
-                    + " gesture " + event.gestureModifiers());
+            log.add(event.kind() + " anchor " + event.anchor() + " gesture " + event.gestureModifiers());
         }
     }
 
@@ -101,11 +102,13 @@ class GestureAnchorTest {
 
         // Every event of the gesture, the synthesized click included: a control
         // reading the anchor on any of them gets the same answer.
-        assertEquals(List.of(
-                "PRESSED anchor 42.0 gesture none",
-                "MOVED anchor 42.0 gesture none",
-                "RELEASED anchor 42.0 gesture none",
-                "CLICKED anchor 42.0 gesture none"), log);
+        assertEquals(
+                List.of(
+                        "PRESSED anchor 42.0 gesture none",
+                        "MOVED anchor 42.0 gesture none",
+                        "RELEASED anchor 42.0 gesture none",
+                        "CLICKED anchor 42.0 gesture none"),
+                log);
     }
 
     /// The half that makes it worth having. `dragY` alone cannot tell a knob what
@@ -118,9 +121,7 @@ class GestureAnchorTest {
         routerOver(new Node("a", 42)).pointerPressed(30, 40, PointerEvent.Button.PRIMARY, 1);
         routerOver(new Node("b", 7)).pointerPressed(30, 40, PointerEvent.Button.PRIMARY, 1);
 
-        assertEquals(List.of(
-                "PRESSED anchor 42.0 gesture none",
-                "PRESSED anchor 7.0 gesture none"), log);
+        assertEquals(List.of("PRESSED anchor 42.0 gesture none", "PRESSED anchor 7.0 gesture none"), log);
     }
 
     /// `NaN` and not zero, which is [PointerEvent#dragX()]'s convention and is
@@ -176,9 +177,7 @@ class GestureAnchorTest {
         router.pointerPressed(30, 40, PointerEvent.Button.PRIMARY, 1, shift);
         router.pointerMoved(30, 60, Modifiers.NONE);
 
-        assertEquals(List.of(
-                "PRESSED anchor 42.0 gesture Shift",
-                "MOVED anchor 42.0 gesture Shift"), log);
+        assertEquals(List.of("PRESSED anchor 42.0 gesture Shift", "MOVED anchor 42.0 gesture Shift"), log);
     }
 
     /// A press lands on the deepest node under the pointer, which for a real
@@ -196,13 +195,13 @@ class GestureAnchorTest {
         // The part is on top, so it is the deepest region under the pointer --
         // which is what makes this the case that happens rather than a contrived
         // one.
-        router.updateRegions(List.of(
-                HitTest.Region.of(tree.root(), 0, 0, 100, 100),
-                HitTest.Region.of(inner, 0, 0, 100, 100)));
+        router.updateRegions(
+                List.of(HitTest.Region.of(tree.root(), 0, 0, 100, 100), HitTest.Region.of(inner, 0, 0, 100, 100)));
 
         router.pointerPressed(30, 40, PointerEvent.Button.PRIMARY, 1);
 
-        assertTrue(log.stream().anyMatch(line -> line.contains("anchor 42.0")),
+        assertTrue(
+                log.stream().anyMatch(line -> line.contains("anchor 42.0")),
                 () -> "the part's press was not anchored by its control: " + log);
     }
 

@@ -1,19 +1,20 @@
 package io.github.digitalsmile.goldberry.widgets.panel.skeleton;
 
-import io.github.digitalsmile.goldberry.css.ComputedStyle;
-import io.github.digitalsmile.goldberry.kdl.KdlNode;
-import io.github.digitalsmile.goldberry.paint.Box;
-import io.github.digitalsmile.goldberry.widget.attr.Attributed;
-import io.github.digitalsmile.goldberry.widget.attr.Attributes;
-import io.github.digitalsmile.goldberry.widget.style.Paints;
-import io.github.digitalsmile.goldberry.widget.style.Styled;
-import io.github.digitalsmile.goldberry.widget.Widget;
-import io.github.digitalsmile.goldberry.widgets.markup.Markup;
-import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
+
+import io.github.digitalsmile.goldberry.css.ComputedStyle;
+import io.github.digitalsmile.goldberry.kdl.KdlNode;
+import io.github.digitalsmile.goldberry.paint.Box;
+import io.github.digitalsmile.goldberry.widget.Widget;
+import io.github.digitalsmile.goldberry.widget.attr.Attributed;
+import io.github.digitalsmile.goldberry.widget.attr.Attributes;
+import io.github.digitalsmile.goldberry.widget.style.Paints;
+import io.github.digitalsmile.goldberry.widget.style.Styled;
+import io.github.digitalsmile.goldberry.widgets.markup.Markup;
+import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
 
 /// The shape content will be — `docs/core-widgets.md` §5's `skeleton`.
 ///
@@ -92,8 +93,8 @@ public record Skeleton(Shape shape, int lines, Attributes attributes)
                 return valueOf(text.trim().toUpperCase(Locale.ROOT));
             } catch (IllegalArgumentException e) {
                 throw new IllegalArgumentException(
-                        "a skeleton's shape is \"text\", \"title\", \"circle\" or \"rect\","
-                                + " not \"" + text + "\"", e);
+                        "a skeleton's shape is \"text\", \"title\", \"circle\" or \"rect\"," + " not \"" + text + "\"",
+                        e);
             }
         }
     }
@@ -124,9 +125,8 @@ public record Skeleton(Shape shape, int lines, Attributes attributes)
         shape = shape == null ? Shape.TEXT : shape;
         attributes = attributes == null ? Attributes.NONE : attributes;
         if (lines < 1) {
-            throw new IllegalArgumentException(
-                    "a skeleton of " + lines + " lines would stand in for nothing;"
-                            + " leave it out rather than asking for none");
+            throw new IllegalArgumentException("a skeleton of " + lines + " lines would stand in for nothing;"
+                    + " leave it out rather than asking for none");
         }
     }
 

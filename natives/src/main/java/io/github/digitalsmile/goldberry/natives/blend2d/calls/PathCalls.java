@@ -6,11 +6,12 @@ import static java.lang.foreign.ValueLayout.JAVA_DOUBLE;
 import static java.lang.foreign.ValueLayout.JAVA_INT;
 import static java.lang.foreign.ValueLayout.JAVA_LONG;
 
-import io.github.digitalsmile.goldberry.natives.Downcalls;
 import java.lang.foreign.FunctionDescriptor;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.SymbolLookup;
 import java.lang.invoke.MethodHandle;
+
+import io.github.digitalsmile.goldberry.natives.Downcalls;
 
 /// Blend2D’s `BLPath` — a recorded sequence of drawing commands.
 ///
@@ -57,8 +58,7 @@ public record PathCalls(
     /// @param path an uninitialised `BLPathCore` to take over
     public static final class PathInit {
 
-        private static final MethodHandle FD_bl_path_init =
-                Downcalls.link(FunctionDescriptor.of(JAVA_INT, ADDRESS));
+        private static final MethodHandle FD_bl_path_init = Downcalls.link(FunctionDescriptor.of(JAVA_INT, ADDRESS));
 
         private final MemorySegment address;
 
@@ -82,8 +82,7 @@ public record PathCalls(
     /// @param path the path to release
     public static final class PathDestroy {
 
-        private static final MethodHandle FD_bl_path_destroy =
-                Downcalls.link(FunctionDescriptor.of(JAVA_INT, ADDRESS));
+        private static final MethodHandle FD_bl_path_destroy = Downcalls.link(FunctionDescriptor.of(JAVA_INT, ADDRESS));
 
         private final MemorySegment address;
 
@@ -108,8 +107,7 @@ public record PathCalls(
     /// @param path the path to empty
     public static final class PathReset {
 
-        private static final MethodHandle FD_bl_path_reset =
-                Downcalls.link(FunctionDescriptor.of(JAVA_INT, ADDRESS));
+        private static final MethodHandle FD_bl_path_reset = Downcalls.link(FunctionDescriptor.of(JAVA_INT, ADDRESS));
 
         private final MemorySegment address;
 
@@ -214,9 +212,8 @@ public record PathCalls(
     /// @param y the end point
     public static final class PathQuadTo {
 
-        private static final MethodHandle FD_bl_path_quad_to =
-                Downcalls.link(FunctionDescriptor.of(
-                        JAVA_INT, ADDRESS, JAVA_DOUBLE, JAVA_DOUBLE, JAVA_DOUBLE, JAVA_DOUBLE));
+        private static final MethodHandle FD_bl_path_quad_to = Downcalls.link(
+                FunctionDescriptor.of(JAVA_INT, ADDRESS, JAVA_DOUBLE, JAVA_DOUBLE, JAVA_DOUBLE, JAVA_DOUBLE));
 
         private final MemorySegment address;
 
@@ -226,8 +223,7 @@ public record PathCalls(
 
         public int call(MemorySegment path, double controlX, double controlY, double x, double y) {
             try {
-                return (int) FD_bl_path_quad_to.invokeExact(
-                        address, path, controlX, controlY, x, y);
+                return (int) FD_bl_path_quad_to.invokeExact(address, path, controlX, controlY, x, y);
             } catch (Throwable t) {
                 throw Downcalls.failure("bl_path_quad_to", t);
             }
@@ -243,10 +239,8 @@ public record PathCalls(
     /// @param y the end point
     public static final class PathCubicTo {
 
-        private static final MethodHandle FD_bl_path_cubic_to =
-                Downcalls.link(FunctionDescriptor.of(
-                        JAVA_INT, ADDRESS, JAVA_DOUBLE, JAVA_DOUBLE, JAVA_DOUBLE, JAVA_DOUBLE,
-                        JAVA_DOUBLE, JAVA_DOUBLE));
+        private static final MethodHandle FD_bl_path_cubic_to = Downcalls.link(FunctionDescriptor.of(
+                JAVA_INT, ADDRESS, JAVA_DOUBLE, JAVA_DOUBLE, JAVA_DOUBLE, JAVA_DOUBLE, JAVA_DOUBLE, JAVA_DOUBLE));
 
         private final MemorySegment address;
 
@@ -255,8 +249,13 @@ public record PathCalls(
         }
 
         public int call(
-                MemorySegment path, double control1X, double control1Y, double control2X,
-                double control2Y, double x, double y) {
+                MemorySegment path,
+                double control1X,
+                double control1Y,
+                double control2X,
+                double control2Y,
+                double x,
+                double y) {
             try {
                 return (int) FD_bl_path_cubic_to.invokeExact(
                         address, path, control1X, control1Y, control2X, control2Y, x, y);
@@ -310,9 +309,8 @@ public record PathCalls(
     /// @param y the end point
     public static final class PathSmoothCubicTo {
 
-        private static final MethodHandle FD_bl_path_smooth_cubic_to =
-                Downcalls.link(FunctionDescriptor.of(
-                        JAVA_INT, ADDRESS, JAVA_DOUBLE, JAVA_DOUBLE, JAVA_DOUBLE, JAVA_DOUBLE));
+        private static final MethodHandle FD_bl_path_smooth_cubic_to = Downcalls.link(
+                FunctionDescriptor.of(JAVA_INT, ADDRESS, JAVA_DOUBLE, JAVA_DOUBLE, JAVA_DOUBLE, JAVA_DOUBLE));
 
         private final MemorySegment address;
 
@@ -320,11 +318,9 @@ public record PathCalls(
             this.address = Downcalls.symbol(lookup, "bl_path_smooth_cubic_to");
         }
 
-        public int call(
-                MemorySegment path, double control2X, double control2Y, double x, double y) {
+        public int call(MemorySegment path, double control2X, double control2Y, double x, double y) {
             try {
-                return (int) FD_bl_path_smooth_cubic_to.invokeExact(
-                        address, path, control2X, control2Y, x, y);
+                return (int) FD_bl_path_smooth_cubic_to.invokeExact(address, path, control2X, control2Y, x, y);
             } catch (Throwable t) {
                 throw Downcalls.failure("bl_path_smooth_cubic_to", t);
             }
@@ -347,10 +343,16 @@ public record PathCalls(
     /// @param y the end point
     public static final class PathEllipticArcTo {
 
-        private static final MethodHandle FD_bl_path_elliptic_arc_to =
-                Downcalls.link(FunctionDescriptor.of(
-                        JAVA_INT, ADDRESS, JAVA_DOUBLE, JAVA_DOUBLE, JAVA_DOUBLE, JAVA_BOOLEAN,
-                        JAVA_BOOLEAN, JAVA_DOUBLE, JAVA_DOUBLE));
+        private static final MethodHandle FD_bl_path_elliptic_arc_to = Downcalls.link(FunctionDescriptor.of(
+                JAVA_INT,
+                ADDRESS,
+                JAVA_DOUBLE,
+                JAVA_DOUBLE,
+                JAVA_DOUBLE,
+                JAVA_BOOLEAN,
+                JAVA_BOOLEAN,
+                JAVA_DOUBLE,
+                JAVA_DOUBLE));
 
         private final MemorySegment address;
 
@@ -359,8 +361,14 @@ public record PathCalls(
         }
 
         public int call(
-                MemorySegment path, double radiusX, double radiusY, double xAxisRotation,
-                boolean largeArc, boolean sweep, double x, double y) {
+                MemorySegment path,
+                double radiusX,
+                double radiusY,
+                double xAxisRotation,
+                boolean largeArc,
+                boolean sweep,
+                double x,
+                double y) {
             try {
                 return (int) FD_bl_path_elliptic_arc_to.invokeExact(
                         address, path, radiusX, radiusY, xAxisRotation, largeArc, sweep, x, y);
@@ -377,8 +385,7 @@ public record PathCalls(
     /// @param path the path to close
     public static final class PathClose {
 
-        private static final MethodHandle FD_bl_path_close =
-                Downcalls.link(FunctionDescriptor.of(JAVA_INT, ADDRESS));
+        private static final MethodHandle FD_bl_path_close = Downcalls.link(FunctionDescriptor.of(JAVA_INT, ADDRESS));
 
         private final MemorySegment address;
 

@@ -1,6 +1,5 @@
 package io.github.digitalsmile.goldberry.natives.blend2d.enums;
 
-
 /// What a gradient does outside its own two ends — `BLExtendMode`.
 ///
 /// Only the three simple modes. Blend2D also has the six pad/repeat/reflect

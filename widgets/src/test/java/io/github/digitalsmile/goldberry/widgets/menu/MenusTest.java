@@ -5,31 +5,33 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import io.github.digitalsmile.goldberry.Application;
-import io.github.digitalsmile.goldberry.Goldberry;
-import io.github.digitalsmile.goldberry.GoldberryTestAccess;
-import io.github.digitalsmile.goldberry.Host;
-import io.github.digitalsmile.goldberry.RendererRequirement;
-import io.github.digitalsmile.goldberry.input.key.Key;
-import io.github.digitalsmile.goldberry.render.event.BackendEvent;
-import io.github.digitalsmile.goldberry.render.model.LogicalRect;
-import io.github.digitalsmile.goldberry.render.model.LogicalSize;
-import io.github.digitalsmile.goldberry.render.backend.headless.HeadlessBackend;
-import io.github.digitalsmile.goldberry.render.backend.headless.HeadlessPopup;
-import io.github.digitalsmile.goldberry.render.backend.headless.HeadlessWindow;
-import io.github.digitalsmile.goldberry.css.Stylesheet;
-import io.github.digitalsmile.goldberry.css.Theme;
-import io.github.digitalsmile.goldberry.widget.Widget;
-import io.github.digitalsmile.goldberry.widgets.Controls;
-import io.github.digitalsmile.goldberry.widgets.core.Column;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
+
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
+
+import io.github.digitalsmile.goldberry.Application;
+import io.github.digitalsmile.goldberry.Goldberry;
+import io.github.digitalsmile.goldberry.GoldberryTestAccess;
+import io.github.digitalsmile.goldberry.Host;
+import io.github.digitalsmile.goldberry.RendererRequirement;
+import io.github.digitalsmile.goldberry.css.Stylesheet;
+import io.github.digitalsmile.goldberry.css.Theme;
+import io.github.digitalsmile.goldberry.input.key.Key;
+import io.github.digitalsmile.goldberry.render.backend.headless.HeadlessBackend;
+import io.github.digitalsmile.goldberry.render.backend.headless.HeadlessPopup;
+import io.github.digitalsmile.goldberry.render.backend.headless.HeadlessWindow;
+import io.github.digitalsmile.goldberry.render.event.BackendEvent;
+import io.github.digitalsmile.goldberry.render.model.LogicalRect;
+import io.github.digitalsmile.goldberry.render.model.LogicalSize;
+import io.github.digitalsmile.goldberry.widget.Widget;
+import io.github.digitalsmile.goldberry.widgets.Controls;
+import io.github.digitalsmile.goldberry.widgets.core.Column;
 
 /// [Menus] — the half of §8 that is a window rather than a tree, driven through
 /// the real launcher and the real frame loop.
@@ -46,8 +48,7 @@ class MenusTest {
         private final Widget root;
 
         TestApp(Consumer<Host> onStart) {
-            this(new Column(List.of(), io.github.digitalsmile.goldberry.widget.attr.Attributes.NONE),
-                    onStart);
+            this(new Column(List.of(), io.github.digitalsmile.goldberry.widget.attr.Attributes.NONE), onStart);
         }
 
         TestApp(Widget root, Consumer<Host> onStart) {
@@ -109,13 +110,14 @@ class MenusTest {
     /// to have painted, which is what gives its router something to hit-test.
     private static void later(long millis, Runnable action) {
         Goldberry.async(() -> {
-            try {
-                Thread.sleep(millis);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-            }
-            return null;
-        }).thenRun(action);
+                    try {
+                        Thread.sleep(millis);
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                    }
+                    return null;
+                })
+                .thenRun(action);
     }
 
     private static final LogicalRect ANCHOR = LogicalRect.of(10, 10, 80, 24);
@@ -142,10 +144,9 @@ class MenusTest {
             var items = new ArrayList<Widget>();
             for (var index = 0; index < 20; index++) {
                 var label = "Command " + index;
-                items.add(new Item(label, () -> { }));
+                items.add(new Item(label, () -> {}));
             }
-            Menus.open(host, ANCHOR,
-                    new Menu(items, io.github.digitalsmile.goldberry.widget.attr.Attributes.NONE))
+            Menus.open(host, ANCHOR, new Menu(items, io.github.digitalsmile.goldberry.widget.attr.Attributes.NONE))
                     .orElseThrow();
 
             later(200, () -> {
@@ -156,11 +157,11 @@ class MenusTest {
 
         // The room, and not the work area: a menu flush against both edges of the
         // screen looks cut off even when it is not.
-        assertTrue(height[0] <= 240 - 2 * 8 + 0.5f,
+        assertTrue(
+                height[0] <= 240 - 2 * 8 + 0.5f,
                 "a menu of twenty rows opened " + height[0] + " tall into 240px of screen,"
                         + " so its last commands are about to be clamped away");
-        assertTrue(height[0] > 100,
-                "it opened at " + height[0] + ", which is not a menu that was measured");
+        assertTrue(height[0] > 100, "it opened at " + height[0] + ", which is not a menu that was measured");
     }
 
     /// Which is nearly every menu, and the half the estimate got wrong: nothing
@@ -173,9 +174,8 @@ class MenusTest {
         backend.workArea(LogicalRect.of(0, 0, 800, 1040));
         var height = new float[1];
         Goldberry.launch(new TestApp(host -> {
-            Menus.open(host, ANCHOR, new Menu(
-                    new Item("First", () -> { }),
-                    new Item("Second", () -> { }))).orElseThrow();
+            Menus.open(host, ANCHOR, new Menu(new Item("First", () -> {}), new Item("Second", () -> {})))
+                    .orElseThrow();
 
             later(200, () -> {
                 height[0] = popups().getFirst().size().height();
@@ -183,8 +183,7 @@ class MenusTest {
             });
         }));
 
-        assertTrue(height[0] > 0 && height[0] < 200,
-                "two rows opened " + height[0] + " tall");
+        assertTrue(height[0] > 0 && height[0] < 200, "two rows opened " + height[0] + " tall");
     }
 
     /// Choosing a command runs it **and** closes the menu, which is what choosing
@@ -198,8 +197,7 @@ class MenusTest {
         var openAfter = new boolean[1];
         Goldberry.launch(new TestApp(host -> {
             var menu = new Menu(
-                    new Item("First", () -> chosen.add("first")),
-                    new Item("Second", () -> chosen.add("second")));
+                    new Item("First", () -> chosen.add("first")), new Item("Second", () -> chosen.add("second")));
             var popup = Menus.open(host, ANCHOR, menu).orElseThrow();
 
             later(200, () -> {
@@ -224,9 +222,7 @@ class MenusTest {
     void openASubmenu() {
         var count = new int[1];
         Goldberry.launch(new TestApp(host -> {
-            var menu = new Menu(
-                    new Item("Plain", () -> { }),
-                    new Item("More").submenu(new Item("Inner", () -> { })));
+            var menu = new Menu(new Item("Plain", () -> {}), new Item("More").submenu(new Item("Inner", () -> {})));
             Menus.open(host, ANCHOR, menu).orElseThrow();
 
             later(200, () -> {
@@ -253,18 +249,18 @@ class MenusTest {
         var left = new int[1];
         Goldberry.launch(new TestApp(host -> {
             var menu = new Menu(
-                    new Item("Plain", () -> { }),
+                    new Item("Plain", () -> {}),
                     new Item("More").submenu(new Item("Inner", () -> chosen.add("inner"))));
             Menus.open(host, ANCHOR, menu).orElseThrow();
 
             later(200, () -> {
-                backend.post(new BackendEvent.PointerMoved(
-                        (HeadlessWindow) popups().getFirst(), 40, 52, 0));
+                backend.post(new BackendEvent.PointerMoved((HeadlessWindow) popups().getFirst(), 40, 52, 0));
                 later(300, () -> {
                     var submenu = popups().get(1);
                     click((HeadlessWindow) submenu, 40, 20);
                     later(200, () -> {
-                        left[0] = (int) popups().stream().filter(HeadlessPopup::isOpen).count();
+                        left[0] = (int)
+                                popups().stream().filter(HeadlessPopup::isOpen).count();
                         Goldberry.stop();
                     });
                 });
@@ -286,9 +282,7 @@ class MenusTest {
         var openWhileHovering = new int[1];
         var openAfterMovingAway = new int[1];
         Goldberry.launch(new TestApp(host -> {
-            var menu = new Menu(
-                    new Item("Plain", () -> { }),
-                    new Item("More").submenu(new Item("Inner", () -> { })));
+            var menu = new Menu(new Item("Plain", () -> {}), new Item("More").submenu(new Item("Inner", () -> {})));
             Menus.open(host, ANCHOR, menu).orElseThrow();
 
             later(200, () -> {
@@ -296,13 +290,13 @@ class MenusTest {
                 // Onto the row with children, and wait for it to open.
                 backend.post(new BackendEvent.PointerMoved(first, 40, 52, 0));
                 later(300, () -> {
-                    openWhileHovering[0] = (int) popups().stream()
-                            .filter(HeadlessPopup::isOpen).count();
+                    openWhileHovering[0] = (int)
+                            popups().stream().filter(HeadlessPopup::isOpen).count();
                     // And back up to the row without one.
                     backend.post(new BackendEvent.PointerMoved(first, 40, 20, 0));
                     later(300, () -> {
-                        openAfterMovingAway[0] = (int) popups().stream()
-                                .filter(HeadlessPopup::isOpen).count();
+                        openAfterMovingAway[0] = (int)
+                                popups().stream().filter(HeadlessPopup::isOpen).count();
                         Goldberry.stop();
                     });
                 });
@@ -310,7 +304,9 @@ class MenusTest {
         }));
 
         assertEquals(2, openWhileHovering[0], "the submenu opened");
-        assertEquals(1, openAfterMovingAway[0],
+        assertEquals(
+                1,
+                openAfterMovingAway[0],
                 "and closed again when the pointer moved to a sibling — the menu itself stays");
     }
 
@@ -351,9 +347,7 @@ class MenusTest {
     void rightOpensAtOnce() {
         var openSoonAfter = new long[1];
         Goldberry.launch(new TestApp(host -> {
-            var menu = new Menu(
-                    new Item("Plain", () -> { }),
-                    new Item("More").submenu(new Item("Inner", () -> { })));
+            var menu = new Menu(new Item("Plain", () -> {}), new Item("More").submenu(new Item("Inner", () -> {})));
             Menus.open(host, ANCHOR, menu).orElseThrow();
 
             later(300, () -> {
@@ -368,8 +362,7 @@ class MenusTest {
             });
         }));
 
-        assertEquals(2, openSoonAfter[0],
-                "the submenu was still waiting out a delay meant for the pointer");
+        assertEquals(2, openSoonAfter[0], "the submenu was still waiting out a delay meant for the pointer");
     }
 
     /// The arrow that opens a submenu had no opposite: `Left` did nothing, so a
@@ -381,9 +374,7 @@ class MenusTest {
         var afterOpening = new long[1];
         var afterBack = new long[1];
         Goldberry.launch(new TestApp(host -> {
-            var menu = new Menu(
-                    new Item("Plain", () -> { }),
-                    new Item("More").submenu(new Item("Inner", () -> { })));
+            var menu = new Menu(new Item("Plain", () -> {}), new Item("More").submenu(new Item("Inner", () -> {})));
             Menus.open(host, ANCHOR, menu).orElseThrow();
 
             later(300, () -> {
@@ -413,9 +404,8 @@ class MenusTest {
     void leftAtTheRootDoesNothing() {
         var stillOpen = new long[1];
         Goldberry.launch(new TestApp(host -> {
-            Menus.open(host, ANCHOR, new Menu(
-                    new Item("Plain", () -> { }),
-                    new Item("Other", () -> { }))).orElseThrow();
+            Menus.open(host, ANCHOR, new Menu(new Item("Plain", () -> {}), new Item("Other", () -> {})))
+                    .orElseThrow();
 
             later(300, () -> {
                 press(Key.LEFT);
@@ -444,9 +434,7 @@ class MenusTest {
         var before = new int[1];
         var after = new int[1];
         Goldberry.launch(new TestApp(host -> {
-            var menu = new Menu(
-                    new Item("Plain", () -> { }),
-                    new Item("More").submenu(new Item("Inner", () -> { })));
+            var menu = new Menu(new Item("Plain", () -> {}), new Item("More").submenu(new Item("Inner", () -> {})));
             Menus.open(host, ANCHOR, menu).orElseThrow();
 
             later(300, () -> {
@@ -458,8 +446,7 @@ class MenusTest {
                     // out of the menu that opened it, so the row keeps nothing
                     // but the mark.
                     backend.post(new BackendEvent.PointerExited(first));
-                    backend.post(new BackendEvent.PointerMoved(
-                            (HeadlessWindow) popups().get(1), 20, 20, 0));
+                    backend.post(new BackendEvent.PointerMoved((HeadlessWindow) popups().get(1), 20, 20, 0));
                     later(400, () -> {
                         after[0] = pixel(first, (int) first.size().width() - 30, 52);
                         Goldberry.stop();
@@ -468,8 +455,8 @@ class MenusTest {
             });
         }));
 
-        assertNotEquals(before[0], after[0],
-                "the row whose submenu is showing looks exactly like the rows that are not");
+        assertNotEquals(
+                before[0], after[0], "the row whose submenu is showing looks exactly like the rows that are not");
     }
 
     /// §8's bar: with a menu down, `Right` from a row that leads nowhere goes to
@@ -481,37 +468,41 @@ class MenusTest {
     @Timeout(20)
     @DisplayName("Right and Left move between a menu bar's menus while one is showing")
     void arrowsMoveAlongTheBar() {
-        var bar = new MenuBar(List.of(
-                new Item("File").submenu(
-                        new Item("New", () -> { }),
-                        new Item("Open", () -> { }),
-                        new Item("Save", () -> { })),
-                new Item("Edit").submenu(new Item("Undo", () -> { }))),
+        var bar = new MenuBar(
+                List.of(
+                        new Item("File")
+                                .submenu(
+                                        new Item("New", () -> {}),
+                                        new Item("Open", () -> {}),
+                                        new Item("Save", () -> {})),
+                        new Item("Edit").submenu(new Item("Undo", () -> {}))),
                 io.github.digitalsmile.goldberry.widget.attr.Attributes.NONE);
         var fileHeight = new float[1];
         var editHeight = new float[1];
         var backAgain = new float[1];
-        Goldberry.launch(new TestApp(bar, host -> later(400, () -> {
-            // F10 is the keyboard's way into the bar (ADR-0163), and it opens the
-            // first heading that can open.
-            press(Key.F10);
-            later(400, () -> {
-                fileHeight[0] = openPopup().size().height();
-                press(Key.RIGHT);
-                later(400, () -> {
-                    editHeight[0] = openPopup().size().height();
-                    press(Key.LEFT);
+        Goldberry.launch(new TestApp(
+                bar,
+                host -> later(400, () -> {
+                    // F10 is the keyboard's way into the bar (ADR-0163), and it opens the
+                    // first heading that can open.
+                    press(Key.F10);
                     later(400, () -> {
-                        backAgain[0] = openPopup().size().height();
-                        Goldberry.stop();
+                        fileHeight[0] = openPopup().size().height();
+                        press(Key.RIGHT);
+                        later(400, () -> {
+                            editHeight[0] = openPopup().size().height();
+                            press(Key.LEFT);
+                            later(400, () -> {
+                                backAgain[0] = openPopup().size().height();
+                                Goldberry.stop();
+                            });
+                        });
                     });
-                });
-            });
-        })));
+                })));
 
-        assertTrue(fileHeight[0] > editHeight[0],
-                "Right did not move to the one-row Edit menu: " + fileHeight[0]
-                        + " then " + editHeight[0]);
+        assertTrue(
+                fileHeight[0] > editHeight[0],
+                "Right did not move to the one-row Edit menu: " + fileHeight[0] + " then " + editHeight[0]);
         assertEquals(fileHeight[0], backAgain[0], "and Left came back to File");
     }
 

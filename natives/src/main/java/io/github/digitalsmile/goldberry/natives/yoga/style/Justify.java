@@ -7,7 +7,6 @@ package io.github.digitalsmile.goldberry.natives.yoga.style;
 /// Sharing one Java enum between the two would put a plausible wrong value on
 /// the wire, so they stay separate.
 public enum Justify implements YogaEnum {
-
     FLEX_START(0, "YGJustifyFlexStart"),
 
     CENTER(1, "YGJustifyCenter"),

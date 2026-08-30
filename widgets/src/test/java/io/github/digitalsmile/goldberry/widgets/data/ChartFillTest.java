@@ -4,28 +4,30 @@ import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.List;
+import java.util.Set;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+
 import io.github.digitalsmile.goldberry.RendererRequirement;
-import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
 import io.github.digitalsmile.goldberry.css.Stylesheet;
 import io.github.digitalsmile.goldberry.css.Theme;
+import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
 import io.github.digitalsmile.goldberry.golden.GoldenImage;
 import io.github.digitalsmile.goldberry.paint.BoxPainter;
 import io.github.digitalsmile.goldberry.paint.TestFrames;
-import io.github.digitalsmile.goldberry.widget.attr.Attributes;
 import io.github.digitalsmile.goldberry.widget.ElementTree;
 import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widget.WidgetRenderer;
+import io.github.digitalsmile.goldberry.widget.attr.Attributes;
 import io.github.digitalsmile.goldberry.widgets.Controls;
 import io.github.digitalsmile.goldberry.widgets.controls.TestFont;
 import io.github.digitalsmile.goldberry.widgets.core.Column;
 import io.github.digitalsmile.goldberry.widgets.data.areachart.AreaChart;
 import io.github.digitalsmile.goldberry.widgets.data.barchart.BarChart;
 import io.github.digitalsmile.goldberry.widgets.data.linechart.LineChart;
-import java.util.List;
-import java.util.Set;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
 
 /// What each [Fill] draws — `charts.md` §3.1's "fill opacity, gradient fill",
 /// which was the last row of that table left unbuilt (ADR-0207).
@@ -55,7 +57,9 @@ class ChartFillTest {
 
     private static WidgetRenderer renderer() {
         return new WidgetRenderer(
-                List.of(Controls.baseStylesheet(), Theme.NORD_DARK.load(),
+                List.of(
+                        Controls.baseStylesheet(),
+                        Theme.NORD_DARK.load(),
                         Stylesheet.parse(CascadeLayer.APPLICATION, """
                                 #frame { padding: 12px; background: var(--gb-bg) }
                                 #plot  { width: 296px; height: 156px }
@@ -90,9 +94,10 @@ class ChartFillTest {
     }
 
     private static AreaChart area() {
-        return new AreaChart(List.of(
-                Series.of("Cache", 40, 52, 44, 61, 58, 66, 71),
-                Series.of("Origin", 12, 9, 15, 11, 14, 10, 13)), List.of(), id());
+        return new AreaChart(
+                List.of(Series.of("Cache", 40, 52, 44, 61, 58, 66, 71), Series.of("Origin", 12, 9, 15, 11, 14, 10, 13)),
+                List.of(),
+                id());
     }
 
     @Test
@@ -109,9 +114,8 @@ class ChartFillTest {
         var bare = tinted(pixels(line()));
         var filled = tinted(pixels(line().fill(Fill.GRADIENT)));
 
-        assertTrue(filled > bare * 3,
-                () -> "a fill covers far more than the 2px line does: " + bare + " then "
-                        + filled);
+        assertTrue(
+                filled > bare * 3, () -> "a fill covers far more than the 2px line does: " + bare + " then " + filled);
     }
 
     @Test
@@ -126,16 +130,15 @@ class ChartFillTest {
         var upper = tintedInRows(frame, 60, 90);
         var lower = tintedInRows(frame, 120, 150);
 
-        assertTrue(upper > lower,
-                () -> "the fill is heavier near the line than near the baseline: " + upper
-                        + " then " + lower);
+        assertTrue(
+                upper > lower,
+                () -> "the fill is heavier near the line than near the baseline: " + upper + " then " + lower);
     }
 
     @Test
     @DisplayName("a flat wash and a fade are different pictures")
     void solidIsNotGradient() {
-        assertFalse(java.util.Arrays.equals(
-                pixels(line().fill(Fill.SOLID)), pixels(line().fill(Fill.GRADIENT))));
+        assertFalse(java.util.Arrays.equals(pixels(line().fill(Fill.SOLID)), pixels(line().fill(Fill.GRADIENT))));
     }
 
     @Test
@@ -161,9 +164,11 @@ class ChartFillTest {
         //
         // Slot 1 is a green and slot 2 a purple, which is what makes the two
         // separable in one frame without knowing where either band is.
-        assertTrue(peak(faded, ChartFillTest::green) > peak(solid, ChartFillTest::green) * 0.8,
+        assertTrue(
+                peak(faded, ChartFillTest::green) > peak(solid, ChartFillTest::green) * 0.8,
                 "the lower band still reaches its own colour at its top edge");
-        assertTrue(peak(faded, ChartFillTest::purple) > peak(solid, ChartFillTest::purple) * 0.8,
+        assertTrue(
+                peak(faded, ChartFillTest::purple) > peak(solid, ChartFillTest::purple) * 0.8,
                 "and so does the upper one, which a plot-wide ramp would have thinned");
     }
 
@@ -176,8 +181,7 @@ class ChartFillTest {
         // reaching past it through `ChartOptions` changes no pixel.
         var bars = new BarChart(List.of(TRAFFIC), List.of(), id());
 
-        assertArrayEquals(pixels(bars),
-                pixels(bars.options(bars.options().fill(Fill.GRADIENT))));
+        assertArrayEquals(pixels(bars), pixels(bars.options(bars.options().fill(Fill.GRADIENT))));
     }
 
     @Test
@@ -197,8 +201,8 @@ class ChartFillTest {
         var render = renderer();
         var tree = new ElementTree(framed(line().fill(Fill.GRADIENT)));
 
-        GoldenImage.assertMatches("line-chart-gradient-dark", WIDTH, HEIGHT, 1.0f,
-                frame -> BoxPainter.paint(frame, render.render(tree)));
+        GoldenImage.assertMatches(
+                "line-chart-gradient-dark", WIDTH, HEIGHT, 1.0f, frame -> BoxPainter.paint(frame, render.render(tree)));
     }
 
     @Test
@@ -207,8 +211,8 @@ class ChartFillTest {
         var render = renderer();
         var tree = new ElementTree(framed(area().fill(Fill.GRADIENT)));
 
-        GoldenImage.assertMatches("area-chart-gradient-dark", WIDTH, HEIGHT, 1.0f,
-                frame -> BoxPainter.paint(frame, render.render(tree)));
+        GoldenImage.assertMatches(
+                "area-chart-gradient-dark", WIDTH, HEIGHT, 1.0f, frame -> BoxPainter.paint(frame, render.render(tree)));
     }
 
     // --- helpers ------------------------------------------------------------

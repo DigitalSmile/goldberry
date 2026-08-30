@@ -41,8 +41,7 @@ public record Typography(String family, double size, BundledFont.Weight weight, 
     /// window with no stylesheet at all should read as the design system, because
     /// the alternative is a toolkit whose out-of-the-box text is a size nobody
     /// chose.
-    public static final Typography INITIAL =
-            new Typography("Inter", 13, BundledFont.Weight.REGULAR, 18);
+    public static final Typography INITIAL = new Typography("Inter", 13, BundledFont.Weight.REGULAR, 18);
 
     public Typography {
         if (family == null || family.isBlank()) {

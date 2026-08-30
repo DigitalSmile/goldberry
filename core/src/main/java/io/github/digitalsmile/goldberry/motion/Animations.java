@@ -1,12 +1,13 @@
 package io.github.digitalsmile.goldberry.motion;
 
-import io.github.digitalsmile.goldberry.css.ComputedStyle;
-import io.github.digitalsmile.goldberry.css.value.Transform;
-import io.github.digitalsmile.goldberry.css.cascade.Transitions;
-import io.github.digitalsmile.goldberry.css.cascade.Transitions.Animatable;
 import java.util.EnumMap;
 import java.util.Map;
 import java.util.Objects;
+
+import io.github.digitalsmile.goldberry.css.ComputedStyle;
+import io.github.digitalsmile.goldberry.css.cascade.Transitions;
+import io.github.digitalsmile.goldberry.css.cascade.Transitions.Animatable;
+import io.github.digitalsmile.goldberry.css.value.Transform;
 
 /// One node's running transitions — `docs/design-system.md` §1.7.
 ///
@@ -91,8 +92,7 @@ public final class Animations {
     ///
     /// Built by the element that owns it, and by nothing else: an `Animations`
     /// detached from an element would hold a transition nobody paints.
-    public Animations() {
-    }
+    public Animations() {}
 
     /// The style the cascade resolved last frame, which is what a change is
     /// measured against. Null until the first frame.
@@ -169,8 +169,7 @@ public final class Animations {
         for (var entry : running.entrySet()) {
             var property = entry.getKey();
             var animation = entry.getValue();
-            var value = interpolate(
-                    property, animation.from(), animation.to(), animation.progressAt(now));
+            var value = interpolate(property, animation.from(), animation.to(), animation.progressAt(now));
             styled = withValue(styled, property, value);
         }
         return styled;
@@ -263,8 +262,7 @@ public final class Animations {
         return switch (property) {
             case OPACITY -> (Double) from + ((Double) to - (Double) from) * t;
             case BACKGROUND_COLOR, BORDER_COLOR, COLOR ->
-                    (double) io.github.digitalsmile.goldberry.css.value.CssColor.mix(
-                            argb(from), argb(to), t);
+                (double) io.github.digitalsmile.goldberry.css.value.CssColor.mix(argb(from), argb(to), t);
             case TRANSFORM -> ((Transform) from).mix((Transform) to, t);
         };
     }

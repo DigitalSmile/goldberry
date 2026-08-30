@@ -5,12 +5,14 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import io.github.digitalsmile.goldberry.natives.NativeLibraryRequirement;
 import java.util.Set;
+
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+
+import io.github.digitalsmile.goldberry.natives.NativeLibraryRequirement;
 import io.github.digitalsmile.goldberry.natives.sdl.desktop.SdlClipboard;
 
 /// The clipboard through the real `libgoldberry`.
@@ -51,8 +53,7 @@ class SdlClipboardTest {
         }
         var clipboard = SdlClipboard.get();
 
-        assertTrue(clipboard.text("goldberry"),
-                "SDL declined a clipboard write on a video subsystem it accepted");
+        assertTrue(clipboard.text("goldberry"), "SDL declined a clipboard write on a video subsystem it accepted");
 
         assertTrue(clipboard.hasText());
         assertEquals("goldberry", clipboard.text());

@@ -9,12 +9,14 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import io.github.digitalsmile.goldberry.natives.NativeLibraryRequirement;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
+
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+
+import io.github.digitalsmile.goldberry.natives.NativeLibraryRequirement;
 import io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength;
 
 /// Who owns a node, and what happens to the ones that break the rules.
@@ -248,8 +250,7 @@ class YogaTreeTest {
             var builder = Thread.ofVirtual().start(() -> elsewhere.set(YogaNode.create()));
             builder.join();
 
-            var thrown =
-                    assertThrows(IllegalStateException.class, () -> root.addChild(elsewhere.get()));
+            var thrown = assertThrows(IllegalStateException.class, () -> root.addChild(elsewhere.get()));
 
             assertTrue(thrown.getMessage().contains("may not span threads"), thrown.getMessage());
             // That node stays allocated: closing it would have to happen on the

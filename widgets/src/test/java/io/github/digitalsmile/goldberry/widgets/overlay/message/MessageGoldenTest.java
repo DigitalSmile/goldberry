@@ -3,6 +3,13 @@ package io.github.digitalsmile.goldberry.widgets.overlay.message;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.List;
+import java.util.Set;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+
 import io.github.digitalsmile.goldberry.RendererRequirement;
 import io.github.digitalsmile.goldberry.css.Stylesheet;
 import io.github.digitalsmile.goldberry.css.Theme;
@@ -16,16 +23,11 @@ import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widget.WidgetRenderer;
 import io.github.digitalsmile.goldberry.widget.attr.Attributes;
 import io.github.digitalsmile.goldberry.widgets.Controls;
+import io.github.digitalsmile.goldberry.widgets.TestHost;
 import io.github.digitalsmile.goldberry.widgets.controls.TestFont;
 import io.github.digitalsmile.goldberry.widgets.controls.button.Button;
-import io.github.digitalsmile.goldberry.widgets.TestHost;
 import io.github.digitalsmile.goldberry.widgets.core.Column;
 import io.github.digitalsmile.goldberry.widgets.panel.Described;
-import java.util.List;
-import java.util.Set;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
 
 /// What a `message` looks like — the four kinds, in both themes, and one caught
 /// halfway through arriving.
@@ -59,22 +61,24 @@ class MessageGoldenTest {
     /// The four kinds, one under another, with the middle two carrying the two
     /// things §7 makes optional.
     private static Widget banners() {
-        return new Column(List.of(
-                new Message(Message.Kind.INFO, "Two devices are signed in to this account."),
-                new Message(Message.Kind.SUCCESS, "Your changes were published.")
-                        .dismiss(() -> { }),
-                new Message(Message.Kind.WARNING, "This session ends in five minutes.")
-                        .actions(new Button("Stay signed in").styled("ghost")),
-                new Message(Message.Kind.DANGER,
-                        "Could not save: port 80 is already in use.")),
+        return new Column(
+                List.of(
+                        new Message(Message.Kind.INFO, "Two devices are signed in to this account."),
+                        new Message(Message.Kind.SUCCESS, "Your changes were published.").dismiss(() -> {}),
+                        new Message(Message.Kind.WARNING, "This session ends in five minutes.")
+                                .actions(new Button("Stay signed in").styled("ghost")),
+                        new Message(Message.Kind.DANGER, "Could not save: port 80 is already in use.")),
                 id("scene"));
     }
 
     private WidgetRenderer rendererFor(Theme theme) {
         return new WidgetRenderer(
-                List.of(Controls.baseStylesheet(), theme.load(),
-                        Stylesheet.parse(CascadeLayer.APPLICATION, SCENE)),
-                TestFont.get()).clock(clock);
+                        List.of(
+                                Controls.baseStylesheet(),
+                                theme.load(),
+                                Stylesheet.parse(CascadeLayer.APPLICATION, SCENE)),
+                        TestFont.get())
+                .clock(clock);
     }
 
     /// One frame to start every banner's arrival, then past the end of it, so the
@@ -99,10 +103,8 @@ class MessageGoldenTest {
         // That is one wasted frame per arrival and it is the shape of every
         // clock-driven animation in the toolkit, not something about banners.
         renderer.render(tree);
-        assertFalse(renderer.isAnimating(),
-                "a banner that has been on screen for 200ms is still asking for frames");
-        GoldenImage.assertMatches(name, width, height, 1.0f,
-                frame -> BoxPainter.paint(frame, settled));
+        assertFalse(renderer.isAnimating(), "a banner that has been on screen for 200ms is still asking for frames");
+        GoldenImage.assertMatches(name, width, height, 1.0f, frame -> BoxPainter.paint(frame, settled));
     }
 
     @Test
@@ -141,9 +143,9 @@ class MessageGoldenTest {
         renderer.render(tree);
 
         // The success banner is the one with a ×, and this is the press.
-        Described.of(tree, MessageDismiss.class).getFirst().onPointer(
-                new PointerEvent(PointerEvent.Kind.CLICKED, 0, 0,
-                        PointerEvent.Button.PRIMARY, 1, null));
+        Described.of(tree, MessageDismiss.class)
+                .getFirst()
+                .onPointer(new PointerEvent(PointerEvent.Kind.CLICKED, 0, 0, PointerEvent.Button.PRIMARY, 1, null));
         tree.flush();
 
         // The frame that starts the fade, then half of §1.7's `fast`.
@@ -152,8 +154,7 @@ class MessageGoldenTest {
         var midway = renderer.render(tree);
         assertTrue(renderer.isAnimating(), "the banner is not fading");
 
-        GoldenImage.assertMatches("message-departing", 420, 260, 1.0f,
-                frame -> BoxPainter.paint(frame, midway));
+        GoldenImage.assertMatches("message-departing", 420, 260, 1.0f, frame -> BoxPainter.paint(frame, midway));
     }
 
     /// §3: "in: `opacity` + 2px rise, base". A picture no wall clock can take —
@@ -172,7 +173,6 @@ class MessageGoldenTest {
         clock.advance(80);
         var midway = renderer.render(tree);
 
-        GoldenImage.assertMatches("message-arriving", 420, 260, 1.0f,
-                frame -> BoxPainter.paint(frame, midway));
+        GoldenImage.assertMatches("message-arriving", 420, 260, 1.0f, frame -> BoxPainter.paint(frame, midway));
     }
 }

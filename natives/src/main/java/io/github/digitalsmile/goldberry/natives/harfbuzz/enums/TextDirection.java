@@ -56,7 +56,6 @@ public enum TextDirection implements HarfBuzzEnum {
                 return direction;
             }
         }
-        throw new IllegalArgumentException(
-                "hb_direction_t " + nativeValue + " is not one HarfBuzz defines");
+        throw new IllegalArgumentException("hb_direction_t " + nativeValue + " is not one HarfBuzz defines");
     }
 }

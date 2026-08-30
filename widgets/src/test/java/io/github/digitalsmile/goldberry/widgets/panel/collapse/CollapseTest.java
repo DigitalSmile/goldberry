@@ -4,21 +4,23 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.concurrent.atomic.AtomicReference;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+
 import io.github.digitalsmile.goldberry.RendererRequirement;
+import io.github.digitalsmile.goldberry.input.event.KeyEvent;
+import io.github.digitalsmile.goldberry.input.event.PointerEvent;
 import io.github.digitalsmile.goldberry.input.handler.Handles;
 import io.github.digitalsmile.goldberry.input.key.Key;
-import io.github.digitalsmile.goldberry.input.event.KeyEvent;
 import io.github.digitalsmile.goldberry.input.key.Modifiers;
-import io.github.digitalsmile.goldberry.input.event.PointerEvent;
 import io.github.digitalsmile.goldberry.kdl.KdlParser;
 import io.github.digitalsmile.goldberry.widget.ElementTree;
 import io.github.digitalsmile.goldberry.widgets.Widgets;
 import io.github.digitalsmile.goldberry.widgets.panel.Described;
 import io.github.digitalsmile.goldberry.widgets.text.Text;
-import java.util.concurrent.atomic.AtomicReference;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
 
 /// `collapse` — §5's disclosure ([ADR-0164]).
 ///
@@ -37,8 +39,7 @@ class CollapseTest {
 
     private static void click(ElementTree tree) {
         ((Handles) Described.elementOf(tree, CollapseHeader.class).widget())
-                .onPointer(new PointerEvent(PointerEvent.Kind.CLICKED, 0, 0,
-                        PointerEvent.Button.PRIMARY, 1, null));
+                .onPointer(new PointerEvent(PointerEvent.Kind.CLICKED, 0, 0, PointerEvent.Button.PRIMARY, 1, null));
         tree.flush();
     }
 
@@ -53,8 +54,7 @@ class CollapseTest {
     }
 
     private static boolean built(ElementTree tree, String text) {
-        return Described.in(tree).stream()
-                .anyMatch(w -> w instanceof Text it && text.equals(it.content()));
+        return Described.in(tree).stream().anyMatch(w -> w instanceof Text it && text.equals(it.content()));
     }
 
     /// **The claim.** Not a hidden body, not one of zero height: no body.
@@ -64,8 +64,7 @@ class CollapseTest {
         var tree = new ElementTree(new Collapse("Advanced", new Text("Secret")));
 
         assertEquals(0, bodies(tree));
-        assertTrue(!built(tree, "Secret"),
-                "the author's own widgets must not be built either");
+        assertTrue(!built(tree, "Secret"), "the author's own widgets must not be built either");
     }
 
     @Test
@@ -99,8 +98,7 @@ class CollapseTest {
     @DisplayName("a controlled section asks and does not decide")
     void controlled() {
         var asked = new AtomicReference<Boolean>();
-        var tree = new ElementTree(
-                new Collapse("Advanced", false, asked::set, new Text("Body")));
+        var tree = new ElementTree(new Collapse("Advanced", false, asked::set, new Text("Body")));
 
         click(tree);
 
@@ -164,9 +162,11 @@ class CollapseTest {
         var open = new ElementTree(new Collapse("Advanced", true, null, new Text("Body")));
 
         assertTrue(!Described.first(shut, CollapseHeader.CollapseChevron.class)
-                .classes().contains("open"));
+                .classes()
+                .contains("open"));
         assertTrue(Described.first(open, CollapseHeader.CollapseChevron.class)
-                .classes().contains("open"));
+                .classes()
+                .contains("open"));
     }
 
     /// §5 forbids animating the height and always will, so the body appears at
@@ -194,15 +194,15 @@ class CollapseTest {
     void startedOpenDoesNotAnimate() {
         var tree = new ElementTree(new Collapse("Advanced", true, null, new Text("Body")));
 
-        assertEquals(1, Described.first(tree, CollapseBody.class)
-                .visibility().applyAsDouble(0), 1e-9);
+        assertEquals(1, Described.first(tree, CollapseBody.class).visibility().applyAsDouble(0), 1e-9);
     }
 
     @Test
     @DisplayName("a collapse inflates from markup")
     void inflates() {
-        var widget = Widgets.inflater().inflate(KdlParser.parse(
-                "collapse title=\"Advanced\" open=#true { text \"Body\" }").getFirst());
+        var widget = Widgets.inflater()
+                .inflate(KdlParser.parse("collapse title=\"Advanced\" open=#true { text \"Body\" }")
+                        .getFirst());
         var it = assertInstanceOf(Collapse.class, widget);
 
         assertEquals("Advanced", it.title());

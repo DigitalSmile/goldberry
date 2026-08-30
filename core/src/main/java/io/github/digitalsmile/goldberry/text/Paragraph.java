@@ -1,17 +1,18 @@
 package io.github.digitalsmile.goldberry.text;
 
-import io.github.digitalsmile.goldberry.paint.Frame;
-import io.github.digitalsmile.goldberry.natives.harfbuzz.GlyphRun;
-import io.github.digitalsmile.goldberry.natives.yoga.measure.MeasureFunction;
-import io.github.digitalsmile.goldberry.natives.yoga.measure.MeasureMode;
-import io.github.digitalsmile.goldberry.natives.yoga.measure.MeasuredSize;
-import io.github.digitalsmile.goldberry.log.Logs;
-import io.github.digitalsmile.goldberry.natives.harfbuzz.enums.TextDirection;
 import java.text.Bidi;
 import java.text.BreakIterator;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+
+import io.github.digitalsmile.goldberry.log.Logs;
+import io.github.digitalsmile.goldberry.natives.harfbuzz.GlyphRun;
+import io.github.digitalsmile.goldberry.natives.harfbuzz.enums.TextDirection;
+import io.github.digitalsmile.goldberry.natives.yoga.measure.MeasureFunction;
+import io.github.digitalsmile.goldberry.natives.yoga.measure.MeasureMode;
+import io.github.digitalsmile.goldberry.natives.yoga.measure.MeasuredSize;
+import io.github.digitalsmile.goldberry.paint.Frame;
 import io.github.digitalsmile.goldberry.text.font.Font;
 
 /// A run of text that knows how to wrap itself, and therefore how to be laid out.
@@ -150,9 +151,11 @@ public final class Paragraph {
             // something on screen is drawn in the wrong order -- and quiet
             // enough not to be a per-frame log, because nothing here runs per
             // frame.
-            LOG.warn("drawing \"{}\" in logical order: it contains right-to-left text, and bidi"
-                    + " run splitting is not built — the glyphs are shaped correctly and their"
-                    + " order is mirrored", text);
+            LOG.warn(
+                    "drawing \"{}\" in logical order: it contains right-to-left text, and bidi"
+                            + " run splitting is not built — the glyphs are shaped correctly and their"
+                            + " order is mirrored",
+                    text);
         }
         return new Paragraph(font, text, approximate);
     }
@@ -227,11 +230,12 @@ public final class Paragraph {
     /// then centre empty space.
     public MeasureFunction measureFunction() {
         return (width, widthMode, height, heightMode) -> {
-            var available = switch (widthMode) {
-                // Yoga passes NaN with UNDEFINED, so `width` must not be read.
-                case UNDEFINED -> UNCONSTRAINED;
-                case EXACTLY, AT_MOST -> (double) width;
-            };
+            var available =
+                    switch (widthMode) {
+                        // Yoga passes NaN with UNDEFINED, so `width` must not be read.
+                        case UNDEFINED -> UNCONSTRAINED;
+                        case EXACTLY, AT_MOST -> (double) width;
+                    };
             var layout = layout(available);
             var measured = widthMode == MeasureMode.EXACTLY ? width : (float) layout.width();
             return new MeasuredSize(measured, (float) layout.height());
@@ -258,8 +262,7 @@ public final class Paragraph {
             if (line.isEmpty()) {
                 continue;
             }
-            font.draw(frame, x, top + ascent + i * lineHeight,
-                    run, line.glyphStart(), line.glyphEnd(), argb);
+            font.draw(frame, x, top + ascent + i * lineHeight, run, line.glyphStart(), line.glyphEnd(), argb);
         }
     }
 
@@ -304,8 +307,7 @@ public final class Paragraph {
         // `first()` is always offset zero, which is the line start rather than a
         // place to break, so the walk begins at the one after it.
         breaks.first();
-        for (var candidate = breaks.next(); candidate != BreakIterator.DONE;
-                candidate = breaks.next()) {
+        for (var candidate = breaks.next(); candidate != BreakIterator.DONE; candidate = breaks.next()) {
 
             var offset = start + candidate;
             if (widthOf(lineStart, offset) <= maxWidth) {
@@ -347,10 +349,7 @@ public final class Paragraph {
         while (visible > start && Character.isWhitespace(text.charAt(visible - 1))) {
             visible--;
         }
-        return new TextLine(
-                start, end,
-                glyphBefore[start], glyphBefore[visible],
-                widthOf(start, visible));
+        return new TextLine(start, end, glyphBefore[start], glyphBefore[visible], widthOf(start, visible));
     }
 
     /// The width of `[start, end)` in logical units — one subtraction, which is
@@ -382,8 +381,7 @@ public final class Paragraph {
         Objects.checkIndex(start, text.length() + 1);
         Objects.checkIndex(end, text.length() + 1);
         if (end < start) {
-            throw new IllegalArgumentException(
-                    "a text range cannot end before it starts: " + start + ".." + end);
+            throw new IllegalArgumentException("a text range cannot end before it starts: " + start + ".." + end);
         }
         return widthOf(start, end);
     }
@@ -424,8 +422,7 @@ public final class Paragraph {
         Objects.checkIndex(lineStart, text.length() + 1);
         Objects.checkIndex(lineEnd, text.length() + 1);
         if (lineEnd < lineStart) {
-            throw new IllegalArgumentException(
-                    "a line cannot end before it starts: " + lineStart + ".." + lineEnd);
+            throw new IllegalArgumentException("a line cannot end before it starts: " + lineStart + ".." + lineEnd);
         }
         if (lineStart == lineEnd || !(x > 0)) {
             // NaN lands here too, which is the right home for it: a click at an

@@ -5,11 +5,12 @@ import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import io.github.digitalsmile.goldberry.RendererRequirement;
-import io.github.digitalsmile.goldberry.assets.BundledFont;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+
+import io.github.digitalsmile.goldberry.RendererRequirement;
+import io.github.digitalsmile.goldberry.assets.BundledFont;
 
 /// The join between the shaper and the rasterizer, measured rather than drawn.
 ///
@@ -75,7 +76,8 @@ class FontTest {
             // already been converted to pixels -- or reading design units as
             // pixels -- is off by upem/size, which for Inter at 16pt is 128x.
             // Text that wide still renders; it is simply not on the screen.
-            assertTrue(designUnits > pixels * 100,
+            assertTrue(
+                    designUnits > pixels * 100,
                     () -> designUnits + " design units against " + pixels + " logical units");
             assertEquals(designUnits * 16.0 / font.unitsPerEm(), pixels, 1e-9);
         }
@@ -88,8 +90,7 @@ class FontTest {
             // Inter is TrueType-flavoured, so 2048. Asserted as a range rather
             // than a number: the value is the font's to change on an upgrade,
             // and what must hold is that it is a real em grid and not 0 or 1.
-            assertTrue(font.unitsPerEm() >= 16,
-                    () -> "an em grid of " + font.unitsPerEm() + " is not a font's");
+            assertTrue(font.unitsPerEm() >= 16, () -> "an em grid of " + font.unitsPerEm() + " is not a font's");
             assertEquals(2048, font.unitsPerEm(), "Inter, at the pinned version");
         }
     }
@@ -137,8 +138,8 @@ class FontTest {
 
             assertEquals(first.length(), second.length());
             assertEquals(first.totalXAdvance(), second.totalXAdvance());
-            assertEquals(first.totalXAdvance(), third.totalXAdvance(),
-                    "and still, after a different string in between");
+            assertEquals(
+                    first.totalXAdvance(), third.totalXAdvance(), "and still, after a different string in between");
             assertNotEquals(first.totalXAdvance(), different.totalXAdvance());
         }
     }
@@ -160,12 +161,9 @@ class FontTest {
     @Test
     @DisplayName("an impossible size is refused")
     void impossibleSizesAreRefused() {
-        assertThrows(
-                IllegalArgumentException.class, () -> Font.bundled(BundledFont.UI, 0));
-        assertThrows(
-                IllegalArgumentException.class, () -> Font.bundled(BundledFont.UI, -16));
-        assertThrows(
-                IllegalArgumentException.class, () -> Font.bundled(BundledFont.UI, Double.NaN));
+        assertThrows(IllegalArgumentException.class, () -> Font.bundled(BundledFont.UI, 0));
+        assertThrows(IllegalArgumentException.class, () -> Font.bundled(BundledFont.UI, -16));
+        assertThrows(IllegalArgumentException.class, () -> Font.bundled(BundledFont.UI, Double.NaN));
     }
 
     @Test

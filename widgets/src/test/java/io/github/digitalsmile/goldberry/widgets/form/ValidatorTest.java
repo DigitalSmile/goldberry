@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.regex.Pattern;
+
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -107,8 +108,7 @@ class ValidatorTest {
         @Test
         @DisplayName("reports the first failure, not all of them")
         void firstFailureWins() {
-            var rule = Validator.required("Needed")
-                    .and(Validator.minLength(3, "Too short"));
+            var rule = Validator.required("Needed").and(Validator.minLength(3, "Too short"));
 
             // A field's message slot is one line, and a list of three complaints
             // about one value is a worse message than the first one.

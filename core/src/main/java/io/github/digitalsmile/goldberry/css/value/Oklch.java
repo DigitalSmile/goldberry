@@ -42,8 +42,7 @@ final class Oklch {
     /// comfortably below anything visible and safely above conversion noise.
     private static final double ACHROMATIC = 1e-4;
 
-    private Oklch() {
-    }
+    private Oklch() {}
 
     /// `from` and `to` mixed, with `t` in `0..1`.
     ///
@@ -92,11 +91,7 @@ final class Oklch {
             delta += 360;
         }
 
-        return fromOklch(
-                lerp(a[0], b[0], t),
-                lerp(a[1], b[1], t),
-                hueA + delta * t,
-                (int) Math.round(alpha));
+        return fromOklch(lerp(a[0], b[0], t), lerp(a[1], b[1], t), hueA + delta * t, (int) Math.round(alpha));
     }
 
     private static double lerp(double from, double to, double t) {
@@ -154,24 +149,17 @@ final class Oklch {
         var g = -1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s;
         var b = -0.0041960863 * l - 0.7034186147 * m + 1.7076147010 * s;
 
-        return (clampByte(alpha) << 24)
-                | (channel(r) << 16)
-                | (channel(g) << 8)
-                | channel(b);
+        return (clampByte(alpha) << 24) | (channel(r) << 16) | (channel(g) << 8) | channel(b);
     }
 
     /// sRGB transfer function, encoded to linear.
     private static double linear(double encoded) {
-        return encoded <= 0.04045
-                ? encoded / 12.92
-                : Math.pow((encoded + 0.055) / 1.055, 2.4);
+        return encoded <= 0.04045 ? encoded / 12.92 : Math.pow((encoded + 0.055) / 1.055, 2.4);
     }
 
     /// Linear back to an sRGB byte.
     private static int channel(double value) {
-        var encoded = value <= 0.0031308
-                ? value * 12.92
-                : 1.055 * Math.pow(value, 1 / 2.4) - 0.055;
+        var encoded = value <= 0.0031308 ? value * 12.92 : 1.055 * Math.pow(value, 1 / 2.4) - 0.055;
         return clampByte((int) Math.round(encoded * 255));
     }
 

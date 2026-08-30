@@ -55,13 +55,13 @@ public record LogicalRect(LogicalPoint origin, LogicalSize size) {
     /// the bottom-right — the half-open convention every pixel rectangle in the
     /// toolkit uses, so two rectangles that touch do not both claim the seam.
     public boolean contains(LogicalPoint point) {
-        return point.x() >= left() && point.x() < right()
-                && point.y() >= top() && point.y() < bottom();
+        return point.x() >= left() && point.x() < right() && point.y() >= top() && point.y() < bottom();
     }
 
     /// Whether a rectangle of `size` placed at `at` fits entirely inside.
     public boolean encloses(LogicalPoint at, LogicalSize extent) {
-        return at.x() >= left() && at.y() >= top()
+        return at.x() >= left()
+                && at.y() >= top()
                 && at.x() + extent.width() <= right()
                 && at.y() + extent.height() <= bottom();
     }

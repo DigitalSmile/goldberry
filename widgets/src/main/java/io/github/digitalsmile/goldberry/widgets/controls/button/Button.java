@@ -1,24 +1,24 @@
 package io.github.digitalsmile.goldberry.widgets.controls.button;
 
-import io.github.digitalsmile.goldberry.widget.attr.Attributed;
-import io.github.digitalsmile.goldberry.widget.attr.Attributes;
-
-import io.github.digitalsmile.goldberry.css.ComputedStyle;
-import io.github.digitalsmile.goldberry.icon.Icon;
-import io.github.digitalsmile.goldberry.input.handler.Handles;
-import io.github.digitalsmile.goldberry.input.key.Key;
-import io.github.digitalsmile.goldberry.input.event.KeyEvent;
-import io.github.digitalsmile.goldberry.input.event.PointerEvent;
-import io.github.digitalsmile.goldberry.paint.Box;
-import io.github.digitalsmile.goldberry.widget.style.Paints;
-import io.github.digitalsmile.goldberry.widget.style.Styled;
-import io.github.digitalsmile.goldberry.widget.Widget;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+
+import io.github.digitalsmile.goldberry.css.ComputedStyle;
+import io.github.digitalsmile.goldberry.icon.Icon;
+import io.github.digitalsmile.goldberry.input.event.KeyEvent;
+import io.github.digitalsmile.goldberry.input.event.PointerEvent;
+import io.github.digitalsmile.goldberry.input.handler.Handles;
+import io.github.digitalsmile.goldberry.input.key.Key;
 import io.github.digitalsmile.goldberry.kdl.KdlNode;
-import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
+import io.github.digitalsmile.goldberry.paint.Box;
+import io.github.digitalsmile.goldberry.widget.Widget;
+import io.github.digitalsmile.goldberry.widget.attr.Attributed;
+import io.github.digitalsmile.goldberry.widget.attr.Attributes;
+import io.github.digitalsmile.goldberry.widget.style.Paints;
+import io.github.digitalsmile.goldberry.widget.style.Styled;
 import io.github.digitalsmile.goldberry.widgets.markup.Markup;
+import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
 
 /// A button (§11, `docs/core-widgets.md` §3).
 ///
@@ -52,17 +52,14 @@ import io.github.digitalsmile.goldberry.widgets.markup.Markup;
 /// @param disabled   whether it refuses activation and matches `:disabled`
 /// @param attributes `id` and `class`, exactly as on the primitives
 @Markup("button")
-public record Button(
-        String label, Icon icon, Runnable onPress, boolean disabled,
-        Attributes attributes)
+public record Button(String label, Icon icon, Runnable onPress, boolean disabled, Attributes attributes)
         implements Widget.Leaf, Styled, Paints, Handles, Attributed<Button> {
 
     public Button {
         Objects.requireNonNull(label, "label");
         if (label.isEmpty() && icon == null) {
-            throw new IllegalArgumentException(
-                    "a button with neither a label nor an icon has nothing to click on"
-                            + " and nothing to read out (§13)");
+            throw new IllegalArgumentException("a button with neither a label nor an icon has nothing to click on"
+                    + " and nothing to read out (§13)");
         }
         attributes = attributes == null ? Attributes.NONE : attributes;
     }
@@ -96,7 +93,6 @@ public record Button(
     public Button disabled(boolean value) {
         return new Button(label, icon, onPress, value, attributes);
     }
-
 
     @Override
     public Button withAttributes(Attributes attributes) {
@@ -158,7 +154,9 @@ public record Button(
     /// wants the opposite, and will say so.)
     @Override
     public void onKey(KeyEvent event) {
-        if (event.kind() != KeyEvent.Kind.PRESSED || event.isRepeat() || !event.modifiers().none()) {
+        if (event.kind() != KeyEvent.Kind.PRESSED
+                || event.isRepeat()
+                || !event.modifiers().none()) {
             return;
         }
         if (event.key() == Key.SPACE || event.key() == Key.ENTER) {
@@ -201,7 +199,11 @@ public record Button(
     /// *built* by a document: an `Icon` owns native memory and has to be closed,
     /// so one reloaded on every keystroke would leak per reload.
     public static Widget inflate(KdlNode node, List<Widget> children, Wiring wiring) {
-        return new Button(Wiring.label(node), wiring.icon(node), wiring.action(node, "press"),
-                Wiring.disabled(node), Attributes.of(node));
+        return new Button(
+                Wiring.label(node),
+                wiring.icon(node),
+                wiring.action(node, "press"),
+                Wiring.disabled(node),
+                Attributes.of(node));
     }
 }

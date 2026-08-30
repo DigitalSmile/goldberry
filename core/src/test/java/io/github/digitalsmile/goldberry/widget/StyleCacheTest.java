@@ -1,27 +1,27 @@
 package io.github.digitalsmile.goldberry.widget;
 
-
-
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertSame;
 
-import io.github.digitalsmile.goldberry.RendererRequirement;
-import io.github.digitalsmile.goldberry.assets.BundledFont;
-import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
-import io.github.digitalsmile.goldberry.css.select.Selector.PseudoClass;
-import io.github.digitalsmile.goldberry.css.Stylesheet;
-import io.github.digitalsmile.goldberry.css.ComputedStyle;
-import io.github.digitalsmile.goldberry.paint.Box;
-import io.github.digitalsmile.goldberry.text.font.Font;
 import java.util.List;
 import java.util.Set;
+
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+
+import io.github.digitalsmile.goldberry.RendererRequirement;
+import io.github.digitalsmile.goldberry.assets.BundledFont;
+import io.github.digitalsmile.goldberry.css.ComputedStyle;
+import io.github.digitalsmile.goldberry.css.Stylesheet;
+import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
+import io.github.digitalsmile.goldberry.css.select.Selector.PseudoClass;
+import io.github.digitalsmile.goldberry.paint.Box;
+import io.github.digitalsmile.goldberry.text.font.Font;
 import io.github.digitalsmile.goldberry.widget.attr.Attributes;
 import io.github.digitalsmile.goldberry.widget.style.Paints;
 import io.github.digitalsmile.goldberry.widget.style.Styled;
@@ -47,8 +47,7 @@ class StyleCacheTest {
     /// classes and children to be wrong about. `panel` used to be that node, and
     /// `:core` has no widgets since [ADR-0092]. A local one is also the more
     /// honest fixture: nothing here is a fact about `panel`.
-    private record Group(List<Widget> children, Attributes attributes)
-            implements Widget.Leaf, Styled, Paints {
+    private record Group(List<Widget> children, Attributes attributes) implements Widget.Leaf, Styled, Paints {
 
         @Override
         public List<Widget> children() {
@@ -95,8 +94,7 @@ class StyleCacheTest {
     }
 
     private WidgetRenderer renderer(String css) {
-        return new WidgetRenderer(
-                List.of(Stylesheet.parse(CascadeLayer.APPLICATION, css)), font);
+        return new WidgetRenderer(List.of(Stylesheet.parse(CascadeLayer.APPLICATION, css)), font);
     }
 
     private static Attributes classed(String... names) {
@@ -106,9 +104,7 @@ class StyleCacheTest {
     /// A group holding a group, so there is an ancestor and a descendant to be
     /// wrong about.
     private static Widget nested() {
-        return new Group(
-                List.of(new Group(List.of(), classed("inner"))),
-                classed("outer"));
+        return new Group(List.of(new Group(List.of(), classed("inner"))), classed("outer"));
     }
 
     /// The element the renderer styles for the inner group.
@@ -135,7 +131,9 @@ class StyleCacheTest {
             assertNotNull(cachedAfterFirst, "the first frame populates the cache");
 
             renderer.render(tree);
-            assertSame(cachedAfterFirst, tree.root().cachedStyle(renderer.resolver(), null),
+            assertSame(
+                    cachedAfterFirst,
+                    tree.root().cachedStyle(renderer.resolver(), null),
                     "the second frame reused it rather than resolving again");
         }
 
@@ -175,8 +173,7 @@ class StyleCacheTest {
             assertEquals(RED, innerBox(renderer.render(tree)).background());
 
             inner(tree).setPseudoClass(PseudoClass.HOVER, true);
-            assertEquals(BLUE, innerBox(renderer.render(tree)).background(),
-                    "the hover rule never reached it");
+            assertEquals(BLUE, innerBox(renderer.render(tree)).background(), "the hover rule never reached it");
         }
 
         @Test
@@ -196,12 +193,14 @@ class StyleCacheTest {
             assertEquals(RED, innerBox(renderer.render(tree)).background());
 
             tree.root().setPseudoClass(PseudoClass.HOVER, true);
-            assertEquals(BLUE, innerBox(renderer.render(tree)).background(),
+            assertEquals(
+                    BLUE,
+                    innerBox(renderer.render(tree)).background(),
                     "a descendant combinator did not survive the style cache");
 
             tree.root().setPseudoClass(PseudoClass.HOVER, false);
-            assertEquals(RED, innerBox(renderer.render(tree)).background(),
-                    "and it did not come back when the hover left");
+            assertEquals(
+                    RED, innerBox(renderer.render(tree)).background(), "and it did not come back when the hover left");
         }
 
         @Test
@@ -216,14 +215,16 @@ class StyleCacheTest {
             var tree = new ElementTree(nested());
 
             renderer.render(tree);
-            var before = inner(tree).cachedStyle(
-                    renderer.resolver(), tree.root().cachedStyle(renderer.resolver(), null));
+            var before =
+                    inner(tree).cachedStyle(renderer.resolver(), tree.root().cachedStyle(renderer.resolver(), null));
             assertEquals(RED, before.color());
 
             tree.root().setPseudoClass(PseudoClass.HOVER, true);
             renderer.render(tree);
             var parentAfter = tree.root().cachedStyle(renderer.resolver(), null);
-            assertEquals(BLUE, inner(tree).cachedStyle(renderer.resolver(), parentAfter).color());
+            assertEquals(
+                    BLUE,
+                    inner(tree).cachedStyle(renderer.resolver(), parentAfter).color());
         }
 
         @Test
@@ -237,7 +238,9 @@ class StyleCacheTest {
             assertEquals(RED, innerBox(light.render(tree)).background());
 
             var dark = renderer("group.inner { background: #0000ff }");
-            assertEquals(BLUE, innerBox(dark.render(tree)).background(),
+            assertEquals(
+                    BLUE,
+                    innerBox(dark.render(tree)).background(),
                     "the tree kept the style the previous renderer resolved");
         }
 
@@ -252,9 +255,7 @@ class StyleCacheTest {
             assertEquals(RED, innerBox(renderer.render(tree)).background());
 
             // The same element, a different description of it.
-            tree.root().update(new Group(
-                    List.of(new Group(List.of(), classed("swapped"))),
-                    classed("outer")));
+            tree.root().update(new Group(List.of(new Group(List.of(), classed("swapped"))), classed("outer")));
             assertEquals(BLUE, innerBox(renderer.render(tree)).background());
         }
 
@@ -268,9 +269,7 @@ class StyleCacheTest {
             var tree = new ElementTree(nested());
             assertEquals(RED, innerBox(renderer.render(tree)).background());
 
-            tree.root().update(new Group(
-                    List.of(new Group(List.of(), classed("inner"))),
-                    classed("outer", "themed")));
+            tree.root().update(new Group(List.of(new Group(List.of(), classed("inner"))), classed("outer", "themed")));
             assertEquals(BLUE, innerBox(renderer.render(tree)).background());
         }
 
@@ -285,13 +284,14 @@ class StyleCacheTest {
             var tree = new ElementTree(nested());
             renderer.render(tree);
 
-            var cached = inner(tree).cachedStyle(
-                    renderer.resolver(), tree.root().cachedStyle(renderer.resolver(), null));
+            var cached =
+                    inner(tree).cachedStyle(renderer.resolver(), tree.root().cachedStyle(renderer.resolver(), null));
             assertNotNull(cached);
 
             inner(tree).setPseudoClass(PseudoClass.HOVER, false);
-            assertSame(cached, inner(tree).cachedStyle(
-                    renderer.resolver(), tree.root().cachedStyle(renderer.resolver(), null)),
+            assertSame(
+                    cached,
+                    inner(tree).cachedStyle(renderer.resolver(), tree.root().cachedStyle(renderer.resolver(), null)),
                     "clearing a pseudo-class that was not set threw the cache away");
         }
 
@@ -307,14 +307,15 @@ class StyleCacheTest {
                     group.inner { background: #ff0000 }
                     group.outer:hover group.inner { background: #0000ff }
                     """);
-            var tree = new ElementTree(new Group(
-                    List.of(new Wrapper()), classed("outer")));
+            var tree = new ElementTree(new Group(List.of(new Wrapper()), classed("outer")));
 
             var root = renderer.render(tree);
             assertEquals(RED, root.children().getFirst().background());
 
             tree.root().setPseudoClass(PseudoClass.HOVER, true);
-            assertEquals(BLUE, renderer.render(tree).children().getFirst().background(),
+            assertEquals(
+                    BLUE,
+                    renderer.render(tree).children().getFirst().background(),
                     "the invalidation stopped at the composition node");
         }
 

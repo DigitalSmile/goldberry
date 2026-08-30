@@ -1,14 +1,16 @@
 package io.github.digitalsmile.goldberry.render.event;
 
-import io.github.digitalsmile.goldberry.render.Backend;
-import io.github.digitalsmile.goldberry.render.BackendException;
-import io.github.digitalsmile.goldberry.log.Logs;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.Executor;
+
 import org.slf4j.Logger;
+
+import io.github.digitalsmile.goldberry.log.Logs;
+import io.github.digitalsmile.goldberry.render.Backend;
+import io.github.digitalsmile.goldberry.render.BackendException;
 
 /// The way onto the UI thread from anywhere else.
 ///
@@ -61,10 +63,9 @@ public final class UiExecutor implements Executor {
     /// Throws unless the caller is on the UI thread.
     public void requireUiThread() {
         if (!isUiThread()) {
-            throw new BackendException(
-                    "this must run on the UI thread (" + uiThread.getName() + "), not "
-                            + Thread.currentThread().getName()
-                            + ". Post it with UiExecutor.execute(...) instead.");
+            throw new BackendException("this must run on the UI thread (" + uiThread.getName() + "), not "
+                    + Thread.currentThread().getName()
+                    + ". Post it with UiExecutor.execute(...) instead.");
         }
     }
 
@@ -105,8 +106,7 @@ public final class UiExecutor implements Executor {
         }
         if (failures != null) {
             var first = failures.getFirst();
-            var error = new BackendException(
-                    failures.size() + " queued UI task(s) failed", first);
+            var error = new BackendException(failures.size() + " queued UI task(s) failed", first);
             failures.stream().skip(1).forEach(error::addSuppressed);
             throw error;
         }

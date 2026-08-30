@@ -114,7 +114,6 @@ class ScaleTest {
     @DisplayName("refuses bounds that are not numbers")
     void boundsAreChecked() {
         assertThrows(IllegalArgumentException.class, () -> Scale.linear(0, Double.NaN, 0, 1));
-        assertThrows(IllegalArgumentException.class,
-                () -> Scale.linear(0, 1, 0, Double.POSITIVE_INFINITY));
+        assertThrows(IllegalArgumentException.class, () -> Scale.linear(0, 1, 0, Double.POSITIVE_INFINITY));
     }
 }

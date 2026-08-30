@@ -3,14 +3,16 @@ package io.github.digitalsmile.goldberry.widgets;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import io.github.digitalsmile.goldberry.widget.Widget;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.RecordComponent;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
+
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+
+import io.github.digitalsmile.goldberry.widget.Widget;
 
 /// `RecordWitherTest`'s check, applied to **every widget in the catalog** rather
 /// than to `Box` and `ComputedStyle`.
@@ -40,15 +42,19 @@ class WidgetWitherTest {
     /// classes** — `HolderShapeTest`'s approach, and for its reason: a list
     /// somebody has to remember to extend is a list that stops being true.
     private static List<Class<?>> widgets() throws Exception {
-        var root = java.nio.file.Path.of(Widget.class.getProtectionDomain()
-                .getCodeSource().getLocation().toURI());
+        var root = java.nio.file.Path.of(
+                Widget.class.getProtectionDomain().getCodeSource().getLocation().toURI());
         // The widgets module's own output, beside `:core`'s.
-        var classes = java.nio.file.Path.of(
-                Widgets.class.getProtectionDomain().getCodeSource().getLocation().toURI());
+        var classes = java.nio.file.Path.of(Widgets.class
+                .getProtectionDomain()
+                .getCodeSource()
+                .getLocation()
+                .toURI());
         var out = new ArrayList<Class<?>>();
         try (var found = java.nio.file.Files.walk(classes)) {
             for (var file : found.filter(f -> f.toString().endsWith(".class")).toList()) {
-                var name = classes.relativize(file).toString()
+                var name = classes.relativize(file)
+                        .toString()
                         .replace(java.io.File.separatorChar, '.')
                         .replaceAll("\\.class$", "");
                 if (name.equals("module-info")) {
@@ -66,8 +72,8 @@ class WidgetWitherTest {
             }
         }
         if (out.isEmpty()) {
-            throw new AssertionError("no widget records were found under " + classes
-                    + " (core is at " + root + "), so this test covers nothing");
+            throw new AssertionError("no widget records were found under " + classes + " (core is at " + root
+                    + "), so this test covers nothing");
         }
         return out;
     }
@@ -101,7 +107,8 @@ class WidgetWitherTest {
         // A floor rather than an exact count: widgets are added, and a test that
         // had to be edited for each one is the list this walks the classes to
         // avoid. What it guards is the check silently covering nothing.
-        assertTrue(checked >= 20 && covered.size() >= 10,
+        assertTrue(
+                checked >= 20 && covered.size() >= 10,
                 "only " + checked + " withers were checked across " + covered.size()
                         + " widgets, which is fewer than the catalog has —"
                         + " the check is looking for the wrong shape."
@@ -118,8 +125,10 @@ class WidgetWitherTest {
 
         var checked = 0;
         for (var method : type.getDeclaredMethods()) {
-            if (!Modifier.isPublic(method.getModifiers()) || Modifier.isStatic(method.getModifiers())
-                    || method.getReturnType() != type || method.getParameterCount() != 1) {
+            if (!Modifier.isPublic(method.getModifiers())
+                    || Modifier.isStatic(method.getModifiers())
+                    || method.getReturnType() != type
+                    || method.getParameterCount() != 1) {
                 continue;
             }
             var component = components.get(method.getName());
@@ -132,7 +141,9 @@ class WidgetWitherTest {
             var current = raw(type, component.getName(), original);
             var result = method.invoke(original, current);
 
-            assertEquals(original, result,
+            assertEquals(
+                    original,
+                    result,
                     type.getSimpleName() + "." + method.getName()
                             + "(its own value) did not give back an equal record, so one of its"
                             + " arguments is in the wrong slot");
@@ -147,14 +158,12 @@ class WidgetWitherTest {
     /// checked rather than being checked vacuously — which for a widget built
     /// from defaults is most of them, and is why the fixture below tries to give
     /// each one something of its own.
-    private static java.util.Set<String> distinctFor(Class<?> type, Object fixture)
-            throws Exception {
+    private static java.util.Set<String> distinctFor(Class<?> type, Object fixture) throws Exception {
         var byType = new LinkedHashMap<Class<?>, List<String>>();
         var values = new LinkedHashMap<String, Object>();
         for (var component : type.getRecordComponents()) {
             values.put(component.getName(), raw(type, component.getName(), fixture));
-            byType.computeIfAbsent(component.getType(), k -> new ArrayList<>())
-                    .add(component.getName());
+            byType.computeIfAbsent(component.getType(), k -> new ArrayList<>()).add(component.getName());
         }
         var distinct = new java.util.LinkedHashSet<String>();
         for (var names : byType.values()) {

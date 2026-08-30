@@ -1,36 +1,36 @@
 package io.github.digitalsmile.goldberry.widgets.controls.knob;
 
-import io.github.digitalsmile.goldberry.css.Corners;
-import io.github.digitalsmile.goldberry.paint.Box;
-import io.github.digitalsmile.goldberry.widget.attr.Attributes;
-
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import io.github.digitalsmile.goldberry.bind.Property;
-import io.github.digitalsmile.goldberry.css.ComputedStyle;
-import io.github.digitalsmile.goldberry.css.value.CssLength;
-import io.github.digitalsmile.goldberry.css.cascade.StyleResolver;
-import io.github.digitalsmile.goldberry.css.Theme;
-import io.github.digitalsmile.goldberry.input.key.Key;
-import io.github.digitalsmile.goldberry.input.event.KeyEvent;
-import io.github.digitalsmile.goldberry.input.key.Modifiers;
-import io.github.digitalsmile.goldberry.input.event.PointerEvent;
-import io.github.digitalsmile.goldberry.kdl.KdlParser;
-import io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength;
-import io.github.digitalsmile.goldberry.widget.ElementTree;
-import io.github.digitalsmile.goldberry.widget.Widget;
-import io.github.digitalsmile.goldberry.widgets.Controls;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+
+import io.github.digitalsmile.goldberry.bind.Property;
+import io.github.digitalsmile.goldberry.css.ComputedStyle;
+import io.github.digitalsmile.goldberry.css.Corners;
+import io.github.digitalsmile.goldberry.css.Theme;
+import io.github.digitalsmile.goldberry.css.cascade.StyleResolver;
+import io.github.digitalsmile.goldberry.css.value.CssLength;
+import io.github.digitalsmile.goldberry.input.event.KeyEvent;
+import io.github.digitalsmile.goldberry.input.event.PointerEvent;
+import io.github.digitalsmile.goldberry.input.key.Key;
+import io.github.digitalsmile.goldberry.input.key.Modifiers;
+import io.github.digitalsmile.goldberry.kdl.KdlParser;
+import io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength;
+import io.github.digitalsmile.goldberry.paint.Box;
+import io.github.digitalsmile.goldberry.widget.ElementTree;
+import io.github.digitalsmile.goldberry.widget.Widget;
+import io.github.digitalsmile.goldberry.widget.attr.Attributes;
+import io.github.digitalsmile.goldberry.widgets.Controls;
 import io.github.digitalsmile.goldberry.widgets.Widgets;
 
 /// The tenth control, and the first whose drag is a **rate** ([ADR-0089]).
@@ -44,8 +44,16 @@ class KnobTest {
     /// What the knob asked for, in order.
     private static List<Double> asked(Knob knob, PointerEvent... events) {
         var seen = new ArrayList<Double>();
-        var wired = new Knob(knob.min(), knob.max(), knob.value(), knob.step(), knob.detents(),
-                knob.source(), seen::add, knob.disabled(), knob.attributes());
+        var wired = new Knob(
+                knob.min(),
+                knob.max(),
+                knob.value(),
+                knob.step(),
+                knob.detents(),
+                knob.source(),
+                seen::add,
+                knob.disabled(),
+                knob.attributes());
         for (var event : events) {
             wired.onPointer(event);
         }
@@ -140,8 +148,7 @@ class KnobTest {
         void hoverIsNotADrag() {
             var knob = new Knob(0, 100, 50, 0, null);
 
-            assertEquals(List.of(),
-                    asked(knob, drag(Float.NaN, 100, Modifiers.NONE, Double.NaN)));
+            assertEquals(List.of(), asked(knob, drag(Float.NaN, 100, Modifiers.NONE, Double.NaN)));
         }
 
         @Test
@@ -166,9 +173,11 @@ class KnobTest {
             var knob = new Knob(0, 100, 0, 0, 3, null, null, false, Attributes.NONE);
 
             // 45 is 5 from the detent at 50, inside the pull.
-            assertEquals(50.0, asked(knob, drag(200, 200 - 90, Modifiers.NONE, 0)).getFirst(), 1e-9);
+            assertEquals(
+                    50.0, asked(knob, drag(200, 200 - 90, Modifiers.NONE, 0)).getFirst(), 1e-9);
             // 30 is 20 from it, outside — and a `step` would have snapped it.
-            assertEquals(30.0, asked(knob, drag(200, 200 - 60, Modifiers.NONE, 0)).getFirst(), 1e-9);
+            assertEquals(
+                    30.0, asked(knob, drag(200, 200 - 60, Modifiers.NONE, 0)).getFirst(), 1e-9);
         }
 
         @Test
@@ -176,14 +185,15 @@ class KnobTest {
         void noneByDefault() {
             var knob = new Knob(0, 100, 0, 0, null);
 
-            assertEquals(30.0, asked(knob, drag(200, 200 - 60, Modifiers.NONE, 0)).getFirst(), 1e-9);
+            assertEquals(
+                    30.0, asked(knob, drag(200, 200 - 60, Modifiers.NONE, 0)).getFirst(), 1e-9);
         }
 
         @Test
         @DisplayName("one detent is refused, because one position is not a set of them")
         void oneIsRefused() {
-            assertThrows(IllegalArgumentException.class,
-                    () -> new Knob(0, 1, 0, 0, 1, null, null, false, Attributes.NONE));
+            assertThrows(
+                    IllegalArgumentException.class, () -> new Knob(0, 1, 0, 0, 1, null, null, false, Attributes.NONE));
         }
     }
 
@@ -195,8 +205,8 @@ class KnobTest {
         /// `localPart()` makes `local()` mean. The dial here is 22x22, which is
         /// what the shipped stylesheet lays out inside a 32px knob.
         private PointerEvent clickAt(float x, float y, float dragX, float dragY) {
-            var event = new PointerEvent(PointerEvent.Kind.CLICKED, x, y,
-                    PointerEvent.Button.PRIMARY, 1, x - dragX, y - dragY, null);
+            var event = new PointerEvent(
+                    PointerEvent.Kind.CLICKED, x, y, PointerEvent.Button.PRIMARY, 1, x - dragX, y - dragY, null);
             event.localTo(new PointerEvent.Local(x, y, 22, 22));
             return event;
         }
@@ -263,8 +273,7 @@ class KnobTest {
         @Test
         @DisplayName("a knob that has never been painted has no dial to measure against")
         void unlaidOutIsIgnored() {
-            var event = new PointerEvent(PointerEvent.Kind.CLICKED, 5, 5,
-                    PointerEvent.Button.PRIMARY, 1, 5, 5, null);
+            var event = new PointerEvent(PointerEvent.Kind.CLICKED, 5, 5, PointerEvent.Button.PRIMARY, 1, 5, 5, null);
 
             assertEquals(List.of(), asked(new Knob(0, 100, 0, 0, null), event));
         }
@@ -290,7 +299,10 @@ class KnobTest {
         void roundTrip() {
             for (var tenth = 0; tenth <= 10; tenth++) {
                 var fraction = tenth / 10.0;
-                assertEquals(fraction, Knob.fractionAt(Knob.angleAt(fraction)), 1e-9,
+                assertEquals(
+                        fraction,
+                        Knob.fractionAt(Knob.angleAt(fraction)),
+                        1e-9,
                         "the pointer and a click on it must mean the same value");
             }
         }
@@ -303,8 +315,7 @@ class KnobTest {
 
             var box = dial.render(style, List.of(), null);
 
-            assertEquals(Box.Mark.Kind.POINTER,
-                    box.mark().kind());
+            assertEquals(Box.Mark.Kind.POINTER, box.mark().kind());
             assertEquals(Knob.angleAt(0.5), box.mark().start(), 1e-9);
         }
     }
@@ -373,8 +384,16 @@ class KnobTest {
 
         private List<Double> pressed(Knob knob, Key key) {
             var seen = new ArrayList<Double>();
-            new Knob(knob.min(), knob.max(), knob.value(), knob.step(), knob.detents(),
-                    knob.source(), seen::add, knob.disabled(), knob.attributes())
+            new Knob(
+                            knob.min(),
+                            knob.max(),
+                            knob.value(),
+                            knob.step(),
+                            knob.detents(),
+                            knob.source(),
+                            seen::add,
+                            knob.disabled(),
+                            knob.attributes())
                     .onKey(new KeyEvent(KeyEvent.Kind.PRESSED, key, Modifiers.NONE, false, null));
             return seen;
         }
@@ -405,7 +424,7 @@ class KnobTest {
         void consumedAtTheEnd() {
             var event = new KeyEvent(KeyEvent.Kind.PRESSED, Key.RIGHT, Modifiers.NONE, false, null);
 
-            new Knob(0, 100, 100, 5, value -> { }).onKey(event);
+            new Knob(0, 100, 100, 5, value -> {}).onKey(event);
 
             assertTrue(event.isConsumed());
         }
@@ -433,7 +452,8 @@ class KnobTest {
             assertTrue(Controls.controlTypes().contains("knob"));
             for (var part : List.of("knob-track", "knob-arc")) {
                 assertFalse(Controls.controlTypes().contains(part));
-                assertFalse(Widgets.inflater().registered().contains(part),
+                assertFalse(
+                        Widgets.inflater().registered().contains(part),
                         "a part is CSS-selectable and not KDL-constructible (ADR-0065)");
             }
         }
@@ -444,7 +464,10 @@ class KnobTest {
     void binding() {
         var gain = Property.of(150.0);
 
-        assertEquals(100.0, Knob.of(0, 100, 0, gain, null).resolved(), 1e-9,
+        assertEquals(
+                100.0,
+                Knob.of(0, 100, 0, gain, null).resolved(),
+                1e-9,
                 "a model outside the range is an application bug, and a knob turned"
                         + " past its stop is a worse way to report it");
         assertNull(new Knob(0, 100, 50, 0, null).binding());
@@ -456,8 +479,8 @@ class KnobTest {
         assertEquals(0.0, new Knob(0, 100, 0, 0, null).fraction(), 1e-9);
         assertEquals(0.25, new Knob(0, 100, 25, 0, null).fraction(), 1e-9);
         assertEquals(1.0, new Knob(0, 100, 100, 0, null).fraction(), 1e-9);
-        assertEquals(0.5, new Knob(-1, 1, 0, 0, null).fraction(), 1e-9,
-                "and a range through zero is not a special case");
+        assertEquals(
+                0.5, new Knob(-1, 1, 0, 0, null).fraction(), 1e-9, "and a range through zero is not a special case");
     }
 
     /// §3's row: diameters 32 / 48. Read off the resolved style rather than the
@@ -466,15 +489,18 @@ class KnobTest {
     @DisplayName("§3's two diameters come out of the cascade")
     void diameters() {
         assertEquals(StyleLength.points(32), styleOf(new Knob(0, 1, 0, 0, null)).width());
-        assertEquals(StyleLength.points(48), styleOf(new Knob(0, 1, 0, 0, null).styled("large")).width());
-        assertEquals(Corners.all(16), styleOf(new Knob(0, 1, 0, 0, null)).decoration().corners(),
+        assertEquals(
+                StyleLength.points(48),
+                styleOf(new Knob(0, 1, 0, 0, null).styled("large")).width());
+        assertEquals(
+                Corners.all(16),
+                styleOf(new Knob(0, 1, 0, 0, null)).decoration().corners(),
                 "half the side, which is what makes a rounded rectangle a disc");
     }
 
     private static ComputedStyle styleOf(Widget widget) {
         return ComputedStyle.of(
-                new StyleResolver(Controls.stylesheets(Theme.NORD_DARK))
-                        .resolve(new ElementTree(widget).root()),
+                new StyleResolver(Controls.stylesheets(Theme.NORD_DARK)).resolve(new ElementTree(widget).root()),
                 CssLength.Context.DEFAULT);
     }
 }

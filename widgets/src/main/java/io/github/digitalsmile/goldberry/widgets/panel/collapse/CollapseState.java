@@ -48,7 +48,10 @@ final class CollapseState extends State<Collapse> {
         var collapse = widget();
         var showing = isOpen();
         return new CollapseSection(
-                collapse.title(), showing, this::toggle, showing ? this::visibility : null,
+                collapse.title(),
+                showing,
+                this::toggle,
+                showing ? this::visibility : null,
                 // **The body is not built while it is shut.** Not built and
                 // handed to something that hides it -- the list is empty, so the
                 // element layer never mounts it, its bindings never subscribe,

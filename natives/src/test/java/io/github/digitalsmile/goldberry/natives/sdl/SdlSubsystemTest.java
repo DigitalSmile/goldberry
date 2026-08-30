@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.EnumSet;
 import java.util.Set;
+
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -59,9 +60,7 @@ class SdlSubsystemTest {
     void maskIsBitwise() {
         // VIDEO|EVENTS happens to be a sum too; overlapping flags would not be.
         // Asserting the literal keeps the implementation honest either way.
-        assertEquals(
-                0x00000020 | 0x00004000,
-                SdlSubsystem.mask(EnumSet.of(SdlSubsystem.VIDEO, SdlSubsystem.EVENTS)));
+        assertEquals(0x00000020 | 0x00004000, SdlSubsystem.mask(EnumSet.of(SdlSubsystem.VIDEO, SdlSubsystem.EVENTS)));
     }
 
     @Test

@@ -1,12 +1,9 @@
 package io.github.digitalsmile.goldberry.render.backend.sdl3;
 
-import io.github.digitalsmile.goldberry.render.backend.sdl3.WaylandDecorations.Verdict;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.ValueSource;
+import static org.junit.jupiter.api.Assertions.assertAll;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -14,10 +11,14 @@ import java.nio.file.Path;
 import java.util.List;
 import java.util.Optional;
 
-import static org.junit.jupiter.api.Assertions.assertAll;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
+
+import io.github.digitalsmile.goldberry.render.backend.sdl3.WaylandDecorations.Verdict;
 
 /// Tests for [WaylandDecorations].
 ///
@@ -84,10 +85,10 @@ class WaylandDecorationsTest {
             // Nothing to load is nothing to load; the GTK check never comes into
             // it, so an unknown thread must not soften this to UNKNOWN.
             assertAll(
-                    () -> assertEquals(Verdict.UNDECORATED,
-                            WaylandDecorations.verdict("wayland", plugins(), INITIAL_THREAD)),
-                    () -> assertEquals(Verdict.UNDECORATED,
-                            WaylandDecorations.verdict("wayland", plugins(), UNKNOWN_THREAD)));
+                    () -> assertEquals(
+                            Verdict.UNDECORATED, WaylandDecorations.verdict("wayland", plugins(), INITIAL_THREAD)),
+                    () -> assertEquals(
+                            Verdict.UNDECORATED, WaylandDecorations.verdict("wayland", plugins(), UNKNOWN_THREAD)));
         }
 
         @Test
@@ -112,7 +113,8 @@ class WaylandDecorationsTest {
             // Not an allow-list of known plugin names. A distribution shipping its
             // own plugin should not trip a warning about a missing one, and this
             // code cannot be updated on their release schedule.
-            assertEquals(Verdict.DECORATED,
+            assertEquals(
+                    Verdict.DECORATED,
                     WaylandDecorations.verdict("wayland", plugins(GTK, "libdecor-something-new.so"), CREATED_THREAD));
         }
 
@@ -144,8 +146,10 @@ class WaylandDecorationsTest {
         @Test
         @DisplayName("ignores files in the directory that are not plugins")
         void ignoresNonPlugins() {
-            assertEquals(Verdict.UNDECORATED,
-                    WaylandDecorations.verdict("wayland", plugins(GTK, "README", "libdecor-cairo.so.disabled"), CREATED_THREAD));
+            assertEquals(
+                    Verdict.UNDECORATED,
+                    WaylandDecorations.verdict(
+                            "wayland", plugins(GTK, "README", "libdecor-cairo.so.disabled"), CREATED_THREAD));
         }
     }
 
@@ -156,7 +160,8 @@ class WaylandDecorationsTest {
         @Test
         @DisplayName("names the symptom, the cause, and the package that fixes it")
         void namesSymptomCauseAndFix() {
-            var message = WaylandDecorations.diagnose("wayland", plugins(GTK), CREATED_THREAD).orElseThrow();
+            var message = WaylandDecorations.diagnose("wayland", plugins(GTK), CREATED_THREAD)
+                    .orElseThrow();
 
             assertAll(
                     () -> assertTrue(message.contains("no titlebar"), message),
@@ -174,7 +179,8 @@ class WaylandDecorationsTest {
             // perfectly, so anyone who saw it work will reach for an older
             // libdecor first. That reintroduces the GTK state corruption the
             // check was added for (libdecor issue #72).
-            var message = WaylandDecorations.diagnose("wayland", plugins(GTK), CREATED_THREAD).orElseThrow();
+            var message = WaylandDecorations.diagnose("wayland", plugins(GTK), CREATED_THREAD)
+                    .orElseThrow();
 
             assertAll(
                     () -> assertTrue(message.contains("0.2.3"), message),
@@ -185,7 +191,8 @@ class WaylandDecorationsTest {
         @Test
         @DisplayName("offers the X11 escape hatch under the property that actually works")
         void offersTheX11Escape() {
-            var message = WaylandDecorations.diagnose("wayland", plugins(GTK), CREATED_THREAD).orElseThrow();
+            var message = WaylandDecorations.diagnose("wayland", plugins(GTK), CREATED_THREAD)
+                    .orElseThrow();
             // Spelled from the constant, so renaming the property cannot leave the
             // message advising a flag that no longer exists.
             assertTrue(message.contains("-D" + Sdl3Backend.VIDEO_DRIVER_PROPERTY + "=x11"), message);
@@ -194,7 +201,8 @@ class WaylandDecorationsTest {
         @Test
         @DisplayName("does not blame the GTK plugin when no plugin is installed at all")
         void doesNotBlameGtkWhenItIsAbsent() {
-            var message = WaylandDecorations.diagnose("wayland", plugins(), CREATED_THREAD).orElseThrow();
+            var message = WaylandDecorations.diagnose("wayland", plugins(), CREATED_THREAD)
+                    .orElseThrow();
 
             assertAll(
                     () -> assertTrue(message.contains("No libdecor plugin is installed"), message),
@@ -210,9 +218,12 @@ class WaylandDecorationsTest {
         @DisplayName("is absent whenever the verdict is not UNDECORATED")
         void isAbsentOtherwise() {
             assertAll(
-                    () -> assertTrue(WaylandDecorations.diagnose("wayland", plugins(GTK, CAIRO), CREATED_THREAD).isEmpty()),
-                    () -> assertTrue(WaylandDecorations.diagnose("x11", plugins(GTK), CREATED_THREAD).isEmpty()),
-                    () -> assertTrue(WaylandDecorations.diagnose("wayland", noDirectory(), CREATED_THREAD).isEmpty()));
+                    () -> assertTrue(WaylandDecorations.diagnose("wayland", plugins(GTK, CAIRO), CREATED_THREAD)
+                            .isEmpty()),
+                    () -> assertTrue(WaylandDecorations.diagnose("x11", plugins(GTK), CREATED_THREAD)
+                            .isEmpty()),
+                    () -> assertTrue(WaylandDecorations.diagnose("wayland", noDirectory(), CREATED_THREAD)
+                            .isEmpty()));
         }
     }
 
@@ -227,7 +238,8 @@ class WaylandDecorationsTest {
             // this is its core with the driver test peeled off.
             for (var files : List.of(plugins(GTK), plugins(), plugins(GTK, CAIRO))) {
                 for (var thread : List.of(CREATED_THREAD, INITIAL_THREAD, UNKNOWN_THREAD)) {
-                    assertEquals(WaylandDecorations.verdict("wayland", files, thread),
+                    assertEquals(
+                            WaylandDecorations.verdict("wayland", files, thread),
                             WaylandDecorations.verdictForWayland(files, thread),
                             "disagreed for " + files + " / " + thread);
                 }
@@ -241,18 +253,18 @@ class WaylandDecorationsTest {
             // the distinction still governs whether the warning is emitted, and it
             // is the shape any future conditional fallback would depend on.
             assertAll(
-                    () -> assertEquals(Verdict.UNDECORATED,
-                            WaylandDecorations.verdictForWayland(plugins(GTK), CREATED_THREAD)),
-                    () -> assertEquals(Verdict.UNKNOWN,
-                            WaylandDecorations.verdictForWayland(noDirectory(), CREATED_THREAD)),
-                    () -> assertEquals(Verdict.UNKNOWN,
-                            WaylandDecorations.verdictForWayland(plugins(GTK), UNKNOWN_THREAD)),
-                    () -> assertEquals(Verdict.DECORATED,
+                    () -> assertEquals(
+                            Verdict.UNDECORATED, WaylandDecorations.verdictForWayland(plugins(GTK), CREATED_THREAD)),
+                    () -> assertEquals(
+                            Verdict.UNKNOWN, WaylandDecorations.verdictForWayland(noDirectory(), CREATED_THREAD)),
+                    () -> assertEquals(
+                            Verdict.UNKNOWN, WaylandDecorations.verdictForWayland(plugins(GTK), UNKNOWN_THREAD)),
+                    () -> assertEquals(
+                            Verdict.DECORATED,
                             WaylandDecorations.verdictForWayland(plugins(GTK, CAIRO), CREATED_THREAD)),
-                    () -> assertEquals(Verdict.DECORATED,
-                            WaylandDecorations.verdictForWayland(plugins(GTK), INITIAL_THREAD)));
+                    () -> assertEquals(
+                            Verdict.DECORATED, WaylandDecorations.verdictForWayland(plugins(GTK), INITIAL_THREAD)));
         }
-
     }
 
     @Nested
@@ -281,10 +293,14 @@ class WaylandDecorationsTest {
             var procCanAnswer = Files.isSymbolicLink(Path.of("/proc/thread-self"));
 
             if (procCanAnswer) {
-                assertEquals(Optional.of(false), WaylandDecorations.onInitialThread(),
+                assertEquals(
+                        Optional.of(false),
+                        WaylandDecorations.onInitialThread(),
                         "a JVM's threads are never the process's initial one, and /proc says so");
             } else {
-                assertEquals(Optional.empty(), WaylandDecorations.onInitialThread(),
+                assertEquals(
+                        Optional.empty(),
+                        WaylandDecorations.onInitialThread(),
                         "without /proc the answer is silence, not a guess -- the verdict reads "
                                 + "this as UNKNOWN and stays quiet");
             }
@@ -313,8 +329,10 @@ class WaylandDecorationsTest {
 
             assertAll(
                     () -> assertTrue(WaylandDecorations.onInitialThread(missing).isEmpty()),
-                    () -> assertTrue(WaylandDecorations.onInitialThread(notALink).isEmpty()),
-                    () -> assertTrue(WaylandDecorations.onInitialThread(wrongShape).isEmpty()));
+                    () -> assertTrue(
+                            WaylandDecorations.onInitialThread(notALink).isEmpty()),
+                    () -> assertTrue(
+                            WaylandDecorations.onInitialThread(wrongShape).isEmpty()));
         }
     }
 
@@ -340,9 +358,11 @@ class WaylandDecorationsTest {
         @Test
         @DisplayName("puts the multiarch directory first on Debian architectures")
         void multiarchComesFirst() {
-            assertEquals(Path.of("/usr/lib/x86_64-linux-gnu/libdecor/plugins-1"),
+            assertEquals(
+                    Path.of("/usr/lib/x86_64-linux-gnu/libdecor/plugins-1"),
                     WaylandDecorations.candidateDirectories(null, "amd64").getFirst());
-            assertEquals(Path.of("/usr/lib/aarch64-linux-gnu/libdecor/plugins-1"),
+            assertEquals(
+                    Path.of("/usr/lib/aarch64-linux-gnu/libdecor/plugins-1"),
                     WaylandDecorations.candidateDirectories(null, "aarch64").getFirst());
         }
 
@@ -351,7 +371,8 @@ class WaylandDecorationsTest {
         void unknownArchitectureStillHasCandidates() {
             var candidates = WaylandDecorations.candidateDirectories(null, "riscv64");
             assertAll(
-                    () -> assertTrue(WaylandDecorations.multiarchTriplet("riscv64").isEmpty()),
+                    () -> assertTrue(
+                            WaylandDecorations.multiarchTriplet("riscv64").isEmpty()),
                     () -> assertTrue(candidates.contains(Path.of("/usr/lib64/libdecor/plugins-1"))),
                     () -> assertTrue(candidates.contains(Path.of("/usr/lib/libdecor/plugins-1"))));
         }
@@ -379,7 +400,8 @@ class WaylandDecorationsTest {
         @Test
         @DisplayName("reports no directory when none of the candidates exist")
         void reportsNoDirectoryWhenNoneExist() {
-            assertTrue(WaylandDecorations.pluginFiles(null, "amd64", directory -> Optional.empty()).isEmpty());
+            assertTrue(WaylandDecorations.pluginFiles(null, "amd64", directory -> Optional.empty())
+                    .isEmpty());
         }
     }
 }

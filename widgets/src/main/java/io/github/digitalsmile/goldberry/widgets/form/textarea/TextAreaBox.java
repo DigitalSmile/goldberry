@@ -1,31 +1,32 @@
 package io.github.digitalsmile.goldberry.widgets.form.textarea;
 
-import io.github.digitalsmile.goldberry.render.Cursor;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
+
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
-import io.github.digitalsmile.goldberry.input.hit.Extent;
-import io.github.digitalsmile.goldberry.input.handler.Handles;
 import io.github.digitalsmile.goldberry.input.event.KeyEvent;
-import io.github.digitalsmile.goldberry.input.handler.Measured;
 import io.github.digitalsmile.goldberry.input.event.PointerEvent;
 import io.github.digitalsmile.goldberry.input.event.TextEvent;
-import io.github.digitalsmile.goldberry.paint.Box;
+import io.github.digitalsmile.goldberry.input.handler.Handles;
+import io.github.digitalsmile.goldberry.input.handler.Measured;
+import io.github.digitalsmile.goldberry.input.hit.Extent;
 import io.github.digitalsmile.goldberry.natives.yoga.Insets;
 import io.github.digitalsmile.goldberry.natives.yoga.style.Overflow;
 import io.github.digitalsmile.goldberry.natives.yoga.style.PositionType;
 import io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength;
+import io.github.digitalsmile.goldberry.paint.Box;
+import io.github.digitalsmile.goldberry.render.Cursor;
 import io.github.digitalsmile.goldberry.text.Paragraph;
 import io.github.digitalsmile.goldberry.text.TextLine;
+import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widget.attr.Attributes;
 import io.github.digitalsmile.goldberry.widget.style.Paints;
 import io.github.digitalsmile.goldberry.widget.style.Styled;
-import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widgets.form.parts.Caret;
 import io.github.digitalsmile.goldberry.widgets.form.parts.Highlight;
 import io.github.digitalsmile.goldberry.widgets.form.parts.Value;
 import io.github.digitalsmile.goldberry.widgets.form.textinput.TextEdit;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
 
 /// The node a stylesheet calls `text-area`.
 ///
@@ -73,8 +74,16 @@ import java.util.Set;
 /// @param attributes  the `id` and classes the document wrote
 /// @param editor      what to tell about a key, a click or a measurement
 record TextAreaBox(
-        String display, boolean placeholder, TextEdit edit, boolean focused, boolean caretShown,
-        int rows, int maxRows, boolean disabled, boolean readOnly, Attributes attributes,
+        String display,
+        boolean placeholder,
+        TextEdit edit,
+        boolean focused,
+        boolean caretShown,
+        int rows,
+        int maxRows,
+        boolean disabled,
+        boolean readOnly,
+        Attributes attributes,
         AreaEditor editor)
         implements Widget.Leaf, Styled, Paints, Handles, Measured {
 
@@ -139,8 +148,8 @@ record TextAreaBox(
                 if (event.button() != PointerEvent.Button.PRIMARY) {
                     return;
                 }
-                editor.pointerAt(event.local().x(), event.local().y(),
-                        event.modifiers().shift(), event.clickCount());
+                editor.pointerAt(
+                        event.local().x(), event.local().y(), event.modifiers().shift(), event.clickCount());
                 event.consume();
             }
             case MOVED -> {
@@ -162,8 +171,7 @@ record TextAreaBox(
                     event.consume();
                 }
             }
-            default -> {
-            }
+            default -> {}
         }
     }
 
@@ -185,42 +193,44 @@ record TextAreaBox(
         var extend = modifiers.shift();
 
         if (modifiers.control() && !modifiers.alt()) {
-            var handled = switch (event.key()) {
-                case A -> editor.selectAll();
-                case C -> editor.copy();
-                case X -> !readOnly && editor.cut();
-                case V -> !readOnly && editor.paste();
-                case Z -> !readOnly && (modifiers.shift() ? editor.redo() : editor.undo());
-                case Y -> !readOnly && editor.redo();
-                // Ctrl+Home and Ctrl+End are the whole text, which is what the
-                // modifier means everywhere it appears on these two keys.
-                case HOME -> editor.move(AreaEditor.Motion.START, false, extend);
-                case END -> editor.move(AreaEditor.Motion.END, false, extend);
-                default -> false;
-            };
+            var handled =
+                    switch (event.key()) {
+                        case A -> editor.selectAll();
+                        case C -> editor.copy();
+                        case X -> !readOnly && editor.cut();
+                        case V -> !readOnly && editor.paste();
+                        case Z -> !readOnly && (modifiers.shift() ? editor.redo() : editor.undo());
+                        case Y -> !readOnly && editor.redo();
+                        // Ctrl+Home and Ctrl+End are the whole text, which is what the
+                        // modifier means everywhere it appears on these two keys.
+                        case HOME -> editor.move(AreaEditor.Motion.START, false, extend);
+                        case END -> editor.move(AreaEditor.Motion.END, false, extend);
+                        default -> false;
+                    };
             if (handled) {
                 event.consume();
                 return;
             }
         }
 
-        var handled = switch (event.key()) {
-            case LEFT -> editor.move(AreaEditor.Motion.LEFT, word, extend);
-            case RIGHT -> editor.move(AreaEditor.Motion.RIGHT, word, extend);
-            case UP -> editor.moveLine(-1, extend);
-            case DOWN -> editor.moveLine(1, extend);
-            case PAGE_UP -> editor.moveLine(-Math.max(1, rows), extend);
-            case PAGE_DOWN -> editor.moveLine(Math.max(1, rows), extend);
-            case HOME -> editor.move(AreaEditor.Motion.LINE_START, word, extend);
-            case END -> editor.move(AreaEditor.Motion.LINE_END, word, extend);
-            case BACKSPACE -> !readOnly && editor.deleteBefore(word);
-            case DELETE -> !readOnly && editor.deleteAfter(word);
-            // The one key that means something here and nothing in a
-            // `text-input`. Consumed either way when it is taken, so a form's
-            // default button does not also fire.
-            case ENTER -> !readOnly && editor.type("\n");
-            default -> false;
-        };
+        var handled =
+                switch (event.key()) {
+                    case LEFT -> editor.move(AreaEditor.Motion.LEFT, word, extend);
+                    case RIGHT -> editor.move(AreaEditor.Motion.RIGHT, word, extend);
+                    case UP -> editor.moveLine(-1, extend);
+                    case DOWN -> editor.moveLine(1, extend);
+                    case PAGE_UP -> editor.moveLine(-Math.max(1, rows), extend);
+                    case PAGE_DOWN -> editor.moveLine(Math.max(1, rows), extend);
+                    case HOME -> editor.move(AreaEditor.Motion.LINE_START, word, extend);
+                    case END -> editor.move(AreaEditor.Motion.LINE_END, word, extend);
+                    case BACKSPACE -> !readOnly && editor.deleteBefore(word);
+                    case DELETE -> !readOnly && editor.deleteAfter(word);
+                    // The one key that means something here and nothing in a
+                    // `text-input`. Consumed either way when it is taken, so a form's
+                    // default button does not also fire.
+                    case ENTER -> !readOnly && editor.type("\n");
+                    default -> false;
+                };
         if (handled) {
             event.consume();
         }
@@ -278,8 +288,7 @@ record TextAreaBox(
                 boxes.add(children.get(i)
                         .position(PositionType.ABSOLUTE)
                         .inset(leftTop(rect.x(), rect.y()))
-                        .size(StyleLength.points((float) rect.width()),
-                                StyleLength.points((float) lineHeight)));
+                        .size(StyleLength.points((float) rect.width()), StyleLength.points((float) lineHeight)));
             } else {
                 boxes.add(Box.of());
             }
@@ -297,21 +306,20 @@ record TextAreaBox(
                 // `contentWidth` reports as "do not wrap": a definite width of
                 // one point would put every word on a line of its own for one
                 // frame, which is exactly what the Forms golden showed.
-                .size(Double.isFinite(width)
-                                ? StyleLength.points((float) width) : StyleLength.UNDEFINED,
+                .size(
+                        Double.isFinite(width) ? StyleLength.points((float) width) : StyleLength.UNDEFINED,
                         StyleLength.UNDEFINED));
 
         var caret = caretRect(paragraph, lines, padding, offset, lineHeight);
         boxes.add(children.get(children.size() - 1)
                 .position(PositionType.ABSOLUTE)
                 .inset(leftTop(caret.x(), caret.y()))
-                .size(StyleLength.points((float) CARET_WIDTH),
-                        StyleLength.points((float) lineHeight)));
+                .size(StyleLength.points((float) CARET_WIDTH), StyleLength.points((float) lineHeight)));
 
-        return Box.of().style(style)
+        return Box.of()
+                .style(style)
                 .children(boxes.toArray(Box[]::new))
-                .size(StyleLength.UNDEFINED,
-                        StyleLength.points((float) height(lines.size(), lineHeight, padding)))
+                .size(StyleLength.UNDEFINED, StyleLength.points((float) height(lines.size(), lineHeight, padding)))
                 .cursor(disabled ? Cursor.DEFAULT : Cursor.TEXT)
                 .overflow(Overflow.HIDDEN);
     }
@@ -333,8 +341,8 @@ record TextAreaBox(
     /// A run of wrapped text is not a rectangle, which is the whole of what a
     /// second dimension costs the selection — and the reason `Paragraph`'s two
     /// measurements take a **line's** range rather than an offset.
-    private List<Rect> selectionRects(Paragraph paragraph, List<TextLine> lines, Insets2 padding,
-            double offset, double lineHeight) {
+    private List<Rect> selectionRects(
+            Paragraph paragraph, List<TextLine> lines, Insets2 padding, double offset, double lineHeight) {
         var rects = new ArrayList<Rect>();
         if (!edit.hasSelection() || !focused) {
             return rects;
@@ -362,8 +370,8 @@ record TextAreaBox(
     /// caret sitting exactly on a wrap: that offset is the end of one line and
     /// the start of the next, and somebody who has just pressed `Right` means the
     /// next.
-    private Rect caretRect(Paragraph paragraph, List<TextLine> lines, Insets2 padding,
-            double offset, double lineHeight) {
+    private Rect caretRect(
+            Paragraph paragraph, List<TextLine> lines, Insets2 padding, double offset, double lineHeight) {
         var at = Math.clamp(edit.caret(), 0, display.length());
         var index = 0;
         for (var i = 0; i < lines.size(); i++) {
@@ -373,8 +381,7 @@ record TextAreaBox(
         }
         var line = lines.isEmpty() ? null : lines.get(index);
         var x = line == null ? 0 : paragraph.widthBetween(line.start(), Math.max(at, line.start()));
-        return new Rect(padding.left() + x, padding.top() + index * lineHeight - offset,
-                CARET_WIDTH);
+        return new Rect(padding.left() + x, padding.top() + index * lineHeight - offset, CARET_WIDTH);
     }
 
     private static Insets leftTop(double left, double top) {
@@ -386,7 +393,9 @@ record TextAreaBox(
     }
 
     private static Insets2 padding(ComputedStyle style) {
-        return new Insets2(points(style.padding().left()), points(style.padding().top()),
+        return new Insets2(
+                points(style.padding().left()),
+                points(style.padding().top()),
                 points(style.padding().bottom()));
     }
 
@@ -396,10 +405,8 @@ record TextAreaBox(
 
     /// The three padding edges this control reads. Not `Insets`, which is four
     /// `StyleLength`s and needs resolving at every use.
-    private record Insets2(double left, double top, double bottom) {
-    }
+    private record Insets2(double left, double top, double bottom) {}
 
     /// A placed rectangle, one line tall.
-    private record Rect(double x, double y, double width) {
-    }
+    private record Rect(double x, double y, double width) {}
 }

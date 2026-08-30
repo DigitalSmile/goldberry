@@ -34,15 +34,30 @@ import java.util.Objects;
 /// @param crosshair  the group whose crosshair this chart shares, or null
 /// @param fill       what is under a band or a line
 public record ChartOptions(
-        ChartStatus status, NullPolicy nulls, List<Threshold> thresholds, TimeAxis time,
-        Curve curve, boolean logY, Bounds bounds, Markers markers, CrosshairGroup crosshair,
+        ChartStatus status,
+        NullPolicy nulls,
+        List<Threshold> thresholds,
+        TimeAxis time,
+        Curve curve,
+        boolean logY,
+        Bounds bounds,
+        Markers markers,
+        CrosshairGroup crosshair,
         Fill fill) {
 
     /// What a chart that has been told nothing does: it has its data, a hole is
     /// a hole, there are no limits, and x is the point index.
     public static final ChartOptions DEFAULTS = new ChartOptions(
-            ChartStatus.READY, NullPolicy.GAP, List.of(), null, Curve.LINEAR, false,
-            Bounds.NONE, Markers.AUTO, null, Fill.NONE);
+            ChartStatus.READY,
+            NullPolicy.GAP,
+            List.of(),
+            null,
+            Curve.LINEAR,
+            false,
+            Bounds.NONE,
+            Markers.AUTO,
+            null,
+            Fill.NONE);
 
     public ChartOptions {
         status = status == null ? ChartStatus.READY : status;
@@ -91,27 +106,23 @@ public record ChartOptions(
 
     /// These options with what the value axis has to reach.
     public ChartOptions bounds(Bounds value) {
-        return new ChartOptions(
-                status, nulls, thresholds, time, curve, logY, value, markers, crosshair, fill);
+        return new ChartOptions(status, nulls, thresholds, time, curve, logY, value, markers, crosshair, fill);
     }
 
     /// These options with a different marker rule.
     public ChartOptions markers(Markers value) {
-        return new ChartOptions(
-                status, nulls, thresholds, time, curve, logY, bounds, value, crosshair, fill);
+        return new ChartOptions(status, nulls, thresholds, time, curve, logY, bounds, value, crosshair, fill);
     }
 
     /// These options with a shared crosshair, or null for a chart that keeps its
     /// own.
     public ChartOptions crosshair(CrosshairGroup value) {
-        return new ChartOptions(
-                status, nulls, thresholds, time, curve, logY, bounds, markers, value, fill);
+        return new ChartOptions(status, nulls, thresholds, time, curve, logY, bounds, markers, value, fill);
     }
 
     /// These options with a different fill under the data.
     public ChartOptions fill(Fill value) {
-        return new ChartOptions(
-                status, nulls, thresholds, time, curve, logY, bounds, markers, crosshair, value);
+        return new ChartOptions(status, nulls, thresholds, time, curve, logY, bounds, markers, crosshair, value);
     }
 
     /// These options with a time axis, or null for the point index.

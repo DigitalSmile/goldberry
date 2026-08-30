@@ -1,25 +1,32 @@
 package io.github.digitalsmile.goldberry.widgets.controls.select;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.ArrayList;
+import java.util.List;
+
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
+
 import io.github.digitalsmile.goldberry.Host;
 import io.github.digitalsmile.goldberry.Placement;
-import io.github.digitalsmile.goldberry.render.model.LogicalRect;
 import io.github.digitalsmile.goldberry.bind.Property;
 import io.github.digitalsmile.goldberry.css.Theme;
-import io.github.digitalsmile.goldberry.input.key.Key;
+import io.github.digitalsmile.goldberry.input.PointerRouter;
 import io.github.digitalsmile.goldberry.input.event.KeyEvent;
+import io.github.digitalsmile.goldberry.input.event.PointerEvent;
+import io.github.digitalsmile.goldberry.input.event.TextEvent;
+import io.github.digitalsmile.goldberry.input.key.Key;
 import io.github.digitalsmile.goldberry.input.key.Mod;
 import io.github.digitalsmile.goldberry.input.key.Modifiers;
-import io.github.digitalsmile.goldberry.input.event.PointerEvent;
-import io.github.digitalsmile.goldberry.input.PointerRouter;
-import io.github.digitalsmile.goldberry.input.event.TextEvent;
 import io.github.digitalsmile.goldberry.kdl.KdlParser;
+import io.github.digitalsmile.goldberry.render.model.LogicalRect;
 import io.github.digitalsmile.goldberry.widget.Element;
 import io.github.digitalsmile.goldberry.widget.ElementTree;
 import io.github.digitalsmile.goldberry.widget.Widget;
@@ -28,12 +35,6 @@ import io.github.digitalsmile.goldberry.widgets.Controls;
 import io.github.digitalsmile.goldberry.widgets.Widgets;
 import io.github.digitalsmile.goldberry.widgets.controls.TestFont;
 import io.github.digitalsmile.goldberry.widgets.controls.option.Option;
-import java.util.ArrayList;
-import java.util.List;
-
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.Test;
 
 /// The twelfth control, and the first that has to leave its own window.
 ///
@@ -54,7 +55,18 @@ class SelectTest {
     }
 
     private static Select select(Option... options) {
-        return new Select("dark", List.of(options), null, null, "", false, false, false, null, List.of(), false,
+        return new Select(
+                "dark",
+                List.of(options),
+                null,
+                null,
+                "",
+                false,
+                false,
+                false,
+                null,
+                List.of(),
+                false,
                 io.github.digitalsmile.goldberry.widget.attr.Attributes.NONE);
     }
 
@@ -63,9 +75,7 @@ class SelectTest {
     /// [TestHost] is all of that already, and the reason this subclass exists at
     /// all is that a `select` reaches for the rectangle overload — so the empty
     /// answer has to come back without an anchor having been registered first.
-    private static final class StubHost extends
-            io.github.digitalsmile.goldberry.widgets.TestHost {
-    }
+    private static final class StubHost extends io.github.digitalsmile.goldberry.widgets.TestHost {}
 
     /// The `select-field` the widget describes, which is the node a stylesheet
     /// and the router both see.
@@ -104,8 +114,18 @@ class SelectTest {
         @Test
         @DisplayName("a value no option carries selects nothing rather than the first")
         void unknown() {
-            var it = new Select("nord", List.of(new Option("light", "Light")), null, null,
-                    "Pick one", false, false, false, null, List.of(), false,
+            var it = new Select(
+                    "nord",
+                    List.of(new Option("light", "Light")),
+                    null,
+                    null,
+                    "Pick one",
+                    false,
+                    false,
+                    false,
+                    null,
+                    List.of(),
+                    false,
                     io.github.digitalsmile.goldberry.widget.attr.Attributes.NONE);
 
             assertNull(it.selected(), "guessing would report a value nobody picked");
@@ -133,10 +153,20 @@ class SelectTest {
         @Test
         @DisplayName("non-option children are kept, and are not options")
         void otherChildren() {
-            var it = new Select("dark",
-                    List.of(new io.github.digitalsmile.goldberry.widgets.text.Text("Themes"),
+            var it = new Select(
+                    "dark",
+                    List.of(
+                            new io.github.digitalsmile.goldberry.widgets.text.Text("Themes"),
                             new Option("dark", "Dark")),
-                    null, null, "", false, false, false, null, List.of(), false,
+                    null,
+                    null,
+                    "",
+                    false,
+                    false,
+                    false,
+                    null,
+                    List.of(),
+                    false,
                     io.github.digitalsmile.goldberry.widget.attr.Attributes.NONE);
 
             assertEquals(2, it.children().size());
@@ -155,12 +185,13 @@ class SelectTest {
             var field = field(tree);
 
             assertEquals("select", field.cssType());
-            assertFalse((Widget) select() instanceof io.github.digitalsmile.goldberry.widget.style.Styled,
+            assertFalse(
+                    (Widget) select() instanceof io.github.digitalsmile.goldberry.widget.style.Styled,
                     "a stateful widget that was also styled would style two nodes");
-            assertEquals(List.of("select-value", "select-chevron"),
+            assertEquals(
+                    List.of("select-value", "select-chevron"),
                     field.children().stream()
-                            .map(child -> ((io.github.digitalsmile.goldberry.widget.style.Styled) child)
-                                    .cssType())
+                            .map(child -> ((io.github.digitalsmile.goldberry.widget.style.Styled) child).cssType())
                             .toList());
         }
 
@@ -190,7 +221,8 @@ class SelectTest {
         @DisplayName("a closed field carries no `.open`")
         void closedHasNoOpenClass() {
             assertFalse(field(new ElementTree(select(new Option("dark", "Dark"))))
-                    .classes().contains("open"));
+                    .classes()
+                    .contains("open"));
         }
 
         @Test
@@ -205,8 +237,7 @@ class SelectTest {
         @Test
         @DisplayName("a disabled select is not focusable and matches `:disabled`")
         void disabled() {
-            var field = field(new ElementTree(
-                    select(new Option("dark", "Dark")).disabled(true)));
+            var field = field(new ElementTree(select(new Option("dark", "Dark")).disabled(true)));
 
             assertFalse(field.isFocusable());
             assertTrue(field.isDisabled());
@@ -254,16 +285,20 @@ class SelectTest {
         @Test
         @DisplayName("an `option` is the same widget a `segmented` writes")
         void sharesOption() {
-            var fromSelect = (Select) inflate("select { option value=\"d\" \"D\" }").getFirst();
+            var fromSelect =
+                    (Select) inflate("select { option value=\"d\" \"D\" }").getFirst();
             var fromBar = inflate("segmented { option value=\"d\" \"D\" }").getFirst();
 
             // A bar rewrites its options into a track on every build, so the
             // comparable value is the one inside it.
-            var track = (Widget.Leaf) ((io.github.digitalsmile.goldberry.widgets.controls.segmented
-                    .Segmented) fromBar).children().getFirst();
+            var track = (Widget.Leaf) ((io.github.digitalsmile.goldberry.widgets.controls.segmented.Segmented) fromBar)
+                    .children()
+                    .getFirst();
             var inBar = track.children().get(1);
 
-            assertEquals(fromSelect.options().getFirst(), inBar,
+            assertEquals(
+                    fromSelect.options().getFirst(),
+                    inBar,
                     "one node, one record — §3 gives both controls the same child");
         }
     }
@@ -279,8 +314,7 @@ class SelectTest {
         }
 
         private void click(SelectField field) {
-            field.onPointer(new PointerEvent(PointerEvent.Kind.CLICKED, 0, 0,
-                    PointerEvent.Button.PRIMARY, 1, null));
+            field.onPointer(new PointerEvent(PointerEvent.Kind.CLICKED, 0, 0, PointerEvent.Button.PRIMARY, 1, null));
         }
 
         private void key(SelectField field, Key key, Modifiers modifiers) {
@@ -300,7 +334,9 @@ class SelectTest {
             click(field(tree));
 
             assertEquals(1, host.opened.size());
-            assertEquals(LogicalRect.of(10, 20, 160, 32), host.opened.getFirst().anchor(),
+            assertEquals(
+                    LogicalRect.of(10, 20, 160, 32),
+                    host.opened.getFirst().anchor(),
                     "anchored to where the last frame painted it, not to an id");
             assertEquals(Placement.BELOW, host.opened.getFirst().placement());
         }
@@ -343,12 +379,17 @@ class SelectTest {
 
             var opened = host.opened.getFirst().content();
             var viewport = assertInstanceOf(
-                    io.github.digitalsmile.goldberry.widgets.core.scroll.Scroll.class, opened,
+                    io.github.digitalsmile.goldberry.widgets.core.scroll.Scroll.class,
+                    opened,
                     "the list was opened at its full height and will be clamped");
-            assertEquals(600 - 2 * io.github.digitalsmile.goldberry.widgets.core.scroll.Fitted.MARGIN,
-                    viewport.height(), 0.001,
+            assertEquals(
+                    600 - 2 * io.github.digitalsmile.goldberry.widgets.core.scroll.Fitted.MARGIN,
+                    viewport.height(),
+                    0.001,
                     "the viewport is not the height of the room the list has");
-            assertInstanceOf(SelectList.class, viewport.children().getFirst(),
+            assertInstanceOf(
+                    SelectList.class,
+                    viewport.children().getFirst(),
                     "the list is inside the viewport rather than replaced by it");
         }
 
@@ -374,7 +415,8 @@ class SelectTest {
             var list = (SelectList) host.opened.getFirst().content();
             assertEquals("select-list", list.cssType());
             var rows = list.children().stream().map(Option.class::cast).toList();
-            assertEquals(List.of("light", "dark"), rows.stream().map(Option::value).toList());
+            assertEquals(
+                    List.of("light", "dark"), rows.stream().map(Option::value).toList());
             assertFalse(rows.getFirst().selected());
             assertTrue(rows.get(1).selected(), "the bound value is the one marked");
             assertNotNull(rows.get(1).onSelect(), "and every row knows what picking it does");
@@ -384,9 +426,18 @@ class SelectTest {
         @DisplayName("choosing a row reports the value and sets nothing")
         void chooseReports() {
             var picked = new ArrayList<String>();
-            var tree = tree(new Select("dark", List.of(
-                    new Option("light", "Light"), new Option("dark", "Dark")),
-                    null, picked::add, "", false, false, false, null, List.of(), false,
+            var tree = tree(new Select(
+                    "dark",
+                    List.of(new Option("light", "Light"), new Option("dark", "Dark")),
+                    null,
+                    picked::add,
+                    "",
+                    false,
+                    false,
+                    false,
+                    null,
+                    List.of(),
+                    false,
                     io.github.digitalsmile.goldberry.widget.attr.Attributes.NONE));
             click(field(tree));
 
@@ -448,8 +499,8 @@ class SelectTest {
 
             click(field(tree));
 
-            assertFalse(field(tree).classes().contains("open"),
-                    "a golden image builds exactly this, and it has to draw");
+            assertFalse(
+                    field(tree).classes().contains("open"), "a golden image builds exactly this, and it has to draw");
         }
 
         @Test
@@ -480,10 +531,12 @@ class SelectTest {
         private final Property<String> theme = Property.of("dark");
 
         private ElementTree tree() {
-            return new ElementTree(Select.of(theme, value -> {
-                picked.add(value);
-                theme.set(value);
-            },
+            return new ElementTree(Select.of(
+                    theme,
+                    value -> {
+                        picked.add(value);
+                        theme.set(value);
+                    },
                     new Option("light", "Light"),
                     new Option("dark", "Dark"),
                     new Option("dim", "Dim"),
@@ -534,8 +587,7 @@ class SelectTest {
 
             type(tree, "a");
 
-            assertEquals(List.of("dark"), picked,
-                    "\"da\" must not skip Dark for having matched a moment ago");
+            assertEquals(List.of("dark"), picked, "\"da\" must not skip Dark for having matched a moment ago");
         }
 
         @Test
@@ -573,8 +625,18 @@ class SelectTest {
         @Test
         @DisplayName("typing on a disabled select does nothing")
         void disabled() {
-            var tree = new ElementTree(new Select("dark",
-                    List.of(new Option("light", "Light")), null, picked::add, "", false, false, false, null, List.of(), true,
+            var tree = new ElementTree(new Select(
+                    "dark",
+                    List.of(new Option("light", "Light")),
+                    null,
+                    picked::add,
+                    "",
+                    false,
+                    false,
+                    false,
+                    null,
+                    List.of(),
+                    true,
                     io.github.digitalsmile.goldberry.widget.attr.Attributes.NONE));
 
             type(tree, "l");
@@ -588,8 +650,7 @@ class SelectTest {
     class Traversal {
 
         private PointerRouter routed(ElementTree tree) {
-            new WidgetRenderer(List.of(Controls.baseStylesheet(), Theme.NORD_DARK.load()),
-                    TestFont.get()).render(tree);
+            new WidgetRenderer(List.of(Controls.baseStylesheet(), Theme.NORD_DARK.load()), TestFont.get()).render(tree);
             var router = new PointerRouter();
             router.focusRoot(tree.root());
             return router;
@@ -599,11 +660,9 @@ class SelectTest {
         @DisplayName("Tab reaches the field and not its parts")
         void oneStop() {
             var tree = new ElementTree(new io.github.digitalsmile.goldberry.widgets.core.Column(
-                    new io.github.digitalsmile.goldberry.widgets.controls.button.Button(
-                            "Before", () -> { }),
+                    new io.github.digitalsmile.goldberry.widgets.controls.button.Button("Before", () -> {}),
                     select(new Option("light", "Light"), new Option("dark", "Dark")),
-                    new io.github.digitalsmile.goldberry.widgets.controls.button.Button(
-                            "After", () -> { })));
+                    new io.github.digitalsmile.goldberry.widgets.controls.button.Button("After", () -> {})));
             var router = routed(tree);
 
             router.keyPressed(Key.TAB, Modifiers.NONE, false);
@@ -618,11 +677,9 @@ class SelectTest {
         @DisplayName("a disabled select is skipped entirely")
         void disabledIsSkipped() {
             var tree = new ElementTree(new io.github.digitalsmile.goldberry.widgets.core.Column(
-                    new io.github.digitalsmile.goldberry.widgets.controls.button.Button(
-                            "Before", () -> { }),
+                    new io.github.digitalsmile.goldberry.widgets.controls.button.Button("Before", () -> {}),
                     select(new Option("dark", "Dark")).disabled(true),
-                    new io.github.digitalsmile.goldberry.widgets.controls.button.Button(
-                            "After", () -> { })));
+                    new io.github.digitalsmile.goldberry.widgets.controls.button.Button("After", () -> {})));
             var router = routed(tree);
 
             router.keyPressed(Key.TAB, Modifiers.NONE, false);
@@ -643,10 +700,19 @@ class SelectTest {
         private final StubHost host = new StubHost();
 
         private Select multi(Object bound, Option... options) {
-            var source = bound == null ? null
-                    : io.github.digitalsmile.goldberry.bind.Property.of(bound);
-            return new Select(null, List.of(options), source, picked::add, "Pick some", true,
-                    false, false, null, List.of(), false,
+            var source = bound == null ? null : io.github.digitalsmile.goldberry.bind.Property.of(bound);
+            return new Select(
+                    null,
+                    List.of(options),
+                    source,
+                    picked::add,
+                    "Pick some",
+                    true,
+                    false,
+                    false,
+                    null,
+                    List.of(),
+                    false,
                     io.github.digitalsmile.goldberry.widget.attr.Attributes.NONE);
         }
 
@@ -657,8 +723,7 @@ class SelectTest {
         private static final Option DIM = new Option("dim", "Dim");
 
         private List<SelectChip> chips(ElementTree tree) {
-            return io.github.digitalsmile.goldberry.widgets.panel.Described
-                    .of(tree, SelectChip.class);
+            return io.github.digitalsmile.goldberry.widgets.panel.Described.of(tree, SelectChip.class);
         }
 
         /// A bound `Collection` is a set of values; anything else is one value.
@@ -667,10 +732,13 @@ class SelectTest {
         @Test
         @DisplayName("a bound collection is the selection, and a bare value is one of them")
         void aCollectionIsTheSelection() {
-            assertEquals(List.of("light", "dim"),
+            assertEquals(
+                    List.of("light", "dim"),
                     multi(List.of("light", "dim"), LIGHT, DARK, DIM).resolvedAll());
             assertEquals(List.of("dark"), multi("dark", LIGHT, DARK, DIM).resolvedAll());
-            assertEquals(List.of(), multi(null, LIGHT, DARK, DIM).resolvedAll(),
+            assertEquals(
+                    List.of(),
+                    multi(null, LIGHT, DARK, DIM).resolvedAll(),
                     "a null is nothing selected, not one null selected");
         }
 
@@ -679,17 +747,20 @@ class SelectTest {
         @Test
         @DisplayName("the order is the options', not the model's")
         void orderedByTheOptions() {
-            assertEquals(List.of("light", "dim"),
+            assertEquals(
+                    List.of("light", "dim"),
                     multi(List.of("dim", "light"), LIGHT, DARK, DIM).resolvedAll());
         }
 
         @Test
         @DisplayName("a value the select does not offer selects nothing, and duplicates collapse")
         void unknownAndDuplicate() {
-            assertEquals(List.of("dark"),
+            assertEquals(
+                    List.of("dark"),
                     multi(List.of("dark", "purple"), LIGHT, DARK, DIM).resolvedAll(),
                     "an option nobody wrote was drawn as a chip");
-            assertEquals(List.of("dark"),
+            assertEquals(
+                    List.of("dark"),
                     multi(List.of("dark", "dark"), LIGHT, DARK, DIM).resolvedAll(),
                     "two chips saying the same word are two affordances doing one thing");
         }
@@ -699,7 +770,8 @@ class SelectTest {
         void chipsInTheField() {
             var tree = new ElementTree(multi(List.of("light", "dim"), LIGHT, DARK, DIM), host);
 
-            assertEquals(List.of("Light", "Dim"),
+            assertEquals(
+                    List.of("Light", "Dim"),
                     chips(tree).stream().map(SelectChip::label).toList(),
                     "the label and not the value -- that is what the two words are for");
         }
@@ -760,15 +832,13 @@ class SelectTest {
 
             // What the application does: hears the toggle, and has not rebuilt
             // this control yet.
-            var rows = io.github.digitalsmile.goldberry.widgets.panel.Described
-                    .of(tree, Option.class);
+            var rows = io.github.digitalsmile.goldberry.widgets.panel.Described.of(tree, Option.class);
             assertTrue(rows.isEmpty(), "StubHost opens nothing, so there are no rows to read");
 
             // The observable check is the one that matters: nothing reads the
             // widget between telling the application and being rebuilt.
             chips(tree).getFirst().onRemove().run();
-            assertEquals(List.of("light"), picked,
-                    "the toggle is all that happened at the moment of the click");
+            assertEquals(List.of("light"), picked, "the toggle is all that happened at the moment of the click");
         }
 
         @Test
@@ -781,11 +851,9 @@ class SelectTest {
         }
 
         private void click(SelectField f) {
-            f.onPointer(new PointerEvent(PointerEvent.Kind.CLICKED, 0, 0,
-                    PointerEvent.Button.PRIMARY, 1, null));
+            f.onPointer(new PointerEvent(PointerEvent.Kind.CLICKED, 0, 0, PointerEvent.Button.PRIMARY, 1, null));
         }
     }
-
 
     /// §3's `autocomplete=#true`: "makes the closed control an editable
     /// `text-input`: typing filters the options, the popup stays open and
@@ -803,8 +871,18 @@ class SelectTest {
         private static final Option DARK = new Option("dark", "Dark");
 
         private Select combo(String value, boolean free, Option... options) {
-            return new Select(value, List.of(options), null, changes::add, "Pick", false,
-                    true, free, queries::add, List.of(), false,
+            return new Select(
+                    value,
+                    List.of(options),
+                    null,
+                    changes::add,
+                    "Pick",
+                    false,
+                    true,
+                    free,
+                    queries::add,
+                    List.of(),
+                    false,
                     io.github.digitalsmile.goldberry.widget.attr.Attributes.NONE);
         }
 
@@ -812,10 +890,9 @@ class SelectTest {
             return new ElementTree(select, host);
         }
 
-        private io.github.digitalsmile.goldberry.widgets.form.textinput.TextInput editor(
-                ElementTree tree) {
-            return io.github.digitalsmile.goldberry.widgets.panel.Described.first(tree,
-                    io.github.digitalsmile.goldberry.widgets.form.textinput.TextInput.class);
+        private io.github.digitalsmile.goldberry.widgets.form.textinput.TextInput editor(ElementTree tree) {
+            return io.github.digitalsmile.goldberry.widgets.panel.Described.first(
+                    tree, io.github.digitalsmile.goldberry.widgets.form.textinput.TextInput.class);
         }
 
         @Test
@@ -823,8 +900,8 @@ class SelectTest {
         void theFieldIsEditable() {
             var tree = tree(combo("dark", false, LIGHT, DARK));
 
-            assertEquals("Dark", editor(tree).value(),
-                    "the label and not the value -- that is what the two words are for");
+            assertEquals(
+                    "Dark", editor(tree).value(), "the label and not the value -- that is what the two words are for");
             assertEquals("Pick", editor(tree).placeholder());
         }
 
@@ -865,8 +942,7 @@ class SelectTest {
             tree.flush();
             assertEquals("Li", editor(tree).value());
 
-            field(tree).onKey(new KeyEvent(KeyEvent.Kind.PRESSED, Key.ESCAPE, Modifiers.NONE,
-                    false, null));
+            field(tree).onKey(new KeyEvent(KeyEvent.Kind.PRESSED, Key.ESCAPE, Modifiers.NONE, false, null));
             tree.flush();
 
             assertEquals("Dark", editor(tree).value(), "it cleared, or it kept the attempt");
@@ -921,8 +997,7 @@ class SelectTest {
             editor(tree).onChange().accept("Li");
             tree.flush();
 
-            assertEquals(List.of("L", "Li"), queries,
-                    "the second keystroke went somewhere else");
+            assertEquals(List.of("L", "Li"), queries, "the second keystroke went somewhere else");
         }
 
         /// The editor consumes the press to place its caret, so a click that
@@ -945,8 +1020,11 @@ class SelectTest {
         void plainIsUnchanged() {
             var tree = tree(select(LIGHT, DARK));
 
-            assertEquals(0, io.github.digitalsmile.goldberry.widgets.panel.Described.of(tree,
-                    io.github.digitalsmile.goldberry.widgets.form.textinput.TextInput.class).size());
+            assertEquals(
+                    0,
+                    io.github.digitalsmile.goldberry.widgets.panel.Described.of(
+                                    tree, io.github.digitalsmile.goldberry.widgets.form.textinput.TextInput.class)
+                            .size());
             assertTrue(field(tree).isFocusable());
             assertFalse(field(tree).delegatesFocus());
         }
@@ -958,12 +1036,10 @@ class SelectTest {
         void spaceIsACharacter() {
             var tree = tree(combo("dark", false, LIGHT, DARK));
 
-            field(tree).onKey(new KeyEvent(KeyEvent.Kind.PRESSED, Key.SPACE, Modifiers.NONE,
-                    false, null));
+            field(tree).onKey(new KeyEvent(KeyEvent.Kind.PRESSED, Key.SPACE, Modifiers.NONE, false, null));
             tree.flush();
 
             assertTrue(host.opened.isEmpty(), "Space opened the list in an editable control");
         }
     }
-
 }

@@ -1,6 +1,5 @@
 package io.github.digitalsmile.goldberry.natives.yoga.measure;
 
-
 /// What a measure callback reports back to Yoga: the `YGSize` it returns by
 /// value.
 ///

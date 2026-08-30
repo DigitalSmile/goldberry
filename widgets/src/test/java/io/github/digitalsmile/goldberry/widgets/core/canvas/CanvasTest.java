@@ -5,28 +5,30 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+
 import io.github.digitalsmile.goldberry.RendererRequirement;
-import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
 import io.github.digitalsmile.goldberry.css.Stylesheet;
 import io.github.digitalsmile.goldberry.css.Theme;
+import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
 import io.github.digitalsmile.goldberry.golden.GoldenImage;
 import io.github.digitalsmile.goldberry.kdl.KdlParser;
 import io.github.digitalsmile.goldberry.paint.BoxPainter;
 import io.github.digitalsmile.goldberry.paint.Painter;
-import io.github.digitalsmile.goldberry.widget.attr.Attributes;
 import io.github.digitalsmile.goldberry.widget.ElementTree;
 import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widget.WidgetRenderer;
+import io.github.digitalsmile.goldberry.widget.attr.Attributes;
 import io.github.digitalsmile.goldberry.widgets.Controls;
 import io.github.digitalsmile.goldberry.widgets.Widgets;
 import io.github.digitalsmile.goldberry.widgets.controls.TestFont;
 import io.github.digitalsmile.goldberry.widgets.core.Column;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
 
 /// §1's `canvas`, as a widget.
 ///
@@ -49,7 +51,7 @@ class CanvasTest {
     @Test
     @DisplayName("carries its painter into the box it renders")
     void thePainterReachesTheBox() {
-        Painter painter = (frame, size) -> { };
+        Painter painter = (frame, size) -> {};
 
         var tree = new ElementTree(new Canvas(painter));
         var renderer = new WidgetRenderer(List.of(Controls.baseStylesheet()), TestFont.get());
@@ -62,7 +64,8 @@ class CanvasTest {
     @Test
     @DisplayName("markup writes one, and it names no painter")
     void inflatesFromKdl() {
-        var widget = Widgets.inflater().inflate(KdlParser.parse("canvas id=\"plot\"").getFirst());
+        var widget =
+                Widgets.inflater().inflate(KdlParser.parse("canvas id=\"plot\"").getFirst());
 
         var canvas = assertInstanceOfCanvas(widget);
         assertEquals("plot", canvas.id());
@@ -81,12 +84,14 @@ class CanvasTest {
     @DisplayName("is told the size the stylesheet gave it, not one it chose")
     void sizeComesFromTheStylesheet() {
         var seen = new ArrayList<String>();
-        var sheet = Stylesheet.parse(CascadeLayer.APPLICATION,
-                "#plot { width: 120px; height: 40px; padding: 4px }");
+        var sheet = Stylesheet.parse(CascadeLayer.APPLICATION, "#plot { width: 120px; height: 40px; padding: 4px }");
 
-        paint("canvas-size", 160, 60, sheet,
-                new Canvas((frame, size) -> seen.add(size.width() + "x" + size.height()),
-                        id("plot")),
+        paint(
+                "canvas-size",
+                160,
+                60,
+                sheet,
+                new Canvas((frame, size) -> seen.add(size.width() + "x" + size.height()), id("plot")),
                 false);
 
         // 120x40 less the 4px padding on each side: a canvas draws inside the
@@ -109,13 +114,18 @@ class CanvasTest {
                           border-radius: 6px }
                 """);
 
-        paint("canvas-dark", 200, 100, sheet,
+        paint(
+                "canvas-dark",
+                200,
+                100,
+                sheet,
                 new Column(List.of(new Canvas(CanvasTest::bars, id("plot"))), id("frame")),
                 true);
     }
 
     /// Two bars and a baseline, in logical pixels from the canvas's own origin.
-    private static void bars(io.github.digitalsmile.goldberry.paint.Frame frame,
+    private static void bars(
+            io.github.digitalsmile.goldberry.paint.Frame frame,
             io.github.digitalsmile.goldberry.render.model.LogicalSize size) {
 
         var baseline = size.height() - 1;
@@ -126,15 +136,14 @@ class CanvasTest {
         frame.fillRect(64, baseline - 56, 40, 56, 0xFF5094E5);
     }
 
-    private void paint(String name, int width, int height, Stylesheet sheet, Widget content,
-            boolean golden) {
+    private void paint(String name, int width, int height, Stylesheet sheet, Widget content, boolean golden) {
 
         var tree = new ElementTree(content);
-        var renderer = new WidgetRenderer(
-                List.of(Controls.baseStylesheet(), Theme.NORD_DARK.load(), sheet), TestFont.get());
+        var renderer =
+                new WidgetRenderer(List.of(Controls.baseStylesheet(), Theme.NORD_DARK.load(), sheet), TestFont.get());
         if (golden) {
-            GoldenImage.assertMatches(name, width, height, 1.0f,
-                    frame -> BoxPainter.paint(frame, renderer.render(tree)));
+            GoldenImage.assertMatches(
+                    name, width, height, 1.0f, frame -> BoxPainter.paint(frame, renderer.render(tree)));
             return;
         }
         // The same path without the image, for a test whose claim is about what

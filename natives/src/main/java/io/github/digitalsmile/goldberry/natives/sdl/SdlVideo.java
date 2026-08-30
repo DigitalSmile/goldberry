@@ -1,12 +1,5 @@
 package io.github.digitalsmile.goldberry.natives.sdl;
 
-import io.github.digitalsmile.goldberry.natives.sdl.calls.SdlDisplayCalls;
-import io.github.digitalsmile.goldberry.natives.sdl.calls.SdlEventCalls;
-import io.github.digitalsmile.goldberry.natives.sdl.calls.SdlSurfaceCalls;
-import io.github.digitalsmile.goldberry.natives.sdl.calls.SdlWindowCalls;
-import io.github.digitalsmile.goldberry.natives.NativeLibrary;
-import io.github.digitalsmile.goldberry.natives.layout.Layouts;
-import io.github.digitalsmile.goldberry.log.Logs;
 import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.SymbolLookup;
@@ -15,7 +8,16 @@ import java.nio.ByteBuffer;
 import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
+
 import org.slf4j.Logger;
+
+import io.github.digitalsmile.goldberry.log.Logs;
+import io.github.digitalsmile.goldberry.natives.NativeLibrary;
+import io.github.digitalsmile.goldberry.natives.layout.Layouts;
+import io.github.digitalsmile.goldberry.natives.sdl.calls.SdlDisplayCalls;
+import io.github.digitalsmile.goldberry.natives.sdl.calls.SdlEventCalls;
+import io.github.digitalsmile.goldberry.natives.sdl.calls.SdlSurfaceCalls;
+import io.github.digitalsmile.goldberry.natives.sdl.calls.SdlWindowCalls;
 import io.github.digitalsmile.goldberry.natives.sdl.event.SdlEventType;
 import io.github.digitalsmile.goldberry.natives.sdl.window.SdlPixelFormat;
 import io.github.digitalsmile.goldberry.natives.sdl.window.SdlWindowFlag;
@@ -40,8 +42,7 @@ public final class SdlVideo {
     private static final long SURFACE_HEIGHT = Layouts.SDL_SURFACE.offsetOf("h");
     private static final long SURFACE_PITCH = Layouts.SDL_SURFACE.offsetOf("pitch");
     private static final long SURFACE_PIXELS = Layouts.SDL_SURFACE.offsetOf("pixels");
-    private static final long DISPLAY_MODE_REFRESH_RATE =
-            Layouts.SDL_DISPLAY_MODE.offsetOf("refresh_rate");
+    private static final long DISPLAY_MODE_REFRESH_RATE = Layouts.SDL_DISPLAY_MODE.offsetOf("refresh_rate");
 
     private static final long RECT_SIZE = Layouts.SDL_RECT.byteSize();
     private static final long RECT_X = Layouts.SDL_RECT.offsetOf("x");
@@ -50,7 +51,8 @@ public final class SdlVideo {
     private static final long RECT_H = Layouts.SDL_RECT.offsetOf("h");
 
     private static final class Holder {
-        private static final SdlVideo INSTANCE = new SdlVideo(NativeLibrary.get().lookup());
+        private static final SdlVideo INSTANCE =
+                new SdlVideo(NativeLibrary.get().lookup());
     }
 
     private final SdlWindowCalls sdlWindowCalls;
@@ -86,8 +88,7 @@ public final class SdlVideo {
     ///
     /// `width` and `height` are in SDL's window coordinates, which are logical
     /// pixels on every platform Goldberry targets.
-    public SdlWindowHandle createWindow(
-            String title, int width, int height, Collection<SdlWindowFlag> flags) {
+    public SdlWindowHandle createWindow(String title, int width, int height, Collection<SdlWindowFlag> flags) {
 
         MemorySegment pointer;
         try (var arena = Arena.ofConfined()) {
@@ -128,11 +129,12 @@ public final class SdlVideo {
     /// @param flags   the creation flags, including exactly one popup kind
     /// @return the popup, or empty if the driver does not support popups
     public java.util.Optional<SdlWindowHandle> createPopupWindow(
-            SdlWindowHandle parent, int offsetX, int offsetY, int width, int height,
-            Collection<SdlWindowFlag> flags) {
+            SdlWindowHandle parent, int offsetX, int offsetY, int width, int height, Collection<SdlWindowFlag> flags) {
 
         Objects.requireNonNull(parent, "parent");
-        var pointer = sdlWindowCalls.createPopupWindow().call(parent.pointer(), offsetX, offsetY, width, height, SdlWindowFlag.mask(flags));
+        var pointer = sdlWindowCalls
+                .createPopupWindow()
+                .call(parent.pointer(), offsetX, offsetY, width, height, SdlWindowFlag.mask(flags));
         if (MemorySegment.NULL.equals(pointer)) {
             var error = Sdl.get().lastError();
             // SDL's own word for "the driver cannot do this", set by
@@ -292,8 +294,7 @@ public final class SdlVideo {
     /// actually gave it, and on a fractional scale that can differ by a pixel from
     /// anything computed. This is the number the frame must be rasterized at.
     public SdlSize windowSizeInPixels(SdlWindowHandle window) {
-        return readSize(
-                sdlWindowCalls.getWindowSizeInPixels()::call, "SDL_GetWindowSizeInPixels", window);
+        return readSize(sdlWindowCalls.getWindowSizeInPixels()::call, "SDL_GetWindowSizeInPixels", window);
     }
 
     /// The display scale of the monitor this window is on. Fractional in the
@@ -347,8 +348,7 @@ public final class SdlVideo {
     ///
     /// @throws SdlException if the surface is unavailable or in a format that
     ///         cannot be blitted into
-    public void present(
-            SdlWindowHandle window, ByteBuffer source, int sourceStride, SdlSize size, int[] damage) {
+    public void present(SdlWindowHandle window, ByteBuffer source, int sourceStride, SdlSize size, int[] damage) {
 
         var traced = LOG.isTraceEnabled();
         var started = traced ? System.nanoTime() : 0L;
@@ -374,8 +374,8 @@ public final class SdlVideo {
             // that must not be blitted into it.
             throw new SdlException(
                     "SDL_GetWindowSurface",
-                    "the surface is " + surfaceWidth + "x" + surfaceHeight
-                            + " but the frame is " + size.width() + "x" + size.height());
+                    "the surface is " + surfaceWidth + "x" + surfaceHeight + " but the frame is " + size.width() + "x"
+                            + size.height());
         }
 
         var pitch = view.get(ValueLayout.JAVA_INT, SURFACE_PITCH);
@@ -386,19 +386,21 @@ public final class SdlVideo {
 
         var gotSurface = traced ? System.nanoTime() : 0L;
 
-        copyRows(source, sourceStride, resizePixels(pixels, (long) pitch * surfaceHeight),
-                pitch, size, format);
+        copyRows(source, sourceStride, resizePixels(pixels, (long) pitch * surfaceHeight), pitch, size, format);
         var copied = traced ? System.nanoTime() : 0L;
 
         updateRects(window, damage, size);
 
         if (traced) {
             var done = System.nanoTime();
-            LOG.trace("present {}x{}: getSurface {}us, copy {}us (stride {} -> {}), update {}us",
-                    size.width(), size.height(),
+            LOG.trace(
+                    "present {}x{}: getSurface {}us, copy {}us (stride {} -> {}), update {}us",
+                    size.width(),
+                    size.height(),
                     (gotSurface - started) / 1_000,
                     (copied - gotSurface) / 1_000,
-                    sourceStride, pitch,
+                    sourceStride,
+                    pitch,
                     (done - copied) / 1_000);
         }
     }
@@ -439,8 +441,7 @@ public final class SdlVideo {
         // A ByteBuffer over SDL's memory, not a copy of it -- and a ByteBuffer
         // rather than the segment itself, because a MemorySegment must not leave
         // this module (sec. 3.1).
-        return new SurfaceBuffer(
-                resizePixels(pixels, (long) pitch * height).asByteBuffer(), width, height, pitch);
+        return new SurfaceBuffer(resizePixels(pixels, (long) pitch * height).asByteBuffer(), width, height, pitch);
     }
 
     /// Presents a surface that was painted into directly, with no copy.
@@ -496,7 +497,9 @@ public final class SdlVideo {
     ///
     /// @return whether SDL accepted it; an event watch may refuse one
     public boolean push(SdlEventBuffer buffer) {
-        return sdlEventCalls.pushEvent().call(Objects.requireNonNull(buffer, "buffer").segment());
+        return sdlEventCalls
+                .pushEvent()
+                .call(Objects.requireNonNull(buffer, "buffer").segment());
     }
 
     /// `SDL_GetWindowSize` and `SDL_GetWindowSizeInPixels` are the same C shape
@@ -522,8 +525,7 @@ public final class SdlVideo {
 
     private void updateRects(SdlWindowHandle window, int[] damage, SdlSize size) {
         if (damage.length % 4 != 0) {
-            throw new IllegalArgumentException(
-                    "damage must be x,y,w,h quadruples, got " + damage.length + " values");
+            throw new IllegalArgumentException("damage must be x,y,w,h quadruples, got " + damage.length + " values");
         }
         var count = damage.length / 4;
         try (var arena = Arena.ofConfined()) {
@@ -538,8 +540,7 @@ public final class SdlVideo {
             } else {
                 rects = arena.allocate(RECT_SIZE * count, Layouts.SDL_RECT.byteAlignment());
                 for (var i = 0; i < count; i++) {
-                    writeRect(rects, i, damage[i * 4], damage[i * 4 + 1],
-                            damage[i * 4 + 2], damage[i * 4 + 3]);
+                    writeRect(rects, i, damage[i * 4], damage[i * 4 + 1], damage[i * 4 + 2], damage[i * 4 + 3]);
                 }
             }
             if (!sdlSurfaceCalls.updateWindowSurfaceRects().call(window.pointer(), rects, count)) {
@@ -564,21 +565,17 @@ public final class SdlVideo {
     /// worth several milliseconds of every frame. SDL is entitled to pad its rows
     /// and Blend2D is entitled to pad its own, so the slow path stays.
     private static void copyRows(
-            ByteBuffer source, int sourceStride, MemorySegment target, int targetStride,
-            SdlSize size, int format) {
+            ByteBuffer source, int sourceStride, MemorySegment target, int targetStride, SdlSize size, int format) {
 
         var rowBytes = Math.multiplyExact(size.width(), 4);
         var sourceSegment = MemorySegment.ofBuffer(source);
 
         if (sourceStride == targetStride && sourceStride == rowBytes) {
-            MemorySegment.copy(
-                    sourceSegment, 0, target, 0, (long) rowBytes * size.height());
+            MemorySegment.copy(sourceSegment, 0, target, 0, (long) rowBytes * size.height());
         } else {
             for (var row = 0; row < size.height(); row++) {
                 MemorySegment.copy(
-                        sourceSegment, (long) row * sourceStride,
-                        target, (long) row * targetStride,
-                        rowBytes);
+                        sourceSegment, (long) row * sourceStride, target, (long) row * targetStride, rowBytes);
             }
         }
         // XRGB8888 ignores the fourth byte; ARGB8888 reads it as alpha. Blend2D
@@ -631,18 +628,15 @@ public final class SdlVideo {
     ///
     /// `pixels` is SDL's memory, not a copy. It stops being valid when the window
     /// is resized or presented.
-    public record SurfaceBuffer(ByteBuffer pixels, int width, int height, int stride) {
-    }
+    public record SurfaceBuffer(ByteBuffer pixels, int width, int height, int stride) {}
 
     /// A point in SDL's window coordinates.
-    public record SdlPoint(int x, int y) {
-    }
+    public record SdlPoint(int x, int y) {}
 
     /// A rectangle in SDL's window coordinates — an `SDL_Rect`, read back.
     ///
     /// Deliberately not `:core`'s `DamageRect`, for the reason [SdlSize] gives.
-    public record SdlRect(int x, int y, int width, int height) {
-    }
+    public record SdlRect(int x, int y, int width, int height) {}
 
     /// A size in SDL's terms.
     ///

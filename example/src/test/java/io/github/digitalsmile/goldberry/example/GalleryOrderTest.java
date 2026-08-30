@@ -4,15 +4,17 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+
 import io.github.digitalsmile.goldberry.example.ui.Screen;
 import io.github.digitalsmile.goldberry.input.key.Key;
 import io.github.digitalsmile.goldberry.input.key.Mod;
 import io.github.digitalsmile.goldberry.input.key.Shortcut;
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.List;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
 
 /// That the gallery has **one** order in it.
 ///
@@ -28,8 +30,7 @@ import org.junit.jupiter.api.Test;
 class GalleryOrderTest {
 
     /// What [Showcase#screenShortcuts] bound, in the order it bound it.
-    private record Bound(Shortcut accelerator, String screen) {
-    }
+    private record Bound(Shortcut accelerator, String screen) {}
 
     private static List<Bound> shortcuts() {
         var bound = new ArrayList<Bound>();
@@ -52,15 +53,23 @@ class GalleryOrderTest {
     void theDigitAndTheTabAgree() {
         var bound = shortcuts();
 
-        var digits = List.of(Key.DIGIT_1, Key.DIGIT_2, Key.DIGIT_3, Key.DIGIT_4, Key.DIGIT_5,
-                Key.DIGIT_6, Key.DIGIT_7, Key.DIGIT_8, Key.DIGIT_9, Key.DIGIT_0);
+        var digits = List.of(
+                Key.DIGIT_1,
+                Key.DIGIT_2,
+                Key.DIGIT_3,
+                Key.DIGIT_4,
+                Key.DIGIT_5,
+                Key.DIGIT_6,
+                Key.DIGIT_7,
+                Key.DIGIT_8,
+                Key.DIGIT_9,
+                Key.DIGIT_0);
         var expected = new ArrayList<Bound>();
         for (var index = 0; index < Math.min(Screen.GALLERY.size(), digits.size()); index++) {
             expected.add(new Bound(Mod.CTRL.and(digits.get(index)), Screen.GALLERY.get(index)));
         }
 
-        assertEquals(expected, bound,
-                "Ctrl+<n> selects the nth screen of the strip, and Ctrl+0 the tenth");
+        assertEquals(expected, bound, "Ctrl+<n> selects the nth screen of the strip, and Ctrl+0 the tenth");
     }
 
     @Test
@@ -71,10 +80,8 @@ class GalleryOrderTest {
         // The bug this replaces: `digits.get(index)` on a list shorter than the
         // screens, which is an IndexOutOfBoundsException during `start` — a
         // window that never opens, from adding a screen.
-        assertEquals(Math.min(Screen.GALLERY.size(), 10), bound.size(),
-                "ten digits, however many screens there are");
-        assertTrue(Screen.GALLERY.size() >= bound.size(),
-                "and no key for a screen that is not in the gallery");
+        assertEquals(Math.min(Screen.GALLERY.size(), 10), bound.size(), "ten digits, however many screens there are");
+        assertTrue(Screen.GALLERY.size() >= bound.size(), "and no key for a screen that is not in the gallery");
     }
 
     @Test
@@ -83,21 +90,24 @@ class GalleryOrderTest {
         var written = new ArrayList<>(Screen.GALLERY);
         java.util.Collections.reverse(written);
 
-        var ordered = Screen.inGalleryOrder(written.stream().map(GalleryOrderTest::tab).toList());
+        var ordered = Screen.inGalleryOrder(
+                written.stream().map(GalleryOrderTest::tab).toList());
 
-        assertEquals(Screen.GALLERY,
-                ordered.stream().map(io.github.digitalsmile.goldberry.widgets.panel.tabs.Tab::value)
+        assertEquals(
+                Screen.GALLERY,
+                ordered.stream()
+                        .map(io.github.digitalsmile.goldberry.widgets.panel.tabs.Tab::value)
                         .toList());
     }
 
     @Test
     @DisplayName("a tab the list does not name is a failure, not a screen without a key")
     void anUnnamedTabIsRefused() {
-        var tabs = new ArrayList<>(Screen.GALLERY.stream().map(GalleryOrderTest::tab).toList());
+        var tabs = new ArrayList<>(
+                Screen.GALLERY.stream().map(GalleryOrderTest::tab).toList());
         tabs.add(tab("histograms"));
 
-        var failure = assertThrows(IllegalStateException.class,
-                () -> Screen.inGalleryOrder(tabs));
+        var failure = assertThrows(IllegalStateException.class, () -> Screen.inGalleryOrder(tabs));
         assertTrue(failure.getMessage().contains("histograms"), failure.getMessage());
     }
 
@@ -106,8 +116,7 @@ class GalleryOrderTest {
     void aMissingTabIsRefused() {
         var tabs = Screen.GALLERY.stream().skip(1).map(GalleryOrderTest::tab).toList();
 
-        var failure = assertThrows(IllegalStateException.class,
-                () -> Screen.inGalleryOrder(tabs));
+        var failure = assertThrows(IllegalStateException.class, () -> Screen.inGalleryOrder(tabs));
         assertTrue(failure.getMessage().contains(Screen.GALLERY.getFirst()), failure.getMessage());
     }
 
@@ -118,7 +127,9 @@ class GalleryOrderTest {
         for (var name : Screen.GALLERY) {
             seen.merge(name, 1, Integer::sum);
         }
-        assertEquals(Screen.GALLERY.size(), seen.size(),
+        assertEquals(
+                Screen.GALLERY.size(),
+                seen.size(),
                 "a duplicate would give two digits to one screen and none to another: " + seen);
     }
 

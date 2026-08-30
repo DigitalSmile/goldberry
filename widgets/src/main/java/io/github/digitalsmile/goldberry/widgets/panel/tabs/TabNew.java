@@ -1,16 +1,17 @@
 package io.github.digitalsmile.goldberry.widgets.panel.tabs;
 
-import io.github.digitalsmile.goldberry.css.ComputedStyle;
-import io.github.digitalsmile.goldberry.input.handler.Handles;
-import io.github.digitalsmile.goldberry.input.key.Key;
-import io.github.digitalsmile.goldberry.input.event.KeyEvent;
-import io.github.digitalsmile.goldberry.input.event.PointerEvent;
-import io.github.digitalsmile.goldberry.paint.Box;
-import io.github.digitalsmile.goldberry.widget.style.Paints;
-import io.github.digitalsmile.goldberry.widget.style.Styled;
-import io.github.digitalsmile.goldberry.widget.Widget;
 import java.util.List;
 import java.util.Set;
+
+import io.github.digitalsmile.goldberry.css.ComputedStyle;
+import io.github.digitalsmile.goldberry.input.event.KeyEvent;
+import io.github.digitalsmile.goldberry.input.event.PointerEvent;
+import io.github.digitalsmile.goldberry.input.handler.Handles;
+import io.github.digitalsmile.goldberry.input.key.Key;
+import io.github.digitalsmile.goldberry.paint.Box;
+import io.github.digitalsmile.goldberry.widget.Widget;
+import io.github.digitalsmile.goldberry.widget.style.Paints;
+import io.github.digitalsmile.goldberry.widget.style.Styled;
 
 /// The `+` at the end of a [Tabs] — a **part**, present only when the strip was
 /// given an `onNew`.
@@ -51,7 +52,8 @@ record TabNew(Runnable onNew) implements Widget.Leaf, Styled, Paints, Handles {
 
     @Override
     public void onKey(KeyEvent event) {
-        if (event.kind() != KeyEvent.Kind.PRESSED || event.isRepeat()
+        if (event.kind() != KeyEvent.Kind.PRESSED
+                || event.isRepeat()
                 || !event.modifiers().none()) {
             return;
         }
@@ -69,7 +71,6 @@ record TabNew(Runnable onNew) implements Widget.Leaf, Styled, Paints, Handles {
 
     @Override
     public Box render(ComputedStyle style, List<Box> children, Context context) {
-        return Box.of().style(style)
-                .mark(new Box.Mark(Box.Mark.Kind.PLUS, style.color(), 1.5));
+        return Box.of().style(style).mark(new Box.Mark(Box.Mark.Kind.PLUS, style.color(), 1.5));
     }
 }

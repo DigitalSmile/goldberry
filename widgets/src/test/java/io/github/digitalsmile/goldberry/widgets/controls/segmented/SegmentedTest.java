@@ -1,8 +1,5 @@
 package io.github.digitalsmile.goldberry.widgets.controls.segmented;
 
-import io.github.digitalsmile.goldberry.css.Corners;
-import io.github.digitalsmile.goldberry.paint.Box;
-import io.github.digitalsmile.goldberry.widgets.controls.option.Option;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
@@ -12,47 +9,52 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import io.github.digitalsmile.goldberry.bind.registry.BindingRegistry;
-import io.github.digitalsmile.goldberry.bind.Property;
-import io.github.digitalsmile.goldberry.css.ComputedStyle;
-import io.github.digitalsmile.goldberry.css.value.CssLength;
-import io.github.digitalsmile.goldberry.css.select.Selector;
-import io.github.digitalsmile.goldberry.css.StyleElement;
-import io.github.digitalsmile.goldberry.css.cascade.StyleResolver;
-import io.github.digitalsmile.goldberry.css.Theme;
-import io.github.digitalsmile.goldberry.css.cascade.Transitions;
-import io.github.digitalsmile.goldberry.paint.TestFrames;
-import io.github.digitalsmile.goldberry.RendererRequirement;
-import io.github.digitalsmile.goldberry.input.FocusScope;
-import io.github.digitalsmile.goldberry.paint.tree.RenderTree;
-import io.github.digitalsmile.goldberry.input.key.Key;
-import io.github.digitalsmile.goldberry.input.event.KeyEvent;
-import io.github.digitalsmile.goldberry.input.key.Modifiers;
-import io.github.digitalsmile.goldberry.input.event.PointerEvent;
-import io.github.digitalsmile.goldberry.input.PointerRouter;
-import io.github.digitalsmile.goldberry.kdl.KdlParser;
-import io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength;
-import io.github.digitalsmile.goldberry.widget.attr.Attributes;
-import io.github.digitalsmile.goldberry.widget.Element;
-import io.github.digitalsmile.goldberry.widget.ElementTree;
-import io.github.digitalsmile.goldberry.widget.Widget;
-import io.github.digitalsmile.goldberry.widget.WidgetRenderer;
-import io.github.digitalsmile.goldberry.bind.registry.ActionRegistry;
-import io.github.digitalsmile.goldberry.widgets.Controls;
-import io.github.digitalsmile.goldberry.widgets.Icons;
-import io.github.digitalsmile.goldberry.widgets.controls.TestFont;
-import io.github.digitalsmile.goldberry.widgets.controls.button.Button;
-import io.github.digitalsmile.goldberry.widgets.core.Column;
-import io.github.digitalsmile.goldberry.widgets.text.Text;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+
+import io.github.digitalsmile.goldberry.RendererRequirement;
+import io.github.digitalsmile.goldberry.bind.Property;
+import io.github.digitalsmile.goldberry.bind.registry.ActionRegistry;
+import io.github.digitalsmile.goldberry.bind.registry.BindingRegistry;
+import io.github.digitalsmile.goldberry.css.ComputedStyle;
+import io.github.digitalsmile.goldberry.css.Corners;
+import io.github.digitalsmile.goldberry.css.StyleElement;
+import io.github.digitalsmile.goldberry.css.Theme;
+import io.github.digitalsmile.goldberry.css.cascade.StyleResolver;
+import io.github.digitalsmile.goldberry.css.cascade.Transitions;
+import io.github.digitalsmile.goldberry.css.select.Selector;
+import io.github.digitalsmile.goldberry.css.value.CssLength;
+import io.github.digitalsmile.goldberry.input.FocusScope;
+import io.github.digitalsmile.goldberry.input.PointerRouter;
+import io.github.digitalsmile.goldberry.input.event.KeyEvent;
+import io.github.digitalsmile.goldberry.input.event.PointerEvent;
+import io.github.digitalsmile.goldberry.input.key.Key;
+import io.github.digitalsmile.goldberry.input.key.Modifiers;
+import io.github.digitalsmile.goldberry.kdl.KdlParser;
+import io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength;
+import io.github.digitalsmile.goldberry.paint.Box;
+import io.github.digitalsmile.goldberry.paint.TestFrames;
+import io.github.digitalsmile.goldberry.paint.tree.RenderTree;
+import io.github.digitalsmile.goldberry.widget.Element;
+import io.github.digitalsmile.goldberry.widget.ElementTree;
+import io.github.digitalsmile.goldberry.widget.Widget;
+import io.github.digitalsmile.goldberry.widget.WidgetRenderer;
+import io.github.digitalsmile.goldberry.widget.attr.Attributes;
+import io.github.digitalsmile.goldberry.widgets.Controls;
+import io.github.digitalsmile.goldberry.widgets.Icons;
 import io.github.digitalsmile.goldberry.widgets.Widgets;
+import io.github.digitalsmile.goldberry.widgets.controls.TestFont;
+import io.github.digitalsmile.goldberry.widgets.controls.button.Button;
+import io.github.digitalsmile.goldberry.widgets.controls.option.Option;
+import io.github.digitalsmile.goldberry.widgets.core.Column;
+import io.github.digitalsmile.goldberry.widgets.text.Text;
 
 /// The eleventh control, and the second composite.
 ///
@@ -77,7 +79,9 @@ class SegmentedTest {
     /// ([ADR-0099]).
     private static List<Option> options(Segmented bar) {
         return track(bar).segments().stream()
-                .filter(Option.class::isInstance).map(Option.class::cast).toList();
+                .filter(Option.class::isInstance)
+                .map(Option.class::cast)
+                .toList();
     }
 
     private static SegmentedTrack track(Segmented bar) {
@@ -97,9 +101,12 @@ class SegmentedTest {
         @Test
         @DisplayName("the Java-built and KDL-built bars are equal values")
         void javaAndKdlAgree() {
-            var fromJava = new Segmented("grid",
+            var fromJava = new Segmented(
+                    "grid",
                     List.of(new Option("list", "List"), new Option("grid", "Grid")),
-                    null, null, false,
+                    null,
+                    null,
+                    false,
                     new Attributes("view", Set.of("compact"), "view"));
 
             var fromKdl = inflate("""
@@ -115,7 +122,8 @@ class SegmentedTest {
         @Test
         @DisplayName("and so are the segments on their own")
         void optionsAgree() {
-            assertEquals(new Option("list", "List"),
+            assertEquals(
+                    new Option("list", "List"),
                     inflate("option value=\"list\" \"List\"").getFirst());
         }
 
@@ -144,8 +152,7 @@ class SegmentedTest {
         void valueRequired() {
             // Defaulting it to the label would make two segments that happen to
             // share a label select together, which reads as a toolkit bug.
-            var thrown = assertThrows(IllegalArgumentException.class,
-                    () -> inflate("option \"List\""));
+            var thrown = assertThrows(IllegalArgumentException.class, () -> inflate("option \"List\""));
             assertTrue(thrown.getMessage().contains("value="), thrown.getMessage());
         }
 
@@ -154,7 +161,8 @@ class SegmentedTest {
         void contentRequired() {
             // §13: an icon-only segment is legal and a *nothing*-only segment is
             // not -- there would be nothing to click on and nothing to read out.
-            assertThrows(IllegalArgumentException.class,
+            assertThrows(
+                    IllegalArgumentException.class,
                     () -> new Option("list", "", null, false, null, false, Attributes.NONE));
         }
     }
@@ -174,27 +182,30 @@ class SegmentedTest {
                     }
                     """).getFirst();
 
-            assertEquals(List.of(false, true, false),
+            assertEquals(
+                    List.of(false, true, false),
                     options(bar).stream().map(Option::selected).toList());
         }
 
         @Test
         @DisplayName("a value no segment carries selects nothing rather than guessing")
         void unmatchedSelectsNothing() {
-            var bar = new Segmented("timeline",
-                    new Option("list", "List"), new Option("grid", "Grid"));
+            var bar = new Segmented("timeline", new Option("list", "List"), new Option("grid", "Grid"));
 
-            assertEquals(List.of(false, false), options(bar).stream().map(Option::selected).toList());
+            assertEquals(
+                    List.of(false, false),
+                    options(bar).stream().map(Option::selected).toList());
         }
 
         @Test
         @DisplayName("a null value selects nothing")
         void nullSelectsNothing() {
-            var bar = Segmented.of(Property.of(null), null,
-                    new Option("list", "List"), new Option("grid", "Grid"));
+            var bar = Segmented.of(Property.of(null), null, new Option("list", "List"), new Option("grid", "Grid"));
 
             assertNull(bar.resolved());
-            assertEquals(List.of(false, false), options(bar).stream().map(Option::selected).toList());
+            assertEquals(
+                    List.of(false, false),
+                    options(bar).stream().map(Option::selected).toList());
         }
 
         @Test
@@ -207,14 +218,16 @@ class SegmentedTest {
                     }
                     """).getFirst();
 
-            assertEquals(List.of(false, false), options(bar).stream().map(Option::selected).toList());
+            assertEquals(
+                    List.of(false, false),
+                    options(bar).stream().map(Option::selected).toList());
         }
 
         @Test
         @DisplayName("a child that is not an option is laid out and left alone")
         void otherChildrenSurvive() {
-            var bar = new Segmented("grid",
-                    List.of(new Text("View"), new Option("grid", "Grid")), null, null, false, null);
+            var bar = new Segmented(
+                    "grid", List.of(new Text("View"), new Option("grid", "Grid")), null, null, false, null);
 
             assertEquals(2, track(bar).segments().size());
             assertEquals(new Text("View"), track(bar).segments().getFirst());
@@ -252,13 +265,11 @@ class SegmentedTest {
         @DisplayName("a click does not move a bar whose handler does nothing")
         void controlledMeansControlled() {
             var view = Property.of("list");
-            var bar = Segmented.of(view, value -> { },
-                    new Option("list", "List"), new Option("grid", "Grid"));
+            var bar = Segmented.of(view, value -> {}, new Option("list", "List"), new Option("grid", "Grid"));
             var grid = options(bar).get(1);
             var element = new ElementTree(bar).root();
 
-            grid.onPointer(new PointerEvent(
-                    PointerEvent.Kind.CLICKED, 5, 5, PointerEvent.Button.PRIMARY, 1, element));
+            grid.onPointer(new PointerEvent(PointerEvent.Kind.CLICKED, 5, 5, PointerEvent.Button.PRIMARY, 1, element));
 
             assertEquals("list", bar.resolved());
             assertEquals("list", view.get());
@@ -268,15 +279,18 @@ class SegmentedTest {
         @DisplayName("what the user picked travels up, with the value")
         void changeCarriesTheValue() {
             var view = Property.of("list");
-            var bar = Segmented.of(view, view::set,
-                    new Option("list", "List"), new Option("grid", "Grid"));
+            var bar = Segmented.of(view, view::set, new Option("list", "List"), new Option("grid", "Grid"));
             var element = new ElementTree(bar).root();
 
-            options(bar).get(1).onPointer(new PointerEvent(
-                    PointerEvent.Kind.CLICKED, 5, 5, PointerEvent.Button.PRIMARY, 1, element));
+            options(bar)
+                    .get(1)
+                    .onPointer(
+                            new PointerEvent(PointerEvent.Kind.CLICKED, 5, 5, PointerEvent.Button.PRIMARY, 1, element));
 
             assertEquals("grid", view.get());
-            assertEquals(List.of(false, true), options(bar).stream().map(Option::selected).toList(),
+            assertEquals(
+                    List.of(false, true),
+                    options(bar).stream().map(Option::selected).toList(),
                     "and the new value arrives back down through the binding");
         }
 
@@ -284,10 +298,11 @@ class SegmentedTest {
         @DisplayName("a bound value that is not a String is compared as the author spelled it")
         void nonStringValue() {
             var theme = Property.of(Theme.NORD_DARK);
-            var bar = Segmented.of(theme, null,
-                    new Option("NORD_LIGHT", "Light"), new Option("NORD_DARK", "Dark"));
+            var bar = Segmented.of(theme, null, new Option("NORD_LIGHT", "Light"), new Option("NORD_DARK", "Dark"));
 
-            assertEquals(List.of(false, true), options(bar).stream().map(Option::selected).toList());
+            assertEquals(
+                    List.of(false, true),
+                    options(bar).stream().map(Option::selected).toList());
         }
 
         @Test
@@ -304,7 +319,8 @@ class SegmentedTest {
                                 option value="list" "List"
                                 option value="grid" "Grid"
                             }
-                            """)).getFirst();
+                            """))
+                    .getFirst();
 
             assertEquals("list", bar.resolved());
             options(bar).get(1).onSelect().run();
@@ -329,20 +345,21 @@ class SegmentedTest {
 
         private ElementTree tree() {
             return new ElementTree(new Column(
-                    new Button("Before", () -> { }),
-                    new Segmented("list", picked::add,
+                    new Button("Before", () -> {}),
+                    new Segmented(
+                            "list",
+                            picked::add,
                             new Option("list", "List"),
                             new Option("grid", "Grid"),
                             new Option("map", "Map")),
-                    new Button("After", () -> { })));
+                    new Button("After", () -> {})));
         }
 
         /// The router reads `:checked` off the element and the renderer is what
         /// mirrors it there, so a traversal test renders first — exactly as a real
         /// frame does.
         private PointerRouter routed(ElementTree tree) {
-            new WidgetRenderer(List.of(Controls.baseStylesheet(), Theme.NORD_DARK.load()),
-                    TestFont.get()).render(tree);
+            new WidgetRenderer(List.of(Controls.baseStylesheet(), Theme.NORD_DARK.load()), TestFont.get()).render(tree);
             var router = new PointerRouter();
             router.focusRoot(tree.root());
             return router;
@@ -413,7 +430,8 @@ class SegmentedTest {
         @DisplayName("the axis is the widget's answer and not an accident of the drawing")
         void scopeIsHorizontal() {
             assertEquals(FocusScope.HORIZONTAL, new Segmented("list").focusScope());
-            assertFalse(new Segmented("list").isFocusable(),
+            assertFalse(
+                    new Segmented("list").isFocusable(),
                     "focus lands on a segment, so the ring is on what the user is about to pick");
         }
 
@@ -421,8 +439,10 @@ class SegmentedTest {
         @DisplayName("Tab enters at the selected segment")
         void entersAtSelection() {
             var tree = new ElementTree(new Column(
-                    new Button("Before", () -> { }),
-                    new Segmented("map", picked::add,
+                    new Button("Before", () -> {}),
+                    new Segmented(
+                            "map",
+                            picked::add,
                             new Option("list", "List"),
                             new Option("grid", "Grid"),
                             new Option("map", "Map"))));
@@ -438,9 +458,9 @@ class SegmentedTest {
         @DisplayName("a disabled bar has no Tab stop at all")
         void disabledBarSkipped() {
             var tree = new ElementTree(new Column(
-                    new Button("Before", () -> { }),
+                    new Button("Before", () -> {}),
                     new Segmented("list", picked::add, new Option("list", "List")).disabled(true),
-                    new Button("After", () -> { })));
+                    new Button("After", () -> {})));
             var router = routed(tree);
 
             router.keyPressed(Key.TAB, Modifiers.NONE, false);
@@ -457,8 +477,7 @@ class SegmentedTest {
         private final List<String> picked = new ArrayList<>();
 
         private Option option(int index) {
-            var bar = new Segmented("list", picked::add,
-                    new Option("list", "List"), new Option("grid", "Grid"));
+            var bar = new Segmented("list", picked::add, new Option("list", "List"), new Option("grid", "Grid"));
             return options(bar).get(index);
         }
 
@@ -468,8 +487,8 @@ class SegmentedTest {
             var grid = option(1);
             var element = new ElementTree(grid).root();
 
-            grid.onPointer(new PointerEvent(
-                    PointerEvent.Kind.CLICKED, 40, 16, PointerEvent.Button.PRIMARY, 1, element));
+            grid.onPointer(
+                    new PointerEvent(PointerEvent.Kind.CLICKED, 40, 16, PointerEvent.Button.PRIMARY, 1, element));
 
             assertEquals(List.of("grid"), picked);
         }
@@ -502,13 +521,12 @@ class SegmentedTest {
         @Test
         @DisplayName("a disabled segment refuses every route and leaves the Tab order")
         void disabledRefuses() {
-            var bar = new Segmented("list", picked::add,
-                    new Option("list", "List"), new Option("grid", "Grid").disabled(true));
+            var bar = new Segmented(
+                    "list", picked::add, new Option("list", "List"), new Option("grid", "Grid").disabled(true));
             var grid = options(bar).get(1);
             var element = new ElementTree(grid).root();
 
-            grid.onPointer(new PointerEvent(
-                    PointerEvent.Kind.CLICKED, 5, 5, PointerEvent.Button.PRIMARY, 1, element));
+            grid.onPointer(new PointerEvent(PointerEvent.Kind.CLICKED, 5, 5, PointerEvent.Button.PRIMARY, 1, element));
             grid.onKey(new KeyEvent(KeyEvent.Kind.PRESSED, Key.SPACE, Modifiers.NONE, false, element));
             grid.onFocusChanged(true, true);
 
@@ -523,8 +541,8 @@ class SegmentedTest {
             // multiplies down the subtree by itself, and unavailability
             // propagates through the router. Pushing it would fade twice and
             // land at 20%.
-            var bar = new Segmented("list", picked::add,
-                    new Option("list", "List"), new Option("grid", "Grid")).disabled(true);
+            var bar = new Segmented("list", picked::add, new Option("list", "List"), new Option("grid", "Grid"))
+                    .disabled(true);
 
             assertTrue(options(bar).stream().noneMatch(Option::disabled));
         }
@@ -535,8 +553,7 @@ class SegmentedTest {
             var loose = new Option("grid", "Grid");
             var element = new ElementTree(loose).root();
 
-            loose.onPointer(new PointerEvent(
-                    PointerEvent.Kind.CLICKED, 5, 5, PointerEvent.Button.PRIMARY, 1, element));
+            loose.onPointer(new PointerEvent(PointerEvent.Kind.CLICKED, 5, 5, PointerEvent.Button.PRIMARY, 1, element));
 
             assertNull(loose.onSelect(), "a control styled before it is wired is a normal stage");
         }
@@ -556,9 +573,12 @@ class SegmentedTest {
         @DisplayName("the bar's radius is §3's 8, and what is inside it is that less the border")
         void radii() {
             assertEquals(Corners.all(8), styleOf("segmented").decoration().corners());
-            assertEquals(Corners.all(7), styleOf("option").decoration().corners(),
+            assertEquals(
+                    Corners.all(7),
+                    styleOf("option").decoration().corners(),
                     "the stylesheet carries the radius; which corners keep it is the track's");
-            assertEquals(Corners.all(7), styleOf("segmented-indicator").decoration().corners());
+            assertEquals(
+                    Corners.all(7), styleOf("segmented-indicator").decoration().corners());
         }
 
         /// The joined drawing's own arithmetic: the bar's padding is its border,
@@ -586,9 +606,12 @@ class SegmentedTest {
             var divider = styleOf("segmented-divider");
 
             assertEquals(StyleLength.points(1), divider.width());
-            assertEquals(styleOf("segmented").decoration().borderColor(), divider.background(),
+            assertEquals(
+                    styleOf("segmented").decoration().borderColor(),
+                    divider.background(),
                     "the line between two segments is the line around them");
-            assertNotNull(divider.transitions().get(Transitions.Animatable.OPACITY),
+            assertNotNull(
+                    divider.transitions().get(Transitions.Animatable.OPACITY),
                     "a hairline that blinked would beat the pill that is still travelling");
         }
 
@@ -606,12 +629,15 @@ class SegmentedTest {
         void widthIsNotTheStylesheets() {
             var cell = styleOf("option");
 
-            assertEquals(StyleLength.UNDEFINED, cell.width(),
+            assertEquals(
+                    StyleLength.UNDEFINED,
+                    cell.width(),
                     "a width here would be a number that cannot know how many cells there are");
             assertEquals(StyleLength.points(12), cell.padding().left(), "§3's padding-x, though");
-            assertEquals(0.0, styleOf("segmented").flexGrow(),
-                    "the bar itself takes no space it was not given");
-            assertEquals(1.0, styleOf("segmented-track").flexGrow(),
+            assertEquals(0.0, styleOf("segmented").flexGrow(), "the bar itself takes no space it was not given");
+            assertEquals(
+                    1.0,
+                    styleOf("segmented-track").flexGrow(),
                     "but the track fills it, because that is what the cells divide");
         }
 
@@ -619,91 +645,102 @@ class SegmentedTest {
         @DisplayName("a segment's padding-x is §3's 12, at either density")
         void segmentPadding() {
             assertEquals(StyleLength.points(12), styleOf("option").padding().left());
-            assertEquals(StyleLength.points(0), styleOf("option").padding().top(),
+            assertEquals(
+                    StyleLength.points(0),
+                    styleOf("option").padding().top(),
                     "the height comes from the bar, so a segment must not add to it");
         }
 
         /// The fill is one box that travels, so a hover cannot be an opaque fill any
-    /// more: a segment is painted *after* the indicator, and an opaque hover on
-    /// the selected one would cover the pill that just arrived there — worse,
-    /// clicking a new segment would paint the destination fill instantly and beat
-    /// the animation to it. Both states are a translucent wash instead.
-    @Test
-    @DisplayName("a segment's own fill is a wash, so it never covers the pill")
-    void hoverIsAWash() {
-        assertEquals(0, alpha(styleOf("option").background()), "a segment at rest paints nothing");
-        assertEquals(0, alpha(styleOf("option", Selector.PseudoClass.CHECKED).background()),
-                "and a selected one paints nothing either: the fill is the indicator's");
+        /// more: a segment is painted *after* the indicator, and an opaque hover on
+        /// the selected one would cover the pill that just arrived there — worse,
+        /// clicking a new segment would paint the destination fill instantly and beat
+        /// the animation to it. Both states are a translucent wash instead.
+        @Test
+        @DisplayName("a segment's own fill is a wash, so it never covers the pill")
+        void hoverIsAWash() {
+            assertEquals(0, alpha(styleOf("option").background()), "a segment at rest paints nothing");
+            assertEquals(
+                    0,
+                    alpha(styleOf("option", Selector.PseudoClass.CHECKED).background()),
+                    "and a selected one paints nothing either: the fill is the indicator's");
 
-        for (var state : List.of(Selector.PseudoClass.HOVER, Selector.PseudoClass.ACTIVE)) {
-            var wash = styleOf("option", state).background();
-            assertTrue(alpha(wash) > 0 && alpha(wash) < 255,
-                    "a segment's " + state + " must be translucent, or it would hide the pill: "
-                            + Integer.toHexString(wash));
+            for (var state : List.of(Selector.PseudoClass.HOVER, Selector.PseudoClass.ACTIVE)) {
+                var wash = styleOf("option", state).background();
+                assertTrue(
+                        alpha(wash) > 0 && alpha(wash) < 255,
+                        "a segment's " + state + " must be translucent, or it would hide the pill: "
+                                + Integer.toHexString(wash));
+            }
         }
-    }
 
-    /// The pill itself: the one box in the control that carries a colour, and the
-    /// one the design system's `--gb-segmented-selected-bg` names.
-    @Test
-    @DisplayName("the indicator carries the selection's fill")
-    void indicatorIsTheFill() {
-        var pill = styleOf("segmented-indicator");
+        /// The pill itself: the one box in the control that carries a colour, and the
+        /// one the design system's `--gb-segmented-selected-bg` names.
+        @Test
+        @DisplayName("the indicator carries the selection's fill")
+        void indicatorIsTheFill() {
+            var pill = styleOf("segmented-indicator");
 
-        assertEquals(255, alpha(pill.background()), "the pill is opaque");
-        assertEquals(Corners.all(7), pill.decoration().corners(),
-                "the bar's 8 less its border, before the track squares what is not an end");
-        assertEquals(0.0, pill.opacity(), "and invisible until something is selected");
-        assertEquals(1.0, styleOf("segmented-indicator", Selector.PseudoClass.CHECKED).opacity());
-    }
+            assertEquals(255, alpha(pill.background()), "the pill is opaque");
+            assertEquals(
+                    Corners.all(7),
+                    pill.decoration().corners(),
+                    "the bar's 8 less its border, before the track squares what is not an end");
+            assertEquals(0.0, pill.opacity(), "and invisible until something is selected");
+            assertEquals(
+                    1.0,
+                    styleOf("segmented-indicator", Selector.PseudoClass.CHECKED).opacity());
+        }
 
-    /// The selected segment's foreground is the **fill's** and not the
+        /// The selected segment's foreground is the **fill's** and not the
         /// theme's (ADR-0087), which is what `ContrastTest` measures. This is the
         /// cheaper half of the same claim: that the rule reaches the label at all.
         @Test
         @DisplayName("the selection carries its own foreground")
         void selectionPinsItsForeground() {
-            assertNotEquals(styleOf("option").color(),
+            assertNotEquals(
+                    styleOf("option").color(),
                     styleOf("option", Selector.PseudoClass.CHECKED).color());
         }
 
         /// §3.1's row, built: "selection indicator `translate` … between segments,
-    /// **base**". The `width` half is absent and cannot arrive — it is not on
-    /// §1.7's whitelist — and on a grid it never changes, because every cell is
-    /// the same size ([ADR-0099]).
-    @Test
-    @DisplayName("what moves is the indicator's transform, on the component duration")
-    void motion() {
-        var pill = styleOf("segmented-indicator").transitions();
+        /// **base**". The `width` half is absent and cannot arrive — it is not on
+        /// §1.7's whitelist — and on a grid it never changes, because every cell is
+        /// the same size ([ADR-0099]).
+        @Test
+        @DisplayName("what moves is the indicator's transform, on the component duration")
+        void motion() {
+            var pill = styleOf("segmented-indicator").transitions();
 
-        var travel = pill.get(Transitions.Animatable.TRANSFORM);
-        assertNotNull(travel, "an indicator that snapped between segments is not §3.1's row");
-        assertEquals(160, travel.durationMillis(), 0.001, "--gb-motion-base");
-        assertEquals(100, pill.get(Transitions.Animatable.OPACITY).durationMillis(), 0.001,
-                "a pill appearing is a state change, not a movement: --gb-motion-fast");
+            var travel = pill.get(Transitions.Animatable.TRANSFORM);
+            assertNotNull(travel, "an indicator that snapped between segments is not §3.1's row");
+            assertEquals(160, travel.durationMillis(), 0.001, "--gb-motion-base");
+            assertEquals(
+                    100,
+                    pill.get(Transitions.Animatable.OPACITY).durationMillis(),
+                    0.001,
+                    "a pill appearing is a state change, not a movement: --gb-motion-fast");
 
-        // The label's colour moves with it, because a selected segment's
-        // foreground is picked for the fill it sits on (ADR-0088).
-        assertNotNull(styleOf("option").transitions().get(Transitions.Animatable.COLOR));
+            // The label's colour moves with it, because a selected segment's
+            // foreground is picked for the fill it sits on (ADR-0088).
+            assertNotNull(styleOf("option").transitions().get(Transitions.Animatable.COLOR));
 
-        // And `width` is not in `Animatable` at all, which is why §3.1's row
-        // could only ever be half built as written.
-        assertNull(Transitions.Animatable.parse("width"));
-    }
+            // And `width` is not in `Animatable` at all, which is why §3.1's row
+            // could only ever be half built as written.
+            assertNull(Transitions.Animatable.parse("width"));
+        }
 
         // ------------------------------------------------------------ helpers
 
         private static ComputedStyle styleOf(String type, Selector.PseudoClass... states) {
             var resolver = new StyleResolver(Controls.stylesheets(Theme.NORD_DARK));
-            return ComputedStyle.of(resolver.resolve(new Probe(type, Set.of(states))),
-                    CssLength.Context.DEFAULT);
+            return ComputedStyle.of(resolver.resolve(new Probe(type, Set.of(states))), CssLength.Context.DEFAULT);
         }
 
         /// A node that exists only to be styled, exactly as `DensityTest`'s does —
         /// with the states it is in, because the rules under test are ordered
         /// against each other by pseudo-class.
-        private record Probe(String type, Set<Selector.PseudoClass> states)
-                implements StyleElement {
+        private record Probe(String type, Set<Selector.PseudoClass> states) implements StyleElement {
 
             @Override
             public String id() {
@@ -756,8 +793,8 @@ class SegmentedTest {
         /// never moves — and would have passed before any of this was built.
         private List<Drawn> drawn(Widget bar, int width) {
             target = TestFrames.of(width, 60, 1.0f, 0);
-            var renderer = new WidgetRenderer(
-                    List.of(Controls.baseStylesheet(), Theme.NORD_DARK.load()), TestFont.get());
+            var renderer =
+                    new WidgetRenderer(List.of(Controls.baseStylesheet(), Theme.NORD_DARK.load()), TestFont.get());
             var tree = new ElementTree(bar);
             var out = new ArrayList<Drawn>();
             try (var render = RenderTree.create()) {
@@ -766,7 +803,8 @@ class SegmentedTest {
                     var matrix = placed.transform();
                     var layout = placed.layout();
                     var type = placed.box().owner() instanceof Element element ? element.type() : null;
-                    out.add(new Drawn(type,
+                    out.add(new Drawn(
+                            type,
                             matrix.a() * layout.left() + matrix.c() * layout.top() + matrix.e(),
                             matrix.a() * layout.width(),
                             placed.box()));
@@ -778,16 +816,20 @@ class SegmentedTest {
         /// One box as the screen receives it: its type, its left edge and its
         /// width — both after the matrix — and the box itself, for the questions
         /// that are about paint rather than place.
-        private record Drawn(String type, double left, double width, Box box) {
-        }
+        private record Drawn(String type, double left, double width, Box box) {}
 
         /// Four segments, so that "between" is a cell with a neighbour on both
         /// sides and not merely the other end.
         private static Segmented bar(String selected) {
-            return new Segmented(selected,
-                    List.of(new Option("list", "List"), new Option("grid", "Grid"),
+            return new Segmented(
+                    selected,
+                    List.of(
+                            new Option("list", "List"), new Option("grid", "Grid"),
                             new Option("map", "Map"), new Option("sat", "Satellite")),
-                    null, null, false, Attributes.NONE);
+                    null,
+                    null,
+                    false,
+                    Attributes.NONE);
         }
 
         /// §3's "radius 8 outer, 0 between", on the cells: the bar's own 8 less
@@ -798,10 +840,12 @@ class SegmentedTest {
             var cells = ofType(drawn(bar("grid"), 400), "option");
 
             assertEquals(4, cells.size());
-            assertEquals(new Corners(7, 0, 0, 7), cells.getFirst().box().decoration().corners());
+            assertEquals(
+                    new Corners(7, 0, 0, 7), cells.getFirst().box().decoration().corners());
             assertEquals(Corners.SQUARE, cells.get(1).box().decoration().corners());
             assertEquals(Corners.SQUARE, cells.get(2).box().decoration().corners());
-            assertEquals(new Corners(0, 7, 7, 0), cells.getLast().box().decoration().corners());
+            assertEquals(
+                    new Corners(0, 7, 7, 0), cells.getLast().box().decoration().corners());
         }
 
         /// And the same rule on the fill that moves, which is what keeps the
@@ -809,15 +853,27 @@ class SegmentedTest {
         @Test
         @DisplayName("the pill takes the corners of the cell it is on")
         void pillTakesItsCellsCorners() {
-            assertEquals(new Corners(7, 0, 0, 7),
+            assertEquals(
+                    new Corners(7, 0, 0, 7),
                     ofType(drawn(bar("list"), 400), "segmented-indicator")
-                            .getFirst().box().decoration().corners());
-            assertEquals(Corners.SQUARE,
+                            .getFirst()
+                            .box()
+                            .decoration()
+                            .corners());
+            assertEquals(
+                    Corners.SQUARE,
                     ofType(drawn(bar("grid"), 400), "segmented-indicator")
-                            .getFirst().box().decoration().corners());
-            assertEquals(new Corners(0, 7, 7, 0),
+                            .getFirst()
+                            .box()
+                            .decoration()
+                            .corners());
+            assertEquals(
+                    new Corners(0, 7, 7, 0),
                     ofType(drawn(bar("sat"), 400), "segmented-indicator")
-                            .getFirst().box().decoration().corners());
+                            .getFirst()
+                            .box()
+                            .decoration()
+                            .corners());
         }
 
         /// One hairline per boundary, each exactly where two cells meet — which
@@ -832,7 +888,10 @@ class SegmentedTest {
 
             assertEquals(cells.size() - 1, lines.size(), "one gap fewer than there are cells");
             for (var gap = 0; gap < lines.size(); gap++) {
-                assertEquals(cells.get(gap + 1).left(), lines.get(gap).left(), 0.5,
+                assertEquals(
+                        cells.get(gap + 1).left(),
+                        lines.get(gap).left(),
+                        0.5,
                         "hairline " + gap + " is not on the seam it divides");
                 assertEquals(1, lines.get(gap).width(), 1e-9, "§3's 1px");
             }
@@ -852,8 +911,7 @@ class SegmentedTest {
 
             assertEquals(0, alpha(lines.get(0).box().background()), "left of the pill");
             assertEquals(0, alpha(lines.get(1).box().background()), "right of the pill");
-            assertEquals(255, alpha(lines.get(2).box().background()),
-                    "and the far one still shows");
+            assertEquals(255, alpha(lines.get(2).box().background()), "and the far one still shows");
         }
 
         /// A bar whose value matches no segment is a real state — a model that has
@@ -864,7 +922,8 @@ class SegmentedTest {
             var lines = ofType(drawn(bar(null), 400), "segmented-divider");
 
             assertEquals(3, lines.size());
-            assertTrue(lines.stream().allMatch(line -> alpha(line.box().background()) == 255),
+            assertTrue(
+                    lines.stream().allMatch(line -> alpha(line.box().background()) == 255),
                     "a bar with no selection has nothing to hide a hairline for");
         }
 
@@ -881,8 +940,8 @@ class SegmentedTest {
         @DisplayName("both types are in the catalog's list")
         void inControlTypes() {
             assertTrue(Controls.controlTypes().contains("segmented"));
-            assertTrue(Controls.controlTypes().contains("option"),
-                    "a segment is a widget a document writes, not a part");
+            assertTrue(
+                    Controls.controlTypes().contains("option"), "a segment is a widget a document writes, not a part");
         }
 
         @Test

@@ -58,8 +58,16 @@ final class SplitPaneState extends State<SplitPane> {
     public Widget build(BuildContext context) {
         var split = widget();
         return new SplitPaneView(
-                split.axis(), resolved(), firstLength(), split.children(), split.attributes(),
-                this::measured, this::offsetOf, this::dragTo, this::nudge, this::toggleCollapse);
+                split.axis(),
+                resolved(),
+                firstLength(),
+                split.children(),
+                split.attributes(),
+                this::measured,
+                this::offsetOf,
+                this::dragTo,
+                this::nudge,
+                this::toggleCollapse);
     }
 
     /// The pane's own size, once a frame and only when it changes.

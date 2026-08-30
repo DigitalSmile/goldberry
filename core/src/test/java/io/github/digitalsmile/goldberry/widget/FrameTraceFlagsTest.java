@@ -34,8 +34,7 @@ class FrameTraceFlagsTest {
     @DisplayName("`all` implies `true` — the stronger setting never does less")
     void allImpliesEnabled() {
         assertTrue(FrameTrace.allFrames("all"));
-        assertTrue(FrameTrace.enabled("all"),
-                "`all` asks for more output than `true`, so it cannot trace less");
+        assertTrue(FrameTrace.enabled("all"), "`all` asks for more output than `true`, so it cannot trace less");
     }
 
     @Test

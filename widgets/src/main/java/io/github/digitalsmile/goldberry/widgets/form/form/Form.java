@@ -1,14 +1,15 @@
 package io.github.digitalsmile.goldberry.widgets.form.form;
 
-import io.github.digitalsmile.goldberry.kdl.KdlNode;
-import io.github.digitalsmile.goldberry.widget.attr.Attributed;
-import io.github.digitalsmile.goldberry.widget.attr.Attributes;
-import io.github.digitalsmile.goldberry.widget.State;
-import io.github.digitalsmile.goldberry.widget.Widget;
-import io.github.digitalsmile.goldberry.widgets.markup.Markup;
-import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
 import java.util.List;
 import java.util.Objects;
+
+import io.github.digitalsmile.goldberry.kdl.KdlNode;
+import io.github.digitalsmile.goldberry.widget.State;
+import io.github.digitalsmile.goldberry.widget.Widget;
+import io.github.digitalsmile.goldberry.widget.attr.Attributed;
+import io.github.digitalsmile.goldberry.widget.attr.Attributes;
+import io.github.digitalsmile.goldberry.widgets.markup.Markup;
+import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
 
 /// A set of `field`s that submit together — `docs/core-widgets.md` §4's `form`.
 ///
@@ -57,8 +58,7 @@ import java.util.Objects;
 /// @param onSubmit   run when every field passes, or null
 /// @param attributes the `id`, classes and key the document wrote
 @Markup("form")
-public record Form(List<Widget> children, Runnable onSubmit, FormController controller,
-        Attributes attributes)
+public record Form(List<Widget> children, Runnable onSubmit, FormController controller, Attributes attributes)
         implements Widget.Stateful, Attributed<Form> {
 
     public Form {
@@ -108,7 +108,10 @@ public record Form(List<Widget> children, Runnable onSubmit, FormController cont
     /// ([ADR-0170]). Without it a document could declare a form and nothing
     /// could ever submit it.
     public static Widget inflate(KdlNode node, List<Widget> children, Wiring wiring) {
-        return new Form(children, wiring.action(node, "submit"),
-                wiring.handle(node, "controller", FormController.class), Attributes.of(node));
+        return new Form(
+                children,
+                wiring.action(node, "submit"),
+                wiring.handle(node, "controller", FormController.class),
+                Attributes.of(node));
     }
 }

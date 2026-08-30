@@ -5,14 +5,16 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import io.github.digitalsmile.goldberry.natives.NativeLibraryRequirement;
 import java.util.ArrayList;
 import java.util.List;
+
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
+
+import io.github.digitalsmile.goldberry.natives.NativeLibraryRequirement;
 import io.github.digitalsmile.goldberry.natives.yoga.measure.MeasureMode;
 import io.github.digitalsmile.goldberry.natives.yoga.measure.MeasuredSize;
 
@@ -82,8 +84,7 @@ class MeasureUpcallTest {
         var results = new ArrayList<MeasuredSize>();
         try (var callback = MeasureCallback.of((w, wm, h, hm) -> new MeasuredSize(w * 2f, h + 1f))) {
             for (var i = 1; i <= 5; i++) {
-                results.add(MeasureProbe.measure(
-                        callback, i, MeasureMode.EXACTLY, i * 10f, MeasureMode.AT_MOST));
+                results.add(MeasureProbe.measure(callback, i, MeasureMode.EXACTLY, i * 10f, MeasureMode.AT_MOST));
             }
         }
 

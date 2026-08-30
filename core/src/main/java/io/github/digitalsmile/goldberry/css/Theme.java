@@ -5,8 +5,9 @@ import java.io.InputStream;
 import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Locale;
-import io.github.digitalsmile.goldberry.css.parse.CssSyntaxException;
+
 import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
+import io.github.digitalsmile.goldberry.css.parse.CssSyntaxException;
 
 /// The themes that ship with the toolkit.
 ///
@@ -49,8 +50,7 @@ public enum Theme {
         var resource = resourceName();
         try (InputStream in = Theme.class.getResourceAsStream(resource)) {
             if (in == null) {
-                throw new IllegalStateException(
-                        "the " + name() + " theme is missing from the jar: " + resource);
+                throw new IllegalStateException("the " + name() + " theme is missing from the jar: " + resource);
             }
             return new String(in.readAllBytes(), StandardCharsets.UTF_8);
         } catch (IOException e) {

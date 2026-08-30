@@ -1,14 +1,15 @@
 package io.github.digitalsmile.goldberry.widgets.panel.accordion;
 
+import java.util.List;
+import java.util.Set;
+
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
-import io.github.digitalsmile.goldberry.paint.Box;
 import io.github.digitalsmile.goldberry.natives.yoga.style.FlexDirection;
+import io.github.digitalsmile.goldberry.paint.Box;
+import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widget.attr.Attributes;
 import io.github.digitalsmile.goldberry.widget.style.Paints;
 import io.github.digitalsmile.goldberry.widget.style.Styled;
-import io.github.digitalsmile.goldberry.widget.Widget;
-import java.util.List;
-import java.util.Set;
 
 /// **This is the `column` a stylesheet selects.**
 ///
@@ -22,8 +23,7 @@ import java.util.Set;
 /// The direction is applied after the style for
 /// [io.github.digitalsmile.goldberry.widgets.core.Column]'s reason: a `column` a
 /// stylesheet could turn into a row would be a name that lies.
-record AccordionColumn(List<Widget> children, Attributes attributes)
-        implements Widget.Leaf, Styled, Paints {
+record AccordionColumn(List<Widget> children, Attributes attributes) implements Widget.Leaf, Styled, Paints {
 
     AccordionColumn {
         children = List.copyOf(children == null ? List.of() : children);
@@ -54,8 +54,6 @@ record AccordionColumn(List<Widget> children, Attributes attributes)
 
     @Override
     public Box render(ComputedStyle style, List<Box> boxes, Context context) {
-        return Box.of().style(style)
-                .direction(FlexDirection.COLUMN)
-                .children(boxes.toArray(Box[]::new));
+        return Box.of().style(style).direction(FlexDirection.COLUMN).children(boxes.toArray(Box[]::new));
     }
 }

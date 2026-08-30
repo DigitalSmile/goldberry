@@ -8,12 +8,14 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import io.github.digitalsmile.goldberry.natives.NativeLibraryRequirement;
 import java.util.ArrayList;
 import java.util.List;
+
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+
+import io.github.digitalsmile.goldberry.natives.NativeLibraryRequirement;
 import io.github.digitalsmile.goldberry.natives.harfbuzz.enums.TextDirection;
 
 /// Shaping, checked without a font file.
@@ -138,7 +140,9 @@ class ShapingTest {
             // caret and a selection are built on.
             assertEquals(
                     List.of(0, 1, 2),
-                    List.of(run.cluster(0), run.cluster(1), run.cluster(2)).stream().sorted().toList(),
+                    List.of(run.cluster(0), run.cluster(1), run.cluster(2)).stream()
+                            .sorted()
+                            .toList(),
                     "each character accounted for exactly once");
         }
     }
@@ -243,8 +247,7 @@ class ShapingTest {
         try (var buffer = ShapingBuffer.create()) {
             // hb_script_from_string takes a length and would happily accept a
             // shorter tag, producing a script nobody meant.
-            var thrown = assertThrows(
-                    IllegalArgumentException.class, () -> buffer.setScript("Lat"));
+            var thrown = assertThrows(IllegalArgumentException.class, () -> buffer.setScript("Lat"));
             assertTrue(thrown.getMessage().contains("four characters"), thrown.getMessage());
 
             assertDoesNotThrow(() -> buffer.setScript("Latn"));
@@ -267,10 +270,8 @@ class ShapingTest {
     @DisplayName("a range outside the text is refused")
     void rangesAreChecked() {
         try (var buffer = ShapingBuffer.create()) {
-            assertThrows(
-                    IndexOutOfBoundsException.class, () -> buffer.addText("abc", 0, 4));
-            assertThrows(
-                    IndexOutOfBoundsException.class, () -> buffer.addText("abc", 2, 1));
+            assertThrows(IndexOutOfBoundsException.class, () -> buffer.addText("abc", 0, 4));
+            assertThrows(IndexOutOfBoundsException.class, () -> buffer.addText("abc", 2, 1));
         }
     }
 
@@ -280,8 +281,7 @@ class ShapingTest {
         // HarfBuzz would produce a face with no glyphs, which is
         // indistinguishable from a font that failed to parse -- so the one case
         // that can be caught early is.
-        var thrown = assertThrows(
-                IllegalArgumentException.class, () -> ShapedFont.fromBytes(new byte[0]));
+        var thrown = assertThrows(IllegalArgumentException.class, () -> ShapedFont.fromBytes(new byte[0]));
 
         assertTrue(thrown.getMessage().contains("not a font"), thrown.getMessage());
         assertThrows(IllegalArgumentException.class, () -> ShapedFont.fromBytes(new byte[4], -1));

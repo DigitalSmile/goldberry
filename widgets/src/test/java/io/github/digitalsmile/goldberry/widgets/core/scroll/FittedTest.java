@@ -5,12 +5,13 @@ import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+
 import io.github.digitalsmile.goldberry.render.model.LogicalRect;
 import io.github.digitalsmile.goldberry.render.model.LogicalSize;
 import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widgets.text.Text;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
 
 /// [Fitted] — what `menu` and `select` both answer [io.github.digitalsmile.goldberry.Host.Fit]
 /// with ([ADR-0179]).
@@ -47,10 +48,11 @@ class FittedTest {
     void tallerScrolls() {
         var viewport = assertInstanceOf(Scroll.class, fit(ROOM + 1));
 
-        assertEquals(ROOM, viewport.height(), 0.001,
-                "the viewport is not the height of the space it has to fit in");
+        assertEquals(ROOM, viewport.height(), 0.001, "the viewport is not the height of the space it has to fit in");
         assertEquals(ScrollAxis.VERTICAL, viewport.axis());
-        assertEquals(java.util.List.of(content), viewport.children(),
+        assertEquals(
+                java.util.List.of(content),
+                viewport.children(),
                 "the content is inside the viewport rather than replaced by it");
     }
 
@@ -61,10 +63,9 @@ class FittedTest {
     @DisplayName("the margin is kept at both ends, not one")
     void marginIsBothEnds() {
         assertEquals(600 - 2 * Fitted.MARGIN, ROOM, 0.001);
-        assertSame(content, fit(ROOM),
-                "content exactly filling the room between the margins is a fit");
-        assertInstanceOf(Scroll.class, fit(600 - Fitted.MARGIN),
-                "content that would fit with one margin was let through");
+        assertSame(content, fit(ROOM), "content exactly filling the room between the margins is a fit");
+        assertInstanceOf(
+                Scroll.class, fit(600 - Fitted.MARGIN), "content that would fit with one margin was let through");
     }
 
     /// Two classes rather than one, so a stylesheet can tell a menu's viewport
@@ -73,9 +74,10 @@ class FittedTest {
     @DisplayName("the viewport carries the class it was made with")
     void carriesItsClass() {
         assertTrue(((Scroll) fit(9999)).attributes().classes().contains("menu-viewport"));
-        assertTrue(((Scroll) new Fitted("select-viewport")
-                .fit(content, new LogicalSize(200, 9999), SCREEN))
-                .attributes().classes().contains("select-viewport"));
+        assertTrue(((Scroll) new Fitted("select-viewport").fit(content, new LogicalSize(200, 9999), SCREEN))
+                .attributes()
+                .classes()
+                .contains("select-viewport"));
     }
 
     /// The work area is what the popup is placed against, and a short one is an
@@ -85,8 +87,7 @@ class FittedTest {
     void theWorkAreaDecides() {
         var shallow = LogicalRect.of(0, 0, 1920, 200);
 
-        assertInstanceOf(Scroll.class,
-                fitted.fit(content, new LogicalSize(200, 300), shallow));
+        assertInstanceOf(Scroll.class, fitted.fit(content, new LogicalSize(200, 300), shallow));
         assertSame(content, fitted.fit(content, new LogicalSize(200, 100), shallow));
     }
 }

@@ -4,11 +4,12 @@ import static java.lang.foreign.ValueLayout.ADDRESS;
 import static java.lang.foreign.ValueLayout.JAVA_BOOLEAN;
 import static java.lang.foreign.ValueLayout.JAVA_INT;
 
-import io.github.digitalsmile.goldberry.natives.Downcalls;
 import java.lang.foreign.FunctionDescriptor;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.SymbolLookup;
 import java.lang.invoke.MethodHandle;
+
+import io.github.digitalsmile.goldberry.natives.Downcalls;
 
 /// SDL's system tray — an icon in the desktop's notification area, and the menu
 /// the shell draws for it.
@@ -95,8 +96,7 @@ public record SdlTrayCalls(
     /// @param tray the tray to take down
     public static final class DestroyTray {
 
-        private static final MethodHandle FD_SDL_DestroyTray =
-                Downcalls.link(FunctionDescriptor.ofVoid(ADDRESS));
+        private static final MethodHandle FD_SDL_DestroyTray = Downcalls.link(FunctionDescriptor.ofVoid(ADDRESS));
 
         private final MemorySegment address;
 
@@ -246,8 +246,7 @@ public record SdlTrayCalls(
 
         public MemorySegment call(MemorySegment menu, int pos, MemorySegment label, int flags) {
             try {
-                return (MemorySegment) FD_SDL_InsertTrayEntryAt.invokeExact(
-                        address, menu, pos, label, flags);
+                return (MemorySegment) FD_SDL_InsertTrayEntryAt.invokeExact(address, menu, pos, label, flags);
             } catch (Throwable t) {
                 throw Downcalls.failure("SDL_InsertTrayEntryAt", t);
             }

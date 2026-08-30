@@ -1,17 +1,18 @@
 package io.github.digitalsmile.goldberry;
 
-import io.github.digitalsmile.goldberry.render.Backend;
-import io.github.digitalsmile.goldberry.render.event.BackendEvent;
-import io.github.digitalsmile.goldberry.render.BackendException;
-import io.github.digitalsmile.goldberry.render.window.BackendWindow;
-import io.github.digitalsmile.goldberry.render.event.EventLoop;
-import io.github.digitalsmile.goldberry.render.backend.sdl3.Sdl3Backend;
+import java.util.IdentityHashMap;
+import java.util.Objects;
+
+import org.slf4j.Logger;
+
 import io.github.digitalsmile.goldberry.log.Logs;
 import io.github.digitalsmile.goldberry.log.Startup;
-import java.util.IdentityHashMap;
-import java.util.Map;
-import java.util.Objects;
-import org.slf4j.Logger;
+import io.github.digitalsmile.goldberry.render.Backend;
+import io.github.digitalsmile.goldberry.render.BackendException;
+import io.github.digitalsmile.goldberry.render.backend.sdl3.Sdl3Backend;
+import io.github.digitalsmile.goldberry.render.event.BackendEvent;
+import io.github.digitalsmile.goldberry.render.event.EventLoop;
+import io.github.digitalsmile.goldberry.render.window.BackendWindow;
 
 /// The backend and event loop, owned so applications do not have to be.
 ///
@@ -73,7 +74,9 @@ final class GoldberryRuntime {
     /// The runtime, starting the desktop backend on first use.
     static synchronized GoldberryRuntime get() {
         if (instance == null) {
-            LOG.debug("starting the Goldberry runtime on {}", Thread.currentThread().getName());
+            LOG.debug(
+                    "starting the Goldberry runtime on {}",
+                    Thread.currentThread().getName());
             Startup.mark("runtime starting");
             Startup.logModules();
             instance = new GoldberryRuntime(Startup.time("backend ready", Sdl3Backend::new));
@@ -153,18 +156,22 @@ final class GoldberryRuntime {
             case BackendEvent.Resized resized -> window.handleResize(resized.size());
             case BackendEvent.ScaleChanged rescaled -> window.handleScaleChange(rescaled.scale());
             case BackendEvent.CloseRequested ignored -> window.handleCloseRequest();
-            case BackendEvent.PointerMoved moved ->
-                    window.handlePointerMoved(moved.x(), moved.y(), moved.modifiers());
+            case BackendEvent.PointerMoved moved -> window.handlePointerMoved(moved.x(), moved.y(), moved.modifiers());
             case BackendEvent.PointerPressed pressed ->
-                    window.handlePointerPressed(pressed.x(), pressed.y(),
-                            pressed.button(), pressed.clickCount(), pressed.modifiers());
+                window.handlePointerPressed(
+                        pressed.x(), pressed.y(), pressed.button(), pressed.clickCount(), pressed.modifiers());
             case BackendEvent.PointerReleased released ->
-                    window.handlePointerReleased(released.x(), released.y(),
-                            released.button(), released.clickCount(), released.modifiers());
+                window.handlePointerReleased(
+                        released.x(), released.y(), released.button(), released.clickCount(), released.modifiers());
             case BackendEvent.PointerWheel wheel ->
-                    window.handlePointerWheel(wheel.x(), wheel.y(),
-                            wheel.deltaX(), wheel.deltaY(),
-                            wheel.ticksX(), wheel.ticksY(), wheel.modifiers());
+                window.handlePointerWheel(
+                        wheel.x(),
+                        wheel.y(),
+                        wheel.deltaX(),
+                        wheel.deltaY(),
+                        wheel.ticksX(),
+                        wheel.ticksY(),
+                        wheel.modifiers());
             case BackendEvent.PointerExited ignored -> window.handlePointerExited();
             case BackendEvent.FocusChanged focus -> {
                 window.handleFocusChanged(focus.focused());
@@ -175,17 +182,14 @@ final class GoldberryRuntime {
                     focusWatcher.run();
                 }
             }
-            case BackendEvent.KeyPressed key ->
-                    window.handleKeyPressed(key.keycode(), key.modifiers(), key.repeat());
-            case BackendEvent.KeyReleased key ->
-                    window.handleKeyReleased(key.keycode(), key.modifiers());
+            case BackendEvent.KeyPressed key -> window.handleKeyPressed(key.keycode(), key.modifiers(), key.repeat());
+            case BackendEvent.KeyReleased key -> window.handleKeyReleased(key.keycode(), key.modifiers());
             case BackendEvent.TextInput text -> window.handleTextInput(text.text());
         }
     }
 
     static BackendException notStarted() {
         return new BackendException(
-                "no window has been opened, so there is nothing to run."
-                        + " Call Window.open(...) first.");
+                "no window has been opened, so there is nothing to run." + " Call Window.open(...) first.");
     }
 }

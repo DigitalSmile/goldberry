@@ -3,11 +3,13 @@ package io.github.digitalsmile.goldberry.widgets.bind;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import io.github.digitalsmile.goldberry.bind.runtime.Models;
 import java.util.ArrayList;
 import java.util.List;
+
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+
+import io.github.digitalsmile.goldberry.bind.runtime.Models;
 
 /// That a class may keep a model's values and another class may change them.
 ///
@@ -103,20 +105,22 @@ class SplitModelTest {
         var values = new Split.Values();
         var actions = new Split.Actions(values);
 
-        assertEquals(List.of("split.count", "split.label", "split.quiet"),
+        assertEquals(
+                List.of("split.count", "split.label", "split.quiet"),
                 List.copyOf(Models.bindings(values).bound().keySet()));
         // A set, not a list: which order a registry's names come out in is the
         // one thing the two forms of a binding do not promise to agree on --
         // the weaver publishes in class-file order and reflection cannot see
         // that, so the runtime form sorts by member name instead of leaving it
         // to `getDeclaredMethods` (ADR-0155).
-        assertEquals(java.util.Set.of("split.bump", "split.say", "split.tick", "split.both"),
+        assertEquals(
+                java.util.Set.of("split.bump", "split.say", "split.tick", "split.both"),
                 Models.actions(actions).bound().keySet());
         // And each publishes only its own half, which is the point of the two
         // markers: `@Model` for the values, `@Actions` for the methods.
-        assertTrue(Models.actions(values).bound().isEmpty(),
-                "a @Model with no @Action method publishes no names");
-        assertTrue(Models.bindings(actions).bound().isEmpty(),
+        assertTrue(Models.actions(values).bound().isEmpty(), "a @Model with no @Action method publishes no names");
+        assertTrue(
+                Models.bindings(actions).bound().isEmpty(),
                 "an @Actions class holds no values, so it publishes no paths");
     }
 
@@ -124,7 +128,8 @@ class SplitModelTest {
     @DisplayName("a record holds the actions, because it holds no state")
     void actionsAreARecord() {
         assertTrue(Split.Actions.class.isRecord());
-        assertTrue(!Split.Values.class.isRecord(),
+        assertTrue(
+                !Split.Values.class.isRecord(),
                 "values cannot be a record: a record's components are final and a"
                         + " bound field has to be assignable");
     }

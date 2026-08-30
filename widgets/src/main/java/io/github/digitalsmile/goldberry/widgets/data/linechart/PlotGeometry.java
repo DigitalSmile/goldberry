@@ -1,8 +1,9 @@
 package io.github.digitalsmile.goldberry.widgets.data.linechart;
 
+import java.util.List;
+
 import io.github.digitalsmile.goldberry.text.Paragraph;
 import io.github.digitalsmile.goldberry.widgets.data.Scale;
-import java.util.List;
 
 /// Where the plot area is inside the box, and what a coordinate in it means.
 ///
@@ -35,18 +36,24 @@ import java.util.List;
 /// @param y           values to vertical positions, already swapped (see [Scale])
 /// @param times       epoch milliseconds per point index when this chart has a
 ///                    time axis, or null when its x is the point index
-    // Arrays, and deliberately: these are read on every frame of a chart that may
-    // hold a hundred thousand points, and `equals` is never called on one. A
-    // `List<Double>` here would box every reading to buy a correctness property
-    // nothing uses.
-    @SuppressWarnings("ArrayRecordComponent")
+// Arrays, and deliberately: these are read on every frame of a chart that may
+// hold a hundred thousand points, and `equals` is never called on one. A
+// `List<Double>` here would box every reading to buy a correctness property
+// nothing uses.
+@SuppressWarnings("ArrayRecordComponent")
 record PlotGeometry(
-        double left, double top, double plotWidth, double plotHeight,
-        double gutter, double lineHeight, Scale y, double[] times) {
+        double left,
+        double top,
+        double plotWidth,
+        double plotHeight,
+        double gutter,
+        double lineHeight,
+        Scale y,
+        double[] times) {
 
     /// A plot whose x is the point index — every chart without a time axis.
-    PlotGeometry(double left, double top, double plotWidth, double plotHeight,
-            double gutter, double lineHeight, Scale y) {
+    PlotGeometry(
+            double left, double top, double plotWidth, double plotHeight, double gutter, double lineHeight, Scale y) {
         this(left, top, plotWidth, plotHeight, gutter, lineHeight, y, null);
     }
 
@@ -73,8 +80,7 @@ record PlotGeometry(
     /// @param domainMin the smallest value that has to fit, before labelling
     /// @param domainMax the largest
     static PlotGeometry of(
-            List<Paragraph> labels, boolean hasXLabels,
-            double axisMin, double axisMax, double width, double height) {
+            List<Paragraph> labels, boolean hasXLabels, double axisMin, double axisMax, double width, double height) {
 
         return of(labels, hasXLabels, axisMin, axisMax, false, width, height, null);
     }
@@ -97,9 +103,14 @@ record PlotGeometry(
     /// @param logarithmic whether the value axis maps the logarithm — see
     ///                    [Scale#log]
     static PlotGeometry of(
-            List<Paragraph> labels, boolean hasXLabels,
-            double axisMin, double axisMax, boolean logarithmic,
-            double width, double height, double[] times) {
+            List<Paragraph> labels,
+            boolean hasXLabels,
+            double axisMin,
+            double axisMax,
+            boolean logarithmic,
+            double width,
+            double height,
+            double[] times) {
 
         if (labels.isEmpty() || width <= 0 || height <= 0) {
             return null;
@@ -122,8 +133,7 @@ record PlotGeometry(
         var y = logarithmic && axisMin > 0 && axisMax > 0
                 ? Scale.log(axisMin, axisMax, top + plotHeight, top)
                 : Scale.linear(axisMin, axisMax, top + plotHeight, top);
-        return new PlotGeometry(left, top, plotWidth, plotHeight, gutter, lineHeight,
-                y, times);
+        return new PlotGeometry(left, top, plotWidth, plotHeight, gutter, lineHeight, y, times);
     }
 
     /// The right-hand edge of the plot area.

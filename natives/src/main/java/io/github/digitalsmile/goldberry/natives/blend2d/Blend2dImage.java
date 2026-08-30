@@ -1,15 +1,16 @@
 package io.github.digitalsmile.goldberry.natives.blend2d;
 
-import io.github.digitalsmile.goldberry.natives.blend2d.calls.ImageCalls;
-import io.github.digitalsmile.goldberry.natives.blend2d.enums.BlendFormat;
-import io.github.digitalsmile.goldberry.natives.layout.Layouts;
 import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.SymbolLookup;
 import java.lang.foreign.ValueLayout;
+
 import io.github.digitalsmile.goldberry.natives.NativeLibrary;
+import io.github.digitalsmile.goldberry.natives.blend2d.calls.ImageCalls;
 import io.github.digitalsmile.goldberry.natives.blend2d.enums.BlendDataAccess;
+import io.github.digitalsmile.goldberry.natives.blend2d.enums.BlendFormat;
 import io.github.digitalsmile.goldberry.natives.blend2d.error.BlendException;
+import io.github.digitalsmile.goldberry.natives.layout.Layouts;
 
 /// Blend2D's image calls, behind [BlendImage].
 ///
@@ -25,7 +26,8 @@ final class Blend2dImage {
     private static final long IMAGE_DATA_FORMAT = Layouts.BL_IMAGE_DATA.offsetOf("format");
 
     private static final class Holder {
-        private static final Blend2dImage INSTANCE = new Blend2dImage(NativeLibrary.get().lookup());
+        private static final Blend2dImage INSTANCE =
+                new Blend2dImage(NativeLibrary.get().lookup());
     }
 
     private final ImageCalls calls;
@@ -52,13 +54,20 @@ final class Blend2dImage {
     /// the bottom-left, which Goldberry never produces but must not silently
     /// reinterpret.
     void imageInitFromData(
-            MemorySegment image, int width, int height, BlendFormat format,
-            MemorySegment pixels, long stride) {
+            MemorySegment image, int width, int height, BlendFormat format, MemorySegment pixels, long stride) {
 
         int result;
-        result = calls.imageInitAsFromData().call(image, width, height, format.nativeValue(),
-                pixels, stride, BlendDataAccess.READ_WRITE.nativeValue(), MemorySegment.NULL,
-                MemorySegment.NULL);
+        result = calls.imageInitAsFromData()
+                .call(
+                        image,
+                        width,
+                        height,
+                        format.nativeValue(),
+                        pixels,
+                        stride,
+                        BlendDataAccess.READ_WRITE.nativeValue(),
+                        MemorySegment.NULL,
+                        MemorySegment.NULL);
         check("bl_image_init_as_from_data", result);
     }
 
@@ -85,8 +94,7 @@ final class Blend2dImage {
     /// What `bl_image_get_data` reported. Addresses as `long`, because a raw
     /// [MemorySegment] may not leave this module and a test only needs to
     /// compare the number.
-    record ImageData(long pixels, long stride, BlendFormat format) {
-    }
+    record ImageData(long pixels, long stride, BlendFormat format) {}
 
     /// A `BLResult` that is not `BL_SUCCESS` is the call reporting a problem, not
     /// the crossing failing -- so it is raised as a [BlendException] naming the

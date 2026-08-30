@@ -1,13 +1,14 @@
 package io.github.digitalsmile.goldberry.widgets.data.linechart;
 
-import io.github.digitalsmile.goldberry.css.ComputedStyle;
-import io.github.digitalsmile.goldberry.paint.Box;
-import io.github.digitalsmile.goldberry.widget.style.Paints;
-import io.github.digitalsmile.goldberry.widget.style.Styled;
-import io.github.digitalsmile.goldberry.widget.Widget;
-import io.github.digitalsmile.goldberry.widgets.data.Series;
 import java.util.ArrayList;
 import java.util.List;
+
+import io.github.digitalsmile.goldberry.css.ComputedStyle;
+import io.github.digitalsmile.goldberry.paint.Box;
+import io.github.digitalsmile.goldberry.widget.Widget;
+import io.github.digitalsmile.goldberry.widget.style.Paints;
+import io.github.digitalsmile.goldberry.widget.style.Styled;
+import io.github.digitalsmile.goldberry.widgets.data.Series;
 
 /// Which line is which — a **part** of [LineChart].
 ///
@@ -40,8 +41,7 @@ import java.util.List;
 /// @param isolated  the one being shown alone, or -1 for all of them
 /// @param onIsolate what a click reports, or null for a legend that is only a
 ///                  key — which is what `donut-chart` builds
-public record ChartLegend(
-        List<Series> series, int isolated, java.util.function.IntConsumer onIsolate)
+public record ChartLegend(List<Series> series, int isolated, java.util.function.IntConsumer onIsolate)
         implements Widget.Leaf, Styled, Paints {
 
     /// A legend nobody can click, which is every legend that came before the
@@ -62,8 +62,7 @@ public record ChartLegend(
             // Muted when *another* series is isolated: the isolated one is the
             // only thing on the plot, so it is the only entry drawn at full
             // strength.
-            entries.add(new ChartLegendEntry(i, series.get(i).name(),
-                    isolated >= 0 && isolated != i, onIsolate));
+            entries.add(new ChartLegendEntry(i, series.get(i).name(), isolated >= 0 && isolated != i, onIsolate));
         }
         return List.copyOf(entries);
     }

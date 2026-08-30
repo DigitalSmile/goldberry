@@ -10,7 +10,6 @@ import io.github.digitalsmile.goldberry.natives.yoga.YogaConfig;
 /// says nothing about direction should behave the way the CSS subset in
 /// `docs/ARCHITECTURE.md` §8 promises.
 public enum FlexDirection implements YogaEnum {
-
     COLUMN(0, "YGFlexDirectionColumn"),
 
     COLUMN_REVERSE(1, "YGFlexDirectionColumnReverse"),

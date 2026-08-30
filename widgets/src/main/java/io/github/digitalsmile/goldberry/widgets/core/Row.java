@@ -1,18 +1,19 @@
 package io.github.digitalsmile.goldberry.widgets.core;
 
+import java.util.List;
+import java.util.Set;
+
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
-import io.github.digitalsmile.goldberry.paint.Box;
+import io.github.digitalsmile.goldberry.kdl.KdlNode;
 import io.github.digitalsmile.goldberry.natives.yoga.style.FlexDirection;
+import io.github.digitalsmile.goldberry.paint.Box;
+import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widget.attr.Attributed;
 import io.github.digitalsmile.goldberry.widget.attr.Attributes;
 import io.github.digitalsmile.goldberry.widget.style.Paints;
 import io.github.digitalsmile.goldberry.widget.style.Styled;
-import io.github.digitalsmile.goldberry.widget.Widget;
-import java.util.List;
-import java.util.Set;
-import io.github.digitalsmile.goldberry.kdl.KdlNode;
-import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
 import io.github.digitalsmile.goldberry.widgets.markup.Markup;
+import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
 
 /// Children laid out along the main axis — `docs/core-widgets.md` §1's `row`.
 ///
@@ -64,8 +65,7 @@ public record Row(List<Widget> children, Attributes attributes)
 
     @Override
     public Box render(ComputedStyle style, List<Box> boxes, Context context) {
-        return Box.of().children(boxes.toArray(Box[]::new)).style(style)
-                .direction(FlexDirection.ROW);
+        return Box.of().children(boxes.toArray(Box[]::new)).style(style).direction(FlexDirection.ROW);
     }
 
     /// Builds a `row` from markup.

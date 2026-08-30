@@ -3,17 +3,19 @@ package io.github.digitalsmile.goldberry.input;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import io.github.digitalsmile.goldberry.widget.Element;
-import io.github.digitalsmile.goldberry.widget.ElementTree;
-import io.github.digitalsmile.goldberry.widget.style.Styled;
-import io.github.digitalsmile.goldberry.widget.Widget;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+
 import io.github.digitalsmile.goldberry.input.handler.Handles;
+import io.github.digitalsmile.goldberry.widget.Element;
+import io.github.digitalsmile.goldberry.widget.ElementTree;
+import io.github.digitalsmile.goldberry.widget.Widget;
+import io.github.digitalsmile.goldberry.widget.style.Styled;
 
 /// `:focus-within`, as a notification — what a container is told when the
 /// keyboard arrives somewhere under it.
@@ -74,12 +76,11 @@ class FocusWithinTest {
 
     /// `form > field-one > (input-a, input-b)` and `form > field-two > input-c`.
     private ElementTree twoFields() {
-        tree = new ElementTree(new Node("form", false,
-                new Node("field-one", false,
-                        new Node("input-a", true),
-                        new Node("input-b", true)),
-                new Node("field-two", false,
-                        new Node("input-c", true))));
+        tree = new ElementTree(new Node(
+                "form",
+                false,
+                new Node("field-one", false, new Node("input-a", true), new Node("input-b", true)),
+                new Node("field-two", false, new Node("input-c", true))));
         return tree;
     }
 
@@ -112,8 +113,7 @@ class FocusWithinTest {
 
             router.focus(find("input-a"), true);
 
-            assertEquals(List.of("input-a focused", "input-a entered", "field-one entered",
-                    "form entered"), log);
+            assertEquals(List.of("input-a focused", "input-a entered", "field-one entered", "form entered"), log);
         }
 
         @Test
@@ -126,8 +126,7 @@ class FocusWithinTest {
 
             router.focus(null, true);
 
-            assertEquals(List.of("input-a blurred", "input-a left", "field-one left",
-                    "form left"), log);
+            assertEquals(List.of("input-a blurred", "input-a left", "field-one left", "form left"), log);
         }
 
         @Test
@@ -163,8 +162,7 @@ class FocusWithinTest {
             // The field's subtree held the keyboard throughout. A field told
             // "left" and then "entered" here would validate on a move that never
             // crossed its boundary.
-            assertEquals(List.of("input-a blurred", "input-b focused",
-                    "input-a left", "input-b entered"), log);
+            assertEquals(List.of("input-a blurred", "input-b focused", "input-a left", "input-b entered"), log);
         }
 
         @Test
@@ -177,10 +175,17 @@ class FocusWithinTest {
 
             router.focus(find("input-c"), true);
 
-            assertEquals(List.of("input-a blurred", "input-c focused",
-                    "input-a left", "field-one left",
-                    "input-c entered", "field-two entered"), log);
-            assertTrue(log.stream().noneMatch(entry -> entry.startsWith("form ")),
+            assertEquals(
+                    List.of(
+                            "input-a blurred",
+                            "input-c focused",
+                            "input-a left",
+                            "field-one left",
+                            "input-c entered",
+                            "field-two entered"),
+                    log);
+            assertTrue(
+                    log.stream().noneMatch(entry -> entry.startsWith("form ")),
                     "the form never stopped containing the focus");
         }
     }

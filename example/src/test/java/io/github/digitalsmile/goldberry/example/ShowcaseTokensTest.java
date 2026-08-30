@@ -2,8 +2,6 @@ package io.github.digitalsmile.goldberry.example;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import io.github.digitalsmile.goldberry.css.Theme;
-import io.github.digitalsmile.goldberry.widgets.Controls;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
@@ -12,8 +10,12 @@ import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.regex.Pattern;
+
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+
+import io.github.digitalsmile.goldberry.css.Theme;
+import io.github.digitalsmile.goldberry.widgets.Controls;
 
 /// The showcase's own stylesheet uses no token that nothing defines.
 ///
@@ -65,7 +67,8 @@ class ShowcaseTokensTest {
 
         var missing = new TreeSet<>(matches(USE, app));
         missing.removeAll(defined);
-        assertTrue(missing.isEmpty(),
+        assertTrue(
+                missing.isEmpty(),
                 () -> "the showcase uses tokens nothing defines: " + missing
                         + " — the cascade drops the whole declaration, so the node silently"
                         + " keeps whatever it inherited");

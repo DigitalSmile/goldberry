@@ -7,6 +7,14 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.time.Duration;
+import java.util.ArrayList;
+
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+
 import io.github.digitalsmile.goldberry.render.Backend;
 import io.github.digitalsmile.goldberry.render.event.BackendEvent;
 import io.github.digitalsmile.goldberry.render.event.EventSink;
@@ -14,15 +22,8 @@ import io.github.digitalsmile.goldberry.render.model.LogicalPoint;
 import io.github.digitalsmile.goldberry.render.model.LogicalSize;
 import io.github.digitalsmile.goldberry.render.popup.PopupKind;
 import io.github.digitalsmile.goldberry.render.popup.PopupSpec;
-import io.github.digitalsmile.goldberry.render.window.WindowSpec;
-import java.time.Duration;
-import java.util.ArrayList;
-
 import io.github.digitalsmile.goldberry.render.window.BackendWindow;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
+import io.github.digitalsmile.goldberry.render.window.WindowSpec;
 
 /// The popup half of the backend SPI, checked where it needs no display.
 ///
@@ -38,8 +39,7 @@ class HeadlessPopupTest {
     @BeforeEach
     void setUp() {
         backend = new HeadlessBackend();
-        window = (HeadlessWindow) backend.createWindow(
-                WindowSpec.of("owner", LogicalSize.of(800, 600)));
+        window = (HeadlessWindow) backend.createWindow(WindowSpec.of("owner", LogicalSize.of(800, 600)));
     }
 
     @AfterEach
@@ -48,9 +48,9 @@ class HeadlessPopupTest {
     }
 
     private HeadlessPopup popup(float x, float y, float width, float height) {
-        return (HeadlessPopup) backend.createPopup(window,
-                        PopupSpec.of(LogicalPoint.of(x, y), LogicalSize.of(width, height)))
-                .orElseThrow();
+        return (HeadlessPopup)
+                backend.createPopup(window, PopupSpec.of(LogicalPoint.of(x, y), LogicalSize.of(width, height)))
+                        .orElseThrow();
     }
 
     @Test
@@ -87,7 +87,9 @@ class HeadlessPopupTest {
         var popup = popup(700, 590, 300, 400);
 
         assertEquals(new LogicalPoint(700, 590), popup.offset());
-        assertEquals(LogicalSize.of(800, 600), window.size(),
+        assertEquals(
+                LogicalSize.of(800, 600),
+                window.size(),
                 "and the owner is unaffected — a popup is a second window, not a child box");
     }
 
@@ -116,14 +118,16 @@ class HeadlessPopupTest {
 
         popup.resize(LogicalSize.of(200, 120));
 
-        assertEquals(LogicalSize.of(200, 300), popup.size(),
+        assertEquals(
+                LogicalSize.of(200, 300),
+                popup.size(),
                 "not yet: nothing has told the window system, let alone heard back");
 
         backend.pumpEvents(events::add, Duration.ZERO);
 
         assertEquals(LogicalSize.of(200, 120), popup.size());
-        assertTrue(events.stream().anyMatch(e -> e instanceof BackendEvent.Resized r
-                        && r.window() == popup),
+        assertTrue(
+                events.stream().anyMatch(e -> e instanceof BackendEvent.Resized r && r.window() == popup),
                 "and a Resized is what says so — SDL posts one for a popup it resized");
     }
 
@@ -132,8 +136,7 @@ class HeadlessPopupTest {
     void refusesATitle() {
         var popup = popup(0, 0, 100, 100);
 
-        var refused = assertThrows(UnsupportedOperationException.class,
-                () -> popup.setTitle("Edit"));
+        var refused = assertThrows(UnsupportedOperationException.class, () -> popup.setTitle("Edit"));
         assertTrue(refused.getMessage().contains("Edit"));
     }
 
@@ -149,7 +152,8 @@ class HeadlessPopupTest {
         window.close();
 
         assertFalse(popup.isOpen());
-        assertTrue(backend.windows().isEmpty(),
+        assertTrue(
+                backend.windows().isEmpty(),
                 "an orphaned popup keeps the event loop running for a window nobody can see");
         assertThrows(IllegalStateException.class, () -> popup.move(LogicalPoint.of(1, 1)));
     }
@@ -170,16 +174,17 @@ class HeadlessPopupTest {
     void ownerAlreadyClosed() {
         window.close();
 
-        assertThrows(IllegalStateException.class, () -> backend.createPopup(window,
-                PopupSpec.of(LogicalPoint.ZERO, LogicalSize.of(10, 10))));
+        assertThrows(
+                IllegalStateException.class,
+                () -> backend.createPopup(window, PopupSpec.of(LogicalPoint.ZERO, LogicalSize.of(10, 10))));
     }
 
     @Test
     @DisplayName("a tooltip is a different kind, because every window manager treats it as one")
     void tooltipKind() {
-        var tooltip = (HeadlessPopup) backend.createPopup(window,
-                        PopupSpec.tooltip(LogicalPoint.of(20, 20), LogicalSize.of(140, 24)))
-                .orElseThrow();
+        var tooltip = (HeadlessPopup)
+                backend.createPopup(window, PopupSpec.tooltip(LogicalPoint.of(20, 20), LogicalSize.of(140, 24)))
+                        .orElseThrow();
 
         assertEquals(PopupKind.TOOLTIP, tooltip.kind());
     }
@@ -187,12 +192,9 @@ class HeadlessPopupTest {
     @Test
     @DisplayName("a popup needs a size and a finite position")
     void refusesNonsense() {
-        assertThrows(IllegalArgumentException.class,
-                () -> PopupSpec.of(LogicalPoint.ZERO, LogicalSize.of(0, 100)));
-        assertThrows(IllegalArgumentException.class,
-                () -> new LogicalPoint(Float.NaN, 0));
-        assertThrows(IllegalArgumentException.class,
-                () -> popup(0, 0, 100, 100).resize(LogicalSize.of(100, 0)));
+        assertThrows(IllegalArgumentException.class, () -> PopupSpec.of(LogicalPoint.ZERO, LogicalSize.of(0, 100)));
+        assertThrows(IllegalArgumentException.class, () -> new LogicalPoint(Float.NaN, 0));
+        assertThrows(IllegalArgumentException.class, () -> popup(0, 0, 100, 100).resize(LogicalSize.of(100, 0)));
     }
 
     /// The default on the SPI is "no popups", because a backend that has none
@@ -208,8 +210,7 @@ class HeadlessPopupTest {
             }
 
             @Override
-            public BackendWindow createWindow(
-                    WindowSpec spec) {
+            public BackendWindow createWindow(WindowSpec spec) {
                 throw new UnsupportedOperationException();
             }
 
@@ -219,21 +220,18 @@ class HeadlessPopupTest {
             }
 
             @Override
-            public int pumpEvents(EventSink sink,
-                                  Duration timeout) {
+            public int pumpEvents(EventSink sink, Duration timeout) {
                 return 0;
             }
 
             @Override
-            public void wakeup() {
-            }
+            public void wakeup() {}
 
             @Override
-            public void close() {
-            }
+            public void close() {}
         };
 
-        assertTrue(silent.createPopup(window,
-                PopupSpec.of(LogicalPoint.ZERO, LogicalSize.of(10, 10))).isEmpty());
+        assertTrue(silent.createPopup(window, PopupSpec.of(LogicalPoint.ZERO, LogicalSize.of(10, 10)))
+                .isEmpty());
     }
 }

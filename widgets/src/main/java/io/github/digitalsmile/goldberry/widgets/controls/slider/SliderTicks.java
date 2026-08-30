@@ -1,17 +1,18 @@
 package io.github.digitalsmile.goldberry.widgets.controls.slider;
 
-import io.github.digitalsmile.goldberry.css.ComputedStyle;
-import io.github.digitalsmile.goldberry.paint.Box;
-import io.github.digitalsmile.goldberry.natives.yoga.style.Align;
-import io.github.digitalsmile.goldberry.natives.yoga.style.Justify;
-import io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength;
-import io.github.digitalsmile.goldberry.widget.style.Paints;
-import io.github.digitalsmile.goldberry.widget.style.Styled;
-import io.github.digitalsmile.goldberry.widget.Widget;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.IntStream;
+
+import io.github.digitalsmile.goldberry.css.ComputedStyle;
+import io.github.digitalsmile.goldberry.natives.yoga.style.Align;
+import io.github.digitalsmile.goldberry.natives.yoga.style.Justify;
+import io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength;
+import io.github.digitalsmile.goldberry.paint.Box;
+import io.github.digitalsmile.goldberry.widget.Widget;
+import io.github.digitalsmile.goldberry.widget.style.Paints;
+import io.github.digitalsmile.goldberry.widget.style.Styled;
 
 /// The row of marks under a slider's groove — a **part** of [Slider], and the
 /// eleventh. `docs/core-widgets.md` §3's "optional tick marks".
@@ -46,8 +47,7 @@ record SliderTicks(int count, boolean disabled) implements Widget.Leaf, Styled, 
 
     SliderTicks {
         if (count < 2) {
-            throw new IllegalArgumentException(
-                    "a scale is at least its two ends, not " + count + " marks");
+            throw new IllegalArgumentException("a scale is at least its two ends, not " + count + " marks");
         }
     }
 

@@ -11,8 +11,7 @@ import io.github.digitalsmile.goldberry.render.Backend;
 /// test-only door is better than widening the real one.
 public final class GoldberryTestAccess {
 
-    private GoldberryTestAccess() {
-    }
+    private GoldberryTestAccess() {}
 
     /// Installs `backend` as the runtime's, before anything starts one.
     public static void install(Backend backend) {

@@ -52,23 +52,21 @@ public record Toast(String text, String label, Runnable onPress, Duration timeou
         Objects.requireNonNull(text, "text");
         timeout = timeout == null ? DEFAULT_TIMEOUT : timeout;
         if (timeout.isNegative()) {
-            throw new IllegalArgumentException(
-                    "a toast's timeout is how long it stays, and " + timeout + " is not a"
-                            + " length of time. Duration.ZERO is the one that never goes.");
+            throw new IllegalArgumentException("a toast's timeout is how long it stays, and " + timeout + " is not a"
+                    + " length of time. Duration.ZERO is the one that never goes.");
         }
         // A label with nothing behind it is a button that does nothing, which is
         // worse than no button: it invites the one click that will not work.
         if (label != null && onPress == null) {
-            throw new IllegalArgumentException(
-                    "a toast's action button is labelled \"" + label + "\" and does nothing."
-                            + " Give it a handler, or leave the label out.");
+            throw new IllegalArgumentException("a toast's action button is labelled \"" + label + "\" and does nothing."
+                    + " Give it a handler, or leave the label out.");
         }
     }
 
     /// This toast with a button after its words — §7's "optional action button".
     public Toast action(String label, Runnable onPress) {
-        return new Toast(text, Objects.requireNonNull(label, "label"),
-                Objects.requireNonNull(onPress, "onPress"), timeout);
+        return new Toast(
+                text, Objects.requireNonNull(label, "label"), Objects.requireNonNull(onPress, "onPress"), timeout);
     }
 
     /// This toast with a chosen lifetime.

@@ -33,7 +33,7 @@ public record Overlays(Masonry cards) implements Widget.Stateless {
 
     @Override
     public Widget build(BuildContext context) {
-        return Wall.of("overlays", "Overlays", NOTE, cards,
-                Notifications.cards().toArray(Widget[]::new));
+        return Wall.of(
+                "overlays", "Overlays", NOTE, cards, Notifications.cards().toArray(Widget[]::new));
     }
 }

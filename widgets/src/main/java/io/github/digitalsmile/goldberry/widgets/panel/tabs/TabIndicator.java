@@ -1,15 +1,16 @@
 package io.github.digitalsmile.goldberry.widgets.panel.tabs;
 
+import java.util.List;
+import java.util.Set;
+
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
-import io.github.digitalsmile.goldberry.paint.Box;
 import io.github.digitalsmile.goldberry.natives.yoga.Insets;
 import io.github.digitalsmile.goldberry.natives.yoga.style.PositionType;
 import io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength;
+import io.github.digitalsmile.goldberry.paint.Box;
+import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widget.style.Paints;
 import io.github.digitalsmile.goldberry.widget.style.Styled;
-import io.github.digitalsmile.goldberry.widget.Widget;
-import java.util.List;
-import java.util.Set;
 
 /// The underline on a selected [Tab] — a **part**, and a box rather than a
 /// border.
@@ -35,9 +36,8 @@ record TabIndicator(boolean selected, int colour) implements Widget.Leaf, Styled
 
     /// Across the bottom, and nothing about the top: the header's height is the
     /// header's.
-    private static final Insets PINNED = new Insets(
-            StyleLength.UNDEFINED, StyleLength.points(0),
-            StyleLength.points(0), StyleLength.points(0));
+    private static final Insets PINNED =
+            new Insets(StyleLength.UNDEFINED, StyleLength.points(0), StyleLength.points(0), StyleLength.points(0));
 
     @Override
     public String cssType() {

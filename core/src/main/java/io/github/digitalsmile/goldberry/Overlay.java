@@ -1,9 +1,9 @@
 package io.github.digitalsmile.goldberry;
 
-import io.github.digitalsmile.goldberry.widget.style.Corner;
-import io.github.digitalsmile.goldberry.widget.Widget;
-
 import java.util.Objects;
+
+import io.github.digitalsmile.goldberry.widget.Widget;
+import io.github.digitalsmile.goldberry.widget.style.Corner;
 
 /// One thing floating over a window's content, and the handle that takes it away
 /// again.
@@ -102,8 +102,7 @@ public final class Overlay {
         this.corner = Objects.requireNonNull(corner, "corner");
         if (!Float.isFinite(margin) || margin < 0) {
             throw new IllegalArgumentException(
-                    "an overlay's margin is a distance from the window's edge, and "
-                            + margin + " is not one");
+                    "an overlay's margin is a distance from the window's edge, and " + margin + " is not one");
         }
         this.margin = margin;
     }

@@ -2,7 +2,6 @@ package io.github.digitalsmile.goldberry.widgets;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import io.github.digitalsmile.goldberry.css.Theme;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
@@ -11,9 +10,12 @@ import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.regex.Pattern;
+
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
+
+import io.github.digitalsmile.goldberry.css.Theme;
 
 /// Every `var(--gb-…)` the toolkit writes resolves to something.
 ///
@@ -87,10 +89,10 @@ class TokenClosureTest {
 
         var missing = new TreeSet<>(used);
         missing.removeAll(defined);
-        assertTrue(missing.isEmpty(),
+        assertTrue(
+                missing.isEmpty(),
                 () -> "these tokens are used and never defined under " + theme + ": " + missing
                         + " — a var() that resolves to nothing makes the cascade drop the whole"
                         + " declaration, so the widget silently keeps what it inherited");
     }
-
 }

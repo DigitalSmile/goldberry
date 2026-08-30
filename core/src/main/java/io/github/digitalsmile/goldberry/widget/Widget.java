@@ -1,7 +1,8 @@
 package io.github.digitalsmile.goldberry.widget;
 
-import io.github.digitalsmile.goldberry.bind.Observable;
 import java.util.List;
+
+import io.github.digitalsmile.goldberry.bind.Observable;
 
 /// An immutable description of a piece of user interface.
 ///

@@ -3,6 +3,7 @@ package io.github.digitalsmile.goldberry.stats;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -64,8 +65,8 @@ class FrameRingTest {
         assertEquals(1.0, paint.min(), 1e-9);
         assertEquals(4.0, paint.mean(), 1e-9, "which is nothing like any frame that happened");
         assertEquals(9.0, paint.max(), 1e-9);
-        assertEquals(paint.mean(), ring.paintMillis(), 1e-9,
-                "the mean is the same number the scalar accessor always gave");
+        assertEquals(
+                paint.mean(), ring.paintMillis(), 1e-9, "the mean is the same number the scalar accessor always gave");
     }
 
     /// The stages get the same treatment, and from their own ring rather than
@@ -156,7 +157,8 @@ class FrameRingTest {
         at += 1_000 * MS;
         ring.record(at - MS, at);
 
-        assertTrue(ring.fps() < busy / 5,
+        assertTrue(
+                ring.fps() < busy / 5,
                 "a second of idle inside a ten-frame window has to dominate the mean,"
                         + " or a HUD would report a rate the window is not achieving");
     }

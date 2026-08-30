@@ -8,6 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.time.Duration;
 import java.util.List;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -57,16 +58,19 @@ class StartupTest {
         assertEquals(1, Startup.marks().size());
         assertTrue(
                 Startup.marks().getFirst().phase().startsWith("work ("),
-                () -> "the duration belongs in the phase: " + Startup.marks().getFirst().phase());
+                () -> "the duration belongs in the phase: "
+                        + Startup.marks().getFirst().phase());
     }
 
     @Test
     @DisplayName("a failing block is still timed, and its failure still propagates")
     void timesFailures() {
         // A phase that throws is the one you most want to see in the timeline.
-        assertThrows(IllegalStateException.class, () -> Startup.time("doomed", () -> {
-            throw new IllegalStateException("no");
-        }));
+        assertThrows(
+                IllegalStateException.class,
+                () -> Startup.time("doomed", () -> {
+                    throw new IllegalStateException("no");
+                }));
 
         assertEquals(1, Startup.marks().size());
         assertTrue(Startup.marks().getFirst().phase().startsWith("doomed ("));
@@ -116,11 +120,13 @@ class StartupTest {
         var threads = new Thread[4];
         for (var t = 0; t < threads.length; t++) {
             var id = t;
-            threads[t] = new Thread(() -> {
-                for (var i = 0; i < 20; i++) {
-                    Startup.mark("thread " + id + " mark " + i);
-                }
-            }, "marker-" + t);
+            threads[t] = new Thread(
+                    () -> {
+                        for (var i = 0; i < 20; i++) {
+                            Startup.mark("thread " + id + " mark " + i);
+                        }
+                    },
+                    "marker-" + t);
             threads[t].start();
         }
         for (var thread : threads) {

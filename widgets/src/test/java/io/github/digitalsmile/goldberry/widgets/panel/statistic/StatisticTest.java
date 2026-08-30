@@ -1,21 +1,23 @@
 package io.github.digitalsmile.goldberry.widgets.panel.statistic;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import io.github.digitalsmile.goldberry.RendererRequirement;
-import io.github.digitalsmile.goldberry.kdl.KdlParser;
-import io.github.digitalsmile.goldberry.widget.attr.Attributes;
-import io.github.digitalsmile.goldberry.widget.ElementTree;
-import io.github.digitalsmile.goldberry.widgets.Widgets;
-import io.github.digitalsmile.goldberry.widgets.panel.Described;
 import java.util.Set;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+
+import io.github.digitalsmile.goldberry.RendererRequirement;
+import io.github.digitalsmile.goldberry.kdl.KdlParser;
+import io.github.digitalsmile.goldberry.widget.ElementTree;
+import io.github.digitalsmile.goldberry.widget.attr.Attributes;
+import io.github.digitalsmile.goldberry.widgets.Widgets;
+import io.github.digitalsmile.goldberry.widgets.panel.Described;
 
 /// `statistic` — §5's labelled number ([ADR-0164]).
 ///
@@ -38,12 +40,12 @@ class StatisticTest {
         // sparkline would be "one more child at the end of the column". This is
         // that sentence as an assertion.
         var plain = new Statistic("Users", "12,480");
-        var withTrend = plain.sparkline(
-                new io.github.digitalsmile.goldberry.widgets.data.sparkline.Sparkline(
-                        java.util.List.of(1.0, 3.0, 2.0, 5.0)));
+        var withTrend = plain.sparkline(new io.github.digitalsmile.goldberry.widgets.data.sparkline.Sparkline(
+                java.util.List.of(1.0, 3.0, 2.0, 5.0)));
 
         assertEquals(plain.children().size() + 1, withTrend.children().size());
-        assertTrue(withTrend.children().getLast()
+        assertTrue(
+                withTrend.children().getLast()
                         instanceof io.github.digitalsmile.goldberry.widgets.data.sparkline.Sparkline,
                 "the trend goes last: what it is, the number, how it changed, then the shape");
         assertNull(plain.sparkline(), "and a statistic without one is unchanged");
@@ -67,7 +69,9 @@ class StatisticTest {
         var tree = new ElementTree(new Statistic("Latency", "128").unit("ms"));
 
         assertEquals(1, Described.of(tree, Statistic.StatisticUnit.class).size());
-        assertEquals(1, Described.first(tree, Statistic.StatisticValue.class).children().size());
+        assertEquals(
+                1,
+                Described.first(tree, Statistic.StatisticValue.class).children().size());
     }
 
     /// A widget that looked up `--gb-success` itself would be the only one in the
@@ -75,17 +79,24 @@ class StatisticTest {
     @Test
     @DisplayName("a direction is a class on the delta, not a colour")
     void directionIsAClass() {
-        var up = new Statistic("Users", "1", null, "+1", Statistic.Direction.UP,
-                null, Attributes.NONE);
+        var up = new Statistic("Users", "1", null, "+1", Statistic.Direction.UP, null, Attributes.NONE);
 
-        assertEquals(Set.of("up"),
-                Described.first(new ElementTree(up), Statistic.StatisticDelta.class).classes());
-        assertEquals(Set.of("down"),
-                Described.first(new ElementTree(up.delta("-1", Statistic.Direction.DOWN)),
-                        Statistic.StatisticDelta.class).classes());
-        assertEquals(Set.of(),
-                Described.first(new ElementTree(up.delta("0", Statistic.Direction.NONE)),
-                        Statistic.StatisticDelta.class).classes(),
+        assertEquals(
+                Set.of("up"),
+                Described.first(new ElementTree(up), Statistic.StatisticDelta.class)
+                        .classes());
+        assertEquals(
+                Set.of("down"),
+                Described.first(
+                                new ElementTree(up.delta("-1", Statistic.Direction.DOWN)),
+                                Statistic.StatisticDelta.class)
+                        .classes());
+        assertEquals(
+                Set.of(),
+                Described.first(
+                                new ElementTree(up.delta("0", Statistic.Direction.NONE)),
+                                Statistic.StatisticDelta.class)
+                        .classes(),
                 "no direction is no class, so it takes the muted default");
     }
 
@@ -96,13 +107,11 @@ class StatisticTest {
     @Test
     @DisplayName("a negative delta can be marked either way, because the caller decides")
     void directionIsSentiment() {
-        var improvement = new Statistic("Latency", "128", "ms", "-11 ms",
-                Statistic.Direction.DOWN, null, Attributes.NONE);
-        var loss = new Statistic("Revenue", "40k", null, "-11%",
-                Statistic.Direction.DOWN, null, Attributes.NONE);
+        var improvement =
+                new Statistic("Latency", "128", "ms", "-11 ms", Statistic.Direction.DOWN, null, Attributes.NONE);
+        var loss = new Statistic("Revenue", "40k", null, "-11%", Statistic.Direction.DOWN, null, Attributes.NONE);
 
-        assertEquals(improvement.direction(), loss.direction(),
-                "the widget cannot tell these apart, and does not try");
+        assertEquals(improvement.direction(), loss.direction(), "the widget cannot tell these apart, and does not try");
     }
 
     @Test
@@ -110,23 +119,28 @@ class StatisticTest {
     void valueIsAString() {
         var tree = new ElementTree(new Statistic("Users", "12,480"));
 
-        assertEquals("12,480", Described.first(tree, Statistic.StatisticValue.class).text());
+        assertEquals(
+                "12,480", Described.first(tree, Statistic.StatisticValue.class).text());
     }
 
     @Test
     @DisplayName("a direction that is not up, down or none is refused")
     void badDirection() {
-        assertThrows(IllegalArgumentException.class, () -> Widgets.inflater().inflate(
-                KdlParser.parse("statistic label=\"x\" value=\"1\" delta=\"+1\""
-                        + " direction=\"sideways\"").getFirst()));
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> Widgets.inflater()
+                        .inflate(KdlParser.parse(
+                                        "statistic label=\"x\" value=\"1\" delta=\"+1\"" + " direction=\"sideways\"")
+                                .getFirst()));
     }
 
     @Test
     @DisplayName("a statistic inflates from markup")
     void inflates() {
-        var widget = Widgets.inflater().inflate(KdlParser.parse(
-                "statistic label=\"Latency\" value=\"128\" unit=\"ms\""
-                        + " delta=\"-11 ms\" direction=\"down\"").getFirst());
+        var widget = Widgets.inflater()
+                .inflate(KdlParser.parse("statistic label=\"Latency\" value=\"128\" unit=\"ms\""
+                                + " delta=\"-11 ms\" direction=\"down\"")
+                        .getFirst());
         var it = assertInstanceOf(Statistic.class, widget);
 
         assertEquals("Latency", it.label());

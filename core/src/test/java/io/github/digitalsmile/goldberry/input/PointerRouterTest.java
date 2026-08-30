@@ -6,25 +6,28 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import io.github.digitalsmile.goldberry.css.select.Selector.PseudoClass;
-import io.github.digitalsmile.goldberry.widget.Element;
-import io.github.digitalsmile.goldberry.widget.ElementTree;
-import io.github.digitalsmile.goldberry.widget.style.Styled;
-import io.github.digitalsmile.goldberry.widget.Widget;
 import java.util.ArrayList;
 import java.util.List;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+
+import io.github.digitalsmile.goldberry.css.select.Selector.PseudoClass;
 import io.github.digitalsmile.goldberry.input.event.PointerEvent;
-import io.github.digitalsmile.goldberry.input.hit.HitTest;
 import io.github.digitalsmile.goldberry.input.handler.Handles;
+import io.github.digitalsmile.goldberry.input.hit.HitTest;
+import io.github.digitalsmile.goldberry.widget.Element;
+import io.github.digitalsmile.goldberry.widget.ElementTree;
+import io.github.digitalsmile.goldberry.widget.Widget;
+import io.github.digitalsmile.goldberry.widget.style.Styled;
 
 /// Dispatch, pseudo-classes and focus, without a window.
 ///
 /// The hit-test snapshot is supplied directly rather than captured from a paint,
-/// so these are about the routing rules and not about Yoga. [io.github.digitalsmile.goldberry.input.hit.HitTestTest] covers
+/// so these are about the routing rules and not about Yoga. [io.github.digitalsmile.goldberry.input.hit.HitTestTest]
+/// covers
 /// the other half.
 class PointerRouterTest {
 
@@ -100,9 +103,8 @@ class PointerRouterTest {
 
         // outer covers 0,0 100x100; inner sits inside it at 20,20 40x40.
         // Parent first, as a paint would record them.
-        router.updateRegions(List.of(
-                HitTest.Region.of(outer, 0, 0, 100, 100),
-                HitTest.Region.of(inner, 20, 20, 40, 40)));
+        router.updateRegions(
+                List.of(HitTest.Region.of(outer, 0, 0, 100, 100), HitTest.Region.of(inner, 20, 20, 40, 40)));
     }
 
     @Nested
@@ -134,7 +136,9 @@ class PointerRouterTest {
             // why this filters rather than comparing the whole log.
             assertEquals(
                     List.of("bubble:inner:EXITED"),
-                    log.stream().filter(e -> e.endsWith("ENTERED") || e.endsWith("EXITED")).toList());
+                    log.stream()
+                            .filter(e -> e.endsWith("ENTERED") || e.endsWith("EXITED"))
+                            .toList());
         }
 
         @Test
@@ -149,8 +153,7 @@ class PointerRouterTest {
             router.pointerMoved(30, 30);
 
             assertFalse(inner.hasState(PseudoClass.HOVER));
-            assertTrue(outer.hasState(PseudoClass.HOVER),
-                    "the chain above it is not disabled and still hovers");
+            assertTrue(outer.hasState(PseudoClass.HOVER), "the chain above it is not disabled and still hovers");
 
             // The *events* still arrive: a disabled node hit-tests, so a click
             // cannot fall through to whatever is behind it, and a tooltip saying
@@ -219,13 +222,15 @@ class PointerRouterTest {
             log.clear();
             router.pointerMoved(30, 30);
 
-            assertEquals(List.of(
-                    "bubble:inner:ENTERED",
-                    "bubble:outer:ENTERED",
-                    "capture:outer:MOVED",
-                    "capture:inner:MOVED",
-                    "bubble:inner:MOVED",
-                    "bubble:outer:MOVED"), log);
+            assertEquals(
+                    List.of(
+                            "bubble:inner:ENTERED",
+                            "bubble:outer:ENTERED",
+                            "capture:outer:MOVED",
+                            "capture:inner:MOVED",
+                            "bubble:inner:MOVED",
+                            "bubble:outer:MOVED"),
+                    log);
         }
 
         @Test
@@ -274,15 +279,15 @@ class PointerRouterTest {
             var localOuter = localTree.root();
             var localInner = localOuter.children().getFirst();
             router.updateRegions(List.of(
-                    HitTest.Region.of(localOuter, 0, 0, 100, 100),
-                    HitTest.Region.of(localInner, 20, 20, 40, 40)));
+                    HitTest.Region.of(localOuter, 0, 0, 100, 100), HitTest.Region.of(localInner, 20, 20, 40, 40)));
 
             router.pointerMoved(30, 30);
 
             // An ancestor sees the event during capture AND bubble, and in both
             // it can tell "below me" from "me" because the target never moves.
             assertFalse(targets.isEmpty());
-            assertTrue(targets.stream().allMatch(t -> t == localInner),
+            assertTrue(
+                    targets.stream().allMatch(t -> t == localInner),
                     "the target must stay the deepest node through both phases");
         }
 
@@ -325,8 +330,7 @@ class PointerRouterTest {
             router.pointerPressed(30, 30, PointerEvent.Button.PRIMARY, 1);
 
             assertTrue(inner.hasState(PseudoClass.ACTIVE));
-            assertTrue(outer.hasState(PseudoClass.ACTIVE),
-                    "pressing a part presses the control that contains it");
+            assertTrue(outer.hasState(PseudoClass.ACTIVE), "pressing a part presses the control that contains it");
 
             router.pointerReleased(30, 30, PointerEvent.Button.PRIMARY, 1);
             assertFalse(outer.hasState(PseudoClass.ACTIVE));
@@ -347,7 +351,10 @@ class PointerRouterTest {
 
             router.pointerPressed(10, 10, PointerEvent.Button.SECONDARY, 2);
 
-            var press = seen.stream().filter(e -> e.kind() == PointerEvent.Kind.PRESSED).findFirst().orElseThrow();
+            var press = seen.stream()
+                    .filter(e -> e.kind() == PointerEvent.Kind.PRESSED)
+                    .findFirst()
+                    .orElseThrow();
             assertEquals(PointerEvent.Button.SECONDARY, press.button());
             assertEquals(2, press.clickCount());
         }
@@ -376,8 +383,7 @@ class PointerRouterTest {
             var buttonElement = localTree.root();
             var labelElement = buttonElement.children().getFirst();
             router.updateRegions(List.of(
-                    HitTest.Region.of(buttonElement, 0, 0, 80, 30),
-                    HitTest.Region.of(labelElement, 5, 5, 70, 20)));
+                    HitTest.Region.of(buttonElement, 0, 0, 80, 30), HitTest.Region.of(labelElement, 5, 5, 70, 20)));
 
             router.pointerPressed(10, 10, PointerEvent.Button.PRIMARY, 1);
 

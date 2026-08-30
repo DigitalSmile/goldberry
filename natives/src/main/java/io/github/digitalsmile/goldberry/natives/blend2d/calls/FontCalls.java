@@ -5,11 +5,12 @@ import static java.lang.foreign.ValueLayout.JAVA_FLOAT;
 import static java.lang.foreign.ValueLayout.JAVA_INT;
 import static java.lang.foreign.ValueLayout.JAVA_LONG;
 
-import io.github.digitalsmile.goldberry.natives.Downcalls;
 import java.lang.foreign.FunctionDescriptor;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.SymbolLookup;
 import java.lang.invoke.MethodHandle;
+
+import io.github.digitalsmile.goldberry.natives.Downcalls;
 
 /// Blend2D’s three font objects: the bytes, the face, and the sized font.
 ///
@@ -86,8 +87,7 @@ public record FontCalls(
     public static final class FontDataCreateFromData {
 
         private static final MethodHandle FD_bl_font_data_create_from_data =
-                Downcalls.link(FunctionDescriptor.of(
-                        JAVA_INT, ADDRESS, ADDRESS, JAVA_LONG, ADDRESS, ADDRESS));
+                Downcalls.link(FunctionDescriptor.of(JAVA_INT, ADDRESS, ADDRESS, JAVA_LONG, ADDRESS, ADDRESS));
 
         private final MemorySegment address;
 
@@ -96,8 +96,11 @@ public record FontCalls(
         }
 
         public int call(
-                MemorySegment fontData, MemorySegment bytes, long length,
-                MemorySegment destroyFunc, MemorySegment userData) {
+                MemorySegment fontData,
+                MemorySegment bytes,
+                long length,
+                MemorySegment destroyFunc,
+                MemorySegment userData) {
             try {
                 return (int) FD_bl_font_data_create_from_data.invokeExact(
                         address, fontData, bytes, length, destroyFunc, userData);
@@ -177,8 +180,7 @@ public record FontCalls(
 
         public int call(MemorySegment face, MemorySegment fontData, int faceIndex) {
             try {
-                return (int) FD_bl_font_face_create_from_data.invokeExact(
-                        address, face, fontData, faceIndex);
+                return (int) FD_bl_font_face_create_from_data.invokeExact(address, face, fontData, faceIndex);
             } catch (Throwable t) {
                 throw Downcalls.failure("bl_font_face_create_from_data", t);
             }
@@ -217,8 +219,7 @@ public record FontCalls(
     /// @param font an uninitialised `BLFontCore` to take over
     public static final class FontInit {
 
-        private static final MethodHandle FD_bl_font_init =
-                Downcalls.link(FunctionDescriptor.of(JAVA_INT, ADDRESS));
+        private static final MethodHandle FD_bl_font_init = Downcalls.link(FunctionDescriptor.of(JAVA_INT, ADDRESS));
 
         private final MemorySegment address;
 
@@ -270,8 +271,7 @@ public record FontCalls(
     /// @param font the handle to release
     public static final class FontDestroy {
 
-        private static final MethodHandle FD_bl_font_destroy =
-                Downcalls.link(FunctionDescriptor.of(JAVA_INT, ADDRESS));
+        private static final MethodHandle FD_bl_font_destroy = Downcalls.link(FunctionDescriptor.of(JAVA_INT, ADDRESS));
 
         private final MemorySegment address;
 

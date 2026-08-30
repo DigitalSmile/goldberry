@@ -4,19 +4,20 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import io.github.digitalsmile.goldberry.assets.BundledFont;
-import io.github.digitalsmile.goldberry.natives.yoga.style.Align;
-import io.github.digitalsmile.goldberry.natives.yoga.style.FlexDirection;
-import io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength;
-import io.github.digitalsmile.goldberry.text.font.Font;
-import io.github.digitalsmile.goldberry.text.Paragraph;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
+
 import io.github.digitalsmile.goldberry.RendererRequirement;
+import io.github.digitalsmile.goldberry.assets.BundledFont;
+import io.github.digitalsmile.goldberry.natives.yoga.style.Align;
+import io.github.digitalsmile.goldberry.natives.yoga.style.FlexDirection;
+import io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength;
+import io.github.digitalsmile.goldberry.text.Paragraph;
+import io.github.digitalsmile.goldberry.text.font.Font;
 
 /// Threaded painting must produce the same frame as synchronous painting.
 ///
@@ -67,7 +68,9 @@ class ThreadedPaintTest {
                 if (expected[index] != actual[index]) {
                     var fx = x;
                     var fy = y;
-                    assertEquals(expected[index], actual[index],
+                    assertEquals(
+                            expected[index],
+                            actual[index],
                             () -> "with " + threads + " worker(s), pixel (" + fx + "," + fy
                                     + ") differs from the synchronous frame");
                 }
@@ -90,7 +93,8 @@ class ThreadedPaintTest {
             // Blend2D may refuse the workers, in which case zero is the honest
             // answer and the frame still paints. What it may never do is report
             // a count nobody asked for.
-            assertTrue(threaded.frame().threadCount() == 3 || threaded.frame().threadCount() == 0,
+            assertTrue(
+                    threaded.frame().threadCount() == 3 || threaded.frame().threadCount() == 0,
                     () -> "unexpected worker count " + threaded.frame().threadCount());
         } finally {
             threaded.end();
@@ -152,8 +156,7 @@ class ThreadedPaintTest {
                                         // covers blending and not only opaque
                                         // fills -- a band boundary in the middle
                                         // of a composite is the interesting case.
-                                        Box.filled(0x803B4252).size(
-                                                StyleLength.percent(30), StyleLength.UNDEFINED),
+                                        Box.filled(0x803B4252).size(StyleLength.percent(30), StyleLength.UNDEFINED),
                                         Box.of()
                                                 .grow(1)
                                                 .direction(FlexDirection.COLUMN)

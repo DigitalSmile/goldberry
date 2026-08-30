@@ -16,8 +16,7 @@ import io.github.digitalsmile.goldberry.paint.Box;
 /// to three.
 final class Sized {
 
-    private Sized() {
-    }
+    private Sized() {}
 
     static Box apply(Box box, Column<?> column) {
         if (column.fixed()) {

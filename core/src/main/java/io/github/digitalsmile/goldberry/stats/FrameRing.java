@@ -27,8 +27,7 @@ public final class FrameRing implements FrameStats {
     /// ([ADR-0172](../../../../../../book/src/adr/0172-a-package-is-a-role-and-the-module-is-the-fence.md)).
     /// Nothing is lost by an application making its own -- a ring nobody feeds
     /// reads as zero, and [FixedFrameStats] is the better way to fake one.
-    public FrameRing() {
-    }
+    public FrameRing() {}
 
     /// How many frames are kept. See the class note.
     public static final int CAPACITY = 60;

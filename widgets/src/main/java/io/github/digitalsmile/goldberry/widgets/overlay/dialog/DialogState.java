@@ -1,17 +1,16 @@
 package io.github.digitalsmile.goldberry.widgets.overlay.dialog;
 
+import java.time.Duration;
+import java.util.ArrayList;
+import java.util.List;
+
 import io.github.digitalsmile.goldberry.Host;
 import io.github.digitalsmile.goldberry.render.event.EventLoop;
 import io.github.digitalsmile.goldberry.widget.BuildContext;
 import io.github.digitalsmile.goldberry.widget.State;
 import io.github.digitalsmile.goldberry.widget.Widget;
-import io.github.digitalsmile.goldberry.widgets.core.Phase;
-
-import java.time.Duration;
 import io.github.digitalsmile.goldberry.widgets.controls.button.Button;
-
-import java.util.ArrayList;
-import java.util.List;
+import io.github.digitalsmile.goldberry.widgets.core.Phase;
 
 /// A [Dialog]'s opening, its closing, and the one thing it has to ask the window
 /// for.
@@ -110,9 +109,16 @@ final class DialogState extends State<Dialog> {
         }
         var phase = closing != null ? closing : opening;
         var panel = new DialogPanel(
-                dialog.title(), dialog.content(), buttons,
-                this::escape, this::confirm,
-                phase, isClosing(), closed, this::motion, dialog.attributes());
+                dialog.title(),
+                dialog.content(),
+                buttons,
+                this::escape,
+                this::confirm,
+                phase,
+                isClosing(),
+                closed,
+                this::motion,
+                dialog.attributes());
         return new DialogScrim(panel, this::escape, phase, isClosing(), closed);
     }
 
@@ -144,7 +150,7 @@ final class DialogState extends State<Dialog> {
         switch (action.role()) {
             case AFFIRMATIVE -> classes.add("primary");
             case NEUTRAL -> classes.add("ghost");
-            case DISMISSIVE -> { }
+            case DISMISSIVE -> {}
         }
         return new Button(action.label(), () -> close(action.onPress()))
                 .withAttributes(action.attributes().classes(classes.toArray(String[]::new)));

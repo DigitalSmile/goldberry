@@ -1,11 +1,12 @@
 package io.github.digitalsmile.goldberry.widgets.overlay.tour;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import io.github.digitalsmile.goldberry.render.model.LogicalRect;
 import io.github.digitalsmile.goldberry.widget.BuildContext;
 import io.github.digitalsmile.goldberry.widget.State;
 import io.github.digitalsmile.goldberry.widget.Widget;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /// Which stop a [Tour] is showing, and how it moves between them.
 final class TourState extends State<Tour> {
@@ -55,7 +56,11 @@ final class TourState extends State<Tour> {
             stop.scroll().reveal(anchor, clipOf(stop));
         }
         return new TourStop(
-                stop, anchor, window, index, tour.stops().size(),
+                stop,
+                anchor,
+                window,
+                index,
+                tour.stops().size(),
                 index > 0 ? this::back : null,
                 this::next,
                 this::skip,
@@ -71,8 +76,7 @@ final class TourState extends State<Tour> {
             if (widget().host().anchor(stop.targetId()).isPresent()) {
                 return stop;
             }
-            LOG.warn("tour stop \"{}\" names #{}, which is not on screen; skipping it",
-                    stop.title(), stop.targetId());
+            LOG.warn("tour stop \"{}\" names #{}, which is not on screen; skipping it", stop.title(), stop.targetId());
             index++;
             revealed = false;
         }
@@ -87,20 +91,22 @@ final class TourState extends State<Tour> {
     /// row inside a scrolled list is laid out where it always was and drawn a
     /// long way from there ([ADR-0123]).
     private LogicalRect anchorOf(Stop stop) {
-        return widget().host().anchor(stop.targetId())
+        return widget().host()
+                .anchor(stop.targetId())
                 .map(region -> region.painted())
                 .orElse(LogicalRect.of(0, 0, 0, 0));
     }
 
     /// What clips the target, which is the viewport a reveal has to move.
     private LogicalRect clipOf(Stop stop) {
-        return widget().host().anchor(stop.targetId())
+        return widget().host()
+                .anchor(stop.targetId())
                 .map(region -> {
                     var clip = region.clip();
                     return clip == null || clip.isNone()
                             ? region.bounds()
-                            : LogicalRect.of((float) clip.left(), (float) clip.top(),
-                                    (float) clip.width(), (float) clip.height());
+                            : LogicalRect.of((float) clip.left(), (float) clip.top(), (float) clip.width(), (float)
+                                    clip.height());
                 })
                 .orElse(LogicalRect.of(0, 0, 0, 0));
     }

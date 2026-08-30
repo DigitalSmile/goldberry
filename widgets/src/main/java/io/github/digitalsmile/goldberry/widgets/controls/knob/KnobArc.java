@@ -1,12 +1,13 @@
 package io.github.digitalsmile.goldberry.widgets.controls.knob;
 
-import io.github.digitalsmile.goldberry.css.ComputedStyle;
-import io.github.digitalsmile.goldberry.paint.Box;
-import io.github.digitalsmile.goldberry.widget.style.Paints;
-import io.github.digitalsmile.goldberry.widget.style.Styled;
-import io.github.digitalsmile.goldberry.widget.Widget;
 import java.util.List;
 import java.util.Set;
+
+import io.github.digitalsmile.goldberry.css.ComputedStyle;
+import io.github.digitalsmile.goldberry.paint.Box;
+import io.github.digitalsmile.goldberry.widget.Widget;
+import io.github.digitalsmile.goldberry.widget.style.Paints;
+import io.github.digitalsmile.goldberry.widget.style.Styled;
 
 /// §3's "arc indicator" — the filled part of [KnobTrack], and the sixteenth part.
 ///
@@ -48,9 +49,14 @@ record KnobArc(double fraction, boolean disabled) implements Widget.Leaf, Styled
 
     @Override
     public Box render(ComputedStyle style, List<Box> children, Context context) {
-        return Box.of().style(style)
-                .mark(new Box.Mark(Box.Mark.Kind.ARC, style.color(), KnobTrack.THICKNESS,
-                        Knob.ARC_START, Knob.ARC_SWEEP * clamp(fraction)))
+        return Box.of()
+                .style(style)
+                .mark(new Box.Mark(
+                        Box.Mark.Kind.ARC,
+                        style.color(),
+                        KnobTrack.THICKNESS,
+                        Knob.ARC_START,
+                        Knob.ARC_SWEEP * clamp(fraction)))
                 .children(children.toArray(Box[]::new));
     }
 

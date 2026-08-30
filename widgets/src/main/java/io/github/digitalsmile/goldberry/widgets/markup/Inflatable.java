@@ -1,9 +1,10 @@
 package io.github.digitalsmile.goldberry.widgets.markup;
 
+import java.util.List;
+
 import io.github.digitalsmile.goldberry.kdl.KdlInflater;
 import io.github.digitalsmile.goldberry.kdl.KdlNode;
 import io.github.digitalsmile.goldberry.widget.Widget;
-import java.util.List;
 import io.github.digitalsmile.goldberry.widgets.Controls;
 
 /// How one markup node becomes one widget.

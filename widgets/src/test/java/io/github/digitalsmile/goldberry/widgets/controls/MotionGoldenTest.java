@@ -1,31 +1,32 @@
 package io.github.digitalsmile.goldberry.widgets.controls;
 
-import io.github.digitalsmile.goldberry.paint.Box;
-import io.github.digitalsmile.goldberry.widget.attr.Attributes;
-import io.github.digitalsmile.goldberry.widgets.core.Row;
-
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import io.github.digitalsmile.goldberry.RendererRequirement;
-import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
-import io.github.digitalsmile.goldberry.css.select.Selector;
-import io.github.digitalsmile.goldberry.css.Stylesheet;
-import io.github.digitalsmile.goldberry.css.Theme;
-import io.github.digitalsmile.goldberry.golden.GoldenImage;
-import io.github.digitalsmile.goldberry.paint.BoxPainter;
-import io.github.digitalsmile.goldberry.motion.Clock;
-import io.github.digitalsmile.goldberry.widget.ElementTree;
-import io.github.digitalsmile.goldberry.widget.WidgetRenderer;
-import io.github.digitalsmile.goldberry.widgets.Controls;
-import io.github.digitalsmile.goldberry.widgets.controls.button.Button;
 import java.util.List;
 import java.util.Set;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+
+import io.github.digitalsmile.goldberry.RendererRequirement;
+import io.github.digitalsmile.goldberry.css.Stylesheet;
+import io.github.digitalsmile.goldberry.css.Theme;
+import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
+import io.github.digitalsmile.goldberry.css.select.Selector;
+import io.github.digitalsmile.goldberry.golden.GoldenImage;
+import io.github.digitalsmile.goldberry.motion.Clock;
+import io.github.digitalsmile.goldberry.paint.Box;
+import io.github.digitalsmile.goldberry.paint.BoxPainter;
+import io.github.digitalsmile.goldberry.widget.ElementTree;
+import io.github.digitalsmile.goldberry.widget.WidgetRenderer;
+import io.github.digitalsmile.goldberry.widget.attr.Attributes;
+import io.github.digitalsmile.goldberry.widgets.Controls;
+import io.github.digitalsmile.goldberry.widgets.controls.button.Button;
+import io.github.digitalsmile.goldberry.widgets.core.Row;
 
 /// A frame **in the middle of a transition**, asserted pixel by pixel.
 ///
@@ -53,14 +54,15 @@ class MotionGoldenTest {
                         new Button("Hovered", null, null, false, id("c"))),
                 id("row")));
         renderer = new WidgetRenderer(
-                List.of(
-                        Controls.baseStylesheet(),
-                        Theme.NORD_DARK.load(),
-                        Stylesheet.parse(CascadeLayer.APPLICATION, """
+                        List.of(
+                                Controls.baseStylesheet(),
+                                Theme.NORD_DARK.load(),
+                                Stylesheet.parse(CascadeLayer.APPLICATION, """
                                 #row { padding: 12px; gap: 12px; align-items: center;
                                        background: var(--gb-bg) }
                                 """)),
-                TestFont.get()).clock(clock);
+                        TestFont.get())
+                .clock(clock);
     }
 
     private static Attributes id(String id, String... classes) {
@@ -106,8 +108,7 @@ class MotionGoldenTest {
         assertNotEquals(resting, moving, "the middle one has left");
         assertNotEquals(arrived, moving, "and has not got there");
 
-        GoldenImage.assertMatches("button-hover-midway", 460, 56, 1.0f,
-                frame -> BoxPainter.paint(frame, midway));
+        GoldenImage.assertMatches("button-hover-midway", 460, 56, 1.0f, frame -> BoxPainter.paint(frame, midway));
     }
 
     @Test
@@ -142,8 +143,7 @@ class MotionGoldenTest {
 
         button.setPseudoClass(Selector.PseudoClass.ACTIVE, true);
         frame();
-        assertFalse(renderer.isAnimating(),
-                "input feedback is instant: a press that faded in would feel disconnected");
+        assertFalse(renderer.isAnimating(), "input feedback is instant: a press that faded in would feel disconnected");
 
         button.setPseudoClass(Selector.PseudoClass.ACTIVE, false);
         frame();

@@ -1,11 +1,13 @@
 package io.github.digitalsmile.goldberry.natives;
 
-import io.github.digitalsmile.goldberry.natives.calls.ShimCalls;
-import io.github.digitalsmile.goldberry.log.Logs;
-import io.github.digitalsmile.goldberry.log.Startup;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.SymbolLookup;
+
 import org.slf4j.Logger;
+
+import io.github.digitalsmile.goldberry.log.Logs;
+import io.github.digitalsmile.goldberry.log.Startup;
+import io.github.digitalsmile.goldberry.natives.calls.ShimCalls;
 
 /// BindingRegistry for libgoldberry's own three exported functions.
 ///
@@ -62,14 +64,15 @@ public final class GoldberryShim {
     private static GoldberryShim create() {
         var shim = new GoldberryShim(NativeLibrary.get().lookup());
         var version = shim.abiVersion();
-        LOG.debug("libgoldberry reports ABI version {}, {} layout entries",
-                version, version == SUPPORTED_ABI_VERSION ? shim.layoutCount() : -1);
+        LOG.debug(
+                "libgoldberry reports ABI version {}, {} layout entries",
+                version,
+                version == SUPPORTED_ABI_VERSION ? shim.layoutCount() : -1);
         Startup.mark("libgoldberry ABI " + version + " verified");
         if (version != SUPPORTED_ABI_VERSION) {
-            throw new UnsatisfiedLinkError(
-                    "libgoldberry reports ABI version " + version + ", but this build of "
-                            + "goldberry-natives was written against " + SUPPORTED_ABI_VERSION
-                            + ". The Java and native artifacts are mismatched.");
+            throw new UnsatisfiedLinkError("libgoldberry reports ABI version " + version + ", but this build of "
+                    + "goldberry-natives was written against " + SUPPORTED_ABI_VERSION
+                    + ". The Java and native artifacts are mismatched.");
         }
         return shim;
     }

@@ -104,7 +104,8 @@ public record KdlNode(
     public String toString() {
         var text = new StringBuilder(name);
         arguments.forEach(argument -> text.append(' ').append(argument));
-        properties.forEach((key, value) -> text.append(' ').append(key).append('=').append(value));
+        properties.forEach(
+                (key, value) -> text.append(' ').append(key).append('=').append(value));
         if (!children.isEmpty()) {
             text.append(" { ").append(children.size()).append(" child(ren) }");
         }

@@ -1,31 +1,31 @@
 package io.github.digitalsmile.goldberry.widgets.controls.spinner;
 
-import io.github.digitalsmile.goldberry.widget.attr.Attributes;
-import io.github.digitalsmile.goldberry.widgets.core.Row;
-
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.Set;
+
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
-import io.github.digitalsmile.goldberry.css.value.CssLength;
-import io.github.digitalsmile.goldberry.css.cascade.StyleResolver;
 import io.github.digitalsmile.goldberry.css.Theme;
+import io.github.digitalsmile.goldberry.css.cascade.StyleResolver;
+import io.github.digitalsmile.goldberry.css.value.CssLength;
 import io.github.digitalsmile.goldberry.css.value.Transform;
 import io.github.digitalsmile.goldberry.kdl.KdlParser;
-import io.github.digitalsmile.goldberry.paint.Box;
 import io.github.digitalsmile.goldberry.motion.Clock;
 import io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength;
+import io.github.digitalsmile.goldberry.paint.Box;
 import io.github.digitalsmile.goldberry.widget.ElementTree;
 import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widget.WidgetRenderer;
+import io.github.digitalsmile.goldberry.widget.attr.Attributes;
 import io.github.digitalsmile.goldberry.widgets.Controls;
-import io.github.digitalsmile.goldberry.widgets.controls.TestFont;
-
-import java.util.Set;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
 import io.github.digitalsmile.goldberry.widgets.Widgets;
+import io.github.digitalsmile.goldberry.widgets.controls.TestFont;
+import io.github.digitalsmile.goldberry.widgets.core.Row;
 
 /// The eighth control and the smallest: a ring, turning, with nothing else to it
 /// ([ADR-0081]).
@@ -80,9 +80,12 @@ class SpinnerTest {
     @Test
     @DisplayName("two spinners in one window are in step")
     void spinnersAgree() {
-        var row = paint(new Row(
-                new Spinner(new Attributes("a", Set.of(), "a")),
-                new Spinner(new Attributes("b", Set.of(), "b"))), 300, false);
+        var row = paint(
+                new Row(
+                        new Spinner(new Attributes("a", Set.of(), "a")),
+                        new Spinner(new Attributes("b", Set.of(), "b"))),
+                300,
+                false);
 
         assertEquals(row.children().get(0).transform(), row.children().get(1).transform());
     }
@@ -91,8 +94,7 @@ class SpinnerTest {
     @DisplayName("it keeps the frame loop awake, because a still spinner is a picture")
     void alwaysAnimating() {
         var clock = Clock.virtual();
-        var renderer = new WidgetRenderer(Controls.stylesheets(Theme.NORD_DARK), TestFont.get())
-                .clock(clock);
+        var renderer = new WidgetRenderer(Controls.stylesheets(Theme.NORD_DARK), TestFont.get()).clock(clock);
 
         renderer.render(new ElementTree(new Spinner()));
 
@@ -117,13 +119,14 @@ class SpinnerTest {
     @DisplayName("the ring is a mark the painter draws, and takes the node's colour")
     void ringIsAMark() {
         var style = ComputedStyle.of(
-                new StyleResolver(Controls.stylesheets(Theme.NORD_DARK))
-                        .resolve(new ElementTree(new Spinner()).root()),
+                new StyleResolver(Controls.stylesheets(Theme.NORD_DARK)).resolve(new ElementTree(new Spinner()).root()),
                 CssLength.Context.DEFAULT);
         var box = paint(new Spinner(), 0, false);
 
         assertEquals(Box.Mark.Kind.ARC, box.mark().kind());
-        assertEquals(style.color(), box.mark().argb(),
+        assertEquals(
+                style.color(),
+                box.mark().argb(),
                 "`color` inherits, so a spinner in a primary button is that label's colour");
         assertEquals(StyleLength.points(16), style.width(), "§3's small-indicator 16");
         assertEquals(StyleLength.points(16), style.height());

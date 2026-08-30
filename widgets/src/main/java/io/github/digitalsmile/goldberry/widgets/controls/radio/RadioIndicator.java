@@ -1,12 +1,13 @@
 package io.github.digitalsmile.goldberry.widgets.controls.radio;
 
-import io.github.digitalsmile.goldberry.css.ComputedStyle;
-import io.github.digitalsmile.goldberry.paint.Box;
-import io.github.digitalsmile.goldberry.widget.style.Paints;
-import io.github.digitalsmile.goldberry.widget.style.Styled;
-import io.github.digitalsmile.goldberry.widget.Widget;
 import java.util.List;
 import java.util.Set;
+
+import io.github.digitalsmile.goldberry.css.ComputedStyle;
+import io.github.digitalsmile.goldberry.paint.Box;
+import io.github.digitalsmile.goldberry.widget.Widget;
+import io.github.digitalsmile.goldberry.widget.style.Paints;
+import io.github.digitalsmile.goldberry.widget.style.Styled;
 
 /// The 16px circle with the dot in it — a **part** of [Radio], and the second
 /// part in the toolkit.
@@ -38,8 +39,7 @@ import java.util.Set;
 ///                 mirrored from
 /// @param disabled inherited from the radio, so `radio-indicator:disabled` is
 ///                 selectable without a descendant combinator
-record RadioIndicator(boolean selected, boolean disabled)
-        implements Widget.Leaf, Styled, Paints {
+record RadioIndicator(boolean selected, boolean disabled) implements Widget.Leaf, Styled, Paints {
 
     @Override
     public String cssType() {

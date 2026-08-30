@@ -1,7 +1,8 @@
 package io.github.digitalsmile.goldberry.input.event;
 
-import io.github.digitalsmile.goldberry.widget.Element;
 import java.util.Objects;
+
+import io.github.digitalsmile.goldberry.widget.Element;
 
 /// Text the platform has finished translating, delivered to whatever has focus.
 ///

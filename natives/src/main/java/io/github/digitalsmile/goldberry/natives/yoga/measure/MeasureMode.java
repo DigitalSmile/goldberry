@@ -52,9 +52,9 @@ public enum MeasureMode implements YogaEnum {
             case 0 -> UNDEFINED;
             case 1 -> EXACTLY;
             case 2 -> AT_MOST;
-            default -> throw new IllegalArgumentException(
-                    "YGMeasureMode " + nativeValue + " is not one Yoga defines."
-                            + " The measure callback's signature is probably wrong.");
+            default ->
+                throw new IllegalArgumentException("YGMeasureMode " + nativeValue + " is not one Yoga defines."
+                        + " The measure callback's signature is probably wrong.");
         };
     }
 }

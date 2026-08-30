@@ -4,15 +4,16 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
+
 import io.github.digitalsmile.goldberry.RendererRequirement;
 import io.github.digitalsmile.goldberry.css.value.Transform;
 import io.github.digitalsmile.goldberry.natives.yoga.style.FlexDirection;
 import io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength;
 import io.github.digitalsmile.goldberry.paint.tree.RenderTree;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.Test;
 
 /// Layer promotion — ADR-0071.
 ///
@@ -50,8 +51,8 @@ class LayerTest {
                         .direction(FlexDirection.ROW)
                         .children(
                                 square(RED, 60),
-                                square(GREEN, 60).transform(Transform.of(
-                                        new Transform.Function.Translate(
+                                square(GREEN, 60)
+                                        .transform(Transform.of(new Transform.Function.Translate(
                                                 Transform.Length.px(-30), Transform.Length.ZERO)))));
     }
 
@@ -61,8 +62,8 @@ class LayerTest {
                 .size(StyleLength.points(200), StyleLength.points(200))
                 .children(Box.of()
                         .opacity(opacity)
-                        .transform(Transform.of(new Transform.Function.Translate(
-                                Transform.Length.px(by), Transform.Length.ZERO)))
+                        .transform(Transform.of(
+                                new Transform.Function.Translate(Transform.Length.px(by), Transform.Length.ZERO)))
                         .direction(FlexDirection.ROW)
                         .children(square(RED, 60), square(GREEN, 60)));
     }
@@ -91,9 +92,7 @@ class LayerTest {
         private static Box fadedSquare() {
             return Box.filled(BACKDROP)
                     .size(StyleLength.points(200), StyleLength.points(200))
-                    .children(Box.of()
-                            .opacity(0.5)
-                            .children(square(RED, 60)));
+                    .children(Box.of().opacity(0.5).children(square(RED, 60)));
         }
 
         @Test
@@ -123,9 +122,10 @@ class LayerTest {
             var insideTheSquare = scaled.pixel(60, 60);
             var pastIt = scaled.pixel(180, 180);
 
-            assertNotEquals(BACKDROP, insideTheSquare,
-                    "the faded square should cover physical (60, 60)");
-            assertEquals(BACKDROP, pastIt,
+            assertNotEquals(BACKDROP, insideTheSquare, "the faded square should cover physical (60, 60)");
+            assertEquals(
+                    BACKDROP,
+                    pastIt,
                     () -> "the layer was composited at twice its size: physical (180, 180)"
                             + " is 90 logical, well outside a 60-point square, and holds #"
                             + Integer.toHexString(pastIt));
@@ -141,10 +141,9 @@ class LayerTest {
             BoxPainter.paint(scaled.frame(), fadedSquare());
             scaled.end();
 
-            assertNotEquals(BACKDROP, scaled.pixel(45, 45),
-                    "the faded square should cover physical (45, 45)");
-            assertEquals(BACKDROP, scaled.pixel(120, 120),
-                    "physical (120, 120) is 80 logical, outside a 60-point square");
+            assertNotEquals(BACKDROP, scaled.pixel(45, 45), "the faded square should cover physical (45, 45)");
+            assertEquals(
+                    BACKDROP, scaled.pixel(120, 120), "physical (120, 120) is 80 logical, outside a 60-point square");
         }
     }
 
@@ -170,7 +169,9 @@ class LayerTest {
             var inOverlap = target.pixel(45, 30);
             var greenOnly = target.pixel(75, 30);
 
-            assertEquals(greenOnly, inOverlap,
+            assertEquals(
+                    greenOnly,
+                    inOverlap,
                     () -> "the covered square showed through: overlap #"
                             + Integer.toHexString(inOverlap) + " against #"
                             + Integer.toHexString(greenOnly));
@@ -189,9 +190,10 @@ class LayerTest {
 
             // Half of green over the backdrop, on each channel.
             var expectedRed = (((GREEN >>> 16) & 0xFF) + ((BACKDROP >>> 16) & 0xFF)) / 2;
-            assertTrue(Math.abs(((faded >>> 16) & 0xFF) - expectedRed) <= 2,
-                    () -> "expected about #" + Integer.toHexString(expectedRed)
-                            + " of red, got #" + Integer.toHexString(faded));
+            assertTrue(
+                    Math.abs(((faded >>> 16) & 0xFF) - expectedRed) <= 2,
+                    () -> "expected about #" + Integer.toHexString(expectedRed) + " of red, got #"
+                            + Integer.toHexString(faded));
         }
 
         @Test
@@ -214,9 +216,11 @@ class LayerTest {
             // would be a poor trade.
             var tree = RenderTree.create();
             try {
-                tree.update(target.frame(), Box.filled(BACKDROP)
-                        .size(StyleLength.points(200), StyleLength.points(200))
-                        .children(square(RED, 60).opacity(0.5)));
+                tree.update(
+                        target.frame(),
+                        Box.filled(BACKDROP)
+                                .size(StyleLength.points(200), StyleLength.points(200))
+                                .children(square(RED, 60).opacity(0.5)));
                 tree.paint(target.frame());
             } finally {
                 tree.close();
@@ -250,8 +254,7 @@ class LayerTest {
 
                 tree.update(target.frame(), box);
                 tree.paint(target.frame());
-                assertEquals(0, tree.layersRepainted(),
-                        "nothing changed, so the promoted subtree is a blit");
+                assertEquals(0, tree.layersRepainted(), "nothing changed, so the promoted subtree is a blit");
             } finally {
                 target.end();
             }
@@ -279,8 +282,8 @@ class LayerTest {
 
                 tree.update(target.frame(), recoloured);
                 tree.paint(target.frame());
-                assertEquals(1, tree.layersRepainted(),
-                        "a child's colour changed and the layer above it did not notice");
+                assertEquals(
+                        1, tree.layersRepainted(), "a child's colour changed and the layer above it did not notice");
             } finally {
                 target.end();
             }
@@ -300,8 +303,8 @@ class LayerTest {
                 tree.update(target.frame(), overlapping(0.4));
                 tree.paint(target.frame());
                 assertEquals(1, tree.layersComposited(), "the group is still a layer");
-                assertEquals(0, tree.layersRepainted(),
-                        "an opacity transition rasterized the layer it exists to reuse");
+                assertEquals(
+                        0, tree.layersRepainted(), "an opacity transition rasterized the layer it exists to reuse");
                 // And the screen does still differ, which is a separate question
                 // and the one damage asks.
                 assertTrue(tree.rootChanged(), "the group looks different, so it must be damaged");
@@ -325,7 +328,9 @@ class LayerTest {
 
                 tree.update(target.frame(), moved(0.5, 12));
                 tree.paint(target.frame());
-                assertEquals(0, tree.layersRepainted(),
+                assertEquals(
+                        0,
+                        tree.layersRepainted(),
                         "a transform on a promoted node should move the blit, not the raster");
             } finally {
                 target.end();
@@ -344,8 +349,7 @@ class LayerTest {
 
                 tree.update(target.frame(), childFaded(0.5, 0.3));
                 tree.paint(target.frame());
-                assertEquals(1, tree.layersRepainted(),
-                        "a child faded and the raster above it did not notice");
+                assertEquals(1, tree.layersRepainted(), "a child faded and the raster above it did not notice");
             } finally {
                 target.end();
             }
@@ -363,15 +367,16 @@ class LayerTest {
             // drawn outside the raster and simply vanishes. It is why the bounds
             // walk maps all four corners of every descendant.
             try (var tree = RenderTree.create()) {
-                tree.update(target.frame(), Box.filled(BACKDROP)
-                        .size(StyleLength.points(200), StyleLength.points(200))
-                        .children(Box.of()
-                                .opacity(0.5)
-                                .size(StyleLength.points(40), StyleLength.points(40))
-                                .children(square(GREEN, 40).transform(Transform.of(
-                                        new Transform.Function.Translate(
-                                                Transform.Length.px(80),
-                                                Transform.Length.px(80)))))));
+                tree.update(
+                        target.frame(),
+                        Box.filled(BACKDROP)
+                                .size(StyleLength.points(200), StyleLength.points(200))
+                                .children(Box.of()
+                                        .opacity(0.5)
+                                        .size(StyleLength.points(40), StyleLength.points(40))
+                                        .children(square(GREEN, 40)
+                                                .transform(Transform.of(new Transform.Function.Translate(
+                                                        Transform.Length.px(80), Transform.Length.px(80)))))));
                 tree.paint(target.frame());
             } finally {
                 target.end();
@@ -380,8 +385,7 @@ class LayerTest {
             // The child was laid out at (0,0) and moved to (80,80). If the layer
             // had been the parent's own 40x40, nothing would be here.
             var moved = target.pixel(100, 100);
-            assertNotEquals(BACKDROP, moved,
-                    "the transformed child was clipped out of its parent's layer");
+            assertNotEquals(BACKDROP, moved, "the transformed child was clipped out of its parent's layer");
         }
 
         @Test
@@ -390,15 +394,17 @@ class LayerTest {
             // `outline` is drawn outside the box by design (ADR-0064), so a layer
             // sized to the border box would cut the ring in half.
             try (var tree = RenderTree.create()) {
-                tree.update(target.frame(), Box.filled(BACKDROP)
-                        .size(StyleLength.points(200), StyleLength.points(200))
-                        .padding(StyleLength.points(20))
-                        .children(Box.of()
-                                .opacity(0.5)
-                                .decoration(io.github.digitalsmile.goldberry.css.Decoration.NONE
-                                        .outline(2, 0xFF88C0D0, 2))
-                                .size(StyleLength.points(40), StyleLength.points(40))
-                                .children(square(GREEN, 40))));
+                tree.update(
+                        target.frame(),
+                        Box.filled(BACKDROP)
+                                .size(StyleLength.points(200), StyleLength.points(200))
+                                .padding(StyleLength.points(20))
+                                .children(Box.of()
+                                        .opacity(0.5)
+                                        .decoration(io.github.digitalsmile.goldberry.css.Decoration.NONE.outline(
+                                                2, 0xFF88C0D0, 2))
+                                        .size(StyleLength.points(40), StyleLength.points(40))
+                                        .children(square(GREEN, 40))));
                 tree.paint(target.frame());
             } finally {
                 target.end();

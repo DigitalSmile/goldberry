@@ -1,8 +1,8 @@
 package io.github.digitalsmile.goldberry.input.handler;
 
+import io.github.digitalsmile.goldberry.input.hit.Extent;
 import io.github.digitalsmile.goldberry.render.model.LogicalRect;
 import io.github.digitalsmile.goldberry.widget.Widget;
-import io.github.digitalsmile.goldberry.input.hit.Extent;
 
 /// A widget that wants to be told **where** it ended up, and what confines it.
 ///

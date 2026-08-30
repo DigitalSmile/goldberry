@@ -1,15 +1,15 @@
 package io.github.digitalsmile.goldberry.widget.root;
 
-import io.github.digitalsmile.goldberry.css.ComputedStyle;
-import io.github.digitalsmile.goldberry.paint.Box;
-import io.github.digitalsmile.goldberry.paint.tree.RenderTree;
-
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+
+import io.github.digitalsmile.goldberry.css.ComputedStyle;
+import io.github.digitalsmile.goldberry.paint.Box;
+import io.github.digitalsmile.goldberry.paint.tree.RenderTree;
+import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widget.style.Paints;
 import io.github.digitalsmile.goldberry.widget.style.Styled;
-import io.github.digitalsmile.goldberry.widget.Widget;
 
 /// The little plate a `tooltip="…"` shows — `docs/core-widgets.md` §7's
 /// `tooltip`, "plain text v1".

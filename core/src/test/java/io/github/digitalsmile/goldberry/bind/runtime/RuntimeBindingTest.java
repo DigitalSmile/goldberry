@@ -9,9 +9,11 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
 import java.util.List;
+
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+
 import io.github.digitalsmile.goldberry.bind.Action;
 import io.github.digitalsmile.goldberry.bind.Bind;
 import io.github.digitalsmile.goldberry.bind.Model;
@@ -32,9 +34,14 @@ class RuntimeBindingTest {
     @Model
     static final class Settings {
 
-        @Bind("app.gain") private int gain = 40;
-        @Bind(value = "app.theme", restyle = true) private String theme = "dark";
-        @Bind(value = "job.bytes", repaint = false) private long bytes;
+        @Bind("app.gain")
+        private int gain = 40;
+
+        @Bind(value = "app.theme", restyle = true)
+        private String theme = "dark";
+
+        @Bind(value = "job.bytes", repaint = false)
+        private long bytes;
 
         @Action("app.louder")
         private void louder() {
@@ -68,15 +75,32 @@ class RuntimeBindingTest {
     @Model
     static final class EveryType {
 
-        @Bind("t.z") private boolean z;
-        @Bind("t.b") private byte b;
-        @Bind("t.c") private char c;
-        @Bind("t.s") private short s;
-        @Bind("t.i") private int i;
-        @Bind("t.j") private long j;
-        @Bind("t.f") private float f;
-        @Bind("t.d") private double d;
-        @Bind("t.o") private String o;
+        @Bind("t.z")
+        private boolean z;
+
+        @Bind("t.b")
+        private byte b;
+
+        @Bind("t.c")
+        private char c;
+
+        @Bind("t.s")
+        private short s;
+
+        @Bind("t.i")
+        private int i;
+
+        @Bind("t.j")
+        private long j;
+
+        @Bind("t.f")
+        private float f;
+
+        @Bind("t.d")
+        private double d;
+
+        @Bind("t.o")
+        private String o;
 
         @Action("t.set")
         private void set() {
@@ -112,8 +136,11 @@ class RuntimeBindingTest {
     @Model
     static final class Holder {
 
-        @Bind("shared.tab") private final Property<String> tab = Property.of("one");
-        @Bind("own.count") private int count;
+        @Bind("shared.tab")
+        private final Property<String> tab = Property.of("one");
+
+        @Bind("own.count")
+        private int count;
 
         @Action("own.bump")
         void bump() {
@@ -172,9 +199,11 @@ class RuntimeBindingTest {
             Models.actions(model).resolve("t.set").run();
 
             var bindings = Models.bindings(model);
-            assertEquals(List.of(true, (byte) 1, 'x', (short) 2, 3, 4L, 5.5f, 6.5, "seven"),
+            assertEquals(
+                    List.of(true, (byte) 1, 'x', (short) 2, 3, 4L, 5.5f, 6.5, "seven"),
                     List.of("t.z", "t.b", "t.c", "t.s", "t.i", "t.j", "t.f", "t.d", "t.o").stream()
-                            .map(path -> bindings.resolve(path).get()).toList());
+                            .map(path -> bindings.resolve(path).get())
+                            .toList());
         }
 
         @Test
@@ -182,8 +211,7 @@ class RuntimeBindingTest {
         void strict() {
             var model = new Settings();
 
-            assertThrows(IllegalArgumentException.class,
-                    () -> Models.observable(model, "app.gian"));
+            assertThrows(IllegalArgumentException.class, () -> Models.observable(model, "app.gian"));
         }
 
         @Test
@@ -440,7 +468,7 @@ class RuntimeBindingTest {
             var model = new Settings();
 
             assertNotSame(Models.actions(model), Models.actions(model));
-            Models.actions(model).bind("win.close", () -> { });
+            Models.actions(model).bind("win.close", () -> {});
         }
 
         @Test
@@ -508,68 +536,76 @@ class RuntimeBindingTest {
 
         @Model
         static final class StaticBind {
-            @Bind("bad.path") private static int shared;
+            @Bind("bad.path")
+            private static int shared;
         }
 
         @Model
         static final class FinalBind {
-            @Bind("bad.path") private final int frozen = 1;
+            @Bind("bad.path")
+            private final int frozen = 1;
         }
 
         @Model
         static final class ArrayBind {
-            @Bind("bad.path") private int[] values = new int[1];
+            @Bind("bad.path")
+            private int[] values = new int[1];
         }
 
         @Model
         static final class TwicePathed {
-            @Bind("bad.path") private int one;
-            @Bind("bad.path") private int two;
+            @Bind("bad.path")
+            private int one;
+
+            @Bind("bad.path")
+            private int two;
         }
 
         @Model
         static final class RestylingProperty {
-            @Bind(value = "bad.path", restyle = true) private final Property<String> p =
-                    Property.of("x");
+            @Bind(value = "bad.path", restyle = true)
+            private final Property<String> p = Property.of("x");
         }
 
         @Model
         static final class TwoArguments {
-            @Action("bad.action") void act(String a, String b) {
+            @Action("bad.action")
+            void act(String a, String b) {
                 assertEquals(a, b);
             }
         }
 
         @Model
         static final class UnparseableArgument {
-            @Action("bad.action") void act(List<String> values) {
+            @Action("bad.action")
+            void act(List<String> values) {
                 values.clear();
             }
         }
 
         @Model
         static final class StaticAction {
-            @Action("bad.action") static void act() {
-            }
+            @Action("bad.action")
+            static void act() {}
         }
 
         @Model
         static class Parent {
-            @Bind("parent.value") private int value;
+            @Bind("parent.value")
+            private int value;
         }
 
         @Model
         static final class Child extends Parent {
-            @Bind("child.value") private int value;
+            @Bind("child.value")
+            private int value;
         }
 
         @Model
         @Actions
-        static final class Both {
-        }
+        static final class Both {}
 
-        static final class Unannotated {
-        }
+        static final class Unannotated {}
 
         @Test
         @DisplayName("a model bound at run time is not a woven one, and says so")
@@ -580,8 +616,7 @@ class RuntimeBindingTest {
         @Test
         @DisplayName("a class annotated neither way is refused, with what to do about it")
         void unannotated() {
-            var refusal = assertThrows(IllegalStateException.class,
-                    () -> Models.bindings(new Unannotated()));
+            var refusal = assertThrows(IllegalStateException.class, () -> Models.bindings(new Unannotated()));
 
             assertTrue(refusal.getMessage().contains("annotated neither @Model nor @Actions"));
         }
@@ -647,12 +682,11 @@ class RuntimeBindingTest {
         }
 
         private static void assertRefused(Object model, String because) {
-            var refusal = assertThrows(IllegalStateException.class,
-                    () -> Models.bindings(model));
+            var refusal = assertThrows(IllegalStateException.class, () -> Models.bindings(model));
 
-            assertTrue(refusal.getMessage().contains(because),
-                    () -> "expected a refusal mentioning \"" + because + "\", got: "
-                            + refusal.getMessage());
+            assertTrue(
+                    refusal.getMessage().contains(because),
+                    () -> "expected a refusal mentioning \"" + because + "\", got: " + refusal.getMessage());
         }
     }
 }

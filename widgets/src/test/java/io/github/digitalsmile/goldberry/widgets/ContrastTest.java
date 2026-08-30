@@ -1,26 +1,27 @@
 package io.github.digitalsmile.goldberry.widgets;
 
-import io.github.digitalsmile.goldberry.widgets.text.Text;
-
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
+
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
-import io.github.digitalsmile.goldberry.css.value.CssLength;
-import io.github.digitalsmile.goldberry.css.cascade.StyleResolver;
 import io.github.digitalsmile.goldberry.css.Stylesheet;
 import io.github.digitalsmile.goldberry.css.Theme;
+import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
+import io.github.digitalsmile.goldberry.css.cascade.StyleResolver;
+import io.github.digitalsmile.goldberry.css.value.CssLength;
 import io.github.digitalsmile.goldberry.widget.ElementTree;
 import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widgets.controls.badge.Badge;
 import io.github.digitalsmile.goldberry.widgets.controls.button.Button;
 import io.github.digitalsmile.goldberry.widgets.controls.option.Option;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Locale;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
+import io.github.digitalsmile.goldberry.widgets.text.Text;
 
 /// `docs/design-system.md` §1.2: "Every text/surface pair meets **WCAG 4.5:1**
 /// […] Contrast is validated in CI against both themes."
@@ -78,8 +79,7 @@ class ContrastTest {
 
     /// One thing a user reads: a widget, the pseudo-classes in force, and the
     /// stylesheet needed to put it in that state.
-    private record Pair(String name, Widget widget, String extraCss) {
-    }
+    private record Pair(String name, Widget widget, String extraCss) {}
 
     private static List<Pair> pairs() {
         var all = new ArrayList<Pair>();
@@ -101,15 +101,15 @@ class ContrastTest {
         // measures as black), which is worse than not measuring it: covering it
         // would be the check pretending to a guarantee it cannot make.
         for (var variant : List.of("", ".primary", ".danger")) {
-            var widget = variant.isEmpty()
-                    ? new Button("Save")
-                    : new Button("Save").styled(variant.substring(1));
+            var widget = variant.isEmpty() ? new Button("Save") : new Button("Save").styled(variant.substring(1));
             all.add(new Pair("button" + variant, widget, ""));
             for (var state : List.of("hover", "active")) {
                 // The forced rule copies the toolkit's own -- a `button:hover`
                 // in the application layer wins over the base layer's, and
                 // `background`/`color` are the only two properties that matter.
-                all.add(new Pair("button" + variant + ":" + state, widget,
+                all.add(new Pair(
+                        "button" + variant + ":" + state,
+                        widget,
                         "button" + variant + " { background: var(--gb-button"
                                 + (variant.isEmpty() ? "" : "-" + variant.substring(1))
                                 + "-bg-" + state + ") }"));
@@ -125,9 +125,11 @@ class ContrastTest {
         // reader actually receives is the label over the *bar*. Measuring the
         // segment as it computes would score `transparent` as black and pass
         // spuriously -- the trap that keeps `button.ghost` out of this sweep.
-        all.add(new Pair("segmented option", new Option("grid", "Grid"),
-                "option { background: var(--gb-segmented-bg) }"));
-        all.add(new Pair("segmented option:checked", new Option("list", "List"),
+        all.add(new Pair(
+                "segmented option", new Option("grid", "Grid"), "option { background: var(--gb-segmented-bg) }"));
+        all.add(new Pair(
+                "segmented option:checked",
+                new Option("list", "List"),
                 selectedSegment("var(--gb-segmented-selected-bg)")));
         // The hover and press pairs are deliberately absent, on `button.ghost`'s
         // terms: a segment's feedback is a translucent wash over whichever
@@ -137,9 +139,13 @@ class ContrastTest {
         // The plain text pairs §1.2 names first: body text on each of the three
         // surfaces a window actually paints, and muted text on two of them.
         for (var surface : List.of("bg", "surface", "surface-2")) {
-            all.add(new Pair("text on --gb-" + surface, new Text("Aa"),
+            all.add(new Pair(
+                    "text on --gb-" + surface,
+                    new Text("Aa"),
                     "text { background: var(--gb-" + surface + "); color: var(--gb-text) }"));
-            all.add(new Pair("muted text on --gb-" + surface, new Text("Aa"),
+            all.add(new Pair(
+                    "muted text on --gb-" + surface,
+                    new Text("Aa"),
                     "text { background: var(--gb-" + surface + "); color: var(--gb-text-muted) }"));
         }
         return all;
@@ -158,8 +164,7 @@ class ContrastTest {
     /// that reaches it — and the pseudo-class is mirrored onto an element by
     /// `WidgetRenderer`, which this test deliberately does not run.
     private static String selectedSegment(String background) {
-        return "option { background: " + background
-                + "; color: var(--gb-segmented-selected-text) }";
+        return "option { background: " + background + "; color: var(--gb-segmented-selected-text) }";
     }
 
     @Test
@@ -189,7 +194,9 @@ class ContrastTest {
 
         // Asserted as a set equality, not as a subset: this is what stops the
         // exemption list from being a place failures go to be forgotten.
-        assertEquals(KNOWN_FAILURES, failures,
+        assertEquals(
+                KNOWN_FAILURES,
+                failures,
                 () -> "the pairs below §1.2's " + FLOOR + ":1 floor are not the ones on record."
                         + " A pair that was fixed must come off KNOWN_FAILURES; a pair that"
                         + " newly broke must be fixed. Measured:" + report);
@@ -218,8 +225,7 @@ class ContrastTest {
                 // A banner sits on the page or inside a panel, and `--gb-surface-2`
                 // is where a `card` or a `group-box` would put one.
                 for (var surface : List.of("bg", "surface", "surface-2")) {
-                    var css = "text { background: var(--gb-" + surface
-                            + "); color: var(--gb-" + hue + "-line) }";
+                    var css = "text { background: var(--gb-" + surface + "); color: var(--gb-" + hue + "-line) }";
                     var sheets = new ArrayList<>(Controls.stylesheets(theme));
                     sheets.add(Stylesheet.parse(CascadeLayer.APPLICATION, css));
                     var style = ComputedStyle.of(
@@ -236,7 +242,9 @@ class ContrastTest {
             }
         }
 
-        assertEquals(List.of(), failures,
+        assertEquals(
+                List.of(),
+                failures,
                 () -> "a semantic hue is invisible as a line on a surface the toolkit"
                         + " paints. The fix is the one ADR-0087 used for fills: move the"
                         + " hue's lightness in that theme until it clears, and write the"
@@ -252,7 +260,8 @@ class ContrastTest {
     @Test
     @DisplayName("nothing is exempt from §1.2")
     void nothingIsExempt() {
-        assertTrue(KNOWN_FAILURES.isEmpty(),
+        assertTrue(
+                KNOWN_FAILURES.isEmpty(),
                 "a pair was exempted from §1.2's floor. If that is deliberate, this test"
                         + " is where the argument goes -- and ADR-0088 is the precedent for"
                         + " fixing it instead: every failure it found was a ramp that needed"

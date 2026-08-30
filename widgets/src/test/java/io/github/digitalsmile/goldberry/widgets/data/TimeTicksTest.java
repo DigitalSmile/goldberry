@@ -9,6 +9,7 @@ import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
+
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -66,12 +67,10 @@ class TimeTicksTest {
         // The reason this is `java.time` and not arithmetic on milliseconds: a
         // step of 2 592 000 000 ms is a month only in a year with no February in
         // it, and by December it has drifted five days.
-        var labelling = TimeTicks.of(
-                utc("2026-01-01T00:00:00Z"), utc("2026-12-31T00:00:00Z"), 12, UTC);
+        var labelling = TimeTicks.of(utc("2026-01-01T00:00:00Z"), utc("2026-12-31T00:00:00Z"), 12, UTC);
 
         for (var value : labelling.values()) {
-            assertEquals(1, value.atZone(UTC).getDayOfMonth(),
-                    value + " is not the first of a month");
+            assertEquals(1, value.atZone(UTC).getDayOfMonth(), value + " is not the first of a month");
             assertEquals(0, value.atZone(UTC).getHour(), value + " is not midnight");
         }
         assertTrue(labelling.values().size() >= 10, "a year has months in it");
@@ -86,8 +85,7 @@ class TimeTicksTest {
         var berlin = ZoneId.of("Europe/Berlin");
         // Five days at six labels, so the step is one day and every tick is a
         // local midnight -- one of which is on the far side of the change.
-        var labelling = TimeTicks.of(
-                utc("2026-03-27T00:00:00Z"), utc("2026-04-01T00:00:00Z"), 6, berlin);
+        var labelling = TimeTicks.of(utc("2026-03-27T00:00:00Z"), utc("2026-04-01T00:00:00Z"), 6, berlin);
 
         for (var value : labelling.values()) {
             var local = value.atZone(berlin);
@@ -98,8 +96,12 @@ class TimeTicksTest {
         // are 23 hours apart in real time and one day apart on the clock.
         var shortest = Long.MAX_VALUE;
         for (var i = 1; i < labelling.values().size(); i++) {
-            shortest = Math.min(shortest, Duration.between(
-                    labelling.values().get(i - 1), labelling.values().get(i)).toHours());
+            shortest = Math.min(
+                    shortest,
+                    Duration.between(
+                                    labelling.values().get(i - 1),
+                                    labelling.values().get(i))
+                            .toHours());
         }
         assertEquals(23, shortest, "the spring-forward day is 23 hours long");
     }
@@ -115,9 +117,9 @@ class TimeTicksTest {
         var from = utc("2026-03-14T00:00:00Z");
         var to = utc("2026-03-18T00:00:00Z");
 
-        assertEquals(List.of("14 Mar", "15 Mar", "16 Mar", "17 Mar", "18 Mar"),
-                labels(from, to, 4, UTC));
-        assertEquals(List.of("15 Mar", "16 Mar", "17 Mar", "18 Mar"),
+        assertEquals(List.of("14 Mar", "15 Mar", "16 Mar", "17 Mar", "18 Mar"), labels(from, to, 4, UTC));
+        assertEquals(
+                List.of("15 Mar", "16 Mar", "17 Mar", "18 Mar"),
                 labels(from, to, 4, chatham),
                 "the 14th's midnight in Chatham is before this range begins");
 
@@ -138,9 +140,9 @@ class TimeTicksTest {
         var from = utc("2026-03-14T00:00:00Z");
         for (var seconds : List.of(3L, 20L, 90L, 600L, 3600L, 40000L, 500000L)) {
             var labelling = TimeTicks.of(from, from.plusSeconds(seconds), 5, UTC);
-            assertTrue(allowed.contains(labelling.amount()),
-                    "a step of " + labelling.amount() + " " + labelling.unit()
-                            + " for a span of " + seconds + "s");
+            assertTrue(
+                    allowed.contains(labelling.amount()),
+                    "a step of " + labelling.amount() + " " + labelling.unit() + " for a span of " + seconds + "s");
         }
     }
 
@@ -149,17 +151,23 @@ class TimeTicksTest {
     void everyMagnitude() {
         var from = utc("2020-01-01T00:00:00Z");
 
-        assertEquals(ChronoUnit.SECONDS,
+        assertEquals(
+                ChronoUnit.SECONDS,
                 TimeTicks.of(from, from.plusSeconds(20), 5, UTC).unit());
-        assertEquals(ChronoUnit.MINUTES,
+        assertEquals(
+                ChronoUnit.MINUTES,
                 TimeTicks.of(from, from.plusSeconds(600), 5, UTC).unit());
-        assertEquals(ChronoUnit.HOURS,
+        assertEquals(
+                ChronoUnit.HOURS,
                 TimeTicks.of(from, from.plus(1, ChronoUnit.DAYS), 5, UTC).unit());
-        assertEquals(ChronoUnit.DAYS,
+        assertEquals(
+                ChronoUnit.DAYS,
                 TimeTicks.of(from, from.plus(7, ChronoUnit.DAYS), 5, UTC).unit());
-        assertEquals(ChronoUnit.MONTHS,
+        assertEquals(
+                ChronoUnit.MONTHS,
                 TimeTicks.of(from, from.plus(200, ChronoUnit.DAYS), 5, UTC).unit());
-        assertEquals(ChronoUnit.YEARS,
+        assertEquals(
+                ChronoUnit.YEARS,
                 TimeTicks.of(from, from.plus(4000, ChronoUnit.DAYS), 5, UTC).unit());
     }
 
@@ -174,11 +182,11 @@ class TimeTicksTest {
     @Test
     @DisplayName("it does not run away on a span of centuries")
     void theTopOfTheLadder() {
-        var labelling = TimeTicks.of(
-                utc("1600-01-01T00:00:00Z"), utc("2400-01-01T00:00:00Z"), 5, UTC);
+        var labelling = TimeTicks.of(utc("1600-01-01T00:00:00Z"), utc("2400-01-01T00:00:00Z"), 5, UTC);
 
         assertEquals(ChronoUnit.YEARS, labelling.unit());
-        assertTrue(labelling.values().size() <= 8,
+        assertTrue(
+                labelling.values().size() <= 8,
                 "expected about five labels, got " + labelling.values().size());
     }
 

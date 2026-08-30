@@ -1,19 +1,19 @@
 package io.github.digitalsmile.goldberry.widgets.controls.spinner;
 
-import io.github.digitalsmile.goldberry.widget.attr.Attributed;
-import io.github.digitalsmile.goldberry.widget.attr.Attributes;
+import java.util.List;
+import java.util.Set;
 
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
 import io.github.digitalsmile.goldberry.css.value.Transform;
+import io.github.digitalsmile.goldberry.kdl.KdlNode;
 import io.github.digitalsmile.goldberry.paint.Box;
+import io.github.digitalsmile.goldberry.widget.Widget;
+import io.github.digitalsmile.goldberry.widget.attr.Attributed;
+import io.github.digitalsmile.goldberry.widget.attr.Attributes;
 import io.github.digitalsmile.goldberry.widget.style.Paints;
 import io.github.digitalsmile.goldberry.widget.style.Styled;
-import io.github.digitalsmile.goldberry.widget.Widget;
-import java.util.List;
-import java.util.Set;
-import io.github.digitalsmile.goldberry.kdl.KdlNode;
-import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
 import io.github.digitalsmile.goldberry.widgets.markup.Markup;
+import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
 
 /// Something is happening — `docs/core-widgets.md` §3's `spinner`, "a small
 /// indeterminate activity indicator". The eighth control, and the smallest thing
@@ -28,7 +28,8 @@ import io.github.digitalsmile.goldberry.widgets.markup.Markup;
 /// The obvious implementation is an icon, and it is the wrong one twice over: an
 /// [io.github.digitalsmile.goldberry.icon.Icon] owns native memory and a widget
 /// is a value rebuilt every frame, so a spinner holding one would leak a ring per
-/// reload — the argument [io.github.digitalsmile.goldberry.widgets.controls.button.Button]'s borrowed icon makes — and it would put the
+/// reload — the argument [io.github.digitalsmile.goldberry.widgets.controls.button.Button]'s borrowed icon makes — and
+/// it would put the
 /// toolkit's own spinner behind an asset an application has to register.
 ///
 /// So it is a `Box.Mark`, like a checkbox's tick and a radio's dot, and the arc
@@ -106,7 +107,8 @@ public record Spinner(Attributes attributes) implements Widget.Leaf, Styled, Pai
 
     @Override
     public Box render(ComputedStyle style, List<Box> children, Context context) {
-        return Box.of().style(style)
+        return Box.of()
+                .style(style)
                 .mark(new Box.Mark(Box.Mark.Kind.ARC, style.color(), THICKNESS))
                 .transform(angleAt(context));
     }

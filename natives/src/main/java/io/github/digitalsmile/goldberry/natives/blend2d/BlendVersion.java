@@ -17,7 +17,6 @@ public record BlendVersion(int major, int minor, int patch, String compiler) {
 
     @Override
     public String toString() {
-        return major + "." + minor + "." + patch
-                + (compiler.isEmpty() ? "" : " (" + compiler + ")");
+        return major + "." + minor + "." + patch + (compiler.isEmpty() ? "" : " (" + compiler + ")");
     }
 }

@@ -50,8 +50,7 @@ public interface MenuSignals {
     /// **Every** row sends it, not only the ones with children: a submenu closes
     /// when the pointer moves to a sibling, and most siblings have no submenu of
     /// their own ([ADR-0112]).
-    default void hovered() {
-    }
+    default void hovered() {}
 
     /// Open this row's submenu **now** — a keyboard `Right`, or `Enter` on a row
     /// that leads somewhere.
@@ -60,8 +59,7 @@ public interface MenuSignals {
     /// stops a submenu dropping out of a pointer travelling past three rows, and
     /// there is nothing to travel past when a key was pressed. It waited the same
     /// 150 ms until ADR-0219.
-    default void open() {
-    }
+    default void open() {}
 
     /// Go back: close the menu this row is in, or — at the root of a menu bar's
     /// menu — move to the menu on the left.
@@ -69,8 +67,7 @@ public interface MenuSignals {
     /// `Left`, and the opposite of the arrow that opened this menu. Which of the
     /// two it means is the *menu's* business and not the row's, which is the
     /// whole reason this is a signal rather than a behaviour.
-    default void back() {
-    }
+    default void back() {}
 
     /// Go forward from a row that leads nowhere: on a menu bar, the menu on the
     /// right.
@@ -78,6 +75,5 @@ public interface MenuSignals {
     /// `Right` on a row **without** a submenu. With one, [#open()] is what that
     /// key means, because opening the branch under the cursor beats leaving the
     /// menu it is in.
-    default void forward() {
-    }
+    default void forward() {}
 }

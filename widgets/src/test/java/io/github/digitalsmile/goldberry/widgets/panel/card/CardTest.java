@@ -4,15 +4,17 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.List;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+
 import io.github.digitalsmile.goldberry.RendererRequirement;
 import io.github.digitalsmile.goldberry.kdl.KdlParser;
 import io.github.digitalsmile.goldberry.widget.attr.Attributes;
 import io.github.digitalsmile.goldberry.widgets.Widgets;
 import io.github.digitalsmile.goldberry.widgets.text.Text;
-import java.util.List;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
 
 /// `card` — §5's elevated surface ([ADR-0164]).
 ///
@@ -49,8 +51,8 @@ class CardTest {
     @Test
     @DisplayName("a card inflates from markup")
     void inflates() {
-        var widget = Widgets.inflater().inflate(
-                KdlParser.parse("card id=\"c\" { text \"Inside\" }").getFirst());
+        var widget = Widgets.inflater()
+                .inflate(KdlParser.parse("card id=\"c\" { text \"Inside\" }").getFirst());
         var card = assertInstanceOf(Card.class, widget);
 
         assertEquals("c", card.id());

@@ -1,6 +1,5 @@
 package io.github.digitalsmile.goldberry.reload;
 
-import io.github.digitalsmile.goldberry.log.Logs;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.FileSystems;
@@ -12,7 +11,10 @@ import java.util.Objects;
 import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
+
 import org.slf4j.Logger;
+
+import io.github.digitalsmile.goldberry.log.Logs;
 
 /// Watches files and re-applies them while the application is running.
 ///
@@ -80,10 +82,11 @@ public final class HotReload implements AutoCloseable {
             // Directories, not files: a WatchService cannot watch a file, and an
             // editor that renames a temporary file into place would break the
             // registration if it could.
-            for (var directory : sources.stream().map(s -> s.file().toAbsolutePath().getParent()).distinct().toList()) {
-                directory.register(service,
-                        StandardWatchEventKinds.ENTRY_MODIFY,
-                        StandardWatchEventKinds.ENTRY_CREATE);
+            for (var directory : sources.stream()
+                    .map(s -> s.file().toAbsolutePath().getParent())
+                    .distinct()
+                    .toList()) {
+                directory.register(service, StandardWatchEventKinds.ENTRY_MODIFY, StandardWatchEventKinds.ENTRY_CREATE);
             }
         } catch (IOException e) {
             throw new UncheckedIOException("could not watch for changes", e);
@@ -100,8 +103,7 @@ public final class HotReload implements AutoCloseable {
         return reload;
     }
 
-    private void loop(
-            List<ReloadableSource<?>> sources, Executor executor, Consumer<ReloadableSource<?>> onReload) {
+    private void loop(List<ReloadableSource<?>> sources, Executor executor, Consumer<ReloadableSource<?>> onReload) {
 
         while (running) {
             try {

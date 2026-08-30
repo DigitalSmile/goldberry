@@ -15,6 +15,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Stream;
+
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -57,7 +58,8 @@ class ExportedSurfaceTest {
 
     private static ModuleDescriptor descriptor(Path root) {
         var moduleInfo = root.resolve("module-info.class");
-        assertTrue(Files.isRegularFile(moduleInfo),
+        assertTrue(
+                Files.isRegularFile(moduleInfo),
                 "this module ships a descriptor; nothing below means anything without it");
         try (var in = Files.newInputStream(moduleInfo)) {
             return ModuleDescriptor.read(in);
@@ -125,7 +127,8 @@ class ExportedSurfaceTest {
                     });
         }
 
-        assertTrue(leaks.isEmpty(),
+        assertTrue(
+                leaks.isEmpty(),
                 "these are reachable from outside :natives and traffic in raw foreign memory, "
                         + "which is the one thing §3.1 says cannot happen: " + leaks);
     }
@@ -148,8 +151,7 @@ class ExportedSurfaceTest {
     }
 
     private static boolean mentionsSegment(Executable member) {
-        if (member instanceof java.lang.reflect.Method method
-                && method.getReturnType() == MemorySegment.class) {
+        if (member instanceof java.lang.reflect.Method method && method.getReturnType() == MemorySegment.class) {
             return true;
         }
         for (var parameter : member.getParameterTypes()) {
@@ -178,10 +180,12 @@ class ExportedSurfaceTest {
             }
         }
 
-        assertTrue(found > 100,
+        assertTrue(
+                found > 100,
                 "found only " + found + " holder classes; this test discovers them by walking the "
                         + "compiled classes, and finding almost none means it checks nothing");
-        assertTrue(leaked.isEmpty(),
+        assertTrue(
+                leaked.isEmpty(),
                 "a holder's `call` takes and returns raw addresses, and its package is what "
                         + "--initialize-at-build-time names (ADR-0173). Exporting one puts the "
                         + "foreign boundary in an application's reach: " + leaked);
@@ -222,11 +226,13 @@ class ExportedSurfaceTest {
             }
         }
 
-        assertTrue(found >= 7,
+        assertTrue(
+                found >= 7,
                 "found only " + found + " binding classes across " + wrapped
                         + "; this test discovers them by their `…Calls` field, and finding almost "
                         + "none means it checks nothing");
-        assertTrue(wrong.isEmpty(),
+        assertTrue(
+                wrong.isEmpty(),
                 "these are public, so there is a way to the library that does not go through the "
                         + "wrapper that owns the handle: " + wrong);
     }

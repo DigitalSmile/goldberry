@@ -1,15 +1,16 @@
 package io.github.digitalsmile.goldberry.widgets.form.field;
 
-import io.github.digitalsmile.goldberry.css.ComputedStyle;
-import io.github.digitalsmile.goldberry.input.handler.Handles;
-import io.github.digitalsmile.goldberry.paint.Box;
-import io.github.digitalsmile.goldberry.widget.attr.Attributes;
-import io.github.digitalsmile.goldberry.widget.style.Paints;
-import io.github.digitalsmile.goldberry.widget.style.Styled;
-import io.github.digitalsmile.goldberry.widget.Widget;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+
+import io.github.digitalsmile.goldberry.css.ComputedStyle;
+import io.github.digitalsmile.goldberry.input.handler.Handles;
+import io.github.digitalsmile.goldberry.paint.Box;
+import io.github.digitalsmile.goldberry.widget.Widget;
+import io.github.digitalsmile.goldberry.widget.attr.Attributes;
+import io.github.digitalsmile.goldberry.widget.style.Paints;
+import io.github.digitalsmile.goldberry.widget.style.Styled;
 
 /// The node a stylesheet calls `field`, and the one told when focus leaves.
 ///
@@ -33,8 +34,7 @@ import java.util.Set;
 /// @param attributes the `id` and classes the document wrote
 /// @param onBlur     called when focus leaves this field's subtree
 record FieldBox(
-        String label, List<Widget> children, boolean required, String message,
-        Attributes attributes, Runnable onBlur)
+        String label, List<Widget> children, boolean required, String message, Attributes attributes, Runnable onBlur)
         implements Widget.Leaf, Styled, Paints, Handles {
 
     @Override
@@ -112,8 +112,6 @@ record FieldBox(
 
     /// A field that reports nothing, for a test or a preview.
     static FieldBox of(String label, List<Widget> children) {
-        return new FieldBox(label, children, false, "", Attributes.NONE, () -> {
-        });
+        return new FieldBox(label, children, false, "", Attributes.NONE, () -> {});
     }
-
 }

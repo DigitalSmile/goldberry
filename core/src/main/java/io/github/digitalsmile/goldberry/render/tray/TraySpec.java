@@ -1,7 +1,8 @@
 package io.github.digitalsmile.goldberry.render.tray;
 
-import io.github.digitalsmile.goldberry.render.PixelBuffer;
 import java.util.List;
+
+import io.github.digitalsmile.goldberry.render.PixelBuffer;
 
 /// What a tray icon is: a picture, a hover text, and a menu.
 ///
@@ -39,7 +40,8 @@ public record TraySpec(PixelBuffer icon, String tooltip, List<TrayItem> items) {
     /// The same tray, with every row running `after` once its own handler has —
     /// see [TrayItem#andThen].
     public TraySpec andThen(Runnable after) {
-        return new TraySpec(icon, tooltip, items.stream().map(i -> i.andThen(after)).toList());
+        return new TraySpec(
+                icon, tooltip, items.stream().map(i -> i.andThen(after)).toList());
     }
 
     /// The same tray, with a different icon — what a theme switch builds.

@@ -4,13 +4,14 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+
 import io.github.digitalsmile.goldberry.Placement.Align;
 import io.github.digitalsmile.goldberry.Placement.Side;
 import io.github.digitalsmile.goldberry.render.model.LogicalPoint;
 import io.github.digitalsmile.goldberry.render.model.LogicalRect;
 import io.github.digitalsmile.goldberry.render.model.LogicalSize;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
 
 /// [Placement]'s three rules, one case each and then the corners.
 ///
@@ -92,8 +93,7 @@ class PlacementTest {
     @Test
     @DisplayName("and at the left edge it shifts the other way")
     void shiftsAtTheLeftEdge() {
-        var placed = new Placement(Side.BOTTOM, Align.END, 4)
-                .place(anchor(0, 300), MENU, SCREEN);
+        var placed = new Placement(Side.BOTTOM, Align.END, 4).place(anchor(0, 300), MENU, SCREEN);
 
         assertEquals(0f, placed.at().x(), "aligned to the anchor's right edge would be -80");
         assertTrue(placed.shifted());
@@ -117,9 +117,11 @@ class PlacementTest {
         var a = anchor(500, 300);
 
         assertEquals(500f, Placement.BELOW.place(a, MENU, SCREEN).at().x());
-        assertEquals(500 + (100 - 180) / 2f,
+        assertEquals(
+                500 + (100 - 180) / 2f,
                 Placement.BELOW.align(Align.CENTER).place(a, MENU, SCREEN).at().x());
-        assertEquals(500 + 100 - 180,
+        assertEquals(
+                500 + 100 - 180,
                 Placement.BELOW.align(Align.END).place(a, MENU, SCREEN).at().x());
     }
 
@@ -146,15 +148,22 @@ class PlacementTest {
         var justAboveTheTaskbar = anchor(200, 900);
         var placed = Placement.BELOW.place(justAboveTheTaskbar, LogicalSize.of(180, 120), SCREEN);
 
-        assertEquals(Side.TOP, placed.side(),
-                "930 + 4 + 120 is 1054, which is inside a 1080 display and outside a 1040"
-                        + " work area");
+        assertEquals(
+                Side.TOP,
+                placed.side(),
+                "930 + 4 + 120 is 1054, which is inside a 1080 display and outside a 1040" + " work area");
     }
 
     @Test
     @DisplayName("the gap is a gap, and zero is legal")
     void gap() {
-        assertEquals(330f, Placement.BELOW.gap(0).place(anchor(200, 300), MENU, SCREEN).at().y());
+        assertEquals(
+                330f,
+                Placement.BELOW
+                        .gap(0)
+                        .place(anchor(200, 300), MENU, SCREEN)
+                        .at()
+                        .y());
         assertEquals(Side.TOP, Side.BOTTOM.opposite());
         assertEquals(Side.START, Side.END.opposite());
         assertTrue(Side.TOP.isVertical());

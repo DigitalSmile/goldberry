@@ -1,9 +1,10 @@
 package io.github.digitalsmile.goldberry.css.value;
 
-import io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength;
 import java.util.List;
+
 import io.github.digitalsmile.goldberry.css.parse.Token;
 import io.github.digitalsmile.goldberry.css.parse.TokenType;
+import io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength;
 
 /// Reads a CSS length into the [StyleLength] Yoga takes.
 ///
@@ -23,8 +24,7 @@ import io.github.digitalsmile.goldberry.css.parse.TokenType;
 /// that knows the containing block, and no stylesheet here has asked for one.
 public final class CssLength {
 
-    private CssLength() {
-    }
+    private CssLength() {}
 
     /// The context a relative length needs.
     ///

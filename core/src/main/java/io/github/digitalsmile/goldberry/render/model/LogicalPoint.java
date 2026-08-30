@@ -22,8 +22,7 @@ public record LogicalPoint(float x, float y) {
 
     public LogicalPoint {
         if (!Float.isFinite(x) || !Float.isFinite(y)) {
-            throw new IllegalArgumentException(
-                    "a position must be finite, and (" + x + ", " + y + ") is not");
+            throw new IllegalArgumentException("a position must be finite, and (" + x + ", " + y + ") is not");
         }
     }
 

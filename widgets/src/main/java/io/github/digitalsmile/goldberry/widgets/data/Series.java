@@ -68,15 +68,21 @@ public record Series(String name, List<Double> values) {
     /// onto one line. A hole is an absence of a value, not a value smaller than
     /// every other.
     public double min() {
-        return values.stream().mapToDouble(Double::doubleValue)
-                .filter(Double::isFinite).min().orElse(Double.POSITIVE_INFINITY);
+        return values.stream()
+                .mapToDouble(Double::doubleValue)
+                .filter(Double::isFinite)
+                .min()
+                .orElse(Double.POSITIVE_INFINITY);
     }
 
     /// The largest, or [Double#NEGATIVE_INFINITY] when there are none — holes
     /// skipped, for [#min]'s reason.
     public double max() {
-        return values.stream().mapToDouble(Double::doubleValue)
-                .filter(Double::isFinite).max().orElse(Double.NEGATIVE_INFINITY);
+        return values.stream()
+                .mapToDouble(Double::doubleValue)
+                .filter(Double::isFinite)
+                .max()
+                .orElse(Double.NEGATIVE_INFINITY);
     }
 
     /// How many of this series' points are actually there.

@@ -1,5 +1,9 @@
 package io.github.digitalsmile.goldberry.widgets.data.sparkline;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
+
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
 import io.github.digitalsmile.goldberry.css.value.CssColor;
 import io.github.digitalsmile.goldberry.kdl.KdlNode;
@@ -9,18 +13,15 @@ import io.github.digitalsmile.goldberry.natives.blend2d.enums.BlendStrokeJoin;
 import io.github.digitalsmile.goldberry.paint.Box;
 import io.github.digitalsmile.goldberry.paint.Frame;
 import io.github.digitalsmile.goldberry.render.model.LogicalSize;
+import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widget.attr.Attributed;
 import io.github.digitalsmile.goldberry.widget.attr.Attributes;
 import io.github.digitalsmile.goldberry.widget.style.Paints;
 import io.github.digitalsmile.goldberry.widget.style.Styled;
-import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widgets.data.Lttb;
 import io.github.digitalsmile.goldberry.widgets.data.Scale;
 import io.github.digitalsmile.goldberry.widgets.markup.Markup;
 import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
 
 /// A trend with no axes — `docs/core-widgets.md` §11's `sparkline`, and the child
 /// `statistic` has been specified to hold since M2 (ADR-0164).
@@ -203,8 +204,7 @@ public record Sparkline(List<Double> values, boolean fill, boolean marker, Attri
             }
             // Round, like every stroke in the toolkit: a sparkline's turns are
             // sharp enough at this size that a miter join spikes past the box.
-            frame.strokePath(0, 0, path, STROKE,
-                    BlendStrokeCap.ROUND, BlendStrokeJoin.ROUND, argb);
+            frame.strokePath(0, 0, path, STROKE, BlendStrokeCap.ROUND, BlendStrokeJoin.ROUND, argb);
         }
 
         if (marker) {
@@ -239,9 +239,6 @@ public record Sparkline(List<Double> values, boolean fill, boolean marker, Attri
                 values.add(number.value());
             }
         }
-        return new Sparkline(values,
-                node.booleanProperty("fill"),
-                node.booleanProperty("marker"),
-                Attributes.of(node));
+        return new Sparkline(values, node.booleanProperty("fill"), node.booleanProperty("marker"), Attributes.of(node));
     }
 }

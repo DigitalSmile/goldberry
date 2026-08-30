@@ -9,8 +9,7 @@ public record PhysicalSize(int width, int height) {
 
     public PhysicalSize {
         if (width < 0 || height < 0) {
-            throw new IllegalArgumentException(
-                    "physical size must not be negative: " + width + "x" + height);
+            throw new IllegalArgumentException("physical size must not be negative: " + width + "x" + height);
         }
     }
 

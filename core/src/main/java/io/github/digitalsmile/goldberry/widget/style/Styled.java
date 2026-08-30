@@ -1,8 +1,8 @@
 package io.github.digitalsmile.goldberry.widget.style;
 
-import io.github.digitalsmile.goldberry.stats.FrameStats;
-
 import java.util.Set;
+
+import io.github.digitalsmile.goldberry.stats.FrameStats;
 import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widget.WidgetRenderer;
 
@@ -110,8 +110,7 @@ public interface Styled extends Widget {
     /// a value that is genuinely a property of the loop.
     ///
     /// @param frames what the loop has been doing, never null
-    default java.util.Set<String> classes(
-            FrameStats frames) {
+    default java.util.Set<String> classes(FrameStats frames) {
         return java.util.Set.of();
     }
 

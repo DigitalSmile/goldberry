@@ -1,11 +1,12 @@
 package io.github.digitalsmile.goldberry.widgets.panel.accordion;
 
-import io.github.digitalsmile.goldberry.widget.attr.Attributed;
-import io.github.digitalsmile.goldberry.widget.attr.Attributes;
-import io.github.digitalsmile.goldberry.widget.State;
-import io.github.digitalsmile.goldberry.widget.Widget;
 import java.util.List;
 import java.util.function.IntConsumer;
+
+import io.github.digitalsmile.goldberry.widget.State;
+import io.github.digitalsmile.goldberry.widget.Widget;
+import io.github.digitalsmile.goldberry.widget.attr.Attributed;
+import io.github.digitalsmile.goldberry.widget.attr.Attributes;
 
 /// A column of [io.github.digitalsmile.goldberry.widgets.panel.collapse.Collapse]
 /// sections of which **one is open at a time** — `docs/core-widgets.md` §5's
@@ -50,8 +51,7 @@ import java.util.function.IntConsumer;
 /// @param onOpen     what opening a section asks for, or null to keep it here
 /// @param children   the sections, and whatever else is between them
 /// @param attributes the `id` and classes, which land on the `column` node
-public record Accordion(int open, IntConsumer onOpen, List<Widget> children,
-        Attributes attributes)
+public record Accordion(int open, IntConsumer onOpen, List<Widget> children, Attributes attributes)
         implements Widget.Stateful, Attributed<Accordion> {
 
     /// Nothing open, which is what an accordion of shut sections starts as.

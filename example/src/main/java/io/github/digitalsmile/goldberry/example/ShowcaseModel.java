@@ -1,13 +1,14 @@
 package io.github.digitalsmile.goldberry.example;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import io.github.digitalsmile.goldberry.bind.Action;
 import io.github.digitalsmile.goldberry.bind.Bind;
 import io.github.digitalsmile.goldberry.bind.Model;
 import io.github.digitalsmile.goldberry.css.Theme;
 import io.github.digitalsmile.goldberry.widgets.Density;
 import io.github.digitalsmile.goldberry.widgets.controls.checkbox.Checkbox;
-import java.util.ArrayList;
-import java.util.List;
 
 /// Everything the showcase *knows*. Values, and nothing that happens to them.
 ///
@@ -196,8 +197,16 @@ public final class ShowcaseModel {
     /// more than anybody will open — and a name that repeats would be two tabs
     /// with one identity, which a strip keyed by name cannot tell apart.
     private static final List<String> STAGES = List.of(
-            "Bree", "Weathertop", "Lothlórien", "Anduin", "Amon Hen",
-            "Fangorn", "Edoras", "Helm's Deep", "Osgiliath", "Cirith Ungol");
+            "Bree",
+            "Weathertop",
+            "Lothlórien",
+            "Anduin",
+            "Amon Hen",
+            "Fangorn",
+            "Edoras",
+            "Helm's Deep",
+            "Osgiliath",
+            "Cirith Ungol");
 
     // --- what these values mean ---------------------------------------------
     //
@@ -352,8 +361,7 @@ public final class ShowcaseModel {
         @Action("app.submit-signup")
         void submitSignup() {
             if (values.signup.submit()) {
-                values.signupStatus = values.signupName + " rides for Rivendell, hailed on "
-                        + values.signupPort;
+                values.signupStatus = values.signupName + " rides for Rivendell, hailed on " + values.signupPort;
             } else {
                 var count = values.signup.errors().size();
                 values.signupStatus = count + (count == 1 ? " thing" : " things") + " to put right";
@@ -430,9 +438,7 @@ public final class ShowcaseModel {
             // *value*, and a list changed in place is the same value.
             values.tabs = List.copyOf(current);
             if (value.equals(values.tab)) {
-                values.tab = current.isEmpty()
-                        ? null
-                        : current.get(Math.min(index, current.size() - 1));
+                values.tab = current.isEmpty() ? null : current.get(Math.min(index, current.size() - 1));
             }
         }
 

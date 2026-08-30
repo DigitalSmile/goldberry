@@ -18,8 +18,7 @@ public record DamageRect(int x, int y, int width, int height) {
 
     public DamageRect {
         if (width < 0 || height < 0) {
-            throw new IllegalArgumentException(
-                    "damage size must not be negative: " + width + "x" + height);
+            throw new IllegalArgumentException("damage size must not be negative: " + width + "x" + height);
         }
     }
 
@@ -38,10 +37,7 @@ public record DamageRect(int x, int y, int width, int height) {
     /// platforms and silent corruption on others, so this is checked rather than
     /// assumed.
     public boolean fitsWithin(PhysicalSize size) {
-        return x >= 0
-                && y >= 0
-                && (long) x + width <= size.width()
-                && (long) y + height <= size.height();
+        return x >= 0 && y >= 0 && (long) x + width <= size.width() && (long) y + height <= size.height();
     }
 
     @Override

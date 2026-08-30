@@ -1,27 +1,29 @@
 package io.github.digitalsmile.goldberry.widgets.menu;
 
-import io.github.digitalsmile.goldberry.RendererRequirement;
-import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
-import io.github.digitalsmile.goldberry.css.select.Selector;
-import io.github.digitalsmile.goldberry.css.Stylesheet;
-import io.github.digitalsmile.goldberry.css.Theme;
-import io.github.digitalsmile.goldberry.golden.GoldenImage;
-import io.github.digitalsmile.goldberry.icon.Icon;
-import io.github.digitalsmile.goldberry.paint.BoxPainter;
-import io.github.digitalsmile.goldberry.widget.attr.Attributes;
-import io.github.digitalsmile.goldberry.widget.Element;
-import io.github.digitalsmile.goldberry.widget.ElementTree;
-import io.github.digitalsmile.goldberry.widget.Widget;
-import io.github.digitalsmile.goldberry.widget.WidgetRenderer;
-import io.github.digitalsmile.goldberry.widgets.Controls;
-import io.github.digitalsmile.goldberry.widgets.controls.TestFont;
-import io.github.digitalsmile.goldberry.widgets.core.Row;
 import java.util.List;
 import java.util.Set;
+
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+
+import io.github.digitalsmile.goldberry.RendererRequirement;
+import io.github.digitalsmile.goldberry.css.Stylesheet;
+import io.github.digitalsmile.goldberry.css.Theme;
+import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
+import io.github.digitalsmile.goldberry.css.select.Selector;
+import io.github.digitalsmile.goldberry.golden.GoldenImage;
+import io.github.digitalsmile.goldberry.icon.Icon;
+import io.github.digitalsmile.goldberry.paint.BoxPainter;
+import io.github.digitalsmile.goldberry.widget.Element;
+import io.github.digitalsmile.goldberry.widget.ElementTree;
+import io.github.digitalsmile.goldberry.widget.Widget;
+import io.github.digitalsmile.goldberry.widget.WidgetRenderer;
+import io.github.digitalsmile.goldberry.widget.attr.Attributes;
+import io.github.digitalsmile.goldberry.widgets.Controls;
+import io.github.digitalsmile.goldberry.widgets.controls.TestFont;
+import io.github.digitalsmile.goldberry.widgets.core.Row;
 
 /// What a menu looks like — the panel, its rows, and the two things about a row
 /// that are easy to get wrong and impossible to assert.
@@ -55,30 +57,24 @@ class MenuGoldenTest {
         var reserve = menu.children().stream()
                 .anyMatch(child -> child instanceof Item item && (item.isCheckable() || item.icon() != null));
         return menu.children(menu.children().stream()
-                .map(child -> child instanceof Item item
-                        ? (Widget) item.reservingLead(reserve)
-                        : child)
+                .map(child -> child instanceof Item item ? (Widget) item.reservingLead(reserve) : child)
                 .toList());
     }
 
-    private void paint(String name, Theme theme, int width, int height, Menu menu,
-            PseudoState... states) {
-        var scene = new Row(List.of(asOpened(menu)),
-                new Attributes("scene", Set.of(), "scene"));
+    private void paint(String name, Theme theme, int width, int height, Menu menu, PseudoState... states) {
+        var scene = new Row(List.of(asOpened(menu)), new Attributes("scene", Set.of(), "scene"));
         var tree = new ElementTree(scene);
         for (var state : states) {
             state.applyTo(tree.root().children().getFirst());
         }
         var renderer = new WidgetRenderer(
-                List.of(Controls.baseStylesheet(), theme.load(),
-                        Stylesheet.parse(CascadeLayer.APPLICATION, """
+                List.of(Controls.baseStylesheet(), theme.load(), Stylesheet.parse(CascadeLayer.APPLICATION, """
                                 #scene { padding: 12px; align-items: flex-start;
                                          background: var(--gb-bg) }
                                 """)),
                 TestFont.get());
 
-        GoldenImage.assertMatches(name, width, height, 1.0f,
-                frame -> BoxPainter.paint(frame, renderer.render(tree)));
+        GoldenImage.assertMatches(name, width, height, 1.0f, frame -> BoxPainter.paint(frame, renderer.render(tree)));
     }
 
     private record PseudoState(int row, Selector.PseudoClass pseudoClass) {
@@ -93,11 +89,16 @@ class MenuGoldenTest {
     @Test
     @DisplayName("a menu with nothing checkable has no tick column")
     void plain() {
-        paint("menu-plain", Theme.NORD_DARK, 240, 130, new Menu(
-                new Item("Open…", () -> { }).accelerator("Ctrl+O"),
-                new Item("Save", () -> { }).accelerator("Ctrl+S"),
-                new Separator(),
-                new Item("Close", () -> { }).accelerator("Ctrl+W")));
+        paint(
+                "menu-plain",
+                Theme.NORD_DARK,
+                240,
+                130,
+                new Menu(
+                        new Item("Open…", () -> {}).accelerator("Ctrl+O"),
+                        new Item("Save", () -> {}).accelerator("Ctrl+S"),
+                        new Separator(),
+                        new Item("Close", () -> {}).accelerator("Ctrl+W")));
     }
 
     /// One checkable row gives every row in that menu a column, so the labels
@@ -105,11 +106,16 @@ class MenuGoldenTest {
     @Test
     @DisplayName("one checkable row reserves the column for all of them")
     void checkable() {
-        paint("menu-checkable", Theme.NORD_DARK, 240, 130, new Menu(
-                new Item("Word wrap", () -> { }).checked(true),
-                new Item("Line numbers", () -> { }).checkable(),
-                new Separator(),
-                new Item("Preferences…", () -> { })));
+        paint(
+                "menu-checkable",
+                Theme.NORD_DARK,
+                240,
+                130,
+                new Menu(
+                        new Item("Word wrap", () -> {}).checked(true),
+                        new Item("Line numbers", () -> {}).checkable(),
+                        new Separator(),
+                        new Item("Preferences…", () -> {})));
     }
 
     /// An icon, an accelerator and a row that leads somewhere, which is every
@@ -117,11 +123,16 @@ class MenuGoldenTest {
     @Test
     @DisplayName("icons, accelerators and a submenu row")
     void everything() {
-        paint("menu-rows", Theme.NORD_DARK, 260, 130, new Menu(
-                new Item("Open folder…", () -> { }).icon(icon).accelerator("Ctrl+O"),
-                new Item("Recent").submenu(new Item("notes.txt", () -> { })),
-                new Separator(),
-                new Item("Nothing here", () -> { }).disabled(true)));
+        paint(
+                "menu-rows",
+                Theme.NORD_DARK,
+                260,
+                130,
+                new Menu(
+                        new Item("Open folder…", () -> {}).icon(icon).accelerator("Ctrl+O"),
+                        new Item("Recent").submenu(new Item("notes.txt", () -> {})),
+                        new Separator(),
+                        new Item("Nothing here", () -> {}).disabled(true)));
     }
 
     /// The keyboard's highlight, which is `:focus-visible` and not `:focus` —
@@ -129,11 +140,16 @@ class MenuGoldenTest {
     @Test
     @DisplayName("the keyboard highlight is on the row the arrows reached")
     void keyboardHighlight() {
-        paint("menu-focus", Theme.NORD_DARK, 240, 130, new Menu(
-                new Item("Open…", () -> { }).accelerator("Ctrl+O"),
-                new Item("Save", () -> { }).accelerator("Ctrl+S"),
-                new Separator(),
-                new Item("Close", () -> { })),
+        paint(
+                "menu-focus",
+                Theme.NORD_DARK,
+                240,
+                130,
+                new Menu(
+                        new Item("Open…", () -> {}).accelerator("Ctrl+O"),
+                        new Item("Save", () -> {}).accelerator("Ctrl+S"),
+                        new Separator(),
+                        new Item("Close", () -> {})),
                 new PseudoState(1, Selector.PseudoClass.FOCUS_VISIBLE));
     }
 
@@ -143,12 +159,17 @@ class MenuGoldenTest {
     @Test
     @DisplayName("the showcase's menu, with an icon row and a checkable row")
     void mixed() {
-        paint("menu-mixed", Theme.NORD_DARK, 260, 170, new Menu(
-                new Item("Switch theme", () -> { }).icon(icon).accelerator("Ctrl+T"),
-                new Item("Switch density", () -> { }).accelerator("Ctrl+D"),
-                new Separator(),
-                new Item("Frame rate", () -> { }).accelerator("Ctrl+F").checked(false),
-                new Item("More").submenu(new Item("Reset", () -> { }))));
+        paint(
+                "menu-mixed",
+                Theme.NORD_DARK,
+                260,
+                170,
+                new Menu(
+                        new Item("Switch theme", () -> {}).icon(icon).accelerator("Ctrl+T"),
+                        new Item("Switch density", () -> {}).accelerator("Ctrl+D"),
+                        new Separator(),
+                        new Item("Frame rate", () -> {}).accelerator("Ctrl+F").checked(false),
+                        new Item("More").submenu(new Item("Reset", () -> {}))));
     }
 
     /// **An icon sits in the middle of its column** — [ADR-0143].
@@ -168,9 +189,16 @@ class MenuGoldenTest {
     void oversizedIconIsCentred() {
         var big = Icon.bundled("palette", 20);
         try {
-            paint("menu-icon-oversized", Theme.NORD_DARK, 240, 110, new Menu(
-                    new Item("Switch theme", () -> { }).icon(big).accelerator("Ctrl+T"),
-                    new Item("Frame rate", () -> { }).accelerator("Ctrl+F").checked(true)));
+            paint(
+                    "menu-icon-oversized",
+                    Theme.NORD_DARK,
+                    240,
+                    110,
+                    new Menu(
+                            new Item("Switch theme", () -> {}).icon(big).accelerator("Ctrl+T"),
+                            new Item("Frame rate", () -> {})
+                                    .accelerator("Ctrl+F")
+                                    .checked(true)));
         } finally {
             big.close();
         }
@@ -179,10 +207,15 @@ class MenuGoldenTest {
     @Test
     @DisplayName("a menu on the light theme")
     void light() {
-        paint("menu-light", Theme.NORD_LIGHT, 240, 130, new Menu(
-                new Item("Open…", () -> { }).accelerator("Ctrl+O"),
-                new Item("Save", () -> { }).accelerator("Ctrl+S"),
-                new Separator(),
-                new Item("Close", () -> { })));
+        paint(
+                "menu-light",
+                Theme.NORD_LIGHT,
+                240,
+                130,
+                new Menu(
+                        new Item("Open…", () -> {}).accelerator("Ctrl+O"),
+                        new Item("Save", () -> {}).accelerator("Ctrl+S"),
+                        new Separator(),
+                        new Item("Close", () -> {})));
     }
 }

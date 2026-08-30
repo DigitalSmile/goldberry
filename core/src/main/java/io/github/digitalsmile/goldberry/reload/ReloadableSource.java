@@ -1,6 +1,5 @@
 package io.github.digitalsmile.goldberry.reload;
 
-import io.github.digitalsmile.goldberry.log.Logs;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -8,7 +7,10 @@ import java.nio.file.Path;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Function;
+
 import org.slf4j.Logger;
+
+import io.github.digitalsmile.goldberry.log.Logs;
 
 /// A file that is parsed, and re-parsed when it changes, keeping the last thing
 /// that parsed.
@@ -114,8 +116,7 @@ public final class ReloadableSource<T> {
         } catch (RuntimeException e) {
             // Logged once per distinct failure, not once per keystroke.
             if (lastFailure == null || !Objects.equals(lastFailure.getMessage(), e.getMessage())) {
-                LOG.warn("{} did not parse; keeping the last good version: {}",
-                        file.getFileName(), e.getMessage());
+                LOG.warn("{} did not parse; keeping the last good version: {}", file.getFileName(), e.getMessage());
             }
             lastFailure = e;
             // Deliberately NOT stored as lastText: the next save is a change

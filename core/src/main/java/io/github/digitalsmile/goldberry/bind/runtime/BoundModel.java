@@ -1,8 +1,8 @@
 package io.github.digitalsmile.goldberry.bind.runtime;
 
+import io.github.digitalsmile.goldberry.bind.Model;
 import io.github.digitalsmile.goldberry.bind.registry.ActionRegistry;
 import io.github.digitalsmile.goldberry.bind.registry.BindingRegistry;
-import io.github.digitalsmile.goldberry.bind.Model;
 
 /// What the weaver makes a [Model] class implement.
 ///

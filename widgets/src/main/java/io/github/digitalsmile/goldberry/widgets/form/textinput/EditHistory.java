@@ -79,8 +79,7 @@ public final class EditHistory {
     private Kind lastKind = Kind.OTHER;
 
     /// An empty history, for a field that has just been mounted.
-    public EditHistory() {
-    }
+    public EditHistory() {}
 
     /// Records that `before` became `after`.
     ///
@@ -117,10 +116,7 @@ public final class EditHistory {
     }
 
     private boolean foldsInto(TextEdit before, Kind kind) {
-        return kind != Kind.OTHER
-                && kind == lastKind
-                && !past.isEmpty()
-                && before.equals(lastAfter);
+        return kind != Kind.OTHER && kind == lastKind && !past.isEmpty() && before.equals(lastAfter);
     }
 
     /// Whether there is anything to undo.

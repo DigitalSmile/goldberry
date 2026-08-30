@@ -4,17 +4,18 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import io.github.digitalsmile.goldberry.RendererRequirement;
-import io.github.digitalsmile.goldberry.paint.TestFrames;
-import io.github.digitalsmile.goldberry.css.value.Transform;
-import io.github.digitalsmile.goldberry.paint.Box;
-import io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength;
 import java.util.List;
 
-import io.github.digitalsmile.goldberry.render.Cursor;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+
+import io.github.digitalsmile.goldberry.RendererRequirement;
+import io.github.digitalsmile.goldberry.css.value.Transform;
+import io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength;
+import io.github.digitalsmile.goldberry.paint.Box;
+import io.github.digitalsmile.goldberry.paint.TestFrames;
+import io.github.digitalsmile.goldberry.render.Cursor;
 
 /// A pointer routed through a transform — the correctness trap ADR-0067 named
 /// and ADR-0068 closed.
@@ -54,12 +55,12 @@ class TransformedHitTest {
     @DisplayName("a translated box is hit where it was drawn, not where it was laid out")
     void translated() {
         // Yoga puts it at (0,0)-(40,40); the transform draws it at (100,100).
-        var regions = capture(moved(Transform.of(new Transform.Function.Translate(
-                Transform.Length.px(100), Transform.Length.px(100)))));
+        var regions = capture(moved(
+                Transform.of(new Transform.Function.Translate(Transform.Length.px(100), Transform.Length.px(100)))));
 
-        assertEquals("target", HitTest.at(regions, 120, 120).orElseThrow(),
-                "the pointer is over the ink");
-        assertFalse(HitTest.at(regions, 20, 20).filter("target"::equals).isPresent(),
+        assertEquals("target", HitTest.at(regions, 120, 120).orElseThrow(), "the pointer is over the ink");
+        assertFalse(
+                HitTest.at(regions, 20, 20).filter("target"::equals).isPresent(),
                 "and not over the rectangle Yoga produced, which nothing is drawn in");
     }
 
@@ -72,8 +73,8 @@ class TransformedHitTest {
 
         assertEquals("target", HitTest.at(regions, 20, 20).orElseThrow(), "the centre");
         assertEquals("target", HitTest.at(regions, 55, 55).orElseThrow(), "newly covered");
-        assertFalse(HitTest.at(regions, 65, 65).filter("target"::equals).isPresent(),
-                "and it stops where the ink stops");
+        assertFalse(
+                HitTest.at(regions, 65, 65).filter("target"::equals).isPresent(), "and it stops where the ink stops");
     }
 
     @Test
@@ -83,12 +84,14 @@ class TransformedHitTest {
         // reach further than the square did, and its own corners have swung
         // inside. Testing the bounding box would get both of these wrong, which
         // is what mapping the pointer through the inverse avoids.
-        var regions = capture(moved(
-                Transform.of(new Transform.Function.Rotate(Math.toRadians(45)))));
+        var regions = capture(moved(Transform.of(new Transform.Function.Rotate(Math.toRadians(45)))));
 
-        assertEquals("target", HitTest.at(regions, 20, -6).orElseThrow(),
+        assertEquals(
+                "target",
+                HitTest.at(regions, 20, -6).orElseThrow(),
                 "the top of the diamond, outside the original square");
-        assertFalse(HitTest.at(regions, 2, 2).filter("target"::equals).isPresent(),
+        assertFalse(
+                HitTest.at(regions, 2, 2).filter("target"::equals).isPresent(),
                 "the square's own top-left corner is now outside the shape");
     }
 
@@ -103,8 +106,8 @@ class TransformedHitTest {
                 .owner("child");
         var parent = Box.filled(0xFF00FF00)
                 .size(StyleLength.points(40), StyleLength.points(40))
-                .transform(Transform.of(new Transform.Function.Translate(
-                        Transform.Length.px(100), Transform.Length.ZERO)))
+                .transform(
+                        Transform.of(new Transform.Function.Translate(Transform.Length.px(100), Transform.Length.ZERO)))
                 .children(child);
         var regions = capture(Box.filled(0xFF000000)
                 .size(StyleLength.points(200), StyleLength.points(200))
@@ -121,13 +124,13 @@ class TransformedHitTest {
         // accumulated matrix instead of composing under it.
         var child = Box.filled(0xFF0000FF)
                 .size(StyleLength.points(20), StyleLength.points(20))
-                .transform(Transform.of(new Transform.Function.Translate(
-                        Transform.Length.ZERO, Transform.Length.px(50))))
+                .transform(
+                        Transform.of(new Transform.Function.Translate(Transform.Length.ZERO, Transform.Length.px(50))))
                 .owner("child");
         var parent = Box.filled(0xFF00FF00)
                 .size(StyleLength.points(40), StyleLength.points(40))
-                .transform(Transform.of(new Transform.Function.Translate(
-                        Transform.Length.px(100), Transform.Length.ZERO)))
+                .transform(
+                        Transform.of(new Transform.Function.Translate(Transform.Length.px(100), Transform.Length.ZERO)))
                 .children(child);
         var regions = capture(Box.filled(0xFF000000)
                 .size(StyleLength.points(200), StyleLength.points(200))
@@ -144,7 +147,8 @@ class TransformedHitTest {
         // The region is dropped instead.
         var regions = capture(moved(Transform.of(new Transform.Function.Scale(0, 0))));
 
-        assertTrue(regions.stream().noneMatch(r -> "target".equals(r.owner())),
+        assertTrue(
+                regions.stream().noneMatch(r -> "target".equals(r.owner())),
                 "a collapsed box has no rectangle to be inside of");
         assertFalse(HitTest.at(regions, 20, 20).filter("target"::equals).isPresent());
     }
@@ -179,9 +183,7 @@ class TransformedHitTest {
                         .transform(Transform.of(new Transform.Function.Translate(
                                 Transform.Length.px(100), Transform.Length.px(100))))));
 
-        assertEquals(Cursor.POINTER,
-                HitTest.cursorAt(regions, 120, 120));
-        assertEquals(Cursor.DEFAULT,
-                HitTest.cursorAt(regions, 20, 20));
+        assertEquals(Cursor.POINTER, HitTest.cursorAt(regions, 120, 120));
+        assertEquals(Cursor.DEFAULT, HitTest.cursorAt(regions, 20, 20));
     }
 }

@@ -1,5 +1,9 @@
 package io.github.digitalsmile.goldberry.widgets.panel.tree;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
+
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
 import io.github.digitalsmile.goldberry.input.event.KeyEvent;
 import io.github.digitalsmile.goldberry.input.event.PointerEvent;
@@ -7,13 +11,9 @@ import io.github.digitalsmile.goldberry.input.handler.Handles;
 import io.github.digitalsmile.goldberry.input.key.Key;
 import io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength;
 import io.github.digitalsmile.goldberry.paint.Box;
+import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widget.style.Paints;
 import io.github.digitalsmile.goldberry.widget.style.Styled;
-import io.github.digitalsmile.goldberry.widget.Widget;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
 
 /// One visible row of a [Tree] — a **part**, so it is styleable and not
 /// constructible ([ADR-0065]).
@@ -67,13 +67,20 @@ import java.util.Set;
 /// @param onSiblings asked to open every sibling of this row — §3's `*`
 /// @param onType     what was typed, for §3's type-to-select
 /// @param onCheck    asked to tick or untick, when there is a box to tick
-record TreeRow(TreeNode node, int depth, boolean expanded, boolean selectable, boolean selected,
+record TreeRow(
+        TreeNode node,
+        int depth,
+        boolean expanded,
+        boolean selectable,
+        boolean selected,
         io.github.digitalsmile.goldberry.widgets.controls.checkbox.Checkbox.Value check,
         Runnable onToggle,
         java.util.function.Consumer<io.github.digitalsmile.goldberry.input.key.Modifiers> onSelect,
         Runnable onOut,
-        java.util.function.IntConsumer onEnd, Runnable onSiblings,
-        java.util.function.Consumer<String> onType, Runnable onCheck)
+        java.util.function.IntConsumer onEnd,
+        Runnable onSiblings,
+        java.util.function.Consumer<String> onType,
+        Runnable onCheck)
         implements Widget.Leaf, Styled, Paints, Handles {
 
     /// §2's "indent 20 per level".
@@ -238,8 +245,7 @@ record TreeRow(TreeNode node, int depth, boolean expanded, boolean selectable, b
                 onEnd.accept(1);
                 event.consume();
             }
-            default -> {
-            }
+            default -> {}
         }
     }
 
@@ -291,8 +297,7 @@ record TreeRow(TreeNode node, int depth, boolean expanded, boolean selectable, b
 
         @Override
         public Box render(ComputedStyle style, List<Box> children, Context context) {
-            return Box.of().style(style)
-                    .size(StyleLength.points((float) (depth * INDENT)), StyleLength.UNDEFINED);
+            return Box.of().style(style).size(StyleLength.points((float) (depth * INDENT)), StyleLength.UNDEFINED);
         }
     }
 
@@ -345,10 +350,10 @@ record TreeRow(TreeNode node, int depth, boolean expanded, boolean selectable, b
                 // one level have to line up -- and draws nothing in it.
                 return Box.of().style(style);
             }
-            return Box.of().style(style)
+            return Box.of()
+                    .style(style)
                     .mark(new Box.Mark(
-                            expanded ? Box.Mark.Kind.CHEVRON_DOWN : Box.Mark.Kind.CHEVRON_END,
-                            style.color(), 1.5));
+                            expanded ? Box.Mark.Kind.CHEVRON_DOWN : Box.Mark.Kind.CHEVRON_END, style.color(), 1.5));
         }
     }
 
@@ -376,9 +381,7 @@ record TreeRow(TreeNode node, int depth, boolean expanded, boolean selectable, b
     /// row must not also select it. They are two values (§3 asks for both), and
     /// a click that did both would make the checkbox unusable in a
     /// single-selection tree — every tick would move the highlight.
-    record TreeCheck(
-            io.github.digitalsmile.goldberry.widgets.controls.checkbox.Checkbox.Value state,
-            Runnable onCheck)
+    record TreeCheck(io.github.digitalsmile.goldberry.widgets.controls.checkbox.Checkbox.Value state, Runnable onCheck)
             implements Widget.Leaf, Styled, Paints, Handles {
 
         /// The mark's stroke, in logical pixels — §1.6's icon stroke, which is
@@ -405,9 +408,8 @@ record TreeRow(TreeNode node, int depth, boolean expanded, boolean selectable, b
 
         @Override
         public List<Widget> children() {
-            return List.of(
-                    new io.github.digitalsmile.goldberry.widgets.controls.checkbox.CheckIndicator(
-                            state, false, MARK_THICKNESS));
+            return List.of(new io.github.digitalsmile.goldberry.widgets.controls.checkbox.CheckIndicator(
+                    state, false, MARK_THICKNESS));
         }
 
         @Override
@@ -443,8 +445,7 @@ record TreeRow(TreeNode node, int depth, boolean expanded, boolean selectable, b
 
         @Override
         public Box render(ComputedStyle style, List<Box> children, Context context) {
-            return Box.of().style(style)
-                    .children(Box.text(context.paragraph(style, text), style.color()));
+            return Box.of().style(style).children(Box.text(context.paragraph(style, text), style.color()));
         }
     }
 }

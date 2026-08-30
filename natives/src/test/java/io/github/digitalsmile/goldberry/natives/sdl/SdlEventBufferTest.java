@@ -3,15 +3,17 @@ package io.github.digitalsmile.goldberry.natives.sdl;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import io.github.digitalsmile.goldberry.natives.NativeLibrary;
-import io.github.digitalsmile.goldberry.natives.layout.Layouts;
 import java.lang.foreign.ValueLayout;
+
 import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
+
+import io.github.digitalsmile.goldberry.natives.NativeLibrary;
+import io.github.digitalsmile.goldberry.natives.layout.Layouts;
 import io.github.digitalsmile.goldberry.natives.sdl.event.SdlEventType;
 import io.github.digitalsmile.goldberry.natives.sdl.event.SdlWheelDirection;
 
@@ -34,8 +36,7 @@ class SdlEventBufferTest {
 
     @BeforeAll
     static void requireLibrary() {
-        Assumptions.assumeTrue(NativeLibrary.isAvailable(),
-                "no libgoldberry to read struct offsets from");
+        Assumptions.assumeTrue(NativeLibrary.isAvailable(), "no libgoldberry to read struct offsets from");
     }
 
     /// Fills the buffer with a wheel event and hands it back.
@@ -107,10 +108,13 @@ class SdlEventBufferTest {
         // float that is not a coordinate.
         var motionX = Layouts.SDL_MOUSE_MOTION_EVENT.offsetOf("x");
         var buttonX = Layouts.SDL_MOUSE_BUTTON_EVENT.offsetOf("x");
-        assertTrue(WHEEL_MOUSE_X != motionX && WHEEL_MOUSE_X != buttonX,
-                "mouse_x at " + WHEEL_MOUSE_X + " would be shadowed by motion's " + motionX
-                        + " or the button arm's " + buttonX);
-        assertEquals(WHEEL_Y, motionX,
+        assertTrue(
+                WHEEL_MOUSE_X != motionX && WHEEL_MOUSE_X != buttonX,
+                "mouse_x at " + WHEEL_MOUSE_X + " would be shadowed by motion's " + motionX + " or the button arm's "
+                        + buttonX);
+        assertEquals(
+                WHEEL_Y,
+                motionX,
                 "SDL's layout puts the wheel's vertical delta exactly where motion"
                         + " puts its x, which is the confusion this accessor avoids");
     }

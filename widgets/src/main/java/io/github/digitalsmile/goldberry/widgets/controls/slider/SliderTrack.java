@@ -1,13 +1,14 @@
 package io.github.digitalsmile.goldberry.widgets.controls.slider;
 
-import io.github.digitalsmile.goldberry.css.ComputedStyle;
-import io.github.digitalsmile.goldberry.paint.Box;
-import io.github.digitalsmile.goldberry.widget.style.Paints;
-import io.github.digitalsmile.goldberry.widget.style.Styled;
-import io.github.digitalsmile.goldberry.widget.Widget;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+
+import io.github.digitalsmile.goldberry.css.ComputedStyle;
+import io.github.digitalsmile.goldberry.paint.Box;
+import io.github.digitalsmile.goldberry.widget.Widget;
+import io.github.digitalsmile.goldberry.widget.style.Paints;
+import io.github.digitalsmile.goldberry.widget.style.Styled;
 
 /// The full-height box a slider's value is measured along — a **part** of
 /// [Slider], and the seventh.
@@ -28,8 +29,7 @@ import java.util.Set;
 /// @param ticks    how many marks to draw under it; `0` for none
 /// @param disabled inherited from the slider, so a part is selectable without a
 ///                 descendant combinator
-record SliderTrack(double fraction, int ticks, boolean disabled)
-        implements Widget.Leaf, Styled, Paints {
+record SliderTrack(double fraction, int ticks, boolean disabled) implements Widget.Leaf, Styled, Paints {
 
     @Override
     public String cssType() {

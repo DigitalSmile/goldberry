@@ -35,8 +35,7 @@ class CornersTest {
         @DisplayName("an infinite corner is a programming error, and says so")
         void infiniteIsRefused() {
             assertThrows(IllegalArgumentException.class, () -> Corners.all(Double.NaN));
-            assertThrows(IllegalArgumentException.class,
-                    () -> Corners.all(Double.POSITIVE_INFINITY));
+            assertThrows(IllegalArgumentException.class, () -> Corners.all(Double.POSITIVE_INFINITY));
         }
 
         @Test

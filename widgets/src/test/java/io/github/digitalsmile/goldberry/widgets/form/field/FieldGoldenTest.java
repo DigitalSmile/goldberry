@@ -3,26 +3,28 @@ package io.github.digitalsmile.goldberry.widgets.form.field;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.List;
+import java.util.Set;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+
 import io.github.digitalsmile.goldberry.RendererRequirement;
-import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
 import io.github.digitalsmile.goldberry.css.Stylesheet;
 import io.github.digitalsmile.goldberry.css.Theme;
+import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
 import io.github.digitalsmile.goldberry.golden.GoldenImage;
 import io.github.digitalsmile.goldberry.paint.BoxPainter;
-import io.github.digitalsmile.goldberry.widget.attr.Attributes;
 import io.github.digitalsmile.goldberry.widget.ElementTree;
 import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widget.WidgetRenderer;
+import io.github.digitalsmile.goldberry.widget.attr.Attributes;
 import io.github.digitalsmile.goldberry.widgets.Controls;
 import io.github.digitalsmile.goldberry.widgets.controls.TestFont;
 import io.github.digitalsmile.goldberry.widgets.controls.button.Button;
 import io.github.digitalsmile.goldberry.widgets.form.form.Form;
 import io.github.digitalsmile.goldberry.widgets.form.textinput.TextInput;
-import java.util.List;
-import java.util.Set;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
 
 /// What a `field` actually looks like, in both of §4's layouts and with something
 /// wrong with it.
@@ -61,60 +63,61 @@ class FieldGoldenTest {
     private void paint(String name, Theme theme, int width, int height, Widget content) {
         var tree = new ElementTree(content);
         var renderer = new WidgetRenderer(
-                List.of(Controls.baseStylesheet(), theme.load(),
-                        Stylesheet.parse(CascadeLayer.APPLICATION, SCENE)),
+                List.of(Controls.baseStylesheet(), theme.load(), Stylesheet.parse(CascadeLayer.APPLICATION, SCENE)),
                 TestFont.get());
 
-        GoldenImage.assertMatches(name, width, height, 1.0f,
-                frame -> BoxPainter.paint(frame, renderer.render(tree)));
+        GoldenImage.assertMatches(name, width, height, 1.0f, frame -> BoxPainter.paint(frame, renderer.render(tree)));
     }
 
     /// A field with something to say, built directly — the state that a form
     /// only reaches after somebody has left a control empty.
     private static Widget field(String label, boolean required, String message, String value) {
-        return new FieldBox(label, List.of(new TextInput(value, null).placeholder("Jane Doe")),
-                required, message, Attributes.NONE, () -> {
-                });
+        return new FieldBox(
+                label,
+                List.of(new TextInput(value, null).placeholder("Jane Doe")),
+                required,
+                message,
+                Attributes.NONE,
+                () -> {});
     }
 
     /// A real `form`, because the label column is a rule on **the form** — a form
     /// is where somebody decides that this form has one, and writing the class on
     /// every field would be the same decision repeated once per row.
     private static Widget form(String... classes) {
-        return new Form(List.of(
-                field("Name", true, "", "Jane"),
-                field("Port", true, "Ports run from 1024 to 65535", "80"),
-                actions()),
-                null, null, id("form", classes));
+        return new Form(
+                List.of(
+                        field("Name", true, "", "Jane"),
+                        field("Port", true, "Ports run from 1024 to 65535", "80"),
+                        actions()),
+                null,
+                null,
+                id("form", classes));
     }
 
     /// The action row: a field with **no label**, which is what lines a Save
     /// button up with the controls rather than with the labels.
     private static Widget actions() {
-        return new FieldBox("", List.of(new Button("Save").styled("primary")),
-                false, "", id("save", "actions"), () -> {
-                });
+        return new FieldBox(
+                "", List.of(new Button("Save").styled("primary")), false, "", id("save", "actions"), () -> {});
     }
 
     @Test
     @DisplayName("a label column, with the message under the control and Save beside it")
     void horizontal() {
-        paint("field-horizontal", Theme.NORD_DARK, 360, 200,
-                form("horizontal"));
+        paint("field-horizontal", Theme.NORD_DARK, 360, 200, form("horizontal"));
     }
 
     @Test
     @DisplayName("stacked labels, which is the default")
     void stacked() {
-        paint("field-stacked", Theme.NORD_DARK, 360, 220,
-                form());
+        paint("field-stacked", Theme.NORD_DARK, 360, 220, form());
     }
 
     @Test
     @DisplayName("the same, on the light theme")
     void horizontalLight() {
-        paint("field-horizontal-light", Theme.NORD_LIGHT, 360, 200,
-                form("horizontal"));
+        paint("field-horizontal-light", Theme.NORD_LIGHT, 360, 200, form("horizontal"));
     }
 
     @Test
@@ -130,7 +133,6 @@ class FieldGoldenTest {
 
         var body = ((FieldBody) parts.get(1)).children();
         assertTrue(body.get(0) instanceof TextInput, "the control comes first");
-        assertTrue(body.get(body.size() - 1) instanceof FieldMessage,
-                "and the message is under it, not beside it");
+        assertTrue(body.get(body.size() - 1) instanceof FieldMessage, "and the message is under it, not beside it");
     }
 }

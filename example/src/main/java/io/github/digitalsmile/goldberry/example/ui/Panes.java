@@ -46,8 +46,7 @@ import io.github.digitalsmile.goldberry.widgets.panel.masonry.Masonry;
 /// ([ADR-0222](../../../../../../../book/src/adr/0222-a-showcase-is-a-window-a-bar-and-seven-screens.md)).
 public final class Panes {
 
-    private Panes() {
-    }
+    private Panes() {}
 
     /// The window's bar — the leagues, the two startup readings and the light
     /// switch.
@@ -94,9 +93,8 @@ public final class Panes {
         if (inflate(inflater, document) instanceof Masonry cards) {
             return cards;
         }
-        throw new IllegalStateException(
-                document + " must have a masonry of cards at its root, because a screen"
-                        + " appends its own cards to it");
+        throw new IllegalStateException(document + " must have a masonry of cards at its root, because a screen"
+                + " appends its own cards to it");
     }
 
     private static Widget inflate(KdlInflater<Widget> inflater, String document) {

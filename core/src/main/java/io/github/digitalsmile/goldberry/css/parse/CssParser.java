@@ -4,9 +4,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
+
 import io.github.digitalsmile.goldberry.css.Declaration;
-import io.github.digitalsmile.goldberry.css.select.Selector;
 import io.github.digitalsmile.goldberry.css.StyleRule;
+import io.github.digitalsmile.goldberry.css.select.Selector;
 
 /// Turns [Token]s into [StyleRule]s.
 ///
@@ -63,8 +64,7 @@ public final class CssParser {
     private List<StyleRule> atRule() {
         var at = advance();
         if (!at.text().equalsIgnoreCase("media")) {
-            throw error(at, "unsupported at-rule \"@" + at.text()
-                    + "\"; this subset has @media and nothing else");
+            throw error(at, "unsupported at-rule \"@" + at.text() + "\"; this subset has @media and nothing else");
         }
         // The prelude, up to the block.
         while (!peek().is(TokenType.OPEN_BRACE)) {
@@ -152,9 +152,7 @@ public final class CssParser {
         var n = compounds.size();
         var parts = new ArrayList<Selector.Part>(n);
         for (var j = 0; j < n; j++) {
-            var combinator = j < n - 1
-                    ? combinators.get(n - 2 - j)
-                    : Selector.Combinator.NONE;
+            var combinator = j < n - 1 ? combinators.get(n - 2 - j) : Selector.Combinator.NONE;
             parts.add(new Selector.Part(compounds.get(n - 1 - j), combinator));
         }
         return new Selector(parts);
@@ -210,16 +208,16 @@ public final class CssParser {
                     throw error(token, "pseudo-elements (::) are not in this subset");
                 }
                 if (!peek().is(TokenType.IDENT)) {
-                    throw error(peek(), "expected a pseudo-class name after \":\", found "
-                            + peek().describe());
+                    throw error(peek(), "expected a pseudo-class name after \":\", found " + peek().describe());
                 }
                 var name = advance();
                 var pseudo = Selector.PseudoClass.parse(name.text());
                 if (pseudo == null) {
                     // Named rather than ignored: ":hovered" as a silently
                     // never-matching rule is a bad afternoon.
-                    throw error(name, "unknown pseudo-class \":" + name.text() + "\"; supported: "
-                            + supportedPseudoClasses());
+                    throw error(
+                            name,
+                            "unknown pseudo-class \":" + name.text() + "\"; supported: " + supportedPseudoClasses());
                 }
                 pseudoClasses.add(pseudo);
                 sawAnything = true;
@@ -272,9 +270,7 @@ public final class CssParser {
         advance();
         // Custom properties keep their case: "--gbAccent" and "--gbaccent" are
         // different properties. Everything else is a known keyword and is not.
-        var property = name.text().startsWith("--")
-                ? name.text()
-                : name.text().toLowerCase(Locale.ROOT);
+        var property = name.text().startsWith("--") ? name.text() : name.text().toLowerCase(Locale.ROOT);
 
         skipWhitespace();
         expect(TokenType.COLON, ":");

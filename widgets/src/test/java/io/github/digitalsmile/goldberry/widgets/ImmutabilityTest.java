@@ -5,15 +5,6 @@ import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import io.github.digitalsmile.goldberry.bind.Observable;
-import io.github.digitalsmile.goldberry.widget.attr.Attributes;
-import io.github.digitalsmile.goldberry.widget.Widget;
-import io.github.digitalsmile.goldberry.widgets.controls.badge.Badge;
-import io.github.digitalsmile.goldberry.widgets.controls.radio.Radio;
-import io.github.digitalsmile.goldberry.widgets.controls.radio.RadioGroup;
-import io.github.digitalsmile.goldberry.widgets.core.Column;
-import io.github.digitalsmile.goldberry.widgets.core.Row;
-import io.github.digitalsmile.goldberry.widgets.text.Text;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -21,8 +12,19 @@ import java.util.List;
 import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.DoubleConsumer;
+
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+
+import io.github.digitalsmile.goldberry.bind.Observable;
+import io.github.digitalsmile.goldberry.widget.Widget;
+import io.github.digitalsmile.goldberry.widget.attr.Attributes;
+import io.github.digitalsmile.goldberry.widgets.controls.badge.Badge;
+import io.github.digitalsmile.goldberry.widgets.controls.radio.Radio;
+import io.github.digitalsmile.goldberry.widgets.controls.radio.RadioGroup;
+import io.github.digitalsmile.goldberry.widgets.core.Column;
+import io.github.digitalsmile.goldberry.widgets.core.Row;
+import io.github.digitalsmile.goldberry.widgets.text.Text;
 
 /// A widget is a **value**, and this is what says so.
 ///
@@ -43,12 +45,13 @@ class ImmutabilityTest {
         var inflater = Widgets.inflater();
         var widgets = new ArrayList<Widget>();
         for (var type : allTypes()) {
-            var markup = switch (type) {
-                case "text", "button", "badge" -> type + " \"x\"";
-                case "radio" -> "radio value=\"x\" \"X\"";
-                case "option" -> "option value=\"x\" \"X\"";
-                default -> type;
-            };
+            var markup =
+                    switch (type) {
+                        case "text", "button", "badge" -> type + " \"x\"";
+                        case "radio" -> "radio value=\"x\" \"X\"";
+                        case "option" -> "option value=\"x\" \"X\"";
+                        default -> type;
+                    };
             widgets.add(inflater.inflate(
                     io.github.digitalsmile.goldberry.kdl.KdlParser.parse(markup).getFirst()));
         }
@@ -56,8 +59,7 @@ class ImmutabilityTest {
     }
 
     private static List<String> allTypes() {
-        var all = new ArrayList<>(
-                io.github.digitalsmile.goldberry.widgets.core.Primitives.builtInTypes());
+        var all = new ArrayList<>(io.github.digitalsmile.goldberry.widgets.core.Primitives.builtInTypes());
         all.addAll(Controls.controlTypes());
         all.remove("radio-group");
         return all;
@@ -69,8 +71,7 @@ class ImmutabilityTest {
     @DisplayName("every widget is a record")
     void everyWidgetIsARecord() {
         for (var widget : catalog()) {
-            assertTrue(widget.getClass().isRecord(),
-                    () -> widget.getClass().getSimpleName() + " is not a record");
+            assertTrue(widget.getClass().isRecord(), () -> widget.getClass().getSimpleName() + " is not a record");
         }
     }
 
@@ -85,9 +86,9 @@ class ImmutabilityTest {
                 if (Modifier.isStatic(field.getModifiers())) {
                     continue;
                 }
-                assertTrue(Modifier.isFinal(field.getModifiers()),
-                        () -> widget.getClass().getSimpleName() + "." + field.getName()
-                                + " is not final");
+                assertTrue(
+                        Modifier.isFinal(field.getModifiers()),
+                        () -> widget.getClass().getSimpleName() + "." + field.getName() + " is not final");
             }
         }
     }
@@ -127,8 +128,7 @@ class ImmutabilityTest {
     void childrenAreUnmodifiable() {
         var row = new Row(new Text("a"));
 
-        assertThrows(UnsupportedOperationException.class,
-                () -> row.children().add(new Text("b")));
+        assertThrows(UnsupportedOperationException.class, () -> row.children().add(new Text("b")));
     }
 
     @Test
@@ -141,8 +141,8 @@ class ImmutabilityTest {
         mutable.add("danger");
 
         assertEquals(Set.of("primary"), attributes.classes());
-        assertThrows(UnsupportedOperationException.class,
-                () -> attributes.classes().add("ghost"));
+        assertThrows(
+                UnsupportedOperationException.class, () -> attributes.classes().add("ghost"));
     }
 
     /// Every chainable step returns a **new** widget rather than mutating the
@@ -179,8 +179,7 @@ class ImmutabilityTest {
 
         assertTrue(badge.binding() instanceof Observable<?>);
         for (var method : Observable.class.getMethods()) {
-            assertTrue(!method.getName().equals("set"),
-                    "Observable grew a setter; a widget could write to the model");
+            assertTrue(!method.getName().equals("set"), "Observable grew a setter; a widget could write to the model");
         }
     }
 
@@ -202,14 +201,12 @@ class ImmutabilityTest {
     @Test
     @DisplayName("two widgets carrying handlers are not equal, and that is known")
     void handlersDefeatEquality() {
-        DoubleConsumer handler = value -> { };
-        Consumer<String> other = value -> { };
+        DoubleConsumer handler = value -> {};
+        Consumer<String> other = value -> {};
 
         assertEquals(
-                new io.github.digitalsmile.goldberry.widgets.controls.slider.Slider(
-                        0, 1, 0, 0, handler),
-                new io.github.digitalsmile.goldberry.widgets.controls.slider.Slider(
-                        0, 1, 0, 0, handler),
+                new io.github.digitalsmile.goldberry.widgets.controls.slider.Slider(0, 1, 0, 0, handler),
+                new io.github.digitalsmile.goldberry.widgets.controls.slider.Slider(0, 1, 0, 0, handler),
                 "the same handler must still compare equal");
         assertTrue(other != null);
     }

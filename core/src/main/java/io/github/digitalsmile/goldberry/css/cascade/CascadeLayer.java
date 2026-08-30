@@ -1,6 +1,5 @@
 package io.github.digitalsmile.goldberry.css.cascade;
 
-
 /// Where a stylesheet sits in the cascade.
 ///
 /// Fixed and closed, per `ARCHITECTURE.md` §8: toolkit base → theme →

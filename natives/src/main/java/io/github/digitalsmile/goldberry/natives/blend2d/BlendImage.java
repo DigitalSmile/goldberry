@@ -1,11 +1,12 @@
 package io.github.digitalsmile.goldberry.natives.blend2d;
 
-import io.github.digitalsmile.goldberry.natives.layout.Layouts;
 import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;
 import java.nio.ByteBuffer;
 import java.util.Objects;
+
 import io.github.digitalsmile.goldberry.natives.blend2d.enums.BlendFormat;
+import io.github.digitalsmile.goldberry.natives.layout.Layouts;
 
 /// A Blend2D image over pixels somebody else owns.
 ///
@@ -44,8 +45,7 @@ public final class BlendImage implements AutoCloseable {
             // Every Blend2D core object is one BLObjectDetail and nothing else.
             // The layout table asserts that BLImageCore really is that shape.
             this.image = arena.allocate(Layouts.BL_OBJECT_DETAIL.layout());
-            calls.imageInitFromData(
-                    image, width, height, format, addressOf(pixels), stride);
+            calls.imageInitFromData(image, width, height, format, addressOf(pixels), stride);
         } catch (RuntimeException | Error e) {
             arena.close();
             throw e;
@@ -71,8 +71,7 @@ public final class BlendImage implements AutoCloseable {
     /// Wraps an existing buffer in a given format.
     ///
     /// @see #wrapping(ByteBuffer, int, int, int)
-    public static BlendImage wrapping(
-            ByteBuffer pixels, int width, int height, int stride, BlendFormat format) {
+    public static BlendImage wrapping(ByteBuffer pixels, int width, int height, int stride, BlendFormat format) {
 
         Objects.requireNonNull(pixels, "pixels");
         Objects.requireNonNull(format, "format");
@@ -81,22 +80,19 @@ public final class BlendImage implements AutoCloseable {
                     "an image must have a positive size, and " + width + "x" + height + " does not");
         }
         if (stride < Math.multiplyExact(width, 4)) {
-            throw new IllegalArgumentException(
-                    "a stride of " + stride + " cannot hold a row of " + width
-                            + " 32-bit pixels, which needs " + (width * 4));
+            throw new IllegalArgumentException("a stride of " + stride + " cannot hold a row of " + width
+                    + " 32-bit pixels, which needs " + (width * 4));
         }
         // The last row does not need padding after it, so the requirement is
         // one row short of stride * height. Getting this wrong the other way
         // would reject a legal tightly-packed buffer.
-        var required = Math.addExact(
-                Math.multiplyExact((long) stride, height - 1), Math.multiplyExact(width, 4L));
+        var required = Math.addExact(Math.multiplyExact((long) stride, height - 1), Math.multiplyExact(width, 4L));
         // `remaining`, not `capacity`: MemorySegment.ofBuffer honours the
         // buffer's position and limit, so a buffer positioned partway through
         // gives Blend2D fewer bytes than its capacity suggests.
         if (pixels.remaining() < required) {
-            throw new IllegalArgumentException(
-                    "a " + width + "x" + height + " image at stride " + stride + " needs "
-                            + required + " bytes, and the buffer offers " + pixels.remaining());
+            throw new IllegalArgumentException("a " + width + "x" + height + " image at stride " + stride + " needs "
+                    + required + " bytes, and the buffer offers " + pixels.remaining());
         }
         return new BlendImage(pixels, width, height, stride, format);
     }
@@ -170,8 +166,7 @@ public final class BlendImage implements AutoCloseable {
 
     private void requireOwner() {
         if (Thread.currentThread() != owner) {
-            throw new IllegalStateException(
-                    "a BlendImage belongs to the thread that created it, and this is not it");
+            throw new IllegalStateException("a BlendImage belongs to the thread that created it, and this is not it");
         }
     }
 

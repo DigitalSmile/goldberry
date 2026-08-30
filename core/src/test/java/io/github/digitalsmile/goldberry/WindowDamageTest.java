@@ -4,19 +4,21 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import io.github.digitalsmile.goldberry.render.DamageRect;
-import io.github.digitalsmile.goldberry.render.model.DisplayScale;
-import io.github.digitalsmile.goldberry.render.model.LogicalSize;
-import io.github.digitalsmile.goldberry.render.window.WindowSpec;
-import io.github.digitalsmile.goldberry.render.backend.headless.HeadlessBackend;
-import io.github.digitalsmile.goldberry.render.backend.headless.HeadlessWindow;
 import java.util.List;
 import java.util.function.Consumer;
+
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
+
+import io.github.digitalsmile.goldberry.render.DamageRect;
+import io.github.digitalsmile.goldberry.render.backend.headless.HeadlessBackend;
+import io.github.digitalsmile.goldberry.render.backend.headless.HeadlessWindow;
+import io.github.digitalsmile.goldberry.render.model.DisplayScale;
+import io.github.digitalsmile.goldberry.render.model.LogicalSize;
+import io.github.digitalsmile.goldberry.render.window.WindowSpec;
 
 /// What the frame loop tells the platform changed.
 ///
@@ -78,9 +80,7 @@ class WindowDamageTest {
 
         var frame = presented.lastFrame().orElseThrow();
         for (var rect : presented.lastDamage()) {
-            assertTrue(
-                    rect.fitsWithin(frame.size()),
-                    () -> rect + " falls outside the presented " + frame.size());
+            assertTrue(rect.fitsWithin(frame.size()), () -> rect + " falls outside the presented " + frame.size());
         }
     }
 
@@ -90,10 +90,8 @@ class WindowDamageTest {
     void damageFollowsAResize() {
         // Resize on the first frame, then let a second one paint against the new
         // size. The damage from that second frame is what is under test.
-        var presented = runUntilPainted(
-                LogicalSize.of(200f, 100f),
-                2,
-                window -> window.resizeTo(LogicalSize.of(400f, 300f)));
+        var presented =
+                runUntilPainted(LogicalSize.of(200f, 100f), 2, window -> window.resizeTo(LogicalSize.of(400f, 300f)));
 
         // 400x300 logical at 150%. Spelled out so the assertion still means
         // something if the resize silently did not happen -- comparing against
@@ -146,13 +144,13 @@ class WindowDamageTest {
 
         Goldberry.run();
 
-        assertFalse(partialOnTheLastFrame[0],
-                "the buffer was reallocated by the resize, so this frame was a full repaint");
+        assertFalse(
+                partialOnTheLastFrame[0], "the buffer was reallocated by the resize, so this frame was a full repaint");
         var damage = presentedDamage(backendWindow);
-        assertEquals(600, damage.width(),
-                "a fully repainted frame uploaded only the region the painter said had changed");
-        assertEquals(450, damage.height(),
-                "a fully repainted frame uploaded only the region the painter said had changed");
+        assertEquals(
+                600, damage.width(), "a fully repainted frame uploaded only the region the painter said had changed");
+        assertEquals(
+                450, damage.height(), "a fully repainted frame uploaded only the region the painter said had changed");
     }
 
     @Test
@@ -182,8 +180,7 @@ class WindowDamageTest {
 
         Goldberry.run();
 
-        assertTrue(partialOnTheLastFrame[0],
-                "the size never moved, so the third frame should have been partial");
+        assertTrue(partialOnTheLastFrame[0], "the size never moved, so the third frame should have been partial");
         var damage = presentedDamage(backendWindow);
         assertEquals(10, damage.width(), "the reported damage was widened for no reason");
         assertEquals(10, damage.height(), "the reported damage was widened for no reason");
@@ -201,8 +198,7 @@ class WindowDamageTest {
     /// `onFirstFrame` runs inside the first paint, which is where a resize has to
     /// come from: the loop is single-threaded and the UI thread is inside the
     /// painter.
-    private HeadlessWindow runUntilPainted(
-            LogicalSize size, int frames, Consumer<HeadlessWindow> onFirstFrame) {
+    private HeadlessWindow runUntilPainted(LogicalSize size, int frames, Consumer<HeadlessWindow> onFirstFrame) {
         var window = Window.open(WindowSpec.of("damage", size));
         var backendWindow = (HeadlessWindow) backend.windows().getFirst();
         var painted = new int[1];

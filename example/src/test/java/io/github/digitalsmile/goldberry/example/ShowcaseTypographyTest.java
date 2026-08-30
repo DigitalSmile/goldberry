@@ -3,21 +3,23 @@ package io.github.digitalsmile.goldberry.example;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
+import java.util.List;
+
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
-import io.github.digitalsmile.goldberry.css.value.CssLength;
-import io.github.digitalsmile.goldberry.css.cascade.StyleResolver;
 import io.github.digitalsmile.goldberry.css.Stylesheet;
 import io.github.digitalsmile.goldberry.css.Theme;
+import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
+import io.github.digitalsmile.goldberry.css.cascade.StyleResolver;
+import io.github.digitalsmile.goldberry.css.value.CssLength;
+import io.github.digitalsmile.goldberry.example.ui.SectionHeader;
 import io.github.digitalsmile.goldberry.widget.Element;
 import io.github.digitalsmile.goldberry.widget.ElementTree;
 import io.github.digitalsmile.goldberry.widgets.Controls;
-import io.github.digitalsmile.goldberry.example.ui.SectionHeader;
 import io.github.digitalsmile.goldberry.widgets.core.Column;
 import io.github.digitalsmile.goldberry.widgets.text.Text;
-import java.util.List;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
 
 /// That the showcase's screens have a typographic hierarchy at all.
 ///
@@ -45,7 +47,8 @@ class ShowcaseTypographyTest {
 
     private StyleResolver resolver() {
         return new StyleResolver(List.of(
-                Controls.baseStylesheet(), Theme.NORD_DARK.load(),
+                Controls.baseStylesheet(),
+                Theme.NORD_DARK.load(),
                 Stylesheet.resource(CascadeLayer.APPLICATION, Showcase.class, "showcase.css")));
     }
 
@@ -60,9 +63,8 @@ class ShowcaseTypographyTest {
         // The real widget, not a `text.screen-title`: a screen's heading is a
         // `section-header` element now, which is what lets a stylesheet select it
         // as a *kind* rather than as a class any node can wear (ADR-0222).
-        var tree = new ElementTree(new Column(
-                new SectionHeader("A title"),
-                new Text("Some prose").id("prose")).id("screen-text"));
+        var tree = new ElementTree(
+                new Column(new SectionHeader("A title"), new Text("Some prose").id("prose")).id("screen-text"));
         tree.flush();
 
         var title = styleOf(resolver, tree.root().children().getFirst());
@@ -70,9 +72,9 @@ class ShowcaseTypographyTest {
 
         // Both were 13px and told apart only by weight, which on a 900px screen
         // reads as a page with no headings on it.
-        assertEquals(HEADING, title.typography().size(),
-                "a screen title is not distinguishable by size");
-        assertTrue(title.typography().size() > prose.typography().size()
+        assertEquals(HEADING, title.typography().size(), "a screen title is not distinguishable by size");
+        assertTrue(
+                title.typography().size() > prose.typography().size()
                         || title.typography().weight() != prose.typography().weight(),
                 "a title and its prose are typographically identical");
     }
@@ -91,8 +93,7 @@ class ShowcaseTypographyTest {
         // to read; `heading`'s 15/20 is the largest thing in the scale that is
         // still body copy.
         assertEquals(HEADING, prose.typography().size());
-        assertTrue(prose.typography().size() > BODY,
-                "prose is set at the same size as a button's label");
+        assertTrue(prose.typography().size() > BODY, "prose is set at the same size as a button's label");
     }
 
     @Test
@@ -106,7 +107,10 @@ class ShowcaseTypographyTest {
         // was changed for this: 13px is exactly what §1.4 specifies and it was
         // being applied correctly all along. What was missing was the showcase
         // choosing between the sizes it had.
-        assertEquals(BODY, styleOf(resolver, tree.root().children().getFirst())
-                .typography().size());
+        assertEquals(
+                BODY,
+                styleOf(resolver, tree.root().children().getFirst())
+                        .typography()
+                        .size());
     }
 }

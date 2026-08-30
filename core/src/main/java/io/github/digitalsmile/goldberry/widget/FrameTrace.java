@@ -1,9 +1,9 @@
 package io.github.digitalsmile.goldberry.widget;
 
-import io.github.digitalsmile.goldberry.stats.FrameStats;
-
 import java.util.LinkedHashMap;
 import java.util.Map;
+
+import io.github.digitalsmile.goldberry.stats.FrameStats;
 
 /// What one frame did to the element tree, for when a number on the `hud` needs
 /// explaining.
@@ -18,7 +18,8 @@ import java.util.Map;
 /// The stage timings ([FrameStats]) say *which*
 /// part of a frame is expensive. They cannot say why, and the two times that has
 /// mattered the answer was a count rather than a duration: the style cache
-/// missing on every element ([ADR-0142](../../../../../../book/src/adr/0142-a-style-handed-down-keeps-its-identity.md)),
+/// missing on every element
+/// ([ADR-0142](../../../../../../book/src/adr/0142-a-style-handed-down-keeps-its-identity.md)),
 /// and a click invalidating the whole tree
 /// ([ADR-0149](../../../../../../book/src/adr/0149-a-state-invalidates-what-it-can-reach.md)).
 /// Both took a purpose-built probe and a counter compiled into the renderer to
@@ -73,8 +74,7 @@ public final class FrameTrace {
 
     /// One per element tree, made by it — there is nothing useful to do with a
     /// trace that is not attached to a tree.
-    FrameTrace() {
-    }
+    FrameTrace() {}
 
     /// Elements whose `build` ran.
     private int built;
@@ -202,16 +202,27 @@ public final class FrameTrace {
     @Override
     public String toString() {
         var text = new StringBuilder()
-                .append("elements ").append(walked)
-                .append(", built ").append(built)
-                .append(", resolved ").append(resolved)
-                .append(", invalidated ").append(invalidated)
-                .append(" | cascade ").append(millis(cascadeNanos))
-                .append(" identity ").append(millis(identityNanos))
-                .append(" motion ").append(millis(motionNanos))
-                .append(" boxes ").append(millis(boxNanos))
-                .append(" | text ").append(textHits).append(" cached, ")
-                .append(textMisses).append(" shaped");
+                .append("elements ")
+                .append(walked)
+                .append(", built ")
+                .append(built)
+                .append(", resolved ")
+                .append(resolved)
+                .append(", invalidated ")
+                .append(invalidated)
+                .append(" | cascade ")
+                .append(millis(cascadeNanos))
+                .append(" identity ")
+                .append(millis(identityNanos))
+                .append(" motion ")
+                .append(millis(motionNanos))
+                .append(" boxes ")
+                .append(millis(boxNanos))
+                .append(" | text ")
+                .append(textHits)
+                .append(" cached, ")
+                .append(textMisses)
+                .append(" shaped");
         if (!walks.isEmpty()) {
             text.append(" | subtree walks: ");
             var first = true;

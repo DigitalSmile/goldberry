@@ -6,12 +6,14 @@ import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import io.github.digitalsmile.goldberry.natives.NativeLibraryRequirement;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+
+import io.github.digitalsmile.goldberry.natives.NativeLibraryRequirement;
 
 /// What the six new symbols actually put in the buffer (ADR-0207).
 ///
@@ -57,9 +59,9 @@ class BlendGradientTest {
         var r = (middle >>> 16) & 0xFF;
         var g = (middle >>> 8) & 0xFF;
         var b = middle & 0xFF;
-        assertTrue(g > r + 20 && g > b + 20,
-                () -> "the middle of the fade is still recognisably green, and it is #"
-                        + Integer.toHexString(middle));
+        assertTrue(
+                g > r + 20 && g > b + 20,
+                () -> "the middle of the fade is still recognisably green, and it is #" + Integer.toHexString(middle));
     }
 
     @Test
@@ -82,16 +84,17 @@ class BlendGradientTest {
         // 64 of them. An exact-equality assertion here would be asserting that
         // Blend2D samples at the pixel's left edge, which no rasterizer does.
         assertNear(GREEN, pixelAt(pixels, 0, 0, 256), 3, "opaque at the start point");
-        assertNear(0xFFFFFFFF, pixelAt(pixels, 63, 0, 256), 3,
-                "and the white underneath is all but untouched at the end");
+        assertNear(
+                0xFFFFFFFF, pixelAt(pixels, 63, 0, 256), 3, "and the white underneath is all but untouched at the end");
         // Monotone in between: a gradient whose stops were added out of order,
         // or whose extend mode repeated, would not be.
         var quarter = pixelAt(pixels, 16, 0, 256) & 0xFF;
         var half = pixelAt(pixels, 32, 0, 256) & 0xFF;
         var threeQuarters = pixelAt(pixels, 48, 0, 256) & 0xFF;
-        assertTrue(quarter < half && half < threeQuarters,
-                () -> "the blue channel climbs toward white across the ramp: " + quarter + ", "
-                        + half + ", " + threeQuarters);
+        assertTrue(
+                quarter < half && half < threeQuarters,
+                () -> "the blue channel climbs toward white across the ramp: " + quarter + ", " + half + ", "
+                        + threeQuarters);
     }
 
     @Test
@@ -114,8 +117,7 @@ class BlendGradientTest {
 
         assertEquals(GREEN, pixelAt(pixels, 0, 0, 256), "before the start, the first stop holds");
         assertEquals(GREEN, pixelAt(pixels, 8, 0, 256), "and still holds at the start");
-        assertEquals(0xFFFFFFFF, pixelAt(pixels, 63, 0, 256),
-                "past the end, the transparent stop holds");
+        assertEquals(0xFFFFFFFF, pixelAt(pixels, 63, 0, 256), "past the end, the transparent stop holds");
     }
 
     @Test
@@ -138,12 +140,15 @@ class BlendGradientTest {
 
         var near = pixelAt(pixels, 2, 0, 256);
         var far = pixelAt(pixels, 50, 0, 256);
-        assertNotEquals(near, far,
+        assertNotEquals(
+                near,
+                far,
                 "the second copy is drawn through a later part of the same ramp, not through the"
                         + " start of a fresh one");
-        assertTrue((far & 0xFF) > (near & 0xFF),
-                () -> "and the later part is the faded one: #" + Integer.toHexString(near)
-                        + " then #" + Integer.toHexString(far));
+        assertTrue(
+                (far & 0xFF) > (near & 0xFF),
+                () -> "and the later part is the faded one: #" + Integer.toHexString(near) + " then #"
+                        + Integer.toHexString(far));
     }
 
     @Test
@@ -171,7 +176,9 @@ class BlendGradientTest {
         }
 
         assertEquals(0xFF000000, pixelAt(pixels, 0, 1, 256), "the near end of the row below");
-        assertEquals(0xFF000000, pixelAt(pixels, 63, 1, 256),
+        assertEquals(
+                0xFF000000,
+                pixelAt(pixels, 63, 1, 256),
                 "and the far end, which is where a leaked ramp would have faded out");
     }
 
@@ -210,10 +217,9 @@ class BlendGradientTest {
     @DisplayName("a stop outside the gradient is refused with its own offset named")
     void stopsAreBounded() {
         try (var gradient = BlendGradient.linear(0, 0, 1, 0)) {
-            var raised = assertThrows(
-                    IllegalArgumentException.class, () -> gradient.addStop(1.5, GREEN));
-            assertTrue(raised.getMessage().contains("1.5"),
-                    () -> "the message names the offset: " + raised.getMessage());
+            var raised = assertThrows(IllegalArgumentException.class, () -> gradient.addStop(1.5, GREEN));
+            assertTrue(
+                    raised.getMessage().contains("1.5"), () -> "the message names the offset: " + raised.getMessage());
             assertThrows(IllegalArgumentException.class, () -> gradient.addStop(-0.1, GREEN));
             assertThrows(IllegalArgumentException.class, () -> gradient.addStop(Double.NaN, GREEN));
         }
@@ -225,10 +231,8 @@ class BlendGradientTest {
         // Blend2D takes a NaN and draws nothing at all, which is
         // indistinguishable from a band whose arithmetic went wrong upstream --
         // the trap fillRect already guards.
-        assertThrows(IllegalArgumentException.class,
-                () -> BlendGradient.linear(0, Double.NaN, 1, 0));
-        assertThrows(IllegalArgumentException.class,
-                () -> BlendGradient.linear(0, 0, Double.POSITIVE_INFINITY, 0));
+        assertThrows(IllegalArgumentException.class, () -> BlendGradient.linear(0, Double.NaN, 1, 0));
+        assertThrows(IllegalArgumentException.class, () -> BlendGradient.linear(0, 0, Double.POSITIVE_INFINITY, 0));
     }
 
     @Test
@@ -245,8 +249,7 @@ class BlendGradientTest {
             assertDoesNotThrow(() -> context.fillPath(0, 0, path, gradient));
         }
 
-        assertEquals(0xFFFFFFFF, pixelAt(pixels, 0, 0, 16),
-                "an empty ramp is transparent, not an exception");
+        assertEquals(0xFFFFFFFF, pixelAt(pixels, 0, 0, 16), "an empty ramp is transparent, not an exception");
     }
 
     @Test
@@ -267,10 +270,13 @@ class BlendGradientTest {
             context.fillPath(0, 0, path, gradient);
         }
 
-        assertNotEquals(0xFFFFFFFF, pixelAt(pixels, 5, 0, 32),
+        assertNotEquals(
+                0xFFFFFFFF,
+                pixelAt(pixels, 5, 0, 32),
                 "physical pixel 5 is still tinted, which is where a ramp read as physical would"
                         + " already have run out");
-        assertTrue((pixelAt(pixels, 7, 0, 32) & 0xFF) > 0xE0,
+        assertTrue(
+                (pixelAt(pixels, 7, 0, 32) & 0xFF) > 0xE0,
                 "and it is nearly gone at the physical end, four LOGICAL pixels along");
     }
 
@@ -294,9 +300,10 @@ class BlendGradientTest {
         for (var shift = 0; shift <= 24; shift += 8) {
             var wanted = (expected >>> shift) & 0xFF;
             var got = (actual >>> shift) & 0xFF;
-            assertTrue(Math.abs(wanted - got) <= tolerance,
-                    () -> what + ": expected #" + Integer.toHexString(expected) + " within "
-                            + tolerance + " per channel, got #" + Integer.toHexString(actual));
+            assertTrue(
+                    Math.abs(wanted - got) <= tolerance,
+                    () -> what + ": expected #" + Integer.toHexString(expected) + " within " + tolerance
+                            + " per channel, got #" + Integer.toHexString(actual));
         }
     }
 

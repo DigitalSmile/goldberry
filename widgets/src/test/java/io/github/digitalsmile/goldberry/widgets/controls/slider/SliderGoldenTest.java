@@ -1,29 +1,29 @@
 package io.github.digitalsmile.goldberry.widgets.controls.slider;
 
-import io.github.digitalsmile.goldberry.widget.attr.Attributes;
-import io.github.digitalsmile.goldberry.widgets.core.Column;
-import io.github.digitalsmile.goldberry.widgets.core.Row;
+import java.util.List;
+import java.util.Set;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
 
 import io.github.digitalsmile.goldberry.RendererRequirement;
-import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
-import io.github.digitalsmile.goldberry.css.select.Selector;
 import io.github.digitalsmile.goldberry.css.Stylesheet;
 import io.github.digitalsmile.goldberry.css.Theme;
+import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
+import io.github.digitalsmile.goldberry.css.select.Selector;
 import io.github.digitalsmile.goldberry.golden.GoldenImage;
 import io.github.digitalsmile.goldberry.paint.BoxPainter;
 import io.github.digitalsmile.goldberry.widget.Element;
 import io.github.digitalsmile.goldberry.widget.ElementTree;
 import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widget.WidgetRenderer;
+import io.github.digitalsmile.goldberry.widget.attr.Attributes;
 import io.github.digitalsmile.goldberry.widgets.Controls;
 import io.github.digitalsmile.goldberry.widgets.controls.Scale;
 import io.github.digitalsmile.goldberry.widgets.controls.TestFont;
-
-import java.util.List;
-import java.util.Set;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
+import io.github.digitalsmile.goldberry.widgets.core.Column;
+import io.github.digitalsmile.goldberry.widgets.core.Row;
 
 /// What a slider actually looks like (§14, [ADR-0050]).
 ///
@@ -42,17 +42,13 @@ class SliderGoldenTest {
         RendererRequirement.enforce();
     }
 
-    private void paint(String name, Theme theme, int width, int height, Widget content,
-            PseudoState... states) {
+    private void paint(String name, Theme theme, int width, int height, Widget content, PseudoState... states) {
         var tree = new ElementTree(content);
         for (var state : states) {
             state.applyTo(tree.root());
         }
         var renderer = new WidgetRenderer(
-                List.of(
-                        Controls.baseStylesheet(),
-                        theme.load(),
-                        Stylesheet.parse(CascadeLayer.APPLICATION, """
+                List.of(Controls.baseStylesheet(), theme.load(), Stylesheet.parse(CascadeLayer.APPLICATION, """
                                 #scene { flex-direction: column; padding: 12px; gap: 8px;
                                          background: var(--gb-bg) }
                                 /* A fader is sized by whatever holds it, exactly
@@ -64,8 +60,7 @@ class SliderGoldenTest {
                                 """)),
                 TestFont.get());
 
-        GoldenImage.assertMatches(name, width, height, 1.0f,
-                frame -> BoxPainter.paint(frame, renderer.render(tree)));
+        GoldenImage.assertMatches(name, width, height, 1.0f, frame -> BoxPainter.paint(frame, renderer.render(tree)));
     }
 
     private record PseudoState(int child, Selector.PseudoClass pseudoClass) {
@@ -92,9 +87,12 @@ class SliderGoldenTest {
         //
         // The ends are the interesting ones: at 0 the thumb sits flush at the
         // left with no fill showing, and at 100 flush at the right with no rest.
-        paint("slider-positions", Theme.NORD_DARK, 300, 200, new Column(
-                List.of(at(0, "a"), at(0.25, "b"), at(0.5, "c"), at(0.75, "d"), at(1, "e")),
-                id("scene")));
+        paint(
+                "slider-positions",
+                Theme.NORD_DARK,
+                300,
+                200,
+                new Column(List.of(at(0, "a"), at(0.25, "b"), at(0.5, "c"), at(0.75, "d"), at(1, "e")), id("scene")));
     }
 
     @Test
@@ -105,9 +103,12 @@ class SliderGoldenTest {
         // this theme, so the thumb is `#ffffff`, a step past the palette in the
         // direction it does not otherwise go. That is the lesson ADR-0075 paid
         // for twice on the switch, applied here for free.
-        paint("slider-light", Theme.NORD_LIGHT, 300, 200, new Column(
-                List.of(at(0, "a"), at(0.25, "b"), at(0.5, "c"), at(0.75, "d"), at(1, "e")),
-                id("scene")));
+        paint(
+                "slider-light",
+                Theme.NORD_LIGHT,
+                300,
+                200,
+                new Column(List.of(at(0, "a"), at(0.25, "b"), at(0.5, "c"), at(0.75, "d"), at(1, "e")), id("scene")));
     }
 
     @Test
@@ -116,9 +117,13 @@ class SliderGoldenTest {
         // The ring is around the *control*, which is the 32-tall hit target and
         // not the 4px groove -- §1.3 gives a slider a target eight times what it
         // can see, and this is the image that shows the difference.
-        paint("slider-interaction", Theme.NORD_DARK, 300, 140, new Column(
-                        List.of(at(0.4, "a"), at(0.4, "b"),
-                                new Slider(0, 100, 40, 0, null, null, true, id("c"))),
+        paint(
+                "slider-interaction",
+                Theme.NORD_DARK,
+                300,
+                140,
+                new Column(
+                        List.of(at(0.4, "a"), at(0.4, "b"), new Slider(0, 100, 40, 0, null, null, true, id("c"))),
                         id("scene")),
                 new PseudoState(0, Selector.PseudoClass.HOVER),
                 new PseudoState(1, Selector.PseudoClass.FOCUS_VISIBLE));
@@ -131,11 +136,16 @@ class SliderGoldenTest {
         // inverts the pointer fraction to match. The two have to agree, and a
         // still frame of a fader at 25% is what says they do: the fill should be
         // a quarter of the way up, not a quarter of the way down.
-        paint("slider-vertical", Theme.NORD_DARK, 200, 180, new Row(
-                List.of(
-                        new Slider(0, 100, 25, 0, null, null, false, id("a", "vertical")),
-                        new Slider(0, 100, 75, 0, null, null, false, id("b", "vertical"))),
-                id("row")));
+        paint(
+                "slider-vertical",
+                Theme.NORD_DARK,
+                200,
+                180,
+                new Row(
+                        List.of(
+                                new Slider(0, 100, 25, 0, null, null, false, id("a", "vertical")),
+                                new Slider(0, 100, 75, 0, null, null, false, id("b", "vertical"))),
+                        id("row")));
     }
 
     /// §3's tick marks, and the image that says the arithmetic behind them is
@@ -150,9 +160,12 @@ class SliderGoldenTest {
     @Test
     @DisplayName("the thumb sits on a tick mark at both ends and in the middle")
     void ticks() {
-        paint("slider-ticks", Theme.NORD_DARK, 300, 140, new Column(
-                List.of(ticked(0, 5, "a"), ticked(0.5, 5, "b"), ticked(1, 5, "c")),
-                id("scene")));
+        paint(
+                "slider-ticks",
+                Theme.NORD_DARK,
+                300,
+                140,
+                new Column(List.of(ticked(0, 5, "a"), ticked(0.5, 5, "b"), ticked(1, 5, "c")), id("scene")));
     }
 
     /// §3's value label, and the two things it changes about the control.
@@ -165,9 +178,12 @@ class SliderGoldenTest {
     @Test
     @DisplayName("a value label takes its width off the track and never moves it")
     void valueLabel() {
-        paint("slider-value", Theme.NORD_DARK, 300, 140, new Column(
-                List.of(labelled(0.09, "a"), labelled(0.5, "b"), labelled(1, "c")),
-                id("scene")));
+        paint(
+                "slider-value",
+                Theme.NORD_DARK,
+                300,
+                140,
+                new Column(List.of(labelled(0.09, "a"), labelled(0.5, "b"), labelled(1, "c")), id("scene")));
     }
 
     /// The picture the decibel scale exists for.
@@ -181,13 +197,27 @@ class SliderGoldenTest {
     @Test
     @DisplayName("the same gain, linear and in decibels")
     void decibelFader() {
-        paint("slider-fader-db", Theme.NORD_DARK, 200, 200, new Row(
-                List.of(
-                        new Slider(0, 1, 0.5, 0, 5, null, Scale.LINEAR, null, null, false,
-                                id("a", "vertical")),
-                        new Slider(0, 1, 0.5, 0, 5, null, Scale.decibels(), null, null, false,
-                                id("b", "vertical"))),
-                id("row")));
+        paint(
+                "slider-fader-db",
+                Theme.NORD_DARK,
+                200,
+                200,
+                new Row(
+                        List.of(
+                                new Slider(0, 1, 0.5, 0, 5, null, Scale.LINEAR, null, null, false, id("a", "vertical")),
+                                new Slider(
+                                        0,
+                                        1,
+                                        0.5,
+                                        0,
+                                        5,
+                                        null,
+                                        Scale.decibels(),
+                                        null,
+                                        null,
+                                        false,
+                                        id("b", "vertical"))),
+                        id("row")));
     }
 
     private static Slider ticked(double fraction, int ticks, String id) {

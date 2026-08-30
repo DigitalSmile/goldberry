@@ -1,5 +1,11 @@
 package io.github.digitalsmile.goldberry.widgets.overlay.toast;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
+import java.util.function.Consumer;
+import java.util.function.DoubleConsumer;
+
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
 import io.github.digitalsmile.goldberry.css.value.Transform;
 import io.github.digitalsmile.goldberry.input.event.PointerEvent;
@@ -14,12 +20,6 @@ import io.github.digitalsmile.goldberry.widget.style.Paints;
 import io.github.digitalsmile.goldberry.widget.style.Styled;
 import io.github.digitalsmile.goldberry.widgets.controls.button.Button;
 import io.github.digitalsmile.goldberry.widgets.core.Phase;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
-import java.util.function.Consumer;
-import java.util.function.DoubleConsumer;
 
 /// One toast on screen — the node a stylesheet calls `toast`.
 ///
@@ -48,8 +48,15 @@ import java.util.function.DoubleConsumer;
 /// @param onDismiss told when it is clicked — see [#onPointer]
 /// @param onHeight told how tall it came out — see [#measured]
 record ToastBox(
-        Toast toast, int number, Corner corner, Phase phase, boolean leaving,
-        Reflow reflow, Consumer<Boolean> onHover, Runnable onAction, Runnable onDismiss,
+        Toast toast,
+        int number,
+        Corner corner,
+        Phase phase,
+        boolean leaving,
+        Reflow reflow,
+        Consumer<Boolean> onHover,
+        Runnable onAction,
+        Runnable onDismiss,
         DoubleConsumer onHeight)
         implements Widget.Leaf, Styled, Paints, Handles, Measured {
 
@@ -71,8 +78,7 @@ record ToastBox(
     ///
     /// @param distance how far, in logical pixels
     /// @param phase    the travel, on the frame clock like every other
-    record Reflow(double distance, Phase phase) {
-    }
+    record Reflow(double distance, Phase phase) {}
 
     @Override
     public String cssType() {
@@ -100,8 +106,7 @@ record ToastBox(
             // in the catalog: a toast is not a place to put a filled button, and
             // the only thing on a toast that can be pressed does not need to
             // shout to be found.
-            parts.add(new Button(toast.label(), onAction)
-                    .withAttributes(Attributes.NONE.classes("ghost")));
+            parts.add(new Button(toast.label(), onAction).withAttributes(Attributes.NONE.classes("ghost")));
         }
         return List.copyOf(parts);
     }
@@ -141,8 +146,7 @@ record ToastBox(
             case ENTERED -> onHover.accept(true);
             case EXITED -> onHover.accept(false);
             case CLICKED -> onDismiss.run();
-            default -> {
-            }
+            default -> {}
         }
     }
 
@@ -204,18 +208,17 @@ record ToastBox(
         // Arrivals only. §3: "out: `opacity` base" — and nothing else. A toast
         // that slid out as well would be moving while the stack under it is also
         // moving, which is two animations saying different things about one place.
-        var across = going || visible >= 1 ? 0
-                : (1 - visible)
-                        * (corner == Corner.TOP_END || corner == Corner.BOTTOM_END
-                                ? TRAVEL : -TRAVEL);
+        var across = going || visible >= 1
+                ? 0
+                : (1 - visible) * (corner == Corner.TOP_END || corner == Corner.BOTTOM_END ? TRAVEL : -TRAVEL);
         if (visible < 1) {
             box = box.opacity(visible);
         }
         if (across == 0 && down == 0) {
             return box;
         }
-        return box.transform(Transform.of(new Transform.Function.Translate(
-                Transform.Length.px(across), Transform.Length.px(down))));
+        return box.transform(
+                Transform.of(new Transform.Function.Translate(Transform.Length.px(across), Transform.Length.px(down))));
     }
 
     /// How far this toast is from where the layout has already put it, in
@@ -256,8 +259,7 @@ record ToastBox(
 
         @Override
         public Box render(ComputedStyle style, List<Box> children, Context context) {
-            return Box.of().style(style)
-                    .children(Box.text(context.paragraph(style, text), style.color()));
+            return Box.of().style(style).children(Box.text(context.paragraph(style, text), style.color()));
         }
     }
 }

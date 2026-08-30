@@ -4,14 +4,15 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import io.github.digitalsmile.goldberry.RendererRequirement;
-import io.github.digitalsmile.goldberry.natives.blend2d.BlendPath;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
+
+import io.github.digitalsmile.goldberry.RendererRequirement;
+import io.github.digitalsmile.goldberry.natives.blend2d.BlendPath;
 
 class SvgPathTest {
 
@@ -52,7 +53,8 @@ class SvgPathTest {
         // ignored the distinction entirely, so the two are compared by drawn
         // ink in IconPaintTest -- here the assertion is that both parse and
         // produce the same shape of command stream.
-        try (var absolute = BlendPath.create(); var relative = BlendPath.create()) {
+        try (var absolute = BlendPath.create();
+                var relative = BlendPath.create()) {
             SvgPath.appendTo(absolute, "M10 10L20 10L20 20Z");
             SvgPath.appendTo(relative, "m10 10l10 0l0 10z");
 
@@ -79,15 +81,16 @@ class SvgPathTest {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {
-        "M1.5.5L2.5.5",       // numbers that run together at the decimal point
-        "M1-2L3-4",           // a minus sign is its own separator
-        "M0 0L1e1 1E1",       // exponents
-        "M0,0 L1,1",          // commas
-        "M 0 0 L 1 1 ",       // spaces everywhere, and a trailing one
-        "M0 0A5 5 0 011 1",   // packed arc flags: large-arc=0, sweep=1, x=1
-        "M0 0A5 5 0 1 1 1 1", // and the same spelled out
-    })
+    @ValueSource(
+            strings = {
+                "M1.5.5L2.5.5", // numbers that run together at the decimal point
+                "M1-2L3-4", // a minus sign is its own separator
+                "M0 0L1e1 1E1", // exponents
+                "M0,0 L1,1", // commas
+                "M 0 0 L 1 1 ", // spaces everywhere, and a trailing one
+                "M0 0A5 5 0 011 1", // packed arc flags: large-arc=0, sweep=1, x=1
+                "M0 0A5 5 0 1 1 1 1", // and the same spelled out
+            })
     @DisplayName("the number grammar is SVG's, not whitespace-splitting")
     void parsesSvgNumberGrammar(String data) {
         try (var path = BlendPath.create()) {
@@ -114,27 +117,30 @@ class SvgPathTest {
             SvgPath.appendTo(different, "M0 0A5 5 0 1 1 1 1");
 
             assertEquals(same.vertexCount(), packed.vertexCount());
-            assertTrue(different.vertexCount() > packed.vertexCount(),
-                    () -> "the large arc should need more vertices than the small one: "
-                            + different.vertexCount() + " vs " + packed.vertexCount());
+            assertTrue(
+                    different.vertexCount() > packed.vertexCount(),
+                    () -> "the large arc should need more vertices than the small one: " + different.vertexCount()
+                            + " vs " + packed.vertexCount());
         }
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {
-        "L10 10",        // a command before any move-to
-        "M0 0L",         // a command with no arguments
-        "M0 0X10 10",    // a letter that is not a command
-        "M0 0A5 5 0 2 1 1 1", // an arc flag that is neither 0 nor 1
-        "M0 0L10",       // an odd coordinate
-        "M0 0Z 5",       // arguments after Z
-        "10 10",         // numbers with no command at all
-    })
+    @ValueSource(
+            strings = {
+                "L10 10", // a command before any move-to
+                "M0 0L", // a command with no arguments
+                "M0 0X10 10", // a letter that is not a command
+                "M0 0A5 5 0 2 1 1 1", // an arc flag that is neither 0 nor 1
+                "M0 0L10", // an odd coordinate
+                "M0 0Z 5", // arguments after Z
+                "10 10", // numbers with no command at all
+            })
     @DisplayName("malformed data is refused rather than half-drawn")
     void malformedDataIsRefused(String data) {
         try (var path = BlendPath.create()) {
             assertThrows(
-                    IllegalArgumentException.class, () -> SvgPath.appendTo(path, data),
+                    IllegalArgumentException.class,
+                    () -> SvgPath.appendTo(path, data),
                     () -> "\"" + data + "\" should not have parsed");
         }
     }
@@ -144,8 +150,7 @@ class SvgPathTest {
     void failureMessageIsLocated() {
         var data = "M0 0" + "L1 1".repeat(30) + "X";
         try (var path = BlendPath.create()) {
-            var thrown = assertThrows(
-                    IllegalArgumentException.class, () -> SvgPath.appendTo(path, data));
+            var thrown = assertThrows(IllegalArgumentException.class, () -> SvgPath.appendTo(path, data));
 
             assertTrue(thrown.getMessage().contains("at index"), thrown::getMessage);
             // The excerpt is bounded, so a long icon does not print in full.
@@ -158,9 +163,7 @@ class SvgPathTest {
     @DisplayName("a scale that would collapse or mirror the icon is refused")
     void refusesAnUnusableScale(double scale) {
         try (var path = BlendPath.create()) {
-            assertThrows(
-                    IllegalArgumentException.class,
-                    () -> SvgPath.appendTo(path, "M0 0L1 1", scale));
+            assertThrows(IllegalArgumentException.class, () -> SvgPath.appendTo(path, "M0 0L1 1", scale));
         }
     }
 
@@ -175,7 +178,8 @@ class SvgPathTest {
         assertTrue(names.size() > 1_000, () -> "only " + names.size() + " icons in the table");
 
         for (var name : names) {
-            var data = io.github.digitalsmile.goldberry.assets.BundledAssets.icon(name).orElseThrow();
+            var data = io.github.digitalsmile.goldberry.assets.BundledAssets.icon(name)
+                    .orElseThrow();
             try (var path = BlendPath.create()) {
                 try {
                     SvgPath.appendTo(path, data);

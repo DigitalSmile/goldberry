@@ -13,8 +13,7 @@ import java.util.List;
 /// that quietly disagrees about where a hole is.
 public final class Gaps {
 
-    private Gaps() {
-    }
+    private Gaps() {}
 
     /// `values` with `policy` applied.
     ///
@@ -40,8 +39,7 @@ public final class Gaps {
         /// Whether this series has a hole in it at all — the fast path every
         /// chart in practice takes.
         public boolean isWhole() {
-            return runs.size() == 1 && runs.getFirst()[0] == 0
-                    && runs.getFirst()[1] == values.size();
+            return runs.size() == 1 && runs.getFirst()[0] == 0 && runs.getFirst()[1] == values.size();
         }
     }
 
@@ -61,11 +59,12 @@ public final class Gaps {
         if (values == null || values.isEmpty()) {
             return new Resolved(List.of(), List.of());
         }
-        var resolved = switch (mode) {
-            case GAP -> values;
-            case ZERO -> substituted(values);
-            case CONNECT -> interpolated(values);
-        };
+        var resolved =
+                switch (mode) {
+                    case GAP -> values;
+                    case ZERO -> substituted(values);
+                    case CONNECT -> interpolated(values);
+                };
         return new Resolved(resolved, runsOf(resolved));
     }
 

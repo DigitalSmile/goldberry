@@ -1,18 +1,19 @@
 package io.github.digitalsmile.goldberry.widgets.form.textinput;
 
-import io.github.digitalsmile.goldberry.bind.Observable;
-import io.github.digitalsmile.goldberry.kdl.KdlNode;
-import io.github.digitalsmile.goldberry.log.Logs;
-import io.github.digitalsmile.goldberry.widget.attr.Attributed;
-import io.github.digitalsmile.goldberry.widget.attr.Attributes;
-import io.github.digitalsmile.goldberry.widget.attr.Bindable;
-import io.github.digitalsmile.goldberry.widget.State;
-import io.github.digitalsmile.goldberry.widget.Widget;
-import io.github.digitalsmile.goldberry.widgets.markup.Markup;
-import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Consumer;
+
+import io.github.digitalsmile.goldberry.bind.Observable;
+import io.github.digitalsmile.goldberry.kdl.KdlNode;
+import io.github.digitalsmile.goldberry.log.Logs;
+import io.github.digitalsmile.goldberry.widget.State;
+import io.github.digitalsmile.goldberry.widget.Widget;
+import io.github.digitalsmile.goldberry.widget.attr.Attributed;
+import io.github.digitalsmile.goldberry.widget.attr.Attributes;
+import io.github.digitalsmile.goldberry.widget.attr.Bindable;
+import io.github.digitalsmile.goldberry.widgets.markup.Markup;
+import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
 
 /// A single-line text field — `docs/core-widgets.md` §4's `text-input`.
 ///
@@ -83,10 +84,17 @@ import java.util.function.Consumer;
 /// @param attributes  the `id`, classes and key the document wrote
 @Markup("text-input")
 public record TextInput(
-        String value, Observable<?> source, Consumer<String> onChange, String placeholder,
-        int maxLength, boolean password, boolean readOnly, TextFilter filter,
+        String value,
+        Observable<?> source,
+        Consumer<String> onChange,
+        String placeholder,
+        int maxLength,
+        boolean password,
+        boolean readOnly,
+        TextFilter filter,
         java.util.List<io.github.digitalsmile.goldberry.widgets.controls.option.Option> suggestions,
-        boolean disabled, Attributes attributes)
+        boolean disabled,
+        Attributes attributes)
         implements Widget.Stateful, Attributed<TextInput>, Bindable<TextInput> {
 
     private static final org.slf4j.Logger LOG = Logs.of(TextInput.class);
@@ -96,15 +104,16 @@ public record TextInput(
 
     public TextInput {
         suggestions = java.util.List.copyOf(
-                suggestions == null ? java.util.List.<io.github.digitalsmile.goldberry.widgets.controls.option.Option>of() : suggestions);
+                suggestions == null
+                        ? java.util.List.<io.github.digitalsmile.goldberry.widgets.controls.option.Option>of()
+                        : suggestions);
         value = value == null ? "" : value;
         placeholder = placeholder == null ? "" : placeholder;
         filter = filter == null ? TextFilter.NONE : filter;
         attributes = attributes == null ? Attributes.NONE : attributes;
         if (maxLength < UNLIMITED) {
-            throw new IllegalArgumentException(
-                    "a maximum length is a count of characters or " + UNLIMITED
-                            + " for no limit, and " + maxLength + " is neither");
+            throw new IllegalArgumentException("a maximum length is a count of characters or " + UNLIMITED
+                    + " for no limit, and " + maxLength + " is neither");
         }
     }
 
@@ -115,7 +124,17 @@ public record TextInput(
 
     /// A field holding `value`, reporting every change.
     public TextInput(String value, Consumer<String> onChange) {
-        this(value, null, onChange, "", UNLIMITED, false, false, TextFilter.NONE, java.util.List.of(), false,
+        this(
+                value,
+                null,
+                onChange,
+                "",
+                UNLIMITED,
+                false,
+                false,
+                TextFilter.NONE,
+                java.util.List.of(),
+                false,
                 Attributes.NONE);
     }
 
@@ -124,26 +143,66 @@ public record TextInput(
     /// @param source read-only by construction, so the field cannot write to the
     ///               model even by accident ([ADR-0063])
     public static TextInput of(Observable<?> source, Consumer<String> onChange) {
-        return new TextInput("", Objects.requireNonNull(source, "source"), onChange, "",
-                UNLIMITED, false, false, TextFilter.NONE, java.util.List.of(), false, Attributes.NONE);
+        return new TextInput(
+                "",
+                Objects.requireNonNull(source, "source"),
+                onChange,
+                "",
+                UNLIMITED,
+                false,
+                false,
+                TextFilter.NONE,
+                java.util.List.of(),
+                false,
+                Attributes.NONE);
     }
 
     /// This field with `text` shown when it is empty.
     public TextInput placeholder(String text) {
-        return new TextInput(value, source, onChange, text, maxLength, password, readOnly,
-                filter, suggestions, disabled, attributes);
+        return new TextInput(
+                value,
+                source,
+                onChange,
+                text,
+                maxLength,
+                password,
+                readOnly,
+                filter,
+                suggestions,
+                disabled,
+                attributes);
     }
 
     /// This field holding at most `characters`, or [#UNLIMITED].
     public TextInput maxLength(int characters) {
-        return new TextInput(value, source, onChange, placeholder, characters, password, readOnly,
-                filter, suggestions, disabled, attributes);
+        return new TextInput(
+                value,
+                source,
+                onChange,
+                placeholder,
+                characters,
+                password,
+                readOnly,
+                filter,
+                suggestions,
+                disabled,
+                attributes);
     }
 
     /// This field masked, and refusing to copy its contents out.
     public TextInput password(boolean masked) {
-        return new TextInput(value, source, onChange, placeholder, maxLength, masked, readOnly,
-                filter, suggestions, disabled, attributes);
+        return new TextInput(
+                value,
+                source,
+                onChange,
+                placeholder,
+                maxLength,
+                masked,
+                readOnly,
+                filter,
+                suggestions,
+                disabled,
+                attributes);
     }
 
     /// This field taking a caret and a selection but no edits.
@@ -153,20 +212,50 @@ public record TextInput(
     /// off the screen has to be; a disabled one is out of the tab order and out of
     /// the conversation.
     public TextInput readOnly(boolean value) {
-        return new TextInput(this.value, source, onChange, placeholder, maxLength, password, value,
-                filter, suggestions, disabled, attributes);
+        return new TextInput(
+                this.value,
+                source,
+                onChange,
+                placeholder,
+                maxLength,
+                password,
+                value,
+                filter,
+                suggestions,
+                disabled,
+                attributes);
     }
 
     /// This field accepting only what `filter` allows.
     public TextInput filter(TextFilter value) {
-        return new TextInput(this.value, source, onChange, placeholder, maxLength, password,
-                readOnly, value, suggestions, disabled, attributes);
+        return new TextInput(
+                this.value,
+                source,
+                onChange,
+                placeholder,
+                maxLength,
+                password,
+                readOnly,
+                value,
+                suggestions,
+                disabled,
+                attributes);
     }
 
     /// This field, disabled or not.
     public TextInput disabled(boolean value) {
-        return new TextInput(this.value, source, onChange, placeholder, maxLength, password,
-                readOnly, filter, suggestions, value, attributes);
+        return new TextInput(
+                this.value,
+                source,
+                onChange,
+                placeholder,
+                maxLength,
+                password,
+                readOnly,
+                filter,
+                suggestions,
+                value,
+                attributes);
     }
 
     /// What this field starts from — the bound value, or [#value()].
@@ -191,14 +280,34 @@ public record TextInput(
 
     @Override
     public TextInput bound(Observable<?> value) {
-        return new TextInput(this.value, value, onChange, placeholder, maxLength, password,
-                readOnly, filter, suggestions, disabled, attributes);
+        return new TextInput(
+                this.value,
+                value,
+                onChange,
+                placeholder,
+                maxLength,
+                password,
+                readOnly,
+                filter,
+                suggestions,
+                disabled,
+                attributes);
     }
 
     @Override
     public TextInput withAttributes(Attributes value) {
-        return new TextInput(this.value, source, onChange, placeholder, maxLength, password,
-                readOnly, filter, suggestions, disabled, value);
+        return new TextInput(
+                this.value,
+                source,
+                onChange,
+                placeholder,
+                maxLength,
+                password,
+                readOnly,
+                filter,
+                suggestions,
+                disabled,
+                value);
     }
 
     /// This field offering `options` under itself — §4's autocomplete.
@@ -222,8 +331,18 @@ public record TextInput(
     /// field that has never called this is.
     public TextInput suggesting(
             java.util.List<io.github.digitalsmile.goldberry.widgets.controls.option.Option> options) {
-        return new TextInput(value, source, onChange, placeholder, maxLength, password, readOnly,
-                filter, options, disabled, attributes);
+        return new TextInput(
+                value,
+                source,
+                onChange,
+                placeholder,
+                maxLength,
+                password,
+                readOnly,
+                filter,
+                options,
+                disabled,
+                attributes);
     }
 
     @Override
@@ -286,8 +405,9 @@ public record TextInput(
             // Logged rather than thrown, exactly as an accelerator that does not
             // parse is: it is a typo already visible in the markup, and a field
             // that refused every keystroke is a worse way to find out about it.
-            LOG.warn("text-input filter=\"{}\" names no filter this toolkit has;"
-                    + " the field will accept anything", name);
+            LOG.warn(
+                    "text-input filter=\"{}\" names no filter this toolkit has;" + " the field will accept anything",
+                    name);
             return TextFilter.NONE;
         }
         return filter;

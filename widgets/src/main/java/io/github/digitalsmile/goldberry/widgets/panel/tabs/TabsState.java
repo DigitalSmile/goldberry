@@ -1,15 +1,16 @@
 package io.github.digitalsmile.goldberry.widgets.panel.tabs;
 
-import io.github.digitalsmile.goldberry.render.model.LogicalRect;
-import io.github.digitalsmile.goldberry.widget.BuildContext;
-import io.github.digitalsmile.goldberry.widgets.core.scroll.ScrollController;
-import io.github.digitalsmile.goldberry.widget.State;
-import io.github.digitalsmile.goldberry.widgets.core.Phase;
-import io.github.digitalsmile.goldberry.widget.Widget;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+
+import io.github.digitalsmile.goldberry.render.model.LogicalRect;
+import io.github.digitalsmile.goldberry.widget.BuildContext;
+import io.github.digitalsmile.goldberry.widget.State;
+import io.github.digitalsmile.goldberry.widget.Widget;
+import io.github.digitalsmile.goldberry.widgets.core.Phase;
+import io.github.digitalsmile.goldberry.widgets.core.scroll.ScrollController;
 
 /// What a [Tabs] remembers between builds: which tabs are arriving, and which
 /// have been closed but are still on their way out.
@@ -73,8 +74,7 @@ final class TabsState extends State<Tabs> {
     /// Handed the selected header's rectangle and the one that clips it, which is
     /// the strip's viewport — the controller turns those two into a distance and
     /// the viewport clamps it ([ADR-0119], [ADR-0120]).
-    private void revealed(LogicalRect self,
-                          LogicalRect clip) {
+    private void revealed(LogicalRect self, LogicalRect clip) {
         if (pendingReveal == null) {
             return;
         }
@@ -146,8 +146,7 @@ final class TabsState extends State<Tabs> {
     /// the first build, where everything is simply already there.
     private void arrivals(Map<String, Tab> current) {
         for (var value : current.keySet()) {
-            phases.computeIfAbsent(value, ignored -> new Phase(
-                    opened ? Phase.Kind.ENTERING : Phase.Kind.SETTLED));
+            phases.computeIfAbsent(value, ignored -> new Phase(opened ? Phase.Kind.ENTERING : Phase.Kind.SETTLED));
         }
     }
 

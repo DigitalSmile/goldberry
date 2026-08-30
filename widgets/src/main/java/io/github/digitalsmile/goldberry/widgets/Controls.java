@@ -1,32 +1,5 @@
 package io.github.digitalsmile.goldberry.widgets;
 
-
-
-import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
-import io.github.digitalsmile.goldberry.css.Stylesheet;
-import io.github.digitalsmile.goldberry.css.Theme;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
@@ -34,6 +7,10 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Stream;
+
+import io.github.digitalsmile.goldberry.css.Stylesheet;
+import io.github.digitalsmile.goldberry.css.Theme;
+import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
 
 /// The catalog: every widget this module ships, and how it is registered and
 /// styled.
@@ -44,8 +21,7 @@ import java.util.stream.Stream;
 /// unregistered fails to inflate. They ship together.
 public final class Controls {
 
-    private Controls() {
-    }
+    private Controls() {}
 
     /// The default appearance of every control here, for the
     /// [CascadeLayer#TOOLKIT_BASE] layer.
@@ -68,8 +44,7 @@ public final class Controls {
         var resource = "controls.css";
         try (InputStream in = Controls.class.getResourceAsStream(resource)) {
             if (in == null) {
-                throw new IllegalStateException(
-                        "the control stylesheet is missing from the jar: " + resource);
+                throw new IllegalStateException("the control stylesheet is missing from the jar: " + resource);
             }
             return new String(in.readAllBytes(), StandardCharsets.UTF_8);
         } catch (IOException e) {
@@ -90,9 +65,7 @@ public final class Controls {
     public static List<Stylesheet> stylesheets(Theme theme, Density density) {
         Objects.requireNonNull(theme, "theme");
         Objects.requireNonNull(density, "density");
-        return Stream.concat(
-                        Stream.of(baseStylesheet(), theme.load()),
-                        density.stylesheets().stream())
+        return Stream.concat(Stream.of(baseStylesheet(), theme.load()), density.stylesheets().stream())
                 .toList();
     }
 
@@ -131,7 +104,19 @@ public final class Controls {
     /// package-private inside `…widgets.controls` and this class is not in it
     /// (ADR-0091). A link that cannot resolve is worse than a name).
     public static List<String> controlTypes() {
-        return List.of("button", "checkbox", "toggle", "slider", "radio-group", "radio",
-                "segmented", "option", "select", "progress", "spinner", "badge", "knob");
+        return List.of(
+                "button",
+                "checkbox",
+                "toggle",
+                "slider",
+                "radio-group",
+                "radio",
+                "segmented",
+                "option",
+                "select",
+                "progress",
+                "spinner",
+                "badge",
+                "knob");
     }
 }

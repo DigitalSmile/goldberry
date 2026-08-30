@@ -1,16 +1,17 @@
 package io.github.digitalsmile.goldberry.widgets.panel.collapse;
 
-import io.github.digitalsmile.goldberry.css.ComputedStyle;
-import io.github.digitalsmile.goldberry.input.handler.Handles;
-import io.github.digitalsmile.goldberry.input.event.KeyEvent;
-import io.github.digitalsmile.goldberry.input.event.PointerEvent;
-import io.github.digitalsmile.goldberry.paint.Box;
-import io.github.digitalsmile.goldberry.widget.style.Paints;
-import io.github.digitalsmile.goldberry.widget.style.Styled;
-import io.github.digitalsmile.goldberry.widget.Widget;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+
+import io.github.digitalsmile.goldberry.css.ComputedStyle;
+import io.github.digitalsmile.goldberry.input.event.KeyEvent;
+import io.github.digitalsmile.goldberry.input.event.PointerEvent;
+import io.github.digitalsmile.goldberry.input.handler.Handles;
+import io.github.digitalsmile.goldberry.paint.Box;
+import io.github.digitalsmile.goldberry.widget.Widget;
+import io.github.digitalsmile.goldberry.widget.style.Paints;
+import io.github.digitalsmile.goldberry.widget.style.Styled;
 
 /// The row you click to open a [Collapse] — §5's "disclosure button".
 ///
@@ -23,8 +24,7 @@ import java.util.Set;
 /// on an open section leaves it open. A user holding `Right` down a list of
 /// sections opens all of them, where a toggle would flap the one under the
 /// cursor.
-record CollapseHeader(String title, boolean open, Runnable onToggle)
-        implements Widget.Leaf, Styled, Paints, Handles {
+record CollapseHeader(String title, boolean open, Runnable onToggle) implements Widget.Leaf, Styled, Paints, Handles {
 
     @Override
     public String cssType() {
@@ -59,7 +59,8 @@ record CollapseHeader(String title, boolean open, Runnable onToggle)
 
     @Override
     public void onKey(KeyEvent event) {
-        if (event.kind() != KeyEvent.Kind.PRESSED || event.isRepeat()
+        if (event.kind() != KeyEvent.Kind.PRESSED
+                || event.isRepeat()
                 || !event.modifiers().none()) {
             return;
         }
@@ -81,8 +82,7 @@ record CollapseHeader(String title, boolean open, Runnable onToggle)
                 }
                 event.consume();
             }
-            default -> {
-            }
+            default -> {}
         }
     }
 
@@ -136,8 +136,7 @@ record CollapseHeader(String title, boolean open, Runnable onToggle)
 
         @Override
         public Box render(ComputedStyle style, List<Box> children, Context context) {
-            return Box.of().style(style)
-                    .mark(new Box.Mark(Box.Mark.Kind.CHEVRON_END, style.color(), 1.5));
+            return Box.of().style(style).mark(new Box.Mark(Box.Mark.Kind.CHEVRON_END, style.color(), 1.5));
         }
     }
 }

@@ -1,6 +1,7 @@
 package io.github.digitalsmile.goldberry.css.select;
 
 import java.util.Objects;
+
 import io.github.digitalsmile.goldberry.css.StyleElement;
 
 /// Decides whether a [Selector] applies to a [StyleElement].
@@ -12,8 +13,7 @@ import io.github.digitalsmile.goldberry.css.StyleElement;
 /// answer, enormously more work.
 public final class SelectorMatcher {
 
-    private SelectorMatcher() {
-    }
+    private SelectorMatcher() {}
 
     /// Whether `selector` matches `element`.
     public static boolean matches(Selector selector, StyleElement element) {
@@ -71,9 +71,7 @@ public final class SelectorMatcher {
         for (var state : compound.pseudoClasses()) {
             // ROOT is answered by the tree rather than by the element, so an
             // implementation cannot report something the tree contradicts.
-            var holds = state == Selector.PseudoClass.ROOT
-                    ? element.parent() == null
-                    : element.hasState(state);
+            var holds = state == Selector.PseudoClass.ROOT ? element.parent() == null : element.hasState(state);
             if (!holds) {
                 return false;
             }

@@ -6,8 +6,16 @@ import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.List;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
+
 import io.github.digitalsmile.goldberry.RendererRequirement;
 import io.github.digitalsmile.goldberry.bind.registry.ActionRegistry;
+import io.github.digitalsmile.goldberry.css.Theme;
 import io.github.digitalsmile.goldberry.input.event.KeyEvent;
 import io.github.digitalsmile.goldberry.input.event.PointerEvent;
 import io.github.digitalsmile.goldberry.input.key.Key;
@@ -15,19 +23,13 @@ import io.github.digitalsmile.goldberry.input.key.Modifiers;
 import io.github.digitalsmile.goldberry.kdl.KdlParser;
 import io.github.digitalsmile.goldberry.paint.Box;
 import io.github.digitalsmile.goldberry.widget.ElementTree;
-import io.github.digitalsmile.goldberry.widgets.Widgets;
-import io.github.digitalsmile.goldberry.css.Theme;
 import io.github.digitalsmile.goldberry.widget.WidgetRenderer;
 import io.github.digitalsmile.goldberry.widgets.Controls;
 import io.github.digitalsmile.goldberry.widgets.TestHost;
+import io.github.digitalsmile.goldberry.widgets.Widgets;
 import io.github.digitalsmile.goldberry.widgets.controls.TestFont;
 import io.github.digitalsmile.goldberry.widgets.controls.button.Button;
 import io.github.digitalsmile.goldberry.widgets.panel.Described;
-import java.util.List;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.Test;
 
 /// `message` — §7's inline banner.
 ///
@@ -59,11 +61,17 @@ class MessageTest {
         @DisplayName("every kind draws a glyph of its own")
         void everyKindHasItsOwnGlyph() {
             var glyphs = java.util.Arrays.stream(Message.Kind.values())
-                    .map(Message.Kind::glyph).distinct().toList();
+                    .map(Message.Kind::glyph)
+                    .distinct()
+                    .toList();
 
-            assertEquals(Message.Kind.values().length, glyphs.size(),
+            assertEquals(
+                    Message.Kind.values().length,
+                    glyphs.size(),
                     "two kinds share a glyph, so the hue is carrying the difference: " + glyphs);
-            assertEquals(Box.Mark.Kind.TRIANGLE_ALERT, Message.Kind.WARNING.glyph(),
+            assertEquals(
+                    Box.Mark.Kind.TRIANGLE_ALERT,
+                    Message.Kind.WARNING.glyph(),
                     "warning is the one that is not a circle, which is what tells it"
                             + " from danger with the colour removed");
         }
@@ -89,8 +97,7 @@ class MessageTest {
             assertEquals(Message.Kind.INFO, Message.Kind.of("  "));
             assertEquals(Message.Kind.WARNING, Message.Kind.of("Warning"));
 
-            var thrown = assertThrows(IllegalArgumentException.class,
-                    () -> Message.Kind.of("dangerous"));
+            var thrown = assertThrows(IllegalArgumentException.class, () -> Message.Kind.of("dangerous"));
             assertTrue(thrown.getMessage().contains("dangerous"), thrown.getMessage());
         }
     }
@@ -106,9 +113,13 @@ class MessageTest {
 
             assertEquals(1, Described.counting(tree, "message-icon"));
             assertEquals(1, Described.counting(tree, "message-body"));
-            assertEquals(0, Described.counting(tree, "message-actions"),
+            assertEquals(
+                    0,
+                    Described.counting(tree, "message-actions"),
                     "an action row with nothing in it is a gap nobody asked for");
-            assertEquals(0, Described.counting(tree, "message-dismiss"),
+            assertEquals(
+                    0,
+                    Described.counting(tree, "message-dismiss"),
                     "a × that tells nobody anything is an affordance that lies");
         }
 
@@ -117,8 +128,8 @@ class MessageTest {
         @Test
         @DisplayName("actions are the author's widgets, in a row of their own")
         void actions() {
-            var tree = new ElementTree(new Message(Message.Kind.WARNING, "Session ending.")
-                    .actions(new Button("Stay")));
+            var tree =
+                    new ElementTree(new Message(Message.Kind.WARNING, "Session ending.").actions(new Button("Stay")));
 
             assertEquals(1, Described.counting(tree, "message-actions"));
             assertEquals(1, Described.of(tree, Button.class).size());
@@ -128,10 +139,9 @@ class MessageTest {
         @DisplayName("the × is there only when somebody is listening")
         void dismissIsOptIn() {
             assertFalse(new Message(Message.Kind.INFO, "x").isDismissable());
-            assertTrue(new Message(Message.Kind.INFO, "x").dismiss(() -> { }).isDismissable());
+            assertTrue(new Message(Message.Kind.INFO, "x").dismiss(() -> {}).isDismissable());
 
-            var tree = new ElementTree(
-                    new Message(Message.Kind.INFO, "x").dismiss(() -> { }));
+            var tree = new ElementTree(new Message(Message.Kind.INFO, "x").dismiss(() -> {}));
             assertEquals(1, Described.counting(tree, "message-dismiss"));
         }
     }
@@ -149,8 +159,7 @@ class MessageTest {
         @DisplayName("a click dismisses, and is consumed so nothing behind it also fires")
         void click() {
             var told = new boolean[1];
-            var event = new PointerEvent(PointerEvent.Kind.CLICKED, 0, 0,
-                    PointerEvent.Button.PRIMARY, 1, null);
+            var event = new PointerEvent(PointerEvent.Kind.CLICKED, 0, 0, PointerEvent.Button.PRIMARY, 1, null);
 
             dismissIn(() -> told[0] = true).onPointer(event);
 
@@ -164,7 +173,7 @@ class MessageTest {
         @Test
         @DisplayName("Space and Enter dismiss, and the × is a tab stop")
         void keyboard() {
-            assertTrue(dismissIn(() -> { }).isFocusable());
+            assertTrue(dismissIn(() -> {}).isFocusable());
 
             for (var key : List.of(Key.SPACE, Key.ENTER)) {
                 var told = new boolean[1];
@@ -182,8 +191,8 @@ class MessageTest {
         void repeatsAreIgnored() {
             var told = new boolean[1];
 
-            dismissIn(() -> told[0] = true).onKey(
-                    new KeyEvent(KeyEvent.Kind.PRESSED, Key.SPACE, Modifiers.NONE, true, null));
+            dismissIn(() -> told[0] = true)
+                    .onKey(new KeyEvent(KeyEvent.Kind.PRESSED, Key.SPACE, Modifiers.NONE, true, null));
 
             assertFalse(told[0], "holding Space down dismissed the banner twice");
         }
@@ -226,7 +235,9 @@ class MessageTest {
 
             assertFalse(told[0], "the application was told before the fade had run");
             assertTrue(host.hasPendingTimer(), "nothing is going to end the fade");
-            assertEquals(1, Described.counting(tree, "message"),
+            assertEquals(
+                    1,
+                    Described.counting(tree, "message"),
                     "the banner stopped being described, so there was nothing to fade");
         }
 
@@ -236,7 +247,7 @@ class MessageTest {
         @Test
         @DisplayName("the fade is `fast`, not `base`")
         void fadesFast() {
-            dismissIn(banner(() -> { })).onPointer(click());
+            dismissIn(banner(() -> {})).onPointer(click());
 
             assertEquals(List.of(java.time.Duration.ofMillis(100)), host.scheduledDelays());
         }
@@ -256,8 +267,8 @@ class MessageTest {
             // The application is what removes the banner, and this test's
             // application does not -- so what is left is the case the record is
             // explicit about: it stays gone rather than springing back.
-            assertEquals(0, Described.counting(tree, "message-dismiss"),
-                    "a departed banner still has a × in the hit test");
+            assertEquals(
+                    0, Described.counting(tree, "message-dismiss"), "a departed banner still has a × in the hit test");
         }
 
         @Test
@@ -283,7 +294,7 @@ class MessageTest {
         @Test
         @DisplayName("unmounting mid-fade cancels the timer")
         void unmountingCancels() {
-            var tree = banner(() -> { });
+            var tree = banner(() -> {});
             dismissIn(tree).onPointer(click());
             tree.flush();
 
@@ -299,8 +310,7 @@ class MessageTest {
         @DisplayName("no window means an instant dismissal rather than none")
         void noHostDismissesAtOnce() {
             var told = new boolean[1];
-            var tree = new ElementTree(
-                    new Message(Message.Kind.INFO, "Going").dismiss(() -> told[0] = true));
+            var tree = new ElementTree(new Message(Message.Kind.INFO, "Going").dismiss(() -> told[0] = true));
 
             Described.first(tree, MessageDismiss.class).onPointer(click());
 
@@ -320,8 +330,8 @@ class MessageTest {
         void reducedMotionSkipsTheFade() {
             var told = new boolean[1];
             var tree = banner(() -> told[0] = true);
-            var renderer = new WidgetRenderer(
-                    List.of(Controls.baseStylesheet(), Theme.NORD_DARK.load()), TestFont.get());
+            var renderer =
+                    new WidgetRenderer(List.of(Controls.baseStylesheet(), Theme.NORD_DARK.load()), TestFont.get());
             renderer.reducedMotion(true);
             // The frame that tells the widget what the preference is.
             renderer.render(tree);
@@ -333,8 +343,7 @@ class MessageTest {
         }
 
         private PointerEvent click() {
-            return new PointerEvent(PointerEvent.Kind.CLICKED, 0, 0,
-                    PointerEvent.Button.PRIMARY, 1, null);
+            return new PointerEvent(PointerEvent.Kind.CLICKED, 0, 0, PointerEvent.Button.PRIMARY, 1, null);
         }
     }
 
@@ -349,7 +358,8 @@ class MessageTest {
         @DisplayName("nothing wrong is no banner, not an empty one")
         void empty() {
             assertTrue(Message.summary(List.of()).isEmpty());
-            assertTrue(Message.summary(java.util.Arrays.asList("", "   ")).isEmpty(),
+            assertTrue(
+                    Message.summary(java.util.Arrays.asList("", "   ")).isEmpty(),
                     "a validator that returned blank has said nothing");
         }
 
@@ -360,7 +370,9 @@ class MessageTest {
                     .orElseThrow();
 
             assertEquals(Message.Kind.DANGER, summary.kind());
-            assertEquals("Name is required\nPort must be a number", summary.text(),
+            assertEquals(
+                    "Name is required\nPort must be a number",
+                    summary.text(),
                     "four failures should be four lines of one banner, not four banners");
         }
     }
@@ -372,9 +384,10 @@ class MessageTest {
         @Test
         @DisplayName("a message inflates with its kind, its words and its links")
         void inflates() {
-            var widget = Widgets.inflater().inflate(KdlParser.parse(
-                    "message kind=\"warning\" \"Session ending.\" {"
-                            + " button class=\"ghost\" \"Stay\" }").getFirst());
+            var widget = Widgets.inflater()
+                    .inflate(KdlParser.parse("message kind=\"warning\" \"Session ending.\" {"
+                                    + " button class=\"ghost\" \"Stay\" }")
+                            .getFirst());
             var message = assertInstanceOf(Message.class, widget);
 
             assertEquals(Message.Kind.WARNING, message.kind());
@@ -392,10 +405,11 @@ class MessageTest {
             var told = new boolean[1];
             var actions = ActionRegistry.strict().bind("clear", () -> told[0] = true);
 
-            var message = assertInstanceOf(Message.class,
-                    Widgets.inflater(actions).inflate(KdlParser.parse(
-                            "message kind=\"danger\" dismiss=\"clear\" \"Could not save.\"")
-                            .getFirst()));
+            var message = assertInstanceOf(
+                    Message.class,
+                    Widgets.inflater(actions)
+                            .inflate(KdlParser.parse("message kind=\"danger\" dismiss=\"clear\" \"Could not save.\"")
+                                    .getFirst()));
 
             assertTrue(message.isDismissable());
             message.onDismiss().run();

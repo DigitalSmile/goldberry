@@ -1,10 +1,10 @@
 package io.github.digitalsmile.goldberry.widgets.overlay.toast;
 
+import java.util.Objects;
+
 import io.github.digitalsmile.goldberry.widget.State;
 import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widget.style.Corner;
-
-import java.util.Objects;
 
 /// The stack every [Toast] appears in — `docs/core-widgets.md` §7's toast layer.
 ///
@@ -38,8 +38,7 @@ import java.util.Objects;
 ///                   configurable"
 /// @param maximum    how many are on screen at once; the rest wait, which is
 ///                   what §7's "queued" means
-public record Toaster(ToastController controller, Corner corner, int maximum)
-        implements Widget.Stateful {
+public record Toaster(ToastController controller, Corner corner, int maximum) implements Widget.Stateful {
 
     /// How many toasts are visible before the rest queue.
     ///
@@ -53,8 +52,7 @@ public record Toaster(ToastController controller, Corner corner, int maximum)
         Objects.requireNonNull(controller, "controller");
         corner = corner == null ? Corner.BOTTOM_END : corner;
         if (maximum < 1) {
-            throw new IllegalArgumentException(
-                    "a toast stack that shows " + maximum + " toasts shows none of them");
+            throw new IllegalArgumentException("a toast stack that shows " + maximum + " toasts shows none of them");
         }
     }
 

@@ -5,11 +5,13 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import io.github.digitalsmile.goldberry.natives.layout.Layouts;
 import java.lang.foreign.ValueLayout;
+
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+
 import io.github.digitalsmile.goldberry.natives.blend2d.enums.BlendGlyphPlacementType;
+import io.github.digitalsmile.goldberry.natives.layout.Layouts;
 
 /// The staging buffer, checked by reading back the bytes Blend2D will read.
 ///
@@ -26,8 +28,7 @@ class BlendGlyphBufferTest {
     private static final long RUN_RESERVED = Layouts.BL_GLYPH_RUN.offsetOf("reserved");
     private static final long RUN_PLACEMENT_TYPE = Layouts.BL_GLYPH_RUN.offsetOf("placement_type");
     private static final long RUN_GLYPH_ADVANCE = Layouts.BL_GLYPH_RUN.offsetOf("glyph_advance");
-    private static final long RUN_PLACEMENT_ADVANCE =
-            Layouts.BL_GLYPH_RUN.offsetOf("placement_advance");
+    private static final long RUN_PLACEMENT_ADVANCE = Layouts.BL_GLYPH_RUN.offsetOf("placement_advance");
     private static final long RUN_FLAGS = Layouts.BL_GLYPH_RUN.offsetOf("flags");
 
     @Test
@@ -42,9 +43,7 @@ class BlendGlyphBufferTest {
             // these to a pointer, so a wrong one does not fail -- it reads the
             // middle of the next glyph.
             assertEquals(4, run.get(ValueLayout.JAVA_BYTE, RUN_GLYPH_ADVANCE));
-            assertEquals(
-                    (byte) PLACEMENT_STRIDE,
-                    run.get(ValueLayout.JAVA_BYTE, RUN_PLACEMENT_ADVANCE));
+            assertEquals((byte) PLACEMENT_STRIDE, run.get(ValueLayout.JAVA_BYTE, RUN_PLACEMENT_ADVANCE));
             assertEquals(16, PLACEMENT_STRIDE, "two BLPointI is sixteen bytes");
 
             // The field that decides the units of everything else (ADR-0034).

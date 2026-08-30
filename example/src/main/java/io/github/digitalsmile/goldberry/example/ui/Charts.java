@@ -1,5 +1,8 @@
 package io.github.digitalsmile.goldberry.example.ui;
 
+import java.util.List;
+import java.util.Set;
+
 import io.github.digitalsmile.goldberry.widget.BuildContext;
 import io.github.digitalsmile.goldberry.widget.State;
 import io.github.digitalsmile.goldberry.widget.Widget;
@@ -18,8 +21,6 @@ import io.github.digitalsmile.goldberry.widgets.data.sparkline.Sparkline;
 import io.github.digitalsmile.goldberry.widgets.panel.card.Card;
 import io.github.digitalsmile.goldberry.widgets.panel.statistic.Statistic;
 import io.github.digitalsmile.goldberry.widgets.text.Text;
-import java.util.List;
-import java.util.Set;
 
 /// The **Charts** screen: `docs/core-widgets.md` §11's five data widgets, in the
 /// wall of cards a dashboard is actually made of.
@@ -111,9 +112,9 @@ public record Charts() implements Widget.Stateful {
 
         /// A titled card, which is what every tile on this screen is.
         private static Widget card(String title, Widget content, Attributes attributes) {
-            return new Card(List.of(
-                    new Text(title, Attributes.NONE.classes("card-title")),
-                    content), attributes.classes("wall-card"));
+            return new Card(
+                    List.of(new Text(title, Attributes.NONE.classes("card-title")), content),
+                    attributes.classes("wall-card"));
         }
 
         /// A card of alternating charts and captions — the one tile on this
@@ -145,109 +146,129 @@ public record Charts() implements Widget.Stateful {
 
         @Override
         public Widget build(BuildContext context) {
-            return new Wall("charts", "Charts", NOTE, 3, List.of(
-                    card("Leagues per day",
-                            new LineChart(List.of(
-                                    Series.of("On the road", 12, 19, 15, 27, 31, 28, 36),
-                                    Series.of("Off it", 8, 11, 9, 18, 21, 19, 24)),
-                                    DAYS, id("marched"))
-                                    .crosshair(week),
-                            id("marched-card")),
+            return new Wall(
+                    "charts",
+                    "Charts",
+                    NOTE,
+                    3,
+                    List.of(
+                            card(
+                                    "Leagues per day",
+                                    new LineChart(
+                                                    List.of(
+                                                            Series.of("On the road", 12, 19, 15, 27, 31, 28, 36),
+                                                            Series.of("Off it", 8, 11, 9, 18, 21, 19, 24)),
+                                                    DAYS,
+                                                    id("marched"))
+                                            .crosshair(week),
+                                    id("marched-card")),
+                            plain(
+                                    new Statistic(
+                                            "Days without loss",
+                                            "93",
+                                            "d",
+                                            "+7",
+                                            Statistic.Direction.UP,
+                                            new Sparkline(SAFE, true, true, Attributes.NONE),
+                                            Attributes.NONE),
+                                    id("safe-card")),
+                            card(
+                                    "What is left in the packs",
+                                    new DonutChart(
+                                            List.of(
+                                                    Series.of("Lembas", 62),
+                                                    Series.of("Dried meat", 24),
+                                                    Series.of("Nothing", 14)),
+                                            id("packs")),
+                                    id("packs-card")),
+                            card(
+                                    "Provisions",
+                                    new AreaChart(
+                                                    List.of(
+                                                            Series.of("Lembas", 40, 52, 44, 61, 58, 66, 71),
+                                                            Series.of("Dried meat", 12, 9, 15, 11, 14, 10, 13)),
+                                                    DAYS,
+                                                    id("provisions"))
+                                            // Both edges of both bands, so the stack still
+                                            // nests exactly -- a curved top over a straight
+                                            // underside would be a band thicker than its
+                                            // own numbers (ADR-0204).
+                                            .curve(Curve.SMOOTH)
+                                            .crosshair(week),
+                                    id("provisions-card")),
+                            card(
+                                    "Sightings",
+                                    new BarChart(
+                                            List.of(
+                                                    Series.of("Crebain", 18, 24, 14, 9, 21),
+                                                    Series.of("Riders", 3, 2, 5, 1, 4)),
+                                            List.of("Mon", "Tue", "Wed", "Thu", "Fri"),
+                                            id("sightings")),
+                                    id("sightings-card")),
 
-                    plain(new Statistic("Days without loss", "93", "d", "+7",
-                                    Statistic.Direction.UP,
-                                    new Sparkline(SAFE, true, true, Attributes.NONE),
-                                    Attributes.NONE),
-                            id("safe-card")),
+                            // The card whose stylesheet rule recolours one series -- see
+                            // the class note -- and the one with a limit drawn across it.
+                            card(
+                                    "Watch kept, in minutes",
+                                    new LineChart(List.of(new Series("Watch", WATCH)), List.of(), id("watch"))
+                                            // §3.1's `java.time` axis. The ninth reading is
+                                            // three hours after the eighth, and the axis
+                                            // shows that as three hours rather than as one
+                                            // more step (ADR-0203).
+                                            .times(NIGHTS, java.time.ZoneOffset.UTC)
+                                            // A band rather than a line, because what
+                                            // matters is the *region* the series went into.
+                                            // In a semantic hue, never a series slot: a
+                                            // limit is a statement about the data rather
+                                            // than one of the things being compared
+                                            // (ADR-0202).
+                                            .threshold(Threshold.above(145, Threshold.Level.WARNING)
+                                                    .labelled("Too long alone"))
+                                            // A fade rather than a wash, so the line stays
+                                            // the reading and the area is a hint at
+                                            // magnitude -- and it thins out before it
+                                            // reaches the band, so the limit is still read
+                                            // against the data rather than through it
+                                            // (ADR-0207).
+                                            .fill(Fill.GRADIENT),
+                                    id("watch-card")),
+                            plain(
+                                    new Statistic(
+                                            "Leagues to go",
+                                            "1,340",
+                                            null,
+                                            "-42",
+                                            Statistic.Direction.DOWN,
+                                            new Sparkline(REMAINING, false, true, Attributes.NONE),
+                                            Attributes.NONE),
+                                    id("remaining-card")),
 
-                    card("What is left in the packs",
-                            new DonutChart(List.of(
-                                    Series.of("Lembas", 62),
-                                    Series.of("Dried meat", 24),
-                                    Series.of("Nothing", 14)), id("packs")),
-                            id("packs-card")),
-
-                    card("Provisions",
-                            new AreaChart(List.of(
-                                    Series.of("Lembas", 40, 52, 44, 61, 58, 66, 71),
-                                    Series.of("Dried meat", 12, 9, 15, 11, 14, 10, 13)),
-                                    DAYS, id("provisions"))
-                                    // Both edges of both bands, so the stack still
-                                    // nests exactly -- a curved top over a straight
-                                    // underside would be a band thicker than its
-                                    // own numbers (ADR-0204).
-                                    .curve(Curve.SMOOTH)
-                                    .crosshair(week),
-                            id("provisions-card")),
-
-                    card("Sightings",
-                            new BarChart(List.of(
-                                    Series.of("Crebain", 18, 24, 14, 9, 21),
-                                    Series.of("Riders", 3, 2, 5, 1, 4)),
-                                    List.of("Mon", "Tue", "Wed", "Thu", "Fri"),
-                                    id("sightings")),
-                            id("sightings-card")),
-
-                    // The card whose stylesheet rule recolours one series -- see
-                    // the class note -- and the one with a limit drawn across it.
-                    card("Watch kept, in minutes",
-                            new LineChart(List.of(new Series("Watch", WATCH)),
-                                    List.of(), id("watch"))
-                                    // §3.1's `java.time` axis. The ninth reading is
-                                    // three hours after the eighth, and the axis
-                                    // shows that as three hours rather than as one
-                                    // more step (ADR-0203).
-                                    .times(NIGHTS, java.time.ZoneOffset.UTC)
-                                    // A band rather than a line, because what
-                                    // matters is the *region* the series went into.
-                                    // In a semantic hue, never a series slot: a
-                                    // limit is a statement about the data rather
-                                    // than one of the things being compared
-                                    // (ADR-0202).
-                                    .threshold(Threshold
-                                            .above(145, Threshold.Level.WARNING)
-                                            .labelled("Too long alone"))
-                                    // A fade rather than a wash, so the line stays
-                                    // the reading and the area is a hint at
-                                    // magnitude -- and it thins out before it
-                                    // reaches the band, so the limit is still read
-                                    // against the data rather than through it
-                                    // (ADR-0207).
-                                    .fill(Fill.GRADIENT),
-                            id("watch-card")),
-
-                    plain(new Statistic("Leagues to go", "1,340", null, "-42",
-                                    Statistic.Direction.DOWN,
-                                    new Sparkline(REMAINING, false, true, Attributes.NONE),
-                                    Attributes.NONE),
-                            id("remaining-card")),
-
-                    // The card that makes §3.1's sentence visible: the same twelve
-                    // readings, three of them missing, drawn under the two policies
-                    // that disagree about what that means (ADR-0201).
-                    captioned("Beacons answered", id("dropouts-card"),
-                            new LineChart(List.of(new Series("Beacons", BEACONS)),
-                                    List.of(), id("beacons")),
-                            caption("Gap — the default. The line stops where nobody was"
-                                    + " watching; a lone reading between two holes is a dot."),
-                            new LineChart(List.of(new Series("Beacons", BEACONS)),
-                                    List.of(), id("beacons-zero"))
-                                    .nulls(NullPolicy.ZERO),
-                            caption("Zero — the same numbers, claiming the beacons went out."
-                                    + " They did not: nobody was on the hill."))));
+                            // The card that makes §3.1's sentence visible: the same twelve
+                            // readings, three of them missing, drawn under the two policies
+                            // that disagree about what that means (ADR-0201).
+                            captioned(
+                                    "Beacons answered",
+                                    id("dropouts-card"),
+                                    new LineChart(List.of(new Series("Beacons", BEACONS)), List.of(), id("beacons")),
+                                    caption("Gap — the default. The line stops where nobody was"
+                                            + " watching; a lone reading between two holes is a dot."),
+                                    new LineChart(
+                                                    List.of(new Series("Beacons", BEACONS)),
+                                                    List.of(),
+                                                    id("beacons-zero"))
+                                            .nulls(NullPolicy.ZERO),
+                                    caption("Zero — the same numbers, claiming the beacons went out."
+                                            + " They did not: nobody was on the hill."))));
         }
 
-        private static final List<String> DAYS =
-                List.of("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun");
+        private static final List<String> DAYS = List.of("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun");
 
-        private static final List<Double> SAFE = List.of(
-                61.0, 68.0, 74.0, 79.0, 83.0, 86.0, 89.0, 91.0, 93.0);
+        private static final List<Double> SAFE = List.of(61.0, 68.0, 74.0, 79.0, 83.0, 86.0, 89.0, 91.0, 93.0);
 
-        private static final List<Double> REMAINING = List.of(
-                1520.0, 1487.0, 1442.0, 1409.0, 1381.0, 1358.0, 1340.0);
+        private static final List<Double> REMAINING = List.of(1520.0, 1487.0, 1442.0, 1409.0, 1381.0, 1358.0, 1340.0);
 
-        private static final List<Double> WATCH = List.of(
-                128.0, 131.0, 126.0, 149.0, 142.0, 138.0, 133.0, 129.0, 124.0, 121.0);
+        private static final List<Double> WATCH =
+                List.of(128.0, 131.0, 126.0, 149.0, 142.0, 138.0, 133.0, 129.0, 124.0, 121.0);
 
         /// When each of [#WATCH]'s readings was taken — every half hour, with
         /// **one missed turn** between the eighth and the ninth.
@@ -283,7 +304,6 @@ public record Charts() implements Widget.Stateful {
         /// `NaN` is how a hole is spelled; a `null` in this list would be read as
         /// one ([Series]).
         private static final List<Double> BEACONS = java.util.Arrays.asList(
-                7.0, 9.0, 8.0, Double.NaN, Double.NaN, 11.0,
-                Double.NaN, 10.0, 12.0, 14.0, 15.0, 16.0);
+                7.0, 9.0, 8.0, Double.NaN, Double.NaN, 11.0, Double.NaN, 10.0, 12.0, 14.0, 15.0, 16.0);
     }
 }

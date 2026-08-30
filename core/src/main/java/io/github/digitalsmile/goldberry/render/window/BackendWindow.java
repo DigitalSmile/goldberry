@@ -1,14 +1,14 @@
 package io.github.digitalsmile.goldberry.render.window;
 
+import java.util.List;
+import java.util.Optional;
+
 import io.github.digitalsmile.goldberry.render.Backend;
 import io.github.digitalsmile.goldberry.render.Cursor;
 import io.github.digitalsmile.goldberry.render.DamageRect;
 import io.github.digitalsmile.goldberry.render.PixelBuffer;
 import io.github.digitalsmile.goldberry.render.event.BackendEvent;
 import io.github.digitalsmile.goldberry.render.model.*;
-
-import java.util.List;
-import java.util.Optional;
 
 /// One window, as the platform sees it.
 ///
@@ -116,8 +116,7 @@ public interface BackendWindow extends AutoCloseable {
     /// caller who only wanted a hand instead of an arrow.
     ///
     /// Default: does nothing, which is right for a backend with no pointer at all.
-    default void setCursor(Cursor cursor) {
-    }
+    default void setCursor(Cursor cursor) {}
 
     /// Where this window's top-left is, in the desktop's logical coordinates.
     ///
@@ -181,8 +180,7 @@ public interface BackendWindow extends AutoCloseable {
     /// usefully do about it that it is not already doing.
     ///
     /// @param active whether committed text should be delivered
-    default void textInput(boolean active) {
-    }
+    default void textInput(boolean active) {}
 
     /// Sets the window title.
     void setTitle(String title);

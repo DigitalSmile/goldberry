@@ -1,7 +1,7 @@
 package io.github.digitalsmile.goldberry.css;
 
-import io.github.digitalsmile.goldberry.paint.Box;
 import io.github.digitalsmile.goldberry.css.value.CssColor;
+import io.github.digitalsmile.goldberry.paint.Box;
 
 /// What is drawn *around* a box rather than in it: the corner radius, the border
 /// and the focus ring.
@@ -87,8 +87,7 @@ public record Decoration(
     }
 
     public Decoration corners(Corners value) {
-        return new Decoration(value, borderWidth, borderColor, outlineWidth, outlineColor,
-                outlineOffset);
+        return new Decoration(value, borderWidth, borderColor, outlineWidth, outlineColor, outlineOffset);
     }
 
     public Decoration border(double width, int argb) {
@@ -129,8 +128,13 @@ public record Decoration(
         if (alpha >= 1) {
             return this;
         }
-        return new Decoration(corners, borderWidth, CssColor.fade(borderColor, alpha),
-                outlineWidth, CssColor.fade(outlineColor, alpha), outlineOffset);
+        return new Decoration(
+                corners,
+                borderWidth,
+                CssColor.fade(borderColor, alpha),
+                outlineWidth,
+                CssColor.fade(outlineColor, alpha),
+                outlineOffset);
     }
 
     private static double finite(double value, String name) {

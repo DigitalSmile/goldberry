@@ -1,15 +1,15 @@
 package io.github.digitalsmile.goldberry.widgets.panel.tree;
 
-import io.github.digitalsmile.goldberry.widget.attr.Attributed;
-import io.github.digitalsmile.goldberry.widget.attr.Attributes;
-import io.github.digitalsmile.goldberry.widget.State;
-import io.github.digitalsmile.goldberry.widget.Widget;
-import io.github.digitalsmile.goldberry.widgets.panel.list.Selection;
-
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Consumer;
+
+import io.github.digitalsmile.goldberry.widget.State;
+import io.github.digitalsmile.goldberry.widget.Widget;
+import io.github.digitalsmile.goldberry.widget.attr.Attributed;
+import io.github.digitalsmile.goldberry.widget.attr.Attributes;
+import io.github.digitalsmile.goldberry.widgets.panel.list.Selection;
 
 /// A hierarchical list — `docs/core-widgets.md` §3's `tree`.
 ///
@@ -68,9 +68,15 @@ import java.util.function.Consumer;
 /// @param checked    the ids of the ticked nodes; empty for none
 /// @param onCheck    the checked set the user asked for, whole
 /// @param attributes `id` and `class`, exactly as on the primitives
-public record Tree(List<TreeNode> roots, Set<String> selected, Consumer<Set<String>> onSelect,
-        Selection selection, boolean leafOnly,
-        Checkable checkable, Set<String> checked, Consumer<Set<String>> onCheck,
+public record Tree(
+        List<TreeNode> roots,
+        Set<String> selected,
+        Consumer<Set<String>> onSelect,
+        Selection selection,
+        boolean leafOnly,
+        Checkable checkable,
+        Set<String> checked,
+        Consumer<Set<String>> onCheck,
         Attributes attributes)
         implements Widget.Stateful, Attributed<Tree> {
 
@@ -101,10 +107,19 @@ public record Tree(List<TreeNode> roots, Set<String> selected, Consumer<Set<Stri
     /// over and unwrap it to read it back would be ceremony in the common case for
     /// the benefit of the rare one. What crosses inside is a set either way.
     public Tree(List<TreeNode> roots, String selected, Consumer<String> onSelect) {
-        this(roots, selected == null ? Set.of() : Set.of(selected),
-                onSelect == null ? null : chosen -> onSelect.accept(
-                        chosen.isEmpty() ? null : chosen.iterator().next()),
-                Selection.SINGLE, true, Checkable.NONE, Set.of(), null, Attributes.NONE);
+        this(
+                roots,
+                selected == null ? Set.of() : Set.of(selected),
+                onSelect == null
+                        ? null
+                        : chosen -> onSelect.accept(
+                                chosen.isEmpty() ? null : chosen.iterator().next()),
+                Selection.SINGLE,
+                true,
+                Checkable.NONE,
+                Set.of(),
+                null,
+                Attributes.NONE);
     }
 
     /// The one chosen id, or null — the single-selection reading of [#selected].
@@ -118,15 +133,13 @@ public record Tree(List<TreeNode> roots, Set<String> selected, Consumer<Set<Stri
     /// This tree letting a node with children be chosen — §3's `checkable="any"`,
     /// in the half of it that is a selection rule rather than a checkbox.
     public Tree anyNode(boolean value) {
-        return new Tree(roots, selected, onSelect, selection, !value,
-                checkable, checked, onCheck, attributes);
+        return new Tree(roots, selected, onSelect, selection, !value, checkable, checked, onCheck, attributes);
     }
 
     /// This tree with a different selection model — §3's "`list`'s selection
     /// models".
     public Tree selection(Selection value) {
-        return new Tree(roots, selected, onSelect, value, leafOnly,
-                checkable, checked, onCheck, attributes);
+        return new Tree(roots, selected, onSelect, value, leafOnly, checkable, checked, onCheck, attributes);
     }
 
     /// This tree reporting a **set** rather than one id, which is what
@@ -137,20 +150,17 @@ public record Tree(List<TreeNode> roots, Set<String> selected, Consumer<Set<Stri
     /// time — and because a single method taking both would have to decide what a
     /// null callback means.
     public Tree onSelect(Consumer<Set<String>> value) {
-        return new Tree(roots, selected, value, selection, leafOnly,
-                checkable, checked, onCheck, attributes);
+        return new Tree(roots, selected, value, selection, leafOnly, checkable, checked, onCheck, attributes);
     }
 
     /// This tree with `values` selected.
     public Tree selected(Set<String> values) {
-        return new Tree(roots, values, onSelect, selection, leafOnly,
-                checkable, checked, onCheck, attributes);
+        return new Tree(roots, values, onSelect, selection, leafOnly, checkable, checked, onCheck, attributes);
     }
 
     /// This tree with a checkbox on its rows — §3's `checkable=`.
     public Tree checkable(Checkable value) {
-        return new Tree(roots, selected, onSelect, selection, leafOnly,
-                value, checked, onCheck, attributes);
+        return new Tree(roots, selected, onSelect, selection, leafOnly, value, checked, onCheck, attributes);
     }
 
     /// This tree with `values` ticked, and `onCheck` told what the user asked for.
@@ -159,14 +169,12 @@ public record Tree(List<TreeNode> roots, Set<String> selected, Consumer<Set<Stri
     /// that cannot change and a listener with no value has nothing to draw —
     /// ADR-0063's loop needs both ends or neither.
     public Tree checked(Set<String> values, Consumer<Set<String>> onCheck) {
-        return new Tree(roots, selected, onSelect, selection, leafOnly,
-                checkable, values, onCheck, attributes);
+        return new Tree(roots, selected, onSelect, selection, leafOnly, checkable, values, onCheck, attributes);
     }
 
     @Override
     public Tree withAttributes(Attributes value) {
-        return new Tree(roots, selected, onSelect, selection, leafOnly,
-                checkable, checked, onCheck, value);
+        return new Tree(roots, selected, onSelect, selection, leafOnly, checkable, checked, onCheck, value);
     }
 
     @Override

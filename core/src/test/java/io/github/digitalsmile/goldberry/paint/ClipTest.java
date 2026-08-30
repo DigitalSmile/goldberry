@@ -4,20 +4,21 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import io.github.digitalsmile.goldberry.RendererRequirement;
-import io.github.digitalsmile.goldberry.css.value.Affine;
-import io.github.digitalsmile.goldberry.css.value.Transform;
-import io.github.digitalsmile.goldberry.golden.ScaleInvariance;
-import io.github.digitalsmile.goldberry.input.hit.HitTest;
-import io.github.digitalsmile.goldberry.natives.yoga.style.FlexDirection;
-import io.github.digitalsmile.goldberry.natives.yoga.Insets;
-import io.github.digitalsmile.goldberry.natives.yoga.style.Overflow;
-import io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+
+import io.github.digitalsmile.goldberry.RendererRequirement;
+import io.github.digitalsmile.goldberry.css.value.Affine;
+import io.github.digitalsmile.goldberry.css.value.Transform;
+import io.github.digitalsmile.goldberry.golden.ScaleInvariance;
+import io.github.digitalsmile.goldberry.input.hit.HitTest;
+import io.github.digitalsmile.goldberry.natives.yoga.Insets;
+import io.github.digitalsmile.goldberry.natives.yoga.style.FlexDirection;
+import io.github.digitalsmile.goldberry.natives.yoga.style.Overflow;
+import io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength;
 
 /// `overflow` and the clip it puts on the painter — ADR-0114.
 ///
@@ -51,10 +52,8 @@ class ClipTest {
     /// perfectly, clips nothing, and has no content to scroll. The `scroll`
     /// widget sets it on its content for the same reason (ADR-0114, ADR-0076).
     private static Box filled(int argb, double width, double height) {
-        return Box.of()
-                .background(argb)
-                .shrink(0)
-                .size(StyleLength.points((float) width), StyleLength.points((float) height));
+        return Box.of().background(argb).shrink(0).size(StyleLength.points((float) width), StyleLength.points((float)
+                height));
     }
 
     /// A 50x50 viewport at the origin holding a 50x200 column — the shape every
@@ -173,9 +172,7 @@ class ClipTest {
         void clipDoesNotLeak() {
             var root = Box.of()
                     .direction(FlexDirection.COLUMN)
-                    .children(
-                            viewport(Overflow.HIDDEN),
-                            filled(0xFF0000FF, 200, 100));
+                    .children(viewport(Overflow.HIDDEN), filled(0xFF0000FF, 200, 100));
             BoxPainter.paint(target.frame(), root);
             target.end();
 
@@ -269,9 +266,12 @@ class ClipTest {
                     .children(content);
 
             var regions = HitTest.capture(target.frame(), root);
-            assertEquals(owner, HitTest.at(regions, 25, 25).orElse(null),
+            assertEquals(
+                    owner,
+                    HitTest.at(regions, 25, 25).orElse(null),
                     "inside the viewport, the content takes the pointer");
-            assertTrue(HitTest.at(regions, 25, 120).isEmpty(),
+            assertTrue(
+                    HitTest.at(regions, 25, 120).isEmpty(),
                     "past the viewport it is invisible, so it is not clickable either");
         }
 
@@ -287,8 +287,7 @@ class ClipTest {
                     .children(content);
 
             var regions = HitTest.capture(target.frame(), root);
-            assertEquals(owner, HitTest.at(regions, 25, 120).orElse(null),
-                    "it spills, so it is hit where it spills");
+            assertEquals(owner, HitTest.at(regions, 25, 120).orElse(null), "it spills, so it is hit where it spills");
         }
     }
 
@@ -304,8 +303,8 @@ class ClipTest {
         @Test
         @DisplayName("a clipped viewport shows the same rectangle at 2x and 1.5x")
         void clipIsInLogicalCoordinates() {
-            ScaleInvariance.assertSamePictureAtEveryScale("clip-hidden", 100, 100,
-                    frame -> BoxPainter.paint(frame, viewport(Overflow.HIDDEN)));
+            ScaleInvariance.assertSamePictureAtEveryScale(
+                    "clip-hidden", 100, 100, frame -> BoxPainter.paint(frame, viewport(Overflow.HIDDEN)));
         }
 
         /// The pair, because "the clip never came off" and "the clip is the
@@ -314,8 +313,8 @@ class ClipTest {
         @Test
         @DisplayName("and an unclipped one spills the same amount")
         void visibleOverflowIsToo() {
-            ScaleInvariance.assertSamePictureAtEveryScale("clip-visible", 100, 100,
-                    frame -> BoxPainter.paint(frame, viewport(Overflow.VISIBLE)));
+            ScaleInvariance.assertSamePictureAtEveryScale(
+                    "clip-visible", 100, 100, frame -> BoxPainter.paint(frame, viewport(Overflow.VISIBLE)));
         }
     }
 }

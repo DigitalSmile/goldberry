@@ -194,18 +194,40 @@ public interface FrameStats {
     /// The stages do not have to add up to `paintMillis` and are not asserted to:
     /// the total includes the hit-test capture and the frame's own setup, which
     /// are neither large enough to name nor zero.
-    static FrameStats of(double fps, double frameMillis, double paintMillis, long count,
-            double buildMillis, double styleMillis, double layoutMillis, double rasterMillis) {
-        return new FixedFrameStats(fps, frameMillis, paintMillis, count,
-                buildMillis, styleMillis, layoutMillis, rasterMillis, 0);
+    static FrameStats of(
+            double fps,
+            double frameMillis,
+            double paintMillis,
+            long count,
+            double buildMillis,
+            double styleMillis,
+            double layoutMillis,
+            double rasterMillis) {
+        return new FixedFrameStats(
+                fps, frameMillis, paintMillis, count, buildMillis, styleMillis, layoutMillis, rasterMillis, 0);
     }
 
     /// The same, with the display's refresh rate — for the golden image of a
     /// `hud` whose budgets have to be the same on every machine.
-    static FrameStats of(double fps, double frameMillis, double paintMillis, long count,
-            double buildMillis, double styleMillis, double layoutMillis, double rasterMillis,
+    static FrameStats of(
+            double fps,
+            double frameMillis,
+            double paintMillis,
+            long count,
+            double buildMillis,
+            double styleMillis,
+            double layoutMillis,
+            double rasterMillis,
             double displayHertz) {
-        return new FixedFrameStats(fps, frameMillis, paintMillis, count,
-                buildMillis, styleMillis, layoutMillis, rasterMillis, displayHertz);
+        return new FixedFrameStats(
+                fps,
+                frameMillis,
+                paintMillis,
+                count,
+                buildMillis,
+                styleMillis,
+                layoutMillis,
+                rasterMillis,
+                displayHertz);
     }
 }

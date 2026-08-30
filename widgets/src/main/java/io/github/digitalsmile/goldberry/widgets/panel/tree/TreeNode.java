@@ -39,17 +39,15 @@ import java.util.function.Supplier;
 /// @param children the children it already has, empty for a leaf and ignored when
 ///                 `supplier` is set
 /// @param supplier where to get the children the first time it expands, or null
-public record TreeNode(String id, String label, List<TreeNode> children,
-        Supplier<List<TreeNode>> supplier) {
+public record TreeNode(String id, String label, List<TreeNode> children, Supplier<List<TreeNode>> supplier) {
 
     public TreeNode {
         Objects.requireNonNull(id, "id");
         Objects.requireNonNull(label, "label");
         children = List.copyOf(children == null ? List.of() : children);
         if (id.isBlank()) {
-            throw new IllegalArgumentException(
-                    "a tree node's id is what its expansion is remembered by, and \"" + id
-                            + "\" cannot tell two nodes apart");
+            throw new IllegalArgumentException("a tree node's id is what its expansion is remembered by, and \"" + id
+                    + "\" cannot tell two nodes apart");
         }
     }
 
@@ -67,8 +65,7 @@ public record TreeNode(String id, String label, List<TreeNode> children,
     ///
     /// It draws a chevron before anything has been fetched — see the class note.
     public static TreeNode lazy(String id, String label, Supplier<List<TreeNode>> supplier) {
-        return new TreeNode(id, label, List.of(),
-                Objects.requireNonNull(supplier, "supplier"));
+        return new TreeNode(id, label, List.of(), Objects.requireNonNull(supplier, "supplier"));
     }
 
     /// Whether a chevron is drawn — §3's "nodes that have **or may have**

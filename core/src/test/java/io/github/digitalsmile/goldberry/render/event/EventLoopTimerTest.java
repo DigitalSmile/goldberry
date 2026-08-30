@@ -4,17 +4,18 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import io.github.digitalsmile.goldberry.render.backend.headless.HeadlessBackend;
 import java.time.Duration;
 import java.util.ArrayList;
 
-import io.github.digitalsmile.goldberry.render.model.LogicalSize;
-import io.github.digitalsmile.goldberry.render.window.WindowSpec;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
+
+import io.github.digitalsmile.goldberry.render.backend.headless.HeadlessBackend;
+import io.github.digitalsmile.goldberry.render.model.LogicalSize;
+import io.github.digitalsmile.goldberry.render.window.WindowSpec;
 
 /// [EventLoop#after], which is what a tooltip's delay and a submenu's hover
 /// intent are made of.
@@ -56,7 +57,7 @@ class EventLoopTimerTest {
             fired.add(Thread.currentThread() == uiThread ? "ui" : "elsewhere");
             loop.stop();
         });
-        loop.run(event -> { });
+        loop.run(event -> {});
 
         assertEquals(java.util.List.of("ui"), fired);
     }
@@ -78,9 +79,11 @@ class EventLoopTimerTest {
         cancelled.cancel();
         assertFalse(cancelled.isPending());
 
-        loop.run(event -> { });
+        loop.run(event -> {});
 
-        assertEquals(java.util.List.of("kept"), fired,
+        assertEquals(
+                java.util.List.of("kept"),
+                fired,
                 "the cancelled one was still in the list when the loop woke for the other");
     }
 
@@ -97,7 +100,7 @@ class EventLoopTimerTest {
         });
         loop.after(Duration.ofMillis(5), () -> fired.add("early"));
 
-        loop.run(event -> { });
+        loop.run(event -> {});
 
         assertEquals(java.util.List.of("early", "late"), fired);
     }
@@ -119,7 +122,7 @@ class EventLoopTimerTest {
                 loop.stop();
             });
         });
-        loop.run(event -> { });
+        loop.run(event -> {});
 
         assertEquals(java.util.List.of("first", "second"), fired);
     }
@@ -136,7 +139,7 @@ class EventLoopTimerTest {
             loop.stop();
         });
         order.add("scheduled");
-        loop.run(event -> { });
+        loop.run(event -> {});
 
         assertEquals(java.util.List.of("scheduled", "timer"), order);
         assertTrue(true);

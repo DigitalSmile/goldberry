@@ -4,11 +4,13 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import io.github.digitalsmile.goldberry.bind.Observable;
-import io.github.digitalsmile.goldberry.bind.Property;
 import java.util.List;
+
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+
+import io.github.digitalsmile.goldberry.bind.Observable;
+import io.github.digitalsmile.goldberry.bind.Property;
 
 /// What an element does with a binding: when it subscribes, when it rebuilds, and
 /// — the half that leaks if it is wrong — when it lets go.
@@ -42,8 +44,7 @@ class BindingLifecycleTest {
 
     /// A leaf that follows nothing, for the case where a bound child is replaced
     /// by one that is not.
-    private record Plain() implements Widget.Leaf {
-    }
+    private record Plain() implements Widget.Leaf {}
 
     /// A container that re-describes its children, which is what a rebuild is.
     private record Parent(List<Widget> children) implements Widget.Leaf {

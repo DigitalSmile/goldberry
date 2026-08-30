@@ -1,10 +1,11 @@
 package io.github.digitalsmile.goldberry.natives.layout;
 
-import io.github.digitalsmile.goldberry.natives.NativePlatform;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+
+import io.github.digitalsmile.goldberry.natives.NativePlatform;
 
 /// Compares the hand-written layouts in [Layouts] against what the compiled
 /// library reports.
@@ -19,8 +20,7 @@ import java.util.stream.Collectors;
 /// difference between a five-minute fix and an afternoon.
 public final class LayoutVerifier {
 
-    private LayoutVerifier() {
-    }
+    private LayoutVerifier() {}
 
     /// Verifies every registered layout, plus the primitive widths Goldberry
     /// depends on.
@@ -65,12 +65,11 @@ public final class LayoutVerifier {
                 continue;
             }
             if (struct.byteSize() != reported.size()) {
-                mismatches.add(struct.name() + ": Java sizeof=" + struct.byteSize()
-                        + ", C sizeof=" + reported.size());
+                mismatches.add(struct.name() + ": Java sizeof=" + struct.byteSize() + ", C sizeof=" + reported.size());
             }
             if (struct.byteAlignment() != reported.alignment()) {
-                mismatches.add(struct.name() + ": Java alignment=" + struct.byteAlignment()
-                        + ", C alignment=" + reported.alignment());
+                mismatches.add(struct.name() + ": Java alignment=" + struct.byteAlignment() + ", C alignment="
+                        + reported.alignment());
             }
 
             for (var field : struct.fieldNames()) {
@@ -102,13 +101,11 @@ public final class LayoutVerifier {
     ///
     /// The value travels in the row's `size` field, which is unsigned on the C
     /// side, so it is widened here rather than compared as a signed `int`.
-    private static List<String> verifyConstants(
-            List<NativeConstant> constants, List<LayoutEntry> entries) {
+    private static List<String> verifyConstants(List<NativeConstant> constants, List<LayoutEntry> entries) {
 
         var reported = entries.stream()
                 .filter(LayoutEntry::describesConstant)
-                .collect(Collectors.toMap(
-                        LayoutEntry::fieldName, LayoutEntry::value, (a, b) -> a));
+                .collect(Collectors.toMap(LayoutEntry::fieldName, LayoutEntry::value, (a, b) -> a));
 
         var mismatches = new ArrayList<String>();
         for (var constant : constants) {
@@ -118,8 +115,7 @@ public final class LayoutVerifier {
                         + " is declared in Java but not registered in goldberry_shim.c,"
                         + " so nothing verifies it");
             } else if (value != constant.value()) {
-                mismatches.add(constant.name() + ": Java says " + constant.value()
-                        + ", C says " + value);
+                mismatches.add(constant.name() + ": Java says " + constant.value() + ", C says " + value);
             }
         }
         return mismatches;
@@ -152,8 +148,8 @@ public final class LayoutVerifier {
             if (reported == null) {
                 mismatches.add("libgoldberry does not report the width of C `" + name + "`");
             } else if (!reported.equals(expectedSize)) {
-                mismatches.add("C `" + name + "` is " + reported + " bytes on "
-                        + platform.classifier() + ", but Goldberry assumes " + expectedSize);
+                mismatches.add("C `" + name + "` is " + reported + " bytes on " + platform.classifier()
+                        + ", but Goldberry assumes " + expectedSize);
             }
         });
         return mismatches;

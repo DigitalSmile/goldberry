@@ -1,11 +1,12 @@
 package io.github.digitalsmile.goldberry.paint;
 
+import java.nio.ByteOrder;
+
+import io.github.digitalsmile.goldberry.Window;
+import io.github.digitalsmile.goldberry.render.PixelBuffer;
 import io.github.digitalsmile.goldberry.render.model.DisplayScale;
 import io.github.digitalsmile.goldberry.render.model.PhysicalSize;
-import io.github.digitalsmile.goldberry.render.PixelBuffer;
 import io.github.digitalsmile.goldberry.render.model.PixelFormat;
-import java.nio.ByteOrder;
-import io.github.digitalsmile.goldberry.Window;
 
 /// A [Frame] over a buffer a test can read back.
 ///
@@ -16,8 +17,7 @@ import io.github.digitalsmile.goldberry.Window;
 /// of a test helper.
 public final class TestFrames {
 
-    private TestFrames() {
-    }
+    private TestFrames() {}
 
     /// A frame of `width` x `height` **physical** pixels at `scale`.
     public record Target(Frame frame, PixelBuffer buffer) {
@@ -47,8 +47,7 @@ public final class TestFrames {
     }
 
     public static Target of(int width, int height, float scale) {
-        var buffer = PixelBuffer.allocate(
-                new PhysicalSize(width, height), PixelFormat.BGRA32_PREMULTIPLIED);
+        var buffer = PixelBuffer.allocate(new PhysicalSize(width, height), PixelFormat.BGRA32_PREMULTIPLIED);
         return new Target(new Frame(buffer, new DisplayScale(scale)), buffer);
     }
 
@@ -56,8 +55,7 @@ public final class TestFrames {
     /// [PaintThreads]. The paint benchmark sweeps it; a correctness test that
     /// cares whether threading changes the pixels asks for both.
     public static Target of(int width, int height, float scale, int threadCount) {
-        var buffer = PixelBuffer.allocate(
-                new PhysicalSize(width, height), PixelFormat.BGRA32_PREMULTIPLIED);
+        var buffer = PixelBuffer.allocate(new PhysicalSize(width, height), PixelFormat.BGRA32_PREMULTIPLIED);
         return new Target(new Frame(buffer, new DisplayScale(scale), threadCount), buffer);
     }
 }

@@ -7,14 +7,16 @@ import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import io.github.digitalsmile.goldberry.natives.NativeLibraryRequirement;
 import java.lang.foreign.MemorySegment;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.concurrent.atomic.AtomicReference;
+
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+
+import io.github.digitalsmile.goldberry.natives.NativeLibraryRequirement;
 import io.github.digitalsmile.goldberry.natives.blend2d.enums.BlendTransformOp;
 import io.github.digitalsmile.goldberry.natives.blend2d.error.BlendException;
 import io.github.digitalsmile.goldberry.natives.blend2d.error.BlendResultCode;
@@ -36,8 +38,7 @@ class BlendOwnershipTest {
         // ever presents -- a blank window and no error anywhere.
         var heap = ByteBuffer.allocate(64);
 
-        var thrown = assertThrows(
-                IllegalArgumentException.class, () -> BlendImage.wrapping(heap, 4, 4, 16));
+        var thrown = assertThrows(IllegalArgumentException.class, () -> BlendImage.wrapping(heap, 4, 4, 16));
 
         assertTrue(thrown.getMessage().contains("direct"), thrown.getMessage());
     }
@@ -47,8 +48,7 @@ class BlendOwnershipTest {
     void narrowStrideIsRefused() {
         var pixels = direct(64);
 
-        var thrown = assertThrows(
-                IllegalArgumentException.class, () -> BlendImage.wrapping(pixels, 4, 4, 12));
+        var thrown = assertThrows(IllegalArgumentException.class, () -> BlendImage.wrapping(pixels, 4, 4, 12));
 
         assertTrue(thrown.getMessage().contains("cannot hold a row"), thrown.getMessage());
     }
@@ -60,8 +60,7 @@ class BlendOwnershipTest {
         // a stride and has no way to know how much memory is behind the pointer.
         var pixels = direct(32);
 
-        var thrown = assertThrows(
-                IllegalArgumentException.class, () -> BlendImage.wrapping(pixels, 4, 4, 16));
+        var thrown = assertThrows(IllegalArgumentException.class, () -> BlendImage.wrapping(pixels, 4, 4, 16));
 
         assertTrue(thrown.getMessage().contains("offers"), thrown.getMessage());
     }
@@ -96,9 +95,7 @@ class BlendOwnershipTest {
             assertThrows(IllegalArgumentException.class, () -> BlendContext.on(image, 0));
             assertThrows(IllegalArgumentException.class, () -> BlendContext.on(image, -1.5));
             assertThrows(IllegalArgumentException.class, () -> BlendContext.on(image, Double.NaN));
-            assertThrows(
-                    IllegalArgumentException.class,
-                    () -> BlendContext.on(image, Double.POSITIVE_INFINITY));
+            assertThrows(IllegalArgumentException.class, () -> BlendContext.on(image, Double.POSITIVE_INFINITY));
         }
     }
 
@@ -112,8 +109,7 @@ class BlendOwnershipTest {
             // Blend2D rasterizes a NaN rectangle as nothing at all, so an
             // arithmetic bug upstream would look like a widget that did not draw.
             var thrown = assertThrows(
-                    IllegalArgumentException.class,
-                    () -> context.fillRect(Double.NaN, 0, 10, 10, 0xFFFFFFFF));
+                    IllegalArgumentException.class, () -> context.fillRect(Double.NaN, 0, 10, 10, 0xFFFFFFFF));
 
             assertTrue(thrown.getMessage().contains("NaN"), thrown.getMessage());
         }
@@ -193,8 +189,7 @@ class BlendOwnershipTest {
         // pointer is touched, which is why NULL is enough to reach it.
         var thrown = assertThrows(
                 IllegalArgumentException.class,
-                () -> Blend2dContext.get().contextTransform(
-                        MemorySegment.NULL, BlendTransformOp.RESET, 1, 1));
+                () -> Blend2dContext.get().contextTransform(MemorySegment.NULL, BlendTransformOp.RESET, 1, 1));
 
         assertTrue(thrown.getMessage().contains("void*"), thrown.getMessage());
     }

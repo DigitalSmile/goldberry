@@ -6,28 +6,30 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import io.github.digitalsmile.goldberry.assets.BundledFont;
-import io.github.digitalsmile.goldberry.bind.Property;
-import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
-import io.github.digitalsmile.goldberry.css.ComputedStyle;
-import io.github.digitalsmile.goldberry.css.Stylesheet;
-import io.github.digitalsmile.goldberry.paint.Box;
-import io.github.digitalsmile.goldberry.natives.yoga.style.PositionType;
-import io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength;
-import io.github.digitalsmile.goldberry.text.font.Font;
-import io.github.digitalsmile.goldberry.widget.style.Corner;
-import io.github.digitalsmile.goldberry.widget.ElementTree;
-import io.github.digitalsmile.goldberry.widget.style.Paints;
-import io.github.digitalsmile.goldberry.widget.style.Styled;
-import io.github.digitalsmile.goldberry.widget.Widget;
-import io.github.digitalsmile.goldberry.widget.WidgetRenderer;
-import io.github.digitalsmile.goldberry.widget.root.WindowRoot;
 import java.util.List;
 import java.util.Set;
+
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+
+import io.github.digitalsmile.goldberry.assets.BundledFont;
+import io.github.digitalsmile.goldberry.bind.Property;
+import io.github.digitalsmile.goldberry.css.ComputedStyle;
+import io.github.digitalsmile.goldberry.css.Stylesheet;
+import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
+import io.github.digitalsmile.goldberry.natives.yoga.style.PositionType;
+import io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength;
+import io.github.digitalsmile.goldberry.paint.Box;
+import io.github.digitalsmile.goldberry.text.font.Font;
+import io.github.digitalsmile.goldberry.widget.ElementTree;
+import io.github.digitalsmile.goldberry.widget.Widget;
+import io.github.digitalsmile.goldberry.widget.WidgetRenderer;
+import io.github.digitalsmile.goldberry.widget.root.WindowRoot;
+import io.github.digitalsmile.goldberry.widget.style.Corner;
+import io.github.digitalsmile.goldberry.widget.style.Paints;
+import io.github.digitalsmile.goldberry.widget.style.Styled;
 
 /// [WindowRoot] and the in-window overlay layer — `docs/core-widgets.md` §7's
 /// half that needs no platform window.
@@ -81,9 +83,8 @@ class OverlayLayerTest {
         var next = new java.util.ArrayList<>(overlays.get());
         next.add(entry);
         overlays.set(List.copyOf(next));
-        entry.attached(() -> overlays.set(overlays.get().stream()
-                .filter(existing -> existing != entry)
-                .toList()));
+        entry.attached(() -> overlays.set(
+                overlays.get().stream().filter(existing -> existing != entry).toList()));
         return entry;
     }
 
@@ -94,9 +95,13 @@ class OverlayLayerTest {
         var box = renderer.render(new ElementTree(WindowRoot.of(new Marker("app"))));
 
         assertEquals(1, box.children().size());
-        assertEquals(PositionType.RELATIVE, box.children().getFirst().position(),
+        assertEquals(
+                PositionType.RELATIVE,
+                box.children().getFirst().position(),
                 "the content is in flow; only overlays are taken out of it");
-        assertEquals(1.0, box.children().getFirst().flexGrow(),
+        assertEquals(
+                1.0,
+                box.children().getFirst().flexGrow(),
                 "and it grows, because the root node is laid out at the window's size"
                         + " and a window is what its content fills");
     }
@@ -116,7 +121,9 @@ class OverlayLayerTest {
 
         assertEquals(1, before.children().size());
         assertEquals(2, after.children().size());
-        assertEquals(before.children().getFirst().width(), after.children().getFirst().width(),
+        assertEquals(
+                before.children().getFirst().width(),
+                after.children().getFirst().width(),
                 "an overlay that changed the content's box would be a layout, not an overlay");
         assertEquals(1.0, after.children().getFirst().flexGrow());
         assertEquals(PositionType.ABSOLUTE, after.children().get(1).position());
@@ -132,7 +139,9 @@ class OverlayLayerTest {
         var children = root.children();
 
         assertEquals(2, children.size());
-        assertEquals("app", ((Styled) children.getFirst()).cssType(),
+        assertEquals(
+                "app",
+                ((Styled) children.getFirst()).cssType(),
                 "a box tree has no z-order beyond document order (ADR-0053),"
                         + " so being painted last is being listed last");
         assertEquals("hud", ((Styled) children.get(1)).cssType());
@@ -151,7 +160,9 @@ class OverlayLayerTest {
         tree.flush();
         renderer.render(tree);
 
-        assertSame(content, tree.root().children().getFirst(),
+        assertSame(
+                content,
+                tree.root().children().getFirst(),
                 "the same element, so its state, its focus and any animation in flight survive"
                         + " — which is the whole reason the layer is there from the first frame");
     }
@@ -168,7 +179,9 @@ class OverlayLayerTest {
         first.remove();
 
         assertFalse(first.isAttached());
-        assertEquals(List.of(second), overlays.get(),
+        assertEquals(
+                List.of(second),
+                overlays.get(),
                 "two equal widgets in two corners are two overlays; removing is by identity");
         assertEquals(2, root.children().size());
 
@@ -189,7 +202,8 @@ class OverlayLayerTest {
         assertFalse(tree.needsBuild());
         attach(overlays, new Marker("hud"), Corner.TOP_START);
 
-        assertTrue(tree.needsBuild(),
+        assertTrue(
+                tree.needsBuild(),
                 "the root element subscribes to the list for as long as it lives (ADR-0062):"
                         + " nothing else invalidates it, because the root widget of a tree"
                         + " cannot be swapped");
@@ -204,7 +218,9 @@ class OverlayLayerTest {
         assertEquals(StyleLength.points(margin), topStart.top());
         assertEquals(StyleLength.points(margin), topStart.left());
         assertEquals(StyleLength.UNDEFINED, topStart.right());
-        assertEquals(StyleLength.UNDEFINED, topStart.bottom(),
+        assertEquals(
+                StyleLength.UNDEFINED,
+                topStart.bottom(),
                 "an inset of zero on the other edges would stretch the overlay across the window;"
                         + " undefined leaves it its own size");
 
@@ -234,9 +250,7 @@ class OverlayLayerTest {
     @Test
     @DisplayName("a margin has to be a distance")
     void refusesANonsenseMargin() {
-        assertThrows(IllegalArgumentException.class,
-                () -> Overlay.of(new Marker("hud"), Corner.TOP_END, -1));
-        assertThrows(IllegalArgumentException.class,
-                () -> Overlay.of(new Marker("hud"), Corner.TOP_END, Float.NaN));
+        assertThrows(IllegalArgumentException.class, () -> Overlay.of(new Marker("hud"), Corner.TOP_END, -1));
+        assertThrows(IllegalArgumentException.class, () -> Overlay.of(new Marker("hud"), Corner.TOP_END, Float.NaN));
     }
 }

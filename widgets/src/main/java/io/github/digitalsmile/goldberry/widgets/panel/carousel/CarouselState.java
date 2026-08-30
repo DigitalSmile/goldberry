@@ -101,12 +101,21 @@ final class CarouselState extends State<Carousel> {
         // stopped rotating for any reason simply does not get a new one.
         schedule();
         return new CarouselView(
-                current, carousel.count(), carousel.loop(), carousel.rotates(),
+                current,
+                carousel.count(),
+                carousel.loop(),
+                carousel.rotates(),
                 current > 0 || carousel.loop(),
                 current < carousel.count() - 1 || carousel.loop(),
-                slide(current), carousel.attributes(),
-                this::go, this::step, this::hover, this::focus, this::motion,
-                this::visibility, direction);
+                slide(current),
+                carousel.attributes(),
+                this::go,
+                this::step,
+                this::hover,
+                this::focus,
+                this::motion,
+                this::visibility,
+                direction);
     }
 
     /// **Only the current slide is built** — `tabs`'s bargain, for `tabs`'s
@@ -228,7 +237,11 @@ final class CarouselState extends State<Carousel> {
     /// unconditionally — the alternative was the same test written twice, and the
     /// copy in `build` was the one that was missing.
     private boolean shouldRotate() {
-        return widget().rotates() && !hovered && !focused && !reducedMotion && host != null
+        return widget().rotates()
+                && !hovered
+                && !focused
+                && !reducedMotion
+                && host != null
                 && (widget().loop() || resolved() < widget().count() - 1);
     }
 

@@ -1,5 +1,13 @@
 package io.github.digitalsmile.goldberry.widgets.shell.tray;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import io.github.digitalsmile.goldberry.Host;
 import io.github.digitalsmile.goldberry.render.tray.BackendTray;
 import io.github.digitalsmile.goldberry.render.tray.TrayItem;
@@ -7,12 +15,6 @@ import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widgets.menu.Item;
 import io.github.digitalsmile.goldberry.widgets.menu.Menu;
 import io.github.digitalsmile.goldberry.widgets.menu.Separator;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
-import java.util.Optional;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /// Puts a [TrayIcon] on the desktop, and turns a [Menu] into the rows the shell
 /// will draw.
@@ -46,8 +48,7 @@ public final class Trays {
 
     private static final Logger LOG = LoggerFactory.getLogger(Trays.class);
 
-    private Trays() {
-    }
+    private Trays() {}
 
     /// Shows `tray` on the desktop, if there is one.
     ///
@@ -77,10 +78,11 @@ public final class Trays {
             switch (widget) {
                 case Separator ignored -> rows.add(TrayItem.separator());
                 case Item item -> rows.add(rowOf(item));
-                default -> LOG.warn(
-                        "a tray menu holds items and separators, so the {} in it is not shown —"
-                                + " the platform draws these rows and has nowhere to put one",
-                        widget.getClass().getSimpleName());
+                default ->
+                    LOG.warn(
+                            "a tray menu holds items and separators, so the {} in it is not shown —"
+                                    + " the platform draws these rows and has nowhere to put one",
+                            widget.getClass().getSimpleName());
             }
         }
         return List.copyOf(rows);
@@ -88,13 +90,14 @@ public final class Trays {
 
     private static TrayItem rowOf(Item item) {
         if (item.icon() != null) {
-            LOG.warn("the tray row \"{}\" has an icon, which no platform's tray menu draws",
-                    item.label());
+            LOG.warn("the tray row \"{}\" has an icon, which no platform's tray menu draws", item.label());
         }
         if (item.accelerator() != null && !item.accelerator().isBlank()) {
-            LOG.warn("the tray row \"{}\" names the accelerator {}, which is a key bound to a"
+            LOG.warn(
+                    "the tray row \"{}\" names the accelerator {}, which is a key bound to a"
                             + " window and a tray has none; it is not registered here",
-                    item.label(), item.accelerator());
+                    item.label(),
+                    item.accelerator());
         }
         var row = row(item);
         return item.disabled() ? row.disabled() : row;

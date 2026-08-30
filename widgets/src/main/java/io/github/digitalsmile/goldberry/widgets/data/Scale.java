@@ -44,23 +44,21 @@ package io.github.digitalsmile.goldberry.widgets.data;
 /// @param rangeMin  the coordinate `domainMin` maps to
 /// @param rangeMax  the coordinate `domainMax` maps to
 /// @param logarithmic whether the mapping is on the logarithm of the value
-public record Scale(
-        double domainMin, double domainMax, double rangeMin, double rangeMax,
-        boolean logarithmic) {
+public record Scale(double domainMin, double domainMax, double rangeMin, double rangeMax, boolean logarithmic) {
 
     public Scale {
-        if (!Double.isFinite(domainMin) || !Double.isFinite(domainMax)
-                || !Double.isFinite(rangeMin) || !Double.isFinite(rangeMax)) {
-            throw new IllegalArgumentException(
-                    "a scale needs finite bounds: " + domainMin + "…" + domainMax + " onto "
-                            + rangeMin + "…" + rangeMax);
+        if (!Double.isFinite(domainMin)
+                || !Double.isFinite(domainMax)
+                || !Double.isFinite(rangeMin)
+                || !Double.isFinite(rangeMax)) {
+            throw new IllegalArgumentException("a scale needs finite bounds: " + domainMin + "…" + domainMax + " onto "
+                    + rangeMin + "…" + rangeMax);
         }
         if (logarithmic && (domainMin <= 0 || domainMax <= 0)) {
-            throw new IllegalArgumentException(
-                    "a logarithmic scale needs a positive domain, and " + domainMin + "…"
-                            + domainMax + " is not: log10(0) is negative infinity and"
-                            + " log10 of a negative number is not a number. Filter the"
-                            + " non-positive values out first (Gaps.positiveOnly).");
+            throw new IllegalArgumentException("a logarithmic scale needs a positive domain, and " + domainMin + "…"
+                    + domainMax + " is not: log10(0) is negative infinity and"
+                    + " log10 of a negative number is not a number. Filter the"
+                    + " non-positive values out first (Gaps.positiveOnly).");
         }
     }
 
@@ -70,8 +68,7 @@ public record Scale(
     }
 
     /// A linear mapping of `domainMin…domainMax` onto `rangeMin…rangeMax`.
-    public static Scale linear(
-            double domainMin, double domainMax, double rangeMin, double rangeMax) {
+    public static Scale linear(double domainMin, double domainMax, double rangeMin, double rangeMax) {
         return new Scale(domainMin, domainMax, rangeMin, rangeMax, false);
     }
 
@@ -86,8 +83,7 @@ public record Scale(
     ///
     /// @throws IllegalArgumentException if either end of the domain is not
     ///         positive
-    public static Scale log(
-            double domainMin, double domainMax, double rangeMin, double rangeMax) {
+    public static Scale log(double domainMin, double domainMax, double rangeMin, double rangeMax) {
         return new Scale(domainMin, domainMax, rangeMin, rangeMax, true);
     }
 
@@ -98,8 +94,7 @@ public record Scale(
     /// labels, so they come from one call rather than two that could disagree.
     ///
     /// @param target how many labels are wanted; see [Ticks#extended]
-    public static Scale nice(
-            double domainMin, double domainMax, double rangeMin, double rangeMax, int target) {
+    public static Scale nice(double domainMin, double domainMax, double rangeMin, double rangeMax, int target) {
 
         var labels = Ticks.extended(domainMin, domainMax, target);
         return labels.count() < 2
@@ -142,8 +137,7 @@ public record Scale(
     public double from(double coordinate) {
         var span = rangeMax - rangeMin;
         if (span == 0) {
-            return logarithmic
-                    ? Math.sqrt(domainMin * domainMax) : (domainMin + domainMax) / 2;
+            return logarithmic ? Math.sqrt(domainMin * domainMax) : (domainMin + domainMax) / 2;
         }
         var fraction = (coordinate - rangeMin) / span;
         if (logarithmic) {

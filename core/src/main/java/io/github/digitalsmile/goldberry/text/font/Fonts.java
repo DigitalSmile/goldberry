@@ -1,10 +1,11 @@
 package io.github.digitalsmile.goldberry.text.font;
 
-import io.github.digitalsmile.goldberry.assets.BundledFont;
-import io.github.digitalsmile.goldberry.css.Typography;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
+
+import io.github.digitalsmile.goldberry.assets.BundledFont;
+import io.github.digitalsmile.goldberry.css.Typography;
 
 /// Every face and size a window draws with, opened once and kept.
 ///
@@ -58,11 +59,9 @@ public final class Fonts implements AutoCloseable {
 
     private boolean closed;
 
-    private record Key(BundledFont face, long size) {
-    }
+    private record Key(BundledFont face, long size) {}
 
-    private Fonts() {
-    }
+    private Fonts() {}
 
     /// A book over the faces bundled in `goldberry-core`.
     ///
@@ -98,8 +97,7 @@ public final class Fonts implements AutoCloseable {
         }
         var quantized = Math.round(size * SIZE_QUANTUM);
         return fonts.computeIfAbsent(
-                new Key(face, quantized),
-                key -> Font.on(faceOf(key.face()), key.size() / SIZE_QUANTUM));
+                new Key(face, quantized), key -> Font.on(faceOf(key.face()), key.size() / SIZE_QUANTUM));
     }
 
     /// The typeface for one bundled face, opened on first use.
@@ -179,7 +177,6 @@ public final class Fonts implements AutoCloseable {
 
     @Override
     public String toString() {
-        return "Fonts[" + faces.size() + " face(s), " + fonts.size() + " font(s)"
-                + (closed ? ", closed" : "") + "]";
+        return "Fonts[" + faces.size() + " face(s), " + fonts.size() + " font(s)" + (closed ? ", closed" : "") + "]";
     }
 }

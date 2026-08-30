@@ -6,6 +6,16 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.ArrayList;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Set;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
+
 import io.github.digitalsmile.goldberry.RendererRequirement;
 import io.github.digitalsmile.goldberry.input.event.KeyEvent;
 import io.github.digitalsmile.goldberry.input.event.PointerEvent;
@@ -16,14 +26,6 @@ import io.github.digitalsmile.goldberry.widget.ElementTree;
 import io.github.digitalsmile.goldberry.widgets.TestHost;
 import io.github.digitalsmile.goldberry.widgets.panel.Described;
 import io.github.digitalsmile.goldberry.widgets.text.Text;
-import java.util.ArrayList;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Set;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.Test;
 
 /// `list` — `docs/core-widgets.md` §10's vertical list over an item model.
 ///
@@ -44,8 +46,7 @@ class ListTest {
         RendererRequirement.enforce();
     }
 
-    private static final List<String> NORDICS =
-            List.of("Norway", "Sweden", "Finland", "Denmark", "Iceland");
+    private static final List<String> NORDICS = List.of("Norway", "Sweden", "Finland", "Denmark", "Iceland");
 
     private ElementTree tree(ListView<?> widget) {
         return new ElementTree(widget, host);
@@ -60,9 +61,7 @@ class ListTest {
     /// The default list under test: the five names, multi-selectable, reporting
     /// into [#asked].
     private ListView<String> nordics(Set<String> selected) {
-        return ListView.of(NORDICS)
-                .selection(Selection.MULTIPLE)
-                .selected(selected, asked::add);
+        return ListView.of(NORDICS).selection(Selection.MULTIPLE).selected(selected, asked::add);
     }
 
     private static List<String> rows(ElementTree tree) {
@@ -72,8 +71,8 @@ class ListTest {
     private static ListRow row(ElementTree tree, String id) {
         return Described.of(tree, ListRow.class).stream()
                 .filter(r -> r.id().equals(id))
-                .findFirst().orElseThrow(() -> new AssertionError(
-                        "no row \"" + id + "\"; showing " + rows(tree)));
+                .findFirst()
+                .orElseThrow(() -> new AssertionError("no row \"" + id + "\"; showing " + rows(tree)));
     }
 
     private static void click(ListRow row, Modifiers modifiers) {
@@ -81,8 +80,8 @@ class ListTest {
     }
 
     private static PointerEvent clickEvent(Modifiers modifiers) {
-        return new PointerEvent(PointerEvent.Kind.CLICKED, 0, 0,
-                PointerEvent.Button.PRIMARY, 1, Float.NaN, Float.NaN, modifiers, null);
+        return new PointerEvent(
+                PointerEvent.Kind.CLICKED, 0, 0, PointerEvent.Button.PRIMARY, 1, Float.NaN, Float.NaN, modifiers, null);
     }
 
     private static void press(ListRow row, Key key, Modifiers modifiers) {
@@ -101,8 +100,8 @@ class ListTest {
         @Test
         @DisplayName("one row per item, in the model's order")
         void oneRowPerItem() {
-            assertEquals(List.of("list-Norway", "list-Sweden", "list-Finland",
-                            "list-Denmark", "list-Iceland"),
+            assertEquals(
+                    List.of("list-Norway", "list-Sweden", "list-Finland", "list-Denmark", "list-Iceland"),
                     rows(tree(ListView.of(NORDICS))));
         }
 
@@ -117,10 +116,10 @@ class ListTest {
         void anyWidgetAsARow() {
             // §10's "any widget as row" -- the row's child is whatever came back,
             // and the row itself contributes only the box and the keyboard.
-            var widget = new ListView<Integer>(List.of(1, 2), String::valueOf,
-                    n -> new Text("#" + n));
+            var widget = new ListView<Integer>(List.of(1, 2), String::valueOf, n -> new Text("#" + n));
             var content = Described.of(tree(widget), ListRow.class).stream()
-                    .map(r -> ((Text) r.content()).content()).toList();
+                    .map(r -> ((Text) r.content()).content())
+                    .toList();
             assertEquals(List.of("#1", "#2"), content);
         }
 
@@ -129,16 +128,16 @@ class ListTest {
         void keyedByIdentity() {
             // The rule that keeps a row's element -- and its focus -- when the
             // model is re-sorted underneath it.
-            assertEquals("list-Sweden", row(tree(ListView.of(NORDICS)), "list-Sweden").key());
+            assertEquals(
+                    "list-Sweden",
+                    row(tree(ListView.of(NORDICS)), "list-Sweden").key());
         }
 
         @Test
         @DisplayName("a list with no identity or no factory is refused at construction")
         void theTwoRequiredFunctions() {
-            assertThrows(NullPointerException.class,
-                    () -> new ListView<String>(NORDICS, null, Text::new));
-            assertThrows(NullPointerException.class,
-                    () -> new ListView<String>(NORDICS, s -> s, null));
+            assertThrows(NullPointerException.class, () -> new ListView<String>(NORDICS, null, Text::new));
+            assertThrows(NullPointerException.class, () -> new ListView<String>(NORDICS, s -> s, null));
         }
 
         @Test
@@ -147,7 +146,8 @@ class ListTest {
             // Not Set.copyOf, whose hash order changes between runs -- a
             // diagnostic and a test both read this back.
             var given = new LinkedHashSet<>(List.of("Iceland", "Norway", "Denmark"));
-            assertEquals(List.copyOf(given),
+            assertEquals(
+                    List.copyOf(given),
                     List.copyOf(ListView.of(NORDICS).selected(given, asked::add).selected()));
         }
     }
@@ -241,8 +241,7 @@ class ListTest {
         void singleIgnoresModifiers() {
             // `Ctrl` means "and also" and `Shift` means "through to", and a
             // control that holds one row has nothing to say to either.
-            var tree = tree(ListView.of(NORDICS)
-                    .selected(Set.of("Norway"), asked::add));
+            var tree = tree(ListView.of(NORDICS).selected(Set.of("Norway"), asked::add));
             click(row(tree, "list-Sweden"), CTRL);
             assertEquals(Set.of("Sweden"), lastAsked());
             click(row(tree, "list-Denmark"), SHIFT);
@@ -258,9 +257,7 @@ class ListTest {
         @Test
         @DisplayName("NONE asks for nothing, however it is clicked")
         void noneChoosesNothing() {
-            var tree = tree(ListView.of(NORDICS)
-                    .selection(Selection.NONE)
-                    .selected(Set.of(), asked::add));
+            var tree = tree(ListView.of(NORDICS).selection(Selection.NONE).selected(Set.of(), asked::add));
             click(row(tree, "list-Sweden"), Modifiers.NONE);
             press(row(tree, "list-Sweden"), Key.ENTER, Modifiers.NONE);
             assertTrue(asked.isEmpty(), () -> "a NONE list asked for " + asked);
@@ -314,8 +311,8 @@ class ListTest {
         @DisplayName("selectedOne is null rather than empty when nothing is chosen")
         void selectedOneIsNullWhenEmpty() {
             assertNull(ListView.of(NORDICS).selectedOne());
-            assertEquals("Norway",
-                    ListView.of(NORDICS).selected("Norway", s -> { }).selectedOne());
+            assertEquals(
+                    "Norway", ListView.of(NORDICS).selected("Norway", s -> {}).selectedOne());
         }
     }
 
@@ -385,9 +382,7 @@ class ListTest {
     class Typeahead {
 
         private ElementTree typeable() {
-            return tree(ListView.of(NORDICS)
-                    .selection(Selection.MULTIPLE)
-                    .selected(Set.of(), asked::add));
+            return tree(ListView.of(NORDICS).selection(Selection.MULTIPLE).selected(Set.of(), asked::add));
         }
 
         private static void type(ListRow row, String text) {
@@ -478,8 +473,7 @@ class ListTest {
         @Test
         @DisplayName("a per-item function may give one row a menu and another none")
         void aMenuPerItem() {
-            var tree = tree(ListView.of(NORDICS)
-                    .itemMenu(name -> "Norway".equals(name) ? "home-menu" : null));
+            var tree = tree(ListView.of(NORDICS).itemMenu(name -> "Norway".equals(name) ? "home-menu" : null));
             assertEquals("home-menu", row(tree, "list-Norway").attributes().contextMenu());
             assertNull(row(tree, "list-Sweden").attributes().contextMenu());
         }
@@ -487,7 +481,8 @@ class ListTest {
         @Test
         @DisplayName("no itemMenu at all leaves every row saying nothing")
         void noMenuByDefault() {
-            assertNull(row(tree(ListView.of(NORDICS)), "list-Norway").attributes().contextMenu());
+            assertNull(
+                    row(tree(ListView.of(NORDICS)), "list-Norway").attributes().contextMenu());
         }
     }
 
@@ -501,8 +496,13 @@ class ListTest {
             // `host.focus` takes a name that is global to the window, so two
             // lists over the same items would each answer to the other's `Home`.
             var tree = tree(ListView.of(NORDICS).id("countries"));
-            assertEquals(List.of("countries-Norway", "countries-Sweden", "countries-Finland",
-                            "countries-Denmark", "countries-Iceland"),
+            assertEquals(
+                    List.of(
+                            "countries-Norway",
+                            "countries-Sweden",
+                            "countries-Finland",
+                            "countries-Denmark",
+                            "countries-Iceland"),
                     rows(tree));
         }
 

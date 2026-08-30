@@ -1,13 +1,18 @@
 package io.github.digitalsmile.goldberry.widgets.controls.button;
 
-import io.github.digitalsmile.goldberry.widget.attr.Attributes;
-import io.github.digitalsmile.goldberry.widgets.core.Row;
+import java.util.List;
+import java.util.Set;
+
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
 
 import io.github.digitalsmile.goldberry.RendererRequirement;
-import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
-import io.github.digitalsmile.goldberry.css.select.Selector;
 import io.github.digitalsmile.goldberry.css.Stylesheet;
 import io.github.digitalsmile.goldberry.css.Theme;
+import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
+import io.github.digitalsmile.goldberry.css.select.Selector;
 import io.github.digitalsmile.goldberry.golden.GoldenImage;
 import io.github.digitalsmile.goldberry.icon.Icon;
 import io.github.digitalsmile.goldberry.paint.BoxPainter;
@@ -15,15 +20,10 @@ import io.github.digitalsmile.goldberry.widget.Element;
 import io.github.digitalsmile.goldberry.widget.ElementTree;
 import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widget.WidgetRenderer;
+import io.github.digitalsmile.goldberry.widget.attr.Attributes;
 import io.github.digitalsmile.goldberry.widgets.Controls;
 import io.github.digitalsmile.goldberry.widgets.controls.TestFont;
-
-import java.util.List;
-import java.util.Set;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
+import io.github.digitalsmile.goldberry.widgets.core.Row;
 
 /// What a button actually looks like (§14, [ADR-0050]).
 ///
@@ -67,17 +67,13 @@ class ButtonGoldenTest {
             state.applyTo(tree.root());
         }
         var renderer = new WidgetRenderer(
-                List.of(
-                        Controls.baseStylesheet(),
-                        theme.load(),
-                        Stylesheet.parse(CascadeLayer.APPLICATION, """
+                List.of(Controls.baseStylesheet(), theme.load(), Stylesheet.parse(CascadeLayer.APPLICATION, """
                                 #row { padding: 12px; gap: 8px; align-items: center;
                                        background: var(--gb-bg) }
                                 """)),
                 TestFont.get());
 
-        GoldenImage.assertMatches(name, 420, 56, 1.0f,
-                frame -> BoxPainter.paint(frame, renderer.render(tree)));
+        GoldenImage.assertMatches(name, 420, 56, 1.0f, frame -> BoxPainter.paint(frame, renderer.render(tree)));
     }
 
     /// Which element in the row gets which pseudo-class.
@@ -98,11 +94,14 @@ class ButtonGoldenTest {
     @Test
     @DisplayName("the four variants, at rest, on the dark theme")
     void variantsDark() {
-        paint("button-variants-dark", Theme.NORD_DARK, row(
-                new Button("Default", null, null, false, id("a")),
-                new Button("Primary", null, null, false, id("b", "primary")),
-                new Button("Danger", null, null, false, id("c", "danger")),
-                new Button("Ghost", null, null, false, id("d", "ghost"))));
+        paint(
+                "button-variants-dark",
+                Theme.NORD_DARK,
+                row(
+                        new Button("Default", null, null, false, id("a")),
+                        new Button("Primary", null, null, false, id("b", "primary")),
+                        new Button("Danger", null, null, false, id("c", "danger")),
+                        new Button("Ghost", null, null, false, id("d", "ghost"))));
     }
 
     @Test
@@ -110,17 +109,23 @@ class ButtonGoldenTest {
     void variantsLight() {
         // Two files, not one shared rule: the light theme's hover darkens where
         // the dark theme's lightens, and this is where that stops being a claim.
-        paint("button-variants-light", Theme.NORD_LIGHT, row(
-                new Button("Default", null, null, false, id("a")),
-                new Button("Primary", null, null, false, id("b", "primary")),
-                new Button("Danger", null, null, false, id("c", "danger")),
-                new Button("Ghost", null, null, false, id("d", "ghost"))));
+        paint(
+                "button-variants-light",
+                Theme.NORD_LIGHT,
+                row(
+                        new Button("Default", null, null, false, id("a")),
+                        new Button("Primary", null, null, false, id("b", "primary")),
+                        new Button("Danger", null, null, false, id("c", "danger")),
+                        new Button("Ghost", null, null, false, id("d", "ghost"))));
     }
 
     @Test
     @DisplayName("resting, hovered, pressed, focused and disabled, side by side")
     void states() {
-        paint("button-states", Theme.NORD_DARK, row(
+        paint(
+                "button-states",
+                Theme.NORD_DARK,
+                row(
                         new Button("Rest", null, null, false, id("a")),
                         new Button("Hover", null, null, false, id("b")),
                         new Button("Active", null, null, false, id("c")),
@@ -137,9 +142,12 @@ class ButtonGoldenTest {
         // The icon is a box beside the label, laid out by Yoga at the 6-point gap
         // the design system asks for -- not drawn over the top of the button,
         // which is what ADR-0043 had to leave it as.
-        paint("button-icon", Theme.NORD_DARK, row(
-                new Button("New", icon, null, false, id("a", "primary")),
-                new Button("", icon, null, false, id("b")),
-                new Button("Disabled", icon, null, true, id("c"))));
+        paint(
+                "button-icon",
+                Theme.NORD_DARK,
+                row(
+                        new Button("New", icon, null, false, id("a", "primary")),
+                        new Button("", icon, null, false, id("b")),
+                        new Button("Disabled", icon, null, true, id("c"))));
     }
 }

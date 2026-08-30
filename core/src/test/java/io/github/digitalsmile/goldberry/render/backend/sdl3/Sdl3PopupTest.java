@@ -7,24 +7,25 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.function.BiConsumer;
+
+import org.junit.jupiter.api.Assumptions;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+
 import io.github.digitalsmile.goldberry.RendererRequirement;
-import io.github.digitalsmile.goldberry.render.popup.BackendPopup;
 import io.github.digitalsmile.goldberry.render.DamageRect;
 import io.github.digitalsmile.goldberry.render.PixelBuffer;
 import io.github.digitalsmile.goldberry.render.model.DisplayScale;
 import io.github.digitalsmile.goldberry.render.model.LogicalPoint;
 import io.github.digitalsmile.goldberry.render.model.LogicalSize;
+import io.github.digitalsmile.goldberry.render.model.PhysicalSize;
+import io.github.digitalsmile.goldberry.render.popup.BackendPopup;
 import io.github.digitalsmile.goldberry.render.popup.PopupKind;
 import io.github.digitalsmile.goldberry.render.popup.PopupSpec;
-import io.github.digitalsmile.goldberry.render.window.WindowSpec;
-import java.util.function.BiConsumer;
-
-import io.github.digitalsmile.goldberry.render.model.PhysicalSize;
 import io.github.digitalsmile.goldberry.render.window.BackendWindow;
-import org.junit.jupiter.api.Assumptions;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
+import io.github.digitalsmile.goldberry.render.window.WindowSpec;
 
 /// Popups against the **real** SDL, in both of the two states a driver can be in.
 ///
@@ -50,14 +51,13 @@ class Sdl3PopupTest {
     @DisplayName("a driver with no popups refuses, and the refusal is a value")
     void unsupportedDriverReturnsEmpty() {
         withBackend("dummy", (backend, window) -> {
-            var popup = backend.createPopup(window,
-                    PopupSpec.of(LogicalPoint.of(10, 10), LogicalSize.of(120, 90)));
+            var popup = backend.createPopup(window, PopupSpec.of(LogicalPoint.of(10, 10), LogicalSize.of(120, 90)));
 
-            assertTrue(popup.isEmpty(),
+            assertTrue(
+                    popup.isEmpty(),
                     "the dummy driver has no VIDEO_DEVICE_CAPS_HAS_POPUP_WINDOW_SUPPORT,"
                             + " so this is the branch a menu has to fall back from");
-            assertEquals(1, backend.windows().size(),
-                    "and nothing was left half-created");
+            assertEquals(1, backend.windows().size(), "and nothing was left half-created");
         });
     }
 
@@ -67,8 +67,7 @@ class Sdl3PopupTest {
         withBackend("dummy", (backend, window) -> {
             var spec = PopupSpec.of(LogicalPoint.ZERO, LogicalSize.of(10, 10));
 
-            assertThrows(IllegalArgumentException.class,
-                    () -> backend.createPopup(new NotOurs(), spec));
+            assertThrows(IllegalArgumentException.class, () -> backend.createPopup(new NotOurs(), spec));
 
             window.close();
             assertThrows(IllegalStateException.class, () -> backend.createPopup(window, spec));
@@ -84,19 +83,18 @@ class Sdl3PopupTest {
     void realPopup() {
         assumeADisplay();
         withBackend(null, (backend, window) -> {
-            var opened = backend.createPopup(window,
-                    PopupSpec.of(LogicalPoint.of(40, 60), LogicalSize.of(200, 150)));
-            Assumptions.assumeTrue(opened.isPresent(),
-                    "this video driver has no popup windows");
+            var opened = backend.createPopup(window, PopupSpec.of(LogicalPoint.of(40, 60), LogicalSize.of(200, 150)));
+            Assumptions.assumeTrue(opened.isPresent(), "this video driver has no popup windows");
 
             BackendPopup popup = opened.get();
             assertSame(window, popup.owner());
             assertEquals(PopupKind.MENU, popup.kind());
             assertEquals(new LogicalPoint(40, 60), popup.offset());
             assertTrue(popup.isOpen());
-            assertTrue(backend.windows().contains(popup),
-                    "a popup is a window, and shutdown enumerates windows");
-            assertNotEquals(window.handleId(), ((Sdl3Popup) popup).handleId(),
+            assertTrue(backend.windows().contains(popup), "a popup is a window, and shutdown enumerates windows");
+            assertNotEquals(
+                    window.handleId(),
+                    ((Sdl3Popup) popup).handleId(),
                     "it is a second platform window with its own id, which is how its"
                             + " events find their way back to it");
 
@@ -111,11 +109,10 @@ class Sdl3PopupTest {
             popup.resize(LogicalSize.of(200, 90));
             var settled = false;
             for (var i = 0; i < 40 && !settled; i++) {
-                backend.pumpEvents(e -> { }, java.time.Duration.ofMillis(25));
+                backend.pumpEvents(e -> {}, java.time.Duration.ofMillis(25));
                 settled = popup.size().equals(LogicalSize.of(200, 90));
             }
-            assertTrue(settled, "the resize never reached the window system; it was "
-                    + popup.size());
+            assertTrue(settled, "the resize never reached the window system; it was " + popup.size());
 
             assertThrows(UnsupportedOperationException.class, () -> popup.setTitle("Edit"));
 
@@ -130,10 +127,9 @@ class Sdl3PopupTest {
     void realTooltip() {
         assumeADisplay();
         withBackend(null, (backend, window) -> {
-            var opened = backend.createPopup(window,
-                    PopupSpec.tooltip(LogicalPoint.of(20, 20), LogicalSize.of(140, 24)));
-            Assumptions.assumeTrue(opened.isPresent(),
-                    "this video driver has no popup windows");
+            var opened =
+                    backend.createPopup(window, PopupSpec.tooltip(LogicalPoint.of(20, 20), LogicalSize.of(140, 24)));
+            Assumptions.assumeTrue(opened.isPresent(), "this video driver has no popup windows");
 
             // The flags are SDL's business once set; what this asserts is that
             // asking for a tooltip produces something SDL accepted, which it does
@@ -198,17 +194,13 @@ class Sdl3PopupTest {
         }
 
         @Override
-        public void present(PixelBuffer frame,
-                            java.util.List<DamageRect> damage) {
-        }
+        public void present(PixelBuffer frame, java.util.List<DamageRect> damage) {}
 
         @Override
-        public void requestFrame() {
-        }
+        public void requestFrame() {}
 
         @Override
-        public void setTitle(String title) {
-        }
+        public void setTitle(String title) {}
 
         @Override
         public String title() {
@@ -221,7 +213,6 @@ class Sdl3PopupTest {
         }
 
         @Override
-        public void close() {
-        }
+        public void close() {}
     }
 }

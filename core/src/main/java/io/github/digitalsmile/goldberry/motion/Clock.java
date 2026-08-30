@@ -60,8 +60,7 @@ public interface Clock {
 
         private double now;
 
-        private Virtual() {
-        }
+        private Virtual() {}
 
         @Override
         public double nowMillis() {
@@ -84,8 +83,7 @@ public interface Clock {
         /// Moves the clock to an absolute time.
         public Virtual set(double millis) {
             if (millis < now) {
-                throw new IllegalArgumentException(
-                        "a clock advances forwards: " + millis + " is before " + now);
+                throw new IllegalArgumentException("a clock advances forwards: " + millis + " is before " + now);
             }
             now = millis;
             return this;

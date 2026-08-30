@@ -1,9 +1,9 @@
 package io.github.digitalsmile.goldberry.widgets.panel.table;
 
-import io.github.digitalsmile.goldberry.widget.Widget;
-
 import java.util.Objects;
 import java.util.function.Function;
+
+import io.github.digitalsmile.goldberry.widget.Widget;
 
 /// One column of a [Table] — `docs/core-widgets.md` §10's "a key, a header, a
 /// width and a cell-factory each".
@@ -34,8 +34,8 @@ import java.util.function.Function;
 /// @param width   logical pixels when [#fixed] is set, otherwise a flex weight
 /// @param fixed   whether [#width] is a size or a share
 /// @param sortable whether clicking the header asks for a sort
-public record Column<T>(String key, String header, Function<T, Widget> cell,
-        double width, boolean fixed, boolean sortable) {
+public record Column<T>(
+        String key, String header, Function<T, Widget> cell, double width, boolean fixed, boolean sortable) {
 
     public Column {
         Objects.requireNonNull(key, "key");
@@ -43,8 +43,7 @@ public record Column<T>(String key, String header, Function<T, Widget> cell,
         header = header == null ? "" : header;
         if (width <= 0 || Double.isNaN(width)) {
             throw new IllegalArgumentException(
-                    "a column's width is a positive number of pixels or a positive"
-                            + " weight; got " + width);
+                    "a column's width is a positive number of pixels or a positive" + " weight; got " + width);
         }
     }
 
@@ -53,9 +52,13 @@ public record Column<T>(String key, String header, Function<T, Widget> cell,
     /// The common case, and the one a caller would otherwise write three times: a
     /// column whose cells are the item's own words.
     public static <T> Column<T> of(String key, String header, Function<T, String> text) {
-        return new Column<>(key, header,
+        return new Column<>(
+                key,
+                header,
                 item -> new io.github.digitalsmile.goldberry.widgets.text.Text(text.apply(item)),
-                1, false, false);
+                1,
+                false,
+                false);
     }
 
     /// A column whose cells are whatever `cell` returns — §10's "any widget as a

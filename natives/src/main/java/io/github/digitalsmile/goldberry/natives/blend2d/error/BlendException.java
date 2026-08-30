@@ -52,10 +52,7 @@ public final class BlendException extends RuntimeException {
 
     private static String message(String operation, int result) {
         var code = BlendResultCode.of(result);
-        var described = code == null
-                ? "an unnamed BLResult"
-                : code.nativeName();
-        return operation + " failed with " + described
-                + " (0x" + String.format("%08X", result) + ")";
+        var described = code == null ? "an unnamed BLResult" : code.nativeName();
+        return operation + " failed with " + described + " (0x" + String.format("%08X", result) + ")";
     }
 }

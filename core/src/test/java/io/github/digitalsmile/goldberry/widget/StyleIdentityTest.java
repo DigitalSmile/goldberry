@@ -6,21 +6,23 @@ import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import io.github.digitalsmile.goldberry.RendererRequirement;
-import io.github.digitalsmile.goldberry.assets.BundledFont;
-import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
-import io.github.digitalsmile.goldberry.css.ComputedStyle;
-import io.github.digitalsmile.goldberry.css.select.Selector;
-import io.github.digitalsmile.goldberry.css.Stylesheet;
-import io.github.digitalsmile.goldberry.paint.Box;
-import io.github.digitalsmile.goldberry.text.font.Font;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+
+import io.github.digitalsmile.goldberry.RendererRequirement;
+import io.github.digitalsmile.goldberry.assets.BundledFont;
+import io.github.digitalsmile.goldberry.css.ComputedStyle;
+import io.github.digitalsmile.goldberry.css.Stylesheet;
+import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
+import io.github.digitalsmile.goldberry.css.select.Selector;
+import io.github.digitalsmile.goldberry.paint.Box;
+import io.github.digitalsmile.goldberry.text.font.Font;
 import io.github.digitalsmile.goldberry.widget.style.Paints;
 import io.github.digitalsmile.goldberry.widget.style.Styled;
 
@@ -123,7 +125,9 @@ class StyleIdentityTest {
         renderer.render(tree);
         renderer.render(tree);
 
-        assertSame(seen.get(0), seen.get(1),
+        assertSame(
+                seen.get(0),
+                seen.get(1),
                 "the parent re-ran `restyle` and produced an equal style;"
                         + " handing down a new instance is what disabled the cache");
     }
@@ -150,8 +154,8 @@ class StyleIdentityTest {
         tree.root().setPseudoClass(Selector.PseudoClass.HOVER, true);
         renderer.render(tree);
 
-        assertSame(seen.get(0), seen.get(1),
-                "no rule reaches through :hover on a `poisoner`, so nothing under it moved");
+        assertSame(
+                seen.get(0), seen.get(1), "no rule reaches through :hover on a `poisoner`, so nothing under it moved");
     }
 
     /// The other half, and the half that makes the narrowing safe: a rule that
@@ -163,10 +167,13 @@ class StyleIdentityTest {
     void reachableStateInvalidates() {
         var seen = new ArrayList<ComputedStyle>();
         var tree = new ElementTree(new Poisoner(List.of(new Recorder(seen))));
-        var renderer = new WidgetRenderer(List.of(Stylesheet.parse(CascadeLayer.APPLICATION,
-                "poisoner { color: #d8dee9; padding: 4px }\n"
-                        + "recorder { width: 10px; height: 10px }\n"
-                        + "poisoner:hover recorder { background: #bf616a }\n")), font);
+        var renderer = new WidgetRenderer(
+                List.of(Stylesheet.parse(
+                        CascadeLayer.APPLICATION,
+                        "poisoner { color: #d8dee9; padding: 4px }\n"
+                                + "recorder { width: 10px; height: 10px }\n"
+                                + "poisoner:hover recorder { background: #bf616a }\n")),
+                font);
 
         renderer.render(tree);
         tree.root().setPseudoClass(Selector.PseudoClass.HOVER, true);
@@ -183,9 +190,8 @@ class StyleIdentityTest {
     @Test
     @DisplayName("a typeless node's state reaches nothing, because nothing can name it")
     void typelessNodeReachesNothing() {
-        var resolver = new io.github.digitalsmile.goldberry.css.cascade.StyleResolver(
-                List.of(Stylesheet.parse(CascadeLayer.APPLICATION,
-                        "checkbox:hover check-indicator { background: #bf616a }")));
+        var resolver = new io.github.digitalsmile.goldberry.css.cascade.StyleResolver(List.of(
+                Stylesheet.parse(CascadeLayer.APPLICATION, "checkbox:hover check-indicator { background: #bf616a }")));
 
         assertTrue(resolver.reachesDescendants(Selector.PseudoClass.HOVER, "checkbox"));
         assertFalse(resolver.reachesDescendants(Selector.PseudoClass.HOVER, null));
@@ -199,9 +205,8 @@ class StyleIdentityTest {
     @Test
     @DisplayName("an untyped ancestor compound keeps its state conservative")
     void untypedAncestorIsConservative() {
-        var resolver = new io.github.digitalsmile.goldberry.css.cascade.StyleResolver(
-                List.of(Stylesheet.parse(CascadeLayer.APPLICATION,
-                        ".section:affixed > affix-content { background: #bf616a }")));
+        var resolver = new io.github.digitalsmile.goldberry.css.cascade.StyleResolver(List.of(Stylesheet.parse(
+                CascadeLayer.APPLICATION, ".section:affixed > affix-content { background: #bf616a }")));
 
         assertTrue(resolver.reachesDescendants(Selector.PseudoClass.AFFIXED, "anything"));
         assertTrue(resolver.reachesDescendants(Selector.PseudoClass.AFFIXED, null));
@@ -227,5 +232,4 @@ class StyleIdentityTest {
         assertNotSame(seen.get(0), seen.get(1));
         assertTrue(seen.get(0).color() != seen.get(1).color(), "and it is a different colour");
     }
-
 }

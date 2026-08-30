@@ -1,16 +1,17 @@
 package io.github.digitalsmile.goldberry.natives.layout;
 
-import io.github.digitalsmile.goldberry.natives.blend2d.enums.BlendEnum;
-import io.github.digitalsmile.goldberry.natives.harfbuzz.enums.HarfBuzzEnum;
-import io.github.digitalsmile.goldberry.natives.sdl.event.SdlEventType;
-import io.github.digitalsmile.goldberry.natives.sdl.window.SdlPixelFormat;
-import io.github.digitalsmile.goldberry.natives.sdl.desktop.SdlSystemCursor;
-import io.github.digitalsmile.goldberry.natives.sdl.desktop.SdlTrayEntryFlag;
-import io.github.digitalsmile.goldberry.natives.sdl.event.SdlWheelDirection;
-import io.github.digitalsmile.goldberry.natives.sdl.window.SdlWindowFlag;
-import io.github.digitalsmile.goldberry.natives.yoga.style.YogaEnum;
 import java.util.ArrayList;
 import java.util.List;
+
+import io.github.digitalsmile.goldberry.natives.blend2d.enums.BlendEnum;
+import io.github.digitalsmile.goldberry.natives.harfbuzz.enums.HarfBuzzEnum;
+import io.github.digitalsmile.goldberry.natives.sdl.desktop.SdlSystemCursor;
+import io.github.digitalsmile.goldberry.natives.sdl.desktop.SdlTrayEntryFlag;
+import io.github.digitalsmile.goldberry.natives.sdl.event.SdlEventType;
+import io.github.digitalsmile.goldberry.natives.sdl.event.SdlWheelDirection;
+import io.github.digitalsmile.goldberry.natives.sdl.window.SdlPixelFormat;
+import io.github.digitalsmile.goldberry.natives.sdl.window.SdlWindowFlag;
+import io.github.digitalsmile.goldberry.natives.yoga.style.YogaEnum;
 
 /// The registry of C constants the Java side hard-codes.
 ///
@@ -19,8 +20,7 @@ import java.util.List;
 /// and its C expression belongs in `goldberry_shim.c`.**
 public final class NativeConstants {
 
-    private NativeConstants() {
-    }
+    private NativeConstants() {}
 
     /// Every constant that must agree with the compiled library.
     public static List<NativeConstant> registry() {

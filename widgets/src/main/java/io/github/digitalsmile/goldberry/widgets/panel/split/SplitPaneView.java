@@ -1,21 +1,22 @@
 package io.github.digitalsmile.goldberry.widgets.panel.split;
 
-import io.github.digitalsmile.goldberry.css.ComputedStyle;
-import io.github.digitalsmile.goldberry.input.hit.Extent;
-import io.github.digitalsmile.goldberry.input.handler.Measured;
-import io.github.digitalsmile.goldberry.paint.Box;
-import io.github.digitalsmile.goldberry.natives.yoga.style.FlexDirection;
-import io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength;
-import io.github.digitalsmile.goldberry.widget.attr.Attributes;
-import io.github.digitalsmile.goldberry.widget.style.Paints;
-import io.github.digitalsmile.goldberry.widget.style.Styled;
-import io.github.digitalsmile.goldberry.widget.Widget;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.function.DoubleConsumer;
 import java.util.function.DoubleSupplier;
+
+import io.github.digitalsmile.goldberry.css.ComputedStyle;
+import io.github.digitalsmile.goldberry.input.handler.Measured;
+import io.github.digitalsmile.goldberry.input.hit.Extent;
+import io.github.digitalsmile.goldberry.natives.yoga.style.FlexDirection;
+import io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength;
+import io.github.digitalsmile.goldberry.paint.Box;
+import io.github.digitalsmile.goldberry.widget.Widget;
+import io.github.digitalsmile.goldberry.widget.attr.Attributes;
+import io.github.digitalsmile.goldberry.widget.style.Paints;
+import io.github.digitalsmile.goldberry.widget.style.Styled;
 
 /// **This is the `split-pane` a stylesheet selects.**
 ///
@@ -52,10 +53,16 @@ import java.util.function.DoubleSupplier;
 /// @param onNudge       a step along the axis, and whether it is a page
 /// @param onCollapse    `Enter` on a collapsible split
 record SplitPaneView(
-        SplitAxis axis, double position, double firstLength, List<Widget> children,
+        SplitAxis axis,
+        double position,
+        double firstLength,
+        List<Widget> children,
         Attributes attributes,
-        BiConsumer<Extent, Extent> onMeasured, DoubleSupplier offset, DoubleConsumer onDrag,
-        SplitPaneView.Nudge onNudge, Runnable onCollapse)
+        BiConsumer<Extent, Extent> onMeasured,
+        DoubleSupplier offset,
+        DoubleConsumer onDrag,
+        SplitPaneView.Nudge onNudge,
+        Runnable onCollapse)
         implements Widget.Leaf, Styled, Paints, Measured {
 
     /// A step along the axis: `-1` or `+1`, and whether it is a page-sized one.
@@ -125,7 +132,8 @@ record SplitPaneView(
         } else {
             content.addAll(boxes);
         }
-        return Box.of().style(style)
+        return Box.of()
+                .style(style)
                 .direction(vertical ? FlexDirection.COLUMN : FlexDirection.ROW)
                 .children(content.toArray(Box[]::new));
     }
@@ -139,8 +147,7 @@ record SplitPaneView(
             // frame -- it lands wherever the content does rather than where the
             // fraction says -- which beats a pane of zero width that the next
             // frame corrects visibly.
-            return pane.grow(position).shrink(1)
-                    .size(StyleLength.UNDEFINED, StyleLength.UNDEFINED);
+            return pane.grow(position).shrink(1).size(StyleLength.UNDEFINED, StyleLength.UNDEFINED);
         }
         if (firstLength == 0) {
             // Collapsed. Still *built*: §5 asks for collapse-to-edge, not for
@@ -148,21 +155,22 @@ record SplitPaneView(
             // dragged the divider to the edge would be a surprise the
             // specification does not ask for -- and the opposite of `collapse`,
             // where the absence is the whole point.
-            return pane.grow(0).shrink(1)
-                    .size(vertical ? StyleLength.UNDEFINED : StyleLength.points(0),
+            return pane.grow(0)
+                    .shrink(1)
+                    .size(
+                            vertical ? StyleLength.UNDEFINED : StyleLength.points(0),
                             vertical ? StyleLength.points(0) : StyleLength.UNDEFINED);
         }
         var main = StyleLength.points((float) firstLength);
-        return pane.grow(0).shrink(0)
-                .size(vertical ? StyleLength.UNDEFINED : main,
-                        vertical ? main : StyleLength.UNDEFINED);
+        return pane.grow(0)
+                .shrink(0)
+                .size(vertical ? StyleLength.UNDEFINED : main, vertical ? main : StyleLength.UNDEFINED);
     }
 
     /// One side of the split — a node so a stylesheet can reach "the pane" rather
     /// than whatever the author happened to put in it, and so that the sizing
     /// above lands on something the author does not own.
-    record SplitPaneSide(boolean leading, Widget content)
-            implements Widget.Leaf, Styled, Paints {
+    record SplitPaneSide(boolean leading, Widget content) implements Widget.Leaf, Styled, Paints {
 
         @Override
         public String cssType() {

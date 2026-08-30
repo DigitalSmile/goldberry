@@ -1,10 +1,11 @@
 package io.github.digitalsmile.goldberry.natives.blend2d;
 
-import io.github.digitalsmile.goldberry.natives.layout.Layouts;
 import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.ValueLayout;
+
 import io.github.digitalsmile.goldberry.natives.blend2d.enums.BlendGlyphPlacementType;
+import io.github.digitalsmile.goldberry.natives.layout.Layouts;
 
 /// Positioned glyphs, staged in the shape Blend2D reads them in.
 ///
@@ -43,8 +44,7 @@ public final class BlendGlyphBuffer implements AutoCloseable {
     private static final long RUN_RESERVED = Layouts.BL_GLYPH_RUN.offsetOf("reserved");
     private static final long RUN_PLACEMENT_TYPE = Layouts.BL_GLYPH_RUN.offsetOf("placement_type");
     private static final long RUN_GLYPH_ADVANCE = Layouts.BL_GLYPH_RUN.offsetOf("glyph_advance");
-    private static final long RUN_PLACEMENT_ADVANCE =
-            Layouts.BL_GLYPH_RUN.offsetOf("placement_advance");
+    private static final long RUN_PLACEMENT_ADVANCE = Layouts.BL_GLYPH_RUN.offsetOf("placement_advance");
     private static final long RUN_FLAGS = Layouts.BL_GLYPH_RUN.offsetOf("flags");
 
     private final Thread owner = Thread.currentThread();
@@ -155,8 +155,7 @@ public final class BlendGlyphBuffer implements AutoCloseable {
         this.arena = Arena.ofConfined();
         this.capacity = capacity;
         this.glyphIds = arena.allocate(ValueLayout.JAVA_INT, capacity);
-        this.placements = arena.allocate(
-                PLACEMENT_STRIDE * capacity, Layouts.BL_GLYPH_PLACEMENT.byteAlignment());
+        this.placements = arena.allocate(PLACEMENT_STRIDE * capacity, Layouts.BL_GLYPH_PLACEMENT.byteAlignment());
         this.run = arena.allocate(Layouts.BL_GLYPH_RUN.layout());
 
         run.set(ValueLayout.ADDRESS, RUN_GLYPH_DATA, glyphIds);
@@ -165,8 +164,7 @@ public final class BlendGlyphBuffer implements AutoCloseable {
         // Documented as "must be zero", so it is written rather than left to
         // whatever the allocator handed over.
         run.set(ValueLayout.JAVA_BYTE, RUN_RESERVED, (byte) 0);
-        run.set(ValueLayout.JAVA_BYTE, RUN_PLACEMENT_TYPE,
-                (byte) BlendGlyphPlacementType.ADVANCE_OFFSET.nativeValue());
+        run.set(ValueLayout.JAVA_BYTE, RUN_PLACEMENT_TYPE, (byte) BlendGlyphPlacementType.ADVANCE_OFFSET.nativeValue());
         // Strides, not typographic advances. Blend2D walks both arrays by these.
         run.set(ValueLayout.JAVA_BYTE, RUN_GLYPH_ADVANCE, (byte) GLYPH_STRIDE);
         run.set(ValueLayout.JAVA_BYTE, RUN_PLACEMENT_ADVANCE, (byte) PLACEMENT_STRIDE);
@@ -185,8 +183,7 @@ public final class BlendGlyphBuffer implements AutoCloseable {
 
         allocate(Math.multiplyExact(capacity, 2));
         MemorySegment.copy(previousGlyphs, 0, glyphIds, 0, (long) previousSize * GLYPH_STRIDE);
-        MemorySegment.copy(
-                previousPlacements, 0, placements, 0, previousSize * PLACEMENT_STRIDE);
+        MemorySegment.copy(previousPlacements, 0, placements, 0, previousSize * PLACEMENT_STRIDE);
         previousArena.close();
     }
 
@@ -206,8 +203,6 @@ public final class BlendGlyphBuffer implements AutoCloseable {
 
     @Override
     public String toString() {
-        return closed
-                ? "BlendGlyphBuffer[closed]"
-                : "BlendGlyphBuffer[" + size + "/" + capacity + " glyphs]";
+        return closed ? "BlendGlyphBuffer[closed]" : "BlendGlyphBuffer[" + size + "/" + capacity + " glyphs]";
     }
 }

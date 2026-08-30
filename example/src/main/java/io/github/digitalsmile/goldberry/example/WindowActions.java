@@ -30,8 +30,7 @@ import io.github.digitalsmile.goldberry.bind.Action;
 /// @param openDialog  what `app.open-dialog` does
 /// @param raiseToast  what `app.raise-toast` does
 @io.github.digitalsmile.goldberry.bind.runtime.Actions
-public record WindowActions(Runnable openMenu, Runnable toggleHud, Runnable openDialog,
-        Runnable raiseToast) {
+public record WindowActions(Runnable openMenu, Runnable toggleHud, Runnable openDialog, Runnable raiseToast) {
 
     @Action("app.open-menu")
     public void openTheMenu() {

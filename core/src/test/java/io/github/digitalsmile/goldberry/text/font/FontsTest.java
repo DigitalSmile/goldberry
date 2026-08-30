@@ -6,15 +6,17 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import io.github.digitalsmile.goldberry.RendererRequirement;
-import io.github.digitalsmile.goldberry.assets.BundledFont;
-import io.github.digitalsmile.goldberry.css.Typography;
 import java.util.List;
+
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+
+import io.github.digitalsmile.goldberry.RendererRequirement;
+import io.github.digitalsmile.goldberry.assets.BundledFont;
+import io.github.digitalsmile.goldberry.css.Typography;
 
 /// The book that joins a resolved [Typography] to a [Font].
 ///
@@ -134,9 +136,7 @@ class FontsTest {
         void noStrongFace() {
             // `mono` is specified at 400 only. Refusing would mean bold code text
             // throwing from inside a paint pass.
-            assertSame(
-                    BundledFont.CODE,
-                    BundledFont.of("JetBrains Mono", BundledFont.Weight.SEMI_BOLD));
+            assertSame(BundledFont.CODE, BundledFont.of("JetBrains Mono", BundledFont.Weight.SEMI_BOLD));
         }
     }
 

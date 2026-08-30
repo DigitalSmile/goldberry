@@ -1,11 +1,11 @@
 package io.github.digitalsmile.goldberry.render.event;
 
+import java.util.Objects;
+
 import io.github.digitalsmile.goldberry.render.model.DisplayScale;
 import io.github.digitalsmile.goldberry.render.model.LogicalSize;
 import io.github.digitalsmile.goldberry.render.model.PhysicalSize;
 import io.github.digitalsmile.goldberry.render.window.BackendWindow;
-
-import java.util.Objects;
 
 /// Something a backend observed, translated out of the platform's own vocabulary.
 ///
@@ -37,8 +37,7 @@ public sealed interface BackendEvent {
     /// The window's size changed. Carries both sizes because the pair is what
     /// callers need and deriving one from the other invites the rounding to be
     /// redone slightly differently somewhere else.
-    record Resized(BackendWindow window, LogicalSize size, PhysicalSize physicalSize)
-            implements BackendEvent {
+    record Resized(BackendWindow window, LogicalSize size, PhysicalSize physicalSize) implements BackendEvent {
         public Resized {
             Objects.requireNonNull(window, "window");
             Objects.requireNonNull(size, "size");
@@ -53,8 +52,7 @@ public sealed interface BackendEvent {
     /// laid out in logical pixels stays where it is, and only the raster
     /// resolution moves. Dragging a window between a laptop panel and an external
     /// monitor is the ordinary case.
-    record ScaleChanged(BackendWindow window, DisplayScale scale, PhysicalSize physicalSize)
-            implements BackendEvent {
+    record ScaleChanged(BackendWindow window, DisplayScale scale, PhysicalSize physicalSize) implements BackendEvent {
         public ScaleChanged {
             Objects.requireNonNull(window, "window");
             Objects.requireNonNull(scale, "scale");
@@ -88,9 +86,7 @@ public sealed interface BackendEvent {
     /// display scale is applied when the frame is rasterized (ADR-0031).
     /// @param modifiers which modifier keys were held — see [#modifiers] on
     ///                  [PointerWheel] for why every pointer event carries them
-    record PointerMoved(BackendWindow window, float x, float y, int modifiers)
-            implements BackendEvent {
-    }
+    record PointerMoved(BackendWindow window, float x, float y, int modifiers) implements BackendEvent {}
 
     /// A pointer button went down.
     ///
@@ -98,14 +94,12 @@ public sealed interface BackendEvent {
     ///               toolkit button by the layer that dispatches
     /// @param clickCount 1 for a single click, 2 for a double — counted by the
     ///                   platform, so the toolkit keeps no timer of its own
-    record PointerPressed(BackendWindow window, float x, float y, int button, int clickCount,
-            int modifiers) implements BackendEvent {
-    }
+    record PointerPressed(BackendWindow window, float x, float y, int button, int clickCount, int modifiers)
+            implements BackendEvent {}
 
     /// A pointer button came up.
-    record PointerReleased(BackendWindow window, float x, float y, int button, int clickCount,
-            int modifiers) implements BackendEvent {
-    }
+    record PointerReleased(BackendWindow window, float x, float y, int button, int clickCount, int modifiers)
+            implements BackendEvent {}
 
     /// The wheel turned, or a touchpad scrolled.
     ///
@@ -138,13 +132,13 @@ public sealed interface BackendEvent {
     ///                  that can read it *at the moment the event happened* —
     ///                  latching it from the last key event leaves it stuck down
     ///                  when a window loses focus mid-chord ([ADR-0089])
-    record PointerWheel(BackendWindow window, float x, float y, float deltaX, float deltaY,
-            int ticksX, int ticksY, int modifiers) implements BackendEvent {
+    record PointerWheel(
+            BackendWindow window, float x, float y, float deltaX, float deltaY, int ticksX, int ticksY, int modifiers)
+            implements BackendEvent {
 
         /// A wheel turn whose detents are the truncation of its deltas — what a
         /// backend with no accumulator of its own can honestly say.
-        public PointerWheel(BackendWindow window, float x, float y, float deltaX, float deltaY,
-                int modifiers) {
+        public PointerWheel(BackendWindow window, float x, float y, float deltaX, float deltaY, int modifiers) {
             this(window, x, y, deltaX, deltaY, (int) deltaX, (int) deltaY, modifiers);
         }
     }
@@ -153,8 +147,7 @@ public sealed interface BackendEvent {
     ///
     /// Separate from a move, because there is no position to report and `:hover`
     /// has to clear on the whole chain (§7.1).
-    record PointerExited(BackendWindow window) implements BackendEvent {
-    }
+    record PointerExited(BackendWindow window) implements BackendEvent {}
 
     /// The window gained or lost the keyboard focus.
     ///
@@ -164,8 +157,7 @@ public sealed interface BackendEvent {
     /// application lost focus" is a conclusion drawn from the whole set and not
     /// an event — see `Launcher`, which is the only thing that needs to draw it
     /// ([ADR-0144](../../../../../../book/src/adr/0144-a-popup-goes-away-when-the-application-does.md)).
-    record FocusChanged(BackendWindow window, boolean focused) implements BackendEvent {
-    }
+    record FocusChanged(BackendWindow window, boolean focused) implements BackendEvent {}
 
     /// A key went down.
     ///
@@ -174,13 +166,10 @@ public sealed interface BackendEvent {
     ///                 toolkit's own naming
     /// @param modifiers the platform's modifier bitmask
     /// @param repeat   whether the platform is repeating a held key
-    record KeyPressed(BackendWindow window, int keycode, int modifiers, boolean repeat)
-            implements BackendEvent {
-    }
+    record KeyPressed(BackendWindow window, int keycode, int modifiers, boolean repeat) implements BackendEvent {}
 
     /// A key came up.
-    record KeyReleased(BackendWindow window, int keycode, int modifiers) implements BackendEvent {
-    }
+    record KeyReleased(BackendWindow window, int keycode, int modifiers) implements BackendEvent {}
 
     /// Text the platform has finished translating.
     ///
@@ -188,6 +177,5 @@ public sealed interface BackendEvent {
     /// several keys — a compose sequence, a dead key, an IME conversion — and a
     /// toolkit that derived text from keystrokes would be wrong in every language
     /// that needs one. The platform already knows the answer; this carries it.
-    record TextInput(BackendWindow window, String text) implements BackendEvent {
-    }
+    record TextInput(BackendWindow window, String text) implements BackendEvent {}
 }

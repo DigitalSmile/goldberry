@@ -1,10 +1,11 @@
 package io.github.digitalsmile.goldberry.widgets.panel.accordion;
 
+import java.util.ArrayList;
+
 import io.github.digitalsmile.goldberry.widget.BuildContext;
 import io.github.digitalsmile.goldberry.widget.State;
 import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widgets.panel.collapse.Collapse;
-import java.util.ArrayList;
 
 /// Which of an [Accordion]'s sections is open.
 ///
@@ -48,9 +49,12 @@ final class AccordionState extends State<Accordion> {
             // deciding one boolean is a bug. It asked first.
             return collapse;
         }
-        return new Collapse(collapse.title(), index == current,
+        return new Collapse(
+                collapse.title(),
+                index == current,
                 wanted -> set(wanted ? index : Accordion.NONE),
-                collapse.children(), collapse.attributes());
+                collapse.children(),
+                collapse.attributes());
     }
 
     /// Opening a section closes whatever was open, which is the whole rule —

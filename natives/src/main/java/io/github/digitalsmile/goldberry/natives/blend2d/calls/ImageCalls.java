@@ -4,11 +4,12 @@ import static java.lang.foreign.ValueLayout.ADDRESS;
 import static java.lang.foreign.ValueLayout.JAVA_INT;
 import static java.lang.foreign.ValueLayout.JAVA_LONG;
 
-import io.github.digitalsmile.goldberry.natives.Downcalls;
 import java.lang.foreign.FunctionDescriptor;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.SymbolLookup;
 import java.lang.invoke.MethodHandle;
+
+import io.github.digitalsmile.goldberry.natives.Downcalls;
 
 /// Blend2D’s `BLImage` — a rectangle of pixels, or a view over someone else’s.
 ///
@@ -16,18 +17,13 @@ import java.lang.invoke.MethodHandle;
 /// parameters are the C prototype’s. See [Downcalls] for why the handle is a
 /// `static final` constant and why these live in a package of their own.
 public record ImageCalls(
-        ImageInitAsFromData imageInitAsFromData,
-        ImageDestroy imageDestroy,
-        ImageGetData imageGetData) {
+        ImageInitAsFromData imageInitAsFromData, ImageDestroy imageDestroy, ImageGetData imageGetData) {
 
     /// Binds every function above, failing if the library exports none of them.
     ///
     /// @param lookup the loaded `libgoldberry`
     public static ImageCalls bind(SymbolLookup lookup) {
-        return new ImageCalls(
-                new ImageInitAsFromData(lookup),
-                new ImageDestroy(lookup),
-                new ImageGetData(lookup));
+        return new ImageCalls(new ImageInitAsFromData(lookup), new ImageDestroy(lookup), new ImageGetData(lookup));
     }
 
     /// Wraps memory the caller owns as an image, copying nothing.
@@ -49,10 +45,8 @@ public record ImageCalls(
     /// @param userData passed to `destroyFunc`
     public static final class ImageInitAsFromData {
 
-        private static final MethodHandle FD_bl_image_init_as_from_data =
-                Downcalls.link(FunctionDescriptor.of(
-                        JAVA_INT, ADDRESS, JAVA_INT, JAVA_INT, JAVA_INT, ADDRESS, JAVA_LONG,
-                        JAVA_INT, ADDRESS, ADDRESS));
+        private static final MethodHandle FD_bl_image_init_as_from_data = Downcalls.link(FunctionDescriptor.of(
+                JAVA_INT, ADDRESS, JAVA_INT, JAVA_INT, JAVA_INT, ADDRESS, JAVA_LONG, JAVA_INT, ADDRESS, ADDRESS));
 
         private final MemorySegment address;
 
@@ -61,12 +55,18 @@ public record ImageCalls(
         }
 
         public int call(
-                MemorySegment image, int width, int height, int format, MemorySegment pixels,
-                long stride, int accessFlags, MemorySegment destroyFunc, MemorySegment userData) {
+                MemorySegment image,
+                int width,
+                int height,
+                int format,
+                MemorySegment pixels,
+                long stride,
+                int accessFlags,
+                MemorySegment destroyFunc,
+                MemorySegment userData) {
             try {
                 return (int) FD_bl_image_init_as_from_data.invokeExact(
-                        address, image, width, height, format, pixels, stride, accessFlags,
-                        destroyFunc, userData);
+                        address, image, width, height, format, pixels, stride, accessFlags, destroyFunc, userData);
             } catch (Throwable t) {
                 throw Downcalls.failure("bl_image_init_as_from_data", t);
             }

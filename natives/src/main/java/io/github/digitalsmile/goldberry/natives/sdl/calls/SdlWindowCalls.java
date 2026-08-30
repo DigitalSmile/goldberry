@@ -5,11 +5,12 @@ import static java.lang.foreign.ValueLayout.JAVA_BOOLEAN;
 import static java.lang.foreign.ValueLayout.JAVA_INT;
 import static java.lang.foreign.ValueLayout.JAVA_LONG;
 
-import io.github.digitalsmile.goldberry.natives.Downcalls;
 import java.lang.foreign.FunctionDescriptor;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.SymbolLookup;
 import java.lang.invoke.MethodHandle;
+
+import io.github.digitalsmile.goldberry.natives.Downcalls;
 
 /// SDL's window calls — creating one, moving it, and taking it down.
 ///
@@ -65,8 +66,7 @@ public record SdlWindowCalls(
     public static final class CreateWindow {
 
         private static final MethodHandle FD_SDL_CreateWindow =
-                Downcalls.link(FunctionDescriptor.of(
-                        ADDRESS, ADDRESS, JAVA_INT, JAVA_INT, JAVA_LONG));
+                Downcalls.link(FunctionDescriptor.of(ADDRESS, ADDRESS, JAVA_INT, JAVA_INT, JAVA_LONG));
 
         private final MemorySegment address;
 
@@ -76,8 +76,7 @@ public record SdlWindowCalls(
 
         public MemorySegment call(MemorySegment title, int width, int height, long flags) {
             try {
-                return (MemorySegment) FD_SDL_CreateWindow.invokeExact(
-                        address, title, width, height, flags);
+                return (MemorySegment) FD_SDL_CreateWindow.invokeExact(address, title, width, height, flags);
             } catch (Throwable t) {
                 throw Downcalls.failure("SDL_CreateWindow", t);
             }
@@ -100,9 +99,8 @@ public record SdlWindowCalls(
     /// @return an `SDL_Window*`, or NULL on failure
     public static final class CreatePopupWindow {
 
-        private static final MethodHandle FD_SDL_CreatePopupWindow =
-                Downcalls.link(FunctionDescriptor.of(
-                        ADDRESS, ADDRESS, JAVA_INT, JAVA_INT, JAVA_INT, JAVA_INT, JAVA_LONG));
+        private static final MethodHandle FD_SDL_CreatePopupWindow = Downcalls.link(
+                FunctionDescriptor.of(ADDRESS, ADDRESS, JAVA_INT, JAVA_INT, JAVA_INT, JAVA_INT, JAVA_LONG));
 
         private final MemorySegment address;
 
@@ -110,11 +108,10 @@ public record SdlWindowCalls(
             this.address = Downcalls.symbol(lookup, "SDL_CreatePopupWindow");
         }
 
-        public MemorySegment call(
-                MemorySegment parent, int offsetX, int offsetY, int width, int height, long flags) {
+        public MemorySegment call(MemorySegment parent, int offsetX, int offsetY, int width, int height, long flags) {
             try {
-                return (MemorySegment) FD_SDL_CreatePopupWindow.invokeExact(
-                        address, parent, offsetX, offsetY, width, height, flags);
+                return (MemorySegment)
+                        FD_SDL_CreatePopupWindow.invokeExact(address, parent, offsetX, offsetY, width, height, flags);
             } catch (Throwable t) {
                 throw Downcalls.failure("SDL_CreatePopupWindow", t);
             }
@@ -128,8 +125,7 @@ public record SdlWindowCalls(
     /// @param window the window to destroy
     public static final class DestroyWindow {
 
-        private static final MethodHandle FD_SDL_DestroyWindow =
-                Downcalls.link(FunctionDescriptor.ofVoid(ADDRESS));
+        private static final MethodHandle FD_SDL_DestroyWindow = Downcalls.link(FunctionDescriptor.ofVoid(ADDRESS));
 
         private final MemorySegment address;
 
@@ -299,8 +295,7 @@ public record SdlWindowCalls(
 
         public boolean call(MemorySegment window, MemorySegment outWidth, MemorySegment outHeight) {
             try {
-                return (boolean) FD_SDL_GetWindowSize.invokeExact(
-                        address, window, outWidth, outHeight);
+                return (boolean) FD_SDL_GetWindowSize.invokeExact(address, window, outWidth, outHeight);
             } catch (Throwable t) {
                 throw Downcalls.failure("SDL_GetWindowSize", t);
             }
@@ -330,8 +325,7 @@ public record SdlWindowCalls(
 
         public boolean call(MemorySegment window, MemorySegment outWidth, MemorySegment outHeight) {
             try {
-                return (boolean) FD_SDL_GetWindowSizeInPixels.invokeExact(
-                        address, window, outWidth, outHeight);
+                return (boolean) FD_SDL_GetWindowSizeInPixels.invokeExact(address, window, outWidth, outHeight);
             } catch (Throwable t) {
                 throw Downcalls.failure("SDL_GetWindowSizeInPixels", t);
             }
@@ -345,8 +339,7 @@ public record SdlWindowCalls(
     /// @return an `SDL_WindowID`, or 0 on failure
     public static final class GetWindowId {
 
-        private static final MethodHandle FD_SDL_GetWindowID =
-                Downcalls.link(FunctionDescriptor.of(JAVA_INT, ADDRESS));
+        private static final MethodHandle FD_SDL_GetWindowID = Downcalls.link(FunctionDescriptor.of(JAVA_INT, ADDRESS));
 
         private final MemorySegment address;
 

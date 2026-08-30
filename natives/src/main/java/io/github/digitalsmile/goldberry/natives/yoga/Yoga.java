@@ -1,12 +1,13 @@
 package io.github.digitalsmile.goldberry.natives.yoga;
 
+import java.lang.foreign.MemorySegment;
+import java.lang.foreign.SymbolLookup;
+
+import io.github.digitalsmile.goldberry.natives.NativeLibrary;
 import io.github.digitalsmile.goldberry.natives.yoga.calls.ConfigCalls;
 import io.github.digitalsmile.goldberry.natives.yoga.calls.LayoutCalls;
 import io.github.digitalsmile.goldberry.natives.yoga.calls.NodeCalls;
 import io.github.digitalsmile.goldberry.natives.yoga.calls.StyleCalls;
-import io.github.digitalsmile.goldberry.natives.NativeLibrary;
-import java.lang.foreign.MemorySegment;
-import java.lang.foreign.SymbolLookup;
 import io.github.digitalsmile.goldberry.natives.yoga.style.Align;
 import io.github.digitalsmile.goldberry.natives.yoga.style.Direction;
 import io.github.digitalsmile.goldberry.natives.yoga.style.Display;
@@ -192,8 +193,7 @@ final class Yoga {
 
     void nodeCalculateLayout(
             MemorySegment node, float availableWidth, float availableHeight, Direction ownerDirection) {
-        nodeCalls.nodeCalculateLayout().call(node, availableWidth, availableHeight,
-                ownerDirection.nativeValue());
+        nodeCalls.nodeCalculateLayout().call(node, availableWidth, availableHeight, ownerDirection.nativeValue());
     }
 
     // --- style -------------------------------------------------------------
@@ -353,8 +353,7 @@ final class Yoga {
     }
 
     private static void applyKeyedLength(
-            StyleCalls.KeyedLengthCalls calls, String property, MemorySegment node, int key,
-            StyleLength length) {
+            StyleCalls.KeyedLengthCalls calls, String property, MemorySegment node, int key, StyleLength length) {
         switch (length) {
             case StyleLength.Points(var value) -> calls.points().call(node, key, value);
             case StyleLength.Percent(var value) -> calls.percent().call(node, key, value);
@@ -373,9 +372,8 @@ final class Yoga {
     /// value, which would read as a stylesheet that has no effect.
     private static <T> T requireAuto(T auto, String property) {
         if (auto == null) {
-            throw new IllegalArgumentException(
-                    "Yoga has no `auto` for " + property + " — it exports no setter for it,"
-                            + " so there is nothing to translate the value into");
+            throw new IllegalArgumentException("Yoga has no `auto` for " + property + " — it exports no setter for it,"
+                    + " so there is nothing to translate the value into");
         }
         return auto;
     }

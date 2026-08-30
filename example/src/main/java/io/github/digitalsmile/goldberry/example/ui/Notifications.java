@@ -1,5 +1,9 @@
 package io.github.digitalsmile.goldberry.example.ui;
 
+import java.util.ArrayList;
+import java.util.EnumSet;
+import java.util.List;
+
 import io.github.digitalsmile.goldberry.widget.BuildContext;
 import io.github.digitalsmile.goldberry.widget.State;
 import io.github.digitalsmile.goldberry.widget.Widget;
@@ -11,9 +15,6 @@ import io.github.digitalsmile.goldberry.widgets.core.Spacer;
 import io.github.digitalsmile.goldberry.widgets.overlay.message.Message;
 import io.github.digitalsmile.goldberry.widgets.panel.card.Card;
 import io.github.digitalsmile.goldberry.widgets.text.Text;
-import java.util.ArrayList;
-import java.util.EnumSet;
-import java.util.List;
 
 /// The **inline** half of the Overlays screen: `message`, which is part of the
 /// layout and stays until the condition it describes does.
@@ -33,8 +34,7 @@ import java.util.List;
 /// ([ADR-0222](../../../../../../../book/src/adr/0222-a-showcase-is-a-window-a-bar-and-seven-screens.md)).
 public final class Notifications {
 
-    private Notifications() {
-    }
+    private Notifications() {}
 
     /// The three banner cards, in the order they are offered to the wall.
     public static List<Widget> cards() {
@@ -76,16 +76,18 @@ public final class Notifications {
                 resident.add(caption("Each kind sets a glyph as well as a colour: with the"
                         + " hues removed these are still four different drawings."));
                 var banners = new ArrayList<Widget>(4);
-                add(banners, new Message(Message.Kind.INFO,
-                        "Two riders were seen on the East Road at dusk."));
-                add(banners, new Message(Message.Kind.SUCCESS,
-                        "The Company reached Rivendell and the Council is called."));
-                add(banners, new Message(Message.Kind.WARNING,
-                        "The pass will close in five days.")
-                        .actions(new Button("Take the low road", this::noted).styled("ghost")));
-                add(banners, new Message(Message.Kind.DANGER,
-                        "The doors are watched; the way through the mines is barred.")
-                        .dismiss(() -> hide(Message.Kind.DANGER)));
+                add(banners, new Message(Message.Kind.INFO, "Two riders were seen on the East Road at dusk."));
+                add(
+                        banners,
+                        new Message(Message.Kind.SUCCESS, "The Company reached Rivendell and the Council is called."));
+                add(
+                        banners,
+                        new Message(Message.Kind.WARNING, "The pass will close in five days.")
+                                .actions(new Button("Take the low road", this::noted).styled("ghost")));
+                add(
+                        banners,
+                        new Message(Message.Kind.DANGER, "The doors are watched; the way through the mines is barred.")
+                                .dismiss(() -> hide(Message.Kind.DANGER)));
                 resident.add(new Column(banners, Attributes.NONE.id("notice-kinds")));
                 if (hidden.isEmpty()) {
                     resident.add(caption("Dismiss the last one — it goes because this card"
@@ -108,7 +110,7 @@ public final class Notifications {
             }
 
             private void noted() {
-                setState(() -> { });
+                setState(() -> {});
             }
         }
     }
@@ -122,13 +124,17 @@ public final class Notifications {
 
         @Override
         public Widget build(BuildContext context) {
-            return card("summary-card", "A form's error summary", List.of(
-                    caption("One banner with a line per failure — and nothing at all when"
-                            + " nothing is wrong, which is why it hands back an Optional."),
-                    new Column(List.of(Message.summary(List.of(
-                            "A name is required",
-                            "A palantír answers between 1024 and 65535")).orElseThrow()),
-                            Attributes.NONE.id("notice-summary"))));
+            return card(
+                    "summary-card",
+                    "A form's error summary",
+                    List.of(
+                            caption("One banner with a line per failure — and nothing at all when"
+                                    + " nothing is wrong, which is why it hands back an Optional."),
+                            new Column(
+                                    List.of(Message.summary(List.of(
+                                                    "A name is required", "A palantír answers between 1024 and 65535"))
+                                            .orElseThrow()),
+                                    Attributes.NONE.id("notice-summary"))));
         }
     }
 
@@ -143,8 +149,7 @@ public final class Notifications {
 
         static final class StackState extends State<Stack> {
 
-            private record Notice(int number, Message.Kind kind) {
-            }
+            private record Notice(int number, Message.Kind kind) {}
 
             private final List<Notice> notices = new ArrayList<>();
 
@@ -152,12 +157,15 @@ public final class Notifications {
 
             @Override
             public Widget build(BuildContext context) {
-                return card("stack-card", "Raising one", List.of(
-                        caption("A banner arrives when the application describes one and goes"
-                                + " when it stops. Press a kind to add one; press its × to take"
-                                + " it away."),
-                        bar(),
-                        list()));
+                return card(
+                        "stack-card",
+                        "Raising one",
+                        List.of(
+                                caption("A banner arrives when the application describes one and goes"
+                                        + " when it stops. Press a kind to add one; press its × to take"
+                                        + " it away."),
+                                bar(),
+                                list()));
             }
 
             private Widget bar() {
@@ -177,19 +185,20 @@ public final class Notifications {
 
             private Widget list() {
                 if (notices.isEmpty()) {
-                    return new Text("No word has come.", Attributes.NONE.id("notice-empty")
-                            .classes("caption"));
+                    return new Text(
+                            "No word has come.",
+                            Attributes.NONE.id("notice-empty").classes("caption"));
                 }
                 var banners = new ArrayList<Widget>(notices.size());
                 for (var notice : notices) {
-                    banners.add(new Message(notice.kind(),
-                            "Message " + notice.number() + " — dismiss it and it is gone,"
-                                    + " because this list is what was describing it.")
+                    banners.add(new Message(
+                                    notice.kind(),
+                                    "Message " + notice.number() + " — dismiss it and it is gone,"
+                                            + " because this list is what was describing it.")
                             .dismiss(() -> remove(notice))
                             .id("notice-" + notice.number()));
                 }
-                return new Column(banners.toArray(Widget[]::new))
-                        .withAttributes(Attributes.NONE.id("notices"));
+                return new Column(banners.toArray(Widget[]::new)).withAttributes(Attributes.NONE.id("notices"));
             }
 
             private void spawn(Message.Kind kind) {

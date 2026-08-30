@@ -1,8 +1,15 @@
 package io.github.digitalsmile.goldberry.stats;
 
 /// [FrameStats] that never change — [FrameStats#of].
-record FixedFrameStats(double fps, double frameMillis, double paintMillis, long count,
-        double buildMillis, double styleMillis, double layoutMillis, double rasterMillis,
+record FixedFrameStats(
+        double fps,
+        double frameMillis,
+        double paintMillis,
+        long count,
+        double buildMillis,
+        double styleMillis,
+        double layoutMillis,
+        double rasterMillis,
         double displayHertz)
         implements FrameStats {
 

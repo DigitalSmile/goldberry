@@ -1,17 +1,18 @@
 package io.github.digitalsmile.goldberry.widgets.data.linechart;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
 import io.github.digitalsmile.goldberry.kdl.KdlNode;
 import io.github.digitalsmile.goldberry.kdl.KdlValue;
 import io.github.digitalsmile.goldberry.paint.Box;
+import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widget.style.Paints;
 import io.github.digitalsmile.goldberry.widget.style.Styled;
-import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widgets.data.Series;
 import io.github.digitalsmile.goldberry.widgets.markup.Markup;
 import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
-import java.util.ArrayList;
-import java.util.List;
 
 /// `content-widgets.md` §3.2's inline data, as a node — the `series` in
 ///
@@ -43,8 +44,7 @@ public record ChartSeries(String name, List<Double> values, List<String> labels)
 
     /// This node as the value a chart draws.
     public Series toSeries(int position) {
-        return new Series(
-                name == null || name.isBlank() ? "series " + (position + 1) : name, values);
+        return new Series(name == null || name.isBlank() ? "series " + (position + 1) : name, values);
     }
 
     @Override

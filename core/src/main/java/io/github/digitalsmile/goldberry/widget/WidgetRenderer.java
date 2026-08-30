@@ -1,19 +1,20 @@
 package io.github.digitalsmile.goldberry.widget;
 
-import io.github.digitalsmile.goldberry.css.ComputedStyle;
-import io.github.digitalsmile.goldberry.css.value.CssLength;
-import io.github.digitalsmile.goldberry.css.select.Selector.PseudoClass;
-import io.github.digitalsmile.goldberry.css.cascade.StyleResolver;
-import io.github.digitalsmile.goldberry.css.Stylesheet;
-import io.github.digitalsmile.goldberry.paint.Box;
-import io.github.digitalsmile.goldberry.motion.Clock;
-import io.github.digitalsmile.goldberry.stats.FrameStats;
-import io.github.digitalsmile.goldberry.text.font.Font;
-import io.github.digitalsmile.goldberry.text.font.Fonts;
-import io.github.digitalsmile.goldberry.text.ParagraphCache;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+
+import io.github.digitalsmile.goldberry.css.ComputedStyle;
+import io.github.digitalsmile.goldberry.css.Stylesheet;
+import io.github.digitalsmile.goldberry.css.cascade.StyleResolver;
+import io.github.digitalsmile.goldberry.css.select.Selector.PseudoClass;
+import io.github.digitalsmile.goldberry.css.value.CssLength;
+import io.github.digitalsmile.goldberry.motion.Clock;
+import io.github.digitalsmile.goldberry.paint.Box;
+import io.github.digitalsmile.goldberry.stats.FrameStats;
+import io.github.digitalsmile.goldberry.text.ParagraphCache;
+import io.github.digitalsmile.goldberry.text.font.Font;
+import io.github.digitalsmile.goldberry.text.font.Fonts;
 import io.github.digitalsmile.goldberry.widget.style.Paints;
 import io.github.digitalsmile.goldberry.widget.style.Styled;
 
@@ -40,8 +41,7 @@ public final class WidgetRenderer {
     /// What the frame loop is managing, for the widgets that draw it. Nothing
     /// until a window says otherwise, because a renderer with no loop over it —
     /// a test, a layer — has no frames to report.
-    private FrameStats frames =
-            FrameStats.none();
+    private FrameStats frames = FrameStats.none();
 
     /// Whether `prefers-reduced-motion` is on — §1.7's rule 6.
     private boolean reducedMotion;
@@ -106,8 +106,7 @@ public final class WidgetRenderer {
             }
 
             @Override
-            public io.github.digitalsmile.goldberry.text.Paragraph paragraph(
-                    ComputedStyle style, String text) {
+            public io.github.digitalsmile.goldberry.text.Paragraph paragraph(ComputedStyle style, String text) {
                 return cache.paragraph(fonts.apply(style), text);
             }
 
@@ -256,12 +255,11 @@ public final class WidgetRenderer {
         var textMissesBefore = FrameTrace.ENABLED ? paragraphs.misses() : 0;
         var boxes = render(tree.root(), null, now);
         if (FrameTrace.ENABLED) {
-            tree.trace().text((int) (paragraphs.hits() - textHitsBefore),
-                    (int) (paragraphs.misses() - textMissesBefore));
+            tree.trace()
+                    .text((int) (paragraphs.hits() - textHitsBefore), (int) (paragraphs.misses() - textMissesBefore));
         }
         if (boxes.isEmpty()) {
-            throw new IllegalStateException(
-                    "nothing in this widget tree paints; the root described only composition");
+            throw new IllegalStateException("nothing in this widget tree paints; the root described only composition");
         }
         if (boxes.size() == 1) {
             return boxes.getFirst();
@@ -367,8 +365,8 @@ public final class WidgetRenderer {
         if (self != null && (!self.transitions().isEmpty() || element.isAnimating())) {
             var motionBegan = trace == null ? 0L : System.nanoTime();
             var animations = element.animations();
-            animations.observe(reducedMotion ? self.transitions(self.transitions().reduced()) : self,
-                    now);
+            animations.observe(
+                    reducedMotion ? self.transitions(self.transitions().reduced()) : self, now);
             painted = animations.apply(self, now);
             animating |= animations.settle(now);
             if (trace != null) {

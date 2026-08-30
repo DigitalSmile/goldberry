@@ -1,8 +1,9 @@
 package io.github.digitalsmile.goldberry.icon;
 
-import io.github.digitalsmile.goldberry.natives.blend2d.BlendPath;
 import java.util.Locale;
 import java.util.Objects;
+
+import io.github.digitalsmile.goldberry.natives.blend2d.BlendPath;
 
 /// Turns SVG path data into Blend2D path commands.
 ///
@@ -32,8 +33,7 @@ import java.util.Objects;
 /// hearing about, not a glyph to skip.
 public final class SvgPath {
 
-    private SvgPath() {
-    }
+    private SvgPath() {}
 
     /// Appends `data` to `path`, scaling every coordinate by `scale`.
     ///
@@ -325,10 +325,8 @@ public final class SvgPath {
         }
 
         private IllegalArgumentException error(String what) {
-            return new IllegalArgumentException(String.format(
-                    Locale.ROOT,
-                    "%s at index %d of SVG path data: %s",
-                    what, at, excerpt()));
+            return new IllegalArgumentException(
+                    String.format(Locale.ROOT, "%s at index %d of SVG path data: %s", what, at, excerpt()));
         }
 
         /// The failing region rather than the whole string: an icon's data can
@@ -337,9 +335,7 @@ public final class SvgPath {
         private String excerpt() {
             var from = Math.max(0, at - 20);
             var to = Math.min(data.length(), at + 20);
-            return (from > 0 ? "..." : "")
-                    + data.substring(from, to)
-                    + (to < data.length() ? "..." : "");
+            return (from > 0 ? "..." : "") + data.substring(from, to) + (to < data.length() ? "..." : "");
         }
     }
 }

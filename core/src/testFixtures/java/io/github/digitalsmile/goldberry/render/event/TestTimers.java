@@ -14,8 +14,7 @@ package io.github.digitalsmile.goldberry.render.event;
 /// the two leaks a widget can cause.
 public final class TestTimers {
 
-    private TestTimers() {
-    }
+    private TestTimers() {}
 
     /// A timer that is never due and never fires, and whose
     /// [EventLoop.Timer#isPending()] answers whether anything cancelled it.
@@ -23,6 +22,6 @@ public final class TestTimers {
     /// Never due because a test drives the action itself: firing on a wall clock
     /// would make the test wait out whatever interval the widget asked for.
     public static EventLoop.Timer pending() {
-        return new EventLoop.Timer(Long.MAX_VALUE, () -> { });
+        return new EventLoop.Timer(Long.MAX_VALUE, () -> {});
     }
 }

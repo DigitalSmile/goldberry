@@ -29,9 +29,10 @@ final class ChartState extends State<ChartSpec> {
     @Override
     public Widget build(BuildContext context) {
         var chart = widget();
-        return new ChartView(chart.chartType(),
-                ChartParts.of(chart.series(), chart.categories(), chart.mode(),
-                        isolated, this::isolate, chart.options()),
+        return new ChartView(
+                chart.chartType(),
+                ChartParts.of(
+                        chart.series(), chart.categories(), chart.mode(), isolated, this::isolate, chart.options()),
                 chart.attributes());
     }
 

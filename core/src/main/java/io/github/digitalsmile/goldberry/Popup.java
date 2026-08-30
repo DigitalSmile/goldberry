@@ -1,20 +1,22 @@
 package io.github.digitalsmile.goldberry;
 
-import io.github.digitalsmile.goldberry.render.popup.BackendPopup;
-import io.github.digitalsmile.goldberry.render.model.LogicalPoint;
-import io.github.digitalsmile.goldberry.render.model.LogicalSize;
-import io.github.digitalsmile.goldberry.render.model.LogicalRect;
-import io.github.digitalsmile.goldberry.input.hit.HitTest;
+import java.util.Objects;
+import java.util.function.Supplier;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import io.github.digitalsmile.goldberry.input.PointerRouter;
+import io.github.digitalsmile.goldberry.input.hit.HitTest;
+import io.github.digitalsmile.goldberry.paint.Frame;
 import io.github.digitalsmile.goldberry.paint.tree.RenderTree;
+import io.github.digitalsmile.goldberry.render.model.LogicalPoint;
+import io.github.digitalsmile.goldberry.render.model.LogicalRect;
+import io.github.digitalsmile.goldberry.render.model.LogicalSize;
+import io.github.digitalsmile.goldberry.render.popup.BackendPopup;
 import io.github.digitalsmile.goldberry.widget.ElementTree;
 import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widget.WidgetRenderer;
-import java.util.Objects;
-import java.util.function.Supplier;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import io.github.digitalsmile.goldberry.paint.Frame;
 
 /// A widget tree in a platform window of its own — a menu, a dropdown, a
 /// tooltip.
@@ -84,8 +86,13 @@ public final class Popup implements AutoCloseable {
     /// usually been **measured** already — that is how the popup got a size — and
     /// measuring builds both. A second element tree would also be a second lot of
     /// `initState`.
-    Popup(BackendPopup backend, Window window, ElementTree tree, RenderTree render,
-            Supplier<WidgetRenderer> renderer, Runnable onClosed) {
+    Popup(
+            BackendPopup backend,
+            Window window,
+            ElementTree tree,
+            RenderTree render,
+            Supplier<WidgetRenderer> renderer,
+            Runnable onClosed) {
         this.backend = Objects.requireNonNull(backend, "backend");
         this.window = Objects.requireNonNull(window, "window");
         this.renderer = Objects.requireNonNull(renderer, "renderer");
@@ -108,15 +115,16 @@ public final class Popup implements AutoCloseable {
         window.inputWatcher(new Window.InputWatcher() {
             @Override
             public boolean pressed(
-                    io.github.digitalsmile.goldberry.input.event.PointerEvent.Button button,
-                    float x, float y) {
+                    io.github.digitalsmile.goldberry.input.event.PointerEvent.Button button, float x, float y) {
                 // A press inside a popup is somebody choosing an item.
                 return false;
             }
 
             @Override
-            public boolean keyPressed(io.github.digitalsmile.goldberry.input.key.Key key,
-                    io.github.digitalsmile.goldberry.input.key.Modifiers modifiers, boolean repeat) {
+            public boolean keyPressed(
+                    io.github.digitalsmile.goldberry.input.key.Key key,
+                    io.github.digitalsmile.goldberry.input.key.Modifiers modifiers,
+                    boolean repeat) {
                 if (key == io.github.digitalsmile.goldberry.input.key.Key.ESCAPE) {
                     dismissedByInput();
                     return true;
@@ -144,8 +152,7 @@ public final class Popup implements AutoCloseable {
     /// item that opens a submenu has to ask the popup it is in — and the answer
     /// is translated by this popup's own offset, because that is the space
     /// `Host.popup` places in.
-    public java.util.Optional<LogicalRect> anchor(
-            String id) {
+    public java.util.Optional<LogicalRect> anchor(String id) {
         Objects.requireNonNull(id, "id");
         for (var region : regions) {
             if (region.owner() instanceof io.github.digitalsmile.goldberry.widget.Element element
@@ -167,8 +174,7 @@ public final class Popup implements AutoCloseable {
     /// menu's, so a submenu anchored to the item overlaps the border of the menu
     /// it came from ([ADR-0113](../../../../../book/src/adr/0113-a-submenu-is-placed-beside-its-menu.md)).
     public LogicalRect bounds() {
-        return new LogicalRect(
-                backend.offset(), window.size());
+        return new LogicalRect(backend.offset(), window.size());
     }
 
     /// Where the popup sits, as an offset from its owner window's top-left.
@@ -328,8 +334,8 @@ public final class Popup implements AutoCloseable {
         // machinery for a saving nobody can measure on a 180×132 menu.
         render.paint(frame);
         regions = HitTest.capture(render);
-        router.windowBounds(LogicalRect.of(
-                0, 0, frame.size().width(), frame.size().height()));
+        router.windowBounds(
+                LogicalRect.of(0, 0, frame.size().width(), frame.size().height()));
         router.updateRegions(regions);
         if (!focused) {
             focused = true;
@@ -348,8 +354,10 @@ public final class Popup implements AutoCloseable {
     /// by arrows either way ([ADR-0104]).
     ///
     /// @return whether the popup's router did something with it
-    boolean handleKey(io.github.digitalsmile.goldberry.input.key.Key key,
-            io.github.digitalsmile.goldberry.input.key.Modifiers modifiers, boolean repeat) {
+    boolean handleKey(
+            io.github.digitalsmile.goldberry.input.key.Key key,
+            io.github.digitalsmile.goldberry.input.key.Modifiers modifiers,
+            boolean repeat) {
         if (!isOpen()) {
             return false;
         }
@@ -467,7 +475,6 @@ public final class Popup implements AutoCloseable {
 
     @Override
     public String toString() {
-        return "Popup[" + backend.kind() + " at " + backend.offset()
-                + (isOpen() ? "" : ", closed") + "]";
+        return "Popup[" + backend.kind() + " at " + backend.offset() + (isOpen() ? "" : ", closed") + "]";
     }
 }

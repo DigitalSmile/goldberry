@@ -1,10 +1,11 @@
 package io.github.digitalsmile.goldberry.natives.blend2d;
 
-import io.github.digitalsmile.goldberry.natives.blend2d.enums.BlendExtendMode;
-import io.github.digitalsmile.goldberry.natives.layout.Layouts;
 import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.ValueLayout;
+
+import io.github.digitalsmile.goldberry.natives.blend2d.enums.BlendExtendMode;
+import io.github.digitalsmile.goldberry.natives.layout.Layouts;
 
 /// A linear gradient — a fill style that is not a colour (ADR-0207).
 ///
@@ -85,11 +86,9 @@ public final class BlendGradient implements AutoCloseable {
     ///         indistinguishable from a band whose arithmetic went wrong
     ///         upstream — the same trap [BlendContext#fillRect] guards.
     public static BlendGradient linear(double x0, double y0, double x1, double y1) {
-        if (!Double.isFinite(x0) || !Double.isFinite(y0)
-                || !Double.isFinite(x1) || !Double.isFinite(y1)) {
-            throw new IllegalArgumentException(
-                    "a gradient runs between two finite points, and (" + x0 + "," + y0 + ") to ("
-                            + x1 + "," + y1 + ") is not a pair of them");
+        if (!Double.isFinite(x0) || !Double.isFinite(y0) || !Double.isFinite(x1) || !Double.isFinite(y1)) {
+            throw new IllegalArgumentException("a gradient runs between two finite points, and (" + x0 + "," + y0
+                    + ") to (" + x1 + "," + y1 + ") is not a pair of them");
         }
         return new BlendGradient(x0, y0, x1, y1);
     }
@@ -107,8 +106,7 @@ public final class BlendGradient implements AutoCloseable {
     /// @param argb a colour as `0xAARRGGBB`, not premultiplied. Its own alpha is
     ///        kept at the near end, so a band already drawn at 85% fades from
     ///        85% rather than being promoted to opaque
-    public static BlendGradient fade(
-            double x0, double y0, double x1, double y1, int argb) {
+    public static BlendGradient fade(double x0, double y0, double x1, double y1, int argb) {
         var gradient = linear(x0, y0, x1, y1);
         try {
             gradient.addStop(0, argb);
@@ -131,8 +129,7 @@ public final class BlendGradient implements AutoCloseable {
         requireUsable();
         if (!(offset >= 0) || !(offset <= 1)) {
             throw new IllegalArgumentException(
-                    "a gradient stop sits between 0 and 1 along the gradient, and " + offset
-                            + " does not");
+                    "a gradient stop sits between 0 and 1 along the gradient, and " + offset + " does not");
         }
         calls.gradientAddStop(gradient, offset, argb);
     }

@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
 import java.util.List;
+
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -50,8 +51,7 @@ class LttbTest {
         var kept = Lttb.indices(ramp(10_000), 300);
 
         for (var i = 1; i < kept.length; i++) {
-            assertTrue(kept[i] > kept[i - 1],
-                    "index " + i + " went backwards: " + kept[i - 1] + " then " + kept[i]);
+            assertTrue(kept[i] > kept[i - 1], "index " + i + " went backwards: " + kept[i - 1] + " then " + kept[i]);
         }
     }
 
@@ -68,8 +68,7 @@ class LttbTest {
 
         var kept = Lttb.downsample(values, 100);
 
-        assertTrue(kept.contains(20.0),
-                "the spike is the one point a sparkline exists to show, and it was dropped");
+        assertTrue(kept.contains(20.0), "the spike is the one point a sparkline exists to show, and it was dropped");
 
         // And the comparison that makes the point: every hundredth sample, which
         // is what "just take fewer points" means, misses it entirely.
@@ -77,8 +76,7 @@ class LttbTest {
         for (var i = 0; i < values.size(); i += 100) {
             strided.add(values.get(i));
         }
-        assertTrue(!strided.contains(20.0),
-                "if a stride caught the spike this test is not testing what it claims");
+        assertTrue(!strided.contains(20.0), "if a stride caught the spike this test is not testing what it claims");
     }
 
     @Test
@@ -108,9 +106,9 @@ class LttbTest {
                     continue;
                 }
                 for (var index : Lttb.indices(ramp(n), threshold)) {
-                    assertTrue(index >= 0 && index < n,
-                            "index " + index + " is outside a series of " + n
-                                    + " at threshold " + threshold);
+                    assertTrue(
+                            index >= 0 && index < n,
+                            "index " + index + " is outside a series of " + n + " at threshold " + threshold);
                 }
             }
         }

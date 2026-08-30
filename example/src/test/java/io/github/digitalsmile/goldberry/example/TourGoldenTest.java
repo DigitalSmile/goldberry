@@ -1,15 +1,21 @@
 package io.github.digitalsmile.goldberry.example;
 
+import java.util.ArrayList;
+import java.util.List;
+
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+
 import io.github.digitalsmile.goldberry.RendererRequirement;
-import io.github.digitalsmile.goldberry.paint.TestFrames;
-import io.github.digitalsmile.goldberry.render.model.LogicalRect;
-import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
 import io.github.digitalsmile.goldberry.css.Stylesheet;
 import io.github.digitalsmile.goldberry.css.Theme;
+import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
 import io.github.digitalsmile.goldberry.example.ui.Scrolling;
 import io.github.digitalsmile.goldberry.golden.GoldenImage;
 import io.github.digitalsmile.goldberry.input.hit.HitTest;
+import io.github.digitalsmile.goldberry.paint.TestFrames;
 import io.github.digitalsmile.goldberry.paint.tree.RenderTree;
+import io.github.digitalsmile.goldberry.render.model.LogicalRect;
 import io.github.digitalsmile.goldberry.text.font.Fonts;
 import io.github.digitalsmile.goldberry.widget.ElementTree;
 import io.github.digitalsmile.goldberry.widget.WidgetRenderer;
@@ -17,10 +23,6 @@ import io.github.digitalsmile.goldberry.widgets.Controls;
 import io.github.digitalsmile.goldberry.widgets.Density;
 import io.github.digitalsmile.goldberry.widgets.overlay.tour.Stop;
 import io.github.digitalsmile.goldberry.widgets.overlay.tour.Tour;
-import java.util.ArrayList;
-import java.util.List;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
 
 /// A tour over the scrolling screen, as a picture.
 ///
@@ -39,8 +41,7 @@ class TourGoldenTest {
     @Test
     @DisplayName("a stop lights its target and dims the rest")
     void stop() {
-        shoot("tour-stop", "jump-bar", "Jump to a section",
-                "These ask the list to bring a section into view.");
+        shoot("tour-stop", "jump-bar", "Jump to a section", "These ask the list to bring a section into view.");
     }
 
     /// A target at the far right, which is the case the placement has to clamp:
@@ -48,14 +49,12 @@ class TourGoldenTest {
     @Test
     @DisplayName("a card centred on a target near the edge stays on screen")
     void nearTheEdge() {
-        shoot("tour-edge", "tour-button", "Start it again",
-                "A small target at the right-hand edge.");
+        shoot("tour-edge", "tour-button", "Start it again", "A small target at the right-hand edge.");
     }
 
     private void shoot(String golden, String targetId, String title, String body) {
         RendererRequirement.enforce();
-        var sheets = new ArrayList<Stylesheet>(
-                Controls.stylesheets(Theme.NORD_DARK, Density.REGULAR));
+        var sheets = new ArrayList<Stylesheet>(Controls.stylesheets(Theme.NORD_DARK, Density.REGULAR));
         sheets.add(Stylesheet.resource(CascadeLayer.APPLICATION, Showcase.class, "showcase.css"));
 
         try (var fonts = Fonts.bundled()) {
@@ -76,11 +75,15 @@ class TourGoldenTest {
             }
 
             var host = new TourTestHost(regions);
-            var tour = new Tour(List.of(
-                    new Stop(targetId, title, body),
-                    new Stop("scroll-demo", "A viewport of its own",
-                            "Scroll it with the wheel, or use PageDown.")),
-                    host, () -> { });
+            var tour = new Tour(
+                    List.of(
+                            new Stop(targetId, title, body),
+                            new Stop(
+                                    "scroll-demo",
+                                    "A viewport of its own",
+                                    "Scroll it with the wheel, or use PageDown.")),
+                    host,
+                    () -> {});
             // Through WindowRoot, because that is where a filling overlay gets
             // its insets -- a tour laid out in flow has no size at all.
             var tree = new ElementTree(new io.github.digitalsmile.goldberry.widget.root.WindowRoot(

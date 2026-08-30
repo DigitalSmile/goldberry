@@ -10,6 +10,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
+
 import io.github.digitalsmile.goldberry.bind.Observable;
 import io.github.digitalsmile.goldberry.bind.Property;
 
@@ -36,13 +37,13 @@ class BindingsTest {
     void strictRefusesUnknown() {
         var bindings = BindingRegistry.strict().bind("prefs.frost", Property.of(true));
 
-        var thrown = assertThrows(IllegalArgumentException.class,
-                () -> bindings.resolve("prefs.frsot"));
+        var thrown = assertThrows(IllegalArgumentException.class, () -> bindings.resolve("prefs.frsot"));
 
         // A checkbox bound to nothing looks exactly like one bound to something
         // that never changes, so the typo has to be loud.
         assertTrue(thrown.getMessage().contains("prefs.frsot"), thrown.getMessage());
-        assertTrue(thrown.getMessage().contains("prefs.frost"),
+        assertTrue(
+                thrown.getMessage().contains("prefs.frost"),
                 () -> "the message should list what is bound: " + thrown.getMessage());
     }
 
@@ -89,17 +90,18 @@ class BindingsTest {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {
-        "!prefs.frost",
-        "prefs.frost == true",
-        "prefs.frost ? \"on\" : \"off\"",
-        "prefs..frost",
-        "prefs.",
-        ".frost",
-        "",
-        "1prefs",
-        "prefs frost",
-    })
+    @ValueSource(
+            strings = {
+                "!prefs.frost",
+                "prefs.frost == true",
+                "prefs.frost ? \"on\" : \"off\"",
+                "prefs..frost",
+                "prefs.",
+                ".frost",
+                "",
+                "1prefs",
+                "prefs frost",
+            })
     @DisplayName("anything that is not a path is refused, rather than resolving to nothing")
     void expressionsAreRefused(String path) {
         // The decision in ADR-0062 is that `bind` is a path and nothing else.
@@ -119,14 +121,22 @@ class BindingsTest {
         // of these back to Property is what this test exists to fail on: a
         // control could then write to the application's model from a `bind=`
         // attribute, and "who changed this value?" would stop having an answer.
-        assertEquals(Observable.class,
+        assertEquals(
+                Observable.class,
                 BindingRegistry.class.getMethod("resolve", String.class).getReturnType());
-        assertEquals(Observable.class,
-                BindingRegistry.class.getMethod("resolve", String.class, Class.class).getReturnType());
-        assertEquals(Observable.class,
-                io.github.digitalsmile.goldberry.widget.Widget.class.getMethod("binding").getReturnType());
+        assertEquals(
+                Observable.class,
+                BindingRegistry.class
+                        .getMethod("resolve", String.class, Class.class)
+                        .getReturnType());
+        assertEquals(
+                Observable.class,
+                io.github.digitalsmile.goldberry.widget.Widget.class
+                        .getMethod("binding")
+                        .getReturnType());
 
-        assertTrue(java.util.Arrays.stream(Observable.class.getMethods())
+        assertTrue(
+                java.util.Arrays.stream(Observable.class.getMethods())
                         .noneMatch(method -> method.getName().equals("set")),
                 "Observable is the half of a Property that cannot be written");
     }
@@ -139,8 +149,7 @@ class BindingsTest {
         // What a two-way control asks for: writing a Boolean into a path the
         // application holds a String in is a bug that would otherwise surface as
         // a ClassCastException three frames later, in a listener.
-        assertThrows(IllegalArgumentException.class,
-                () -> bindings.resolve("prefs.frost", Boolean.class));
+        assertThrows(IllegalArgumentException.class, () -> bindings.resolve("prefs.frost", Boolean.class));
     }
 
     @Test

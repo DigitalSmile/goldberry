@@ -1,12 +1,13 @@
 package io.github.digitalsmile.goldberry.icon;
 
-import io.github.digitalsmile.goldberry.paint.Frame;
+import java.util.NoSuchElementException;
+import java.util.Objects;
+
 import io.github.digitalsmile.goldberry.assets.BundledAssets;
 import io.github.digitalsmile.goldberry.natives.blend2d.BlendPath;
 import io.github.digitalsmile.goldberry.natives.blend2d.enums.BlendStrokeCap;
 import io.github.digitalsmile.goldberry.natives.blend2d.enums.BlendStrokeJoin;
-import java.util.NoSuchElementException;
-import java.util.Objects;
+import io.github.digitalsmile.goldberry.paint.Frame;
 
 /// One bundled icon, parsed once and drawn many times.
 ///
@@ -47,9 +48,10 @@ public final class Icon implements AutoCloseable {
     /// @throws IllegalArgumentException if the size is not positive and finite
     public static Icon bundled(String name, double size) {
         Objects.requireNonNull(name, "name");
-        var data = BundledAssets.icon(name).orElseThrow(() -> new NoSuchElementException(
-                "no bundled icon named \"" + name + "\"."
-                        + " BundledAssets.iconNames() lists the " + BundledAssets.iconNames().size()
+        var data = BundledAssets.icon(name)
+                .orElseThrow(() -> new NoSuchElementException("no bundled icon named \"" + name + "\"."
+                        + " BundledAssets.iconNames() lists the "
+                        + BundledAssets.iconNames().size()
                         + " there are."));
         return of(name, data, size);
     }
@@ -67,8 +69,7 @@ public final class Icon implements AutoCloseable {
         Objects.requireNonNull(pathData, "pathData");
         if (!Double.isFinite(size) || size <= 0) {
             throw new IllegalArgumentException(
-                    "an icon size must be a positive, finite number of logical pixels, and "
-                            + size + " is not");
+                    "an icon size must be a positive, finite number of logical pixels, and " + size + " is not");
         }
 
         var scale = size / BundledAssets.ICON_SIZE;

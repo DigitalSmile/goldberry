@@ -184,9 +184,7 @@ public record Affine(double a, double b, double c, double d, double e, double f)
     ///                   radians
     /// @param rotation   in radians
     public record Decomposed(
-            double translateX, double translateY,
-            double scaleX, double scaleY,
-            double skew, double rotation) {
+            double translateX, double translateY, double scaleX, double scaleY, double skew, double rotation) {
 
         /// The matrix these parts describe.
         ///
@@ -299,9 +297,7 @@ public record Affine(double a, double b, double c, double d, double e, double f)
 
     @Override
     public String toString() {
-        return isIdentity()
-                ? "none"
-                : String.format("matrix(%s, %s, %s, %s, %s, %s)", a, b, c, d, e, f);
+        return isIdentity() ? "none" : String.format("matrix(%s, %s, %s, %s, %s, %s)", a, b, c, d, e, f);
     }
 
     private static boolean near(double value, double target) {
@@ -310,8 +306,7 @@ public record Affine(double a, double b, double c, double d, double e, double f)
 
     private static void requireFinite(double value, String name) {
         if (!Double.isFinite(value)) {
-            throw new IllegalArgumentException(
-                    "a transform's " + name + " must be a finite number, not " + value);
+            throw new IllegalArgumentException("a transform's " + name + " must be a finite number, not " + value);
         }
     }
 }

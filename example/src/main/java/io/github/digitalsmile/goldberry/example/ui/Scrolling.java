@@ -1,5 +1,9 @@
 package io.github.digitalsmile.goldberry.example.ui;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
+
 import io.github.digitalsmile.goldberry.render.model.LogicalRect;
 import io.github.digitalsmile.goldberry.widget.BuildContext;
 import io.github.digitalsmile.goldberry.widget.State;
@@ -15,9 +19,6 @@ import io.github.digitalsmile.goldberry.widgets.core.scroll.ScrollAxis;
 import io.github.digitalsmile.goldberry.widgets.core.scroll.ScrollController;
 import io.github.digitalsmile.goldberry.widgets.panel.Panel;
 import io.github.digitalsmile.goldberry.widgets.text.Text;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Locale;
 
 /// A viewport of its own, with headers that stick — §2.4's `scroll`, §5's `affix`
 /// and the `reveal` that puts a section back on screen.
@@ -47,8 +48,7 @@ public record Scrolling() implements Widget.Stateful {
     /// `#jump-<name>`, and `#jump-bag end` is not a selector. Lower-casing is the
     /// whole of the transformation, which is what keeps the ids something a
     /// stylesheet and a test can both write down without asking this class how.
-    public static final List<String> SECTIONS =
-            List.of("Hobbiton", "Bree", "Rivendell", "Moria");
+    public static final List<String> SECTIONS = List.of("Hobbiton", "Bree", "Rivendell", "Moria");
 
     @Override
     public State<?> createState() {
@@ -70,13 +70,14 @@ public record Scrolling() implements Widget.Stateful {
             for (var section : Scrolling.SECTIONS) {
                 var affix = new Affix(
                         List.of(new SectionHeader(section)),
-                        Edge.TOP, 0,
-                        Attributes.NONE.id("section-" + section.toLowerCase(Locale.ROOT))
+                        Edge.TOP,
+                        0,
+                        Attributes.NONE
+                                .id("section-" + section.toLowerCase(Locale.ROOT))
                                 .classes("section"));
                 rows.add(section.equals(wanted) ? affix.revealedBy(this::revealed) : affix);
                 for (var i = 1; i <= Scrolling.ROWS_PER_SECTION; i++) {
-                    rows.add(new Text(section + " — line " + i,
-                            Attributes.NONE.classes("scroll-row")));
+                    rows.add(new Text(section + " — line " + i, Attributes.NONE.classes("scroll-row")));
                 }
             }
 
@@ -84,22 +85,28 @@ public record Scrolling() implements Widget.Stateful {
             jumps.add(new Text("Jump to", Attributes.NONE.classes("jump-label")));
             for (var section : Scrolling.SECTIONS) {
                 jumps.add(new Button(section, () -> ask(section))
-                        .withAttributes(Attributes.NONE
-                                .id("jump-" + section.toLowerCase(Locale.ROOT))));
+                        .withAttributes(Attributes.NONE.id("jump-" + section.toLowerCase(Locale.ROOT))));
             }
 
-            return Notifications.card("scroll-card", "A viewport of its own", List.of(
-                    new Text("Its four headers are `affix`, so each one lifts and stays put"
-                            + " while its section passes underneath. The buttons ask the list"
-                            + " to bring a section into view, and it moves the least it can.",
-                            Attributes.NONE.classes("caption")),
-                    new Row(jumps.toArray(Widget[]::new))
-                            .withAttributes(Attributes.NONE.id("jump-bar").classes("toolbar")),
-                    new Panel(List.of(
-                            new Scroll(List.of(new Column(rows.toArray(Widget[]::new))),
-                                    ScrollAxis.VERTICAL, Attributes.NONE)
-                                    .controlledBy(list)),
-                            Attributes.NONE.id("scroll-demo").classes("scroll-demo"))));
+            return Notifications.card(
+                    "scroll-card",
+                    "A viewport of its own",
+                    List.of(
+                            new Text(
+                                    "Its four headers are `affix`, so each one lifts and stays put"
+                                            + " while its section passes underneath. The buttons ask the list"
+                                            + " to bring a section into view, and it moves the least it can.",
+                                    Attributes.NONE.classes("caption")),
+                            new Row(jumps.toArray(Widget[]::new))
+                                    .withAttributes(
+                                            Attributes.NONE.id("jump-bar").classes("toolbar")),
+                            new Panel(
+                                    List.of(new Scroll(
+                                                    List.of(new Column(rows.toArray(Widget[]::new))),
+                                                    ScrollAxis.VERTICAL,
+                                                    Attributes.NONE)
+                                            .controlledBy(list)),
+                                    Attributes.NONE.id("scroll-demo").classes("scroll-demo"))));
         }
 
         private void ask(String section) {

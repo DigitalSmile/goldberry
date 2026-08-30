@@ -1,17 +1,18 @@
 package io.github.digitalsmile.goldberry.widgets.menu;
 
+import java.util.List;
+import java.util.Set;
+
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
+import io.github.digitalsmile.goldberry.kdl.KdlNode;
 import io.github.digitalsmile.goldberry.paint.Box;
+import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widget.attr.Attributed;
 import io.github.digitalsmile.goldberry.widget.attr.Attributes;
 import io.github.digitalsmile.goldberry.widget.style.Paints;
 import io.github.digitalsmile.goldberry.widget.style.Styled;
-import io.github.digitalsmile.goldberry.widget.Widget;
-import java.util.List;
-import java.util.Set;
-import io.github.digitalsmile.goldberry.kdl.KdlNode;
-import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
 import io.github.digitalsmile.goldberry.widgets.markup.Markup;
+import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
 
 /// A rule between groups of menu items — `docs/core-widgets.md` §8's
 /// `separator`.
@@ -23,8 +24,7 @@ import io.github.digitalsmile.goldberry.widgets.markup.Markup;
 /// Its whole appearance is `controls.css`'s. The widget contributes a box with no
 /// content, which is what a 1px rule is.
 @Markup("separator")
-public record Separator(Attributes attributes)
-        implements Widget.Leaf, Styled, Paints, Attributed<Separator> {
+public record Separator(Attributes attributes) implements Widget.Leaf, Styled, Paints, Attributed<Separator> {
 
     public Separator() {
         this(Attributes.NONE);

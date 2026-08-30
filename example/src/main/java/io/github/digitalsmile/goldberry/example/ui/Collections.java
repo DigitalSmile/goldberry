@@ -1,5 +1,10 @@
 package io.github.digitalsmile.goldberry.example.ui;
 
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Set;
+
 import io.github.digitalsmile.goldberry.widget.BuildContext;
 import io.github.digitalsmile.goldberry.widget.State;
 import io.github.digitalsmile.goldberry.widget.Widget;
@@ -15,10 +20,6 @@ import io.github.digitalsmile.goldberry.widgets.panel.tree.Checkable;
 import io.github.digitalsmile.goldberry.widgets.panel.tree.Tree;
 import io.github.digitalsmile.goldberry.widgets.panel.tree.TreeNode;
 import io.github.digitalsmile.goldberry.widgets.text.Text;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Set;
 
 /// The **Collections** screen: §10's three widgets that hold many rows — a
 /// `list`, a `table` and a `tree`.
@@ -34,8 +35,7 @@ import java.util.Set;
 /// by column height, and each of these owns a selection the other two never read.
 public final class Collections {
 
-    private Collections() {
-    }
+    private Collections() {}
 
     /// The three collection cards, in the order they are offered to the wall.
     public static List<Widget> cards() {
@@ -80,23 +80,26 @@ public final class Collections {
 
             @Override
             public Widget build(BuildContext context) {
-                return Notifications.card("leagues-card", "Ten thousand leagues", List.of(
-                        caption("The list builds only the rows this viewport can see and"
-                                + " stands the rest off with two spacers, so the scrollbar is"
-                                + " honest about a model nothing has instantiated. Home and"
-                                + " End still reach the ends of it."),
-                        new Scroll(List.of(
-                                ListView.of(Leagues.ROAD)
-                                        .virtualized(Leagues.ROW_HEIGHT)
-                                        .selection(Selection.MULTIPLE)
-                                        .selected(chosen, this::choose)
-                                        .withAttributes(Attributes.NONE.id("many"))),
-                                ScrollAxis.VERTICAL,
-                                Attributes.NONE.classes("tall-list")),
-                        caption(chosen.isEmpty()
-                                ? "Nothing chosen"
-                                : "Holding " + chosen.size() + ": "
-                                        + String.join(", ", chosen))));
+                return Notifications.card(
+                        "leagues-card",
+                        "Ten thousand leagues",
+                        List.of(
+                                caption("The list builds only the rows this viewport can see and"
+                                        + " stands the rest off with two spacers, so the scrollbar is"
+                                        + " honest about a model nothing has instantiated. Home and"
+                                        + " End still reach the ends of it."),
+                                new Scroll(
+                                        List.of(ListView.of(Leagues.ROAD)
+                                                .virtualized(Leagues.ROW_HEIGHT)
+                                                .selection(Selection.MULTIPLE)
+                                                .selected(chosen, this::choose)
+                                                .withAttributes(Attributes.NONE.id("many"))),
+                                        ScrollAxis.VERTICAL,
+                                        Attributes.NONE.classes("tall-list")),
+                                caption(
+                                        chosen.isEmpty()
+                                                ? "Nothing chosen"
+                                                : "Holding " + chosen.size() + ": " + String.join(", ", chosen))));
             }
         }
     }
@@ -108,8 +111,7 @@ public final class Collections {
         /// A row that is genuinely a record and not three parallel strings, so
         /// that a sort on `Kindred` is a `Comparator` over a field rather than
         /// over a cell's rendered text.
-        record Walker(String id, String name, String kindred, String realm, int leagues) {
-        }
+        record Walker(String id, String name, String kindred, String realm, int leagues) {}
 
         /// Nine of them, with kindreds that repeat and leagues that do not — which
         /// is what makes both sorts worth clicking: a column of nine distinct
@@ -152,13 +154,14 @@ public final class Collections {
                 if (sort == null) {
                     return Company.WALKERS;
                 }
-                Comparator<Company.Walker> by = switch (sort.column()) {
-                    case "name" -> Comparator.comparing(Company.Walker::name);
-                    case "kindred" -> Comparator.comparing(Company.Walker::kindred);
-                    case "realm" -> Comparator.comparing(Company.Walker::realm);
-                    case "leagues" -> Comparator.comparingInt(Company.Walker::leagues);
-                    case null, default -> null;
-                };
+                Comparator<Company.Walker> by =
+                        switch (sort.column()) {
+                            case "name" -> Comparator.comparing(Company.Walker::name);
+                            case "kindred" -> Comparator.comparing(Company.Walker::kindred);
+                            case "realm" -> Comparator.comparing(Company.Walker::realm);
+                            case "leagues" -> Comparator.comparingInt(Company.Walker::leagues);
+                            case null, default -> null;
+                        };
                 if (by == null) {
                     return Company.WALKERS;
                 }
@@ -169,30 +172,40 @@ public final class Collections {
 
             @Override
             public Widget build(BuildContext context) {
-                return Notifications.card("company-card", "The Company, in columns", List.of(
-                        caption("Clicking a header asks for a sort and this card does it — a"
-                                + " table over a database would sort in the query, which is why"
-                                + " the widget does not. The caret keeps its place on every"
-                                + " sortable header, so nothing shuffles when the sort moves."),
-                        new Table<>(sorted(), Company.Walker::id, List.of(
-                                Column.<Company.Walker>of("name", "Name", Company.Walker::name)
-                                        .sortable(true).weight(2),
-                                Column.<Company.Walker>of("kindred", "Kindred",
-                                                Company.Walker::kindred)
-                                        .sortable(true).weight(2),
-                                Column.<Company.Walker>of("realm", "Realm",
-                                                Company.Walker::realm)
-                                        .sortable(true).weight(2),
-                                Column.<Company.Walker>of("leagues", "Leagues",
-                                                w -> String.valueOf(w.leagues()))
-                                        .sortable(true).fixed(96)))
-                                .sorted(sort, this::sortBy)
-                                .selection(Selection.MULTIPLE)
-                                .selected(picked, this::pick)
-                                .withAttributes(Attributes.NONE.id("company")),
-                        caption(picked.isEmpty()
-                                ? "Nobody chosen"
-                                : "Chose: " + String.join(", ", picked))));
+                return Notifications.card(
+                        "company-card",
+                        "The Company, in columns",
+                        List.of(
+                                caption("Clicking a header asks for a sort and this card does it — a"
+                                        + " table over a database would sort in the query, which is why"
+                                        + " the widget does not. The caret keeps its place on every"
+                                        + " sortable header, so nothing shuffles when the sort moves."),
+                                new Table<>(
+                                                sorted(),
+                                                Company.Walker::id,
+                                                List.of(
+                                                        Column.<Company.Walker>of("name", "Name", Company.Walker::name)
+                                                                .sortable(true)
+                                                                .weight(2),
+                                                        Column.<Company.Walker>of(
+                                                                        "kindred", "Kindred", Company.Walker::kindred)
+                                                                .sortable(true)
+                                                                .weight(2),
+                                                        Column.<Company.Walker>of(
+                                                                        "realm", "Realm", Company.Walker::realm)
+                                                                .sortable(true)
+                                                                .weight(2),
+                                                        Column.<Company.Walker>of(
+                                                                        "leagues",
+                                                                        "Leagues",
+                                                                        w -> String.valueOf(w.leagues()))
+                                                                .sortable(true)
+                                                                .fixed(96)))
+                                        .sorted(sort, this::sortBy)
+                                        .selection(Selection.MULTIPLE)
+                                        .selected(picked, this::pick)
+                                        .withAttributes(Attributes.NONE.id("company")),
+                                caption(picked.isEmpty() ? "Nobody chosen" : "Chose: " + String.join(", ", picked))));
             }
         }
     }
@@ -205,21 +218,32 @@ public final class Collections {
         /// list: this one is deeper, because a tri-state box only has something
         /// to say when a branch has branches under it.
         private static final List<TreeNode> LANDS = List.of(
-                TreeNode.of("eriador", "Eriador",
-                        TreeNode.of("shire", "The Shire",
+                TreeNode.of(
+                        "eriador",
+                        "Eriador",
+                        TreeNode.of(
+                                "shire",
+                                "The Shire",
                                 TreeNode.leaf("hobbiton", "Hobbiton"),
                                 TreeNode.leaf("buckland", "Buckland"),
                                 TreeNode.leaf("tuckborough", "Tuckborough")),
-                        TreeNode.of("angle", "The Angle",
+                        TreeNode.of(
+                                "angle",
+                                "The Angle",
                                 TreeNode.leaf("bree", "Bree"),
                                 TreeNode.leaf("weathertop", "Weathertop"))),
-                TreeNode.of("wilderland", "Wilderland",
+                TreeNode.of(
+                        "wilderland",
+                        "Wilderland",
                         TreeNode.leaf("lorien", "Lothlórien"),
                         TreeNode.leaf("fangorn", "Fangorn"),
-                        TreeNode.lazy("erebor", "Erebor", () -> List.of(
-                                TreeNode.leaf("dale", "Dale"),
-                                TreeNode.leaf("esgaroth", "Esgaroth")))),
-                TreeNode.of("south", "The South Kingdoms",
+                        TreeNode.lazy(
+                                "erebor",
+                                "Erebor",
+                                () -> List.of(TreeNode.leaf("dale", "Dale"), TreeNode.leaf("esgaroth", "Esgaroth")))),
+                TreeNode.of(
+                        "south",
+                        "The South Kingdoms",
                         TreeNode.leaf("edoras", "Edoras"),
                         TreeNode.leaf("minas-tirith", "Minas Tirith")));
 
@@ -238,8 +262,7 @@ public final class Collections {
             /// came out "buckland, weathertop" on one run and the other way round
             /// on the next. Everything about the tree was identical; a thousand
             /// pixels of caption were not, and the golden image failed at random.
-            private Set<String> checked =
-                    new java.util.LinkedHashSet<>(List.of("buckland", "weathertop"));
+            private Set<String> checked = new java.util.LinkedHashSet<>(List.of("buckland", "weathertop"));
 
             private void select(Set<String> values) {
                 setState(() -> selected = values);
@@ -251,19 +274,29 @@ public final class Collections {
 
             @Override
             public Widget build(BuildContext context) {
-                return Notifications.card("lands-card", "Rows with rows under them", List.of(
-                        caption("Checking and selecting are two different things and this tree"
-                                + " does both: the highlight follows the caret and the boxes do"
-                                + " not, so a branch can be ticked without being the row you"
-                                + " are standing on. Erebor fetches its children the first time"
-                                + " it opens."),
-                        new Tree(Realms.LANDS, selected, this::select, Selection.SINGLE, false,
-                                Checkable.CASCADE, checked, this::check,
-                                Attributes.NONE.id("lands")),
-                        caption(checked.isEmpty()
-                                ? "Nothing ticked"
-                                : "Ticked " + checked.size() + ": "
-                                        + String.join(", ", checked))));
+                return Notifications.card(
+                        "lands-card",
+                        "Rows with rows under them",
+                        List.of(
+                                caption("Checking and selecting are two different things and this tree"
+                                        + " does both: the highlight follows the caret and the boxes do"
+                                        + " not, so a branch can be ticked without being the row you"
+                                        + " are standing on. Erebor fetches its children the first time"
+                                        + " it opens."),
+                                new Tree(
+                                        Realms.LANDS,
+                                        selected,
+                                        this::select,
+                                        Selection.SINGLE,
+                                        false,
+                                        Checkable.CASCADE,
+                                        checked,
+                                        this::check,
+                                        Attributes.NONE.id("lands")),
+                                caption(
+                                        checked.isEmpty()
+                                                ? "Nothing ticked"
+                                                : "Ticked " + checked.size() + ": " + String.join(", ", checked))));
             }
         }
     }

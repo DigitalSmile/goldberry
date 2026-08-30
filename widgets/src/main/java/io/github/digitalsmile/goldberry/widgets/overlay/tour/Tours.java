@@ -1,9 +1,10 @@
 package io.github.digitalsmile.goldberry.widgets.overlay.tour;
 
-import io.github.digitalsmile.goldberry.Host;
-import io.github.digitalsmile.goldberry.Overlay;
 import java.util.List;
 import java.util.Objects;
+
+import io.github.digitalsmile.goldberry.Host;
+import io.github.digitalsmile.goldberry.Overlay;
 
 /// Starting a tour — the half of §5's `tour` that needs a [Host].
 ///
@@ -21,8 +22,7 @@ import java.util.Objects;
 /// ```
 public final class Tours {
 
-    private Tours() {
-    }
+    private Tours() {}
 
     /// Starts `stops` over `host`'s window, returning the overlay so a caller can
     /// end it early.
@@ -31,7 +31,7 @@ public final class Tours {
     /// error: a tour assembled from a filtered list is empty exactly when nothing
     /// in it applies, and throwing would make "nothing to show you" a crash.
     public static Overlay start(Host host, List<Stop> stops) {
-        return start(host, stops, () -> { });
+        return start(host, stops, () -> {});
     }
 
     /// The same, with something to run when the tour ends — however it ends.

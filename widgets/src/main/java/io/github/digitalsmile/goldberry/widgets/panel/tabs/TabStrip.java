@@ -1,13 +1,14 @@
 package io.github.digitalsmile.goldberry.widgets.panel.tabs;
 
+import java.util.List;
+import java.util.Set;
+
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
 import io.github.digitalsmile.goldberry.paint.Box;
+import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widget.attr.Attributes;
 import io.github.digitalsmile.goldberry.widget.style.Paints;
 import io.github.digitalsmile.goldberry.widget.style.Styled;
-import io.github.digitalsmile.goldberry.widget.Widget;
-import java.util.List;
-import java.util.Set;
 
 /// What a [Tabs] actually draws: a [TabList] and a [TabPanel].
 ///
@@ -21,11 +22,12 @@ import java.util.Set;
 /// @param headers    the tab headers, already wired and phased
 /// @param content    the selected tab's content
 /// @param attributes the strip's own, so `#views` still selects it
-record TabStrip(List<Widget> headers, List<Widget> content,
+record TabStrip(
+        List<Widget> headers,
+        List<Widget> content,
         io.github.digitalsmile.goldberry.widgets.core.scroll.ScrollController controller,
         Attributes attributes)
-        implements Widget.Leaf, Styled, Paints,
-        io.github.digitalsmile.goldberry.input.handler.Handles {
+        implements Widget.Leaf, Styled, Paints, io.github.digitalsmile.goldberry.input.handler.Handles {
 
     TabStrip {
         headers = List.copyOf(headers == null ? List.of() : headers);

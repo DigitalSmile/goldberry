@@ -1,7 +1,7 @@
 package io.github.digitalsmile.goldberry.natives.yoga.style;
 
-import io.github.digitalsmile.goldberry.natives.yoga.measure.MeasureMode;
 import io.github.digitalsmile.goldberry.natives.yoga.YogaNode;
+import io.github.digitalsmile.goldberry.natives.yoga.measure.MeasureMode;
 
 /// Writing direction — `YGDirection`.
 ///
@@ -50,9 +50,9 @@ public enum Direction implements YogaEnum {
             case 0 -> INHERIT;
             case 1 -> LTR;
             case 2 -> RTL;
-            default -> throw new IllegalArgumentException(
-                    "YGDirection " + nativeValue + " is not one Yoga defines."
-                            + " The layout binding's return type is probably wrong.");
+            default ->
+                throw new IllegalArgumentException("YGDirection " + nativeValue + " is not one Yoga defines."
+                        + " The layout binding's return type is probably wrong.");
         };
     }
 }

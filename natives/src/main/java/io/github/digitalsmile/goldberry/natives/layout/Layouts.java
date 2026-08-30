@@ -83,8 +83,7 @@ public final class Layouts {
     public static final NativeStructLayout YG_SIZE = new NativeStructLayout(
             "YGSize",
             MemoryLayout.structLayout(
-                    ValueLayout.JAVA_FLOAT.withName("width"),
-                    ValueLayout.JAVA_FLOAT.withName("height")));
+                    ValueLayout.JAVA_FLOAT.withName("width"), ValueLayout.JAVA_FLOAT.withName("height")));
 
     /// SDL's event union.
     ///
@@ -101,9 +100,7 @@ public final class Layouts {
     /// under-aligned allocation is the kind of thing that works on x86 and faults
     /// on other targets — and the layout probe says so on every one of them.
     public static final NativeStructLayout SDL_EVENT = new NativeStructLayout(
-            "SDL_Event",
-            MemoryLayout.structLayout(
-                    MemoryLayout.sequenceLayout(16, ValueLayout.JAVA_LONG)));
+            "SDL_Event", MemoryLayout.structLayout(MemoryLayout.sequenceLayout(16, ValueLayout.JAVA_LONG)));
 
     /// The header every SDL event arm starts with.
     ///
@@ -376,9 +373,7 @@ public final class Layouts {
     /// array would declare 1. Its contents are Blend2D's business — Goldberry
     /// allocates it, hands over the pointer, and never reads a field.
     public static final NativeStructLayout BL_OBJECT_DETAIL = new NativeStructLayout(
-            "BLObjectDetail",
-            MemoryLayout.structLayout(
-                    MemoryLayout.sequenceLayout(2, ValueLayout.JAVA_LONG)));
+            "BLObjectDetail", MemoryLayout.structLayout(MemoryLayout.sequenceLayout(2, ValueLayout.JAVA_LONG)));
 
     /// `BLPathCore`, which is [#BL_OBJECT_DETAIL] again.
     ///
@@ -388,9 +383,7 @@ public final class Layouts {
     /// undersized allocation would be written past on the first `move_to`
     /// (ADR-0043).
     public static final NativeStructLayout BL_PATH_CORE = new NativeStructLayout(
-            "BLPathCore",
-            MemoryLayout.structLayout(
-                    MemoryLayout.sequenceLayout(2, ValueLayout.JAVA_LONG)));
+            "BLPathCore", MemoryLayout.structLayout(MemoryLayout.sequenceLayout(2, ValueLayout.JAVA_LONG)));
 
     /// Where an image's pixels actually are — the out-parameter of
     /// `bl_image_get_data`.
@@ -417,9 +410,7 @@ public final class Layouts {
             MemoryLayout.structLayout(
                     ValueLayout.ADDRESS.withName("pixel_data"),
                     ValueLayout.JAVA_LONG.withName("stride"),
-                    MemoryLayout.structLayout(
-                                    ValueLayout.JAVA_INT.withName("w"),
-                                    ValueLayout.JAVA_INT.withName("h"))
+                    MemoryLayout.structLayout(ValueLayout.JAVA_INT.withName("w"), ValueLayout.JAVA_INT.withName("h"))
                             .withName("size"),
                     ValueLayout.JAVA_INT.withName("format"),
                     ValueLayout.JAVA_INT.withName("flags")));
@@ -447,9 +438,7 @@ public final class Layouts {
                     ValueLayout.JAVA_INT.withName("cpu_features"),
                     ValueLayout.JAVA_INT.withName("command_queue_limit"),
                     ValueLayout.JAVA_INT.withName("saved_state_limit"),
-                    MemoryLayout.structLayout(
-                                    ValueLayout.JAVA_INT.withName("x"),
-                                    ValueLayout.JAVA_INT.withName("y"))
+                    MemoryLayout.structLayout(ValueLayout.JAVA_INT.withName("x"), ValueLayout.JAVA_INT.withName("y"))
                             .withName("pixel_origin"),
                     // `reserved[1]`, unnamed here: there is no C row to compare
                     // it against and nothing may read it.
@@ -476,18 +465,14 @@ public final class Layouts {
     /// ```
     public static final NativeStructLayout BL_SIZE_I = new NativeStructLayout(
             "BLSizeI",
-            MemoryLayout.structLayout(
-                    ValueLayout.JAVA_INT.withName("w"),
-                    ValueLayout.JAVA_INT.withName("h")));
+            MemoryLayout.structLayout(ValueLayout.JAVA_INT.withName("w"), ValueLayout.JAVA_INT.withName("h")));
 
     /// ```c
     /// struct BLPointI { int x, y; };
     /// ```
     public static final NativeStructLayout BL_POINT_I = new NativeStructLayout(
             "BLPointI",
-            MemoryLayout.structLayout(
-                    ValueLayout.JAVA_INT.withName("x"),
-                    ValueLayout.JAVA_INT.withName("y")));
+            MemoryLayout.structLayout(ValueLayout.JAVA_INT.withName("x"), ValueLayout.JAVA_INT.withName("y")));
 
     /// ```c
     /// struct BLPoint { double x, y; };
@@ -498,9 +483,7 @@ public final class Layouts {
     /// line spacing, and at 1.5&times; that is a visibly uneven paragraph.
     public static final NativeStructLayout BL_POINT = new NativeStructLayout(
             "BLPoint",
-            MemoryLayout.structLayout(
-                    ValueLayout.JAVA_DOUBLE.withName("x"),
-                    ValueLayout.JAVA_DOUBLE.withName("y")));
+            MemoryLayout.structLayout(ValueLayout.JAVA_DOUBLE.withName("x"), ValueLayout.JAVA_DOUBLE.withName("y")));
 
     /// An affine transform, as `BL_TRANSFORM_OP_ASSIGN` reads one.
     ///
@@ -540,9 +523,7 @@ public final class Layouts {
     /// the first Blend2D object Goldberry constructs *inside a paint pass*
     /// rather than once at start-up (ADR-0207).
     public static final NativeStructLayout BL_GRADIENT_CORE = new NativeStructLayout(
-            "BLGradientCore",
-            MemoryLayout.structLayout(
-                    MemoryLayout.sequenceLayout(2, ValueLayout.JAVA_LONG)));
+            "BLGradientCore", MemoryLayout.structLayout(MemoryLayout.sequenceLayout(2, ValueLayout.JAVA_LONG)));
 
     /// Where a linear gradient starts and ends — `BLLinearGradientValues`.
     ///
@@ -621,13 +602,9 @@ public final class Layouts {
     public static final NativeStructLayout BL_GLYPH_PLACEMENT = new NativeStructLayout(
             "BLGlyphPlacement",
             MemoryLayout.structLayout(
-                    MemoryLayout.structLayout(
-                                    ValueLayout.JAVA_INT.withName("x"),
-                                    ValueLayout.JAVA_INT.withName("y"))
+                    MemoryLayout.structLayout(ValueLayout.JAVA_INT.withName("x"), ValueLayout.JAVA_INT.withName("y"))
                             .withName("placement"),
-                    MemoryLayout.structLayout(
-                                    ValueLayout.JAVA_INT.withName("x"),
-                                    ValueLayout.JAVA_INT.withName("y"))
+                    MemoryLayout.structLayout(ValueLayout.JAVA_INT.withName("x"), ValueLayout.JAVA_INT.withName("y"))
                             .withName("advance")));
 
     /// A font's metrics at the size it was created with — `BLFontMetrics`.
@@ -736,8 +713,7 @@ public final class Layouts {
                     ValueLayout.JAVA_INT.withName("y_offset"),
                     MemoryLayout.paddingLayout(4))); // var
 
-    private Layouts() {
-    }
+    private Layouts() {}
 
     /// Every layout that must agree with the compiled library.
     public static List<NativeStructLayout> registry() {

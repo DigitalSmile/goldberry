@@ -1,5 +1,8 @@
 package io.github.digitalsmile.goldberry.example.ui;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import io.github.digitalsmile.goldberry.example.ShowcaseModel;
 import io.github.digitalsmile.goldberry.icon.Icon;
 import io.github.digitalsmile.goldberry.widget.BuildContext;
@@ -10,8 +13,6 @@ import io.github.digitalsmile.goldberry.widgets.core.Row;
 import io.github.digitalsmile.goldberry.widgets.panel.card.Card;
 import io.github.digitalsmile.goldberry.widgets.panel.masonry.Masonry;
 import io.github.digitalsmile.goldberry.widgets.text.Text;
-import java.util.ArrayList;
-import java.util.List;
 
 /// The **Basic** screen: §1's type scale, §2's wrapped paragraph and every §3
 /// control whose value is a state or a number.
@@ -42,11 +43,10 @@ import java.util.List;
 public record Basic(ShowcaseModel model, ShowcaseModel.Actions actions, Masonry cards, Icon plus)
         implements Widget.Stateless {
 
-    private static final String NOTE =
-            "§1's type scale, §2's paragraph and every §3 control. Six of these cards are"
-                    + " basic.kdl and two of them cannot be — the verse is in the tree only"
-                    + " while the box beside it is ticked, and Turn back is disabled while"
-                    + " the count is zero.";
+    private static final String NOTE = "§1's type scale, §2's paragraph and every §3 control. Six of these cards are"
+            + " basic.kdl and two of them cannot be — the verse is in the tree only"
+            + " while the box beside it is ticked, and Turn back is disabled while"
+            + " the count is zero.";
 
     /// The paragraph, which is here to be **re-wrapped** rather than to be read.
     ///
@@ -84,10 +84,10 @@ public record Basic(ShowcaseModel model, ShowcaseModel.Actions actions, Masonry 
     /// which is what "structural" means here: the element and every style it had
     /// resolved go with it.
     private Widget prose() {
-        return new Card(List.of(
-                new Text("A paragraph, and a window edge to drag",
-                        Attributes.NONE.classes("card-title")),
-                new Text(PROSE).id("prose")),
+        return new Card(
+                List.of(
+                        new Text("A paragraph, and a window edge to drag", Attributes.NONE.classes("card-title")),
+                        new Text(PROSE).id("prose")),
                 Attributes.NONE.id("prose-card").classes("wall-card"));
     }
 
@@ -95,23 +95,31 @@ public record Basic(ShowcaseModel model, ShowcaseModel.Actions actions, Masonry 
     /// answer a question about a value rather than carry a constant.
     private Widget road() {
         var walked = model.clicks();
-        return new Card(List.of(
-                new Text("The road, in leagues", Attributes.NONE.classes("card-title")),
-                new Text(walked == 0
-                        ? "Nobody has left Bag End yet."
-                        : walked + (walked == 1 ? " league" : " leagues") + " walked.")
-                        .id("leagues"),
-                new Row(
-                        new Button("March a league", actions::click)
-                                .withIcon(plus).id("click").styled("primary"),
-                        new Button("Turn back", actions::undo)
-                                .disabled(!model.hasClicks()).id("undo"),
-                        new Button("Begin again", actions::reset)
-                                .disabled(!model.hasClicks()).id("reset").styled("danger"))
-                        .id("actions"),
-                new Text("Two of these three are disabled until there is something to undo,"
-                        + " which is the whole reason this card is not in basic.kdl.",
-                        Attributes.NONE.classes("caption"))),
+        return new Card(
+                List.of(
+                        new Text("The road, in leagues", Attributes.NONE.classes("card-title")),
+                        new Text(
+                                        walked == 0
+                                                ? "Nobody has left Bag End yet."
+                                                : walked + (walked == 1 ? " league" : " leagues") + " walked.")
+                                .id("leagues"),
+                        new Row(
+                                        new Button("March a league", actions::click)
+                                                .withIcon(plus)
+                                                .id("click")
+                                                .styled("primary"),
+                                        new Button("Turn back", actions::undo)
+                                                .disabled(!model.hasClicks())
+                                                .id("undo"),
+                                        new Button("Begin again", actions::reset)
+                                                .disabled(!model.hasClicks())
+                                                .id("reset")
+                                                .styled("danger"))
+                                .id("actions"),
+                        new Text(
+                                "Two of these three are disabled until there is something to undo,"
+                                        + " which is the whole reason this card is not in basic.kdl.",
+                                Attributes.NONE.classes("caption"))),
                 Attributes.NONE.id("road-card").classes("wall-card"));
     }
 }

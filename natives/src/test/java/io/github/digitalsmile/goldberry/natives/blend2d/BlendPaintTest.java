@@ -4,13 +4,15 @@ import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import io.github.digitalsmile.goldberry.natives.NativeLibraryRequirement;
 import java.lang.foreign.MemorySegment;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+
+import io.github.digitalsmile.goldberry.natives.NativeLibraryRequirement;
 import io.github.digitalsmile.goldberry.natives.blend2d.enums.BlendFormat;
 
 /// What Blend2D actually put in the buffer.
@@ -162,8 +164,7 @@ class BlendPaintTest {
         var edge = pixelAt(pixels, 1, 0, 16) & 0xFF;
         assertTrue(
                 edge > 100 && edge < 160,
-                () -> "the half-covered pixel should be about half lit, and it is 0x"
-                        + Integer.toHexString(edge));
+                () -> "the half-covered pixel should be about half lit, and it is 0x" + Integer.toHexString(edge));
         assertEquals(0xFF000000, pixelAt(pixels, 2, 0, 16), "and the third is untouched");
     }
 

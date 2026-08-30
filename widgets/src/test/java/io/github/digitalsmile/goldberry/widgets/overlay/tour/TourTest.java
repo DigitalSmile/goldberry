@@ -6,20 +6,20 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import io.github.digitalsmile.goldberry.Host;
-import io.github.digitalsmile.goldberry.render.model.LogicalRect;
-import io.github.digitalsmile.goldberry.input.key.Key;
-import io.github.digitalsmile.goldberry.input.event.KeyEvent;
-import io.github.digitalsmile.goldberry.input.key.Modifiers;
-import io.github.digitalsmile.goldberry.widget.Element;
-import io.github.digitalsmile.goldberry.widget.ElementTree;
-import io.github.digitalsmile.goldberry.widget.Widget;
-
 import java.util.List;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+
+import io.github.digitalsmile.goldberry.Host;
+import io.github.digitalsmile.goldberry.input.event.KeyEvent;
+import io.github.digitalsmile.goldberry.input.key.Key;
+import io.github.digitalsmile.goldberry.input.key.Modifiers;
+import io.github.digitalsmile.goldberry.render.model.LogicalRect;
+import io.github.digitalsmile.goldberry.widget.Element;
+import io.github.digitalsmile.goldberry.widget.ElementTree;
+import io.github.digitalsmile.goldberry.widget.Widget;
 
 /// `tour` — §5's guided sequence, and the veil under it
 /// ([ADR-0121](../../../../../../../../book/src/adr/0121-a-tour-is-a-veil-and-a-sequence.md)).
@@ -36,8 +36,7 @@ class TourTest {
     /// Both halves are [TestHost]'s; what is here is the fluent `anchor(id, …)`
     /// this test was already written against, kept so the cases below read the
     /// way they did.
-    private static final class StubHost extends
-            io.github.digitalsmile.goldberry.widgets.TestHost {
+    private static final class StubHost extends io.github.digitalsmile.goldberry.widgets.TestHost {
 
         StubHost anchor(String id, float x, float y, float w, float h) {
             anchoring(id, x, y, w, h);
@@ -76,9 +75,11 @@ class TourTest {
         @Test
         @DisplayName("it opens on the first stop, and says where it is in the sequence")
         void opensOnTheFirst() {
-            var host = new StubHost().anchor("one", 10, 10, 80, 24)
-                    .anchor("two", 10, 60, 80, 24).anchor("three", 10, 110, 80, 24);
-            var tree = new ElementTree(new Tour(THREE, host, () -> { }));
+            var host = new StubHost()
+                    .anchor("one", 10, 10, 80, 24)
+                    .anchor("two", 10, 60, 80, 24)
+                    .anchor("three", 10, 110, 80, 24);
+            var tree = new ElementTree(new Tour(THREE, host, () -> {}));
 
             var stop = stopOf(tree);
             assertNotNull(stop);
@@ -90,9 +91,11 @@ class TourTest {
         @Test
         @DisplayName("the first stop offers no Back, because there is nowhere to go")
         void noBackOnTheFirst() {
-            var host = new StubHost().anchor("one", 10, 10, 80, 24)
-                    .anchor("two", 10, 60, 80, 24).anchor("three", 10, 110, 80, 24);
-            var tree = new ElementTree(new Tour(THREE, host, () -> { }));
+            var host = new StubHost()
+                    .anchor("one", 10, 10, 80, 24)
+                    .anchor("two", 10, 60, 80, 24)
+                    .anchor("three", 10, 110, 80, 24);
+            var tree = new ElementTree(new Tour(THREE, host, () -> {}));
 
             assertEquals(null, stopOf(tree).onBack());
         }
@@ -100,9 +103,11 @@ class TourTest {
         @Test
         @DisplayName("Next moves on, and Back comes back")
         void moves() {
-            var host = new StubHost().anchor("one", 10, 10, 80, 24)
-                    .anchor("two", 10, 60, 80, 24).anchor("three", 10, 110, 80, 24);
-            var tree = new ElementTree(new Tour(THREE, host, () -> { }));
+            var host = new StubHost()
+                    .anchor("one", 10, 10, 80, 24)
+                    .anchor("two", 10, 60, 80, 24)
+                    .anchor("three", 10, 110, 80, 24);
+            var tree = new ElementTree(new Tour(THREE, host, () -> {}));
 
             stopOf(tree).onNext().run();
             tree.flush();
@@ -118,8 +123,7 @@ class TourTest {
         @DisplayName("the last stop's forward button says Done rather than promising more")
         void lastSaysDone() {
             var host = new StubHost().anchor("one", 10, 10, 80, 24);
-            var tree = new ElementTree(new Tour(
-                    List.of(new Stop("one", "Only", "the only thing")), host, () -> { }));
+            var tree = new ElementTree(new Tour(List.of(new Stop("one", "Only", "the only thing")), host, () -> {}));
 
             // Not asserted through the label directly -- that is the button's --
             // but through the fact that this is the last index, which is what the
@@ -133,9 +137,8 @@ class TourTest {
         void endsAtTheEnd() {
             var host = new StubHost().anchor("one", 10, 10, 80, 24);
             var ended = new boolean[1];
-            var tree = new ElementTree(new Tour(
-                    List.of(new Stop("one", "Only", "the only thing")), host,
-                    () -> ended[0] = true));
+            var tree = new ElementTree(
+                    new Tour(List.of(new Stop("one", "Only", "the only thing")), host, () -> ended[0] = true));
 
             stopOf(tree).onNext().run();
 
@@ -153,9 +156,8 @@ class TourTest {
             // §5: "A target that is not in the tree is skipped with a warning
             // rather than throwing — a tour is documentation, and documentation
             // going stale must not take the window down."
-            var host = new StubHost().anchor("two", 10, 60, 80, 24)
-                    .anchor("three", 10, 110, 80, 24);
-            var tree = new ElementTree(new Tour(THREE, host, () -> { }));
+            var host = new StubHost().anchor("two", 10, 60, 80, 24).anchor("three", 10, 110, 80, 24);
+            var tree = new ElementTree(new Tour(THREE, host, () -> {}));
 
             assertEquals("Second", stopOf(tree).stop().title());
         }
@@ -177,11 +179,9 @@ class TourTest {
         @Test
         @DisplayName("four bands tile the window and leave the target uncovered")
         void tiles() {
-            var veil = new TourVeil(LogicalRect.of(100, 80, 60, 20),
-                    LogicalRect.of(0, 0, 400, 300));
+            var veil = new TourVeil(LogicalRect.of(100, 80, 60, 20), LogicalRect.of(0, 0, 400, 300));
 
-            assertEquals(4, veil.children().size(),
-                    "§8's subset has no mask, so the cut-out is four rectangles");
+            assertEquals(4, veil.children().size(), "§8's subset has no mask, so the cut-out is four rectangles");
         }
 
         @Test
@@ -200,13 +200,14 @@ class TourTest {
         @Test
         @DisplayName("Escape skips the whole tour, not one stop")
         void escapeSkips() {
-            var host = new StubHost().anchor("one", 10, 10, 80, 24)
-                    .anchor("two", 10, 60, 80, 24).anchor("three", 10, 110, 80, 24);
+            var host = new StubHost()
+                    .anchor("one", 10, 10, 80, 24)
+                    .anchor("two", 10, 60, 80, 24)
+                    .anchor("three", 10, 110, 80, 24);
             var ended = new boolean[1];
             var tree = new ElementTree(new Tour(THREE, host, () -> ended[0] = true));
 
-            var event = new KeyEvent(KeyEvent.Kind.PRESSED, Key.ESCAPE, Modifiers.NONE,
-                    false, null);
+            var event = new KeyEvent(KeyEvent.Kind.PRESSED, Key.ESCAPE, Modifiers.NONE, false, null);
             stopOf(tree).onKey(event);
 
             assertTrue(ended[0], "Escape did not end the tour");
@@ -216,17 +217,17 @@ class TourTest {
         @Test
         @DisplayName("Right moves on and Left comes back, as in every wizard")
         void arrows() {
-            var host = new StubHost().anchor("one", 10, 10, 80, 24)
-                    .anchor("two", 10, 60, 80, 24).anchor("three", 10, 110, 80, 24);
-            var tree = new ElementTree(new Tour(THREE, host, () -> { }));
+            var host = new StubHost()
+                    .anchor("one", 10, 10, 80, 24)
+                    .anchor("two", 10, 60, 80, 24)
+                    .anchor("three", 10, 110, 80, 24);
+            var tree = new ElementTree(new Tour(THREE, host, () -> {}));
 
-            stopOf(tree).onKey(new KeyEvent(KeyEvent.Kind.PRESSED, Key.RIGHT,
-                    Modifiers.NONE, false, null));
+            stopOf(tree).onKey(new KeyEvent(KeyEvent.Kind.PRESSED, Key.RIGHT, Modifiers.NONE, false, null));
             tree.flush();
             assertEquals("Second", stopOf(tree).stop().title());
 
-            stopOf(tree).onKey(new KeyEvent(KeyEvent.Kind.PRESSED, Key.LEFT,
-                    Modifiers.NONE, false, null));
+            stopOf(tree).onKey(new KeyEvent(KeyEvent.Kind.PRESSED, Key.LEFT, Modifiers.NONE, false, null));
             tree.flush();
             assertEquals("First", stopOf(tree).stop().title());
         }
@@ -235,11 +236,9 @@ class TourTest {
         @DisplayName("Left on the first stop is left for whatever else wants it")
         void leftOnFirstIsNotConsumed() {
             var host = new StubHost().anchor("one", 10, 10, 80, 24);
-            var tree = new ElementTree(new Tour(
-                    List.of(new Stop("one", "Only", "x")), host, () -> { }));
+            var tree = new ElementTree(new Tour(List.of(new Stop("one", "Only", "x")), host, () -> {}));
 
-            var event = new KeyEvent(KeyEvent.Kind.PRESSED, Key.LEFT, Modifiers.NONE,
-                    false, null);
+            var event = new KeyEvent(KeyEvent.Kind.PRESSED, Key.LEFT, Modifiers.NONE, false, null);
             stopOf(tree).onKey(event);
 
             assertFalse(event.isConsumed());
@@ -277,8 +276,7 @@ class TourTest {
             var overlay = Tours.start(host, List.of(new Stop("one", "Only", "x")));
 
             assertNotNull(overlay);
-            assertTrue(overlay.isFilling(),
-                    "a tour dims everything except one widget, so it must cover everything");
+            assertTrue(overlay.isFilling(), "a tour dims everything except one widget, so it must cover everything");
             assertEquals(1, host.filled.size());
         }
     }

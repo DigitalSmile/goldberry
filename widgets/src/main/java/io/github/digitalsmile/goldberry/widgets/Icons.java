@@ -1,10 +1,11 @@
 package io.github.digitalsmile.goldberry.widgets;
 
-import io.github.digitalsmile.goldberry.bind.registry.ActionRegistry;
-import io.github.digitalsmile.goldberry.icon.Icon;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
+
+import io.github.digitalsmile.goldberry.bind.registry.ActionRegistry;
+import io.github.digitalsmile.goldberry.icon.Icon;
 
 /// What an icon name in markup means.
 ///
@@ -55,8 +56,7 @@ public final class Icons {
         Objects.requireNonNull(name, "name");
         Objects.requireNonNull(icon, "icon");
         if (byName.putIfAbsent(name, icon) != null) {
-            throw new IllegalStateException(
-                    "\"" + name + "\" is already registered; use rebind() to replace it");
+            throw new IllegalStateException("\"" + name + "\" is already registered; use rebind() to replace it");
         }
         return this;
     }
@@ -77,11 +77,10 @@ public final class Icons {
         }
         var icon = byName.get(name);
         if (icon == null && strict) {
-            throw new IllegalArgumentException(
-                    "no icon named \"" + name + "\" is registered. Registered: "
-                            + (byName.isEmpty() ? "(none)" : String.join(", ", byName.keySet()))
-                            + ". Build one with Icon.bundled(name, size) and register it here —"
-                            + " markup cannot build an icon because nothing would close it.");
+            throw new IllegalArgumentException("no icon named \"" + name + "\" is registered. Registered: "
+                    + (byName.isEmpty() ? "(none)" : String.join(", ", byName.keySet()))
+                    + ". Build one with Icon.bundled(name, size) and register it here —"
+                    + " markup cannot build an icon because nothing would close it.");
         }
         return icon;
     }

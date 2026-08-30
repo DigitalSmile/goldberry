@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.List;
+
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -61,7 +62,8 @@ class KdlParserTest {
         @DisplayName("a newline ends a node")
         void newlineEndsANode() {
             var nodes = KdlParser.parse("a\nb\nc");
-            assertEquals(List.of("a", "b", "c"), nodes.stream().map(KdlNode::name).toList());
+            assertEquals(
+                    List.of("a", "b", "c"), nodes.stream().map(KdlNode::name).toList());
         }
 
         @Test
@@ -94,7 +96,8 @@ class KdlParserTest {
                       }
                     }
                     """);
-            var button = root.children().getFirst().children().getFirst().children().getFirst();
+            var button =
+                    root.children().getFirst().children().getFirst().children().getFirst();
             assertEquals("button", button.name());
             assertEquals("Deep", button.argument().orElseThrow().asString());
         }
@@ -143,13 +146,13 @@ class KdlParserTest {
 
         @ParameterizedTest
         @CsvSource({
-                "'a x=1', 1",
-                "'a x=-2.5', -2.5",
-                "'a x=1.5e3', 1500",
-                "'a x=1_000', 1000",
-                "'a x=0xff', 255",
-                "'a x=0o17', 15",
-                "'a x=0b1010', 10",
+            "'a x=1', 1",
+            "'a x=-2.5', -2.5",
+            "'a x=1.5e3', 1500",
+            "'a x=1_000', 1000",
+            "'a x=0xff', 255",
+            "'a x=0o17', 15",
+            "'a x=0b1010', 10",
         })
         @DisplayName("numbers, in every radix KDL allows")
         void numbers(String markup, double expected) {
@@ -162,7 +165,8 @@ class KdlParserTest {
             // The change from 1.0 that a parser written from memory gets wrong:
             // bare `true` is not a boolean, it is not even a legal argument.
             assertEquals(new KdlValue.Bool(true), one("a x=#true").property("x").orElseThrow());
-            assertEquals(new KdlValue.Bool(false), one("a x=#false").property("x").orElseThrow());
+            assertEquals(
+                    new KdlValue.Bool(false), one("a x=#false").property("x").orElseThrow());
             assertSame(KdlValue.Null.NULL, one("a x=#null").property("x").orElseThrow());
             assertTrue(Double.isInfinite(number(one("a x=#inf").property("x").orElseThrow())));
             assertTrue(Double.isNaN(number(one("a x=#nan").property("x").orElseThrow())));
@@ -210,7 +214,9 @@ class KdlParserTest {
         void nestingBlockComments() {
             // The one place KDL differs from C, and where a naive scanner ends
             // the comment at the first "*/" and then chokes on the rest.
-            assertEquals(1, KdlParser.parse("/* outer /* inner */ still comment */ a").size());
+            assertEquals(
+                    1,
+                    KdlParser.parse("/* outer /* inner */ still comment */ a").size());
         }
 
         @Test
@@ -265,19 +271,19 @@ class KdlParserTest {
         @Test
         @DisplayName("multi-line strings are named rather than mis-reported")
         void multiLineStrings() {
-            var thrown = assertThrows(KdlSyntaxException.class,
-                    () -> KdlParser.parse("a x=\"\"\"\nhello\n\"\"\""));
+            var thrown = assertThrows(KdlSyntaxException.class, () -> KdlParser.parse("a x=\"\"\"\nhello\n\"\"\""));
             assertTrue(thrown.getMessage().contains("multi-line"));
         }
 
         @ParameterizedTest
-        @ValueSource(strings = {
-                "a {",                 // unclosed child block
-                "}",                   // stray close
-                "a x=",                // property with no value
-                "a \"unterminated",
-                "1abc",                // an identifier may not look like a number
-        })
+        @ValueSource(
+                strings = {
+                    "a {", // unclosed child block
+                    "}", // stray close
+                    "a x=", // property with no value
+                    "a \"unterminated",
+                    "1abc", // an identifier may not look like a number
+                })
         @DisplayName("malformed markup is refused with a position")
         void malformed(String markup) {
             var thrown = assertThrows(KdlSyntaxException.class, () -> KdlParser.parse(markup));
@@ -325,23 +331,34 @@ class KdlParserTest {
             assertEquals("Settings", window.stringProperty("title"));
             assertEquals(720, ((KdlValue.Num) window.property("width").orElseThrow()).asInt());
 
-            var menu = window.childrenNamed("menubar").getFirst().childrenNamed("menu").getFirst();
+            var menu = window.childrenNamed("menubar")
+                    .getFirst()
+                    .childrenNamed("menu")
+                    .getFirst();
             assertEquals("File", menu.argument().orElseThrow().asString());
             assertEquals(3, menu.children().size());
             assertEquals("separator", menu.children().get(1).name());
 
-            var sidebar = window.childrenNamed("row").getFirst().childrenNamed("column").getFirst();
+            var sidebar = window.childrenNamed("row")
+                    .getFirst()
+                    .childrenNamed("column")
+                    .getFirst();
             assertEquals("sidebar", sidebar.stringProperty("class"));
             var button = sidebar.childrenNamed("button").getFirst();
             assertEquals("Apply", button.argument().orElseThrow().asString());
             assertEquals("apply", button.stringProperty("id"));
 
             // A hyphenated node name has to survive the bare-identifier rules.
-            var input = window.childrenNamed("row").getFirst()
-                    .childrenNamed("scroll").getFirst()
-                    .childrenNamed("form").getFirst()
-                    .childrenNamed("field").getFirst()
-                    .childrenNamed("text-input").getFirst();
+            var input = window.childrenNamed("row")
+                    .getFirst()
+                    .childrenNamed("scroll")
+                    .getFirst()
+                    .childrenNamed("form")
+                    .getFirst()
+                    .childrenNamed("field")
+                    .getFirst()
+                    .childrenNamed("text-input")
+                    .getFirst();
             assertEquals("name", input.stringProperty("id"));
         }
     }

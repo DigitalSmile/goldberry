@@ -1,10 +1,11 @@
 package io.github.digitalsmile.goldberry.text.font;
 
+import java.util.Objects;
+
 import io.github.digitalsmile.goldberry.assets.BundledAssets;
 import io.github.digitalsmile.goldberry.assets.BundledFont;
 import io.github.digitalsmile.goldberry.natives.blend2d.BlendFontFace;
 import io.github.digitalsmile.goldberry.natives.harfbuzz.ShapedFont;
-import java.util.Objects;
 
 /// One typeface — everything about a font except the size.
 ///

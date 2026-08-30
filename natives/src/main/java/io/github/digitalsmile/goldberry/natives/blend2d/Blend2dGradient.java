@@ -1,12 +1,13 @@
 package io.github.digitalsmile.goldberry.natives.blend2d;
 
+import java.lang.foreign.MemorySegment;
+import java.lang.foreign.SymbolLookup;
+
 import io.github.digitalsmile.goldberry.natives.NativeLibrary;
 import io.github.digitalsmile.goldberry.natives.blend2d.calls.GradientCalls;
 import io.github.digitalsmile.goldberry.natives.blend2d.enums.BlendExtendMode;
 import io.github.digitalsmile.goldberry.natives.blend2d.enums.BlendGradientType;
 import io.github.digitalsmile.goldberry.natives.blend2d.error.BlendException;
-import java.lang.foreign.MemorySegment;
-import java.lang.foreign.SymbolLookup;
 
 /// Blend2D's gradient calls, behind [BlendGradient] (ADR-0207).
 ///
@@ -41,11 +42,18 @@ final class Blend2dGradient {
     /// No stops and no transform: `NULL` for both, because
     /// [#gradientAddStop] is how stops arrive and nothing has wanted a gradient
     /// with a matrix of its own.
-    void gradientInitLinear(
-            MemorySegment gradient, MemorySegment values, BlendExtendMode extendMode) {
-        check("bl_gradient_init_as", calls.gradientInitAs().call(
-                gradient, BlendGradientType.LINEAR.nativeValue(), values,
-                extendMode.nativeValue(), MemorySegment.NULL, 0, MemorySegment.NULL));
+    void gradientInitLinear(MemorySegment gradient, MemorySegment values, BlendExtendMode extendMode) {
+        check(
+                "bl_gradient_init_as",
+                calls.gradientInitAs()
+                        .call(
+                                gradient,
+                                BlendGradientType.LINEAR.nativeValue(),
+                                values,
+                                extendMode.nativeValue(),
+                                MemorySegment.NULL,
+                                0,
+                                MemorySegment.NULL));
     }
 
     void gradientDestroy(MemorySegment gradient) {
@@ -59,8 +67,7 @@ final class Blend2dGradient {
     /// that did it first would get a fade that darkens toward the transparent
     /// end rather than one that thins out.
     void gradientAddStop(MemorySegment gradient, double offset, int argb) {
-        check("bl_gradient_add_stop_rgba32",
-                calls.gradientAddStopRgba32().call(gradient, offset, argb));
+        check("bl_gradient_add_stop_rgba32", calls.gradientAddStopRgba32().call(gradient, offset, argb));
     }
 
     /// A `BLResult` that is not `BL_SUCCESS` is the call reporting a problem, not

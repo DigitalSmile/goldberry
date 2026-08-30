@@ -1,5 +1,9 @@
 package io.github.digitalsmile.goldberry.widgets.controls.select;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
+
 import io.github.digitalsmile.goldberry.Host;
 import io.github.digitalsmile.goldberry.Placement;
 import io.github.digitalsmile.goldberry.Popup;
@@ -9,9 +13,6 @@ import io.github.digitalsmile.goldberry.widget.State;
 import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widgets.controls.option.Option;
 import io.github.digitalsmile.goldberry.widgets.core.scroll.Fitted;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Locale;
 
 /// Whether a [Select]'s list is open, where the field is, and what typing means.
 ///
@@ -69,9 +70,18 @@ final class SelectState extends State<Select> {
             list.content(panel());
         }
         return new SelectField(
-                select.label(), select.selected() == null, chips(select), editor(select),
-                isOpen(), select.disabled(), select.attributes(),
-                this::toggle, this::typeahead, this::restore, this::settle, this::located);
+                select.label(),
+                select.selected() == null,
+                chips(select),
+                editor(select),
+                isOpen(),
+                select.disabled(),
+                select.attributes(),
+                this::toggle,
+                this::typeahead,
+                this::restore,
+                this::settle,
+                this::located);
     }
 
     /// §3's "renders the selection as `badge` chips ... each with a remove
@@ -116,8 +126,7 @@ final class SelectState extends State<Select> {
             return null;
         }
         var shown = typedText != null ? typedText : committedLabel(select);
-        return new io.github.digitalsmile.goldberry.widgets.form.textinput.TextInput(
-                        shown, this::typed)
+        return new io.github.digitalsmile.goldberry.widgets.form.textinput.TextInput(shown, this::typed)
                 .placeholder(select.placeholder())
                 .disabled(select.disabled());
     }
@@ -173,7 +182,8 @@ final class SelectState extends State<Select> {
         }
         var typed = typedText;
         var matches = select.options().stream()
-                .anyMatch(option -> option.label().equals(typed) || option.value().equals(typed));
+                .anyMatch(
+                        option -> option.label().equals(typed) || option.value().equals(typed));
         if (matches || !select.free()) {
             // A match is already the committed value, or is about to be reported
             // by whatever chose it; either way the editor goes back to showing
@@ -226,8 +236,7 @@ final class SelectState extends State<Select> {
     /// (ADR-0140).
     private void open() {
         var select = widget();
-        if (host == null || select.disabled()
-                || (select.options().isEmpty() && !select.isTree())) {
+        if (host == null || select.disabled() || (select.options().isEmpty() && !select.isTree())) {
             return;
         }
         var chosen = chosenId(select);
@@ -247,16 +256,20 @@ final class SelectState extends State<Select> {
         // keyboard off it (ADR-0186). Every other select opens a menu, which is
         // what it is.
         var opened = select.autocomplete()
-                ? host.attachedPopup(panel(), field, Placement.BELOW,
-                        field.size().width(), VIEWPORT)
-                : host.popup(panel(), field, Placement.BELOW,
-                        field.size().width(), VIEWPORT);
+                ? host.attachedPopup(
+                        panel(), field, Placement.BELOW, field.size().width(), VIEWPORT)
+                : host.popup(panel(), field, Placement.BELOW, field.size().width(), VIEWPORT);
         // The anchor this was placed against, so a report of "it opened in the
         // wrong place" can be settled from a log rather than from guesses. The
         // rectangle is what the last frame *painted* the field as, which is the
         // only thing a popup can be anchored to (ADR-0119).
-        LOG.debug("select list anchored to {} (field {}x{} at {},{})", field,
-                field.size().width(), field.size().height(), field.left(), field.top());
+        LOG.debug(
+                "select list anchored to {} (field {}x{} at {},{})",
+                field,
+                field.size().width(),
+                field.size().height(),
+                field.left(),
+                field.top());
         if (opened.isEmpty()) {
             // No popup windows on this driver. The list stays closed rather than
             // falling back to an in-window overlay, because the overlay would be
@@ -326,9 +339,8 @@ final class SelectState extends State<Select> {
         if (!select.isTree()) {
             return new SelectList(rows());
         }
-        return new SelectList(java.util.List.of(
-                new io.github.digitalsmile.goldberry.widgets.panel.tree.Tree(
-                        select.tree(), select.resolved(), this::chooseNode)));
+        return new SelectList(java.util.List.of(new io.github.digitalsmile.goldberry.widgets.panel.tree.Tree(
+                select.tree(), select.resolved(), this::chooseNode)));
     }
 
     /// A node was chosen from the tree — the same road an option takes.
@@ -362,8 +374,7 @@ final class SelectState extends State<Select> {
                 var isSelected = select.multiple()
                         ? all.contains(option.value())
                         : option.value().equals(current);
-                rows.add(option
-                        .within(isSelected, () -> choose(option.value()), select.disabled())
+                rows.add(option.within(isSelected, () -> choose(option.value()), select.disabled())
                         .inAList()
                         .id("select-option-" + index++));
             } else {
@@ -427,8 +438,7 @@ final class SelectState extends State<Select> {
         // and a `setState` there would schedule a build for an element that has
         // gone.
         if (isMounted()) {
-            setState(() -> {
-            });
+            setState(() -> {});
         }
     }
 
@@ -492,8 +502,7 @@ final class SelectState extends State<Select> {
         var wanted = prefix.toLowerCase(Locale.ROOT);
         for (var i = from; i < options.size(); i++) {
             var option = options.get(i);
-            if (!option.disabled()
-                    && option.label().toLowerCase(Locale.ROOT).startsWith(wanted)) {
+            if (!option.disabled() && option.label().toLowerCase(Locale.ROOT).startsWith(wanted)) {
                 return option;
             }
         }
@@ -524,11 +533,11 @@ final class SelectState extends State<Select> {
     /// built and driven outside a window. Typeahead still works there; it is
     /// simply not drivable, and there is nothing else to read.
     private long clock() {
-        return (long) (host == null
-                ? io.github.digitalsmile.goldberry.motion.Clock.system().nowMillis()
-                : host.clock().nowMillis());
+        return (long)
+                (host == null
+                        ? io.github.digitalsmile.goldberry.motion.Clock.system().nowMillis()
+                        : host.clock().nowMillis());
     }
 
-    private static final org.slf4j.Logger LOG =
-            org.slf4j.LoggerFactory.getLogger(SelectState.class);
+    private static final org.slf4j.Logger LOG = org.slf4j.LoggerFactory.getLogger(SelectState.class);
 }

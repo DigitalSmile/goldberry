@@ -1,41 +1,42 @@
 package io.github.digitalsmile.goldberry.widgets.controls.radio;
 
-import io.github.digitalsmile.goldberry.widgets.controls.select.Select;
-import io.github.digitalsmile.goldberry.widgets.controls.option.Option;
-import io.github.digitalsmile.goldberry.widget.attr.Attributes;
-import io.github.digitalsmile.goldberry.widgets.core.Column;
-
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.List;
+import java.util.Set;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+
 import io.github.digitalsmile.goldberry.RendererRequirement;
 import io.github.digitalsmile.goldberry.bind.Property;
-import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
-import io.github.digitalsmile.goldberry.css.select.Selector;
 import io.github.digitalsmile.goldberry.css.Stylesheet;
 import io.github.digitalsmile.goldberry.css.Theme;
+import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
+import io.github.digitalsmile.goldberry.css.select.Selector;
 import io.github.digitalsmile.goldberry.css.value.Transform;
 import io.github.digitalsmile.goldberry.golden.GoldenImage;
-import io.github.digitalsmile.goldberry.paint.BoxPainter;
 import io.github.digitalsmile.goldberry.motion.Clock;
+import io.github.digitalsmile.goldberry.paint.BoxPainter;
 import io.github.digitalsmile.goldberry.widget.Element;
 import io.github.digitalsmile.goldberry.widget.ElementTree;
 import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widget.WidgetRenderer;
+import io.github.digitalsmile.goldberry.widget.attr.Attributes;
 import io.github.digitalsmile.goldberry.widgets.Controls;
 import io.github.digitalsmile.goldberry.widgets.controls.TestFont;
 import io.github.digitalsmile.goldberry.widgets.controls.checkbox.Checkbox;
 import io.github.digitalsmile.goldberry.widgets.controls.knob.Knob;
+import io.github.digitalsmile.goldberry.widgets.controls.option.Option;
 import io.github.digitalsmile.goldberry.widgets.controls.progressbar.Progress;
+import io.github.digitalsmile.goldberry.widgets.controls.select.Select;
 import io.github.digitalsmile.goldberry.widgets.controls.slider.Slider;
 import io.github.digitalsmile.goldberry.widgets.controls.spinner.Spinner;
 import io.github.digitalsmile.goldberry.widgets.controls.toggle.Toggle;
-import java.util.List;
-import java.util.Set;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
+import io.github.digitalsmile.goldberry.widgets.core.Column;
 
 /// What a radio group actually looks like (§14, [ADR-0050]).
 ///
@@ -78,33 +79,32 @@ class RadioGoldenTest {
     /// have to be: a control no longer shrinks to fit (ADR-0076), so a frame 4px
     /// too short now clips the last option instead of quietly squashing all
     /// three. Three options are 3x32 + 2x8 of gap + 2x12 of padding = 136.
-    private void paint(
-            String name, Theme theme, int width, int height, Widget group, PseudoState... states) {
+    private void paint(String name, Theme theme, int width, int height, Widget group, PseudoState... states) {
 
         var tree = new ElementTree(group);
         for (var state : states) {
             state.applyTo(tree.root());
         }
         var renderer = new WidgetRenderer(
-                List.of(
-                        Controls.baseStylesheet(),
-                        theme.load(),
-                        Stylesheet.parse(CascadeLayer.APPLICATION, """
+                List.of(Controls.baseStylesheet(), theme.load(), Stylesheet.parse(CascadeLayer.APPLICATION, """
                                 #group { padding: 12px; background: var(--gb-bg) }
                                 """)),
                 TestFont.get());
 
-        GoldenImage.assertMatches(name, width, height, 1.0f,
-                frame -> BoxPainter.paint(frame, renderer.render(tree)));
+        GoldenImage.assertMatches(name, width, height, 1.0f, frame -> BoxPainter.paint(frame, renderer.render(tree)));
     }
 
     private static RadioGroup group(String selected, String... classes) {
-        return new RadioGroup(selected,
+        return new RadioGroup(
+                selected,
                 List.of(
                         new Radio("light", "Light"),
                         new Radio("dark", "Dark"),
                         new Radio("system", "Follow the system")),
-                null, null, false, id("group", classes));
+                null,
+                null,
+                false,
+                id("group", classes));
     }
 
     @Test
@@ -139,13 +139,21 @@ class RadioGoldenTest {
         // The ring is around the *option*, not the group: focus lands on the
         // thing the user is about to pick, so a group of six does not draw a
         // rectangle around all of them.
-        paint("radio-group-interaction", Theme.NORD_DARK, 300, 140,
-                new RadioGroup("dark",
+        paint(
+                "radio-group-interaction",
+                Theme.NORD_DARK,
+                300,
+                140,
+                new RadioGroup(
+                        "dark",
                         List.of(
                                 new Radio("light", "Hover"),
                                 new Radio("dark", "Focus"),
                                 new Radio("system", "Unavailable").disabled(true)),
-                        null, null, false, id("group")),
+                        null,
+                        null,
+                        false,
+                        id("group")),
                 new PseudoState(0, 0, Selector.PseudoClass.HOVER),
                 PseudoState.on(1, Selector.PseudoClass.FOCUS_VISIBLE));
     }
@@ -167,24 +175,27 @@ class RadioGoldenTest {
         // sizes here, which is what the naive fix looks like when it is wrong.
         var clock = Clock.virtual();
         var renderer = new WidgetRenderer(
-                List.of(
-                        Controls.baseStylesheet(),
-                        Theme.NORD_DARK.load(),
-                        Stylesheet.parse(CascadeLayer.APPLICATION, """
+                        List.of(
+                                Controls.baseStylesheet(),
+                                Theme.NORD_DARK.load(),
+                                Stylesheet.parse(CascadeLayer.APPLICATION, """
                                 #group { padding: 12px; background: var(--gb-bg) }
                                 """)),
-                TestFont.get()).clock(clock);
+                        TestFont.get())
+                .clock(clock);
 
         // Driven through the binding rather than by poking `:checked`, because
         // the renderer mirrors `isChecked()` off the widget on every frame and
         // would overwrite a pseudo-class set by hand. This is also the real path:
         // the application sets the property and the tick follows (ADR-0063).
         var selection = Property.of((String) null);
-        var tree = new ElementTree(new RadioGroup(null,
-                List.of(new Radio("a", "Untouched"),
-                        new Radio("b", "Arriving"),
-                        new Radio("c", "Leaving")),
-                selection, null, false, id("group")));
+        var tree = new ElementTree(new RadioGroup(
+                null,
+                List.of(new Radio("a", "Untouched"), new Radio("b", "Arriving"), new Radio("c", "Leaving")),
+                selection,
+                null,
+                false,
+                id("group")));
 
         // Frame one establishes the resting style; nothing transitions on it.
         renderer.render(tree);
@@ -207,25 +218,30 @@ class RadioGoldenTest {
         // between the two scales, and the ring it sits in is not scaled at all.
         var arriving = midway.children().get(1).children().getFirst();
         var dot = arriving.children().getFirst();
-        assertEquals(Transform.NONE, arriving.transform(),
+        assertEquals(
+                Transform.NONE,
+                arriving.transform(),
                 "the 16px ring does not move -- which is the whole reason the dot"
                         + " is a node rather than a mark on this box");
         assertNotEquals(Transform.NONE, dot.transform(), "and the dot does");
         assertNotEquals(settledDotTransform(), dot.transform(), "caught before it arrived");
 
-        GoldenImage.assertMatches("radio-group-scaling", 300, 140, 1.0f,
-                frame -> BoxPainter.paint(frame, midway));
+        GoldenImage.assertMatches("radio-group-scaling", 300, 140, 1.0f, frame -> BoxPainter.paint(frame, midway));
     }
 
     /// The `transform` a settled, selected dot resolves to — `scale(1)` — for the
     /// midway frame to be compared against, so the comparison is against what the
     /// stylesheet says rather than against a number written twice.
     private static Transform settledDotTransform() {
-        var painted = new WidgetRenderer(
-                List.of(Controls.baseStylesheet(), Theme.NORD_DARK.load()), TestFont.get())
+        var painted = new WidgetRenderer(List.of(Controls.baseStylesheet(), Theme.NORD_DARK.load()), TestFont.get())
                 .render(new ElementTree(new RadioGroup("a", new Radio("a", "A"))));
         // group > radio > radio-indicator > radio-dot
-        return painted.children().getFirst().children().getFirst().children().getFirst()
+        return painted.children()
+                .getFirst()
+                .children()
+                .getFirst()
+                .children()
+                .getFirst()
                 .transform();
     }
 
@@ -252,17 +268,19 @@ class RadioGoldenTest {
         // combination that breaks was never drawn.
         var content = new Column(
                 List.of(
-                        new Checkbox("Checked and hovered", Checkbox.Value.CHECKED,
-                                null, null, false, id("box")),
-                        new RadioGroup("on",
+                        new Checkbox("Checked and hovered", Checkbox.Value.CHECKED, null, null, false, id("box")),
+                        new RadioGroup(
+                                "on",
                                 List.of(new Radio("on", "Selected and hovered")),
-                                null, null, false, id("group"))),
+                                null,
+                                null,
+                                false,
+                                id("group"))),
                 id("panel"));
 
         var tree = new ElementTree(content);
         tree.root().children().getFirst().setPseudoClass(Selector.PseudoClass.HOVER, true);
-        tree.root().children().get(1).children().getFirst()
-                .setPseudoClass(Selector.PseudoClass.HOVER, true);
+        tree.root().children().get(1).children().getFirst().setPseudoClass(Selector.PseudoClass.HOVER, true);
 
         var renderer = new WidgetRenderer(
                 List.of(
@@ -274,8 +292,8 @@ class RadioGoldenTest {
                                 """)),
                 TestFont.get());
 
-        GoldenImage.assertMatches("controls-checked-hover", 300, 100, 1.0f,
-                frame -> BoxPainter.paint(frame, renderer.render(tree)));
+        GoldenImage.assertMatches(
+                "controls-checked-hover", 300, 100, 1.0f, frame -> BoxPainter.paint(frame, renderer.render(tree)));
     }
 
     @Test
@@ -292,15 +310,15 @@ class RadioGoldenTest {
             var name = theme == Theme.NORD_DARK ? "controls-on-surface-dark" : "controls-on-surface-light";
             var tree = new ElementTree(content);
             var renderer = new WidgetRenderer(
-                    List.of(
-                            Controls.baseStylesheet(),
-                            theme.load(),
-                            Stylesheet.parse(CascadeLayer.APPLICATION, """
+                            List.of(
+                                    Controls.baseStylesheet(),
+                                    theme.load(),
+                                    Stylesheet.parse(CascadeLayer.APPLICATION, """
                                     #panel { flex-direction: column; padding: 12px; gap: 8px;
                                              background: var(--gb-surface) }
                                     #group { gap: 8px }
                                     """)),
-                    TestFont.get())
+                            TestFont.get())
                     // **A virtual clock, and this scene needs one now.** Every
                     // golden here was deterministic under the system clock while
                     // nothing in it moved on its own; a `spinner` draws itself
@@ -314,8 +332,7 @@ class RadioGoldenTest {
             // frame that fitted only because the last two controls were falling
             // off the bottom is the same defect ADR-0076 found in six scenes at
             // once: an image is not evidence of a control it clipped away.
-            GoldenImage.assertMatches(name, 300, 370, 1.0f,
-                    frame -> BoxPainter.paint(frame, renderer.render(tree)));
+            GoldenImage.assertMatches(name, 300, 370, 1.0f, frame -> BoxPainter.paint(frame, renderer.render(tree)));
         }
     }
 
@@ -338,10 +355,13 @@ class RadioGoldenTest {
                         // surface in the catalog thin enough to vanish without
                         // anything else looking wrong.
                         new Slider(0, 100, 40, 0, null, null, false, id("gain")),
-                        new RadioGroup("dark",
-                                List.of(new Radio("light", "Unselected"),
-                                        new Radio("dark", "Selected")),
-                                null, null, false, id("group")),
+                        new RadioGroup(
+                                "dark",
+                                List.of(new Radio("light", "Unselected"), new Radio("dark", "Selected")),
+                                null,
+                                null,
+                                false,
+                                id("group")),
                         // A progress bar's track is the same 4px groove the
                         // slider's is, and takes the same token -- so it is the
                         // same defect waiting, and this is where it is caught.
@@ -365,10 +385,19 @@ class RadioGoldenTest {
                         // and a fill one step off whatever is behind it, so the
                         // one thing this scene has to prove about it is that the
                         // step is visible in both themes (ADR-0141).
-                        new Select("dark",
-                                List.of(new Option("light", "Light"),
-                                        new Option("dark", "Dark")),
-                                null, null, "", false, false, false, null, List.of(), false, id("theme"))),
+                        new Select(
+                                "dark",
+                                List.of(new Option("light", "Light"), new Option("dark", "Dark")),
+                                null,
+                                null,
+                                "",
+                                false,
+                                false,
+                                false,
+                                null,
+                                List.of(),
+                                false,
+                                id("theme"))),
                 id("panel"));
     }
 
@@ -408,7 +437,8 @@ class RadioGoldenTest {
             if (exempt.contains(type)) {
                 continue;
             }
-            org.junit.jupiter.api.Assertions.assertTrue(inScene.contains(type),
+            org.junit.jupiter.api.Assertions.assertTrue(
+                    inScene.contains(type),
                     type + " is not in controls-on-surface-*, so CI has never drawn it on"
                             + " --gb-surface. Add it to surfaceScene() or exempt it with a reason.");
         }

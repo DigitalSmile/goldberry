@@ -1,8 +1,5 @@
 package io.github.digitalsmile.goldberry.natives.sdl;
 
-import io.github.digitalsmile.goldberry.natives.sdl.calls.SdlEventWatchCalls;
-import io.github.digitalsmile.goldberry.natives.NativeLibrary;
-import io.github.digitalsmile.goldberry.log.Logs;
 import java.lang.foreign.Arena;
 import java.lang.foreign.FunctionDescriptor;
 import java.lang.foreign.Linker;
@@ -13,7 +10,12 @@ import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
 import java.util.Objects;
+
 import org.slf4j.Logger;
+
+import io.github.digitalsmile.goldberry.log.Logs;
+import io.github.digitalsmile.goldberry.natives.NativeLibrary;
+import io.github.digitalsmile.goldberry.natives.sdl.calls.SdlEventWatchCalls;
 
 /// A callback SDL runs as each event arrives, before it is queued.
 ///
@@ -58,8 +60,8 @@ public final class SdlEventWatch implements AutoCloseable {
     ///
     /// The return value is ignored for a watch — it is the *filter* API that uses
     /// it to drop events — so this always returns true.
-    private static final FunctionDescriptor DESCRIPTOR = FunctionDescriptor.of(
-            ValueLayout.JAVA_BOOLEAN, ValueLayout.ADDRESS, ValueLayout.ADDRESS);
+    private static final FunctionDescriptor DESCRIPTOR =
+            FunctionDescriptor.of(ValueLayout.JAVA_BOOLEAN, ValueLayout.ADDRESS, ValueLayout.ADDRESS);
 
     private static final MethodHandle INVOKE = invokeHandle();
 
@@ -86,8 +88,7 @@ public final class SdlEventWatch implements AutoCloseable {
     ///         watch symbols — an older artifact, which the backend treats as
     ///         "no live resize" rather than as a failure to open a window
     public static SdlEventWatch install(Handler handler) {
-        return new SdlEventWatch(
-                NativeLibrary.get().lookup(), Objects.requireNonNull(handler, "handler"));
+        return new SdlEventWatch(NativeLibrary.get().lookup(), Objects.requireNonNull(handler, "handler"));
     }
 
     SdlEventWatch(SymbolLookup lookup, Handler handler) {
@@ -154,10 +155,11 @@ public final class SdlEventWatch implements AutoCloseable {
 
     private static MethodHandle invokeHandle() {
         try {
-            return MethodHandles.lookup().findVirtual(
-                    SdlEventWatch.class,
-                    "invoke",
-                    MethodType.methodType(boolean.class, MemorySegment.class, MemorySegment.class));
+            return MethodHandles.lookup()
+                    .findVirtual(
+                            SdlEventWatch.class,
+                            "invoke",
+                            MethodType.methodType(boolean.class, MemorySegment.class, MemorySegment.class));
         } catch (ReflectiveOperationException e) {
             throw new ExceptionInInitializerError(e);
         }

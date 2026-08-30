@@ -1,8 +1,9 @@
 package io.github.digitalsmile.goldberry.widgets.data;
 
-import io.github.digitalsmile.goldberry.bind.Subscription;
 import java.util.ArrayList;
 import java.util.List;
+
+import io.github.digitalsmile.goldberry.bind.Subscription;
 
 /// One crosshair across several charts — `charts.md` §3.1's "shared crosshair
 /// across charts, linked by a shared `CrosshairGroup`; cheap because it is one
@@ -50,8 +51,7 @@ public final class CrosshairGroup {
 
     /// A group with nothing in it yet — an application makes one and hands it to
     /// every chart that should share a crosshair.
-    public CrosshairGroup() {
-    }
+    public CrosshairGroup() {}
 
     /// The point every chart in this group is showing, or -1 for none.
     public int hovered() {

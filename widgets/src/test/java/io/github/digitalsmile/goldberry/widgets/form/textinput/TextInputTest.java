@@ -6,15 +6,22 @@ import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.ArrayList;
+import java.util.List;
+
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
+
 import io.github.digitalsmile.goldberry.bind.Property;
 import io.github.digitalsmile.goldberry.css.Theme;
-import io.github.digitalsmile.goldberry.input.hit.Extent;
-import io.github.digitalsmile.goldberry.input.key.Key;
 import io.github.digitalsmile.goldberry.input.event.KeyEvent;
-import io.github.digitalsmile.goldberry.input.key.Mod;
-import io.github.digitalsmile.goldberry.input.key.Modifiers;
 import io.github.digitalsmile.goldberry.input.event.PointerEvent;
 import io.github.digitalsmile.goldberry.input.event.TextEvent;
+import io.github.digitalsmile.goldberry.input.hit.Extent;
+import io.github.digitalsmile.goldberry.input.key.Key;
+import io.github.digitalsmile.goldberry.input.key.Mod;
+import io.github.digitalsmile.goldberry.input.key.Modifiers;
 import io.github.digitalsmile.goldberry.kdl.KdlParser;
 import io.github.digitalsmile.goldberry.paint.Box;
 import io.github.digitalsmile.goldberry.widget.ElementTree;
@@ -23,11 +30,6 @@ import io.github.digitalsmile.goldberry.widgets.Controls;
 import io.github.digitalsmile.goldberry.widgets.TestHost;
 import io.github.digitalsmile.goldberry.widgets.Widgets;
 import io.github.digitalsmile.goldberry.widgets.controls.TestFont;
-import java.util.ArrayList;
-import java.util.List;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.Test;
 
 /// §4's first field, driven the way a user drives it.
 ///
@@ -55,8 +57,7 @@ class TextInputTest {
     /// would keep reading the node built before the keystroke.
     private void render(ElementTree tree) {
         tree.flush();
-        new WidgetRenderer(List.of(Controls.baseStylesheet(), Theme.NORD_DARK.load()),
-                TestFont.get()).render(tree);
+        new WidgetRenderer(List.of(Controls.baseStylesheet(), Theme.NORD_DARK.load()), TestFont.get()).render(tree);
     }
 
     /// The `text-input` node the widget describes — what a stylesheet and the
@@ -80,8 +81,16 @@ class TextInputTest {
     }
 
     private void press(ElementTree tree, float x, int clickCount, Modifiers modifiers) {
-        var event = new PointerEvent(PointerEvent.Kind.PRESSED, x, 0,
-                PointerEvent.Button.PRIMARY, clickCount, Float.NaN, Float.NaN, modifiers, null);
+        var event = new PointerEvent(
+                PointerEvent.Kind.PRESSED,
+                x,
+                0,
+                PointerEvent.Button.PRIMARY,
+                clickCount,
+                Float.NaN,
+                Float.NaN,
+                modifiers,
+                null);
         // The router does this from the painted frame; a test driving the node
         // directly has to say where in the field the press landed.
         event.localTo(new PointerEvent.Local(x, 0, 200, 32));
@@ -191,8 +200,8 @@ class TextInputTest {
             assertEquals(8, field(tree).edit().caret());
 
             key(tree, Key.LEFT, Modifiers.of(Mod.SHIFT));
-            assertEquals("r", field(tree).edit().selectedText(),
-                    "one Shift+Left from between 'r' and 'y' selects the 'r'");
+            assertEquals(
+                    "r", field(tree).edit().selectedText(), "one Shift+Left from between 'r' and 'y' selects the 'r'");
             assertEquals(8, field(tree).edit().anchor(), "and the anchor stayed put");
         }
 
@@ -512,8 +521,8 @@ class TextInputTest {
         void masksByCodePoint() {
             var tree = mounted(new TextInput("a🎨b", null).password(true));
 
-            assertEquals("•••", field(tree).display(),
-                    "four chars, three characters — a pair must not draw two bullets");
+            assertEquals(
+                    "•••", field(tree).display(), "four chars, three characters — a pair must not draw two bullets");
         }
 
         @Test
@@ -552,8 +561,7 @@ class TextInputTest {
 
             focus(tree, true, true);
 
-            assertFalse(host.isTextInputActive(),
-                    "or a tablet would raise a keyboard over a field that refuses it");
+            assertFalse(host.isTextInputActive(), "or a tablet would raise a keyboard over a field that refuses it");
         }
 
         @Test
@@ -565,8 +573,7 @@ class TextInputTest {
 
             var byPointer = mounted(new TextInput("Goldberry", null));
             focus(byPointer, true, false);
-            assertFalse(field(byPointer).edit().hasSelection(),
-                    "the click has already said where the caret goes");
+            assertFalse(field(byPointer).edit().hasSelection(), "the click has already said where the caret goes");
         }
 
         @Test
@@ -631,7 +638,8 @@ class TextInputTest {
     class Markup {
 
         private TextInput inflate(String markup) {
-            return (TextInput) Widgets.inflater().inflateAll(KdlParser.parse(markup)).getFirst();
+            return (TextInput)
+                    Widgets.inflater().inflateAll(KdlParser.parse(markup)).getFirst();
         }
 
         @Test
@@ -661,19 +669,23 @@ class TextInputTest {
         @Test
         @DisplayName("a named filter is looked up, and an unknown one accepts everything")
         void filters() {
-            assertSame(TextFilter.DIGITS, inflate("text-input filter=\"digits\"").filter());
+            assertSame(
+                    TextFilter.DIGITS, inflate("text-input filter=\"digits\"").filter());
 
             // Logged rather than thrown: a typo already visible in the markup,
             // and a field that refused every keystroke is a worse way to learn
             // about it.
-            assertSame(TextFilter.NONE, inflate("text-input filter=\"nonsense\"").filter());
+            assertSame(
+                    TextFilter.NONE, inflate("text-input filter=\"nonsense\"").filter());
         }
 
         @Test
         @DisplayName("no maximum length written is no limit")
         void unlimitedByDefault() {
             assertEquals(TextInput.UNLIMITED, inflate("text-input").maxLength());
-            assertEquals(TextInput.UNLIMITED, inflate("text-input max-length=0").maxLength(),
+            assertEquals(
+                    TextInput.UNLIMITED,
+                    inflate("text-input max-length=0").maxLength(),
                     "a field that can hold nothing is not what anybody wrote on purpose");
         }
     }
@@ -692,7 +704,10 @@ class TextInputTest {
             // The class is how the stylesheet tells the two apart: §3 wants
             // `--gb-text-muted` here and `--gb-text` for a real value, and §8's
             // subset has no pseudo-class that means "standing in for content".
-            assertTrue(((io.github.digitalsmile.goldberry.widgets.form.parts.Value) field(tree).children().get(1)).classes().contains("placeholder"));
+            assertTrue(((io.github.digitalsmile.goldberry.widgets.form.parts.Value)
+                            field(tree).children().get(1))
+                    .classes()
+                    .contains("placeholder"));
         }
 
         @Test
@@ -742,7 +757,8 @@ class TextInputTest {
             // the content had not moved under the caret.
             press(tree, 55, 1, Modifiers.NONE);
 
-            assertTrue(field(tree).edit().caret() > 20,
+            assertTrue(
+                    field(tree).edit().caret() > 20,
                     "the field did not scroll: a press at its right edge landed at "
                             + field(tree).edit().caret());
         }
@@ -786,8 +802,7 @@ class TextInputTest {
         /// is not a button event.
         private void dragTo(ElementTree tree, float from, float to) {
             press(tree, from, 1, Modifiers.NONE);
-            var moved = new PointerEvent(PointerEvent.Kind.MOVED, to, 0,
-                    null, 0, from, 0, Modifiers.NONE, null);
+            var moved = new PointerEvent(PointerEvent.Kind.MOVED, to, 0, null, 0, from, 0, Modifiers.NONE, null);
             moved.localTo(new PointerEvent.Local(to, 0, 200, 32));
             field(tree).onPointer(moved);
             render(tree);
@@ -800,8 +815,7 @@ class TextInputTest {
 
             dragTo(tree, 8, 400);
 
-            assertTrue(field(tree).edit().hasSelection(),
-                    "a drag selected nothing: the field never saw the motion");
+            assertTrue(field(tree).edit().hasSelection(), "a drag selected nothing: the field never saw the motion");
             assertEquals("Goldberry", field(tree).edit().selectedText());
         }
 
@@ -827,8 +841,8 @@ class TextInputTest {
             // `dragX()` is NaN when no button is down, which is the router
             // reporting "no gesture" through the arithmetic (ADR-0075). A field
             // that read the position anyway would move the caret on hover.
-            var hover = new PointerEvent(PointerEvent.Kind.MOVED, 400, 0,
-                    null, 0, Float.NaN, Float.NaN, Modifiers.NONE, null);
+            var hover = new PointerEvent(
+                    PointerEvent.Kind.MOVED, 400, 0, null, 0, Float.NaN, Float.NaN, Modifiers.NONE, null);
             hover.localTo(new PointerEvent.Local(400, 0, 200, 32));
             field(tree).onPointer(hover);
             render(tree);
@@ -853,7 +867,8 @@ class TextInputTest {
             var element = tree.root().children().getFirst();
             var style = io.github.digitalsmile.goldberry.css.ComputedStyle.of(
                     new io.github.digitalsmile.goldberry.css.cascade.StyleResolver(
-                            Controls.stylesheets(Theme.NORD_DARK)).resolve(element),
+                                    Controls.stylesheets(Theme.NORD_DARK))
+                            .resolve(element),
                     io.github.digitalsmile.goldberry.css.value.CssLength.Context.DEFAULT);
             var field = field(tree);
             var children = field.children().stream()
@@ -865,7 +880,8 @@ class TextInputTest {
 
         private static float points(io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength length) {
             return length instanceof io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength.Points p
-                    ? p.value() : Float.NaN;
+                    ? p.value()
+                    : Float.NaN;
         }
 
         @Test
@@ -881,8 +897,7 @@ class TextInputTest {
             // control would be nearly twice the height of the text it sits in,
             // which reads as a terminal cursor rather than an insertion point.
             assertEquals(TestFont.one().lineHeight(), points(caret.height()), 0.01);
-            assertTrue(points(caret.height()) < 24,
-                    "the caret is as tall as the whole field");
+            assertTrue(points(caret.height()) < 24, "the caret is as tall as the whole field");
         }
 
         @Test
@@ -928,17 +943,20 @@ class TextInputTest {
             // The stateful widget styles nothing, or every rule would apply
             // twice -- `scroll`'s and `tabs`' arrangement.
             assertEquals("text-input", field(tree).cssType());
-            assertNotEquals("text-input",
+            assertNotEquals(
+                    "text-input",
                     root.widget() instanceof io.github.digitalsmile.goldberry.widget.style.Styled styled
-                            ? styled.cssType() : "");
+                            ? styled.cssType()
+                            : "");
         }
 
         @Test
         @DisplayName("carries the document's id and classes")
         void carriesAttributes() {
-            var input = new TextInput().withAttributes(
-                    io.github.digitalsmile.goldberry.widget.attr.Attributes.of(
-                            KdlParser.parse("text-input id=\"name\" class=\"wide\"").getFirst()));
+            var input = new TextInput()
+                    .withAttributes(io.github.digitalsmile.goldberry.widget.attr.Attributes.of(
+                            KdlParser.parse("text-input id=\"name\" class=\"wide\"")
+                                    .getFirst()));
             var tree = mounted(input);
 
             assertEquals("name", field(tree).id());
@@ -976,9 +994,11 @@ class TextInputTest {
         private ElementTree offering(TextInput input) {
             var tree = mounted(input);
             focus(tree, true, false);
-            TextInputTest.this.field(tree).located(
-                    io.github.digitalsmile.goldberry.render.model.LogicalRect.of(10, 20, 200, 32),
-                    io.github.digitalsmile.goldberry.render.model.LogicalRect.of(0, 0, 800, 600));
+            TextInputTest.this
+                    .field(tree)
+                    .located(
+                            io.github.digitalsmile.goldberry.render.model.LogicalRect.of(10, 20, 200, 32),
+                            io.github.digitalsmile.goldberry.render.model.LogicalRect.of(0, 0, 800, 600));
             render(tree);
             return tree;
         }
@@ -1008,8 +1028,8 @@ class TextInputTest {
             type(tree, "L");
             type(tree, "o");
 
-            assertEquals(List.of("L", "Lo"), reported,
-                    "the field did not raise what was typed, keystroke by keystroke");
+            assertEquals(
+                    List.of("L", "Lo"), reported, "the field did not raise what was typed, keystroke by keystroke");
         }
 
         /// A list under a field nobody is typing in is a panel floating over the
@@ -1018,9 +1038,11 @@ class TextInputTest {
         @DisplayName("nothing is offered until the field has the keyboard")
         void onlyWhileFocused() {
             var unfocused = mounted(field("", "London", "Lisbon"));
-            TextInputTest.this.field(unfocused).located(
-                    io.github.digitalsmile.goldberry.render.model.LogicalRect.of(10, 20, 200, 32),
-                    io.github.digitalsmile.goldberry.render.model.LogicalRect.of(0, 0, 800, 600));
+            TextInputTest.this
+                    .field(unfocused)
+                    .located(
+                            io.github.digitalsmile.goldberry.render.model.LogicalRect.of(10, 20, 200, 32),
+                            io.github.digitalsmile.goldberry.render.model.LogicalRect.of(0, 0, 800, 600));
             render(unfocused);
 
             assertTrue(host.opened.isEmpty(), "a panel opened over an unfocused field");
@@ -1037,7 +1059,8 @@ class TextInputTest {
 
             var list = offered();
             assertEquals(2, list.children().size());
-            assertEquals(List.of("London", "Lisbon"),
+            assertEquals(
+                    List.of("London", "Lisbon"),
                     list.children().stream()
                             .map(io.github.digitalsmile.goldberry.widgets.controls.option.Option.class::cast)
                             .map(io.github.digitalsmile.goldberry.widgets.controls.option.Option::value)
@@ -1057,8 +1080,7 @@ class TextInputTest {
             row.onSelect().run();
 
             assertEquals(List.of("London"), reported);
-            assertEquals("Lo", text(tree),
-                    "the field rewrote itself, which is the one thing §4 forbids");
+            assertEquals("Lo", text(tree), "the field rewrote itself, which is the one thing §4 forbids");
         }
 
         /// Arrows move the focus and `Enter` commits — `Option.inAList()` — so a
@@ -1073,8 +1095,7 @@ class TextInputTest {
             var row = (io.github.digitalsmile.goldberry.widgets.controls.option.Option)
                     offered().children().getFirst();
 
-            assertFalse(row.roving(),
-                    "the suggestions would rewrite the field as the keyboard passed over them");
+            assertFalse(row.roving(), "the suggestions would rewrite the field as the keyboard passed over them");
         }
 
         @Test
@@ -1090,5 +1111,4 @@ class TextInputTest {
             return (TextInput) tree.root().widget();
         }
     }
-
 }

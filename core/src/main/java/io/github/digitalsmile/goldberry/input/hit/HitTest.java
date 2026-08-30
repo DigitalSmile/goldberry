@@ -1,17 +1,18 @@
 package io.github.digitalsmile.goldberry.input.hit;
 
-import io.github.digitalsmile.goldberry.paint.Frame;
-import io.github.digitalsmile.goldberry.render.Cursor;
-import io.github.digitalsmile.goldberry.render.model.LogicalRect;
-import io.github.digitalsmile.goldberry.css.value.Affine;
-import io.github.digitalsmile.goldberry.paint.Box;
-import io.github.digitalsmile.goldberry.paint.BoxPainter;
-import io.github.digitalsmile.goldberry.paint.Clip;
-import io.github.digitalsmile.goldberry.paint.tree.RenderTree;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+
+import io.github.digitalsmile.goldberry.css.value.Affine;
+import io.github.digitalsmile.goldberry.paint.Box;
+import io.github.digitalsmile.goldberry.paint.BoxPainter;
+import io.github.digitalsmile.goldberry.paint.Clip;
+import io.github.digitalsmile.goldberry.paint.Frame;
+import io.github.digitalsmile.goldberry.paint.tree.RenderTree;
+import io.github.digitalsmile.goldberry.render.Cursor;
+import io.github.digitalsmile.goldberry.render.model.LogicalRect;
 
 /// Which node is under a point.
 ///
@@ -23,8 +24,7 @@ import java.util.Optional;
 /// ahead of the thing it is dragging.
 public final class HitTest {
 
-    private HitTest() {
-    }
+    private HitTest() {}
 
     /// One node's rectangle on screen, in logical coordinates.
     ///
@@ -60,8 +60,7 @@ public final class HitTest {
     /// @param clip    what an `overflow` above this box confines it to, in the
     ///                frame's coordinates, or [Clip#NONE] when nothing does
     public record Region(
-            Object owner, Cursor cursor, float left, float top, float width, float height,
-            Affine inverse, Clip clip) {
+            Object owner, Cursor cursor, float left, float top, float width, float height, Affine inverse, Clip clip) {
 
         public Region {
             Objects.requireNonNull(cursor, "cursor");
@@ -69,16 +68,12 @@ public final class HitTest {
         }
 
         /// A rectangle nothing clips.
-        public Region(
-                Object owner, Cursor cursor, float left, float top, float width, float height,
-                Affine inverse) {
+        public Region(Object owner, Cursor cursor, float left, float top, float width, float height, Affine inverse) {
             this(owner, cursor, left, top, width, height, inverse, Clip.NONE);
         }
 
         /// An untransformed rectangle.
-        public Region(
-                Object owner, Cursor cursor,
-                float left, float top, float width, float height) {
+        public Region(Object owner, Cursor cursor, float left, float top, float width, float height) {
             this(owner, cursor, left, top, width, height, null, Clip.NONE);
         }
 
@@ -118,12 +113,12 @@ public final class HitTest {
             return LogicalRect.of(
                     (float) (forward.a() * left + forward.c() * top + forward.e()),
                     (float) (forward.b() * left + forward.d() * top + forward.f()),
-                    (float) (forward.a() * width), (float) (forward.d() * height));
+                    (float) (forward.a() * width),
+                    (float) (forward.d() * height));
         }
 
         public LogicalRect bounds() {
-            return LogicalRect.of(
-                    left, top, width, height);
+            return LogicalRect.of(left, top, width, height);
         }
 
         public boolean contains(float x, float y) {
@@ -145,8 +140,7 @@ public final class HitTest {
             // still the axis-aligned rectangle Yoga produced.
             var localX = inverse.mapX(x, y);
             var localY = inverse.mapY(x, y);
-            return localX >= left && localX < left + width
-                    && localY >= top && localY < top + height;
+            return localX >= left && localX < left + width && localY >= top && localY < top + height;
         }
     }
 
@@ -192,9 +186,15 @@ public final class HitTest {
                 return;
             }
         }
-        regions.add(new Region(placed.box().owner(), placed.box().cursor(),
-                layout.left(), layout.top(), layout.width(), layout.height(),
-                inverse, placed.clip()));
+        regions.add(new Region(
+                placed.box().owner(),
+                placed.box().cursor(),
+                layout.left(),
+                layout.top(),
+                layout.width(),
+                layout.height(),
+                inverse,
+                placed.clip()));
     }
 
     /// The topmost node containing `(x, y)`, in logical coordinates.

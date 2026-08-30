@@ -1,26 +1,27 @@
 package io.github.digitalsmile.goldberry.widgets.form.textinput;
 
-import io.github.digitalsmile.goldberry.render.Cursor;
+import java.util.List;
+import java.util.Set;
+
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
-import io.github.digitalsmile.goldberry.input.hit.Extent;
-import io.github.digitalsmile.goldberry.input.handler.Handles;
 import io.github.digitalsmile.goldberry.input.event.KeyEvent;
-import io.github.digitalsmile.goldberry.input.handler.Measured;
 import io.github.digitalsmile.goldberry.input.event.PointerEvent;
 import io.github.digitalsmile.goldberry.input.event.TextEvent;
-import io.github.digitalsmile.goldberry.paint.Box;
+import io.github.digitalsmile.goldberry.input.handler.Handles;
+import io.github.digitalsmile.goldberry.input.handler.Measured;
+import io.github.digitalsmile.goldberry.input.hit.Extent;
 import io.github.digitalsmile.goldberry.natives.yoga.Insets;
 import io.github.digitalsmile.goldberry.natives.yoga.style.PositionType;
 import io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength;
+import io.github.digitalsmile.goldberry.paint.Box;
+import io.github.digitalsmile.goldberry.render.Cursor;
+import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widget.attr.Attributes;
 import io.github.digitalsmile.goldberry.widget.style.Paints;
 import io.github.digitalsmile.goldberry.widget.style.Styled;
-import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widgets.form.parts.Caret;
 import io.github.digitalsmile.goldberry.widgets.form.parts.Highlight;
 import io.github.digitalsmile.goldberry.widgets.form.parts.Value;
-import java.util.List;
-import java.util.Set;
 
 /// The node a stylesheet calls `text-input`, and everything that needs a frame.
 ///
@@ -65,10 +66,21 @@ import java.util.Set;
 /// @param attributes  the `id` and classes the document wrote
 /// @param editor      what to tell about a key, a click or a measurement
 record TextField(
-        String display, boolean placeholder, TextEdit edit, boolean focused, boolean caretShown,
-        boolean disabled, boolean readOnly, Attributes attributes, TextEditor editor)
-        implements Widget.Leaf, Styled, Paints, Handles, Measured,
-        io.github.digitalsmile.goldberry.input.handler.Located {
+        String display,
+        boolean placeholder,
+        TextEdit edit,
+        boolean focused,
+        boolean caretShown,
+        boolean disabled,
+        boolean readOnly,
+        Attributes attributes,
+        TextEditor editor)
+        implements Widget.Leaf,
+                Styled,
+                Paints,
+                Handles,
+                Measured,
+                io.github.digitalsmile.goldberry.input.handler.Located {
 
     /// How wide the caret is, in logical pixels.
     ///
@@ -84,7 +96,8 @@ record TextField(
     /// only to anchor a popover, so [io.github.digitalsmile.goldberry.input.handler.Located]'s
     /// rule that a widget told where it is must not move itself holds trivially.
     @Override
-    public void located(io.github.digitalsmile.goldberry.render.model.LogicalRect self,
+    public void located(
+            io.github.digitalsmile.goldberry.render.model.LogicalRect self,
             io.github.digitalsmile.goldberry.render.model.LogicalRect clip) {
         editor.located(self, clip);
     }
@@ -169,8 +182,7 @@ record TextField(
                     event.consume();
                 }
             }
-            default -> {
-            }
+            default -> {}
         }
     }
 
@@ -197,33 +209,35 @@ record TextField(
         // the window's shortcut map, which is exactly what PointerRouter's
         // "the focused chain declines it first" ordering is for.
         if (modifiers.control() && !modifiers.alt()) {
-            var handled = switch (event.key()) {
-                case A -> editor.selectAll();
-                case C -> editor.copy();
-                case X -> !readOnly && editor.cut();
-                case V -> !readOnly && editor.paste();
-                case Z -> !readOnly && (modifiers.shift() ? editor.redo() : editor.undo());
-                case Y -> !readOnly && editor.redo();
-                default -> false;
-            };
+            var handled =
+                    switch (event.key()) {
+                        case A -> editor.selectAll();
+                        case C -> editor.copy();
+                        case X -> !readOnly && editor.cut();
+                        case V -> !readOnly && editor.paste();
+                        case Z -> !readOnly && (modifiers.shift() ? editor.redo() : editor.undo());
+                        case Y -> !readOnly && editor.redo();
+                        default -> false;
+                    };
             if (handled) {
                 event.consume();
                 return;
             }
         }
 
-        var handled = switch (event.key()) {
-            case LEFT -> editor.move(TextEditor.Motion.LEFT, word, extend);
-            case RIGHT -> editor.move(TextEditor.Motion.RIGHT, word, extend);
-            // A single-line field has one line, so Up and Home are the same
-            // movement -- and Up must still be taken, or it would walk out of a
-            // vertical focus scope from a field somebody is editing.
-            case HOME, UP -> editor.move(TextEditor.Motion.START, word, extend);
-            case END, DOWN -> editor.move(TextEditor.Motion.END, word, extend);
-            case BACKSPACE -> !readOnly && editor.deleteBefore(word);
-            case DELETE -> !readOnly && editor.deleteAfter(word);
-            default -> false;
-        };
+        var handled =
+                switch (event.key()) {
+                    case LEFT -> editor.move(TextEditor.Motion.LEFT, word, extend);
+                    case RIGHT -> editor.move(TextEditor.Motion.RIGHT, word, extend);
+                    // A single-line field has one line, so Up and Home are the same
+                    // movement -- and Up must still be taken, or it would walk out of a
+                    // vertical focus scope from a field somebody is editing.
+                    case HOME, UP -> editor.move(TextEditor.Motion.START, word, extend);
+                    case END, DOWN -> editor.move(TextEditor.Motion.END, word, extend);
+                    case BACKSPACE -> !readOnly && editor.deleteBefore(word);
+                    case DELETE -> !readOnly && editor.deleteAfter(word);
+                    default -> false;
+                };
         if (handled) {
             event.consume();
         }
@@ -284,13 +298,11 @@ record TextField(
         var selection = children.get(0)
                 .position(PositionType.ABSOLUTE)
                 .inset(new Insets(
-                        StyleLength.UNDEFINED,
-                        StyleLength.UNDEFINED,
-                        StyleLength.UNDEFINED,
-                        StyleLength.points((float) (padding
-                                + paragraph.widthBetween(0, clamp(edit.start(), length)) - offset))))
-                .size(StyleLength.points((float) paragraph.widthBetween(
-                                clamp(edit.start(), length), clamp(edit.end(), length))),
+                        StyleLength.UNDEFINED, StyleLength.UNDEFINED, StyleLength.UNDEFINED, StyleLength.points((float)
+                                (padding + paragraph.widthBetween(0, clamp(edit.start(), length)) - offset))))
+                .size(
+                        StyleLength.points(
+                                (float) paragraph.widthBetween(clamp(edit.start(), length), clamp(edit.end(), length))),
                         line);
 
         // Only the left edge is pinned. An absolute box with no top or bottom is
@@ -302,22 +314,18 @@ record TextField(
         var value = children.get(1)
                 .position(PositionType.ABSOLUTE)
                 .inset(new Insets(
-                        StyleLength.UNDEFINED,
-                        StyleLength.UNDEFINED,
-                        StyleLength.UNDEFINED,
-                        StyleLength.points((float) (padding - offset))));
+                        StyleLength.UNDEFINED, StyleLength.UNDEFINED, StyleLength.UNDEFINED, StyleLength.points((float)
+                                (padding - offset))));
 
         var caret = children.get(2)
                 .position(PositionType.ABSOLUTE)
                 .inset(new Insets(
-                        StyleLength.UNDEFINED,
-                        StyleLength.UNDEFINED,
-                        StyleLength.UNDEFINED,
-                        StyleLength.points((float) (padding
-                                + paragraph.widthBetween(0, clamp(edit.caret(), length)) - offset))))
+                        StyleLength.UNDEFINED, StyleLength.UNDEFINED, StyleLength.UNDEFINED, StyleLength.points((float)
+                                (padding + paragraph.widthBetween(0, clamp(edit.caret(), length)) - offset))))
                 .size(StyleLength.points((float) CARET_WIDTH), line);
 
-        return Box.of().style(style)
+        return Box.of()
+                .style(style)
                 .children(selection, value, caret)
                 // The I-beam over the whole field and not only over the text:
                 // the padding is part of the field, clicking it puts the caret

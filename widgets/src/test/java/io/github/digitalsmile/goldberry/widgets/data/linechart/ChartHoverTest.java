@@ -4,31 +4,33 @@ import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+
 import io.github.digitalsmile.goldberry.RendererRequirement;
-import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
 import io.github.digitalsmile.goldberry.css.Stylesheet;
 import io.github.digitalsmile.goldberry.css.Theme;
+import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
 import io.github.digitalsmile.goldberry.golden.GoldenImage;
-import io.github.digitalsmile.goldberry.input.hit.HitTest;
 import io.github.digitalsmile.goldberry.input.PointerRouter;
+import io.github.digitalsmile.goldberry.input.hit.HitTest;
 import io.github.digitalsmile.goldberry.paint.TestFrames;
 import io.github.digitalsmile.goldberry.paint.tree.RenderTree;
 import io.github.digitalsmile.goldberry.render.model.LogicalRect;
-import io.github.digitalsmile.goldberry.widget.attr.Attributes;
 import io.github.digitalsmile.goldberry.widget.Element;
 import io.github.digitalsmile.goldberry.widget.ElementTree;
 import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widget.WidgetRenderer;
+import io.github.digitalsmile.goldberry.widget.attr.Attributes;
 import io.github.digitalsmile.goldberry.widgets.Controls;
 import io.github.digitalsmile.goldberry.widgets.controls.TestFont;
 import io.github.digitalsmile.goldberry.widgets.core.Column;
 import io.github.digitalsmile.goldberry.widgets.data.Series;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
 
 /// What a chart does when a pointer arrives — `charts.md` §3.1's crosshair and
 /// tooltip.
@@ -57,13 +59,13 @@ class ChartHoverTest {
 
     private static List<Series> two() {
         return List.of(
-                Series.of("Downloads", 12, 19, 15, 27, 31, 28, 36),
-                Series.of("Installs", 8, 11, 9, 18, 21, 19, 24));
+                Series.of("Downloads", 12, 19, 15, 27, 31, 28, 36), Series.of("Installs", 8, 11, 9, 18, 21, 19, 24));
     }
 
     private static Widget chart() {
-        return new Column(List.of(
-                new LineChart(two(),
+        return new Column(
+                List.of(new LineChart(
+                        two(),
                         List.of("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"),
                         new Attributes("plot", Set.of(), "plot"))),
                 new Attributes("frame", Set.of(), "frame"));
@@ -78,9 +80,9 @@ class ChartHoverTest {
 
             harness.move(plot.left() + plot.width() / 2, plot.top() + plot.height() / 2);
 
-            assertFalse(java.util.Arrays.equals(quiet, harness.frame()),
-                    "a chart nobody is pointing at and one somebody is should not be the"
-                            + " same picture");
+            assertFalse(
+                    java.util.Arrays.equals(quiet, harness.frame()),
+                    "a chart nobody is pointing at and one somebody is should not be the" + " same picture");
         }
     }
 
@@ -92,8 +94,7 @@ class ChartHoverTest {
 
             // -1 is the resting hover, so a golden image of a chart is the chart
             // rather than the chart plus whatever the last test pointed at.
-            assertArrayEquals(first, harness.frame(),
-                    "two frames of an untouched chart are one picture");
+            assertArrayEquals(first, harness.frame(), "two frames of an untouched chart are one picture");
         }
     }
 
@@ -113,8 +114,8 @@ class ChartHoverTest {
             // the next one. A crosshair that moved with the pointer rather than
             // snapping to a point would be reading a position off a chart that
             // has none between its points.
-            assertArrayEquals(first, harness.frame(),
-                    "one pixel of pointer movement inside one point is no change at all");
+            assertArrayEquals(
+                    first, harness.frame(), "one pixel of pointer movement inside one point is no change at all");
         }
     }
 
@@ -130,8 +131,7 @@ class ChartHoverTest {
             var left = harness.frame();
             harness.move(plot.left() + plot.width() * 0.9f, middle);
 
-            assertFalse(java.util.Arrays.equals(left, harness.frame()),
-                    "Monday and Sunday are not the same readout");
+            assertFalse(java.util.Arrays.equals(left, harness.frame()), "Monday and Sunday are not the same readout");
         }
     }
 
@@ -147,8 +147,7 @@ class ChartHoverTest {
             // numbers would be a chart reacting to being read.
             harness.move(plot.left() + 2, plot.top() + plot.height() / 2);
 
-            assertArrayEquals(quiet, harness.frame(),
-                    "the gutter is the axis, not the plot");
+            assertArrayEquals(quiet, harness.frame(), "the gutter is the axis, not the plot");
         }
     }
 
@@ -163,8 +162,7 @@ class ChartHoverTest {
             harness.frame();
             harness.exit();
 
-            assertArrayEquals(quiet, harness.frame(),
-                    "a chart the pointer has left is the chart again");
+            assertArrayEquals(quiet, harness.frame(), "a chart the pointer has left is the chart again");
         }
     }
 
@@ -181,17 +179,17 @@ class ChartHoverTest {
             // photograph of a tie-break.
             harness.move(plot.left() + plot.width() * 0.7f, plot.top() + plot.height() / 2);
 
-            GoldenImage.assertMatches("line-chart-hover-dark", WIDTH, HEIGHT, 1.0f,
-                    harness::paintInto);
+            GoldenImage.assertMatches("line-chart-hover-dark", WIDTH, HEIGHT, 1.0f, harness::paintInto);
         }
     }
 
     @Test
     @DisplayName("a bar chart highlights the band, because a bar owns a width")
     void barsHighlightTheirBand() {
-        var bars = new Column(List.of(
-                new io.github.digitalsmile.goldberry.widgets.data.barchart.BarChart(
-                        two(), List.of("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"),
+        var bars = new Column(
+                List.of(new io.github.digitalsmile.goldberry.widgets.data.barchart.BarChart(
+                        two(),
+                        List.of("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"),
                         new Attributes("plot", Set.of(), "plot"))),
                 new Attributes("frame", Set.of(), "frame"));
 
@@ -205,8 +203,7 @@ class ChartHoverTest {
             // the right and this picture is the mirror of the line chart's.
             harness.move(plot.left() + plot.width() * 0.3f, plot.top() + plot.height() / 2);
 
-            GoldenImage.assertMatches("bar-chart-hover-dark", WIDTH, HEIGHT, 1.0f,
-                    harness::paintInto);
+            GoldenImage.assertMatches("bar-chart-hover-dark", WIDTH, HEIGHT, 1.0f, harness::paintInto);
         }
     }
 
@@ -219,7 +216,9 @@ class ChartHoverTest {
     private static final class Harness implements AutoCloseable {
 
         private final WidgetRenderer renderer = new WidgetRenderer(
-                List.of(Controls.baseStylesheet(), Theme.NORD_DARK.load(),
+                List.of(
+                        Controls.baseStylesheet(),
+                        Theme.NORD_DARK.load(),
                         Stylesheet.parse(CascadeLayer.APPLICATION, """
                                 #frame { padding: 12px; background: var(--gb-bg) }
                                 #plot  { width: 296px; height: 156px }
@@ -273,16 +272,14 @@ class ChartHoverTest {
         LogicalRect plotRect() {
             var found = new ArrayList<LogicalRect>();
             render.forEachPlacedBox(placed -> {
-                if (placed.box().owner() instanceof Element element
-                        && element.widget() instanceof ChartSurface) {
+                if (placed.box().owner() instanceof Element element && element.widget() instanceof ChartSurface) {
                     var layout = placed.layout();
                     var matrix = placed.transform();
                     found.add(LogicalRect.of(
-                            (float) (matrix.a() * layout.left()
-                                    + matrix.c() * layout.top() + matrix.e()),
-                            (float) (matrix.b() * layout.left()
-                                    + matrix.d() * layout.top() + matrix.f()),
-                            layout.width(), layout.height()));
+                            (float) (matrix.a() * layout.left() + matrix.c() * layout.top() + matrix.e()),
+                            (float) (matrix.b() * layout.left() + matrix.d() * layout.top() + matrix.f()),
+                            layout.width(),
+                            layout.height()));
                 }
             });
             assertEquals(1, found.size(), "expected exactly one chart-plot");

@@ -1,20 +1,21 @@
 package io.github.digitalsmile.goldberry.widget.root;
 
-import io.github.digitalsmile.goldberry.Overlay;
-import io.github.digitalsmile.goldberry.bind.Observable;
-import io.github.digitalsmile.goldberry.bind.Property;
-import io.github.digitalsmile.goldberry.css.ComputedStyle;
-import io.github.digitalsmile.goldberry.paint.Box;
-import io.github.digitalsmile.goldberry.natives.yoga.style.PositionType;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+
+import io.github.digitalsmile.goldberry.Overlay;
+import io.github.digitalsmile.goldberry.bind.Observable;
+import io.github.digitalsmile.goldberry.bind.Property;
+import io.github.digitalsmile.goldberry.css.ComputedStyle;
+import io.github.digitalsmile.goldberry.natives.yoga.style.PositionType;
+import io.github.digitalsmile.goldberry.paint.Box;
+import io.github.digitalsmile.goldberry.widget.ElementTree;
+import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widget.style.Corner;
 import io.github.digitalsmile.goldberry.widget.style.Paints;
 import io.github.digitalsmile.goldberry.widget.style.Styled;
-import io.github.digitalsmile.goldberry.widget.ElementTree;
-import io.github.digitalsmile.goldberry.widget.Widget;
 
 /// The window's own node in the widget tree: the application's root, and whatever
 /// is floating over it.
@@ -59,8 +60,7 @@ import io.github.digitalsmile.goldberry.widget.Widget;
 ///
 /// @param content  the application's root widget
 /// @param overlays what is floating over it, watched rather than captured
-public record WindowRoot(Widget content, Property<List<Overlay>> overlays)
-        implements Widget.Leaf, Styled, Paints {
+public record WindowRoot(Widget content, Property<List<Overlay>> overlays) implements Widget.Leaf, Styled, Paints {
 
     public WindowRoot {
         Objects.requireNonNull(content, "content");
@@ -128,10 +128,11 @@ public record WindowRoot(Widget content, Property<List<Overlay>> overlays)
                     .position(PositionType.ABSOLUTE)
                     // Insets on all four sides is Yoga's "fill"; two sides is a
                     // corner. One flag, no second placement path (ADR-0121).
-                    .inset(entry.isFilling()
-                            ? io.github.digitalsmile.goldberry.natives.yoga.Insets.all(
-                                    io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength.points(0))
-                            : entry.corner().insets(entry.margin())));
+                    .inset(
+                            entry.isFilling()
+                                    ? io.github.digitalsmile.goldberry.natives.yoga.Insets.all(
+                                            io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength.points(0))
+                                    : entry.corner().insets(entry.margin())));
         }
         return Box.of().style(style).children(boxes.toArray(Box[]::new));
     }

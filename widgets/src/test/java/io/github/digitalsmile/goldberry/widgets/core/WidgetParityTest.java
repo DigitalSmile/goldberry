@@ -1,33 +1,33 @@
 package io.github.digitalsmile.goldberry.widgets.core;
 
-import io.github.digitalsmile.goldberry.widgets.Controls;
-import io.github.digitalsmile.goldberry.widget.attr.Attributes;
-import io.github.digitalsmile.goldberry.widget.Element;
-import io.github.digitalsmile.goldberry.widget.ElementTree;
-import io.github.digitalsmile.goldberry.widget.style.Paints;
-import io.github.digitalsmile.goldberry.widget.style.Styled;
-import io.github.digitalsmile.goldberry.widget.Widget;
-
-import io.github.digitalsmile.goldberry.widgets.text.Text;
-
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
-import io.github.digitalsmile.goldberry.css.ComputedStyle;
-import io.github.digitalsmile.goldberry.css.value.CssLength;
-import io.github.digitalsmile.goldberry.css.cascade.StyleResolver;
-import io.github.digitalsmile.goldberry.css.Stylesheet;
-import io.github.digitalsmile.goldberry.kdl.KdlParser;
 import java.util.List;
 import java.util.Set;
+
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
+
+import io.github.digitalsmile.goldberry.css.ComputedStyle;
+import io.github.digitalsmile.goldberry.css.Stylesheet;
+import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
+import io.github.digitalsmile.goldberry.css.cascade.StyleResolver;
+import io.github.digitalsmile.goldberry.css.value.CssLength;
+import io.github.digitalsmile.goldberry.kdl.KdlParser;
+import io.github.digitalsmile.goldberry.widget.Element;
+import io.github.digitalsmile.goldberry.widget.ElementTree;
+import io.github.digitalsmile.goldberry.widget.Widget;
+import io.github.digitalsmile.goldberry.widget.attr.Attributes;
+import io.github.digitalsmile.goldberry.widget.style.Paints;
+import io.github.digitalsmile.goldberry.widget.style.Styled;
+import io.github.digitalsmile.goldberry.widgets.Controls;
 import io.github.digitalsmile.goldberry.widgets.Widgets;
+import io.github.digitalsmile.goldberry.widgets.text.Text;
 
 /// The parity invariant, enforced.
 ///
@@ -54,8 +54,7 @@ class WidgetParityTest {
         assertNotNull(widget);
         var styled = styledNode(widget);
         assertNotNull(styled, type + " describes nothing a stylesheet can select");
-        assertEquals(type, styled.cssType(),
-                "the KDL node name and the CSS type must be the same name");
+        assertEquals(type, styled.cssType(), "the KDL node name and the CSS type must be the same name");
     }
 
     /// The node a stylesheet actually selects, which is not always the node a
@@ -124,10 +123,8 @@ class WidgetParityTest {
         // way -- so `id` and `class` really did survive inflation.
         for (var selector : List.of(type, "#x", ".a")) {
             var sheet = Stylesheet.parse(CascadeLayer.APPLICATION, selector + " { background: #123456 }");
-            var style = ComputedStyle.of(
-                    new StyleResolver(List.of(sheet)).resolve(element), CssLength.Context.DEFAULT);
-            assertEquals(0xFF123456, style.background(),
-                    () -> "\"" + selector + "\" did not match a " + type);
+            var style = ComputedStyle.of(new StyleResolver(List.of(sheet)).resolve(element), CssLength.Context.DEFAULT);
+            assertEquals(0xFF123456, style.background(), () -> "\"" + selector + "\" did not match a " + type);
         }
     }
 
@@ -141,8 +138,7 @@ class WidgetParityTest {
         // Not rendered here -- text needs a real font, which needs the native
         // library -- but the contract that makes rendering possible is checkable
         // without one.
-        assertInstanceOf(Paints.class,
-                widget instanceof Paints ? widget : styledNode(widget));
+        assertInstanceOf(Paints.class, widget instanceof Paints ? widget : styledNode(widget));
     }
 
     @Test
@@ -155,12 +151,12 @@ class WidgetParityTest {
         // their own suites rather than by this one.
         var registered = Set.copyOf(Widgets.inflater().registered());
 
-        assertTrue(registered.containsAll(Primitives.builtInTypes()),
-                "declared built-ins missing from the catalog: "
-                        + minus(Primitives.builtInTypes(), registered));
-        assertTrue(registered.containsAll(Controls.controlTypes()),
-                "declared controls missing from the catalog: "
-                        + minus(Controls.controlTypes(), registered));
+        assertTrue(
+                registered.containsAll(Primitives.builtInTypes()),
+                "declared built-ins missing from the catalog: " + minus(Primitives.builtInTypes(), registered));
+        assertTrue(
+                registered.containsAll(Controls.controlTypes()),
+                "declared controls missing from the catalog: " + minus(Controls.controlTypes(), registered));
     }
 
     /// What `declared` has and the catalog does not — the useful half of a
@@ -173,12 +169,11 @@ class WidgetParityTest {
     @Test
     @DisplayName("a Java-built and a KDL-built widget are the same value")
     void javaAndKdlAgree() {
-        var fromJava = new Row(
-                List.of(new Text("hi", Attributes.NONE)),
-                new Attributes("r", Set.of("wide"), "r"));
+        var fromJava = new Row(List.of(new Text("hi", Attributes.NONE)), new Attributes("r", Set.of("wide"), "r"));
 
-        var fromKdl = Widgets.inflater().inflate(
-                KdlParser.parse("row id=\"r\" class=\"wide\" { text \"hi\" }").getFirst());
+        var fromKdl = Widgets.inflater()
+                .inflate(KdlParser.parse("row id=\"r\" class=\"wide\" { text \"hi\" }")
+                        .getFirst());
 
         // Records, so equality is structural -- which is what makes "the same
         // widget in two syntaxes" a checkable claim rather than a slogan.

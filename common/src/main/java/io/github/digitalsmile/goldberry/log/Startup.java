@@ -9,6 +9,7 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
+
 import org.slf4j.Logger;
 
 /// The start-up timeline: what Goldberry did before the first pixel, and when.
@@ -54,15 +55,13 @@ public final class Startup {
     private static final AtomicInteger RECORDED = new AtomicInteger();
     private static final AtomicBoolean SUMMARIZED = new AtomicBoolean();
 
-    private Startup() {
-    }
+    private Startup() {}
 
     /// One recorded moment.
     ///
     /// @param phase what happened
     /// @param sinceStart how long after process start it happened
-    public record Mark(String phase, Duration sinceStart) {
-    }
+    public record Mark(String phase, Duration sinceStart) {}
 
     /// Records that `phase` has just happened.
     public static void mark(String phase) {
@@ -83,7 +82,8 @@ public final class Startup {
         try {
             return work.get();
         } finally {
-            mark(phase + " (" + millis(Duration.ofNanos(System.nanoTime() - started)).trim() + ")");
+            mark(phase + " ("
+                    + millis(Duration.ofNanos(System.nanoTime() - started)).trim() + ")");
         }
     }
 
@@ -126,15 +126,20 @@ public final class Startup {
         var previous = Duration.ZERO;
         for (var mark : marks) {
             report.append(System.lineSeparator())
-                    .append("    ").append(millis(mark.sinceStart()))
-                    .append("  ").append(delta(mark.sinceStart().minus(previous)))
-                    .append("  ").append(mark.phase());
+                    .append("    ")
+                    .append(millis(mark.sinceStart()))
+                    .append("  ")
+                    .append(delta(mark.sinceStart().minus(previous)))
+                    .append("  ")
+                    .append(mark.phase());
             previous = mark.sinceStart();
         }
         var dropped = RECORDED.get() - marks.size();
         if (dropped > 0) {
             report.append(System.lineSeparator())
-                    .append("    (").append(dropped).append(" further marks not recorded)");
+                    .append("    (")
+                    .append(dropped)
+                    .append(" further marks not recorded)");
         }
         LOG.trace("{}", report);
     }
@@ -171,7 +176,9 @@ public final class Startup {
 
     private static Duration processAgeAtInit() {
         try {
-            return ProcessHandle.current().info().startInstant()
+            return ProcessHandle.current()
+                    .info()
+                    .startInstant()
                     .map(start -> Duration.between(start, Instant.now()))
                     .orElse(Duration.ZERO);
         } catch (RuntimeException e) {

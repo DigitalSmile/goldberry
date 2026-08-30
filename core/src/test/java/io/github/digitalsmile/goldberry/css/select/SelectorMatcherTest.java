@@ -7,8 +7,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import io.github.digitalsmile.goldberry.css.parse.CssParser;
+
 import io.github.digitalsmile.goldberry.css.StyleElement;
+import io.github.digitalsmile.goldberry.css.parse.CssParser;
 
 class SelectorMatcherTest {
 
@@ -125,10 +126,8 @@ class SelectorMatcherTest {
             // Walking up greedily from .c finds the INNER .b first, whose parent
             // is .b and not .a, so a matcher without backtracking reports no
             // match. The outer .b does satisfy it.
-            var root = element("div.a")
-                    .with(element("div.b")
-                            .with(element("div.b")
-                                    .with(element("div.c"))));
+            var root =
+                    element("div.a").with(element("div.b").with(element("div.b").with(element("div.c"))));
             var leaf = root.descend(3);
 
             assertTrue(matches(".a > .b .c", leaf));

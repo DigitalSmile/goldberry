@@ -1,8 +1,9 @@
 package io.github.digitalsmile.goldberry.paint;
 
-import io.github.digitalsmile.goldberry.render.model.PhysicalSize;
-import io.github.digitalsmile.goldberry.log.Logs;
 import org.slf4j.Logger;
+
+import io.github.digitalsmile.goldberry.log.Logs;
+import io.github.digitalsmile.goldberry.render.model.PhysicalSize;
 
 /// How many Blend2D workers a frame is painted with.
 ///
@@ -52,8 +53,7 @@ public final class PaintThreads {
     /// of the same window incomparable, and there is no use for that.
     private static final int CONFIGURED = configured();
 
-    private PaintThreads() {
-    }
+    private PaintThreads() {}
 
     /// The worker count for a surface of `size`.
     public static int forSurface(PhysicalSize size) {

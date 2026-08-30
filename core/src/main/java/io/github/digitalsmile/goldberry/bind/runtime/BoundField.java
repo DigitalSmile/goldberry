@@ -2,10 +2,11 @@ package io.github.digitalsmile.goldberry.bind.runtime;
 
 import java.util.Objects;
 import java.util.function.Consumer;
-import io.github.digitalsmile.goldberry.bind.registry.BindingRegistry;
+
 import io.github.digitalsmile.goldberry.bind.Observable;
 import io.github.digitalsmile.goldberry.bind.Property;
 import io.github.digitalsmile.goldberry.bind.Subscription;
+import io.github.digitalsmile.goldberry.bind.registry.BindingRegistry;
 
 /// One woven field, seen as the value a widget can read and watch.
 ///

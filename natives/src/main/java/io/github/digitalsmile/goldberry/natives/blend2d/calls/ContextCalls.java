@@ -4,11 +4,12 @@ import static java.lang.foreign.ValueLayout.ADDRESS;
 import static java.lang.foreign.ValueLayout.JAVA_DOUBLE;
 import static java.lang.foreign.ValueLayout.JAVA_INT;
 
-import io.github.digitalsmile.goldberry.natives.Downcalls;
 import java.lang.foreign.FunctionDescriptor;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.SymbolLookup;
 import java.lang.invoke.MethodHandle;
+
+import io.github.digitalsmile.goldberry.natives.Downcalls;
 
 /// Blend2D’s `BLContext` — everything that draws.
 ///
@@ -111,8 +112,7 @@ public record ContextCalls(
     /// @param context the context to finish
     public static final class ContextEnd {
 
-        private static final MethodHandle FD_bl_context_end =
-                Downcalls.link(FunctionDescriptor.of(JAVA_INT, ADDRESS));
+        private static final MethodHandle FD_bl_context_end = Downcalls.link(FunctionDescriptor.of(JAVA_INT, ADDRESS));
 
         private final MemorySegment address;
 
@@ -204,8 +204,7 @@ public record ContextCalls(
 
         public int call(MemorySegment context, int op, MemorySegment data) {
             try {
-                return (int) FD_bl_context_apply_transform_op.invokeExact(
-                        address, context, op, data);
+                return (int) FD_bl_context_apply_transform_op.invokeExact(address, context, op, data);
             } catch (Throwable t) {
                 throw Downcalls.failure("bl_context_apply_transform_op", t);
             }
@@ -314,8 +313,7 @@ public record ContextCalls(
 
         public int call(MemorySegment context, MemorySegment rect, int argb) {
             try {
-                return (int) FD_bl_context_fill_rect_d_rgba32.invokeExact(
-                        address, context, rect, argb);
+                return (int) FD_bl_context_fill_rect_d_rgba32.invokeExact(address, context, rect, argb);
             } catch (Throwable t) {
                 throw Downcalls.failure("bl_context_fill_rect_d_rgba32", t);
             }
@@ -339,8 +337,7 @@ public record ContextCalls(
     public static final class ContextFillGlyphRunDRgba32 {
 
         private static final MethodHandle FD_bl_context_fill_glyph_run_d_rgba32 =
-                Downcalls.link(FunctionDescriptor.of(
-                        JAVA_INT, ADDRESS, ADDRESS, ADDRESS, ADDRESS, JAVA_INT));
+                Downcalls.link(FunctionDescriptor.of(JAVA_INT, ADDRESS, ADDRESS, ADDRESS, ADDRESS, JAVA_INT));
 
         private final MemorySegment address;
 
@@ -349,8 +346,7 @@ public record ContextCalls(
         }
 
         public int call(
-                MemorySegment context, MemorySegment origin, MemorySegment font,
-                MemorySegment glyphRun, int argb) {
+                MemorySegment context, MemorySegment origin, MemorySegment font, MemorySegment glyphRun, int argb) {
             try {
                 return (int) FD_bl_context_fill_glyph_run_d_rgba32.invokeExact(
                         address, context, origin, font, glyphRun, argb);
@@ -457,8 +453,7 @@ public record ContextCalls(
     public static final class ContextFillPathDRgba32 {
 
         private static final MethodHandle FD_bl_context_fill_path_d_rgba32 =
-                Downcalls.link(FunctionDescriptor.of(
-                        JAVA_INT, ADDRESS, ADDRESS, ADDRESS, JAVA_INT));
+                Downcalls.link(FunctionDescriptor.of(JAVA_INT, ADDRESS, ADDRESS, ADDRESS, JAVA_INT));
 
         private final MemorySegment address;
 
@@ -468,8 +463,7 @@ public record ContextCalls(
 
         public int call(MemorySegment context, MemorySegment origin, MemorySegment path, int argb) {
             try {
-                return (int) FD_bl_context_fill_path_d_rgba32.invokeExact(
-                        address, context, origin, path, argb);
+                return (int) FD_bl_context_fill_path_d_rgba32.invokeExact(address, context, origin, path, argb);
             } catch (Throwable t) {
                 throw Downcalls.failure("bl_context_fill_path_d_rgba32", t);
             }
@@ -566,8 +560,7 @@ public record ContextCalls(
 
         public int call(MemorySegment context, int argb) {
             try {
-                return (int) FD_bl_context_set_fill_style_rgba32.invokeExact(
-                        address, context, argb);
+                return (int) FD_bl_context_set_fill_style_rgba32.invokeExact(address, context, argb);
             } catch (Throwable t) {
                 throw Downcalls.failure("bl_context_set_fill_style_rgba32", t);
             }
@@ -585,8 +578,7 @@ public record ContextCalls(
     public static final class ContextStrokePathDRgba32 {
 
         private static final MethodHandle FD_bl_context_stroke_path_d_rgba32 =
-                Downcalls.link(FunctionDescriptor.of(
-                        JAVA_INT, ADDRESS, ADDRESS, ADDRESS, JAVA_INT));
+                Downcalls.link(FunctionDescriptor.of(JAVA_INT, ADDRESS, ADDRESS, ADDRESS, JAVA_INT));
 
         private final MemorySegment address;
 
@@ -596,8 +588,7 @@ public record ContextCalls(
 
         public int call(MemorySegment context, MemorySegment origin, MemorySegment path, int argb) {
             try {
-                return (int) FD_bl_context_stroke_path_d_rgba32.invokeExact(
-                        address, context, origin, path, argb);
+                return (int) FD_bl_context_stroke_path_d_rgba32.invokeExact(address, context, origin, path, argb);
             } catch (Throwable t) {
                 throw Downcalls.failure("bl_context_stroke_path_d_rgba32", t);
             }
@@ -627,12 +618,9 @@ public record ContextCalls(
             this.address = Downcalls.symbol(lookup, "bl_context_blit_image_d");
         }
 
-        public int call(
-                MemorySegment context, MemorySegment origin, MemorySegment image,
-                MemorySegment imageArea) {
+        public int call(MemorySegment context, MemorySegment origin, MemorySegment image, MemorySegment imageArea) {
             try {
-                return (int) FD_bl_context_blit_image_d.invokeExact(
-                        address, context, origin, image, imageArea);
+                return (int) FD_bl_context_blit_image_d.invokeExact(address, context, origin, image, imageArea);
             } catch (Throwable t) {
                 throw Downcalls.failure("bl_context_blit_image_d", t);
             }
@@ -661,12 +649,9 @@ public record ContextCalls(
             this.address = Downcalls.symbol(lookup, "bl_context_blit_scaled_image_d");
         }
 
-        public int call(
-                MemorySegment context, MemorySegment rect, MemorySegment image,
-                MemorySegment imageArea) {
+        public int call(MemorySegment context, MemorySegment rect, MemorySegment image, MemorySegment imageArea) {
             try {
-                return (int) FD_bl_context_blit_scaled_image_d.invokeExact(
-                        address, context, rect, image, imageArea);
+                return (int) FD_bl_context_blit_scaled_image_d.invokeExact(address, context, rect, image, imageArea);
             } catch (Throwable t) {
                 throw Downcalls.failure("bl_context_blit_scaled_image_d", t);
             }

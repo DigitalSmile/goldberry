@@ -1,9 +1,9 @@
 package io.github.digitalsmile.goldberry.render.popup;
 
 import io.github.digitalsmile.goldberry.render.event.BackendEvent;
-import io.github.digitalsmile.goldberry.render.window.BackendWindow;
 import io.github.digitalsmile.goldberry.render.model.LogicalPoint;
 import io.github.digitalsmile.goldberry.render.model.LogicalSize;
+import io.github.digitalsmile.goldberry.render.window.BackendWindow;
 
 /// A popup window: a surface of the application's own drawing, parented to
 /// another window and free of its bounds.

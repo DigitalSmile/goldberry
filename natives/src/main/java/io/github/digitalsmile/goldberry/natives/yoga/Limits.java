@@ -1,6 +1,7 @@
 package io.github.digitalsmile.goldberry.natives.yoga;
 
 import java.util.Objects;
+
 import io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength;
 
 /// How small and how large a box may be — CSS's `min-width`, `max-width`,
@@ -33,8 +34,7 @@ import io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength;
 /// @param maxWidth  the most, or undefined
 /// @param minHeight the least it may be down, or undefined
 /// @param maxHeight the most, or undefined
-public record Limits(StyleLength minWidth, StyleLength maxWidth,
-        StyleLength minHeight, StyleLength maxHeight) {
+public record Limits(StyleLength minWidth, StyleLength maxWidth, StyleLength minHeight, StyleLength maxHeight) {
 
     /// No limit on any axis — what every box has until a stylesheet says
     /// otherwise, and Yoga's own default.
@@ -75,14 +75,16 @@ public record Limits(StyleLength minWidth, StyleLength maxWidth,
     /// nearly every box — costs a field comparison rather than four foreign
     /// calls.
     public boolean isNone() {
-        return minWidth == StyleLength.UNDEFINED && maxWidth == StyleLength.UNDEFINED
-                && minHeight == StyleLength.UNDEFINED && maxHeight == StyleLength.UNDEFINED;
+        return minWidth == StyleLength.UNDEFINED
+                && maxWidth == StyleLength.UNDEFINED
+                && minHeight == StyleLength.UNDEFINED
+                && maxHeight == StyleLength.UNDEFINED;
     }
 
     @Override
     public String toString() {
-        return isNone() ? "Limits[none]"
-                : "Limits[min " + minWidth + "×" + minHeight
-                        + ", max " + maxWidth + "×" + maxHeight + "]";
+        return isNone()
+                ? "Limits[none]"
+                : "Limits[min " + minWidth + "×" + minHeight + ", max " + maxWidth + "×" + maxHeight + "]";
     }
 }

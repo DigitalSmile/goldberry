@@ -4,9 +4,10 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import io.github.digitalsmile.goldberry.widgets.data.Scale;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+
+import io.github.digitalsmile.goldberry.widgets.data.Scale;
 
 /// The plot's own arithmetic, in both directions.
 ///
@@ -23,17 +24,16 @@ class PlotGeometryTest {
     /// A plot 200 wide with a 30px gutter — the numbers do not matter, but they
     /// are deliberately not round, so an off-by-one in a division shows up.
     private static PlotGeometry geometry() {
-        return new PlotGeometry(36, 7, 203, 111, 30, 14,
-                Scale.linear(0, 40, 118, 7));
+        return new PlotGeometry(36, 7, 203, 111, 30, 14, Scale.linear(0, 40, 118, 7));
     }
 
     /// The same plot, with four points at **one minute, one minute and ten
     /// minutes** apart — a series that missed a scrape.
     private static PlotGeometry timed() {
         var minute = 60_000d;
-        return new PlotGeometry(36, 7, 203, 111, 30, 14,
-                Scale.linear(0, 40, 118, 7),
-                new double[] {0, minute, 2 * minute, 12 * minute});
+        return new PlotGeometry(
+                36, 7, 203, 111, 30, 14, Scale.linear(0, 40, 118, 7), new double[] {0, minute, 2 * minute, 12 * minute
+                });
     }
 
     @Test
@@ -46,10 +46,8 @@ class PlotGeometryTest {
         // a schedule nobody kept.
         assertEquals(geometry.left(), geometry.xOf(0, 4, false), 1e-6);
         assertEquals(geometry.right(), geometry.xOf(3, 4, false), 1e-6);
-        assertEquals(geometry.left() + geometry.plotWidth() / 12,
-                geometry.xOf(1, 4, false), 1e-6);
-        assertEquals(geometry.left() + geometry.plotWidth() / 6,
-                geometry.xOf(2, 4, false), 1e-6);
+        assertEquals(geometry.left() + geometry.plotWidth() / 12, geometry.xOf(1, 4, false), 1e-6);
+        assertEquals(geometry.left() + geometry.plotWidth() / 6, geometry.xOf(2, 4, false), 1e-6);
     }
 
     @Test
@@ -60,11 +58,9 @@ class PlotGeometryTest {
         // Two thirds across is a long way from anything, and the reading on the
         // right is nearer: an index-based search would answer 2 because 2 is the
         // second of four.
-        assertEquals(3, geometry.indexAt(
-                geometry.left() + geometry.plotWidth() * 2 / 3, 4, false));
+        assertEquals(3, geometry.indexAt(geometry.left() + geometry.plotWidth() * 2 / 3, 4, false));
         // And just past the cluster, the last of the cluster is still nearest.
-        assertEquals(2, geometry.indexAt(
-                geometry.left() + geometry.plotWidth() * 0.2, 4, false));
+        assertEquals(2, geometry.indexAt(geometry.left() + geometry.plotWidth() * 0.2, 4, false));
     }
 
     @Test
@@ -72,7 +68,9 @@ class PlotGeometryTest {
     void timedPointsFindThemselves() {
         var geometry = timed();
         for (var index = 0; index < 4; index++) {
-            assertEquals(index, geometry.indexAt(geometry.xOf(index, 4, false), 4, false),
+            assertEquals(
+                    index,
+                    geometry.indexAt(geometry.xOf(index, 4, false), 4, false),
                     "point " + index + " of a timed chart");
         }
     }
@@ -83,11 +81,13 @@ class PlotGeometryTest {
         var geometry = geometry();
         for (var points = 1; points <= 40; points++) {
             for (var index = 0; index < points; index++) {
-                assertEquals(index, geometry.indexAt(geometry.xOf(index, points, false),
-                                points, false),
+                assertEquals(
+                        index,
+                        geometry.indexAt(geometry.xOf(index, points, false), points, false),
                         "a line chart of " + points + " points, at index " + index);
-                assertEquals(index, geometry.indexAt(geometry.xOf(index, points, true),
-                                points, true),
+                assertEquals(
+                        index,
+                        geometry.indexAt(geometry.xOf(index, points, true), points, true),
                         "a bar chart of " + points + " points, at index " + index);
             }
         }
@@ -125,7 +125,9 @@ class PlotGeometryTest {
     void theEndsClampRatherThanVanish() {
         var geometry = geometry();
 
-        assertEquals(0, geometry.indexAt(geometry.left() - 40, 6, false),
+        assertEquals(
+                0,
+                geometry.indexAt(geometry.left() - 40, 6, false),
                 "clamped, not -1: a crosshair that vanished in the last few pixels of a"
                         + " plot would look like a bug in the chart");
         assertEquals(5, geometry.indexAt(geometry.right() + 40, 6, false));
@@ -154,7 +156,6 @@ class PlotGeometryTest {
         assertFalse(geometry.holds(geometry.right() + 1, 50), "past the right edge");
         assertFalse(geometry.holds(100, geometry.bottom() + 1), "down among the x labels");
         assertTrue(geometry.holds(geometry.left(), geometry.top()), "the top-left corner");
-        assertTrue(geometry.holds(geometry.right(), geometry.bottom()),
-                "and the bottom-right one");
+        assertTrue(geometry.holds(geometry.right(), geometry.bottom()), "and the bottom-right one");
     }
 }

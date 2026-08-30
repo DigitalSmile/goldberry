@@ -5,30 +5,32 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+
 import io.github.digitalsmile.goldberry.RendererRequirement;
-import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
 import io.github.digitalsmile.goldberry.css.Stylesheet;
 import io.github.digitalsmile.goldberry.css.Theme;
-import io.github.digitalsmile.goldberry.input.hit.HitTest;
+import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
 import io.github.digitalsmile.goldberry.input.PointerRouter;
+import io.github.digitalsmile.goldberry.input.hit.HitTest;
 import io.github.digitalsmile.goldberry.paint.TestFrames;
 import io.github.digitalsmile.goldberry.paint.tree.RenderTree;
 import io.github.digitalsmile.goldberry.render.model.LogicalRect;
-import io.github.digitalsmile.goldberry.widget.attr.Attributes;
 import io.github.digitalsmile.goldberry.widget.Element;
 import io.github.digitalsmile.goldberry.widget.ElementTree;
 import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widget.WidgetRenderer;
+import io.github.digitalsmile.goldberry.widget.attr.Attributes;
 import io.github.digitalsmile.goldberry.widgets.Controls;
 import io.github.digitalsmile.goldberry.widgets.controls.TestFont;
 import io.github.digitalsmile.goldberry.widgets.core.Column;
 import io.github.digitalsmile.goldberry.widgets.data.linechart.LineChart;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
 
 /// One crosshair across two charts — `charts.md` §3.1's shared crosshair.
 ///
@@ -92,15 +94,14 @@ class CrosshairGroupTest {
             var quiet = harness.frame();
             var first = harness.plotRect(0);
 
-            harness.move(first.left() + first.width() * 0.7f,
-                    first.top() + first.height() / 2);
+            harness.move(first.left() + first.width() * 0.7f, first.top() + first.height() / 2);
 
-            assertFalse(java.util.Arrays.equals(quiet, harness.frame()),
-                    "the chart under the pointer drew something");
+            assertFalse(java.util.Arrays.equals(quiet, harness.frame()), "the chart under the pointer drew something");
             assertTrue(group.hovered() > 0, "and told the group where it was");
             // The second chart's own pixels changed, which is the claim: it is
             // showing a crosshair for a pointer that is not in it.
-            assertFalse(java.util.Arrays.equals(
+            assertFalse(
+                    java.util.Arrays.equals(
                             harness.crop(quiet, harness.plotRect(1)),
                             harness.crop(harness.frame(), harness.plotRect(1))),
                     "and so did the chart the pointer is not over");
@@ -115,8 +116,7 @@ class CrosshairGroupTest {
             var quiet = harness.frame();
             var first = harness.plotRect(0);
 
-            harness.move(first.left() + first.width() * 0.7f,
-                    first.top() + first.height() / 2);
+            harness.move(first.left() + first.width() * 0.7f, first.top() + first.height() / 2);
 
             assertArrayEquals(
                     harness.crop(quiet, harness.plotRect(1)),
@@ -135,18 +135,14 @@ class CrosshairGroupTest {
         try (var harness = new Harness(two(group, group))) {
             var quiet = harness.frame();
             var first = harness.plotRect(0);
-            harness.move(first.left() + first.width() * 0.7f,
-                    first.top() + first.height() / 2);
+            harness.move(first.left() + first.width() * 0.7f, first.top() + first.height() / 2);
             var moved = harness.frame();
 
-            var pointed = differing(harness.crop(quiet, harness.plotRect(0)),
-                    harness.crop(moved, harness.plotRect(0)));
-            var linked = differing(harness.crop(quiet, harness.plotRect(1)),
-                    harness.crop(moved, harness.plotRect(1)));
+            var pointed = differing(harness.crop(quiet, harness.plotRect(0)), harness.crop(moved, harness.plotRect(0)));
+            var linked = differing(harness.crop(quiet, harness.plotRect(1)), harness.crop(moved, harness.plotRect(1)));
 
             assertTrue(linked > 0, "the linked chart drew its crosshair");
-            assertTrue(pointed > linked * 2,
-                    "the pointed chart drew a readout as well: " + pointed + " vs " + linked);
+            assertTrue(pointed > linked * 2, "the pointed chart drew a readout as well: " + pointed + " vs " + linked);
         }
     }
 
@@ -162,15 +158,15 @@ class CrosshairGroupTest {
 
     /// Two charts in a column, each in `first`/`second`'s group or in none.
     private static Widget two(CrosshairGroup first, CrosshairGroup second) {
-        return new Column(List.of(
-                chart("plot-a", first), chart("plot-b", second)),
-                new Attributes("frame", Set.of(), "frame"));
+        return new Column(
+                List.of(chart("plot-a", first), chart("plot-b", second)), new Attributes("frame", Set.of(), "frame"));
     }
 
     private static Widget chart(String id, CrosshairGroup group) {
         var chart = new LineChart(
                 List.of(Series.of("rate", 12, 19, 15, 27, 31, 28, 36)),
-                List.of(), new Attributes(id, Set.of("plot"), id));
+                List.of(),
+                new Attributes(id, Set.of("plot"), id));
         return group == null ? chart : chart.crosshair(group);
     }
 
@@ -178,7 +174,9 @@ class CrosshairGroupTest {
     private static final class Harness implements AutoCloseable {
 
         private final WidgetRenderer renderer = new WidgetRenderer(
-                List.of(Controls.baseStylesheet(), Theme.NORD_DARK.load(),
+                List.of(
+                        Controls.baseStylesheet(),
+                        Theme.NORD_DARK.load(),
                         Stylesheet.parse(CascadeLayer.APPLICATION, """
                                 #frame { padding: 12px; background: var(--gb-bg); gap: 12px }
                                 .plot  { width: 296px; height: 104px }
@@ -222,12 +220,10 @@ class CrosshairGroupTest {
             var found = new ArrayList<LogicalRect>();
             render.forEachPlacedBox(placed -> {
                 if (placed.box().owner() instanceof Element element
-                        && element.widget() instanceof io.github.digitalsmile.goldberry.widget
-                                .style.Styled styled
+                        && element.widget() instanceof io.github.digitalsmile.goldberry.widget.style.Styled styled
                         && "chart-plot".equals(styled.cssType())) {
                     var layout = placed.layout();
-                    found.add(LogicalRect.of(layout.left(), layout.top(),
-                            layout.width(), layout.height()));
+                    found.add(LogicalRect.of(layout.left(), layout.top(), layout.width(), layout.height()));
                 }
             });
             assertEquals(2, found.size(), "two plots");

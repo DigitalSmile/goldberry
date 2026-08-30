@@ -5,30 +5,31 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import io.github.digitalsmile.goldberry.RendererRequirement;
-import io.github.digitalsmile.goldberry.paint.TestFrames;
-import io.github.digitalsmile.goldberry.render.model.LogicalRect;
-import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
-import io.github.digitalsmile.goldberry.css.select.Selector.PseudoClass;
-import io.github.digitalsmile.goldberry.css.Stylesheet;
-import io.github.digitalsmile.goldberry.css.Theme;
-import io.github.digitalsmile.goldberry.example.ui.Scrolling;
-import io.github.digitalsmile.goldberry.input.hit.HitTest;
-import io.github.digitalsmile.goldberry.input.key.Modifiers;
-import io.github.digitalsmile.goldberry.input.event.PointerEvent;
-import io.github.digitalsmile.goldberry.input.PointerRouter;
-import io.github.digitalsmile.goldberry.paint.tree.RenderTree;
-import io.github.digitalsmile.goldberry.text.font.Fonts;
-import io.github.digitalsmile.goldberry.widget.Element;
-import io.github.digitalsmile.goldberry.widget.ElementTree;
-import io.github.digitalsmile.goldberry.widget.WidgetRenderer;
-import io.github.digitalsmile.goldberry.widgets.Controls;
 import java.util.ArrayList;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+
+import io.github.digitalsmile.goldberry.RendererRequirement;
+import io.github.digitalsmile.goldberry.css.Stylesheet;
+import io.github.digitalsmile.goldberry.css.Theme;
+import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
+import io.github.digitalsmile.goldberry.css.select.Selector.PseudoClass;
+import io.github.digitalsmile.goldberry.example.ui.Scrolling;
+import io.github.digitalsmile.goldberry.input.PointerRouter;
+import io.github.digitalsmile.goldberry.input.event.PointerEvent;
+import io.github.digitalsmile.goldberry.input.hit.HitTest;
+import io.github.digitalsmile.goldberry.input.key.Modifiers;
+import io.github.digitalsmile.goldberry.paint.TestFrames;
+import io.github.digitalsmile.goldberry.paint.tree.RenderTree;
+import io.github.digitalsmile.goldberry.render.model.LogicalRect;
+import io.github.digitalsmile.goldberry.text.font.Fonts;
+import io.github.digitalsmile.goldberry.widget.Element;
+import io.github.digitalsmile.goldberry.widget.ElementTree;
+import io.github.digitalsmile.goldberry.widget.WidgetRenderer;
+import io.github.digitalsmile.goldberry.widgets.Controls;
 
 /// The sixth gallery screen, driven rather than photographed.
 ///
@@ -109,7 +110,8 @@ class ScrollingScreenTest {
                     found.add(LogicalRect.of(
                             (float) (m.a() * l.left() + m.c() * l.top() + m.e()),
                             (float) (m.b() * l.left() + m.d() * l.top() + m.f()),
-                            l.width(), l.height()));
+                            l.width(),
+                            l.height()));
                 }
             });
             assertEquals(1, found.size(), "expected exactly one box for that element");
@@ -119,8 +121,7 @@ class ScrollingScreenTest {
         /// Turns the wheel over the middle of the list.
         void wheel(float lines) {
             var list = rectOf(byId("scroll-demo"));
-            router.pointerWheel(list.left() + 100,
-                    list.top() + list.size().height() / 2, 0, lines, Modifiers.NONE);
+            router.pointerWheel(list.left() + 100, list.top() + list.size().height() / 2, 0, lines, Modifiers.NONE);
             settle();
         }
 
@@ -157,8 +158,7 @@ class ScrollingScreenTest {
         assertNotNull(harness.byId("scroll-demo"), "no list");
         assertNotNull(harness.byId("jump-bar"), "no toolbar");
         for (var section : Scrolling.SECTIONS) {
-            assertNotNull(harness.byId("section-" + section.toLowerCase()),
-                    "no affix for " + section);
+            assertNotNull(harness.byId("section-" + section.toLowerCase()), "no affix for " + section);
         }
     }
 
@@ -172,13 +172,12 @@ class ScrollingScreenTest {
 
         harness.wheel(6);
 
-        assertTrue(first.hasState(PseudoClass.AFFIXED),
-                ":affixed did not come on when the header lifted");
+        assertTrue(first.hasState(PseudoClass.AFFIXED), ":affixed did not come on when the header lifted");
         // Still inside the viewport, which is the whole promise: the hole has
         // scrolled away and the header has not.
         var header = harness.rectOf(first.children().getFirst().children().getFirst());
-        assertTrue(header.top() >= list.top() - 1,
-                "the pinned header left the top of the list; it is at " + header.top());
+        assertTrue(
+                header.top() >= list.top() - 1, "the pinned header left the top of the list; it is at " + header.top());
     }
 
     @Test
@@ -192,7 +191,8 @@ class ScrollingScreenTest {
         // The last section starts about forty rows down, so this is a scroll of
         // most of the document -- and the affix has to end up inside the list.
         var endings = harness.rectOf(harness.byId("section-moria"));
-        assertTrue(endings.top() < list.top() + list.size().height() + 1,
+        assertTrue(
+                endings.top() < list.top() + list.size().height() + 1,
                 "the last section is still below the fold, at " + endings.top());
     }
 
@@ -209,15 +209,16 @@ class ScrollingScreenTest {
             harness.click("jump-moria");
             var endings = harness.rectOf(harness.byId("section-moria"));
             var r = round;
-            assertTrue(endings.top() < list.top() + list.size().height() + 1,
+            assertTrue(
+                    endings.top() < list.top() + list.size().height() + 1,
                     () -> "round " + r + ": Moria never arrived; it is at " + endings.top());
 
             harness.click("jump-hobbiton");
             var beginnings = harness.rectOf(harness.byId("section-hobbiton"));
-            assertTrue(beginnings.top() >= list.top() - 1
+            assertTrue(
+                    beginnings.top() >= list.top() - 1
                             && beginnings.top() < list.top() + list.size().height() + 1,
-                    () -> "round " + r + ": Hobbiton never came back; it is at "
-                            + beginnings.top());
+                    () -> "round " + r + ": Hobbiton never came back; it is at " + beginnings.top());
         }
     }
 
@@ -230,7 +231,8 @@ class ScrollingScreenTest {
 
         harness.wheel(-4);
 
-        assertTrue(harness.rectOf(harness.byId("section-moria")).top() > afterJump + 10,
+        assertTrue(
+                harness.rectOf(harness.byId("section-moria")).top() > afterJump + 10,
                 "the jump dragged the list back rather than letting go");
     }
 }

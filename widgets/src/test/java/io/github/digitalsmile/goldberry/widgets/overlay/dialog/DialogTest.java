@@ -6,6 +6,14 @@ import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.ArrayList;
+import java.util.List;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
+
 import io.github.digitalsmile.goldberry.RendererRequirement;
 import io.github.digitalsmile.goldberry.bind.registry.ActionRegistry;
 import io.github.digitalsmile.goldberry.input.event.KeyEvent;
@@ -20,12 +28,6 @@ import io.github.digitalsmile.goldberry.widgets.controls.button.Button;
 import io.github.digitalsmile.goldberry.widgets.overlay.dialog.DialogAction.Role;
 import io.github.digitalsmile.goldberry.widgets.panel.Described;
 import io.github.digitalsmile.goldberry.widgets.text.Text;
-import java.util.ArrayList;
-import java.util.List;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.Test;
 
 /// `dialog` — §7's modal.
 ///
@@ -55,14 +57,15 @@ class DialogTest {
         children.add(new Text("Your draft has not been saved."));
         children.addAll(List.of(actions));
         return new ElementTree(
-                new Dialog("Unsaved changes", children,
+                new Dialog(
+                        "Unsaved changes",
+                        children,
                         io.github.digitalsmile.goldberry.widget.attr.Attributes.NONE.id("unsaved")),
                 host);
     }
 
     private static PointerEvent click() {
-        return new PointerEvent(PointerEvent.Kind.CLICKED, 0, 0,
-                PointerEvent.Button.PRIMARY, 1, null);
+        return new PointerEvent(PointerEvent.Kind.CLICKED, 0, 0, PointerEvent.Button.PRIMARY, 1, null);
     }
 
     private static KeyEvent press(Key key) {
@@ -112,8 +115,7 @@ class DialogTest {
         @Test
         @DisplayName("the actions are not in the body")
         void actionsAreNotContent() {
-            var dialog = new Dialog("t", List.of(new Text("body"),
-                    action("Cancel", Role.DISMISSIVE)), null);
+            var dialog = new Dialog("t", List.of(new Text("body"), action("Cancel", Role.DISMISSIVE)), null);
 
             assertEquals(1, dialog.content().size());
             assertEquals(1, dialog.actions().size());
@@ -136,7 +138,8 @@ class DialogTest {
                     action("Don't save", Role.NEUTRAL),
                     action("Cancel", Role.DISMISSIVE));
 
-            var labels = Described.of(tree, Button.class).stream().map(Button::label).toList();
+            var labels =
+                    Described.of(tree, Button.class).stream().map(Button::label).toList();
             assertEquals(List.of("Don't save", "Cancel", "Save"), labels);
         }
 
@@ -162,14 +165,14 @@ class DialogTest {
         @Test
         @DisplayName("two default buttons is a coin toss and is refused")
         void twoAffirmatives() {
-            var thrown = assertThrows(IllegalArgumentException.class,
-                    () -> new Dialog("t", action("Save", Role.AFFIRMATIVE),
-                            action("Save as", Role.AFFIRMATIVE)));
+            var thrown = assertThrows(
+                    IllegalArgumentException.class,
+                    () -> new Dialog("t", action("Save", Role.AFFIRMATIVE), action("Save as", Role.AFFIRMATIVE)));
 
             assertTrue(thrown.getMessage().contains("Enter"), thrown.getMessage());
-            assertThrows(IllegalArgumentException.class,
-                    () -> new Dialog("t", action("No", Role.DISMISSIVE),
-                            action("Cancel", Role.DISMISSIVE)));
+            assertThrows(
+                    IllegalArgumentException.class,
+                    () -> new Dialog("t", action("No", Role.DISMISSIVE), action("Cancel", Role.DISMISSIVE)));
         }
 
         @Test
@@ -213,7 +216,8 @@ class DialogTest {
 
             // The only timer is the zero-delay one that asks for focus; nothing
             // scheduled the 160ms exit.
-            assertFalse(host.scheduledDelays().contains(java.time.Duration.ofMillis(160)),
+            assertFalse(
+                    host.scheduledDelays().contains(java.time.Duration.ofMillis(160)),
                     "something started closing: " + host.scheduledDelays());
             assertTrue(pressed.isEmpty());
         }
@@ -228,8 +232,12 @@ class DialogTest {
             var panel = Described.first(tree, DialogPanel.class);
 
             panel.onKey(new KeyEvent(KeyEvent.Kind.PRESSED, Key.ESCAPE, Modifiers.NONE, true, null));
-            panel.onKey(new KeyEvent(KeyEvent.Kind.PRESSED, Key.ENTER,
-                    Modifiers.of(io.github.digitalsmile.goldberry.input.key.Mod.CTRL), false, null));
+            panel.onKey(new KeyEvent(
+                    KeyEvent.Kind.PRESSED,
+                    Key.ENTER,
+                    Modifiers.of(io.github.digitalsmile.goldberry.input.key.Mod.CTRL),
+                    false,
+                    null));
 
             assertTrue(pressed.isEmpty(), "a repeat or a Ctrl+Enter answered the dialog");
         }
@@ -305,10 +313,10 @@ class DialogTest {
             Described.first(tree, DialogPanel.class).onKey(press(Key.ESCAPE));
             tree.flush();
 
-            assertTrue(Described.first(tree, DialogPanel.class).isAnimating(),
+            assertTrue(
+                    Described.first(tree, DialogPanel.class).isAnimating(),
                     "the panel stopped asking for frames, so the fade never draws");
-            assertTrue(Described.first(tree, DialogScrim.class).isAnimating(),
-                    "the veil stopped asking for frames");
+            assertTrue(Described.first(tree, DialogScrim.class).isAnimating(), "the veil stopped asking for frames");
         }
 
         /// And it stops when the fade is over, even if the application does not
@@ -325,10 +333,10 @@ class DialogTest {
             host.tick();
             tree.flush();
 
-            assertFalse(Described.first(tree, DialogScrim.class).isAnimating(),
+            assertFalse(
+                    Described.first(tree, DialogScrim.class).isAnimating(),
                     "the veil is still asking for frames after it has gone");
-            assertEquals(0, Described.counting(tree, "dialog"),
-                    "a dialog that has closed is still describing a panel");
+            assertEquals(0, Described.counting(tree, "dialog"), "a dialog that has closed is still describing a panel");
         }
 
         /// §3: "out: base, reverse" — 160ms, against 240 to open.
@@ -339,7 +347,8 @@ class DialogTest {
             var tree = open(action("Cancel", Role.DISMISSIVE));
             Described.first(tree, DialogPanel.class).onKey(press(Key.ESCAPE));
 
-            assertTrue(host.scheduledDelays().contains(java.time.Duration.ofMillis(160)),
+            assertTrue(
+                    host.scheduledDelays().contains(java.time.Duration.ofMillis(160)),
                     "the delays were " + host.scheduledDelays());
         }
 
@@ -400,15 +409,15 @@ class DialogTest {
             var overlay = Dialogs.show(host, new Dialog("Delete this?", new Text("x")));
 
             assertInstanceOf(Dialog.class, overlay.widget());
-            assertEquals(Dialogs.DEFAULT_ID, ((Dialog) overlay.widget()).attributes().id());
+            assertEquals(
+                    Dialogs.DEFAULT_ID, ((Dialog) overlay.widget()).attributes().id());
             assertTrue(overlay.isFilling(), "a dialog that does not cover the window is not modal");
         }
 
         @Test
         @DisplayName("a dialog that names itself keeps its name")
         void showKeepsAName() {
-            var overlay = Dialogs.show(host,
-                    new Dialog("Delete this?", new Text("x")).id("confirm"));
+            var overlay = Dialogs.show(host, new Dialog("Delete this?", new Text("x")).id("confirm"));
 
             assertEquals("confirm", ((Dialog) overlay.widget()).attributes().id());
         }

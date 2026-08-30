@@ -1,32 +1,34 @@
 package io.github.digitalsmile.goldberry.css;
 
-import io.github.digitalsmile.goldberry.assets.BundledFont;
-import io.github.digitalsmile.goldberry.paint.Box;
-import io.github.digitalsmile.goldberry.render.Cursor;
-import io.github.digitalsmile.goldberry.motion.Easing;
-import io.github.digitalsmile.goldberry.log.Logs;
-import io.github.digitalsmile.goldberry.natives.yoga.style.Align;
-import io.github.digitalsmile.goldberry.natives.yoga.style.FlexDirection;
-import io.github.digitalsmile.goldberry.natives.yoga.Insets;
-import io.github.digitalsmile.goldberry.natives.yoga.Limits;
-import io.github.digitalsmile.goldberry.natives.yoga.style.PositionType;
-import io.github.digitalsmile.goldberry.natives.yoga.style.Wrap;
-import io.github.digitalsmile.goldberry.natives.yoga.style.Justify;
-import io.github.digitalsmile.goldberry.natives.yoga.style.Overflow;
-import io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+
 import org.slf4j.Logger;
+
+import io.github.digitalsmile.goldberry.assets.BundledFont;
+import io.github.digitalsmile.goldberry.css.cascade.StyleResolver;
+import io.github.digitalsmile.goldberry.css.cascade.Transitions;
 import io.github.digitalsmile.goldberry.css.parse.CssSyntaxException;
 import io.github.digitalsmile.goldberry.css.parse.Token;
 import io.github.digitalsmile.goldberry.css.parse.TokenType;
 import io.github.digitalsmile.goldberry.css.value.CssColor;
 import io.github.digitalsmile.goldberry.css.value.CssLength;
 import io.github.digitalsmile.goldberry.css.value.Transform;
-import io.github.digitalsmile.goldberry.css.cascade.StyleResolver;
-import io.github.digitalsmile.goldberry.css.cascade.Transitions;
+import io.github.digitalsmile.goldberry.log.Logs;
+import io.github.digitalsmile.goldberry.motion.Easing;
+import io.github.digitalsmile.goldberry.natives.yoga.Insets;
+import io.github.digitalsmile.goldberry.natives.yoga.Limits;
+import io.github.digitalsmile.goldberry.natives.yoga.style.Align;
+import io.github.digitalsmile.goldberry.natives.yoga.style.FlexDirection;
+import io.github.digitalsmile.goldberry.natives.yoga.style.Justify;
+import io.github.digitalsmile.goldberry.natives.yoga.style.Overflow;
+import io.github.digitalsmile.goldberry.natives.yoga.style.PositionType;
+import io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength;
+import io.github.digitalsmile.goldberry.natives.yoga.style.Wrap;
+import io.github.digitalsmile.goldberry.paint.Box;
+import io.github.digitalsmile.goldberry.render.Cursor;
 
 /// Every property a node resolved to, typed.
 ///
@@ -200,8 +202,7 @@ public record ComputedStyle(
     ///
     /// @param parent the resolved style of the nearest ancestor, or null
     public static ComputedStyle of(
-            Map<String, List<Token>> declarations, CssLength.Context context,
-            ComputedStyle parent) {
+            Map<String, List<Token>> declarations, CssLength.Context context, ComputedStyle parent) {
 
         Objects.requireNonNull(declarations, "declarations");
         Objects.requireNonNull(context, "context");
@@ -242,86 +243,65 @@ public record ComputedStyle(
     /// One declaration applied, or this style unchanged if it does not apply.
     private ComputedStyle with(String property, List<Token> value, CssLength.Context context) {
         return switch (property) {
-            case "flex-direction" -> keyword(value, FlexDirection.class)
-                    .map(this::direction)
-                    .orElseGet(() -> dropped(property, value));
+            case "flex-direction" ->
+                keyword(value, FlexDirection.class).map(this::direction).orElseGet(() -> dropped(property, value));
 
-            case "justify-content" -> keyword(value, Justify.class)
-                    .map(this::justifyContent)
-                    .orElseGet(() -> dropped(property, value));
+            case "justify-content" ->
+                keyword(value, Justify.class).map(this::justifyContent).orElseGet(() -> dropped(property, value));
 
-            case "align-items" -> keyword(value, Align.class)
-                    .map(this::alignItems)
-                    .orElseGet(() -> dropped(property, value));
+            case "align-items" ->
+                keyword(value, Align.class).map(this::alignItems).orElseGet(() -> dropped(property, value));
 
             // Not `keyword(value, Wrap.class)`: CSS spells the default `nowrap`
             // as one word and `YGWrap` spells it `NoWrap`, so the two disagree
             // by a hyphen the generic parser inserts. `wrap-reverse` and `wrap`
             // agree, which is what makes this a one-keyword exception rather
             // than a table.
-            case "flex-wrap" -> wrap(value)
-                    .map(this::wrap)
-                    .orElseGet(() -> dropped(property, value));
+            case "flex-wrap" -> wrap(value).map(this::wrap).orElseGet(() -> dropped(property, value));
 
-            case "width" -> length(value, context)
-                    .map(this::width)
-                    .orElseGet(() -> dropped(property, value));
+            case "width" -> length(value, context).map(this::width).orElseGet(() -> dropped(property, value));
 
-            case "height" -> length(value, context)
-                    .map(this::height)
-                    .orElseGet(() -> dropped(property, value));
+            case "height" -> length(value, context).map(this::height).orElseGet(() -> dropped(property, value));
 
             // CSS's 1-4 value shorthand: one is every edge, two is
             // vertical/horizontal, three adds a bottom, four is clockwise from
             // the top. `padding: 0 12px` is the form a control is written in, so
             // supporting only the one-value form would mean no button could
             // state its own metrics.
-            case "padding" -> insets(value, context)
-                    .map(this::padding)
-                    .orElseGet(() -> dropped(property, value));
+            case "padding" -> insets(value, context).map(this::padding).orElseGet(() -> dropped(property, value));
 
             case "padding-top", "padding-right", "padding-bottom", "padding-left" ->
-                    length(value, context)
-                            .map(v -> padding(edge(padding, edgeOf(property), v)))
-                            .orElseGet(() -> dropped(property, value));
+                length(value, context)
+                        .map(v -> padding(edge(padding, edgeOf(property), v)))
+                        .orElseGet(() -> dropped(property, value));
 
             // §2 asks a `dialog` for "min width 320, max 80% window", and until
             // these four existed the scrim's padding was a de-facto maximum with
             // no minimum at all: a dialog with three words in it was three words
             // wide. `toast` and `tooltip` each wrote a *width* meaning a maximum
             // for the same reason (ADR-0181).
-            case "min-width" -> length(value, context)
-                    .map(v -> limits(limits.minWidth(v)))
-                    .orElseGet(() -> dropped(property, value));
+            case "min-width" ->
+                length(value, context).map(v -> limits(limits.minWidth(v))).orElseGet(() -> dropped(property, value));
 
-            case "max-width" -> length(value, context)
-                    .map(v -> limits(limits.maxWidth(v)))
-                    .orElseGet(() -> dropped(property, value));
+            case "max-width" ->
+                length(value, context).map(v -> limits(limits.maxWidth(v))).orElseGet(() -> dropped(property, value));
 
-            case "min-height" -> length(value, context)
-                    .map(v -> limits(limits.minHeight(v)))
-                    .orElseGet(() -> dropped(property, value));
+            case "min-height" ->
+                length(value, context).map(v -> limits(limits.minHeight(v))).orElseGet(() -> dropped(property, value));
 
-            case "max-height" -> length(value, context)
-                    .map(v -> limits(limits.maxHeight(v)))
-                    .orElseGet(() -> dropped(property, value));
+            case "max-height" ->
+                length(value, context).map(v -> limits(limits.maxHeight(v))).orElseGet(() -> dropped(property, value));
 
-            case "gap" -> length(value, context)
-                    .map(this::gap)
-                    .orElseGet(() -> dropped(property, value));
+            case "gap" -> length(value, context).map(this::gap).orElseGet(() -> dropped(property, value));
 
-            case "flex-grow" -> number(value)
-                    .filter(v -> v >= 0)
-                    .map(this::flexGrow)
-                    .orElseGet(() -> dropped(property, value));
+            case "flex-grow" ->
+                number(value).filter(v -> v >= 0).map(this::flexGrow).orElseGet(() -> dropped(property, value));
 
             // §8 lists `flex-grow/shrink/basis` and only grow was implemented, so
             // every fixed-size part in the catalog was negotiable and a narrow
             // window squashed it (ADR-0076).
-            case "flex-shrink" -> number(value)
-                    .filter(v -> v >= 0)
-                    .map(this::flexShrink)
-                    .orElseGet(() -> dropped(property, value));
+            case "flex-shrink" ->
+                number(value).filter(v -> v >= 0).map(this::flexShrink).orElseGet(() -> dropped(property, value));
 
             // §8 has listed `position` since the beginning and nothing had
             // needed it: a segmented control's indicator is the first box in
@@ -329,20 +309,17 @@ public record ComputedStyle(
             // beside them. `static` is admitted as well as CSS's two, because it
             // is how a container declines to be the thing an absolute
             // descendant is placed against (ADR-0099).
-            case "position" -> keyword(value, PositionType.class)
-                    .map(this::position)
-                    .orElseGet(() -> dropped(property, value));
+            case "position" ->
+                keyword(value, PositionType.class).map(this::position).orElseGet(() -> dropped(property, value));
 
             // The same 1-4 shorthand `padding` takes, over the same [Insets] --
             // an inset is a padding measured from the outside.
-            case "inset" -> insets(value, context)
-                    .map(this::inset)
-                    .orElseGet(() -> dropped(property, value));
+            case "inset" -> insets(value, context).map(this::inset).orElseGet(() -> dropped(property, value));
 
             case "top", "right", "bottom", "left" ->
-                    length(value, context)
-                            .map(v -> inset(edge(inset, edgeOf(property), v)))
-                            .orElseGet(() -> dropped(property, value));
+                length(value, context)
+                        .map(v -> inset(edge(inset, edgeOf(property), v)))
+                        .orElseGet(() -> dropped(property, value));
 
             // Both of Yoga's non-visible values are admitted, and they size
             // identically. What separates them is above the layout engine: a
@@ -350,9 +327,7 @@ public record ComputedStyle(
             // `hidden`, so the keyword is how a stylesheet says which of the
             // two a box is (ADR-0114). `auto` resolves to SCROLL and is told
             // apart by the widget, not by the box.
-            case "overflow" -> overflow(value)
-                    .map(this::overflow)
-                    .orElseGet(() -> dropped(property, value));
+            case "overflow" -> overflow(value).map(this::overflow).orElseGet(() -> dropped(property, value));
 
             // `background` is CSS's shorthand and `background-color` its longhand,
             // and the toolkit implements the one layer of it that exists: a
@@ -362,22 +337,17 @@ public record ComputedStyle(
             // it, for the same sentence that made it write `border: none` on the
             // line above: an editor inside a control is that control's interior,
             // with no fill of its own (ADR-0183).
-            case "background" -> backgroundLayer(value)
-                    .map(this::background)
-                    .orElseGet(() -> dropped(property, value));
+            case "background" -> backgroundLayer(value).map(this::background).orElseGet(() -> dropped(property, value));
 
-            case "background-color" -> colour(value)
-                    .map(this::background)
-                    .orElseGet(() -> dropped(property, value));
+            case "background-color" -> colour(value).map(this::background).orElseGet(() -> dropped(property, value));
 
-            case "color" -> colour(value)
-                    .map(this::color)
-                    .orElseGet(() -> dropped(property, value));
+            case "color" -> colour(value).map(this::color).orElseGet(() -> dropped(property, value));
 
-            case "opacity" -> number(value)
-                    .map(v -> Math.max(0, Math.min(1, v)))
-                    .map(this::opacity)
-                    .orElseGet(() -> dropped(property, value));
+            case "opacity" ->
+                number(value)
+                        .map(v -> Math.max(0, Math.min(1, v)))
+                        .map(this::opacity)
+                        .orElseGet(() -> dropped(property, value));
 
             // --- the decoration half (docs/design-system.md §1.5, §2.2) -------
             //
@@ -386,41 +356,46 @@ public record ComputedStyle(
             // second form is for a box that meets a rounded parent on one edge
             // and a square sibling on the other, which is `group-box-title` and
             // which ADR-0216 is about. `full` is spelled `9999px`.
-            case "border-radius" -> corners(value, context)
-                    .map(v -> decoration(decoration.corners(v)))
-                    .orElseGet(() -> dropped(property, value));
+            case "border-radius" ->
+                corners(value, context)
+                        .map(v -> decoration(decoration.corners(v)))
+                        .orElseGet(() -> dropped(property, value));
 
-            case "border-width" -> points(value, context)
-                    .map(v -> decoration(decoration.borderWidth(v)))
-                    .orElseGet(() -> dropped(property, value));
+            case "border-width" ->
+                points(value, context)
+                        .map(v -> decoration(decoration.borderWidth(v)))
+                        .orElseGet(() -> dropped(property, value));
 
-            case "border-color" -> colour(value)
-                    .map(v -> decoration(decoration.borderColor(v)))
-                    .orElseGet(() -> dropped(property, value));
+            case "border-color" ->
+                colour(value).map(v -> decoration(decoration.borderColor(v))).orElseGet(() -> dropped(property, value));
 
-            case "outline-width" -> points(value, context)
-                    .map(v -> decoration(decoration.outlineWidth(v)))
-                    .orElseGet(() -> dropped(property, value));
+            case "outline-width" ->
+                points(value, context)
+                        .map(v -> decoration(decoration.outlineWidth(v)))
+                        .orElseGet(() -> dropped(property, value));
 
-            case "outline-color" -> colour(value)
-                    .map(v -> decoration(decoration.outlineColor(v)))
-                    .orElseGet(() -> dropped(property, value));
+            case "outline-color" ->
+                colour(value)
+                        .map(v -> decoration(decoration.outlineColor(v)))
+                        .orElseGet(() -> dropped(property, value));
 
             // Negative is legal and meaningful: it pulls the ring inside the
             // border box, which is what a control flush against its neighbour
             // needs. Hence no clamp here and none in `Decoration`.
-            case "outline-offset" -> points(value, context)
-                    .map(v -> decoration(decoration.outlineOffset(v)))
-                    .orElseGet(() -> dropped(property, value));
+            case "outline-offset" ->
+                points(value, context)
+                        .map(v -> decoration(decoration.outlineOffset(v)))
+                        .orElseGet(() -> dropped(property, value));
 
-            case "border" -> stroke(value, context)
-                    .map(v -> decoration(decoration.border(v.width(), v.argb())))
-                    .orElseGet(() -> dropped(property, value));
+            case "border" ->
+                stroke(value, context)
+                        .map(v -> decoration(decoration.border(v.width(), v.argb())))
+                        .orElseGet(() -> dropped(property, value));
 
-            case "outline" -> stroke(value, context)
-                    .map(v -> decoration(
-                            decoration.outline(v.width(), v.argb(), decoration.outlineOffset())))
-                    .orElseGet(() -> dropped(property, value));
+            case "outline" ->
+                stroke(value, context)
+                        .map(v -> decoration(decoration.outline(v.width(), v.argb(), decoration.outlineOffset())))
+                        .orElseGet(() -> dropped(property, value));
 
             // --- the typography half (docs/design-system.md §1.4) ------------
             //
@@ -428,37 +403,38 @@ public record ComputedStyle(
             // every label under it and is why `Typography` is one record: the
             // three travel together down the tree and are read together by the
             // one thing that resolves a `Font`.
-            case "font-family" -> family(value)
-                    .map(v -> typography(typography.family(v)))
-                    .orElseGet(() -> dropped(property, value));
+            case "font-family" ->
+                family(value).map(v -> typography(typography.family(v))).orElseGet(() -> dropped(property, value));
 
-            case "font-size" -> points(value, context)
-                    .filter(v -> v > 0)
-                    .map(v -> typography(typography.size(v)))
-                    .orElseGet(() -> dropped(property, value));
+            case "font-size" ->
+                points(value, context)
+                        .filter(v -> v > 0)
+                        .map(v -> typography(typography.size(v)))
+                        .orElseGet(() -> dropped(property, value));
 
-            case "font-weight" -> weight(value)
-                    .map(v -> typography(typography.weight(v)))
-                    .orElseGet(() -> dropped(property, value));
+            case "font-weight" ->
+                weight(value).map(v -> typography(typography.weight(v))).orElseGet(() -> dropped(property, value));
 
             // A bare number is a multiple of the font size -- `line-height: 1.4`
             // -- which is the form that survives a font-size change on a
             // descendant. A length is absolute. Both are CSS's.
-            case "line-height" -> lineHeight(value, context)
-                    .map(v -> typography(typography.lineHeight(v)))
-                    .orElseGet(() -> dropped(property, value));
+            case "line-height" ->
+                lineHeight(value, context)
+                        .map(v -> typography(typography.lineHeight(v)))
+                        .orElseGet(() -> dropped(property, value));
 
             // --- motion (docs/design-system.md §1.7) --------------------------
             //
             // Resolved by the cascade like everything else, which is what lets
             // `button` and `button:hover` declare different transitions and lets
             // an application turn one off by overriding a rule.
-            case "transition" -> transitionList(value)
-                    // A lambda and not `this::transitions`: the accessor and the
-                    // wither share a name, and a method reference cannot say
-                    // which.
-                    .map(v -> transitions(v))
-                    .orElseGet(() -> dropped(property, value));
+            case "transition" ->
+                transitionList(value)
+                        // A lambda and not `this::transitions`: the accessor and the
+                        // wither share a name, and a method reference cannot say
+                        // which.
+                        .map(v -> transitions(v))
+                        .orElseGet(() -> dropped(property, value));
 
             // Unlike every other property here, these two are resolved but not
             // finished: what lands is the function list and the origin, and the
@@ -475,18 +451,14 @@ public record ComputedStyle(
 
             case "transform-origin" -> {
                 var parsed = Transform.parseOrigin(value);
-                yield parsed == null
-                        ? dropped(property, value)
-                        : transform(transform.origin(parsed));
+                yield parsed == null ? dropped(property, value) : transform(transform.origin(parsed));
             }
 
             // Resolved here and read by neither engine: the cursor is carried
             // through the cascade to the box tree, where hit testing picks it up
             // (§7.3). The enum's names are CSS's, so `ew-resize` maps onto
             // `EW_RESIZE` by the same rule `space-between` maps onto Yoga.
-            case "cursor" -> keyword(value, Cursor.class)
-                    .map(this::cursor)
-                    .orElseGet(() -> dropped(property, value));
+            case "cursor" -> keyword(value, Cursor.class).map(this::cursor).orElseGet(() -> dropped(property, value));
 
             // Not an error. §8's property list is longer than this record, and a
             // stylesheet naming `box-shadow` before it is implemented should not
@@ -512,8 +484,7 @@ public record ComputedStyle(
     /// property are two reports. Bounded because a stylesheet has finitely many
     /// declarations — with a cap anyway, since a `var()` resolving to a fresh bad
     /// value each frame would otherwise be a slow leak in a diagnostic.
-    private static final java.util.Set<String> REPORTED =
-            java.util.concurrent.ConcurrentHashMap.newKeySet();
+    private static final java.util.Set<String> REPORTED = java.util.concurrent.ConcurrentHashMap.newKeySet();
 
     /// How many distinct drops are remembered before the deduplication gives up
     /// and lets them all through.
@@ -556,158 +527,576 @@ public record ComputedStyle(
 
     public ComputedStyle direction(FlexDirection v) {
         return new ComputedStyle(
-                v, justifyContent, alignItems, wrap, width, height, limits, padding, gap, flexGrow, flexShrink,
-                position, inset, overflow, background, color, opacity, decoration, typography, transitions,
-                transform, cursor);
+                v,
+                justifyContent,
+                alignItems,
+                wrap,
+                width,
+                height,
+                limits,
+                padding,
+                gap,
+                flexGrow,
+                flexShrink,
+                position,
+                inset,
+                overflow,
+                background,
+                color,
+                opacity,
+                decoration,
+                typography,
+                transitions,
+                transform,
+                cursor);
     }
 
     public ComputedStyle justifyContent(Justify v) {
         return new ComputedStyle(
-                direction, v, alignItems, wrap, width, height, limits, padding, gap, flexGrow, flexShrink,
-                position, inset, overflow, background, color, opacity, decoration, typography, transitions,
-                transform, cursor);
+                direction,
+                v,
+                alignItems,
+                wrap,
+                width,
+                height,
+                limits,
+                padding,
+                gap,
+                flexGrow,
+                flexShrink,
+                position,
+                inset,
+                overflow,
+                background,
+                color,
+                opacity,
+                decoration,
+                typography,
+                transitions,
+                transform,
+                cursor);
     }
 
     public ComputedStyle alignItems(Align v) {
         return new ComputedStyle(
-                direction, justifyContent, v, wrap, width, height, limits, padding, gap, flexGrow, flexShrink,
-                position, inset, overflow, background, color, opacity, decoration, typography, transitions,
-                transform, cursor);
+                direction,
+                justifyContent,
+                v,
+                wrap,
+                width,
+                height,
+                limits,
+                padding,
+                gap,
+                flexGrow,
+                flexShrink,
+                position,
+                inset,
+                overflow,
+                background,
+                color,
+                opacity,
+                decoration,
+                typography,
+                transitions,
+                transform,
+                cursor);
     }
 
     public ComputedStyle wrap(Wrap v) {
         return new ComputedStyle(
-                direction, justifyContent, alignItems, v, width, height, limits, padding, gap, flexGrow, flexShrink,
-                position, inset, overflow, background, color, opacity, decoration, typography, transitions,
-                transform, cursor);
+                direction,
+                justifyContent,
+                alignItems,
+                v,
+                width,
+                height,
+                limits,
+                padding,
+                gap,
+                flexGrow,
+                flexShrink,
+                position,
+                inset,
+                overflow,
+                background,
+                color,
+                opacity,
+                decoration,
+                typography,
+                transitions,
+                transform,
+                cursor);
     }
 
     public ComputedStyle width(StyleLength v) {
         return new ComputedStyle(
-                direction, justifyContent, alignItems, wrap, v, height, limits, padding, gap, flexGrow,
-                flexShrink, position, inset, overflow, background, color, opacity, decoration, typography,
-                transitions, transform, cursor);
+                direction,
+                justifyContent,
+                alignItems,
+                wrap,
+                v,
+                height,
+                limits,
+                padding,
+                gap,
+                flexGrow,
+                flexShrink,
+                position,
+                inset,
+                overflow,
+                background,
+                color,
+                opacity,
+                decoration,
+                typography,
+                transitions,
+                transform,
+                cursor);
     }
 
     public ComputedStyle height(StyleLength v) {
         return new ComputedStyle(
-                direction, justifyContent, alignItems, wrap, width, v, limits, padding, gap, flexGrow,
-                flexShrink, position, inset, overflow, background, color, opacity, decoration, typography,
-                transitions, transform, cursor);
+                direction,
+                justifyContent,
+                alignItems,
+                wrap,
+                width,
+                v,
+                limits,
+                padding,
+                gap,
+                flexGrow,
+                flexShrink,
+                position,
+                inset,
+                overflow,
+                background,
+                color,
+                opacity,
+                decoration,
+                typography,
+                transitions,
+                transform,
+                cursor);
     }
 
     public ComputedStyle padding(Insets v) {
         return new ComputedStyle(
-                direction, justifyContent, alignItems, wrap, width, height, limits, v, gap, flexGrow, flexShrink,
-                position, inset, overflow, background, color, opacity, decoration, typography, transitions,
-                transform, cursor);
+                direction,
+                justifyContent,
+                alignItems,
+                wrap,
+                width,
+                height,
+                limits,
+                v,
+                gap,
+                flexGrow,
+                flexShrink,
+                position,
+                inset,
+                overflow,
+                background,
+                color,
+                opacity,
+                decoration,
+                typography,
+                transitions,
+                transform,
+                cursor);
     }
 
     /// See [#limits]. Public for the same reason every other wither is: the
     /// cascade builds a style one declaration at a time.
     public ComputedStyle limits(Limits v) {
         return new ComputedStyle(
-                direction, justifyContent, alignItems, wrap, width, height, v, padding, gap, flexGrow,
-                flexShrink, position, inset, overflow, background, color, opacity, decoration, typography,
-                transitions, transform, cursor);
+                direction,
+                justifyContent,
+                alignItems,
+                wrap,
+                width,
+                height,
+                v,
+                padding,
+                gap,
+                flexGrow,
+                flexShrink,
+                position,
+                inset,
+                overflow,
+                background,
+                color,
+                opacity,
+                decoration,
+                typography,
+                transitions,
+                transform,
+                cursor);
     }
 
     public ComputedStyle gap(StyleLength v) {
         return new ComputedStyle(
-                direction, justifyContent, alignItems, wrap, width, height, limits, padding, v, flexGrow,
-                flexShrink, position, inset, overflow, background, color, opacity, decoration, typography,
-                transitions, transform, cursor);
+                direction,
+                justifyContent,
+                alignItems,
+                wrap,
+                width,
+                height,
+                limits,
+                padding,
+                v,
+                flexGrow,
+                flexShrink,
+                position,
+                inset,
+                overflow,
+                background,
+                color,
+                opacity,
+                decoration,
+                typography,
+                transitions,
+                transform,
+                cursor);
     }
 
     public ComputedStyle flexGrow(double v) {
         return new ComputedStyle(
-                direction, justifyContent, alignItems, wrap, width, height, limits, padding, gap, v, flexShrink,
-                position, inset, overflow, background, color, opacity, decoration, typography, transitions,
-                transform, cursor);
+                direction,
+                justifyContent,
+                alignItems,
+                wrap,
+                width,
+                height,
+                limits,
+                padding,
+                gap,
+                v,
+                flexShrink,
+                position,
+                inset,
+                overflow,
+                background,
+                color,
+                opacity,
+                decoration,
+                typography,
+                transitions,
+                transform,
+                cursor);
     }
 
     public ComputedStyle flexShrink(double v) {
         return new ComputedStyle(
-                direction, justifyContent, alignItems, wrap, width, height, limits, padding, gap, flexGrow, v,
-                position, inset, overflow, background, color, opacity, decoration, typography, transitions,
-                transform, cursor);
+                direction,
+                justifyContent,
+                alignItems,
+                wrap,
+                width,
+                height,
+                limits,
+                padding,
+                gap,
+                flexGrow,
+                v,
+                position,
+                inset,
+                overflow,
+                background,
+                color,
+                opacity,
+                decoration,
+                typography,
+                transitions,
+                transform,
+                cursor);
     }
 
     public ComputedStyle position(PositionType v) {
         return new ComputedStyle(
-                direction, justifyContent, alignItems, wrap, width, height, limits, padding, gap, flexGrow,
-                flexShrink, v, inset, overflow, background, color, opacity, decoration, typography,
-                transitions, transform, cursor);
+                direction,
+                justifyContent,
+                alignItems,
+                wrap,
+                width,
+                height,
+                limits,
+                padding,
+                gap,
+                flexGrow,
+                flexShrink,
+                v,
+                inset,
+                overflow,
+                background,
+                color,
+                opacity,
+                decoration,
+                typography,
+                transitions,
+                transform,
+                cursor);
     }
 
     public ComputedStyle inset(Insets v) {
         return new ComputedStyle(
-                direction, justifyContent, alignItems, wrap, width, height, limits, padding, gap, flexGrow,
-                flexShrink, position, v, overflow, background, color, opacity, decoration, typography,
-                transitions, transform, cursor);
+                direction,
+                justifyContent,
+                alignItems,
+                wrap,
+                width,
+                height,
+                limits,
+                padding,
+                gap,
+                flexGrow,
+                flexShrink,
+                position,
+                v,
+                overflow,
+                background,
+                color,
+                opacity,
+                decoration,
+                typography,
+                transitions,
+                transform,
+                cursor);
     }
 
     public ComputedStyle overflow(Overflow v) {
         return new ComputedStyle(
-                direction, justifyContent, alignItems, wrap, width, height, limits, padding, gap, flexGrow,
-                flexShrink, position, inset, v, background, color, opacity, decoration, typography,
-                transitions, transform, cursor);
+                direction,
+                justifyContent,
+                alignItems,
+                wrap,
+                width,
+                height,
+                limits,
+                padding,
+                gap,
+                flexGrow,
+                flexShrink,
+                position,
+                inset,
+                v,
+                background,
+                color,
+                opacity,
+                decoration,
+                typography,
+                transitions,
+                transform,
+                cursor);
     }
 
     public ComputedStyle background(int v) {
         return new ComputedStyle(
-                direction, justifyContent, alignItems, wrap, width, height, limits, padding, gap, flexGrow,
-                flexShrink, position, inset, overflow, v, color, opacity, decoration, typography,
-                transitions, transform, cursor);
+                direction,
+                justifyContent,
+                alignItems,
+                wrap,
+                width,
+                height,
+                limits,
+                padding,
+                gap,
+                flexGrow,
+                flexShrink,
+                position,
+                inset,
+                overflow,
+                v,
+                color,
+                opacity,
+                decoration,
+                typography,
+                transitions,
+                transform,
+                cursor);
     }
 
     public ComputedStyle color(int v) {
         return new ComputedStyle(
-                direction, justifyContent, alignItems, wrap, width, height, limits, padding, gap, flexGrow,
-                flexShrink, position, inset, overflow, background, v, opacity, decoration, typography,
-                transitions, transform, cursor);
+                direction,
+                justifyContent,
+                alignItems,
+                wrap,
+                width,
+                height,
+                limits,
+                padding,
+                gap,
+                flexGrow,
+                flexShrink,
+                position,
+                inset,
+                overflow,
+                background,
+                v,
+                opacity,
+                decoration,
+                typography,
+                transitions,
+                transform,
+                cursor);
     }
 
     public ComputedStyle opacity(double v) {
         return new ComputedStyle(
-                direction, justifyContent, alignItems, wrap, width, height, limits, padding, gap, flexGrow,
-                flexShrink, position, inset, overflow, background, color, v, decoration, typography,
-                transitions, transform, cursor);
+                direction,
+                justifyContent,
+                alignItems,
+                wrap,
+                width,
+                height,
+                limits,
+                padding,
+                gap,
+                flexGrow,
+                flexShrink,
+                position,
+                inset,
+                overflow,
+                background,
+                color,
+                v,
+                decoration,
+                typography,
+                transitions,
+                transform,
+                cursor);
     }
 
     public ComputedStyle decoration(Decoration v) {
         return new ComputedStyle(
-                direction, justifyContent, alignItems, wrap, width, height, limits, padding, gap, flexGrow,
-                flexShrink, position, inset, overflow, background, color, opacity, v, typography,
-                transitions, transform, cursor);
+                direction,
+                justifyContent,
+                alignItems,
+                wrap,
+                width,
+                height,
+                limits,
+                padding,
+                gap,
+                flexGrow,
+                flexShrink,
+                position,
+                inset,
+                overflow,
+                background,
+                color,
+                opacity,
+                v,
+                typography,
+                transitions,
+                transform,
+                cursor);
     }
 
     public ComputedStyle typography(Typography v) {
         return new ComputedStyle(
-                direction, justifyContent, alignItems, wrap, width, height, limits, padding, gap, flexGrow,
-                flexShrink, position, inset, overflow, background, color, opacity, decoration, v,
-                transitions, transform, cursor);
+                direction,
+                justifyContent,
+                alignItems,
+                wrap,
+                width,
+                height,
+                limits,
+                padding,
+                gap,
+                flexGrow,
+                flexShrink,
+                position,
+                inset,
+                overflow,
+                background,
+                color,
+                opacity,
+                decoration,
+                v,
+                transitions,
+                transform,
+                cursor);
     }
 
     public ComputedStyle transitions(Transitions v) {
         return new ComputedStyle(
-                direction, justifyContent, alignItems, wrap, width, height, limits, padding, gap, flexGrow,
-                flexShrink, position, inset, overflow, background, color, opacity, decoration, typography, v,
-                transform, cursor);
+                direction,
+                justifyContent,
+                alignItems,
+                wrap,
+                width,
+                height,
+                limits,
+                padding,
+                gap,
+                flexGrow,
+                flexShrink,
+                position,
+                inset,
+                overflow,
+                background,
+                color,
+                opacity,
+                decoration,
+                typography,
+                v,
+                transform,
+                cursor);
     }
 
     public ComputedStyle transform(Transform v) {
         return new ComputedStyle(
-                direction, justifyContent, alignItems, wrap, width, height, limits, padding, gap, flexGrow,
-                flexShrink, position, inset, overflow, background, color, opacity, decoration, typography,
-                transitions, v, cursor);
+                direction,
+                justifyContent,
+                alignItems,
+                wrap,
+                width,
+                height,
+                limits,
+                padding,
+                gap,
+                flexGrow,
+                flexShrink,
+                position,
+                inset,
+                overflow,
+                background,
+                color,
+                opacity,
+                decoration,
+                typography,
+                transitions,
+                v,
+                cursor);
     }
 
     public ComputedStyle cursor(Cursor v) {
         return new ComputedStyle(
-                direction, justifyContent, alignItems, wrap, width, height, limits, padding, gap, flexGrow,
-                flexShrink, position, inset, overflow, background, color, opacity, decoration, typography,
-                transitions, transform, v);
+                direction,
+                justifyContent,
+                alignItems,
+                wrap,
+                width,
+                height,
+                limits,
+                padding,
+                gap,
+                flexGrow,
+                flexShrink,
+                position,
+                inset,
+                overflow,
+                background,
+                color,
+                opacity,
+                decoration,
+                typography,
+                transitions,
+                transform,
+                v);
     }
 
     // --- value parsing -----------------------------------------------------
@@ -742,8 +1131,7 @@ public record ComputedStyle(
                 var name = token.text();
                 // `Inter, sans-serif` and `"JetBrains Mono", monospace` both stop
                 // at the first name; a trailing comma belongs to the list syntax.
-                return java.util.Optional.of(
-                        name.endsWith(",") ? name.substring(0, name.length() - 1) : name);
+                return java.util.Optional.of(name.endsWith(",") ? name.substring(0, name.length() - 1) : name);
             }
         }
         return java.util.Optional.empty();
@@ -776,8 +1164,7 @@ public record ComputedStyle(
     ///
     /// Returned already negated in the ratio case, which is how [Typography]
     /// carries both forms in one field.
-    private static java.util.Optional<Double> lineHeight(
-            List<Token> value, CssLength.Context context) {
+    private static java.util.Optional<Double> lineHeight(List<Token> value, CssLength.Context context) {
 
         var absolute = points(value, context);
         if (absolute.isPresent()) {
@@ -809,13 +1196,13 @@ public record ComputedStyle(
     private java.util.Optional<Transitions> transitionList(List<Token> value) {
 
         var entries = splitOnCommas(value);
-        if (entries.size() == 1 && entries.getFirst().size() == 1
+        if (entries.size() == 1
+                && entries.getFirst().size() == 1
                 && entries.getFirst().getFirst().isIdent("none")) {
             return java.util.Optional.of(Transitions.NONE);
         }
 
-        var parsed = new java.util.EnumMap<Transitions.Animatable, Transitions.Timing>(
-                Transitions.Animatable.class);
+        var parsed = new java.util.EnumMap<Transitions.Animatable, Transitions.Timing>(Transitions.Animatable.class);
         for (var entry : entries) {
             var parts = split(entry);
             if (parts.isEmpty()) {
@@ -861,12 +1248,14 @@ public record ComputedStyle(
             if (property == null || duration == null) {
                 return java.util.Optional.empty();
             }
-            parsed.put(property, new Transitions.Timing(
-                    duration,
-                    // §1.7's default for anything that does not say: an enter
-                    // curve, because most transitions are something arriving.
-                    easing == null ? Easing.EASE_ENTER : easing,
-                    delay == null ? 0 : delay));
+            parsed.put(
+                    property,
+                    new Transitions.Timing(
+                            duration,
+                            // §1.7's default for anything that does not say: an enter
+                            // curve, because most transitions are something arriving.
+                            easing == null ? Easing.EASE_ENTER : easing,
+                            delay == null ? 0 : delay));
         }
         return java.util.Optional.of(new Transitions(parsed));
     }
@@ -914,8 +1303,7 @@ public record ComputedStyle(
     }
 
     /// The width and colour of a `border:` or `outline:` shorthand.
-    private record Stroke(double width, int argb) {
-    }
+    private record Stroke(double width, int argb) {}
 
     /// CSS's `<width> || <style> || <color>` shorthand, in any order.
     ///
@@ -938,8 +1326,7 @@ public record ComputedStyle(
                 }
                 if (STROKE_STYLES.contains(keyword)) {
                     if (!keyword.equals("solid")) {
-                        LOG.debug("drawing \"{}\" as solid: it is the only border style"
-                                + " the painter has", keyword);
+                        LOG.debug("drawing \"{}\" as solid: it is the only border style" + " the painter has", keyword);
                     }
                     continue;
                 }
@@ -958,13 +1345,11 @@ public record ComputedStyle(
         // A shorthand always resets what it does not mention, which is what makes
         // it a shorthand rather than three separate declarations: `border: red`
         // after `border: 2px solid blue` is a 0px border, not a red 2px one.
-        return java.util.Optional.of(new Stroke(
-                width == null ? 0 : width,
-                argb == null ? CssColor.TRANSPARENT : argb));
+        return java.util.Optional.of(new Stroke(width == null ? 0 : width, argb == null ? CssColor.TRANSPARENT : argb));
     }
 
-    private static final java.util.Set<String> STROKE_STYLES = java.util.Set.of(
-            "solid", "dashed", "dotted", "double", "groove", "ridge", "inset", "outset");
+    private static final java.util.Set<String> STROKE_STYLES =
+            java.util.Set.of("solid", "dashed", "dotted", "double", "groove", "ridge", "inset", "outset");
 
     private static java.util.Optional<Integer> colour(List<Token> value) {
         return java.util.Optional.ofNullable(CssColor.parse(value));
@@ -988,13 +1373,14 @@ public record ComputedStyle(
             }
             parts.add(length);
         }
-        return java.util.Optional.ofNullable(switch (parts.size()) {
-            case 1 -> Insets.all(parts.getFirst());
-            case 2 -> Insets.symmetric(parts.get(0), parts.get(1));
-            case 3 -> new Insets(parts.get(0), parts.get(1), parts.get(2), parts.get(1));
-            case 4 -> new Insets(parts.get(0), parts.get(1), parts.get(2), parts.get(3));
-            default -> null;
-        });
+        return java.util.Optional.ofNullable(
+                switch (parts.size()) {
+                    case 1 -> Insets.all(parts.getFirst());
+                    case 2 -> Insets.symmetric(parts.get(0), parts.get(1));
+                    case 3 -> new Insets(parts.get(0), parts.get(1), parts.get(2), parts.get(1));
+                    case 4 -> new Insets(parts.get(0), parts.get(1), parts.get(2), parts.get(3));
+                    default -> null;
+                });
     }
 
     /// CSS's 1-4 value corner shorthand, in CSS's order.
@@ -1017,13 +1403,14 @@ public record ComputedStyle(
             }
             parts.add(radius.get());
         }
-        return java.util.Optional.ofNullable(switch (parts.size()) {
-            case 1 -> Corners.all(parts.getFirst());
-            case 2 -> new Corners(parts.get(0), parts.get(1), parts.get(0), parts.get(1));
-            case 3 -> new Corners(parts.get(0), parts.get(1), parts.get(2), parts.get(1));
-            case 4 -> new Corners(parts.get(0), parts.get(1), parts.get(2), parts.get(3));
-            default -> null;
-        });
+        return java.util.Optional.ofNullable(
+                switch (parts.size()) {
+                    case 1 -> Corners.all(parts.getFirst());
+                    case 2 -> new Corners(parts.get(0), parts.get(1), parts.get(0), parts.get(1));
+                    case 3 -> new Corners(parts.get(0), parts.get(1), parts.get(2), parts.get(1));
+                    case 4 -> new Corners(parts.get(0), parts.get(1), parts.get(2), parts.get(3));
+                    default -> null;
+                });
     }
 
     /// The `background` shorthand: a colour, or `none`.
@@ -1035,7 +1422,8 @@ public record ComputedStyle(
     /// it is turning off. The same answer `border: none` gives, one property up.
     private static java.util.Optional<Integer> backgroundLayer(List<Token> value) {
         var parts = split(value);
-        if (parts.size() == 1 && parts.getFirst().size() == 1
+        if (parts.size() == 1
+                && parts.getFirst().size() == 1
                 && parts.getFirst().getFirst().is(TokenType.IDENT)
                 && parts.getFirst().getFirst().text().toLowerCase(Locale.ROOT).equals("none")) {
             return java.util.Optional.of(CssColor.TRANSPARENT);
@@ -1106,7 +1494,10 @@ public record ComputedStyle(
 
     /// The four sides an [Insets] has, named once.
     private enum Edge {
-        TOP, RIGHT, BOTTOM, LEFT
+        TOP,
+        RIGHT,
+        BOTTOM,
+        LEFT
     }
 
     private static java.util.Optional<Double> number(List<Token> value) {
@@ -1141,7 +1532,8 @@ public record ComputedStyle(
     /// word and defers.
     private static java.util.Optional<Wrap> wrap(List<Token> value) {
         var tokens = value.stream().filter(t -> !t.is(TokenType.WHITESPACE)).toList();
-        if (tokens.size() == 1 && tokens.getFirst().is(TokenType.IDENT)
+        if (tokens.size() == 1
+                && tokens.getFirst().is(TokenType.IDENT)
                 && tokens.getFirst().text().equalsIgnoreCase("nowrap")) {
             return java.util.Optional.of(Wrap.NO_WRAP);
         }
@@ -1159,7 +1551,8 @@ public record ComputedStyle(
     /// no rule in the canon can act on (ADR-0114).
     private static java.util.Optional<Overflow> overflow(List<Token> value) {
         var tokens = value.stream().filter(t -> !t.is(TokenType.WHITESPACE)).toList();
-        if (tokens.size() == 1 && tokens.getFirst().is(TokenType.IDENT)
+        if (tokens.size() == 1
+                && tokens.getFirst().is(TokenType.IDENT)
                 && tokens.getFirst().text().equalsIgnoreCase("auto")) {
             return java.util.Optional.of(Overflow.SCROLL);
         }

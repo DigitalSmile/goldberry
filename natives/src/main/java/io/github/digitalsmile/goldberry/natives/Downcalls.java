@@ -96,8 +96,7 @@ public final class Downcalls {
 
     private static final Linker LINKER = Linker.nativeLinker();
 
-    private Downcalls() {
-    }
+    private Downcalls() {}
 
     /// The address of `symbol`, for a holder to keep.
     ///
@@ -107,8 +106,8 @@ public final class Downcalls {
     ///
     /// @throws UnsatisfiedLinkError if the library does not export it
     public static MemorySegment symbol(SymbolLookup lookup, String symbol) {
-        return lookup.find(symbol).orElseThrow(() -> new UnsatisfiedLinkError(
-                "libgoldberry does not export " + symbol
+        return lookup.find(symbol)
+                .orElseThrow(() -> new UnsatisfiedLinkError("libgoldberry does not export " + symbol
                         + " — is it listed in natives/src/main/cmake/exports/goldberry.symbols?"));
     }
 

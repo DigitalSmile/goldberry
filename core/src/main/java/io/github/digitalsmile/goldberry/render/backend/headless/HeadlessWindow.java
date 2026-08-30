@@ -1,20 +1,21 @@
 package io.github.digitalsmile.goldberry.render.backend.headless;
 
-import io.github.digitalsmile.goldberry.render.event.BackendEvent;
+import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
+
 import io.github.digitalsmile.goldberry.render.BackendException;
-import io.github.digitalsmile.goldberry.render.window.BackendWindow;
 import io.github.digitalsmile.goldberry.render.Cursor;
 import io.github.digitalsmile.goldberry.render.DamageRect;
+import io.github.digitalsmile.goldberry.render.PixelBuffer;
+import io.github.digitalsmile.goldberry.render.event.BackendEvent;
 import io.github.digitalsmile.goldberry.render.model.DisplayScale;
 import io.github.digitalsmile.goldberry.render.model.LogicalPoint;
 import io.github.digitalsmile.goldberry.render.model.LogicalRect;
 import io.github.digitalsmile.goldberry.render.model.LogicalSize;
 import io.github.digitalsmile.goldberry.render.model.PhysicalSize;
-import io.github.digitalsmile.goldberry.render.PixelBuffer;
+import io.github.digitalsmile.goldberry.render.window.BackendWindow;
 import io.github.digitalsmile.goldberry.render.window.WindowSpec;
-import java.util.List;
-import java.util.Objects;
-import java.util.Optional;
 
 /// A window that exists only as state.
 ///
@@ -57,7 +58,6 @@ public sealed class HeadlessWindow implements BackendWindow permits HeadlessPopu
         return backend;
     }
 
-
     @Override
     public LogicalSize size() {
         backend.requireUiThread();
@@ -85,15 +85,13 @@ public sealed class HeadlessWindow implements BackendWindow permits HeadlessPopu
 
         var expected = physicalSize();
         if (!frame.size().equals(expected)) {
-            throw new IllegalArgumentException(
-                    "frame is " + frame.size() + " but the window is " + expected
-                            + ". The frame was rasterized against a stale size --"
-                            + " a resize was processed after layout and before paint.");
+            throw new IllegalArgumentException("frame is " + frame.size() + " but the window is " + expected
+                    + ". The frame was rasterized against a stale size --"
+                    + " a resize was processed after layout and before paint.");
         }
         for (var rect : damage) {
             if (!rect.fitsWithin(expected)) {
-                throw new IllegalArgumentException(
-                        "damage " + rect + " falls outside the " + expected + " frame");
+                throw new IllegalArgumentException("damage " + rect + " falls outside the " + expected + " frame");
             }
         }
 
@@ -331,12 +329,10 @@ public sealed class HeadlessWindow implements BackendWindow permits HeadlessPopu
     /// What a test needs to reach the case the pair exists for: a trackpad
     /// reporting fractions too small to truncate to anything, one of which
     /// carries the click they added up to ([ADR-0115]).
-    public void scrollPointer(float x, float y, float deltaX, float deltaY,
-            int ticksX, int ticksY, int modifiers) {
+    public void scrollPointer(float x, float y, float deltaX, float deltaY, int ticksX, int ticksY, int modifiers) {
         backend.requireUiThread();
         requireOpen();
-        backend.post(new BackendEvent.PointerWheel(
-                this, x, y, deltaX, deltaY, ticksX, ticksY, modifiers));
+        backend.post(new BackendEvent.PointerWheel(this, x, y, deltaX, deltaY, ticksX, ticksY, modifiers));
     }
 
     /// Queues the pointer leaving the window.

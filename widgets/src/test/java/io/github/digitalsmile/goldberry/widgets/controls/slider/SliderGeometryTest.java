@@ -1,33 +1,33 @@
 package io.github.digitalsmile.goldberry.widgets.controls.slider;
 
-import io.github.digitalsmile.goldberry.widget.attr.Attributes;
-import io.github.digitalsmile.goldberry.widgets.core.Column;
-
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-
-import io.github.digitalsmile.goldberry.RendererRequirement;
-import io.github.digitalsmile.goldberry.paint.TestFrames;
-import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
-import io.github.digitalsmile.goldberry.css.Stylesheet;
-import io.github.digitalsmile.goldberry.css.Theme;
-import io.github.digitalsmile.goldberry.input.hit.HitTest;
-import io.github.digitalsmile.goldberry.paint.tree.RenderTree;
-import io.github.digitalsmile.goldberry.widget.Element;
-import io.github.digitalsmile.goldberry.widget.ElementTree;
-import io.github.digitalsmile.goldberry.widget.style.Styled;
-import io.github.digitalsmile.goldberry.widget.Widget;
-import io.github.digitalsmile.goldberry.widget.WidgetRenderer;
-import io.github.digitalsmile.goldberry.widgets.Controls;
-import io.github.digitalsmile.goldberry.widgets.controls.TestFont;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+
+import io.github.digitalsmile.goldberry.RendererRequirement;
+import io.github.digitalsmile.goldberry.css.Stylesheet;
+import io.github.digitalsmile.goldberry.css.Theme;
+import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
+import io.github.digitalsmile.goldberry.input.hit.HitTest;
+import io.github.digitalsmile.goldberry.paint.TestFrames;
+import io.github.digitalsmile.goldberry.paint.tree.RenderTree;
+import io.github.digitalsmile.goldberry.widget.Element;
+import io.github.digitalsmile.goldberry.widget.ElementTree;
+import io.github.digitalsmile.goldberry.widget.Widget;
+import io.github.digitalsmile.goldberry.widget.WidgetRenderer;
+import io.github.digitalsmile.goldberry.widget.attr.Attributes;
+import io.github.digitalsmile.goldberry.widget.style.Styled;
+import io.github.digitalsmile.goldberry.widgets.Controls;
+import io.github.digitalsmile.goldberry.widgets.controls.TestFont;
+import io.github.digitalsmile.goldberry.widgets.core.Column;
 
 /// Where a slider's marks and its readout actually land, after Yoga has run
 /// ([ADR-0080](../../../../../../../../book/src/adr/0080-a-value-is-measured-along-a-part.md)).
@@ -71,8 +71,7 @@ class SliderGeometryTest {
                                 #row { padding: 0; gap: 0; flex-direction: column }
                                 """)),
                 TestFont.get());
-        var tree = new ElementTree(new Column(List.of(content),
-                new Attributes("row", Set.of(), "row")));
+        var tree = new ElementTree(new Column(List.of(content), new Attributes("row", Set.of(), "row")));
 
         try (var render = RenderTree.create()) {
             render.update(target.frame(), renderer.render(tree));
@@ -130,8 +129,8 @@ class SliderGeometryTest {
     }
 
     private static Slider slider(double fraction, int ticks, String format) {
-        return new Slider(0, 100, fraction * 100, 0, ticks, format, null, null, null, false,
-                new Attributes("s", Set.of(), "s"));
+        return new Slider(
+                0, 100, fraction * 100, 0, ticks, format, null, null, null, false, new Attributes("s", Set.of(), "s"));
     }
 
     /// The claim the whole tick layout is built on: a mark names a position the
@@ -143,13 +142,15 @@ class SliderGeometryTest {
     @DisplayName("the thumb's centre lands on the first mark at 0 and the last at max")
     void thumbCentresOnTheEndMarks() {
         layout(slider(0, 5, null), 300);
-        assertEquals(centreX(part("slider-thumb")), centreX(parts("slider-tick").getFirst()), 0.01,
+        assertEquals(
+                centreX(part("slider-thumb")),
+                centreX(parts("slider-tick").getFirst()),
+                0.01,
                 "at the minimum the thumb sits on the first mark");
 
         layout(slider(1, 5, null), 300);
         var marks = parts("slider-tick");
-        assertEquals(centreX(part("slider-thumb")), centreX(marks.getLast()), 0.01,
-                "and at the maximum, on the last");
+        assertEquals(centreX(part("slider-thumb")), centreX(marks.getLast()), 0.01, "and at the maximum, on the last");
     }
 
     @Test
@@ -157,8 +158,8 @@ class SliderGeometryTest {
     void middleMarkIsUnderTheThumb() {
         for (var width : List.of(120, 301, 640)) {
             layout(slider(0.5, 5, null), width);
-            assertEquals(centreX(part("slider-thumb")), centreX(parts("slider-tick").get(2)), 0.01,
-                    "at " + width + " wide");
+            assertEquals(
+                    centreX(part("slider-thumb")), centreX(parts("slider-tick").get(2)), 0.01, "at " + width + " wide");
         }
     }
 
@@ -173,7 +174,8 @@ class SliderGeometryTest {
         var thumb = part("slider-thumb");
         var mark = parts("slider-tick").get(2);
 
-        assertTrue(paintedTop(mark) >= thumb.top() + thumb.height(),
+        assertTrue(
+                paintedTop(mark) >= thumb.top() + thumb.height(),
                 "the mark is painted at " + paintedTop(mark) + " and the thumb ends at "
                         + (thumb.top() + thumb.height()));
     }
@@ -208,10 +210,12 @@ class SliderGeometryTest {
         var labelled = part("slider-track");
         var label = part("slider-value");
 
-        assertEquals(plainTrack.width() - label.width() - 8, labelled.width(), 0.01,
+        assertEquals(
+                plainTrack.width() - label.width() - 8,
+                labelled.width(),
+                0.01,
                 "the label's width and the control's 8px gap come off the track");
-        assertEquals(plainGroove.top(), part("slider-groove").top(), 0.01,
-                "and nothing moves vertically");
+        assertEquals(plainGroove.top(), part("slider-groove").top(), 0.01, "and nothing moves vertically");
     }
 
     /// The label is fixed-width so that the number inside it cannot resize the

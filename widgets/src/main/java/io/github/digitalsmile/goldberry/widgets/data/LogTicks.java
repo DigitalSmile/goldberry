@@ -26,8 +26,7 @@ import java.util.List;
 /// bottom of each decade where there is least room.
 public final class LogTicks {
 
-    private LogTicks() {
-    }
+    private LogTicks() {}
 
     /// The mantissas a short range is subdivided by, in the order they are tried:
     /// decades alone, then halves of a decade, then the full 1-2-5.
@@ -42,8 +41,7 @@ public final class LogTicks {
     public static Labelling of(double min, double max, int target) {
         if (!(min > 0) || !(max > 0)) {
             throw new IllegalArgumentException(
-                    "a logarithmic axis needs a positive range, and " + min + "…" + max
-                            + " is not");
+                    "a logarithmic axis needs a positive range, and " + min + "…" + max + " is not");
         }
         var low = Math.min(min, max);
         var high = Math.max(min, max);
@@ -83,8 +81,7 @@ public final class LogTicks {
     }
 
     /// Every `stride`th power of ten in `first…last` that is inside `low…high`.
-    private static List<Double> powers(
-            int first, int last, int stride, double low, double high) {
+    private static List<Double> powers(int first, int last, int stride, double low, double high) {
 
         var out = new ArrayList<Double>();
         for (var exponent = first; exponent <= last; exponent += stride) {
@@ -97,8 +94,7 @@ public final class LogTicks {
     }
 
     /// Every `mantissa × 10^n` inside `low…high`.
-    private static List<Double> within(
-            int first, int last, double[] mantissas, double low, double high) {
+    private static List<Double> within(int first, int last, double[] mantissas, double low, double high) {
 
         var out = new ArrayList<Double>();
         for (var exponent = first; exponent <= last; exponent++) {

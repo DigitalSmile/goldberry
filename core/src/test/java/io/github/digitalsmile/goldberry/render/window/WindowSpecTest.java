@@ -5,9 +5,10 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import io.github.digitalsmile.goldberry.render.model.LogicalSize;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+
+import io.github.digitalsmile.goldberry.render.model.LogicalSize;
 
 /// That a window can be asked to open maximized, and that the ask is refused
 /// where it would be silently dropped
@@ -19,7 +20,8 @@ class WindowSpecTest {
     @Test
     @DisplayName("a window is not maximized unless it says so")
     void notMaximizedByDefault() {
-        assertFalse(WindowSpec.of("w", SIZE).maximized(),
+        assertFalse(
+                WindowSpec.of("w", SIZE).maximized(),
                 "an application that takes the whole screen without being asked is one the"
                         + " user has to undo before they can see anything else");
     }
@@ -30,7 +32,9 @@ class WindowSpecTest {
         var spec = WindowSpec.of("w", SIZE).withMaximized(true);
 
         assertTrue(spec.maximized());
-        assertEquals(SIZE, spec.size(),
+        assertEquals(
+                SIZE,
+                spec.size(),
                 "the size is what the window returns to when it is un-maximized, so a"
                         + " maximized spec that forgot it would restore to nothing");
     }
@@ -38,9 +42,7 @@ class WindowSpecTest {
     @Test
     @DisplayName("the three flags are independent of one another")
     void theWithersDoNotDisturbEachOther() {
-        var spec = WindowSpec.of("w", SIZE)
-                .withMaximized(true)
-                .withDecorated(false);
+        var spec = WindowSpec.of("w", SIZE).withMaximized(true).withDecorated(false);
 
         assertTrue(spec.maximized(), "withDecorated dropped the maximized flag");
         assertFalse(spec.decorated());
@@ -58,7 +60,8 @@ class WindowSpecTest {
     @Test
     @DisplayName("a window that cannot be resized cannot be maximized either")
     void maximizedNeedsResizable() {
-        var thrown = assertThrows(IllegalArgumentException.class,
+        var thrown = assertThrows(
+                IllegalArgumentException.class,
                 () -> WindowSpec.of("w", SIZE).withResizable(false).withMaximized(true));
 
         assertTrue(thrown.getMessage().contains("maximized"), thrown.getMessage());
@@ -67,14 +70,14 @@ class WindowSpecTest {
     @Test
     @DisplayName("and the same the other way round, whichever wither is called last")
     void theOrderOfTheWithersDoesNotMatter() {
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(
+                IllegalArgumentException.class,
                 () -> WindowSpec.of("w", SIZE).withMaximized(true).withResizable(false));
     }
 
     @Test
     @DisplayName("a window still needs a size it could be restored to")
     void anEmptySizeIsStillRefused() {
-        assertThrows(IllegalArgumentException.class,
-                () -> new WindowSpec("w", LogicalSize.of(0, 0), true, true, true));
+        assertThrows(IllegalArgumentException.class, () -> new WindowSpec("w", LogicalSize.of(0, 0), true, true, true));
     }
 }

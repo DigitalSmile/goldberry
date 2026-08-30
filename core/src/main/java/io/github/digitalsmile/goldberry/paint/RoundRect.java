@@ -40,8 +40,7 @@ public final class RoundRect {
     /// quarter circle.
     private static final double KAPPA = 0.5522847498307933;
 
-    private RoundRect() {
-    }
+    private RoundRect() {}
 
     /// Appends the outline of `(x, y, width, height)` with corner radius `radius`
     /// to `path`, clockwise from the top-left corner's end.
@@ -49,8 +48,7 @@ public final class RoundRect {
     /// The radius is clamped to half the shorter side, which is what makes
     /// `border-radius: 9999px` a pill rather than a rendering error — CSS's own
     /// rule, and the one the design system's `full` radius relies on.
-    public static void addTo(BlendPath path, double x, double y, double width, double height,
-            double radius) {
+    public static void addTo(BlendPath path, double x, double y, double width, double height, double radius) {
 
         addTo(path, x, y, width, height, Corners.all(radius));
     }
@@ -67,8 +65,7 @@ public final class RoundRect {
     /// The corners are fitted to the box first, so a pair that together overrun
     /// an edge is scaled down in proportion rather than crossing over —
     /// [Corners#fittedTo].
-    public static void addTo(BlendPath path, double x, double y, double width, double height,
-            Corners corners) {
+    public static void addTo(BlendPath path, double x, double y, double width, double height, Corners corners) {
 
         var fitted = corners.fittedTo(width, height);
         if (fitted.isSquare()) {
@@ -96,14 +93,12 @@ public final class RoundRect {
         path.lineTo(right, bottom - bottomRight);
         if (bottomRight > 0) {
             var c = bottomRight * KAPPA;
-            path.cubicTo(right, bottom - bottomRight + c, right - bottomRight + c, bottom,
-                    right - bottomRight, bottom);
+            path.cubicTo(right, bottom - bottomRight + c, right - bottomRight + c, bottom, right - bottomRight, bottom);
         }
         path.lineTo(x + bottomLeft, bottom);
         if (bottomLeft > 0) {
             var c = bottomLeft * KAPPA;
-            path.cubicTo(x + bottomLeft - c, bottom, x, bottom - bottomLeft + c,
-                    x, bottom - bottomLeft);
+            path.cubicTo(x + bottomLeft - c, bottom, x, bottom - bottomLeft + c, x, bottom - bottomLeft);
         }
         path.lineTo(x, y + topLeft);
         if (topLeft > 0) {

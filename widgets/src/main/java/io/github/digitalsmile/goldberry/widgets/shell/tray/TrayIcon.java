@@ -1,9 +1,10 @@
 package io.github.digitalsmile.goldberry.widgets.shell.tray;
 
+import java.util.Objects;
+
 import io.github.digitalsmile.goldberry.render.PixelBuffer;
 import io.github.digitalsmile.goldberry.render.tray.TraySpec;
 import io.github.digitalsmile.goldberry.widgets.menu.Menu;
-import java.util.Objects;
 
 /// An icon this application asks the desktop to show — `docs/core-widgets.md`
 /// §9's `tray-icon`.

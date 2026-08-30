@@ -5,15 +5,17 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import io.github.digitalsmile.goldberry.paint.Frame;
-import io.github.digitalsmile.goldberry.RendererRequirement;
-import io.github.digitalsmile.goldberry.paint.TestFrames;
 import java.util.function.Consumer;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.opentest4j.AssertionFailedError;
+
+import io.github.digitalsmile.goldberry.RendererRequirement;
+import io.github.digitalsmile.goldberry.paint.Frame;
+import io.github.digitalsmile.goldberry.paint.TestFrames;
 
 /// The check that closes ADR-0157's gap, checked itself.
 ///
@@ -39,8 +41,7 @@ class ScaleInvarianceTest {
         return new Png.Image(width, height, pixels);
     }
 
-    private static Png.Image withRect(
-            int width, int height, int background, int x, int y, int w, int h, int argb) {
+    private static Png.Image withRect(int width, int height, int background, int x, int y, int w, int h, int argb) {
 
         var image = filled(width, height, background);
         for (var row = y; row < y + h; row++) {
@@ -60,8 +61,9 @@ class ScaleInvarianceTest {
         @DisplayName("a 2x render halves into the average of each quad")
         void halving() {
             var source = new Png.Image(2, 2, new int[] {
-                    0xFF000000, 0xFF000000,
-                    0xFF000000, 0xFFFFFFFF});
+                0xFF000000, 0xFF000000,
+                0xFF000000, 0xFFFFFFFF
+            });
             var out = ScaleInvariance.resample(source, 1, 1);
 
             assertEquals(1, out.width());
@@ -131,9 +133,9 @@ class ScaleInvarianceTest {
             assertFalse(result.matches());
             // The pixels with no match are the ones the growth covered, less the
             // one-pixel border the neighbourhood search reaches into.
-            assertTrue(result.gross() > 200,
-                    "a rectangle four times the area should light up hundreds of pixels, not "
-                            + result.gross());
+            assertTrue(
+                    result.gross() > 200,
+                    "a rectangle four times the area should light up hundreds of pixels, not " + result.gross());
         }
 
         /// The other direction, which a forward-only search would miss: the
@@ -183,8 +185,7 @@ class ScaleInvarianceTest {
         }
 
         private void check(Consumer<Frame> scene) {
-            ScaleInvariance.assertScaleInvariant(
-                    "scale-invariance-self-test", WIDTH, HEIGHT, 1.0f, scene, at1x(scene));
+            ScaleInvariance.assertScaleInvariant("scale-invariance-self-test", WIDTH, HEIGHT, 1.0f, scene, at1x(scene));
         }
 
         /// A scene drawn in logical coordinates is the same picture on every
@@ -205,15 +206,16 @@ class ScaleInvarianceTest {
         @Test
         @DisplayName("a physical size used as a logical one is caught")
         void aPhysicalSizeUsedAsALogicalOneIsCaught() {
-            var caught = assertThrows(AssertionFailedError.class, () -> check(frame -> {
-                frame.fill(BACKGROUND);
-                var factor = frame.scale().factor();
-                // The bug, written out: the rectangle is measured on the device
-                // and drawn in logical units, so it grows with the display.
-                frame.fillRect(20, 16, 60 * factor, 40 * factor, INK);
-            }));
-            assertTrue(caught.getMessage().contains("does not draw the same picture"),
-                    caught.getMessage());
+            var caught = assertThrows(
+                    AssertionFailedError.class,
+                    () -> check(frame -> {
+                        frame.fill(BACKGROUND);
+                        var factor = frame.scale().factor();
+                        // The bug, written out: the rectangle is measured on the device
+                        // and drawn in logical units, so it grows with the display.
+                        frame.fillRect(20, 16, 60 * factor, 40 * factor, INK);
+                    }));
+            assertTrue(caught.getMessage().contains("does not draw the same picture"), caught.getMessage());
             assertTrue(caught.getMessage().contains("ADR-0157"), caught.getMessage());
         }
 
@@ -224,14 +226,16 @@ class ScaleInvarianceTest {
         @Test
         @DisplayName("a border thickened by the scale is caught, though it is only a stroke")
         void aScaledStrokeIsCaught() {
-            assertThrows(AssertionFailedError.class, () -> check(frame -> {
-                frame.fill(BACKGROUND);
-                var thickness = 2 * frame.scale().factor();
-                frame.fillRect(20, 16, 60, thickness, INK);
-                frame.fillRect(20, 56 - thickness, 60, thickness, INK);
-                frame.fillRect(20, 16, thickness, 40, INK);
-                frame.fillRect(80 - thickness, 16, thickness, 40, INK);
-            }));
+            assertThrows(
+                    AssertionFailedError.class,
+                    () -> check(frame -> {
+                        frame.fill(BACKGROUND);
+                        var thickness = 2 * frame.scale().factor();
+                        frame.fillRect(20, 16, 60, thickness, INK);
+                        frame.fillRect(20, 56 - thickness, 60, thickness, INK);
+                        frame.fillRect(20, 16, thickness, 40, INK);
+                        frame.fillRect(80 - thickness, 16, thickness, 40, INK);
+                    }));
         }
     }
 
@@ -256,16 +260,13 @@ class ScaleInvarianceTest {
         @Test
         @DisplayName("a list replaces the default")
         void configured() {
-            withProperty("3, 1.25",
-                    () -> assertEquals(
-                            java.util.List.of(3.0f, 1.25f), ScaleInvariance.multipliers()));
+            withProperty("3, 1.25", () -> assertEquals(java.util.List.of(3.0f, 1.25f), ScaleInvariance.multipliers()));
         }
 
         @Test
         @DisplayName("a multiplier of zero is refused rather than dividing by it later")
         void refusesZero() {
-            withProperty("0", () -> assertThrows(
-                    IllegalArgumentException.class, ScaleInvariance::multipliers));
+            withProperty("0", () -> assertThrows(IllegalArgumentException.class, ScaleInvariance::multipliers));
         }
 
         private void withProperty(String value, Runnable body) {

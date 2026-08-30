@@ -5,6 +5,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+
+import io.github.digitalsmile.goldberry.natives.yoga.measure.MeasureFunction;
 import io.github.digitalsmile.goldberry.natives.yoga.style.Align;
 import io.github.digitalsmile.goldberry.natives.yoga.style.Direction;
 import io.github.digitalsmile.goldberry.natives.yoga.style.Display;
@@ -16,7 +18,6 @@ import io.github.digitalsmile.goldberry.natives.yoga.style.Overflow;
 import io.github.digitalsmile.goldberry.natives.yoga.style.PositionType;
 import io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength;
 import io.github.digitalsmile.goldberry.natives.yoga.style.Wrap;
-import io.github.digitalsmile.goldberry.natives.yoga.measure.MeasureFunction;
 
 /// A node in a Yoga layout tree.
 ///
@@ -128,17 +129,15 @@ public final class YogaNode implements AutoCloseable {
         // report the confinement rule from the child's point of view and bury
         // the more useful fact: it is not this node's thread that is wrong.
         if (child.owner != owner) {
-            throw new IllegalStateException(
-                    "the child belongs to thread " + name(child.owner)
-                            + " and this node to " + name(owner)
-                            + " — a Yoga tree may not span threads");
+            throw new IllegalStateException("the child belongs to thread " + name(child.owner)
+                    + " and this node to " + name(owner)
+                    + " — a Yoga tree may not span threads");
         }
         child.requireUsable();
         if (child.parent != null) {
-            throw new IllegalStateException(
-                    "this node already has a parent — remove it before inserting it elsewhere,"
-                            + " because Yoga would leave the old parent holding a child it no"
-                            + " longer owns");
+            throw new IllegalStateException("this node already has a parent — remove it before inserting it elsewhere,"
+                    + " because Yoga would leave the old parent holding a child it no"
+                    + " longer owns");
         }
         if (measure != null) {
             throw new IllegalStateException(
@@ -147,9 +146,8 @@ public final class YogaNode implements AutoCloseable {
         }
         for (var ancestor = this; ancestor != null; ancestor = ancestor.parent) {
             if (ancestor == child) {
-                throw new IllegalStateException(
-                        "that would make the node its own ancestor, and a layout pass over a"
-                                + " cycle does not terminate");
+                throw new IllegalStateException("that would make the node its own ancestor, and a layout pass over a"
+                        + " cycle does not terminate");
             }
         }
         Objects.checkIndex(index, children.size() + 1);
@@ -228,10 +226,9 @@ public final class YogaNode implements AutoCloseable {
     public void setMeasureFunction(MeasureFunction function) {
         requireUsable();
         if (function != null && !children.isEmpty()) {
-            throw new IllegalStateException(
-                    "a node with " + children.size() + " child(ren) may not have a measure"
-                            + " function: Yoga would ask the function for the size and never lay"
-                            + " the children out");
+            throw new IllegalStateException("a node with " + children.size() + " child(ren) may not have a measure"
+                    + " function: Yoga would ask the function for the size and never lay"
+                    + " the children out");
         }
 
         var previous = measure;
@@ -272,9 +269,8 @@ public final class YogaNode implements AutoCloseable {
     public void markDirty() {
         requireUsable();
         if (measure == null) {
-            throw new IllegalStateException(
-                    "only a node with a measure function can be marked dirty by hand;"
-                            + " a style change already dirties a node by itself");
+            throw new IllegalStateException("only a node with a measure function can be marked dirty by hand;"
+                    + " a style change already dirties a node by itself");
         }
         yoga.nodeMarkDirty(pointer);
     }
@@ -540,30 +536,26 @@ public final class YogaNode implements AutoCloseable {
     /// block. [StyleLength#AUTO] is not a value Yoga has for this.
     public void setPosition(Edge edge, StyleLength value) {
         requireUsable();
-        yoga.stylePosition(
-                pointer, Objects.requireNonNull(edge, "edge"), Objects.requireNonNull(value, "inset"));
+        yoga.stylePosition(pointer, Objects.requireNonNull(edge, "edge"), Objects.requireNonNull(value, "inset"));
     }
 
     /// CSS `margin` for one edge. [StyleLength#AUTO] here absorbs free space,
     /// which is what centres a node between two of them.
     public void setMargin(Edge edge, StyleLength value) {
         requireUsable();
-        yoga.styleMargin(
-                pointer, Objects.requireNonNull(edge, "edge"), Objects.requireNonNull(value, "margin"));
+        yoga.styleMargin(pointer, Objects.requireNonNull(edge, "edge"), Objects.requireNonNull(value, "margin"));
     }
 
     /// CSS `padding` for one edge.
     public void setPadding(Edge edge, StyleLength value) {
         requireUsable();
-        yoga.stylePadding(
-                pointer, Objects.requireNonNull(edge, "edge"), Objects.requireNonNull(value, "padding"));
+        yoga.stylePadding(pointer, Objects.requireNonNull(edge, "edge"), Objects.requireNonNull(value, "padding"));
     }
 
     /// CSS `gap`, `row-gap` and `column-gap`, depending on the gutter.
     public void setGap(Gutter gutter, StyleLength value) {
         requireUsable();
-        yoga.styleGap(
-                pointer, Objects.requireNonNull(gutter, "gutter"), Objects.requireNonNull(value, "gap"));
+        yoga.styleGap(pointer, Objects.requireNonNull(gutter, "gutter"), Objects.requireNonNull(value, "gap"));
     }
 
     // --- lifecycle ----------------------------------------------------------
@@ -583,9 +575,8 @@ public final class YogaNode implements AutoCloseable {
         }
         requireOwner();
         if (parent != null) {
-            throw new IllegalStateException(
-                    "this node is owned by its parent — call removeChild on the parent first,"
-                            + " or close the root and let it free the whole tree");
+            throw new IllegalStateException("this node is owned by its parent — call removeChild on the parent first,"
+                    + " or close the root and let it free the whole tree");
         }
         free();
     }
@@ -647,17 +638,15 @@ public final class YogaNode implements AutoCloseable {
     private void requireUsable() {
         requireOwner();
         if (freed) {
-            throw new IllegalStateException(
-                    "this YogaNode has been closed, either directly or with an ancestor");
+            throw new IllegalStateException("this YogaNode has been closed, either directly or with an ancestor");
         }
     }
 
     private void requireOwner() {
         if (Thread.currentThread() != owner) {
-            throw new IllegalStateException(
-                    "a YogaNode belongs to the thread that created it (" + name(owner)
-                            + "), and this is " + name(Thread.currentThread())
-                            + " — Yoga has no locking, so a shared tree corrupts silently");
+            throw new IllegalStateException("a YogaNode belongs to the thread that created it (" + name(owner)
+                    + "), and this is " + name(Thread.currentThread())
+                    + " — Yoga has no locking, so a shared tree corrupts silently");
         }
     }
 

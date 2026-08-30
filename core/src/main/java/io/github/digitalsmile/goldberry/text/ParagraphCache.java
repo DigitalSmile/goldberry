@@ -3,6 +3,7 @@ package io.github.digitalsmile.goldberry.text;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
+
 import io.github.digitalsmile.goldberry.text.font.Font;
 
 /// Shaped paragraphs, kept so the same text is not shaped twice.
@@ -98,8 +99,7 @@ public final class ParagraphCache {
     /// A cache holding up to `capacity` paragraphs, evicting least-recently-used.
     public static ParagraphCache withCapacity(int capacity) {
         if (capacity <= 0) {
-            throw new IllegalArgumentException(
-                    "a cache must hold at least one paragraph, and " + capacity + " is not");
+            throw new IllegalArgumentException("a cache must hold at least one paragraph, and " + capacity + " is not");
         }
         return new ParagraphCache(capacity);
     }
@@ -167,7 +167,6 @@ public final class ParagraphCache {
 
     @Override
     public String toString() {
-        return "ParagraphCache[" + entries.size() + " held, " + hits + " hits, "
-                + misses + " misses]";
+        return "ParagraphCache[" + entries.size() + " held, " + hits + " hits, " + misses + " misses]";
     }
 }

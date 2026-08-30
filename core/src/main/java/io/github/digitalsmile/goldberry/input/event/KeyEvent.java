@@ -1,11 +1,12 @@
 package io.github.digitalsmile.goldberry.input.event;
 
-import io.github.digitalsmile.goldberry.widget.Element;
 import java.util.Objects;
-import io.github.digitalsmile.goldberry.input.hit.Extent;
+
 import io.github.digitalsmile.goldberry.input.handler.Handles;
+import io.github.digitalsmile.goldberry.input.hit.Extent;
 import io.github.digitalsmile.goldberry.input.key.Key;
 import io.github.digitalsmile.goldberry.input.key.Modifiers;
+import io.github.digitalsmile.goldberry.widget.Element;
 
 /// A key going down or coming up, as a widget sees it.
 ///
@@ -16,7 +17,8 @@ import io.github.digitalsmile.goldberry.input.key.Modifiers;
 public final class KeyEvent {
 
     public enum Kind {
-        PRESSED, RELEASED
+        PRESSED,
+        RELEASED
     }
 
     private final Kind kind;
@@ -101,7 +103,6 @@ public final class KeyEvent {
 
     @Override
     public String toString() {
-        return kind + " " + key + (modifiers.none() ? "" : " (" + modifiers + ")")
-                + (consumed ? " consumed" : "");
+        return kind + " " + key + (modifiers.none() ? "" : " (" + modifiers + ")") + (consumed ? " consumed" : "");
     }
 }

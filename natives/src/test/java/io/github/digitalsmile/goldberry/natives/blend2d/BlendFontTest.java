@@ -2,12 +2,14 @@ package io.github.digitalsmile.goldberry.natives.blend2d;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import io.github.digitalsmile.goldberry.natives.NativeLibraryRequirement;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+
+import io.github.digitalsmile.goldberry.natives.NativeLibraryRequirement;
 import io.github.digitalsmile.goldberry.natives.blend2d.error.BlendException;
 
 /// The font chain's arguments and lifetime, without a font file.
@@ -55,8 +57,7 @@ class BlendFontTest {
     @Test
     @DisplayName("a negative face index is refused")
     void negativeFaceIndexIsRefused() {
-        assertThrows(
-                IllegalArgumentException.class, () -> BlendFont.fromBytes(new byte[512], -1, 16));
+        assertThrows(IllegalArgumentException.class, () -> BlendFont.fromBytes(new byte[512], -1, 16));
     }
 
     @Test
@@ -72,9 +73,7 @@ class BlendFontTest {
             // Drawing into a context that has detached would write through a
             // handle Blend2D has released. What the run holds does not matter;
             // the state check comes first.
-            assertThrows(
-                    IllegalStateException.class,
-                    () -> context.fillGlyphRun(0, 0, null, glyphs, 0xFFFFFFFF));
+            assertThrows(IllegalStateException.class, () -> context.fillGlyphRun(0, 0, null, glyphs, 0xFFFFFFFF));
         }
     }
 }

@@ -82,8 +82,7 @@ public final class Phase {
     public Phase(Kind kind, double durationMillis) {
         if (!Double.isFinite(durationMillis) || durationMillis <= 0) {
             throw new IllegalArgumentException(
-                    "a phase takes a positive, finite number of milliseconds, not "
-                            + durationMillis);
+                    "a phase takes a positive, finite number of milliseconds, not " + durationMillis);
         }
         this.kind = kind;
         this.duration = durationMillis;
@@ -136,8 +135,7 @@ public final class Phase {
 
     /// Whether a departure has finished, so the thing may be dropped.
     public boolean hasDeparted(double now) {
-        return kind == Kind.LEAVING && !Double.isNaN(startedAt)
-                && now - startedAt >= duration;
+        return kind == Kind.LEAVING && !Double.isNaN(startedAt) && now - startedAt >= duration;
     }
 
     /// Ends the phase immediately — what reduced motion does to both of them.

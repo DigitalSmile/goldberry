@@ -5,26 +5,28 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.List;
+import java.util.Set;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+
 import io.github.digitalsmile.goldberry.RendererRequirement;
-import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
 import io.github.digitalsmile.goldberry.css.Stylesheet;
 import io.github.digitalsmile.goldberry.css.Theme;
+import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
 import io.github.digitalsmile.goldberry.golden.GoldenImage;
 import io.github.digitalsmile.goldberry.paint.BoxPainter;
 import io.github.digitalsmile.goldberry.paint.TestFrames;
-import io.github.digitalsmile.goldberry.widget.attr.Attributes;
 import io.github.digitalsmile.goldberry.widget.ElementTree;
 import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widget.WidgetRenderer;
+import io.github.digitalsmile.goldberry.widget.attr.Attributes;
 import io.github.digitalsmile.goldberry.widgets.Controls;
 import io.github.digitalsmile.goldberry.widgets.controls.TestFont;
 import io.github.digitalsmile.goldberry.widgets.core.Column;
 import io.github.digitalsmile.goldberry.widgets.data.linechart.LineChart;
-import java.util.List;
-import java.util.Set;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
 
 /// Limits drawn across a chart — `charts.md` §3.1's "thresholds: lines and shaded
 /// regions, drawn in the *semantic* hues, never a series slot".
@@ -48,7 +50,9 @@ class ThresholdTest {
 
     private static WidgetRenderer renderer() {
         return new WidgetRenderer(
-                List.of(Controls.baseStylesheet(), Theme.NORD_DARK.load(),
+                List.of(
+                        Controls.baseStylesheet(),
+                        Theme.NORD_DARK.load(),
                         Stylesheet.parse(CascadeLayer.APPLICATION, """
                                 #frame { padding: 12px; background: var(--gb-bg) }
                                 #plot  { width: 296px; height: 156px }
@@ -58,8 +62,7 @@ class ThresholdTest {
 
     private static int[] pixels(Widget chart) {
         var render = renderer();
-        var tree = new ElementTree(new Column(List.of(chart),
-                new Attributes("frame", Set.of(), "frame")));
+        var tree = new ElementTree(new Column(List.of(chart), new Attributes("frame", Set.of(), "frame")));
         var target = TestFrames.of(WIDTH, HEIGHT, 1.0f);
         try {
             BoxPainter.paint(target.frame(), render.render(tree));
@@ -82,20 +85,19 @@ class ThresholdTest {
         // reading, and a threshold that only appeared once it had been breached
         // would be a warning light that comes on after the fire.
         var plain = pixels(new LineChart(latency(), List.of(), id()));
-        var limited = pixels(new LineChart(latency(), List.of(), id())
-                .threshold(Threshold.at(400, Threshold.Level.DANGER)));
+        var limited =
+                pixels(new LineChart(latency(), List.of(), id()).threshold(Threshold.at(400, Threshold.Level.DANGER)));
 
-        assertFalse(java.util.Arrays.equals(plain, limited),
-                "the chart rescaled to reach 400");
+        assertFalse(java.util.Arrays.equals(plain, limited), "the chart rescaled to reach 400");
     }
 
     @Test
     @DisplayName("a line and a band are different drawings of the same limit")
     void linesAndRegions() {
-        var line = pixels(new LineChart(latency(), List.of(), id())
-                .threshold(Threshold.at(145, Threshold.Level.WARNING)));
-        var band = pixels(new LineChart(latency(), List.of(), id())
-                .threshold(Threshold.above(145, Threshold.Level.WARNING)));
+        var line =
+                pixels(new LineChart(latency(), List.of(), id()).threshold(Threshold.at(145, Threshold.Level.WARNING)));
+        var band = pixels(
+                new LineChart(latency(), List.of(), id()).threshold(Threshold.above(145, Threshold.Level.WARNING)));
 
         assertFalse(java.util.Arrays.equals(line, band));
     }
@@ -103,8 +105,8 @@ class ThresholdTest {
     @Test
     @DisplayName("a band lets the data through it")
     void aWarningMustNotHideWhatItWarnsAbout() {
-        var band = pixels(new LineChart(latency(), List.of(), id())
-                .threshold(Threshold.above(120, Threshold.Level.DANGER)));
+        var band = pixels(
+                new LineChart(latency(), List.of(), id()).threshold(Threshold.above(120, Threshold.Level.DANGER)));
 
         // The band covers the whole plot, and the series is still drawn on top of
         // it -- so the chart must still contain the series' own hue. A threshold
@@ -129,8 +131,8 @@ class ThresholdTest {
         // fourth series and steal the real one's hue.
         for (var level : Threshold.Level.values()) {
             assertTrue(level.token().startsWith("--gb-"), level.token());
-            assertTrue(level.token().endsWith("-line"),
-                    "the rank that exists for a stroke on the page: " + level.token());
+            assertTrue(
+                    level.token().endsWith("-line"), "the rank that exists for a stroke on the page: " + level.token());
         }
         assertEquals("--gb-danger-line", Threshold.Level.DANGER.token());
     }
@@ -138,8 +140,7 @@ class ThresholdTest {
     @Test
     @DisplayName("a region is ordered however it was written")
     void fromAndToAreASet() {
-        assertEquals(Threshold.band(90, 10, Threshold.Level.INFO),
-                Threshold.band(10, 90, Threshold.Level.INFO));
+        assertEquals(Threshold.band(90, 10, Threshold.Level.INFO), Threshold.band(10, 90, Threshold.Level.INFO));
         assertTrue(Threshold.at(5, Threshold.Level.INFO).isLine());
         assertFalse(Threshold.above(5, Threshold.Level.INFO).isLine());
     }
@@ -152,15 +153,17 @@ class ThresholdTest {
         // `above(90)` says the axis must reach 90, and says nothing at all about
         // infinity.
         assertEquals(90.0, above.domainMin());
-        assertEquals(Double.NEGATIVE_INFINITY, above.domainMax(),
+        assertEquals(
+                Double.NEGATIVE_INFINITY,
+                above.domainMax(),
                 "which is the identity for a max, so it contributes nothing");
     }
 
     @Test
     @DisplayName("NaN is where a missing value goes, not a limit")
     void aThresholdNeedsAPosition() {
-        var failure = assertThrows(IllegalArgumentException.class,
-                () -> Threshold.at(Double.NaN, Threshold.Level.DANGER));
+        var failure =
+                assertThrows(IllegalArgumentException.class, () -> Threshold.at(Double.NaN, Threshold.Level.DANGER));
         assertTrue(failure.getMessage().contains("NullPolicy"), failure.getMessage());
     }
 
@@ -172,8 +175,8 @@ class ThresholdTest {
                 .threshold(Threshold.above(160, Threshold.Level.DANGER));
 
         assertEquals(2, chart.options().thresholds().size());
-        assertEquals(List.of(), chart.thresholds(List.of()).options().thresholds(),
-                "and replacing them is the other call");
+        assertEquals(
+                List.of(), chart.thresholds(List.of()).options().thresholds(), "and replacing them is the other call");
     }
 
     @Test
@@ -184,8 +187,8 @@ class ThresholdTest {
         // grey. A band whose semantic colour a reader cannot perceive says
         // "something" rather than "warning", so a band is a wash **and its
         // edges**, and the edges are where the hue lives.
-        var band = pixels(new LineChart(latency(), List.of(), id())
-                .threshold(Threshold.band(130, 145, Threshold.Level.WARNING)));
+        var band = pixels(
+                new LineChart(latency(), List.of(), id()).threshold(Threshold.band(130, 145, Threshold.Level.WARNING)));
 
         // Yellow is R > G > B; the theme's warning is `#ebcb8b`, and a 1px edge at
         // a fractional y antialiases to about `#cfb582`, so this asks for the
@@ -214,14 +217,17 @@ class ThresholdTest {
     @DisplayName("a warning band, a danger line and its label")
     void golden() {
         var render = renderer();
-        var tree = new ElementTree(new Column(List.of(
-                new LineChart(latency(), List.of(), id())
+        var tree = new ElementTree(new Column(
+                List.of(new LineChart(latency(), List.of(), id())
                         .threshold(Threshold.band(130, 145, Threshold.Level.WARNING))
-                        .threshold(Threshold.at(150, Threshold.Level.DANGER)
-                                .labelled("SLO"))),
+                        .threshold(Threshold.at(150, Threshold.Level.DANGER).labelled("SLO"))),
                 new Attributes("frame", Set.of(), "frame")));
 
-        GoldenImage.assertMatches("line-chart-threshold-dark", WIDTH, HEIGHT, 1.0f,
+        GoldenImage.assertMatches(
+                "line-chart-threshold-dark",
+                WIDTH,
+                HEIGHT,
+                1.0f,
                 frame -> BoxPainter.paint(frame, render.render(tree)));
     }
 }

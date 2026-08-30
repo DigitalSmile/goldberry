@@ -1,6 +1,5 @@
 package io.github.digitalsmile.goldberry.css.parse;
 
-
 /// One CSS token, and where it came from.
 ///
 /// The source position is on every token rather than reconstructed later,
@@ -16,8 +15,7 @@ package io.github.digitalsmile.goldberry.css.parse;
 ///                empty otherwise
 /// @param line    1-based line
 /// @param column  1-based column of the token's first character
-public record Token(
-        TokenType type, String text, double numeric, String unit, int line, int column) {
+public record Token(TokenType type, String text, double numeric, String unit, int line, int column) {
 
     public Token {
         java.util.Objects.requireNonNull(type, "type");

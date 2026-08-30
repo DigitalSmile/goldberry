@@ -1,11 +1,11 @@
 package io.github.digitalsmile.goldberry.render;
 
-import io.github.digitalsmile.goldberry.render.model.PhysicalSize;
-import io.github.digitalsmile.goldberry.render.model.PixelFormat;
-
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.Objects;
+
+import io.github.digitalsmile.goldberry.render.model.PhysicalSize;
+import io.github.digitalsmile.goldberry.render.model.PixelFormat;
 
 /// A rasterized frame, ready to hand to a backend.
 ///
@@ -41,22 +41,18 @@ public record PixelBuffer(PhysicalSize size, PixelFormat format, int stride, Byt
 
         var minimumStride = format.minimumStride(size.width());
         if (stride < minimumStride) {
-            throw new IllegalArgumentException(
-                    "stride " + stride + " is too small for " + size.width() + " "
-                            + format + " pixels; needs at least " + minimumStride);
+            throw new IllegalArgumentException("stride " + stride + " is too small for " + size.width() + " " + format
+                    + " pixels; needs at least " + minimumStride);
         }
 
         // The last row does not need trailing padding, so the requirement is
         // (height - 1) full strides plus one row of pixels -- not height strides.
         // Demanding the larger number would reject a legitimate tightly-allocated
         // buffer, which is exactly what Blend2D hands over.
-        var required = size.height() == 0
-                ? 0
-                : (long) (size.height() - 1) * stride + minimumStride;
+        var required = size.height() == 0 ? 0 : (long) (size.height() - 1) * stride + minimumStride;
         if (pixels.remaining() < required) {
-            throw new IllegalArgumentException(
-                    "buffer holds " + pixels.remaining() + " bytes, but " + size
-                            + " at stride " + stride + " needs " + required);
+            throw new IllegalArgumentException("buffer holds " + pixels.remaining() + " bytes, but " + size
+                    + " at stride " + stride + " needs " + required);
         }
     }
 

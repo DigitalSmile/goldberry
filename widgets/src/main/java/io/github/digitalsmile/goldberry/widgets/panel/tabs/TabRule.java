@@ -1,15 +1,16 @@
 package io.github.digitalsmile.goldberry.widgets.panel.tabs;
 
+import java.util.List;
+import java.util.Set;
+
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
-import io.github.digitalsmile.goldberry.paint.Box;
 import io.github.digitalsmile.goldberry.natives.yoga.Insets;
 import io.github.digitalsmile.goldberry.natives.yoga.style.PositionType;
 import io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength;
+import io.github.digitalsmile.goldberry.paint.Box;
+import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widget.style.Paints;
 import io.github.digitalsmile.goldberry.widget.style.Styled;
-import io.github.digitalsmile.goldberry.widget.Widget;
-import java.util.List;
-import java.util.Set;
 
 /// The hairline under a [TabList] — a **part**, and a box for
 /// [TabIndicator]'s reason: there is no `border-bottom` in §8's subset.
@@ -20,9 +21,8 @@ import java.util.Set;
 /// has no z-order beyond document order (ADR-0053).
 record TabRule() implements Widget.Leaf, Styled, Paints {
 
-    private static final Insets PINNED = new Insets(
-            StyleLength.UNDEFINED, StyleLength.points(0),
-            StyleLength.points(0), StyleLength.points(0));
+    private static final Insets PINNED =
+            new Insets(StyleLength.UNDEFINED, StyleLength.points(0), StyleLength.points(0), StyleLength.points(0));
 
     @Override
     public String cssType() {

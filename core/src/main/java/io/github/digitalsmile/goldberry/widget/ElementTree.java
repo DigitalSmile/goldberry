@@ -1,12 +1,14 @@
 package io.github.digitalsmile.goldberry.widget;
 
-import io.github.digitalsmile.goldberry.log.Logs;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashSet;
 import java.util.Objects;
 import java.util.Set;
+
 import org.slf4j.Logger;
+
+import io.github.digitalsmile.goldberry.log.Logs;
 
 /// The element tree, and the rebuild schedule that drives it.
 ///
@@ -137,9 +139,11 @@ public final class ElementTree {
             }
         }
         if (!dirty.isEmpty()) {
-            LOG.warn("giving up after {} rebuild passes with {} element(s) still dirty:"
+            LOG.warn(
+                    "giving up after {} rebuild passes with {} element(s) still dirty:"
                             + " a build is calling setState on every pass",
-                    MAX_PASSES, dirty.size());
+                    MAX_PASSES,
+                    dirty.size());
             dirty.clear();
         }
         return built;

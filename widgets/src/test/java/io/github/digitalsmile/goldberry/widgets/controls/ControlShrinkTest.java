@@ -1,31 +1,32 @@
 package io.github.digitalsmile.goldberry.widgets.controls;
 
-import io.github.digitalsmile.goldberry.widget.attr.Attributes;
-import io.github.digitalsmile.goldberry.widgets.core.Column;
-import io.github.digitalsmile.goldberry.widgets.core.Row;
-
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import io.github.digitalsmile.goldberry.RendererRequirement;
-import io.github.digitalsmile.goldberry.paint.TestFrames;
-import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
-import io.github.digitalsmile.goldberry.css.Stylesheet;
-import io.github.digitalsmile.goldberry.css.Theme;
-import io.github.digitalsmile.goldberry.input.hit.HitTest;
-import io.github.digitalsmile.goldberry.paint.tree.RenderTree;
-import io.github.digitalsmile.goldberry.widget.ElementTree;
-import io.github.digitalsmile.goldberry.widget.Widget;
-import io.github.digitalsmile.goldberry.widget.WidgetRenderer;
-import io.github.digitalsmile.goldberry.widgets.Controls;
-import io.github.digitalsmile.goldberry.widgets.controls.checkbox.Checkbox;
-import io.github.digitalsmile.goldberry.widgets.controls.radio.Radio;
-import io.github.digitalsmile.goldberry.widgets.controls.toggle.Toggle;
 import java.util.List;
 import java.util.Set;
+
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+
+import io.github.digitalsmile.goldberry.RendererRequirement;
+import io.github.digitalsmile.goldberry.css.Stylesheet;
+import io.github.digitalsmile.goldberry.css.Theme;
+import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
+import io.github.digitalsmile.goldberry.input.hit.HitTest;
+import io.github.digitalsmile.goldberry.paint.TestFrames;
+import io.github.digitalsmile.goldberry.paint.tree.RenderTree;
+import io.github.digitalsmile.goldberry.widget.ElementTree;
+import io.github.digitalsmile.goldberry.widget.Widget;
+import io.github.digitalsmile.goldberry.widget.WidgetRenderer;
+import io.github.digitalsmile.goldberry.widget.attr.Attributes;
+import io.github.digitalsmile.goldberry.widgets.Controls;
+import io.github.digitalsmile.goldberry.widgets.controls.checkbox.Checkbox;
+import io.github.digitalsmile.goldberry.widgets.controls.radio.Radio;
+import io.github.digitalsmile.goldberry.widgets.controls.toggle.Toggle;
+import io.github.digitalsmile.goldberry.widgets.core.Column;
+import io.github.digitalsmile.goldberry.widgets.core.Row;
 
 /// A control's glyph is a fixed size, and stays one when the window is too small.
 ///
@@ -143,15 +144,18 @@ class ControlShrinkTest {
     void heightSurvivesAColumn() {
         target = TestFrames.of(300, 40, 1.0f, 0);
         var content = new Column(
-                List.of(new Checkbox("One", Checkbox.Value.CHECKED),
+                List.of(
+                        new Checkbox("One", Checkbox.Value.CHECKED),
                         new Toggle("Two", true),
                         new Radio("a", "Three", true, null, false, null)),
                 new Attributes("col", Set.of(), "col"));
         var tree = new ElementTree(content);
         var renderer = new WidgetRenderer(
-                List.of(Controls.baseStylesheet(), Theme.NORD_DARK.load(),
-                        Stylesheet.parse(CascadeLayer.APPLICATION,
-                                "#col { flex-direction: column; padding: 0; gap: 0 }")),
+                List.of(
+                        Controls.baseStylesheet(),
+                        Theme.NORD_DARK.load(),
+                        Stylesheet.parse(
+                                CascadeLayer.APPLICATION, "#col { flex-direction: column; padding: 0; gap: 0 }")),
                 TestFont.get());
 
         try (var render = RenderTree.create()) {
@@ -159,9 +163,11 @@ class ControlShrinkTest {
             var regions = HitTest.capture(render);
             for (var index = 0; index < 3; index++) {
                 var element = tree.root().children().get(index);
-                var region = regions.stream().filter(r -> r.owner() == element).findFirst().orElseThrow();
-                assertEquals(32, region.height(), 0.5,
-                        "control " + index + " should keep §1.3's 32px hit target");
+                var region = regions.stream()
+                        .filter(r -> r.owner() == element)
+                        .findFirst()
+                        .orElseThrow();
+                assertEquals(32, region.height(), 0.5, "control " + index + " should keep §1.3's 32px hit target");
             }
         }
     }

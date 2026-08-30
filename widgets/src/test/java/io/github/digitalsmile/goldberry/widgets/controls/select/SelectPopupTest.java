@@ -4,33 +4,35 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import io.github.digitalsmile.goldberry.Application;
-import io.github.digitalsmile.goldberry.Goldberry;
-import io.github.digitalsmile.goldberry.GoldberryTestAccess;
-import io.github.digitalsmile.goldberry.Host;
-import io.github.digitalsmile.goldberry.RendererRequirement;
-import io.github.digitalsmile.goldberry.render.event.BackendEvent;
-import io.github.digitalsmile.goldberry.render.model.LogicalSize;
-import io.github.digitalsmile.goldberry.render.backend.headless.HeadlessBackend;
-import io.github.digitalsmile.goldberry.render.backend.headless.HeadlessPopup;
-import io.github.digitalsmile.goldberry.render.backend.headless.HeadlessWindow;
-import io.github.digitalsmile.goldberry.bind.Property;
-import io.github.digitalsmile.goldberry.css.Stylesheet;
-import io.github.digitalsmile.goldberry.css.Theme;
-import io.github.digitalsmile.goldberry.input.key.Key;
-import io.github.digitalsmile.goldberry.widget.attr.Attributes;
-import io.github.digitalsmile.goldberry.widget.Widget;
-import io.github.digitalsmile.goldberry.widgets.Controls;
-import io.github.digitalsmile.goldberry.widgets.controls.option.Option;
-import io.github.digitalsmile.goldberry.widgets.core.Column;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
+
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
+
+import io.github.digitalsmile.goldberry.Application;
+import io.github.digitalsmile.goldberry.Goldberry;
+import io.github.digitalsmile.goldberry.GoldberryTestAccess;
+import io.github.digitalsmile.goldberry.Host;
+import io.github.digitalsmile.goldberry.RendererRequirement;
+import io.github.digitalsmile.goldberry.bind.Property;
+import io.github.digitalsmile.goldberry.css.Stylesheet;
+import io.github.digitalsmile.goldberry.css.Theme;
+import io.github.digitalsmile.goldberry.input.key.Key;
+import io.github.digitalsmile.goldberry.render.backend.headless.HeadlessBackend;
+import io.github.digitalsmile.goldberry.render.backend.headless.HeadlessPopup;
+import io.github.digitalsmile.goldberry.render.backend.headless.HeadlessWindow;
+import io.github.digitalsmile.goldberry.render.event.BackendEvent;
+import io.github.digitalsmile.goldberry.render.model.LogicalSize;
+import io.github.digitalsmile.goldberry.widget.Widget;
+import io.github.digitalsmile.goldberry.widget.attr.Attributes;
+import io.github.digitalsmile.goldberry.widgets.Controls;
+import io.github.digitalsmile.goldberry.widgets.controls.option.Option;
+import io.github.digitalsmile.goldberry.widgets.core.Column;
 
 /// A `select` that really opens, through the real launcher and the real frame
 /// loop, on the backend that needs no display.
@@ -117,23 +119,26 @@ class SelectPopupTest {
 
     private static void later(long millis, Runnable action) {
         Goldberry.async(() -> {
-            try {
-                Thread.sleep(millis);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-            }
-            return null;
-        }).thenRun(action);
+                    try {
+                        Thread.sleep(millis);
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                    }
+                    return null;
+                })
+                .thenRun(action);
     }
 
     /// A select over three themes, controlled the way an application controls
     /// one: the handler writes the property and the property is what the control
     /// reads back (ADR-0063).
     private static Select themes(Property<String> value, List<String> picked) {
-        return Select.of(value, chosen -> {
-            picked.add(chosen);
-            value.set(chosen);
-        },
+        return Select.of(
+                value,
+                chosen -> {
+                    picked.add(chosen);
+                    value.set(chosen);
+                },
                 new Option("light", "Light"),
                 new Option("dark", "Dark"),
                 new Option("dim", "Dim"));
@@ -144,7 +149,8 @@ class SelectPopupTest {
     @DisplayName("clicking the field opens a platform window with the list in it")
     void clickOpens() {
         var open = new int[1];
-        Goldberry.launch(new TestApp(themes(Property.of("dark"), new ArrayList<>()),
+        Goldberry.launch(new TestApp(
+                themes(Property.of("dark"), new ArrayList<>()),
                 host -> later(200, () -> {
                     click(ownerWindow(), 40, FIELD_Y);
                     later(200, () -> {
@@ -163,14 +169,16 @@ class SelectPopupTest {
         var picked = new ArrayList<String>();
         var value = Property.of("dark");
         var openAfter = new int[1];
-        Goldberry.launch(new TestApp(themes(value, picked),
+        Goldberry.launch(new TestApp(
+                themes(value, picked),
                 host -> later(200, () -> {
                     click(ownerWindow(), 40, FIELD_Y);
                     later(200, () -> {
                         click((HeadlessWindow) popups().getFirst(), 40, FIRST_ROW_Y);
                         later(200, () -> {
                             openAfter[0] = (int) popups().stream()
-                                    .filter(HeadlessPopup::isOpen).count();
+                                    .filter(HeadlessPopup::isOpen)
+                                    .count();
                             Goldberry.stop();
                         });
                     });
@@ -193,20 +201,18 @@ class SelectPopupTest {
     @DisplayName("the keyboard lands on the selected row, so Down moves from the value")
     void opensOnTheSelectedRow() {
         var picked = new ArrayList<String>();
-        Goldberry.launch(new TestApp(themes(Property.of("dark"), picked),
+        Goldberry.launch(new TestApp(
+                themes(Property.of("dark"), picked),
                 host -> later(200, () -> {
                     click(ownerWindow(), 40, FIELD_Y);
                     later(300, () -> {
-                        backend.post(new BackendEvent.KeyPressed(
-                                ownerWindow(), Key.DOWN.sdlKeycode(), 0, false));
-                        backend.post(new BackendEvent.KeyPressed(
-                                ownerWindow(), Key.ENTER.sdlKeycode(), 0, false));
+                        backend.post(new BackendEvent.KeyPressed(ownerWindow(), Key.DOWN.sdlKeycode(), 0, false));
+                        backend.post(new BackendEvent.KeyPressed(ownerWindow(), Key.ENTER.sdlKeycode(), 0, false));
                         later(200, Goldberry::stop);
                     });
                 })));
 
-        assertEquals(List.of("dim"), picked,
-                "one Down from `dark` is `dim`, not the second row over again");
+        assertEquals(List.of("dim"), picked, "one Down from `dark` is `dim`, not the second row over again");
     }
 
     /// **An arrow moves and does not choose**, which is the half of §3's keyboard
@@ -222,17 +228,17 @@ class SelectPopupTest {
         var picked = new ArrayList<String>();
         var value = Property.of("light");
         var openAfter = new int[1];
-        Goldberry.launch(new TestApp(themes(value, picked),
+        Goldberry.launch(new TestApp(
+                themes(value, picked),
                 host -> later(200, () -> {
                     click(ownerWindow(), 40, FIELD_Y);
                     later(300, () -> {
-                        backend.post(new BackendEvent.KeyPressed(
-                                ownerWindow(), Key.DOWN.sdlKeycode(), 0, false));
-                        backend.post(new BackendEvent.KeyPressed(
-                                ownerWindow(), Key.DOWN.sdlKeycode(), 0, false));
+                        backend.post(new BackendEvent.KeyPressed(ownerWindow(), Key.DOWN.sdlKeycode(), 0, false));
+                        backend.post(new BackendEvent.KeyPressed(ownerWindow(), Key.DOWN.sdlKeycode(), 0, false));
                         later(200, () -> {
                             openAfter[0] = (int) popups().stream()
-                                    .filter(HeadlessPopup::isOpen).count();
+                                    .filter(HeadlessPopup::isOpen)
+                                    .count();
                             Goldberry.stop();
                         });
                     });
@@ -249,15 +255,16 @@ class SelectPopupTest {
     void escapeCloses() {
         var picked = new ArrayList<String>();
         var openAfter = new int[1];
-        Goldberry.launch(new TestApp(themes(Property.of("dark"), picked),
+        Goldberry.launch(new TestApp(
+                themes(Property.of("dark"), picked),
                 host -> later(200, () -> {
                     click(ownerWindow(), 40, FIELD_Y);
                     later(300, () -> {
-                        backend.post(new BackendEvent.KeyPressed(
-                                ownerWindow(), Key.ESCAPE.sdlKeycode(), 0, false));
+                        backend.post(new BackendEvent.KeyPressed(ownerWindow(), Key.ESCAPE.sdlKeycode(), 0, false));
                         later(200, () -> {
                             openAfter[0] = (int) popups().stream()
-                                    .filter(HeadlessPopup::isOpen).count();
+                                    .filter(HeadlessPopup::isOpen)
+                                    .count();
                             Goldberry.stop();
                         });
                     });
@@ -273,7 +280,8 @@ class SelectPopupTest {
     void clickAgainCloses() {
         var openAfter = new int[1];
         var everOpened = new int[1];
-        Goldberry.launch(new TestApp(themes(Property.of("dark"), new ArrayList<>()),
+        Goldberry.launch(new TestApp(
+                themes(Property.of("dark"), new ArrayList<>()),
                 host -> later(200, () -> {
                     click(ownerWindow(), 40, FIELD_Y);
                     later(300, () -> {
@@ -281,7 +289,8 @@ class SelectPopupTest {
                         click(ownerWindow(), 40, FIELD_Y);
                         later(200, () -> {
                             openAfter[0] = (int) popups().stream()
-                                    .filter(HeadlessPopup::isOpen).count();
+                                    .filter(HeadlessPopup::isOpen)
+                                    .count();
                             Goldberry.stop();
                         });
                     });
@@ -314,15 +323,15 @@ class SelectPopupTest {
     @DisplayName("the row the value names is the one drawn as selected")
     void selectedRowIsMarked() {
         var marked = new ArrayList<String>();
-        Goldberry.launch(new TestApp(themes(Property.of("dim"), new ArrayList<>()),
+        Goldberry.launch(new TestApp(
+                themes(Property.of("dim"), new ArrayList<>()),
                 host -> later(200, () -> {
                     click(ownerWindow(), 40, FIELD_Y);
                     later(200, () -> {
                         // The third row: still `dim`, and clicking it asks for the
                         // value it already has -- which a control must treat as a
                         // request rather than as a toggle.
-                        click((HeadlessWindow) popups().getFirst(),
-                                40, FIRST_ROW_Y + ROW_HEIGHT * 2);
+                        click((HeadlessWindow) popups().getFirst(), 40, FIRST_ROW_Y + ROW_HEIGHT * 2);
                         later(200, Goldberry::stop);
                     });
                 })));

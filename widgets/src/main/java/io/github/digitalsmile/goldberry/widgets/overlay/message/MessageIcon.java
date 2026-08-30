@@ -1,16 +1,17 @@
 package io.github.digitalsmile.goldberry.widgets.overlay.message;
 
+import java.util.List;
+import java.util.Set;
+
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
 import io.github.digitalsmile.goldberry.paint.Box;
 import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widget.style.Paints;
 import io.github.digitalsmile.goldberry.widget.style.Styled;
 
-import java.util.List;
-import java.util.Set;
-
 /// The glyph at the head of a [Message] — a **part**, so it is styleable and not
-/// constructible ([ADR-0065](../../../../../../../../../book/src/adr/0065-a-part-is-styleable-and-not-constructible.md)).
+/// constructible
+/// ([ADR-0065](../../../../../../../../../book/src/adr/0065-a-part-is-styleable-and-not-constructible.md)).
 ///
 /// It draws the kind's [Box.Mark], not an icon, and the difference is lifetime:
 /// an `Icon` owns native memory that has to be closed exactly once, and a banner

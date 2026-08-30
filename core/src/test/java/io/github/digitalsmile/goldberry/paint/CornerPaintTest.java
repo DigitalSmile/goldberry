@@ -2,12 +2,13 @@ package io.github.digitalsmile.goldberry.paint;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import io.github.digitalsmile.goldberry.RendererRequirement;
-import io.github.digitalsmile.goldberry.css.Corners;
-import io.github.digitalsmile.goldberry.css.Decoration;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+
+import io.github.digitalsmile.goldberry.RendererRequirement;
+import io.github.digitalsmile.goldberry.css.Corners;
+import io.github.digitalsmile.goldberry.css.Decoration;
 
 /// A radius per corner, in pixels.
 ///
@@ -29,8 +30,7 @@ class CornerPaintTest {
     /// A 100x100 fill with `corners`, and what it left at each corner pixel.
     private static TestFrames.Target painted(Corners corners) {
         var target = TestFrames.of(100, 100, 1f);
-        BoxPainter.paint(target.frame(),
-                Box.filled(RED).decoration(Decoration.NONE.corners(corners)));
+        BoxPainter.paint(target.frame(), Box.filled(RED).decoration(Decoration.NONE.corners(corners)));
         return target;
     }
 
@@ -64,7 +64,9 @@ class CornerPaintTest {
         var target = painted(Corners.all(20));
 
         for (var corner : new int[][] {{1, 1}, {98, 1}, {98, 98}, {1, 98}}) {
-            assertEquals(0, target.pixel(corner[0], corner[1]) >>> 24,
+            assertEquals(
+                    0,
+                    target.pixel(corner[0], corner[1]) >>> 24,
                     "corner " + corner[0] + "," + corner[1] + " is rounded");
         }
         assertEquals(RED, target.pixel(50, 50), "and the middle is still filled");

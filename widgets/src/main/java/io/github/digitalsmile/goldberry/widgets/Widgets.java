@@ -1,8 +1,9 @@
 package io.github.digitalsmile.goldberry.widgets;
 
+import java.util.ServiceLoader;
+
 import io.github.digitalsmile.goldberry.kdl.KdlInflater;
 import io.github.digitalsmile.goldberry.widget.Widget;
-import java.util.ServiceLoader;
 import io.github.digitalsmile.goldberry.widgets.markup.Inflatable;
 import io.github.digitalsmile.goldberry.widgets.markup.Named;
 import io.github.digitalsmile.goldberry.widgets.markup.WidgetCatalog;
@@ -29,8 +30,7 @@ import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
 /// keep the merge in step with both.
 public final class Widgets {
 
-    private Widgets() {
-    }
+    private Widgets() {}
 
     /// An inflater for `models`, with icons.
     ///
@@ -79,7 +79,8 @@ public final class Widgets {
     /// call. An overload that compiles and means something else is worse than no
     /// overload.
     public static KdlInflater<Widget> inflater(
-            io.github.digitalsmile.goldberry.bind.registry.ActionRegistry actions, Icons icons,
+            io.github.digitalsmile.goldberry.bind.registry.ActionRegistry actions,
+            Icons icons,
             io.github.digitalsmile.goldberry.bind.registry.BindingRegistry bindings) {
         return inflater(new Wiring(actions, icons, bindings));
     }
@@ -90,13 +91,12 @@ public final class Widgets {
     /// read off a model.
     public static KdlInflater<Widget> inflater(
             io.github.digitalsmile.goldberry.bind.registry.ActionRegistry actions, Icons icons) {
-        return inflater(new Wiring(actions, icons,
-                io.github.digitalsmile.goldberry.bind.registry.BindingRegistry.none()));
+        return inflater(
+                new Wiring(actions, icons, io.github.digitalsmile.goldberry.bind.registry.BindingRegistry.none()));
     }
 
     /// An inflater with actions bound and no icons.
-    public static KdlInflater<Widget> inflater(
-            io.github.digitalsmile.goldberry.bind.registry.ActionRegistry actions) {
+    public static KdlInflater<Widget> inflater(io.github.digitalsmile.goldberry.bind.registry.ActionRegistry actions) {
         return inflater(actions, Icons.none());
     }
 

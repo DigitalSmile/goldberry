@@ -4,6 +4,16 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.function.Consumer;
+
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
+
 import io.github.digitalsmile.goldberry.Application;
 import io.github.digitalsmile.goldberry.Goldberry;
 import io.github.digitalsmile.goldberry.GoldberryTestAccess;
@@ -23,14 +33,6 @@ import io.github.digitalsmile.goldberry.widgets.Controls;
 import io.github.digitalsmile.goldberry.widgets.controls.option.Option;
 import io.github.digitalsmile.goldberry.widgets.core.Column;
 import io.github.digitalsmile.goldberry.widgets.panel.tree.TreeNode;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.function.Consumer;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.Timeout;
 
 /// §3's `select` family, driven through the **real launcher and the real frame
 /// loop** — which is what `MenusTest` does for menus and what nothing did for
@@ -87,7 +89,9 @@ class SelectLoopTest {
 
         @Override
         public List<Stylesheet> stylesheets() {
-            return List.of(Controls.baseStylesheet(), Theme.NORD_DARK.load(),
+            return List.of(
+                    Controls.baseStylesheet(),
+                    Theme.NORD_DARK.load(),
                     Stylesheet.parse(
                             io.github.digitalsmile.goldberry.css.cascade.CascadeLayer.APPLICATION,
                             "#page { padding: 24px }"));
@@ -110,7 +114,8 @@ class SelectLoopTest {
         return backend.windows().stream()
                 .filter(w -> !(w instanceof HeadlessPopup))
                 .map(HeadlessWindow.class::cast)
-                .findFirst().orElseThrow();
+                .findFirst()
+                .orElseThrow();
     }
 
     private void click(HeadlessWindow window, float x, float y) {
@@ -121,13 +126,14 @@ class SelectLoopTest {
 
     private static void later(long millis, Runnable action) {
         Goldberry.async(() -> {
-            try {
-                Thread.sleep(millis);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-            }
-            return null;
-        }).thenRun(action);
+                    try {
+                        Thread.sleep(millis);
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                    }
+                    return null;
+                })
+                .thenRun(action);
     }
 
     /// The reported defect, as a test: "the autocomplete popup starts near the
@@ -146,8 +152,8 @@ class SelectLoopTest {
         var top = new float[1];
 
         Goldberry.launch(new TestApp(
-                new Select("", value -> { }, new Option("london", "London"))
-                        .autocomplete(query -> { })
+                new Select("", value -> {}, new Option("london", "London"))
+                        .autocomplete(query -> {})
                         .placeholder("Pick a city")
                         .withAttributes(Attributes.NONE.id("city")),
                 host -> later(200, () -> {
@@ -156,14 +162,16 @@ class SelectLoopTest {
                     click(main(), anchor[0].left() + 20, anchor[0].top() + 8);
                     later(300, () -> {
                         top[0] = popups().isEmpty()
-                                ? Float.NaN : popups().getFirst().offset().y();
+                                ? Float.NaN
+                                : popups().getFirst().offset().y();
                         Goldberry.stop();
                     });
                 })));
 
         assertFalse(Float.isNaN(top[0]), "no list opened at all");
         var bottom = anchor[0].top() + anchor[0].size().height();
-        assertTrue(top[0] >= bottom - 0.5f,
+        assertTrue(
+                top[0] >= bottom - 0.5f,
                 "the list opened at y=" + top[0] + ", and the field runs from "
                         + anchor[0].top() + " to " + bottom
                         + " — so it is drawn over the control it belongs to");
@@ -192,25 +200,26 @@ class SelectLoopTest {
         backend.workArea(LogicalRect.of(0, 48, 1600, 852));
 
         Goldberry.launch(new TestApp(
-                new Select("", value -> { }, new Option("london", "London"))
-                        .autocomplete(query -> { })
+                new Select("", value -> {}, new Option("london", "London"))
+                        .autocomplete(query -> {})
                         .placeholder("Pick a city")
                         .withAttributes(Attributes.NONE.id("city")),
                 host -> later(200, () -> {
-                    main().moveTo(new io.github.digitalsmile.goldberry.render.model
-                            .LogicalPoint(220, 160));
+                    main().moveTo(new io.github.digitalsmile.goldberry.render.model.LogicalPoint(220, 160));
                     anchor[0] = host.anchor("city").orElseThrow().bounds();
                     click(main(), anchor[0].left() + 20, anchor[0].top() + 8);
                     later(300, () -> {
                         top[0] = popups().isEmpty()
-                                ? Float.NaN : popups().getFirst().offset().y();
+                                ? Float.NaN
+                                : popups().getFirst().offset().y();
                         Goldberry.stop();
                     });
                 })));
 
         assertFalse(Float.isNaN(top[0]), "no list opened at all");
         var bottom = anchor[0].top() + anchor[0].size().height();
-        assertTrue(top[0] >= bottom - 0.5f,
+        assertTrue(
+                top[0] >= bottom - 0.5f,
                 "the list opened at y=" + top[0] + " in the window's coordinates, and the field"
                         + " runs from " + anchor[0].top() + " to " + bottom
                         + " — the anchor and the placeable area are in different spaces");
@@ -237,8 +246,7 @@ class SelectLoopTest {
         var typed = new ArrayList<String>();
 
         Goldberry.launch(new TestApp(
-                new Select("", value -> { },
-                        new Option("london", "London"), new Option("lisbon", "Lisbon"))
+                new Select("", value -> {}, new Option("london", "London"), new Option("lisbon", "Lisbon"))
                         .autocomplete(typed::add)
                         .placeholder("Pick a city")
                         .withAttributes(Attributes.NONE.id("city")),
@@ -256,8 +264,7 @@ class SelectLoopTest {
                     });
                 })));
 
-        assertEquals(List.of("L", "Lo"), typed,
-                "the second keystroke went somewhere other than the field");
+        assertEquals(List.of("L", "Lo"), typed, "the second keystroke went somewhere other than the field");
     }
 
     /// ADR-0187's defect: an `ATTACHED` popup must take the **pointer** even
@@ -271,7 +278,7 @@ class SelectLoopTest {
 
         Goldberry.launch(new TestApp(
                 new Select("", chosen::add, new Option("london", "London"))
-                        .autocomplete(query -> { })
+                        .autocomplete(query -> {})
                         .placeholder("Pick a city")
                         .withAttributes(Attributes.NONE.id("city")),
                 host -> later(200, () -> {
@@ -286,8 +293,7 @@ class SelectLoopTest {
                     });
                 })));
 
-        assertEquals(List.of("london"), chosen,
-                "the panel refused the pointer, or the row reported nothing");
+        assertEquals(List.of("london"), chosen, "the panel refused the pointer, or the row reported nothing");
     }
 
     /// ADR-0187's other defect: a `tree` expanding a branch is a `setState` in
@@ -301,8 +307,10 @@ class SelectLoopTest {
         var after = new float[1];
 
         Goldberry.launch(new TestApp(
-                new Select("", value -> { })
-                        .tree(List.of(TreeNode.of("europe", "Europe",
+                new Select("", value -> {})
+                        .tree(List.of(TreeNode.of(
+                                "europe",
+                                "Europe",
                                 TreeNode.leaf("no", "Norway"),
                                 TreeNode.leaf("se", "Sweden"),
                                 TreeNode.leaf("dk", "Denmark"))))
@@ -313,7 +321,8 @@ class SelectLoopTest {
                     click(main(), field.left() + 20, field.top() + 8);
                     later(300, () -> {
                         before[0] = popups().isEmpty()
-                                ? Float.NaN : popups().getFirst().size().height();
+                                ? Float.NaN
+                                : popups().getFirst().size().height();
                         if (!popups().isEmpty()) {
                             // The first row is the branch; clicking it opens it,
                             // because in a leaf-only tree it is not an answer.
@@ -321,14 +330,16 @@ class SelectLoopTest {
                         }
                         later(400, () -> {
                             after[0] = popups().isEmpty()
-                                    ? Float.NaN : popups().getFirst().size().height();
+                                    ? Float.NaN
+                                    : popups().getFirst().size().height();
                             Goldberry.stop();
                         });
                     });
                 })));
 
         assertFalse(Float.isNaN(before[0]), "no list opened at all");
-        assertTrue(after[0] > before[0] + 1,
+        assertTrue(
+                after[0] > before[0] + 1,
                 "the popup was " + before[0] + " tall and is " + after[0]
                         + " after three rows appeared in it, so they were drawn"
                         + " into a window that had no room for them");

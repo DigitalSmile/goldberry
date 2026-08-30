@@ -1,8 +1,10 @@
 package io.github.digitalsmile.goldberry;
 
-import io.github.digitalsmile.goldberry.natives.blend2d.BlendImage;
 import java.nio.ByteBuffer;
+
 import org.junit.jupiter.api.Assumptions;
+
+import io.github.digitalsmile.goldberry.natives.blend2d.BlendImage;
 
 /// What a `:core` test that actually paints does when there is no rasterizer.
 ///
@@ -17,8 +19,7 @@ import org.junit.jupiter.api.Assumptions;
 /// anything else is a real failure and is left to propagate.
 public final class RendererRequirement {
 
-    private RendererRequirement() {
-    }
+    private RendererRequirement() {}
 
     /// Returns normally when Blend2D can rasterize, and aborts the test when the
     /// native library is simply not there.
@@ -29,11 +30,10 @@ public final class RendererRequirement {
             // symbol or a mismatched ABI surfaces.
             BlendImage.wrapping(ByteBuffer.allocateDirect(16), 2, 2, 8).close();
         } catch (UnsatisfiedLinkError | NoClassDefFoundError | ExceptionInInitializerError e) {
-            Assumptions.abort(
-                    "libgoldberry is not loadable from :core's tests, so nothing can rasterize: "
-                            + e
-                            + ". Pass -Dgoldberry.native.library=<path> to point at one"
-                            + " — see core/build.gradle.");
+            Assumptions.abort("libgoldberry is not loadable from :core's tests, so nothing can rasterize: "
+                    + e
+                    + ". Pass -Dgoldberry.native.library=<path> to point at one"
+                    + " — see core/build.gradle.");
         }
     }
 }

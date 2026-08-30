@@ -5,6 +5,10 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+
 import io.github.digitalsmile.goldberry.RendererRequirement;
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
 import io.github.digitalsmile.goldberry.css.Corners;
@@ -19,9 +23,6 @@ import io.github.digitalsmile.goldberry.widgets.Controls;
 import io.github.digitalsmile.goldberry.widgets.Widgets;
 import io.github.digitalsmile.goldberry.widgets.panel.Described;
 import io.github.digitalsmile.goldberry.widgets.text.Text;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
 
 /// `group-box` — §5's titled border group ([ADR-0164]).
 ///
@@ -46,7 +47,9 @@ class GroupBoxTest {
 
         assertEquals(1, Described.of(tree, GroupBox.GroupBoxTitle.class).size());
         assertEquals(1, Described.of(tree, GroupBox.GroupBoxBody.class).size());
-        assertEquals("Appearance", Described.first(tree, GroupBox.GroupBoxTitle.class).text());
+        assertEquals(
+                "Appearance",
+                Described.first(tree, GroupBox.GroupBoxTitle.class).text());
     }
 
     /// §5's frame is 8px round with a 1px edge, and the header fills the top of
@@ -59,9 +62,10 @@ class GroupBoxTest {
     @Test
     @DisplayName("the header's top corners follow the frame and its bottom ones do not")
     void headerCornersFollowTheFrame() {
-        assertEquals(Corners.all(8), styleOf("group-box").decoration().corners(),
-                "§5's frame");
-        assertEquals(new Corners(7, 7, 0, 0), styleOf("group-box-title").decoration().corners(),
+        assertEquals(Corners.all(8), styleOf("group-box").decoration().corners(), "§5's frame");
+        assertEquals(
+                new Corners(7, 7, 0, 0),
+                styleOf("group-box-title").decoration().corners(),
                 "the frame's radius less its border on top, square underneath");
     }
 
@@ -118,7 +122,8 @@ class GroupBoxTest {
     void childrenAreInTheBody() {
         var tree = new ElementTree(new GroupBox("Appearance", new Text("Theme")));
 
-        assertEquals(1, Described.first(tree, GroupBox.GroupBoxBody.class).children().size());
+        assertEquals(
+                1, Described.first(tree, GroupBox.GroupBoxBody.class).children().size());
     }
 
     /// The title is a property and not the node's argument, because the argument
@@ -126,8 +131,9 @@ class GroupBoxTest {
     @Test
     @DisplayName("a group box inflates from markup, with the title as a property")
     void inflates() {
-        var widget = Widgets.inflater().inflate(KdlParser.parse(
-                "group-box title=\"Appearance\" { text \"Theme\" }").getFirst());
+        var widget = Widgets.inflater()
+                .inflate(KdlParser.parse("group-box title=\"Appearance\" { text \"Theme\" }")
+                        .getFirst());
         var box = assertInstanceOf(GroupBox.class, widget);
 
         assertEquals("Appearance", box.title());

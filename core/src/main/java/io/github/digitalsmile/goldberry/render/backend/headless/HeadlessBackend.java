@@ -1,30 +1,32 @@
 package io.github.digitalsmile.goldberry.render.backend.headless;
 
-import io.github.digitalsmile.goldberry.render.Backend;
-import io.github.digitalsmile.goldberry.render.backend.sdl3.Sdl3Backend;
-import io.github.digitalsmile.goldberry.render.event.BackendEvent;
-import io.github.digitalsmile.goldberry.render.BackendException;
-import io.github.digitalsmile.goldberry.render.popup.BackendPopup;
-import io.github.digitalsmile.goldberry.render.window.BackendWindow;
-import io.github.digitalsmile.goldberry.render.Clipboard;
-import io.github.digitalsmile.goldberry.render.model.DisplayScale;
-import io.github.digitalsmile.goldberry.render.event.EventSink;
-import io.github.digitalsmile.goldberry.render.model.LogicalRect;
-import io.github.digitalsmile.goldberry.render.popup.PopupSpec;
-import io.github.digitalsmile.goldberry.render.tray.BackendTray;
-import io.github.digitalsmile.goldberry.render.tray.TraySpec;
-import io.github.digitalsmile.goldberry.render.window.WindowSpec;
-import io.github.digitalsmile.goldberry.log.Logs;
 import java.time.Duration;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Queue;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.LockSupport;
+
 import org.slf4j.Logger;
+
+import io.github.digitalsmile.goldberry.log.Logs;
+import io.github.digitalsmile.goldberry.render.Backend;
+import io.github.digitalsmile.goldberry.render.BackendException;
+import io.github.digitalsmile.goldberry.render.Clipboard;
+import io.github.digitalsmile.goldberry.render.backend.sdl3.Sdl3Backend;
+import io.github.digitalsmile.goldberry.render.event.BackendEvent;
+import io.github.digitalsmile.goldberry.render.event.EventSink;
+import io.github.digitalsmile.goldberry.render.model.DisplayScale;
+import io.github.digitalsmile.goldberry.render.model.LogicalRect;
+import io.github.digitalsmile.goldberry.render.popup.BackendPopup;
+import io.github.digitalsmile.goldberry.render.popup.PopupSpec;
+import io.github.digitalsmile.goldberry.render.tray.BackendTray;
+import io.github.digitalsmile.goldberry.render.tray.TraySpec;
+import io.github.digitalsmile.goldberry.render.window.BackendWindow;
+import io.github.digitalsmile.goldberry.render.window.WindowSpec;
 
 /// A backend with no platform underneath it.
 ///
@@ -161,8 +163,7 @@ public final class HeadlessBackend implements Backend {
         Objects.requireNonNull(spec, "spec");
         if (!(owner instanceof HeadlessWindow parent)) {
             throw new IllegalArgumentException(
-                    "a popup's owner must be a window from this backend, and " + owner
-                            + " is not");
+                    "a popup's owner must be a window from this backend, and " + owner + " is not");
         }
         if (!parent.isOpen()) {
             throw new IllegalStateException("cannot open a popup on a window that has closed");
@@ -191,8 +192,7 @@ public final class HeadlessBackend implements Backend {
 
         var tray = new HeadlessTray(this, spec);
         trays.add(tray);
-        LOG.debug("created headless tray with {} rows, tooltip {}",
-                spec.items().size(), spec.tooltip());
+        LOG.debug("created headless tray with {} rows, tooltip {}", spec.items().size(), spec.tooltip());
         return Optional.of(tray);
     }
 
@@ -257,14 +257,12 @@ public final class HeadlessBackend implements Backend {
         for (var event : batch) {
             // A frame request is satisfied by its event being delivered, so a
             // repaint asked for inside the handler survives into the next pump.
-            if (event instanceof BackendEvent.FrameDue frame
-                    && frame.window() instanceof HeadlessWindow window) {
+            if (event instanceof BackendEvent.FrameDue frame && frame.window() instanceof HeadlessWindow window) {
                 window.frameDelivered();
             }
             // A popup's requested size becomes its actual size here, which is
             // where a window manager's answer would arrive. See HeadlessPopup.
-            if (event instanceof BackendEvent.Resized resized
-                    && resized.window() instanceof HeadlessPopup popup) {
+            if (event instanceof BackendEvent.Resized resized && resized.window() instanceof HeadlessPopup popup) {
                 popup.resizeDelivered();
             }
             sink.accept(event);

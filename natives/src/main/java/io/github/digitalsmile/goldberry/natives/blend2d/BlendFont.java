@@ -1,11 +1,12 @@
 package io.github.digitalsmile.goldberry.natives.blend2d;
 
-import io.github.digitalsmile.goldberry.natives.layout.Layouts;
 import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;
 import java.util.Objects;
+
 import io.github.digitalsmile.goldberry.natives.blend2d.enums.BlendGlyphPlacementType;
 import io.github.digitalsmile.goldberry.natives.blend2d.error.BlendException;
+import io.github.digitalsmile.goldberry.natives.layout.Layouts;
 
 /// A font, as Blend2D sees it: a typeface plus the size it is drawn at.
 ///
@@ -125,8 +126,7 @@ public final class BlendFont implements AutoCloseable {
     private static void requireUsableSize(double size) {
         if (!Double.isFinite(size) || size <= 0) {
             throw new IllegalArgumentException(
-                    "a font size must be a positive, finite number of units per em, and "
-                            + size + " is not");
+                    "a font size must be a positive, finite number of units per em, and " + size + " is not");
         }
     }
 
@@ -184,8 +184,7 @@ public final class BlendFont implements AutoCloseable {
 
     private void requireOwner() {
         if (Thread.currentThread() != owner) {
-            throw new IllegalStateException(
-                    "a BlendFont belongs to the thread that created it, and this is not it");
+            throw new IllegalStateException("a BlendFont belongs to the thread that created it, and this is not it");
         }
     }
 

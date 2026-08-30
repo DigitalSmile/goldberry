@@ -1,20 +1,21 @@
 package io.github.digitalsmile.goldberry.widgets.panel.statistic;
 
-import io.github.digitalsmile.goldberry.css.ComputedStyle;
-import io.github.digitalsmile.goldberry.kdl.KdlNode;
-import io.github.digitalsmile.goldberry.paint.Box;
-import io.github.digitalsmile.goldberry.widget.attr.Attributed;
-import io.github.digitalsmile.goldberry.widget.attr.Attributes;
-import io.github.digitalsmile.goldberry.widget.style.Paints;
-import io.github.digitalsmile.goldberry.widget.style.Styled;
-import io.github.digitalsmile.goldberry.widget.Widget;
-import io.github.digitalsmile.goldberry.widgets.markup.Markup;
-import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
 import java.util.Set;
+
+import io.github.digitalsmile.goldberry.css.ComputedStyle;
+import io.github.digitalsmile.goldberry.kdl.KdlNode;
+import io.github.digitalsmile.goldberry.paint.Box;
+import io.github.digitalsmile.goldberry.widget.Widget;
+import io.github.digitalsmile.goldberry.widget.attr.Attributed;
+import io.github.digitalsmile.goldberry.widget.attr.Attributes;
+import io.github.digitalsmile.goldberry.widget.style.Paints;
+import io.github.digitalsmile.goldberry.widget.style.Styled;
+import io.github.digitalsmile.goldberry.widgets.markup.Markup;
+import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
 
 /// A labelled number — `docs/core-widgets.md` §5's `statistic`.
 ///
@@ -71,7 +72,11 @@ import java.util.Set;
 /// @param attributes the `id` and classes
 @Markup("statistic")
 public record Statistic(
-        String label, String value, String unit, String delta, Direction direction,
+        String label,
+        String value,
+        String unit,
+        String delta,
+        Direction direction,
         io.github.digitalsmile.goldberry.widgets.data.sparkline.Sparkline sparkline,
         Attributes attributes)
         implements Widget.Leaf, Styled, Paints, Attributed<Statistic> {
@@ -103,9 +108,9 @@ public record Statistic(
                 case "up" -> UP;
                 case "down" -> DOWN;
                 case "none", "flat" -> NONE;
-                default -> throw new IllegalArgumentException(
-                        "a statistic's direction is \"up\", \"down\" or \"none\", not \""
-                                + text + "\"");
+                default ->
+                    throw new IllegalArgumentException(
+                            "a statistic's direction is \"up\", \"down\" or \"none\", not \"" + text + "\"");
             };
         }
     }
@@ -181,8 +186,7 @@ public record Statistic(
     }
 
     /// This statistic with §5's optional trend under it.
-    public Statistic sparkline(
-            io.github.digitalsmile.goldberry.widgets.data.sparkline.Sparkline value) {
+    public Statistic sparkline(io.github.digitalsmile.goldberry.widgets.data.sparkline.Sparkline value) {
         return new Statistic(label, this.value, unit, delta, direction, value, attributes);
     }
 
@@ -194,7 +198,8 @@ public record Statistic(
                 node.stringProperty("unit"),
                 node.stringProperty("delta"),
                 Direction.of(node.stringProperty("direction")),
-                null, Attributes.of(node));
+                null,
+                Attributes.of(node));
     }
 
     /// What the number is of.
@@ -207,8 +212,7 @@ public record Statistic(
 
         @Override
         public Box render(ComputedStyle style, List<Box> children, Context context) {
-            return Box.of().style(style)
-                    .children(Box.text(context.paragraph(style, text), style.color()));
+            return Box.of().style(style).children(Box.text(context.paragraph(style, text), style.color()));
         }
     }
 
@@ -248,14 +252,12 @@ public record Statistic(
 
         @Override
         public Box render(ComputedStyle style, List<Box> children, Context context) {
-            return Box.of().style(style)
-                    .children(Box.text(context.paragraph(style, text), style.color()));
+            return Box.of().style(style).children(Box.text(context.paragraph(style, text), style.color()));
         }
     }
 
     /// The change, coloured by its direction.
-    record StatisticDelta(String text, Direction direction)
-            implements Widget.Leaf, Styled, Paints {
+    record StatisticDelta(String text, Direction direction) implements Widget.Leaf, Styled, Paints {
 
         @Override
         public String cssType() {
@@ -271,8 +273,7 @@ public record Statistic(
 
         @Override
         public Box render(ComputedStyle style, List<Box> children, Context context) {
-            return Box.of().style(style)
-                    .children(Box.text(context.paragraph(style, text), style.color()));
+            return Box.of().style(style).children(Box.text(context.paragraph(style, text), style.color()));
         }
     }
 }

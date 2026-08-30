@@ -61,7 +61,10 @@ record DonutGeometry(double cx, double cy, double outer, double inner) {
             // deliberately left empty.
             return -1;
         }
-        var total = values.stream().mapToDouble(Double::doubleValue).filter(v -> v > 0).sum();
+        var total = values.stream()
+                .mapToDouble(Double::doubleValue)
+                .filter(v -> v > 0)
+                .sum();
         if (total <= 0) {
             return -1;
         }
@@ -99,7 +102,10 @@ record DonutGeometry(double cx, double cy, double outer, double inner) {
     /// The middle of slice `index`, as an angle — where a label or a marker for
     /// it belongs.
     double middleOf(int index, List<Double> values) {
-        var total = values.stream().mapToDouble(Double::doubleValue).filter(v -> v > 0).sum();
+        var total = values.stream()
+                .mapToDouble(Double::doubleValue)
+                .filter(v -> v > 0)
+                .sum();
         if (total <= 0 || index < 0 || index >= values.size()) {
             return START;
         }

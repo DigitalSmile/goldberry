@@ -5,17 +5,19 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.ArrayList;
+import java.util.List;
+
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+
 import io.github.digitalsmile.goldberry.render.PixelBuffer;
 import io.github.digitalsmile.goldberry.render.model.PhysicalSize;
 import io.github.digitalsmile.goldberry.render.model.PixelFormat;
 import io.github.digitalsmile.goldberry.render.tray.TrayItem;
 import io.github.digitalsmile.goldberry.render.tray.TraySpec;
-import java.util.ArrayList;
-import java.util.List;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
 
 /// The tray half of the backend SPI, where a tray menu can be observed at all.
 ///
@@ -42,16 +44,22 @@ class HeadlessTrayTest {
     }
 
     private HeadlessTray tray() {
-        return (HeadlessTray) backend.createTray(TraySpec.of("Goldberry", List.of(
-                TrayItem.command("Open", checked -> chosen.add("Open")),
-                TrayItem.separator(),
-                TrayItem.checkbox("Notifications", true,
-                        checked -> chosen.add("Notifications=" + checked)),
-                TrayItem.checkbox("Sounds", false, checked -> chosen.add("Sounds=" + checked)),
-                TrayItem.submenu("Recent", List.of(
-                        TrayItem.command("report.pdf", checked -> chosen.add("report.pdf")),
-                        TrayItem.command("notes.md", checked -> chosen.add("notes.md")).disabled())),
-                TrayItem.command("Quit", checked -> chosen.add("Quit"))))).orElseThrow();
+        return (HeadlessTray) backend.createTray(TraySpec.of(
+                        "Goldberry",
+                        List.of(
+                                TrayItem.command("Open", checked -> chosen.add("Open")),
+                                TrayItem.separator(),
+                                TrayItem.checkbox(
+                                        "Notifications", true, checked -> chosen.add("Notifications=" + checked)),
+                                TrayItem.checkbox("Sounds", false, checked -> chosen.add("Sounds=" + checked)),
+                                TrayItem.submenu(
+                                        "Recent",
+                                        List.of(
+                                                TrayItem.command("report.pdf", checked -> chosen.add("report.pdf")),
+                                                TrayItem.command("notes.md", checked -> chosen.add("notes.md"))
+                                                        .disabled())),
+                                TrayItem.command("Quit", checked -> chosen.add("Quit")))))
+                .orElseThrow();
     }
 
     @Test
@@ -112,8 +120,7 @@ class HeadlessTrayTest {
     void disabledRowsAreNotChoosable() {
         var tray = tray();
 
-        var refused = assertThrows(IllegalStateException.class,
-                () -> tray.choose("Recent/notes.md"));
+        var refused = assertThrows(IllegalStateException.class, () -> tray.choose("Recent/notes.md"));
 
         assertTrue(refused.getMessage().contains("disabled"));
         assertEquals(List.of(), chosen);
@@ -126,7 +133,8 @@ class HeadlessTrayTest {
 
         var refused = assertThrows(IllegalArgumentException.class, () -> tray.choose("Preferences"));
 
-        assertTrue(refused.getMessage().contains("Recent/report.pdf"),
+        assertTrue(
+                refused.getMessage().contains("Recent/report.pdf"),
                 "the failure should list the paths that exist: " + refused.getMessage());
         // A separator has no path, so it cannot be named and cannot be chosen.
         assertThrows(IllegalArgumentException.class, () -> tray.choose(""));
@@ -136,8 +144,7 @@ class HeadlessTrayTest {
     @DisplayName("takes a new icon and a new tooltip without being rebuilt")
     void iconAndTooltipAreReplaceable() {
         var tray = tray();
-        var icon = PixelBuffer.allocate(
-                PhysicalSize.of(32, 32), PixelFormat.BGRA32_PREMULTIPLIED);
+        var icon = PixelBuffer.allocate(PhysicalSize.of(32, 32), PixelFormat.BGRA32_PREMULTIPLIED);
 
         tray.icon(icon);
         tray.tooltip("Goldberry — 3 unread");

@@ -1,25 +1,26 @@
 package io.github.digitalsmile.goldberry.widgets.controls.segmented;
 
-import io.github.digitalsmile.goldberry.widgets.controls.option.Option;
-import io.github.digitalsmile.goldberry.bind.Observable;
-import io.github.digitalsmile.goldberry.css.ComputedStyle;
-import io.github.digitalsmile.goldberry.input.FocusScope;
-import io.github.digitalsmile.goldberry.input.handler.Handles;
-import io.github.digitalsmile.goldberry.paint.Box;
-import io.github.digitalsmile.goldberry.widget.attr.Attributed;
-import io.github.digitalsmile.goldberry.widget.attr.Attributes;
-import io.github.digitalsmile.goldberry.widget.attr.Bindable;
-import io.github.digitalsmile.goldberry.widget.style.Paints;
-import io.github.digitalsmile.goldberry.widget.style.Styled;
-import io.github.digitalsmile.goldberry.widget.Widget;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Consumer;
+
+import io.github.digitalsmile.goldberry.bind.Observable;
+import io.github.digitalsmile.goldberry.css.ComputedStyle;
+import io.github.digitalsmile.goldberry.input.FocusScope;
+import io.github.digitalsmile.goldberry.input.handler.Handles;
 import io.github.digitalsmile.goldberry.kdl.KdlNode;
-import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
+import io.github.digitalsmile.goldberry.paint.Box;
+import io.github.digitalsmile.goldberry.widget.Widget;
+import io.github.digitalsmile.goldberry.widget.attr.Attributed;
+import io.github.digitalsmile.goldberry.widget.attr.Attributes;
+import io.github.digitalsmile.goldberry.widget.attr.Bindable;
+import io.github.digitalsmile.goldberry.widget.style.Paints;
+import io.github.digitalsmile.goldberry.widget.style.Styled;
+import io.github.digitalsmile.goldberry.widgets.controls.option.Option;
 import io.github.digitalsmile.goldberry.widgets.markup.Markup;
+import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
 
 /// A row of mutually exclusive options drawn as one joined bar (§11,
 /// `docs/core-widgets.md` §3).
@@ -68,10 +69,13 @@ import io.github.digitalsmile.goldberry.widgets.markup.Markup;
 /// @param attributes `id` and `class`, exactly as on the primitives
 @Markup("segmented")
 public record Segmented(
-        String value, List<Widget> children, Observable<?> source, Consumer<String> onChange,
-        boolean disabled, Attributes attributes)
-        implements Widget.Leaf, Styled, Paints, Handles, Attributed<Segmented>,
-        Bindable<Segmented> {
+        String value,
+        List<Widget> children,
+        Observable<?> source,
+        Consumer<String> onChange,
+        boolean disabled,
+        Attributes attributes)
+        implements Widget.Leaf, Styled, Paints, Handles, Attributed<Segmented>, Bindable<Segmented> {
 
     public Segmented {
         children = List.copyOf(children == null ? List.of() : children);
@@ -93,8 +97,8 @@ public record Segmented(
     ///
     /// @param source read-only by construction ([ADR-0063])
     public static Segmented of(Observable<?> source, Consumer<String> onChange, Option... options) {
-        return new Segmented(null, List.of(options),
-                Objects.requireNonNull(source, "source"), onChange, false, Attributes.NONE);
+        return new Segmented(
+                null, List.of(options), Objects.requireNonNull(source, "source"), onChange, false, Attributes.NONE);
     }
 
     /// This bar, disabled or not.
@@ -240,8 +244,12 @@ public record Segmented(
     /// shares that model exactly — a set's handler is useless without the value
     /// picked (ADR-0073).
     public static Widget inflate(KdlNode node, List<Widget> children, Wiring wiring) {
-        return new Segmented(node.stringProperty("value"), children,
-                wiring.bound(node), wiring.valued(node, "change"),
-                Wiring.disabled(node), Attributes.of(node));
+        return new Segmented(
+                node.stringProperty("value"),
+                children,
+                wiring.bound(node),
+                wiring.valued(node, "change"),
+                Wiring.disabled(node),
+                Attributes.of(node));
     }
 }

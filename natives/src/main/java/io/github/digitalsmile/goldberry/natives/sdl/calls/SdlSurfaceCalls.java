@@ -4,11 +4,12 @@ import static java.lang.foreign.ValueLayout.ADDRESS;
 import static java.lang.foreign.ValueLayout.JAVA_BOOLEAN;
 import static java.lang.foreign.ValueLayout.JAVA_INT;
 
-import io.github.digitalsmile.goldberry.natives.Downcalls;
 import java.lang.foreign.FunctionDescriptor;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.SymbolLookup;
 import java.lang.invoke.MethodHandle;
+
+import io.github.digitalsmile.goldberry.natives.Downcalls;
 
 /// SDL's surfaces — the window's own, which a frame is painted into, and one
 /// wrapped around pixels of Goldberry's, which is what a tray icon is.
@@ -90,8 +91,7 @@ public record SdlSurfaceCalls(
 
         public boolean call(MemorySegment window, MemorySegment rects, int count) {
             try {
-                return (boolean) FD_SDL_UpdateWindowSurfaceRects.invokeExact(
-                        address, window, rects, count);
+                return (boolean) FD_SDL_UpdateWindowSurfaceRects.invokeExact(address, window, rects, count);
             } catch (Throwable t) {
                 throw Downcalls.failure("SDL_UpdateWindowSurfaceRects", t);
             }
@@ -145,8 +145,7 @@ public record SdlSurfaceCalls(
     public static final class CreateSurfaceFrom {
 
         private static final MethodHandle FD_SDL_CreateSurfaceFrom =
-                Downcalls.link(FunctionDescriptor.of(
-                        ADDRESS, JAVA_INT, JAVA_INT, JAVA_INT, ADDRESS, JAVA_INT));
+                Downcalls.link(FunctionDescriptor.of(ADDRESS, JAVA_INT, JAVA_INT, JAVA_INT, ADDRESS, JAVA_INT));
 
         private final MemorySegment address;
 
@@ -154,11 +153,10 @@ public record SdlSurfaceCalls(
             this.address = Downcalls.symbol(lookup, "SDL_CreateSurfaceFrom");
         }
 
-        public MemorySegment call(
-                int width, int height, int format, MemorySegment pixels, int pitch) {
+        public MemorySegment call(int width, int height, int format, MemorySegment pixels, int pitch) {
             try {
-                return (MemorySegment) FD_SDL_CreateSurfaceFrom.invokeExact(
-                        address, width, height, format, pixels, pitch);
+                return (MemorySegment)
+                        FD_SDL_CreateSurfaceFrom.invokeExact(address, width, height, format, pixels, pitch);
             } catch (Throwable t) {
                 throw Downcalls.failure("SDL_CreateSurfaceFrom", t);
             }
@@ -173,8 +171,7 @@ public record SdlSurfaceCalls(
     /// @param surface the surface to release
     public static final class DestroySurface {
 
-        private static final MethodHandle FD_SDL_DestroySurface =
-                Downcalls.link(FunctionDescriptor.ofVoid(ADDRESS));
+        private static final MethodHandle FD_SDL_DestroySurface = Downcalls.link(FunctionDescriptor.ofVoid(ADDRESS));
 
         private final MemorySegment address;
 

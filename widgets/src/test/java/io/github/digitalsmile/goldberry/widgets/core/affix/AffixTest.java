@@ -5,20 +5,29 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.ArrayList;
+import java.util.List;
+
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
+
 import io.github.digitalsmile.goldberry.RendererRequirement;
-import io.github.digitalsmile.goldberry.paint.TestFrames;
-import io.github.digitalsmile.goldberry.render.model.LogicalRect;
-import io.github.digitalsmile.goldberry.css.select.Selector.PseudoClass;
 import io.github.digitalsmile.goldberry.css.Theme;
+import io.github.digitalsmile.goldberry.css.select.Selector.PseudoClass;
+import io.github.digitalsmile.goldberry.input.PointerRouter;
 import io.github.digitalsmile.goldberry.input.hit.HitTest;
 import io.github.digitalsmile.goldberry.input.key.Modifiers;
-import io.github.digitalsmile.goldberry.input.PointerRouter;
+import io.github.digitalsmile.goldberry.paint.TestFrames;
 import io.github.digitalsmile.goldberry.paint.tree.RenderTree;
-import io.github.digitalsmile.goldberry.widget.attr.Attributes;
+import io.github.digitalsmile.goldberry.render.model.LogicalRect;
 import io.github.digitalsmile.goldberry.widget.Element;
 import io.github.digitalsmile.goldberry.widget.ElementTree;
 import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widget.WidgetRenderer;
+import io.github.digitalsmile.goldberry.widget.attr.Attributes;
 import io.github.digitalsmile.goldberry.widgets.Controls;
 import io.github.digitalsmile.goldberry.widgets.controls.TestFont;
 import io.github.digitalsmile.goldberry.widgets.core.Column;
@@ -26,13 +35,6 @@ import io.github.digitalsmile.goldberry.widgets.core.Primitives;
 import io.github.digitalsmile.goldberry.widgets.core.scroll.Scroll;
 import io.github.digitalsmile.goldberry.widgets.core.scroll.ScrollAxis;
 import io.github.digitalsmile.goldberry.widgets.text.Text;
-import java.util.ArrayList;
-import java.util.List;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.Test;
 
 /// `affix` — a child pinned to an edge of the nearest `scroll`
 /// ([ADR-0119](../../../../../../../../book/src/adr/0119-a-widget-may-be-told-where-it-is.md)).
@@ -72,8 +74,7 @@ class AffixTest {
 
         Harness(Widget root) {
             target = TestFrames.of(220, VIEWPORT_HEIGHT, 1.0f, 0);
-            renderer = new WidgetRenderer(
-                    List.of(Controls.baseStylesheet(), Theme.NORD_DARK.load()), TestFont.get());
+            renderer = new WidgetRenderer(List.of(Controls.baseStylesheet(), Theme.NORD_DARK.load()), TestFont.get());
             tree = new ElementTree(root);
             render = RenderTree.create();
             router.focusRoot(tree.root());
@@ -99,8 +100,7 @@ class AffixTest {
         double contentTop() {
             var found = new ArrayList<Double>();
             render.forEachPlacedBox(placed -> {
-                if (placed.box().owner() instanceof Element element
-                        && "affix-content".equals(element.type())) {
+                if (placed.box().owner() instanceof Element element && "affix-content".equals(element.type())) {
                     var matrix = placed.transform();
                     var layout = placed.layout();
                     found.add(matrix.b() * layout.left() + matrix.d() * layout.top() + matrix.f());
@@ -114,8 +114,7 @@ class AffixTest {
         double holeTop() {
             var found = new ArrayList<Double>();
             render.forEachPlacedBox(placed -> {
-                if (placed.box().owner() instanceof Element element
-                        && "affix".equals(element.type())) {
+                if (placed.box().owner() instanceof Element element && "affix".equals(element.type())) {
                     var matrix = placed.transform();
                     var layout = placed.layout();
                     found.add(matrix.b() * layout.left() + matrix.d() * layout.top() + matrix.f());
@@ -156,8 +155,7 @@ class AffixTest {
         for (var i = 0; i < 30; i++) {
             rows.add(new Text("after " + i));
         }
-        return new Scroll(List.of(new Column(rows.toArray(Widget[]::new))),
-                ScrollAxis.VERTICAL, Attributes.NONE);
+        return new Scroll(List.of(new Column(rows.toArray(Widget[]::new))), ScrollAxis.VERTICAL, Attributes.NONE);
     }
 
     @Nested
@@ -170,8 +168,7 @@ class AffixTest {
             var harness = new Harness(document());
 
             assertNotNull(harness.affix(), "no element of type affix");
-            assertNotNull(find(harness.affix(), "affix-content"),
-                    "the affix built no content node");
+            assertNotNull(find(harness.affix(), "affix-content"), "the affix built no content node");
         }
 
         @Test
@@ -193,10 +190,8 @@ class AffixTest {
             harness.wheel(6);
 
             // The hole has scrolled up out of sight; the child has not.
-            assertTrue(harness.holeTop() < -1,
-                    "the hole did not scroll; it is at " + harness.holeTop());
-            assertEquals(0, harness.contentTop(), 1.0,
-                    "the pinned child left the top of the viewport");
+            assertTrue(harness.holeTop() < -1, "the hole did not scroll; it is at " + harness.holeTop());
+            assertEquals(0, harness.contentTop(), 1.0, "the pinned child left the top of the viewport");
         }
 
         @Test
@@ -207,8 +202,8 @@ class AffixTest {
 
             harness.wheel(6);
 
-            assertTrue(harness.affix().hasState(PseudoClass.AFFIXED),
-                    ":affixed did not come on when the header lifted");
+            assertTrue(
+                    harness.affix().hasState(PseudoClass.AFFIXED), ":affixed did not come on when the header lifted");
         }
 
         @Test
@@ -220,8 +215,8 @@ class AffixTest {
 
             harness.wheel(-6);
 
-            assertFalse(harness.affix().hasState(PseudoClass.AFFIXED),
-                    "it stayed affixed after scrolling back to the top");
+            assertFalse(
+                    harness.affix().hasState(PseudoClass.AFFIXED), "it stayed affixed after scrolling back to the top");
             assertEquals(harness.holeTop(), harness.contentTop(), 0.5);
         }
 
@@ -270,9 +265,8 @@ class AffixTest {
             for (var i = 0; i < 30; i++) {
                 rows.add(new Text("after " + i));
             }
-            var harness = new Harness(new Scroll(
-                    List.of(new Column(rows.toArray(Widget[]::new))),
-                    ScrollAxis.VERTICAL, Attributes.NONE));
+            var harness = new Harness(
+                    new Scroll(List.of(new Column(rows.toArray(Widget[]::new))), ScrollAxis.VERTICAL, Attributes.NONE));
 
             harness.wheel(6);
 
@@ -297,9 +291,8 @@ class AffixTest {
             for (var i = 0; i < 30; i++) {
                 rows.add(new Text("after " + i));
             }
-            var harness = new Harness(new Scroll(
-                    List.of(new Column(rows.toArray(Widget[]::new))),
-                    ScrollAxis.VERTICAL, Attributes.NONE));
+            var harness = new Harness(
+                    new Scroll(List.of(new Column(rows.toArray(Widget[]::new))), ScrollAxis.VERTICAL, Attributes.NONE));
 
             var atRest = seen.getLast();
             harness.wheel(6);
@@ -309,11 +302,11 @@ class AffixTest {
             // the widget is *for*, and what makes it useless to measure. The hole
             // has travelled with the document, and that is what a caller asking
             // "how far away is this section" has to be given.
-            assertTrue(scrolled.top() < atRest.top() - 10,
-                    "the affix reported a rectangle that did not travel: " + atRest.top()
-                            + " then " + scrolled.top());
-            assertTrue(harness.affix().hasState(PseudoClass.AFFIXED),
-                    "the header was not pinned, so this proves nothing");
+            assertTrue(
+                    scrolled.top() < atRest.top() - 10,
+                    "the affix reported a rectangle that did not travel: " + atRest.top() + " then " + scrolled.top());
+            assertTrue(
+                    harness.affix().hasState(PseudoClass.AFFIXED), "the header was not pinned, so this proves nothing");
         }
 
         @Test
@@ -342,8 +335,7 @@ class AffixTest {
             // answers the window when nothing clips -- so this is well-defined
             // rather than a special case, and a toolbar at the top of a page is
             // simply never past the edge.
-            var harness = new Harness(new Column(new Affix(new Text("toolbar")),
-                    new Text("under it")));
+            var harness = new Harness(new Column(new Affix(new Text("toolbar")), new Text("under it")));
 
             assertFalse(harness.affix().hasState(PseudoClass.AFFIXED));
             assertEquals(harness.holeTop(), harness.contentTop(), 0.5);

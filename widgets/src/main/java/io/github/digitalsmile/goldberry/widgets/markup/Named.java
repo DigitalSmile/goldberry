@@ -4,6 +4,7 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
+
 import io.github.digitalsmile.goldberry.widgets.Icons;
 
 /// The **objects** a document may name — a `FormController`, a `Validator`.
@@ -70,8 +71,7 @@ public final class Named {
         Objects.requireNonNull(name, "name");
         Objects.requireNonNull(value, "value");
         if (byName.putIfAbsent(name, value) != null) {
-            throw new IllegalStateException(
-                    "\"" + name + "\" is already registered; use rebind() to replace it");
+            throw new IllegalStateException("\"" + name + "\" is already registered; use rebind() to replace it");
         }
         return this;
     }
@@ -98,9 +98,8 @@ public final class Named {
         var value = byName.get(name);
         if (value == null) {
             if (strict) {
-                throw new IllegalArgumentException(
-                        "nothing is registered as \"" + name + "\". Registered: "
-                                + (byName.isEmpty() ? "(none)" : String.join(", ", byName.keySet())));
+                throw new IllegalArgumentException("nothing is registered as \"" + name + "\". Registered: "
+                        + (byName.isEmpty() ? "(none)" : String.join(", ", byName.keySet())));
             }
             return null;
         }
@@ -108,9 +107,8 @@ public final class Named {
             // Named and typed separately, so this is where the two meet. A
             // `controller=` that resolved to a validator would be a form that
             // cannot be submitted and says so nowhere.
-            throw new IllegalArgumentException(
-                    "\"" + name + "\" is a " + value.getClass().getSimpleName()
-                            + ", and this attribute needs a " + type.getSimpleName());
+            throw new IllegalArgumentException("\"" + name + "\" is a "
+                    + value.getClass().getSimpleName() + ", and this attribute needs a " + type.getSimpleName());
         }
         return type.cast(value);
     }

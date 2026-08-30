@@ -6,24 +6,26 @@ import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import io.github.digitalsmile.goldberry.RendererRequirement;
-import io.github.digitalsmile.goldberry.input.hit.Extent;
-import io.github.digitalsmile.goldberry.input.key.Key;
-import io.github.digitalsmile.goldberry.input.event.KeyEvent;
-import io.github.digitalsmile.goldberry.input.key.Modifiers;
-import io.github.digitalsmile.goldberry.input.event.PointerEvent;
-import io.github.digitalsmile.goldberry.kdl.KdlParser;
-import io.github.digitalsmile.goldberry.widget.attr.Attributes;
-import io.github.digitalsmile.goldberry.widget.ElementTree;
-import io.github.digitalsmile.goldberry.widgets.Widgets;
-import io.github.digitalsmile.goldberry.widgets.panel.Described;
-import io.github.digitalsmile.goldberry.widgets.text.Text;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+
+import io.github.digitalsmile.goldberry.RendererRequirement;
+import io.github.digitalsmile.goldberry.input.event.KeyEvent;
+import io.github.digitalsmile.goldberry.input.event.PointerEvent;
+import io.github.digitalsmile.goldberry.input.hit.Extent;
+import io.github.digitalsmile.goldberry.input.key.Key;
+import io.github.digitalsmile.goldberry.input.key.Modifiers;
+import io.github.digitalsmile.goldberry.kdl.KdlParser;
+import io.github.digitalsmile.goldberry.widget.ElementTree;
+import io.github.digitalsmile.goldberry.widget.attr.Attributes;
+import io.github.digitalsmile.goldberry.widgets.Widgets;
+import io.github.digitalsmile.goldberry.widgets.panel.Described;
+import io.github.digitalsmile.goldberry.widgets.text.Text;
 
 /// `split-pane` — §5's two children and a draggable divider ([ADR-0165]).
 ///
@@ -46,9 +48,15 @@ class SplitPaneTest {
     }
 
     private static SplitPane split(double position) {
-        return new SplitPane(SplitAxis.HORIZONTAL, position, null,
-                SplitPane.DEFAULT_MINIMUM, SplitPane.DEFAULT_MINIMUM, false,
-                List.of(new Text("first"), new Text("second")), Attributes.NONE);
+        return new SplitPane(
+                SplitAxis.HORIZONTAL,
+                position,
+                null,
+                SplitPane.DEFAULT_MINIMUM,
+                SplitPane.DEFAULT_MINIMUM,
+                false,
+                List.of(new Text("first"), new Text("second")),
+                Attributes.NONE);
     }
 
     /// A tree whose pane has been measured, which is what every drag needs: the
@@ -78,11 +86,16 @@ class SplitPaneTest {
     private static void drag(ElementTree tree, float by, boolean vertical) {
         var bar = divider(tree);
         var anchor = bar.gestureAnchor();
-        bar.onPointer(new PointerEvent(PointerEvent.Kind.PRESSED, 0, 0,
-                PointerEvent.Button.PRIMARY, 1, null));
-        var move = new PointerEvent(PointerEvent.Kind.MOVED,
-                vertical ? 0 : by, vertical ? by : 0,
-                PointerEvent.Button.PRIMARY, 0, 0, 0, null);
+        bar.onPointer(new PointerEvent(PointerEvent.Kind.PRESSED, 0, 0, PointerEvent.Button.PRIMARY, 1, null));
+        var move = new PointerEvent(
+                PointerEvent.Kind.MOVED,
+                vertical ? 0 : by,
+                vertical ? by : 0,
+                PointerEvent.Button.PRIMARY,
+                0,
+                0,
+                0,
+                null);
         move.anchoredAt(anchor);
         bar.onPointer(move);
         tree.flush();
@@ -102,7 +115,8 @@ class SplitPaneTest {
         void parts() {
             var tree = new ElementTree(split(0.5));
 
-            assertEquals(2, Described.of(tree, SplitPaneView.SplitPaneSide.class).size());
+            assertEquals(
+                    2, Described.of(tree, SplitPaneView.SplitPaneSide.class).size());
             assertEquals(1, Described.of(tree, SplitDivider.class).size());
         }
 
@@ -116,9 +130,9 @@ class SplitPaneTest {
                 for (var i = 0; i < count; i++) {
                     kids.add(new Text("pane " + i));
                 }
-                assertThrows(IllegalArgumentException.class,
-                        () -> new SplitPane(SplitAxis.HORIZONTAL, 0.5, null, 0, 0, false,
-                                kids, Attributes.NONE),
+                assertThrows(
+                        IllegalArgumentException.class,
+                        () -> new SplitPane(SplitAxis.HORIZONTAL, 0.5, null, 0, 0, false, kids, Attributes.NONE),
                         count + " children should be refused");
             }
         }
@@ -128,8 +142,9 @@ class SplitPaneTest {
         @DisplayName("the axis is a class as well as a layout")
         void axisIsAClass() {
             assertTrue(view(new ElementTree(split(0.5))).classes().contains("horizontal"));
-            assertTrue(view(new ElementTree(new SplitPane(SplitAxis.VERTICAL, 0.5, null,
-                    new Text("a"), new Text("b")))).classes().contains("vertical"));
+            assertTrue(view(new ElementTree(new SplitPane(SplitAxis.VERTICAL, 0.5, null, new Text("a"), new Text("b"))))
+                    .classes()
+                    .contains("vertical"));
         }
 
         /// The node a stylesheet sees is the view, not the stateful widget.
@@ -149,8 +164,8 @@ class SplitPaneTest {
             var tree = new ElementTree(split(0.5));
 
             var focusable = Described.in(tree).stream()
-                    .filter(w -> w instanceof io.github.digitalsmile.goldberry.input.handler.Handles h
-                            && h.isFocusable())
+                    .filter(w ->
+                            w instanceof io.github.digitalsmile.goldberry.input.handler.Handles h && h.isFocusable())
                     .toList();
             assertEquals(1, focusable.size(), "expected only the divider, got " + focusable);
             assertInstanceOf(SplitDivider.class, focusable.getFirst());
@@ -172,8 +187,7 @@ class SplitPaneTest {
         void thicknessAgrees() {
             var css = io.github.digitalsmile.goldberry.widgets.Controls.baseStylesheet()
                     .toString();
-            assertEquals(6f, SplitPaneView.DIVIDER,
-                    "if this changes, `split-divider` in controls.css changes with it");
+            assertEquals(6f, SplitPaneView.DIVIDER, "if this changes, `split-divider` in controls.css changes with it");
             assertTrue(css.contains("split-divider"), "the rule exists to be kept in step");
         }
     }
@@ -205,8 +219,8 @@ class SplitPaneTest {
             var tree = measured(split(0.5));
             var before = view(tree).position();
 
-            divider(tree).onPointer(new PointerEvent(PointerEvent.Kind.PRESSED, 0, 0,
-                    PointerEvent.Button.PRIMARY, 1, null));
+            divider(tree)
+                    .onPointer(new PointerEvent(PointerEvent.Kind.PRESSED, 0, 0, PointerEvent.Button.PRIMARY, 1, null));
             tree.flush();
 
             assertEquals(before, view(tree).position());
@@ -220,8 +234,7 @@ class SplitPaneTest {
             var tree = measured(split(0.5));
             var before = view(tree).position();
 
-            divider(tree).onPointer(new PointerEvent(PointerEvent.Kind.MOVED, 90, 0,
-                    null, 0, null));
+            divider(tree).onPointer(new PointerEvent(PointerEvent.Kind.MOVED, 90, 0, null, 0, null));
             tree.flush();
 
             assertEquals(before, view(tree).position());
@@ -255,9 +268,15 @@ class SplitPaneTest {
         @Test
         @DisplayName("a vertical split follows the pointer down, not across")
         void verticalAxis() {
-            var pane = new SplitPane(SplitAxis.VERTICAL, 0.5, null,
-                    SplitPane.DEFAULT_MINIMUM, SplitPane.DEFAULT_MINIMUM, false,
-                    List.of(new Text("top"), new Text("bottom")), Attributes.NONE);
+            var pane = new SplitPane(
+                    SplitAxis.VERTICAL,
+                    0.5,
+                    null,
+                    SplitPane.DEFAULT_MINIMUM,
+                    SplitPane.DEFAULT_MINIMUM,
+                    false,
+                    List.of(new Text("top"), new Text("bottom")),
+                    Attributes.NONE);
             var tree = measured(pane, true);
 
             drag(tree, 30, true);
@@ -339,9 +358,15 @@ class SplitPaneTest {
     class Collapsing {
 
         private static SplitPane collapsible(double position) {
-            return new SplitPane(SplitAxis.HORIZONTAL, position, null,
-                    SplitPane.DEFAULT_MINIMUM, SplitPane.DEFAULT_MINIMUM, true,
-                    List.of(new Text("first"), new Text("second")), Attributes.NONE);
+            return new SplitPane(
+                    SplitAxis.HORIZONTAL,
+                    position,
+                    null,
+                    SplitPane.DEFAULT_MINIMUM,
+                    SplitPane.DEFAULT_MINIMUM,
+                    true,
+                    List.of(new Text("first"), new Text("second")),
+                    Attributes.NONE);
         }
 
         /// §5's "optional collapse-to-edge". Past *half* the minimum, so a
@@ -390,8 +415,8 @@ class SplitPaneTest {
             var tree = measured(collapsible(0.5));
             key(tree, Key.ENTER);
 
-            assertTrue(Described.in(tree).stream().anyMatch(
-                    w -> w instanceof Text text && "first".equals(text.content())),
+            assertTrue(
+                    Described.in(tree).stream().anyMatch(w -> w instanceof Text text && "first".equals(text.content())),
                     "the pane is at zero width, not gone");
         }
 
@@ -428,16 +453,21 @@ class SplitPaneTest {
         @DisplayName("a controlled split asks and does not decide")
         void controlled() {
             var asked = new AtomicReference<Double>();
-            var pane = new SplitPane(SplitAxis.HORIZONTAL, 0.5, asked::set,
-                    SplitPane.DEFAULT_MINIMUM, SplitPane.DEFAULT_MINIMUM, false,
-                    List.of(new Text("a"), new Text("b")), Attributes.NONE);
+            var pane = new SplitPane(
+                    SplitAxis.HORIZONTAL,
+                    0.5,
+                    asked::set,
+                    SplitPane.DEFAULT_MINIMUM,
+                    SplitPane.DEFAULT_MINIMUM,
+                    false,
+                    List.of(new Text("a"), new Text("b")),
+                    Attributes.NONE);
             var tree = measured(pane);
 
             drag(tree, 30, false);
 
             assertEquals(0.6, asked.get(), 1e-6);
-            assertEquals(0.5, view(tree).position(), 1e-6,
-                    "and stayed put, because nobody answered");
+            assertEquals(0.5, view(tree).position(), 1e-6, "and stayed put, because nobody answered");
         }
 
         @Test
@@ -457,9 +487,15 @@ class SplitPaneTest {
         @DisplayName("a drag that changes nothing tells nobody")
         void noChangeNoCall() {
             var calls = new java.util.concurrent.atomic.AtomicInteger();
-            var pane = new SplitPane(SplitAxis.HORIZONTAL, 0.5, value -> calls.incrementAndGet(),
-                    SplitPane.DEFAULT_MINIMUM, SplitPane.DEFAULT_MINIMUM, false,
-                    List.of(new Text("a"), new Text("b")), Attributes.NONE);
+            var pane = new SplitPane(
+                    SplitAxis.HORIZONTAL,
+                    0.5,
+                    value -> calls.incrementAndGet(),
+                    SplitPane.DEFAULT_MINIMUM,
+                    SplitPane.DEFAULT_MINIMUM,
+                    false,
+                    List.of(new Text("a"), new Text("b")),
+                    Attributes.NONE);
             var tree = measured(pane);
 
             drag(tree, 0, false);
@@ -494,9 +530,11 @@ class SplitPaneTest {
         @Test
         @DisplayName("an axis this toolkit has not got is refused")
         void badAxis() {
-            assertThrows(IllegalArgumentException.class, () -> Widgets.inflater().inflate(
-                    KdlParser.parse("split-pane axis=\"diagonal\" { text \"a\"; text \"b\" }")
-                            .getFirst()));
+            assertThrows(
+                    IllegalArgumentException.class,
+                    () -> Widgets.inflater()
+                            .inflate(KdlParser.parse("split-pane axis=\"diagonal\" { text \"a\"; text \"b\" }")
+                                    .getFirst()));
         }
     }
 }

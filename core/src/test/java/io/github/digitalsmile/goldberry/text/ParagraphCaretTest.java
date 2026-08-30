@@ -5,12 +5,13 @@ import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import io.github.digitalsmile.goldberry.RendererRequirement;
-import io.github.digitalsmile.goldberry.assets.BundledFont;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+
+import io.github.digitalsmile.goldberry.RendererRequirement;
+import io.github.digitalsmile.goldberry.assets.BundledFont;
 import io.github.digitalsmile.goldberry.text.font.Font;
 
 /// The two directions a caret needs: an offset to an x, and an x back to an
@@ -68,7 +69,9 @@ class ParagraphCaretTest {
         for (var offset = 0; offset <= text.length(); offset++) {
             var x = paragraph.widthBetween(0, offset);
 
-            assertEquals(offset, paragraph.offsetAt(0, text.length(), x),
+            assertEquals(
+                    offset,
+                    paragraph.offsetAt(0, text.length(), x),
                     "clicking exactly where the caret is drawn moved it, at offset " + offset);
         }
     }

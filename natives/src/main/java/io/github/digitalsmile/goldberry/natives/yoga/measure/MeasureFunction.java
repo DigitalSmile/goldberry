@@ -2,7 +2,6 @@ package io.github.digitalsmile.goldberry.natives.yoga.measure;
 
 import io.github.digitalsmile.goldberry.natives.yoga.MeasureCallback;
 
-
 /// Measures a leaf node under Yoga's constraints.
 ///
 /// The Java half of `YGMeasureFunc`. Yoga's own signature leads with the

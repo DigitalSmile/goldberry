@@ -12,10 +12,11 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import io.github.digitalsmile.goldberry.render.BackendException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
+
+import io.github.digitalsmile.goldberry.render.BackendException;
 
 class UiExecutorTest {
 
@@ -118,12 +119,14 @@ class UiExecutorTest {
 
         var workers = new ArrayList<Thread>();
         for (var t = 0; t < threads; t++) {
-            var worker = new Thread(() -> {
-                for (var i = 0; i < perThread; i++) {
-                    executor.execute(count::incrementAndGet);
-                }
-                ready.countDown();
-            }, "poster-" + t);
+            var worker = new Thread(
+                    () -> {
+                        for (var i = 0; i < perThread; i++) {
+                            executor.execute(count::incrementAndGet);
+                        }
+                        ready.countDown();
+                    },
+                    "poster-" + t);
             workers.add(worker);
             worker.start();
         }
@@ -142,10 +145,12 @@ class UiExecutorTest {
         var executor = new UiExecutor(() -> {});
         var failed = new boolean[1];
 
-        var other = new Thread(() -> {
-            assertThrows(BackendException.class, executor::drain);
-            failed[0] = true;
-        }, "off-ui");
+        var other = new Thread(
+                () -> {
+                    assertThrows(BackendException.class, executor::drain);
+                    failed[0] = true;
+                },
+                "off-ui");
         other.start();
         other.join();
 

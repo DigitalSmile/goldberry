@@ -1,17 +1,19 @@
 package io.github.digitalsmile.goldberry.natives.blend2d;
 
-import io.github.digitalsmile.goldberry.natives.layout.Layouts;
-import io.github.digitalsmile.goldberry.log.Logs;
 import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.ValueLayout;
 import java.util.Objects;
+
 import org.slf4j.Logger;
+
+import io.github.digitalsmile.goldberry.log.Logs;
 import io.github.digitalsmile.goldberry.natives.blend2d.enums.BlendCompOp;
 import io.github.digitalsmile.goldberry.natives.blend2d.enums.BlendStrokeCap;
 import io.github.digitalsmile.goldberry.natives.blend2d.enums.BlendStrokeJoin;
 import io.github.digitalsmile.goldberry.natives.blend2d.enums.BlendTransformOp;
 import io.github.digitalsmile.goldberry.natives.blend2d.error.BlendException;
+import io.github.digitalsmile.goldberry.natives.layout.Layouts;
 
 /// A rendering context — the thing that actually draws.
 ///
@@ -54,8 +56,7 @@ public final class BlendContext implements AutoCloseable {
 
     private static final Logger LOG = Logs.of(BlendContext.class);
 
-    private static final long CREATE_THREAD_COUNT =
-            Layouts.BL_CONTEXT_CREATE_INFO.offsetOf("thread_count");
+    private static final long CREATE_THREAD_COUNT = Layouts.BL_CONTEXT_CREATE_INFO.offsetOf("thread_count");
 
     private final Blend2dContext calls = Blend2dContext.get();
     private final Arena arena;
@@ -151,8 +152,7 @@ public final class BlendContext implements AutoCloseable {
             // than setting BL_CONTEXT_CREATE_FLAG_FALLBACK_TO_SYNC keeps the
             // decision in Java, where it can be logged and tested, and avoids a
             // magic constant that nothing in the layout table checks.
-            LOG.debug("Blend2D refused {} worker thread(s) ({}); painting synchronously",
-                    requested, e.getMessage());
+            LOG.debug("Blend2D refused {} worker thread(s) ({}); painting synchronously", requested, e.getMessage());
             calls.contextBegin(context, image.pointer(), MemorySegment.NULL);
             return 0;
         }
@@ -190,13 +190,12 @@ public final class BlendContext implements AutoCloseable {
         Objects.requireNonNull(image, "image");
         if (!Double.isFinite(scale) || scale <= 0) {
             throw new IllegalArgumentException(
-                    "a display scale must be a positive, finite number of physical pixels per"
-                            + " logical pixel, and " + scale + " is not");
+                    "a display scale must be a positive, finite number of physical pixels per" + " logical pixel, and "
+                            + scale + " is not");
         }
         if (threadCount < 0) {
-            throw new IllegalArgumentException(
-                    "a thread count must not be negative, and " + threadCount + " is."
-                            + " Zero means synchronous rendering on the calling thread.");
+            throw new IllegalArgumentException("a thread count must not be negative, and " + threadCount + " is."
+                    + " Zero means synchronous rendering on the calling thread.");
         }
         return new BlendContext(image, scale, threadCount);
     }
@@ -259,9 +258,8 @@ public final class BlendContext implements AutoCloseable {
         // An arithmetic bug upstream would then look like a widget that simply
         // did not draw.
         if (Double.isNaN(x) || Double.isNaN(y) || Double.isNaN(width) || Double.isNaN(height)) {
-            throw new IllegalArgumentException(
-                    "a rectangle with a NaN coordinate cannot be drawn, and Blend2D would"
-                            + " silently draw nothing: " + x + "," + y + " " + width + "x" + height);
+            throw new IllegalArgumentException("a rectangle with a NaN coordinate cannot be drawn, and Blend2D would"
+                    + " silently draw nothing: " + x + "," + y + " " + width + "x" + height);
         }
         if (width <= 0 || height <= 0) {
             // Ordinary: a layout pass produces zero-sized boxes all the time.
@@ -290,8 +288,7 @@ public final class BlendContext implements AutoCloseable {
     /// ordinary, and shaping empty text produces exactly this.
     ///
     /// @param argb a colour as `0xAARRGGBB`, not premultiplied
-    public void fillGlyphRun(
-            double x, double y, BlendFont font, BlendGlyphBuffer glyphs, int argb) {
+    public void fillGlyphRun(double x, double y, BlendFont font, BlendGlyphBuffer glyphs, int argb) {
         requireUsable();
         Objects.requireNonNull(font, "font");
         Objects.requireNonNull(glyphs, "glyphs");
@@ -300,8 +297,8 @@ public final class BlendContext implements AutoCloseable {
         // layout pass would look like text that simply did not appear.
         if (Double.isNaN(x) || Double.isNaN(y)) {
             throw new IllegalArgumentException(
-                    "a glyph run with a NaN origin cannot be drawn, and Blend2D would silently"
-                            + " draw nothing: " + x + "," + y);
+                    "a glyph run with a NaN origin cannot be drawn, and Blend2D would silently" + " draw nothing: " + x
+                            + "," + y);
         }
         if (glyphs.isEmpty()) {
             return;
@@ -328,11 +325,14 @@ public final class BlendContext implements AutoCloseable {
     /// context ([ADR-0068](../../../../../../../book/src/adr/0068-the-transform-stack-is-java-side.md)).
     public void transform(double a, double b, double c, double d, double e, double f) {
         requireUsable();
-        if (!Double.isFinite(a) || !Double.isFinite(b) || !Double.isFinite(c)
-                || !Double.isFinite(d) || !Double.isFinite(e) || !Double.isFinite(f)) {
-            throw new IllegalArgumentException(
-                    "a transform must be six finite numbers, not [" + a + " " + b + " " + c
-                            + " " + d + " " + e + " " + f + "]");
+        if (!Double.isFinite(a)
+                || !Double.isFinite(b)
+                || !Double.isFinite(c)
+                || !Double.isFinite(d)
+                || !Double.isFinite(e)
+                || !Double.isFinite(f)) {
+            throw new IllegalArgumentException("a transform must be six finite numbers, not [" + a + " " + b + " " + c
+                    + " " + d + " " + e + " " + f + "]");
         }
         // Scale first, then the caller's matrix: the caller works in logical
         // pixels, and the display scale is what turns those into device ones.
@@ -368,8 +368,7 @@ public final class BlendContext implements AutoCloseable {
         requireDrawableOrigin(x, y);
         if (!(width > 0) || !(height > 0)) {
             throw new IllegalArgumentException(
-                    "a layer is blitted into a positive rectangle, and " + width + "x" + height
-                            + " is not one");
+                    "a layer is blitted into a positive rectangle, and " + width + "x" + height + " is not one");
         }
         rect.set(ValueLayout.JAVA_DOUBLE, RECT_X, x);
         rect.set(ValueLayout.JAVA_DOUBLE, RECT_Y, y);
@@ -412,8 +411,7 @@ public final class BlendContext implements AutoCloseable {
     public void globalAlpha(double alpha) {
         requireUsable();
         if (!(alpha >= 0) || !(alpha <= 1)) {
-            throw new IllegalArgumentException(
-                    "a global alpha is between 0 and 1, and " + alpha + " is not");
+            throw new IllegalArgumentException("a global alpha is between 0 and 1, and " + alpha + " is not");
         }
         calls.contextGlobalAlpha(context, alpha);
     }
@@ -425,11 +423,9 @@ public final class BlendContext implements AutoCloseable {
     /// first.
     public void clipTo(double x, double y, double width, double height) {
         requireUsable();
-        if (!Double.isFinite(x) || !Double.isFinite(y)
-                || !(width > 0) || !(height > 0)) {
-            throw new IllegalArgumentException(
-                    "a clip needs a finite origin and a positive size, and "
-                            + width + "x" + height + "+" + x + "+" + y + " is not");
+        if (!Double.isFinite(x) || !Double.isFinite(y) || !(width > 0) || !(height > 0)) {
+            throw new IllegalArgumentException("a clip needs a finite origin and a positive size, and " + width + "x"
+                    + height + "+" + x + "+" + y + " is not");
         }
         rect.set(ValueLayout.JAVA_DOUBLE, RECT_X, x);
         rect.set(ValueLayout.JAVA_DOUBLE, RECT_Y, y);
@@ -575,8 +571,8 @@ public final class BlendContext implements AutoCloseable {
     private static void requireDrawableOrigin(double x, double y) {
         if (Double.isNaN(x) || Double.isNaN(y)) {
             throw new IllegalArgumentException(
-                    "a path with a NaN origin cannot be drawn, and Blend2D would silently draw"
-                            + " nothing: " + x + "," + y);
+                    "a path with a NaN origin cannot be drawn, and Blend2D would silently draw" + " nothing: " + x + ","
+                            + y);
         }
     }
 
@@ -631,8 +627,7 @@ public final class BlendContext implements AutoCloseable {
 
     private void requireOwner() {
         if (Thread.currentThread() != owner) {
-            throw new IllegalStateException(
-                    "a BlendContext belongs to the thread that created it, and this is not it");
+            throw new IllegalStateException("a BlendContext belongs to the thread that created it, and this is not it");
         }
     }
 

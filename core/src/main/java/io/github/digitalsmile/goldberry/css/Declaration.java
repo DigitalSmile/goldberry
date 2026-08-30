@@ -2,6 +2,7 @@ package io.github.digitalsmile.goldberry.css;
 
 import java.util.List;
 import java.util.Objects;
+
 import io.github.digitalsmile.goldberry.css.parse.Token;
 import io.github.digitalsmile.goldberry.css.parse.TokenType;
 
@@ -19,8 +20,7 @@ import io.github.digitalsmile.goldberry.css.parse.TokenType;
 /// @param important whether the declaration was marked `!important`
 /// @param line      1-based line the property name was on, for error messages
 /// @param column    1-based column
-public record Declaration(
-        String property, List<Token> value, boolean important, int line, int column) {
+public record Declaration(String property, List<Token> value, boolean important, int line, int column) {
 
     public Declaration {
         Objects.requireNonNull(property, "property");

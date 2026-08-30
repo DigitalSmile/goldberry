@@ -1,15 +1,17 @@
 package io.github.digitalsmile.goldberry.natives.sdl.desktop;
 
-import io.github.digitalsmile.goldberry.natives.sdl.calls.SdlCursorCalls;
-import io.github.digitalsmile.goldberry.natives.NativeLibrary;
-import io.github.digitalsmile.goldberry.log.Logs;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.SymbolLookup;
 import java.util.EnumMap;
 import java.util.Map;
+
 import org.slf4j.Logger;
+
+import io.github.digitalsmile.goldberry.log.Logs;
+import io.github.digitalsmile.goldberry.natives.NativeLibrary;
 import io.github.digitalsmile.goldberry.natives.sdl.Sdl;
 import io.github.digitalsmile.goldberry.natives.sdl.SdlVideo;
+import io.github.digitalsmile.goldberry.natives.sdl.calls.SdlCursorCalls;
 
 /// SDL3's mouse cursor calls.
 ///
@@ -113,7 +115,10 @@ public final class SdlCursors implements AutoCloseable {
     private MemorySegment create(SdlSystemCursor shape) {
         var cursor = sdlCursorCalls.createSystemCursor().call(shape.value());
         if (MemorySegment.NULL.equals(cursor)) {
-            LOG.debug("SDL has no {} cursor on this platform: {}", shape, Sdl.get().lastError());
+            LOG.debug(
+                    "SDL has no {} cursor on this platform: {}",
+                    shape,
+                    Sdl.get().lastError());
         }
         return cursor;
     }
@@ -122,5 +127,4 @@ public final class SdlCursors implements AutoCloseable {
     private boolean setCursor(MemorySegment cursor) {
         return sdlCursorCalls.setCursor().call(cursor);
     }
-
 }

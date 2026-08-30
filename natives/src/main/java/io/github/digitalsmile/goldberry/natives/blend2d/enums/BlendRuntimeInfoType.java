@@ -1,6 +1,5 @@
 package io.github.digitalsmile.goldberry.natives.blend2d.enums;
 
-
 /// Which block of information `bl_runtime_query_info` should fill in —
 /// `BLRuntimeInfoType`.
 ///

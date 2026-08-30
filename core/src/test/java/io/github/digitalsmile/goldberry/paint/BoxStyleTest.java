@@ -4,21 +4,23 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 
-import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
-import io.github.digitalsmile.goldberry.css.ComputedStyle;
-import io.github.digitalsmile.goldberry.css.value.CssLength;
-import io.github.digitalsmile.goldberry.css.cascade.StyleResolver;
-import io.github.digitalsmile.goldberry.css.Stylesheet;
-import io.github.digitalsmile.goldberry.natives.yoga.style.Align;
-import io.github.digitalsmile.goldberry.natives.yoga.style.FlexDirection;
-import io.github.digitalsmile.goldberry.natives.yoga.style.Justify;
-import io.github.digitalsmile.goldberry.natives.yoga.Insets;
-import io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+
+import io.github.digitalsmile.goldberry.css.ComputedStyle;
+import io.github.digitalsmile.goldberry.css.Stylesheet;
+import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
+import io.github.digitalsmile.goldberry.css.cascade.StyleResolver;
+import io.github.digitalsmile.goldberry.css.value.CssLength;
+import io.github.digitalsmile.goldberry.natives.yoga.Insets;
+import io.github.digitalsmile.goldberry.natives.yoga.style.Align;
+import io.github.digitalsmile.goldberry.natives.yoga.style.FlexDirection;
+import io.github.digitalsmile.goldberry.natives.yoga.style.Justify;
+import io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength;
 
 /// Where the CSS engine meets the box tree.
 ///
@@ -48,8 +50,7 @@ class BoxStyleTest {
 
     private static ComputedStyle styleFor(String css) {
         var sheet = Stylesheet.parse(CascadeLayer.APPLICATION, css);
-        var declarations = new StyleResolver(List.of(sheet))
-                .resolve(new Node("panel", Set.of()));
+        var declarations = new StyleResolver(List.of(sheet)).resolve(new Node("panel", Set.of()));
         return ComputedStyle.of(declarations, CssLength.Context.DEFAULT);
     }
 
@@ -103,8 +104,14 @@ class BoxStyleTest {
                 io.github.digitalsmile.goldberry.assets.BundledFont.UI, 14)) {
 
             var style = ComputedStyle.of(
-                    Map.of("color", Stylesheet.parse(CascadeLayer.APPLICATION, "a { color: #88c0d0 }")
-                            .rules().getFirst().declarations().getFirst().value()),
+                    Map.of(
+                            "color",
+                            Stylesheet.parse(CascadeLayer.APPLICATION, "a { color: #88c0d0 }")
+                                    .rules()
+                                    .getFirst()
+                                    .declarations()
+                                    .getFirst()
+                                    .value()),
                     CssLength.Context.DEFAULT);
 
             var paragraph = io.github.digitalsmile.goldberry.text.Paragraph.of(font, "hello");

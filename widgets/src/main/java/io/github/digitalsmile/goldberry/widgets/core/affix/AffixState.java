@@ -21,8 +21,7 @@ final class AffixState extends State<Affix> {
     @Override
     public Widget build(BuildContext context) {
         var affix = widget();
-        return new AffixSlot(affix.children(), affix.edge(), shift, affixed,
-                this::located, affix.attributes());
+        return new AffixSlot(affix.children(), affix.edge(), shift, affixed, this::located, affix.attributes());
     }
 
     /// Told where the last frame put this affix and what confines it.
@@ -46,17 +45,20 @@ final class AffixState extends State<Affix> {
         // How far past the edge the affix has gone. Positive means it has
         // scrolled out of view and must be pulled back; zero or less means the
         // layout has it in the right place already and it should not move.
-        var past = switch (affix.edge()) {
-            case TOP -> clip.top() + offset - self.top();
-            case LEFT -> clip.left() + offset - self.left();
-            // The far edges are the mirror image: the affix's *bottom* against
-            // the viewport's, and the shift is negative because pinning up means
-            // moving the content towards the origin.
-            case BOTTOM -> (self.top() + self.size().height())
-                    - (clip.top() + clip.size().height() - offset);
-            case RIGHT -> (self.left() + self.size().width())
-                    - (clip.left() + clip.size().width() - offset);
-        };
+        var past =
+                switch (affix.edge()) {
+                    case TOP -> clip.top() + offset - self.top();
+                    case LEFT -> clip.left() + offset - self.left();
+                    // The far edges are the mirror image: the affix's *bottom* against
+                    // the viewport's, and the shift is negative because pinning up means
+                    // moving the content towards the origin.
+                    case BOTTOM ->
+                        (self.top() + self.size().height())
+                                - (clip.top() + clip.size().height() - offset);
+                    case RIGHT ->
+                        (self.left() + self.size().width())
+                                - (clip.left() + clip.size().width() - offset);
+                };
         var lifted = past > 0.5;
         var wanted = !lifted ? 0 : affix.edge().isNear() ? past : -past;
         if (wanted == shift && lifted == affixed) {

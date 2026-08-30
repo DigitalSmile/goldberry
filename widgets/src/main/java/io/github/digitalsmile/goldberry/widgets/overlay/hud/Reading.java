@@ -1,7 +1,8 @@
 package io.github.digitalsmile.goldberry.widgets.overlay.hud;
 
-import io.github.digitalsmile.goldberry.stats.FrameStats;
 import java.util.Locale;
+
+import io.github.digitalsmile.goldberry.stats.FrameStats;
 
 /// One number a [Hud] can show.
 ///
@@ -222,7 +223,9 @@ public enum Reading {
     /// them at a glance
     /// ([ADR-0150](../../../../../../../../book/src/adr/0150-a-hud-reads-itself-against-a-budget.md)).
     enum Level {
-        OK("ok"), NEAR("near"), OVER("over");
+        OK("ok"),
+        NEAR("near"),
+        OVER("over");
 
         private final String cssClass;
 
@@ -264,9 +267,8 @@ public enum Reading {
                 }
             }
         }
-        throw new IllegalArgumentException(
-                "\"" + text + "\" is not a hud reading. Use one of:"
-                        + " fps, refresh, paint, build, style, layout, raster");
+        throw new IllegalArgumentException("\"" + text + "\" is not a hud reading. Use one of:"
+                + " fps, refresh, paint, build, style, layout, raster");
     }
 
     /// This reading of `stats`, assuming there is something to read.
@@ -286,9 +288,12 @@ public enum Reading {
     /// many.
     static String span(String label, FrameStats.Span span, int decimals) {
         var number = "%." + decimals + "f";
-        return String.format(Locale.ROOT,
+        return String.format(
+                Locale.ROOT,
                 label + " " + number + " / " + number + " / " + number + " ms",
-                span.min(), span.mean(), span.max());
+                span.min(),
+                span.mean(),
+                span.max());
     }
 
     /// The number behind [#text], for comparing against [#budgetMillis].

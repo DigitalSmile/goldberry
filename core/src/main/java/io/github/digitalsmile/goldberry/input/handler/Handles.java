@@ -1,10 +1,10 @@
 package io.github.digitalsmile.goldberry.input.handler;
 
-import io.github.digitalsmile.goldberry.widget.Widget;
+import io.github.digitalsmile.goldberry.input.FocusScope;
 import io.github.digitalsmile.goldberry.input.event.KeyEvent;
 import io.github.digitalsmile.goldberry.input.event.PointerEvent;
 import io.github.digitalsmile.goldberry.input.event.TextEvent;
-import io.github.digitalsmile.goldberry.input.FocusScope;
+import io.github.digitalsmile.goldberry.widget.Widget;
 
 /// A widget that reacts to the pointer.
 ///
@@ -19,14 +19,12 @@ public interface Handles extends Widget {
     /// Where a scroll view or a modal layer intercepts. Consuming here stops the
     /// target ever receiving it — which is the point of having a capture phase
     /// at all.
-    default void onPointerCapture(PointerEvent event) {
-    }
+    default void onPointerCapture(PointerEvent event) {}
 
     /// Called on the target and then on each ancestor, deepest-first.
     ///
     /// The phase ordinary widgets want.
-    default void onPointer(PointerEvent event) {
-    }
+    default void onPointer(PointerEvent event) {}
 
     /// The **part** this widget's [PointerEvent#local()] is measured against,
     /// or null for the widget's own box.
@@ -88,19 +86,16 @@ public interface Handles extends Widget {
     /// Called during the keyboard capture phase, root-first.
     ///
     /// Where a dialog swallows Escape before the thing inside it sees it.
-    default void onKeyCapture(KeyEvent event) {
-    }
+    default void onKeyCapture(KeyEvent event) {}
 
     /// A key went down or came up, on the focused node and then its ancestors.
-    default void onKey(KeyEvent event) {
-    }
+    default void onKey(KeyEvent event) {}
 
     /// Committed text reached the focused node.
     ///
     /// A widget that wants what the user typed wants this, not [#onKey]: one
     /// character can take several keys (§7.1).
-    default void onText(TextEvent event) {
-    }
+    default void onText(TextEvent event) {}
 
     /// Whether this widget can take keyboard focus.
     ///
@@ -148,8 +143,7 @@ public interface Handles extends Widget {
     ///                     same distinction `:focus-visible` draws — a control
     ///                     that acted on a *mouse* focus would fire twice for one
     ///                     click, once here and once on the click itself
-    default void onFocusChanged(boolean focused, boolean fromKeyboard) {
-    }
+    default void onFocusChanged(boolean focused, boolean fromKeyboard) {}
 
     /// Focus entered this widget's **subtree**, or left it — CSS's
     /// `:focus-within`, as a notification.
@@ -177,8 +171,7 @@ public interface Handles extends Widget {
     /// @param within      whether focus is now somewhere in this subtree
     /// @param fromKeyboard whether the move that caused it came from the
     ///                    keyboard, exactly as [#onFocusChanged]'s does
-    default void onFocusWithin(boolean within, boolean fromKeyboard) {
-    }
+    default void onFocusWithin(boolean within, boolean fromKeyboard) {}
 
     /// Whether a press that lands on this widget's scenery should focus the first
     /// focusable thing **inside** it — HTML's `<label for>`, without the `for`.

@@ -5,21 +5,23 @@ import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+
 import io.github.digitalsmile.goldberry.RendererRequirement;
-import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
 import io.github.digitalsmile.goldberry.css.Stylesheet;
 import io.github.digitalsmile.goldberry.css.Theme;
+import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
 import io.github.digitalsmile.goldberry.paint.Box;
 import io.github.digitalsmile.goldberry.widget.ElementTree;
 import io.github.digitalsmile.goldberry.widget.WidgetRenderer;
 import io.github.digitalsmile.goldberry.widgets.Controls;
 import io.github.digitalsmile.goldberry.widgets.controls.TestFont;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
 
 /// The series palette, read from the theme rather than from a table.
 ///
@@ -46,9 +48,10 @@ class SeriesPaletteTest {
     }
 
     /// A widget whose whole job is to read the eight slots during `render`.
-    private record Probe(List<Integer> into) implements io.github.digitalsmile.goldberry.widget
-            .Widget.Leaf, io.github.digitalsmile.goldberry.widget.style.Styled,
-            io.github.digitalsmile.goldberry.widget.style.Paints {
+    private record Probe(List<Integer> into)
+            implements io.github.digitalsmile.goldberry.widget.Widget.Leaf,
+                    io.github.digitalsmile.goldberry.widget.style.Styled,
+                    io.github.digitalsmile.goldberry.widget.style.Paints {
 
         @Override
         public String cssType() {
@@ -61,8 +64,8 @@ class SeriesPaletteTest {
         }
 
         @Override
-        public Box render(io.github.digitalsmile.goldberry.css.ComputedStyle style,
-                List<Box> children, Context context) {
+        public Box render(
+                io.github.digitalsmile.goldberry.css.ComputedStyle style, List<Box> children, Context context) {
             for (var i = 0; i < SeriesPalette.SLOTS; i++) {
                 into.add(SeriesPalette.of(context, i));
             }
@@ -90,8 +93,7 @@ class SeriesPaletteTest {
         assertEquals(8, Set.copyOf(light).size());
         assertEquals(0xFF679732, light.getFirst());
         for (var i = 0; i < 8; i++) {
-            assertNotEquals(light.get(i), dark.get(i),
-                    "slot " + (i + 1) + " should be stepped per theme, not shared");
+            assertNotEquals(light.get(i), dark.get(i), "slot " + (i + 1) + " should be stepped per theme, not shared");
         }
     }
 
@@ -126,15 +128,13 @@ class SeriesPaletteTest {
     void aNinthSeriesIsNotANewHue() {
         var seen = new ArrayList<Integer>();
         var tree = new ElementTree(new Probe(seen));
-        var renderer = new WidgetRenderer(
-                List.of(Controls.baseStylesheet(), Theme.NORD_DARK.load()), TestFont.get());
+        var renderer = new WidgetRenderer(List.of(Controls.baseStylesheet(), Theme.NORD_DARK.load()), TestFont.get());
         renderer.render(tree);
 
         // A ninth series repeating slot 8 is a deliberately visible wrong
         // answer: it means the chart needs folding into "Other", and it should
         // look like it.
-        assertEquals(seen.get(7), lastSlotFor(renderer, 8),
-                "a ninth series must not wrap to slot 1");
+        assertEquals(seen.get(7), lastSlotFor(renderer, 8), "a ninth series must not wrap to slot 1");
         assertEquals(seen.get(7), lastSlotFor(renderer, 40));
         assertThrows(IllegalArgumentException.class, () -> lastSlotFor(renderer, -1));
     }
@@ -148,8 +148,8 @@ class SeriesPaletteTest {
 
     private record OneSlot(List<Integer> into, int index)
             implements io.github.digitalsmile.goldberry.widget.Widget.Leaf,
-            io.github.digitalsmile.goldberry.widget.style.Styled,
-            io.github.digitalsmile.goldberry.widget.style.Paints {
+                    io.github.digitalsmile.goldberry.widget.style.Styled,
+                    io.github.digitalsmile.goldberry.widget.style.Paints {
 
         @Override
         public String cssType() {
@@ -157,8 +157,8 @@ class SeriesPaletteTest {
         }
 
         @Override
-        public Box render(io.github.digitalsmile.goldberry.css.ComputedStyle style,
-                List<Box> children, Context context) {
+        public Box render(
+                io.github.digitalsmile.goldberry.css.ComputedStyle style, List<Box> children, Context context) {
             into.add(SeriesPalette.of(context, index));
             return Box.of().style(style);
         }

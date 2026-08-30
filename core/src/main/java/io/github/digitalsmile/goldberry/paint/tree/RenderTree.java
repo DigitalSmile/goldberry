@@ -1,22 +1,23 @@
 package io.github.digitalsmile.goldberry.paint.tree;
 
-import io.github.digitalsmile.goldberry.paint.Frame;
+import java.util.Objects;
+import java.util.function.Consumer;
+
+import io.github.digitalsmile.goldberry.css.value.Affine;
+import io.github.digitalsmile.goldberry.css.value.Transform;
+import io.github.digitalsmile.goldberry.natives.blend2d.BlendPath;
+import io.github.digitalsmile.goldberry.natives.yoga.ComputedLayout;
+import io.github.digitalsmile.goldberry.natives.yoga.YogaConfig;
+import io.github.digitalsmile.goldberry.natives.yoga.style.Overflow;
+import io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength;
 import io.github.digitalsmile.goldberry.paint.Box;
 import io.github.digitalsmile.goldberry.paint.BoxPainter;
 import io.github.digitalsmile.goldberry.paint.Clip;
+import io.github.digitalsmile.goldberry.paint.Frame;
 import io.github.digitalsmile.goldberry.render.DamageRect;
 import io.github.digitalsmile.goldberry.render.model.DisplayScale;
 import io.github.digitalsmile.goldberry.render.model.LogicalSize;
 import io.github.digitalsmile.goldberry.render.model.PhysicalSize;
-import io.github.digitalsmile.goldberry.css.value.Affine;
-import io.github.digitalsmile.goldberry.natives.blend2d.BlendPath;
-import io.github.digitalsmile.goldberry.css.value.Transform;
-import io.github.digitalsmile.goldberry.natives.yoga.ComputedLayout;
-import io.github.digitalsmile.goldberry.natives.yoga.style.Overflow;
-import io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength;
-import io.github.digitalsmile.goldberry.natives.yoga.YogaConfig;
-import java.util.Objects;
-import java.util.function.Consumer;
 
 /// The retained render tree — ADR-0004's third tree, kept between frames.
 ///
@@ -80,8 +81,7 @@ public final class RenderTree implements AutoCloseable {
 
     private boolean closed;
 
-    private RenderTree() {
-    }
+    private RenderTree() {}
 
     public static RenderTree create() {
         return new RenderTree();
@@ -163,8 +163,7 @@ public final class RenderTree implements AutoCloseable {
     /// @param availableWidth  the width to lay out in, or `NaN` for content size
     /// @param availableHeight the height to lay out in, or `NaN`
     /// @return the size the root came out as, in logical pixels
-    public LogicalSize measure(Box box, DisplayScale scale,
-            float availableWidth, float availableHeight) {
+    public LogicalSize measure(Box box, DisplayScale scale, float availableWidth, float availableHeight) {
         Objects.requireNonNull(box, "box");
         Objects.requireNonNull(scale, "scale");
         requireUsable();
@@ -214,8 +213,10 @@ public final class RenderTree implements AutoCloseable {
         // coordinates and a fractional edge would exclude the outermost row of
         // antialiasing inside the region that changed.
         var clip = Clip.of(
-                Math.floor(bounds.x() / scale), Math.floor(bounds.y() / scale),
-                Math.ceil(bounds.width() / scale) + 1, Math.ceil(bounds.height() / scale) + 1);
+                Math.floor(bounds.x() / scale),
+                Math.floor(bounds.y() / scale),
+                Math.ceil(bounds.width() / scale) + 1,
+                Math.ceil(bounds.height() / scale) + 1);
         frame.clipTo(clip.left(), clip.top(), clip.width(), clip.height());
         try {
             // The damage is the *base* of the clip stack, not merely the first
@@ -240,9 +241,8 @@ public final class RenderTree implements AutoCloseable {
         Objects.requireNonNull(frame, "frame");
         requireUsable();
         if (root == null) {
-            throw new IllegalStateException(
-                    "this render tree has never been updated, so there is nothing to paint;"
-                            + " call update(frame, box) first");
+            throw new IllegalStateException("this render tree has never been updated, so there is nothing to paint;"
+                    + " call update(frame, box) first");
         }
         // One path, reset between shapes, rather than one per rounded corner per
         // box per frame. A `BlendPath` is a native allocation and an `Arena`.
@@ -290,8 +290,7 @@ public final class RenderTree implements AutoCloseable {
 
         void transform(Affine matrix) {
             if (!matrix.equals(current)) {
-                frame.transform(matrix.a(), matrix.b(), matrix.c(),
-                        matrix.d(), matrix.e(), matrix.f());
+                frame.transform(matrix.a(), matrix.b(), matrix.c(), matrix.d(), matrix.e(), matrix.f());
                 current = matrix;
             }
         }
@@ -343,15 +342,19 @@ public final class RenderTree implements AutoCloseable {
     /// layer of its own and the layer is composited back, so "the boxes in paint
     /// order" is no longer one sequence.
     private void paint(
-            RenderObject object, double parentLeft, double parentTop,
-            double parentAlpha, Affine parentTransform, Clip parentClip, Painting state) {
+            RenderObject object,
+            double parentLeft,
+            double parentTop,
+            double parentAlpha,
+            Affine parentTransform,
+            Clip parentClip,
+            Painting state) {
 
         var box = object.box();
         var layout = object.node().layout();
         var left = parentLeft + layout.left();
         var top = parentTop + layout.top();
-        var transform = compose(parentTransform, box.transform(), left, top,
-                layout.width(), layout.height());
+        var transform = compose(parentTransform, box.transform(), left, top, layout.width(), layout.height());
 
         // Before the promoted branch, not after it. A layer is rasterized whole
         // and composited with one blit, and that blit is the only thing an
@@ -367,7 +370,10 @@ public final class RenderTree implements AutoCloseable {
 
         var alpha = parentAlpha * box.opacity();
         state.transform(transform);
-        BoxPainter.paintOne(state.frame, state.path, box.fade(alpha),
+        BoxPainter.paintOne(
+                state.frame,
+                state.path,
+                box.fade(alpha),
                 new ComputedLayout((float) left, (float) top, layout.width(), layout.height()),
                 transform);
 
@@ -411,8 +417,7 @@ public final class RenderTree implements AutoCloseable {
     /// is what makes a viewport with a 1px edge keep that edge crisp while the
     /// rows inside it slide past.
     private static Clip clipFor(
-            Box box, Affine transform, Clip parent,
-            double left, double top, ComputedLayout layout) {
+            Box box, Affine transform, Clip parent, double left, double top, ComputedLayout layout) {
 
         if (box.overflow() == Overflow.VISIBLE) {
             return parent;
@@ -421,10 +426,8 @@ public final class RenderTree implements AutoCloseable {
         var own = Clip.of(
                 left + edge(padding.left(), layout.width()),
                 top + edge(padding.top(), layout.height()),
-                layout.width() - edge(padding.left(), layout.width())
-                        - edge(padding.right(), layout.width()),
-                layout.height() - edge(padding.top(), layout.height())
-                        - edge(padding.bottom(), layout.height()));
+                layout.width() - edge(padding.left(), layout.width()) - edge(padding.right(), layout.width()),
+                layout.height() - edge(padding.top(), layout.height()) - edge(padding.bottom(), layout.height()));
         return parent.intersect(own.map(transform));
     }
 
@@ -450,8 +453,7 @@ public final class RenderTree implements AutoCloseable {
     /// 3. The raster is **kept**. If nothing under this node changed, the layer
     ///    is still what it was and this is a blit and nothing else.
     private void compositeThroughLayer(
-            RenderObject object, double left, double top,
-            double parentAlpha, Affine transform, Painting state) {
+            RenderObject object, double left, double top, double parentAlpha, Affine transform, Painting state) {
 
         var frame = state.frame;
         var scale = frame.scale();
@@ -476,30 +478,27 @@ public final class RenderTree implements AutoCloseable {
                     // every rectangle below is derived from the shifted origin
                     // passed here.
                     var inner = new Painting(into, path, Clip.NONE);
-                    paintIntoLayer(object, left - bounds.left(), top - bounds.top(),
-                            1.0, Affine.IDENTITY, inner);
+                    paintIntoLayer(object, left - bounds.left(), top - bounds.top(), 1.0, Affine.IDENTITY, inner);
                     inner.untransform();
                 }
             });
         }
 
         state.transform(transform);
-        frame.drawLayer(bounds.left(), bounds.top(), layer,
-                parentAlpha * object.box().opacity());
+        frame.drawLayer(
+                bounds.left(), bounds.top(), layer, parentAlpha * object.box().opacity());
     }
 
     /// The same walk, inside a layer: the promoted node itself is drawn here
     /// rather than treated as promoted again, and its own opacity is left for the
     /// composite.
     private void paintIntoLayer(
-            RenderObject object, double left, double top,
-            double alpha, Affine transform, Painting state) {
+            RenderObject object, double left, double top, double alpha, Affine transform, Painting state) {
 
         var box = object.box();
         var layout = object.node().layout();
         state.transform(transform);
-        var computed = new ComputedLayout((float) left, (float) top,
-                layout.width(), layout.height());
+        var computed = new ComputedLayout((float) left, (float) top, layout.width(), layout.height());
         BoxPainter.paintOne(state.frame, state.path, box.fade(alpha), computed, transform);
 
         // The promoted node's own `overflow` still clips its children, inside
@@ -538,7 +537,8 @@ public final class RenderTree implements AutoCloseable {
     private Bounds bounds(RenderObject object, double left, double top) {
         var box = new double[] {
             Double.POSITIVE_INFINITY, Double.POSITIVE_INFINITY,
-            Double.NEGATIVE_INFINITY, Double.NEGATIVE_INFINITY};
+            Double.NEGATIVE_INFINITY, Double.NEGATIVE_INFINITY
+        };
         accumulate(object, left, top, Affine.IDENTITY, box, true);
 
         if (box[0] > box[2] || box[1] > box[3]) {
@@ -554,15 +554,11 @@ public final class RenderTree implements AutoCloseable {
     /// @param root whether this is the promoted node itself, whose own transform
     ///             is applied to the composite rather than inside the layer
     private static void accumulate(
-            RenderObject object, double left, double top, Affine transform,
-            double[] into, boolean root) {
+            RenderObject object, double left, double top, Affine transform, double[] into, boolean root) {
 
         var box = object.box();
         var layout = object.node().layout();
-        var matrix = root
-                ? transform
-                : compose(transform, box.transform(), left, top,
-                        layout.width(), layout.height());
+        var matrix = root ? transform : compose(transform, box.transform(), left, top, layout.width(), layout.height());
 
         // Outward by the ring's offset and width, which is where `outline` is
         // drawn and is the one part of a box that is deliberately outside it.
@@ -583,8 +579,7 @@ public final class RenderTree implements AutoCloseable {
 
         for (var child : object.children()) {
             var childLayout = child.node().layout();
-            accumulate(child, left + childLayout.left(), top + childLayout.top(),
-                    matrix, into, false);
+            accumulate(child, left + childLayout.left(), top + childLayout.top(), matrix, into, false);
         }
     }
 
@@ -598,8 +593,7 @@ public final class RenderTree implements AutoCloseable {
     }
 
     /// A rectangle in logical coordinates, on whole-pixel boundaries.
-    record Bounds(double left, double top, double width, double height) {
-    }
+    record Bounds(double left, double top, double width, double height) {}
 
     /// Hands each node its absolute position and accumulated transform.
     ///
@@ -612,9 +606,8 @@ public final class RenderTree implements AutoCloseable {
         Objects.requireNonNull(visitor, "visitor");
         requireUsable();
         if (root == null) {
-            throw new IllegalStateException(
-                    "this render tree has never been updated, so there is no layout to walk;"
-                            + " call update(frame, box) first");
+            throw new IllegalStateException("this render tree has never been updated, so there is no layout to walk;"
+                    + " call update(frame, box) first");
         }
         visit(root, 0, 0, 1.0, Affine.IDENTITY, Clip.NONE, visitor);
     }
@@ -633,8 +626,12 @@ public final class RenderTree implements AutoCloseable {
     /// to the result. That is CSS's rule, and it is what makes a hover scale cost
     /// no layout pass and move no sibling.
     private static void visit(
-            RenderObject object, double parentLeft, double parentTop,
-            double parentAlpha, Affine parentTransform, Clip parentClip,
+            RenderObject object,
+            double parentLeft,
+            double parentTop,
+            double parentAlpha,
+            Affine parentTransform,
+            Clip parentClip,
             Consumer<BoxPainter.Placed> visitor) {
 
         var box = object.box();
@@ -642,11 +639,9 @@ public final class RenderTree implements AutoCloseable {
         var left = parentLeft + layout.left();
         var top = parentTop + layout.top();
         var alpha = parentAlpha * box.opacity();
-        var transform = compose(parentTransform, box.transform(), left, top,
-                layout.width(), layout.height());
+        var transform = compose(parentTransform, box.transform(), left, top, layout.width(), layout.height());
 
-        var computed = new ComputedLayout((float) left, (float) top,
-                layout.width(), layout.height());
+        var computed = new ComputedLayout((float) left, (float) top, layout.width(), layout.height());
         visitor.accept(new BoxPainter.Placed(box.fade(alpha), computed, transform, parentClip));
 
         // Exactly the clip the painter computes, from the same inputs in the
@@ -684,8 +679,7 @@ public final class RenderTree implements AutoCloseable {
     /// Returns the parent's matrix unchanged when this box has no transform,
     /// which is the path every box in an ordinary frame takes and which allocates
     /// nothing.
-    static Affine compose(
-            Affine parent, Transform own, double left, double top, double width, double height) {
+    static Affine compose(Affine parent, Transform own, double left, double top, double width, double height) {
 
         if (own.isNone()) {
             return parent;
@@ -769,9 +763,7 @@ public final class RenderTree implements AutoCloseable {
         var y = Math.clamp(rect.y(), 0, size.height());
         var right = Math.clamp(rect.x() + rect.width(), 0, size.width());
         var bottom = Math.clamp(rect.y() + rect.height(), 0, size.height());
-        return right > x && bottom > y
-                ? new DamageRect(x, y, right - x, bottom - y)
-                : null;
+        return right > x && bottom > y ? new DamageRect(x, y, right - x, bottom - y) : null;
     }
 
     /// Past this many regions, the whole frame is cheaper to present than the
@@ -780,15 +772,19 @@ public final class RenderTree implements AutoCloseable {
     private static final int MAX_DAMAGE_RECTS = 8;
 
     private void collectDamage(
-            RenderObject object, double parentLeft, double parentTop, Affine parentTransform,
-            Frame frame, java.util.List<DamageRect> into, boolean[] everything) {
+            RenderObject object,
+            double parentLeft,
+            double parentTop,
+            Affine parentTransform,
+            Frame frame,
+            java.util.List<DamageRect> into,
+            boolean[] everything) {
 
         var box = object.box();
         var layout = object.node().layout();
         var left = parentLeft + layout.left();
         var top = parentTop + layout.top();
-        var transform = compose(parentTransform, box.transform(), left, top,
-                layout.width(), layout.height());
+        var transform = compose(parentTransform, box.transform(), left, top, layout.width(), layout.height());
 
         var now = toPhysical(bounds(object, left, top), frame);
         var before = object.lastRect();
@@ -827,14 +823,18 @@ public final class RenderTree implements AutoCloseable {
     }
 
     private static boolean intersects(DamageRect a, DamageRect b) {
-        return a.x() < b.x() + b.width() && b.x() < a.x() + a.width()
-                && a.y() < b.y() + b.height() && b.y() < a.y() + a.height();
+        return a.x() < b.x() + b.width()
+                && b.x() < a.x() + a.width()
+                && a.y() < b.y() + b.height()
+                && b.y() < a.y() + a.height();
     }
 
     private static DamageRect union(DamageRect a, DamageRect b) {
         var x = Math.min(a.x(), b.x());
         var y = Math.min(a.y(), b.y());
-        return new DamageRect(x, y,
+        return new DamageRect(
+                x,
+                y,
                 Math.max(a.x() + a.width(), b.x() + b.width()) - x,
                 Math.max(a.y() + a.height(), b.y() + b.height()) - y);
     }
@@ -853,10 +853,8 @@ public final class RenderTree implements AutoCloseable {
         var scale = frame.scale().factor();
         var x = Math.clamp((int) Math.floor(bounds.left() * scale), 0, size.width());
         var y = Math.clamp((int) Math.floor(bounds.top() * scale), 0, size.height());
-        var right = Math.clamp(
-                (int) Math.ceil((bounds.left() + bounds.width()) * scale), 0, size.width());
-        var bottom = Math.clamp(
-                (int) Math.ceil((bounds.top() + bounds.height()) * scale), 0, size.height());
+        var right = Math.clamp((int) Math.ceil((bounds.left() + bounds.width()) * scale), 0, size.width());
+        var bottom = Math.clamp((int) Math.ceil((bounds.top() + bounds.height()) * scale), 0, size.height());
         return new DamageRect(x, y, Math.max(0, right - x), Math.max(0, bottom - y));
     }
 
@@ -921,9 +919,8 @@ public final class RenderTree implements AutoCloseable {
 
     private void requireUsable() {
         if (Thread.currentThread() != owner) {
-            throw new IllegalStateException(
-                    "a RenderTree belongs to the thread that created it, and this is not it —"
-                            + " a Yoga tree may not span threads");
+            throw new IllegalStateException("a RenderTree belongs to the thread that created it, and this is not it —"
+                    + " a Yoga tree may not span threads");
         }
         if (closed) {
             throw new IllegalStateException("this render tree has been closed");

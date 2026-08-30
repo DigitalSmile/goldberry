@@ -89,17 +89,13 @@ public enum Easing {
     /// only the two control coordinates vary.
     private static double bezier(double s, double c1, double c2) {
         var inverse = 1 - s;
-        return 3 * inverse * inverse * s * c1
-                + 3 * inverse * s * s * c2
-                + s * s * s;
+        return 3 * inverse * inverse * s * c1 + 3 * inverse * s * s * c2 + s * s * s;
     }
 
     /// The derivative of [#bezier], for Newton's method.
     private static double slope(double s, double c1, double c2) {
         var inverse = 1 - s;
-        return 3 * inverse * inverse * c1
-                + 6 * inverse * s * (c2 - c1)
-                + 3 * s * s * (1 - c2);
+        return 3 * inverse * inverse * c1 + 6 * inverse * s * (c2 - c1) + 3 * s * s * (1 - c2);
     }
 
     /// The curve parameter whose x coordinate is `x`.

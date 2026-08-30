@@ -1,15 +1,16 @@
 package io.github.digitalsmile.goldberry.widgets.markup;
 
-import io.github.digitalsmile.goldberry.bind.registry.ActionRegistry;
-import io.github.digitalsmile.goldberry.bind.registry.BindingRegistry;
-import io.github.digitalsmile.goldberry.bind.runtime.Models;
-import io.github.digitalsmile.goldberry.bind.Observable;
-import io.github.digitalsmile.goldberry.css.value.CssColor;
-import io.github.digitalsmile.goldberry.icon.Icon;
-import io.github.digitalsmile.goldberry.kdl.KdlNode;
 import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.function.DoubleConsumer;
+
+import io.github.digitalsmile.goldberry.bind.Observable;
+import io.github.digitalsmile.goldberry.bind.registry.ActionRegistry;
+import io.github.digitalsmile.goldberry.bind.registry.BindingRegistry;
+import io.github.digitalsmile.goldberry.bind.runtime.Models;
+import io.github.digitalsmile.goldberry.css.value.CssColor;
+import io.github.digitalsmile.goldberry.icon.Icon;
+import io.github.digitalsmile.goldberry.kdl.KdlNode;
 import io.github.digitalsmile.goldberry.widgets.Icons;
 
 /// The three registries a document resolves names against, and the readings of a
@@ -114,9 +115,8 @@ public record Wiring(ActionRegistry actions, Icons icons, BindingRegistry bindin
     public static String requiredValue(String node, KdlNode from) {
         var value = from.stringProperty("value");
         if (value == null || value.isEmpty()) {
-            throw new IllegalArgumentException(
-                    "a " + node + " needs a value= for its group to report and match on;"
-                            + " `" + node + " value=\"dark\" \"Dark\"`");
+            throw new IllegalArgumentException("a " + node + " needs a value= for its group to report and match on;"
+                    + " `" + node + " value=\"dark\" \"Dark\"`");
         }
         return value;
     }

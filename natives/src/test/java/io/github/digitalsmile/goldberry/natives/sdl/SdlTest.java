@@ -4,13 +4,15 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import io.github.digitalsmile.goldberry.natives.NativeLibraryRequirement;
 import java.util.EnumSet;
 import java.util.Set;
+
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+
+import io.github.digitalsmile.goldberry.natives.NativeLibraryRequirement;
 
 /// SDL3 through the real `libgoldberry`.
 ///
@@ -62,9 +64,11 @@ class SdlTest {
     void readsModifierState() {
         var state = Sdl.get().modifierState();
 
-        assertEquals(0, state & ~0xFFFF,
-                () -> "SDL_Keymod is a Uint16 and this came back as 0x"
-                        + Integer.toHexString(state) + "; the descriptor is wrong");
+        assertEquals(
+                0,
+                state & ~0xFFFF,
+                () -> "SDL_Keymod is a Uint16 and this came back as 0x" + Integer.toHexString(state)
+                        + "; the descriptor is wrong");
         assertTrue(state >= 0, "widened unsigned, so never negative");
     }
 
@@ -83,9 +87,7 @@ class SdlTest {
 
         sdl.initialize(EnumSet.of(SdlSubsystem.EVENTS));
 
-        assertTrue(
-                sdl.wasInit().contains(SdlSubsystem.EVENTS),
-                () -> "SDL_WasInit reported " + sdl.wasInit());
+        assertTrue(sdl.wasInit().contains(SdlSubsystem.EVENTS), () -> "SDL_WasInit reported " + sdl.wasInit());
     }
 
     @Test

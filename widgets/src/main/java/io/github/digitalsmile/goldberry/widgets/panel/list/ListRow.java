@@ -1,5 +1,10 @@
 package io.github.digitalsmile.goldberry.widgets.panel.list;
 
+import java.util.List;
+import java.util.Set;
+import java.util.function.Consumer;
+import java.util.function.IntConsumer;
+
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
 import io.github.digitalsmile.goldberry.input.event.KeyEvent;
 import io.github.digitalsmile.goldberry.input.event.PointerEvent;
@@ -8,16 +13,11 @@ import io.github.digitalsmile.goldberry.input.handler.Handles;
 import io.github.digitalsmile.goldberry.input.key.Key;
 import io.github.digitalsmile.goldberry.input.key.Modifiers;
 import io.github.digitalsmile.goldberry.paint.Box;
+import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widget.attr.Attributed;
 import io.github.digitalsmile.goldberry.widget.attr.Attributes;
 import io.github.digitalsmile.goldberry.widget.style.Paints;
 import io.github.digitalsmile.goldberry.widget.style.Styled;
-import io.github.digitalsmile.goldberry.widget.Widget;
-
-import java.util.List;
-import java.util.Set;
-import java.util.function.Consumer;
-import java.util.function.IntConsumer;
 
 /// One row of a [ListView] — a **part**, so it is styleable and not
 /// constructible ([ADR-0065]).
@@ -56,8 +56,14 @@ import java.util.function.IntConsumer;
 ///                   list, and only the list knows what they resolve to
 /// @param onEnd      asked to move to the first or last row
 /// @param onType     what was typed, for §10's type-to-select
-record ListRow(String id, boolean selectable, boolean selected, Widget content,
-        Attributes attributes, Consumer<Modifiers> onSelect, IntConsumer onEnd,
+record ListRow(
+        String id,
+        boolean selectable,
+        boolean selected,
+        Widget content,
+        Attributes attributes,
+        Consumer<Modifiers> onSelect,
+        IntConsumer onEnd,
         Consumer<String> onType)
         implements Widget.Leaf, Styled, Paints, Handles, Attributed<ListRow> {
 
@@ -161,8 +167,7 @@ record ListRow(String id, boolean selectable, boolean selected, Widget content,
                 onEnd.accept(1);
                 event.consume();
             }
-            default -> {
-            }
+            default -> {}
         }
     }
 

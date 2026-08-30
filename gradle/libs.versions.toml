@@ -17,6 +17,7 @@ jacoco = "0.8.14"
 
 # --- Static analysis (docs/testing.md §2) ------------------------------------
 spotless = "8.10.1"
+palantirFormat = "2.97.0"
 errorprone = "5.1.1"
 errorproneCore = "2.50.0"
 nullaway = "0.14.1"

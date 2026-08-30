@@ -5,10 +5,11 @@ import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import io.github.digitalsmile.goldberry.natives.NativeLibraryRequirement;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+
+import io.github.digitalsmile.goldberry.natives.NativeLibraryRequirement;
 import io.github.digitalsmile.goldberry.natives.yoga.style.Direction;
 import io.github.digitalsmile.goldberry.natives.yoga.style.Display;
 import io.github.digitalsmile.goldberry.natives.yoga.style.Edge;
@@ -350,8 +351,7 @@ class YogaLayoutTest {
     @DisplayName("a property Yoga has no `auto` for is refused, not dropped")
     void autoIsRefusedWhereYogaHasNone() {
         try (var root = YogaNode.create()) {
-            var thrown = assertThrows(
-                    IllegalArgumentException.class, () -> root.setMaxWidth(StyleLength.AUTO));
+            var thrown = assertThrows(IllegalArgumentException.class, () -> root.setMaxWidth(StyleLength.AUTO));
 
             assertTrue(thrown.getMessage().contains("max-width"), thrown.getMessage());
         }

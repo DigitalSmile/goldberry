@@ -1,6 +1,5 @@
 package io.github.digitalsmile.goldberry.natives.blend2d.enums;
 
-
 /// How a fill combines with what is already there — `BLCompOp`.
 ///
 /// Blend2D defines the full Porter-Duff set and then some. Two are bound,

@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.List;
+
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -47,10 +48,9 @@ class LogTicksTest {
 
         assertTrue(labels.size() >= 3, "expected a usable number of labels, got " + labels);
         for (var label : labels) {
-            var mantissa = Double.parseDouble(label)
-                    / Math.pow(10, Math.floor(Math.log10(Double.parseDouble(label))));
-            assertTrue(Math.abs(mantissa - 1) < 1e-9 || Math.abs(mantissa - 2) < 1e-9
-                            || Math.abs(mantissa - 5) < 1e-9,
+            var mantissa = Double.parseDouble(label) / Math.pow(10, Math.floor(Math.log10(Double.parseDouble(label))));
+            assertTrue(
+                    Math.abs(mantissa - 1) < 1e-9 || Math.abs(mantissa - 2) < 1e-9 || Math.abs(mantissa - 5) < 1e-9,
                     label + " is not a 1-2-5 subdivision");
         }
     }
@@ -66,8 +66,7 @@ class LogTicksTest {
             }
         }
         for (var value : LogTicks.of(3, 40, 5).values()) {
-            assertTrue(value >= 3 * 0.999999 && value <= 40 * 1.000001,
-                    value + " is outside 3…40");
+            assertTrue(value >= 3 * 0.999999 && value <= 40 * 1.000001, value + " is outside 3…40");
         }
     }
 
@@ -112,8 +111,7 @@ class LogTicksTest {
         var scale = Scale.log(2, 5000, 400, 0);
 
         for (var value : List.of(2.0, 7.5, 100.0, 999.0, 5000.0)) {
-            assertEquals(value, scale.from(scale.at(value)), value * 1e-9,
-                    "the round trip at " + value);
+            assertEquals(value, scale.from(scale.at(value)), value * 1e-9, "the round trip at " + value);
         }
         // The middle of a log axis is the geometric mean, not the average --
         // which is what a crosshair reads off a pointer.
@@ -136,8 +134,7 @@ class LogTicksTest {
     @Test
     @DisplayName("non-positive readings become holes rather than being drawn wrong")
     void positiveOnlyIsAFilter() {
-        var resolved = Gaps.resolve(
-                List.of(5.0, 0.0, 20.0, -3.0, 40.0), NullPolicy.GAP);
+        var resolved = Gaps.resolve(List.of(5.0, 0.0, 20.0, -3.0, 40.0), NullPolicy.GAP);
 
         var positive = Gaps.positiveOnly(resolved);
 

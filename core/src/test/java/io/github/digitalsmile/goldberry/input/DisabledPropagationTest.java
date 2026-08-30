@@ -6,22 +6,24 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import io.github.digitalsmile.goldberry.css.select.Selector;
-import io.github.digitalsmile.goldberry.widget.ElementTree;
-import io.github.digitalsmile.goldberry.widget.style.Styled;
-import io.github.digitalsmile.goldberry.widget.Widget;
 import java.util.ArrayList;
 import java.util.List;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+
+import io.github.digitalsmile.goldberry.css.select.Selector;
 import io.github.digitalsmile.goldberry.input.event.KeyEvent;
 import io.github.digitalsmile.goldberry.input.event.PointerEvent;
+import io.github.digitalsmile.goldberry.input.handler.Handles;
+import io.github.digitalsmile.goldberry.input.hit.HitTest;
 import io.github.digitalsmile.goldberry.input.key.Key;
 import io.github.digitalsmile.goldberry.input.key.Modifiers;
-import io.github.digitalsmile.goldberry.input.hit.HitTest;
-import io.github.digitalsmile.goldberry.input.handler.Handles;
+import io.github.digitalsmile.goldberry.widget.ElementTree;
+import io.github.digitalsmile.goldberry.widget.Widget;
+import io.github.digitalsmile.goldberry.widget.style.Styled;
 
 /// "A disabled container disables its descendants for input and semantics"
 /// (`docs/core-widgets.md`) — [ADR-0077].
@@ -101,9 +103,8 @@ class DisabledPropagationTest {
         var outer = tree.root();
         var inner = outer.children().getFirst();
         router.focusRoot(outer);
-        router.updateRegions(List.of(
-                HitTest.Region.of(outer, 0, 0, 100, 100),
-                HitTest.Region.of(inner, 20, 20, 40, 40)));
+        router.updateRegions(
+                List.of(HitTest.Region.of(outer, 0, 0, 100, 100), HitTest.Region.of(inner, 20, 20, 40, 40)));
     }
 
     private io.github.digitalsmile.goldberry.widget.Element inner() {
@@ -118,9 +119,7 @@ class DisabledPropagationTest {
     /// pretending the other half does not happen.
     private List<String> input() {
         return log.stream()
-                .filter(entry -> !entry.endsWith(":ENTERED")
-                        && !entry.endsWith(":EXITED")
-                        && !entry.endsWith(":MOVED"))
+                .filter(entry -> !entry.endsWith(":ENTERED") && !entry.endsWith(":EXITED") && !entry.endsWith(":MOVED"))
                 .toList();
     }
 
@@ -134,8 +133,7 @@ class DisabledPropagationTest {
             router.pointerPressed(30, 30, PointerEvent.Button.PRIMARY, 1);
             router.pointerReleased(30, 30, PointerEvent.Button.PRIMARY, 1);
 
-            assertEquals(List.of(), input(),
-                    "the inner node has no disabled check of its own and must still be inert");
+            assertEquals(List.of(), input(), "the inner node has no disabled check of its own and must still be inert");
         }
 
         @Test
@@ -195,7 +193,9 @@ class DisabledPropagationTest {
         void stillHitTests() {
             router.pointerMoved(30, 30);
 
-            assertSame(inner(), router.hovered(),
+            assertSame(
+                    inner(),
+                    router.hovered(),
                     "unavailable is not invisible: something behind it must not receive the press");
         }
     }
@@ -213,9 +213,11 @@ class DisabledPropagationTest {
         void pseudoClassesStayPut() {
             router.pointerMoved(30, 30);
 
-            assertFalse(inner().hasState(Selector.PseudoClass.HOVER),
+            assertFalse(
+                    inner().hasState(Selector.PseudoClass.HOVER),
                     "a disabled thing does not light up under the pointer");
-            assertFalse(inner().hasState(Selector.PseudoClass.DISABLED),
+            assertFalse(
+                    inner().hasState(Selector.PseudoClass.DISABLED),
                     "the fade belongs to the container; propagating it would apply 45% twice");
         }
 

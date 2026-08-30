@@ -5,26 +5,28 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.List;
+import java.util.Set;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+
 import io.github.digitalsmile.goldberry.RendererRequirement;
-import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
 import io.github.digitalsmile.goldberry.css.Stylesheet;
 import io.github.digitalsmile.goldberry.css.Theme;
+import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
 import io.github.digitalsmile.goldberry.golden.GoldenImage;
 import io.github.digitalsmile.goldberry.paint.BoxPainter;
 import io.github.digitalsmile.goldberry.paint.TestFrames;
-import io.github.digitalsmile.goldberry.widget.attr.Attributes;
 import io.github.digitalsmile.goldberry.widget.ElementTree;
 import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widget.WidgetRenderer;
+import io.github.digitalsmile.goldberry.widget.attr.Attributes;
 import io.github.digitalsmile.goldberry.widgets.Controls;
 import io.github.digitalsmile.goldberry.widgets.controls.TestFont;
 import io.github.digitalsmile.goldberry.widgets.core.Column;
 import io.github.digitalsmile.goldberry.widgets.data.linechart.LineChart;
-import java.util.List;
-import java.util.Set;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
 
 /// What the axis has to reach, and whether each reading is marked — `charts.md`
 /// §3.1's "axis min/max, soft min/max" and "point markers".
@@ -47,7 +49,9 @@ class ChartAxisTest {
 
     private static WidgetRenderer renderer() {
         return new WidgetRenderer(
-                List.of(Controls.baseStylesheet(), Theme.NORD_DARK.load(),
+                List.of(
+                        Controls.baseStylesheet(),
+                        Theme.NORD_DARK.load(),
                         Stylesheet.parse(CascadeLayer.APPLICATION, """
                                 #frame { padding: 12px; background: var(--gb-bg) }
                                 #plot  { width: 296px; height: 156px }
@@ -108,11 +112,9 @@ class ChartAxisTest {
         // picture says "look at this" about noise, and loudest when the news is
         // good.
         var scaled = rowsWithData(pixels(line(UPTIME).markers(Markers.NEVER)));
-        var bounded = rowsWithData(
-                pixels(line(UPTIME).softAxis(99, 100).markers(Markers.NEVER)));
+        var bounded = rowsWithData(pixels(line(UPTIME).softAxis(99, 100).markers(Markers.NEVER)));
 
-        assertTrue(scaled > bounded * 3,
-                "auto-scaled used " + scaled + " rows, soft-bounded used " + bounded);
+        assertTrue(scaled > bounded * 3, "auto-scaled used " + scaled + " rows, soft-bounded used " + bounded);
     }
 
     @Test
@@ -123,7 +125,8 @@ class ChartAxisTest {
         // than the noisy one.
         var outage = Series.of("uptime", 99.94, 99.97, 40, 99.99);
 
-        assertFalse(java.util.Arrays.equals(
+        assertFalse(
+                java.util.Arrays.equals(
                         pixels(line(outage).softAxis(99, 100)),
                         pixels(line(UPTIME).softAxis(99, 100))),
                 "the outage is on the chart");
@@ -134,16 +137,15 @@ class ChartAxisTest {
     @Test
     @DisplayName("a hard bound does not move for the data")
     void hardIsAPromise() {
-        assertEquals(99.0, Bounds.hard(99, 100).applyMin(40),
-                "which is the correct rendering of a promise that was wrong");
+        assertEquals(
+                99.0, Bounds.hard(99, 100).applyMin(40), "which is the correct rendering of a promise that was wrong");
         assertEquals(100.0, Bounds.hard(99, 100).applyMax(400));
 
         // And the two are different pictures, so `axis` and `softAxis` cannot be
         // confused for each other by a chart that ignores the flag.
         var outage = Series.of("uptime", 99.94, 99.97, 40, 99.99);
         assertFalse(java.util.Arrays.equals(
-                pixels(line(outage).axis(99, 100)),
-                pixels(line(outage).softAxis(99, 100))));
+                pixels(line(outage).axis(99, 100)), pixels(line(outage).softAxis(99, 100))));
     }
 
     @Test
@@ -152,8 +154,8 @@ class ChartAxisTest {
         assertEquals(7.0, Bounds.NONE.applyMin(7));
         assertEquals(9.0, Bounds.NONE.applyMax(9));
         assertFalse(Bounds.NONE.isSet());
-        assertArrayEquals(pixels(line(UPTIME)),
-                pixels(line(UPTIME).options(ChartOptions.DEFAULTS.bounds(Bounds.NONE))));
+        assertArrayEquals(
+                pixels(line(UPTIME)), pixels(line(UPTIME).options(ChartOptions.DEFAULTS.bounds(Bounds.NONE))));
     }
 
     @Test
@@ -174,13 +176,12 @@ class ChartAxisTest {
         // The same chart, at seven readings and at four hundred. What makes a
         // dotted mess is how close the dots are on screen, so the rule is in
         // pixels rather than in points.
-        assertFalse(java.util.Arrays.equals(
-                        pixels(line(few)), pixels(line(few).markers(Markers.NEVER))),
+        assertFalse(
+                java.util.Arrays.equals(pixels(line(few)), pixels(line(few).markers(Markers.NEVER))),
                 "seven readings have room for their dots");
         assertArrayEquals(
                 pixels(new LineChart(List.of(new Series("rate", many)), List.of(), id())),
-                pixels(new LineChart(List.of(new Series("rate", many)), List.of(), id())
-                        .markers(Markers.NEVER)),
+                pixels(new LineChart(List.of(new Series("rate", many)), List.of(), id()).markers(Markers.NEVER)),
                 "four hundred do not, and AUTO draws none");
     }
 
@@ -193,9 +194,9 @@ class ChartAxisTest {
         }
         var crowded = new LineChart(List.of(new Series("rate", many)), List.of(), id());
 
-        assertFalse(java.util.Arrays.equals(
-                        pixels(crowded.markers(Markers.ALWAYS)),
-                        pixels(crowded.markers(Markers.NEVER))),
+        assertFalse(
+                java.util.Arrays.equals(
+                        pixels(crowded.markers(Markers.ALWAYS)), pixels(crowded.markers(Markers.NEVER))),
                 "ALWAYS draws them into the mess it was warned about");
     }
 
@@ -205,7 +206,7 @@ class ChartAxisTest {
         var render = renderer();
         var tree = new ElementTree(framed(line(UPTIME).softAxis(99, 100)));
 
-        GoldenImage.assertMatches("line-chart-soft-dark", WIDTH, HEIGHT, 1.0f,
-                frame -> BoxPainter.paint(frame, render.render(tree)));
+        GoldenImage.assertMatches(
+                "line-chart-soft-dark", WIDTH, HEIGHT, 1.0f, frame -> BoxPainter.paint(frame, render.render(tree)));
     }
 }

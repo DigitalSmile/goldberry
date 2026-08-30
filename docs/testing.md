@@ -102,8 +102,10 @@ status beside it reads as a description of what exists.
 - **§1.3/§5 `blessGoldens`**, per module and at the root.
 - **§2 ArchUnit.** `BoundaryTest` asserts `ARCHITECTURE.md` §2's arrows and
   §3.1's FFM boundary — seven rules the module graph cannot state.
-- **§2 Spotless**, whitespace/tabs/final-newline only. See "deliberately
-  narrowed" below.
+- **§2 Spotless with palantir-java-format**, over every file the formatter can
+  safely read — 711 of roughly 730. Plus `removeUnusedImports` and an import
+  order that keeps static imports first, where the tool's own default would have
+  moved them last. See the exclusion below.
 - **§2 Error Prone + NullAway**, blocking on `src/main`. NullAway runs in
   `OnlyNullMarked` mode; `io.github.digitalsmile.goldberry.log` is the first
   package to opt in, and a `return null` added to it fails the build.
@@ -119,14 +121,25 @@ status beside it reads as a description of what exists.
 
 ### Deliberately narrowed
 
-- **Spotless does not run a whole-file formatter.** §2 names
-  palantir-java-format; applying it rewrote 138 files and produced no defect.
-  The comments in this codebase are prose whose line breaks are chosen by hand,
-  and a formatter reflowing them destroys what makes them readable. Enforcing an
-  import order alone moved every static import below the rest, which is the
-  opposite of the existing convention. `removeUnusedImports` throws inside its
-  own parser on `TourState.java`. What is enforced is what is mechanical and
-  unarguable.
+- **Nineteen files are excluded from palantir-java-format**, and the reason is a
+  tool defect rather than a preference. **palantir 2.97.0 corrupts JDK 23+ `///`
+  markdown javadoc**: when a `///` line is too long to fit, it wraps the content
+  onto a new line *without* re-emitting the `///` prefix, so the doc comment
+  becomes a statement and the file stops compiling. Run over the whole tree it
+  produced 11 corrupted files and 80 compile errors, and it wrote them to disk
+  before reporting anything. `formatJavadoc(false)` does not prevent it — the
+  step treats `///` as a line comment, which that flag does not govern.
+
+  The trigger is this project's own convention: doc comments carry ADR links
+  whose URLs are single unbreakable tokens of ninety-odd characters. Shortening
+  those lines means shortening the URLs, which are relative paths the book
+  resolves — so the choice was between breaking links and excluding files. The
+  list is in `goldberry.java-conventions.gradle`, derived from what
+  `spotlessApply --continue` actually reported rather than guessed at, and
+  `spotlessCheck` passing is what keeps it honest.
+
+  The excluded files still get the whitespace steps. Everything else — every
+  brace, wrap and blank line in 711 files — is the formatter's decision now.
 - **`ReferenceEquality` is off**, and `CloseResource` is out of the PMD set. Each
   was wrong every time it fired — the first on the thread-confinement check
   eighteen files make, the second on 47 sites where an owner holds a closeable
@@ -175,6 +188,10 @@ Both were silent, and both were found by reading output rather than exit codes.
 - The PMD ruleset **did not load** for its first two revisions — an XML comment
   cannot contain `--`, and PMD 7 had removed a rule I named. Each time PMD
   printed `Cannot load ruleset` to stderr and then passed with no rules at all.
-- `TourState.java` carried a javadoc reference split across two lines, `[` on
-  one and the target on the next. It crashed Spotless's parser and Error Prone's,
-  and neither said why.
+- **Two files carried a javadoc reference split across two lines**, `[` on one
+  and the target on the next: `TourState.java` and `Blend2dContext.java`. Each
+  crashed a Java parser with a bare `NoSuchElementException` — Error Prone's on
+  one, palantir's and Spotless's on both — and none of the three said why. They
+  are the reason `:natives` has Error Prone disabled and the reason
+  `removeUnusedImports` was switched off for a while; both are fixed, and both
+  were one-line edits once the cause was visible.

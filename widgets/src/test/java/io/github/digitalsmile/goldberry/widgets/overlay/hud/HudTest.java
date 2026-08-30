@@ -5,25 +5,27 @@ import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import io.github.digitalsmile.goldberry.stats.FrameStats;
-import io.github.digitalsmile.goldberry.RendererRequirement;
-import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
-import io.github.digitalsmile.goldberry.css.Stylesheet;
-import io.github.digitalsmile.goldberry.css.Theme;
-import io.github.digitalsmile.goldberry.kdl.KdlParser;
-import io.github.digitalsmile.goldberry.paint.Box;
-import io.github.digitalsmile.goldberry.widget.attr.Attributes;
-import io.github.digitalsmile.goldberry.widget.ElementTree;
-import io.github.digitalsmile.goldberry.widget.style.Styled;
-import io.github.digitalsmile.goldberry.widget.WidgetRenderer;
-import io.github.digitalsmile.goldberry.widgets.Controls;
-import io.github.digitalsmile.goldberry.widgets.controls.TestFont;
 import java.util.List;
 import java.util.Locale;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+
+import io.github.digitalsmile.goldberry.RendererRequirement;
+import io.github.digitalsmile.goldberry.css.Stylesheet;
+import io.github.digitalsmile.goldberry.css.Theme;
+import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
+import io.github.digitalsmile.goldberry.kdl.KdlParser;
+import io.github.digitalsmile.goldberry.paint.Box;
+import io.github.digitalsmile.goldberry.stats.FrameStats;
+import io.github.digitalsmile.goldberry.widget.ElementTree;
+import io.github.digitalsmile.goldberry.widget.WidgetRenderer;
+import io.github.digitalsmile.goldberry.widget.attr.Attributes;
+import io.github.digitalsmile.goldberry.widget.style.Styled;
+import io.github.digitalsmile.goldberry.widgets.Controls;
 import io.github.digitalsmile.goldberry.widgets.Widgets;
+import io.github.digitalsmile.goldberry.widgets.controls.TestFont;
 
 /// `hud` — the numbers, where they come from, and the two ways it can be wrong.
 ///
@@ -40,7 +42,9 @@ class HudTest {
 
     private static WidgetRenderer renderer(FrameStats stats) {
         return new WidgetRenderer(
-                        List.of(Controls.baseStylesheet(), Theme.NORD_DARK.load(),
+                        List.of(
+                                Controls.baseStylesheet(),
+                                Theme.NORD_DARK.load(),
                                 Stylesheet.parse(CascadeLayer.APPLICATION, "")),
                         TestFont.get())
                 .frames(stats);
@@ -54,7 +58,8 @@ class HudTest {
     private static List<String> readings(Box box) {
         var all = box.children();
         return all.subList(0, all.size() - 1).stream()
-                .map(child -> child.text().paragraph().text()).toList();
+                .map(child -> child.text().paragraph().text())
+                .toList();
     }
 
     /// The last child, which explains the ones above it.
@@ -65,8 +70,7 @@ class HudTest {
     @Test
     @DisplayName("a bare hud shows the rate and the paint time")
     void defaultReadings() {
-        var box = renderer(FrameStats.of(60, 16.7, 2.1, 500, 0, 0, 0, 0, 60))
-                .render(new ElementTree(new Hud()));
+        var box = renderer(FrameStats.of(60, 16.7, 2.1, 500, 0, 0, 0, 0, 60)).render(new ElementTree(new Hud()));
 
         assertEquals(List.of("60 fps", "paint 2.1 / 2.1 / 2.1 ms"), readings(box));
     }
@@ -96,8 +100,15 @@ class HudTest {
         var box = renderer(FrameStats.of(60, 16.7, 2.1, 500, 0.05, 0.29, 0.11, 1.34, 60))
                 .render(new ElementTree(Hud.stages()));
 
-        assertEquals(List.of("60 fps", "refresh 60 Hz", "paint 2.1 / 2.1 / 2.1 ms",
-                        "build 0.05 / 0.05 / 0.05 ms", "style 0.29 / 0.29 / 0.29 ms", "layout 0.11 / 0.11 / 0.11 ms", "raster 1.34 / 1.34 / 1.34 ms"),
+        assertEquals(
+                List.of(
+                        "60 fps",
+                        "refresh 60 Hz",
+                        "paint 2.1 / 2.1 / 2.1 ms",
+                        "build 0.05 / 0.05 / 0.05 ms",
+                        "style 0.29 / 0.29 / 0.29 ms",
+                        "layout 0.11 / 0.11 / 0.11 ms",
+                        "raster 1.34 / 1.34 / 1.34 ms"),
                 readings(box));
     }
 
@@ -117,8 +128,8 @@ class HudTest {
     @DisplayName("`readings=\"stages\"` is the whole breakdown in one word")
     void stagesFromMarkup() {
         var hud = (Hud) io.github.digitalsmile.goldberry.widgets.Widgets.inflater()
-                .inflate(io.github.digitalsmile.goldberry.kdl.KdlParser
-                        .parse("hud readings=\"stages\"").getFirst());
+                .inflate(io.github.digitalsmile.goldberry.kdl.KdlParser.parse("hud readings=\"stages\"")
+                        .getFirst());
 
         assertEquals(Hud.STAGES, hud.readings());
     }
@@ -131,8 +142,8 @@ class HudTest {
     void stagesWithNoLoop() {
         var box = renderer(FrameStats.none()).render(new ElementTree(Hud.stages()));
 
-        assertEquals(List.of("— fps", "refresh —", "paint —",
-                "build —", "style —", "layout —", "raster —"), readings(box));
+        assertEquals(
+                List.of("— fps", "refresh —", "paint —", "build —", "style —", "layout —", "raster —"), readings(box));
     }
 
     /// A zero is a measurement. A HUD rendered with no frame loop over it has not
@@ -148,8 +159,7 @@ class HudTest {
 
         // A loop that genuinely stopped dead is a different thing and reads
         // differently, which is the distinction the dashes exist for.
-        var stalled = renderer(FrameStats.of(0, 0, 0, 900))
-                .render(new ElementTree(new Hud(Reading.FPS)));
+        var stalled = renderer(FrameStats.of(0, 0, 0, 900)).render(new ElementTree(new Hud(Reading.FPS)));
         assertEquals(List.of("0 fps"), readings(stalled));
     }
 
@@ -197,14 +207,15 @@ class HudTest {
     @Test
     @DisplayName("the caption says the numbers are per-frame means over the ring")
     void caption() {
-        var live = renderer(FrameStats.of(60, 16.7, 2.1, 500, 0, 0, 0, 0, 60))
-                .render(new ElementTree(new Hud()));
+        var live = renderer(FrameStats.of(60, 16.7, 2.1, 500, 0, 0, 0, 0, 60)).render(new ElementTree(new Hud()));
         // A fixed source keeps no window, so there is no length to name and the
         // caption says only what it can stand behind.
         assertEquals("ms/frame · min / mean / max", caption(live));
 
         var empty = renderer(FrameStats.none()).render(new ElementTree(new Hud()));
-        assertEquals("no frames measured", caption(empty),
+        assertEquals(
+                "no frames measured",
+                caption(empty),
                 "and a HUD with no loop behind it does not describe a window it has not filled");
     }
 
@@ -219,18 +230,31 @@ class HudTest {
     void budgetLevels() {
         var reading = Reading.PAINT;
 
-        assertEquals(8.33, reading.budgetMillis(
-                FrameStats.of(60, 16.7, 2, 9, 0, 0, 0, 0, 60)), 0.01,
+        assertEquals(
+                8.33,
+                reading.budgetMillis(FrameStats.of(60, 16.7, 2, 9, 0, 0, 0, 0, 60)),
+                0.01,
                 "half a frame of a 60 Hz display");
-        assertEquals(4.17, reading.budgetMillis(
-                FrameStats.of(120, 8.3, 2, 9, 0, 0, 0, 0, 120)), 0.01,
+        assertEquals(
+                4.17,
+                reading.budgetMillis(FrameStats.of(120, 8.3, 2, 9, 0, 0, 0, 0, 120)),
+                0.01,
                 "and half a frame of a 120 Hz one — the budget follows the display");
-        assertTrue(new HudReading(reading).classes(FrameStats.of(60, 16.7, 2.0, 9, 0, 0, 0, 0, 60))
-                .contains("ok"), "2 ms of an 8 ms budget is fine");
-        assertTrue(new HudReading(reading).classes(FrameStats.of(60, 16.7, 6.5, 9, 0, 0, 0, 0, 60))
-                .contains("near"), "6.5 of 8 is three quarters of the way there");
-        assertTrue(new HudReading(reading).classes(FrameStats.of(60, 16.7, 9.0, 9, 0, 0, 0, 0, 60))
-                .contains("over"), "9 of 8 is over");
+        assertTrue(
+                new HudReading(reading)
+                        .classes(FrameStats.of(60, 16.7, 2.0, 9, 0, 0, 0, 0, 60))
+                        .contains("ok"),
+                "2 ms of an 8 ms budget is fine");
+        assertTrue(
+                new HudReading(reading)
+                        .classes(FrameStats.of(60, 16.7, 6.5, 9, 0, 0, 0, 0, 60))
+                        .contains("near"),
+                "6.5 of 8 is three quarters of the way there");
+        assertTrue(
+                new HudReading(reading)
+                        .classes(FrameStats.of(60, 16.7, 9.0, 9, 0, 0, 0, 0, 60))
+                        .contains("over"),
+                "9 of 8 is over");
     }
 
     /// **The rate is never coloured, and that is the decision** — [ADR-0153].
@@ -246,7 +270,8 @@ class HudTest {
                 FrameStats.of(60, 16.7, 2, 9, 0, 0, 0, 0, 60),
                 FrameStats.of(45, 22, 2, 9, 0, 0, 0, 0, 60),
                 FrameStats.of(2, 500, 2, 9, 0, 0, 0, 0, 60))) {
-            assertTrue(new HudReading(Reading.FPS).classes(stats).contains("ok"),
+            assertTrue(
+                    new HudReading(Reading.FPS).classes(stats).contains("ok"),
                     () -> "an idle loop is not a fault: " + stats.fps() + " fps");
         }
     }
@@ -260,9 +285,11 @@ class HudTest {
         var sixty = FrameStats.of(60, 16.7, 5.0, 9, 0, 0, 0, 0, 60);
         var oneTwenty = FrameStats.of(120, 8.3, 5.0, 9, 0, 0, 0, 0, 120);
 
-        assertTrue(new HudReading(Reading.PAINT).classes(sixty).contains("ok"),
+        assertTrue(
+                new HudReading(Reading.PAINT).classes(sixty).contains("ok"),
                 "5 ms of a 60 Hz display's 8.3 ms paint budget");
-        assertTrue(new HudReading(Reading.PAINT).classes(oneTwenty).contains("over"),
+        assertTrue(
+                new HudReading(Reading.PAINT).classes(oneTwenty).contains("over"),
                 "the same 5 ms against a 120 Hz display's 4.2 ms");
     }
 
@@ -274,8 +301,8 @@ class HudTest {
     void unknownDisplayRate() {
         var unknown = FrameStats.of(60, 16.7, 2.0, 9, 0, 0, 0, 0, 0);
 
-        assertEquals(List.of("refresh —"),
-                readings(renderer(unknown).render(new ElementTree(new Hud(Reading.REFRESH)))));
+        assertEquals(
+                List.of("refresh —"), readings(renderer(unknown).render(new ElementTree(new Hud(Reading.REFRESH)))));
         assertEquals(8.33, Reading.PAINT.budgetMillis(unknown), 0.01);
     }
 
@@ -285,7 +312,8 @@ class HudTest {
     @DisplayName("nothing measured is not over budget")
     void nothingMeasuredIsNotAnAlarm() {
         for (var reading : Reading.values()) {
-            assertTrue(new HudReading(reading).classes(FrameStats.none()).contains("ok"),
+            assertTrue(
+                    new HudReading(reading).classes(FrameStats.none()).contains("ok"),
                     () -> reading + " raised an alarm about a loop it has not seen");
         }
     }
@@ -298,7 +326,8 @@ class HudTest {
         assertEquals(Hud.DEFAULT, ((Hud) bare).readings());
 
         var chosen = Widgets.inflater()
-                .inflate(KdlParser.parse("hud readings=\"fps refresh\" class=\"dim\"").getFirst());
+                .inflate(KdlParser.parse("hud readings=\"fps refresh\" class=\"dim\"")
+                        .getFirst());
         assertEquals(List.of(Reading.FPS, Reading.REFRESH), ((Hud) chosen).readings());
         assertTrue(((Hud) chosen).classes().contains("dim"));
     }
@@ -306,8 +335,10 @@ class HudTest {
     @Test
     @DisplayName("a reading nobody has heard of is a refusal that names the ones there are")
     void refusesAnUnknownReading() {
-        var refused = assertThrows(IllegalArgumentException.class,
-                () -> Widgets.inflater().inflate(KdlParser.parse("hud readings=\"gpu\"").getFirst()));
+        var refused = assertThrows(
+                IllegalArgumentException.class,
+                () -> Widgets.inflater()
+                        .inflate(KdlParser.parse("hud readings=\"gpu\"").getFirst()));
 
         assertTrue(refused.getMessage().contains("fps"), refused.getMessage());
     }

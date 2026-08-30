@@ -1,13 +1,14 @@
 package io.github.digitalsmile.goldberry.render.backend.headless;
 
-import io.github.digitalsmile.goldberry.render.PixelBuffer;
-import io.github.digitalsmile.goldberry.render.tray.BackendTray;
-import io.github.digitalsmile.goldberry.render.tray.TrayItem;
-import io.github.digitalsmile.goldberry.render.tray.TraySpec;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+
+import io.github.digitalsmile.goldberry.render.PixelBuffer;
+import io.github.digitalsmile.goldberry.render.tray.BackendTray;
+import io.github.digitalsmile.goldberry.render.tray.TrayItem;
+import io.github.digitalsmile.goldberry.render.tray.TraySpec;
 
 /// A tray with no desktop under it.
 ///
@@ -97,8 +98,7 @@ public final class HeadlessTray implements BackendTray {
 
         var row = find(items, "", path);
         if (row == null) {
-            throw new IllegalArgumentException(
-                    "no tray row at " + path + "; the menu has " + paths(items, ""));
+            throw new IllegalArgumentException("no tray row at " + path + "; the menu has " + paths(items, ""));
         }
         if (!row.enabled()) {
             throw new IllegalStateException(

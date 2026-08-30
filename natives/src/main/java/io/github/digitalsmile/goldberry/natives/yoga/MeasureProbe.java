@@ -1,9 +1,10 @@
 package io.github.digitalsmile.goldberry.natives.yoga;
 
-import io.github.digitalsmile.goldberry.natives.yoga.calls.ProbeCalls;
-import io.github.digitalsmile.goldberry.natives.NativeLibrary;
 import java.lang.foreign.Arena;
 import java.lang.foreign.ValueLayout;
+
+import io.github.digitalsmile.goldberry.natives.NativeLibrary;
+import io.github.digitalsmile.goldberry.natives.yoga.calls.ProbeCalls;
 import io.github.digitalsmile.goldberry.natives.yoga.measure.MeasureMode;
 import io.github.digitalsmile.goldberry.natives.yoga.measure.MeasuredSize;
 
@@ -30,22 +31,18 @@ public final class MeasureProbe {
     ///
     /// — which is [ProbeCalls.ProbeMeasure], the holder the call below names.
     private static final class Holder {
-        private static final ProbeCalls CALLS = ProbeCalls.bind(NativeLibrary.get().lookup());
+        private static final ProbeCalls CALLS =
+                ProbeCalls.bind(NativeLibrary.get().lookup());
     }
 
-    private MeasureProbe() {
-    }
+    private MeasureProbe() {}
 
     /// Invokes `callback` through C under the given constraints and returns the
     /// `YGSize` that survived the crossing.
     ///
     /// @throws IllegalStateException if the callback failed, wrapping its cause
     public static MeasuredSize measure(
-            MeasureCallback callback,
-            float width,
-            MeasureMode widthMode,
-            float height,
-            MeasureMode heightMode) {
+            MeasureCallback callback, float width, MeasureMode widthMode, float height, MeasureMode heightMode) {
 
         float measuredWidth;
         float measuredHeight;
@@ -59,14 +56,16 @@ public final class MeasureProbe {
             var outWidth = out.asSlice(0, ValueLayout.JAVA_FLOAT.byteSize());
             var outHeight = out.asSlice(ValueLayout.JAVA_FLOAT.byteSize(), ValueLayout.JAVA_FLOAT.byteSize());
 
-            Holder.CALLS.probeMeasure().call(
-                    callback.pointer(),
-                    width,
-                    widthMode.nativeValue(),
-                    height,
-                    heightMode.nativeValue(),
-                    outWidth,
-                    outHeight);
+            Holder.CALLS
+                    .probeMeasure()
+                    .call(
+                            callback.pointer(),
+                            width,
+                            widthMode.nativeValue(),
+                            height,
+                            heightMode.nativeValue(),
+                            outWidth,
+                            outHeight);
 
             measuredWidth = out.getAtIndex(ValueLayout.JAVA_FLOAT, 0);
             measuredHeight = out.getAtIndex(ValueLayout.JAVA_FLOAT, 1);

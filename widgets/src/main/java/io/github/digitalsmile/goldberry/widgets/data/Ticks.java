@@ -58,8 +58,7 @@ public final class Ticks {
     /// keeps a caller who asks for a thousand ticks from finding out slowly.
     private static final int MAX_COUNT = 60;
 
-    private Ticks() {
-    }
+    private Ticks() {}
 
     /// A labelling: where it starts, where it ends, and the step between labels.
     ///
@@ -96,13 +95,11 @@ public final class Ticks {
     ///               six
     public static Labelling extended(double dmin, double dmax, int target) {
         if (!Double.isFinite(dmin) || !Double.isFinite(dmax)) {
-            throw new IllegalArgumentException(
-                    "an axis needs finite bounds, and " + dmin + "…" + dmax + " are not");
+            throw new IllegalArgumentException("an axis needs finite bounds, and " + dmin + "…" + dmax + " are not");
         }
         if (target < 2) {
             throw new IllegalArgumentException(
-                    "an axis with fewer than two labels is not an axis, and " + target
-                            + " was asked for");
+                    "an axis with fewer than two labels is not an axis, and " + target + " was asked for");
         }
         if (dmin > dmax) {
             var swap = dmin;
@@ -130,11 +127,8 @@ public final class Ticks {
                 }
 
                 for (var count = 2; count <= MAX_COUNT; count++) {
-                    var densityMax = count >= target
-                            ? 2 - (double) (count - 1) / (target - 1)
-                            : 1;
-                    if (SIMPLICITY * simplicityMax + COVERAGE + DENSITY * densityMax + LEGIBILITY
-                            < bestScore) {
+                    var densityMax = count >= target ? 2 - (double) (count - 1) / (target - 1) : 1;
+                    if (SIMPLICITY * simplicityMax + COVERAGE + DENSITY * densityMax + LEGIBILITY < bestScore) {
                         break;
                     }
 
@@ -146,8 +140,8 @@ public final class Ticks {
                     for (var tries = 0; tries < 64; tries++, exponent++) {
                         var step = skip * q * Math.pow(10, exponent);
                         var coverageMax = coverageMax(dmin, dmax, step * (count - 1));
-                        if (SIMPLICITY * simplicityMax + COVERAGE * coverageMax
-                                + DENSITY * densityMax + LEGIBILITY < bestScore) {
+                        if (SIMPLICITY * simplicityMax + COVERAGE * coverageMax + DENSITY * densityMax + LEGIBILITY
+                                < bestScore) {
                             break;
                         }
 
@@ -208,8 +202,7 @@ public final class Ticks {
     }
 
     /// How near the label count is to the one asked for, in both directions.
-    private static double density(
-            int count, int target, double dmin, double dmax, double min, double max) {
+    private static double density(int count, int target, double dmin, double dmax, double min, double max) {
 
         var have = (count - 1) / (max - min);
         var want = (target - 1) / (Math.max(max, dmax) - Math.min(min, dmin));

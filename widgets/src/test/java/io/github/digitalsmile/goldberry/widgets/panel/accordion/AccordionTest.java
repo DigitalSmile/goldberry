@@ -5,9 +5,15 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.List;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+
 import io.github.digitalsmile.goldberry.RendererRequirement;
-import io.github.digitalsmile.goldberry.input.handler.Handles;
 import io.github.digitalsmile.goldberry.input.event.PointerEvent;
+import io.github.digitalsmile.goldberry.input.handler.Handles;
 import io.github.digitalsmile.goldberry.kdl.KdlParser;
 import io.github.digitalsmile.goldberry.widget.Element;
 import io.github.digitalsmile.goldberry.widget.ElementTree;
@@ -15,10 +21,6 @@ import io.github.digitalsmile.goldberry.widgets.Widgets;
 import io.github.digitalsmile.goldberry.widgets.panel.Described;
 import io.github.digitalsmile.goldberry.widgets.panel.collapse.Collapse;
 import io.github.digitalsmile.goldberry.widgets.text.Text;
-import java.util.List;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
 
 /// `column accordion=#true` — §5's "one section open at a time" ([ADR-0166]).
 ///
@@ -35,10 +37,13 @@ class AccordionTest {
     }
 
     private static Accordion of(int open) {
-        return new Accordion(open, null, List.of(
-                new Collapse("One", new Text("body one")),
-                new Collapse("Two", new Text("body two")),
-                new Collapse("Three", new Text("body three"))),
+        return new Accordion(
+                open,
+                null,
+                List.of(
+                        new Collapse("One", new Text("body one")),
+                        new Collapse("Two", new Text("body two")),
+                        new Collapse("Three", new Text("body three"))),
                 io.github.digitalsmile.goldberry.widget.attr.Attributes.NONE);
     }
 
@@ -60,9 +65,8 @@ class AccordionTest {
     }
 
     private static void click(ElementTree tree, int section) {
-        ((Handles) headers(tree).get(section).widget()).onPointer(
-                new PointerEvent(PointerEvent.Kind.CLICKED, 0, 0,
-                        PointerEvent.Button.PRIMARY, 1, null));
+        ((Handles) headers(tree).get(section).widget())
+                .onPointer(new PointerEvent(PointerEvent.Kind.CLICKED, 0, 0, PointerEvent.Button.PRIMARY, 1, null));
         tree.flush();
     }
 
@@ -71,8 +75,7 @@ class AccordionTest {
     }
 
     private static boolean showing(ElementTree tree, String text) {
-        return Described.in(tree).stream()
-                .anyMatch(w -> w instanceof Text it && text.equals(it.content()));
+        return Described.in(tree).stream().anyMatch(w -> w instanceof Text it && text.equals(it.content()));
     }
 
     /// **The claim.** Not "the second opened" — "the second opened *and the first
@@ -132,7 +135,9 @@ class AccordionTest {
     @DisplayName("anything that is not a collapse passes through untouched")
     void nonSections() {
         var heading = new Text("Settings");
-        var tree = new ElementTree(new Accordion(Accordion.NONE, null,
+        var tree = new ElementTree(new Accordion(
+                Accordion.NONE,
+                null,
                 List.of(heading, new Collapse("One", new Text("body one"))),
                 io.github.digitalsmile.goldberry.widget.attr.Attributes.NONE));
 
@@ -144,7 +149,9 @@ class AccordionTest {
     @DisplayName("a section the application already controls is left alone")
     void applicationWins() {
         var asked = new java.util.concurrent.atomic.AtomicReference<Boolean>();
-        var tree = new ElementTree(new Accordion(Accordion.NONE, null,
+        var tree = new ElementTree(new Accordion(
+                Accordion.NONE,
+                null,
                 List.of(
                         new Collapse("Controlled", false, asked::set, new Text("body")),
                         new Collapse("Ordinary", new Text("other"))),
@@ -185,8 +192,8 @@ class AccordionTest {
     @Test
     @DisplayName("a plain column is still a plain column")
     void plainColumn() {
-        var widget = Widgets.inflater().inflate(
-                KdlParser.parse("column { text \"one\" }").getFirst());
+        var widget = Widgets.inflater()
+                .inflate(KdlParser.parse("column { text \"one\" }").getFirst());
 
         assertInstanceOf(io.github.digitalsmile.goldberry.widgets.core.Column.class, widget);
     }

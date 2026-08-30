@@ -1,5 +1,12 @@
 package io.github.digitalsmile.goldberry.widgets.panel.table;
 
+import java.util.List;
+import java.util.Set;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+
 import io.github.digitalsmile.goldberry.RendererRequirement;
 import io.github.digitalsmile.goldberry.css.Stylesheet;
 import io.github.digitalsmile.goldberry.css.Theme;
@@ -12,11 +19,6 @@ import io.github.digitalsmile.goldberry.widgets.Controls;
 import io.github.digitalsmile.goldberry.widgets.TestHost;
 import io.github.digitalsmile.goldberry.widgets.controls.TestFont;
 import io.github.digitalsmile.goldberry.widgets.panel.list.Selection;
-import java.util.List;
-import java.util.Set;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
 
 /// What a `table` looks like — and it is the only proof of the one thing
 /// [TableTest] cannot check: that **a header and the cells under it are the same
@@ -28,7 +30,7 @@ import org.junit.jupiter.api.Test;
 /// ([ADR-0214]).
 class TableGoldenTest {
 
-    private record Person(String id, String name, String home, int age) { }
+    private record Person(String id, String name, String home, int age) {}
 
     private static final List<Person> PEOPLE = List.of(
             new Person("fro", "Frodo", "The Shire", 50),
@@ -52,25 +54,24 @@ class TableGoldenTest {
                 Column.<Person>of("name", "Name", Person::name).sortable(true).weight(2),
                 Column.<Person>of("home", "Home", Person::home).sortable(true),
                 Column.<Person>of("age", "Age", p -> String.valueOf(p.age()))
-                        .sortable(true).fixed(76));
+                        .sortable(true)
+                        .fixed(76));
     }
 
     private void paint(String name, Theme theme, Sort sort, Set<String> selected) {
         var host = new TestHost();
         var tree = new ElementTree(
                 new Table<>(PEOPLE, Person::id, columns())
-                        .sorted(sort, value -> { })
+                        .sorted(sort, value -> {})
                         .selection(Selection.MULTIPLE)
-                        .selected(selected, values -> { }),
+                        .selected(selected, values -> {}),
                 host);
 
         var renderer = new WidgetRenderer(
-                List.of(Controls.baseStylesheet(), theme.load(),
-                        Stylesheet.parse(CascadeLayer.APPLICATION, SCENE)),
+                List.of(Controls.baseStylesheet(), theme.load(), Stylesheet.parse(CascadeLayer.APPLICATION, SCENE)),
                 TestFont.get());
 
-        GoldenImage.assertMatches(name, 320, 176, 1.0f,
-                frame -> BoxPainter.paint(frame, renderer.render(tree)));
+        GoldenImage.assertMatches(name, 320, 176, 1.0f, frame -> BoxPainter.paint(frame, renderer.render(tree)));
     }
 
     @Test

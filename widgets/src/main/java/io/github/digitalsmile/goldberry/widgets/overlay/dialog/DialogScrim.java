@@ -1,5 +1,8 @@
 package io.github.digitalsmile.goldberry.widgets.overlay.dialog;
 
+import java.util.List;
+import java.util.Set;
+
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
 import io.github.digitalsmile.goldberry.input.event.PointerEvent;
 import io.github.digitalsmile.goldberry.input.handler.Handles;
@@ -8,9 +11,6 @@ import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widget.style.Paints;
 import io.github.digitalsmile.goldberry.widget.style.Styled;
 import io.github.digitalsmile.goldberry.widgets.core.Phase;
-
-import java.util.List;
-import java.util.Set;
 
 /// The veil over the window, and the half of a dialog's modality that is
 /// geometry rather than a rule.

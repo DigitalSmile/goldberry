@@ -3,30 +3,25 @@ package io.github.digitalsmile.goldberry.natives.harfbuzz.calls;
 import static java.lang.foreign.ValueLayout.ADDRESS;
 import static java.lang.foreign.ValueLayout.JAVA_INT;
 
-import io.github.digitalsmile.goldberry.natives.Downcalls;
 import java.lang.foreign.FunctionDescriptor;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.SymbolLookup;
 import java.lang.invoke.MethodHandle;
+
+import io.github.digitalsmile.goldberry.natives.Downcalls;
 
 /// HarfBuzz's shaper, and the two tag lookups that feed it.
 ///
 /// One holder per function: its handle, its address, and a `call` whose
 /// parameters are the C prototype’s. See [Downcalls] for why the handle is a
 /// `static final` constant and why these live in a package of their own.
-public record ShapingCalls(
-        Shape shape,
-        ScriptFromString scriptFromString,
-        LanguageFromString languageFromString) {
+public record ShapingCalls(Shape shape, ScriptFromString scriptFromString, LanguageFromString languageFromString) {
 
     /// Binds every function above, failing if the library exports none of them.
     ///
     /// @param lookup the loaded `libgoldberry`
     public static ShapingCalls bind(SymbolLookup lookup) {
-        return new ShapingCalls(
-                new Shape(lookup),
-                new ScriptFromString(lookup),
-                new LanguageFromString(lookup));
+        return new ShapingCalls(new Shape(lookup), new ScriptFromString(lookup), new LanguageFromString(lookup));
     }
 
     /// Turns the buffer’s text into positioned glyphs.
@@ -51,8 +46,7 @@ public record ShapingCalls(
             this.address = Downcalls.symbol(lookup, "hb_shape");
         }
 
-        public void call(
-                MemorySegment font, MemorySegment buffer, MemorySegment features, int numFeatures) {
+        public void call(MemorySegment font, MemorySegment buffer, MemorySegment features, int numFeatures) {
             try {
                 FD_hb_shape.invokeExact(address, font, buffer, features, numFeatures);
             } catch (Throwable t) {
@@ -111,8 +105,7 @@ public record ShapingCalls(
 
         public MemorySegment call(MemorySegment name, int length) {
             try {
-                return (MemorySegment) FD_hb_language_from_string.invokeExact(
-                        address, name, length);
+                return (MemorySegment) FD_hb_language_from_string.invokeExact(address, name, length);
             } catch (Throwable t) {
                 throw Downcalls.failure("hb_language_from_string", t);
             }

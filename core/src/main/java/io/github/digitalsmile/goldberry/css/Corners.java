@@ -106,10 +106,7 @@ public record Corners(double topLeft, double topRight, double bottomRight, doubl
     /// @param atEnd   whether it is the rightmost
     public Corners inRow(boolean atStart, boolean atEnd) {
         return new Corners(
-                atStart ? topLeft : 0,
-                atEnd ? topRight : 0,
-                atEnd ? bottomRight : 0,
-                atStart ? bottomLeft : 0);
+                atStart ? topLeft : 0, atEnd ? topRight : 0, atEnd ? bottomRight : 0, atStart ? bottomLeft : 0);
     }
 
     /// These corners scaled down until they fit inside a `width` x `height` box.
@@ -130,8 +127,7 @@ public record Corners(double topLeft, double topRight, double bottomRight, doubl
             return this;
         }
         var fitted = Math.max(0, scale);
-        return new Corners(topLeft * fitted, topRight * fitted,
-                bottomRight * fitted, bottomLeft * fitted);
+        return new Corners(topLeft * fitted, topRight * fitted, bottomRight * fitted, bottomLeft * fitted);
     }
 
     /// How much of an edge's demand it can meet — 1 or more when it fits.

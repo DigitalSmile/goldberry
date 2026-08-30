@@ -3,13 +3,14 @@ package io.github.digitalsmile.goldberry.paint;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+
 import io.github.digitalsmile.goldberry.RendererRequirement;
 import io.github.digitalsmile.goldberry.css.value.Transform;
 import io.github.digitalsmile.goldberry.golden.ScaleInvariance;
 import io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
 
 /// A transform reaching Blend2D — the other half of what
 /// [io.github.digitalsmile.goldberry.input.hit.TransformedHitTest] asserts.
@@ -32,11 +33,13 @@ class TransformPaintTest {
     private static TestFrames.Target paint(Transform transform, float scale) {
         var target = TestFrames.of((int) (200 * scale), (int) (200 * scale), scale);
         try {
-            BoxPainter.paint(target.frame(), Box.filled(0xFF000000)
-                    .size(StyleLength.points(200), StyleLength.points(200))
-                    .children(Box.filled(GREEN)
-                            .size(StyleLength.points(40), StyleLength.points(40))
-                            .transform(transform)));
+            BoxPainter.paint(
+                    target.frame(),
+                    Box.filled(0xFF000000)
+                            .size(StyleLength.points(200), StyleLength.points(200))
+                            .children(Box.filled(GREEN)
+                                    .size(StyleLength.points(40), StyleLength.points(40))
+                                    .transform(transform)));
         } finally {
             target.end();
         }
@@ -44,20 +47,19 @@ class TransformPaintTest {
     }
 
     private static void assertGreen(TestFrames.Target target, int x, int y) {
-        assertEquals(GREEN, target.pixel(x, y),
-                () -> "expected the box at (" + x + ", " + y + ")");
+        assertEquals(GREEN, target.pixel(x, y), () -> "expected the box at (" + x + ", " + y + ")");
     }
 
     private static void assertNotGreen(TestFrames.Target target, int x, int y) {
-        assertTrue(target.pixel(x, y) != GREEN,
-                () -> "expected nothing at (" + x + ", " + y + ")");
+        assertTrue(target.pixel(x, y) != GREEN, () -> "expected nothing at (" + x + ", " + y + ")");
     }
 
     @Test
     @DisplayName("a translate moves the ink, and by the amount asked for")
     void translate() {
-        var target = paint(Transform.of(new Transform.Function.Translate(
-                Transform.Length.px(100), Transform.Length.px(60))), 1.0f);
+        var target = paint(
+                Transform.of(new Transform.Function.Translate(Transform.Length.px(100), Transform.Length.px(60))),
+                1.0f);
 
         assertGreen(target, 120, 80);
         assertNotGreen(target, 20, 20);
@@ -86,8 +88,7 @@ class TransformPaintTest {
         // (20, -6) is covered and the original (2, 2) corner is not. Exactly the
         // two points TransformedHitTest asserts about the pointer, which is the
         // point -- the ink and the hit area are the same shape.
-        var target = paint(Transform.of(
-                new Transform.Function.Rotate(Math.toRadians(45))), 1.0f);
+        var target = paint(Transform.of(new Transform.Function.Rotate(Math.toRadians(45))), 1.0f);
 
         assertGreen(target, 20, 4);
         assertNotGreen(target, 2, 2);
@@ -102,8 +103,8 @@ class TransformPaintTest {
         // transform that forgot to fold the scale back in would draw at 100%
         // inside a 150% window; one that applied it twice would draw at 225%.
         // Either is a plausible frame that no assertion on a matrix would catch.
-        var target = paint(Transform.of(new Transform.Function.Translate(
-                Transform.Length.px(100), Transform.Length.ZERO)), 1.5f);
+        var target = paint(
+                Transform.of(new Transform.Function.Translate(Transform.Length.px(100), Transform.Length.ZERO)), 1.5f);
 
         // 100 logical is 150 physical, and the box is 40 logical = 60 physical.
         assertGreen(target, 155, 5);
@@ -121,16 +122,17 @@ class TransformPaintTest {
         // own `onPaint` code, a long way from the stylesheet that caused it.
         var target = TestFrames.of(200, 200, 1.0f);
         try {
-            BoxPainter.paint(target.frame(), Box.filled(0xFF000000)
-                    .size(StyleLength.points(200), StyleLength.points(200))
-                    .direction(io.github.digitalsmile.goldberry.natives.yoga.style.FlexDirection.COLUMN)
-                    .children(
-                            Box.filled(0xFFFF0000)
-                                    .size(StyleLength.points(40), StyleLength.points(40))
-                                    .transform(Transform.of(new Transform.Function.Translate(
-                                            Transform.Length.px(100), Transform.Length.ZERO))),
-                            Box.filled(GREEN)
-                                    .size(StyleLength.points(40), StyleLength.points(40))));
+            BoxPainter.paint(
+                    target.frame(),
+                    Box.filled(0xFF000000)
+                            .size(StyleLength.points(200), StyleLength.points(200))
+                            .direction(io.github.digitalsmile.goldberry.natives.yoga.style.FlexDirection.COLUMN)
+                            .children(
+                                    Box.filled(0xFFFF0000)
+                                            .size(StyleLength.points(40), StyleLength.points(40))
+                                            .transform(Transform.of(new Transform.Function.Translate(
+                                                    Transform.Length.px(100), Transform.Length.ZERO))),
+                                    Box.filled(GREEN).size(StyleLength.points(40), StyleLength.points(40))));
         } finally {
             target.end();
         }
@@ -145,14 +147,15 @@ class TransformPaintTest {
     void inherits() {
         var target = TestFrames.of(200, 200, 1.0f);
         try {
-            BoxPainter.paint(target.frame(), Box.filled(0xFF000000)
-                    .size(StyleLength.points(200), StyleLength.points(200))
-                    .children(Box.filled(0xFFFF0000)
-                            .size(StyleLength.points(40), StyleLength.points(40))
-                            .transform(Transform.of(new Transform.Function.Translate(
-                                    Transform.Length.px(100), Transform.Length.ZERO)))
-                            .children(Box.filled(GREEN)
-                                    .size(StyleLength.points(20), StyleLength.points(20)))));
+            BoxPainter.paint(
+                    target.frame(),
+                    Box.filled(0xFF000000)
+                            .size(StyleLength.points(200), StyleLength.points(200))
+                            .children(Box.filled(0xFFFF0000)
+                                    .size(StyleLength.points(40), StyleLength.points(40))
+                                    .transform(Transform.of(new Transform.Function.Translate(
+                                            Transform.Length.px(100), Transform.Length.ZERO)))
+                                    .children(Box.filled(GREEN).size(StyleLength.points(20), StyleLength.points(20)))));
         } finally {
             target.end();
         }
@@ -174,18 +177,25 @@ class TransformPaintTest {
     @Test
     @DisplayName("a translation is the same distance at every display scale")
     void translateIsInLogicalUnits() {
-        ScaleInvariance.assertSamePictureAtEveryScale("transform-translate", 200, 200,
-                frame -> BoxPainter.paint(frame, transformed(Transform.of(
-                        new Transform.Function.Translate(
-                                Transform.Length.px(100), Transform.Length.px(60))))));
+        ScaleInvariance.assertSamePictureAtEveryScale(
+                "transform-translate",
+                200,
+                200,
+                frame -> BoxPainter.paint(
+                        frame,
+                        transformed(Transform.of(
+                                new Transform.Function.Translate(Transform.Length.px(100), Transform.Length.px(60))))));
     }
 
     @Test
     @DisplayName("a rotation turns about the same point at every display scale")
     void rotationOriginIsInLogicalUnits() {
-        ScaleInvariance.assertSamePictureAtEveryScale("transform-rotate", 200, 200,
-                frame -> BoxPainter.paint(frame, transformed(Transform.of(
-                        new Transform.Function.Rotate(Math.toRadians(30))))));
+        ScaleInvariance.assertSamePictureAtEveryScale(
+                "transform-rotate",
+                200,
+                200,
+                frame -> BoxPainter.paint(
+                        frame, transformed(Transform.of(new Transform.Function.Rotate(Math.toRadians(30))))));
     }
 
     /// The same tree [#paint] builds, without painting it: the scale check needs

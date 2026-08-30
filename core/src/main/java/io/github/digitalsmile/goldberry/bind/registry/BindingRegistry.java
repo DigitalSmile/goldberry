@@ -5,6 +5,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.regex.Pattern;
+
 import io.github.digitalsmile.goldberry.bind.Model;
 import io.github.digitalsmile.goldberry.bind.Observable;
 import io.github.digitalsmile.goldberry.bind.Property;
@@ -137,9 +138,8 @@ public final class BindingRegistry {
         requirePath(path);
         var property = byPath.get(path);
         if (property == null && strict) {
-            throw new IllegalArgumentException(
-                    "nothing is bound to \"" + path + "\". Bound: "
-                            + (byPath.isEmpty() ? "(none)" : String.join(", ", byPath.keySet())));
+            throw new IllegalArgumentException("nothing is bound to \"" + path + "\". Bound: "
+                    + (byPath.isEmpty() ? "(none)" : String.join(", ", byPath.keySet())));
         }
         return property;
     }
@@ -191,10 +191,9 @@ public final class BindingRegistry {
     private static void requirePath(String path) {
         Objects.requireNonNull(path, "path");
         if (!PATH.matcher(path).matches()) {
-            throw new IllegalArgumentException(
-                    "\"" + path + "\" is not a binding path. A path is a name, or names"
-                            + " joined by dots — `frost`, `prefs.frost`. Expressions are not"
-                            + " part of the markup contract (ADR-0062).");
+            throw new IllegalArgumentException("\"" + path + "\" is not a binding path. A path is a name, or names"
+                    + " joined by dots — `frost`, `prefs.frost`. Expressions are not"
+                    + " part of the markup contract (ADR-0062).");
         }
     }
 }

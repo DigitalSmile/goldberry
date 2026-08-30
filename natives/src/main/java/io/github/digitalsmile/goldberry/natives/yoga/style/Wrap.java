@@ -1,6 +1,5 @@
 package io.github.digitalsmile.goldberry.natives.yoga.style;
 
-
 /// Whether a line wraps — `YGWrap`, CSS's `flex-wrap`.
 public enum Wrap implements YogaEnum {
 

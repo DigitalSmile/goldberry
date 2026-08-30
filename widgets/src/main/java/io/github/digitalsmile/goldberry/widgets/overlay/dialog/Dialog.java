@@ -1,5 +1,7 @@
 package io.github.digitalsmile.goldberry.widgets.overlay.dialog;
 
+import java.util.List;
+
 import io.github.digitalsmile.goldberry.kdl.KdlNode;
 import io.github.digitalsmile.goldberry.widget.State;
 import io.github.digitalsmile.goldberry.widget.Widget;
@@ -7,8 +9,6 @@ import io.github.digitalsmile.goldberry.widget.attr.Attributed;
 import io.github.digitalsmile.goldberry.widget.attr.Attributes;
 import io.github.digitalsmile.goldberry.widgets.markup.Markup;
 import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
-
-import java.util.List;
 
 /// A modal — `docs/core-widgets.md` §7's `dialog`.
 ///
@@ -106,18 +106,25 @@ public record Dialog(String title, List<Widget> children, Attributes attributes)
 
     /// The buttons, in the order the document wrote them.
     public List<DialogAction> actions() {
-        return children.stream().filter(DialogAction.class::isInstance)
-                .map(DialogAction.class::cast).toList();
+        return children.stream()
+                .filter(DialogAction.class::isInstance)
+                .map(DialogAction.class::cast)
+                .toList();
     }
 
     /// Everything that is not a button.
     public List<Widget> content() {
-        return children.stream().filter(child -> !(child instanceof DialogAction)).toList();
+        return children.stream()
+                .filter(child -> !(child instanceof DialogAction))
+                .toList();
     }
 
     /// The action a key presses, or null — see the class note.
     DialogAction actionFor(DialogAction.Role role) {
-        return actions().stream().filter(action -> action.role() == role).findFirst().orElse(null);
+        return actions().stream()
+                .filter(action -> action.role() == role)
+                .findFirst()
+                .orElse(null);
     }
 
     /// Whether this dialog has a title bar.

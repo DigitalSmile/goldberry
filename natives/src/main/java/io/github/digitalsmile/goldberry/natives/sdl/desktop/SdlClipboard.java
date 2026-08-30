@@ -1,13 +1,15 @@
 package io.github.digitalsmile.goldberry.natives.sdl.desktop;
 
-import io.github.digitalsmile.goldberry.natives.NativeLibrary;
-import io.github.digitalsmile.goldberry.natives.sdl.calls.SdlClipboardCalls;
-import io.github.digitalsmile.goldberry.log.Logs;
 import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.SymbolLookup;
+
 import org.slf4j.Logger;
+
+import io.github.digitalsmile.goldberry.log.Logs;
+import io.github.digitalsmile.goldberry.natives.NativeLibrary;
 import io.github.digitalsmile.goldberry.natives.sdl.Sdl;
+import io.github.digitalsmile.goldberry.natives.sdl.calls.SdlClipboardCalls;
 
 /// SDL3's clipboard calls — the text half.
 ///
@@ -40,7 +42,8 @@ public final class SdlClipboard {
     private static final Logger LOG = Logs.of(SdlClipboard.class);
 
     private static final class Holder {
-        private static final SdlClipboard INSTANCE = new SdlClipboard(NativeLibrary.get().lookup());
+        private static final SdlClipboard INSTANCE =
+                new SdlClipboard(NativeLibrary.get().lookup());
     }
 
     private final SdlClipboardCalls sdlClipboardCalls;
@@ -91,8 +94,7 @@ public final class SdlClipboard {
     /// @return whether SDL accepted it
     public boolean text(String text) {
         try (var arena = Arena.ofConfined()) {
-            var accepted = sdlClipboardCalls.setClipboardText()
-                    .call(arena.allocateFrom(text == null ? "" : text));
+            var accepted = sdlClipboardCalls.setClipboardText().call(arena.allocateFrom(text == null ? "" : text));
             if (!accepted) {
                 LOG.debug("SDL_SetClipboardText() refused: {}", Sdl.get().lastError());
             }

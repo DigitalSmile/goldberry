@@ -1,19 +1,20 @@
 package io.github.digitalsmile.goldberry.widgets.menu;
 
-import io.github.digitalsmile.goldberry.css.ComputedStyle;
-import io.github.digitalsmile.goldberry.icon.Icon;
-import io.github.digitalsmile.goldberry.input.handler.Handles;
-import io.github.digitalsmile.goldberry.input.key.Key;
-import io.github.digitalsmile.goldberry.input.event.KeyEvent;
-import io.github.digitalsmile.goldberry.input.event.PointerEvent;
-import io.github.digitalsmile.goldberry.paint.Box;
-import io.github.digitalsmile.goldberry.widget.attr.Attributes;
-import io.github.digitalsmile.goldberry.widget.style.Paints;
-import io.github.digitalsmile.goldberry.widget.style.Styled;
-import io.github.digitalsmile.goldberry.widget.Widget;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+
+import io.github.digitalsmile.goldberry.css.ComputedStyle;
+import io.github.digitalsmile.goldberry.icon.Icon;
+import io.github.digitalsmile.goldberry.input.event.KeyEvent;
+import io.github.digitalsmile.goldberry.input.event.PointerEvent;
+import io.github.digitalsmile.goldberry.input.handler.Handles;
+import io.github.digitalsmile.goldberry.input.key.Key;
+import io.github.digitalsmile.goldberry.paint.Box;
+import io.github.digitalsmile.goldberry.widget.Widget;
+import io.github.digitalsmile.goldberry.widget.attr.Attributes;
+import io.github.digitalsmile.goldberry.widget.style.Paints;
+import io.github.digitalsmile.goldberry.widget.style.Styled;
 
 /// One heading in a [MenuBar] — `File`, `Edit`, `View`.
 ///
@@ -59,8 +60,7 @@ import java.util.Set;
 /// @param onHovered  that the pointer has arrived, which the bar reads as
 ///                   "switch to me" only when something is already open
 record MenuTitle(
-        String label, Icon icon, boolean disabled, Attributes attributes,
-        Runnable onActivate, Runnable onHovered)
+        String label, Icon icon, boolean disabled, Attributes attributes, Runnable onActivate, Runnable onHovered)
         implements Widget.Leaf, Styled, Paints, Handles {
 
     @Override
@@ -106,7 +106,9 @@ record MenuTitle(
     /// the arrow that opens it, and it is free because the scope is horizontal.
     @Override
     public void onKey(KeyEvent event) {
-        if (disabled || event.kind() != KeyEvent.Kind.PRESSED || event.isRepeat()
+        if (disabled
+                || event.kind() != KeyEvent.Kind.PRESSED
+                || event.isRepeat()
                 || !event.modifiers().none()) {
             return;
         }

@@ -1,12 +1,13 @@
 package io.github.digitalsmile.goldberry.render.backend.sdl3;
 
-import io.github.digitalsmile.goldberry.render.popup.BackendPopup;
-import io.github.digitalsmile.goldberry.render.window.BackendWindow;
+import java.util.Objects;
+
+import io.github.digitalsmile.goldberry.natives.sdl.SdlWindowHandle;
 import io.github.digitalsmile.goldberry.render.model.LogicalPoint;
 import io.github.digitalsmile.goldberry.render.model.LogicalSize;
+import io.github.digitalsmile.goldberry.render.popup.BackendPopup;
 import io.github.digitalsmile.goldberry.render.popup.PopupKind;
-import io.github.digitalsmile.goldberry.natives.sdl.SdlWindowHandle;
-import java.util.Objects;
+import io.github.digitalsmile.goldberry.render.window.BackendWindow;
 
 /// An SDL popup window: a menu, a dropdown or a tooltip, parented to another
 /// window and free of its bounds.
@@ -26,8 +27,7 @@ final class Sdl3Popup extends Sdl3Window implements BackendPopup {
     /// for is the one answer that is the same everywhere.
     private LogicalPoint offset;
 
-    Sdl3Popup(Sdl3Backend backend, SdlWindowHandle handle, Sdl3Window owner,
-            PopupKind kind, LogicalPoint offset) {
+    Sdl3Popup(Sdl3Backend backend, SdlWindowHandle handle, Sdl3Window owner, PopupKind kind, LogicalPoint offset) {
         super(backend, handle, "");
         this.owner = Objects.requireNonNull(owner, "owner");
         this.kind = Objects.requireNonNull(kind, "kind");
@@ -64,8 +64,7 @@ final class Sdl3Popup extends Sdl3Window implements BackendPopup {
         backend().requireUiThread();
         requireUsable();
         if (size.width() <= 0 || size.height() <= 0) {
-            throw new IllegalArgumentException(
-                    "a popup needs a positive size, and " + size + " has none");
+            throw new IllegalArgumentException("a popup needs a positive size, and " + size + " has none");
         }
         video().setWindowSize(handle(), Math.round(size.width()), Math.round(size.height()));
     }
@@ -79,8 +78,7 @@ final class Sdl3Popup extends Sdl3Window implements BackendPopup {
         }
         if (!owner.isOpen()) {
             throw new IllegalStateException(
-                    "this popup's owner window has closed, and the platform took the popup"
-                            + " with it");
+                    "this popup's owner window has closed, and the platform took the popup" + " with it");
         }
     }
 
@@ -89,8 +87,7 @@ final class Sdl3Popup extends Sdl3Window implements BackendPopup {
     /// no-op would be a call that appears to work forever.
     @Override
     public void setTitle(String title) {
-        throw new UnsupportedOperationException(
-                "a popup has no titlebar to put \"" + title + "\" in");
+        throw new UnsupportedOperationException("a popup has no titlebar to put \"" + title + "\" in");
     }
 
     @Override

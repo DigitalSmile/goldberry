@@ -4,16 +4,18 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.ArrayList;
+import java.util.List;
+
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+
 import io.github.digitalsmile.goldberry.RendererRequirement;
 import io.github.digitalsmile.goldberry.css.value.Transform;
 import io.github.digitalsmile.goldberry.natives.yoga.Insets;
 import io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength;
 import io.github.digitalsmile.goldberry.render.model.LogicalSize;
-import java.util.ArrayList;
-import java.util.List;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
 
 /// What a `canvas`'s painter is handed, and what it cannot do with it.
 ///
@@ -40,10 +42,12 @@ class CanvasPaintTest {
                 .size(StyleLength.points(100), StyleLength.points(100))
                 .children(Box.of()
                         .size(StyleLength.points(40), StyleLength.points(40))
-                        .inset(new Insets(StyleLength.points(20), StyleLength.UNDEFINED,
-                                StyleLength.UNDEFINED, StyleLength.points(20)))
-                        .position(io.github.digitalsmile.goldberry.natives.yoga.style
-                                .PositionType.ABSOLUTE)
+                        .inset(new Insets(
+                                StyleLength.points(20),
+                                StyleLength.UNDEFINED,
+                                StyleLength.UNDEFINED,
+                                StyleLength.points(20)))
+                        .position(io.github.digitalsmile.goldberry.natives.yoga.style.PositionType.ABSOLUTE)
                         .painting(painter));
     }
 
@@ -55,15 +59,14 @@ class CanvasPaintTest {
             target.frame().fill(WHITE);
             // Ten pixels from the painter's own origin. If the frame were not
             // translated this would land at (10,10) in the window instead.
-            BoxPainter.paint(target.frame(), scene((frame, size) ->
-                    frame.fillRect(0, 0, 10, 10, BLUE)));
+            BoxPainter.paint(target.frame(), scene((frame, size) -> frame.fillRect(0, 0, 10, 10, BLUE)));
         } finally {
             target.end();
         }
 
         assertEquals(BLUE, target.pixel(25, 25), "inside the painted square");
-        assertEquals(WHITE, target.pixel(10, 10),
-                "where the square would be if the painter drew in window coordinates");
+        assertEquals(
+                WHITE, target.pixel(10, 10), "where the square would be if the painter drew in window coordinates");
     }
 
     @Test
@@ -88,8 +91,7 @@ class CanvasPaintTest {
             target.frame().fill(WHITE);
             // Deliberately wrong arithmetic: a painter that thinks it owns the
             // window. It gets its own 40x40 and nothing else.
-            BoxPainter.paint(target.frame(), scene((frame, size) ->
-                    frame.fillRect(-50, -50, 200, 200, BLUE)));
+            BoxPainter.paint(target.frame(), scene((frame, size) -> frame.fillRect(-50, -50, 200, 200, BLUE)));
         } finally {
             target.end();
         }
@@ -108,8 +110,11 @@ class CanvasPaintTest {
             target.frame().fill(WHITE);
             var box = Box.of()
                     .size(StyleLength.points(100), StyleLength.points(100))
-                    .padding(new Insets(StyleLength.points(10), StyleLength.points(10),
-                            StyleLength.points(10), StyleLength.points(10)))
+                    .padding(new Insets(
+                            StyleLength.points(10),
+                            StyleLength.points(10),
+                            StyleLength.points(10),
+                            StyleLength.points(10)))
                     .painting((frame, size) -> frame.fillRect(0, 0, size.width(), size.height(), BLUE));
             BoxPainter.paint(target.frame(), box);
         } finally {
@@ -134,14 +139,14 @@ class CanvasPaintTest {
             var box = Box.of()
                     .size(StyleLength.points(100), StyleLength.points(100))
                     .children(
-                            Box.of().size(StyleLength.points(50), StyleLength.points(20))
+                            Box.of()
+                                    .size(StyleLength.points(50), StyleLength.points(20))
                                     .painting((frame, size) -> {
                                         frame.clipTo(0, 0, 2, 2);
                                         frame.transform(1, 0, 0, 1, 30, 30);
                                         frame.fillRect(0, 0, 100, 100, BLUE);
                                     }),
-                            Box.filled(BLACK)
-                                    .size(StyleLength.points(50), StyleLength.points(20)));
+                            Box.filled(BLACK).size(StyleLength.points(50), StyleLength.points(20)));
             BoxPainter.paint(target.frame(), box);
         } finally {
             target.end();
@@ -169,18 +174,18 @@ class CanvasPaintTest {
                     .size(StyleLength.points(100), StyleLength.points(100))
                     .children(Box.of()
                             .size(StyleLength.points(100), StyleLength.points(100))
-                            .transform(Transform.of(new Transform.Function.Translate(
-                                    Transform.Length.px(0), Transform.Length.px(-15))))
+                            .transform(Transform.of(
+                                    new Transform.Function.Translate(Transform.Length.px(0), Transform.Length.px(-15))))
                             .children(Box.of()
                                     .size(StyleLength.points(40), StyleLength.points(40))
-                                    .inset(new Insets(StyleLength.points(20),
-                                            StyleLength.UNDEFINED, StyleLength.UNDEFINED,
+                                    .inset(new Insets(
+                                            StyleLength.points(20),
+                                            StyleLength.UNDEFINED,
+                                            StyleLength.UNDEFINED,
                                             StyleLength.points(20)))
-                                    .position(io.github.digitalsmile.goldberry.natives.yoga.style
-                                            .PositionType.ABSOLUTE)
-                                    .painting((frame, size) ->
-                                            frame.fillRect(0, 0, size.width(), size.height(),
-                                                    BLUE))));
+                                    .position(io.github.digitalsmile.goldberry.natives.yoga.style.PositionType.ABSOLUTE)
+                                    .painting(
+                                            (frame, size) -> frame.fillRect(0, 0, size.width(), size.height(), BLUE))));
             BoxPainter.paint(target.frame(), box);
         } finally {
             target.end();
@@ -222,8 +227,9 @@ class CanvasPaintTest {
         var target = TestFrames.of(100, 100, 1.0f);
         try {
             target.frame().fill(WHITE);
-            assertThrows(IllegalStateException.class, () ->
-                    BoxPainter.paint(target.frame(), scene((frame, size) -> {
+            assertThrows(
+                    IllegalStateException.class,
+                    () -> BoxPainter.paint(target.frame(), scene((frame, size) -> {
                         frame.clipTo(0, 0, 1, 1);
                         throw new IllegalStateException("an application bug");
                     })),
@@ -236,7 +242,6 @@ class CanvasPaintTest {
             target.end();
         }
 
-        assertEquals(BLACK, target.pixel(90, 90),
-                "the clip the painter left behind did not survive it");
+        assertEquals(BLACK, target.pixel(90, 90), "the clip the painter left behind did not survive it");
     }
 }

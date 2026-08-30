@@ -10,6 +10,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
@@ -87,15 +88,13 @@ class SuperbuildTest {
                     switch (cmake.charAt(cursor)) {
                         case '(' -> depth++;
                         case ')' -> depth--;
-                        default -> { }
+                        default -> {}
                     }
                     cursor++;
                 }
                 var block = cmake.substring(open, cursor - 1).stripLeading();
                 var split = block.indexOf('\n');
-                found.add(new Declaration(
-                        (split < 0 ? block : block.substring(0, split)).strip(),
-                        block));
+                found.add(new Declaration((split < 0 ? block : block.substring(0, split)).strip(), block));
                 from = cursor;
             }
         }
@@ -152,7 +151,8 @@ class SuperbuildTest {
         // ADR-0035, and naming a neighbour made this read on past the end of
         // what it meant to check -- as far as artifactsDir, which resolves under
         // build/ for perfectly good reasons of its own.
-        var depsDeclaration = buildGradle.lines()
+        var depsDeclaration = buildGradle
+                .lines()
                 .dropWhile(line -> !line.contains("def depsDir ="))
                 .takeWhile(line -> !line.isBlank())
                 .toList();
@@ -160,8 +160,7 @@ class SuperbuildTest {
         assertFalse(depsDeclaration.isEmpty(), "no depsDir declaration found in build.gradle");
         assertTrue(
                 depsDeclaration.stream().noneMatch(line -> line.contains("layout.buildDirectory")),
-                () -> "depsDir must not resolve under build/ -- see ADR-0038:\n"
-                        + String.join("\n", depsDeclaration));
+                () -> "depsDir must not resolve under build/ -- see ADR-0038:\n" + String.join("\n", depsDeclaration));
     }
 
     @Test
@@ -228,8 +227,7 @@ class SuperbuildTest {
             var declaration = withoutComments(declarationOf(name).body());
             assertFalse(
                     declaration.contains("GIT_SHALLOW"),
-                    () -> name + " is pinned by commit SHA, so GIT_SHALLOW is not allowed"
-                            + " -- see ADR-0030");
+                    () -> name + " is pinned by commit SHA, so GIT_SHALLOW is not allowed" + " -- see ADR-0030");
         }
     }
 
@@ -250,7 +248,6 @@ class SuperbuildTest {
         return declarationsIn(cmakeLists).stream()
                 .filter(declaration -> declaration.name().equals(name))
                 .findFirst()
-                .orElseThrow(() -> new AssertionError(
-                        "the superbuild declares no upstream named " + name));
+                .orElseThrow(() -> new AssertionError("the superbuild declares no upstream named " + name));
     }
 }

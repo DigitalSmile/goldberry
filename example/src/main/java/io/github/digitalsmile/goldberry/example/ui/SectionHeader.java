@@ -1,14 +1,15 @@
 package io.github.digitalsmile.goldberry.example.ui;
 
-import io.github.digitalsmile.goldberry.css.ComputedStyle;
-import io.github.digitalsmile.goldberry.paint.Box;
-import io.github.digitalsmile.goldberry.natives.yoga.style.FlexDirection;
-import io.github.digitalsmile.goldberry.widget.style.Paints;
-import io.github.digitalsmile.goldberry.widget.style.Styled;
-import io.github.digitalsmile.goldberry.widget.Widget;
-import io.github.digitalsmile.goldberry.widgets.text.Text;
 import java.util.List;
 import java.util.Set;
+
+import io.github.digitalsmile.goldberry.css.ComputedStyle;
+import io.github.digitalsmile.goldberry.natives.yoga.style.FlexDirection;
+import io.github.digitalsmile.goldberry.paint.Box;
+import io.github.digitalsmile.goldberry.widget.Widget;
+import io.github.digitalsmile.goldberry.widget.style.Paints;
+import io.github.digitalsmile.goldberry.widget.style.Styled;
+import io.github.digitalsmile.goldberry.widgets.text.Text;
 
 /// One section's heading inside [Scrolling]'s list.
 ///
@@ -51,7 +52,6 @@ public record SectionHeader(String title) implements Widget.Leaf, Styled, Paints
 
     @Override
     public Box render(ComputedStyle style, List<Box> children, Context context) {
-        return Box.of().style(style).children(children.toArray(Box[]::new))
-                .direction(FlexDirection.ROW);
+        return Box.of().style(style).children(children.toArray(Box[]::new)).direction(FlexDirection.ROW);
     }
 }

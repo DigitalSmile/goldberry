@@ -1,29 +1,31 @@
 package io.github.digitalsmile.goldberry;
 
-import io.github.digitalsmile.goldberry.render.event.EventLoop;
-import io.github.digitalsmile.goldberry.render.model.LogicalSize;
-import io.github.digitalsmile.goldberry.render.model.LogicalPoint;
-import io.github.digitalsmile.goldberry.render.Clipboard;
-import io.github.digitalsmile.goldberry.render.model.LogicalRect;
-import io.github.digitalsmile.goldberry.render.popup.PopupKind;
-import io.github.digitalsmile.goldberry.render.popup.PopupSpec;
-import io.github.digitalsmile.goldberry.bind.Property;
-import io.github.digitalsmile.goldberry.input.hit.HitTest;
-import io.github.digitalsmile.goldberry.input.PointerRouter;
-import io.github.digitalsmile.goldberry.paint.tree.RenderTree;
-import io.github.digitalsmile.goldberry.stats.FrameStats;
-import io.github.digitalsmile.goldberry.text.font.Fonts;
-import io.github.digitalsmile.goldberry.widget.style.Corner;
-import io.github.digitalsmile.goldberry.widget.ElementTree;
-import io.github.digitalsmile.goldberry.widget.WidgetRenderer;
-import io.github.digitalsmile.goldberry.widget.Widget;
-import io.github.digitalsmile.goldberry.render.window.WindowSpec;
-import io.github.digitalsmile.goldberry.widget.root.WindowRoot;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import io.github.digitalsmile.goldberry.bind.Property;
+import io.github.digitalsmile.goldberry.input.PointerRouter;
+import io.github.digitalsmile.goldberry.input.hit.HitTest;
+import io.github.digitalsmile.goldberry.paint.tree.RenderTree;
+import io.github.digitalsmile.goldberry.render.Clipboard;
+import io.github.digitalsmile.goldberry.render.event.EventLoop;
+import io.github.digitalsmile.goldberry.render.model.LogicalPoint;
+import io.github.digitalsmile.goldberry.render.model.LogicalRect;
+import io.github.digitalsmile.goldberry.render.model.LogicalSize;
+import io.github.digitalsmile.goldberry.render.popup.PopupKind;
+import io.github.digitalsmile.goldberry.render.popup.PopupSpec;
+import io.github.digitalsmile.goldberry.render.window.WindowSpec;
+import io.github.digitalsmile.goldberry.stats.FrameStats;
+import io.github.digitalsmile.goldberry.text.font.Fonts;
+import io.github.digitalsmile.goldberry.widget.ElementTree;
+import io.github.digitalsmile.goldberry.widget.Widget;
+import io.github.digitalsmile.goldberry.widget.WidgetRenderer;
+import io.github.digitalsmile.goldberry.widget.root.WindowRoot;
+import io.github.digitalsmile.goldberry.widget.style.Corner;
 
 /// Runs an [Application]: the window, the trees, the frame loop and the shutdown
 /// order, in one place instead of in every `main`.
@@ -119,8 +121,7 @@ final class Launcher implements Host {
                     @SuppressWarnings("StringSplitter")
                     var parts = arg.substring("--size=".length()).split("x");
                     if (parts.length == 2) {
-                        size = new LogicalSize(
-                                Float.parseFloat(parts[0]), Float.parseFloat(parts[1]));
+                        size = new LogicalSize(Float.parseFloat(parts[0]), Float.parseFloat(parts[1]));
                     }
                 }
             }
@@ -136,7 +137,9 @@ final class Launcher implements Host {
     /// Opens the window, runs the loop, and takes everything down in the reverse
     /// order it was built.
     void run() {
-        LOG.info("Goldberry {} — starting {}", Goldberry.version(),
+        LOG.info(
+                "Goldberry {} — starting {}",
+                Goldberry.version(),
                 application.getClass().getSimpleName());
 
         var size = options.size() == null ? application.size() : options.size();
@@ -198,8 +201,7 @@ final class Launcher implements Host {
         window.inputWatcher(new Window.InputWatcher() {
             @Override
             public boolean pressed(
-                    io.github.digitalsmile.goldberry.input.event.PointerEvent.Button button,
-                    float x, float y) {
+                    io.github.digitalsmile.goldberry.input.event.PointerEvent.Button button, float x, float y) {
                 // **A press that dismissed something is a dismissal and not a
                 // click**, which is what every desktop does: with a menu open,
                 // the click that puts it away does not also press the button it
@@ -229,8 +231,10 @@ final class Launcher implements Host {
             }
 
             @Override
-            public boolean keyPressed(io.github.digitalsmile.goldberry.input.key.Key key,
-                    io.github.digitalsmile.goldberry.input.key.Modifiers modifiers, boolean repeat) {
+            public boolean keyPressed(
+                    io.github.digitalsmile.goldberry.input.key.Key key,
+                    io.github.digitalsmile.goldberry.input.key.Modifiers modifiers,
+                    boolean repeat) {
                 var top = topmostPopup();
                 if (top == null) {
                     // **The keyboard's right-click**, and only while nothing is
@@ -242,12 +246,13 @@ final class Launcher implements Host {
                     // does still has users who reach for the pair — so the two
                     // are companions everywhere, which is what every other
                     // desktop toolkit binds.
-                    if (key == io.github.digitalsmile.goldberry.input.key.Key.MENU
-                            && modifiers.none()) {
+                    if (key == io.github.digitalsmile.goldberry.input.key.Key.MENU && modifiers.none()) {
                         return openContextMenuForFocus();
                     }
                     if (key == io.github.digitalsmile.goldberry.input.key.Key.F10
-                            && modifiers.shift() && !modifiers.control() && !modifiers.alt()) {
+                            && modifiers.shift()
+                            && !modifiers.control()
+                            && !modifiers.alt()) {
                         return openContextMenuForFocus();
                     }
                     return false;
@@ -273,8 +278,7 @@ final class Launcher implements Host {
         } finally {
             shutDown();
         }
-        LOG.info("{} finished after {} frame(s)",
-                application.getClass().getSimpleName(), painted);
+        LOG.info("{} finished after {} frame(s)", application.getClass().getSimpleName(), painted);
     }
 
     /// The renderer for this frame, built if the stylesheets have moved.
@@ -347,8 +351,8 @@ final class Launcher implements Host {
             render.paint(frame);
         }
         var rasterizedAt = System.nanoTime();
-        window.frameRing().stages(builtAt - beganAt, styledAt - builtAt,
-                laidOutAt - styledAt, rasterizedAt - laidOutAt);
+        window.frameRing()
+                .stages(builtAt - beganAt, styledAt - builtAt, laidOutAt - styledAt, rasterizedAt - laidOutAt);
         window.damaged(damage);
 
         // What the pointer is tested against is the frame that was just painted,
@@ -359,8 +363,8 @@ final class Launcher implements Host {
         regions = HitTest.capture(render);
         // Before the regions, because a `Located` widget is told what clips it and
         // "nothing clips me" resolves to this (ADR-0119).
-        router.windowBounds(LogicalRect.of(
-                0, 0, frame.size().width(), frame.size().height()));
+        router.windowBounds(
+                LogicalRect.of(0, 0, frame.size().width(), frame.size().height()));
         router.updateRegions(regions);
 
         // §1.7's "the frame loop is fully idle when no animation is active": ask
@@ -394,17 +398,21 @@ final class Launcher implements Host {
     /// Quiet frames are skipped unless `=all`, because an idle loop at 60fps
     /// otherwise writes a line a frame saying nothing happened — and the frames
     /// worth reading are the ones next to the click.
-    private void traceFrame(long beganAt, long builtAt, long styledAt, long laidOutAt,
-            long rasterizedAt, int damageRects) {
+    private void traceFrame(
+            long beganAt, long builtAt, long styledAt, long laidOutAt, long rasterizedAt, int damageRects) {
         var trace = tree.trace();
         if (trace.isQuiet() && !io.github.digitalsmile.goldberry.widget.FrameTrace.ALL_FRAMES) {
             return;
         }
-        LOG.info("frame {} | build {} style {} layout {} raster {} ms | {} | damage {}",
+        LOG.info(
+                "frame {} | build {} style {} layout {} raster {} ms | {} | damage {}",
                 painted,
-                millis(builtAt - beganAt), millis(styledAt - builtAt),
-                millis(laidOutAt - styledAt), millis(rasterizedAt - laidOutAt),
-                trace, damageRects);
+                millis(builtAt - beganAt),
+                millis(styledAt - builtAt),
+                millis(laidOutAt - styledAt),
+                millis(rasterizedAt - laidOutAt),
+                trace,
+                damageRects);
     }
 
     private static String millis(long nanos) {
@@ -428,8 +436,7 @@ final class Launcher implements Host {
         // where the click was, not to the widget, which is what every desktop
         // does and what makes two right-clicks in one list open two menus in two
         // places.
-        return openContextMenu(router.hovered(),
-                new LogicalRect(new LogicalPoint(x, y), new LogicalSize(0, 0)));
+        return openContextMenu(router.hovered(), new LogicalRect(new LogicalPoint(x, y), new LogicalSize(0, 0)));
     }
 
     /// Finds the menu the **keyboard** asked for, and asks for it to be opened.
@@ -471,15 +478,16 @@ final class Launcher implements Host {
     /// right-click on the button" is the same rule as "the menu key on a focused
     /// button is that button's menu" — and a second copy of it would be a second
     /// chance for the two to disagree about which ancestor wins.
-    private boolean openContextMenu(
-            io.github.digitalsmile.goldberry.widget.Element from, LogicalRect anchor) {
+    private boolean openContextMenu(io.github.digitalsmile.goldberry.widget.Element from, LogicalRect anchor) {
 
         if (contextMenus == null) {
             return false;
         }
-        for (var node = from; node != null;
+        for (var node = from;
+                node != null;
                 node = node.parent() instanceof io.github.digitalsmile.goldberry.widget.Element parent
-                        ? parent : null) {
+                        ? parent
+                        : null) {
             var named = node.widget() instanceof io.github.digitalsmile.goldberry.widget.attr.Attributed<?> a
                     ? a.attributes().contextMenu()
                     : null;
@@ -519,12 +527,12 @@ final class Launcher implements Host {
     /// Bounded rather than a flag that waits for the next exit: on a driver that
     /// sends no spurious exit at all, a flag would swallow the user's *real* one
     /// whenever it eventually came.
-    private static final long SPURIOUS_EXIT_NANOS = java.time.Duration.ofMillis(250).toNanos();
+    private static final long SPURIOUS_EXIT_NANOS =
+            java.time.Duration.ofMillis(250).toNanos();
 
     /// Whether the exit that just arrived is the one opening a tooltip provokes.
     private boolean swallowExit() {
-        return tooltipOpenedAt != 0
-                && System.nanoTime() - tooltipOpenedAt < SPURIOUS_EXIT_NANOS;
+        return tooltipOpenedAt != 0 && System.nanoTime() - tooltipOpenedAt < SPURIOUS_EXIT_NANOS;
     }
 
     /// The node it belongs to, so a hover that returns to the same widget does
@@ -572,9 +580,11 @@ final class Launcher implements Host {
     /// hit test reports.
     private io.github.digitalsmile.goldberry.widget.Element withTooltip(
             io.github.digitalsmile.goldberry.widget.Element element) {
-        for (var node = element; node != null;
+        for (var node = element;
+                node != null;
                 node = node.parent() instanceof io.github.digitalsmile.goldberry.widget.Element parent
-                        ? parent : null) {
+                        ? parent
+                        : null) {
             if (tooltipTextOf(node) != null) {
                 return node;
             }
@@ -605,9 +615,7 @@ final class Launcher implements Host {
         // by a press: a tooltip is dismissed by the pointer leaving, and a press
         // that closed it would close it in the same gesture that opened whatever
         // was clicked.
-        tooltip = tooltipPopup(
-                new io.github.digitalsmile.goldberry.widget.root.TooltipPanel(text),
-                anchor.get())
+        tooltip = tooltipPopup(new io.github.digitalsmile.goldberry.widget.root.TooltipPanel(text), anchor.get())
                 .orElse(null);
         tooltipOpenedAt = tooltip == null ? 0 : System.nanoTime();
     }
@@ -626,8 +634,7 @@ final class Launcher implements Host {
 
     /// The painted rectangle of an element, by identity — [#anchor] by id, for
     /// the case where the caller has the element itself.
-    private java.util.Optional<LogicalRect> anchorOf(
-            io.github.digitalsmile.goldberry.widget.Element element) {
+    private java.util.Optional<LogicalRect> anchorOf(io.github.digitalsmile.goldberry.widget.Element element) {
         for (var region : regions) {
             if (region.owner() == element) {
                 return java.util.Optional.of(region.bounds());
@@ -760,14 +767,13 @@ final class Launcher implements Host {
     }
 
     @Override
-    public void shortcut(io.github.digitalsmile.goldberry.input.key.Shortcut accelerator,
-            Runnable action) {
+    public void shortcut(io.github.digitalsmile.goldberry.input.key.Shortcut accelerator, Runnable action) {
         router.shortcut(accelerator, action);
     }
 
     @Override
-    public void shortcut(io.github.digitalsmile.goldberry.input.key.Shortcut accelerator,
-            Runnable action, Object owner) {
+    public void shortcut(
+            io.github.digitalsmile.goldberry.input.key.Shortcut accelerator, Runnable action, Object owner) {
         router.shortcut(accelerator, action, owner);
     }
 
@@ -782,15 +788,13 @@ final class Launcher implements Host {
     }
 
     @Override
-    public void removeShortcut(io.github.digitalsmile.goldberry.input.key.Shortcut accelerator,
-            Object owner) {
+    public void removeShortcut(io.github.digitalsmile.goldberry.input.key.Shortcut accelerator, Object owner) {
         router.removeShortcut(accelerator, owner);
     }
 
     @Override
     public void removeShortcut(String accelerator) {
-        router.removeShortcut(
-                io.github.digitalsmile.goldberry.input.key.Shortcut.of(accelerator));
+        router.removeShortcut(io.github.digitalsmile.goldberry.input.key.Shortcut.of(accelerator));
     }
 
     @Override
@@ -845,81 +849,66 @@ final class Launcher implements Host {
     }
 
     @Override
-    public java.util.Optional<Popup> popup(Widget content,
-            LogicalPoint at,
-            LogicalSize size) {
-        return popup(content, at, size,
-                PopupKind.MENU);
+    public java.util.Optional<Popup> popup(Widget content, LogicalPoint at, LogicalSize size) {
+        return popup(content, at, size, PopupKind.MENU);
     }
 
     @Override
-    public java.util.Optional<Popup> tooltip(Widget content,
-            LogicalPoint at,
-            LogicalSize size) {
-        return popup(content, at, size,
-                PopupKind.TOOLTIP);
+    public java.util.Optional<Popup> tooltip(Widget content, LogicalPoint at, LogicalSize size) {
+        return popup(content, at, size, PopupKind.TOOLTIP);
     }
 
-    private java.util.Optional<Popup> popup(Widget content,
-            LogicalPoint at,
-            LogicalSize size,
-            PopupKind kind) {
+    private java.util.Optional<Popup> popup(Widget content, LogicalPoint at, LogicalSize size, PopupKind kind) {
 
         Objects.requireNonNull(content, "content");
-        return open(new ElementTree(content, this), RenderTree.create(),
-                new PopupSpec(at, size, kind));
+        return open(new ElementTree(content, this), RenderTree.create(), new PopupSpec(at, size, kind));
     }
 
     /// Asks the backend for the window and wires the trees to it.
-    private java.util.Optional<Popup> open(ElementTree tree, RenderTree render,
-            PopupSpec spec) {
+    private java.util.Optional<Popup> open(ElementTree tree, RenderTree render, PopupSpec spec) {
 
-        var backend = GoldberryRuntime.get().backend()
-                .createPopup(window.backendWindow(), spec);
+        var backend = GoldberryRuntime.get().backend().createPopup(window.backendWindow(), spec);
         if (backend.isEmpty()) {
             // The driver has none. The caller's fallback is the overlay layer,
             // clipped to the window, and saying so is more use than an empty
             // Optional on its own (ADR-0102).
             tree.unmount();
             render.close();
-            LOG.info("this platform has no popup windows; a {} will have to be an overlay",
-                    spec.kind());
+            LOG.info("this platform has no popup windows; a {} will have to be an overlay", spec.kind());
             return java.util.Optional.empty();
         }
 
-        var popup = new Popup(backend.get(), Window.over(backend.get()), tree, render,
-                this::renderer, () -> popups.removeIf(open -> !open.isOpen()));
+        var popup = new Popup(
+                backend.get(),
+                Window.over(backend.get()),
+                tree,
+                render,
+                this::renderer,
+                () -> popups.removeIf(open -> !open.isOpen()));
         popups.add(popup);
         return java.util.Optional.of(popup);
     }
 
     @Override
-    public java.util.Optional<Popup> popup(Widget content,
-                                           LogicalRect anchor, Placement placement) {
-        return placed(content, anchor, placement,
-                PopupKind.MENU, 0, null);
+    public java.util.Optional<Popup> popup(Widget content, LogicalRect anchor, Placement placement) {
+        return placed(content, anchor, placement, PopupKind.MENU, 0, null);
     }
 
     @Override
-    public java.util.Optional<Popup> popup(Widget content,
-                                           LogicalRect anchor, Placement placement,
-                                           float minimumWidth) {
-        return placed(content, anchor, placement,
-                PopupKind.MENU, minimumWidth, null);
+    public java.util.Optional<Popup> popup(
+            Widget content, LogicalRect anchor, Placement placement, float minimumWidth) {
+        return placed(content, anchor, placement, PopupKind.MENU, minimumWidth, null);
     }
 
     @Override
-    public java.util.Optional<Popup> popup(Widget content,
-                                           LogicalRect anchor, Placement placement,
-                                           float minimumWidth, Fit fit) {
-        return placed(content, anchor, placement,
-                PopupKind.MENU, minimumWidth, fit);
+    public java.util.Optional<Popup> popup(
+            Widget content, LogicalRect anchor, Placement placement, float minimumWidth, Fit fit) {
+        return placed(content, anchor, placement, PopupKind.MENU, minimumWidth, fit);
     }
 
     @Override
-    public java.util.Optional<Popup> attachedPopup(Widget content,
-                                                   LogicalRect anchor, Placement placement,
-                                                   float minimumWidth, Fit fit) {
+    public java.util.Optional<Popup> attachedPopup(
+            Widget content, LogicalRect anchor, Placement placement, float minimumWidth, Fit fit) {
         // TOOLTIP is the *kind*, not the widget: what it buys here is
         // `NOT_FOCUSABLE`, so the keyboard stays on the field this hangs off
         // (ADR-0186).
@@ -932,9 +921,8 @@ final class Launcher implements Host {
     /// A [Host.Fit] sits between the first two: it is handed what the content
     /// measured and answers with what to open, which is nearly always the same
     /// widget ([ADR-0179]).
-    private java.util.Optional<Popup> placed(Widget content,
-                                             LogicalRect anchor, Placement placement,
-                                             PopupKind kind, float minimumWidth, Fit fit) {
+    private java.util.Optional<Popup> placed(
+            Widget content, LogicalRect anchor, Placement placement, PopupKind kind, float minimumWidth, Fit fit) {
 
         Objects.requireNonNull(content, "content");
         Objects.requireNonNull(anchor, "anchor");
@@ -993,10 +981,8 @@ final class Launcher implements Host {
     /// and a press that closed it would fire in the same gesture as the click on
     /// whatever it is describing — closing it a moment before it was going to
     /// close anyway, and taking the *next* tooltip's timer with it.
-    private java.util.Optional<Popup> tooltipPopup(Widget content,
-            LogicalRect anchor) {
-        return placed(content, anchor, Placement.ABOVE.align(Placement.Align.CENTER),
-                PopupKind.TOOLTIP, 0, null)
+    private java.util.Optional<Popup> tooltipPopup(Widget content, LogicalRect anchor) {
+        return placed(content, anchor, Placement.ABOVE.align(Placement.Align.CENTER), PopupKind.TOOLTIP, 0, null)
                 .map(popup -> popup.lightDismiss(false));
     }
 
@@ -1005,8 +991,7 @@ final class Launcher implements Host {
         Objects.requireNonNull(anchorId, "anchorId");
         var anchor = anchor(anchorId);
         if (anchor.isEmpty()) {
-            LOG.warn("nothing with id \"{}\" has been painted, so there is nothing to anchor to",
-                    anchorId);
+            LOG.warn("nothing with id \"{}\" has been painted, so there is nothing to anchor to", anchorId);
             return java.util.Optional.empty();
         }
         return popup(content, anchor.get().bounds(), placement);
@@ -1030,8 +1015,7 @@ final class Launcher implements Host {
     /// The height is never bounded here. A menu taller than the screen is
     /// [Placement]'s to clamp, and it can only clamp a number that means the
     /// content.
-    private LogicalSize measure(
-            ElementTree tree, RenderTree render, float minimumWidth) {
+    private LogicalSize measure(ElementTree tree, RenderTree render, float minimumWidth) {
         var box = renderer().render(tree);
         var natural = render.measure(box, window.scale(), Float.NaN, Float.NaN);
         var cap = window.size().width();
@@ -1050,8 +1034,7 @@ final class Launcher implements Host {
         // Content that will not stretch -- something with a width of its own --
         // still gets the window the floor asked for, because the floor is about
         // where the popup's *edges* are and not about what is drawn in it.
-        return new LogicalSize(
-                Math.max(laid.width(), floor), laid.height());
+        return new LogicalSize(Math.max(laid.width(), floor), laid.height());
     }
 
     /// Where a popup is allowed to be, **in this window's coordinates**.
@@ -1070,8 +1053,7 @@ final class Launcher implements Host {
         var origin = backendWindow.position();
         var area = backendWindow.workArea();
         if (origin.isEmpty() || area.isEmpty()) {
-            return new LogicalRect(
-                    LogicalPoint.ZERO, window.size());
+            return new LogicalRect(LogicalPoint.ZERO, window.size());
         }
         return area.get().offsetBy(-origin.get().x(), -origin.get().y());
     }
@@ -1087,8 +1069,7 @@ final class Launcher implements Host {
     }
 
     @Override
-    public EventLoop.Timer after(
-            java.time.Duration delay, Runnable action) {
+    public EventLoop.Timer after(java.time.Duration delay, Runnable action) {
         return GoldberryRuntime.get().loop().after(delay, action);
     }
 

@@ -1,13 +1,14 @@
 package io.github.digitalsmile.goldberry.widgets;
 
-import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
-import io.github.digitalsmile.goldberry.css.Stylesheet;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Optional;
+
+import io.github.digitalsmile.goldberry.css.Stylesheet;
+import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
 
 /// How tall a control is — `docs/design-system.md` §1.3's density preference.
 ///
@@ -77,8 +78,7 @@ public enum Density {
         }
         try (InputStream in = Density.class.getResourceAsStream(resource)) {
             if (in == null) {
-                throw new IllegalStateException(
-                        "the " + name() + " density is missing from the jar: " + resource);
+                throw new IllegalStateException("the " + name() + " density is missing from the jar: " + resource);
             }
             return new String(in.readAllBytes(), StandardCharsets.UTF_8);
         } catch (IOException e) {

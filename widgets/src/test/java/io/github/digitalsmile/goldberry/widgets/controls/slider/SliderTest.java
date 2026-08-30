@@ -1,7 +1,5 @@
 package io.github.digitalsmile.goldberry.widgets.controls.slider;
 
-import io.github.digitalsmile.goldberry.widget.attr.Attributes;
-
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -9,33 +7,36 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
-import io.github.digitalsmile.goldberry.bind.registry.BindingRegistry;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
+
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
+
 import io.github.digitalsmile.goldberry.bind.Property;
-import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
+import io.github.digitalsmile.goldberry.bind.registry.ActionRegistry;
+import io.github.digitalsmile.goldberry.bind.registry.BindingRegistry;
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
-import io.github.digitalsmile.goldberry.css.value.CssLength;
-import io.github.digitalsmile.goldberry.css.cascade.StyleResolver;
 import io.github.digitalsmile.goldberry.css.Stylesheet;
 import io.github.digitalsmile.goldberry.css.Theme;
-import io.github.digitalsmile.goldberry.input.key.Key;
+import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
+import io.github.digitalsmile.goldberry.css.cascade.StyleResolver;
+import io.github.digitalsmile.goldberry.css.value.CssLength;
 import io.github.digitalsmile.goldberry.input.event.KeyEvent;
-import io.github.digitalsmile.goldberry.input.key.Modifiers;
 import io.github.digitalsmile.goldberry.input.event.PointerEvent;
+import io.github.digitalsmile.goldberry.input.key.Key;
+import io.github.digitalsmile.goldberry.input.key.Modifiers;
 import io.github.digitalsmile.goldberry.kdl.KdlParser;
 import io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength;
 import io.github.digitalsmile.goldberry.widget.ElementTree;
 import io.github.digitalsmile.goldberry.widget.Widget;
-import io.github.digitalsmile.goldberry.bind.registry.ActionRegistry;
+import io.github.digitalsmile.goldberry.widget.attr.Attributes;
 import io.github.digitalsmile.goldberry.widgets.Controls;
 import io.github.digitalsmile.goldberry.widgets.Icons;
-import io.github.digitalsmile.goldberry.widgets.controls.Scale;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.Test;
 import io.github.digitalsmile.goldberry.widgets.Widgets;
+import io.github.digitalsmile.goldberry.widgets.controls.Scale;
 
 /// The sixth control, and the first whose value is **a number rather than a
 /// state** ([ADR-0079]).
@@ -55,7 +56,8 @@ class SliderTest {
     /// The groove inside a slider's track, which is where the fill, the thumb and
     /// the rest live ([ADR-0080] moved them one level down).
     private static SliderGroove groove(Slider slider) {
-        return (SliderGroove) ((SliderTrack) slider.children().getFirst()).children().getFirst();
+        return (SliderGroove)
+                ((SliderTrack) slider.children().getFirst()).children().getFirst();
     }
 
     /// The resolved style of a node reached by child indices from a widget's own
@@ -76,8 +78,8 @@ class SliderTest {
         @Test
         @DisplayName("the Java-built and KDL-built sliders are equal values")
         void javaAndKdlAgree() {
-            var fromJava = new Slider(0, 100, 40, 5, null, null, false,
-                    new Attributes("gain", Set.of("vertical"), "gain"));
+            var fromJava =
+                    new Slider(0, 100, 40, 5, null, null, false, new Attributes("gain", Set.of("vertical"), "gain"));
 
             var fromKdl = Widgets.inflater().inflateAll(KdlParser.parse("""
                     slider id="gain" class="vertical" min=0 max=100 value=40 step=5
@@ -94,12 +96,13 @@ class SliderTest {
                     #gain    { gap: 2px }
                     .vertical { gap: 3px }
                     """));
-            var tree = new ElementTree(new Slider(0, 1, 0.5, 0, null, null, false,
-                    new Attributes("gain", Set.of("vertical"), "gain")));
+            var tree = new ElementTree(
+                    new Slider(0, 1, 0.5, 0, null, null, false, new Attributes("gain", Set.of("vertical"), "gain")));
 
-            assertEquals(StyleLength.points(2),
-                    ComputedStyle.of(new StyleResolver(sheets).resolve(tree.root()),
-                            CssLength.Context.DEFAULT).gap());
+            assertEquals(
+                    StyleLength.points(2),
+                    ComputedStyle.of(new StyleResolver(sheets).resolve(tree.root()), CssLength.Context.DEFAULT)
+                            .gap());
         }
 
         @Test
@@ -107,8 +110,15 @@ class SliderTest {
         void partsAreNotConstructible() {
             var registered = Widgets.inflater().registered();
             assertTrue(Controls.controlTypes().contains("slider"));
-            for (var part : List.of("slider-track", "slider-groove", "slider-fill", "slider-rest",
-                    "slider-thumb", "slider-ticks", "slider-tick", "slider-value")) {
+            for (var part : List.of(
+                    "slider-track",
+                    "slider-groove",
+                    "slider-fill",
+                    "slider-rest",
+                    "slider-thumb",
+                    "slider-ticks",
+                    "slider-tick",
+                    "slider-value")) {
                 assertFalse(registered.contains(part), part + " is a part, not a widget (ADR-0065)");
                 assertFalse(Controls.controlTypes().contains(part));
             }
@@ -128,7 +138,8 @@ class SliderTest {
         @Test
         @DisplayName("a non-numeric attribute falls back rather than failing the window")
         void nonNumericFallsBack() {
-            var slider = (Slider) Widgets.inflater().inflateAll(KdlParser.parse("""
+            var slider =
+                    (Slider) Widgets.inflater().inflateAll(KdlParser.parse("""
                     slider min="oops" max=10 value=3
                     """)).getFirst();
 
@@ -177,10 +188,8 @@ class SliderTest {
         @Test
         @DisplayName("a non-numeric or null property falls back to the widget's value")
         void nonNumberFallsBack() {
-            assertEquals(4, new Slider(0, 10, 4, 0, Property.of("loud"), null, false, null)
-                    .resolved(), 1e-9);
-            assertEquals(4, new Slider(0, 10, 4, 0, Property.of(null), null, false, null)
-                    .resolved(), 1e-9);
+            assertEquals(4, new Slider(0, 10, 4, 0, Property.of("loud"), null, false, null).resolved(), 1e-9);
+            assertEquals(4, new Slider(0, 10, 4, 0, Property.of(null), null, false, null).resolved(), 1e-9);
         }
 
         /// ADR-0063 in one assertion: dragging a bound slider whose handler does
@@ -189,7 +198,7 @@ class SliderTest {
         @DisplayName("a handler that does nothing leaves the thumb where it was")
         void controlled() {
             var gain = Property.of(2.0);
-            var slider = new Slider(0, 10, 0, 0, gain, value -> { }, false, null);
+            var slider = new Slider(0, 10, 0, 0, gain, value -> {}, false, null);
 
             slider.onKey(press(Key.RIGHT));
 
@@ -287,7 +296,8 @@ class SliderTest {
             var event = press(Key.RIGHT);
             slider(0, 10, 10, 1).onKey(event);
 
-            assertTrue(event.isConsumed(),
+            assertTrue(
+                    event.isConsumed(),
                     "a slider at its maximum still owns Right; letting it through would move focus");
         }
 
@@ -297,8 +307,7 @@ class SliderTest {
         @Test
         @DisplayName("a repeat steps again, unlike every other control")
         void repeatsStep() {
-            slider(0, 100, 50, 10).onKey(new KeyEvent(
-                    KeyEvent.Kind.PRESSED, Key.RIGHT, Modifiers.NONE, true, null));
+            slider(0, 100, 50, 10).onKey(new KeyEvent(KeyEvent.Kind.PRESSED, Key.RIGHT, Modifiers.NONE, true, null));
 
             assertEquals(List.of(60.0), asked);
         }
@@ -306,8 +315,9 @@ class SliderTest {
         @Test
         @DisplayName("a modified arrow is left alone")
         void modifiedArrowIgnored() {
-            slider(0, 100, 50, 10).onKey(new KeyEvent(KeyEvent.Kind.PRESSED, Key.RIGHT,
-                    new Modifiers(true, false, false, false), false, null));
+            slider(0, 100, 50, 10)
+                    .onKey(new KeyEvent(
+                            KeyEvent.Kind.PRESSED, Key.RIGHT, new Modifiers(true, false, false, false), false, null));
 
             assertTrue(asked.isEmpty());
         }
@@ -362,10 +372,10 @@ class SliderTest {
         @Test
         @DisplayName("a vertical slider inverts, because a fader's minimum is at the bottom")
         void verticalInverts() {
-            var slider = new Slider(0, 100, 0, 0, null, asked::add, false,
-                    new Attributes(null, Set.of("vertical"), null));
-            var event = new PointerEvent(PointerEvent.Kind.PRESSED, 10, 30,
-                    PointerEvent.Button.PRIMARY, 1, 10, 30, null);
+            var slider =
+                    new Slider(0, 100, 0, 0, null, asked::add, false, new Attributes(null, Set.of("vertical"), null));
+            var event =
+                    new PointerEvent(PointerEvent.Kind.PRESSED, 10, 30, PointerEvent.Button.PRIMARY, 1, 10, 30, null);
             // A quarter of the way down a 200-tall fader is three quarters up it.
             event.localTo(new PointerEvent.Local(10, 50, 32, 200));
 
@@ -393,8 +403,9 @@ class SliderTest {
         @Test
         @DisplayName("a press with no layout behind it reads as the start of the track")
         void unlaidOutIsZero() {
-            slider(0, 100, 50, 0).onPointer(new PointerEvent(PointerEvent.Kind.PRESSED, 5, 5,
-                    PointerEvent.Button.PRIMARY, 1, 5, 5, null));
+            slider(0, 100, 50, 0)
+                    .onPointer(new PointerEvent(
+                            PointerEvent.Kind.PRESSED, 5, 5, PointerEvent.Button.PRIMARY, 1, 5, 5, null));
 
             assertEquals(List.of(0.0), asked);
         }
@@ -428,7 +439,9 @@ class SliderTest {
 
             assertEquals("slider-track", track.cssType());
             assertEquals("slider-groove", ((SliderGroove) track.children().getFirst()).cssType());
-            assertEquals("slider-track", slider(0, 100, 25, 0).localPart(),
+            assertEquals(
+                    "slider-track",
+                    slider(0, 100, 25, 0).localPart(),
                     "the value is a position along the track, not along the control");
         }
 
@@ -440,7 +453,8 @@ class SliderTest {
         void thumbHasNoTransform() {
             var style = styleOf(slider(0, 100, 25, 0), 0, 0, 1);
 
-            assertTrue(style.transform().isNone(),
+            assertTrue(
+                    style.transform().isNone(),
                     "a slider's thumb is placed by layout; a transform could not express it");
         }
 
@@ -455,7 +469,9 @@ class SliderTest {
             var thumb = styleOf(slider, 0, 0, 1);
 
             assertEquals(StyleLength.points(32), control.height(), "§1.3's hit target");
-            assertEquals(StyleLength.points(32), track.height(),
+            assertEquals(
+                    StyleLength.points(32),
+                    track.height(),
                     "the track is the whole hit target: it is what the pointer is mapped along");
             assertEquals(StyleLength.points(4), groove.height(), "§3's groove");
             assertEquals(StyleLength.points(16), thumb.width());
@@ -498,8 +514,7 @@ class SliderTest {
 
             var style = ComputedStyle.of(resolver.resolve(tree.root()), CssLength.Context.DEFAULT);
 
-            assertTrue(style.transitions().isEmpty(),
-                    "a slider must not animate its own value");
+            assertTrue(style.transitions().isEmpty(), "a slider must not animate its own value");
         }
     }
 
@@ -532,8 +547,7 @@ class SliderTest {
             // The locale is pinned, not inherited: a machine set to de_DE would
             // otherwise draw `0,5` where CI drew `0.5`, and the golden that
             // failed would be unreproducible anywhere else.
-            assertEquals("0.5", new Slider(0, 1, 0.5, 0, 0, "%.1f", null, null, null, false, null)
-                    .text());
+            assertEquals("0.5", new Slider(0, 1, 0.5, 0, 0, "%.1f", null, null, null, false, null).text());
         }
 
         @Test
@@ -604,8 +618,10 @@ class SliderTest {
         void roundTrips() {
             for (var scale : List.of(Scale.LINEAR, Scale.decibels(), Scale.decibels(-96))) {
                 for (var fraction : List.of(0.1, 0.25, 0.5, 0.75, 1.0)) {
-                    assertEquals(fraction,
-                            scale.toFraction(scale.toValue(fraction, 0, 1), 0, 1), 1e-9,
+                    assertEquals(
+                            fraction,
+                            scale.toFraction(scale.toValue(fraction, 0, 1), 0, 1),
+                            1e-9,
                             scale + " at " + fraction);
                 }
             }
@@ -617,7 +633,17 @@ class SliderTest {
         @Test
         @DisplayName("the pointer maps through the scale, in both directions")
         void pointerMapsThroughTheScale() {
-            var fader = new Slider(0, 1, 0, 0, 0, null, Scale.decibels(), null, asked::add, false,
+            var fader = new Slider(
+                    0,
+                    1,
+                    0,
+                    0,
+                    0,
+                    null,
+                    Scale.decibels(),
+                    null,
+                    asked::add,
+                    false,
                     new Attributes(null, Set.of(), null));
 
             fader.onPointer(pressAt(0.9f, 100));
@@ -633,13 +659,11 @@ class SliderTest {
         @Test
         @DisplayName("an arrow steps a hundredth of the travel, which a scale bends")
         void arrowsStepAlongTheTravel() {
-            new Slider(0, 100, 40, 0, 0, null, null, null, asked::add, false, null)
-                    .onKey(press(Key.RIGHT));
+            new Slider(0, 100, 40, 0, 0, null, null, null, asked::add, false, null).onKey(press(Key.RIGHT));
             assertEquals(41.0, asked.getFirst(), 1e-9, "linear: a hundredth of the range");
 
             asked.clear();
-            new Slider(0, 1, 0.5, 0, 0, null, Scale.decibels(), null, asked::add, false, null)
-                    .onKey(press(Key.RIGHT));
+            new Slider(0, 1, 0.5, 0, 0, null, Scale.decibels(), null, asked::add, false, null).onKey(press(Key.RIGHT));
 
             // 0.5 is 90% of the way up; 91% is 0.6 dB louder, which is 0.536.
             assertEquals(0.536, asked.getFirst(), 0.002);
@@ -661,7 +685,8 @@ class SliderTest {
         @Test
         @DisplayName("a decibel scale over a range it cannot express is refused")
         void decibelsNeedAGainRange() {
-            assertThrows(IllegalArgumentException.class,
+            assertThrows(
+                    IllegalArgumentException.class,
                     () -> new Slider(-1, 1, 0, 0, 0, null, Scale.decibels(), null, null, false, null));
             assertThrows(IllegalArgumentException.class, () -> Scale.decibels(0));
         }
@@ -669,7 +694,17 @@ class SliderTest {
         @Test
         @DisplayName("the Java-built and KDL-built forms agree on all three")
         void parity() {
-            var fromJava = new Slider(0, 1, 0, 0, 5, "%.2f", Scale.decibels(), null, null, false,
+            var fromJava = new Slider(
+                    0,
+                    1,
+                    0,
+                    0,
+                    5,
+                    "%.2f",
+                    Scale.decibels(),
+                    null,
+                    null,
+                    false,
                     new Attributes("gain", Set.of("vertical"), "gain"));
 
             var fromKdl = Widgets.inflater().inflateAll(KdlParser.parse("""
@@ -680,8 +715,8 @@ class SliderTest {
         }
 
         private PointerEvent pressAt(float fraction, float width) {
-            var event = new PointerEvent(PointerEvent.Kind.PRESSED, fraction * width, 16,
-                    PointerEvent.Button.PRIMARY, 1, 0, 16, null);
+            var event = new PointerEvent(
+                    PointerEvent.Kind.PRESSED, fraction * width, 16, PointerEvent.Button.PRIMARY, 1, 0, 16, null);
             event.localTo(new PointerEvent.Local(fraction * width, 16, width, 32));
             return event;
         }
@@ -700,7 +735,8 @@ class SliderTest {
             var slider = (Slider) Widgets.inflater(actions, Icons.none(), BindingRegistry.none())
                     .inflateAll(KdlParser.parse("""
                             slider min=0 max=100 value=50 step=10 change="setGain"
-                            """)).getFirst();
+                            """))
+                    .getFirst();
             slider.onKey(press(Key.RIGHT));
 
             assertEquals(List.of("60.0"), got);
@@ -715,7 +751,8 @@ class SliderTest {
             var slider = (Slider) Widgets.inflater(ActionRegistry.lenient(), Icons.none(), bindings)
                     .inflateAll(KdlParser.parse("""
                             slider min=0 max=100 bind="audio.gain"
-                            """)).getFirst();
+                            """))
+                    .getFirst();
 
             assertEquals(30.0, slider.resolved(), 1e-9);
         }

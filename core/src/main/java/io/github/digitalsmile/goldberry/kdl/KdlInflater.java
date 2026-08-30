@@ -45,8 +45,7 @@ public final class KdlInflater<T> {
 
     /// An inflater that knows nothing yet. Built-ins and application widgets
     /// both arrive through [#register].
-    public KdlInflater() {
-    }
+    public KdlInflater() {}
 
     /// Registers a factory for `name`.
     ///
@@ -103,7 +102,8 @@ public final class KdlInflater<T> {
         if (factory == null) {
             throw new KdlSyntaxException(
                     "unknown node \"" + node.name() + "\"; registered: " + String.join(", ", registered()),
-                    node.line(), node.column());
+                    node.line(),
+                    node.column());
         }
         var children = new ArrayList<T>(node.children().size());
         for (var child : node.children()) {
@@ -127,8 +127,10 @@ public final class KdlInflater<T> {
         if (found.size() > 1) {
             var second = found.get(1);
             throw new KdlSyntaxException(
-                    "id \"" + id + "\" is used more than once; also at " + found.getFirst().position(),
-                    second.line(), second.column());
+                    "id \"" + id + "\" is used more than once; also at "
+                            + found.getFirst().position(),
+                    second.line(),
+                    second.column());
         }
         return found.isEmpty() ? Optional.empty() : Optional.of(found.getFirst());
     }

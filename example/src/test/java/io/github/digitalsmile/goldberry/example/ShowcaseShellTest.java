@@ -7,6 +7,13 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
+
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+
 import io.github.digitalsmile.goldberry.example.ui.AppMenu;
 import io.github.digitalsmile.goldberry.example.ui.Screen;
 import io.github.digitalsmile.goldberry.render.window.WindowSpec;
@@ -15,11 +22,6 @@ import io.github.digitalsmile.goldberry.widget.ElementTree;
 import io.github.digitalsmile.goldberry.widgets.menu.Item;
 import io.github.digitalsmile.goldberry.widgets.menu.MenuBar;
 import io.github.digitalsmile.goldberry.widgets.menu.Separator;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.atomic.AtomicInteger;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
 
 /// The window's three bands: how it opens, what its menu bar says, and that the
 /// gallery's seven screens are named in one place
@@ -38,8 +40,7 @@ class ShowcaseShellTest {
     @Test
     @DisplayName("the showcase opens maximized, and asks for a size to restore to")
     void itOpensMaximized() {
-        assertTrue(showcase.maximized(),
-                "a gallery is a layout whose whole subject is how much fits on a screen");
+        assertTrue(showcase.maximized(), "a gallery is a layout whose whole subject is how much fits on a screen");
 
         // Not incidental: `size()` is what un-maximizing puts the window back to,
         // and 1280 is the narrowest shape on which the Forms screen's three
@@ -64,8 +65,7 @@ class ShowcaseShellTest {
     @Test
     @DisplayName("the spec the launcher would build carries both facts")
     void theSpecCarriesIt() {
-        var spec = WindowSpec.of(showcase.title(), showcase.size())
-                .withMaximized(showcase.maximized());
+        var spec = WindowSpec.of(showcase.title(), showcase.size()).withMaximized(showcase.maximized());
 
         assertTrue(spec.maximized());
         assertEquals(showcase.size(), spec.size());
@@ -76,13 +76,13 @@ class ShowcaseShellTest {
     @Test
     @DisplayName("seven screens, each with a title and a digit")
     void sevenScreens() {
-        assertEquals(List.of("basic", "panels", "overlays", "forms", "navigation",
-                        "collections", "charts"), Screen.GALLERY);
+        assertEquals(
+                List.of("basic", "panels", "overlays", "forms", "navigation", "collections", "charts"), Screen.GALLERY);
 
         // The point of seven rather than twelve, in one assertion: a keyboard has
         // ten digits, and two of the twelve screens had no key at all.
-        assertTrue(Screen.GALLERY.size() <= 10,
-                "there are more screens than digits, so some of them have no accelerator");
+        assertTrue(
+                Screen.GALLERY.size() <= 10, "there are more screens than digits, so some of them have no accelerator");
     }
 
     @Test
@@ -96,40 +96,43 @@ class ShowcaseShellTest {
 
         // Refused rather than defaulted, because a defaulted title is a menu row
         // reading "collections" that nobody notices for a month.
-        var thrown = assertThrows(IllegalArgumentException.class,
-                () -> Screen.title("histograms"));
+        var thrown = assertThrows(IllegalArgumentException.class, () -> Screen.title("histograms"));
         assertTrue(thrown.getMessage().contains("histograms"), thrown.getMessage());
     }
 
     // --- the menu bar --------------------------------------------------------
 
-    private AppMenu menu(AtomicInteger dialogs, AtomicInteger huds,
-            AtomicInteger toasts, AtomicInteger quits) {
+    private AppMenu menu(AtomicInteger dialogs, AtomicInteger huds, AtomicInteger toasts, AtomicInteger quits) {
         var model = showcase.models().stream()
                 .filter(ShowcaseModel.Actions.class::isInstance)
                 .map(ShowcaseModel.Actions.class::cast)
-                .findFirst().orElseThrow();
-        return new AppMenu(model, new AppMenu.Handlers(
-                dialogs::incrementAndGet, huds::incrementAndGet,
-                toasts::incrementAndGet, quits::incrementAndGet), null);
+                .findFirst()
+                .orElseThrow();
+        return new AppMenu(
+                model,
+                new AppMenu.Handlers(
+                        dialogs::incrementAndGet, huds::incrementAndGet,
+                        toasts::incrementAndGet, quits::incrementAndGet),
+                null);
     }
 
     private static List<Item> itemsOf(MenuBar bar) {
-        return bar.children().stream().filter(Item.class::isInstance)
-                .map(Item.class::cast).toList();
+        return bar.children().stream()
+                .filter(Item.class::isInstance)
+                .map(Item.class::cast)
+                .toList();
     }
 
     @Test
     @DisplayName("the bar is File, Edit and Help, and every one of them has a submenu")
     void theBarIsThree() {
-        var bar = menu(new AtomicInteger(), new AtomicInteger(),
-                new AtomicInteger(), new AtomicInteger()).bar(false);
+        var bar = menu(new AtomicInteger(), new AtomicInteger(), new AtomicInteger(), new AtomicInteger())
+                .bar(false);
 
         var titles = itemsOf(bar).stream().map(Item::label).toList();
         assertEquals(List.of("File", "Edit", "Help"), titles);
         for (var item : itemsOf(bar)) {
-            assertFalse(item.submenu().isEmpty(),
-                    () -> item.label() + " is a heading with nothing under it");
+            assertFalse(item.submenu().isEmpty(), () -> item.label() + " is a heading with nothing under it");
         }
     }
 
@@ -158,10 +161,14 @@ class ShowcaseShellTest {
     @Test
     @DisplayName("the frame-rate row draws a tick when the HUD is up, and none when it is not")
     void theHudRowIsCheckable() {
-        var off = row(menu(new AtomicInteger(), new AtomicInteger(),
-                new AtomicInteger(), new AtomicInteger()).bar(false), "Frame rate");
-        var on = row(menu(new AtomicInteger(), new AtomicInteger(),
-                new AtomicInteger(), new AtomicInteger()).bar(true), "Frame rate");
+        var off = row(
+                menu(new AtomicInteger(), new AtomicInteger(), new AtomicInteger(), new AtomicInteger())
+                        .bar(false),
+                "Frame rate");
+        var on = row(
+                menu(new AtomicInteger(), new AtomicInteger(), new AtomicInteger(), new AtomicInteger())
+                        .bar(true),
+                "Frame rate");
 
         assertTrue(off.isCheckable(), "a HUD is a state you are in, not a step you take");
         assertEquals(Boolean.FALSE, off.checked());
@@ -171,28 +178,31 @@ class ShowcaseShellTest {
     @Test
     @DisplayName("Edit ▸ Go to has a row per screen, off the gallery's own list")
     void goToFollowsTheGallery() {
-        var bar = menu(new AtomicInteger(), new AtomicInteger(),
-                new AtomicInteger(), new AtomicInteger()).bar(false);
+        var bar = menu(new AtomicInteger(), new AtomicInteger(), new AtomicInteger(), new AtomicInteger())
+                .bar(false);
 
         var goTo = row(bar, "Go to");
-        var names = goTo.submenu().stream().filter(Item.class::isInstance)
-                .map(Item.class::cast).map(Item::label).toList();
+        var names = goTo.submenu().stream()
+                .filter(Item.class::isInstance)
+                .map(Item.class::cast)
+                .map(Item::label)
+                .toList();
 
-        assertEquals(Screen.GALLERY.stream().map(Screen::title).toList(), names,
-                "a screen added to the gallery has to arrive here without this menu"
-                        + " being touched");
+        assertEquals(
+                Screen.GALLERY.stream().map(Screen::title).toList(),
+                names,
+                "a screen added to the gallery has to arrive here without this menu" + " being touched");
     }
 
     @Test
     @DisplayName("the destructive rows are last, behind a rule")
     void theDestructiveRowsAreFenced() {
-        var bar = menu(new AtomicInteger(), new AtomicInteger(),
-                new AtomicInteger(), new AtomicInteger()).bar(false);
+        var bar = menu(new AtomicInteger(), new AtomicInteger(), new AtomicInteger(), new AtomicInteger())
+                .bar(false);
 
         var file = itemsOf(bar).getFirst().submenu();
         var quit = file.getLast();
-        assertTrue(quit instanceof Item item && "Quit".equals(item.label()),
-                "Quit is not the last row of File");
+        assertTrue(quit instanceof Item item && "Quit".equals(item.label()), "Quit is not the last row of File");
 
         // Somewhere above Quit and below the ordinary rows: a destructive row
         // beside an ordinary one is a row somebody presses by accident.
@@ -202,8 +212,7 @@ class ShowcaseShellTest {
                 lastRule = i;
             }
         }
-        assertTrue(lastRule >= 0 && lastRule < file.size() - 2,
-                "nothing separates Quit from the rows above it");
+        assertTrue(lastRule >= 0 && lastRule < file.size() - 2, "nothing separates Quit from the rows above it");
     }
 
     /// The one row in the whole bar that is disabled, and stays disabled: the
@@ -212,8 +221,8 @@ class ShowcaseShellTest {
     @Test
     @DisplayName("a command the model cannot answer is disabled rather than absent")
     void oneRowIsHonestlyDisabled() {
-        var bar = menu(new AtomicInteger(), new AtomicInteger(),
-                new AtomicInteger(), new AtomicInteger()).bar(false);
+        var bar = menu(new AtomicInteger(), new AtomicInteger(), new AtomicInteger(), new AtomicInteger())
+                .bar(false);
 
         assertTrue(row(bar, "Press on").disabled());
         assertFalse(row(bar, "Turn back").disabled());
@@ -228,21 +237,31 @@ class ShowcaseShellTest {
     @DisplayName("the window is a menu bar, a bar and a gallery, in that order")
     void theWindowIsThreeBands() {
         io.github.digitalsmile.goldberry.RendererRequirement.enforce();
-        var model = showcase.models().stream().filter(ShowcaseModel.class::isInstance)
-                .map(ShowcaseModel.class::cast).findFirst().orElseThrow();
+        var model = showcase.models().stream()
+                .filter(ShowcaseModel.class::isInstance)
+                .map(ShowcaseModel.class::cast)
+                .findFirst()
+                .orElseThrow();
         var actions = showcase.models().stream()
                 .filter(ShowcaseModel.Actions.class::isInstance)
-                .map(ShowcaseModel.Actions.class::cast).findFirst().orElseThrow();
+                .map(ShowcaseModel.Actions.class::cast)
+                .findFirst()
+                .orElseThrow();
 
         try (var plus = io.github.digitalsmile.goldberry.icon.Icon.bundled("plus", 16)) {
             var inflater = io.github.digitalsmile.goldberry.widgets.Widgets.inflater(
                     model.named(),
                     io.github.digitalsmile.goldberry.widgets.Icons.strict()
-                            .bind("palette", plus).bind("plus", plus),
+                            .bind("palette", plus)
+                            .bind("plus", plus),
                     showcase.models().toArray());
-            var screen = new Screen(model, actions, inflater, plus, () -> { },
-                    menu(new AtomicInteger(), new AtomicInteger(),
-                            new AtomicInteger(), new AtomicInteger()));
+            var screen = new Screen(
+                    model,
+                    actions,
+                    inflater,
+                    plus,
+                    () -> {},
+                    menu(new AtomicInteger(), new AtomicInteger(), new AtomicInteger(), new AtomicInteger()));
 
             // `#root` and not the tree's root: `Screen` is stateful, so the
             // element at the top is the widget and the column it builds is under
@@ -254,10 +273,11 @@ class ShowcaseShellTest {
             // `#app-menu` / `#gallery` ids land on the box its state builds one
             // level further down.
             var bands = new ArrayList<String>();
-            root.children().forEach(
-                    child -> bands.add(child.widget().getClass().getSimpleName()));
+            root.children().forEach(child -> bands.add(child.widget().getClass().getSimpleName()));
 
-            assertEquals(List.of("MenuBar", "Row", "Tabs"), bands,
+            assertEquals(
+                    List.of("MenuBar", "Row", "Tabs"),
+                    bands,
                     "the menu is above the bar and the bar above the gallery");
         }
     }
@@ -281,12 +301,11 @@ class ShowcaseShellTest {
         var window = showcase.models().stream()
                 .filter(WindowActions.class::isInstance)
                 .map(WindowActions.class::cast)
-                .findFirst().orElseThrow(() -> new AssertionError(
-                        "overlays.kdl presses app.open-menu and nothing binds it"));
+                .findFirst()
+                .orElseThrow(() -> new AssertionError("overlays.kdl presses app.open-menu and nothing binds it"));
 
         var registry = io.github.digitalsmile.goldberry.bind.runtime.Models.actions(window);
-        for (var action : List.of("app.open-menu", "app.toggle-hud", "app.open-dialog",
-                "app.raise-toast")) {
+        for (var action : List.of("app.open-menu", "app.toggle-hud", "app.open-dialog", "app.raise-toast")) {
             assertNotNull(registry.resolve(action), () -> action + " is not bound");
         }
     }
@@ -296,13 +315,16 @@ class ShowcaseShellTest {
     void theModelsAreOneObject() {
         var model = showcase.models().stream()
                 .filter(ShowcaseModel.class::isInstance)
-                .map(ShowcaseModel.class::cast).findFirst().orElseThrow();
+                .map(ShowcaseModel.class::cast)
+                .findFirst()
+                .orElseThrow();
         var actions = showcase.models().stream()
                 .filter(ShowcaseModel.Actions.class::isInstance)
-                .map(ShowcaseModel.Actions.class::cast).findFirst().orElseThrow();
+                .map(ShowcaseModel.Actions.class::cast)
+                .findFirst()
+                .orElseThrow();
 
-        assertSame(model, actions.values(),
-                "the actions write to a different model from the one the documents read");
+        assertSame(model, actions.values(), "the actions write to a different model from the one the documents read");
     }
 
     // --- finding a row -------------------------------------------------------

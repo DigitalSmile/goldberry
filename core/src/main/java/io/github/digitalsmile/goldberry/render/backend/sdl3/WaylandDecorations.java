@@ -80,8 +80,7 @@ import java.util.Optional;
 /// See ADR-0084.
 final class WaylandDecorations {
 
-    private WaylandDecorations() {
-    }
+    private WaylandDecorations() {}
 
     /// SDL's name for the driver this applies to. X11 is decorated by the window
     /// manager and never reaches libdecor.
@@ -121,9 +120,7 @@ final class WaylandDecorations {
     /// @param onInitialThread whether this thread is the process's initial one,
     ///                        or empty if that could not be determined
     /// @return the verdict
-    static Verdict verdict(String videoDriver,
-                           Optional<List<String>> pluginFiles,
-                           Optional<Boolean> onInitialThread) {
+    static Verdict verdict(String videoDriver, Optional<List<String>> pluginFiles, Optional<Boolean> onInitialThread) {
         if (videoDriver == null || !videoDriver.toLowerCase(Locale.ROOT).equals(WAYLAND)) {
             return Verdict.UNKNOWN;
         }
@@ -144,8 +141,7 @@ final class WaylandDecorations {
     /// @param onInitialThread whether this thread is the process's initial one,
     ///                        or empty if that could not be determined
     /// @return the verdict, as it would apply to a Wayland window
-    static Verdict verdictForWayland(Optional<List<String>> pluginFiles,
-                                     Optional<Boolean> onInitialThread) {
+    static Verdict verdictForWayland(Optional<List<String>> pluginFiles, Optional<Boolean> onInitialThread) {
         if (pluginFiles.isEmpty()) {
             // libdecor's directory could be anywhere a distribution puts it, and
             // guessing wrong must not turn into a warning about a problem that is
@@ -179,9 +175,8 @@ final class WaylandDecorations {
     ///                        empty if no such directory could be found
     /// @param onInitialThread whether this thread is the process's initial one
     /// @return the text to log, already wrapped, or empty
-    static Optional<String> diagnose(String videoDriver,
-                                     Optional<List<String>> pluginFiles,
-                                     Optional<Boolean> onInitialThread) {
+    static Optional<String> diagnose(
+            String videoDriver, Optional<List<String>> pluginFiles, Optional<Boolean> onInitialThread) {
         if (verdict(videoDriver, pluginFiles, onInitialThread) != Verdict.UNDECORATED) {
             return Optional.empty();
         }
@@ -196,8 +191,10 @@ final class WaylandDecorations {
     /// @param videoDriver what `SDL_GetCurrentVideoDriver` reported
     /// @return the text to log, or empty
     static Optional<String> diagnose(String videoDriver) {
-        return diagnose(videoDriver,
-                pluginFiles(System.getenv(PLUGIN_DIR_ENV),
+        return diagnose(
+                videoDriver,
+                pluginFiles(
+                        System.getenv(PLUGIN_DIR_ENV),
                         System.getProperty("os.arch", ""),
                         WaylandDecorations::listDirectory),
                 onInitialThread());
@@ -241,9 +238,8 @@ final class WaylandDecorations {
     /// @param osArch       the `os.arch` system property, for the multiarch triplet
     /// @param lister       lists a directory, or returns empty if it is not one
     /// @return the file names in the first directory that exists, or empty
-    static Optional<List<String>> pluginFiles(String pluginDirEnv,
-                                              String osArch,
-                                              java.util.function.Function<Path, Optional<List<String>>> lister) {
+    static Optional<List<String>> pluginFiles(
+            String pluginDirEnv, String osArch, java.util.function.Function<Path, Optional<List<String>>> lister) {
         for (var directory : candidateDirectories(pluginDirEnv, osArch)) {
             var listing = lister.apply(directory);
             if (listing.isPresent()) {
@@ -293,7 +289,8 @@ final class WaylandDecorations {
             return Optional.empty();
         }
         try (var entries = Files.list(directory)) {
-            return Optional.of(entries.map(path -> path.getFileName().toString()).sorted().toList());
+            return Optional.of(
+                    entries.map(path -> path.getFileName().toString()).sorted().toList());
         } catch (IOException e) {
             // A directory that exists and cannot be read is not knowledge either.
             throw new UncheckedIOException(e);
@@ -301,8 +298,7 @@ final class WaylandDecorations {
     }
 
     private static String message(boolean gtkPluginPresent) {
-        var cause = gtkPluginPresent
-                ? """
+        var cause = gtkPluginPresent ? """
                   The only libdecor plugin installed is the GTK one, and it refuses to \
                   start unless it is called on the process's initial thread. This thread \
                   is not it: the stock java launcher runs main() on a thread it creates, \
@@ -312,8 +308,7 @@ final class WaylandDecorations {
                   run here and drew decorations that matched the desktop, so this may \
                   have worked before an upgrade — but it was corrupting GTK's state and \
                   crashing SDL applications, which is why the check exists. Downgrading \
-                  libdecor brings the crash back, not the titlebar."""
-                : "No libdecor plugin is installed, so libdecor has nothing to draw with.";
+                  libdecor brings the crash back, not the titlebar.""" : "No libdecor plugin is installed, so libdecor has nothing to draw with.";
 
         return """
                 This window may have no titlebar, no close button, and no way to resize it.

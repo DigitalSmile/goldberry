@@ -1,14 +1,14 @@
 package io.github.digitalsmile.goldberry.widgets.panel.table;
 
-import io.github.digitalsmile.goldberry.css.ComputedStyle;
-import io.github.digitalsmile.goldberry.paint.Box;
-import io.github.digitalsmile.goldberry.widget.style.Paints;
-import io.github.digitalsmile.goldberry.widget.style.Styled;
-import io.github.digitalsmile.goldberry.widget.Widget;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+
+import io.github.digitalsmile.goldberry.css.ComputedStyle;
+import io.github.digitalsmile.goldberry.paint.Box;
+import io.github.digitalsmile.goldberry.widget.Widget;
+import io.github.digitalsmile.goldberry.widget.style.Paints;
+import io.github.digitalsmile.goldberry.widget.style.Styled;
 
 /// One row's cells — what a [Table] hands `list` as its item-factory.
 ///
@@ -26,8 +26,7 @@ import java.util.Set;
 /// @param <T>     the item type
 /// @param item    the row's item
 /// @param columns the table's columns, in order
-record TableCells<T>(T item, List<Column<T>> columns)
-        implements Widget.Leaf, Styled, Paints {
+record TableCells<T>(T item, List<Column<T>> columns) implements Widget.Leaf, Styled, Paints {
 
     @Override
     public String cssType() {
@@ -59,8 +58,7 @@ record TableCells<T>(T item, List<Column<T>> columns)
     /// `tree-label`'s reason — a box with text is a measured leaf and Yoga never
     /// lays a measured node's children out, so a cell that drew its own text
     /// could never hold a button.
-    record TableCell(Column<?> column, Widget content)
-            implements Widget.Leaf, Styled, Paints {
+    record TableCell(Column<?> column, Widget content) implements Widget.Leaf, Styled, Paints {
 
         @Override
         public String cssType() {

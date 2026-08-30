@@ -1,12 +1,13 @@
 package io.github.digitalsmile.goldberry.example.ui;
 
+import java.util.List;
+
 import io.github.digitalsmile.goldberry.widget.BuildContext;
 import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widget.attr.Attributes;
 import io.github.digitalsmile.goldberry.widgets.core.Column;
 import io.github.digitalsmile.goldberry.widgets.panel.masonry.Masonry;
 import io.github.digitalsmile.goldberry.widgets.text.Text;
-import java.util.List;
 
 /// What every screen in the gallery **is**: a heading, a line of prose, and a
 /// wall of cards.
@@ -36,8 +37,7 @@ import java.util.List;
 ///                packing is (ADR-0196)
 /// @param cards   every card on the screen, in the order they are offered to the
 ///                columns
-record Wall(String id, String title, String note, int columns, List<Widget> cards)
-        implements Widget.Stateless {
+record Wall(String id, String title, String note, int columns, List<Widget> cards) implements Widget.Stateless {
 
     Wall {
         cards = List.copyOf(cards == null ? List.of() : cards);
@@ -56,10 +56,12 @@ record Wall(String id, String title, String note, int columns, List<Widget> card
 
     @Override
     public Widget build(BuildContext context) {
-        return new Column(List.of(
-                new SectionHeader(title),
-                new Text(note, Attributes.NONE.classes("prose")),
-                new Masonry(cards, columns, Attributes.NONE.id(id + "-wall").classes("wall"))),
+        return new Column(
+                List.of(
+                        new SectionHeader(title),
+                        new Text(note, Attributes.NONE.classes("prose")),
+                        new Masonry(
+                                cards, columns, Attributes.NONE.id(id + "-wall").classes("wall"))),
                 Attributes.NONE.id("screen-" + id).classes("screen"));
     }
 }

@@ -6,14 +6,20 @@ import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.List;
+
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
+
 import io.github.digitalsmile.goldberry.css.Theme;
-import io.github.digitalsmile.goldberry.input.hit.Extent;
-import io.github.digitalsmile.goldberry.input.key.Key;
 import io.github.digitalsmile.goldberry.input.event.KeyEvent;
-import io.github.digitalsmile.goldberry.input.key.Mod;
-import io.github.digitalsmile.goldberry.input.key.Modifiers;
 import io.github.digitalsmile.goldberry.input.event.PointerEvent;
 import io.github.digitalsmile.goldberry.input.event.TextEvent;
+import io.github.digitalsmile.goldberry.input.hit.Extent;
+import io.github.digitalsmile.goldberry.input.key.Key;
+import io.github.digitalsmile.goldberry.input.key.Mod;
+import io.github.digitalsmile.goldberry.input.key.Modifiers;
 import io.github.digitalsmile.goldberry.kdl.KdlParser;
 import io.github.digitalsmile.goldberry.widget.ElementTree;
 import io.github.digitalsmile.goldberry.widget.WidgetRenderer;
@@ -21,10 +27,6 @@ import io.github.digitalsmile.goldberry.widgets.Controls;
 import io.github.digitalsmile.goldberry.widgets.TestHost;
 import io.github.digitalsmile.goldberry.widgets.Widgets;
 import io.github.digitalsmile.goldberry.widgets.controls.TestFont;
-import java.util.List;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.Test;
 
 /// §4's multi-line field.
 ///
@@ -50,8 +52,7 @@ class TextAreaTest {
 
     private void render(ElementTree tree) {
         tree.flush();
-        new WidgetRenderer(List.of(Controls.baseStylesheet(), Theme.NORD_DARK.load()),
-                TestFont.get()).render(tree);
+        new WidgetRenderer(List.of(Controls.baseStylesheet(), Theme.NORD_DARK.load()), TestFont.get()).render(tree);
     }
 
     private TextAreaBox box(ElementTree tree) {
@@ -152,8 +153,10 @@ class TextAreaTest {
             // offset, because the column is an **x**: eight `a`s and eight `c`s
             // are not the same width, so which `c` that x falls on is the font's
             // business and not this test's.
-            assertTrue(box(tree).edit().caret() >= 17,
-                    "the run lost its column and came back at " + box(tree).edit().caret());
+            assertTrue(
+                    box(tree).edit().caret() >= 17,
+                    "the run lost its column and came back at "
+                            + box(tree).edit().caret());
         }
 
         @Test
@@ -218,11 +221,10 @@ class TextAreaTest {
             // costs the selection.
             var parts = box(tree).children();
             var highlights = parts.stream()
-                    .filter(io.github.digitalsmile.goldberry.widgets.form.parts.Highlight.class
-                            ::isInstance)
+                    .filter(io.github.digitalsmile.goldberry.widgets.form.parts.Highlight.class::isInstance)
                     .count();
-            assertEquals(box(tree).maxRows(), highlights,
-                    "the count is the bound, and render fills what the layout needs");
+            assertEquals(
+                    box(tree).maxRows(), highlights, "the count is the bound, and render fills what the layout needs");
             assertTrue(box(tree).edit().hasSelection());
         }
 
@@ -284,7 +286,8 @@ class TextAreaTest {
         @DisplayName("naming rows and not a maximum raises the maximum to match")
         void rowsRaiseTheMaximum() {
             var area = (TextArea) Widgets.inflater()
-                    .inflateAll(KdlParser.parse("text-area rows=14")).getFirst();
+                    .inflateAll(KdlParser.parse("text-area rows=14"))
+                    .getFirst();
 
             // Otherwise `rows=14` would be a control asked for fourteen lines and
             // clamped back to the default ten, which is a smaller area than the
@@ -311,10 +314,10 @@ class TextAreaTest {
             var tree = mounted(new TextArea("one", null));
             var parts = box(tree).children();
 
-            assertTrue(parts.get(parts.size() - 2)
-                    instanceof io.github.digitalsmile.goldberry.widgets.form.parts.Value);
-            assertTrue(parts.get(parts.size() - 1)
-                    instanceof io.github.digitalsmile.goldberry.widgets.form.parts.Caret);
+            assertTrue(
+                    parts.get(parts.size() - 2) instanceof io.github.digitalsmile.goldberry.widgets.form.parts.Value);
+            assertTrue(
+                    parts.get(parts.size() - 1) instanceof io.github.digitalsmile.goldberry.widgets.form.parts.Caret);
         }
 
         @Test
@@ -348,9 +351,11 @@ class TextAreaTest {
             var tree = mounted(new TextArea());
 
             assertEquals("text-area", box(tree).cssType());
-            assertNotEquals("text-area",
+            assertNotEquals(
+                    "text-area",
                     tree.root().widget() instanceof io.github.digitalsmile.goldberry.widget.style.Styled s
-                            ? s.cssType() : "");
+                            ? s.cssType()
+                            : "");
         }
     }
 
@@ -361,7 +366,8 @@ class TextAreaTest {
         @Test
         @DisplayName("a document writes what §4 spells")
         void inflates() {
-            var area = (TextArea) Widgets.inflater().inflateAll(KdlParser.parse("""
+            var area = (TextArea)
+                    Widgets.inflater().inflateAll(KdlParser.parse("""
                     text-area value="Hello" placeholder="Say something" rows=4 max-rows=8 \
                               max-length=200
                     """)).getFirst();
@@ -379,8 +385,7 @@ class TextAreaTest {
             var widgets = Widgets.inflater().inflateAll(KdlParser.parse("""
                     field label="Bio" { text-area rows=4 }
                     """));
-            var field = (io.github.digitalsmile.goldberry.widgets.form.field.Field)
-                    widgets.getFirst();
+            var field = (io.github.digitalsmile.goldberry.widgets.form.field.Field) widgets.getFirst();
 
             assertEquals("Bio", field.label());
             assertTrue(field.children().getFirst() instanceof TextArea);
@@ -392,9 +397,16 @@ class TextAreaTest {
     class Pointer {
 
         private void press(ElementTree tree, float x, float y, int clickCount) {
-            var event = new PointerEvent(PointerEvent.Kind.PRESSED, x, y,
-                    PointerEvent.Button.PRIMARY, clickCount, Float.NaN, Float.NaN,
-                    Modifiers.NONE, null);
+            var event = new PointerEvent(
+                    PointerEvent.Kind.PRESSED,
+                    x,
+                    y,
+                    PointerEvent.Button.PRIMARY,
+                    clickCount,
+                    Float.NaN,
+                    Float.NaN,
+                    Modifiers.NONE,
+                    null);
             event.localTo(new PointerEvent.Local(x, y, 300, 200));
             box(tree).onPointer(event);
             render(tree);
@@ -408,7 +420,8 @@ class TextAreaTest {
             // 6 points of padding plus a line and a half: the second line.
             press(tree, 8, 6 + 27, 1);
 
-            assertTrue(box(tree).edit().caret() >= 4 && box(tree).edit().caret() <= 7,
+            assertTrue(
+                    box(tree).edit().caret() >= 4 && box(tree).edit().caret() <= 7,
                     "landed at " + box(tree).edit().caret() + ", which is not on line two");
         }
 

@@ -5,15 +5,16 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import io.github.digitalsmile.goldberry.render.event.EventSink;
-import io.github.digitalsmile.goldberry.render.backend.headless.HeadlessBackend;
-import io.github.digitalsmile.goldberry.render.backend.headless.HeadlessWindow;
-import io.github.digitalsmile.goldberry.render.model.LogicalSize;
-import io.github.digitalsmile.goldberry.render.window.BackendWindow;
-import io.github.digitalsmile.goldberry.render.window.WindowSpec;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+
+import io.github.digitalsmile.goldberry.render.backend.headless.HeadlessBackend;
+import io.github.digitalsmile.goldberry.render.backend.headless.HeadlessWindow;
+import io.github.digitalsmile.goldberry.render.event.EventSink;
+import io.github.digitalsmile.goldberry.render.model.LogicalSize;
+import io.github.digitalsmile.goldberry.render.window.BackendWindow;
+import io.github.digitalsmile.goldberry.render.window.WindowSpec;
 
 /// The clipboard and text-input halves of the backend SPI, without a platform.
 ///
@@ -34,8 +35,8 @@ class ClipboardTest {
 
             assertFalse(clipboard.hasText());
             assertEquals("", clipboard.text());
-            assertFalse(clipboard.text("anything"),
-                    "a clipboard with nowhere to put text must say so rather than pretend");
+            assertFalse(
+                    clipboard.text("anything"), "a clipboard with nowhere to put text must say so rather than pretend");
             assertEquals("", clipboard.text());
         }
 
@@ -68,12 +69,10 @@ class ClipboardTest {
                 }
 
                 @Override
-                public void wakeup() {
-                }
+                public void wakeup() {}
 
                 @Override
-                public void close() {
-                }
+                public void close() {}
             };
 
             assertNotNull(backend.clipboard());
@@ -181,7 +180,8 @@ class ClipboardTest {
                 // is reached, and the window it would have told is already gone.
                 window.textInput(false);
 
-                assertTrue(window.isTextInputActive(),
+                assertTrue(
+                        window.isTextInputActive(),
                         "a closed window keeps whatever it last recorded; nothing is left to tell");
             }
         }

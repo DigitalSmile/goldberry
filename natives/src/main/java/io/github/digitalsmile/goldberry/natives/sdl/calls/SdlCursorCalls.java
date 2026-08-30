@@ -4,11 +4,12 @@ import static java.lang.foreign.ValueLayout.ADDRESS;
 import static java.lang.foreign.ValueLayout.JAVA_BOOLEAN;
 import static java.lang.foreign.ValueLayout.JAVA_INT;
 
-import io.github.digitalsmile.goldberry.natives.Downcalls;
 import java.lang.foreign.FunctionDescriptor;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.SymbolLookup;
 import java.lang.invoke.MethodHandle;
+
+import io.github.digitalsmile.goldberry.natives.Downcalls;
 
 /// SDL's cursors — the shapes, and showing or hiding them.
 ///
@@ -96,8 +97,7 @@ public record SdlCursorCalls(
     /// @param cursor the cursor to release
     public static final class DestroyCursor {
 
-        private static final MethodHandle FD_SDL_DestroyCursor =
-                Downcalls.link(FunctionDescriptor.ofVoid(ADDRESS));
+        private static final MethodHandle FD_SDL_DestroyCursor = Downcalls.link(FunctionDescriptor.ofVoid(ADDRESS));
 
         private final MemorySegment address;
 
@@ -121,8 +121,7 @@ public record SdlCursorCalls(
     /// @return false only when there is no video subsystem
     public static final class ShowCursor {
 
-        private static final MethodHandle FD_SDL_ShowCursor =
-                Downcalls.link(FunctionDescriptor.of(JAVA_BOOLEAN));
+        private static final MethodHandle FD_SDL_ShowCursor = Downcalls.link(FunctionDescriptor.of(JAVA_BOOLEAN));
 
         private final MemorySegment address;
 
@@ -146,8 +145,7 @@ public record SdlCursorCalls(
     /// @return false only when there is no video subsystem
     public static final class HideCursor {
 
-        private static final MethodHandle FD_SDL_HideCursor =
-                Downcalls.link(FunctionDescriptor.of(JAVA_BOOLEAN));
+        private static final MethodHandle FD_SDL_HideCursor = Downcalls.link(FunctionDescriptor.of(JAVA_BOOLEAN));
 
         private final MemorySegment address;
 

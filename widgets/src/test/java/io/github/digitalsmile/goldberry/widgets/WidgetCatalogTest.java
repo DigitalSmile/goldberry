@@ -6,17 +6,19 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.ArrayList;
+import java.util.List;
+
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
+
 import io.github.digitalsmile.goldberry.bind.Action;
 import io.github.digitalsmile.goldberry.bind.Bind;
 import io.github.digitalsmile.goldberry.bind.Model;
 import io.github.digitalsmile.goldberry.kdl.KdlParser;
 import io.github.digitalsmile.goldberry.kdl.KdlSyntaxException;
 import io.github.digitalsmile.goldberry.widgets.core.Primitives;
-import java.util.ArrayList;
-import java.util.List;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.Test;
 import io.github.digitalsmile.goldberry.widgets.markup.WidgetCatalog;
 import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
 
@@ -42,10 +44,12 @@ class WidgetCatalogTest {
             var found = new ArrayList<WidgetCatalog>();
             Widgets.catalogs().forEach(found::add);
 
-            assertFalse(found.isEmpty(),
+            assertFalse(
+                    found.isEmpty(),
                     "no WidgetCatalog on the path — the goldberry.weave step did not run,"
                             + " or the module descriptor was not patched");
-            assertTrue(found.stream().anyMatch(c -> c.getClass().getSimpleName().equals("GoldberryCatalog")),
+            assertTrue(
+                    found.stream().anyMatch(c -> c.getClass().getSimpleName().equals("GoldberryCatalog")),
                     "found " + found);
             // Worth knowing which of the two declarations this exercised: the
             // test source set runs on the class path, so what is being read here
@@ -53,7 +57,8 @@ class WidgetCatalogTest {
             // `module-info` is the module-path half, and is checked structurally
             // by `CatalogWeaverTest` in `:weaver` -- and exercised for real when
             // the showcase runs, which it does modularly.
-            assertFalse(found.getFirst().getClass().getModule().isNamed(),
+            assertFalse(
+                    found.getFirst().getClass().getModule().isNamed(),
                     "these tests run on the class path; if that changes, this test now"
                             + " covers the module-info patch and the note above is stale");
         }
@@ -68,8 +73,8 @@ class WidgetCatalogTest {
             assertTrue(registered.containsAll(Primitives.builtInTypes()), registered.toString());
             assertTrue(registered.containsAll(Controls.controlTypes()), registered.toString());
             // And the shell widgets, which neither list names.
-            assertTrue(registered.containsAll(
-                    List.of("tabs", "tab", "menu", "item", "separator", "popover", "hud")),
+            assertTrue(
+                    registered.containsAll(List.of("tabs", "tab", "menu", "item", "separator", "popover", "hud")),
                     registered.toString());
         }
 
@@ -89,7 +94,8 @@ class WidgetCatalogTest {
         @Test
         @DisplayName("an unknown node names every registered one, with its position")
         void unknownNodeExplains() {
-            var thrown = assertThrows(KdlSyntaxException.class,
+            var thrown = assertThrows(
+                    KdlSyntaxException.class,
                     () -> Widgets.inflater().inflate(KdlParser.parse("buton").getFirst()));
 
             assertTrue(thrown.getMessage().contains("buton"), thrown.getMessage());
@@ -107,8 +113,9 @@ class WidgetCatalogTest {
             // The thing two separate inflaters made awkward: `column` came from
             // `Primitives` and `button` from `Controls`, and a caller wanting both
             // merged two registries.
-            var widget = Widgets.inflater().inflate(
-                    KdlParser.parse("column { text \"Hello\"; button \"Apply\" }").getFirst());
+            var widget = Widgets.inflater()
+                    .inflate(KdlParser.parse("column { text \"Hello\"; button \"Apply\" }")
+                            .getFirst());
 
             assertNotNull(widget);
         }
@@ -120,27 +127,33 @@ class WidgetCatalogTest {
 
         @Model
         static final class Left {
-            @Bind("left.value") int value;
+            @Bind("left.value")
+            int value;
 
-            @Action("left.act") void act() {
+            @Action("left.act")
+            void act() {
                 value++;
             }
         }
 
         @Model
         static final class Right {
-            @Bind("right.value") String value = "r";
+            @Bind("right.value")
+            String value = "r";
 
-            @Action("right.act") void act() {
+            @Action("right.act")
+            void act() {
                 value = "moved";
             }
         }
 
         @Model
         static final class Clashing {
-            @Bind("left.value") int value;
+            @Bind("left.value")
+            int value;
 
-            @Action("clash.act") void act() {
+            @Action("clash.act")
+            void act() {
                 value++;
             }
         }
@@ -150,9 +163,11 @@ class WidgetCatalogTest {
         void merged() {
             var wiring = Wiring.of(new Left(), new Right());
 
-            assertEquals(List.of("left.value", "right.value"),
+            assertEquals(
+                    List.of("left.value", "right.value"),
                     List.copyOf(wiring.bindings().bound().keySet()));
-            assertEquals(List.of("left.act", "right.act"),
+            assertEquals(
+                    List.of("left.act", "right.act"),
                     List.copyOf(wiring.actions().bound().keySet()));
         }
 
@@ -167,15 +182,16 @@ class WidgetCatalogTest {
 
             wiring.actions().resolve("right.act").run();
 
-            assertEquals("moved", io.github.digitalsmile.goldberry.bind.runtime.Models
-                    .observable(model, "right.value").get());
+            assertEquals(
+                    "moved",
+                    io.github.digitalsmile.goldberry.bind.runtime.Models.observable(model, "right.value")
+                            .get());
         }
 
         @Test
         @DisplayName("two models claiming one name is refused")
         void clash() {
-            var thrown = assertThrows(IllegalStateException.class,
-                    () -> Wiring.of(new Left(), new Clashing()));
+            var thrown = assertThrows(IllegalStateException.class, () -> Wiring.of(new Left(), new Clashing()));
 
             assertTrue(thrown.getMessage().contains("left.value"), thrown.getMessage());
         }

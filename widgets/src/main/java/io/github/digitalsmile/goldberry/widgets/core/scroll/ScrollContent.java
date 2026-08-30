@@ -1,13 +1,14 @@
 package io.github.digitalsmile.goldberry.widgets.core.scroll;
 
+import java.util.List;
+
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
 import io.github.digitalsmile.goldberry.css.value.Transform;
-import io.github.digitalsmile.goldberry.paint.Box;
 import io.github.digitalsmile.goldberry.natives.yoga.style.FlexDirection;
+import io.github.digitalsmile.goldberry.paint.Box;
+import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widget.style.Paints;
 import io.github.digitalsmile.goldberry.widget.style.Styled;
-import io.github.digitalsmile.goldberry.widget.Widget;
-import java.util.List;
 
 /// The box a [Scroll] moves — everything written inside the viewport, as one
 /// node that can be translated.
@@ -71,19 +72,20 @@ record ScrollContent(List<Widget> children, ScrollAxis axis, double offsetX, dou
             return style;
         }
         // Negative, because scrolling *down* moves the content *up*.
-        return style.transform(Transform.of(new Transform.Function.Translate(
-                Transform.Length.px(-offsetX), Transform.Length.px(-offsetY))));
+        return style.transform(Transform.of(
+                new Transform.Function.Translate(Transform.Length.px(-offsetX), Transform.Length.px(-offsetY))));
     }
 
     @Override
     public Box render(ComputedStyle style, List<Box> boxes, Context context) {
-        return Box.of().children(boxes.toArray(Box[]::new)).style(style)
+        return Box.of()
+                .children(boxes.toArray(Box[]::new))
+                .style(style)
                 // Along the axis being scrolled. A column for a vertical
                 // viewport, because several children written inside one are a
                 // document and stack -- and a **row** for a horizontal one,
                 // where a column would be a single stack of items with nothing
                 // to scroll sideways past.
-                .direction(axis == ScrollAxis.HORIZONTAL
-                        ? FlexDirection.ROW : FlexDirection.COLUMN);
+                .direction(axis == ScrollAxis.HORIZONTAL ? FlexDirection.ROW : FlexDirection.COLUMN);
     }
 }

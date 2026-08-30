@@ -1,9 +1,10 @@
 package io.github.digitalsmile.goldberry;
 
-import io.github.digitalsmile.goldberry.render.model.LogicalSize;
-import io.github.digitalsmile.goldberry.css.Stylesheet;
-import io.github.digitalsmile.goldberry.widget.Widget;
 import java.util.List;
+
+import io.github.digitalsmile.goldberry.css.Stylesheet;
+import io.github.digitalsmile.goldberry.render.model.LogicalSize;
+import io.github.digitalsmile.goldberry.widget.Widget;
 
 /// What a Goldberry application implements. Everything else is
 /// [Goldberry#launch].
@@ -138,8 +139,7 @@ public interface Application {
     /// accelerators, and keeps the [Host] if it needs one later. A widget is a
     /// value that is rebuilt and thrown away, so anything with a `close()` is
     /// opened here and not in a build.
-    default void start(Host host) {
-    }
+    default void start(Host host) {}
 
     /// Called once after the event loop ends, in the reverse order of [#start] —
     /// after the widget tree is unmounted and before the toolkit shuts down.
@@ -147,6 +147,5 @@ public interface Application {
     /// Whatever `start` opened is closed here. The launcher closes what the
     /// launcher opened, and nothing else: it cannot know that an `Icon` in a
     /// field is still referenced by a widget that has not been collected.
-    default void stop() {
-    }
+    default void stop() {}
 }

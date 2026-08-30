@@ -1,8 +1,9 @@
 package io.github.digitalsmile.goldberry.widgets.data;
 
-import io.github.digitalsmile.goldberry.widget.attr.Attributes;
-import io.github.digitalsmile.goldberry.widget.Widget;
 import java.util.List;
+
+import io.github.digitalsmile.goldberry.widget.Widget;
+import io.github.digitalsmile.goldberry.widget.attr.Attributes;
 
 /// What the three axis charts have in common, so one state can serve all of
 /// them.

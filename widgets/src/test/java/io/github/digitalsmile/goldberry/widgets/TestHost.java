@@ -1,29 +1,30 @@
 package io.github.digitalsmile.goldberry.widgets;
 
-import io.github.digitalsmile.goldberry.ContextMenuHandler;
-import io.github.digitalsmile.goldberry.stats.FrameStats;
-import io.github.digitalsmile.goldberry.Host;
-import io.github.digitalsmile.goldberry.Overlay;
-import io.github.digitalsmile.goldberry.Placement;
-import io.github.digitalsmile.goldberry.Popup;
-import io.github.digitalsmile.goldberry.Window;
-import io.github.digitalsmile.goldberry.render.Clipboard;
-import io.github.digitalsmile.goldberry.render.event.EventLoop;
-import io.github.digitalsmile.goldberry.render.model.LogicalPoint;
-import io.github.digitalsmile.goldberry.render.model.LogicalRect;
-import io.github.digitalsmile.goldberry.render.model.LogicalSize;
-import io.github.digitalsmile.goldberry.render.window.BackendWindow;
-import io.github.digitalsmile.goldberry.input.hit.HitTest;
-import io.github.digitalsmile.goldberry.input.key.Shortcut;
-import io.github.digitalsmile.goldberry.text.font.Fonts;
-import io.github.digitalsmile.goldberry.widget.style.Corner;
-import io.github.digitalsmile.goldberry.widget.Widget;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+
+import io.github.digitalsmile.goldberry.ContextMenuHandler;
+import io.github.digitalsmile.goldberry.Host;
+import io.github.digitalsmile.goldberry.Overlay;
+import io.github.digitalsmile.goldberry.Placement;
+import io.github.digitalsmile.goldberry.Popup;
+import io.github.digitalsmile.goldberry.Window;
+import io.github.digitalsmile.goldberry.input.hit.HitTest;
+import io.github.digitalsmile.goldberry.input.key.Shortcut;
+import io.github.digitalsmile.goldberry.render.Clipboard;
+import io.github.digitalsmile.goldberry.render.event.EventLoop;
+import io.github.digitalsmile.goldberry.render.model.LogicalPoint;
+import io.github.digitalsmile.goldberry.render.model.LogicalRect;
+import io.github.digitalsmile.goldberry.render.model.LogicalSize;
+import io.github.digitalsmile.goldberry.render.window.BackendWindow;
+import io.github.digitalsmile.goldberry.stats.FrameStats;
+import io.github.digitalsmile.goldberry.text.font.Fonts;
+import io.github.digitalsmile.goldberry.widget.Widget;
+import io.github.digitalsmile.goldberry.widget.style.Corner;
 
 /// A [Host] for tests: it records what it was asked for and opens nothing.
 ///
@@ -58,9 +59,7 @@ public class TestHost implements Host {
     }
 
     /// One call to a `popup` overload, whichever one it was.
-    public record Opened(Widget content, LogicalRect anchor, Placement placement,
-            float minimumWidth) {
-    }
+    public record Opened(Widget content, LogicalRect anchor, Placement placement, float minimumWidth) {}
 
     /// Every popup this was asked to open, in order. Read directly by the tests
     /// that were written against their own stub before this one existed.
@@ -112,8 +111,12 @@ public class TestHost implements Host {
         var rect = anchors.get(id);
         return rect == null
                 ? Optional.empty()
-                : Optional.of(HitTest.Region.of(null, rect.left(), rect.top(),
-                        rect.size().width(), rect.size().height()));
+                : Optional.of(HitTest.Region.of(
+                        null,
+                        rect.left(),
+                        rect.top(),
+                        rect.size().width(),
+                        rect.size().height()));
     }
 
     @Override
@@ -122,21 +125,17 @@ public class TestHost implements Host {
     }
 
     @Override
-    public Optional<Popup> popup(Widget content, LogicalRect anchor, Placement placement,
-            float minimumWidth) {
+    public Optional<Popup> popup(Widget content, LogicalRect anchor, Placement placement, float minimumWidth) {
         return popup(content, anchor, placement, minimumWidth, null);
     }
 
     @Override
-    public Optional<Popup> popup(Widget content, LogicalRect anchor, Placement placement,
-            float minimumWidth, Fit fit) {
+    public Optional<Popup> popup(Widget content, LogicalRect anchor, Placement placement, float minimumWidth, Fit fit) {
         // The `Fit` is **consulted**, which is the whole reason a test double
         // bothers: the real facility answers it with a measurement, and a widget
         // that reacts to one has nothing to react to otherwise. What it is told
         // is [#measuring]'s, because nothing here lays anything out.
-        var toOpen = fit == null || measured == null
-                ? content
-                : fit.fit(content, measured, placeableArea());
+        var toOpen = fit == null || measured == null ? content : fit.fit(content, measured, placeableArea());
         opened.add(new Opened(toOpen, anchor, placement, minimumWidth));
         return Optional.empty();
     }
@@ -167,8 +166,7 @@ public class TestHost implements Host {
 
     @Override
     public Optional<Popup> popup(Widget content, LogicalPoint at, LogicalSize size) {
-        opened.add(new Opened(content, LogicalRect.of(at.x(), at.y(), 0, 0),
-                Placement.BELOW, 0));
+        opened.add(new Opened(content, LogicalRect.of(at.x(), at.y(), 0, 0), Placement.BELOW, 0));
         return Optional.empty();
     }
 
@@ -188,12 +186,10 @@ public class TestHost implements Host {
     }
 
     @Override
-    public void restyle() {
-    }
+    public void restyle() {}
 
     @Override
-    public void title(String title) {
-    }
+    public void title(String title) {}
 
     @Override
     public void shortcut(Shortcut accelerator, Runnable action) {
@@ -407,8 +403,7 @@ public class TestHost implements Host {
     public java.util.Optional<io.github.digitalsmile.goldberry.render.tray.BackendTray> tray(
             io.github.digitalsmile.goldberry.render.tray.TraySpec spec) {
         if (trayBackend == null) {
-            trayBackend = new io.github.digitalsmile.goldberry.render.backend.headless
-                    .HeadlessBackend();
+            trayBackend = new io.github.digitalsmile.goldberry.render.backend.headless.HeadlessBackend();
         }
         // `andThen(this::repaint)` is the launcher's, and it is here because a
         // test host that skipped it would pass the one thing the real one got
@@ -442,8 +437,8 @@ public class TestHost implements Host {
     }
 
     @Override
-    public Optional<Popup> attachedPopup(Widget content, LogicalRect anchor, Placement placement,
-            float minimumWidth, Fit fit) {
+    public Optional<Popup> attachedPopup(
+            Widget content, LogicalRect anchor, Placement placement, float minimumWidth, Fit fit) {
         return popup(content, anchor, placement, minimumWidth, fit);
     }
 }

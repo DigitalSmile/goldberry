@@ -1,6 +1,5 @@
 package io.github.digitalsmile.goldberry.css.cascade;
 
-import io.github.digitalsmile.goldberry.log.Logs;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -10,15 +9,18 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+
 import org.slf4j.Logger;
-import io.github.digitalsmile.goldberry.css.parse.Token;
-import io.github.digitalsmile.goldberry.css.parse.TokenType;
-import io.github.digitalsmile.goldberry.css.select.Selector;
-import io.github.digitalsmile.goldberry.css.select.SelectorMatcher;
+
 import io.github.digitalsmile.goldberry.css.Declaration;
 import io.github.digitalsmile.goldberry.css.StyleElement;
 import io.github.digitalsmile.goldberry.css.StyleRule;
 import io.github.digitalsmile.goldberry.css.Stylesheet;
+import io.github.digitalsmile.goldberry.css.parse.Token;
+import io.github.digitalsmile.goldberry.css.parse.TokenType;
+import io.github.digitalsmile.goldberry.css.select.Selector;
+import io.github.digitalsmile.goldberry.css.select.SelectorMatcher;
+import io.github.digitalsmile.goldberry.log.Logs;
 
 /// Runs the cascade for one element and substitutes `var()`.
 ///
@@ -59,8 +61,7 @@ public final class StyleResolver {
     ///
     /// The layer travels with the rule because the buckets flatten the sheets
     /// away, and the cascade needs it back.
-    private record Candidate(StyleRule rule, CascadeLayer layer) {
-    }
+    private record Candidate(StyleRule rule, CascadeLayer layer) {}
 
     /// Rules whose **rightmost** compound names a type, bucketed by that type.
     ///
@@ -214,8 +215,7 @@ public final class StyleResolver {
                 // fallback. CSS drops the declaration, and so does this -- but at
                 // resolve time, which is inside the frame loop, so it warns
                 // rather than throwing the way a parse error does.
-                LOG.warn("dropping \"{}\" on <{}>: a var() in it resolves to nothing",
-                        entry.getKey(), element.type());
+                LOG.warn("dropping \"{}\" on <{}>: a var() in it resolves to nothing", entry.getKey(), element.type());
                 continue;
             }
             resolved.put(entry.getKey(), value);
@@ -255,8 +255,7 @@ public final class StyleResolver {
     ///
     /// @param ownCascade this element's winning declarations, or null to compute
     ///                   them here
-    private Map<String, List<Token>> customPropertiesFor(
-            StyleElement element, Map<String, List<Token>> ownCascade) {
+    private Map<String, List<Token>> customPropertiesFor(StyleElement element, Map<String, List<Token>> ownCascade) {
         // Built from the root down so a nearer definition overwrites a farther
         // one. Recursion rather than a loop because the chain is walked upward
         // and applied downward.
@@ -337,14 +336,13 @@ public final class StyleResolver {
     /// makes a layer an extension of source order rather than the override
     /// `@layer` provides. A more specific toolkit rule therefore still beats a
     /// vaguer application one, exactly as two rules in one stylesheet would.
-    private static final Comparator<Match> CASCADE =
-            Comparator.<Match, Boolean>comparing(m -> m.declaration().important())
-                    .thenComparingInt(Match::specificity)
-                    .thenComparing(Match::layer)
-                    .thenComparingInt(Match::order);
+    private static final Comparator<Match> CASCADE = Comparator.<Match, Boolean>comparing(
+                    m -> m.declaration().important())
+            .thenComparingInt(Match::specificity)
+            .thenComparing(Match::layer)
+            .thenComparingInt(Match::order);
 
-    private record Match(Declaration declaration, CascadeLayer layer, int specificity, int order) {
-    }
+    private record Match(Declaration declaration, CascadeLayer layer, int specificity, int order) {}
 
     /// Replaces every `var()` in `value`.
     ///
@@ -352,8 +350,7 @@ public final class StyleResolver {
     ///                   cycle is caught rather than overflowing the stack
     /// @return the substituted tokens, or null if the value is invalid at
     ///         computed-value time
-    static List<Token> substitute(
-            List<Token> value, Map<String, List<Token>> variables, Set<String> inProgress) {
+    static List<Token> substitute(List<Token> value, Map<String, List<Token>> variables, Set<String> inProgress) {
 
         if (value.stream().noneMatch(t -> t.is(TokenType.FUNCTION) && t.text().equalsIgnoreCase("var"))) {
             return value;
@@ -389,7 +386,8 @@ public final class StyleResolver {
             List<Token> arguments, Map<String, List<Token>> variables, Set<String> inProgress) {
 
         var trimmed = trim(arguments);
-        if (trimmed.isEmpty() || !trimmed.getFirst().is(TokenType.IDENT)
+        if (trimmed.isEmpty()
+                || !trimmed.getFirst().is(TokenType.IDENT)
                 || !trimmed.getFirst().text().startsWith("--")) {
             // var(4px) and var() are not things; treat as unresolvable rather
             // than guessing what was meant.

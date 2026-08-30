@@ -1,5 +1,7 @@
 package io.github.digitalsmile.goldberry.example.ui;
 
+import java.util.List;
+
 import io.github.digitalsmile.goldberry.example.ShowcaseModel;
 import io.github.digitalsmile.goldberry.icon.Icon;
 import io.github.digitalsmile.goldberry.widget.Widget;
@@ -7,7 +9,6 @@ import io.github.digitalsmile.goldberry.widget.attr.Attributes;
 import io.github.digitalsmile.goldberry.widgets.menu.Item;
 import io.github.digitalsmile.goldberry.widgets.menu.MenuBar;
 import io.github.digitalsmile.goldberry.widgets.menu.Separator;
-import java.util.List;
 
 /// The window's own menu bar: **File**, **Edit** and **Help**, across the top of
 /// the window and above everything else.
@@ -51,9 +52,7 @@ public record AppMenu(ShowcaseModel.Actions actions, Handlers window, Icon palet
     /// @param toggleHud  what View's frame-rate row toggles
     /// @param raiseToast what Edit ▸ Send word raises
     /// @param quit       what File ▸ Quit does
-    public record Handlers(Runnable openDialog, Runnable toggleHud, Runnable raiseToast,
-            Runnable quit) {
-    }
+    public record Handlers(Runnable openDialog, Runnable toggleHud, Runnable raiseToast, Runnable quit) {}
 
     /// The bar itself.
     ///
@@ -61,8 +60,7 @@ public record AppMenu(ShowcaseModel.Actions actions, Handlers window, Icon palet
     ///                 than read, because whether a HUD is up is a fact about the
     ///                 window's overlay layer and this record cannot see one
     public MenuBar bar(boolean hudShown) {
-        return new MenuBar(List.of(file(), edit(), help(hudShown)),
-                Attributes.NONE.id("app-menu"));
+        return new MenuBar(List.of(file(), edit(), help(hudShown)), Attributes.NONE.id("app-menu"));
     }
 
     /// **File** — the road, and the way out.
@@ -72,16 +70,18 @@ public record AppMenu(ShowcaseModel.Actions actions, Handlers window, Icon palet
     /// destructive row beside an ordinary one is a row somebody presses by
     /// accident.
     private Item file() {
-        return new Item("File").submenu(
-                new Item("March a league", actions::click).accelerator("Ctrl+K"),
-                new Item("Unsaved changes…", window.openDialog()).accelerator("Ctrl+O"),
-                new Separator(),
-                new Item("Switch the light", actions::toggleTheme)
-                        .icon(palette).accelerator("Ctrl+T"),
-                new Item("Switch the density", actions::toggleDensity).accelerator("Ctrl+D"),
-                new Separator(),
-                new Item("Begin again at Bag End", actions::reset),
-                new Item("Quit", window.quit()).accelerator("Ctrl+Q"));
+        return new Item("File")
+                .submenu(
+                        new Item("March a league", actions::click).accelerator("Ctrl+K"),
+                        new Item("Unsaved changes…", window.openDialog()).accelerator("Ctrl+O"),
+                        new Separator(),
+                        new Item("Switch the light", actions::toggleTheme)
+                                .icon(palette)
+                                .accelerator("Ctrl+T"),
+                        new Item("Switch the density", actions::toggleDensity).accelerator("Ctrl+D"),
+                        new Separator(),
+                        new Item("Begin again at Bag End", actions::reset),
+                        new Item("Quit", window.quit()).accelerator("Ctrl+Q"));
     }
 
     /// **Edit** — everything that changes what the model holds, and one row that
@@ -93,23 +93,24 @@ public record AppMenu(ShowcaseModel.Actions actions, Handlers window, Icon palet
     /// only one on this bar, which is why it is here rather than in a `Nothing`
     /// menu invented to hold it.
     private Item edit() {
-        return new Item("Edit").submenu(
-                new Item("Turn back", actions::undo).accelerator("Ctrl+Z"),
-                new Item("Press on", actions::click).disabled(true).accelerator("Ctrl+Y"),
-                new Separator(),
-                // Checked from the model rather than remembered here: the same
-                // box is on the Basic screen and the same switch beside it, and a
-                // menu that kept its own copy would disagree with both the moment
-                // either was used (ADR-0063).
-                new Item("Read the verse", actions::toggleProse)
-                        .checked(actions.values().isProseShown()),
-                new Item("Send word", window.raiseToast()),
-                new Separator(),
-                new Item("Go to").submenu(
-                        Screen.GALLERY.stream()
-                                .map(name -> (Widget) new Item(Screen.title(name),
-                                        () -> actions.pickScreen(name)))
-                                .toArray(Widget[]::new)));
+        return new Item("Edit")
+                .submenu(
+                        new Item("Turn back", actions::undo).accelerator("Ctrl+Z"),
+                        new Item("Press on", actions::click).disabled(true).accelerator("Ctrl+Y"),
+                        new Separator(),
+                        // Checked from the model rather than remembered here: the same
+                        // box is on the Basic screen and the same switch beside it, and a
+                        // menu that kept its own copy would disagree with both the moment
+                        // either was used (ADR-0063).
+                        new Item("Read the verse", actions::toggleProse)
+                                .checked(actions.values().isProseShown()),
+                        new Item("Send word", window.raiseToast()),
+                        new Separator(),
+                        new Item("Go to")
+                                .submenu(Screen.GALLERY.stream()
+                                        .map(name ->
+                                                (Widget) new Item(Screen.title(name), () -> actions.pickScreen(name)))
+                                        .toArray(Widget[]::new)));
     }
 
     /// **Help** — what this window is, and the two diagnostics that say how it is
@@ -120,12 +121,13 @@ public record AppMenu(ShowcaseModel.Actions actions, Handlers window, Icon palet
     /// a row that said `Frame rate` with nothing beside it would give a reader no
     /// way to tell whether pressing it turns one on or off.
     private Item help(boolean hudShown) {
-        return new Item("Help").submenu(
-                new Item("Frame rate", window.toggleHud())
-                        .accelerator("Ctrl+F")
-                        .checked(hudShown),
-                new Separator(),
-                new Item("Take the tour", () -> actions.pickScreen("navigation")),
-                new Item("About Goldberry", window.openDialog()));
+        return new Item("Help")
+                .submenu(
+                        new Item("Frame rate", window.toggleHud())
+                                .accelerator("Ctrl+F")
+                                .checked(hudShown),
+                        new Separator(),
+                        new Item("Take the tour", () -> actions.pickScreen("navigation")),
+                        new Item("About Goldberry", window.openDialog()));
     }
 }

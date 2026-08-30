@@ -5,11 +5,12 @@ import static java.lang.foreign.ValueLayout.JAVA_DOUBLE;
 import static java.lang.foreign.ValueLayout.JAVA_INT;
 import static java.lang.foreign.ValueLayout.JAVA_LONG;
 
-import io.github.digitalsmile.goldberry.natives.Downcalls;
 import java.lang.foreign.FunctionDescriptor;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.SymbolLookup;
 import java.lang.invoke.MethodHandle;
+
+import io.github.digitalsmile.goldberry.natives.Downcalls;
 
 /// Blend2D’s `BLGradient` — a fill style that is not a colour (ADR-0207).
 ///
@@ -25,18 +26,14 @@ import java.lang.invoke.MethodHandle;
 /// parameters are the C prototype’s. See [Downcalls] for why the handle is a
 /// `static final` constant and why these live in a package of their own.
 public record GradientCalls(
-        GradientInitAs gradientInitAs,
-        GradientDestroy gradientDestroy,
-        GradientAddStopRgba32 gradientAddStopRgba32) {
+        GradientInitAs gradientInitAs, GradientDestroy gradientDestroy, GradientAddStopRgba32 gradientAddStopRgba32) {
 
     /// Binds every function above, failing if the library exports none of them.
     ///
     /// @param lookup the loaded `libgoldberry`
     public static GradientCalls bind(SymbolLookup lookup) {
         return new GradientCalls(
-                new GradientInitAs(lookup),
-                new GradientDestroy(lookup),
-                new GradientAddStopRgba32(lookup));
+                new GradientInitAs(lookup), new GradientDestroy(lookup), new GradientAddStopRgba32(lookup));
     }
 
     /// Constructs a gradient of `type` with the geometry in `values`.
@@ -61,10 +58,8 @@ public record GradientCalls(
     /// @param transform a `const BLMatrix2D*` applied to the gradient, or NULL
     public static final class GradientInitAs {
 
-        private static final MethodHandle FD_bl_gradient_init_as =
-                Downcalls.link(FunctionDescriptor.of(
-                        JAVA_INT, ADDRESS, JAVA_INT, ADDRESS, JAVA_INT, ADDRESS, JAVA_LONG,
-                        ADDRESS));
+        private static final MethodHandle FD_bl_gradient_init_as = Downcalls.link(
+                FunctionDescriptor.of(JAVA_INT, ADDRESS, JAVA_INT, ADDRESS, JAVA_INT, ADDRESS, JAVA_LONG, ADDRESS));
 
         private final MemorySegment address;
 
@@ -73,8 +68,13 @@ public record GradientCalls(
         }
 
         public int call(
-                MemorySegment gradient, int type, MemorySegment values, int extendMode,
-                MemorySegment stops, long stopCount, MemorySegment transform) {
+                MemorySegment gradient,
+                int type,
+                MemorySegment values,
+                int extendMode,
+                MemorySegment stops,
+                long stopCount,
+                MemorySegment transform) {
             try {
                 return (int) FD_bl_gradient_init_as.invokeExact(
                         address, gradient, type, values, extendMode, stops, stopCount, transform);
@@ -130,8 +130,7 @@ public record GradientCalls(
 
         public int call(MemorySegment gradient, double offset, int argb) {
             try {
-                return (int) FD_bl_gradient_add_stop_rgba32.invokeExact(
-                        address, gradient, offset, argb);
+                return (int) FD_bl_gradient_add_stop_rgba32.invokeExact(address, gradient, offset, argb);
             } catch (Throwable t) {
                 throw Downcalls.failure("bl_gradient_add_stop_rgba32", t);
             }

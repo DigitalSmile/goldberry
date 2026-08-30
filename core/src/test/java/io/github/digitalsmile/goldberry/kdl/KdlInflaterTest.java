@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.List;
+
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -13,14 +14,15 @@ class KdlInflaterTest {
 
     /// A stand-in for whatever the widget tree will be: enough to prove the
     /// node's own data and its children both reached the factory.
-    private record Built(String type, String label, List<Built> children) {
-    }
+    private record Built(String type, String label, List<Built> children) {}
 
     private static KdlInflater<Built> inflater() {
         var inflater = new KdlInflater<Built>();
         for (var name : List.of("window", "row", "button", "label")) {
-            inflater.register(name, (node, children) ->
-                    new Built(name, node.argument().map(KdlValue::asString).orElse(null), children));
+            inflater.register(
+                    name,
+                    (node, children) -> new Built(
+                            name, node.argument().map(KdlValue::asString).orElse(null), children));
         }
         return inflater;
     }
@@ -44,7 +46,8 @@ class KdlInflaterTest {
             assertEquals("window", built.type());
             var row = built.children().getFirst();
             assertEquals("row", row.type());
-            assertEquals(List.of("Apply", "Cancel"),
+            assertEquals(
+                    List.of("Apply", "Cancel"),
                     row.children().stream().map(Built::label).toList());
         }
 
@@ -70,8 +73,10 @@ class KdlInflaterTest {
         @Test
         @DisplayName("an unknown node is a hard error naming the position and what is known")
         void unknownNode() {
-            var thrown = assertThrows(KdlSyntaxException.class,
-                    () -> inflater().inflate(KdlParser.parse("window {\n  spinner\n}").getFirst()));
+            var thrown = assertThrows(
+                    KdlSyntaxException.class,
+                    () -> inflater()
+                            .inflate(KdlParser.parse("window {\n  spinner\n}").getFirst()));
 
             // §9 asks for exactly this: hard errors with source positions.
             assertEquals(2, thrown.line());
@@ -87,8 +92,7 @@ class KdlInflaterTest {
             var inflater = inflater();
             // Shadowing a built-in silently, at whichever point a registration
             // happened to run, is not a good way to find out it happened.
-            assertThrows(IllegalStateException.class,
-                    () -> inflater.register("button", (node, children) -> null));
+            assertThrows(IllegalStateException.class, () -> inflater.register("button", (node, children) -> null));
         }
 
         @Test
@@ -97,7 +101,9 @@ class KdlInflaterTest {
             var inflater = inflater();
             inflater.replace("button", (node, children) -> new Built("custom-button", null, children));
 
-            assertEquals("custom-button", inflater.inflate(KdlParser.parse("button \"A\"").getFirst()).type());
+            assertEquals(
+                    "custom-button",
+                    inflater.inflate(KdlParser.parse("button \"A\"").getFirst()).type());
         }
 
         @Test
@@ -106,7 +112,9 @@ class KdlInflaterTest {
             var inflater = inflater();
             inflater.register("gauge", (node, children) -> new Built("gauge", null, children));
 
-            assertEquals("gauge", inflater.inflate(KdlParser.parse("gauge").getFirst()).type());
+            assertEquals(
+                    "gauge",
+                    inflater.inflate(KdlParser.parse("gauge").getFirst()).type());
         }
     }
 

@@ -1,15 +1,16 @@
 package io.github.digitalsmile.goldberry.widgets.controls.segmented;
 
-import io.github.digitalsmile.goldberry.widgets.controls.option.Option;
-import io.github.digitalsmile.goldberry.css.ComputedStyle;
-import io.github.digitalsmile.goldberry.paint.Box;
-import io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength;
-import io.github.digitalsmile.goldberry.widget.style.Paints;
-import io.github.digitalsmile.goldberry.widget.style.Styled;
-import io.github.digitalsmile.goldberry.widget.Widget;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+
+import io.github.digitalsmile.goldberry.css.ComputedStyle;
+import io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength;
+import io.github.digitalsmile.goldberry.paint.Box;
+import io.github.digitalsmile.goldberry.widget.Widget;
+import io.github.digitalsmile.goldberry.widget.style.Paints;
+import io.github.digitalsmile.goldberry.widget.style.Styled;
+import io.github.digitalsmile.goldberry.widgets.controls.option.Option;
 
 /// The box a [Segmented]'s segments are laid along, and the one its indicator is
 /// placed against — a **part**, and the reason there is one at all.
@@ -112,7 +113,7 @@ record SegmentedTrack(List<Widget> segments, int index) implements Widget.Leaf, 
         // the indicator, whose width is the same proportion written through
         // `restyle` so that the travel beside it can transition. Everything after
         // them is what the document wrote.
-        var parts = count;   // (count - 1) dividers, and one indicator
+        var parts = count; // (count - 1) dividers, and one indicator
         var cells = new ArrayList<Box>(children.size());
         var seen = 0;
         for (var i = 0; i < children.size(); i++) {
@@ -128,8 +129,8 @@ record SegmentedTrack(List<Widget> segments, int index) implements Widget.Leaf, 
                 // end is a fact about a count, and no selector can count -- so
                 // the *radius* stays in `controls.css` and only the choice of
                 // which corners keep it is made here (ADR-0217).
-                cell = cell.decoration(cell.decoration().corners(
-                        cell.decoration().corners().inRow(seen == 0, seen == count - 1)));
+                cell = cell.decoration(
+                        cell.decoration().corners(cell.decoration().corners().inRow(seen == 0, seen == count - 1)));
                 seen++;
             }
             cells.add(cell);

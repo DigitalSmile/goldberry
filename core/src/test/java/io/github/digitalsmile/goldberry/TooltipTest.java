@@ -4,30 +4,32 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import io.github.digitalsmile.goldberry.render.event.BackendEvent;
-import io.github.digitalsmile.goldberry.render.Cursor;
-import io.github.digitalsmile.goldberry.render.event.EventLoop;
-import io.github.digitalsmile.goldberry.render.model.LogicalSize;
-import io.github.digitalsmile.goldberry.render.popup.PopupKind;
-import io.github.digitalsmile.goldberry.render.backend.headless.HeadlessBackend;
-import io.github.digitalsmile.goldberry.render.backend.headless.HeadlessPopup;
-import io.github.digitalsmile.goldberry.render.backend.headless.HeadlessWindow;
-import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
-import io.github.digitalsmile.goldberry.css.ComputedStyle;
-import io.github.digitalsmile.goldberry.css.Stylesheet;
-import io.github.digitalsmile.goldberry.paint.Box;
-import io.github.digitalsmile.goldberry.widget.attr.Attributed;
-import io.github.digitalsmile.goldberry.widget.attr.Attributes;
-import io.github.digitalsmile.goldberry.widget.style.Paints;
-import io.github.digitalsmile.goldberry.widget.style.Styled;
-import io.github.digitalsmile.goldberry.widget.Widget;
 import java.util.List;
 import java.util.Set;
+
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
+
+import io.github.digitalsmile.goldberry.css.ComputedStyle;
+import io.github.digitalsmile.goldberry.css.Stylesheet;
+import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
+import io.github.digitalsmile.goldberry.paint.Box;
+import io.github.digitalsmile.goldberry.render.Cursor;
+import io.github.digitalsmile.goldberry.render.backend.headless.HeadlessBackend;
+import io.github.digitalsmile.goldberry.render.backend.headless.HeadlessPopup;
+import io.github.digitalsmile.goldberry.render.backend.headless.HeadlessWindow;
+import io.github.digitalsmile.goldberry.render.event.BackendEvent;
+import io.github.digitalsmile.goldberry.render.event.EventLoop;
+import io.github.digitalsmile.goldberry.render.model.LogicalSize;
+import io.github.digitalsmile.goldberry.render.popup.PopupKind;
+import io.github.digitalsmile.goldberry.widget.Widget;
+import io.github.digitalsmile.goldberry.widget.attr.Attributed;
+import io.github.digitalsmile.goldberry.widget.attr.Attributes;
+import io.github.digitalsmile.goldberry.widget.style.Paints;
+import io.github.digitalsmile.goldberry.widget.style.Styled;
 
 /// `tooltip="…"` end to end: the pointer rests on a widget, a delay passes, and a
 /// popup opens with the text in it.
@@ -39,8 +41,7 @@ import org.junit.jupiter.api.Timeout;
 class TooltipTest {
 
     /// A node that fills its window and carries a tooltip.
-    private record Target(Attributes attributes)
-            implements Widget.Leaf, Styled, Paints, Attributed<Target> {
+    private record Target(Attributes attributes) implements Widget.Leaf, Styled, Paints, Attributed<Target> {
 
         @Override
         public String cssType() {
@@ -161,11 +162,10 @@ class TooltipTest {
         var immediately = new boolean[1];
         Goldberry.launch(new TestApp(
                 new Target(Attributes.NONE.tooltip("Save")).id("target"),
-                host -> hoverAfterTheFirstFrame(() ->
-                        later(60, () -> {
-                            immediately[0] = tooltipWindow().isPresent();
-                            Goldberry.stop();
-                        }))));
+                host -> hoverAfterTheFirstFrame(() -> later(60, () -> {
+                    immediately[0] = tooltipWindow().isPresent();
+                    Goldberry.stop();
+                }))));
 
         assertFalse(immediately[0], "60ms is not 500ms");
     }
@@ -199,11 +199,10 @@ class TooltipTest {
         var appeared = new boolean[1];
         Goldberry.launch(new TestApp(
                 new Target(Attributes.NONE).id("target"),
-                host -> hoverAfterTheFirstFrame(() ->
-                        later(900, () -> {
-                            appeared[0] = tooltipWindow().isPresent();
-                            Goldberry.stop();
-                        }))));
+                host -> hoverAfterTheFirstFrame(() -> later(900, () -> {
+                    appeared[0] = tooltipWindow().isPresent();
+                    Goldberry.stop();
+                }))));
 
         assertFalse(appeared[0]);
     }
@@ -223,27 +222,26 @@ class TooltipTest {
         var hoveredAfter = new boolean[1];
         Goldberry.launch(new TestApp(
                 new Target(Attributes.NONE.tooltip("Save the document")).id("target"),
-                host -> hoverAfterTheFirstFrame(() ->
-                        later(900, () -> {
-                            cursorAfter[0] = ownerWindow().cursor();
-                            hoveredAfter[0] = tooltipWindow().isPresent();
-                            Goldberry.stop();
-                        }))));
+                host -> hoverAfterTheFirstFrame(() -> later(900, () -> {
+                    cursorAfter[0] = ownerWindow().cursor();
+                    hoveredAfter[0] = tooltipWindow().isPresent();
+                    Goldberry.stop();
+                }))));
 
         assertTrue(hoveredAfter[0], "the tooltip is up");
-        assertEquals(Cursor.POINTER, cursorAfter[0],
-                "and the pointer still shows what it is over");
+        assertEquals(Cursor.POINTER, cursorAfter[0], "and the pointer still shows what it is over");
     }
 
     private static void later(long millis, Runnable action) {
         Goldberry.async(() -> {
-            try {
-                Thread.sleep(millis);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-            }
-            return null;
-        }).thenRun(action);
+                    try {
+                        Thread.sleep(millis);
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                    }
+                    return null;
+                })
+                .thenRun(action);
     }
 
     /// A pointer move, posted **after the first frame**: hit testing runs against

@@ -78,20 +78,17 @@ public final class KdlParser {
         java.util.Objects.requireNonNull(name, "name");
         try (var in = owner.getResourceAsStream(name)) {
             if (in == null) {
-                throw new IllegalStateException(
-                        "no markup resource \"" + name + "\" beside " + owner.getName()
-                                + ". Either it is missing from src/main/resources/"
-                                + owner.getPackageName().replace('.', '/') + "/, or "
-                                + (owner.getModule().isNamed()
-                                        && !owner.getModule().isOpen(owner.getPackageName())
-                                    ? "module " + owner.getModule().getName()
-                                            + " does not open the package: JPMS encapsulates"
-                                            + " resources, so add `opens "
-                                            + owner.getPackageName() + ";` to its module-info"
-                                    : "it is not on the module path"));
+                throw new IllegalStateException("no markup resource \"" + name + "\" beside " + owner.getName()
+                        + ". Either it is missing from src/main/resources/"
+                        + owner.getPackageName().replace('.', '/') + "/, or "
+                        + (owner.getModule().isNamed() && !owner.getModule().isOpen(owner.getPackageName())
+                                ? "module " + owner.getModule().getName()
+                                        + " does not open the package: JPMS encapsulates"
+                                        + " resources, so add `opens "
+                                        + owner.getPackageName() + ";` to its module-info"
+                                : "it is not on the module path"));
             }
-            return parse(new String(
-                    in.readAllBytes(), java.nio.charset.StandardCharsets.UTF_8));
+            return parse(new String(in.readAllBytes(), java.nio.charset.StandardCharsets.UTF_8));
         } catch (java.io.IOException e) {
             throw new java.io.UncheckedIOException("could not read " + name, e);
         }
@@ -185,8 +182,7 @@ public final class KdlParser {
     }
 
     /// An argument or a property, told apart by whether an `=` follows.
-    private record Entry(String key, KdlValue value) {
-    }
+    private record Entry(String key, KdlValue value) {}
 
     private Entry entry() {
         refuseTypeAnnotation();
@@ -374,11 +370,12 @@ public final class KdlParser {
                         digits.append(c);
                     }
                 }
-                var base = switch (radix) {
-                    case 'x' -> 16;
-                    case 'o' -> 8;
-                    default -> 2;
-                };
+                var base =
+                        switch (radix) {
+                            case 'x' -> 16;
+                            case 'o' -> 8;
+                            default -> 2;
+                        };
                 try {
                     var magnitude = Long.parseLong(digits.toString(), base);
                     return text.toString().startsWith("-") ? -magnitude : magnitude;
@@ -387,9 +384,13 @@ public final class KdlParser {
                 }
             }
         }
-        while (!atEnd() && (Character.isDigit(peek()) || peek() == '_' || peek() == '.'
-                || peek() == 'e' || peek() == 'E'
-                || ((peek() == '+' || peek() == '-') && isExponentSign()))) {
+        while (!atEnd()
+                && (Character.isDigit(peek())
+                        || peek() == '_'
+                        || peek() == '.'
+                        || peek() == 'e'
+                        || peek() == 'E'
+                        || ((peek() == '+' || peek() == '-') && isExponentSign()))) {
             var c = advance();
             if (c != '_') {
                 text.append(c);
@@ -416,7 +417,8 @@ public final class KdlParser {
         if (peek() == '"') {
             return quotedString();
         }
-        if (peek() == '#' && index + 1 < source.length()
+        if (peek() == '#'
+                && index + 1 < source.length()
                 && (source.charAt(index + 1) == '"' || source.charAt(index + 1) == '#')) {
             return rawString();
         }

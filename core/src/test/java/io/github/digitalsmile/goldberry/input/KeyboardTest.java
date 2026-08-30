@@ -6,22 +6,24 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import io.github.digitalsmile.goldberry.css.select.Selector.PseudoClass;
-import io.github.digitalsmile.goldberry.widget.Element;
-import io.github.digitalsmile.goldberry.widget.ElementTree;
-import io.github.digitalsmile.goldberry.widget.style.Styled;
-import io.github.digitalsmile.goldberry.widget.Widget;
 import java.util.ArrayList;
 import java.util.List;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+
+import io.github.digitalsmile.goldberry.css.select.Selector.PseudoClass;
 import io.github.digitalsmile.goldberry.input.event.KeyEvent;
 import io.github.digitalsmile.goldberry.input.event.TextEvent;
+import io.github.digitalsmile.goldberry.input.handler.Handles;
 import io.github.digitalsmile.goldberry.input.key.Key;
 import io.github.digitalsmile.goldberry.input.key.Modifiers;
-import io.github.digitalsmile.goldberry.input.handler.Handles;
+import io.github.digitalsmile.goldberry.widget.Element;
+import io.github.digitalsmile.goldberry.widget.ElementTree;
+import io.github.digitalsmile.goldberry.widget.Widget;
+import io.github.digitalsmile.goldberry.widget.style.Styled;
 
 class KeyboardTest {
 
@@ -103,11 +105,13 @@ class KeyboardTest {
 
             router.keyPressed(Key.ESCAPE, Modifiers.NONE, false);
 
-            assertEquals(List.of(
-                    "capture:container:ESCAPE",
-                    "capture:first:ESCAPE",
-                    "key:first:PRESSED:ESCAPE",
-                    "key:container:PRESSED:ESCAPE"), log);
+            assertEquals(
+                    List.of(
+                            "capture:container:ESCAPE",
+                            "capture:first:ESCAPE",
+                            "key:first:PRESSED:ESCAPE",
+                            "key:container:PRESSED:ESCAPE"),
+                    log);
         }
 
         @Test

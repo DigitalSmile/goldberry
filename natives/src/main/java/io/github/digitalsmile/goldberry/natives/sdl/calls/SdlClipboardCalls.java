@@ -3,11 +3,12 @@ package io.github.digitalsmile.goldberry.natives.sdl.calls;
 import static java.lang.foreign.ValueLayout.ADDRESS;
 import static java.lang.foreign.ValueLayout.JAVA_BOOLEAN;
 
-import io.github.digitalsmile.goldberry.natives.Downcalls;
 import java.lang.foreign.FunctionDescriptor;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.SymbolLookup;
 import java.lang.invoke.MethodHandle;
+
+import io.github.digitalsmile.goldberry.natives.Downcalls;
 
 /// SDL's clipboard, and the allocator its strings come from.
 ///
@@ -42,8 +43,7 @@ public record SdlClipboardCalls(
     /// @return a NUL-terminated string the caller owns; empty rather than NULL on failure
     public static final class GetClipboardText {
 
-        private static final MethodHandle FD_SDL_GetClipboardText =
-                Downcalls.link(FunctionDescriptor.of(ADDRESS));
+        private static final MethodHandle FD_SDL_GetClipboardText = Downcalls.link(FunctionDescriptor.of(ADDRESS));
 
         private final MemorySegment address;
 
@@ -96,8 +96,7 @@ public record SdlClipboardCalls(
     /// @return true if there is text to paste
     public static final class HasClipboardText {
 
-        private static final MethodHandle FD_SDL_HasClipboardText =
-                Downcalls.link(FunctionDescriptor.of(JAVA_BOOLEAN));
+        private static final MethodHandle FD_SDL_HasClipboardText = Downcalls.link(FunctionDescriptor.of(JAVA_BOOLEAN));
 
         private final MemorySegment address;
 
@@ -124,8 +123,7 @@ public record SdlClipboardCalls(
     /// @param pointer memory SDL allocated
     public static final class Free {
 
-        private static final MethodHandle FD_SDL_free =
-                Downcalls.link(FunctionDescriptor.ofVoid(ADDRESS));
+        private static final MethodHandle FD_SDL_free = Downcalls.link(FunctionDescriptor.ofVoid(ADDRESS));
 
         private final MemorySegment address;
 

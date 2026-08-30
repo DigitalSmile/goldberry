@@ -1,11 +1,5 @@
 package io.github.digitalsmile.goldberry.input;
 
-import io.github.digitalsmile.goldberry.render.Cursor;
-import io.github.digitalsmile.goldberry.css.select.Selector.PseudoClass;
-import io.github.digitalsmile.goldberry.render.model.LogicalRect;
-import io.github.digitalsmile.goldberry.widget.Element;
-import io.github.digitalsmile.goldberry.widget.Widget;
-import io.github.digitalsmile.goldberry.widget.style.Styled;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -13,32 +7,39 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.Consumer;
+
+import io.github.digitalsmile.goldberry.css.select.Selector.PseudoClass;
 import io.github.digitalsmile.goldberry.input.event.KeyEvent;
 import io.github.digitalsmile.goldberry.input.event.PointerEvent;
 import io.github.digitalsmile.goldberry.input.event.TextEvent;
+import io.github.digitalsmile.goldberry.input.handler.Handles;
+import io.github.digitalsmile.goldberry.input.handler.Located;
+import io.github.digitalsmile.goldberry.input.handler.Measured;
+import io.github.digitalsmile.goldberry.input.hit.Extent;
+import io.github.digitalsmile.goldberry.input.hit.HitTest;
 import io.github.digitalsmile.goldberry.input.key.Key;
 import io.github.digitalsmile.goldberry.input.key.Mod;
 import io.github.digitalsmile.goldberry.input.key.Modifiers;
 import io.github.digitalsmile.goldberry.input.key.Shortcut;
-import io.github.digitalsmile.goldberry.input.hit.Extent;
-import io.github.digitalsmile.goldberry.input.hit.HitTest;
-import io.github.digitalsmile.goldberry.input.handler.Handles;
-import io.github.digitalsmile.goldberry.input.handler.Located;
-import io.github.digitalsmile.goldberry.input.handler.Measured;
+import io.github.digitalsmile.goldberry.render.Cursor;
+import io.github.digitalsmile.goldberry.render.model.LogicalRect;
+import io.github.digitalsmile.goldberry.widget.Element;
+import io.github.digitalsmile.goldberry.widget.Widget;
+import io.github.digitalsmile.goldberry.widget.style.Styled;
 
 /// Turns pointer positions into events, pseudo-classes and focus.
 ///
 /// Holds the small amount of state that input needs between frames — who is
 /// hovered, who is pressed, who has focus — and it holds it against **elements**,
-/// which is why the element tree exists ([ADR-0052](../../../../../../book/src/adr/0052-state-lives-on-the-element-and-rebuilds-are-deferred.md)):
+/// which is why the element tree exists
+/// ([ADR-0052](../../../../../../book/src/adr/0052-state-lives-on-the-element-and-rebuilds-are-deferred.md)):
 /// a widget is rebuilt constantly and could not remember any of this.
 ///
 /// Confined to the UI thread.
 public final class PointerRouter {
 
     /// One per window. Its state is that window's pointer and focus.
-    public PointerRouter() {
-    }
+    public PointerRouter() {}
 
     private List<HitTest.Region> regions = List.of();
 
@@ -210,8 +211,7 @@ public final class PointerRouter {
     private record Measurement(Widget widget, Extent bounds, Extent part) {
 
         boolean sameAs(Measurement other) {
-            return other != null && other.widget == widget
-                    && other.bounds.equals(bounds) && other.part.equals(part);
+            return other != null && other.widget == widget && other.bounds.equals(bounds) && other.part.equals(part);
         }
     }
 
@@ -223,8 +223,7 @@ public final class PointerRouter {
     private void notifyMeasured() {
         java.util.IdentityHashMap<Element, Measurement> next = null;
         for (var region : regions) {
-            if (!(region.owner() instanceof Element element)
-                    || !(element.widget() instanceof Measured measured)) {
+            if (!(region.owner() instanceof Element element) || !(element.widget() instanceof Measured measured)) {
                 continue;
             }
             var bounds = new Extent(region.width(), region.height());
@@ -278,8 +277,7 @@ public final class PointerRouter {
     private record Location(Widget widget, LogicalRect self, LogicalRect clip) {
 
         boolean sameAs(Location other) {
-            return other != null && other.widget == widget
-                    && other.self.equals(self) && other.clip.equals(clip);
+            return other != null && other.widget == widget && other.self.equals(self) && other.clip.equals(clip);
         }
     }
 
@@ -293,8 +291,7 @@ public final class PointerRouter {
     private void notifyLocated() {
         java.util.IdentityHashMap<Element, Location> next = null;
         for (var region : regions) {
-            if (!(region.owner() instanceof Element element)
-                    || !(element.widget() instanceof Located located)) {
+            if (!(region.owner() instanceof Element element) || !(element.widget() instanceof Located located)) {
                 continue;
             }
             var location = new Location(element.widget(), paintedRect(region), clipRect(region));
@@ -329,8 +326,7 @@ public final class PointerRouter {
         if (clip == null || clip.isNone()) {
             return windowBounds;
         }
-        return LogicalRect.of((float) clip.left(), (float) clip.top(),
-                (float) clip.width(), (float) clip.height());
+        return LogicalRect.of((float) clip.left(), (float) clip.top(), (float) clip.width(), (float) clip.height());
     }
 
     /// Told when the hovered or the focused node changes — see [#onPointingChanged].
@@ -371,7 +367,7 @@ public final class PointerRouter {
 
     /// The shape the pointer is currently showing.
     private Cursor cursor = Cursor.DEFAULT;
-    private Consumer<Cursor> cursorSink = c -> { };
+    private Consumer<Cursor> cursorSink = c -> {};
 
     /// Where to send the cursor shape when it changes (§7.3).
     ///
@@ -412,8 +408,8 @@ public final class PointerRouter {
         updateCursor(x, y);
         var target = captured != null ? captured : under;
         if (target != null) {
-            dispatch(new PointerEvent(PointerEvent.Kind.MOVED, x, y, null, 0,
-                    pressOriginX, pressOriginY, modifiers, target));
+            dispatch(new PointerEvent(
+                    PointerEvent.Kind.MOVED, x, y, null, 0, pressOriginX, pressOriginY, modifiers, target));
         }
     }
 
@@ -433,8 +429,7 @@ public final class PointerRouter {
     }
 
     /// The same, with modifiers.
-    public void pointerPressed(float x, float y, PointerEvent.Button button, int clickCount,
-            Modifiers modifiers) {
+    public void pointerPressed(float x, float y, PointerEvent.Button button, int clickCount, Modifiers modifiers) {
         var target = elementAt(x, y);
         updateHover(target, x, y);
         if (target == null) {
@@ -459,8 +454,8 @@ public final class PointerRouter {
             capturedImplicitly = true;
         }
         focusFromPress(target);
-        dispatch(new PointerEvent(PointerEvent.Kind.PRESSED, x, y, button, clickCount,
-                pressOriginX, pressOriginY, modifiers, target));
+        dispatch(new PointerEvent(
+                PointerEvent.Kind.PRESSED, x, y, button, clickCount, pressOriginX, pressOriginY, modifiers, target));
     }
 
     /// A button came up.
@@ -474,8 +469,7 @@ public final class PointerRouter {
     }
 
     /// The same, with modifiers.
-    public void pointerReleased(float x, float y, PointerEvent.Button button, int clickCount,
-            Modifiers modifiers) {
+    public void pointerReleased(float x, float y, PointerEvent.Button button, int clickCount, Modifiers modifiers) {
         var under = elementAt(x, y);
         var target = captured != null ? captured : under;
         // Read before `setPressed(null)` clears it: whether this was a click is a
@@ -502,8 +496,8 @@ public final class PointerRouter {
         if (target == null) {
             return;
         }
-        dispatch(new PointerEvent(PointerEvent.Kind.RELEASED, x, y, button, clickCount,
-                originX, originY, modifiers, target));
+        dispatch(new PointerEvent(
+                PointerEvent.Kind.RELEASED, x, y, button, clickCount, originX, originY, modifiers, target));
 
         // A click is a press and a release on the same node, which is not the
         // same thing as a release: dragging off a button and letting go is how a
@@ -514,10 +508,11 @@ public final class PointerRouter {
         // "On the same node" means the release landed on the pressed element or
         // inside it -- releasing on a button's own label is a click on the
         // button.
-        if (button == PointerEvent.Button.PRIMARY && wasPressed != null
+        if (button == PointerEvent.Button.PRIMARY
+                && wasPressed != null
                 && chain(under).contains(wasPressed)) {
-            dispatch(new PointerEvent(PointerEvent.Kind.CLICKED, x, y, button, clickCount,
-                    originX, originY, modifiers, wasPressed));
+            dispatch(new PointerEvent(
+                    PointerEvent.Kind.CLICKED, x, y, button, clickCount, originX, originY, modifiers, wasPressed));
         }
         pressOriginValue = Double.NaN;
         pressOriginModifiers = Modifiers.NONE;
@@ -563,8 +558,8 @@ public final class PointerRouter {
     /// thing. §2.4's scroll chaining is exactly this: an inner scroller consumes
     /// until its edge and then stops, and what is above it takes over
     /// ([ADR-0116]).
-    public boolean pointerWheel(float x, float y, float deltaX, float deltaY,
-            int ticksX, int ticksY, Modifiers modifiers) {
+    public boolean pointerWheel(
+            float x, float y, float deltaX, float deltaY, int ticksX, int ticksY, Modifiers modifiers) {
         var target = captured != null ? captured : elementAt(x, y);
         if (target == null) {
             return false;
@@ -1315,7 +1310,10 @@ public final class PointerRouter {
             if (TRACE_INPUT) {
                 // The chain, one line per node, so a frame's `subtree walks` can
                 // be read against what the pointer actually did (ADR-0151).
-                INPUT_LOG.info("  {} {} {}", active ? "+" : "-", pseudoClass,
+                INPUT_LOG.info(
+                        "  {} {} {}",
+                        active ? "+" : "-",
+                        pseudoClass,
                         element.type() == null ? "<composition>" : element.type());
             }
         }
@@ -1329,8 +1327,7 @@ public final class PointerRouter {
     /// control writes a line per node of the chain.
     private static final boolean TRACE_INPUT = Boolean.getBoolean("goldberry.trace.input");
 
-    private static final org.slf4j.Logger INPUT_LOG =
-            org.slf4j.LoggerFactory.getLogger(PointerRouter.class);
+    private static final org.slf4j.Logger INPUT_LOG = org.slf4j.LoggerFactory.getLogger(PointerRouter.class);
 
     /// An element and its ancestors, deepest first.
     private static List<Element> chain(Element element) {
@@ -1346,8 +1343,7 @@ public final class PointerRouter {
     }
 
     private static boolean isFocusable(Element element) {
-        return element.widget() instanceof Handles handles && handles.isFocusable()
-                && !isDisabled(element);
+        return element.widget() instanceof Handles handles && handles.isFocusable() && !isDisabled(element);
     }
 
     /// Whether `element` is disabled — **by itself or by any ancestor**.
@@ -1604,9 +1600,7 @@ public final class PointerRouter {
                 var inverse = region.inverse();
                 var x = inverse == null ? event.x() : (float) inverse.mapX(event.x(), event.y());
                 var y = inverse == null ? event.y() : (float) inverse.mapY(event.x(), event.y());
-                return new PointerEvent.Local(
-                        x - region.left(), y - region.top(),
-                        region.width(), region.height());
+                return new PointerEvent.Local(x - region.left(), y - region.top(), region.width(), region.height());
             }
         }
         return PointerEvent.Local.UNKNOWN;

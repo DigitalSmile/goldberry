@@ -6,22 +6,24 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import io.github.digitalsmile.goldberry.assets.BundledFont;
-import io.github.digitalsmile.goldberry.motion.Easing;
-import io.github.digitalsmile.goldberry.natives.yoga.style.Align;
-import io.github.digitalsmile.goldberry.natives.yoga.style.FlexDirection;
-import io.github.digitalsmile.goldberry.natives.yoga.style.Justify;
-import io.github.digitalsmile.goldberry.natives.yoga.Insets;
-import io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength;
 import java.util.List;
+
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import io.github.digitalsmile.goldberry.css.value.CssColor;
-import io.github.digitalsmile.goldberry.css.value.CssLength;
+
+import io.github.digitalsmile.goldberry.assets.BundledFont;
 import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
 import io.github.digitalsmile.goldberry.css.cascade.StyleResolver;
 import io.github.digitalsmile.goldberry.css.cascade.Transitions;
+import io.github.digitalsmile.goldberry.css.value.CssColor;
+import io.github.digitalsmile.goldberry.css.value.CssLength;
+import io.github.digitalsmile.goldberry.motion.Easing;
+import io.github.digitalsmile.goldberry.natives.yoga.Insets;
+import io.github.digitalsmile.goldberry.natives.yoga.style.Align;
+import io.github.digitalsmile.goldberry.natives.yoga.style.FlexDirection;
+import io.github.digitalsmile.goldberry.natives.yoga.style.Justify;
+import io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength;
 
 class ComputedStyleTest {
 
@@ -93,11 +95,10 @@ class ComputedStyleTest {
             // reaches the shorthand in the real stylesheet -- an alpha over
             // whatever is underneath is the only way to say "lighter than its
             // own surface" in a subset with no colour functions (ADR-0166).
-            var style = compute("window { --edge: rgba(255, 255, 255, 0.20) }"
-                    + " button { border: 1px solid var(--edge) }");
+            var style = compute(
+                    "window { --edge: rgba(255, 255, 255, 0.20) }" + " button { border: 1px solid var(--edge) }");
 
-            assertTrue(style.decoration().hasBorder(),
-                    "a raised thing is told apart by its edge, and it had none");
+            assertTrue(style.decoration().hasBorder(), "a raised thing is told apart by its edge, and it had none");
         }
     }
 
@@ -124,23 +125,27 @@ class ComputedStyleTest {
         @Test
         @DisplayName("`flex-wrap` takes CSS's three spellings, `nowrap` included")
         void flexWrap() {
-            assertEquals(io.github.digitalsmile.goldberry.natives.yoga.style.Wrap.WRAP,
+            assertEquals(
+                    io.github.digitalsmile.goldberry.natives.yoga.style.Wrap.WRAP,
                     compute("button { flex-wrap: wrap }").wrap());
-            assertEquals(io.github.digitalsmile.goldberry.natives.yoga.style.Wrap.WRAP_REVERSE,
+            assertEquals(
+                    io.github.digitalsmile.goldberry.natives.yoga.style.Wrap.WRAP_REVERSE,
                     compute("button { flex-wrap: wrap-reverse }").wrap());
             // The one that needs its own line of code: CSS spells the default as
             // one word and `YGWrap` spells it as two, so the generic keyword
             // parser turns `nowrap` into `NOWRAP` and finds nothing.
-            assertEquals(io.github.digitalsmile.goldberry.natives.yoga.style.Wrap.NO_WRAP,
+            assertEquals(
+                    io.github.digitalsmile.goldberry.natives.yoga.style.Wrap.NO_WRAP,
                     compute("button { flex-wrap: nowrap }").wrap());
         }
 
         @Test
         @DisplayName("one line is what a box wraps as until a rule says otherwise")
         void flexWrapDefaultsToOneLine() {
-            assertEquals(io.github.digitalsmile.goldberry.natives.yoga.style.Wrap.NO_WRAP,
-                    ComputedStyle.INITIAL.wrap());
-            assertEquals(ComputedStyle.INITIAL.wrap(),
+            assertEquals(
+                    io.github.digitalsmile.goldberry.natives.yoga.style.Wrap.NO_WRAP, ComputedStyle.INITIAL.wrap());
+            assertEquals(
+                    ComputedStyle.INITIAL.wrap(),
                     compute("button { flex-wrap: sideways }").wrap(),
                     "a keyword CSS has not got is dropped like any other");
         }
@@ -200,9 +205,13 @@ class ComputedStyleTest {
         @Test
         @DisplayName("a unitless zero is a length; any other unitless number is not")
         void unitlessZero() {
-            assertEquals(Insets.all(StyleLength.points(0)), compute("button { padding: 0 }").padding());
+            assertEquals(
+                    Insets.all(StyleLength.points(0)),
+                    compute("button { padding: 0 }").padding());
             // "padding: 8" is an author error, and guessing px would hide it.
-            assertEquals(ComputedStyle.INITIAL.padding(), compute("button { padding: 8 }").padding());
+            assertEquals(
+                    ComputedStyle.INITIAL.padding(),
+                    compute("button { padding: 8 }").padding());
         }
     }
 
@@ -233,7 +242,8 @@ class ComputedStyleTest {
             // control's interior and has no fill of its own (ADR-0183). It was
             // dropped with a warning until ADR-0216, so the field kept the well
             // colour `text-input` gives it.
-            assertEquals(CssColor.TRANSPARENT,
+            assertEquals(
+                    CssColor.TRANSPARENT,
                     compute("button { background: #2e3440; background: none }").background());
         }
 
@@ -243,9 +253,12 @@ class ComputedStyleTest {
             // CSS's own division: `none` in the shorthand means "no layer", and
             // the longhand takes a colour or nothing. `transparent` is how the
             // longhand says it.
-            assertEquals(0xFF2E3440,
-                    compute("button { background: #2e3440; background-color: none }").background());
-            assertEquals(CssColor.TRANSPARENT,
+            assertEquals(
+                    0xFF2E3440,
+                    compute("button { background: #2e3440; background-color: none }")
+                            .background());
+            assertEquals(
+                    CssColor.TRANSPARENT,
                     compute("button { background-color: transparent }").background());
         }
 
@@ -285,14 +298,16 @@ class ComputedStyleTest {
         @Test
         @DisplayName("a keyword that is not in the enum is dropped")
         void badKeyword() {
-            assertEquals(ComputedStyle.INITIAL.direction(),
+            assertEquals(
+                    ComputedStyle.INITIAL.direction(),
                     compute("button { flex-direction: sideways }").direction());
         }
 
         @Test
         @DisplayName("a negative flex-grow is dropped")
         void negativeFlexGrow() {
-            assertEquals(ComputedStyle.INITIAL.flexGrow(),
+            assertEquals(
+                    ComputedStyle.INITIAL.flexGrow(),
                     compute("button { flex-grow: -1 }").flexGrow());
         }
     }
@@ -337,7 +352,8 @@ class ComputedStyleTest {
         @Test
         @DisplayName("one value is every edge")
         void one() {
-            assertEquals(Insets.all(StyleLength.points(12)),
+            assertEquals(
+                    Insets.all(StyleLength.points(12)),
                     compute("button { padding: 12px }").padding());
         }
 
@@ -347,16 +363,21 @@ class ComputedStyleTest {
             // The form a control is written in: `padding: 0 12px` is the button's
             // own metric, and supporting only one value would mean no control
             // could state it.
-            assertEquals(new Insets(StyleLength.points(0), StyleLength.points(12),
-                            StyleLength.points(0), StyleLength.points(12)),
+            assertEquals(
+                    new Insets(
+                            StyleLength.points(0),
+                            StyleLength.points(12),
+                            StyleLength.points(0),
+                            StyleLength.points(12)),
                     compute("button { padding: 0 12px }").padding());
         }
 
         @Test
         @DisplayName("three values give the bottom its own, and the sides share")
         void three() {
-            assertEquals(new Insets(StyleLength.points(1), StyleLength.points(2),
-                            StyleLength.points(3), StyleLength.points(2)),
+            assertEquals(
+                    new Insets(
+                            StyleLength.points(1), StyleLength.points(2), StyleLength.points(3), StyleLength.points(2)),
                     compute("button { padding: 1px 2px 3px }").padding());
         }
 
@@ -365,8 +386,9 @@ class ComputedStyleTest {
         void four() {
             // CSS's order, not a reading order. Two orders for one concept is how
             // a padding lands on the wrong pair of edges.
-            assertEquals(new Insets(StyleLength.points(1), StyleLength.points(2),
-                            StyleLength.points(3), StyleLength.points(4)),
+            assertEquals(
+                    new Insets(
+                            StyleLength.points(1), StyleLength.points(2), StyleLength.points(3), StyleLength.points(4)),
                     compute("button { padding: 1px 2px 3px 4px }").padding());
         }
 
@@ -375,8 +397,13 @@ class ComputedStyleTest {
         void longhand() {
             var style = compute("button { padding: 4px; padding-left: 16px }");
 
-            assertEquals(new Insets(StyleLength.points(4), StyleLength.points(4),
-                    StyleLength.points(4), StyleLength.points(16)), style.padding());
+            assertEquals(
+                    new Insets(
+                            StyleLength.points(4),
+                            StyleLength.points(4),
+                            StyleLength.points(4),
+                            StyleLength.points(16)),
+                    style.padding());
         }
 
         @Test
@@ -384,14 +411,16 @@ class ComputedStyleTest {
         void partiallyBad() {
             // Half a shorthand is harder to see than none of it: two edges would
             // move and two would not, which reads as a layout bug.
-            assertEquals(ComputedStyle.INITIAL.padding(),
+            assertEquals(
+                    ComputedStyle.INITIAL.padding(),
                     compute("button { padding: 8px nonsense }").padding());
         }
 
         @Test
         @DisplayName("five values are not a shorthand CSS has")
         void tooMany() {
-            assertEquals(ComputedStyle.INITIAL.padding(),
+            assertEquals(
+                    ComputedStyle.INITIAL.padding(),
                     compute("button { padding: 1px 2px 3px 4px 5px }").padding());
         }
     }
@@ -403,7 +432,9 @@ class ComputedStyleTest {
     class BorderRadius {
 
         private Corners corners(String value) {
-            return compute("button { border-radius: " + value + " }").decoration().corners();
+            return compute("button { border-radius: " + value + " }")
+                    .decoration()
+                    .corners();
         }
 
         @Test
@@ -478,13 +509,17 @@ class ComputedStyleTest {
             // CSS's own matching, in the only form two faces need. `bold` and 900
             // both land on SemiBold, which is the honest answer -- the
             // alternative is a heading that silently renders at 400.
-            assertEquals(BundledFont.Weight.SEMI_BOLD,
+            assertEquals(
+                    BundledFont.Weight.SEMI_BOLD,
                     compute("button { font-weight: bold }").typography().weight());
-            assertEquals(BundledFont.Weight.SEMI_BOLD,
+            assertEquals(
+                    BundledFont.Weight.SEMI_BOLD,
                     compute("button { font-weight: 900 }").typography().weight());
-            assertEquals(BundledFont.Weight.REGULAR,
+            assertEquals(
+                    BundledFont.Weight.REGULAR,
                     compute("button { font-weight: 500 }").typography().weight());
-            assertEquals(BundledFont.Weight.REGULAR,
+            assertEquals(
+                    BundledFont.Weight.REGULAR,
                     compute("button { font-weight: normal }").typography().weight());
         }
 
@@ -495,8 +530,11 @@ class ComputedStyleTest {
             // character outside the bundled faces is .notdef on purpose.
             // Honouring the rest of the list would pretend to a mechanism that
             // does not exist.
-            assertEquals("Inter",
-                    compute("button { font-family: Inter, sans-serif }").typography().family());
+            assertEquals(
+                    "Inter",
+                    compute("button { font-family: Inter, sans-serif }")
+                            .typography()
+                            .family());
         }
 
         @Test
@@ -513,8 +551,8 @@ class ComputedStyleTest {
         @Test
         @DisplayName("an absolute line-height is used as written")
         void lineHeightLength() {
-            assertEquals(18,
-                    compute("button { line-height: 18px }").typography().resolvedLineHeight(), 1e-9);
+            assertEquals(
+                    18, compute("button { line-height: 18px }").typography().resolvedLineHeight(), 1e-9);
         }
 
         @Test
@@ -533,10 +571,14 @@ class ComputedStyleTest {
         @Test
         @DisplayName("a size that is not a positive length is dropped")
         void badSize() {
-            assertEquals(ComputedStyle.INITIAL.typography().size(),
-                    compute("button { font-size: 0 }").typography().size(), 1e-9);
-            assertEquals(ComputedStyle.INITIAL.typography().size(),
-                    compute("button { font-size: 50% }").typography().size(), 1e-9);
+            assertEquals(
+                    ComputedStyle.INITIAL.typography().size(),
+                    compute("button { font-size: 0 }").typography().size(),
+                    1e-9);
+            assertEquals(
+                    ComputedStyle.INITIAL.typography().size(),
+                    compute("button { font-size: 50% }").typography().size(),
+                    1e-9);
         }
     }
 
@@ -548,7 +590,8 @@ class ComputedStyleTest {
         @DisplayName("property, duration, easing and delay")
         void full() {
             var timing = compute("button { transition: background-color 100ms ease-exit 20ms }")
-                    .transitions().get(Transitions.Animatable.BACKGROUND_COLOR);
+                    .transitions()
+                    .get(Transitions.Animatable.BACKGROUND_COLOR);
 
             assertEquals(100, timing.durationMillis(), 1e-9);
             assertEquals(Easing.EASE_EXIT, timing.easing());
@@ -558,8 +601,13 @@ class ComputedStyleTest {
         @Test
         @DisplayName("seconds and milliseconds both work; a bare number does not")
         void units() {
-            assertEquals(160, compute("button { transition: opacity 0.16s }")
-                    .transitions().get(Transitions.Animatable.OPACITY).durationMillis(), 1e-9);
+            assertEquals(
+                    160,
+                    compute("button { transition: opacity 0.16s }")
+                            .transitions()
+                            .get(Transitions.Animatable.OPACITY)
+                            .durationMillis(),
+                    1e-9);
 
             // `transition: color 200` almost certainly means milliseconds, and
             // guessing would make the one stylesheet that meant seconds silently
@@ -568,8 +616,13 @@ class ComputedStyleTest {
 
             // Zero is the exception, because it has no duration to be wrong
             // about -- the same allowance a length gets.
-            assertEquals(0, compute("button { transition: color 0 }")
-                    .transitions().get(Transitions.Animatable.COLOR).durationMillis(), 1e-9);
+            assertEquals(
+                    0,
+                    compute("button { transition: color 0 }")
+                            .transitions()
+                            .get(Transitions.Animatable.COLOR)
+                            .durationMillis(),
+                    1e-9);
         }
 
         @Test
@@ -581,8 +634,8 @@ class ComputedStyleTest {
                     """).transitions();
 
             assertEquals(2, transitions.byProperty().size());
-            assertEquals(Easing.LINEAR,
-                    transitions.get(Transitions.Animatable.COLOR).easing());
+            assertEquals(
+                    Easing.LINEAR, transitions.get(Transitions.Animatable.COLOR).easing());
         }
 
         @Test
@@ -592,8 +645,11 @@ class ComputedStyleTest {
             // run Yoga every frame of every transition. An author who asked for
             // one is asking for something the system deliberately will not do,
             // and needs to be told rather than left with a rule that never fires.
-            assertTrue(compute("button { transition: width 200ms }").transitions().isEmpty());
-            assertTrue(compute("button { transition: padding 200ms }").transitions().isEmpty());
+            assertTrue(
+                    compute("button { transition: width 200ms }").transitions().isEmpty());
+            assertTrue(compute("button { transition: padding 200ms }")
+                    .transitions()
+                    .isEmpty());
         }
 
         @Test
@@ -618,23 +674,32 @@ class ComputedStyleTest {
         @Test
         @DisplayName("`background` is accepted as the colour, since that is all there is")
         void backgroundSynonym() {
-            assertEquals(100, compute("button { transition: background 100ms }")
-                    .transitions().get(Transitions.Animatable.BACKGROUND_COLOR)
-                    .durationMillis(), 1e-9);
+            assertEquals(
+                    100,
+                    compute("button { transition: background 100ms }")
+                            .transitions()
+                            .get(Transitions.Animatable.BACKGROUND_COLOR)
+                            .durationMillis(),
+                    1e-9);
         }
 
         @Test
         @DisplayName("a curve CSS has and this system does not is refused")
         void unknownEasing() {
             assertTrue(compute("button { transition: color 100ms ease-in-out }")
-                    .transitions().isEmpty());
+                    .transitions()
+                    .isEmpty());
         }
 
         @Test
         @DisplayName("the default curve is ease-enter")
         void defaultEasing() {
-            assertEquals(Easing.EASE_ENTER, compute("button { transition: color 100ms }")
-                    .transitions().get(Transitions.Animatable.COLOR).easing());
+            assertEquals(
+                    Easing.EASE_ENTER,
+                    compute("button { transition: color 100ms }")
+                            .transitions()
+                            .get(Transitions.Animatable.COLOR)
+                            .easing());
         }
     }
 
@@ -651,10 +716,8 @@ class ComputedStyleTest {
             root.with(element("text"));
             var resolver = new StyleResolver(List.of(sheet));
 
-            var parent = ComputedStyle.of(
-                    resolver.resolve(root), CssLength.Context.DEFAULT);
-            return ComputedStyle.of(
-                    resolver.resolve(root.descend(1)), CssLength.Context.DEFAULT, parent);
+            var parent = ComputedStyle.of(resolver.resolve(root), CssLength.Context.DEFAULT);
+            return ComputedStyle.of(resolver.resolve(root.descend(1)), CssLength.Context.DEFAULT, parent);
         }
 
         @Test
@@ -669,7 +732,8 @@ class ComputedStyleTest {
         @Test
         @DisplayName("a child's own declaration wins over what it inherits")
         void ownWins() {
-            assertEquals(0xFF112233,
+            assertEquals(
+                    0xFF112233,
                     child("panel { color: #abc } text { color: #123 }").color());
         }
 
@@ -697,7 +761,8 @@ class ComputedStyleTest {
             // The half of CSS's split that matters most here: a child inheriting
             // its parent's background would paint it a second time, and a
             // transparent child is what makes a tree of boxes cheap.
-            assertEquals(ComputedStyle.INITIAL.background(),
+            assertEquals(
+                    ComputedStyle.INITIAL.background(),
                     child("panel { background: #abc }").background());
         }
 
@@ -726,7 +791,8 @@ class ComputedStyleTest {
             // ADR-0057: the cursor rides on the painted box and hit testing reads
             // it off whichever rectangle the pointer is over. A second mechanism
             // would disagree with the first the moment a box had no element.
-            assertEquals(ComputedStyle.INITIAL.cursor(),
+            assertEquals(
+                    ComputedStyle.INITIAL.cursor(),
                     child("panel { cursor: pointer }").cursor());
         }
 
@@ -735,7 +801,8 @@ class ComputedStyleTest {
         void decorationDoesNot() {
             var style = child("panel { border-radius: 8px; border: 1px solid #abc }");
 
-            assertEquals(io.github.digitalsmile.goldberry.css.Corners.SQUARE,
+            assertEquals(
+                    io.github.digitalsmile.goldberry.css.Corners.SQUARE,
                     style.decoration().corners());
             assertEquals(false, style.decoration().hasBorder());
         }
@@ -743,8 +810,7 @@ class ComputedStyleTest {
         @Test
         @DisplayName("a null parent is the root, and inherits nothing")
         void rootInheritsNothing() {
-            assertSame(ComputedStyle.INITIAL,
-                    ComputedStyle.of(java.util.Map.of(), CssLength.Context.DEFAULT, null));
+            assertSame(ComputedStyle.INITIAL, ComputedStyle.of(java.util.Map.of(), CssLength.Context.DEFAULT, null));
         }
     }
 
@@ -773,10 +839,14 @@ class ComputedStyleTest {
         void alwaysDropped() {
             for (var attempt = 0; attempt < 3; attempt++) {
                 var style = compute("button { align-items: start; gap: 4px }");
-                assertEquals(ComputedStyle.INITIAL.alignItems(), style.alignItems(),
+                assertEquals(
+                        ComputedStyle.INITIAL.alignItems(),
+                        style.alignItems(),
                         "a value this toolkit has not got must never be applied");
-                assertEquals(io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength.points(4),
-                        style.gap(), "and the declarations around it still are");
+                assertEquals(
+                        io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength.points(4),
+                        style.gap(),
+                        "and the declarations around it still are");
             }
         }
 
@@ -785,9 +855,11 @@ class ComputedStyleTest {
         @Test
         @DisplayName("`start` is not `flex-start`, which is the typo that started this")
         void startIsNotFlexStart() {
-            assertEquals(io.github.digitalsmile.goldberry.natives.yoga.style.Align.FLEX_START,
+            assertEquals(
+                    io.github.digitalsmile.goldberry.natives.yoga.style.Align.FLEX_START,
                     compute("button { align-items: flex-start }").alignItems());
-            assertEquals(ComputedStyle.INITIAL.alignItems(),
+            assertEquals(
+                    ComputedStyle.INITIAL.alignItems(),
                     compute("button { align-items: start }").alignItems());
         }
     }
@@ -855,7 +927,8 @@ class ComputedStyleTest {
         @Test
         @DisplayName("a value that is not a length is dropped, like every other")
         void rubbishIsDropped() {
-            assertEquals(ComputedStyle.INITIAL.limits(),
+            assertEquals(
+                    ComputedStyle.INITIAL.limits(),
                     compute("button { max-width: banana }").limits());
         }
     }

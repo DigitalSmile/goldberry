@@ -4,31 +4,33 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+
 import io.github.digitalsmile.goldberry.RendererRequirement;
-import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
 import io.github.digitalsmile.goldberry.css.Stylesheet;
 import io.github.digitalsmile.goldberry.css.Theme;
+import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
+import io.github.digitalsmile.goldberry.input.PointerRouter;
+import io.github.digitalsmile.goldberry.input.hit.HitTest;
 import io.github.digitalsmile.goldberry.kdl.KdlParser;
 import io.github.digitalsmile.goldberry.paint.Box;
 import io.github.digitalsmile.goldberry.paint.BoxPainter;
 import io.github.digitalsmile.goldberry.paint.TestFrames;
 import io.github.digitalsmile.goldberry.paint.tree.RenderTree;
-import io.github.digitalsmile.goldberry.input.hit.HitTest;
-import io.github.digitalsmile.goldberry.input.PointerRouter;
-import io.github.digitalsmile.goldberry.widget.attr.Attributes;
 import io.github.digitalsmile.goldberry.widget.ElementTree;
 import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widget.WidgetRenderer;
+import io.github.digitalsmile.goldberry.widget.attr.Attributes;
 import io.github.digitalsmile.goldberry.widgets.Controls;
 import io.github.digitalsmile.goldberry.widgets.Widgets;
 import io.github.digitalsmile.goldberry.widgets.controls.TestFont;
 import io.github.digitalsmile.goldberry.widgets.panel.card.Card;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
 
 /// Cards in columns, each under the shortest one.
 ///
@@ -54,7 +56,10 @@ class MasonryTest {
     private static Stylesheet sizes(List<Integer> heights) {
         var css = new StringBuilder("#wall { width: 300px }\n");
         for (var i = 0; i < heights.size(); i++) {
-            css.append("#c").append(i).append(" { height: ").append(heights.get(i))
+            css.append("#c")
+                    .append(i)
+                    .append(" { height: ")
+                    .append(heights.get(i))
                     .append("px }\n");
         }
         return Stylesheet.parse(CascadeLayer.APPLICATION, css.toString());
@@ -62,8 +67,7 @@ class MasonryTest {
 
     private static WidgetRenderer renderer(List<Integer> heights) {
         return new WidgetRenderer(
-                List.of(Controls.baseStylesheet(), Theme.NORD_DARK.load(), sizes(heights)),
-                TestFont.get());
+                List.of(Controls.baseStylesheet(), Theme.NORD_DARK.load(), sizes(heights)), TestFont.get());
     }
 
     /// Which column each card ended up in, read out of the built box tree.
@@ -79,8 +83,8 @@ class MasonryTest {
                 }
                 var owner = cell.children().getFirst().owner();
                 if (owner instanceof io.github.digitalsmile.goldberry.widget.Element element
-                        && element.widget() instanceof io.github.digitalsmile.goldberry.widget
-                                .attr.Attributed<?> attributed
+                        && element.widget()
+                                instanceof io.github.digitalsmile.goldberry.widget.attr.Attributed<?> attributed
                         && attributed.attributes().id() != null) {
                     found.set(Integer.parseInt(attributed.attributes().id().substring(1)), c);
                 }
@@ -147,9 +151,9 @@ class MasonryTest {
             harness.frame();
             var second = columnsOf(harness.frame(), heights.size());
 
-            assertTrue(second.get(3) != 0,
-                    "the fourth card should avoid the 100px column, and it went to "
-                            + second.get(3));
+            assertTrue(
+                    second.get(3) != 0,
+                    "the fourth card should avoid the 100px column, and it went to " + second.get(3));
         }
     }
 
@@ -190,15 +194,13 @@ class MasonryTest {
         }
         assertEquals(3, widths.size(), "three columns");
         for (var width : widths) {
-            assertEquals(widths.getFirst(), width, 0.5f,
-                    "the columns came out unequal: " + widths);
+            assertEquals(widths.getFirst(), width, 0.5f, "the columns came out unequal: " + widths);
         }
     }
 
     private static String cssTypeOf(Box box) {
         return box.owner() instanceof io.github.digitalsmile.goldberry.widget.Element element
-                && element.widget() instanceof io.github.digitalsmile.goldberry.widget.style
-                        .Styled styled
+                        && element.widget() instanceof io.github.digitalsmile.goldberry.widget.style.Styled styled
                 ? styled.cssType()
                 : null;
     }
@@ -207,8 +209,7 @@ class MasonryTest {
     @DisplayName("one column is a plain column, and zero is refused")
     void columnCountIsChecked() {
         assertEquals(1, new Masonry(List.of(), 1, Attributes.NONE).columns());
-        assertThrows(IllegalArgumentException.class,
-                () -> new Masonry(List.of(), 0, Attributes.NONE));
+        assertThrows(IllegalArgumentException.class, () -> new Masonry(List.of(), 0, Attributes.NONE));
     }
 
     @Test

@@ -128,16 +128,16 @@ public record NativePlatform(OperatingSystem os, Architecture arch) {
         if (normalized.contains("windows")) {
             return OperatingSystem.WINDOWS;
         }
-        throw new UnsupportedOperationException(
-                "Goldberry has no native artifact for os.name=\"" + osName + "\"");
+        throw new UnsupportedOperationException("Goldberry has no native artifact for os.name=\"" + osName + "\"");
     }
 
     private static Architecture architecture(String osArch) {
         return switch (normalize(osArch)) {
             case "amd64", "x86_64", "x64" -> Architecture.X64;
             case "aarch64", "arm64" -> Architecture.AARCH64;
-            default -> throw new UnsupportedOperationException(
-                    "Goldberry has no native artifact for os.arch=\"" + osArch + "\"");
+            default ->
+                throw new UnsupportedOperationException(
+                        "Goldberry has no native artifact for os.arch=\"" + osArch + "\"");
         };
     }
 

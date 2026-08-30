@@ -1,21 +1,22 @@
 package io.github.digitalsmile.goldberry.widgets.data.donutchart;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
+
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
 import io.github.digitalsmile.goldberry.kdl.KdlNode;
 import io.github.digitalsmile.goldberry.paint.Box;
+import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widget.attr.Attributed;
 import io.github.digitalsmile.goldberry.widget.attr.Attributes;
 import io.github.digitalsmile.goldberry.widget.style.Paints;
 import io.github.digitalsmile.goldberry.widget.style.Styled;
-import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widgets.data.ChartParts;
 import io.github.digitalsmile.goldberry.widgets.data.Series;
 import io.github.digitalsmile.goldberry.widgets.data.SeriesPalette;
 import io.github.digitalsmile.goldberry.widgets.markup.Markup;
 import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
 
 /// Part to whole — `docs/core-widgets.md` §11's `donut-chart`, and the last of
 /// the five.
@@ -54,9 +55,7 @@ import java.util.Set;
 /// @param attributes `id` and `class`, exactly as on the primitives
 @Markup("donut-chart")
 public record DonutChart(
-        List<Series> slices,
-        io.github.digitalsmile.goldberry.widgets.data.ChartStatus status,
-        Attributes attributes)
+        List<Series> slices, io.github.digitalsmile.goldberry.widgets.data.ChartStatus status, Attributes attributes)
         implements Widget.Leaf, Styled, Paints, Attributed<DonutChart> {
 
     /// The fewest slices that are a whole rather than a ratio. See the class
@@ -69,12 +68,10 @@ public record DonutChart(
     public DonutChart {
         slices = List.copyOf(slices == null ? List.of() : slices);
         attributes = attributes == null ? Attributes.NONE : attributes;
-        status = status == null
-                ? io.github.digitalsmile.goldberry.widgets.data.ChartStatus.READY : status;
+        status = status == null ? io.github.digitalsmile.goldberry.widgets.data.ChartStatus.READY : status;
         if (!slices.isEmpty() && slices.size() < MIN_SLICES) {
-            throw new IllegalArgumentException(
-                    "a donut of " + slices.size() + " is a ratio rather than a whole; use"
-                            + " `progress` for \"62% used\", which reads better as a bar");
+            throw new IllegalArgumentException("a donut of " + slices.size() + " is a ratio rather than a whole; use"
+                    + " `progress` for \"62% used\", which reads better as a bar");
         }
         if (slices.size() > MAX_SLICES) {
             throw new IllegalArgumentException(
@@ -86,8 +83,7 @@ public record DonutChart(
 
     /// The ordinary form: a donut that has its data.
     public DonutChart(List<Series> slices, Attributes attributes) {
-        this(slices, io.github.digitalsmile.goldberry.widgets.data.ChartStatus.READY,
-                attributes);
+        this(slices, io.github.digitalsmile.goldberry.widgets.data.ChartStatus.READY, attributes);
     }
 
     public DonutChart(List<Series> slices) {
@@ -161,8 +157,7 @@ public record DonutChart(
         var parts = new ArrayList<Widget>(2);
         parts.add(new DonutPlot(values, labels));
         if (!slices.isEmpty()) {
-            parts.add(new io.github.digitalsmile.goldberry.widgets.data.linechart.ChartLegend(
-                    slices));
+            parts.add(new io.github.digitalsmile.goldberry.widgets.data.linechart.ChartLegend(slices));
         }
         return List.copyOf(parts);
     }
@@ -178,9 +173,11 @@ public record DonutChart(
     /// no whole, which is what a query returning rows of nulls looks like.
     private boolean hasWhole() {
         return slices.stream()
-                .mapToDouble(one -> one.values().isEmpty() ? 0 : one.values().getFirst())
-                .filter(value -> value > 0)
-                .sum() > 0;
+                        .mapToDouble(
+                                one -> one.values().isEmpty() ? 0 : one.values().getFirst())
+                        .filter(value -> value > 0)
+                        .sum()
+                > 0;
     }
 
     /// Builds a `donut-chart` from markup — §3.2's inline form, one point per

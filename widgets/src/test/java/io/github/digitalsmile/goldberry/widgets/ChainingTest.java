@@ -4,22 +4,24 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.List;
+import java.util.Set;
+
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+
 import io.github.digitalsmile.goldberry.bind.Property;
 import io.github.digitalsmile.goldberry.kdl.KdlParser;
+import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widget.attr.Attributed;
 import io.github.digitalsmile.goldberry.widget.attr.Attributes;
 import io.github.digitalsmile.goldberry.widget.attr.Bindable;
-import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widgets.controls.badge.Badge;
 import io.github.digitalsmile.goldberry.widgets.controls.button.Button;
 import io.github.digitalsmile.goldberry.widgets.controls.slider.Slider;
 import io.github.digitalsmile.goldberry.widgets.core.Primitives;
 import io.github.digitalsmile.goldberry.widgets.core.Row;
 import io.github.digitalsmile.goldberry.widgets.text.Text;
-import java.util.List;
-import java.util.Set;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
 
 /// Every widget is chainable, and the chain keeps its type
 /// ([ADR-0093](../../../../../../book/src/adr/0093-an-application-is-a-root-widget.md)).
@@ -127,14 +129,16 @@ class ChainingTest {
     void everyWidgetIsAttributed() {
         var inflater = Widgets.inflater();
         for (var type : names()) {
-            var markup = switch (type) {
-                case "text", "button", "badge" -> type + " \"x\"";
-                case "radio" -> "radio value=\"x\" \"X\"";
-                case "option" -> "option value=\"x\" \"X\"";
-                default -> type;
-            };
+            var markup =
+                    switch (type) {
+                        case "text", "button", "badge" -> type + " \"x\"";
+                        case "radio" -> "radio value=\"x\" \"X\"";
+                        case "option" -> "option value=\"x\" \"X\"";
+                        default -> type;
+                    };
             Widget widget = inflater.inflate(KdlParser.parse(markup).getFirst());
-            assertTrue(widget instanceof Attributed<?>,
+            assertTrue(
+                    widget instanceof Attributed<?>,
                     () -> type + " cannot be chained: it does not implement Attributed");
         }
     }
@@ -143,9 +147,9 @@ class ChainingTest {
     @Test
     @DisplayName("every widget with a binding implements Bindable")
     void everyBoundWidgetIsBindable() {
-        for (var widget : List.<Widget>of(
-                new Badge("3"), new Text("x"), new Slider(0, 1, 0, 0, null))) {
-            assertTrue(widget instanceof Bindable<?>,
+        for (var widget : List.<Widget>of(new Badge("3"), new Text("x"), new Slider(0, 1, 0, 0, null))) {
+            assertTrue(
+                    widget instanceof Bindable<?>,
                     () -> widget.getClass().getSimpleName() + " has a source and no bound()");
         }
     }

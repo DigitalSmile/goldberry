@@ -4,13 +4,14 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import io.github.digitalsmile.goldberry.natives.NativePlatform.Architecture;
-import io.github.digitalsmile.goldberry.natives.NativePlatform.OperatingSystem;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
+
+import io.github.digitalsmile.goldberry.natives.NativePlatform.Architecture;
+import io.github.digitalsmile.goldberry.natives.NativePlatform.OperatingSystem;
 
 class NativePlatformTest {
 
@@ -65,8 +66,7 @@ class NativePlatformTest {
         // Not an UnsatisfiedLinkError three layers later: there is no such jar,
         // and saying so where the pair is named is the only place the message can
         // still explain which four rows exist.
-        var thrown = assertThrows(
-                UnsupportedOperationException.class, () -> NativePlatform.of(osName, osArch));
+        var thrown = assertThrows(UnsupportedOperationException.class, () -> NativePlatform.of(osName, osArch));
 
         assertTrue(thrown.getMessage().contains("macos-aarch64"), thrown::getMessage);
     }
@@ -75,8 +75,7 @@ class NativePlatformTest {
     @DisplayName("the record constructor rejects an unpublished pair too, not just of()")
     void rejectsUnpublishedPairsFromTheConstructor() {
         assertThrows(
-                UnsupportedOperationException.class,
-                () -> new NativePlatform(OperatingSystem.MACOS, Architecture.X64));
+                UnsupportedOperationException.class, () -> new NativePlatform(OperatingSystem.MACOS, Architecture.X64));
         assertThrows(
                 UnsupportedOperationException.class,
                 () -> new NativePlatform(OperatingSystem.WINDOWS, Architecture.AARCH64));
@@ -101,7 +100,6 @@ class NativePlatformTest {
     void currentResolves() {
         var platform = NativePlatform.current();
 
-        assertEquals(platform, NativePlatform.of(
-                System.getProperty("os.name"), System.getProperty("os.arch")));
+        assertEquals(platform, NativePlatform.of(System.getProperty("os.name"), System.getProperty("os.arch")));
     }
 }

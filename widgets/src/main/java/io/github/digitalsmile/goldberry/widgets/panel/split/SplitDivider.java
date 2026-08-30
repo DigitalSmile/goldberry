@@ -1,18 +1,19 @@
 package io.github.digitalsmile.goldberry.widgets.panel.split;
 
-import io.github.digitalsmile.goldberry.render.Cursor;
-import io.github.digitalsmile.goldberry.css.ComputedStyle;
-import io.github.digitalsmile.goldberry.input.handler.Handles;
-import io.github.digitalsmile.goldberry.input.event.KeyEvent;
-import io.github.digitalsmile.goldberry.input.event.PointerEvent;
-import io.github.digitalsmile.goldberry.paint.Box;
-import io.github.digitalsmile.goldberry.widget.style.Paints;
-import io.github.digitalsmile.goldberry.widget.style.Styled;
-import io.github.digitalsmile.goldberry.widget.Widget;
 import java.util.List;
 import java.util.Set;
 import java.util.function.DoubleConsumer;
 import java.util.function.DoubleSupplier;
+
+import io.github.digitalsmile.goldberry.css.ComputedStyle;
+import io.github.digitalsmile.goldberry.input.event.KeyEvent;
+import io.github.digitalsmile.goldberry.input.event.PointerEvent;
+import io.github.digitalsmile.goldberry.input.handler.Handles;
+import io.github.digitalsmile.goldberry.paint.Box;
+import io.github.digitalsmile.goldberry.render.Cursor;
+import io.github.digitalsmile.goldberry.widget.Widget;
+import io.github.digitalsmile.goldberry.widget.style.Paints;
+import io.github.digitalsmile.goldberry.widget.style.Styled;
 
 /// The bar between a [SplitPane]'s two children — §5's "separator with value".
 ///
@@ -48,8 +49,12 @@ import java.util.function.DoubleSupplier;
 /// @param onNudge  a step along the axis, and whether it is a page
 /// @param onCollapse what `Enter` asks for
 record SplitDivider(
-        SplitAxis axis, double position, DoubleSupplier offset, DoubleConsumer onDrag,
-        SplitPaneView.Nudge onNudge, Runnable onCollapse)
+        SplitAxis axis,
+        double position,
+        DoubleSupplier offset,
+        DoubleConsumer onDrag,
+        SplitPaneView.Nudge onNudge,
+        Runnable onCollapse)
         implements Widget.Leaf, Styled, Paints, Handles {
 
     @Override
@@ -109,8 +114,7 @@ record SplitDivider(
                 onDrag.accept(event.anchor() + travel);
                 event.consume();
             }
-            default -> {
-            }
+            default -> {}
         }
     }
 
@@ -141,8 +145,7 @@ record SplitDivider(
                 }
                 event.consume();
             }
-            default -> {
-            }
+            default -> {}
         }
     }
 
@@ -159,15 +162,17 @@ record SplitDivider(
     /// one.
     @Override
     public Box render(ComputedStyle style, List<Box> children, Context context) {
-        return Box.of().style(style)
+        return Box.of()
+                .style(style)
                 .cursor(axis.isVertical() ? Cursor.NS_RESIZE : Cursor.EW_RESIZE)
-                .size(axis.isVertical()
-                                ? io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength.UNDEFINED
-                                : io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength
-                                        .points(SplitPaneView.DIVIDER),
+                .size(
                         axis.isVertical()
-                                ? io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength
-                                        .points(SplitPaneView.DIVIDER)
+                                ? io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength.UNDEFINED
+                                : io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength.points(
+                                        SplitPaneView.DIVIDER),
+                        axis.isVertical()
+                                ? io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength.points(
+                                        SplitPaneView.DIVIDER)
                                 : io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength.UNDEFINED)
                 .shrink(0)
                 .grow(0)

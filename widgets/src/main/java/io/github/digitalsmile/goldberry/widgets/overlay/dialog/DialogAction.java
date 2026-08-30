@@ -1,15 +1,15 @@
 package io.github.digitalsmile.goldberry.widgets.overlay.dialog;
 
+import java.util.List;
+import java.util.Locale;
+import java.util.Objects;
+
 import io.github.digitalsmile.goldberry.kdl.KdlNode;
 import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widget.attr.Attributed;
 import io.github.digitalsmile.goldberry.widget.attr.Attributes;
 import io.github.digitalsmile.goldberry.widgets.markup.Markup;
 import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
-
-import java.util.List;
-import java.util.Locale;
-import java.util.Objects;
 
 /// One button in a [Dialog]'s action bar, and **the role it plays**.
 ///
@@ -79,8 +79,9 @@ public record DialogAction(String label, Role role, Runnable onPress, Attributes
                 return valueOf(text.trim().toUpperCase(Locale.ROOT));
             } catch (IllegalArgumentException e) {
                 throw new IllegalArgumentException(
-                        "a dialog action's role is \"affirmative\", \"dismissive\" or"
-                                + " \"neutral\", not \"" + text + "\"", e);
+                        "a dialog action's role is \"affirmative\", \"dismissive\" or" + " \"neutral\", not \"" + text
+                                + "\"",
+                        e);
             }
         }
     }
@@ -108,7 +109,10 @@ public record DialogAction(String label, Role role, Runnable onPress, Attributes
 
     /// Builds an `action` from markup.
     public static Widget inflate(KdlNode node, List<Widget> children, Wiring wiring) {
-        return new DialogAction(Wiring.label(node), Role.of(node.stringProperty("role")),
-                wiring.action(node, "press"), Attributes.of(node));
+        return new DialogAction(
+                Wiring.label(node),
+                Role.of(node.stringProperty("role")),
+                wiring.action(node, "press"),
+                Attributes.of(node));
     }
 }

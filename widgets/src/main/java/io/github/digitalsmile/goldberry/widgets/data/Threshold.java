@@ -1,7 +1,8 @@
 package io.github.digitalsmile.goldberry.widgets.data;
 
-import io.github.digitalsmile.goldberry.widget.style.Paints;
 import java.util.Objects;
+
+import io.github.digitalsmile.goldberry.widget.style.Paints;
 
 /// A limit drawn across a chart — `charts.md` §3.1's "thresholds: lines and
 /// shaded regions, drawn in the *semantic* hues, never a series slot".
@@ -90,9 +91,8 @@ public record Threshold(double from, double to, Level level, String label) {
     public Threshold {
         Objects.requireNonNull(level, "level");
         if (Double.isNaN(from) || Double.isNaN(to)) {
-            throw new IllegalArgumentException(
-                    "a threshold needs a position, and NaN is where a *missing* value goes"
-                            + " (NullPolicy) rather than a limit");
+            throw new IllegalArgumentException("a threshold needs a position, and NaN is where a *missing* value goes"
+                    + " (NullPolicy) rather than a limit");
         }
         if (to < from) {
             var swap = from;

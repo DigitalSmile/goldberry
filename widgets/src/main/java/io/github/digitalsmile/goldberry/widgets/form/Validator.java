@@ -114,7 +114,10 @@ public interface Validator<T> {
     /// into a required one. Combine with [#required] when both are meant.
     static Validator<String> matching(java.util.regex.Pattern pattern, String message) {
         Objects.requireNonNull(pattern, "pattern");
-        return of(value -> value == null || value.isEmpty() || pattern.matcher(value).matches(),
+        return of(
+                value -> value == null
+                        || value.isEmpty()
+                        || pattern.matcher(value).matches(),
                 message);
     }
 }

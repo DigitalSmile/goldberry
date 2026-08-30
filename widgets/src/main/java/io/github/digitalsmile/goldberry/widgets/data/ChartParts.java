@@ -1,11 +1,12 @@
 package io.github.digitalsmile.goldberry.widgets.data;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widgets.data.linechart.ChartLegend;
 import io.github.digitalsmile.goldberry.widgets.data.linechart.ChartPlot;
 import io.github.digitalsmile.goldberry.widgets.data.linechart.ChartSeries;
-import java.util.ArrayList;
-import java.util.List;
 
 /// What every chart in §11 is made of: a plot, and a legend when there is more
 /// than one series.
@@ -19,11 +20,12 @@ public final class ChartParts {
     /// Which shape the plot draws. A re-export of [ChartPlot]'s own, so a chart
     /// widget names a mode without reaching into the part that implements it.
     public enum Mode {
-        LINE, AREA, BAR
+        LINE,
+        AREA,
+        BAR
     }
 
-    private ChartParts() {
-    }
+    private ChartParts() {}
 
     /// The state a [ChartSpec] creates — one class for all three axis charts.
     ///
@@ -57,8 +59,12 @@ public final class ChartParts {
     /// @param isolated  the series shown alone, or -1 for all of them
     /// @param onIsolate what a legend entry's click reports, or null for a
     ///                  legend that is a key rather than a control
-    public static List<Widget> of(List<Series> series, List<String> categories, Mode mode,
-            int isolated, java.util.function.IntConsumer onIsolate) {
+    public static List<Widget> of(
+            List<Series> series,
+            List<String> categories,
+            Mode mode,
+            int isolated,
+            java.util.function.IntConsumer onIsolate) {
 
         return of(series, categories, mode, isolated, onIsolate, ChartOptions.DEFAULTS);
     }
@@ -69,19 +75,29 @@ public final class ChartParts {
     /// nothing to draw: no legend, no plot — a legend keying series nobody can
     /// see is noise, and a grid over no data asserts a scale nobody supplied
     /// (`charts.md` §3.1, ADR-0200).
-    public static List<Widget> of(List<Series> series, List<String> categories, Mode mode,
-            int isolated, java.util.function.IntConsumer onIsolate, ChartOptions options) {
+    public static List<Widget> of(
+            List<Series> series,
+            List<String> categories,
+            Mode mode,
+            int isolated,
+            java.util.function.IntConsumer onIsolate,
+            ChartOptions options) {
 
         var message = messageFor(options.status(), hasData(series));
         if (message != null) {
             return List.of(message);
         }
         var parts = new ArrayList<Widget>(2);
-        parts.add(new ChartPlot(series, categories, switch (mode) {
-            case LINE -> ChartPlot.Mode.LINE;
-            case AREA -> ChartPlot.Mode.AREA;
-            case BAR -> ChartPlot.Mode.BAR;
-        }, options, isolated));
+        parts.add(new ChartPlot(
+                series,
+                categories,
+                switch (mode) {
+                    case LINE -> ChartPlot.Mode.LINE;
+                    case AREA -> ChartPlot.Mode.AREA;
+                    case BAR -> ChartPlot.Mode.BAR;
+                },
+                options,
+                isolated));
         if (series.size() > 1) {
             parts.add(new ChartLegend(series, isolated, onIsolate));
         }
@@ -142,11 +158,9 @@ public final class ChartParts {
         if (text == null) {
             return null;
         }
-        return new ChartMessage(text,
-                (status == null ? ChartStatus.READY : status).styleClass(hasData));
+        return new ChartMessage(text, (status == null ? ChartStatus.READY : status).styleClass(hasData));
     }
 
     /// What [#read] found.
-    public record Read(List<Series> series, List<String> categories) {
-    }
+    public record Read(List<Series> series, List<String> categories) {}
 }

@@ -4,12 +4,14 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import io.github.digitalsmile.goldberry.natives.NativeLibraryRequirement;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+
+import io.github.digitalsmile.goldberry.natives.NativeLibraryRequirement;
 
 /// The two symbols layers needed — `bl_context_blit_image_d` and
 /// `bl_context_set_global_alpha`.
@@ -90,10 +92,9 @@ class BlendLayerTest {
                 var blended = pixel(targetPixels, 32, 1, 1);
                 var red = (blended >>> 16) & 0xFF;
                 var blue = blended & 0xFF;
-                assertTrue(red > 100 && red < 155,
-                        () -> "expected about half red, got #" + Integer.toHexString(blended));
-                assertTrue(blue > 100 && blue < 155,
-                        () -> "and about half blue, got #" + Integer.toHexString(blended));
+                assertTrue(
+                        red > 100 && red < 155, () -> "expected about half red, got #" + Integer.toHexString(blended));
+                assertTrue(blue > 100 && blue < 155, () -> "and about half blue, got #" + Integer.toHexString(blended));
                 assertEquals(0xFF, blended >>> 24, "over an opaque backdrop the result is opaque");
             }
         }
@@ -127,12 +128,13 @@ class BlendLayerTest {
                 // the frame is half blue over black and there is no red left in
                 // it at all.
                 var overlap = pixel(targetPixels, 32, 3, 3);
-                assertEquals(0, (overlap >>> 16) & 0xFF,
-                        () -> "the covered rectangle showed through: #"
-                                + Integer.toHexString(overlap));
-                assertTrue((overlap & 0xFF) > 100 && (overlap & 0xFF) < 155,
-                        () -> "and the top one should be at half: #"
-                                + Integer.toHexString(overlap));
+                assertEquals(
+                        0,
+                        (overlap >>> 16) & 0xFF,
+                        () -> "the covered rectangle showed through: #" + Integer.toHexString(overlap));
+                assertTrue(
+                        (overlap & 0xFF) > 100 && (overlap & 0xFF) < 155,
+                        () -> "and the top one should be at half: #" + Integer.toHexString(overlap));
             }
         }
     }
@@ -142,11 +144,10 @@ class BlendLayerTest {
     void refusesBadAlpha() {
         var pixels = buffer(2, 2);
         try (var image = BlendImage.wrapping(pixels, 2, 2, 8);
-             var context = BlendContext.on(image, 1.0, 0)) {
+                var context = BlendContext.on(image, 1.0, 0)) {
             assertThrows(IllegalArgumentException.class, () -> context.globalAlpha(-0.1));
             assertThrows(IllegalArgumentException.class, () -> context.globalAlpha(1.5));
             assertThrows(IllegalArgumentException.class, () -> context.globalAlpha(Double.NaN));
         }
     }
-
 }

@@ -1,22 +1,23 @@
 package io.github.digitalsmile.goldberry.example;
 
-import io.github.digitalsmile.goldberry.stats.FrameStats;
+import java.util.List;
+import java.util.Optional;
+
 import io.github.digitalsmile.goldberry.Host;
 import io.github.digitalsmile.goldberry.Overlay;
 import io.github.digitalsmile.goldberry.Popup;
 import io.github.digitalsmile.goldberry.Window;
+import io.github.digitalsmile.goldberry.input.hit.HitTest;
 import io.github.digitalsmile.goldberry.render.Clipboard;
 import io.github.digitalsmile.goldberry.render.event.EventLoop;
-import io.github.digitalsmile.goldberry.render.model.LogicalRect;
 import io.github.digitalsmile.goldberry.render.model.LogicalPoint;
+import io.github.digitalsmile.goldberry.render.model.LogicalRect;
 import io.github.digitalsmile.goldberry.render.model.LogicalSize;
-import io.github.digitalsmile.goldberry.input.hit.HitTest;
+import io.github.digitalsmile.goldberry.stats.FrameStats;
 import io.github.digitalsmile.goldberry.text.font.Fonts;
-import io.github.digitalsmile.goldberry.widget.style.Corner;
 import io.github.digitalsmile.goldberry.widget.Element;
 import io.github.digitalsmile.goldberry.widget.Widget;
-import java.util.List;
-import java.util.Optional;
+import io.github.digitalsmile.goldberry.widget.style.Corner;
 
 /// A host that answers `anchor` from a captured frame — enough to draw a tour.
 record TourTestHost(List<HitTest.Region> regions) implements Host {
@@ -47,42 +48,31 @@ record TourTestHost(List<HitTest.Region> regions) implements Host {
     }
 
     @Override
-    public void repaint() {
-    }
+    public void repaint() {}
 
     @Override
-    public void restyle() {
-    }
+    public void restyle() {}
 
     @Override
-    public void title(String title) {
-    }
+    public void title(String title) {}
 
     @Override
-    public void shortcut(io.github.digitalsmile.goldberry.input.key.Shortcut a, Runnable r) {
-    }
+    public void shortcut(io.github.digitalsmile.goldberry.input.key.Shortcut a, Runnable r) {}
 
     @Override
-    public void shortcut(io.github.digitalsmile.goldberry.input.key.Shortcut a, Runnable r,
-            Object owner) {
-    }
+    public void shortcut(io.github.digitalsmile.goldberry.input.key.Shortcut a, Runnable r, Object owner) {}
 
     @Override
-    public void shortcut(String accelerator, Runnable action) {
-    }
+    public void shortcut(String accelerator, Runnable action) {}
 
     @Override
-    public void removeShortcut(io.github.digitalsmile.goldberry.input.key.Shortcut accelerator) {
-    }
+    public void removeShortcut(io.github.digitalsmile.goldberry.input.key.Shortcut accelerator) {}
 
     @Override
-    public void removeShortcut(io.github.digitalsmile.goldberry.input.key.Shortcut accelerator,
-            Object owner) {
-    }
+    public void removeShortcut(io.github.digitalsmile.goldberry.input.key.Shortcut accelerator, Object owner) {}
 
     @Override
-    public void removeShortcut(String accelerator) {
-    }
+    public void removeShortcut(String accelerator) {}
 
     @Override
     public LogicalRect placeableArea() {
@@ -90,53 +80,53 @@ record TourTestHost(List<HitTest.Region> regions) implements Host {
     }
 
     @Override
-    public Optional<Popup> popup(Widget content, String anchorId,
-            io.github.digitalsmile.goldberry.Placement placement) {
+    public Optional<Popup> popup(
+            Widget content, String anchorId, io.github.digitalsmile.goldberry.Placement placement) {
         return Optional.empty();
     }
 
     @Override
-    public Optional<Popup> popup(Widget content, LogicalRect anchor,
-            io.github.digitalsmile.goldberry.Placement placement) {
+    public Optional<Popup> popup(
+            Widget content, LogicalRect anchor, io.github.digitalsmile.goldberry.Placement placement) {
         return Optional.empty();
     }
 
     @Override
-    public Optional<Popup> popup(Widget content, LogicalRect anchor,
-            io.github.digitalsmile.goldberry.Placement placement, float minimumWidth) {
+    public Optional<Popup> popup(
+            Widget content,
+            LogicalRect anchor,
+            io.github.digitalsmile.goldberry.Placement placement,
+            float minimumWidth) {
         return Optional.empty();
     }
 
     @Override
-    public Optional<Popup> popup(Widget content, LogicalRect anchor,
-            io.github.digitalsmile.goldberry.Placement placement, float minimumWidth,
+    public Optional<Popup> popup(
+            Widget content,
+            LogicalRect anchor,
+            io.github.digitalsmile.goldberry.Placement placement,
+            float minimumWidth,
             Fit fit) {
         return Optional.empty();
     }
 
     @Override
-    public Optional<Popup> popup(Widget content,
-            LogicalPoint at,
-            LogicalSize size) {
+    public Optional<Popup> popup(Widget content, LogicalPoint at, LogicalSize size) {
         return Optional.empty();
     }
 
     @Override
-    public Optional<Popup> tooltip(Widget content,
-            LogicalPoint at,
-            LogicalSize size) {
+    public Optional<Popup> tooltip(Widget content, LogicalPoint at, LogicalSize size) {
         return Optional.empty();
     }
 
     @Override
-    public EventLoop.Timer after(
-            java.time.Duration delay, Runnable action) {
+    public EventLoop.Timer after(java.time.Duration delay, Runnable action) {
         throw new UnsupportedOperationException("no event loop here");
     }
 
     @Override
-    public void onContextMenu(io.github.digitalsmile.goldberry.ContextMenuHandler handler) {
-    }
+    public void onContextMenu(io.github.digitalsmile.goldberry.ContextMenuHandler handler) {}
 
     /// No tree behind this host, so nothing to focus — a tour never asks.
     @Override
@@ -168,8 +158,7 @@ record TourTestHost(List<HitTest.Region> regions) implements Host {
     }
 
     @Override
-    public void textInput(boolean active) {
-    }
+    public void textInput(boolean active) {}
 
     @Override
     public Window window() {
@@ -177,8 +166,11 @@ record TourTestHost(List<HitTest.Region> regions) implements Host {
     }
 
     @Override
-    public Optional<Popup> attachedPopup(Widget content, LogicalRect anchor,
-            io.github.digitalsmile.goldberry.Placement placement, float minimumWidth,
+    public Optional<Popup> attachedPopup(
+            Widget content,
+            LogicalRect anchor,
+            io.github.digitalsmile.goldberry.Placement placement,
+            float minimumWidth,
             Fit fit) {
         return Optional.empty();
     }

@@ -1,11 +1,13 @@
 package io.github.digitalsmile.goldberry.golden;
 
-import io.github.digitalsmile.goldberry.paint.TestFrames;
 import java.nio.ByteOrder;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.function.Consumer;
+
 import org.opentest4j.AssertionFailedError;
+
+import io.github.digitalsmile.goldberry.paint.TestFrames;
 
 /// Renders a scene and compares it against a committed image.
 ///
@@ -66,15 +68,18 @@ public final class GoldenImage {
     private static final Path GOLDEN_DIR = Path.of("src", "test", "resources", "golden");
     private static final Path FAILURE_DIR = Path.of("build", "golden-failures");
 
-    private GoldenImage() {
-    }
+    private GoldenImage() {}
 
     /// Paints `scene` into a `width` x `height` frame at `scale` and compares it
     /// against `golden`.
     ///
     /// @param name the golden's file name without an extension
     public static void assertMatches(
-            String name, int width, int height, float scale, Consumer<io.github.digitalsmile.goldberry.paint.Frame> scene) {
+            String name,
+            int width,
+            int height,
+            float scale,
+            Consumer<io.github.digitalsmile.goldberry.paint.Frame> scene) {
 
         var target = TestFrames.of(width, height, scale);
         try {
@@ -96,10 +101,9 @@ public final class GoldenImage {
             // Written anyway, so the first run of a new test produces something
             // to look at and commit rather than only a message about it.
             Png.write(FAILURE_DIR.resolve(name + "-actual.png"), actual);
-            throw new AssertionFailedError(
-                    "no golden for \"" + name + "\" at " + goldenFile
-                            + ". What was drawn is in " + FAILURE_DIR.resolve(name + "-actual.png")
-                            + "; re-run with -D" + UPDATE_PROPERTY + "=true to accept it.");
+            throw new AssertionFailedError("no golden for \"" + name + "\" at " + goldenFile
+                    + ". What was drawn is in " + FAILURE_DIR.resolve(name + "-actual.png")
+                    + "; re-run with -D" + UPDATE_PROPERTY + "=true to accept it.");
         }
 
         var expected = Png.read(goldenFile);
@@ -116,9 +120,8 @@ public final class GoldenImage {
         Png.write(FAILURE_DIR.resolve(name + "-expected.png"), expected);
         Png.write(FAILURE_DIR.resolve(name + "-actual.png"), actual);
         Png.write(FAILURE_DIR.resolve(name + "-diff.png"), comparison.diff());
-        throw new AssertionFailedError(
-                "\"" + name + "\" does not match its golden: " + comparison.describe()
-                        + ". Expected, actual and diff images are in " + FAILURE_DIR.toAbsolutePath());
+        throw new AssertionFailedError("\"" + name + "\" does not match its golden: " + comparison.describe()
+                + ". Expected, actual and diff images are in " + FAILURE_DIR.toAbsolutePath());
     }
 
     /// Package-private so [ScaleInvariance] can read back the frame it drew the
@@ -137,23 +140,25 @@ public final class GoldenImage {
     private record Comparison(int differing, int worstChannel, int total, Png.Image diff) {
 
         boolean matches() {
-            return worstChannel <= CHANNEL_TOLERANCE
-                    && (double) differing / total <= MAX_DIFFERING_FRACTION;
+            return worstChannel <= CHANNEL_TOLERANCE && (double) differing / total <= MAX_DIFFERING_FRACTION;
         }
 
         String describe() {
             return String.format(
                     "%d of %d pixels differ (%.2f%%, allowed %.2f%%), worst channel delta %d (allowed %d)",
-                    differing, total, 100.0 * differing / total, 100 * MAX_DIFFERING_FRACTION,
-                    worstChannel, CHANNEL_TOLERANCE);
+                    differing,
+                    total,
+                    100.0 * differing / total,
+                    100 * MAX_DIFFERING_FRACTION,
+                    worstChannel,
+                    CHANNEL_TOLERANCE);
         }
     }
 
     private static Comparison compare(Png.Image expected, Png.Image actual) {
         if (expected.width() != actual.width() || expected.height() != actual.height()) {
-            throw new AssertionFailedError(
-                    "golden is " + expected.width() + "x" + expected.height()
-                            + " but the scene rendered " + actual.width() + "x" + actual.height());
+            throw new AssertionFailedError("golden is " + expected.width() + "x" + expected.height()
+                    + " but the scene rendered " + actual.width() + "x" + actual.height());
         }
 
         var diff = new int[expected.argb().length];

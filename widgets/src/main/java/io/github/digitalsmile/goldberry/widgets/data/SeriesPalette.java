@@ -40,8 +40,7 @@ public final class SeriesPalette {
         0xFFDA6A76, 0xFF02A3C1, 0xFFD9704F, 0xFF06A7A7,
     };
 
-    private SeriesPalette() {
-    }
+    private SeriesPalette() {}
 
     /// The colour of series `index`, counting from zero.
     ///
@@ -51,8 +50,7 @@ public final class SeriesPalette {
     /// @param index   the series' position, counting from zero
     public static int of(Paints.Context context, int index) {
         if (index < 0) {
-            throw new IllegalArgumentException("a series index counts from zero, and " + index
-                    + " does not");
+            throw new IllegalArgumentException("a series index counts from zero, and " + index + " does not");
         }
         var slot = Math.min(index, SLOTS - 1);
         return context.color("--gb-chart-" + (slot + 1), FALLBACK[slot]);

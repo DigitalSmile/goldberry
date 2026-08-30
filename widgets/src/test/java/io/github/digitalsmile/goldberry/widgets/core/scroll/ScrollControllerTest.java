@@ -4,29 +4,31 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import io.github.digitalsmile.goldberry.RendererRequirement;
-import io.github.digitalsmile.goldberry.paint.TestFrames;
-import io.github.digitalsmile.goldberry.render.model.LogicalRect;
-import io.github.digitalsmile.goldberry.css.Theme;
-import io.github.digitalsmile.goldberry.input.hit.HitTest;
-import io.github.digitalsmile.goldberry.paint.tree.RenderTree;
-import io.github.digitalsmile.goldberry.widget.attr.Attributes;
-import io.github.digitalsmile.goldberry.widget.Element;
-import io.github.digitalsmile.goldberry.widget.ElementTree;
-import io.github.digitalsmile.goldberry.widget.Widget;
-import io.github.digitalsmile.goldberry.widget.WidgetRenderer;
-import io.github.digitalsmile.goldberry.input.PointerRouter;
-import io.github.digitalsmile.goldberry.widgets.Controls;
-import io.github.digitalsmile.goldberry.widgets.controls.TestFont;
-import io.github.digitalsmile.goldberry.widgets.core.Column;
-import io.github.digitalsmile.goldberry.widgets.text.Text;
 import java.util.ArrayList;
 import java.util.List;
+
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+
+import io.github.digitalsmile.goldberry.RendererRequirement;
+import io.github.digitalsmile.goldberry.css.Theme;
+import io.github.digitalsmile.goldberry.input.PointerRouter;
+import io.github.digitalsmile.goldberry.input.hit.HitTest;
+import io.github.digitalsmile.goldberry.paint.TestFrames;
+import io.github.digitalsmile.goldberry.paint.tree.RenderTree;
+import io.github.digitalsmile.goldberry.render.model.LogicalRect;
+import io.github.digitalsmile.goldberry.widget.Element;
+import io.github.digitalsmile.goldberry.widget.ElementTree;
+import io.github.digitalsmile.goldberry.widget.Widget;
+import io.github.digitalsmile.goldberry.widget.WidgetRenderer;
+import io.github.digitalsmile.goldberry.widget.attr.Attributes;
+import io.github.digitalsmile.goldberry.widgets.Controls;
+import io.github.digitalsmile.goldberry.widgets.controls.TestFont;
+import io.github.digitalsmile.goldberry.widgets.core.Column;
+import io.github.digitalsmile.goldberry.widgets.text.Text;
 
 /// §1's `scrollIntoView`, shipped as the API §1 words it as
 /// ([ADR-0120](../../../../../../../../book/src/adr/0120-a-widget-scrolls-itself-into-view.md)).
@@ -62,8 +64,7 @@ class ScrollControllerTest {
 
         Harness(Widget root) {
             target = TestFrames.of(200, VIEWPORT_HEIGHT, 1.0f, 0);
-            renderer = new WidgetRenderer(
-                    List.of(Controls.baseStylesheet(), Theme.NORD_DARK.load()), TestFont.get());
+            renderer = new WidgetRenderer(List.of(Controls.baseStylesheet(), Theme.NORD_DARK.load()), TestFont.get());
             tree = new ElementTree(root);
             render = RenderTree.create();
             router.focusRoot(tree.root());
@@ -88,7 +89,8 @@ class ScrollControllerTest {
                     found.add(LogicalRect.of(
                             (float) (m.a() * l.left() + m.c() * l.top() + m.e()),
                             (float) (m.b() * l.left() + m.d() * l.top() + m.f()),
-                            l.width(), l.height()));
+                            l.width(),
+                            l.height()));
                 }
             });
             assertEquals(1, found.size(), "expected exactly one row with id " + id);
@@ -101,8 +103,8 @@ class ScrollControllerTest {
         for (var i = 0; i < 30; i++) {
             rows.add(new Text("row " + i, Attributes.NONE.id("row" + i)));
         }
-        return new Scroll(List.of(new Column(rows.toArray(Widget[]::new))),
-                ScrollAxis.VERTICAL, Attributes.NONE).controlledBy(controller);
+        return new Scroll(List.of(new Column(rows.toArray(Widget[]::new))), ScrollAxis.VERTICAL, Attributes.NONE)
+                .controlledBy(controller);
     }
 
     @Nested
@@ -179,7 +181,8 @@ class ScrollControllerTest {
             harness.frame();
 
             var after = harness.rowRect("row20");
-            assertTrue(after.top() >= -1 && after.top() + after.size().height() <= VIEWPORT_HEIGHT + 1,
+            assertTrue(
+                    after.top() >= -1 && after.top() + after.size().height() <= VIEWPORT_HEIGHT + 1,
                     "row20 is at " + after.top() + ", still outside the viewport");
         }
 
@@ -196,7 +199,8 @@ class ScrollControllerTest {
             // centred its target would throw away everything the user was
             // already looking at, and §1 asks only for it to be in view.
             var after = harness.rowRect("row20");
-            assertTrue(after.top() > VIEWPORT_HEIGHT / 2.0,
+            assertTrue(
+                    after.top() > VIEWPORT_HEIGHT / 2.0,
                     "the row was pulled further than it needed to be; it is at " + after.top());
         }
 

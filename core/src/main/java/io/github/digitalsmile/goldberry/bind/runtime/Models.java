@@ -1,11 +1,12 @@
 package io.github.digitalsmile.goldberry.bind.runtime;
 
 import java.util.Objects;
-import io.github.digitalsmile.goldberry.bind.registry.ActionRegistry;
-import io.github.digitalsmile.goldberry.bind.registry.BindingRegistry;
+
 import io.github.digitalsmile.goldberry.bind.Model;
 import io.github.digitalsmile.goldberry.bind.Observable;
 import io.github.digitalsmile.goldberry.bind.Subscription;
+import io.github.digitalsmile.goldberry.bind.registry.ActionRegistry;
+import io.github.digitalsmile.goldberry.bind.registry.BindingRegistry;
 
 /// The two registries a [Model] publishes — §9's `bind` and `action` halves.
 ///
@@ -40,8 +41,7 @@ import io.github.digitalsmile.goldberry.bind.Subscription;
 /// next frame, or wherever [#refresh] is called.
 public final class Models {
 
-    private Models() {
-    }
+    private Models() {}
 
     /// Every `@Bind` path on `model`, strict.
     ///

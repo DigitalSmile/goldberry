@@ -1,10 +1,10 @@
 package io.github.digitalsmile.goldberry.widgets.overlay.toast;
 
+import java.util.Objects;
+
 import io.github.digitalsmile.goldberry.Host;
 import io.github.digitalsmile.goldberry.Overlay;
 import io.github.digitalsmile.goldberry.widget.style.Corner;
-
-import java.util.Objects;
 
 /// Putting a toast stack on a window — the half of §7's `toast` that is not a
 /// widget.
@@ -29,8 +29,7 @@ import java.util.Objects;
 /// Confined to the UI thread, like everything that touches a [Host].
 public final class Toasts {
 
-    private Toasts() {
-    }
+    private Toasts() {}
 
     /// Attaches a toast stack to `host`'s window at `corner`.
     ///

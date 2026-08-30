@@ -1,21 +1,22 @@
 package io.github.digitalsmile.goldberry.widgets.controls.select;
 
-import io.github.digitalsmile.goldberry.render.model.LogicalRect;
-import io.github.digitalsmile.goldberry.css.ComputedStyle;
-import io.github.digitalsmile.goldberry.input.handler.Handles;
-import io.github.digitalsmile.goldberry.input.event.KeyEvent;
-import io.github.digitalsmile.goldberry.input.handler.Located;
-import io.github.digitalsmile.goldberry.input.event.PointerEvent;
-import io.github.digitalsmile.goldberry.input.event.TextEvent;
-import io.github.digitalsmile.goldberry.paint.Box;
-import io.github.digitalsmile.goldberry.widget.attr.Attributes;
-import io.github.digitalsmile.goldberry.widget.style.Paints;
-import io.github.digitalsmile.goldberry.widget.style.Styled;
-import io.github.digitalsmile.goldberry.widget.Widget;
 import java.util.List;
 import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
+
+import io.github.digitalsmile.goldberry.css.ComputedStyle;
+import io.github.digitalsmile.goldberry.input.event.KeyEvent;
+import io.github.digitalsmile.goldberry.input.event.PointerEvent;
+import io.github.digitalsmile.goldberry.input.event.TextEvent;
+import io.github.digitalsmile.goldberry.input.handler.Handles;
+import io.github.digitalsmile.goldberry.input.handler.Located;
+import io.github.digitalsmile.goldberry.paint.Box;
+import io.github.digitalsmile.goldberry.render.model.LogicalRect;
+import io.github.digitalsmile.goldberry.widget.Widget;
+import io.github.digitalsmile.goldberry.widget.attr.Attributes;
+import io.github.digitalsmile.goldberry.widget.style.Paints;
+import io.github.digitalsmile.goldberry.widget.style.Styled;
 
 /// The closed half of a [Select]: what is on screen when the list is not.
 ///
@@ -60,10 +61,17 @@ import java.util.function.Consumer;
 /// @param onSettle    the keyboard left — decide what a typed value meant
 /// @param onLocated   where the last frame put this, and what clips it
 record SelectField(
-        String text, boolean placeholder, List<Widget> chips, Widget editor,
-        boolean open, boolean disabled, Attributes attributes,
-        Runnable onToggle, Consumer<String> onTypeahead,
-        Runnable onRestore, Runnable onSettle,
+        String text,
+        boolean placeholder,
+        List<Widget> chips,
+        Widget editor,
+        boolean open,
+        boolean disabled,
+        Attributes attributes,
+        Runnable onToggle,
+        Consumer<String> onTypeahead,
+        Runnable onRestore,
+        Runnable onSettle,
         BiConsumer<LogicalRect, LogicalRect> onLocated)
         implements Widget.Leaf, Styled, Paints, Handles, Located {
 
@@ -181,14 +189,15 @@ record SelectField(
         }
         var plain = event.modifiers().none();
         var alt = event.modifiers().only(io.github.digitalsmile.goldberry.input.key.Mod.ALT);
-        var opens = switch (event.key()) {
-            // **Not `Space` in an editable field**, where a space is a character.
-            // §3 lists `Space` as a way to open a *closed* control, and a
-            // combobox is not one.
-            case SPACE -> plain && editor == null;
-            case DOWN, UP -> (plain || alt) && !open;
-            default -> false;
-        };
+        var opens =
+                switch (event.key()) {
+                    // **Not `Space` in an editable field**, where a space is a character.
+                    // §3 lists `Space` as a way to open a *closed* control, and a
+                    // combobox is not one.
+                    case SPACE -> plain && editor == null;
+                    case DOWN, UP -> (plain || alt) && !open;
+                    default -> false;
+                };
         if (opens) {
             toggle();
             event.consume();
@@ -199,8 +208,7 @@ record SelectField(
         // **bubble** phase, so the editor inside keeps whatever it wanted first,
         // and only for an editable control: a plain `select`'s `Esc` belongs to
         // the popup, which is already watching for it.
-        if (editor != null && event.key() == io.github.digitalsmile.goldberry.input.key.Key.ESCAPE
-                && plain) {
+        if (editor != null && event.key() == io.github.digitalsmile.goldberry.input.key.Key.ESCAPE && plain) {
             onRestore.run();
             event.consume();
         }

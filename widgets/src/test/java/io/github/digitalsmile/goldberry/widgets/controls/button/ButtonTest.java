@@ -1,49 +1,49 @@
 package io.github.digitalsmile.goldberry.widgets.controls.button;
 
-import io.github.digitalsmile.goldberry.css.Corners;
-import io.github.digitalsmile.goldberry.render.Cursor;
-import io.github.digitalsmile.goldberry.widget.attr.Attributes;
-
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
-import io.github.digitalsmile.goldberry.css.ComputedStyle;
-import io.github.digitalsmile.goldberry.css.value.CssLength;
-import io.github.digitalsmile.goldberry.css.Decoration;
-import io.github.digitalsmile.goldberry.css.select.Selector;
-import io.github.digitalsmile.goldberry.css.cascade.StyleResolver;
-import io.github.digitalsmile.goldberry.css.Stylesheet;
-import io.github.digitalsmile.goldberry.css.Theme;
-import io.github.digitalsmile.goldberry.icon.Icon;
-import io.github.digitalsmile.goldberry.input.handler.Handles;
-import io.github.digitalsmile.goldberry.input.key.Key;
-import io.github.digitalsmile.goldberry.input.event.KeyEvent;
-import io.github.digitalsmile.goldberry.input.key.Modifiers;
-import io.github.digitalsmile.goldberry.input.event.PointerEvent;
-import io.github.digitalsmile.goldberry.kdl.KdlParser;
-import io.github.digitalsmile.goldberry.paint.Box;
-import io.github.digitalsmile.goldberry.natives.yoga.Insets;
-import io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength;
-import io.github.digitalsmile.goldberry.widget.Element;
-import io.github.digitalsmile.goldberry.widget.ElementTree;
-import io.github.digitalsmile.goldberry.widget.WidgetRenderer;
-import io.github.digitalsmile.goldberry.bind.registry.ActionRegistry;
-import io.github.digitalsmile.goldberry.widgets.Controls;
-import io.github.digitalsmile.goldberry.widgets.Icons;
-import io.github.digitalsmile.goldberry.widgets.controls.TestFont;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+
+import io.github.digitalsmile.goldberry.bind.registry.ActionRegistry;
+import io.github.digitalsmile.goldberry.css.ComputedStyle;
+import io.github.digitalsmile.goldberry.css.Corners;
+import io.github.digitalsmile.goldberry.css.Decoration;
+import io.github.digitalsmile.goldberry.css.Stylesheet;
+import io.github.digitalsmile.goldberry.css.Theme;
+import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
+import io.github.digitalsmile.goldberry.css.cascade.StyleResolver;
+import io.github.digitalsmile.goldberry.css.select.Selector;
+import io.github.digitalsmile.goldberry.css.value.CssLength;
+import io.github.digitalsmile.goldberry.icon.Icon;
+import io.github.digitalsmile.goldberry.input.event.KeyEvent;
+import io.github.digitalsmile.goldberry.input.event.PointerEvent;
+import io.github.digitalsmile.goldberry.input.handler.Handles;
+import io.github.digitalsmile.goldberry.input.key.Key;
+import io.github.digitalsmile.goldberry.input.key.Modifiers;
+import io.github.digitalsmile.goldberry.kdl.KdlParser;
+import io.github.digitalsmile.goldberry.natives.yoga.Insets;
+import io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength;
+import io.github.digitalsmile.goldberry.paint.Box;
+import io.github.digitalsmile.goldberry.render.Cursor;
+import io.github.digitalsmile.goldberry.widget.Element;
+import io.github.digitalsmile.goldberry.widget.ElementTree;
+import io.github.digitalsmile.goldberry.widget.WidgetRenderer;
+import io.github.digitalsmile.goldberry.widget.attr.Attributes;
+import io.github.digitalsmile.goldberry.widgets.Controls;
+import io.github.digitalsmile.goldberry.widgets.Icons;
 import io.github.digitalsmile.goldberry.widgets.Widgets;
+import io.github.digitalsmile.goldberry.widgets.controls.TestFont;
 
 /// The first control, checked the three ways §11 says a widget has to exist.
 class ButtonTest {
@@ -55,8 +55,7 @@ class ButtonTest {
         @Test
         @DisplayName("the Java-built and KDL-built buttons are equal values")
         void javaAndKdlAgree() {
-            var fromJava = new Button("Save", null, null, false,
-                    new Attributes("save", Set.of("primary"), "save"));
+            var fromJava = new Button("Save", null, null, false, new Attributes("save", Set.of("primary"), "save"));
 
             var nodes = KdlParser.parse("""
                     button id="save" class="primary" "Save"
@@ -72,8 +71,7 @@ class ButtonTest {
         @Test
         @DisplayName("a button is CSS-selectable by type, id and class")
         void selectable() {
-            var button = new Button("Save", null, null, false,
-                    new Attributes("save", Set.of("primary"), null));
+            var button = new Button("Save", null, null, false, new Attributes("save", Set.of("primary"), null));
 
             assertEquals("button", button.cssType());
             assertEquals("save", button.id());
@@ -84,7 +82,8 @@ class ButtonTest {
         @DisplayName("the registry lists it, and refuses what it does not know")
         void registered() {
             assertTrue(Widgets.inflater().registered().contains("button"));
-            assertTrue(Widgets.inflater().registered().contains("column"),
+            assertTrue(
+                    Widgets.inflater().registered().contains("column"),
                     "the primitives come along, so markup can mix the two");
             assertTrue(Controls.controlTypes().contains("button"));
 
@@ -99,7 +98,8 @@ class ButtonTest {
         void styledMatchesMarkup() {
             var fromJava = new Button("Delete", null).styled("danger");
             var fromKdl = Widgets.inflater()
-                    .inflateAll(KdlParser.parse("button class=\"danger\" \"Delete\"")).getFirst();
+                    .inflateAll(KdlParser.parse("button class=\"danger\" \"Delete\""))
+                    .getFirst();
 
             assertEquals(((Button) fromKdl).classes(), fromJava.classes());
         }
@@ -125,8 +125,8 @@ class ButtonTest {
             var button = button();
             var element = mount(button);
 
-            button.onPointer(new PointerEvent(
-                    PointerEvent.Kind.CLICKED, 10, 10, PointerEvent.Button.PRIMARY, 1, element));
+            button.onPointer(
+                    new PointerEvent(PointerEvent.Kind.CLICKED, 10, 10, PointerEvent.Button.PRIMARY, 1, element));
 
             assertEquals(List.of("pressed"), fired);
         }
@@ -140,8 +140,8 @@ class ButtonTest {
             var button = button();
             var element = mount(button);
 
-            button.onPointer(new PointerEvent(
-                    PointerEvent.Kind.RELEASED, 10, 10, PointerEvent.Button.PRIMARY, 1, element));
+            button.onPointer(
+                    new PointerEvent(PointerEvent.Kind.RELEASED, 10, 10, PointerEvent.Button.PRIMARY, 1, element));
 
             assertTrue(fired.isEmpty(), () -> "fired was " + fired);
         }
@@ -177,8 +177,8 @@ class ButtonTest {
             var button = button();
             var element = mount(button);
 
-            button.onKey(new KeyEvent(KeyEvent.Kind.PRESSED, Key.ENTER,
-                    new Modifiers(false, true, false, false), false, element));
+            button.onKey(new KeyEvent(
+                    KeyEvent.Kind.PRESSED, Key.ENTER, new Modifiers(false, true, false, false), false, element));
 
             assertTrue(fired.isEmpty(), () -> "Ctrl+Enter is an accelerator, not this button");
         }
@@ -188,8 +188,7 @@ class ButtonTest {
         void consumes() {
             var button = button();
             var element = mount(button);
-            var event = new PointerEvent(
-                    PointerEvent.Kind.CLICKED, 10, 10, PointerEvent.Button.PRIMARY, 1, element);
+            var event = new PointerEvent(PointerEvent.Kind.CLICKED, 10, 10, PointerEvent.Button.PRIMARY, 1, element);
 
             button.onPointer(event);
 
@@ -202,8 +201,8 @@ class ButtonTest {
             var button = new Button("Cancel");
             var element = mount(button);
 
-            button.onPointer(new PointerEvent(
-                    PointerEvent.Kind.CLICKED, 10, 10, PointerEvent.Button.PRIMARY, 1, element));
+            button.onPointer(
+                    new PointerEvent(PointerEvent.Kind.CLICKED, 10, 10, PointerEvent.Button.PRIMARY, 1, element));
         }
 
         @Test
@@ -226,10 +225,10 @@ class ButtonTest {
             if (appCss != null) {
                 sheets.add(Stylesheet.parse(CascadeLayer.APPLICATION, appCss));
             }
-            var element = new ElementTree(new Button("Save", null, null, false,
-                    new Attributes(null, Set.of(classes), null))).root();
-            return ComputedStyle.of(new StyleResolver(sheets).resolve(element),
-                    CssLength.Context.DEFAULT);
+            var element = new ElementTree(
+                            new Button("Save", null, null, false, new Attributes(null, Set.of(classes), null)))
+                    .root();
+            return ComputedStyle.of(new StyleResolver(sheets).resolve(element), CssLength.Context.DEFAULT);
         }
 
         @Test
@@ -239,8 +238,13 @@ class ButtonTest {
 
             // docs/design-system.md §3: height 32, padding-x 12, gap 6, radius 8.
             assertEquals(StyleLength.points(32), style.height());
-            assertEquals(new Insets(StyleLength.points(0), StyleLength.points(12),
-                    StyleLength.points(0), StyleLength.points(12)), style.padding());
+            assertEquals(
+                    new Insets(
+                            StyleLength.points(0),
+                            StyleLength.points(12),
+                            StyleLength.points(0),
+                            StyleLength.points(12)),
+                    style.padding());
             assertEquals(StyleLength.points(6), style.gap());
             assertEquals(Corners.all(8), style.decoration().corners());
 
@@ -261,13 +265,11 @@ class ButtonTest {
             assertEquals("Inter", typography.family());
             assertEquals(13, typography.size(), 1e-9);
             assertEquals(18, typography.resolvedLineHeight(), 1e-9);
-            assertEquals(io.github.digitalsmile.goldberry.assets.BundledFont.Weight.SEMI_BOLD,
-                    typography.weight());
+            assertEquals(io.github.digitalsmile.goldberry.assets.BundledFont.Weight.SEMI_BOLD, typography.weight());
 
             // And it is a real second face rather than a synthetic smear: the
             // weight picks a different file, which is the whole of ADR-0066.
-            assertEquals(io.github.digitalsmile.goldberry.assets.BundledFont.UI_STRONG,
-                    typography.face());
+            assertEquals(io.github.digitalsmile.goldberry.assets.BundledFont.UI_STRONG, typography.face());
         }
 
         @Test
@@ -302,16 +304,14 @@ class ButtonTest {
             // --gb-button-bg is nord2 in the dark theme. The base rule says
             // `var(--gb-button-bg)` and never learns which theme answered (§10).
             assertEquals(0xFF434C5E, dark.background());
-            assertTrue(!Controls.baseSource().contains("#"),
-                    "the base stylesheet must name no colour of its own");
+            assertTrue(!Controls.baseSource().contains("#"), "the base stylesheet must name no colour of its own");
         }
 
         @Test
         @DisplayName("a variant is a class, so markup and Java pick it the same way")
         void variant() {
             assertNotEquals(style(null).background(), style(null, "primary").background());
-            assertEquals(0xFF88C0D0, style(null, "primary").background(),
-                    "primary is the accent in the dark theme");
+            assertEquals(0xFF88C0D0, style(null, "primary").background(), "primary is the accent in the dark theme");
         }
 
         @Test
@@ -379,7 +379,8 @@ class ButtonTest {
             var actions = ActionRegistry.strict().bind("save", () -> fired.add("saved"));
 
             var button = (Button) Widgets.inflater(actions)
-                    .inflateAll(KdlParser.parse("button press=\"save\" \"Save\"")).getFirst();
+                    .inflateAll(KdlParser.parse("button press=\"save\" \"Save\""))
+                    .getFirst();
             button.onPress().run();
 
             assertEquals(List.of("saved"), fired);
@@ -390,17 +391,19 @@ class ButtonTest {
         void strictRefuses() {
             // `press="svae"` is a typo, and a button that silently does nothing
             // produces a bug report with no error anywhere in it.
-            var actions = ActionRegistry.strict().bind("save", () -> { });
+            var actions = ActionRegistry.strict().bind("save", () -> {});
 
-            assertThrows(IllegalArgumentException.class, () -> Widgets.inflater(actions)
-                    .inflateAll(KdlParser.parse("button press=\"svae\" \"Save\"")));
+            assertThrows(
+                    IllegalArgumentException.class,
+                    () -> Widgets.inflater(actions).inflateAll(KdlParser.parse("button press=\"svae\" \"Save\"")));
         }
 
         @Test
         @DisplayName("a lenient registry inflates anyway, for a document being edited")
         void lenientAllows() {
             var button = (Button) Widgets.inflater(ActionRegistry.lenient())
-                    .inflateAll(KdlParser.parse("button press=\"nothing-yet\" \"Save\"")).getFirst();
+                    .inflateAll(KdlParser.parse("button press=\"nothing-yet\" \"Save\""))
+                    .getFirst();
 
             assertEquals(null, button.onPress());
         }
@@ -408,10 +411,10 @@ class ButtonTest {
         @Test
         @DisplayName("binding the same name twice is refused, rebinding is not")
         void doubleBind() {
-            var actions = ActionRegistry.strict().bind("save", () -> { });
+            var actions = ActionRegistry.strict().bind("save", () -> {});
 
-            assertThrows(IllegalStateException.class, () -> actions.bind("save", () -> { }));
-            actions.rebind("save", () -> { });
+            assertThrows(IllegalStateException.class, () -> actions.bind("save", () -> {}));
+            actions.rebind("save", () -> {});
         }
     }
 
@@ -423,7 +426,7 @@ class ButtonTest {
 
         @BeforeEach
         void buildIcon() {
-            TestFont.get();   // skips the whole nest when there is no library
+            TestFont.get(); // skips the whole nest when there is no library
             icon = Icon.bundled("plus", 16);
         }
 
@@ -440,8 +443,7 @@ class ButtonTest {
             // The answer to what ADR-0043 left open. An icon is built at a size
             // and that size is its intrinsic one, so it needs no measure
             // function and no callback into C.
-            var box = new Button("Save").withIcon(icon)
-                    .render(ComputedStyle.INITIAL, List.of(), TestFont.context());
+            var box = new Button("Save").withIcon(icon).render(ComputedStyle.INITIAL, List.of(), TestFont.context());
 
             assertEquals(2, box.children().size());
             assertEquals(icon, box.children().getFirst().icon().icon());
@@ -457,8 +459,7 @@ class ButtonTest {
             assertEquals(1, box.children().size());
 
             // Nothing to click on and nothing to read out (§13).
-            assertThrows(IllegalArgumentException.class,
-                    () -> new Button("", null, null, false, Attributes.NONE));
+            assertThrows(IllegalArgumentException.class, () -> new Button("", null, null, false, Attributes.NONE));
         }
 
         @Test
@@ -467,7 +468,8 @@ class ButtonTest {
             var icons = Icons.strict().bind("plus", icon);
 
             var button = (Button) Widgets.inflater(ActionRegistry.none(), icons)
-                    .inflateAll(KdlParser.parse("button icon=\"plus\" \"New\"")).getFirst();
+                    .inflateAll(KdlParser.parse("button icon=\"plus\" \"New\""))
+                    .getFirst();
 
             assertEquals(icon, button.icon());
         }
@@ -476,7 +478,8 @@ class ButtonTest {
         @DisplayName("a strict icon registry refuses a name nobody registered")
         void unknownIcon() {
             // Markup cannot build an icon, because nothing would ever close it.
-            assertThrows(IllegalArgumentException.class,
+            assertThrows(
+                    IllegalArgumentException.class,
                     () -> Widgets.inflater(ActionRegistry.none(), Icons.strict())
                             .inflateAll(KdlParser.parse("button icon=\"plus\" \"New\"")));
         }
@@ -494,10 +497,9 @@ class ButtonTest {
             var button = new Button("Save", () -> fired.add("pressed")).disabled(true);
             var element = new ElementTree(button).root();
 
-            button.onPointer(new PointerEvent(
-                    PointerEvent.Kind.CLICKED, 10, 10, PointerEvent.Button.PRIMARY, 1, element));
-            button.onKey(new KeyEvent(
-                    KeyEvent.Kind.PRESSED, Key.SPACE, Modifiers.NONE, false, element));
+            button.onPointer(
+                    new PointerEvent(PointerEvent.Kind.CLICKED, 10, 10, PointerEvent.Button.PRIMARY, 1, element));
+            button.onKey(new KeyEvent(KeyEvent.Kind.PRESSED, Key.SPACE, Modifiers.NONE, false, element));
 
             assertTrue(fired.isEmpty(), () -> "fired was " + fired);
         }
@@ -512,7 +514,8 @@ class ButtonTest {
         @DisplayName("`disabled=#true` in markup is the same value as in Java")
         void fromMarkup() {
             var fromKdl = (Button) Widgets.inflater()
-                    .inflateAll(KdlParser.parse("button disabled=#true \"Save\"")).getFirst();
+                    .inflateAll(KdlParser.parse("button disabled=#true \"Save\""))
+                    .getFirst();
 
             assertEquals(new Button("Save").disabled(true), fromKdl);
         }
@@ -524,8 +527,7 @@ class ButtonTest {
             // this the stylesheet and the widget would disagree about the same
             // button.
             var tree = new ElementTree(new Button("Save").disabled(true));
-            new WidgetRenderer(List.of(Controls.baseStylesheet(), Theme.NORD_DARK.load()),
-                    TestFont.get()).render(tree);
+            new WidgetRenderer(List.of(Controls.baseStylesheet(), Theme.NORD_DARK.load()), TestFont.get()).render(tree);
 
             assertTrue(tree.root().hasState(Selector.PseudoClass.DISABLED));
         }
@@ -537,11 +539,9 @@ class ButtonTest {
             var element = new ElementTree(new Button("Save").styled("danger").disabled(true)).root();
             element.setPseudoClass(Selector.PseudoClass.DISABLED, true);
 
-            var style = ComputedStyle.of(new StyleResolver(sheets).resolve(element),
-                    CssLength.Context.DEFAULT);
+            var style = ComputedStyle.of(new StyleResolver(sheets).resolve(element), CssLength.Context.DEFAULT);
             var enabled = ComputedStyle.of(
-                    new StyleResolver(sheets).resolve(
-                            new ElementTree(new Button("Save").styled("danger")).root()),
+                    new StyleResolver(sheets).resolve(new ElementTree(new Button("Save").styled("danger")).root()),
                     CssLength.Context.DEFAULT);
 
             // docs/design-system.md §2.1: "disabled is 45% opacity on the whole
@@ -555,8 +555,8 @@ class ButtonTest {
             // a literal made it also claim which colour, so a legitimate change to
             // the danger ramp failed it for a reason it was not about (ADR-0088).
             assertEquals(0.45, style.opacity(), 1e-9);
-            assertEquals(enabled.background(), style.background(),
-                    "still the danger colour, faded rather than remapped");
+            assertEquals(
+                    enabled.background(), style.background(), "still the danger colour, faded rather than remapped");
             assertEquals(Cursor.NOT_ALLOWED, style.cursor());
         }
 

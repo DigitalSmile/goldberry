@@ -1,22 +1,24 @@
 package io.github.digitalsmile.goldberry.widgets.overlay.tooltip;
 
-import io.github.digitalsmile.goldberry.RendererRequirement;
-import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
-import io.github.digitalsmile.goldberry.css.Stylesheet;
-import io.github.digitalsmile.goldberry.css.Theme;
-import io.github.digitalsmile.goldberry.golden.GoldenImage;
-import io.github.digitalsmile.goldberry.paint.BoxPainter;
-import io.github.digitalsmile.goldberry.widget.ElementTree;
-import io.github.digitalsmile.goldberry.widget.root.TooltipPanel;
-import io.github.digitalsmile.goldberry.widget.WidgetRenderer;
-import io.github.digitalsmile.goldberry.widgets.Controls;
-import io.github.digitalsmile.goldberry.widgets.controls.TestFont;
-import io.github.digitalsmile.goldberry.widgets.core.Row;
 import java.util.List;
 import java.util.Set;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+
+import io.github.digitalsmile.goldberry.RendererRequirement;
+import io.github.digitalsmile.goldberry.css.Stylesheet;
+import io.github.digitalsmile.goldberry.css.Theme;
+import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
+import io.github.digitalsmile.goldberry.golden.GoldenImage;
+import io.github.digitalsmile.goldberry.paint.BoxPainter;
+import io.github.digitalsmile.goldberry.widget.ElementTree;
+import io.github.digitalsmile.goldberry.widget.WidgetRenderer;
+import io.github.digitalsmile.goldberry.widget.root.TooltipPanel;
+import io.github.digitalsmile.goldberry.widgets.Controls;
+import io.github.digitalsmile.goldberry.widgets.controls.TestFont;
+import io.github.digitalsmile.goldberry.widgets.core.Row;
 
 /// What a `tooltip` actually looks like — the widget with no coverage at all
 /// until it was looked at and found wanting.
@@ -33,18 +35,21 @@ class TooltipGoldenTest {
     }
 
     private void paint(String name, Theme theme, int width, String text) {
-        var scene = new Row(List.of(new TooltipPanel(text)),
-                new io.github.digitalsmile.goldberry.widget.attr.Attributes(
-                        "scene", Set.of(), "scene"));
+        var scene = new Row(
+                List.of(new TooltipPanel(text)),
+                new io.github.digitalsmile.goldberry.widget.attr.Attributes("scene", Set.of(), "scene"));
         var renderer = new WidgetRenderer(
-                List.of(Controls.baseStylesheet(), theme.load(),
-                        Stylesheet.parse(CascadeLayer.APPLICATION, """
+                List.of(Controls.baseStylesheet(), theme.load(), Stylesheet.parse(CascadeLayer.APPLICATION, """
                                 #scene { padding: 12px; align-items: center;
                                          background: var(--gb-surface) }
                                 """)),
                 TestFont.get());
 
-        GoldenImage.assertMatches(name, width, name.contains("wrapping") ? 96 : 48, 1.0f,
+        GoldenImage.assertMatches(
+                name,
+                width,
+                name.contains("wrapping") ? 96 : 48,
+                1.0f,
                 frame -> BoxPainter.paint(frame, renderer.render(new ElementTree(scene))));
     }
 
@@ -72,18 +77,24 @@ class TooltipGoldenTest {
     @Test
     @DisplayName("a tooltip, magnified")
     void magnified() {
-        var scene = new Row(List.of(new TooltipPanel("Save the document")),
-                new io.github.digitalsmile.goldberry.widget.attr.Attributes(
-                        "scene", Set.of(), "scene"));
+        var scene = new Row(
+                List.of(new TooltipPanel("Save the document")),
+                new io.github.digitalsmile.goldberry.widget.attr.Attributes("scene", Set.of(), "scene"));
         var renderer = new WidgetRenderer(
-                List.of(Controls.baseStylesheet(), Theme.NORD_DARK.load(),
+                List.of(
+                        Controls.baseStylesheet(),
+                        Theme.NORD_DARK.load(),
                         Stylesheet.parse(CascadeLayer.APPLICATION, """
                                 #scene { padding: 8px; align-items: center;
                                          background: var(--gb-surface) }
                                 """)),
                 TestFont.get());
 
-        GoldenImage.assertMatches("tooltip-magnified", 540, 120, 3.0f,
+        GoldenImage.assertMatches(
+                "tooltip-magnified",
+                540,
+                120,
+                3.0f,
                 frame -> BoxPainter.paint(frame, renderer.render(new ElementTree(scene))));
     }
 
@@ -96,7 +107,10 @@ class TooltipGoldenTest {
     @Test
     @DisplayName("a tooltip long enough to need its maximum wraps inside it")
     void wrapsAtItsMaximum() {
-        paint("tooltip-wrapping", Theme.NORD_DARK, 600,
+        paint(
+                "tooltip-wrapping",
+                Theme.NORD_DARK,
+                600,
                 "Opens a platform popup window, which is the only kind that may"
                         + " leave the window it was opened from.");
     }

@@ -3,11 +3,13 @@ package io.github.digitalsmile.goldberry.natives.layout;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import io.github.digitalsmile.goldberry.natives.NativePlatform;
 import java.util.ArrayList;
 import java.util.List;
+
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+
+import io.github.digitalsmile.goldberry.natives.NativePlatform;
 
 /// Tests the verifier itself, with synthetic tables.
 ///
@@ -32,8 +34,7 @@ class LayoutVerifierTest {
     @DisplayName("a wrong field offset is caught")
     void catchesWrongOffset() {
         var table = new ArrayList<>(correctTable(LINUX_X64));
-        table.replaceAll(entry ->
-                isField(entry, "c") ? withOffset(entry, 12) : entry);
+        table.replaceAll(entry -> isField(entry, "c") ? withOffset(entry, 12) : entry);
 
         var mismatches = LayoutVerifier.verify(LINUX_X64, Layouts.registry(), table);
 
@@ -63,9 +64,7 @@ class LayoutVerifierTest {
 
         var mismatches = LayoutVerifier.verify(LINUX_X64, Layouts.registry(), scalarsOnly);
 
-        assertTrue(
-                mismatches.stream().anyMatch(m -> m.contains("goldberry_shim.c")),
-                mismatches::toString);
+        assertTrue(mismatches.stream().anyMatch(m -> m.contains("goldberry_shim.c")), mismatches::toString);
     }
 
     @Test
@@ -77,9 +76,7 @@ class LayoutVerifierTest {
 
         var mismatches = LayoutVerifier.verify(LINUX_X64, Layouts.registry(), table);
 
-        assertTrue(
-                mismatches.stream().anyMatch(m -> m.contains("`long`")),
-                mismatches::toString);
+        assertTrue(mismatches.stream().anyMatch(m -> m.contains("`long`")), mismatches::toString);
     }
 
     @Test
@@ -99,9 +96,7 @@ class LayoutVerifierTest {
 
         var mismatches = LayoutVerifier.verify(LINUX_X64, Layouts.registry(), withoutPointer);
 
-        assertTrue(
-                mismatches.stream().anyMatch(m -> m.contains("pointer")),
-                mismatches::toString);
+        assertTrue(mismatches.stream().anyMatch(m -> m.contains("pointer")), mismatches::toString);
     }
 
     /// Builds the table the C side would report on the given platform, derived
@@ -109,8 +104,7 @@ class LayoutVerifierTest {
     private static List<LayoutEntry> correctTable(NativePlatform platform) {
         var entries = new ArrayList<LayoutEntry>();
         for (var struct : Layouts.registry()) {
-            entries.add(new LayoutEntry(
-                    struct.name(), null, (int) struct.byteSize(), 0, (int) struct.byteAlignment()));
+            entries.add(new LayoutEntry(struct.name(), null, (int) struct.byteSize(), 0, (int) struct.byteAlignment()));
             for (var field : struct.fieldNames()) {
                 entries.add(new LayoutEntry(
                         struct.name(), field, (int) struct.sizeOf(field), (int) struct.offsetOf(field), 0));
@@ -137,7 +131,6 @@ class LayoutVerifierTest {
     }
 
     private static LayoutEntry withOffset(LayoutEntry entry, int offset) {
-        return new LayoutEntry(
-                entry.structName(), entry.fieldName(), entry.size(), offset, entry.alignment());
+        return new LayoutEntry(entry.structName(), entry.fieldName(), entry.size(), offset, entry.alignment());
     }
 }

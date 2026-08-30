@@ -1,6 +1,5 @@
 package io.github.digitalsmile.goldberry.natives.blend2d.enums;
 
-
 /// How Blend2D is to read a glyph run's placement array — `BLGlyphPlacementType`.
 ///
 /// This enum decides the **units**, which makes it the single most consequential

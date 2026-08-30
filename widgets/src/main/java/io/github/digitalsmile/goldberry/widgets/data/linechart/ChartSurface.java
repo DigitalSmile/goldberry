@@ -1,5 +1,8 @@
 package io.github.digitalsmile.goldberry.widgets.data.linechart;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
 import io.github.digitalsmile.goldberry.css.value.CssColor;
 import io.github.digitalsmile.goldberry.input.event.PointerEvent;
@@ -12,17 +15,15 @@ import io.github.digitalsmile.goldberry.paint.Box;
 import io.github.digitalsmile.goldberry.paint.Frame;
 import io.github.digitalsmile.goldberry.render.model.LogicalSize;
 import io.github.digitalsmile.goldberry.text.Paragraph;
+import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widget.style.Paints;
 import io.github.digitalsmile.goldberry.widget.style.Styled;
-import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widgets.data.Fill;
 import io.github.digitalsmile.goldberry.widgets.data.Lttb;
 import io.github.digitalsmile.goldberry.widgets.data.Scale;
 import io.github.digitalsmile.goldberry.widgets.data.Series;
 import io.github.digitalsmile.goldberry.widgets.data.SeriesPalette;
 import io.github.digitalsmile.goldberry.widgets.data.Ticks;
-import java.util.ArrayList;
-import java.util.List;
 
 /// The drawn half of a chart — the `chart-plot` part itself, and the node the
 /// pointer lands on.
@@ -60,10 +61,16 @@ import java.util.List;
 ///                 from the description built *before* the first one, and two
 ///                 arrows between two frames would move the crosshair once
 record ChartSurface(
-        List<Series> series, List<String> categories, ChartPlot.Mode mode,
+        List<Series> series,
+        List<String> categories,
+        ChartPlot.Mode mode,
         io.github.digitalsmile.goldberry.widgets.data.ChartOptions options,
-        int isolated, int hovered, boolean owns, PaintedGeometry painted,
-        java.util.function.IntPredicate onHover, java.util.function.IntPredicate onWalk)
+        int isolated,
+        int hovered,
+        boolean owns,
+        PaintedGeometry painted,
+        java.util.function.IntPredicate onHover,
+        java.util.function.IntPredicate onWalk)
         implements Widget.Leaf, Styled, Paints, Handles {
 
     /// How many labels a time axis aims for.
@@ -154,18 +161,15 @@ record ChartSurface(
         return isolated < 0 || isolated == index;
     }
 
-
     /// Every series with its holes resolved, in the original order.
     ///
     /// Once per render, so the policy is applied in one place and the painter,
     /// the axis and the readout all read the same answer
     /// ([io.github.digitalsmile.goldberry.widgets.data.Gaps]).
     private List<io.github.digitalsmile.goldberry.widgets.data.Gaps.Resolved> resolved() {
-        var out = new ArrayList<
-                io.github.digitalsmile.goldberry.widgets.data.Gaps.Resolved>(series.size());
+        var out = new ArrayList<io.github.digitalsmile.goldberry.widgets.data.Gaps.Resolved>(series.size());
         for (var one : series) {
-            out.add(io.github.digitalsmile.goldberry.widgets.data.Gaps.resolve(
-                    one.values(), options.nulls()));
+            out.add(io.github.digitalsmile.goldberry.widgets.data.Gaps.resolve(one.values(), options.nulls()));
         }
         return out;
     }
@@ -195,8 +199,7 @@ record ChartSurface(
                     continue;
                 }
                 for (var value : resolved.get(s).values()) {
-                    if (io.github.digitalsmile.goldberry.widgets.data.Gaps.isValue(value)
-                            && value > 0) {
+                    if (io.github.digitalsmile.goldberry.widgets.data.Gaps.isValue(value) && value > 0) {
                         anyPositive = true;
                         break;
                     }
@@ -205,12 +208,9 @@ record ChartSurface(
             logarithmic = anyPositive;
         }
         if (logarithmic) {
-            var positive = new ArrayList<
-                    io.github.digitalsmile.goldberry.widgets.data.Gaps.Resolved>(
-                            resolved.size());
+            var positive = new ArrayList<io.github.digitalsmile.goldberry.widgets.data.Gaps.Resolved>(resolved.size());
             for (var one : resolved) {
-                positive.add(
-                        io.github.digitalsmile.goldberry.widgets.data.Gaps.positiveOnly(one));
+                positive.add(io.github.digitalsmile.goldberry.widgets.data.Gaps.positiveOnly(one));
             }
             resolved = positive;
         }
@@ -279,8 +279,7 @@ record ChartSurface(
         var axisMin = min;
         var axisMax = max;
         if (logarithmic && min > 0 && max > 0) {
-            var ticks = io.github.digitalsmile.goldberry.widgets.data.LogTicks.of(
-                    min, max, Y_LABELS);
+            var ticks = io.github.digitalsmile.goldberry.widgets.data.LogTicks.of(min, max, Y_LABELS);
             for (var value : ticks.values()) {
                 gridValues.add(value);
                 labels.add(context.paragraph(style, ticks.label(value)));
@@ -311,7 +310,8 @@ record ChartSurface(
         // *in* a band, and bands of unequal width are a different chart
         // (ADR-0203).
         var timed = mode != ChartPlot.Mode.BAR
-                && options.time() != null && options.time().covers(points());
+                && options.time() != null
+                && options.time().covers(points());
         var timeAxis = timed ? options.time() : null;
         var xLabels = new ArrayList<Paragraph>(categories.size());
         var timeTicks = new ArrayList<Double>();
@@ -347,23 +347,40 @@ record ChartSurface(
         var ink = style.color();
         var limits = new ArrayList<PaintedThreshold>(options.thresholds().size());
         for (var threshold : options.thresholds()) {
-            limits.add(new PaintedThreshold(threshold.from(), threshold.to(),
+            limits.add(new PaintedThreshold(
+                    threshold.from(),
+                    threshold.to(),
                     threshold.colour(context),
-                    threshold.label() == null
-                            ? null : context.paragraph(style, threshold.label())));
+                    threshold.label() == null ? null : context.paragraph(style, threshold.label())));
         }
-        var plot = new Painted(List.copyOf(labels), List.copyOf(xLabels),
-                List.copyOf(colours), grid, ink, resolved, mode, min, max,
-                List.copyOf(limits), pointTimes, List.copyOf(timeTicks), options.curve(),
-                List.copyOf(gridValues), logarithmic, axisMin, axisMax, options.markers(),
+        var plot = new Painted(
+                List.copyOf(labels),
+                List.copyOf(xLabels),
+                List.copyOf(colours),
+                grid,
+                ink,
+                resolved,
+                mode,
+                min,
+                max,
+                List.copyOf(limits),
+                pointTimes,
+                List.copyOf(timeTicks),
+                options.curve(),
+                List.copyOf(gridValues),
+                logarithmic,
+                axisMin,
+                axisMax,
+                options.markers(),
                 // **Resolved here rather than in the painter**, because "which
                 // fills is this chart allowed" is a fact about the mode and not
                 // about the frame: an area chart has no way of drawing nothing.
-                mode == ChartPlot.Mode.AREA && options.fill() == Fill.NONE
-                        ? Fill.SOLID : options.fill(),
+                mode == ChartPlot.Mode.AREA && options.fill() == Fill.NONE ? Fill.SOLID : options.fill(),
                 context.color("--gb-hud-bg", 0xE61C212A),
                 isolated,
-                readout(style, context, resolved), hovered, painted);
+                readout(style, context, resolved),
+                hovered,
+                painted);
         return Box.of().style(style).painting(plot::paint);
     }
 
@@ -374,7 +391,9 @@ record ChartSurface(
     /// the hovered index is part of this widget: one point's worth of text,
     /// re-shaped when the pointer moves to a different point and served from the
     /// cache when it moves within one (ADR-0037).
-    private Readout readout(ComputedStyle style, Context context,
+    private Readout readout(
+            ComputedStyle style,
+            Context context,
             List<io.github.digitalsmile.goldberry.widgets.data.Gaps.Resolved> resolved) {
 
         var index = hovered;
@@ -410,14 +429,17 @@ record ChartSurface(
                 // say *which* series was missing: the one that is not in it.
                 continue;
             }
-            rows.add(new Row(SeriesPalette.of(context, s),
+            rows.add(new Row(
+                    SeriesPalette.of(context, s),
                     context.paragraph(style, series.get(s).name()),
                     context.paragraph(style, readable(resolved.get(s).at(index)))));
         }
         if (rows.isEmpty()) {
             return null;
         }
-        return new Readout(context.paragraph(style, title), List.copyOf(rows),
+        return new Readout(
+                context.paragraph(style, title),
+                List.copyOf(rows),
                 context.color("--gb-hud-bg", 0xE61C212A),
                 context.color("--gb-hud-border", 0x26FFFFFF),
                 context.color("--gb-hud-text", 0xFFECEFF4),
@@ -455,12 +477,11 @@ record ChartSurface(
     // has to decide whether to consume the event.
     @SuppressWarnings("ReturnValueIgnored")
     @Override
-    public void onKey(
-            io.github.digitalsmile.goldberry.input.event.KeyEvent event) {
+    public void onKey(io.github.digitalsmile.goldberry.input.event.KeyEvent event) {
 
-        if (onHover == null || onWalk == null
-                || event.kind() != io.github.digitalsmile.goldberry.input.event
-                        .KeyEvent.Kind.PRESSED
+        if (onHover == null
+                || onWalk == null
+                || event.kind() != io.github.digitalsmile.goldberry.input.event.KeyEvent.Kind.PRESSED
                 || !event.modifiers().none()) {
             return;
         }
@@ -497,8 +518,7 @@ record ChartSurface(
                     event.consume();
                 }
             }
-            default -> {
-            }
+            default -> {}
         }
     }
 
@@ -529,8 +549,7 @@ record ChartSurface(
                 // the content used to be.
                 onHover.test(-1);
             }
-            default -> {
-            }
+            default -> {}
         }
     }
 
@@ -557,8 +576,7 @@ record ChartSurface(
 
     /// The tallest column of a stack — what an [ChartPlot.Mode#AREA] axis has to
     /// reach.
-    private double stackedMax(
-            List<io.github.digitalsmile.goldberry.widgets.data.Gaps.Resolved> resolved) {
+    private double stackedMax(List<io.github.digitalsmile.goldberry.widgets.data.Gaps.Resolved> resolved) {
 
         var longest = points();
         var tallest = 0.0;
@@ -603,14 +621,13 @@ record ChartSurface(
     /// asked for even on an axis stepping in hours. The date comes with it only
     /// when the chart spans more than a day, because repeating today's date under
     /// every point is noise.
-    private static String readableTime(
-            io.github.digitalsmile.goldberry.widgets.data.TimeAxis axis, int index) {
+    private static String readableTime(io.github.digitalsmile.goldberry.widgets.data.TimeAxis axis, int index) {
 
         var at = axis.at(index).atZone(axis.zone());
         var span = java.time.Duration.between(axis.first(), axis.last());
         var pattern = span.toHours() >= 24 ? "d MMM HH:mm:ss" : "HH:mm:ss";
-        return java.time.format.DateTimeFormatter
-                .ofPattern(pattern, java.util.Locale.ROOT).format(at);
+        return java.time.format.DateTimeFormatter.ofPattern(pattern, java.util.Locale.ROOT)
+                .format(at);
     }
 
     /// An axis rounds to its step, because a column of labels has to line up and
@@ -631,8 +648,7 @@ record ChartSurface(
         var text = String.format(java.util.Locale.ROOT, "%.3f", value);
         // Trailing zeros only, and only after a decimal point: `1.500` reads as
         // `1.5` and `1500` must stay `1500`.
-        var trimmed = text.indexOf('.') < 0 ? text
-                : text.replaceAll("0+$", "").replaceAll("\\.$", "");
+        var trimmed = text.indexOf('.') < 0 ? text : text.replaceAll("0+$", "").replaceAll("\\.$", "");
         return trimmed.isEmpty() || "-".equals(trimmed) ? "0" : trimmed;
     }
 
@@ -646,26 +662,33 @@ record ChartSurface(
         }
     }
 
-    private record Row(int colour, Paragraph name, Paragraph value) {
-    }
+    private record Row(int colour, Paragraph name, Paragraph value) {}
 
     /// The hovered point, written out — shaped in `render`, placed in the
     /// painter.
-    private record Readout(
-            Paragraph title, List<Row> rows, int background, int border, int ink, int muted) {
-    }
+    private record Readout(Paragraph title, List<Row> rows, int background, int border, int ink, int muted) {}
 
     /// Everything the painter needs, decided while the cascade was in hand.
     // Arrays for the frame path's reason -- see PlotGeometry. Never compared.
     @SuppressWarnings("ArrayRecordComponent")
     private record Painted(
-            List<Paragraph> labels, List<Paragraph> xLabels,
-            List<Integer> colours, int grid, int ink,
+            List<Paragraph> labels,
+            List<Paragraph> xLabels,
+            List<Integer> colours,
+            int grid,
+            int ink,
             List<io.github.digitalsmile.goldberry.widgets.data.Gaps.Resolved> series,
-            ChartPlot.Mode mode, double domainMin, double domainMax,
-            List<PaintedThreshold> thresholds, double[] times, List<Double> timeTicks,
+            ChartPlot.Mode mode,
+            double domainMin,
+            double domainMax,
+            List<PaintedThreshold> thresholds,
+            double[] times,
+            List<Double> timeTicks,
             io.github.digitalsmile.goldberry.widgets.data.Curve curve,
-            List<Double> gridValues, boolean logarithmic, double axisMin, double axisMax,
+            List<Double> gridValues,
+            boolean logarithmic,
+            double axisMin,
+            double axisMax,
             io.github.digitalsmile.goldberry.widgets.data.Markers markers,
             // What is under a band or a line, already resolved for this mode:
             // an area chart reads NONE as SOLID, because a band with no fill is
@@ -677,7 +700,10 @@ record ChartSurface(
             // markers with no readout at all -- and reading the colour off the
             // thing that is null was exactly the crash.
             int ring,
-            int isolated, Readout readout, int hovered, PaintedGeometry painted) {
+            int isolated,
+            Readout readout,
+            int hovered,
+            PaintedGeometry painted) {
 
         private boolean shows(int index) {
             return isolated < 0 || isolated == index;
@@ -706,13 +732,12 @@ record ChartSurface(
         /// about where a point is — which is what would happen with a time axis
         /// bolted onto four call sites that each did their own arithmetic.
         private double xAt(PlotGeometry geometry, Scale indexScale, int index) {
-            return geometry.isTimed() ? geometry.xOf(index, points(), false)
-                    : indexScale.at(index);
+            return geometry.isTimed() ? geometry.xOf(index, points(), false) : indexScale.at(index);
         }
 
         void paint(Frame frame, LogicalSize size) {
-            var geometry = PlotGeometry.of(labels, !xLabels.isEmpty(),
-                    axisMin, axisMax, logarithmic, size.width(), size.height(), times);
+            var geometry = PlotGeometry.of(
+                    labels, !xLabels.isEmpty(), axisMin, axisMax, logarithmic, size.width(), size.height(), times);
             // Left for the pointer that arrives after this frame, including the
             // null: a plot that has become too small to draw is one no point can
             // be hovered in.
@@ -746,14 +771,17 @@ record ChartSurface(
             var values = gridValues;
             for (var i = 0; i < values.size(); i++) {
                 var at = geometry.y().at(values.get(i));
-                frame.fillRect((float) geometry.left(), (float) at,
-                        (float) (width - geometry.left()), 1, grid);
+                frame.fillRect((float) geometry.left(), (float) at, (float) (width - geometry.left()), 1, grid);
                 // Right-aligned against the plot, which is what makes a column of
                 // numbers of different widths readable.
                 var label = labels.get(i);
                 var layout = label.layout(Paragraph.UNCONSTRAINED);
-                label.paint(frame, geometry.gutter() - layout.width(),
-                        at - geometry.lineHeight() / 2, Paragraph.UNCONSTRAINED, ink);
+                label.paint(
+                        frame,
+                        geometry.gutter() - layout.width(),
+                        at - geometry.lineHeight() / 2,
+                        Paragraph.UNCONSTRAINED,
+                        ink);
             }
         }
 
@@ -787,11 +815,10 @@ record ChartSurface(
                                 // the edges, so a disc centred on one has half of
                                 // itself outside the box -- and half a dot reads
                                 // as an artifact rather than as a reading.
-                                var at = Math.max(geometry.left() + STROKE,
-                                        Math.min(xAt(geometry, x, run[0]),
-                                                geometry.right() - STROKE));
-                                dot(frame, path, at,
-                                        geometry.y().at(values.get(run[0])), colours.get(s));
+                                var at = Math.max(
+                                        geometry.left() + STROKE,
+                                        Math.min(xAt(geometry, x, run[0]), geometry.right() - STROKE));
+                                dot(frame, path, at, geometry.y().at(values.get(run[0])), colours.get(s));
                             }
                             continue;
                         }
@@ -799,10 +826,8 @@ record ChartSurface(
                         // than the stride -- see Lttb. Per run, with the budget
                         // shared out by length, because the alternative is
                         // downsampling across a hole.
-                        var budget = (int) Math.ceil(
-                                geometry.plotWidth() * length / Math.max(1, points)) + 1;
-                        var kept = Lttb.indices(values.subList(run[0], run[1]),
-                                Math.max(3, budget));
+                        var budget = (int) Math.ceil(geometry.plotWidth() * length / Math.max(1, points)) + 1;
+                        var kept = Lttb.indices(values.subList(run[0], run[1]), Math.max(3, budget));
 
                         var xs = new double[kept.length];
                         var ys = new double[kept.length];
@@ -820,8 +845,8 @@ record ChartSurface(
                         }
                         path.reset();
                         addRun(path, xs, ys, true);
-                        frame.strokePath(0, 0, path, STROKE,
-                                BlendStrokeCap.ROUND, BlendStrokeJoin.ROUND, colours.get(s));
+                        frame.strokePath(
+                                0, 0, path, STROKE, BlendStrokeCap.ROUND, BlendStrokeJoin.ROUND, colours.get(s));
                         if (marked(geometry, points)) {
                             // A dot per reading, so a sparse series reads as
                             // readings rather than as a continuous measurement.
@@ -849,8 +874,7 @@ record ChartSurface(
         /// this runs per run per series per frame, and a path is a native
         /// allocation.
         private void fillUnder(
-                Frame frame, BlendPath path, PlotGeometry geometry,
-                double[] xs, double[] ys, int colour) {
+                Frame frame, BlendPath path, PlotGeometry geometry, double[] xs, double[] ys, int colour) {
 
             if (xs.length < 2) {
                 return;
@@ -902,8 +926,7 @@ record ChartSurface(
         /// coincide — is filled flat instead. A zero-length gradient is a
         /// division by nothing in Blend2D's ramp and comes out as the last stop,
         /// which is to say invisible.
-        private static void gradient(
-                Frame frame, BlendPath path, double from, double to, int colour, double alpha) {
+        private static void gradient(Frame frame, BlendPath path, double from, double to, int colour, double alpha) {
 
             var near = CssColor.fade(colour, alpha);
             if (Math.abs(to - from) < 1) {
@@ -929,15 +952,13 @@ record ChartSurface(
                     }
                     // A pixel, where a series is two: a limit is read *against*
                     // the data and a line as heavy as the data competes with it.
-                    frame.fillRect((float) geometry.left(), (float) at,
-                            (float) geometry.plotWidth(), 1, limit.colour());
+                    frame.fillRect(
+                            (float) geometry.left(), (float) at, (float) geometry.plotWidth(), 1, limit.colour());
                     label(frame, geometry, limit, at);
                     continue;
                 }
-                var high = Double.isFinite(limit.to())
-                        ? geometry.y().at(limit.to()) : geometry.top();
-                var low = Double.isFinite(limit.from())
-                        ? geometry.y().at(limit.from()) : geometry.bottom();
+                var high = Double.isFinite(limit.to()) ? geometry.y().at(limit.to()) : geometry.top();
+                var low = Double.isFinite(limit.from()) ? geometry.y().at(limit.from()) : geometry.bottom();
                 var top = Math.max(geometry.top(), Math.min(high, low));
                 var bottom = Math.min(geometry.bottom(), Math.max(high, low));
                 if (bottom - top <= 0) {
@@ -950,16 +971,23 @@ record ChartSurface(
                 // "something" rather than "warning". So the fill stays low enough
                 // to read the data through and each finite edge is drawn at full
                 // strength, which is where the hue lives.
-                frame.fillRect((float) geometry.left(), (float) top,
-                        (float) geometry.plotWidth(), (float) (bottom - top),
+                frame.fillRect(
+                        (float) geometry.left(),
+                        (float) top,
+                        (float) geometry.plotWidth(),
+                        (float) (bottom - top),
                         CssColor.fade(limit.colour(), 0.18));
                 if (Double.isFinite(limit.to())) {
-                    frame.fillRect((float) geometry.left(), (float) top,
-                            (float) geometry.plotWidth(), 1, limit.colour());
+                    frame.fillRect(
+                            (float) geometry.left(), (float) top, (float) geometry.plotWidth(), 1, limit.colour());
                 }
                 if (Double.isFinite(limit.from())) {
-                    frame.fillRect((float) geometry.left(), (float) (bottom - 1),
-                            (float) geometry.plotWidth(), 1, limit.colour());
+                    frame.fillRect(
+                            (float) geometry.left(),
+                            (float) (bottom - 1),
+                            (float) geometry.plotWidth(),
+                            1,
+                            limit.colour());
                 }
                 label(frame, geometry, limit, top);
             }
@@ -972,8 +1000,7 @@ record ChartSurface(
         /// number sits. Skipped when the plot is too narrow to hold it, for the
         /// reason the x labels thin out: a label that overlaps the data is worse
         /// than no label.
-        private static void label(
-                Frame frame, PlotGeometry geometry, PaintedThreshold limit, double at) {
+        private static void label(Frame frame, PlotGeometry geometry, PaintedThreshold limit, double at) {
 
             if (limit.label() == null) {
                 return;
@@ -988,8 +1015,7 @@ record ChartSurface(
                 // very top of the axis -- so it goes below instead.
                 top = at + 1;
             }
-            limit.label().paint(frame, geometry.right() - layout.width(), top,
-                    Paragraph.UNCONSTRAINED, limit.colour());
+            limit.label().paint(frame, geometry.right() - layout.width(), top, Paragraph.UNCONSTRAINED, limit.colour());
         }
 
         /// The x labels of a **time** axis, each under the instant it names.
@@ -1020,8 +1046,7 @@ record ChartSurface(
             // inward by up to that much and a stride computed from the unclamped
             // spacing lets the first two touch. The end labels are the ones that
             // move, so the room they need is the room every slot is given.
-            var stride = Math.max(1, (int) Math.ceil((widest * 1.5 + PlotGeometry.GAP)
-                    / Math.max(1, perLabel)));
+            var stride = Math.max(1, (int) Math.ceil((widest * 1.5 + PlotGeometry.GAP) / Math.max(1, perLabel)));
 
             for (var i = 0; i < xLabels.size() && i < timeTicks.size(); i += stride) {
                 var label = xLabels.get(i);
@@ -1031,8 +1056,7 @@ record ChartSurface(
                 // ends of an axis are the labels a reader most wants, and half of
                 // one hanging outside the box is clipped away.
                 var centred = scale.at(timeTicks.get(i)) - layout.width() / 2;
-                var clamped = Math.max(geometry.left(),
-                        Math.min(centred, geometry.right() - layout.width()));
+                var clamped = Math.max(geometry.left(), Math.min(centred, geometry.right() - layout.width()));
                 label.paint(frame, clamped, baseline, Paragraph.UNCONSTRAINED, ink);
             }
         }
@@ -1062,13 +1086,10 @@ record ChartSurface(
                     }
                 }
                 case SMOOTH -> {
-                    var m = io.github.digitalsmile.goldberry.widgets.data.Curves
-                            .tangents(xs, ys);
+                    var m = io.github.digitalsmile.goldberry.widgets.data.Curves.tangents(xs, ys);
                     for (var i = 0; i < xs.length - 1; i++) {
-                        var from = io.github.digitalsmile.goldberry.widgets.data.Curves
-                                .controlFrom(xs, ys, m, i);
-                        var to = io.github.digitalsmile.goldberry.widgets.data.Curves
-                                .controlTo(xs, ys, m, i);
+                        var from = io.github.digitalsmile.goldberry.widgets.data.Curves.controlFrom(xs, ys, m, i);
+                        var to = io.github.digitalsmile.goldberry.widgets.data.Curves.controlTo(xs, ys, m, i);
                         path.cubicTo(from[0], from[1], to[0], to[1], xs[i + 1], ys[i + 1]);
                     }
                 }
@@ -1109,15 +1130,13 @@ record ChartSurface(
                     }
                 }
                 case SMOOTH -> {
-                    var m = io.github.digitalsmile.goldberry.widgets.data.Curves
-                            .tangents(flippedX, flippedY);
+                    var m = io.github.digitalsmile.goldberry.widgets.data.Curves.tangents(flippedX, flippedY);
                     for (var i = 0; i < n - 1; i++) {
-                        var from = io.github.digitalsmile.goldberry.widgets.data.Curves
-                                .controlFrom(flippedX, flippedY, m, i);
-                        var to = io.github.digitalsmile.goldberry.widgets.data.Curves
-                                .controlTo(flippedX, flippedY, m, i);
-                        path.cubicTo(-from[0], from[1], -to[0], to[1],
-                                -flippedX[i + 1], flippedY[i + 1]);
+                        var from = io.github.digitalsmile.goldberry.widgets.data.Curves.controlFrom(
+                                flippedX, flippedY, m, i);
+                        var to = io.github.digitalsmile.goldberry.widgets.data.Curves.controlTo(
+                                flippedX, flippedY, m, i);
+                        path.cubicTo(-from[0], from[1], -to[0], to[1], -flippedX[i + 1], flippedY[i + 1]);
                     }
                 }
                 default -> {
@@ -1140,8 +1159,7 @@ record ChartSurface(
             return switch (markers) {
                 case ALWAYS -> true;
                 case NEVER -> false;
-                case AUTO -> points > 1
-                        && geometry.plotWidth() / (points - 1) > STROKE * 4;
+                case AUTO -> points > 1 && geometry.plotWidth() / (points - 1) > STROKE * 4;
             };
         }
 
@@ -1154,8 +1172,7 @@ record ChartSurface(
         /// exists to stop a reading being dropped a rendering that drops it
         /// anyway. This is the smallest mark that reads as a point rather than as
         /// dirt on the screen.
-        private static void dot(
-                Frame frame, BlendPath path, double x, double y, int colour) {
+        private static void dot(Frame frame, BlendPath path, double x, double y, int colour) {
 
             path.reset();
             path.moveTo(x - STROKE, y);
@@ -1182,15 +1199,13 @@ record ChartSurface(
             // index where the total is unknown -- and drawing the bands above it
             // as though the missing one were zero would put them at a height
             // nobody reported (Gaps#stackRuns).
-            var shownSeries = new ArrayList<
-                    io.github.digitalsmile.goldberry.widgets.data.Gaps.Resolved>();
+            var shownSeries = new ArrayList<io.github.digitalsmile.goldberry.widgets.data.Gaps.Resolved>();
             for (var s = 0; s < series.size(); s++) {
                 if (shows(s)) {
                     shownSeries.add(series.get(s));
                 }
             }
-            var runs = io.github.digitalsmile.goldberry.widgets.data.Gaps.stackRuns(
-                    shownSeries, longest);
+            var runs = io.github.digitalsmile.goldberry.widgets.data.Gaps.stackRuns(shownSeries, longest);
 
             try (var path = BlendPath.create()) {
                 for (var s = 0; s < series.size(); s++) {
@@ -1216,9 +1231,11 @@ record ChartSurface(
                                 var i = run[0];
                                 var high = geometry.y().at(top[i]);
                                 var low = geometry.y().at(beneath[i]);
-                                frame.fillRect((float) xAt(geometry, x, i),
+                                frame.fillRect(
+                                        (float) xAt(geometry, x, i),
                                         (float) Math.min(high, low),
-                                        1, (float) Math.max(1, Math.abs(low - high)),
+                                        1,
+                                        (float) Math.max(1, Math.abs(low - high)),
                                         CssColor.fade(colours.get(s), BAND_ALPHA));
                             }
                             continue;
@@ -1256,8 +1273,7 @@ record ChartSurface(
                             }
                             gradient(frame, path, high, low, colours.get(s), BAND_ALPHA);
                         } else {
-                            frame.fillPath(0, 0, path,
-                                    CssColor.fade(colours.get(s), BAND_ALPHA));
+                            frame.fillPath(0, 0, path, CssColor.fade(colours.get(s), BAND_ALPHA));
                         }
                     }
 
@@ -1304,8 +1320,10 @@ record ChartSurface(
                     var barTop = Math.min(at, zero);
                     var height = Math.abs(at - zero);
                     frame.fillRect(
-                            (float) (bandLeft + s * barWidth), (float) barTop,
-                            (float) Math.max(1, barWidth - 1), (float) Math.max(1, height),
+                            (float) (bandLeft + s * barWidth),
+                            (float) barTop,
+                            (float) Math.max(1, barWidth - 1),
+                            (float) Math.max(1, height),
                             colours.get(s));
                 }
             }
@@ -1331,8 +1349,7 @@ record ChartSurface(
                 widest = Math.max(widest, label.layout(Paragraph.UNCONSTRAINED).width());
             }
             var perLabel = geometry.plotWidth() / Math.max(1, xLabels.size());
-            var stride = Math.max(1,
-                    (int) Math.ceil((widest + PlotGeometry.GAP) / Math.max(1, perLabel)));
+            var stride = Math.max(1, (int) Math.ceil((widest + PlotGeometry.GAP) / Math.max(1, perLabel)));
 
             for (var i = 0; i < xLabels.size(); i += stride) {
                 var label = xLabels.get(i);
@@ -1345,8 +1362,7 @@ record ChartSurface(
                 // "Su". Nudging beats dropping them: the ends of a time axis are
                 // the two labels a reader most wants.
                 var centred = geometry.xOf(i, xLabels.size(), banded()) - layout.width() / 2;
-                var clamped = Math.max(geometry.left(),
-                        Math.min(centred, geometry.right() - layout.width()));
+                var clamped = Math.max(geometry.left(), Math.min(centred, geometry.right() - layout.width()));
                 label.paint(frame, clamped, baseline, Paragraph.UNCONSTRAINED, ink);
             }
         }
@@ -1374,12 +1390,15 @@ record ChartSurface(
                 // between two of them. The rectangle says "this category", which
                 // is what a bar chart's x actually is.
                 var band = geometry.plotWidth() / points;
-                frame.fillRect((float) (x - band / 2), (float) geometry.top(),
-                        (float) band, (float) geometry.plotHeight(),
+                frame.fillRect(
+                        (float) (x - band / 2),
+                        (float) geometry.top(),
+                        (float) band,
+                        (float) geometry.plotHeight(),
                         CssColor.fade(ink, 0.08));
             } else {
-                frame.fillRect((float) x, (float) geometry.top(), 1,
-                        (float) geometry.plotHeight(), CssColor.fade(ink, 0.45));
+                frame.fillRect(
+                        (float) x, (float) geometry.top(), 1, (float) geometry.plotHeight(), CssColor.fade(ink, 0.45));
                 paintMarkers(frame, geometry, x);
             }
             if (readout != null) {
@@ -1423,9 +1442,7 @@ record ChartSurface(
                     // page's: the marker sits on the series line, and a ring
                     // the colour of the page would cut the line in half wherever
                     // the chart is on a card.
-                    frame.strokePath(0, 0, dot, 2,
-                            BlendStrokeCap.BUTT, BlendStrokeJoin.MITER_CLIP,
-                            ring);
+                    frame.strokePath(0, 0, dot, 2, BlendStrokeCap.BUTT, BlendStrokeJoin.MITER_CLIP, ring);
                     frame.fillPath(0, 0, dot, colours.get(s));
                 }
             }
@@ -1452,13 +1469,16 @@ record ChartSurface(
             var valueGap = 12;
             var widest = titleLayout.width();
             for (var row : readout.rows()) {
-                widest = Math.max(widest, swatch + swatchGap
-                        + row.name().layout(Paragraph.UNCONSTRAINED).width() + valueGap
-                        + row.value().layout(Paragraph.UNCONSTRAINED).width());
+                widest = Math.max(
+                        widest,
+                        swatch
+                                + swatchGap
+                                + row.name().layout(Paragraph.UNCONSTRAINED).width()
+                                + valueGap
+                                + row.value().layout(Paragraph.UNCONSTRAINED).width());
             }
             var width = widest + READOUT_PADDING * 2;
-            var height = READOUT_PADDING * 2 + lineHeight
-                    + readout.rows().size() * (lineHeight + READOUT_GAP);
+            var height = READOUT_PADDING * 2 + lineHeight + readout.rows().size() * (lineHeight + READOUT_GAP);
 
             var onTheRight = x < geometry.left() + geometry.plotWidth() / 2;
             var left = onTheRight ? x + READOUT_OFFSET : x - READOUT_OFFSET - width;
@@ -1469,32 +1489,40 @@ record ChartSurface(
             var top = geometry.top();
 
             try (var path = BlendPath.create()) {
-                io.github.digitalsmile.goldberry.paint.RoundRect.addTo(
-                        path, 0, 0, width, height, 6);
+                io.github.digitalsmile.goldberry.paint.RoundRect.addTo(path, 0, 0, width, height, 6);
                 frame.fillPath(left, top, path, readout.background());
                 path.reset();
-                io.github.digitalsmile.goldberry.paint.RoundRect.addTo(
-                        path, 0.5, 0.5, width - 1, height - 1, 5.5);
-                frame.strokePath(left, top, path, 1,
-                        BlendStrokeCap.BUTT, BlendStrokeJoin.MITER_CLIP, readout.border());
+                io.github.digitalsmile.goldberry.paint.RoundRect.addTo(path, 0.5, 0.5, width - 1, height - 1, 5.5);
+                frame.strokePath(left, top, path, 1, BlendStrokeCap.BUTT, BlendStrokeJoin.MITER_CLIP, readout.border());
             }
 
             var y = top + READOUT_PADDING;
-            readout.title().paint(frame, left + READOUT_PADDING, y,
-                    Paragraph.UNCONSTRAINED, readout.ink());
+            readout.title().paint(frame, left + READOUT_PADDING, y, Paragraph.UNCONSTRAINED, readout.ink());
             y += lineHeight + READOUT_GAP;
             for (var row : readout.rows()) {
-                frame.fillRect((float) (left + READOUT_PADDING),
+                frame.fillRect(
+                        (float) (left + READOUT_PADDING),
                         (float) (y + (lineHeight - swatch) / 2),
-                        (float) swatch, (float) swatch, row.colour());
-                row.name().paint(frame, left + READOUT_PADDING + swatch + swatchGap, y,
-                        Paragraph.UNCONSTRAINED, readout.muted());
+                        (float) swatch,
+                        (float) swatch,
+                        row.colour());
+                row.name()
+                        .paint(
+                                frame,
+                                left + READOUT_PADDING + swatch + swatchGap,
+                                y,
+                                Paragraph.UNCONSTRAINED,
+                                readout.muted());
                 var valueLayout = row.value().layout(Paragraph.UNCONSTRAINED);
                 // Right-aligned against the box, so a column of numbers lines up
                 // the way the axis labels do.
-                row.value().paint(frame,
-                        left + width - READOUT_PADDING - valueLayout.width(), y,
-                        Paragraph.UNCONSTRAINED, readout.ink());
+                row.value()
+                        .paint(
+                                frame,
+                                left + width - READOUT_PADDING - valueLayout.width(),
+                                y,
+                                Paragraph.UNCONSTRAINED,
+                                readout.ink());
                 y += lineHeight + READOUT_GAP;
             }
         }

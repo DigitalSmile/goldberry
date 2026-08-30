@@ -1,5 +1,12 @@
 package io.github.digitalsmile.goldberry.widgets.panel.list;
 
+import java.util.List;
+import java.util.Set;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+
 import io.github.digitalsmile.goldberry.RendererRequirement;
 import io.github.digitalsmile.goldberry.css.Stylesheet;
 import io.github.digitalsmile.goldberry.css.Theme;
@@ -11,11 +18,6 @@ import io.github.digitalsmile.goldberry.widget.WidgetRenderer;
 import io.github.digitalsmile.goldberry.widgets.Controls;
 import io.github.digitalsmile.goldberry.widgets.TestHost;
 import io.github.digitalsmile.goldberry.widgets.controls.TestFont;
-import java.util.List;
-import java.util.Set;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
 
 /// What a `list` looks like — the picture [ListTest] cannot take.
 ///
@@ -36,24 +38,18 @@ class ListGoldenTest {
             list { padding: 8px; background: var(--gb-surface); width: 240px }
             """;
 
-    private static final List<String> NORDICS =
-            List.of("Norway", "Sweden", "Finland", "Denmark", "Iceland");
+    private static final List<String> NORDICS = List.of("Norway", "Sweden", "Finland", "Denmark", "Iceland");
 
     private void paint(String name, Theme theme, Set<String> selected) {
         var host = new TestHost();
         var tree = new ElementTree(
-                ListView.of(NORDICS)
-                        .selection(Selection.MULTIPLE)
-                        .selected(selected, values -> { }),
-                host);
+                ListView.of(NORDICS).selection(Selection.MULTIPLE).selected(selected, values -> {}), host);
 
         var renderer = new WidgetRenderer(
-                List.of(Controls.baseStylesheet(), theme.load(),
-                        Stylesheet.parse(CascadeLayer.APPLICATION, SCENE)),
+                List.of(Controls.baseStylesheet(), theme.load(), Stylesheet.parse(CascadeLayer.APPLICATION, SCENE)),
                 TestFont.get());
 
-        GoldenImage.assertMatches(name, 240, 176, 1.0f,
-                frame -> BoxPainter.paint(frame, renderer.render(tree)));
+        GoldenImage.assertMatches(name, 240, 176, 1.0f, frame -> BoxPainter.paint(frame, renderer.render(tree)));
     }
 
     @Test

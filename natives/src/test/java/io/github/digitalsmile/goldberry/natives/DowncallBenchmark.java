@@ -6,11 +6,13 @@ import java.lang.foreign.MemorySegment;
 import java.lang.foreign.ValueLayout;
 import java.lang.invoke.MethodHandle;
 import java.util.Locale;
-import io.github.digitalsmile.goldberry.natives.calls.ShimCalls;
+
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
+
+import io.github.digitalsmile.goldberry.natives.calls.ShimCalls;
 
 /// What one foreign call costs, held both ways.
 ///
@@ -34,8 +36,7 @@ class DowncallBenchmark {
     private static final long WARMUP = 2_000_000L;
     private static final long RUNS = 20_000_000L;
 
-    private static final FunctionDescriptor ABI_VERSION =
-            FunctionDescriptor.of(ValueLayout.JAVA_INT);
+    private static final FunctionDescriptor ABI_VERSION = FunctionDescriptor.of(ValueLayout.JAVA_INT);
 
     /// The unbound constant, held the way a holder holds it: `static final` on a
     /// class the image is told to initialise.
@@ -79,8 +80,8 @@ class DowncallBenchmark {
         var boundNanos = time(this::boundLoop);
         var unboundNanos = time(this::unboundLoop);
 
-        System.out.printf(Locale.ROOT,
-                "downcall  bound %.2f ns/call   unbound %.2f ns/call%n", boundNanos, unboundNanos);
+        System.out.printf(
+                Locale.ROOT, "downcall  bound %.2f ns/call   unbound %.2f ns/call%n", boundNanos, unboundNanos);
     }
 
     /// Whether the constant has to be read by the method that calls it.
@@ -101,9 +102,11 @@ class DowncallBenchmark {
         var insideNanos = time(this::insideLoop);
         var passedNanos = time(this::passedLoop);
 
-        System.out.printf(Locale.ROOT,
+        System.out.printf(
+                Locale.ROOT,
                 "helper    constant inside %.2f ns/call   passed in %.2f ns/call%n",
-                insideNanos, passedNanos);
+                insideNanos,
+                passedNanos);
     }
 
     private interface Loop {
@@ -190,9 +193,11 @@ class DowncallBenchmark {
         holderLoop(WARMUP);
         naiveLoop(WARMUP);
 
-        System.out.printf(Locale.ROOT,
+        System.out.printf(
+                Locale.ROOT,
                 "pair      holder %.2f ns/call   handle in a field %.2f ns/call%n",
-                time(this::holderLoop), time(this::naiveLoop));
+                time(this::holderLoop),
+                time(this::naiveLoop));
     }
 
     private int holderLoop(long iterations) {

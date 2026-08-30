@@ -1,7 +1,7 @@
 package io.github.digitalsmile.goldberry.render.backend.sdl3;
 
-import io.github.digitalsmile.goldberry.render.Clipboard;
 import io.github.digitalsmile.goldberry.natives.sdl.desktop.SdlClipboard;
+import io.github.digitalsmile.goldberry.render.Clipboard;
 
 /// [Clipboard] over SDL3.
 ///

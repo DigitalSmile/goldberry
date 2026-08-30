@@ -1,14 +1,15 @@
 package io.github.digitalsmile.goldberry.widgets.panel.collapse;
 
-import io.github.digitalsmile.goldberry.css.ComputedStyle;
-import io.github.digitalsmile.goldberry.paint.Box;
-import io.github.digitalsmile.goldberry.widget.attr.Attributes;
-import io.github.digitalsmile.goldberry.widget.style.Paints;
-import io.github.digitalsmile.goldberry.widget.style.Styled;
-import io.github.digitalsmile.goldberry.widget.Widget;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+
+import io.github.digitalsmile.goldberry.css.ComputedStyle;
+import io.github.digitalsmile.goldberry.paint.Box;
+import io.github.digitalsmile.goldberry.widget.Widget;
+import io.github.digitalsmile.goldberry.widget.attr.Attributes;
+import io.github.digitalsmile.goldberry.widget.style.Paints;
+import io.github.digitalsmile.goldberry.widget.style.Styled;
 
 /// **This is the `collapse` a stylesheet selects.**
 ///
@@ -19,8 +20,11 @@ import java.util.Set;
 /// `.open` while the body is showing, so a stylesheet can reach the header, the
 /// chevron and the body by one class rather than each of them being told.
 record CollapseSection(
-        String title, boolean open, Runnable onToggle,
-        java.util.function.DoubleUnaryOperator visibility, List<Widget> body,
+        String title,
+        boolean open,
+        Runnable onToggle,
+        java.util.function.DoubleUnaryOperator visibility,
+        List<Widget> body,
         Attributes attributes)
         implements Widget.Leaf, Styled, Paints {
 

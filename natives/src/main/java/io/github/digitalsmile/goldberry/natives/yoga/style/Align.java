@@ -1,6 +1,5 @@
 package io.github.digitalsmile.goldberry.natives.yoga.style;
 
-
 /// Cross-axis alignment — `YGAlign`.
 ///
 /// One C enum serves three CSS properties: `align-items`, `align-self` and

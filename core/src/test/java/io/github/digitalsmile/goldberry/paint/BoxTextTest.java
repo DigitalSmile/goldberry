@@ -4,19 +4,21 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.ArrayList;
+import java.util.List;
+
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+
 import io.github.digitalsmile.goldberry.RendererRequirement;
 import io.github.digitalsmile.goldberry.assets.BundledFont;
 import io.github.digitalsmile.goldberry.natives.yoga.ComputedLayout;
 import io.github.digitalsmile.goldberry.natives.yoga.style.FlexDirection;
 import io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength;
-import io.github.digitalsmile.goldberry.text.font.Font;
 import io.github.digitalsmile.goldberry.text.Paragraph;
-import java.util.ArrayList;
-import java.util.List;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
+import io.github.digitalsmile.goldberry.text.font.Font;
 
 /// Text taking part in layout, rather than being drawn over the top of it.
 ///
@@ -27,9 +29,8 @@ import org.junit.jupiter.api.Test;
 /// alone; these are the assertions that they agree.
 class BoxTextTest {
 
-    private static final String TEXT =
-            "Yoga proposes a width and the paragraph answers with a height,"
-                    + " which is the only thing a flexbox algorithm needs to know about text.";
+    private static final String TEXT = "Yoga proposes a width and the paragraph answers with a height,"
+            + " which is the only thing a flexbox algorithm needs to know about text.";
 
     private static final int INK = 0xFFFFFFFF;
 
@@ -82,8 +83,8 @@ class BoxTextTest {
         var narrowBox = Box.text(paragraph, INK);
         var narrowHeight = layoutOf(narrow, column(narrowBox), narrowBox).height();
 
-        assertTrue(narrowHeight > wideHeight,
-                () -> narrowHeight + " at 160 wide should exceed " + wideHeight + " at 400");
+        assertTrue(
+                narrowHeight > wideHeight, () -> narrowHeight + " at 160 wide should exceed " + wideHeight + " at 400");
         wide.end();
         narrow.end();
     }
@@ -148,11 +149,12 @@ class BoxTextTest {
         // Inside the box Yoga computed, not merely somewhere on the frame. The
         // padding is what makes this a real check: ink at y=0 would mean the
         // paint step ignored the layout and drew at the frame's origin.
-        assertTrue(firstInkedRow >= placed.top() - 1,
+        assertTrue(
+                firstInkedRow >= placed.top() - 1,
                 () -> "ink starts at " + firstInkedRow + ", above the box at " + placed.top());
-        assertTrue(lastInkedRow <= placed.top() + placed.height() + 1,
-                () -> "ink ends at " + lastInkedRow + ", below the box ending at "
-                        + (placed.top() + placed.height()));
+        assertTrue(
+                lastInkedRow <= placed.top() + placed.height() + 1,
+                () -> "ink ends at " + lastInkedRow + ", below the box ending at " + (placed.top() + placed.height()));
     }
 
     @Test
@@ -163,8 +165,8 @@ class BoxTextTest {
         // Yoga asks a measured node for its size and never lays its children
         // out, so this would silently lose them. Refused where the box is built,
         // not where the layout goes quiet.
-        assertThrows(IllegalArgumentException.class,
-                () -> Box.text(paragraph, INK).children(Box.filled(0xFF000000)));
+        assertThrows(
+                IllegalArgumentException.class, () -> Box.text(paragraph, INK).children(Box.filled(0xFF000000)));
     }
 
     // --- helpers -------------------------------------------------------------
@@ -188,8 +190,7 @@ class BoxTextTest {
 
     private static ComputedLayout single(List<ComputedLayout> found, Box wanted) {
         if (found.size() != 1) {
-            throw new AssertionError(
-                    "expected exactly one placement of " + wanted + ", got " + found.size());
+            throw new AssertionError("expected exactly one placement of " + wanted + ", got " + found.size());
         }
         return found.getFirst();
     }

@@ -1,16 +1,16 @@
 package io.github.digitalsmile.goldberry.widgets.panel.tree;
 
+import java.util.List;
+import java.util.Set;
+
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
 import io.github.digitalsmile.goldberry.input.FocusScope;
 import io.github.digitalsmile.goldberry.input.handler.Handles;
 import io.github.digitalsmile.goldberry.paint.Box;
+import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widget.attr.Attributes;
 import io.github.digitalsmile.goldberry.widget.style.Paints;
 import io.github.digitalsmile.goldberry.widget.style.Styled;
-import io.github.digitalsmile.goldberry.widget.Widget;
-
-import java.util.List;
-import java.util.Set;
 
 /// The node a stylesheet calls `tree`: the column the rows are stacked in.
 ///
@@ -28,8 +28,7 @@ import java.util.Set;
 /// so a scope that took them would take the widget's whole keyboard.
 ///
 /// @param children the visible rows, already flattened depth-first
-record TreeBox(List<Widget> children, Attributes attributes)
-        implements Widget.Leaf, Styled, Paints, Handles {
+record TreeBox(List<Widget> children, Attributes attributes) implements Widget.Leaf, Styled, Paints, Handles {
 
     @Override
     public String cssType() {

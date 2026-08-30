@@ -1,13 +1,14 @@
 package io.github.digitalsmile.goldberry.natives.blend2d;
 
-import io.github.digitalsmile.goldberry.natives.blend2d.calls.FontCalls;
-import io.github.digitalsmile.goldberry.natives.layout.Layouts;
 import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.SymbolLookup;
 import java.lang.foreign.ValueLayout;
+
 import io.github.digitalsmile.goldberry.natives.NativeLibrary;
+import io.github.digitalsmile.goldberry.natives.blend2d.calls.FontCalls;
 import io.github.digitalsmile.goldberry.natives.blend2d.error.BlendException;
+import io.github.digitalsmile.goldberry.natives.layout.Layouts;
 
 /// Blend2D's font calls, behind [BlendFont] and [BlendFontFace].
 ///
@@ -29,7 +30,8 @@ final class Blend2dFont {
     private static final long METRICS_CAP_HEIGHT = Layouts.BL_FONT_METRICS.offsetOf("cap_height");
 
     private static final class Holder {
-        private static final Blend2dFont INSTANCE = new Blend2dFont(NativeLibrary.get().lookup());
+        private static final Blend2dFont INSTANCE =
+                new Blend2dFont(NativeLibrary.get().lookup());
     }
 
     private final FontCalls calls;
@@ -60,8 +62,7 @@ final class Blend2dFont {
     /// `size_t data_size, BLDestroyExternalDataFunc, void* user_data)`
     void fontDataCreate(MemorySegment fontData, MemorySegment bytes, long length) {
         int result;
-        result = calls.fontDataCreateFromData().call(fontData, bytes, length, MemorySegment.NULL,
-                MemorySegment.NULL);
+        result = calls.fontDataCreateFromData().call(fontData, bytes, length, MemorySegment.NULL, MemorySegment.NULL);
         check("bl_font_data_create_from_data", result);
     }
 

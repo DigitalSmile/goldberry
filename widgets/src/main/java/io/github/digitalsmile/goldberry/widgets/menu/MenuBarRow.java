@@ -1,15 +1,16 @@
 package io.github.digitalsmile.goldberry.widgets.menu;
 
+import java.util.List;
+import java.util.Set;
+
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
 import io.github.digitalsmile.goldberry.input.FocusScope;
 import io.github.digitalsmile.goldberry.input.handler.Handles;
 import io.github.digitalsmile.goldberry.paint.Box;
+import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widget.attr.Attributes;
 import io.github.digitalsmile.goldberry.widget.style.Paints;
 import io.github.digitalsmile.goldberry.widget.style.Styled;
-import io.github.digitalsmile.goldberry.widget.Widget;
-import java.util.List;
-import java.util.Set;
 
 /// **This is the `menubar` a stylesheet selects.**
 ///
@@ -34,8 +35,7 @@ import java.util.Set;
 /// One tab stop, like every other composite here: `Tab` reaches the bar, the
 /// arrows move within it, and `Tab` again leaves it
 /// ([ADR-0073](../../../../../../../book/src/adr/0073-a-composite-is-one-tab-stop.md)).
-record MenuBarRow(List<Widget> children, Attributes attributes)
-        implements Widget.Leaf, Styled, Paints, Handles {
+record MenuBarRow(List<Widget> children, Attributes attributes) implements Widget.Leaf, Styled, Paints, Handles {
 
     MenuBarRow {
         children = List.copyOf(children == null ? List.of() : children);

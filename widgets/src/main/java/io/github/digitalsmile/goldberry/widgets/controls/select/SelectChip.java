@@ -1,15 +1,15 @@
 package io.github.digitalsmile.goldberry.widgets.controls.select;
 
+import java.util.List;
+import java.util.Set;
+
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
 import io.github.digitalsmile.goldberry.input.event.PointerEvent;
 import io.github.digitalsmile.goldberry.input.handler.Handles;
 import io.github.digitalsmile.goldberry.paint.Box;
+import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widget.style.Paints;
 import io.github.digitalsmile.goldberry.widget.style.Styled;
-import io.github.digitalsmile.goldberry.widget.Widget;
-
-import java.util.List;
-import java.util.Set;
 
 /// One of a `select multiple`'s chosen values, shown in the closed control —
 /// §3's "`badge` chips inside the closed control, each with a remove
@@ -31,8 +31,7 @@ import java.util.Set;
 /// @param label    what it reads — the option's label, not its value, for the
 ///                 reason `option value="nord-dark" "Nord Dark"` exists
 /// @param onRemove what to ask when the × is clicked
-record SelectChip(String label, Runnable onRemove)
-        implements Widget.Leaf, Styled, Paints {
+record SelectChip(String label, Runnable onRemove) implements Widget.Leaf, Styled, Paints {
 
     @Override
     public String cssType() {
@@ -71,8 +70,7 @@ record SelectChip(String label, Runnable onRemove)
 
         @Override
         public Box render(ComputedStyle style, List<Box> children, Context context) {
-            return Box.of().style(style)
-                    .children(Box.text(context.paragraph(style, text), style.color()));
+            return Box.of().style(style).children(Box.text(context.paragraph(style, text), style.color()));
         }
     }
 
@@ -83,8 +81,7 @@ record SelectChip(String label, Runnable onRemove)
     ///
     /// The keyboard's way to remove a value is to open the list and press `Enter`
     /// on it, which toggles — so nothing is unreachable without a pointer.
-    record SelectChipRemove(Runnable onRemove)
-            implements Widget.Leaf, Styled, Paints, Handles {
+    record SelectChipRemove(Runnable onRemove) implements Widget.Leaf, Styled, Paints, Handles {
 
         @Override
         public String cssType() {
@@ -116,8 +113,7 @@ record SelectChip(String label, Runnable onRemove)
 
         @Override
         public Box render(ComputedStyle style, List<Box> children, Context context) {
-            return Box.of().style(style)
-                    .mark(new Box.Mark(Box.Mark.Kind.CROSS, style.color(), 1.5));
+            return Box.of().style(style).mark(new Box.Mark(Box.Mark.Kind.CROSS, style.color(), 1.5));
         }
     }
 }

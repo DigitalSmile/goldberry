@@ -1,15 +1,16 @@
 package io.github.digitalsmile.goldberry.widgets.form.field;
 
-import io.github.digitalsmile.goldberry.kdl.KdlNode;
-import io.github.digitalsmile.goldberry.widget.attr.Attributed;
-import io.github.digitalsmile.goldberry.widget.attr.Attributes;
-import io.github.digitalsmile.goldberry.widget.State;
-import io.github.digitalsmile.goldberry.widget.Widget;
-import io.github.digitalsmile.goldberry.widgets.markup.Markup;
-import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
-import io.github.digitalsmile.goldberry.widgets.form.Validator;
 import java.util.List;
 import java.util.Objects;
+
+import io.github.digitalsmile.goldberry.kdl.KdlNode;
+import io.github.digitalsmile.goldberry.widget.State;
+import io.github.digitalsmile.goldberry.widget.Widget;
+import io.github.digitalsmile.goldberry.widget.attr.Attributed;
+import io.github.digitalsmile.goldberry.widget.attr.Attributes;
+import io.github.digitalsmile.goldberry.widgets.form.Validator;
+import io.github.digitalsmile.goldberry.widgets.markup.Markup;
+import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
 
 /// One labelled control and what to say about it —
 /// `docs/core-widgets.md` §4's `field`.
@@ -75,8 +76,7 @@ import java.util.Objects;
 /// @param attributes the `id`, classes and key the document wrote
 @Markup("field")
 public record Field(
-        String label, List<Widget> children, boolean required, Validator<String> validator,
-        Attributes attributes)
+        String label, List<Widget> children, boolean required, Validator<String> validator, Attributes attributes)
         implements Widget.Stateful, Attributed<Field> {
 
     /// What a `required` field says when it is empty, and the one message this
@@ -122,9 +122,7 @@ public record Field(
     /// Built here rather than in the state so that a caller can ask a field what
     /// it will do without mounting it.
     public Validator<String> rule() {
-        var start = required
-                ? Validator.required(REQUIRED_MESSAGE)
-                : Validator.<String>none();
+        var start = required ? Validator.required(REQUIRED_MESSAGE) : Validator.<String>none();
         return validator == null ? start : start.and(validator);
     }
 

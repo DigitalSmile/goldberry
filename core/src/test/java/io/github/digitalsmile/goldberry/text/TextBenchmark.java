@@ -1,21 +1,23 @@
 package io.github.digitalsmile.goldberry.text;
 
-import io.github.digitalsmile.goldberry.RendererRequirement;
-import io.github.digitalsmile.goldberry.assets.BundledFont;
-import io.github.digitalsmile.goldberry.paint.Box;
-import io.github.digitalsmile.goldberry.paint.BoxPainter;
-import io.github.digitalsmile.goldberry.paint.TestFrames;
-import io.github.digitalsmile.goldberry.natives.yoga.MeasureCallback;
-import io.github.digitalsmile.goldberry.natives.yoga.measure.MeasureMode;
-import io.github.digitalsmile.goldberry.natives.yoga.MeasureProbe;
-import io.github.digitalsmile.goldberry.natives.yoga.measure.MeasuredSize;
-import io.github.digitalsmile.goldberry.natives.yoga.style.FlexDirection;
 import java.util.function.LongSupplier;
+
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
+
+import io.github.digitalsmile.goldberry.RendererRequirement;
+import io.github.digitalsmile.goldberry.assets.BundledFont;
+import io.github.digitalsmile.goldberry.natives.yoga.MeasureCallback;
+import io.github.digitalsmile.goldberry.natives.yoga.MeasureProbe;
+import io.github.digitalsmile.goldberry.natives.yoga.measure.MeasureMode;
+import io.github.digitalsmile.goldberry.natives.yoga.measure.MeasuredSize;
+import io.github.digitalsmile.goldberry.natives.yoga.style.FlexDirection;
+import io.github.digitalsmile.goldberry.paint.Box;
+import io.github.digitalsmile.goldberry.paint.BoxPainter;
+import io.github.digitalsmile.goldberry.paint.TestFrames;
 import io.github.digitalsmile.goldberry.text.font.Font;
 import io.github.digitalsmile.goldberry.text.font.FontFace;
 
@@ -134,14 +136,17 @@ class TextBenchmark {
         // cross-paragraph cache would save, and the number that decides whether
         // one is worth having: if it is small next to a wrap, caching shaped
         // paragraphs is optimising the wrong thing.
-        report("Paragraph.of (shapes the text)", () -> Paragraph.of(font, PROSE).text().length());
+        report(
+                "Paragraph.of (shapes the text)",
+                () -> Paragraph.of(font, PROSE).text().length());
 
         report("Font.shape alone", () -> font.shape(PROSE).length());
 
         // What the cache turns that into.
         var cache = ParagraphCache.create();
         cache.paragraph(font, PROSE);
-        report("ParagraphCache.paragraph (hit)",
+        report(
+                "ParagraphCache.paragraph (hit)",
                 () -> cache.paragraph(font, PROSE).text().length());
 
         // Loading a face, for scale: this is what a Font costs, and why one is
@@ -177,9 +182,7 @@ class TextBenchmark {
         var target = TestFrames.of(800, 600, 1.0f);
         var paragraph = Paragraph.of(font, PROSE);
 
-        var withText = Box.of()
-                .direction(FlexDirection.COLUMN)
-                .children(Box.text(paragraph, 0xFFFFFFFF));
+        var withText = Box.of().direction(FlexDirection.COLUMN).children(Box.text(paragraph, 0xFFFFFFFF));
         var withoutText = Box.of()
                 .direction(FlexDirection.COLUMN)
                 .children(Box.filled(0xFF000000).grow(1));

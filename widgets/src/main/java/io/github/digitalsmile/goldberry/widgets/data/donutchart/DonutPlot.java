@@ -1,9 +1,10 @@
 package io.github.digitalsmile.goldberry.widgets.data.donutchart;
 
+import java.util.List;
+
 import io.github.digitalsmile.goldberry.widget.BuildContext;
 import io.github.digitalsmile.goldberry.widget.State;
 import io.github.digitalsmile.goldberry.widget.Widget;
-import java.util.List;
 
 /// The ring of a [DonutChart].
 ///
@@ -36,8 +37,7 @@ record DonutPlot(List<Double> values, List<String> labels) implements Widget.Sta
 
         @Override
         public Widget build(BuildContext context) {
-            return new DonutSurface(
-                    widget().values(), widget().labels(), hovered, this::hover, this::walk);
+            return new DonutSurface(widget().values(), widget().labels(), hovered, this::hover, this::walk);
         }
 
         /// Moves the readout, and asks for a frame only when it actually moved.

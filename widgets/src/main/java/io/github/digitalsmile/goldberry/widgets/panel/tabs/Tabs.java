@@ -1,17 +1,18 @@
 package io.github.digitalsmile.goldberry.widgets.panel.tabs;
 
-import io.github.digitalsmile.goldberry.bind.Observable;
-import io.github.digitalsmile.goldberry.widget.attr.Attributed;
-import io.github.digitalsmile.goldberry.widget.attr.Attributes;
-import io.github.digitalsmile.goldberry.widget.attr.Bindable;
-import io.github.digitalsmile.goldberry.widget.State;
-import io.github.digitalsmile.goldberry.widget.Widget;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Consumer;
+
+import io.github.digitalsmile.goldberry.bind.Observable;
 import io.github.digitalsmile.goldberry.kdl.KdlNode;
-import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
+import io.github.digitalsmile.goldberry.widget.State;
+import io.github.digitalsmile.goldberry.widget.Widget;
+import io.github.digitalsmile.goldberry.widget.attr.Attributed;
+import io.github.digitalsmile.goldberry.widget.attr.Attributes;
+import io.github.digitalsmile.goldberry.widget.attr.Bindable;
 import io.github.digitalsmile.goldberry.widgets.markup.Markup;
+import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
 
 /// A strip of tabs over one panel — `docs/core-widgets.md` §5's `tabs`.
 ///
@@ -73,8 +74,13 @@ import io.github.digitalsmile.goldberry.widgets.markup.Markup;
 /// @param attributes `id` and `class`, exactly as on the primitives
 @Markup("tabs")
 public record Tabs(
-        String value, List<Widget> children, Observable<?> source, Consumer<String> onChange,
-        Consumer<String> onClose, Runnable onNew, Attributes attributes)
+        String value,
+        List<Widget> children,
+        Observable<?> source,
+        Consumer<String> onChange,
+        Consumer<String> onClose,
+        Runnable onNew,
+        Attributes attributes)
         implements Widget.Stateful, Attributed<Tabs>, Bindable<Tabs> {
 
     public Tabs {
@@ -172,7 +178,9 @@ public record Tabs(
     /// application's": the strip asks and the application answers, exactly as
     /// `change` does for the selection (ADR-0063, ADR-0107).
     public static Widget inflate(KdlNode node, List<Widget> children, Wiring wiring) {
-        return new Tabs(node.stringProperty("value"), children,
+        return new Tabs(
+                node.stringProperty("value"),
+                children,
                 wiring.bound(node),
                 wiring.valued(node, "change"),
                 wiring.valued(node, "close"),

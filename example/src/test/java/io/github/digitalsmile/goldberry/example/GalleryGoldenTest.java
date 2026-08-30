@@ -1,10 +1,17 @@
 package io.github.digitalsmile.goldberry.example;
 
+import java.util.ArrayList;
+
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+
 import io.github.digitalsmile.goldberry.RendererRequirement;
 import io.github.digitalsmile.goldberry.assets.BundledFont;
-import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
 import io.github.digitalsmile.goldberry.css.Stylesheet;
 import io.github.digitalsmile.goldberry.css.Theme;
+import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
 import io.github.digitalsmile.goldberry.example.ui.AppMenu;
 import io.github.digitalsmile.goldberry.example.ui.Screen;
 import io.github.digitalsmile.goldberry.golden.GoldenImage;
@@ -15,12 +22,6 @@ import io.github.digitalsmile.goldberry.widget.ElementTree;
 import io.github.digitalsmile.goldberry.widget.WidgetRenderer;
 import io.github.digitalsmile.goldberry.widgets.Controls;
 import io.github.digitalsmile.goldberry.widgets.Icons;
-import java.util.ArrayList;
-
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
 import io.github.digitalsmile.goldberry.widgets.Widgets;
 
 /// The gallery, one image per screen (§14: "golden-image CI runs the gallery
@@ -73,7 +74,10 @@ class GalleryGoldenTest {
 
     private <T> T modelOf(Class<T> type) {
         return showcase.models().stream()
-                .filter(type::isInstance).map(type::cast).findFirst().orElseThrow();
+                .filter(type::isInstance)
+                .map(type::cast)
+                .findFirst()
+                .orElseThrow();
     }
 
     /// The whole window, on `screen`.
@@ -93,10 +97,13 @@ class GalleryGoldenTest {
                 model.named(),
                 Icons.strict().bind("palette", palette).bind("plus", plus),
                 showcase.models().toArray());
-        var tree = new ElementTree(new Screen(model, actions, inflater, plus, () -> { },
-                new AppMenu(actions,
-                        new AppMenu.Handlers(() -> { }, () -> { }, () -> { }, () -> { }),
-                        plus)));
+        var tree = new ElementTree(new Screen(
+                model,
+                actions,
+                inflater,
+                plus,
+                () -> {},
+                new AppMenu(actions, new AppMenu.Handlers(() -> {}, () -> {}, () -> {}, () -> {}), plus)));
 
         var sheets = new ArrayList<Stylesheet>(Controls.stylesheets(theme, model.density()));
         sheets.add(Stylesheet.resource(CascadeLayer.APPLICATION, Showcase.class, "showcase.css"));
@@ -137,18 +144,15 @@ class GalleryGoldenTest {
         try (var render = io.github.digitalsmile.goldberry.paint.tree.RenderTree.create()) {
             var router = new io.github.digitalsmile.goldberry.input.PointerRouter();
             render.update(target.frame(), renderer.render(tree));
-            router.updateRegions(
-                    io.github.digitalsmile.goldberry.input.hit.HitTest.capture(render));
+            router.updateRegions(io.github.digitalsmile.goldberry.input.hit.HitTest.capture(render));
             clock.advance(200);
             render.update(target.frame(), renderer.render(tree));
-            router.updateRegions(
-                    io.github.digitalsmile.goldberry.input.hit.HitTest.capture(render));
+            router.updateRegions(io.github.digitalsmile.goldberry.input.hit.HitTest.capture(render));
         } finally {
             target.end();
         }
 
-        GoldenImage.assertMatches(name, width, height, 1.0f,
-                frame -> BoxPainter.paint(frame, renderer.render(tree)));
+        GoldenImage.assertMatches(name, width, height, 1.0f, frame -> BoxPainter.paint(frame, renderer.render(tree)));
     }
 
     @Test

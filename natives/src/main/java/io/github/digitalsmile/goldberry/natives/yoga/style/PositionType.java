@@ -1,6 +1,5 @@
 package io.github.digitalsmile.goldberry.natives.yoga.style;
 
-
 /// How a node is positioned — `YGPositionType`, CSS's `position`.
 ///
 /// The CSS subset admits `relative` and `absolute` (§8). [#STATIC] is bound

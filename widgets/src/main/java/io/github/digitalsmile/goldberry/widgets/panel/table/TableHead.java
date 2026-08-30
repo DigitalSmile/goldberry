@@ -1,19 +1,19 @@
 package io.github.digitalsmile.goldberry.widgets.panel.table;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
+import java.util.function.Consumer;
+
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
 import io.github.digitalsmile.goldberry.input.event.KeyEvent;
 import io.github.digitalsmile.goldberry.input.event.PointerEvent;
 import io.github.digitalsmile.goldberry.input.handler.Handles;
 import io.github.digitalsmile.goldberry.input.key.Key;
 import io.github.digitalsmile.goldberry.paint.Box;
+import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widget.style.Paints;
 import io.github.digitalsmile.goldberry.widget.style.Styled;
-import io.github.digitalsmile.goldberry.widget.Widget;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
-import java.util.function.Consumer;
 
 /// The row of column headers — a **part**, styleable and not constructible
 /// ([ADR-0065]).
@@ -110,7 +110,8 @@ record TableHead(List<? extends Column<?>> columns, Sort sort, Consumer<String> 
         /// to be a label.
         @Override
         public void onKey(KeyEvent event) {
-            if (event.kind() != KeyEvent.Kind.PRESSED || !column.sortable()
+            if (event.kind() != KeyEvent.Kind.PRESSED
+                    || !column.sortable()
                     || !event.modifiers().none()) {
                 return;
             }
@@ -165,8 +166,7 @@ record TableHead(List<? extends Column<?>> columns, Sort sort, Consumer<String> 
 
         @Override
         public Box render(ComputedStyle style, List<Box> children, Context context) {
-            return Box.of().style(style)
-                    .children(Box.text(context.paragraph(style, text), style.color()));
+            return Box.of().style(style).children(Box.text(context.paragraph(style, text), style.color()));
         }
     }
 
@@ -207,11 +207,12 @@ record TableHead(List<? extends Column<?>> columns, Sort sort, Consumer<String> 
                 // The slot, empty. See TableHeader#children.
                 return Box.of().style(style);
             }
-            return Box.of().style(style)
-                    .mark(new Box.Mark(sort.descending()
-                            ? Box.Mark.Kind.CHEVRON_DOWN
-                            : Box.Mark.Kind.CHEVRON_UP,
-                            style.color(), 1.5));
+            return Box.of()
+                    .style(style)
+                    .mark(new Box.Mark(
+                            sort.descending() ? Box.Mark.Kind.CHEVRON_DOWN : Box.Mark.Kind.CHEVRON_UP,
+                            style.color(),
+                            1.5));
         }
     }
 }

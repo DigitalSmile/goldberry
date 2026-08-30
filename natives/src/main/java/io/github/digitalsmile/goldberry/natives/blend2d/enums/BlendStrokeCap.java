@@ -1,6 +1,5 @@
 package io.github.digitalsmile.goldberry.natives.blend2d.enums;
 
-
 /// What a stroke does at the end of an open sub-path — `BLStrokeCap`.
 ///
 /// Only the three SVG has. Blend2D also offers reversed-round and two triangle

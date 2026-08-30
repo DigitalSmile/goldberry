@@ -4,38 +4,40 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import io.github.digitalsmile.goldberry.Goldberry;
-import io.github.digitalsmile.goldberry.RendererRequirement;
-import io.github.digitalsmile.goldberry.paint.TestFrames;
-import io.github.digitalsmile.goldberry.Window;
-import io.github.digitalsmile.goldberry.render.Cursor;
-import io.github.digitalsmile.goldberry.render.model.DisplayScale;
-import io.github.digitalsmile.goldberry.render.model.LogicalSize;
-import io.github.digitalsmile.goldberry.render.window.WindowSpec;
-import io.github.digitalsmile.goldberry.render.backend.headless.HeadlessBackend;
-import io.github.digitalsmile.goldberry.render.backend.headless.HeadlessWindow;
-import io.github.digitalsmile.goldberry.css.ComputedStyle;
-import io.github.digitalsmile.goldberry.css.value.CssLength;
-import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
-import io.github.digitalsmile.goldberry.css.cascade.StyleResolver;
-import io.github.digitalsmile.goldberry.css.Stylesheet;
-import io.github.digitalsmile.goldberry.paint.Box;
-import io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength;
-import io.github.digitalsmile.goldberry.widget.Element;
-import io.github.digitalsmile.goldberry.widget.ElementTree;
-import io.github.digitalsmile.goldberry.widget.style.Styled;
-import io.github.digitalsmile.goldberry.widget.Widget;
 import java.util.ArrayList;
 import java.util.List;
+
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
+
+import io.github.digitalsmile.goldberry.Goldberry;
+import io.github.digitalsmile.goldberry.RendererRequirement;
+import io.github.digitalsmile.goldberry.Window;
+import io.github.digitalsmile.goldberry.css.ComputedStyle;
+import io.github.digitalsmile.goldberry.css.Stylesheet;
+import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
+import io.github.digitalsmile.goldberry.css.cascade.StyleResolver;
+import io.github.digitalsmile.goldberry.css.value.CssLength;
 import io.github.digitalsmile.goldberry.input.event.PointerEvent;
-import io.github.digitalsmile.goldberry.input.hit.HitTest;
 import io.github.digitalsmile.goldberry.input.handler.Handles;
+import io.github.digitalsmile.goldberry.input.hit.HitTest;
+import io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength;
+import io.github.digitalsmile.goldberry.paint.Box;
+import io.github.digitalsmile.goldberry.paint.TestFrames;
+import io.github.digitalsmile.goldberry.render.Cursor;
+import io.github.digitalsmile.goldberry.render.backend.headless.HeadlessBackend;
+import io.github.digitalsmile.goldberry.render.backend.headless.HeadlessWindow;
+import io.github.digitalsmile.goldberry.render.model.DisplayScale;
+import io.github.digitalsmile.goldberry.render.model.LogicalSize;
+import io.github.digitalsmile.goldberry.render.window.WindowSpec;
+import io.github.digitalsmile.goldberry.widget.Element;
+import io.github.digitalsmile.goldberry.widget.ElementTree;
+import io.github.digitalsmile.goldberry.widget.Widget;
+import io.github.digitalsmile.goldberry.widget.style.Styled;
 
 /// The cursor, from `cursor: pointer` in a stylesheet to the platform (§7.3).
 ///
@@ -52,14 +54,15 @@ class CursorTest {
         private ComputedStyle resolve(String css, Widget widget) {
             var sheet = Stylesheet.parse(CascadeLayer.APPLICATION, css);
             var element = new ElementTree(widget).root();
-            return ComputedStyle.of(new StyleResolver(List.of(sheet)).resolve(element),
-                    CssLength.Context.DEFAULT);
+            return ComputedStyle.of(new StyleResolver(List.of(sheet)).resolve(element), CssLength.Context.DEFAULT);
         }
 
         @Test
         @DisplayName("`cursor: pointer` resolves to a Cursor, by CSS's own name")
         void keywordByName() {
-            assertEquals(Cursor.POINTER, resolve("button { cursor: pointer; }", new Node("button")).cursor());
+            assertEquals(
+                    Cursor.POINTER,
+                    resolve("button { cursor: pointer; }", new Node("button")).cursor());
         }
 
         @Test
@@ -67,17 +70,23 @@ class CursorTest {
         void hyphenated() {
             // Exactly the rule that already maps `space-between` onto Yoga's
             // SPACE_BETWEEN -- one vocabulary, not two.
-            assertEquals(Cursor.EW_RESIZE,
-                    resolve("splitter { cursor: ew-resize; }", new Node("splitter")).cursor());
-            assertEquals(Cursor.NOT_ALLOWED,
-                    resolve("splitter { cursor: not-allowed; }", new Node("splitter")).cursor());
+            assertEquals(
+                    Cursor.EW_RESIZE,
+                    resolve("splitter { cursor: ew-resize; }", new Node("splitter"))
+                            .cursor());
+            assertEquals(
+                    Cursor.NOT_ALLOWED,
+                    resolve("splitter { cursor: not-allowed; }", new Node("splitter"))
+                            .cursor());
         }
 
         @Test
         @DisplayName("a node with no rule keeps the default arrow")
         void defaults() {
             assertEquals(Cursor.DEFAULT, ComputedStyle.INITIAL.cursor());
-            assertEquals(Cursor.DEFAULT, resolve("other { cursor: wait; }", new Node("button")).cursor());
+            assertEquals(
+                    Cursor.DEFAULT,
+                    resolve("other { cursor: wait; }", new Node("button")).cursor());
         }
 
         @Test
@@ -85,7 +94,8 @@ class CursorTest {
         void unknownKeyword() {
             // Same rule as every other unparseable value: the rest of the node's
             // style is still perfectly good.
-            assertEquals(Cursor.DEFAULT,
+            assertEquals(
+                    Cursor.DEFAULT,
                     resolve("button { cursor: zoom-in; }", new Node("button")).cursor());
         }
 
@@ -130,9 +140,13 @@ class CursorTest {
             // `cursor: pointer`, and CSS's `cursor` is inherited. Walking the
             // stack of rectangles is how that is arrived at here.
             var label = Box.filled(0xFF00FF00)
-                    .size(StyleLength.points(40), StyleLength.points(40)).owner("label");
-            var button = Box.filled(0xFFFF0000).cursor(Cursor.POINTER)
-                    .padding(StyleLength.points(20)).children(label).owner("button");
+                    .size(StyleLength.points(40), StyleLength.points(40))
+                    .owner("label");
+            var button = Box.filled(0xFFFF0000)
+                    .cursor(Cursor.POINTER)
+                    .padding(StyleLength.points(20))
+                    .children(label)
+                    .owner("button");
 
             assertEquals(Cursor.POINTER, HitTest.cursorAt(capture(button), 30, 30));
         }
@@ -140,10 +154,15 @@ class CursorTest {
         @Test
         @DisplayName("a child's own cursor wins over its parent's")
         void childWins() {
-            var field = Box.filled(0xFF00FF00).cursor(Cursor.TEXT)
-                    .size(StyleLength.points(40), StyleLength.points(40)).owner("field");
-            var panel = Box.filled(0xFFFF0000).cursor(Cursor.POINTER)
-                    .padding(StyleLength.points(20)).children(field).owner("panel");
+            var field = Box.filled(0xFF00FF00)
+                    .cursor(Cursor.TEXT)
+                    .size(StyleLength.points(40), StyleLength.points(40))
+                    .owner("field");
+            var panel = Box.filled(0xFFFF0000)
+                    .cursor(Cursor.POINTER)
+                    .padding(StyleLength.points(20))
+                    .children(field)
+                    .owner("panel");
 
             var regions = capture(panel);
             assertEquals(Cursor.TEXT, HitTest.cursorAt(regions, 30, 30));
@@ -153,8 +172,10 @@ class CursorTest {
         @Test
         @DisplayName("nowhere in particular is the default arrow")
         void nothingUnderIt() {
-            var root = Box.filled(0xFFFF0000).cursor(Cursor.POINTER)
-                    .size(StyleLength.points(20), StyleLength.points(20)).owner("root");
+            var root = Box.filled(0xFFFF0000)
+                    .cursor(Cursor.POINTER)
+                    .size(StyleLength.points(20), StyleLength.points(20))
+                    .owner("root");
 
             assertEquals(Cursor.DEFAULT, HitTest.cursorAt(capture(root), 80, 80));
         }
@@ -262,8 +283,7 @@ class CursorTest {
         void routerReachesTheWindow() {
             var router = new PointerRouter();
             var tree = new ElementTree(new Node("button"));
-            router.updateRegions(List.of(
-                    new HitTest.Region(tree.root(), Cursor.POINTER, 0, 0, 100, 100)));
+            router.updateRegions(List.of(new HitTest.Region(tree.root(), Cursor.POINTER, 0, 0, 100, 100)));
 
             var window = Window.open(WindowSpec.of("cursor", LogicalSize.of(100f, 100f)));
             window.pointerRouter(router);

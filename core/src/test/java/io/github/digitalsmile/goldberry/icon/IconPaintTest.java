@@ -4,16 +4,18 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import io.github.digitalsmile.goldberry.RendererRequirement;
-import io.github.digitalsmile.goldberry.paint.TestFrames;
-import io.github.digitalsmile.goldberry.golden.ScaleInvariance;
-import io.github.digitalsmile.goldberry.natives.blend2d.BlendPath;
 import java.util.NoSuchElementException;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
+
+import io.github.digitalsmile.goldberry.RendererRequirement;
+import io.github.digitalsmile.goldberry.golden.ScaleInvariance;
+import io.github.digitalsmile.goldberry.natives.blend2d.BlendPath;
+import io.github.digitalsmile.goldberry.paint.TestFrames;
 
 /// Where the ink lands, which is the only thing that proves an icon drew.
 ///
@@ -63,8 +65,8 @@ class IconPaintTest {
                 if (!inside && target.alphaAt(x, y) != 0) {
                     var fx = x;
                     var fy = y;
-                    assertEquals(0, target.alphaAt(x, y),
-                            () -> "ink at (" + fx + "," + fy + ") is outside the icon's box");
+                    assertEquals(
+                            0, target.alphaAt(x, y), () -> "ink at (" + fx + "," + fy + ") is outside the icon's box");
                 }
             }
         }
@@ -96,9 +98,11 @@ class IconPaintTest {
         // Width and height both double, give or take the stroke: a 24px icon
         // strokes at 2px and a 48px one at 4, so the larger box carries one
         // extra pixel of stroke on each side.
-        assertTrue(Math.abs((large[2] - large[0]) - 2 * (small[2] - small[0])) <= 4,
+        assertTrue(
+                Math.abs((large[2] - large[0]) - 2 * (small[2] - small[0])) <= 4,
                 () -> "widths " + (small[2] - small[0]) + " and " + (large[2] - large[0]));
-        assertTrue(Math.abs((large[3] - large[1]) - 2 * (small[3] - small[1])) <= 4,
+        assertTrue(
+                Math.abs((large[3] - large[1]) - 2 * (small[3] - small[1])) <= 4,
                 () -> "heights " + (small[3] - small[1]) + " and " + (large[3] - large[1]));
     }
 
@@ -157,7 +161,9 @@ class IconPaintTest {
         for (var i = 0; i < absolute.length; i++) {
             var index = i;
             if (absolute[i] != relative[i]) {
-                assertEquals(absolute[i], relative[i],
+                assertEquals(
+                        absolute[i],
+                        relative[i],
                         () -> "pixel " + (index % WIDTH) + "," + (index / WIDTH) + " differs");
             }
         }

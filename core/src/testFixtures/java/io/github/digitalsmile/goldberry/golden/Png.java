@@ -26,8 +26,7 @@ final class Png {
 
     private static final byte[] SIGNATURE = {(byte) 0x89, 'P', 'N', 'G', '\r', '\n', 0x1A, '\n'};
 
-    private Png() {
-    }
+    private Png() {}
 
     /// An image as `0xAARRGGBB` pixels, row-major.
     record Image(int width, int height, int[] argb) {
@@ -46,11 +45,11 @@ final class Png {
             var header = ByteBuffer.allocate(13).order(ByteOrder.BIG_ENDIAN);
             header.putInt(image.width());
             header.putInt(image.height());
-            header.put((byte) 8);   // bit depth
-            header.put((byte) 6);   // colour type: RGBA
-            header.put((byte) 0);   // deflate
-            header.put((byte) 0);   // adaptive filtering
-            header.put((byte) 0);   // no interlace
+            header.put((byte) 8); // bit depth
+            header.put((byte) 6); // colour type: RGBA
+            header.put((byte) 0); // deflate
+            header.put((byte) 0); // adaptive filtering
+            header.put((byte) 0); // no interlace
             chunk(png, "IHDR", header.array());
 
             chunk(png, "IDAT", deflate(scanlines(image)));
@@ -87,7 +86,7 @@ final class Png {
                         height = header.getInt();
                     }
                     case "IDAT" -> idat.write(data);
-                    default -> { }
+                    default -> {}
                 }
             }
             return fromScanlines(width, height, inflate(idat.toByteArray(), height * (width * 4 + 1)));
@@ -136,14 +135,20 @@ final class Png {
 
     private static void chunk(ByteArrayOutputStream out, String type, byte[] data) throws IOException {
         var name = type.getBytes(java.nio.charset.StandardCharsets.US_ASCII);
-        out.write(ByteBuffer.allocate(4).order(ByteOrder.BIG_ENDIAN).putInt(data.length).array());
+        out.write(ByteBuffer.allocate(4)
+                .order(ByteOrder.BIG_ENDIAN)
+                .putInt(data.length)
+                .array());
         out.write(name);
         out.write(data);
 
         var crc = new CRC32();
         crc.update(name);
         crc.update(data);
-        out.write(ByteBuffer.allocate(4).order(ByteOrder.BIG_ENDIAN).putInt((int) crc.getValue()).array());
+        out.write(ByteBuffer.allocate(4)
+                .order(ByteOrder.BIG_ENDIAN)
+                .putInt((int) crc.getValue())
+                .array());
     }
 
     private static byte[] deflate(byte[] data) {

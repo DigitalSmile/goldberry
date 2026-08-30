@@ -1,14 +1,15 @@
 package io.github.digitalsmile.goldberry.widgets.panel.split;
 
-import io.github.digitalsmile.goldberry.kdl.KdlNode;
-import io.github.digitalsmile.goldberry.widget.attr.Attributed;
-import io.github.digitalsmile.goldberry.widget.attr.Attributes;
-import io.github.digitalsmile.goldberry.widget.State;
-import io.github.digitalsmile.goldberry.widget.Widget;
-import io.github.digitalsmile.goldberry.widgets.markup.Markup;
-import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
 import java.util.List;
 import java.util.function.DoubleConsumer;
+
+import io.github.digitalsmile.goldberry.kdl.KdlNode;
+import io.github.digitalsmile.goldberry.widget.State;
+import io.github.digitalsmile.goldberry.widget.Widget;
+import io.github.digitalsmile.goldberry.widget.attr.Attributed;
+import io.github.digitalsmile.goldberry.widget.attr.Attributes;
+import io.github.digitalsmile.goldberry.widgets.markup.Markup;
+import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
 
 /// Two children and a divider you can drag — `docs/core-widgets.md` §5's
 /// `split-pane`.
@@ -79,9 +80,14 @@ import java.util.function.DoubleConsumer;
 /// @param attributes  the `id` and classes, which land on the `split-pane` node
 @Markup("split-pane")
 public record SplitPane(
-        SplitAxis axis, double position, DoubleConsumer onResize,
-        float firstMin, float secondMin, boolean collapsible,
-        List<Widget> children, Attributes attributes)
+        SplitAxis axis,
+        double position,
+        DoubleConsumer onResize,
+        float firstMin,
+        float secondMin,
+        boolean collapsible,
+        List<Widget> children,
+        Attributes attributes)
         implements Widget.Stateful, Attributed<SplitPane> {
 
     /// What a child is given when nothing says otherwise.
@@ -93,14 +99,27 @@ public record SplitPane(
     public static final float DEFAULT_MINIMUM = 48;
 
     public SplitPane(Widget first, Widget second) {
-        this(SplitAxis.HORIZONTAL, 0.5, null, DEFAULT_MINIMUM, DEFAULT_MINIMUM, false,
-                List.of(first, second), Attributes.NONE);
+        this(
+                SplitAxis.HORIZONTAL,
+                0.5,
+                null,
+                DEFAULT_MINIMUM,
+                DEFAULT_MINIMUM,
+                false,
+                List.of(first, second),
+                Attributes.NONE);
     }
 
-    public SplitPane(SplitAxis axis, double position, DoubleConsumer onResize,
-            Widget first, Widget second) {
-        this(axis, position, onResize, DEFAULT_MINIMUM, DEFAULT_MINIMUM, false,
-                List.of(first, second), Attributes.NONE);
+    public SplitPane(SplitAxis axis, double position, DoubleConsumer onResize, Widget first, Widget second) {
+        this(
+                axis,
+                position,
+                onResize,
+                DEFAULT_MINIMUM,
+                DEFAULT_MINIMUM,
+                false,
+                List.of(first, second),
+                Attributes.NONE);
     }
 
     public SplitPane {
@@ -108,17 +127,14 @@ public record SplitPane(
         children = List.copyOf(children == null ? List.of() : children);
         attributes = attributes == null ? Attributes.NONE : attributes;
         if (children.size() != 2) {
-            throw new IllegalArgumentException(
-                    "a split pane divides exactly two children, and this has " + children.size()
-                            + "; a three-way split is two split panes, one inside the other");
+            throw new IllegalArgumentException("a split pane divides exactly two children, and this has "
+                    + children.size() + "; a three-way split is two split panes, one inside the other");
         }
         if (firstMin < 0 || secondMin < 0) {
-            throw new IllegalArgumentException(
-                    "a minimum size may not be negative: " + firstMin + ", " + secondMin);
+            throw new IllegalArgumentException("a minimum size may not be negative: " + firstMin + ", " + secondMin);
         }
         if (Double.isNaN(position)) {
-            throw new IllegalArgumentException(
-                    "a divider position must be a number; use 0.5 for the middle");
+            throw new IllegalArgumentException("a divider position must be a number; use 0.5 for the middle");
         }
         position = Math.clamp(position, 0.0, 1.0);
     }
@@ -140,8 +156,7 @@ public record SplitPane(
 
     @Override
     public SplitPane withAttributes(Attributes value) {
-        return new SplitPane(axis, position, onResize, firstMin, secondMin, collapsible,
-                children, value);
+        return new SplitPane(axis, position, onResize, firstMin, secondMin, collapsible, children, value);
     }
 
     @Override

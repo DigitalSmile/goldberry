@@ -1,24 +1,26 @@
 package io.github.digitalsmile.goldberry.paint;
 
-import io.github.digitalsmile.goldberry.assets.BundledFont;
-import io.github.digitalsmile.goldberry.render.model.DisplayScale;
-import io.github.digitalsmile.goldberry.render.model.PhysicalSize;
-import io.github.digitalsmile.goldberry.render.PixelBuffer;
-import io.github.digitalsmile.goldberry.render.model.PixelFormat;
-import io.github.digitalsmile.goldberry.icon.Icon;
-import io.github.digitalsmile.goldberry.natives.yoga.style.Align;
-import io.github.digitalsmile.goldberry.natives.yoga.style.FlexDirection;
-import io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength;
-import io.github.digitalsmile.goldberry.text.font.Font;
-import io.github.digitalsmile.goldberry.text.Paragraph;
 import java.util.Arrays;
 import java.util.List;
+
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
+
 import io.github.digitalsmile.goldberry.RendererRequirement;
+import io.github.digitalsmile.goldberry.assets.BundledFont;
+import io.github.digitalsmile.goldberry.icon.Icon;
+import io.github.digitalsmile.goldberry.natives.yoga.style.Align;
+import io.github.digitalsmile.goldberry.natives.yoga.style.FlexDirection;
+import io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength;
+import io.github.digitalsmile.goldberry.render.PixelBuffer;
+import io.github.digitalsmile.goldberry.render.model.DisplayScale;
+import io.github.digitalsmile.goldberry.render.model.PhysicalSize;
+import io.github.digitalsmile.goldberry.render.model.PixelFormat;
+import io.github.digitalsmile.goldberry.text.Paragraph;
+import io.github.digitalsmile.goldberry.text.font.Font;
 
 /// What painting a frame costs, and what Blend2D's workers do to it.
 ///
@@ -173,9 +175,9 @@ class PaintBenchmark {
                     samples[i] = System.nanoTime() - start;
                 }
                 Arrays.sort(samples);
-                System.out.printf("    960x640, %-11s median %7.3f ms%n",
-                        withIcons ? "with icons" : "no icons",
-                        samples[samples.length / 2] / 1_000_000.0);
+                System.out.printf(
+                        "    960x640, %-11s median %7.3f ms%n",
+                        withIcons ? "with icons" : "no icons", samples[samples.length / 2] / 1_000_000.0);
             }
         }
     }
@@ -195,7 +197,8 @@ class PaintBenchmark {
     @Test
     @DisplayName("a showcase frame, swept across Blend2D worker counts")
     void paintCostByThreadCount() {
-        System.out.printf("%navailableProcessors = %d, PaintThreads.automatic() = %d%n%n",
+        System.out.printf(
+                "%navailableProcessors = %d, PaintThreads.automatic() = %d%n%n",
                 Runtime.getRuntime().availableProcessors(), PaintThreads.automatic());
 
         // Discarded. Without it the first size measured carries the JIT of the
@@ -242,8 +245,7 @@ class PaintBenchmark {
     /// measure the allocator, and the platform lends the same surface back every
     /// frame anyway.
     private void report(int width, int height, float scale, int threads, Box scene, boolean print) {
-        var buffer = PixelBuffer.allocate(
-                new PhysicalSize(width, height), PixelFormat.BGRA32_PREMULTIPLIED);
+        var buffer = PixelBuffer.allocate(new PhysicalSize(width, height), PixelFormat.BGRA32_PREMULTIPLIED);
         var displayScale = new DisplayScale(scale);
 
         var actual = -1;
@@ -273,7 +275,8 @@ class PaintBenchmark {
         System.out.printf(
                 "    threads %d (got %d)  median %7.3f ms   p95 %7.3f ms   mean %7.3f ms"
                         + "   min %7.3f ms   over 16.67ms: %d/%d%n",
-                threads, actual,
+                threads,
+                actual,
                 samples[samples.length / 2] / 1_000_000.0,
                 samples[(int) (samples.length * 0.95)] / 1_000_000.0,
                 total / (double) RUNS / 1_000_000.0,
@@ -312,8 +315,7 @@ class PaintBenchmark {
                                 .padding(StyleLength.points(16))
                                 .gap(StyleLength.points(16))
                                 .children(
-                                        Box.filled(PANEL).size(
-                                                StyleLength.percent(25), StyleLength.UNDEFINED),
+                                        Box.filled(PANEL).size(StyleLength.percent(25), StyleLength.UNDEFINED),
                                         Box.of()
                                                 .grow(1)
                                                 .direction(FlexDirection.COLUMN)

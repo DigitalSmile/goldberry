@@ -1,13 +1,14 @@
 package io.github.digitalsmile.goldberry.widgets.panel.masonry;
 
+import java.util.List;
+
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
 import io.github.digitalsmile.goldberry.input.handler.Measured;
 import io.github.digitalsmile.goldberry.input.hit.Extent;
 import io.github.digitalsmile.goldberry.paint.Box;
+import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widget.style.Paints;
 import io.github.digitalsmile.goldberry.widget.style.Styled;
-import io.github.digitalsmile.goldberry.widget.Widget;
-import java.util.List;
 
 /// One card in a [Masonry], and the thing that reports how tall it turned out.
 ///
@@ -24,8 +25,7 @@ import java.util.List;
 /// @param index      its position in the description, which is how the state
 ///                   banks its height
 /// @param onMeasured told what the last frame laid it out as
-record MasonryCell(Widget child, int index, OnMeasured onMeasured)
-        implements Widget.Leaf, Styled, Paints, Measured {
+record MasonryCell(Widget child, int index, OnMeasured onMeasured) implements Widget.Leaf, Styled, Paints, Measured {
 
     /// What a cell reports.
     @FunctionalInterface

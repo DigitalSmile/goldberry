@@ -1,13 +1,13 @@
 package io.github.digitalsmile.goldberry.widgets.core.scroll;
 
+import java.util.List;
+import java.util.Objects;
+
 import io.github.digitalsmile.goldberry.Host;
 import io.github.digitalsmile.goldberry.render.model.LogicalRect;
 import io.github.digitalsmile.goldberry.render.model.LogicalSize;
 import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widget.attr.Attributes;
-
-import java.util.List;
-import java.util.Objects;
 
 /// Popup content, in a viewport when it is taller than the screen — the answer
 /// both `menu` and `select` give to [Host.Fit].
@@ -63,7 +63,6 @@ public record Fitted(String viewportClass) implements Host.Fit {
         }
         // The height is the opener's, because nothing in a stylesheet knows how
         // tall the display is.
-        return new Scroll(List.of(content), ScrollAxis.VERTICAL,
-                Attributes.NONE.classes(viewportClass)).height(room);
+        return new Scroll(List.of(content), ScrollAxis.VERTICAL, Attributes.NONE.classes(viewportClass)).height(room);
     }
 }

@@ -1,6 +1,5 @@
 package io.github.digitalsmile.goldberry.natives.yoga.style;
 
-
 /// Whether a node takes part in layout — `YGDisplay`.
 ///
 /// Yoga's two values are CSS's `display: flex` and `display: none`. There is no

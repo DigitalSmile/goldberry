@@ -1,5 +1,9 @@
 package io.github.digitalsmile.goldberry.render;
 
+import java.time.Duration;
+import java.util.List;
+import java.util.Optional;
+
 import io.github.digitalsmile.goldberry.render.event.EventSink;
 import io.github.digitalsmile.goldberry.render.popup.BackendPopup;
 import io.github.digitalsmile.goldberry.render.popup.PopupSpec;
@@ -7,10 +11,6 @@ import io.github.digitalsmile.goldberry.render.tray.BackendTray;
 import io.github.digitalsmile.goldberry.render.tray.TraySpec;
 import io.github.digitalsmile.goldberry.render.window.BackendWindow;
 import io.github.digitalsmile.goldberry.render.window.WindowSpec;
-
-import java.time.Duration;
-import java.util.List;
-import java.util.Optional;
 
 /// The only platform-facing interface. Everything above it is platform-agnostic
 /// (`docs/ARCHITECTURE.md` §4).

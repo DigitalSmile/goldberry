@@ -1,9 +1,10 @@
 package io.github.digitalsmile.goldberry.natives.blend2d;
 
-import io.github.digitalsmile.goldberry.natives.blend2d.calls.PathCalls;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.SymbolLookup;
+
 import io.github.digitalsmile.goldberry.natives.NativeLibrary;
+import io.github.digitalsmile.goldberry.natives.blend2d.calls.PathCalls;
 import io.github.digitalsmile.goldberry.natives.blend2d.error.BlendException;
 
 /// Blend2D's path calls, behind [BlendPath] (ADR-0043).
@@ -13,7 +14,8 @@ import io.github.digitalsmile.goldberry.natives.blend2d.error.BlendException;
 final class Blend2dPath {
 
     private static final class Holder {
-        private static final Blend2dPath INSTANCE = new Blend2dPath(NativeLibrary.get().lookup());
+        private static final Blend2dPath INSTANCE =
+                new Blend2dPath(NativeLibrary.get().lookup());
     }
 
     private final PathCalls calls;
@@ -63,9 +65,7 @@ final class Blend2dPath {
         check("bl_path_quad_to", result);
     }
 
-    void pathCubicTo(
-            MemorySegment path,
-            double x1, double y1, double x2, double y2, double x3, double y3) {
+    void pathCubicTo(MemorySegment path, double x1, double y1, double x2, double y2, double x3, double y3) {
         int result;
         result = calls.pathCubicTo().call(path, x1, y1, x2, y2, x3, y3);
         check("bl_path_cubic_to", result);
@@ -97,10 +97,14 @@ final class Blend2dPath {
     /// after them.
     void pathEllipticArcTo(
             MemorySegment path,
-            double rx, double ry, double rotation, boolean largeArc, boolean sweep,
-            double x, double y) {
-        check("bl_path_elliptic_arc_to", calls.pathEllipticArcTo()
-                .call(path, rx, ry, rotation, largeArc, sweep, x, y));
+            double rx,
+            double ry,
+            double rotation,
+            boolean largeArc,
+            boolean sweep,
+            double x,
+            double y) {
+        check("bl_path_elliptic_arc_to", calls.pathEllipticArcTo().call(path, rx, ry, rotation, largeArc, sweep, x, y));
     }
 
     void pathClose(MemorySegment path) {

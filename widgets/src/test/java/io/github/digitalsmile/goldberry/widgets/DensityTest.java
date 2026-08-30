@@ -4,21 +4,23 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
-import io.github.digitalsmile.goldberry.css.ComputedStyle;
-import io.github.digitalsmile.goldberry.css.value.CssLength;
-import io.github.digitalsmile.goldberry.css.select.Selector;
-import io.github.digitalsmile.goldberry.css.StyleElement;
-import io.github.digitalsmile.goldberry.css.cascade.StyleResolver;
-import io.github.digitalsmile.goldberry.css.Stylesheet;
-import io.github.digitalsmile.goldberry.css.Theme;
-import io.github.digitalsmile.goldberry.css.parse.Token;
-import io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength;
 import java.util.List;
 import java.util.Set;
+
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+
+import io.github.digitalsmile.goldberry.css.ComputedStyle;
+import io.github.digitalsmile.goldberry.css.StyleElement;
+import io.github.digitalsmile.goldberry.css.Stylesheet;
+import io.github.digitalsmile.goldberry.css.Theme;
+import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
+import io.github.digitalsmile.goldberry.css.cascade.StyleResolver;
+import io.github.digitalsmile.goldberry.css.parse.Token;
+import io.github.digitalsmile.goldberry.css.select.Selector;
+import io.github.digitalsmile.goldberry.css.value.CssLength;
+import io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength;
 
 /// §1.3's density preference, and the promise attached to it: "token-conformant
 /// apps adapt with zero code" ([ADR-0074]).
@@ -43,8 +45,7 @@ class DensityTest {
     /// segments and its segments stretch to it. A density that moved every other
     /// control and left a toolbar's segmented control 32 high would be the exact
     /// divergence this list exists to catch.
-    private static final List<String> SIZED =
-            List.of("button", "checkbox", "radio", "segmented");
+    private static final List<String> SIZED = List.of("button", "checkbox", "radio", "segmented");
 
     @Nested
     @DisplayName("the tokens")
@@ -96,9 +97,9 @@ class DensityTest {
         void compactDeclaresOnlyTokens() {
             for (var rule : Density.COMPACT.stylesheets().getFirst().rules()) {
                 for (var declaration : rule.declarations()) {
-                    assertTrue(declaration.isCustomProperty(),
-                            "a density may only carry tokens, and this one declares "
-                                    + declaration.property());
+                    assertTrue(
+                            declaration.isCustomProperty(),
+                            "a density may only carry tokens, and this one declares " + declaration.property());
                 }
             }
         }
@@ -116,9 +117,10 @@ class DensityTest {
         @Test
         @DisplayName("a density is not a class a document could name")
         void densityIsNotAVariant() {
-            assertTrue(Density.COMPACT.stylesheets().getFirst().rules().stream()
-                    .flatMap(rule -> rule.selectors().stream())
-                    .allMatch(selector -> selector.specificity() == rootSpecificity()),
+            assertTrue(
+                    Density.COMPACT.stylesheets().getFirst().rules().stream()
+                            .flatMap(rule -> rule.selectors().stream())
+                            .allMatch(selector -> selector.specificity() == rootSpecificity()),
                     "every selector in a density must be :root");
         }
     }
@@ -131,8 +133,7 @@ class DensityTest {
         @DisplayName("every control is 32 high at regular")
         void regularHeights() {
             for (var type : SIZED) {
-                assertEquals(REGULAR_HEIGHT, heightOf(type, Density.REGULAR),
-                        type + " should be 32 high at regular");
+                assertEquals(REGULAR_HEIGHT, heightOf(type, Density.REGULAR), type + " should be 32 high at regular");
             }
         }
 
@@ -140,8 +141,7 @@ class DensityTest {
         @DisplayName("every control is 28 high at compact")
         void compactHeights() {
             for (var type : SIZED) {
-                assertEquals(COMPACT_HEIGHT, heightOf(type, Density.COMPACT),
-                        type + " should be 28 high at compact");
+                assertEquals(COMPACT_HEIGHT, heightOf(type, Density.COMPACT), type + " should be 28 high at compact");
             }
         }
 
@@ -152,7 +152,9 @@ class DensityTest {
         @DisplayName("a control's height actually changes between the two")
         void theTwoDiffer() {
             for (var type : SIZED) {
-                assertNotEquals(heightOf(type, Density.REGULAR), heightOf(type, Density.COMPACT),
+                assertNotEquals(
+                        heightOf(type, Density.REGULAR),
+                        heightOf(type, Density.COMPACT),
                         type + " does not respond to density at all");
             }
         }
@@ -165,9 +167,12 @@ class DensityTest {
         @DisplayName("the glyph does not shrink with the row")
         void theGlyphHoldsStill() {
             for (var part : List.of("check-indicator", "radio-indicator")) {
-                assertEquals(StyleLength.points(16), styleOf(part, Density.COMPACT).height(),
+                assertEquals(
+                        StyleLength.points(16),
+                        styleOf(part, Density.COMPACT).height(),
                         part + " should stay 16px at compact");
-                assertEquals(styleOf(part, Density.REGULAR).height(),
+                assertEquals(
+                        styleOf(part, Density.REGULAR).height(),
                         styleOf(part, Density.COMPACT).height());
             }
         }
@@ -201,13 +206,19 @@ class DensityTest {
     }
 
     private static String customProperty(List<Stylesheet> sheets, String name) {
-        var tokens = new StyleResolver(sheets).customPropertiesFor(new Probe("button")).get(name);
+        var tokens = new StyleResolver(sheets)
+                .customPropertiesFor(new Probe("button"))
+                .get(name);
         return tokens == null ? null : tokens.stream().map(Token::cssText).reduce("", String::concat);
     }
 
     private static int rootSpecificity() {
         return Stylesheet.parse(CascadeLayer.THEME, ":root { --probe: 1 }")
-                .rules().getFirst().selectors().getFirst().specificity();
+                .rules()
+                .getFirst()
+                .selectors()
+                .getFirst()
+                .specificity();
     }
 
     /// A node that exists only to be styled.

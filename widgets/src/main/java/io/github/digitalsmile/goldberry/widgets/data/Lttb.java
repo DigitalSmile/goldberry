@@ -22,8 +22,7 @@ import java.util.Objects;
 /// drawn over a different range than it has.
 public final class Lttb {
 
-    private Lttb() {
-    }
+    private Lttb() {}
 
     /// `values` reduced to at most `threshold` points, keeping the shape.
     ///
@@ -94,9 +93,8 @@ public final class Lttb {
                 // Twice the triangle's area, which is enough to compare by: the
                 // factor is the same for every candidate and the square root a
                 // real area would need is not.
-                var area = Math.abs(
-                        (previousX - averageX) * (values.get(j) - previousY)
-                                - (previousX - j) * (averageY - previousY));
+                var area = Math.abs((previousX - averageX) * (values.get(j) - previousY)
+                        - (previousX - j) * (averageY - previousY));
                 if (area > bestArea) {
                     bestArea = area;
                     best = j;

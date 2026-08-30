@@ -7,9 +7,6 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import io.github.digitalsmile.goldberry.render.BackendException;
-import io.github.digitalsmile.goldberry.render.backend.headless.HeadlessBackend;
-import io.github.digitalsmile.goldberry.render.backend.headless.HeadlessWindow;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
@@ -17,21 +14,24 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
-import io.github.digitalsmile.goldberry.render.model.DisplayScale;
-import io.github.digitalsmile.goldberry.render.model.LogicalSize;
-import io.github.digitalsmile.goldberry.render.window.WindowSpec;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 
+import io.github.digitalsmile.goldberry.render.BackendException;
+import io.github.digitalsmile.goldberry.render.backend.headless.HeadlessBackend;
+import io.github.digitalsmile.goldberry.render.backend.headless.HeadlessWindow;
+import io.github.digitalsmile.goldberry.render.model.DisplayScale;
+import io.github.digitalsmile.goldberry.render.model.LogicalSize;
+import io.github.digitalsmile.goldberry.render.window.WindowSpec;
+
 /// The rule that nothing but the UI runs on the UI thread, and that background
 /// work still gets back safely.
 class EventLoopTest {
 
-    private static final WindowSpec SPEC =
-            WindowSpec.of("Goldberry", LogicalSize.of(800f, 600f));
+    private static final WindowSpec SPEC = WindowSpec.of("Goldberry", LogicalSize.of(800f, 600f));
 
     private HeadlessBackend backend;
     private EventLoop loop;
@@ -52,15 +52,17 @@ class EventLoopTest {
         // infinite loop, so it is only noticed after the method returns -- which
         // never happens. This turns any such mistake into an ordinary assertion
         // failure a few seconds later.
-        watchdog = new Thread(() -> {
-            try {
-                if (!finished.await(20, TimeUnit.SECONDS)) {
-                    loop.stop();
-                }
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-            }
-        }, "event-loop-watchdog");
+        watchdog = new Thread(
+                () -> {
+                    try {
+                        if (!finished.await(20, TimeUnit.SECONDS)) {
+                            loop.stop();
+                        }
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                    }
+                },
+                "event-loop-watchdog");
         watchdog.setDaemon(true);
         watchdog.start();
     }
@@ -107,16 +109,18 @@ class EventLoopTest {
     @DisplayName("stop() ends the loop from another thread")
     void stopsFromAnotherThread() throws Exception {
         backend.createWindow(SPEC);
-        var stopper = new Thread(() -> {
-            try {
-                TimeUnit.MILLISECONDS.sleep(50);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-            }
-            // The loop is parked in pumpEvents. stop() has to reach it, which is
-            // exactly what wakeup() is for.
-            loop.stop();
-        }, "stopper");
+        var stopper = new Thread(
+                () -> {
+                    try {
+                        TimeUnit.MILLISECONDS.sleep(50);
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                    }
+                    // The loop is parked in pumpEvents. stop() has to reach it, which is
+                    // exactly what wakeup() is for.
+                    loop.stop();
+                },
+                "stopper");
 
         stopper.start();
         loop.run(event -> {});
@@ -133,10 +137,12 @@ class EventLoopTest {
         var ranOn = new AtomicReference<Thread>();
         var uiThread = Thread.currentThread();
 
-        var poster = new Thread(() -> loop.ui().execute(() -> {
-            ranOn.set(Thread.currentThread());
-            loop.stop();
-        }), "poster");
+        var poster = new Thread(
+                () -> loop.ui().execute(() -> {
+                    ranOn.set(Thread.currentThread());
+                    loop.stop();
+                }),
+                "poster");
         poster.start();
 
         loop.run(event -> {});
@@ -249,8 +255,7 @@ class EventLoopTest {
     void runRefusesOtherThreads() throws Exception {
         var failure = new AtomicReference<Throwable>();
         var other = new Thread(
-                () -> failure.set(assertThrows(BackendException.class, () -> loop.run(event -> {}))),
-                "off-ui");
+                () -> failure.set(assertThrows(BackendException.class, () -> loop.run(event -> {}))), "off-ui");
         other.start();
         other.join();
 

@@ -3,17 +3,19 @@ package io.github.digitalsmile.goldberry.paint.tree;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import io.github.digitalsmile.goldberry.RendererRequirement;
-import io.github.digitalsmile.goldberry.paint.TestFrames;
-import io.github.digitalsmile.goldberry.paint.Box;
-import io.github.digitalsmile.goldberry.render.DamageRect;
-import io.github.digitalsmile.goldberry.natives.yoga.style.FlexDirection;
-import io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength;
 import java.util.List;
+
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+
+import io.github.digitalsmile.goldberry.RendererRequirement;
+import io.github.digitalsmile.goldberry.natives.yoga.style.FlexDirection;
+import io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength;
+import io.github.digitalsmile.goldberry.paint.Box;
+import io.github.digitalsmile.goldberry.paint.TestFrames;
+import io.github.digitalsmile.goldberry.render.DamageRect;
 
 /// Which parts of a frame differ from the last one — ADR-0071.
 ///
@@ -44,15 +46,13 @@ class DamageTest {
                 .size(StyleLength.points(200), StyleLength.points(200))
                 .direction(FlexDirection.COLUMN)
                 .children(
-                        Box.filled(firstColour)
-                                .size(StyleLength.points(50), StyleLength.points(firstHeight)),
-                        Box.filled(0xFF00FF00)
-                                .size(StyleLength.points(50), StyleLength.points(20)));
+                        Box.filled(firstColour).size(StyleLength.points(50), StyleLength.points(firstHeight)),
+                        Box.filled(0xFF00FF00).size(StyleLength.points(50), StyleLength.points(20)));
     }
 
     private static boolean covers(List<DamageRect> damage, int x, int y) {
-        return damage.stream().anyMatch(r ->
-                x >= r.x() && x < r.x() + r.width() && y >= r.y() && y < r.y() + r.height());
+        return damage.stream()
+                .anyMatch(r -> x >= r.x() && x < r.x() + r.width() && y >= r.y() && y < r.y() + r.height());
     }
 
     @Test
@@ -60,8 +60,7 @@ class DamageTest {
     void firstFrame() {
         try (var render = RenderTree.create()) {
             render.update(target.frame(), tree(0xFFFF0000, 20));
-            assertEquals(List.of(DamageRect.all(target.frame().pixelSize())),
-                    render.damage(target.frame()));
+            assertEquals(List.of(DamageRect.all(target.frame().pixelSize())), render.damage(target.frame()));
         }
     }
 
@@ -74,8 +73,7 @@ class DamageTest {
             render.damage(target.frame());
 
             render.update(target.frame(), box);
-            assertTrue(render.damage(target.frame()).isEmpty(),
-                    "a static window should upload nothing at all");
+            assertTrue(render.damage(target.frame()).isEmpty(), "a static window should upload nothing at all");
         }
     }
 
@@ -94,8 +92,7 @@ class DamageTest {
             // whole window here would be correct and useless, which is the
             // failure this asserts against.
             var area = damage.stream().mapToInt(r -> r.width() * r.height()).sum();
-            assertTrue(area < 200 * 200 / 2,
-                    () -> "damaged " + area + " of 40000 pixels for one 50x20 box");
+            assertTrue(area < 200 * 200 / 2, () -> "damaged " + area + " of 40000 pixels for one 50x20 box");
         }
     }
 
@@ -113,8 +110,7 @@ class DamageTest {
             render.update(target.frame(), tree(0xFFFF0000, 60));
             var damage = render.damage(target.frame());
 
-            assertTrue(covers(damage, 25, 25),
-                    "the hole the second child left behind is not being repainted");
+            assertTrue(covers(damage, 25, 25), "the hole the second child left behind is not being repainted");
             assertTrue(covers(damage, 25, 70), "nor is where it went");
         }
     }
@@ -143,7 +139,9 @@ class DamageTest {
 
             var size = smaller.frame().pixelSize();
             for (var rect : damage) {
-                assertTrue(rect.x() >= 0 && rect.y() >= 0
+                assertTrue(
+                        rect.x() >= 0
+                                && rect.y() >= 0
                                 && rect.x() + rect.width() <= size.width()
                                 && rect.y() + rect.height() <= size.height(),
                         () -> "damage " + rect + " falls outside the " + size + " frame");
@@ -169,8 +167,8 @@ class DamageTest {
 
             var size = larger.frame().pixelSize();
             for (var rect : damage) {
-                assertTrue(rect.x() + rect.width() <= size.width()
-                                && rect.y() + rect.height() <= size.height(),
+                assertTrue(
+                        rect.x() + rect.width() <= size.width() && rect.y() + rect.height() <= size.height(),
                         () -> "damage " + rect + " falls outside the " + size + " frame");
             }
         } finally {
@@ -189,8 +187,7 @@ class DamageTest {
             render.damage(target.frame());
 
             render.update(target.frame(), scattered(0xFF0000FF));
-            assertEquals(List.of(DamageRect.all(target.frame().pixelSize())),
-                    render.damage(target.frame()));
+            assertEquals(List.of(DamageRect.all(target.frame().pixelSize())), render.damage(target.frame()));
         }
     }
 
@@ -206,7 +203,8 @@ class DamageTest {
         // pixels" true for the clipped one.
         var full = TestFrames.of(200, 200, 1.0f, 0);
         var clipped = TestFrames.of(200, 200, 1.0f, 0);
-        try (var a = RenderTree.create(); var b = RenderTree.create()) {
+        try (var a = RenderTree.create();
+                var b = RenderTree.create()) {
             a.update(full.frame(), tree(0xFFFF0000, 20));
             a.paint(full.frame());
             a.damage(full.frame());
@@ -233,10 +231,9 @@ class DamageTest {
                 var expected = full.pixel(x, y);
                 var actual = clipped.pixel(x, y);
                 if (expected != actual) {
-                    throw new AssertionError(
-                            "a clipped repaint differs at (" + x + ", " + y + "): full #"
-                                    + Integer.toHexString(expected) + ", clipped #"
-                                    + Integer.toHexString(actual));
+                    throw new AssertionError("a clipped repaint differs at (" + x + ", " + y + "): full #"
+                            + Integer.toHexString(expected) + ", clipped #"
+                            + Integer.toHexString(actual));
                 }
             }
         }
@@ -259,16 +256,14 @@ class DamageTest {
             target.end();
         }
 
-        assertEquals(0xFFFF0000, target.pixel(25, 10),
-                "empty damage rasterized something anyway");
+        assertEquals(0xFFFF0000, target.pixel(25, 10), "empty damage rasterized something anyway");
     }
 
     /// Twelve small boxes spread across the frame, none touching another.
     private static Box scattered(int colour) {
         var children = new Box[12];
         for (var i = 0; i < children.length; i++) {
-            children[i] = Box.filled(colour)
-                    .size(StyleLength.points(4), StyleLength.points(4));
+            children[i] = Box.filled(colour).size(StyleLength.points(4), StyleLength.points(4));
         }
         return Box.filled(0xFF000000)
                 .size(StyleLength.points(200), StyleLength.points(200))

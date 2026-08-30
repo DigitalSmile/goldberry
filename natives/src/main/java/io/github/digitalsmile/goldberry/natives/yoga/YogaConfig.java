@@ -66,8 +66,8 @@ public final class YogaConfig implements AutoCloseable {
         requireUsable();
         if (!Float.isFinite(factor) || factor < 0f) {
             throw new IllegalArgumentException(
-                    "a point scale factor must be a finite number of physical pixels per logical"
-                            + " pixel, and " + factor + " is not");
+                    "a point scale factor must be a finite number of physical pixels per logical" + " pixel, and "
+                            + factor + " is not");
         }
         yoga.configPointScaleFactor(pointer, factor);
     }
@@ -140,13 +140,10 @@ public final class YogaConfig implements AutoCloseable {
     private void requireOwner() {
         if (Thread.currentThread() != owner) {
             var current = Thread.currentThread();
-            throw new IllegalStateException(
-                    "a YogaConfig belongs to the thread that created it ("
-                            + (owner.getName().isEmpty() ? "#" + owner.threadId() : owner.getName())
-                            + "), and this is "
-                            + (current.getName().isEmpty()
-                                    ? "#" + current.threadId()
-                                    : current.getName()));
+            throw new IllegalStateException("a YogaConfig belongs to the thread that created it ("
+                    + (owner.getName().isEmpty() ? "#" + owner.threadId() : owner.getName())
+                    + "), and this is "
+                    + (current.getName().isEmpty() ? "#" + current.threadId() : current.getName()));
         }
     }
 

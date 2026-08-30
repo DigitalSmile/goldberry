@@ -1,12 +1,13 @@
 package io.github.digitalsmile.goldberry.widgets.menu;
 
-import io.github.digitalsmile.goldberry.css.ComputedStyle;
-import io.github.digitalsmile.goldberry.paint.Box;
-import io.github.digitalsmile.goldberry.widget.style.Paints;
-import io.github.digitalsmile.goldberry.widget.style.Styled;
-import io.github.digitalsmile.goldberry.widget.Widget;
 import java.util.List;
 import java.util.Set;
+
+import io.github.digitalsmile.goldberry.css.ComputedStyle;
+import io.github.digitalsmile.goldberry.paint.Box;
+import io.github.digitalsmile.goldberry.widget.Widget;
+import io.github.digitalsmile.goldberry.widget.style.Paints;
+import io.github.digitalsmile.goldberry.widget.style.Styled;
 
 /// The `>` on a menu row that leads to a submenu — a **part**, so it is
 /// CSS-selectable and not constructible
@@ -33,7 +34,6 @@ record ItemChevron() implements Widget.Leaf, Styled, Paints {
 
     @Override
     public Box render(ComputedStyle style, List<Box> children, Context context) {
-        return Box.of().style(style)
-                .mark(new Box.Mark(Box.Mark.Kind.CHEVRON_END, style.color(), 1.5));
+        return Box.of().style(style).mark(new Box.Mark(Box.Mark.Kind.CHEVRON_END, style.color(), 1.5));
     }
 }

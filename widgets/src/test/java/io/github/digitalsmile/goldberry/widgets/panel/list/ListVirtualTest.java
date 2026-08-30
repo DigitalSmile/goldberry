@@ -4,13 +4,22 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.ArrayList;
+import java.util.List;
+
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
+
 import io.github.digitalsmile.goldberry.RendererRequirement;
 import io.github.digitalsmile.goldberry.css.Stylesheet;
 import io.github.digitalsmile.goldberry.css.Theme;
 import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
+import io.github.digitalsmile.goldberry.input.PointerRouter;
 import io.github.digitalsmile.goldberry.input.hit.HitTest;
 import io.github.digitalsmile.goldberry.input.key.Modifiers;
-import io.github.digitalsmile.goldberry.input.PointerRouter;
 import io.github.digitalsmile.goldberry.paint.TestFrames;
 import io.github.digitalsmile.goldberry.paint.tree.RenderTree;
 import io.github.digitalsmile.goldberry.render.model.LogicalRect;
@@ -23,13 +32,6 @@ import io.github.digitalsmile.goldberry.widgets.TestHost;
 import io.github.digitalsmile.goldberry.widgets.controls.TestFont;
 import io.github.digitalsmile.goldberry.widgets.core.scroll.Scroll;
 import io.github.digitalsmile.goldberry.widgets.core.scroll.ScrollAxis;
-import java.util.ArrayList;
-import java.util.List;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.Test;
 
 /// §10's virtualization — a `list` that builds only the rows its viewport can
 /// see ([ADR-0213]).
@@ -96,7 +98,9 @@ class ListVirtualTest {
             host = withHost;
             target = TestFrames.of(200, VIEWPORT_HEIGHT, 1.0f, 0);
             renderer = new WidgetRenderer(
-                    List.of(Controls.baseStylesheet(), Theme.NORD_DARK.load(),
+                    List.of(
+                            Controls.baseStylesheet(),
+                            Theme.NORD_DARK.load(),
                             Stylesheet.parse(CascadeLayer.APPLICATION, SCENE)),
                     TestFont.get());
             tree = new ElementTree(root, host);
@@ -158,8 +162,8 @@ class ListVirtualTest {
     }
 
     private static Widget scrolled(ListView<String> list) {
-        return new Scroll(List.of(list), ScrollAxis.VERTICAL,
-                io.github.digitalsmile.goldberry.widget.attr.Attributes.NONE);
+        return new Scroll(
+                List.of(list), ScrollAxis.VERTICAL, io.github.digitalsmile.goldberry.widget.attr.Attributes.NONE);
     }
 
     private static ListView<String> virtualList(int count) {
@@ -179,8 +183,7 @@ class ListVirtualTest {
             // Eight rows fit; the overscan adds four each way and the arithmetic
             // rounds up. What matters is the order of magnitude: a list that
             // built its model would be here with 10,000.
-            assertTrue(built > 0 && built < 40,
-                    () -> "expected a screenful of rows, built " + built);
+            assertTrue(built > 0 && built < 40, () -> "expected a screenful of rows, built " + built);
         }
 
         @Test
@@ -189,7 +192,8 @@ class ListVirtualTest {
             var harness = new Harness(scrolled(virtualList(COUNT)));
 
             assertTrue(harness.rows().contains("rows-Row 0"), "the first row was not built");
-            assertTrue(!harness.rows().contains("rows-Row 9999"),
+            assertTrue(
+                    !harness.rows().contains("rows-Row 9999"),
                     "the last row of ten thousand was built at the top of the list");
         }
 
@@ -202,10 +206,8 @@ class ListVirtualTest {
             harness.wheel(40);
             var afterScroll = harness.rows();
 
-            assertTrue(!afterScroll.equals(atTop),
-                    "the window did not move: still " + afterScroll.getFirst());
-            assertTrue(!afterScroll.contains("rows-Row 0"),
-                    "row 0 is still built after scrolling well past it");
+            assertTrue(!afterScroll.equals(atTop), "the window did not move: still " + afterScroll.getFirst());
+            assertTrue(!afterScroll.contains("rows-Row 0"), "row 0 is still built after scrolling well past it");
         }
 
         @Test
@@ -214,8 +216,7 @@ class ListVirtualTest {
             var harness = new Harness(scrolled(virtualList(COUNT)));
             harness.wheel(40);
 
-            assertEquals(2, harness.spacers(),
-                    "a window in the middle of a model needs a spacer on each side");
+            assertEquals(2, harness.spacers(), "a window in the middle of a model needs a spacer on each side");
         }
 
         @Test
@@ -223,8 +224,7 @@ class ListVirtualTest {
         void oneSpacerAtTheTop() {
             var harness = new Harness(scrolled(virtualList(COUNT)));
 
-            assertEquals(1, harness.spacers(),
-                    "a window at the top of a model needs only the spacer below it");
+            assertEquals(1, harness.spacers(), "a window at the top of a model needs only the spacer below it");
         }
 
         @Test
@@ -284,8 +284,7 @@ class ListVirtualTest {
             press(harness, first, io.github.digitalsmile.goldberry.input.key.Key.END);
             harness.frame();
 
-            assertTrue(harness.rows().contains("rows-Row 9999"),
-                    "End did not build the row it was reaching for");
+            assertTrue(harness.rows().contains("rows-Row 9999"), "End did not build the row it was reaching for");
 
             // And then focuses it, on the frame loop's own timer -- the rebuild
             // has to have run first.
@@ -325,11 +324,12 @@ class ListVirtualTest {
             harness.frame();
 
             harness.tick();
-            assertEquals(List.of("rows-Row 9999"), refusing.focusRequests(),
-                    "the first attempt was not made");
+            assertEquals(List.of("rows-Row 9999"), refusing.focusRequests(), "the first attempt was not made");
 
             harness.tick();
-            assertEquals(List.of("rows-Row 9999", "rows-Row 9999"), refusing.focusRequests(),
+            assertEquals(
+                    List.of("rows-Row 9999", "rows-Row 9999"),
+                    refusing.focusRequests(),
                     "a refused reach was not tried again");
         }
 
@@ -346,8 +346,7 @@ class ListVirtualTest {
             harness.tick();
             harness.tick();
             harness.tick();
-            assertEquals(2, refusing.focusRequests().size(),
-                    "a reach that never lands kept scheduling timers");
+            assertEquals(2, refusing.focusRequests().size(), "a reach that never lands kept scheduling timers");
         }
 
         @Test
@@ -371,8 +370,8 @@ class ListVirtualTest {
         @Test
         @DisplayName("a negative row height is refused where it is written")
         void negativeHeight() {
-            assertThrows(IllegalArgumentException.class,
-                    () -> ListView.of(names(3)).virtualized(-1));
+            assertThrows(
+                    IllegalArgumentException.class, () -> ListView.of(names(3)).virtualized(-1));
         }
 
         @Test
@@ -405,21 +404,22 @@ class ListVirtualTest {
         }
     }
 
-    private static void press(Harness harness, String rowId,
-            io.github.digitalsmile.goldberry.input.key.Key key) {
+    private static void press(Harness harness, String rowId, io.github.digitalsmile.goldberry.input.key.Key key) {
 
         var found = new ArrayList<Element>();
-        collect(harness.tree.root(), "list-row",
-                element -> {
-                    if (rowId.equals(element.id())) {
-                        found.add(element);
-                    }
-                });
+        collect(harness.tree.root(), "list-row", element -> {
+            if (rowId.equals(element.id())) {
+                found.add(element);
+            }
+        });
         assertEquals(1, found.size(), () -> "no row " + rowId + " among " + harness.rows());
-        ((ListRow) found.getFirst().widget()).onKey(
-                new io.github.digitalsmile.goldberry.input.event.KeyEvent(
+        ((ListRow) found.getFirst().widget())
+                .onKey(new io.github.digitalsmile.goldberry.input.event.KeyEvent(
                         io.github.digitalsmile.goldberry.input.event.KeyEvent.Kind.PRESSED,
-                        key, Modifiers.NONE, false, null));
+                        key,
+                        Modifiers.NONE,
+                        false,
+                        null));
         harness.frame();
     }
 }

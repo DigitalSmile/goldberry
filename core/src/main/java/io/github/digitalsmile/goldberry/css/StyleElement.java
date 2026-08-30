@@ -1,9 +1,10 @@
 package io.github.digitalsmile.goldberry.css;
 
 import java.util.Set;
+
+import io.github.digitalsmile.goldberry.css.cascade.StyleResolver;
 import io.github.digitalsmile.goldberry.css.parse.Token;
 import io.github.digitalsmile.goldberry.css.select.Selector;
-import io.github.digitalsmile.goldberry.css.cascade.StyleResolver;
 
 /// What the cascade needs to know about a node to style it.
 ///
@@ -70,10 +71,10 @@ public interface StyleElement {
     ///
     /// The default does nothing, so an element that does not want a cache simply
     /// has none.
-    default void cacheCustomProperties(StyleResolver resolver,
+    default void cacheCustomProperties(
+            StyleResolver resolver,
             java.util.Map<String, java.util.List<Token>> inherited,
-            java.util.Map<String, java.util.List<Token>> resolved) {
-    }
+            java.util.Map<String, java.util.List<Token>> resolved) {}
 
     /// Whether a state pseudo-class currently holds.
     ///

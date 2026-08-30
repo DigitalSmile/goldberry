@@ -5,11 +5,12 @@ import static java.lang.foreign.ValueLayout.JAVA_BOOLEAN;
 import static java.lang.foreign.ValueLayout.JAVA_FLOAT;
 import static java.lang.foreign.ValueLayout.JAVA_INT;
 
-import io.github.digitalsmile.goldberry.natives.Downcalls;
 import java.lang.foreign.FunctionDescriptor;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.SymbolLookup;
 import java.lang.invoke.MethodHandle;
+
+import io.github.digitalsmile.goldberry.natives.Downcalls;
 
 /// SDL's display queries — scale, work area, and refresh rate.
 ///
@@ -84,8 +85,7 @@ public record SdlDisplayCalls(
 
         public boolean call(int displayId, MemorySegment outRect) {
             try {
-                return (boolean) FD_SDL_GetDisplayUsableBounds.invokeExact(
-                        address, displayId, outRect);
+                return (boolean) FD_SDL_GetDisplayUsableBounds.invokeExact(address, displayId, outRect);
             } catch (Throwable t) {
                 throw Downcalls.failure("SDL_GetDisplayUsableBounds", t);
             }

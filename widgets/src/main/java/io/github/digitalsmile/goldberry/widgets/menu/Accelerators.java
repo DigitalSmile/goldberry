@@ -1,13 +1,14 @@
 package io.github.digitalsmile.goldberry.widgets.menu;
 
-import io.github.digitalsmile.goldberry.Host;
-import io.github.digitalsmile.goldberry.input.key.Shortcut;
-import io.github.digitalsmile.goldberry.widget.Widget;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+
+import io.github.digitalsmile.goldberry.Host;
+import io.github.digitalsmile.goldberry.input.key.Shortcut;
+import io.github.digitalsmile.goldberry.widget.Widget;
 
 /// Every accelerator a menu description names — `docs/core-widgets.md` §8's
 /// "displayed right-aligned **and** auto-registered in the window's shortcut
@@ -43,8 +44,7 @@ import java.util.Set;
 /// is logged and skipped.
 public final class Accelerators {
 
-    private static final org.slf4j.Logger LOG =
-            org.slf4j.LoggerFactory.getLogger(Accelerators.class);
+    private static final org.slf4j.Logger LOG = org.slf4j.LoggerFactory.getLogger(Accelerators.class);
 
     /// One registrable accelerator: the key, what the menu calls it, and what it
     /// runs.
@@ -64,8 +64,7 @@ public final class Accelerators {
         }
     }
 
-    private Accelerators() {
-    }
+    private Accelerators() {}
 
     /// Every accelerator in `widgets` and in the submenus underneath them.
     ///
@@ -101,16 +100,17 @@ public final class Accelerators {
 
     private static java.util.Optional<Binding> binding(Item item) {
         var text = item.accelerator();
-        if (text == null || text.isBlank() || item.disabled() || item.hasSubmenu()
-                || item.onPress() == null) {
+        if (text == null || text.isBlank() || item.disabled() || item.hasSubmenu() || item.onPress() == null) {
             return java.util.Optional.empty();
         }
         try {
-            return java.util.Optional.of(
-                    new Binding(Shortcut.of(text), item.label(), item.onPress()));
+            return java.util.Optional.of(new Binding(Shortcut.of(text), item.label(), item.onPress()));
         } catch (IllegalArgumentException e) {
-            LOG.warn("\"{}\" on the menu item \"{}\" is not a shortcut this toolkit can bind,"
-                    + " so it is displayed and not registered: {}", text, item.label(),
+            LOG.warn(
+                    "\"{}\" on the menu item \"{}\" is not a shortcut this toolkit can bind,"
+                            + " so it is displayed and not registered: {}",
+                    text,
+                    item.label(),
                     e.getMessage());
             return java.util.Optional.empty();
         }
@@ -143,8 +143,11 @@ public final class Accelerators {
         for (var binding : in(widgets)) {
             var previous = byShortcut.put(binding.shortcut(), binding.label());
             if (previous != null) {
-                LOG.warn("{} is the accelerator of both \"{}\" and \"{}\"; the later one wins",
-                        binding.shortcut(), previous, binding.label());
+                LOG.warn(
+                        "{} is the accelerator of both \"{}\" and \"{}\"; the later one wins",
+                        binding.shortcut(),
+                        previous,
+                        binding.label());
             }
             host.shortcut(binding.shortcut(), binding.action(), owner);
             bound.add(binding.shortcut());

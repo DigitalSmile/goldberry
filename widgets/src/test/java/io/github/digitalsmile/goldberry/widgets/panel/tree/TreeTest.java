@@ -6,6 +6,14 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.ArrayList;
+import java.util.List;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
+
 import io.github.digitalsmile.goldberry.RendererRequirement;
 import io.github.digitalsmile.goldberry.input.event.KeyEvent;
 import io.github.digitalsmile.goldberry.input.key.Key;
@@ -15,12 +23,6 @@ import io.github.digitalsmile.goldberry.widgets.TestHost;
 import io.github.digitalsmile.goldberry.widgets.controls.checkbox.Checkbox;
 import io.github.digitalsmile.goldberry.widgets.panel.Described;
 import io.github.digitalsmile.goldberry.widgets.panel.list.Selection;
-import java.util.ArrayList;
-import java.util.List;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.Test;
 
 /// `tree` — `docs/core-widgets.md` §3's hierarchical list ([ADR-0184]).
 ///
@@ -39,11 +41,8 @@ class TreeTest {
     /// `europe( no se )  asia( jp )`
     private static List<TreeNode> world() {
         return List.of(
-                TreeNode.of("europe", "Europe",
-                        TreeNode.leaf("no", "Norway"),
-                        TreeNode.leaf("se", "Sweden")),
-                TreeNode.of("asia", "Asia",
-                        TreeNode.leaf("jp", "Japan")));
+                TreeNode.of("europe", "Europe", TreeNode.leaf("no", "Norway"), TreeNode.leaf("se", "Sweden")),
+                TreeNode.of("asia", "Asia", TreeNode.leaf("jp", "Japan")));
     }
 
     private ElementTree tree(Tree widget) {
@@ -57,14 +56,15 @@ class TreeTest {
     /// The rows that are actually visible, top to bottom.
     private static List<String> rows(ElementTree tree) {
         return Described.of(tree, TreeRow.class).stream()
-                .map(row -> row.node().id()).toList();
+                .map(row -> row.node().id())
+                .toList();
     }
 
     private static TreeRow row(ElementTree tree, String id) {
         return Described.of(tree, TreeRow.class).stream()
                 .filter(r -> r.node().id().equals(id))
-                .findFirst().orElseThrow(() -> new AssertionError(
-                        "no row for \"" + id + "\"; showing " + rows(tree)));
+                .findFirst()
+                .orElseThrow(() -> new AssertionError("no row for \"" + id + "\"; showing " + rows(tree)));
     }
 
     private static void press(TreeRow row, Key key) {
@@ -89,7 +89,9 @@ class TreeTest {
             press(row(tree, "europe"), Key.RIGHT);
             tree.flush();
 
-            assertEquals(List.of("europe", "no", "se", "asia"), rows(tree),
+            assertEquals(
+                    List.of("europe", "no", "se", "asia"),
+                    rows(tree),
                     "the children go under their parent, not at the end");
         }
 
@@ -145,10 +147,8 @@ class TreeTest {
             var event = new KeyEvent(KeyEvent.Kind.PRESSED, Key.RIGHT, Modifiers.NONE, false, null);
             row(tree, "europe").onKey(event);
 
-            assertFalse(event.isConsumed(),
-                    "the row swallowed the arrow that was going to move to the child");
-            assertEquals(List.of("europe", "no", "se", "asia"), rows(tree),
-                    "and it must not have closed it either");
+            assertFalse(event.isConsumed(), "the row swallowed the arrow that was going to move to the child");
+            assertEquals(List.of("europe", "no", "se", "asia"), rows(tree), "and it must not have closed it either");
         }
 
         @Test
@@ -176,8 +176,7 @@ class TreeTest {
 
             press(row(tree, "no"), Key.LEFT);
 
-            assertEquals(List.of("tree-europe"), host.focusRequests(),
-                    "it did not ask to move to the parent");
+            assertEquals(List.of("tree-europe"), host.focusRequests(), "it did not ask to move to the parent");
         }
 
         @Test
@@ -212,8 +211,8 @@ class TreeTest {
             tree.flush();
             // europe, no, se, asia
             press(row(tree, "se"), Key.END);
-            assertEquals(List.of("tree-asia"), host.focusRequests(),
-                    "End went somewhere other than the last row on screen");
+            assertEquals(
+                    List.of("tree-asia"), host.focusRequests(), "End went somewhere other than the last row on screen");
 
             host.forgetFocusRequests();
             press(row(tree, "se"), Key.HOME);
@@ -229,16 +228,15 @@ class TreeTest {
             var tree = world(null);
 
             press(row(tree, "europe"), Key.END);
-            assertEquals(List.of("tree-asia"), host.focusRequests(),
-                    "with everything closed the last visible row is Asia");
+            assertEquals(
+                    List.of("tree-asia"), host.focusRequests(), "with everything closed the last visible row is Asia");
 
             host.forgetFocusRequests();
             press(row(tree, "asia"), Key.RIGHT);
             tree.flush();
             press(row(tree, "asia"), Key.END);
 
-            assertEquals(List.of("tree-jp"), host.focusRequests(),
-                    "and once Asia is open it is Japan");
+            assertEquals(List.of("tree-jp"), host.focusRequests(), "and once Asia is open it is Japan");
         }
 
         /// §3's `*`: "expands every sibling". A character rather than a key,
@@ -251,7 +249,9 @@ class TreeTest {
             type(row(tree, "europe"), "*");
             tree.flush();
 
-            assertEquals(List.of("europe", "no", "se", "asia", "jp"), rows(tree),
+            assertEquals(
+                    List.of("europe", "no", "se", "asia", "jp"),
+                    rows(tree),
                     "both roots should have opened, not just the one that was pressed");
         }
 
@@ -260,15 +260,13 @@ class TreeTest {
         @Test
         @DisplayName("* does not open the grandchildren")
         void starIsOneLevel() {
-            var nested = List.of(TreeNode.of("a", "A",
-                    TreeNode.of("b", "B", TreeNode.leaf("c", "C"))));
+            var nested = List.of(TreeNode.of("a", "A", TreeNode.of("b", "B", TreeNode.leaf("c", "C"))));
             var tree = tree(new Tree(nested, null, chosen::add));
 
             type(row(tree, "a"), "*");
             tree.flush();
 
-            assertEquals(List.of("a", "b"), rows(tree),
-                    "C is a grandchild and * is one level");
+            assertEquals(List.of("a", "b"), rows(tree), "C is a grandchild and * is one level");
         }
 
         @Test
@@ -321,10 +319,8 @@ class TreeTest {
         @Test
         @DisplayName("the same letter twice steps on rather than searching for a double")
         void repeatedLetterCycles() {
-            var nodes = List.of(
-                    TreeNode.leaf("s1", "Sweden"),
-                    TreeNode.leaf("s2", "Spain"),
-                    TreeNode.leaf("n1", "Norway"));
+            var nodes =
+                    List.of(TreeNode.leaf("s1", "Sweden"), TreeNode.leaf("s2", "Spain"), TreeNode.leaf("n1", "Norway"));
             var tree = tree(new Tree(nodes, null, chosen::add));
 
             type(row(tree, "s1"), "s");
@@ -338,9 +334,7 @@ class TreeTest {
         @Test
         @DisplayName("a longer prefix narrows rather than stepping on")
         void aPrefixNarrows() {
-            var nodes = List.of(
-                    TreeNode.leaf("no", "Norway"),
-                    TreeNode.leaf("nl", "Netherlands"));
+            var nodes = List.of(TreeNode.leaf("no", "Norway"), TreeNode.leaf("nl", "Netherlands"));
             var tree = tree(new Tree(nodes, null, chosen::add));
 
             type(row(tree, "no"), "n");
@@ -351,8 +345,7 @@ class TreeTest {
             // focus is -- and Netherlands is the answer whether or not "n"
             // already reached it.
             type(row(tree, "nl"), "e");
-            assertEquals(List.of(), host.focusRequests(),
-                    "\"ne\" already matches the focused row, so nothing moves");
+            assertEquals(List.of(), host.focusRequests(), "\"ne\" already matches the focused row, so nothing moves");
         }
 
         /// Typing moves the keyboard; it does not choose. `Enter` is what
@@ -416,8 +409,7 @@ class TreeTest {
             tree.flush();
 
             assertEquals(List.of("no"), chosen);
-            assertFalse(row(tree, "no").selected(),
-                    "the tree selected a value the application never accepted");
+            assertFalse(row(tree, "no").selected(), "the tree selected a value the application never accepted");
         }
 
         @Test
@@ -442,9 +434,7 @@ class TreeTest {
         private final List<java.util.Set<String>> ticked = new ArrayList<>();
 
         private ElementTree checkable(Checkable mode, java.util.Set<String> checked) {
-            return tree(new Tree(world(), null, chosen::add)
-                    .checkable(mode)
-                    .checked(checked, ticked::add));
+            return tree(new Tree(world(), null, chosen::add).checkable(mode).checked(checked, ticked::add));
         }
 
         private static Checkbox.Value check(ElementTree tree, String id) {
@@ -457,9 +447,11 @@ class TreeTest {
                 if (child instanceof TreeRow.TreeCheck box) {
                     box.onPointer(new io.github.digitalsmile.goldberry.input.event.PointerEvent(
                             io.github.digitalsmile.goldberry.input.event.PointerEvent.Kind.CLICKED,
-                            0, 0,
+                            0,
+                            0,
                             io.github.digitalsmile.goldberry.input.event.PointerEvent.Button.PRIMARY,
-                            1, null));
+                            1,
+                            null));
                     return;
                 }
             }
@@ -498,7 +490,9 @@ class TreeTest {
             assertEquals(Checkbox.Value.UNCHECKED, check(tree, "europe"));
             clickTheBox(tree, "europe");
 
-            assertEquals(List.of(java.util.Set.of("europe")), ticked,
+            assertEquals(
+                    List.of(java.util.Set.of("europe")),
+                    ticked,
                     "a parent's box in an `any` tree is about the parent alone");
         }
 
@@ -538,7 +532,9 @@ class TreeTest {
             press(row(tree, "europe"), Key.RIGHT);
             tree.flush();
 
-            assertEquals(Checkbox.Value.CHECKED, check(tree, "europe"),
+            assertEquals(
+                    Checkbox.Value.CHECKED,
+                    check(tree, "europe"),
                     "the branch is derived from its children, not from its own membership");
         }
 
@@ -589,10 +585,12 @@ class TreeTest {
         void cascadeFallsBackForALazyBranch() {
             var runs = new int[1];
             var tree = tree(new Tree(
-                    List.of(TreeNode.lazy("root", "Root", () -> {
-                        runs[0]++;
-                        return List.of(TreeNode.leaf("a", "A"));
-                    })), null, chosen::add)
+                            List.of(TreeNode.lazy("root", "Root", () -> {
+                                runs[0]++;
+                                return List.of(TreeNode.leaf("a", "A"));
+                            })),
+                            null,
+                            chosen::add)
                     .checkable(Checkable.CASCADE)
                     .checked(java.util.Set.of("root"), ticked::add));
 
@@ -637,8 +635,7 @@ class TreeTest {
         @DisplayName("Space on a row with no box is left for whatever else wants it")
         void spaceWithNoBox() {
             var tree = world(null);
-            var event = new KeyEvent(
-                    KeyEvent.Kind.PRESSED, Key.SPACE, Modifiers.NONE, false, null);
+            var event = new KeyEvent(KeyEvent.Kind.PRESSED, Key.SPACE, Modifiers.NONE, false, null);
 
             row(tree, "europe").onKey(event);
 
@@ -656,7 +653,9 @@ class TreeTest {
             clickTheBox(tree, "no");
             tree.flush();
 
-            assertEquals(Checkbox.Value.UNCHECKED, check(tree, "no"),
+            assertEquals(
+                    Checkbox.Value.UNCHECKED,
+                    check(tree, "no"),
                     "the tree ticked a box the application never accepted");
         }
     }
@@ -672,8 +671,15 @@ class TreeTest {
         /// A tree of five visible rows once Europe is open:
         /// `europe, no, se, asia, jp`.
         private ElementTree multi() {
-            var built = tree(new Tree(world(), java.util.Set.of(), sets::add,
-                    Selection.MULTIPLE, false, Checkable.NONE, java.util.Set.of(), null,
+            var built = tree(new Tree(
+                    world(),
+                    java.util.Set.of(),
+                    sets::add,
+                    Selection.MULTIPLE,
+                    false,
+                    Checkable.NONE,
+                    java.util.Set.of(),
+                    null,
                     io.github.digitalsmile.goldberry.widget.attr.Attributes.NONE));
             press(row(built, "europe"), Key.RIGHT);
             press(row(built, "asia"), Key.RIGHT);
@@ -682,11 +688,17 @@ class TreeTest {
         }
 
         private static void activate(ElementTree tree, String id, Modifiers modifiers) {
-            row(tree, id).onPointer(new io.github.digitalsmile.goldberry.input.event.PointerEvent(
-                    io.github.digitalsmile.goldberry.input.event.PointerEvent.Kind.CLICKED,
-                    0, 0,
-                    io.github.digitalsmile.goldberry.input.event.PointerEvent.Button.PRIMARY,
-                    1, Float.NaN, Float.NaN, modifiers, null));
+            row(tree, id)
+                    .onPointer(new io.github.digitalsmile.goldberry.input.event.PointerEvent(
+                            io.github.digitalsmile.goldberry.input.event.PointerEvent.Kind.CLICKED,
+                            0,
+                            0,
+                            io.github.digitalsmile.goldberry.input.event.PointerEvent.Button.PRIMARY,
+                            1,
+                            Float.NaN,
+                            Float.NaN,
+                            modifiers,
+                            null));
         }
 
         private static final Modifiers CTRL = new Modifiers(false, true, false, false);
@@ -695,16 +707,15 @@ class TreeTest {
         @Test
         @DisplayName("none makes no row an answer, and a click opens instead")
         void noneSelectsNothing() {
-            var tree = tree(new Tree(world(), null, chosen::add)
-                    .selection(Selection.NONE));
+            var tree = tree(new Tree(world(), null, chosen::add).selection(Selection.NONE));
 
             assertFalse(row(tree, "europe").selectable());
             activate(tree, "europe", Modifiers.NONE);
             tree.flush();
 
             assertEquals(List.of(), chosen);
-            assertEquals(List.of("europe", "no", "se", "asia"), rows(tree),
-                    "a row that cannot be chosen should still open");
+            assertEquals(
+                    List.of("europe", "no", "se", "asia"), rows(tree), "a row that cannot be chosen should still open");
         }
 
         @Test
@@ -717,8 +728,7 @@ class TreeTest {
             activate(tree, "no", CTRL);
             activate(tree, "se", SHIFT);
 
-            assertEquals(List.of("no", "se"), chosen,
-                    "a control holding one row has nothing to say to Ctrl or Shift");
+            assertEquals(List.of("no", "se"), chosen, "a control holding one row has nothing to say to Ctrl or Shift");
         }
 
         @Test
@@ -747,22 +757,30 @@ class TreeTest {
             built.flush();
 
             activate(built, "se", CTRL);
-            assertEquals(java.util.Set.of("no", "se"), sets.getLast(),
-                    "Ctrl replaced instead of adding");
+            assertEquals(java.util.Set.of("no", "se"), sets.getLast(), "Ctrl replaced instead of adding");
 
             built.update(multiple(sets.getLast()));
             built.flush();
             sets.clear();
             activate(built, "no", CTRL);
 
-            assertEquals(java.util.Set.of("se"), sets.getLast(),
+            assertEquals(
+                    java.util.Set.of("se"),
+                    sets.getLast(),
                     "Ctrl on a row already in the selection should take it out");
         }
 
         /// The same tree, with whatever the application currently holds.
         private Tree multiple(java.util.Set<String> selected) {
-            return new Tree(world(), selected, sets::add,
-                    Selection.MULTIPLE, false, Checkable.NONE, java.util.Set.of(), null,
+            return new Tree(
+                    world(),
+                    selected,
+                    sets::add,
+                    Selection.MULTIPLE,
+                    false,
+                    Checkable.NONE,
+                    java.util.Set.of(),
+                    null,
                     io.github.digitalsmile.goldberry.widget.attr.Attributes.NONE);
         }
 
@@ -777,7 +795,9 @@ class TreeTest {
             sets.clear();
             activate(tree, "asia", SHIFT);
 
-            assertEquals(java.util.Set.of("europe", "no", "se", "asia"), sets.getLast(),
+            assertEquals(
+                    java.util.Set.of("europe", "no", "se", "asia"),
+                    sets.getLast(),
                     "the range should include the children showing between them");
         }
 
@@ -805,15 +825,22 @@ class TreeTest {
             sets.clear();
             activate(tree, "se", SHIFT);
 
-            assertEquals(java.util.Set.of("no", "se"), sets.getLast(),
-                    "the second range grew from where the first stopped");
+            assertEquals(
+                    java.util.Set.of("no", "se"), sets.getLast(), "the second range grew from where the first stopped");
         }
 
         @Test
         @DisplayName("a shifted range replaces rather than adding to what was there")
         void shiftReplaces() {
-            var built = tree(new Tree(world(), java.util.Set.of("jp"), sets::add,
-                    Selection.MULTIPLE, false, Checkable.NONE, java.util.Set.of(), null,
+            var built = tree(new Tree(
+                    world(),
+                    java.util.Set.of("jp"),
+                    sets::add,
+                    Selection.MULTIPLE,
+                    false,
+                    Checkable.NONE,
+                    java.util.Set.of(),
+                    null,
                     io.github.digitalsmile.goldberry.widget.attr.Attributes.NONE));
             press(row(built, "europe"), Key.RIGHT);
             built.flush();
@@ -830,13 +857,11 @@ class TreeTest {
         void theKeyboardHasThemToo() {
             var tree = multi();
 
-            row(tree, "no").onKey(new KeyEvent(
-                    KeyEvent.Kind.PRESSED, Key.ENTER, Modifiers.NONE, false, null));
+            row(tree, "no").onKey(new KeyEvent(KeyEvent.Kind.PRESSED, Key.ENTER, Modifiers.NONE, false, null));
             sets.clear();
-            row(tree, "se").onKey(new KeyEvent(
-                    KeyEvent.Kind.PRESSED, Key.ENTER, SHIFT, false, null));
-            assertEquals(java.util.Set.of("no", "se"), sets.getLast(),
-                    "Shift+Enter should sweep from the row Enter chose");
+            row(tree, "se").onKey(new KeyEvent(KeyEvent.Kind.PRESSED, Key.ENTER, SHIFT, false, null));
+            assertEquals(
+                    java.util.Set.of("no", "se"), sets.getLast(), "Shift+Enter should sweep from the row Enter chose");
 
             // Applied back, for `ctrlToggles`'s reason: `Ctrl` adds to what the
             // application holds, and here that is what the range just reported.
@@ -846,10 +871,11 @@ class TreeTest {
             press(row(tree, "asia"), Key.RIGHT);
             tree.flush();
             sets.clear();
-            row(tree, "jp").onKey(new KeyEvent(
-                    KeyEvent.Kind.PRESSED, Key.ENTER, CTRL, false, null));
+            row(tree, "jp").onKey(new KeyEvent(KeyEvent.Kind.PRESSED, Key.ENTER, CTRL, false, null));
 
-            assertEquals(java.util.Set.of("no", "se", "jp"), sets.getLast(),
+            assertEquals(
+                    java.util.Set.of("no", "se", "jp"),
+                    sets.getLast(),
                     "Ctrl+Enter should add to what the range chose");
         }
 
@@ -859,8 +885,8 @@ class TreeTest {
         @DisplayName("Alt+Enter is left alone")
         void altEnterFallsThrough() {
             var tree = multi();
-            var event = new KeyEvent(KeyEvent.Kind.PRESSED, Key.ENTER,
-                    new Modifiers(false, false, true, false), false, null);
+            var event = new KeyEvent(
+                    KeyEvent.Kind.PRESSED, Key.ENTER, new Modifiers(false, false, true, false), false, null);
 
             row(tree, "no").onKey(event);
 
@@ -871,8 +897,15 @@ class TreeTest {
         @Test
         @DisplayName("the selected rows are the ones the model names, all of them")
         void selectedFollowsTheModel() {
-            var built = tree(new Tree(world(), java.util.Set.of("no", "jp"), sets::add,
-                    Selection.MULTIPLE, false, Checkable.NONE, java.util.Set.of(), null,
+            var built = tree(new Tree(
+                    world(),
+                    java.util.Set.of("no", "jp"),
+                    sets::add,
+                    Selection.MULTIPLE,
+                    false,
+                    Checkable.NONE,
+                    java.util.Set.of(),
+                    null,
                     io.github.digitalsmile.goldberry.widget.attr.Attributes.NONE));
             press(row(built, "europe"), Key.RIGHT);
             press(row(built, "asia"), Key.RIGHT);
@@ -908,10 +941,13 @@ class TreeTest {
         @DisplayName("a supplier runs when the node first opens, and never again")
         void fetchedOnce() {
             var runs = new int[1];
-            var tree = tree(new Tree(List.of(TreeNode.lazy("root", "Root", () -> {
-                runs[0]++;
-                return List.of(TreeNode.leaf("a", "A"));
-            })), null, chosen::add));
+            var tree = tree(new Tree(
+                    List.of(TreeNode.lazy("root", "Root", () -> {
+                        runs[0]++;
+                        return List.of(TreeNode.leaf("a", "A"));
+                    })),
+                    null,
+                    chosen::add));
 
             assertEquals(0, runs[0], "it fetched before anybody asked");
             assertEquals(List.of("root"), rows(tree));
@@ -935,8 +971,7 @@ class TreeTest {
         @Test
         @DisplayName("a lazy node draws a chevron before anyone knows what is in it")
         void chevronBeforeTheFetch() {
-            var tree = tree(new Tree(
-                    List.of(TreeNode.lazy("root", "Root", List::of)), null, chosen::add));
+            var tree = tree(new Tree(List.of(TreeNode.lazy("root", "Root", List::of)), null, chosen::add));
 
             assertTrue(row(tree, "root").node().mayHaveChildren());
         }
@@ -962,8 +997,8 @@ class TreeTest {
             tree.update(new Tree(reordered, null, chosen::add));
             tree.flush();
 
-            assertEquals(List.of("asia", "europe", "no", "se"), rows(tree),
-                    "Europe closed itself because its index moved");
+            assertEquals(
+                    List.of("asia", "europe", "no", "se"), rows(tree), "Europe closed itself because its index moved");
         }
 
         @Test
@@ -983,9 +1018,12 @@ class TreeTest {
 
         private static void click(TreeRow row) {
             row.onPointer(new io.github.digitalsmile.goldberry.input.event.PointerEvent(
-                    io.github.digitalsmile.goldberry.input.event.PointerEvent.Kind.CLICKED, 0, 0,
+                    io.github.digitalsmile.goldberry.input.event.PointerEvent.Kind.CLICKED,
+                    0,
+                    0,
                     io.github.digitalsmile.goldberry.input.event.PointerEvent.Button.PRIMARY,
-                    1, null));
+                    1,
+                    null));
         }
 
         private static TreeRow.TreeChevron chevronOf(TreeRow row) {
@@ -1013,9 +1051,12 @@ class TreeTest {
             var tree = tree(new Tree(world(), null, chosen::add).anyNode(true));
 
             var event = new io.github.digitalsmile.goldberry.input.event.PointerEvent(
-                    io.github.digitalsmile.goldberry.input.event.PointerEvent.Kind.CLICKED, 0, 0,
+                    io.github.digitalsmile.goldberry.input.event.PointerEvent.Kind.CLICKED,
+                    0,
+                    0,
                     io.github.digitalsmile.goldberry.input.event.PointerEvent.Button.PRIMARY,
-                    1, null);
+                    1,
+                    null);
             chevronOf(row(tree, "europe")).onPointer(event);
             tree.flush();
 
@@ -1046,5 +1087,4 @@ class TreeTest {
             assertFalse(chevronOf(row(tree, "no")).present());
         }
     }
-
 }

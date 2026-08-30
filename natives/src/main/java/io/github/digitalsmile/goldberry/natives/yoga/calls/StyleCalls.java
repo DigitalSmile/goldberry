@@ -4,11 +4,12 @@ import static java.lang.foreign.ValueLayout.ADDRESS;
 import static java.lang.foreign.ValueLayout.JAVA_FLOAT;
 import static java.lang.foreign.ValueLayout.JAVA_INT;
 
-import io.github.digitalsmile.goldberry.natives.Downcalls;
 import java.lang.foreign.FunctionDescriptor;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.SymbolLookup;
 import java.lang.invoke.MethodHandle;
+
+import io.github.digitalsmile.goldberry.natives.Downcalls;
 
 /// Yoga's style setters — everything a stylesheet decides.
 ///
@@ -448,8 +449,7 @@ public record StyleCalls(
     /// `void f(void*)`
     public static final class SetAuto {
 
-        private static final MethodHandle FD_YGNodeStyleSetAuto =
-                Downcalls.link(FunctionDescriptor.ofVoid(ADDRESS));
+        private static final MethodHandle FD_YGNodeStyleSetAuto = Downcalls.link(FunctionDescriptor.ofVoid(ADDRESS));
 
         private final String symbol;
         private final MemorySegment address;
@@ -553,14 +553,12 @@ public record StyleCalls(
 
     /// The same, for a property keyed by an edge or a gutter. The C shape is
     /// identical -- `(node, int, float)` -- so one record serves both.
-    public record KeyedLengthCalls(
-            SetKeyedLength points, SetKeyedLength percent, SetKeyedAuto auto) {
+    public record KeyedLengthCalls(SetKeyedLength points, SetKeyedLength percent, SetKeyedAuto auto) {
 
         /// @param lookup   the loaded `libgoldberry`
         /// @param property the name between `YGNodeStyleSet` and the suffix
         /// @param hasAuto  whether Yoga exports an `Auto` variant for it
-        public static KeyedLengthCalls bind(
-                SymbolLookup lookup, String property, boolean hasAuto) {
+        public static KeyedLengthCalls bind(SymbolLookup lookup, String property, boolean hasAuto) {
             var prefix = "YGNodeStyleSet" + property;
             return new KeyedLengthCalls(
                     new SetKeyedLength(lookup, prefix),

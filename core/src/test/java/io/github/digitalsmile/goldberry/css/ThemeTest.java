@@ -7,24 +7,36 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.List;
+
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.ValueSource;
-import io.github.digitalsmile.goldberry.css.value.CssLength;
+
 import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
 import io.github.digitalsmile.goldberry.css.cascade.StyleResolver;
+import io.github.digitalsmile.goldberry.css.value.CssLength;
 
 class ThemeTest {
 
     /// The semantic tokens §10 says widgets consume. A theme missing one of
     /// these is a theme that leaves some widget unpainted.
     private static final List<String> SEMANTIC_TOKENS = List.of(
-            "--gb-bg", "--gb-surface", "--gb-surface-2", "--gb-text", "--gb-text-muted",
-            "--gb-border", "--gb-accent", "--gb-focus", "--gb-danger", "--gb-warning",
-            "--gb-success", "--gb-info", "--gb-selection");
+            "--gb-bg",
+            "--gb-surface",
+            "--gb-surface-2",
+            "--gb-text",
+            "--gb-text-muted",
+            "--gb-border",
+            "--gb-accent",
+            "--gb-focus",
+            "--gb-danger",
+            "--gb-warning",
+            "--gb-success",
+            "--gb-info",
+            "--gb-selection");
 
     /// A theme is only ever seen through the cascade, so resolve it the way a
     /// widget would rather than reading the file.
@@ -50,8 +62,7 @@ class ThemeTest {
     @EnumSource(Theme.class)
     @DisplayName("every semantic token is defined, and resolves to a real colour")
     void everySemanticTokenResolves(Theme theme) {
-        var variables = new StyleResolver(List.of(theme.load()))
-                .customPropertiesFor(element("window"));
+        var variables = new StyleResolver(List.of(theme.load())).customPropertiesFor(element("window"));
 
         for (var token : SEMANTIC_TOKENS) {
             assertTrue(variables.containsKey(token), () -> theme + " is missing " + token);
@@ -110,26 +121,26 @@ class ThemeTest {
             var bg = "button { background: var(--gb-bg) }";
             var text = "button { background: var(--gb-text) }";
 
-            assertEquals(styleWith(Theme.NORD_LIGHT, bg).background(),
+            assertEquals(
+                    styleWith(Theme.NORD_LIGHT, bg).background(),
                     styleWith(Theme.NORD_DARK, text).background());
-            assertEquals(styleWith(Theme.NORD_DARK, bg).background(),
+            assertEquals(
+                    styleWith(Theme.NORD_DARK, bg).background(),
                     styleWith(Theme.NORD_LIGHT, text).background());
         }
 
         @Test
         @DisplayName("an application rule still overrides the theme")
         void applicationBeatsTheme() {
-            var base = Stylesheet.parse(CascadeLayer.TOOLKIT_BASE,
-                    "button { background: var(--gb-bg) }");
-            var app = Stylesheet.parse(CascadeLayer.APPLICATION,
-                    "button { background: #ff0000 }");
+            var base = Stylesheet.parse(CascadeLayer.TOOLKIT_BASE, "button { background: var(--gb-bg) }");
+            var app = Stylesheet.parse(CascadeLayer.APPLICATION, "button { background: #ff0000 }");
             var root = element("window");
             root.with(element("button"));
 
-            var declarations = new StyleResolver(List.of(base, Theme.NORD_DARK.load(), app))
-                    .resolve(root.descend(1));
+            var declarations = new StyleResolver(List.of(base, Theme.NORD_DARK.load(), app)).resolve(root.descend(1));
 
-            assertEquals(0xFFFF0000,
+            assertEquals(
+                    0xFFFF0000,
                     ComputedStyle.of(declarations, CssLength.Context.DEFAULT).background());
         }
     }
@@ -146,8 +157,7 @@ class ThemeTest {
             var alpha = (style.background() >>> 24) & 0xFF;
 
             // 30% light, 40% dark -- both well short of opaque, and not zero.
-            assertTrue(alpha > 0 && alpha < 255,
-                    () -> theme + "'s selection alpha was " + alpha);
+            assertTrue(alpha > 0 && alpha < 255, () -> theme + "'s selection alpha was " + alpha);
         }
     }
 }

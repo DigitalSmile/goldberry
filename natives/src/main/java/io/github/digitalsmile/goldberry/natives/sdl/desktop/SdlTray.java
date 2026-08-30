@@ -1,12 +1,5 @@
 package io.github.digitalsmile.goldberry.natives.sdl.desktop;
 
-import io.github.digitalsmile.goldberry.log.Logs;
-import io.github.digitalsmile.goldberry.natives.NativeLibrary;
-import io.github.digitalsmile.goldberry.natives.sdl.Sdl;
-import io.github.digitalsmile.goldberry.natives.sdl.SdlException;
-import io.github.digitalsmile.goldberry.natives.sdl.calls.SdlSurfaceCalls;
-import io.github.digitalsmile.goldberry.natives.sdl.calls.SdlTrayCalls;
-import io.github.digitalsmile.goldberry.natives.sdl.window.SdlPixelFormat;
 import java.lang.foreign.Arena;
 import java.lang.foreign.FunctionDescriptor;
 import java.lang.foreign.Linker;
@@ -20,7 +13,16 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+
 import org.slf4j.Logger;
+
+import io.github.digitalsmile.goldberry.log.Logs;
+import io.github.digitalsmile.goldberry.natives.NativeLibrary;
+import io.github.digitalsmile.goldberry.natives.sdl.Sdl;
+import io.github.digitalsmile.goldberry.natives.sdl.SdlException;
+import io.github.digitalsmile.goldberry.natives.sdl.calls.SdlSurfaceCalls;
+import io.github.digitalsmile.goldberry.natives.sdl.calls.SdlTrayCalls;
+import io.github.digitalsmile.goldberry.natives.sdl.window.SdlPixelFormat;
 
 /// An icon in the desktop's notification area, and the menu the shell draws for
 /// it.
@@ -71,8 +73,7 @@ public final class SdlTray implements AutoCloseable {
     private static final MethodHandle INVOKE = invokeHandle();
 
     /// A row that has a handler, paired with the pointer SDL knows it by.
-    private record Row(MemorySegment entry, SdlTrayItem.Chosen onChosen, boolean checkbox) {
-    }
+    private record Row(MemorySegment entry, SdlTrayItem.Chosen onChosen, boolean checkbox) {}
 
     private final SdlTrayCalls trayCalls;
     private final SdlSurfaceCalls surfaceCalls;
@@ -92,13 +93,11 @@ public final class SdlTray implements AutoCloseable {
     ///                because a tray whose menu appears on the second click is
     ///                worse than an empty one
     /// @return the tray, or empty if this desktop has none
-    public static Optional<SdlTray> open(
-            SdlTrayIcon icon, String tooltip, List<SdlTrayItem> items) {
+    public static Optional<SdlTray> open(SdlTrayIcon icon, String tooltip, List<SdlTrayItem> items) {
         return open(NativeLibrary.get().lookup(), icon, tooltip, items);
     }
 
-    static Optional<SdlTray> open(
-            SymbolLookup lookup, SdlTrayIcon icon, String tooltip, List<SdlTrayItem> items) {
+    static Optional<SdlTray> open(SymbolLookup lookup, SdlTrayIcon icon, String tooltip, List<SdlTrayItem> items) {
 
         Objects.requireNonNull(items, "items");
         var trayCalls = SdlTrayCalls.bind(lookup);
@@ -108,9 +107,9 @@ public final class SdlTray implements AutoCloseable {
         try (var scratch = Arena.ofConfined()) {
             var surface = surfaceOf(surfaceCalls, scratch, icon);
             try {
-                handle = trayCalls.createTray().call(
-                        surface,
-                        tooltip == null ? MemorySegment.NULL : scratch.allocateFrom(tooltip));
+                handle = trayCalls
+                        .createTray()
+                        .call(surface, tooltip == null ? MemorySegment.NULL : scratch.allocateFrom(tooltip));
             } finally {
                 if (!MemorySegment.NULL.equals(surface)) {
                     surfaceCalls.destroySurface().call(surface);
@@ -127,9 +126,7 @@ public final class SdlTray implements AutoCloseable {
         return Optional.of(new SdlTray(trayCalls, surfaceCalls, handle, items));
     }
 
-    private SdlTray(
-            SdlTrayCalls trayCalls, SdlSurfaceCalls surfaceCalls, MemorySegment tray,
-            List<SdlTrayItem> items) {
+    private SdlTray(SdlTrayCalls trayCalls, SdlSurfaceCalls surfaceCalls, MemorySegment tray, List<SdlTrayItem> items) {
 
         this.trayCalls = trayCalls;
         this.surfaceCalls = surfaceCalls;
@@ -154,12 +151,10 @@ public final class SdlTray implements AutoCloseable {
     /// Adds every row of `items` to `menu`, recursing into submenus.
     private void fill(MemorySegment menu, List<SdlTrayItem> items, Arena scratch) {
         for (var item : items) {
-            var label = item.kind() == SdlTrayItem.Kind.SEPARATOR
-                    ? MemorySegment.NULL
-                    : scratch.allocateFrom(item.label());
+            var label =
+                    item.kind() == SdlTrayItem.Kind.SEPARATOR ? MemorySegment.NULL : scratch.allocateFrom(item.label());
             // -1 appends, which is what a list read front to back wants.
-            var entry = trayCalls.insertTrayEntryAt().call(
-                    menu, -1, label, SdlTrayEntryFlag.mask(item.flags()));
+            var entry = trayCalls.insertTrayEntryAt().call(menu, -1, label, SdlTrayEntryFlag.mask(item.flags()));
             if (MemorySegment.NULL.equals(entry)) {
                 throw new SdlException("SDL_InsertTrayEntryAt", Sdl.get().lastError());
             }
@@ -209,8 +204,7 @@ public final class SdlTray implements AutoCloseable {
         requireOwner();
         requireOpen();
         try (var scratch = Arena.ofConfined()) {
-            trayCalls.setTrayTooltip().call(
-                    tray, tooltip == null ? MemorySegment.NULL : scratch.allocateFrom(tooltip));
+            trayCalls.setTrayTooltip().call(tray, tooltip == null ? MemorySegment.NULL : scratch.allocateFrom(tooltip));
         }
     }
 
@@ -257,8 +251,10 @@ public final class SdlTray implements AutoCloseable {
                 // platform dispatches this from inside the pump the UI thread is
                 // in. Said out loud because if it ever is not, this line is the
                 // only evidence there would be.
-                LOG.warn("a tray entry was chosen on {} rather than on {}",
-                        Thread.currentThread().getName(), owner.getName());
+                LOG.warn(
+                        "a tray entry was chosen on {} rather than on {}",
+                        Thread.currentThread().getName(),
+                        owner.getName());
             }
             row.onChosen().chosen(checked);
         } catch (Throwable t) {
@@ -270,15 +266,14 @@ public final class SdlTray implements AutoCloseable {
     }
 
     /// Wraps an icon's pixels as an `SDL_Surface`, or NULL when there is no icon.
-    private static MemorySegment surfaceOf(
-            SdlSurfaceCalls calls, Arena scratch, SdlTrayIcon icon) {
+    private static MemorySegment surfaceOf(SdlSurfaceCalls calls, Arena scratch, SdlTrayIcon icon) {
 
         if (icon == null) {
             return MemorySegment.NULL;
         }
         var pixels = MemorySegment.ofBuffer(icon.pixels());
-        var surface = calls.createSurfaceFrom().call(
-                icon.width(), icon.height(), SdlPixelFormat.ARGB8888.value(), pixels, icon.stride());
+        var surface = calls.createSurfaceFrom()
+                .call(icon.width(), icon.height(), SdlPixelFormat.ARGB8888.value(), pixels, icon.stride());
         if (MemorySegment.NULL.equals(surface)) {
             throw new SdlException("SDL_CreateSurfaceFrom", Sdl.get().lastError());
         }
@@ -294,11 +289,11 @@ public final class SdlTray implements AutoCloseable {
 
     private static MethodHandle invokeHandle() {
         try {
-            return MethodHandles.lookup().findVirtual(
-                    SdlTray.class,
-                    "invoke",
-                    MethodType.methodType(
-                            void.class, int.class, MemorySegment.class, MemorySegment.class));
+            return MethodHandles.lookup()
+                    .findVirtual(
+                            SdlTray.class,
+                            "invoke",
+                            MethodType.methodType(void.class, int.class, MemorySegment.class, MemorySegment.class));
         } catch (ReflectiveOperationException e) {
             throw new ExceptionInInitializerError(e);
         }
@@ -306,8 +301,7 @@ public final class SdlTray implements AutoCloseable {
 
     private void requireOwner() {
         if (Thread.currentThread() != owner) {
-            throw new IllegalStateException(
-                    "a tray belongs to the thread that created it, and this is not it");
+            throw new IllegalStateException("a tray belongs to the thread that created it, and this is not it");
         }
     }
 

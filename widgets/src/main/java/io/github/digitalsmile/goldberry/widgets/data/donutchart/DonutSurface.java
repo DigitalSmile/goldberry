@@ -1,5 +1,8 @@
 package io.github.digitalsmile.goldberry.widgets.data.donutchart;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
 import io.github.digitalsmile.goldberry.css.value.CssColor;
 import io.github.digitalsmile.goldberry.input.event.KeyEvent;
@@ -10,12 +13,10 @@ import io.github.digitalsmile.goldberry.paint.Box;
 import io.github.digitalsmile.goldberry.paint.Frame;
 import io.github.digitalsmile.goldberry.render.model.LogicalSize;
 import io.github.digitalsmile.goldberry.text.Paragraph;
+import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widget.style.Paints;
 import io.github.digitalsmile.goldberry.widget.style.Styled;
-import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widgets.data.SeriesPalette;
-import java.util.ArrayList;
-import java.util.List;
 
 /// The ring itself — the `donut-plot` part, and the node the pointer lands on.
 ///
@@ -43,8 +44,11 @@ import java.util.List;
 ///                 between two frames would both be computed from the slice
 ///                 before either of them
 record DonutSurface(
-        List<Double> values, List<String> labels, int hovered,
-        java.util.function.IntPredicate onHover, java.util.function.IntPredicate onWalk)
+        List<Double> values,
+        List<String> labels,
+        int hovered,
+        java.util.function.IntPredicate onHover,
+        java.util.function.IntPredicate onWalk)
         implements Widget.Leaf, Styled, Paints, Handles {
 
     /// The hole, as a fraction of the outer radius.
@@ -90,8 +94,7 @@ record DonutSurface(
         for (var i = 0; i < values.size(); i++) {
             colours.add(SeriesPalette.of(context, i));
         }
-        var painted = new Painted(List.copyOf(values), List.copyOf(colours), hovered,
-                readout(style, context));
+        var painted = new Painted(List.copyOf(values), List.copyOf(colours), hovered, readout(style, context));
         return Box.of().style(style).painting(painted::paint);
     }
 
@@ -105,12 +108,14 @@ record DonutSurface(
         if (hovered < 0 || hovered >= values.size() || !(values.get(hovered) > 0)) {
             return null;
         }
-        var total = values.stream().mapToDouble(Double::doubleValue).filter(v -> v > 0).sum();
+        var total = values.stream()
+                .mapToDouble(Double::doubleValue)
+                .filter(v -> v > 0)
+                .sum();
         if (total <= 0) {
             return null;
         }
-        var name = hovered < labels.size() && labels.get(hovered) != null
-                ? labels.get(hovered) : "";
+        var name = hovered < labels.size() && labels.get(hovered) != null ? labels.get(hovered) : "";
         return new Readout(
                 context.paragraph(style, name),
                 context.paragraph(style, share(values.get(hovered), total)),
@@ -148,8 +153,7 @@ record DonutSurface(
         switch (event.kind()) {
             case EXITED -> onHover.test(-1);
             case MOVED, ENTERED, PRESSED, RELEASED, CLICKED -> onHover.test(at(event));
-            default -> {
-            }
+            default -> {}
         }
     }
 
@@ -173,7 +177,9 @@ record DonutSurface(
     @SuppressWarnings("ReturnValueIgnored")
     @Override
     public void onKey(KeyEvent event) {
-        if (onHover == null || onWalk == null || event.kind() != KeyEvent.Kind.PRESSED
+        if (onHover == null
+                || onWalk == null
+                || event.kind() != KeyEvent.Kind.PRESSED
                 || !event.modifiers().none()) {
             return;
         }
@@ -204,8 +210,7 @@ record DonutSurface(
                     event.consume();
                 }
             }
-            default -> {
-            }
+            default -> {}
         }
     }
 
@@ -238,14 +243,15 @@ record DonutSurface(
     }
 
     /// The hovered slice's name and share, shaped.
-    private record Readout(Paragraph name, Paragraph share, int ink, int muted) {
-    }
+    private record Readout(Paragraph name, Paragraph share, int ink, int muted) {}
 
-    private record Painted(
-            List<Double> values, List<Integer> colours, int hovered, Readout readout) {
+    private record Painted(List<Double> values, List<Integer> colours, int hovered, Readout readout) {
 
         void paint(Frame frame, LogicalSize size) {
-            var total = values.stream().mapToDouble(Double::doubleValue).filter(v -> v > 0).sum();
+            var total = values.stream()
+                    .mapToDouble(Double::doubleValue)
+                    .filter(v -> v > 0)
+                    .sum();
             var geometry = DonutGeometry.of(size.width(), size.height(), HOLE);
             if (total <= 0 || geometry == null) {
                 // Every share is zero, so there is no whole to be part of. A ring
@@ -273,9 +279,8 @@ record DonutSurface(
                         // which one the hole is talking about. Nothing is faded
                         // when nothing is hovered, which is what makes a golden
                         // image of a donut the donut.
-                        var colour = hovered < 0 || hovered == i
-                                ? colours.get(i)
-                                : CssColor.fade(colours.get(i), FADED);
+                        var colour =
+                                hovered < 0 || hovered == i ? colours.get(i) : CssColor.fade(colours.get(i), FADED);
                         frame.fillPath(0, 0, path, colour);
                     }
                     angle += sweep;
@@ -307,12 +312,17 @@ record DonutSurface(
             var top = geometry.cy() - height / 2;
 
             if (showName) {
-                readout.name().paint(frame, geometry.cx() - nameLayout.width() / 2, top,
-                        Paragraph.UNCONSTRAINED, readout.muted());
+                readout.name()
+                        .paint(
+                                frame,
+                                geometry.cx() - nameLayout.width() / 2,
+                                top,
+                                Paragraph.UNCONSTRAINED,
+                                readout.muted());
                 top += nameLayout.height();
             }
-            readout.share().paint(frame, geometry.cx() - shareLayout.width() / 2, top,
-                    Paragraph.UNCONSTRAINED, readout.ink());
+            readout.share()
+                    .paint(frame, geometry.cx() - shareLayout.width() / 2, top, Paragraph.UNCONSTRAINED, readout.ink());
         }
 
         /// One slice: out along the outer edge, in at the end, back along the
@@ -324,8 +334,7 @@ record DonutSurface(
         /// more than half a turn goes, and getting it wrong draws the complement
         /// of the slice, which is a picture that is exactly wrong rather than
         /// obviously wrong.
-        private static void arc(
-                BlendPath path, DonutGeometry geometry, double from, double to) {
+        private static void arc(BlendPath path, DonutGeometry geometry, double from, double to) {
 
             var cx = geometry.cx();
             var cy = geometry.cy();
@@ -334,11 +343,9 @@ record DonutSurface(
             var large = (to - from) > Math.PI;
             path.reset();
             path.moveTo(cx + outer * Math.cos(from), cy + outer * Math.sin(from));
-            path.ellipticArcTo(outer, outer, 0, large, true,
-                    cx + outer * Math.cos(to), cy + outer * Math.sin(to));
+            path.ellipticArcTo(outer, outer, 0, large, true, cx + outer * Math.cos(to), cy + outer * Math.sin(to));
             path.lineTo(cx + inner * Math.cos(to), cy + inner * Math.sin(to));
-            path.ellipticArcTo(inner, inner, 0, large, false,
-                    cx + inner * Math.cos(from), cy + inner * Math.sin(from));
+            path.ellipticArcTo(inner, inner, 0, large, false, cx + inner * Math.cos(from), cy + inner * Math.sin(from));
             path.closeSubPath();
         }
     }

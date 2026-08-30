@@ -8,15 +8,16 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import io.github.digitalsmile.goldberry.css.ComputedStyle;
-import io.github.digitalsmile.goldberry.css.value.CssColor;
-import io.github.digitalsmile.goldberry.css.value.Transform;
-import io.github.digitalsmile.goldberry.css.cascade.Transitions;
-import io.github.digitalsmile.goldberry.css.cascade.Transitions.Animatable;
-import io.github.digitalsmile.goldberry.css.cascade.Transitions.Timing;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+
+import io.github.digitalsmile.goldberry.css.ComputedStyle;
+import io.github.digitalsmile.goldberry.css.cascade.Transitions;
+import io.github.digitalsmile.goldberry.css.cascade.Transitions.Animatable;
+import io.github.digitalsmile.goldberry.css.cascade.Transitions.Timing;
+import io.github.digitalsmile.goldberry.css.value.CssColor;
+import io.github.digitalsmile.goldberry.css.value.Transform;
 
 /// The frame clock, the curves, and the overlay — `docs/design-system.md` §1.7.
 class MotionTest {
@@ -96,10 +97,9 @@ class MotionTest {
                 var previous = -1.0;
                 for (var i = 0; i <= 200; i++) {
                     var value = easing.at(i / 200.0);
-                    assertTrue(value >= previous - 1e-9,
-                            easing + " went backwards at " + i / 200.0);
-                    assertTrue(value >= -1e-9 && value <= 1 + 1e-9,
-                            easing + " left 0..1 at " + i / 200.0 + ": " + value);
+                    assertTrue(value >= previous - 1e-9, easing + " went backwards at " + i / 200.0);
+                    assertTrue(
+                            value >= -1e-9 && value <= 1 + 1e-9, easing + " left 0..1 at " + i / 200.0 + ": " + value);
                     previous = value;
                 }
             }
@@ -112,10 +112,8 @@ class MotionTest {
             // by halfway, an exit has barely started. §1.7 pairs `ease-exit`
             // with a shorter duration, and together they make a dismissal feel
             // decisive rather than reluctant.
-            assertTrue(Easing.EASE_ENTER.at(0.5) > 0.5,
-                    "a decelerating curve is ahead at the midpoint");
-            assertTrue(Easing.EASE_EXIT.at(0.5) < 0.5,
-                    "an accelerating curve is behind at the midpoint");
+            assertTrue(Easing.EASE_ENTER.at(0.5) > 0.5, "a decelerating curve is ahead at the midpoint");
+            assertTrue(Easing.EASE_EXIT.at(0.5) < 0.5, "an accelerating curve is behind at the midpoint");
             assertEquals(0.5, Easing.LINEAR.at(0.5), 1e-9);
         }
 
@@ -150,7 +148,8 @@ class MotionTest {
             // answer is a muddy tan that reads as neither end.
             var oklch = CssColor.mix(0xFFBF616A, 0xFFA3BE8C, 0.5);
 
-            assertTrue(spread(oklch) > spread(naiveMidpoint(0xFFBF616A, 0xFFA3BE8C)) * 1.5,
+            assertTrue(
+                    spread(oklch) > spread(naiveMidpoint(0xFFBF616A, 0xFFA3BE8C)) * 1.5,
                     () -> "the midpoint went muddy: #" + Integer.toHexString(oklch));
         }
 
@@ -258,8 +257,8 @@ class MotionTest {
 
             var midwayLuma = (midway >>> 16) & 0xFF;
             var afterLuma = (justAfter >>> 16) & 0xFF;
-            assertTrue(Math.abs(midwayLuma - afterLuma) < 20,
-                    "the value jumped from " + midwayLuma + " to " + afterLuma);
+            assertTrue(
+                    Math.abs(midwayLuma - afterLuma) < 20, "the value jumped from " + midwayLuma + " to " + afterLuma);
             assertTrue(afterLuma < midwayLuma, "and it is heading back down");
         }
 
@@ -278,14 +277,15 @@ class MotionTest {
             var painted = animations.apply(target, 50);
 
             assertEquals(0xFFFFFFFF, target.background(), "apply must not mutate its argument");
-            assertNotEquals(target.background(), painted.background(),
+            assertNotEquals(
+                    target.background(),
+                    painted.background(),
                     "the overlay is a separate value, and it is what gets drawn");
 
             // And the next frame diffs against the target, not the overlay: it
             // is already heading there, so it does not restart from halfway.
             animations.observe(target, 50);
-            assertEquals(0xFFFFFFFF, animations.apply(target, 100).background(),
-                    "it still arrives on time");
+            assertEquals(0xFFFFFFFF, animations.apply(target, 100).background(), "it still arrives on time");
         }
 
         @Test
@@ -308,28 +308,32 @@ class MotionTest {
         void instant() {
             // What `prefers-reduced-motion` collapses everything to (§1.7 rule
             // 6), and what `button:active` declares so a press applies in 0ms.
-            var instant = ComputedStyle.INITIAL
-                    .transitions(Transitions.NONE.with(Animatable.BACKGROUND_COLOR, Timing.INSTANT));
+            var instant = ComputedStyle.INITIAL.transitions(
+                    Transitions.NONE.with(Animatable.BACKGROUND_COLOR, Timing.INSTANT));
             var animations = new Animations();
 
             animations.observe(instant.background(0xFF000000), 0);
             animations.observe(instant.background(0xFFFFFFFF), 0);
 
             assertFalse(animations.isAnimating());
-            assertEquals(0xFFFFFFFF, animations.apply(instant.background(0xFFFFFFFF), 0).background());
+            assertEquals(
+                    0xFFFFFFFF,
+                    animations.apply(instant.background(0xFFFFFFFF), 0).background());
         }
 
         @Test
         @DisplayName("a delay holds the value before it moves")
         void delay() {
-            var delayed = ComputedStyle.INITIAL.transitions(Transitions.NONE.with(
-                    Animatable.BACKGROUND_COLOR, new Timing(100, Easing.LINEAR, 50)));
+            var delayed = ComputedStyle.INITIAL.transitions(
+                    Transitions.NONE.with(Animatable.BACKGROUND_COLOR, new Timing(100, Easing.LINEAR, 50)));
             var animations = new Animations();
 
             animations.observe(delayed.background(0xFF000000), 0);
             animations.observe(delayed.background(0xFFFFFFFF), 0);
 
-            assertEquals(0xFF000000, animations.apply(delayed.background(0xFFFFFFFF), 40).background(),
+            assertEquals(
+                    0xFF000000,
+                    animations.apply(delayed.background(0xFFFFFFFF), 40).background(),
                     "still waiting");
             assertTrue(animations.settle(140), "and the delay counts towards the span");
             assertFalse(animations.settle(151));
@@ -338,8 +342,7 @@ class MotionTest {
         @Test
         @DisplayName("opacity moves linearly, not through a colour space")
         void opacityIsANumber() {
-            var fading = ComputedStyle.INITIAL
-                    .transitions(Transitions.NONE.with(Animatable.OPACITY, FAST));
+            var fading = ComputedStyle.INITIAL.transitions(Transitions.NONE.with(Animatable.OPACITY, FAST));
             var animations = new Animations();
 
             animations.observe(fading.opacity(1), 0);
@@ -354,8 +357,8 @@ class MotionTest {
             var animations = new Animations();
             var target = style(0xFF000000);
 
-            assertSame(target, animations.apply(target, 0),
-                    "a static tree must not allocate a style per node per frame");
+            assertSame(
+                    target, animations.apply(target, 0), "a static tree must not allocate a style per node per frame");
         }
     }
 
@@ -419,7 +422,8 @@ class MotionTest {
             animations.observe(moving(scale(1.0)), 50);
 
             var immediately = animations.apply(moving(scale(1.0)), 50);
-            var scaled = (Transform.Function.Scale) immediately.transform().functions().getFirst();
+            var scaled = (Transform.Function.Scale)
+                    immediately.transform().functions().getFirst();
             assertEquals(1.2, scaled.x(), 1e-9, "it resumes from where it was");
         }
 
@@ -440,8 +444,7 @@ class MotionTest {
         @DisplayName("`transition: transform` parses, where `transition: width` still does not")
         void parses() {
             assertEquals(Animatable.TRANSFORM, Animatable.parse("transform"));
-            assertNull(Animatable.parse("width"),
-                    "layout properties never transition (§1.7)");
+            assertNull(Animatable.parse("width"), "layout properties never transition (§1.7)");
         }
     }
 

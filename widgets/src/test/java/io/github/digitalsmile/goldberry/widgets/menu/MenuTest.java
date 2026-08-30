@@ -5,10 +5,17 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.ArrayList;
+import java.util.List;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+
 import io.github.digitalsmile.goldberry.RendererRequirement;
-import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
 import io.github.digitalsmile.goldberry.css.Stylesheet;
 import io.github.digitalsmile.goldberry.css.Theme;
+import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
 import io.github.digitalsmile.goldberry.input.FocusScope;
 import io.github.digitalsmile.goldberry.kdl.KdlParser;
 import io.github.digitalsmile.goldberry.paint.Box;
@@ -16,13 +23,8 @@ import io.github.digitalsmile.goldberry.widget.ElementTree;
 import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widget.WidgetRenderer;
 import io.github.digitalsmile.goldberry.widgets.Controls;
-import io.github.digitalsmile.goldberry.widgets.controls.TestFont;
-import java.util.ArrayList;
-import java.util.List;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
 import io.github.digitalsmile.goldberry.widgets.Widgets;
+import io.github.digitalsmile.goldberry.widgets.controls.TestFont;
 
 /// `menu`, `item` and `separator` as widgets — the half of §8 that is a tree.
 ///
@@ -37,7 +39,9 @@ class MenuTest {
 
     private static WidgetRenderer renderer() {
         return new WidgetRenderer(
-                List.of(Controls.baseStylesheet(), Theme.NORD_DARK.load(),
+                List.of(
+                        Controls.baseStylesheet(),
+                        Theme.NORD_DARK.load(),
                         Stylesheet.parse(CascadeLayer.APPLICATION, "")),
                 TestFont.get());
     }
@@ -64,9 +68,11 @@ class MenuTest {
     @Test
     @DisplayName("an item draws its label and its accelerator, in that order")
     void labelAndAccelerator() {
-        var box = render(new Menu(new Item("Save", () -> { }).accelerator("Ctrl+S")));
+        var box = render(new Menu(new Item("Save", () -> {}).accelerator("Ctrl+S")));
 
-        assertEquals(List.of("Save", "Ctrl+S"), textIn(box),
+        assertEquals(
+                List.of("Save", "Ctrl+S"),
+                textIn(box),
                 "the accelerator is a second run, pushed to the far edge by a growing gap —"
                         + " §8's CSS subset has no text-align");
     }
@@ -78,7 +84,7 @@ class MenuTest {
     @Test
     @DisplayName("a row reserves a tick column only when its menu has one")
     void tickColumnIsTheMenusDecision() {
-        var plain = new Item("Word wrap", () -> { });
+        var plain = new Item("Word wrap", () -> {});
         var checkable = plain.checkable();
 
         assertFalse(plain.isCheckable(), "no `checked` at all is not a checkbox");
@@ -97,15 +103,14 @@ class MenuTest {
     @Test
     @DisplayName("one checkable row gives every row in that menu a column")
     void oneCheckableRowReservesForAll() {
-        var withCheckable = headersOf(new Menu(
-                new Item("Plain", () -> { }),
-                new Item("Word wrap", () -> { }).checked(true)));
-        var withoutAny = headersOf(new Menu(
-                new Item("Plain", () -> { }),
-                new Item("Also plain", () -> { })));
+        var withCheckable =
+                headersOf(new Menu(new Item("Plain", () -> {}), new Item("Word wrap", () -> {}).checked(true)));
+        var withoutAny = headersOf(new Menu(new Item("Plain", () -> {}), new Item("Also plain", () -> {})));
 
-        assertEquals(1, withCheckable.get(0).children().size(), "a plain row beside a checkable"
-                + " one reserves the column too, or the labels step in and out");
+        assertEquals(
+                1,
+                withCheckable.get(0).children().size(),
+                "a plain row beside a checkable" + " one reserves the column too, or the labels step in and out");
         assertEquals(1, withCheckable.get(1).children().size());
         assertEquals(0, withoutAny.get(0).children().size());
         assertEquals(0, withoutAny.get(1).children().size());
@@ -134,8 +139,8 @@ class MenuTest {
     @Test
     @DisplayName("an item with children knows it leads somewhere")
     void submenus() {
-        var plain = new Item("Save", () -> { });
-        var parent = new Item("Recent").submenu(new Item("notes.txt", () -> { }));
+        var plain = new Item("Save", () -> {});
+        var parent = new Item("Recent").submenu(new Item("notes.txt", () -> {}));
 
         assertFalse(plain.hasSubmenu());
         assertTrue(parent.hasSubmenu());
@@ -145,8 +150,8 @@ class MenuTest {
     @Test
     @DisplayName("a disabled item is not focusable, so the arrows skip it")
     void disabledIsNotFocusable() {
-        assertTrue(new Item("Save", () -> { }).isFocusable());
-        assertFalse(new Item("Save", () -> { }).disabled(true).isFocusable());
+        assertTrue(new Item("Save", () -> {}).isFocusable());
+        assertFalse(new Item("Save", () -> {}).disabled(true).isFocusable());
     }
 
     /// A separator is a line: nothing to focus, so focus traversal skips it for
@@ -154,16 +159,14 @@ class MenuTest {
     @Test
     @DisplayName("a separator is not focusable and has no content")
     void separator() {
-        var box = render(new Menu(new Item("A", () -> { }), new Separator(),
-                new Item("B", () -> { })));
+        var box = render(new Menu(new Item("A", () -> {}), new Separator(), new Item("B", () -> {})));
 
         assertEquals(List.of("A", "B"), textIn(box));
         // Not `Handles` at all, which is what makes it unfocusable: focus
         // traversal collects nodes that handle input, and this handles none. The
         // compiler enforces it — `Separator` does not implement the interface, so
         // this is a statement about the type rather than about a flag.
-        assertFalse(io.github.digitalsmile.goldberry.input.handler.Handles.class
-                .isAssignableFrom(Separator.class));
+        assertFalse(io.github.digitalsmile.goldberry.input.handler.Handles.class.isAssignableFrom(Separator.class));
     }
 
     @Test

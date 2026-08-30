@@ -6,25 +6,27 @@ import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import io.github.digitalsmile.goldberry.render.event.BackendEvent;
-import io.github.digitalsmile.goldberry.render.BackendException;
-import io.github.digitalsmile.goldberry.render.DamageRect;
-import io.github.digitalsmile.goldberry.render.model.DisplayScale;
-import io.github.digitalsmile.goldberry.render.model.LogicalSize;
-import io.github.digitalsmile.goldberry.render.model.PhysicalSize;
-import io.github.digitalsmile.goldberry.render.PixelBuffer;
-import io.github.digitalsmile.goldberry.render.model.PixelFormat;
-import io.github.digitalsmile.goldberry.render.window.WindowSpec;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
+
+import io.github.digitalsmile.goldberry.render.BackendException;
+import io.github.digitalsmile.goldberry.render.DamageRect;
+import io.github.digitalsmile.goldberry.render.PixelBuffer;
+import io.github.digitalsmile.goldberry.render.event.BackendEvent;
+import io.github.digitalsmile.goldberry.render.model.DisplayScale;
+import io.github.digitalsmile.goldberry.render.model.LogicalSize;
+import io.github.digitalsmile.goldberry.render.model.PhysicalSize;
+import io.github.digitalsmile.goldberry.render.model.PixelFormat;
+import io.github.digitalsmile.goldberry.render.window.WindowSpec;
 
 /// The SPI's rules, enforced against the one backend that needs no platform.
 ///
@@ -36,8 +38,7 @@ class HeadlessBackendTest {
     /// the scale that would expose one.
     private static final DisplayScale SCALE = new DisplayScale(1.5f);
 
-    private static final WindowSpec SPEC =
-            WindowSpec.of("Goldberry", LogicalSize.of(1280f, 720f));
+    private static final WindowSpec SPEC = WindowSpec.of("Goldberry", LogicalSize.of(1280f, 720f));
 
     private HeadlessBackend backend;
 
@@ -91,8 +92,7 @@ class HeadlessBackendTest {
 
         // 1280x720 is the LOGICAL size -- the classic mistake, which at 150% is a
         // frame two thirds the size of the window.
-        var thrown = assertThrows(
-                IllegalArgumentException.class, () -> window.present(stale, List.of()));
+        var thrown = assertThrows(IllegalArgumentException.class, () -> window.present(stale, List.of()));
 
         assertTrue(thrown.getMessage().contains("1920x1080"), thrown::getMessage);
     }
@@ -104,8 +104,7 @@ class HeadlessBackendTest {
         var frame = PixelBuffer.allocate(window.physicalSize(), PixelFormat.BGRA32_PREMULTIPLIED);
 
         assertThrows(
-                IllegalArgumentException.class,
-                () -> window.present(frame, List.of(new DamageRect(0, 0, 1921, 1080))));
+                IllegalArgumentException.class, () -> window.present(frame, List.of(new DamageRect(0, 0, 1921, 1080))));
     }
 
     @Test
@@ -163,16 +162,18 @@ class HeadlessBackendTest {
         window.requestFrame();
 
         for (var pump = 0; pump < 3; pump++) {
-            backend.pumpEvents(event -> {
-                if (event instanceof BackendEvent.FrameDue frame) {
-                    var target = (HeadlessWindow) frame.window();
-                    target.present(
-                            PixelBuffer.allocate(target.physicalSize(), PixelFormat.BGRA32_PREMULTIPLIED),
-                            List.of());
-                    painted[0]++;
-                    target.requestFrame();
-                }
-            }, Duration.ZERO);
+            backend.pumpEvents(
+                    event -> {
+                        if (event instanceof BackendEvent.FrameDue frame) {
+                            var target = (HeadlessWindow) frame.window();
+                            target.present(
+                                    PixelBuffer.allocate(target.physicalSize(), PixelFormat.BGRA32_PREMULTIPLIED),
+                                    List.of());
+                            painted[0]++;
+                            target.requestFrame();
+                        }
+                    },
+                    Duration.ZERO);
         }
 
         assertEquals(3, painted[0], "a self-scheduling repaint must keep producing frames");
@@ -299,8 +300,7 @@ class HeadlessBackendTest {
 
         assertEquals(0, delivered);
         assertTrue(
-                System.nanoTime() - start >= Duration.ofMillis(40).toNanos(),
-                "it should have waited rather than spun");
+                System.nanoTime() - start >= Duration.ofMillis(40).toNanos(), "it should have waited rather than spun");
     }
 
     @Test
@@ -309,15 +309,17 @@ class HeadlessBackendTest {
     void wakeupCrossesThreads() throws Exception {
         var started = new CountDownLatch(1);
 
-        var waker = new Thread(() -> {
-            try {
-                started.await(5, TimeUnit.SECONDS);
-                // The one call the SPI permits from off the UI thread.
-                backend.wakeup();
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-            }
-        }, "waker");
+        var waker = new Thread(
+                () -> {
+                    try {
+                        started.await(5, TimeUnit.SECONDS);
+                        // The one call the SPI permits from off the UI thread.
+                        backend.wakeup();
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                    }
+                },
+                "waker");
         waker.start();
 
         started.countDown();
@@ -337,11 +339,16 @@ class HeadlessBackendTest {
         // AppKit requires window calls on the first thread, so the SPI requires
         // it everywhere -- a rule that only bites on macOS is a rule that gets
         // discovered at release time.
-        var other = new Thread(() -> {
-            failures.add(assertThrows(BackendException.class, () -> backend.createWindow(SPEC)).getClass());
-            failures.add(assertThrows(BackendException.class, window::title).getClass());
-            failures.add(assertThrows(BackendException.class, () -> backend.windows()).getClass());
-        }, "off-ui");
+        var other = new Thread(
+                () -> {
+                    failures.add(assertThrows(BackendException.class, () -> backend.createWindow(SPEC))
+                            .getClass());
+                    failures.add(
+                            assertThrows(BackendException.class, window::title).getClass());
+                    failures.add(assertThrows(BackendException.class, () -> backend.windows())
+                            .getClass());
+                },
+                "off-ui");
         other.start();
         other.join();
 

@@ -5,17 +5,19 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import io.github.digitalsmile.goldberry.css.select.Selector.Combinator;
-import io.github.digitalsmile.goldberry.css.select.Selector.PseudoClass;
 import java.util.List;
+
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
-import io.github.digitalsmile.goldberry.css.select.Selector;
+
 import io.github.digitalsmile.goldberry.css.Declaration;
 import io.github.digitalsmile.goldberry.css.StyleRule;
+import io.github.digitalsmile.goldberry.css.select.Selector;
+import io.github.digitalsmile.goldberry.css.select.Selector.Combinator;
+import io.github.digitalsmile.goldberry.css.select.Selector.PseudoClass;
 
 class CssParserTest {
 
@@ -154,9 +156,12 @@ class CssParserTest {
         @Test
         @DisplayName("a property is lowercased; a custom property keeps its case")
         void propertyCase() {
-            assertEquals("color", one("a { COLOR: red }").declarations().getFirst().property());
+            assertEquals(
+                    "color", one("a { COLOR: red }").declarations().getFirst().property());
             // "--gbAccent" and "--gbaccent" are different properties in CSS.
-            assertEquals("--gbAccent", one("a { --gbAccent: red }").declarations().getFirst().property());
+            assertEquals(
+                    "--gbAccent",
+                    one("a { --gbAccent: red }").declarations().getFirst().property());
         }
 
         @Test
@@ -172,7 +177,8 @@ class CssParserTest {
             // "4px 8px" means two lengths for padding and nothing for color; the
             // parser cannot know which, so it does not try.
             var value = one("a { padding: 4px 8px }").declarations().getFirst().value();
-            var dimensions = value.stream().filter(t -> t.is(TokenType.DIMENSION)).toList();
+            var dimensions =
+                    value.stream().filter(t -> t.is(TokenType.DIMENSION)).toList();
             assertEquals(2, dimensions.size());
             assertEquals(4, dimensions.get(0).numeric(), 1e-9);
             assertEquals(8, dimensions.get(1).numeric(), 1e-9);
@@ -199,7 +205,10 @@ class CssParserTest {
         @Test
         @DisplayName("a value may contain a function with its own parens and braces")
         void nestedFunction() {
-            var value = one("a { color: var(--gb-accent) }").declarations().getFirst().value();
+            var value = one("a { color: var(--gb-accent) }")
+                    .declarations()
+                    .getFirst()
+                    .value();
             assertTrue(value.stream().anyMatch(t -> t.is(TokenType.FUNCTION)));
             assertTrue(value.stream().anyMatch(t -> t.text().equals("--gb-accent")));
         }
@@ -220,8 +229,10 @@ class CssParserTest {
         @Test
         @DisplayName("declarations keep their source position for later errors")
         void positions() {
-            var declaration = CssParser.parse("a {\n  color: red\n}").getFirst()
-                    .declarations().getFirst();
+            var declaration = CssParser.parse("a {\n  color: red\n}")
+                    .getFirst()
+                    .declarations()
+                    .getFirst();
             assertEquals(2, declaration.line());
             assertEquals(3, declaration.column());
         }
@@ -253,7 +264,10 @@ class CssParserTest {
         @Test
         @DisplayName("comments and whitespace between rules are ignored")
         void betweenRules() {
-            assertEquals(2, CssParser.parse("/* x */ a { color: red }\n\n/* y */ b { color: blue }").size());
+            assertEquals(
+                    2,
+                    CssParser.parse("/* x */ a { color: red }\n\n/* y */ b { color: blue }")
+                            .size());
         }
 
         @Test
@@ -279,12 +293,13 @@ class CssParserTest {
         }
 
         @ParameterizedTest
-        @ValueSource(strings = {
-                "a[href] { color: red }",     // attribute selectors are not in the subset
-                "a + b { color: red }",       // sibling combinators are not either
-                "a::before { color: red }",   // nor pseudo-elements
-                "@supports (x) { }",          // nor at-rules other than @media
-        })
+        @ValueSource(
+                strings = {
+                    "a[href] { color: red }", // attribute selectors are not in the subset
+                    "a + b { color: red }", // sibling combinators are not either
+                    "a::before { color: red }", // nor pseudo-elements
+                    "@supports (x) { }", // nor at-rules other than @media
+                })
         @DisplayName("constructs outside the subset are refused, not dropped")
         void outsideTheSubset(String css) {
             assertThrows(CssSyntaxException.class, () -> CssParser.parse(css));
@@ -311,8 +326,8 @@ class CssParserTest {
         @Test
         @DisplayName("an error carries the line and column")
         void errorPosition() {
-            var thrown = assertThrows(CssSyntaxException.class,
-                    () -> CssParser.parse("a { color: red }\nb:nope { color: blue }"));
+            var thrown = assertThrows(
+                    CssSyntaxException.class, () -> CssParser.parse("a { color: red }\nb:nope { color: blue }"));
             assertEquals(2, thrown.line());
         }
     }
@@ -350,7 +365,8 @@ class CssParserTest {
 
             var states = rules.get(2);
             assertEquals(2, states.selectors().size());
-            assertEquals(List.of(PseudoClass.FOCUS_VISIBLE),
+            assertEquals(
+                    List.of(PseudoClass.FOCUS_VISIBLE),
                     states.selectors().get(1).key().pseudoClasses());
 
             var nested = rules.get(3);

@@ -1,31 +1,31 @@
 package io.github.digitalsmile.goldberry.widgets.core;
 
-import io.github.digitalsmile.goldberry.widget.attr.Attributes;
-import io.github.digitalsmile.goldberry.widget.Element;
-import io.github.digitalsmile.goldberry.widget.ElementTree;
-import io.github.digitalsmile.goldberry.widget.Widget;
-import io.github.digitalsmile.goldberry.widget.WidgetRenderer;
-
-import io.github.digitalsmile.goldberry.widgets.panel.Panel;
-import io.github.digitalsmile.goldberry.widgets.text.Text;
-
-import io.github.digitalsmile.goldberry.RendererRequirement;
-import io.github.digitalsmile.goldberry.paint.TestFrames;
-import io.github.digitalsmile.goldberry.assets.BundledFont;
-import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
-import io.github.digitalsmile.goldberry.css.Stylesheet;
-import io.github.digitalsmile.goldberry.css.Theme;
-import io.github.digitalsmile.goldberry.paint.Box;
-import io.github.digitalsmile.goldberry.paint.BoxPainter;
-import io.github.digitalsmile.goldberry.paint.tree.RenderTree;
-import io.github.digitalsmile.goldberry.text.font.Fonts;
 import java.util.List;
 import java.util.function.LongSupplier;
+
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
+
+import io.github.digitalsmile.goldberry.RendererRequirement;
+import io.github.digitalsmile.goldberry.assets.BundledFont;
+import io.github.digitalsmile.goldberry.css.Stylesheet;
+import io.github.digitalsmile.goldberry.css.Theme;
+import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
+import io.github.digitalsmile.goldberry.paint.Box;
+import io.github.digitalsmile.goldberry.paint.BoxPainter;
+import io.github.digitalsmile.goldberry.paint.TestFrames;
+import io.github.digitalsmile.goldberry.paint.tree.RenderTree;
+import io.github.digitalsmile.goldberry.text.font.Fonts;
+import io.github.digitalsmile.goldberry.widget.Element;
+import io.github.digitalsmile.goldberry.widget.ElementTree;
+import io.github.digitalsmile.goldberry.widget.Widget;
+import io.github.digitalsmile.goldberry.widget.WidgetRenderer;
+import io.github.digitalsmile.goldberry.widget.attr.Attributes;
+import io.github.digitalsmile.goldberry.widgets.panel.Panel;
+import io.github.digitalsmile.goldberry.widgets.text.Text;
 
 /// What a frame of a real widget tree costs, split by stage.
 ///
@@ -97,27 +97,27 @@ class FrameBenchmark {
     /// The showcase's shape: a bar, a sidebar, wrapped prose and a row of
     /// labelled panels. Eight text nodes, which is a modest real window.
     private static Widget showcaseTree() {
-        return new Column(List.of(
-                new Panel(List.of(
-                        new Row(List.of(
-                                new Text("Goldberry"),
-                                new Spacer(),
-                                new Text("Nord dark")),
-                                Attributes.NONE)),
-                        classed("bar")),
-                new Row(List.of(
-                        new Panel(List.of(
-                                new Column(List.of(
-                                        new Text("Overview"),
-                                        new Text("Controls"),
-                                        new Text("Motion")),
+        return new Column(
+                List.of(
+                        new Panel(
+                                List.of(new Row(
+                                        List.of(new Text("Goldberry"), new Spacer(), new Text("Nord dark")),
                                         Attributes.NONE)),
-                                classed("sidebar")),
-                        new Column(List.of(
-                                new Text("Retained rendering"),
-                                new Text(PROSE)),
-                                classed("body"))),
-                        Attributes.NONE)),
+                                classed("bar")),
+                        new Row(
+                                List.of(
+                                        new Panel(
+                                                List.of(new Column(
+                                                        List.of(
+                                                                new Text("Overview"),
+                                                                new Text("Controls"),
+                                                                new Text("Motion")),
+                                                        Attributes.NONE)),
+                                                classed("sidebar")),
+                                        new Column(
+                                                List.of(new Text("Retained rendering"), new Text(PROSE)),
+                                                classed("body"))),
+                                Attributes.NONE)),
                 classed("root"));
     }
 
@@ -144,7 +144,9 @@ class FrameBenchmark {
 
         // The three stages an application pays every frame, measured separately
         // so the answer is not "a frame costs N" but "and here is which part".
-        report("render (cascade + boxes)", () -> renderer.render(tree).children().size());
+        report(
+                "render (cascade + boxes)",
+                () -> renderer.render(tree).children().size());
 
         var box = renderer.render(tree);
         report("layout (Yoga tree, built and freed)", () -> {
@@ -228,8 +230,7 @@ class FrameBenchmark {
         // touched. The whole-frame rows below put it back.
         report("frame CPU before raster, throwaway", () -> {
             var count = new int[1];
-            BoxPainter.forEachBox(target.frame(), renderer.render(tree),
-                    (b, layout) -> count[0]++);
+            BoxPainter.forEachBox(target.frame(), renderer.render(tree), (b, layout) -> count[0]++);
             return count[0];
         });
 
@@ -279,10 +280,10 @@ class FrameBenchmark {
                     .children(
                             renderer.render(tree),
                             Box.filled(0xFF000000 | (i * 0x101010))
-                                    .size(io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength
-                                            .points(60),
-                                            io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength
-                                            .points(24)));
+                                    .size(
+                                            io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength.points(60),
+                                            io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength.points(
+                                                    24)));
         }
 
         try (var render = RenderTree.create()) {
@@ -313,8 +314,7 @@ class FrameBenchmark {
                 render.paint(synchronous.frame(), damage);
                 return 1;
             });
-            System.out.printf("  %-42s %d of %d px%n", "damaged area on the last frame",
-                    area[0], 960 * 640);
+            System.out.printf("  %-42s %d of %d px%n", "damaged area on the last frame", area[0], 960 * 640);
         }
     }
 
@@ -335,9 +335,7 @@ class FrameBenchmark {
         // is not inside the timed section (ADR-0045, the second time).
         var frames = new Box[16];
         for (var i = 0; i < frames.length; i++) {
-            frames[i] = Box.of()
-                    .opacity(0.3 + i * 0.04)
-                    .children(renderer.render(tree));
+            frames[i] = Box.of().opacity(0.3 + i * 0.04).children(renderer.render(tree));
         }
 
         try (var render = RenderTree.create()) {
@@ -350,18 +348,17 @@ class FrameBenchmark {
                 render.paint(synchronous.frame());
                 return render.layersRepainted();
             });
-            System.out.printf("  %-42s %d of %d%n", "layers rasterized in the last frame",
-                    render.layersRepainted(), render.layersComposited());
+            System.out.printf(
+                    "  %-42s %d of %d%n",
+                    "layers rasterized in the last frame", render.layersRepainted(), render.layersComposited());
         }
 
         // The comparison: the same group, with something inside it changing too,
         // so the raster is invalid every frame and the subtree is drawn again.
         var changing = new Box[16];
         for (var i = 0; i < changing.length; i++) {
-            changing[i] = Box.of()
-                    .opacity(0.3 + i * 0.04)
-                    .background(0x01000000 | i)
-                    .children(renderer.render(tree));
+            changing[i] =
+                    Box.of().opacity(0.3 + i * 0.04).background(0x01000000 | i).children(renderer.render(tree));
         }
         try (var render = RenderTree.create()) {
             render.update(synchronous.frame(), changing[0]);
@@ -418,8 +415,8 @@ class FrameBenchmark {
         // Turning the winning declarations into typed values -- parsing lengths
         // and colours out of tokens. Separate from matching, because they would
         // be fixed by different things.
-        var declarations = new java.util.ArrayList<java.util.Map<String,
-                List<io.github.digitalsmile.goldberry.css.parse.Token>>>();
+        var declarations = new java.util.ArrayList<
+                java.util.Map<String, List<io.github.digitalsmile.goldberry.css.parse.Token>>>();
         for (var element : elements) {
             declarations.add(resolver.resolve(element));
         }
@@ -427,13 +424,14 @@ class FrameBenchmark {
             var total = 0;
             for (var declared : declarations) {
                 total += io.github.digitalsmile.goldberry.css.ComputedStyle.of(
-                        declared,
-                        io.github.digitalsmile.goldberry.css.value.CssLength.Context.DEFAULT).hashCode();
+                                declared, io.github.digitalsmile.goldberry.css.value.CssLength.Context.DEFAULT)
+                        .hashCode();
             }
             return total;
         });
 
-        report("the whole render, for comparison",
+        report(
+                "the whole render, for comparison",
                 () -> renderer.render(tree).children().size());
     }
 
@@ -464,7 +462,8 @@ class FrameBenchmark {
 
         // Rendering alone, which includes a fresh Paragraph.of per text node --
         // and therefore a fresh shaping of text that has not changed.
-        report("render only (re-shapes every paragraph)",
+        report(
+                "render only (re-shapes every paragraph)",
                 () -> renderer.render(tree).children().size());
     }
 

@@ -6,21 +6,23 @@ import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import io.github.digitalsmile.goldberry.RendererRequirement;
-import io.github.digitalsmile.goldberry.assets.BundledFont;
-import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
-import io.github.digitalsmile.goldberry.css.ComputedStyle;
-import io.github.digitalsmile.goldberry.css.Stylesheet;
-import io.github.digitalsmile.goldberry.css.value.Transform;
-import io.github.digitalsmile.goldberry.paint.Box;
-import io.github.digitalsmile.goldberry.motion.Clock;
-import io.github.digitalsmile.goldberry.text.font.Font;
 import java.util.List;
 import java.util.Set;
+
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+
+import io.github.digitalsmile.goldberry.RendererRequirement;
+import io.github.digitalsmile.goldberry.assets.BundledFont;
+import io.github.digitalsmile.goldberry.css.ComputedStyle;
+import io.github.digitalsmile.goldberry.css.Stylesheet;
+import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
+import io.github.digitalsmile.goldberry.css.value.Transform;
+import io.github.digitalsmile.goldberry.motion.Clock;
+import io.github.digitalsmile.goldberry.paint.Box;
+import io.github.digitalsmile.goldberry.text.font.Font;
 import io.github.digitalsmile.goldberry.widget.attr.Attributes;
 import io.github.digitalsmile.goldberry.widget.style.Paints;
 import io.github.digitalsmile.goldberry.widget.style.Styled;
@@ -44,8 +46,7 @@ class RestyleTest {
 
     /// A node that translates itself by a number it was built with — the shape of
     /// `SegmentedIndicator`, with the counting taken out.
-    private record Marker(double percent, Attributes attributes)
-            implements Widget.Leaf, Styled, Paints {
+    private record Marker(double percent, Attributes attributes) implements Widget.Leaf, Styled, Paints {
 
         @Override
         public String cssType() {
@@ -59,8 +60,8 @@ class RestyleTest {
 
         @Override
         public ComputedStyle restyle(ComputedStyle resolved) {
-            return resolved.transform(Transform.of(new Transform.Function.Translate(
-                    Transform.Length.percent(percent), Transform.Length.ZERO)));
+            return resolved.transform(Transform.of(
+                    new Transform.Function.Translate(Transform.Length.percent(percent), Transform.Length.ZERO)));
         }
 
         @Override
@@ -153,8 +154,7 @@ class RestyleTest {
         var box = renderer.render(new ElementTree(new Marker(200, none())));
 
         assertEquals(
-                Transform.of(new Transform.Function.Translate(
-                        Transform.Length.percent(200), Transform.Length.ZERO)),
+                Transform.of(new Transform.Function.Translate(Transform.Length.percent(200), Transform.Length.ZERO)),
                 box.transform());
     }
 
@@ -171,16 +171,21 @@ class RestyleTest {
         var box = renderer.render(tree);
         var cached = tree.root().cachedStyle(renderer.resolver(), null);
 
-        assertTrue(cached.transform().isNone(),
+        assertTrue(
+                cached.transform().isNone(),
                 "the cache is the cascade's answer; the widget's word is applied on top of it"
                         + " every frame, or a widget that changed would keep the first frame's"
                         + " value for as long as its selectors kept matching");
         // The box has the widget's transform even at zero -- a `translate(0%)`
         // is a transform that changes nothing, not the absence of one, and the
         // painter drops it when it resolves to the identity.
-        assertEquals(0, ((Transform.Function.Translate) box.transform().functions().getFirst())
-                .x().value());
-        assertTrue(box.transform().functions().getFirst().resolve(40, 32).isIdentity(),
+        assertEquals(
+                0,
+                ((Transform.Function.Translate) box.transform().functions().getFirst())
+                        .x()
+                        .value());
+        assertTrue(
+                box.transform().functions().getFirst().resolve(40, 32).isIdentity(),
                 "and it costs the painter nothing");
     }
 
@@ -197,8 +202,11 @@ class RestyleTest {
         tree.root().update(new Marker(300, none()));
         var moved = renderer.render(tree);
 
-        assertEquals(300, ((Transform.Function.Translate) moved.transform().functions().getFirst())
-                .x().value());
+        assertEquals(
+                300,
+                ((Transform.Function.Translate) moved.transform().functions().getFirst())
+                        .x()
+                        .value());
     }
 
     /// The reason the seam exists at all. A `transition` on the property the
@@ -221,7 +229,9 @@ class RestyleTest {
 
         clock.advance(80);
         var midway = renderer.render(tree);
-        var x = ((Transform.Function.Translate) midway.transform().functions().getFirst()).x().value();
+        var x = ((Transform.Function.Translate) midway.transform().functions().getFirst())
+                .x()
+                .value();
         assertTrue(x > 0 && x < 200, "caught between the two: " + x);
 
         clock.advance(200);
@@ -236,10 +246,11 @@ class RestyleTest {
     @DisplayName("what a widget writes is what its children inherit")
     void childrenInherit() {
         var renderer = renderer("tinted { width: 40px } label { width: 10px }");
-        var box = renderer.render(new ElementTree(
-                new Tinted(GREEN, List.of(new Label(none())), none())));
+        var box = renderer.render(new ElementTree(new Tinted(GREEN, List.of(new Label(none())), none())));
 
-        assertEquals(GREEN, box.children().getFirst().text().argb(),
+        assertEquals(
+                GREEN,
+                box.children().getFirst().text().argb(),
                 "the child drew itself in the colour its parent wrote, not the cascade's");
     }
 

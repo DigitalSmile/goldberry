@@ -1,5 +1,9 @@
 package io.github.digitalsmile.goldberry.example.ui;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
+
 import io.github.digitalsmile.goldberry.bind.Property;
 import io.github.digitalsmile.goldberry.widget.BuildContext;
 import io.github.digitalsmile.goldberry.widget.State;
@@ -9,9 +13,6 @@ import io.github.digitalsmile.goldberry.widgets.controls.option.Option;
 import io.github.digitalsmile.goldberry.widgets.controls.select.Select;
 import io.github.digitalsmile.goldberry.widgets.panel.tree.TreeNode;
 import io.github.digitalsmile.goldberry.widgets.text.Text;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Locale;
 
 /// The Forms screen's three `select` options that are **not** a still picture.
 ///
@@ -41,8 +42,7 @@ import java.util.Locale;
 /// column height, and each of these owns a value the other two never read.
 public final class Choosers {
 
-    private Choosers() {
-    }
+    private Choosers() {}
 
     /// The three chooser cards, in the order they are offered to the wall.
     public static List<Widget> cards() {
@@ -90,19 +90,19 @@ public final class Choosers {
 
             @Override
             public Widget build(BuildContext context) {
-                return Notifications.card("tongues-card", "Several at once", List.of(
-                        caption("The selection is a set, drawn as chips with a × on each."
-                                + " Picking from the list does not close it, and change is a"
-                                + " toggle — so the × and a second click on a chosen row are"
-                                + " one channel."),
-                        Select.of(Property.of(chosen), this::toggle,
-                                        Tongues.TONGUES.toArray(Option[]::new))
-                                .multiple(true)
-                                .placeholder("Which tongues are spoken")
-                                .withAttributes(Attributes.NONE.id("tongues")),
-                        caption(chosen.isEmpty()
-                                ? "None spoken"
-                                : "Holding: " + String.join(", ", chosen))));
+                return Notifications.card(
+                        "tongues-card",
+                        "Several at once",
+                        List.of(
+                                caption("The selection is a set, drawn as chips with a × on each."
+                                        + " Picking from the list does not close it, and change is a"
+                                        + " toggle — so the × and a second click on a chosen row are"
+                                        + " one channel."),
+                                Select.of(Property.of(chosen), this::toggle, Tongues.TONGUES.toArray(Option[]::new))
+                                        .multiple(true)
+                                        .placeholder("Which tongues are spoken")
+                                        .withAttributes(Attributes.NONE.id("tongues")),
+                                caption(chosen.isEmpty() ? "None spoken" : "Holding: " + String.join(", ", chosen))));
             }
         }
     }
@@ -115,10 +115,26 @@ public final class Choosers {
         /// several sharing a first letter: a list where every prefix matches one
         /// row shows nothing about narrowing.
         private static final List<String> PLACES = List.of(
-                "Bree", "Bag End", "Buckland", "Bruinen", "Rivendell", "Rohan",
-                "Isengard", "Ithilien", "Lothlórien", "Lorien Eaves", "Moria",
-                "Minas Tirith", "Mirkwood", "Osgiliath", "Edoras", "Emyn Muil",
-                "Fangorn", "Gondor", "Helm's Deep", "Weathertop");
+                "Bree",
+                "Bag End",
+                "Buckland",
+                "Bruinen",
+                "Rivendell",
+                "Rohan",
+                "Isengard",
+                "Ithilien",
+                "Lothlórien",
+                "Lorien Eaves",
+                "Moria",
+                "Minas Tirith",
+                "Mirkwood",
+                "Osgiliath",
+                "Edoras",
+                "Emyn Muil",
+                "Fangorn",
+                "Gondor",
+                "Helm's Deep",
+                "Weathertop");
 
         @Override
         public State<?> createState() {
@@ -170,16 +186,19 @@ public final class Choosers {
 
             @Override
             public Widget build(BuildContext context) {
-                return Notifications.card("places-card", "Type to narrow it", List.of(
-                        caption("The closed control is an editable text-input. Typing raises"
-                                + " the query and this card filters — Esc puts the committed"
-                                + " value back rather than clearing, and a name no place"
-                                + " matches is refused."),
-                        new Select(place, this::chose, matches().toArray(Option[]::new))
-                                .autocomplete(this::typed)
-                                .placeholder("Where to next")
-                                .withAttributes(Attributes.NONE.id("places")),
-                        caption(place.isEmpty() ? "Nowhere chosen" : "Bound for " + place)));
+                return Notifications.card(
+                        "places-card",
+                        "Type to narrow it",
+                        List.of(
+                                caption("The closed control is an editable text-input. Typing raises"
+                                        + " the query and this card filters — Esc puts the committed"
+                                        + " value back rather than clearing, and a name no place"
+                                        + " matches is refused."),
+                                new Select(place, this::chose, matches().toArray(Option[]::new))
+                                        .autocomplete(this::typed)
+                                        .placeholder("Where to next")
+                                        .withAttributes(Attributes.NONE.id("places")),
+                                caption(place.isEmpty() ? "Nowhere chosen" : "Bound for " + place)));
             }
         }
     }
@@ -194,21 +213,30 @@ public final class Choosers {
         /// needs, and why a node draws a chevron before anyone knows what is
         /// under it.
         private static final List<TreeNode> REALMS = List.of(
-                TreeNode.of("eriador", "Eriador",
+                TreeNode.of(
+                        "eriador",
+                        "Eriador",
                         TreeNode.leaf("shire", "The Shire"),
                         TreeNode.leaf("bree", "Bree-land"),
                         TreeNode.leaf("imladris", "Rivendell")),
-                TreeNode.of("gondor", "Gondor",
+                TreeNode.of(
+                        "gondor",
+                        "Gondor",
                         TreeNode.leaf("minas-tirith", "Minas Tirith"),
                         TreeNode.leaf("ithilien", "Ithilien"),
                         TreeNode.leaf("osgiliath", "Osgiliath")),
-                TreeNode.of("rohan", "Rohan",
+                TreeNode.of(
+                        "rohan",
+                        "Rohan",
                         TreeNode.leaf("edoras", "Edoras"),
                         TreeNode.leaf("helms-deep", "Helm's Deep")),
-                TreeNode.lazy("rhovanion", "Rhovanion", () -> List.of(
-                        TreeNode.leaf("mirkwood", "Mirkwood"),
-                        TreeNode.leaf("erebor", "Erebor"),
-                        TreeNode.leaf("dale", "Dale"))));
+                TreeNode.lazy(
+                        "rhovanion",
+                        "Rhovanion",
+                        () -> List.of(
+                                TreeNode.leaf("mirkwood", "Mirkwood"),
+                                TreeNode.leaf("erebor", "Erebor"),
+                                TreeNode.leaf("dale", "Dale"))));
 
         @Override
         public State<?> createState() {
@@ -225,16 +253,19 @@ public final class Choosers {
 
             @Override
             public Widget build(BuildContext context) {
-                return Notifications.card("realms-card", "A tree instead of a list", List.of(
-                        caption("Right opens a branch or steps into it, Left closes it or"
-                                + " steps out. A parent is not an answer — leaf-only is the"
-                                + " default, because Gondor is a heading. Rhovanion fetches"
-                                + " its children the first time it opens."),
-                        new Select(realm, this::chose)
-                                .tree(Realms.REALMS)
-                                .placeholder("Choose a realm")
-                                .withAttributes(Attributes.NONE.id("realms")),
-                        caption(realm.isEmpty() ? "No realm chosen" : "Chose: " + realm)));
+                return Notifications.card(
+                        "realms-card",
+                        "A tree instead of a list",
+                        List.of(
+                                caption("Right opens a branch or steps into it, Left closes it or"
+                                        + " steps out. A parent is not an answer — leaf-only is the"
+                                        + " default, because Gondor is a heading. Rhovanion fetches"
+                                        + " its children the first time it opens."),
+                                new Select(realm, this::chose)
+                                        .tree(Realms.REALMS)
+                                        .placeholder("Choose a realm")
+                                        .withAttributes(Attributes.NONE.id("realms")),
+                                caption(realm.isEmpty() ? "No realm chosen" : "Chose: " + realm)));
             }
         }
     }

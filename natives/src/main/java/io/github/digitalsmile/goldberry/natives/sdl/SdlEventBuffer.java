@@ -1,11 +1,12 @@
 package io.github.digitalsmile.goldberry.natives.sdl;
 
-import io.github.digitalsmile.goldberry.natives.layout.Layouts;
 import java.lang.foreign.Arena;
 import java.lang.foreign.MemoryLayout;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.ValueLayout;
 import java.util.Objects;
+
+import io.github.digitalsmile.goldberry.natives.layout.Layouts;
 import io.github.digitalsmile.goldberry.natives.sdl.event.SdlEventType;
 import io.github.digitalsmile.goldberry.natives.sdl.event.SdlWheelDirection;
 
@@ -24,63 +25,38 @@ import io.github.digitalsmile.goldberry.natives.sdl.event.SdlWheelDirection;
 /// loop.
 public final class SdlEventBuffer implements AutoCloseable {
 
-    private static final long TYPE_OFFSET =
-            Layouts.SDL_COMMON_EVENT.offsetOf("type");
-    private static final long WINDOW_ID_OFFSET =
-            Layouts.SDL_WINDOW_EVENT.offsetOf("windowID");
-    private static final long DATA1_OFFSET =
-            Layouts.SDL_WINDOW_EVENT.offsetOf("data1");
-    private static final long MOTION_X_OFFSET =
-            Layouts.SDL_MOUSE_MOTION_EVENT.offsetOf("x");
-    private static final long MOTION_Y_OFFSET =
-            Layouts.SDL_MOUSE_MOTION_EVENT.offsetOf("y");
-    private static final long BUTTON_X_OFFSET =
-            Layouts.SDL_MOUSE_BUTTON_EVENT.offsetOf("x");
-    private static final long BUTTON_Y_OFFSET =
-            Layouts.SDL_MOUSE_BUTTON_EVENT.offsetOf("y");
-    private static final long BUTTON_INDEX_OFFSET =
-            Layouts.SDL_MOUSE_BUTTON_EVENT.offsetOf("button");
-    private static final long BUTTON_CLICKS_OFFSET =
-            Layouts.SDL_MOUSE_BUTTON_EVENT.offsetOf("clicks");
+    private static final long TYPE_OFFSET = Layouts.SDL_COMMON_EVENT.offsetOf("type");
+    private static final long WINDOW_ID_OFFSET = Layouts.SDL_WINDOW_EVENT.offsetOf("windowID");
+    private static final long DATA1_OFFSET = Layouts.SDL_WINDOW_EVENT.offsetOf("data1");
+    private static final long MOTION_X_OFFSET = Layouts.SDL_MOUSE_MOTION_EVENT.offsetOf("x");
+    private static final long MOTION_Y_OFFSET = Layouts.SDL_MOUSE_MOTION_EVENT.offsetOf("y");
+    private static final long BUTTON_X_OFFSET = Layouts.SDL_MOUSE_BUTTON_EVENT.offsetOf("x");
+    private static final long BUTTON_Y_OFFSET = Layouts.SDL_MOUSE_BUTTON_EVENT.offsetOf("y");
+    private static final long BUTTON_INDEX_OFFSET = Layouts.SDL_MOUSE_BUTTON_EVENT.offsetOf("button");
+    private static final long BUTTON_CLICKS_OFFSET = Layouts.SDL_MOUSE_BUTTON_EVENT.offsetOf("clicks");
     /// The motion and button arms' own `windowID`, for [WHEEL_WINDOW_ID_OFFSET]'s
     /// reason: the offset coincides with the window arm's because every arm starts
     /// with the same three fields, and taking it from the layout that applies means
     /// the coincidence is not what holds it up.
-    private static final long MOTION_WINDOW_ID_OFFSET =
-            Layouts.SDL_MOUSE_MOTION_EVENT.offsetOf("windowID");
-    private static final long BUTTON_WINDOW_ID_OFFSET =
-            Layouts.SDL_MOUSE_BUTTON_EVENT.offsetOf("windowID");
-    private static final long WHEEL_X_OFFSET =
-            Layouts.SDL_MOUSE_WHEEL_EVENT.offsetOf("x");
-    private static final long WHEEL_Y_OFFSET =
-            Layouts.SDL_MOUSE_WHEEL_EVENT.offsetOf("y");
-    private static final long WHEEL_DIRECTION_OFFSET =
-            Layouts.SDL_MOUSE_WHEEL_EVENT.offsetOf("direction");
-    private static final long WHEEL_INTEGER_X_OFFSET =
-            Layouts.SDL_MOUSE_WHEEL_EVENT.offsetOf("integer_x");
-    private static final long WHEEL_INTEGER_Y_OFFSET =
-            Layouts.SDL_MOUSE_WHEEL_EVENT.offsetOf("integer_y");
-    private static final long WHEEL_MOUSE_X_OFFSET =
-            Layouts.SDL_MOUSE_WHEEL_EVENT.offsetOf("mouse_x");
-    private static final long WHEEL_MOUSE_Y_OFFSET =
-            Layouts.SDL_MOUSE_WHEEL_EVENT.offsetOf("mouse_y");
+    private static final long MOTION_WINDOW_ID_OFFSET = Layouts.SDL_MOUSE_MOTION_EVENT.offsetOf("windowID");
+    private static final long BUTTON_WINDOW_ID_OFFSET = Layouts.SDL_MOUSE_BUTTON_EVENT.offsetOf("windowID");
+    private static final long WHEEL_X_OFFSET = Layouts.SDL_MOUSE_WHEEL_EVENT.offsetOf("x");
+    private static final long WHEEL_Y_OFFSET = Layouts.SDL_MOUSE_WHEEL_EVENT.offsetOf("y");
+    private static final long WHEEL_DIRECTION_OFFSET = Layouts.SDL_MOUSE_WHEEL_EVENT.offsetOf("direction");
+    private static final long WHEEL_INTEGER_X_OFFSET = Layouts.SDL_MOUSE_WHEEL_EVENT.offsetOf("integer_x");
+    private static final long WHEEL_INTEGER_Y_OFFSET = Layouts.SDL_MOUSE_WHEEL_EVENT.offsetOf("integer_y");
+    private static final long WHEEL_MOUSE_X_OFFSET = Layouts.SDL_MOUSE_WHEEL_EVENT.offsetOf("mouse_x");
+    private static final long WHEEL_MOUSE_Y_OFFSET = Layouts.SDL_MOUSE_WHEEL_EVENT.offsetOf("mouse_y");
     /// The wheel arm's own `windowID`. At the same offset as the window arm's,
     /// because both structs start with the same three fields — but taken from the
     /// layout that actually applies, so the coincidence is not what holds it up.
-    private static final long WHEEL_WINDOW_ID_OFFSET =
-            Layouts.SDL_MOUSE_WHEEL_EVENT.offsetOf("windowID");
-    private static final long KEY_SCANCODE_OFFSET =
-            Layouts.SDL_KEYBOARD_EVENT.offsetOf("scancode");
-    private static final long KEY_KEYCODE_OFFSET =
-            Layouts.SDL_KEYBOARD_EVENT.offsetOf("key");
-    private static final long KEY_MOD_OFFSET =
-            Layouts.SDL_KEYBOARD_EVENT.offsetOf("mod");
-    private static final long KEY_REPEAT_OFFSET =
-            Layouts.SDL_KEYBOARD_EVENT.offsetOf("repeat");
-    private static final long TEXT_POINTER_OFFSET =
-            Layouts.SDL_TEXT_INPUT_EVENT.offsetOf("text");
-    private static final long DATA2_OFFSET =
-            Layouts.SDL_WINDOW_EVENT.offsetOf("data2");
+    private static final long WHEEL_WINDOW_ID_OFFSET = Layouts.SDL_MOUSE_WHEEL_EVENT.offsetOf("windowID");
+    private static final long KEY_SCANCODE_OFFSET = Layouts.SDL_KEYBOARD_EVENT.offsetOf("scancode");
+    private static final long KEY_KEYCODE_OFFSET = Layouts.SDL_KEYBOARD_EVENT.offsetOf("key");
+    private static final long KEY_MOD_OFFSET = Layouts.SDL_KEYBOARD_EVENT.offsetOf("mod");
+    private static final long KEY_REPEAT_OFFSET = Layouts.SDL_KEYBOARD_EVENT.offsetOf("repeat");
+    private static final long TEXT_POINTER_OFFSET = Layouts.SDL_TEXT_INPUT_EVENT.offsetOf("text");
+    private static final long DATA2_OFFSET = Layouts.SDL_WINDOW_EVENT.offsetOf("data2");
 
     /// Null for a borrowed view — see [#borrowing].
     private final Arena arena;
@@ -282,8 +258,7 @@ public final class SdlEventBuffer implements AutoCloseable {
     ///                 sign, not the toolkit's
     /// @param pointerX where the pointer was, window-relative
     public void writeWheel(
-            int windowId, float x, float y, SdlWheelDirection direction,
-            float pointerX, float pointerY) {
+            int windowId, float x, float y, SdlWheelDirection direction, float pointerX, float pointerY) {
 
         // The detents SDL would have accumulated for a turn this size. Truncation
         // and not rounding, because that is what an accumulator crossing whole
@@ -298,8 +273,14 @@ public final class SdlEventBuffer implements AutoCloseable {
     /// part-way through, which no function of one event's floats can produce
     /// ([ADR-0115](../../../../../../../book/src/adr/0115-a-wheel-reports-a-fraction-and-a-detent.md)).
     public void writeWheel(
-            int windowId, float x, float y, int ticksX, int ticksY,
-            SdlWheelDirection direction, float pointerX, float pointerY) {
+            int windowId,
+            float x,
+            float y,
+            int ticksX,
+            int ticksY,
+            SdlWheelDirection direction,
+            float pointerX,
+            float pointerY) {
 
         Objects.requireNonNull(direction, "direction");
         clear();
@@ -339,8 +320,7 @@ public final class SdlEventBuffer implements AutoCloseable {
     ///
     /// @param type   [SdlEventType#MOUSE_BUTTON_DOWN] or [SdlEventType#MOUSE_BUTTON_UP]
     /// @param button SDL's index, numbered from 1 with left first
-    public void writeMouseButton(
-            SdlEventType type, int windowId, float x, float y, int button, int clicks) {
+    public void writeMouseButton(SdlEventType type, int windowId, float x, float y, int button, int clicks) {
 
         Objects.requireNonNull(type, "type");
         clear();

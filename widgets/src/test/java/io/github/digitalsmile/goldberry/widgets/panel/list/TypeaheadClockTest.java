@@ -2,16 +2,18 @@ package io.github.digitalsmile.goldberry.widgets.panel.list;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import java.util.List;
+import java.util.Set;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+
 import io.github.digitalsmile.goldberry.RendererRequirement;
 import io.github.digitalsmile.goldberry.input.event.TextEvent;
 import io.github.digitalsmile.goldberry.widget.ElementTree;
 import io.github.digitalsmile.goldberry.widgets.TestHost;
 import io.github.digitalsmile.goldberry.widgets.panel.Described;
-import java.util.List;
-import java.util.Set;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
 
 /// The typeahead **timeout**, which nothing could assert until the clock became
 /// the host's.
@@ -44,8 +46,7 @@ class TypeaheadClockTest {
     /// Two names sharing a first letter and two sharing another, so both readings
     /// of a second keystroke — "narrow the prefix" and "start again" — land on a
     /// different row and are told apart by which one.
-    private static final List<String> NAMES =
-            List.of("Denmark", "Deseret", "Estonia", "Eritrea");
+    private static final List<String> NAMES = List.of("Denmark", "Deseret", "Estonia", "Eritrea");
 
     @BeforeEach
     void setUp() {
@@ -53,15 +54,14 @@ class TypeaheadClockTest {
     }
 
     private ElementTree tree() {
-        return new ElementTree(
-                ListView.of(NAMES).selection(Selection.MULTIPLE).selected(Set.of(), asked -> { }),
-                host);
+        return new ElementTree(ListView.of(NAMES).selection(Selection.MULTIPLE).selected(Set.of(), asked -> {}), host);
     }
 
     private static ListRow row(ElementTree tree, String id) {
         return Described.of(tree, ListRow.class).stream()
                 .filter(r -> r.id().equals(id))
-                .findFirst().orElseThrow(() -> new AssertionError("no row \"" + id + "\""));
+                .findFirst()
+                .orElseThrow(() -> new AssertionError("no row \"" + id + "\""));
     }
 
     private static void type(ListRow row, String text) {
@@ -74,8 +74,8 @@ class TypeaheadClockTest {
         var tree = tree();
 
         type(row(tree, "list-Denmark"), "d");
-        assertEquals(List.of("list-Deseret"), host.focusRequests(),
-                "\"d\" from Denmark is the next name starting with it");
+        assertEquals(
+                List.of("list-Deseret"), host.focusRequests(), "\"d\" from Denmark is the next name starting with it");
 
         host.forgetFocusRequests();
         host.clock.advance(WITHIN_THE_WINDOW);
@@ -84,8 +84,8 @@ class TypeaheadClockTest {
         // fresh "e" it would have jumped to Estonia.
         type(row(tree, "list-Deseret"), "e");
 
-        assertEquals(List.of(), host.focusRequests(),
-                "\"de\" is still Denmark — a fresh \"e\" would have gone to Estonia");
+        assertEquals(
+                List.of(), host.focusRequests(), "\"de\" is still Denmark — a fresh \"e\" would have gone to Estonia");
     }
 
     @Test
@@ -101,8 +101,8 @@ class TypeaheadClockTest {
         host.clock.advance(AFTER_THE_WINDOW);
         type(row(tree, "list-Deseret"), "e");
 
-        assertEquals(List.of("list-Estonia"), host.focusRequests(),
-                "after the window \"e\" is a new search, not \"de\"");
+        assertEquals(
+                List.of("list-Estonia"), host.focusRequests(), "after the window \"e\" is a new search, not \"de\"");
     }
 
     @Test
@@ -121,7 +121,9 @@ class TypeaheadClockTest {
         host.clock.advance(600);
         type(row(tree, "list-Deseret"), "s");
 
-        assertEquals(List.of(), host.focusRequests(),
+        assertEquals(
+                List.of(),
+                host.focusRequests(),
                 "\"des\" is Deseret, where the focus already is —"
                         + " so the search never restarted across two 600ms gaps");
     }

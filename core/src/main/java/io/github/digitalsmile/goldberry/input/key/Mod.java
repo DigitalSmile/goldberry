@@ -31,7 +31,6 @@ package io.github.digitalsmile.goldberry.input.key;
 /// table has ever cared. They are folded on the way in, which is what
 /// [Modifiers#fromSdl] does.
 public enum Mod {
-
     SHIFT(1),
     CTRL(1 << 1),
     ALT(1 << 2),

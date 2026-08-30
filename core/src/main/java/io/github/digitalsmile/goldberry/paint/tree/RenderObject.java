@@ -1,17 +1,18 @@
 package io.github.digitalsmile.goldberry.paint.tree;
 
-import io.github.digitalsmile.goldberry.paint.Layer;
+import java.util.ArrayList;
+import java.util.List;
+
+import io.github.digitalsmile.goldberry.natives.yoga.YogaConfig;
+import io.github.digitalsmile.goldberry.natives.yoga.YogaNode;
+import io.github.digitalsmile.goldberry.natives.yoga.style.Edge;
+import io.github.digitalsmile.goldberry.natives.yoga.style.Gutter;
 import io.github.digitalsmile.goldberry.paint.Box;
 import io.github.digitalsmile.goldberry.paint.BoxPainter;
+import io.github.digitalsmile.goldberry.paint.Layer;
 import io.github.digitalsmile.goldberry.render.DamageRect;
 import io.github.digitalsmile.goldberry.render.model.DisplayScale;
 import io.github.digitalsmile.goldberry.render.model.PhysicalSize;
-import io.github.digitalsmile.goldberry.natives.yoga.style.Edge;
-import io.github.digitalsmile.goldberry.natives.yoga.style.Gutter;
-import io.github.digitalsmile.goldberry.natives.yoga.YogaConfig;
-import io.github.digitalsmile.goldberry.natives.yoga.YogaNode;
-import java.util.ArrayList;
-import java.util.List;
 
 /// One visual node, kept between frames — ADR-0004's third tree.
 ///
@@ -363,10 +364,7 @@ public final class RenderObject implements AutoCloseable {
     /// Fully transparent is not promoted either: there is nothing to composite,
     /// and the ordinary path already draws nothing.
     boolean isPromoted() {
-        return applied != null
-                && applied.opacity() < 1
-                && applied.opacity() > 0
-                && !children.isEmpty();
+        return applied != null && applied.opacity() < 1 && applied.opacity() > 0 && !children.isEmpty();
     }
 
     /// The layer for `bounds`, reused if the one held still fits and is good.
@@ -375,9 +373,8 @@ public final class RenderObject implements AutoCloseable {
     /// moved something — and marked stale when anything in the subtree changed,
     /// which is what makes an animating node a blit rather than a repaint.
     Layer layerFor(RenderTree.Bounds bounds, DisplayScale scale) {
-        var size = new PhysicalSize(
-                Math.max(1, (int) Math.ceil(bounds.width() * scale.factor())),
-                Math.max(1, (int) Math.ceil(bounds.height() * scale.factor())));
+        var size = new PhysicalSize(Math.max(1, (int) Math.ceil(bounds.width() * scale.factor())), Math.max(1, (int)
+                Math.ceil(bounds.height() * scale.factor())));
 
         if (layer == null || layer.isClosed() || !layer.size().equals(size)) {
             if (layer != null) {

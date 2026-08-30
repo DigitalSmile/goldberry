@@ -44,8 +44,7 @@ public final class Logs {
         }
     }
 
-    private Logs() {
-    }
+    private Logs() {}
 
     /// A logger named after `type`.
     public static Logger of(Class<?> type) {

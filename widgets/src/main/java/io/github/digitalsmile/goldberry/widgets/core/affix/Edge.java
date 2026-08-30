@@ -2,7 +2,6 @@ package io.github.digitalsmile.goldberry.widgets.core.affix;
 
 /// Which side of the viewport an [Affix] pins itself to — §1's `edge=`.
 public enum Edge {
-
     TOP,
     BOTTOM,
     LEFT,

@@ -1,8 +1,8 @@
 package io.github.digitalsmile.goldberry.render.window;
 
-import io.github.digitalsmile.goldberry.render.model.LogicalSize;
-
 import java.util.Objects;
+
+import io.github.digitalsmile.goldberry.render.model.LogicalSize;
 
 /// What to create a window with.
 ///
@@ -22,8 +22,7 @@ import java.util.Objects;
 /// @param size      the size the window is created at, and the one it returns to
 ///                  when a [#maximized] window is restored
 /// @param maximized whether it opens filling the work area
-public record WindowSpec(String title, LogicalSize size, boolean resizable, boolean decorated,
-        boolean maximized) {
+public record WindowSpec(String title, LogicalSize size, boolean resizable, boolean decorated, boolean maximized) {
 
     public WindowSpec {
         Objects.requireNonNull(title, "title");
@@ -36,8 +35,7 @@ public record WindowSpec(String title, LogicalSize size, boolean resizable, bool
             // silently drops the flag, so the application gets a small window it
             // asked to have filled -- and a user cannot fix that from the
             // desktop either, a fixed-size window having no maximize button.
-            throw new IllegalArgumentException(
-                    "a window that cannot be resized has no maximized state to open in");
+            throw new IllegalArgumentException("a window that cannot be resized has no maximized state to open in");
         }
     }
 

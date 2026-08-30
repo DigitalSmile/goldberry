@@ -1,10 +1,6 @@
 package io.github.digitalsmile.goldberry.paint;
 
-import io.github.digitalsmile.goldberry.render.model.DisplayScale;
-import io.github.digitalsmile.goldberry.render.model.LogicalSize;
-import io.github.digitalsmile.goldberry.render.model.PhysicalSize;
-import io.github.digitalsmile.goldberry.render.PixelBuffer;
-import io.github.digitalsmile.goldberry.render.window.BackendWindow;
+import io.github.digitalsmile.goldberry.Window;
 import io.github.digitalsmile.goldberry.natives.blend2d.BlendContext;
 import io.github.digitalsmile.goldberry.natives.blend2d.BlendFont;
 import io.github.digitalsmile.goldberry.natives.blend2d.BlendGlyphBuffer;
@@ -13,7 +9,11 @@ import io.github.digitalsmile.goldberry.natives.blend2d.BlendImage;
 import io.github.digitalsmile.goldberry.natives.blend2d.BlendPath;
 import io.github.digitalsmile.goldberry.natives.blend2d.enums.BlendStrokeCap;
 import io.github.digitalsmile.goldberry.natives.blend2d.enums.BlendStrokeJoin;
-import io.github.digitalsmile.goldberry.Window;
+import io.github.digitalsmile.goldberry.render.PixelBuffer;
+import io.github.digitalsmile.goldberry.render.model.DisplayScale;
+import io.github.digitalsmile.goldberry.render.model.LogicalSize;
+import io.github.digitalsmile.goldberry.render.model.PhysicalSize;
+import io.github.digitalsmile.goldberry.render.window.BackendWindow;
 
 /// The surface a [Window] paints into.
 ///
@@ -150,8 +150,7 @@ public final class Frame {
     /// what lets one shaping result be drawn at any size (ADR-0034).
     ///
     /// @param argb a colour as `0xAARRGGBB`, not premultiplied
-    public void drawGlyphs(
-            double x, double baseline, BlendFont font, BlendGlyphBuffer glyphs, int argb) {
+    public void drawGlyphs(double x, double baseline, BlendFont font, BlendGlyphBuffer glyphs, int argb) {
         requireOpen();
         context.fillGlyphRun(x, baseline, font, glyphs, argb);
     }
@@ -193,8 +192,7 @@ public final class Frame {
     /// @param width the stroke width in logical pixels
     /// @param argb  a colour as `0xAARRGGBB`, not premultiplied
     public void strokePath(
-            double x, double y, BlendPath path, double width,
-            BlendStrokeCap cap, BlendStrokeJoin join, int argb) {
+            double x, double y, BlendPath path, double width, BlendStrokeCap cap, BlendStrokeJoin join, int argb) {
         requireOpen();
         context.strokeWidth(width);
         context.strokeCaps(cap);
@@ -278,7 +276,9 @@ public final class Frame {
         // a native handle to a buffer whose lifetime is the layer's, not this
         // frame's.
         try (var image = BlendImage.wrapping(
-                layer.pixels().pixels(), size.width(), size.height(),
+                layer.pixels().pixels(),
+                size.width(),
+                size.height(),
                 layer.pixels().stride())) {
             var faded = alpha < 1;
             if (faded) {
@@ -370,9 +370,8 @@ public final class Frame {
 
     private void requireOpen() {
         if (ended) {
-            throw new IllegalStateException(
-                    "this frame has already been presented — a Frame is valid only inside the"
-                            + " paint callback it was handed to");
+            throw new IllegalStateException("this frame has already been presented — a Frame is valid only inside the"
+                    + " paint callback it was handed to");
         }
     }
 }

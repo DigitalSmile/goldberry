@@ -6,16 +6,18 @@ import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import io.github.digitalsmile.goldberry.RendererRequirement;
-import io.github.digitalsmile.goldberry.kdl.KdlParser;
-import io.github.digitalsmile.goldberry.widget.attr.Attributes;
-import io.github.digitalsmile.goldberry.widget.ElementTree;
-import io.github.digitalsmile.goldberry.widgets.Widgets;
-import io.github.digitalsmile.goldberry.widgets.panel.Described;
 import java.util.List;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+
+import io.github.digitalsmile.goldberry.RendererRequirement;
+import io.github.digitalsmile.goldberry.kdl.KdlParser;
+import io.github.digitalsmile.goldberry.widget.ElementTree;
+import io.github.digitalsmile.goldberry.widget.attr.Attributes;
+import io.github.digitalsmile.goldberry.widgets.Widgets;
+import io.github.digitalsmile.goldberry.widgets.panel.Described;
 
 /// `skeleton` — §5's placeholder, and the one looping decoration §1.7 allows
 /// ([ADR-0164]).
@@ -35,12 +37,18 @@ class SkeletonTest {
     @Test
     @DisplayName("a text skeleton is as many bars as it says")
     void lines() {
-        assertEquals(3, Described.of(new ElementTree(
-                new Skeleton(Skeleton.Shape.TEXT, 3, Attributes.NONE)),
-                Skeleton.SkeletonBar.class).size());
-        assertEquals(5, Described.of(new ElementTree(
-                new Skeleton(Skeleton.Shape.TEXT, 5, Attributes.NONE)),
-                Skeleton.SkeletonBar.class).size());
+        assertEquals(
+                3,
+                Described.of(
+                                new ElementTree(new Skeleton(Skeleton.Shape.TEXT, 3, Attributes.NONE)),
+                                Skeleton.SkeletonBar.class)
+                        .size());
+        assertEquals(
+                5,
+                Described.of(
+                                new ElementTree(new Skeleton(Skeleton.Shape.TEXT, 5, Attributes.NONE)),
+                                Skeleton.SkeletonBar.class)
+                        .size());
     }
 
     /// `lines` is for the text form; a circle is one circle however many lines
@@ -48,10 +56,11 @@ class SkeletonTest {
     @Test
     @DisplayName("the other shapes are one bar, whatever lines says")
     void otherShapesAreOne() {
-        for (var shape : List.of(Skeleton.Shape.TITLE, Skeleton.Shape.CIRCLE,
-                Skeleton.Shape.RECT)) {
-            assertEquals(1, Described.of(new ElementTree(new Skeleton(shape, 4,
-                    Attributes.NONE)), Skeleton.SkeletonBar.class).size(),
+        for (var shape : List.of(Skeleton.Shape.TITLE, Skeleton.Shape.CIRCLE, Skeleton.Shape.RECT)) {
+            assertEquals(
+                    1,
+                    Described.of(new ElementTree(new Skeleton(shape, 4, Attributes.NONE)), Skeleton.SkeletonBar.class)
+                            .size(),
                     shape + " should be one bar");
         }
     }
@@ -62,14 +71,14 @@ class SkeletonTest {
     @Test
     @DisplayName("the last line of a paragraph is short, and a lone line is not")
     void lastLineIsShort() {
-        var three = Described.of(new ElementTree(new Skeleton(Skeleton.Shape.TEXT, 3,
-                Attributes.NONE)), Skeleton.SkeletonBar.class);
+        var three = Described.of(
+                new ElementTree(new Skeleton(Skeleton.Shape.TEXT, 3, Attributes.NONE)), Skeleton.SkeletonBar.class);
         assertFalse(three.get(0).last());
         assertFalse(three.get(1).last());
         assertTrue(three.get(2).last());
 
-        var one = Described.of(new ElementTree(new Skeleton(Skeleton.Shape.TEXT, 1,
-                Attributes.NONE)), Skeleton.SkeletonBar.class);
+        var one = Described.of(
+                new ElementTree(new Skeleton(Skeleton.Shape.TEXT, 1, Attributes.NONE)), Skeleton.SkeletonBar.class);
         assertFalse(one.getFirst().last(), "a one-line paragraph is a full line");
     }
 
@@ -81,8 +90,7 @@ class SkeletonTest {
         var tree = new ElementTree(new Skeleton(Skeleton.Shape.CIRCLE));
 
         assertTrue(Described.first(tree, Skeleton.class).classes().contains("circle"));
-        assertTrue(Described.first(tree, Skeleton.SkeletonBar.class).classes()
-                .contains("circle"));
+        assertTrue(Described.first(tree, Skeleton.SkeletonBar.class).classes().contains("circle"));
     }
 
     /// A skeleton that stopped asking for frames would be a picture of a
@@ -121,8 +129,7 @@ class SkeletonTest {
     void reducedMotion() {
         var dimmest = Skeleton.pulseAt(0, false);
         for (var now : new double[] {0, 100, 250, 500, 750, 990}) {
-            assertEquals(dimmest, Skeleton.pulseAt(now, true), 1e-9,
-                    "reduced motion must not move at " + now);
+            assertEquals(dimmest, Skeleton.pulseAt(now, true), 1e-9, "reduced motion must not move at " + now);
         }
     }
 
@@ -134,23 +141,21 @@ class SkeletonTest {
     void negativeClock() {
         for (var now : new double[] {-1, -250, -999, -1001}) {
             var pulse = Skeleton.pulseAt(now, false);
-            assertTrue(pulse >= 0.45 - 1e-9 && pulse <= 1.0 + 1e-9,
-                    "out of range at " + now + ": " + pulse);
+            assertTrue(pulse >= 0.45 - 1e-9 && pulse <= 1.0 + 1e-9, "out of range at " + now + ": " + pulse);
         }
     }
 
     @Test
     @DisplayName("a skeleton of no lines is refused rather than drawing nothing")
     void noLines() {
-        assertThrows(IllegalArgumentException.class,
-                () -> new Skeleton(Skeleton.Shape.TEXT, 0, Attributes.NONE));
+        assertThrows(IllegalArgumentException.class, () -> new Skeleton(Skeleton.Shape.TEXT, 0, Attributes.NONE));
     }
 
     @Test
     @DisplayName("a skeleton inflates from markup")
     void inflates() {
-        var widget = Widgets.inflater().inflate(
-                KdlParser.parse("skeleton shape=\"text\" lines=4").getFirst());
+        var widget = Widgets.inflater()
+                .inflate(KdlParser.parse("skeleton shape=\"text\" lines=4").getFirst());
         var it = assertInstanceOf(Skeleton.class, widget);
 
         assertEquals(Skeleton.Shape.TEXT, it.shape());
@@ -160,7 +165,9 @@ class SkeletonTest {
     @Test
     @DisplayName("a shape this toolkit has not got is refused")
     void badShape() {
-        assertThrows(IllegalArgumentException.class, () -> Widgets.inflater()
-                .inflate(KdlParser.parse("skeleton shape=\"hexagon\"").getFirst()));
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> Widgets.inflater()
+                        .inflate(KdlParser.parse("skeleton shape=\"hexagon\"").getFirst()));
     }
 }

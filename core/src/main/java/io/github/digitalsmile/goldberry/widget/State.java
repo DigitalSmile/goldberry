@@ -36,8 +36,7 @@ public abstract class State<W extends Widget> {
     /// Subclasses only. A state is created by [Widget.Stateful#createState()]
     /// and mounted by the framework; constructing one directly gives you an
     /// object that cannot [#setState].
-    protected State() {
-    }
+    protected State() {}
 
     /// The widget this state is currently attached to.
     ///
@@ -73,9 +72,8 @@ public abstract class State<W extends Widget> {
     protected final void setState(Runnable mutation) {
         Objects.requireNonNull(mutation, "mutation");
         if (element == null) {
-            throw new IllegalStateException(
-                    "setState() on a state that is not mounted."
-                            + " Mutate the field directly in the constructor instead.");
+            throw new IllegalStateException("setState() on a state that is not mounted."
+                    + " Mutate the field directly in the constructor instead.");
         }
         mutation.run();
         element.markNeedsBuild();
@@ -84,24 +82,21 @@ public abstract class State<W extends Widget> {
     /// Called once, after the state is attached and before the first build.
     ///
     /// Where a subscription belongs. [#dispose()] is where it is cancelled.
-    protected void initState() {
-    }
+    protected void initState() {}
 
     /// Called when the element is rebuilt with a new widget of the same type.
     ///
     /// `previous` is the widget that was in force. The default does nothing;
     /// override to react to a changed argument — restarting an animation when a
     /// target value changes, say.
-    protected void didUpdateWidget(W previous) {
-    }
+    protected void didUpdateWidget(W previous) {}
 
     /// Called once when the element leaves the tree for good.
     ///
     /// Cancel subscriptions here. After this, [#setState] throws rather than
     /// silently doing nothing, so a callback that outlived its widget is a noisy
     /// bug rather than a quiet leak.
-    protected void dispose() {
-    }
+    protected void dispose() {}
 
     /// Whether this state is attached to a live element.
     public final boolean isMounted() {

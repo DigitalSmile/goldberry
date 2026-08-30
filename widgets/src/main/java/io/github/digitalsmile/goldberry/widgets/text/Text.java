@@ -1,20 +1,21 @@
 package io.github.digitalsmile.goldberry.widgets.text;
 
-import io.github.digitalsmile.goldberry.bind.Observable;
-import io.github.digitalsmile.goldberry.css.ComputedStyle;
-import io.github.digitalsmile.goldberry.paint.Box;
-import io.github.digitalsmile.goldberry.widget.attr.Attributed;
-import io.github.digitalsmile.goldberry.widget.attr.Bindable;
-import io.github.digitalsmile.goldberry.widget.attr.Attributes;
-import io.github.digitalsmile.goldberry.widget.style.Paints;
-import io.github.digitalsmile.goldberry.widget.style.Styled;
-import io.github.digitalsmile.goldberry.widget.Widget;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+
+import io.github.digitalsmile.goldberry.bind.Observable;
+import io.github.digitalsmile.goldberry.css.ComputedStyle;
 import io.github.digitalsmile.goldberry.kdl.KdlNode;
-import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
+import io.github.digitalsmile.goldberry.paint.Box;
+import io.github.digitalsmile.goldberry.widget.Widget;
+import io.github.digitalsmile.goldberry.widget.attr.Attributed;
+import io.github.digitalsmile.goldberry.widget.attr.Attributes;
+import io.github.digitalsmile.goldberry.widget.attr.Bindable;
+import io.github.digitalsmile.goldberry.widget.style.Paints;
+import io.github.digitalsmile.goldberry.widget.style.Styled;
 import io.github.digitalsmile.goldberry.widgets.markup.Markup;
+import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
 
 /// A run of text — `docs/core-widgets.md` §2's `text`, and the whole of that
 /// package until `span` and `link` are built.
@@ -126,8 +127,6 @@ public record Text(String content, Observable<?> source, Attributes attributes)
     public static Widget inflate(KdlNode node, List<Widget> children, Wiring wiring) {
         var source = wiring.bound(node);
         var literal = Wiring.label(node);
-        return source == null
-                ? new Text(literal, Attributes.of(node))
-                : new Text(literal, source, Attributes.of(node));
+        return source == null ? new Text(literal, Attributes.of(node)) : new Text(literal, source, Attributes.of(node));
     }
 }

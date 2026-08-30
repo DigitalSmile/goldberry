@@ -42,8 +42,9 @@ public enum SplitAxis {
             return valueOf(text.trim().toUpperCase(Locale.ROOT));
         } catch (IllegalArgumentException e) {
             throw new IllegalArgumentException(
-                    "a split pane's axis is \"horizontal\" (side by side) or \"vertical\""
-                            + " (stacked), not \"" + text + "\"", e);
+                    "a split pane's axis is \"horizontal\" (side by side) or \"vertical\"" + " (stacked), not \"" + text
+                            + "\"",
+                    e);
         }
     }
 }

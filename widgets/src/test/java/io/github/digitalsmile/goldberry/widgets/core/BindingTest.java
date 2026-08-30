@@ -1,25 +1,24 @@
 package io.github.digitalsmile.goldberry.widgets.core;
 
-import io.github.digitalsmile.goldberry.widget.attr.Attributes;
-import io.github.digitalsmile.goldberry.widget.Widget;
-
-import io.github.digitalsmile.goldberry.widgets.text.Text;
-
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import io.github.digitalsmile.goldberry.bind.registry.BindingRegistry;
-import io.github.digitalsmile.goldberry.bind.Property;
-import io.github.digitalsmile.goldberry.kdl.KdlParser;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+
+import io.github.digitalsmile.goldberry.bind.Property;
 import io.github.digitalsmile.goldberry.bind.registry.ActionRegistry;
+import io.github.digitalsmile.goldberry.bind.registry.BindingRegistry;
+import io.github.digitalsmile.goldberry.kdl.KdlParser;
+import io.github.digitalsmile.goldberry.widget.Widget;
+import io.github.digitalsmile.goldberry.widget.attr.Attributes;
 import io.github.digitalsmile.goldberry.widgets.Icons;
 import io.github.digitalsmile.goldberry.widgets.Widgets;
 import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
+import io.github.digitalsmile.goldberry.widgets.text.Text;
 
 /// `bind=` from **markup** to a widget (§9,
 /// [ADR-0062](../../../../../../../book/src/adr/0062-bind-is-a-path-and-nothing-else.md)).
@@ -31,7 +30,8 @@ import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
 class BindingTest {
 
     private static Widget inflate(String markup, BindingRegistry bindings) {
-        return Widgets.inflater(new Wiring(ActionRegistry.none(), Icons.none(), bindings)).inflate(KdlParser.parse(markup).getFirst());
+        return Widgets.inflater(new Wiring(ActionRegistry.none(), Icons.none(), bindings))
+                .inflate(KdlParser.parse(markup).getFirst());
     }
 
     @Nested
@@ -45,8 +45,7 @@ class BindingTest {
             var bindings = BindingRegistry.strict().bind("user.name", name);
 
             var fromMarkup = inflate("text id=\"who\" bind=\"user.name\"", bindings);
-            var fromJava = new Text(
-                    "", name, new Attributes("who", java.util.Set.of(), "who"));
+            var fromJava = new Text("", name, new Attributes("who", java.util.Set.of(), "who"));
 
             // The parity invariant of §11, extended to the attribute: markup and
             // Java produce the same widget, and the property is the same object
@@ -89,8 +88,8 @@ class BindingTest {
         void expressionFailsLoudly() {
             var bindings = BindingRegistry.strict().bind("prefs.frost", Property.of(true));
 
-            var thrown = assertThrows(IllegalArgumentException.class,
-                    () -> inflate("text bind=\"!prefs.frost\"", bindings));
+            var thrown =
+                    assertThrows(IllegalArgumentException.class, () -> inflate("text bind=\"!prefs.frost\"", bindings));
 
             assertTrue(thrown.getMessage().contains("!prefs.frost"), thrown.getMessage());
         }

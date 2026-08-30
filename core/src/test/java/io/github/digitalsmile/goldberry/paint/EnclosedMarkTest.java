@@ -3,13 +3,14 @@ package io.github.digitalsmile.goldberry.paint;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import io.github.digitalsmile.goldberry.RendererRequirement;
-import io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
+
+import io.github.digitalsmile.goldberry.RendererRequirement;
+import io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength;
 
 /// The four enclosed glyphs a `message` draws — that each one is a ring or a
 /// triangle with something inside it, and that it stays inside its box.
@@ -78,7 +79,8 @@ class EnclosedMarkTest {
     }
 
     @ParameterizedTest
-    @EnumSource(value = Box.Mark.Kind.class,
+    @EnumSource(
+            value = Box.Mark.Kind.class,
             names = {"CIRCLE_INFO", "CIRCLE_CHECK", "CIRCLE_ALERT", "TRIANGLE_ALERT"})
     @DisplayName("an enclosed glyph stays inside its slot")
     void enclosureFitsItsBox(Box.Mark.Kind kind) {
@@ -92,21 +94,17 @@ class EnclosedMarkTest {
         // itself is fair game and is partly covered, because the outer edge of
         // the stroke is meant to land exactly there.
         for (var i = 0; i < SIZE + MARGIN * 2; i++) {
-            assertEquals(0, target.alphaAt(i, MARGIN - 1),
-                    kind + " painted above its slot at " + i);
-            assertEquals(0, target.alphaAt(i, end),
-                    kind + " painted below its slot at " + i);
-            assertEquals(0, target.alphaAt(MARGIN - 1, i),
-                    kind + " painted left of its slot at " + i);
-            assertEquals(0, target.alphaAt(end, i),
-                    kind + " painted right of its slot at " + i);
+            assertEquals(0, target.alphaAt(i, MARGIN - 1), kind + " painted above its slot at " + i);
+            assertEquals(0, target.alphaAt(i, end), kind + " painted below its slot at " + i);
+            assertEquals(0, target.alphaAt(MARGIN - 1, i), kind + " painted left of its slot at " + i);
+            assertEquals(0, target.alphaAt(end, i), kind + " painted right of its slot at " + i);
         }
-        assertTrue(inkIn(target, MARGIN, MARGIN, end, end) > 0.02,
-                kind + " drew almost nothing");
+        assertTrue(inkIn(target, MARGIN, MARGIN, end, end) > 0.02, kind + " drew almost nothing");
     }
 
     @ParameterizedTest
-    @EnumSource(value = Box.Mark.Kind.class,
+    @EnumSource(
+            value = Box.Mark.Kind.class,
             names = {"CIRCLE_INFO", "CIRCLE_CHECK", "CIRCLE_ALERT"})
     @DisplayName("a ring reaches both sides of its middle row")
     void theRingIsDrawn(Box.Mark.Kind kind) {
@@ -117,9 +115,11 @@ class EnclosedMarkTest {
         // there. This is the failure mode where the symbol is drawn and the
         // enclosure round it is not: the glyph still looks like something.
         var middle = MARGIN + SIZE / 2;
-        assertTrue(inkIn(target, MARGIN, middle - 1, MARGIN + 6, middle + 1) > 0,
+        assertTrue(
+                inkIn(target, MARGIN, middle - 1, MARGIN + 6, middle + 1) > 0,
                 kind + " has no outline on the left of its middle row");
-        assertTrue(inkIn(target, MARGIN + SIZE - 6, middle - 1, MARGIN + SIZE, middle + 1) > 0,
+        assertTrue(
+                inkIn(target, MARGIN + SIZE - 6, middle - 1, MARGIN + SIZE, middle + 1) > 0,
                 kind + " has no outline on the right of its middle row");
     }
 
@@ -131,14 +131,19 @@ class EnclosedMarkTest {
         // Where a circle is widest across the middle, a triangle is widest along
         // the bottom -- so the same question is asked of the row that answers it.
         var bottom = MARGIN + SIZE;
-        assertTrue(inkIn(target, MARGIN, bottom - 5, MARGIN + 6, bottom) > 0,
+        assertTrue(
+                inkIn(target, MARGIN, bottom - 5, MARGIN + 6, bottom) > 0,
                 "no outline at the left of the triangle's base");
-        assertTrue(inkIn(target, bottom - 6, bottom - 5, bottom, bottom) > 0,
+        assertTrue(
+                inkIn(target, bottom - 6, bottom - 5, bottom, bottom) > 0,
                 "no outline at the right of the triangle's base");
         // And nothing at all beside the apex, which is what makes it a triangle
         // rather than a rounded box: a circle's corners are empty too, but a
         // circle fills the middle of its top edge and a triangle does not.
-        assertEquals(0.0, inkIn(target, MARGIN, MARGIN, MARGIN + 10, MARGIN + 6), 0.001,
+        assertEquals(
+                0.0,
+                inkIn(target, MARGIN, MARGIN, MARGIN + 10, MARGIN + 6),
+                0.001,
                 "the triangle's top-left corner should be empty");
     }
 
@@ -158,9 +163,10 @@ class EnclosedMarkTest {
         var circle = inkIn(paint(Box.Mark.Kind.CIRCLE_ALERT), x0, y0, x1, y1);
         var triangle = inkIn(paint(Box.Mark.Kind.TRIANGLE_ALERT), x0, y0, x1, y1);
 
-        assertTrue(circle > triangle,
-                "a circle's upper left should carry more ink than a triangle's, and"
-                        + " they measured " + circle + " and " + triangle);
+        assertTrue(
+                circle > triangle,
+                "a circle's upper left should carry more ink than a triangle's, and" + " they measured " + circle
+                        + " and " + triangle);
     }
 
     @Test
@@ -188,12 +194,14 @@ class EnclosedMarkTest {
         assertTrue(alertAbove > 0 && alertBelow > 0, "a `!` has ink above and below the centre");
         // The stem is longer than the dot, so whichever half holds the stem holds
         // more ink -- and the two kinds hold it in opposite halves.
-        assertTrue(infoBelow > infoAbove,
-                "an `i`'s stem is below its dot, and the halves measured "
-                        + infoBelow + " below against " + infoAbove + " above");
-        assertTrue(alertAbove > alertBelow,
-                "a `!`'s bar is above its dot, and the halves measured "
-                        + alertAbove + " above against " + alertBelow + " below");
+        assertTrue(
+                infoBelow > infoAbove,
+                "an `i`'s stem is below its dot, and the halves measured " + infoBelow + " below against " + infoAbove
+                        + " above");
+        assertTrue(
+                alertAbove > alertBelow,
+                "a `!`'s bar is above its dot, and the halves measured " + alertAbove + " above against " + alertBelow
+                        + " below");
     }
 
     @Test

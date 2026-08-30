@@ -1,12 +1,14 @@
 package io.github.digitalsmile.goldberry.golden;
 
-import io.github.digitalsmile.goldberry.paint.Frame;
-import io.github.digitalsmile.goldberry.paint.TestFrames;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
+
 import org.opentest4j.AssertionFailedError;
+
+import io.github.digitalsmile.goldberry.paint.Frame;
+import io.github.digitalsmile.goldberry.paint.TestFrames;
 
 /// The second half of a golden: the same scene, drawn at another display scale.
 ///
@@ -108,8 +110,7 @@ public final class ScaleInvariance {
 
     private static final Path FAILURE_DIR = Path.of("build", "golden-failures");
 
-    private ScaleInvariance() {
-    }
+    private ScaleInvariance() {}
 
     /// Asserts that `scene` draws the same picture at every configured scale,
     /// with no golden involved.
@@ -120,8 +121,7 @@ public final class ScaleInvariance {
     /// @param name   what to call the scene in a failure message and its images
     /// @param width  the logical width, which is also the 1x pixel width
     /// @param height likewise
-    public static void assertSamePictureAtEveryScale(
-            String name, int width, int height, Consumer<Frame> scene) {
+    public static void assertSamePictureAtEveryScale(String name, int width, int height, Consumer<Frame> scene) {
 
         var target = TestFrames.of(width, height, 1.0f);
         try {
@@ -129,8 +129,7 @@ public final class ScaleInvariance {
         } finally {
             target.end();
         }
-        assertScaleInvariant(
-                name, width, height, 1.0f, scene, GoldenImage.toImage(target, width, height));
+        assertScaleInvariant(name, width, height, 1.0f, scene, GoldenImage.toImage(target, width, height));
     }
 
     /// Re-renders `scene` at each configured multiple of `scale` and asserts it
@@ -140,8 +139,7 @@ public final class ScaleInvariance {
     /// question is whether the renderer agrees with itself across scales, and
     /// comparing against the file would fold in a stale golden as well.
     static void assertScaleInvariant(
-            String name, int width, int height, float scale,
-            Consumer<Frame> scene, Png.Image reference) {
+            String name, int width, int height, float scale, Consumer<Frame> scene, Png.Image reference) {
 
         for (var multiplier : multipliers()) {
             var result = measure(width, height, scale, multiplier, scene, reference);
@@ -158,13 +156,12 @@ public final class ScaleInvariance {
             Png.write(FAILURE_DIR.resolve(stem + "-expected.png"), reference);
             Png.write(FAILURE_DIR.resolve(stem + "-actual.png"), result.resampled());
             Png.write(FAILURE_DIR.resolve(stem + "-diff.png"), result.diff());
-            throw new AssertionFailedError(
-                    "\"" + name + "\" does not draw the same picture at " + label(multiplier)
-                            + "x its scale: " + result.describe()
-                            + ". A difference this size is geometry rather than antialiasing —"
-                            + " something is using a physical size where a logical one belongs,"
-                            + " or the other way round (ADR-0157). The 1x render, the"
-                            + " resampled one and the diff are in " + FAILURE_DIR.toAbsolutePath());
+            throw new AssertionFailedError("\"" + name + "\" does not draw the same picture at " + label(multiplier)
+                    + "x its scale: " + result.describe()
+                    + ". A difference this size is geometry rather than antialiasing —"
+                    + " something is using a physical size where a logical one belongs,"
+                    + " or the other way round (ADR-0157). The 1x render, the"
+                    + " resampled one and the diff are in " + FAILURE_DIR.toAbsolutePath());
         }
     }
 
@@ -182,8 +179,7 @@ public final class ScaleInvariance {
             }
             var value = Float.parseFloat(trimmed);
             if (value <= 0) {
-                throw new IllegalArgumentException(
-                        "a scale multiplier must be positive, and " + trimmed + " is not");
+                throw new IllegalArgumentException("a scale multiplier must be positive, and " + trimmed + " is not");
             }
             parsed.add(value);
         }
@@ -193,8 +189,7 @@ public final class ScaleInvariance {
     /// Paints the scene at `scale * multiplier` into the same logical area and
     /// brings it back to the reference's size.
     private static Result measure(
-            int width, int height, float scale, float multiplier,
-            Consumer<Frame> scene, Png.Image reference) {
+            int width, int height, float scale, float multiplier, Consumer<Frame> scene, Png.Image reference) {
 
         // The frame is described in PHYSICAL pixels (TestFrames), so both the
         // buffer and the scale are multiplied and the logical size — which is
@@ -272,8 +267,10 @@ public final class ScaleInvariance {
 
                 out[y * width + x] = weight == 0
                         ? 0
-                        : round(a / weight) << 24 | round(r / weight) << 16
-                                | round(g / weight) << 8 | round(b / weight);
+                        : round(a / weight) << 24
+                                | round(r / weight) << 16
+                                | round(g / weight) << 8
+                                | round(b / weight);
             }
         }
         return new Png.Image(width, height, out);
@@ -287,10 +284,9 @@ public final class ScaleInvariance {
     /// `resampled`, and how much of `resampled` has none in `reference`.
     static Result compare(Png.Image reference, Png.Image resampled, float multiplier) {
         if (reference.width() != resampled.width() || reference.height() != resampled.height()) {
-            throw new AssertionFailedError(
-                    "a resampled render is " + resampled.width() + "x" + resampled.height()
-                            + " against a reference of " + reference.width() + "x"
-                            + reference.height() + ", which is this class's own bug");
+            throw new AssertionFailedError("a resampled render is " + resampled.width() + "x" + resampled.height()
+                    + " against a reference of " + reference.width() + "x"
+                    + reference.height() + ", which is this class's own bug");
         }
 
         var diff = new int[reference.argb().length];
@@ -303,9 +299,8 @@ public final class ScaleInvariance {
                 // appeared, the reverse misses ink that vanished, and a control
                 // drawn at twice its size does both at its edges and only the
                 // second in its middle.
-                var delta = Math.max(
-                        nearestDelta(reference, resampled, x, y),
-                        nearestDelta(resampled, reference, x, y));
+                var delta =
+                        Math.max(nearestDelta(reference, resampled, x, y), nearestDelta(resampled, reference, x, y));
                 worst = Math.max(worst, delta);
                 if (delta > GROSS_DELTA) {
                     gross++;
@@ -353,15 +348,11 @@ public final class ScaleInvariance {
     /// `2` rather than `2.0`, so a failure message and a file name read the way
     /// a person says it.
     private static String label(float multiplier) {
-        return multiplier == Math.rint(multiplier)
-                ? Integer.toString((int) multiplier)
-                : Float.toString(multiplier);
+        return multiplier == Math.rint(multiplier) ? Integer.toString((int) multiplier) : Float.toString(multiplier);
     }
 
     /// What one scale's comparison measured.
-    record Result(
-            float multiplier, int gross, int worst, int total,
-            Png.Image resampled, Png.Image diff) {
+    record Result(float multiplier, int gross, int worst, int total, Png.Image resampled, Png.Image diff) {
 
         boolean matches() {
             return (double) gross / total <= MAX_GROSS_FRACTION;
@@ -371,8 +362,14 @@ public final class ScaleInvariance {
             return String.format(
                     "at %sx: %d of %d pixels (%.3f%%, allowed %.3f%%) have no match within %d"
                             + " pixel at a channel tolerance of %d; worst nearby delta %d",
-                    label(multiplier), gross, total, 100.0 * gross / total,
-                    100 * MAX_GROSS_FRACTION, RADIUS, GROSS_DELTA, worst);
+                    label(multiplier),
+                    gross,
+                    total,
+                    100.0 * gross / total,
+                    100 * MAX_GROSS_FRACTION,
+                    RADIUS,
+                    GROSS_DELTA,
+                    worst);
         }
     }
 }

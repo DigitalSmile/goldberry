@@ -3,11 +3,12 @@ package io.github.digitalsmile.goldberry.natives.harfbuzz.calls;
 import static java.lang.foreign.ValueLayout.ADDRESS;
 import static java.lang.foreign.ValueLayout.JAVA_INT;
 
-import io.github.digitalsmile.goldberry.natives.Downcalls;
 import java.lang.foreign.FunctionDescriptor;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.SymbolLookup;
 import java.lang.invoke.MethodHandle;
+
+import io.github.digitalsmile.goldberry.natives.Downcalls;
 
 /// HarfBuzz's `hb_buffer_t` — the text going in and the glyphs coming out.
 ///
@@ -54,8 +55,7 @@ public record BufferCalls(
     /// @return the new `hb_buffer_t*`
     public static final class BufferCreate {
 
-        private static final MethodHandle FD_hb_buffer_create =
-                Downcalls.link(FunctionDescriptor.of(ADDRESS));
+        private static final MethodHandle FD_hb_buffer_create = Downcalls.link(FunctionDescriptor.of(ADDRESS));
 
         private final MemorySegment address;
 
@@ -79,8 +79,7 @@ public record BufferCalls(
     /// @param buffer the buffer to release
     public static final class BufferDestroy {
 
-        private static final MethodHandle FD_hb_buffer_destroy =
-                Downcalls.link(FunctionDescriptor.ofVoid(ADDRESS));
+        private static final MethodHandle FD_hb_buffer_destroy = Downcalls.link(FunctionDescriptor.ofVoid(ADDRESS));
 
         private final MemorySegment address;
 
@@ -104,8 +103,7 @@ public record BufferCalls(
     /// @param buffer the buffer to empty
     public static final class BufferReset {
 
-        private static final MethodHandle FD_hb_buffer_reset =
-                Downcalls.link(FunctionDescriptor.ofVoid(ADDRESS));
+        private static final MethodHandle FD_hb_buffer_reset = Downcalls.link(FunctionDescriptor.ofVoid(ADDRESS));
 
         private final MemorySegment address;
 
@@ -142,8 +140,7 @@ public record BufferCalls(
     public static final class BufferAddUtf16 {
 
         private static final MethodHandle FD_hb_buffer_add_utf16 =
-                Downcalls.link(FunctionDescriptor.ofVoid(
-                        ADDRESS, ADDRESS, JAVA_INT, JAVA_INT, JAVA_INT));
+                Downcalls.link(FunctionDescriptor.ofVoid(ADDRESS, ADDRESS, JAVA_INT, JAVA_INT, JAVA_INT));
 
         private final MemorySegment address;
 
@@ -151,12 +148,9 @@ public record BufferCalls(
             this.address = Downcalls.symbol(lookup, "hb_buffer_add_utf16");
         }
 
-        public void call(
-                MemorySegment buffer, MemorySegment text, int textLength, int itemOffset,
-                int itemLength) {
+        public void call(MemorySegment buffer, MemorySegment text, int textLength, int itemOffset, int itemLength) {
             try {
-                FD_hb_buffer_add_utf16.invokeExact(
-                        address, buffer, text, textLength, itemOffset, itemLength);
+                FD_hb_buffer_add_utf16.invokeExact(address, buffer, text, textLength, itemOffset, itemLength);
             } catch (Throwable t) {
                 throw Downcalls.failure("hb_buffer_add_utf16", t);
             }
@@ -338,8 +332,7 @@ public record BufferCalls(
 
         public MemorySegment call(MemorySegment buffer, MemorySegment length) {
             try {
-                return (MemorySegment) FD_hb_buffer_get_glyph_infos.invokeExact(
-                        address, buffer, length);
+                return (MemorySegment) FD_hb_buffer_get_glyph_infos.invokeExact(address, buffer, length);
             } catch (Throwable t) {
                 throw Downcalls.failure("hb_buffer_get_glyph_infos", t);
             }
@@ -366,8 +359,7 @@ public record BufferCalls(
 
         public MemorySegment call(MemorySegment buffer, MemorySegment length) {
             try {
-                return (MemorySegment) FD_hb_buffer_get_glyph_positions.invokeExact(
-                        address, buffer, length);
+                return (MemorySegment) FD_hb_buffer_get_glyph_positions.invokeExact(address, buffer, length);
             } catch (Throwable t) {
                 throw Downcalls.failure("hb_buffer_get_glyph_positions", t);
             }

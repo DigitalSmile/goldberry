@@ -1,6 +1,5 @@
 package io.github.digitalsmile.goldberry.natives.harfbuzz.enums;
 
-
 /// What HarfBuzz may do with bytes it is handed — `hb_memory_mode_t`.
 ///
 /// Only the two safe values are bound. The writable modes let HarfBuzz modify

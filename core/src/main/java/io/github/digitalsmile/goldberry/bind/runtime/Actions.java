@@ -4,6 +4,7 @@ import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
+
 import io.github.digitalsmile.goldberry.bind.Model;
 
 /// A class whose `@Action` methods are what markup can call.
@@ -53,5 +54,4 @@ import io.github.digitalsmile.goldberry.bind.Model;
 /// never woven, rather than handed a registry with nothing in it.
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.TYPE)
-public @interface Actions {
-}
+public @interface Actions {}

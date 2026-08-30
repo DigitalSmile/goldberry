@@ -1,31 +1,33 @@
 package io.github.digitalsmile.goldberry.widgets.overlay.hud;
 
-import io.github.digitalsmile.goldberry.stats.FrameStats;
+import java.util.List;
+import java.util.Set;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+
 import io.github.digitalsmile.goldberry.Overlay;
 import io.github.digitalsmile.goldberry.RendererRequirement;
 import io.github.digitalsmile.goldberry.bind.Property;
-import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
 import io.github.digitalsmile.goldberry.css.Stylesheet;
 import io.github.digitalsmile.goldberry.css.Theme;
+import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
 import io.github.digitalsmile.goldberry.golden.GoldenImage;
 import io.github.digitalsmile.goldberry.paint.BoxPainter;
-import io.github.digitalsmile.goldberry.widget.attr.Attributes;
-import io.github.digitalsmile.goldberry.widget.style.Corner;
+import io.github.digitalsmile.goldberry.stats.FrameStats;
 import io.github.digitalsmile.goldberry.widget.ElementTree;
 import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widget.WidgetRenderer;
+import io.github.digitalsmile.goldberry.widget.attr.Attributes;
 import io.github.digitalsmile.goldberry.widget.root.WindowRoot;
+import io.github.digitalsmile.goldberry.widget.style.Corner;
 import io.github.digitalsmile.goldberry.widgets.Controls;
 import io.github.digitalsmile.goldberry.widgets.controls.TestFont;
 import io.github.digitalsmile.goldberry.widgets.core.Column;
 import io.github.digitalsmile.goldberry.widgets.core.Row;
 import io.github.digitalsmile.goldberry.widgets.panel.Panel;
 import io.github.digitalsmile.goldberry.widgets.text.Text;
-import java.util.List;
-import java.util.Set;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
 
 /// What a HUD looks like, and — the image that matters — **where it lands**
 /// (§14, [ADR-0050]).
@@ -77,10 +79,13 @@ class HudGoldenTest {
 
     /// The same, with a height — a HUD is a column now, so the two-reading
     /// default and the seven-reading breakdown are not the same shape (ADR-0150).
-    private void paint(String name, Theme theme, FrameStats stats, int width, int height,
-            Widget hud) {
+    private void paint(String name, Theme theme, FrameStats stats, int width, int height, Widget hud) {
         var tree = new ElementTree(new Row(List.of(hud), id("scene")));
-        GoldenImage.assertMatches(name, width, height, 1.0f,
+        GoldenImage.assertMatches(
+                name,
+                width,
+                height,
+                1.0f,
                 frame -> BoxPainter.paint(frame, renderer(theme, stats).render(tree)));
     }
 
@@ -92,8 +97,8 @@ class HudGoldenTest {
     /// the same numbers whether it works or not.
     /// A `FrameStats` with a **spread**, because a flat one would draw the same
     /// number three times and prove nothing about the layout (ADR-0154).
-    private static FrameStats spread(double fps, double paint, double build, double style,
-            double layout, double raster) {
+    private static FrameStats spread(
+            double fps, double paint, double build, double style, double layout, double raster) {
         return new FrameStats() {
             @Override
             public int capacity() {
@@ -155,9 +160,7 @@ class HudGoldenTest {
     @Test
     @DisplayName("the stage breakdown, a line each, min / mean / max")
     void stages() {
-        paint("hud-stages", Theme.NORD_DARK,
-                spread(60, 2.1, 0.05, 0.29, 0.11, 1.34),
-                360, 190, Hud.stages());
+        paint("hud-stages", Theme.NORD_DARK, spread(60, 2.1, 0.05, 0.29, 0.11, 1.34), 360, 190, Hud.stages());
     }
 
     /// **A frame in trouble** — [ADR-0150], and the only thing that can say
@@ -170,9 +173,7 @@ class HudGoldenTest {
     @Test
     @DisplayName("readings over their budget are red, near it amber, and the rest quiet")
     void overBudget() {
-        paint("hud-over-budget", Theme.NORD_DARK,
-                spread(22, 11.0, 0.04, 9.6, 0.2, 3.4),
-                360, 190, Hud.stages());
+        paint("hud-over-budget", Theme.NORD_DARK, spread(22, 11.0, 0.04, 9.6, 0.2, 3.4), 360, 190, Hud.stages());
     }
 
     /// The plate: a dim rate and a dimmer paint time, on the dark theme.
@@ -195,8 +196,7 @@ class HudGoldenTest {
     @Test
     @DisplayName("every reading at once")
     void allReadings() {
-        paint("hud-readings", Theme.NORD_DARK, SIXTY, 300,
-                new Hud(Reading.FPS, Reading.REFRESH, Reading.PAINT));
+        paint("hud-readings", Theme.NORD_DARK, SIXTY, 300, new Hud(Reading.FPS, Reading.REFRESH, Reading.PAINT));
     }
 
     /// Dashes rather than zeroes: a HUD with no frame loop over it has measured
@@ -205,7 +205,11 @@ class HudGoldenTest {
     @Test
     @DisplayName("no frame loop, so no numbers")
     void noLoop() {
-        paint("hud-no-loop", Theme.NORD_DARK, FrameStats.none(), 300,
+        paint(
+                "hud-no-loop",
+                Theme.NORD_DARK,
+                FrameStats.none(),
+                300,
                 new Hud(Reading.FPS, Reading.REFRESH, Reading.PAINT));
     }
 
@@ -223,17 +227,24 @@ class HudGoldenTest {
     void pinnedToACorner() {
         var overlays = Property.<List<Overlay>>of(List.of());
         var root = new WindowRoot(
-                new Column(List.of(new Panel(List.of(
-                        new Text("The application's own content."),
-                        new Text("It fills the window; the HUD lies on top of it.")),
-                        id("body"))), id("window")),
+                new Column(
+                        List.of(new Panel(
+                                List.of(
+                                        new Text("The application's own content."),
+                                        new Text("It fills the window; the HUD lies on top of it.")),
+                                id("body"))),
+                        id("window")),
                 overlays);
         overlays.set(List.of(overlay(new Hud(), Corner.BOTTOM_END)));
 
         var tree = new ElementTree(root);
-        GoldenImage.assertMatches("overlay-corner", 420, 160, 1.0f,
-                frame -> BoxPainter.paint(frame,
-                        renderer(Theme.NORD_DARK, SIXTY).render(tree)));
+        GoldenImage.assertMatches(
+                "overlay-corner",
+                420,
+                160,
+                1.0f,
+                frame ->
+                        BoxPainter.paint(frame, renderer(Theme.NORD_DARK, SIXTY).render(tree)));
     }
 
     /// The same window with the HUD in the opposite corner, which is the cheapest
@@ -243,16 +254,20 @@ class HudGoldenTest {
     void pinnedToTheOtherCorner() {
         var overlays = Property.<List<Overlay>>of(List.of());
         var root = new WindowRoot(
-                new Column(List.of(new Panel(List.of(
-                        new Text("The application's own content.")),
-                        id("body"))), id("window")),
+                new Column(
+                        List.of(new Panel(List.of(new Text("The application's own content.")), id("body"))),
+                        id("window")),
                 overlays);
         overlays.set(List.of(overlay(new Hud(), Corner.TOP_START)));
 
         var tree = new ElementTree(root);
-        GoldenImage.assertMatches("overlay-corner-top-start", 420, 160, 1.0f,
-                frame -> BoxPainter.paint(frame,
-                        renderer(Theme.NORD_DARK, SIXTY).render(tree)));
+        GoldenImage.assertMatches(
+                "overlay-corner-top-start",
+                420,
+                160,
+                1.0f,
+                frame ->
+                        BoxPainter.paint(frame, renderer(Theme.NORD_DARK, SIXTY).render(tree)));
     }
 
     /// What `Host.overlay` builds, without a launcher to build it.

@@ -1,7 +1,7 @@
 package io.github.digitalsmile.goldberry.widgets.core.scroll;
 
-import io.github.digitalsmile.goldberry.input.hit.Extent;
 import io.github.digitalsmile.goldberry.input.handler.Measured;
+import io.github.digitalsmile.goldberry.input.hit.Extent;
 import io.github.digitalsmile.goldberry.widget.BuildContext;
 import io.github.digitalsmile.goldberry.widget.State;
 import io.github.digitalsmile.goldberry.widget.Widget;
@@ -95,9 +95,19 @@ final class ScrollState extends State<Scroll> {
     public Widget build(BuildContext context) {
         var scroll = widget();
         return new ScrollViewport(
-                scroll.children(), scroll.axis(), scroll.height(), offsetX, offsetY,
-                viewport, content, fade, this::moveTo,
-                draggingVertical, this::drag, this::measured, scroll.attributes());
+                scroll.children(),
+                scroll.axis(),
+                scroll.height(),
+                offsetX,
+                offsetY,
+                viewport,
+                content,
+                fade,
+                this::moveTo,
+                draggingVertical,
+                this::drag,
+                this::measured,
+                scroll.attributes());
     }
 
     /// Told what the last frame produced, by the router that holds the painted
@@ -146,8 +156,7 @@ final class ScrollState extends State<Scroll> {
     /// The clamp is the same one every other path takes, so a child asking to be
     /// revealed cannot scroll past the end any more than a wheel can.
     void scrollBy(double dx, double dy) {
-        moveTo(clamp(offsetX + dx, viewport.overflowX(content)),
-                clamp(offsetY + dy, viewport.overflowY(content)));
+        moveTo(clamp(offsetX + dx, viewport.overflowX(content)), clamp(offsetY + dy, viewport.overflowY(content)));
     }
 
     private static double clamp(double value, double max) {

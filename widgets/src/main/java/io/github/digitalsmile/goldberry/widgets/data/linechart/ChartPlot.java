@@ -1,9 +1,10 @@
 package io.github.digitalsmile.goldberry.widgets.data.linechart;
 
+import java.util.List;
+
 import io.github.digitalsmile.goldberry.widget.State;
 import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widgets.data.Series;
-import java.util.List;
 
 /// The plot of a chart — one canvas, whatever the shape.
 ///
@@ -32,7 +33,9 @@ import java.util.List;
 ///                 above this widget, because a legend entry's click has to
 ///                 reach the plot and they are siblings ([io.github.digitalsmile.goldberry.widgets.data.ChartSpec])
 public record ChartPlot(
-        List<Series> series, List<String> categories, Mode mode,
+        List<Series> series,
+        List<String> categories,
+        Mode mode,
         io.github.digitalsmile.goldberry.widgets.data.ChartOptions options,
         int isolated)
         implements Widget.Stateful {
@@ -59,13 +62,11 @@ public record ChartPlot(
         series = List.copyOf(series == null ? List.of() : series);
         categories = List.copyOf(categories == null ? List.of() : categories);
         mode = mode == null ? Mode.LINE : mode;
-        options = options == null
-                ? io.github.digitalsmile.goldberry.widgets.data.ChartOptions.DEFAULTS : options;
+        options = options == null ? io.github.digitalsmile.goldberry.widgets.data.ChartOptions.DEFAULTS : options;
     }
 
     public ChartPlot(List<Series> series, List<String> categories, Mode mode) {
-        this(series, categories, mode,
-                io.github.digitalsmile.goldberry.widgets.data.ChartOptions.DEFAULTS, -1);
+        this(series, categories, mode, io.github.digitalsmile.goldberry.widgets.data.ChartOptions.DEFAULTS, -1);
     }
 
     ChartPlot(List<Series> series, List<String> categories) {
@@ -125,7 +126,7 @@ public record ChartPlot(
             }
             group = widget().options().crosshair();
             if (group != null) {
-                linked = group.subscribe(() -> setState(() -> { }));
+                linked = group.subscribe(() -> setState(() -> {}));
             }
         }
 
@@ -142,9 +143,17 @@ public record ChartPlot(
             // the shared index moves the line on every chart and this one's own
             // `hovered` decides whether it also says what the numbers are.
             var shared = group == null ? hovered : group.hovered();
-            return new ChartSurface(widget().series(), widget().categories(), widget().mode(),
-                    widget().options(), widget().isolated(), shared, hovered >= 0,
-                    painted, this::hover, this::walk);
+            return new ChartSurface(
+                    widget().series(),
+                    widget().categories(),
+                    widget().mode(),
+                    widget().options(),
+                    widget().isolated(),
+                    shared,
+                    hovered >= 0,
+                    painted,
+                    this::hover,
+                    this::walk);
         }
 
         /// Moves the crosshair, and asks for a frame only when it actually moved.
@@ -180,7 +189,9 @@ public record ChartPlot(
         /// after Sunday would be a chart pretending its axis is a circle.
         private boolean walk(int direction) {
             var points = widget().series().stream()
-                    .mapToInt(s -> s.values().size()).max().orElse(0);
+                    .mapToInt(s -> s.values().size())
+                    .max()
+                    .orElse(0);
             if (points == 0) {
                 return false;
             }

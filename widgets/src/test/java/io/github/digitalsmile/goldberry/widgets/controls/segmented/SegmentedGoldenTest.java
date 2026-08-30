@@ -1,35 +1,37 @@
 package io.github.digitalsmile.goldberry.widgets.controls.segmented;
 
-import io.github.digitalsmile.goldberry.widgets.controls.option.Option;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import io.github.digitalsmile.goldberry.RendererRequirement;
-import io.github.digitalsmile.goldberry.bind.Property;
-import io.github.digitalsmile.goldberry.motion.Clock;
-import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
-import io.github.digitalsmile.goldberry.css.select.Selector;
-import io.github.digitalsmile.goldberry.css.Stylesheet;
-import io.github.digitalsmile.goldberry.css.Theme;
-import io.github.digitalsmile.goldberry.golden.GoldenImage;
-import io.github.digitalsmile.goldberry.icon.Icon;
-import io.github.digitalsmile.goldberry.paint.BoxPainter;
-import io.github.digitalsmile.goldberry.widget.attr.Attributes;
-import io.github.digitalsmile.goldberry.widget.Element;
-import io.github.digitalsmile.goldberry.widget.ElementTree;
-import io.github.digitalsmile.goldberry.widget.Widget;
-import io.github.digitalsmile.goldberry.widget.WidgetRenderer;
-import io.github.digitalsmile.goldberry.widgets.Controls;
-import io.github.digitalsmile.goldberry.widgets.controls.TestFont;
-import io.github.digitalsmile.goldberry.widgets.core.Column;
-import io.github.digitalsmile.goldberry.widgets.core.Row;
-import io.github.digitalsmile.goldberry.widgets.panel.Panel;
 import java.util.List;
 import java.util.Set;
+
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+
+import io.github.digitalsmile.goldberry.RendererRequirement;
+import io.github.digitalsmile.goldberry.bind.Property;
+import io.github.digitalsmile.goldberry.css.Stylesheet;
+import io.github.digitalsmile.goldberry.css.Theme;
+import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
+import io.github.digitalsmile.goldberry.css.select.Selector;
+import io.github.digitalsmile.goldberry.golden.GoldenImage;
+import io.github.digitalsmile.goldberry.icon.Icon;
+import io.github.digitalsmile.goldberry.motion.Clock;
+import io.github.digitalsmile.goldberry.paint.BoxPainter;
+import io.github.digitalsmile.goldberry.widget.Element;
+import io.github.digitalsmile.goldberry.widget.ElementTree;
+import io.github.digitalsmile.goldberry.widget.Widget;
+import io.github.digitalsmile.goldberry.widget.WidgetRenderer;
+import io.github.digitalsmile.goldberry.widget.attr.Attributes;
+import io.github.digitalsmile.goldberry.widgets.Controls;
+import io.github.digitalsmile.goldberry.widgets.controls.TestFont;
+import io.github.digitalsmile.goldberry.widgets.controls.option.Option;
+import io.github.digitalsmile.goldberry.widgets.core.Column;
+import io.github.digitalsmile.goldberry.widgets.core.Row;
+import io.github.digitalsmile.goldberry.widgets.panel.Panel;
 
 /// What a segmented control actually looks like (§14, [ADR-0050]).
 ///
@@ -98,10 +100,7 @@ class SegmentedGoldenTest {
             state.applyTo(tree.root().children().getFirst());
         }
         var renderer = new WidgetRenderer(
-                List.of(
-                        Controls.baseStylesheet(),
-                        theme.load(),
-                        Stylesheet.parse(CascadeLayer.APPLICATION, """
+                List.of(Controls.baseStylesheet(), theme.load(), Stylesheet.parse(CascadeLayer.APPLICATION, """
                                 #row   { padding: 12px; gap: 8px; align-items: center;
                                          background: var(--gb-bg) }
                                 #panel { padding: 12px; gap: 8px; align-items: center;
@@ -109,16 +108,17 @@ class SegmentedGoldenTest {
                                 """)),
                 TestFont.get());
 
-        GoldenImage.assertMatches(name, width, 56, 1.0f,
-                frame -> BoxPainter.paint(frame, renderer.render(tree)));
+        GoldenImage.assertMatches(name, width, 56, 1.0f, frame -> BoxPainter.paint(frame, renderer.render(tree)));
     }
 
     private static Segmented bar(String selected) {
-        return new Segmented(selected,
-                List.of(new Option("list", "List"),
-                        new Option("grid", "Grid"),
-                        new Option("map", "Map")),
-                null, null, false, id("view"));
+        return new Segmented(
+                selected,
+                List.of(new Option("list", "List"), new Option("grid", "Grid"), new Option("map", "Map")),
+                null,
+                null,
+                false,
+                id("view"));
     }
 
     /// The image this control exists to be checked by: three labels, one plate,
@@ -160,9 +160,12 @@ class SegmentedGoldenTest {
     @Test
     @DisplayName("hover on an unselected segment, and on the selected one")
     void hover() {
-        paint("segmented-hover", Theme.NORD_DARK, 220, bar("grid"),
-                new PseudoState(0, Selector.PseudoClass.HOVER));
-        paint("segmented-hover-selected", Theme.NORD_DARK, 220, bar("grid"),
+        paint("segmented-hover", Theme.NORD_DARK, 220, bar("grid"), new PseudoState(0, Selector.PseudoClass.HOVER));
+        paint(
+                "segmented-hover-selected",
+                Theme.NORD_DARK,
+                220,
+                bar("grid"),
                 new PseudoState(1, Selector.PseudoClass.HOVER));
     }
 
@@ -175,7 +178,11 @@ class SegmentedGoldenTest {
     @Test
     @DisplayName("the ring is on the segment and not on the bar")
     void focusRing() {
-        paint("segmented-focus", Theme.NORD_DARK, 220, bar("grid"),
+        paint(
+                "segmented-focus",
+                Theme.NORD_DARK,
+                220,
+                bar("grid"),
                 new PseudoState(2, Selector.PseudoClass.FOCUS_VISIBLE));
     }
 
@@ -194,11 +201,20 @@ class SegmentedGoldenTest {
     @Test
     @DisplayName("a segment takes an icon, a label, or both")
     void icons() {
-        paint("segmented-icons", Theme.NORD_DARK, 260, new Segmented("grid",
-                List.of(new Option("list", "List").withIcon(icon),
-                        new Option("grid", "Grid").withIcon(icon),
-                        new Option("map", "", icon, false, null, false, Attributes.NONE)),
-                null, null, false, id("view")));
+        paint(
+                "segmented-icons",
+                Theme.NORD_DARK,
+                260,
+                new Segmented(
+                        "grid",
+                        List.of(
+                                new Option("list", "List").withIcon(icon),
+                                new Option("grid", "Grid").withIcon(icon),
+                                new Option("map", "", icon, false, null, false, Attributes.NONE)),
+                        null,
+                        null,
+                        false,
+                        id("view")));
     }
 
     /// Given a column to sit in, the bar fills the width and its segments divide
@@ -220,7 +236,11 @@ class SegmentedGoldenTest {
                                 """)),
                 TestFont.get());
 
-        GoldenImage.assertMatches("segmented-stretched", 320, 56, 1.0f,
+        GoldenImage.assertMatches(
+                "segmented-stretched",
+                320,
+                56,
+                1.0f,
                 frame -> BoxPainter.paint(frame, renderer.render(new ElementTree(content))));
     }
 
@@ -239,23 +259,27 @@ class SegmentedGoldenTest {
     void travel() {
         var clock = Clock.virtual();
         var mode = Property.of("list");
-        var content = new Row(List.of(
-                Segmented.of(mode, null,
-                        new Option("list", "List"),
-                        new Option("grid", "Grid"),
-                        new Option("map", "Map")).id("view")),
+        var content = new Row(
+                List.of(Segmented.of(
+                                mode,
+                                null,
+                                new Option("list", "List"),
+                                new Option("grid", "Grid"),
+                                new Option("map", "Map"))
+                        .id("view")),
                 id("row"));
         var tree = new ElementTree(content);
         var renderer = new WidgetRenderer(
-                List.of(
-                        Controls.baseStylesheet(),
-                        Theme.NORD_DARK.load(),
-                        Stylesheet.parse(CascadeLayer.APPLICATION, """
+                        List.of(
+                                Controls.baseStylesheet(),
+                                Theme.NORD_DARK.load(),
+                                Stylesheet.parse(CascadeLayer.APPLICATION, """
                                 #row { padding: 12px; gap: 8px; align-items: center;
                                        background: var(--gb-bg) }
                                 #view { width: 240px }
                                 """)),
-                TestFont.get()).clock(clock);
+                        TestFont.get())
+                .clock(clock);
 
         // Frame 1 establishes the resting style. Nothing transitions on a first
         // frame: a bar appearing is not a bar moving, or every window would
@@ -277,8 +301,7 @@ class SegmentedGoldenTest {
         var midway = renderer.render(tree);
         assertTrue(renderer.isAnimating(), "and has not arrived");
 
-        GoldenImage.assertMatches("segmented-travel", 280, 56, 1.0f,
-                frame -> BoxPainter.paint(frame, midway));
+        GoldenImage.assertMatches("segmented-travel", 280, 56, 1.0f, frame -> BoxPainter.paint(frame, midway));
 
         clock.advance(120);
         renderer.render(tree);
@@ -293,12 +316,11 @@ class SegmentedGoldenTest {
     void reducedMotion() {
         var clock = Clock.virtual();
         var mode = Property.of("list");
-        var tree = new ElementTree(new Row(List.of(
-                Segmented.of(mode, null,
-                        new Option("list", "List"), new Option("grid", "Grid")).id("view")),
+        var tree = new ElementTree(new Row(
+                List.of(Segmented.of(mode, null, new Option("list", "List"), new Option("grid", "Grid"))
+                        .id("view")),
                 id("row")));
-        var renderer = new WidgetRenderer(
-                List.of(Controls.baseStylesheet(), Theme.NORD_DARK.load()), TestFont.get())
+        var renderer = new WidgetRenderer(List.of(Controls.baseStylesheet(), Theme.NORD_DARK.load()), TestFont.get())
                 .clock(clock);
         renderer.reducedMotion(true);
 
@@ -330,7 +352,11 @@ class SegmentedGoldenTest {
                                 """)),
                 TestFont.get());
 
-        GoldenImage.assertMatches("segmented-on-surface", 220, 56, 1.0f,
+        GoldenImage.assertMatches(
+                "segmented-on-surface",
+                220,
+                56,
+                1.0f,
                 frame -> BoxPainter.paint(frame, renderer.render(new ElementTree(content))));
     }
 }

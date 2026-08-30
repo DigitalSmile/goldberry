@@ -1,15 +1,16 @@
 package io.github.digitalsmile.goldberry.widgets.panel.carousel;
 
-import io.github.digitalsmile.goldberry.kdl.KdlNode;
-import io.github.digitalsmile.goldberry.widget.attr.Attributed;
-import io.github.digitalsmile.goldberry.widget.attr.Attributes;
-import io.github.digitalsmile.goldberry.widget.State;
-import io.github.digitalsmile.goldberry.widget.Widget;
-import io.github.digitalsmile.goldberry.widgets.markup.Markup;
-import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
 import java.time.Duration;
 import java.util.List;
 import java.util.function.IntConsumer;
+
+import io.github.digitalsmile.goldberry.kdl.KdlNode;
+import io.github.digitalsmile.goldberry.widget.State;
+import io.github.digitalsmile.goldberry.widget.Widget;
+import io.github.digitalsmile.goldberry.widget.attr.Attributed;
+import io.github.digitalsmile.goldberry.widget.attr.Attributes;
+import io.github.digitalsmile.goldberry.widgets.markup.Markup;
+import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
 
 /// One child at a time out of a list — `docs/core-widgets.md` §5's `carousel`.
 ///
@@ -72,8 +73,7 @@ import java.util.function.IntConsumer;
 /// @param attributes the `id` and classes, which land on the `carousel` node
 @Markup("carousel")
 public record Carousel(
-        int index, IntConsumer onChange, boolean loop, Duration interval,
-        List<Widget> children, Attributes attributes)
+        int index, IntConsumer onChange, boolean loop, Duration interval, List<Widget> children, Attributes attributes)
         implements Widget.Stateful, Attributed<Carousel> {
 
     public Carousel(Widget... slides) {
@@ -87,9 +87,7 @@ public record Carousel(
     public Carousel {
         children = List.copyOf(children == null ? List.of() : children);
         attributes = attributes == null ? Attributes.NONE : attributes;
-        interval = interval == null || interval.isZero() || interval.isNegative()
-                ? null
-                : interval;
+        interval = interval == null || interval.isZero() || interval.isNegative() ? null : interval;
         // Clamped rather than refused. A list that shrank under a bound index is
         // an ordinary thing for an application to do between frames, and a
         // carousel that threw there would take the window down for it.

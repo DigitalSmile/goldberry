@@ -4,16 +4,23 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.ArrayList;
+import java.util.List;
+
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
+
 import io.github.digitalsmile.goldberry.bind.Property;
 import io.github.digitalsmile.goldberry.css.Theme;
 import io.github.digitalsmile.goldberry.input.PointerRouter;
 import io.github.digitalsmile.goldberry.kdl.KdlParser;
-import io.github.digitalsmile.goldberry.widget.attr.Attributes;
 import io.github.digitalsmile.goldberry.widget.Element;
 import io.github.digitalsmile.goldberry.widget.ElementTree;
-import io.github.digitalsmile.goldberry.widget.style.Styled;
 import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widget.WidgetRenderer;
+import io.github.digitalsmile.goldberry.widget.attr.Attributes;
+import io.github.digitalsmile.goldberry.widget.style.Styled;
 import io.github.digitalsmile.goldberry.widgets.Controls;
 import io.github.digitalsmile.goldberry.widgets.TestHost;
 import io.github.digitalsmile.goldberry.widgets.Widgets;
@@ -23,11 +30,6 @@ import io.github.digitalsmile.goldberry.widgets.form.field.Field;
 import io.github.digitalsmile.goldberry.widgets.form.form.Form;
 import io.github.digitalsmile.goldberry.widgets.form.form.FormController;
 import io.github.digitalsmile.goldberry.widgets.form.textinput.TextInput;
-import java.util.ArrayList;
-import java.util.List;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.Test;
 
 /// §4's layout contract and its validation model.
 ///
@@ -52,8 +54,7 @@ class FormTest {
 
     private void render(ElementTree tree) {
         tree.flush();
-        new WidgetRenderer(List.of(Controls.baseStylesheet(), Theme.NORD_DARK.load()),
-                TestFont.get()).render(tree);
+        new WidgetRenderer(List.of(Controls.baseStylesheet(), Theme.NORD_DARK.load()), TestFont.get()).render(tree);
     }
 
     private PointerRouter routed(ElementTree tree) {
@@ -63,8 +64,7 @@ class FormTest {
     }
 
     private static Field required(String label, Property<String> value) {
-        return new Field(label, List.of(TextInput.of(value, value::set)), true, null,
-                Attributes.NONE);
+        return new Field(label, List.of(TextInput.of(value, value::set)), true, null, Attributes.NONE);
     }
 
     // --- reading the tree the way a stylesheet does ----------------------------
@@ -152,9 +152,12 @@ class FormTest {
         @DisplayName("moving between two controls in one field is not leaving it")
         void movingInsideIsNotBlur() {
             var first = Property.of("");
-            var field = new Field("Range",
+            var field = new Field(
+                    "Range",
                     List.of(TextInput.of(first, first::set), new TextInput("", null)),
-                    true, null, Attributes.NONE);
+                    true,
+                    null,
+                    Attributes.NONE);
             var tree = mounted(field);
             var router = routed(tree);
             var inputs = findAll(tree.root(), "text-input", new ArrayList<>());
@@ -172,8 +175,7 @@ class FormTest {
         @Test
         @DisplayName("a field with no bound control validates nothing")
         void unboundIsLayoutOnly() {
-            var tree = mounted(new Field("Name", List.of(new TextInput("", null)), true, null,
-                    Attributes.NONE));
+            var tree = mounted(new Field("Name", List.of(new TextInput("", null)), true, null, Attributes.NONE));
             var router = routed(tree);
 
             router.focus(find(tree, "text-input"), true);
@@ -194,8 +196,8 @@ class FormTest {
         private final FormController controller = new FormController();
 
         private Form twoFields(Property<String> name, Property<String> port, Runnable onSave) {
-            return new Form(List.of(required("Name", name), required("Port", port)),
-                    onSave, controller, Attributes.NONE);
+            return new Form(
+                    List.of(required("Name", name), required("Port", port)), onSave, controller, Attributes.NONE);
         }
 
         @Test
@@ -205,8 +207,7 @@ class FormTest {
 
             assertFalse(loose.isAttached());
             assertFalse(loose.submit());
-            assertTrue(loose.isValid(),
-                    "or a Save button would disable itself on the first frame of every window");
+            assertTrue(loose.isValid(), "or a Save button would disable itself on the first frame of every window");
             assertEquals(List.of(), loose.errors());
         }
 
@@ -223,11 +224,12 @@ class FormTest {
         @DisplayName("a field nested in rows and columns still finds it")
         void findsThroughNesting() {
             var name = Property.of("");
-            mounted(new Form(List.of(
-                    new Column(List.of(
-                            new Column(List.of(required("Name", name)), Attributes.NONE)),
-                            Attributes.NONE)),
-                    null, controller, Attributes.NONE));
+            mounted(new Form(
+                    List.of(new Column(
+                            List.of(new Column(List.of(required("Name", name)), Attributes.NONE)), Attributes.NONE)),
+                    null,
+                    controller,
+                    Attributes.NONE));
 
             // `findAncestorState` walks to the root, so how deep a document
             // nested its fields is not the form's problem.
@@ -247,8 +249,7 @@ class FormTest {
             assertFalse(saved[0]);
             // Every field, not just the first: a summary with one entry when two
             // things are wrong sends somebody round the form twice.
-            assertEquals(List.of(Field.REQUIRED_MESSAGE, Field.REQUIRED_MESSAGE),
-                    controller.errors());
+            assertEquals(List.of(Field.REQUIRED_MESSAGE, Field.REQUIRED_MESSAGE), controller.errors());
         }
 
         @Test
@@ -357,9 +358,12 @@ class FormTest {
         @Test
         @DisplayName("a field with nothing focusable in it focuses nothing")
         void nothingToDelegateTo() {
-            var tree = mounted(new Field("Name",
+            var tree = mounted(new Field(
+                    "Name",
                     List.of(new io.github.digitalsmile.goldberry.widgets.text.Text("read only")),
-                    false, null, Attributes.NONE));
+                    false,
+                    null,
+                    Attributes.NONE));
             var router = routed(tree);
 
             pressOn(router, find(tree, "field-label"));
@@ -398,8 +402,7 @@ class FormTest {
             var named = io.github.digitalsmile.goldberry.widgets.markup.Named.strict()
                     .bind("app.form", signup)
                     .bind("app.port-rule", portRule);
-            return Widgets.inflater(named, io.github.digitalsmile.goldberry.widgets.Icons.none(),
-                    model);
+            return Widgets.inflater(named, io.github.digitalsmile.goldberry.widgets.Icons.none(), model);
         }
 
         @Test
@@ -423,8 +426,8 @@ class FormTest {
         @Test
         @DisplayName("a document names a validator; it does not describe one")
         void namesAValidator() {
-            var field = (Field) wired().inflateAll(KdlParser.parse(
-                    "field label=\"Port\" validator=\"app.port-rule\"")).getFirst();
+            var field = (Field) wired().inflateAll(KdlParser.parse("field label=\"Port\" validator=\"app.port-rule\""))
+                    .getFirst();
 
             // Markup is data and a validator is a function, so a document says
             // *which* rule and not what the rule is — the same thing `press=`
@@ -455,8 +458,9 @@ class FormTest {
         @Test
         @DisplayName("a named validator and a named required flag compose")
         void validatorComposesWithRequired() {
-            var field = (Field) wired().inflateAll(KdlParser.parse(
-                    "field label=\"Port\" required=#true validator=\"app.port-rule\"")).getFirst();
+            var field = (Field) wired().inflateAll(
+                            KdlParser.parse("field label=\"Port\" required=#true validator=\"app.port-rule\""))
+                    .getFirst();
 
             // Required runs first, so an empty value reports "this is required"
             // rather than "that is not a number" — the more useful of two things
@@ -472,8 +476,7 @@ class FormTest {
             // form that cannot be submitted and says so nowhere.
             var thrown = org.junit.jupiter.api.Assertions.assertThrows(
                     IllegalArgumentException.class,
-                    () -> wired().inflateAll(
-                            KdlParser.parse("form controller=\"app.port-rule\"")));
+                    () -> wired().inflateAll(KdlParser.parse("form controller=\"app.port-rule\"")));
 
             assertTrue(thrown.getMessage().contains("FormController"), thrown.getMessage());
         }
@@ -483,7 +486,8 @@ class FormTest {
         void refusesAnUnknownName() {
             // `controller="signip"` is a typo, and a form that silently cannot be
             // submitted is the hardest kind of bug to notice.
-            org.junit.jupiter.api.Assertions.assertThrows(IllegalArgumentException.class,
+            org.junit.jupiter.api.Assertions.assertThrows(
+                    IllegalArgumentException.class,
                     () -> wired().inflateAll(KdlParser.parse("form controller=\"app.signip\"")));
         }
 
@@ -491,7 +495,8 @@ class FormTest {
         @DisplayName("required is still a flag, because it is the one rule that is data")
         void requiredIsAFlag() {
             var field = (Field) Widgets.inflater()
-                    .inflateAll(KdlParser.parse("field label=\"Name\" required=#true")).getFirst();
+                    .inflateAll(KdlParser.parse("field label=\"Name\" required=#true"))
+                    .getFirst();
 
             assertTrue(field.validator() == null);
             assertFalse(field.rule().check("").isValid());

@@ -37,8 +37,7 @@ import java.util.Objects;
 public final class ToastController {
 
     /// A controller with nothing attached yet.
-    public ToastController() {
-    }
+    public ToastController() {}
 
     /// The attached stack's state, or null. Package-private and set only by
     /// [ToasterState], which attaches on mount and detaches on unmount.
@@ -85,7 +84,6 @@ public final class ToastController {
 
     @Override
     public String toString() {
-        return "ToastController[" + (attached == null ? "detached" : showing().size() + " showing")
-                + "]";
+        return "ToastController[" + (attached == null ? "detached" : showing().size() + " showing") + "]";
     }
 }

@@ -5,6 +5,14 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.ArrayList;
+import java.util.List;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
+
 import io.github.digitalsmile.goldberry.input.handler.Handles;
 import io.github.digitalsmile.goldberry.widget.BuildContext;
 import io.github.digitalsmile.goldberry.widget.Element;
@@ -12,12 +20,6 @@ import io.github.digitalsmile.goldberry.widget.ElementTree;
 import io.github.digitalsmile.goldberry.widget.State;
 import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widget.style.Styled;
-import java.util.ArrayList;
-import java.util.List;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.Test;
 
 /// `docs/core-widgets.md` §7's focus trap, and
 /// [io.github.digitalsmile.goldberry.Host#focus].
@@ -96,9 +98,8 @@ class FocusTrapTest {
     /// `window( a b modal?( x y ) )` — two ordinary stops, and a container that
     /// may or may not be modal with two more inside it.
     private void build(boolean modal) {
-        tree = new ElementTree(new Box("window", false,
-                new Item("a"), new Item("b"),
-                new Box("panel", modal, new Item("x"), new Item("y"))));
+        tree = new ElementTree(new Box(
+                "window", false, new Item("a"), new Item("b"), new Box("panel", modal, new Item("x"), new Item("y"))));
         router = new PointerRouter();
         router.focusRoot(tree.root());
     }
@@ -187,8 +188,7 @@ class FocusTrapTest {
 
             router.focus(byId("a"), true);
 
-            assertSame(byId("x"), router.focused(),
-                    "a direct focus() escaped the trap");
+            assertSame(byId("x"), router.focused(), "a direct focus() escaped the trap");
         }
 
         @Test
@@ -228,8 +228,7 @@ class FocusTrapTest {
 
             // The modal goes away the way a dialog does: its overlay is removed,
             // so the element is simply not in the tree any more.
-            tree = new ElementTree(new Box("window", false,
-                    new Item("a"), new Item("b")));
+            tree = new ElementTree(new Box("window", false, new Item("a"), new Item("b")));
             router.focusRoot(tree.root());
 
             assertEquals(List.of("a", "b", "a"), tabbing(3));
@@ -246,7 +245,9 @@ class FocusTrapTest {
         @Test
         @DisplayName("the topmost traps, not the first one found")
         void theTopmostWins() {
-            tree = new ElementTree(new Box("window", false,
+            tree = new ElementTree(new Box(
+                    "window",
+                    false,
                     new Item("a"),
                     new Box("first", true, new Item("x")),
                     new Box("second", true, new Item("z"))));
@@ -351,7 +352,8 @@ class FocusTrapTest {
 
             closeModal();
 
-            assertTrue(router.focused() == null || router.focused().isMounted(),
+            assertTrue(
+                    router.focused() == null || router.focused().isMounted(),
                     "the router is holding " + focusedId() + ", which is not in the tree");
         }
 
@@ -382,8 +384,8 @@ class FocusTrapTest {
             router.focus(in("b"), true);
             closeModal();
 
-            assertTrue(in("a").hasState(
-                    io.github.digitalsmile.goldberry.css.select.Selector.PseudoClass.FOCUS_VISIBLE),
+            assertTrue(
+                    in("a").hasState(io.github.digitalsmile.goldberry.css.select.Selector.PseudoClass.FOCUS_VISIBLE),
                     "the ring did not come back with the keyboard");
 
             // And the other way round: focus taken from a pointer comes back
@@ -394,8 +396,8 @@ class FocusTrapTest {
             closeModal();
 
             assertEquals("a", focusedId());
-            assertFalse(in("a").hasState(
-                    io.github.digitalsmile.goldberry.css.select.Selector.PseudoClass.FOCUS_VISIBLE),
+            assertFalse(
+                    in("a").hasState(io.github.digitalsmile.goldberry.css.select.Selector.PseudoClass.FOCUS_VISIBLE),
                     "a ring appeared under a pointer that nobody moved");
         }
 

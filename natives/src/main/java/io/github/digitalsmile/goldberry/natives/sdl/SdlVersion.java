@@ -26,9 +26,7 @@ public record SdlVersion(int major, int minor, int patch) implements Comparable<
                     "SDL_GetVersion() returned " + versionNumber + ", which is not a version");
         }
         return new SdlVersion(
-                versionNumber / MAJOR_SCALE,
-                (versionNumber / MINOR_SCALE) % MINOR_SCALE,
-                versionNumber % MINOR_SCALE);
+                versionNumber / MAJOR_SCALE, (versionNumber / MINOR_SCALE) % MINOR_SCALE, versionNumber % MINOR_SCALE);
     }
 
     /// The `SDL_VERSIONNUM` form.

@@ -5,6 +5,7 @@ import java.lang.foreign.MemorySegment;
 import java.lang.foreign.ValueLayout;
 import java.nio.charset.StandardCharsets;
 import java.util.Objects;
+
 import io.github.digitalsmile.goldberry.natives.harfbuzz.enums.TextDirection;
 
 /// The run of text being shaped, and afterwards the glyphs it produced.
@@ -116,8 +117,7 @@ public final class ShapingBuffer implements AutoCloseable {
         Objects.requireNonNull(tag, "tag");
         if (tag.length() != 4) {
             throw new IllegalArgumentException(
-                    "a script tag is four characters (ISO 15924), and \"" + tag + "\" is "
-                            + tag.length());
+                    "a script tag is four characters (ISO 15924), and \"" + tag + "\" is " + tag.length());
         }
         try (var arena = Arena.ofConfined()) {
             var bytes = tag.getBytes(StandardCharsets.US_ASCII);

@@ -1,6 +1,5 @@
 package io.github.digitalsmile.goldberry.natives.blend2d.enums;
 
-
 /// A pixel format Blend2D can rasterize into — `BLFormat`.
 ///
 /// The names describe a 32-bit *value*, not a byte order: `PRGB32` is
@@ -59,8 +58,7 @@ public enum BlendFormat implements BlendEnum {
             case 1 -> PRGB32;
             case 2 -> XRGB32;
             case 3 -> A8;
-            default -> throw new IllegalArgumentException(
-                    "BLFormat " + nativeValue + " is not one Blend2D defines");
+            default -> throw new IllegalArgumentException("BLFormat " + nativeValue + " is not one Blend2D defines");
         };
     }
 }

@@ -7,6 +7,15 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.time.Duration;
+import java.util.ArrayList;
+import java.util.List;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
+
 import io.github.digitalsmile.goldberry.RendererRequirement;
 import io.github.digitalsmile.goldberry.css.Theme;
 import io.github.digitalsmile.goldberry.css.value.Transform;
@@ -21,13 +30,6 @@ import io.github.digitalsmile.goldberry.widgets.TestHost;
 import io.github.digitalsmile.goldberry.widgets.controls.TestFont;
 import io.github.digitalsmile.goldberry.widgets.controls.button.Button;
 import io.github.digitalsmile.goldberry.widgets.panel.Described;
-import java.time.Duration;
-import java.util.ArrayList;
-import java.util.List;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.Test;
 
 /// `toast` — §7's "queued, timeout with hover-pause, optional action button,
 /// stacking corner configurable".
@@ -60,7 +62,8 @@ class ToastTest {
     /// The ids showing, in the order the stack describes them — oldest first.
     private static List<String> texts(ElementTree tree) {
         return Described.of(tree, ToastBox.class).stream()
-                .map(box -> box.toast().text()).toList();
+                .map(box -> box.toast().text())
+                .toList();
     }
 
     /// Fires the timer that was scheduled first, which is the one that would go
@@ -198,9 +201,11 @@ class ToastTest {
             var clock = io.github.digitalsmile.goldberry.motion.Clock.virtual();
             var tree = stack();
             var renderer = new io.github.digitalsmile.goldberry.widget.WidgetRenderer(
-                    List.of(io.github.digitalsmile.goldberry.widgets.Controls.baseStylesheet(),
-                            io.github.digitalsmile.goldberry.css.Theme.NORD_DARK.load()),
-                    io.github.digitalsmile.goldberry.widgets.controls.TestFont.get()).clock(clock);
+                            List.of(
+                                    io.github.digitalsmile.goldberry.widgets.Controls.baseStylesheet(),
+                                    io.github.digitalsmile.goldberry.css.Theme.NORD_DARK.load()),
+                            io.github.digitalsmile.goldberry.widgets.controls.TestFont.get())
+                    .clock(clock);
 
             toasts.show(new Toast("Saved").timeout(Duration.ofMillis(1000)));
             tree.flush();
@@ -218,7 +223,9 @@ class ToastTest {
 
             Described.first(tree, ToastBox.class).onPointer(pointer(PointerEvent.Kind.EXITED));
 
-            assertEquals(Duration.ofMillis(600), host.scheduledDelays().getLast(),
+            assertEquals(
+                    Duration.ofMillis(600),
+                    host.scheduledDelays().getLast(),
                     "it was given the whole timeout again rather than what was left");
         }
 
@@ -258,8 +265,7 @@ class ToastTest {
             tree.flush();
 
             assertEquals(List.of("undo"), pressed);
-            assertTrue(Described.first(tree, ToastBox.class).leaving(),
-                    "the toast stayed after its action was taken");
+            assertTrue(Described.first(tree, ToastBox.class).leaving(), "the toast stayed after its action was taken");
         }
 
         @Test
@@ -278,10 +284,8 @@ class ToastTest {
         @Test
         @DisplayName("a labelled action that does nothing is refused")
         void labelNeedsAHandler() {
-            assertThrows(IllegalArgumentException.class,
-                    () -> new Toast("x", "Undo", null, Duration.ofSeconds(5)));
-            assertThrows(IllegalArgumentException.class,
-                    () -> new Toast("x", null, null, Duration.ofSeconds(-1)));
+            assertThrows(IllegalArgumentException.class, () -> new Toast("x", "Undo", null, Duration.ofSeconds(5)));
+            assertThrows(IllegalArgumentException.class, () -> new Toast("x", null, null, Duration.ofSeconds(-1)));
         }
     }
 
@@ -303,8 +307,7 @@ class ToastTest {
             toasts.clear();
             tree.flush();
 
-            assertTrue(Described.of(tree, ToastBox.class).stream().allMatch(ToastBox::leaving),
-                    "something is staying");
+            assertTrue(Described.of(tree, ToastBox.class).stream().allMatch(ToastBox::leaving), "something is staying");
             host.tickAll();
             tree.flush();
             assertEquals(List.of(), texts(tree), "the queue put another one up");
@@ -338,9 +341,8 @@ class ToastTest {
         @BeforeEach
         void renderer() {
             clock = Clock.virtual();
-            renderer = new WidgetRenderer(
-                    List.of(Controls.baseStylesheet(), Theme.NORD_DARK.load()),
-                    TestFont.get()).clock(clock);
+            renderer = new WidgetRenderer(List.of(Controls.baseStylesheet(), Theme.NORD_DARK.load()), TestFont.get())
+                    .clock(clock);
         }
 
         /// Three toasts that never go on their own and can each be dismissed,
@@ -357,8 +359,8 @@ class ToastTest {
         private ElementTree three(Corner corner, boolean measured) {
             var tree = new ElementTree(new Toaster(toasts, corner), host);
             for (var text : List.of("one", "two", "three")) {
-                toasts.show(new Toast(text).action("Undo", () -> pressed.add(text))
-                        .timeout(Duration.ZERO));
+                toasts.show(
+                        new Toast(text).action("Undo", () -> pressed.add(text)).timeout(Duration.ZERO));
             }
             tree.flush();
             renderer.render(tree);
@@ -388,7 +390,8 @@ class ToastTest {
         /// where it belongs.
         private List<ToastBox.Reflow> reflows(ElementTree tree) {
             return Described.of(tree, ToastBox.class).stream()
-                    .map(ToastBox::reflow).toList();
+                    .map(ToastBox::reflow)
+                    .toList();
         }
 
         /// The vertical translate on the toast at `index` of the painted column,
@@ -414,10 +417,9 @@ class ToastTest {
 
             assertEquals(List.of("one", "three"), texts(tree));
             var going = reflows(tree);
-            assertNotNull(going.getFirst(),
-                    "the toast on the far side of the hole did not move, so the hole is still there");
-            assertNull(going.getLast(),
-                    "a toast between the hole and the corner moved, and nothing had moved it");
+            assertNotNull(
+                    going.getFirst(), "the toast on the far side of the hole did not move, so the hole is still there");
+            assertNull(going.getLast(), "a toast between the hole and the corner moved, and nothing had moved it");
         }
 
         @Test
@@ -427,7 +429,10 @@ class ToastTest {
 
             dismiss(tree, "two");
 
-            assertEquals(HEIGHT + GAP, reflows(tree).getFirst().distance(), 0.001,
+            assertEquals(
+                    HEIGHT + GAP,
+                    reflows(tree).getFirst().distance(),
+                    0.001,
                     "the stack is closing a hole of a size nothing measured");
         }
 
@@ -441,8 +446,7 @@ class ToastTest {
 
             dismiss(tree, "two");
 
-            assertEquals(-(HEIGHT + GAP), translateY(tree, 0), 0.001,
-                    "the first frame jumped rather than staying put");
+            assertEquals(-(HEIGHT + GAP), translateY(tree, 0), 0.001, "the first frame jumped rather than staying put");
             clock.advance(ToasterState.REFLOW_MILLIS / 2);
             assertEquals(-(HEIGHT + GAP) / 2, translateY(tree, 0), 1.0);
             clock.advance(ToasterState.REFLOW_MILLIS);
@@ -459,7 +463,10 @@ class ToastTest {
 
             dismiss(tree, "two");
 
-            assertEquals(HEIGHT + GAP, translateY(tree, 0), 0.001,
+            assertEquals(
+                    HEIGHT + GAP,
+                    translateY(tree, 0),
+                    0.001,
                     "a stack at the top is closing its hole away from its corner");
         }
 
@@ -479,7 +486,10 @@ class ToastTest {
 
             dismiss(tree, "three");
 
-            assertEquals((HEIGHT + GAP) * 1.5, reflows(tree).getFirst().distance(), 1.0,
+            assertEquals(
+                    (HEIGHT + GAP) * 1.5,
+                    reflows(tree).getFirst().distance(),
+                    1.0,
                     "the second hole threw away what was left of the first");
         }
 
@@ -500,8 +510,7 @@ class ToastTest {
             dismiss(tree, "two");
             renderer.render(tree);
 
-            assertTrue(renderer.isAnimating(),
-                    "nothing will repaint the survivors, so they will not travel");
+            assertTrue(renderer.isAnimating(), "nothing will repaint the survivors, so they will not travel");
 
             clock.advance(ToasterState.REFLOW_MILLIS + 1);
             renderer.render(tree);
@@ -538,7 +547,8 @@ class ToastTest {
 
             dismiss(tree, "two");
 
-            assertTrue(reflows(tree).stream().allMatch(java.util.Objects::isNull),
+            assertTrue(
+                    reflows(tree).stream().allMatch(java.util.Objects::isNull),
                     "the stack moved to close a hole nothing had ever filled");
         }
     }
@@ -551,8 +561,7 @@ class ToastTest {
     class Dismissing {
 
         private PointerEvent click() {
-            return new PointerEvent(PointerEvent.Kind.CLICKED, 0, 0,
-                    PointerEvent.Button.PRIMARY, 1, null);
+            return new PointerEvent(PointerEvent.Kind.CLICKED, 0, 0, PointerEvent.Button.PRIMARY, 1, null);
         }
 
         @Test
@@ -565,7 +574,8 @@ class ToastTest {
             Described.first(tree, ToastBox.class).onPointer(click());
             tree.flush();
 
-            assertTrue(Described.first(tree, ToastBox.class).leaving(),
+            assertTrue(
+                    Described.first(tree, ToastBox.class).leaving(),
                     "the one kind of toast that cannot go on its own still cannot go");
         }
 
@@ -577,7 +587,8 @@ class ToastTest {
         void dismissIsNotAnAnswer() {
             var tree = stack();
             toasts.show(new Toast("Message sent")
-                    .action("Undo", () -> pressed.add("undo")).timeout(Duration.ZERO));
+                    .action("Undo", () -> pressed.add("undo"))
+                    .timeout(Duration.ZERO));
             tree.flush();
 
             Described.first(tree, ToastBox.class).onPointer(click());
@@ -595,7 +606,8 @@ class ToastTest {
         void theActionStillActs() {
             var tree = stack();
             toasts.show(new Toast("Message sent")
-                    .action("Undo", () -> pressed.add("undo")).timeout(Duration.ZERO));
+                    .action("Undo", () -> pressed.add("undo"))
+                    .timeout(Duration.ZERO));
             tree.flush();
 
             Described.first(tree, Button.class).onPress().run();
@@ -638,7 +650,8 @@ class ToastTest {
         void cornerIsAClass() {
             var tree = new ElementTree(new Toaster(toasts, Corner.TOP_START), host);
 
-            assertTrue(Described.first(tree, ToasterBox.class).classes().contains("top-start"),
+            assertTrue(
+                    Described.first(tree, ToasterBox.class).classes().contains("top-start"),
                     "the stylesheet cannot tell which way to grow");
         }
     }

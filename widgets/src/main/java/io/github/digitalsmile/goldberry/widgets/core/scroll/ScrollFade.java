@@ -108,7 +108,7 @@ final class ScrollFade {
         // A pending wake owes a frame even before it has a time, or a scroll
         // whose frame arrived early would stamp itself and then never be drawn
         // again.
-        return pending || (!held && !Double.isNaN(movedAt) && !Double.isNaN(now)
-                && now - movedAt < IDLE_MILLIS + FADE_MILLIS);
+        return pending
+                || (!held && !Double.isNaN(movedAt) && !Double.isNaN(now) && now - movedAt < IDLE_MILLIS + FADE_MILLIS);
     }
 }

@@ -1,14 +1,15 @@
 package io.github.digitalsmile.goldberry.render.backend.headless;
 
+import java.util.Objects;
+
 import io.github.digitalsmile.goldberry.render.event.BackendEvent;
-import io.github.digitalsmile.goldberry.render.popup.BackendPopup;
-import io.github.digitalsmile.goldberry.render.window.BackendWindow;
 import io.github.digitalsmile.goldberry.render.model.DisplayScale;
 import io.github.digitalsmile.goldberry.render.model.LogicalPoint;
 import io.github.digitalsmile.goldberry.render.model.LogicalSize;
+import io.github.digitalsmile.goldberry.render.popup.BackendPopup;
 import io.github.digitalsmile.goldberry.render.popup.PopupKind;
 import io.github.digitalsmile.goldberry.render.popup.PopupSpec;
-import java.util.Objects;
+import io.github.digitalsmile.goldberry.render.window.BackendWindow;
 
 /// A popup that exists only as state.
 ///
@@ -29,8 +30,7 @@ public final class HeadlessPopup extends HeadlessWindow implements BackendPopup 
     /// The size asked for and not yet in force. See [#resize].
     private LogicalSize requestedSize;
 
-    HeadlessPopup(HeadlessBackend backend, HeadlessWindow owner, PopupSpec spec,
-            DisplayScale scale) {
+    HeadlessPopup(HeadlessBackend backend, HeadlessWindow owner, PopupSpec spec, DisplayScale scale) {
         super(backend, spec.size(), scale, "");
         this.owner = Objects.requireNonNull(owner, "owner");
         this.kind = spec.kind();
@@ -67,8 +67,7 @@ public final class HeadlessPopup extends HeadlessWindow implements BackendPopup 
         backend().requireUiThread();
         requireUsable();
         if (size.width() <= 0 || size.height() <= 0) {
-            throw new IllegalArgumentException(
-                    "a popup needs a positive size, and " + size + " has none");
+            throw new IllegalArgumentException("a popup needs a positive size, and " + size + " has none");
         }
         // **Not applied here.** On X11 and Wayland the window manager decides
         // when a resize happens, and `size()` keeps reporting the old one until
@@ -85,8 +84,7 @@ public final class HeadlessPopup extends HeadlessWindow implements BackendPopup 
     /// so a caller confusing a popup with a window hears about it.
     @Override
     public void setTitle(String title) {
-        throw new UnsupportedOperationException(
-                "a popup has no titlebar to put \"" + title + "\" in");
+        throw new UnsupportedOperationException("a popup has no titlebar to put \"" + title + "\" in");
     }
 
     /// Called by the backend as the resize event is handed over: the point at
@@ -115,8 +113,7 @@ public final class HeadlessPopup extends HeadlessWindow implements BackendPopup 
         }
         if (!owner.isOpen()) {
             throw new IllegalStateException(
-                    "this popup's owner window has closed, and the platform took the popup"
-                            + " with it");
+                    "this popup's owner window has closed, and the platform took the popup" + " with it");
         }
     }
 

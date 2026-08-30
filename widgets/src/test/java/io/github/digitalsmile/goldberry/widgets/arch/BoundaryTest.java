@@ -60,9 +60,11 @@ class BoundaryTest {
     @DisplayName("a raw MemorySegment never escapes :natives")
     void memorySegmentStaysInNatives() {
         noClasses()
-                .that().resideOutsideOfPackage("..goldberry.natives..")
-                .should().dependOnClassesThat().haveFullyQualifiedName(
-                        "java.lang.foreign.MemorySegment")
+                .that()
+                .resideOutsideOfPackage("..goldberry.natives..")
+                .should()
+                .dependOnClassesThat()
+                .haveFullyQualifiedName("java.lang.foreign.MemorySegment")
                 .because("§3.1: the FFM boundary is the point of :natives existing."
                         + " Pixels cross as a ByteBuffer, which is what"
                         + " MemorySegment.asByteBuffer() produces without copying")
@@ -73,8 +75,11 @@ class BoundaryTest {
     @DisplayName("nothing outside :natives opens an Arena")
     void arenasStayInNatives() {
         noClasses()
-                .that().resideOutsideOfPackage("..goldberry.natives..")
-                .should().dependOnClassesThat().resideInAPackage("java.lang.foreign..")
+                .that()
+                .resideOutsideOfPackage("..goldberry.natives..")
+                .should()
+                .dependOnClassesThat()
+                .resideInAPackage("java.lang.foreign..")
                 .because("an arena outside :natives is native memory with no owner:"
                         + " §3.1 puts every lifetime behind a wrapper that closes it")
                 .check(classes);
@@ -86,10 +91,17 @@ class BoundaryTest {
     @DisplayName(":natives depends on nothing of Goldberry's but :common")
     void nativesIsTheBottom() {
         noClasses()
-                .that().resideInAPackage("..goldberry.natives..")
-                .should().dependOnClassesThat().resideInAnyPackage(
-                        "..goldberry.css..", "..goldberry.widget..", "..goldberry.widgets..",
-                        "..goldberry.paint..", "..goldberry.render..", "..goldberry.input..")
+                .that()
+                .resideInAPackage("..goldberry.natives..")
+                .should()
+                .dependOnClassesThat()
+                .resideInAnyPackage(
+                        "..goldberry.css..",
+                        "..goldberry.widget..",
+                        "..goldberry.widgets..",
+                        "..goldberry.paint..",
+                        "..goldberry.render..",
+                        "..goldberry.input..")
                 .because("§2: :natives is bindings and a superbuild. It requires"
                         + " :common and slf4j and nothing else, which is what lets"
                         + " :core and a binding generator both use it")
@@ -100,10 +112,17 @@ class BoundaryTest {
     @DisplayName(":common is the floor and knows about nobody")
     void commonIsTheFloor() {
         noClasses()
-                .that().resideInAPackage("..goldberry.log..")
-                .should().dependOnClassesThat().resideInAnyPackage(
-                        "..goldberry.natives..", "..goldberry.css..", "..goldberry.widget..",
-                        "..goldberry.widgets..", "..goldberry.paint..", "..goldberry.render..")
+                .that()
+                .resideInAPackage("..goldberry.log..")
+                .should()
+                .dependOnClassesThat()
+                .resideInAnyPackage(
+                        "..goldberry.natives..",
+                        "..goldberry.css..",
+                        "..goldberry.widget..",
+                        "..goldberry.widgets..",
+                        "..goldberry.paint..",
+                        "..goldberry.render..")
                 .because("ADR-0174: :common is what both halves need and neither owns."
                         + " It requires nothing of Goldberry's, which is the only"
                         + " reason :natives and :core can both use it")
@@ -114,11 +133,17 @@ class BoundaryTest {
     @DisplayName(":core never reaches up into the widget catalog")
     void coreDoesNotKnowItsWidgets() {
         noClasses()
-                .that().resideInAPackage("..goldberry.css..")
-                .or().resideInAPackage("..goldberry.paint..")
-                .or().resideInAPackage("..goldberry.text..")
-                .or().resideInAPackage("..goldberry.render..")
-                .should().dependOnClassesThat().resideInAPackage("..goldberry.widgets..")
+                .that()
+                .resideInAPackage("..goldberry.css..")
+                .or()
+                .resideInAPackage("..goldberry.paint..")
+                .or()
+                .resideInAPackage("..goldberry.text..")
+                .or()
+                .resideInAPackage("..goldberry.render..")
+                .should()
+                .dependOnClassesThat()
+                .resideInAPackage("..goldberry.widgets..")
                 .because("§2: the catalog is built on :core and :core knows nothing"
                         + " of it — which is what makes a second catalog possible")
                 .check(classes);
@@ -130,8 +155,11 @@ class BoundaryTest {
     @DisplayName("a widget never imports a backend")
     void widgetsDoNotKnowTheBackend() {
         noClasses()
-                .that().resideInAPackage("..goldberry.widgets..")
-                .should().dependOnClassesThat().resideInAPackage("..goldberry.render.backend..")
+                .that()
+                .resideInAPackage("..goldberry.widgets..")
+                .should()
+                .dependOnClassesThat()
+                .resideInAPackage("..goldberry.render.backend..")
                 .because("testing.md §2: a widget is a value. Reaching sdl3 or headless"
                         + " from one would make the catalog untestable without a"
                         + " backend and unusable on a second")
@@ -142,9 +170,14 @@ class BoundaryTest {
     @DisplayName("a widget never opens a window")
     void widgetsDoNotOpenWindows() {
         noClasses()
-                .that().resideInAPackage("..goldberry.widgets..")
-                .should().dependOnClassesThat().haveSimpleName("Window")
-                .orShould().dependOnClassesThat().haveSimpleName("Launcher")
+                .that()
+                .resideInAPackage("..goldberry.widgets..")
+                .should()
+                .dependOnClassesThat()
+                .haveSimpleName("Window")
+                .orShould()
+                .dependOnClassesThat()
+                .haveSimpleName("Launcher")
                 .because("ADR-0121: starting a tour, opening a menu and floating a HUD"
                         + " all need a Host, and a widget has none. That seam is why"
                         + " Menus.open and Tours.start take one")

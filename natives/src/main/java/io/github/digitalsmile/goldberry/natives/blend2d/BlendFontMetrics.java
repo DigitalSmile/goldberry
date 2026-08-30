@@ -21,9 +21,7 @@ package io.github.digitalsmile.goldberry.natives.blend2d;
 ///                   commonly zero
 /// @param xHeight    the height of a lower-case `x`
 /// @param capHeight  the height of a capital letter
-public record BlendFontMetrics(
-        float size, float ascent, float descent, float lineGap,
-        float xHeight, float capHeight) {
+public record BlendFontMetrics(float size, float ascent, float descent, float lineGap, float xHeight, float capHeight) {
 
     /// The distance from one baseline to the next.
     ///

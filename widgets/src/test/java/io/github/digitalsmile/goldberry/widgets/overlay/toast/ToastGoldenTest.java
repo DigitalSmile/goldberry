@@ -3,6 +3,13 @@ package io.github.digitalsmile.goldberry.widgets.overlay.toast;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.time.Duration;
+import java.util.List;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+
 import io.github.digitalsmile.goldberry.Overlay;
 import io.github.digitalsmile.goldberry.RendererRequirement;
 import io.github.digitalsmile.goldberry.bind.Property;
@@ -27,11 +34,6 @@ import io.github.digitalsmile.goldberry.widgets.controls.TestFont;
 import io.github.digitalsmile.goldberry.widgets.controls.button.Button;
 import io.github.digitalsmile.goldberry.widgets.panel.Described;
 import io.github.digitalsmile.goldberry.widgets.text.Text;
-import java.time.Duration;
-import java.util.List;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
 
 /// What a stack of toasts looks like, and one caught sliding in.
 ///
@@ -78,9 +80,12 @@ class ToastGoldenTest {
 
     private WidgetRenderer rendererFor(Theme theme, String scene) {
         return new WidgetRenderer(
-                List.of(Controls.baseStylesheet(), theme.load(),
-                        Stylesheet.parse(CascadeLayer.APPLICATION, scene)),
-                TestFont.get()).clock(clock);
+                        List.of(
+                                Controls.baseStylesheet(),
+                                theme.load(),
+                                Stylesheet.parse(CascadeLayer.APPLICATION, scene)),
+                        TestFont.get())
+                .clock(clock);
     }
 
     private ElementTree threeToasts(Corner corner) {
@@ -89,10 +94,9 @@ class ToastGoldenTest {
         // taken -- a golden of a stack should not depend on how many frames it
         // took to get there.
         toasts.show(new Toast("Draft saved.").timeout(Duration.ofMinutes(1)));
-        toasts.show(new Toast("Two devices are signed in to this account, which is one"
-                + " more than usual.").timeout(Duration.ofMinutes(1)));
-        toasts.show(new Toast("Message sent.")
-                .action("Undo", () -> { }).timeout(Duration.ofMinutes(1)));
+        toasts.show(new Toast("Two devices are signed in to this account, which is one" + " more than usual.")
+                .timeout(Duration.ofMinutes(1)));
+        toasts.show(new Toast("Message sent.").action("Undo", () -> {}).timeout(Duration.ofMinutes(1)));
         tree.flush();
         return tree;
     }
@@ -107,8 +111,7 @@ class ToastGoldenTest {
         renderer.render(tree);
         assertFalse(renderer.isAnimating(), "a toast that arrived 300ms ago is still moving");
 
-        GoldenImage.assertMatches(name, 400, 240, 1.0f,
-                frame -> BoxPainter.paint(frame, settled));
+        GoldenImage.assertMatches(name, 400, 240, 1.0f, frame -> BoxPainter.paint(frame, settled));
     }
 
     @Test
@@ -153,12 +156,9 @@ class ToastGoldenTest {
     @DisplayName("a stack caught closing the hole a dismissed toast left")
     void reflowing() {
         var overlays = Property.<List<Overlay>>of(List.of());
-        var tree = new ElementTree(
-                new WindowRoot(new Text("The window the toasts are floating over."),
-                        overlays),
-                host);
-        overlays.set(List.of(
-                Overlay.of(new Toaster(toasts, Corner.BOTTOM_END), Corner.BOTTOM_END)));
+        var tree =
+                new ElementTree(new WindowRoot(new Text("The window the toasts are floating over."), overlays), host);
+        overlays.set(List.of(Overlay.of(new Toaster(toasts, Corner.BOTTOM_END), Corner.BOTTOM_END)));
         // Mounted before anything is raised: a controller with no stack attached
         // drops what it is given, which is the right answer for a background job
         // finishing late and the wrong order for a test.
@@ -171,8 +171,9 @@ class ToastGoldenTest {
         toasts.show(new Toast("Draft saved.").timeout(Duration.ZERO));
         // The middle one is the one that goes, because a hole in the middle is
         // the only one with a far side.
-        toasts.show(new Toast("Two devices are signed in to this account, which is one"
-                + " more than usual.").action("Dismiss", () -> { }).timeout(Duration.ZERO));
+        toasts.show(new Toast("Two devices are signed in to this account, which is one" + " more than usual.")
+                .action("Dismiss", () -> {})
+                .timeout(Duration.ZERO));
         toasts.show(new Toast("Message sent.").timeout(Duration.ZERO));
         tree.flush();
 
@@ -200,8 +201,7 @@ class ToastGoldenTest {
         clock.advance(ToasterState.REFLOW_MILLIS / 2);
         var midway = renderer.render(tree);
 
-        GoldenImage.assertMatches("toast-reflowing", 400, 240, 1.0f,
-                frame -> BoxPainter.paint(frame, midway));
+        GoldenImage.assertMatches("toast-reflowing", 400, 240, 1.0f, frame -> BoxPainter.paint(frame, midway));
     }
 
     /// Tells every toast how tall it came out, which is what a window's pointer
@@ -217,8 +217,7 @@ class ToastGoldenTest {
         try (var render = RenderTree.create()) {
             render.update(target.frame(), renderer.render(tree));
             for (var region : HitTest.capture(render)) {
-                if (region.owner() instanceof Element element
-                        && element.widget() instanceof ToastBox box) {
+                if (region.owner() instanceof Element element && element.widget() instanceof ToastBox box) {
                     var extent = new Extent(region.width(), region.height());
                     box.measured(extent, extent);
                 }
@@ -239,7 +238,6 @@ class ToastGoldenTest {
         clock.advance(120);
         var midway = renderer.render(tree);
 
-        GoldenImage.assertMatches("toast-arriving", 400, 240, 1.0f,
-                frame -> BoxPainter.paint(frame, midway));
+        GoldenImage.assertMatches("toast-arriving", 400, 240, 1.0f, frame -> BoxPainter.paint(frame, midway));
     }
 }

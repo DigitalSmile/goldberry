@@ -1,6 +1,5 @@
 package io.github.digitalsmile.goldberry.natives.yoga;
 
-import io.github.digitalsmile.goldberry.natives.layout.Layouts;
 import java.lang.foreign.Arena;
 import java.lang.foreign.FunctionDescriptor;
 import java.lang.foreign.Linker;
@@ -10,6 +9,8 @@ import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
 import java.util.Objects;
+
+import io.github.digitalsmile.goldberry.natives.layout.Layouts;
 import io.github.digitalsmile.goldberry.natives.yoga.measure.MeasureFunction;
 import io.github.digitalsmile.goldberry.natives.yoga.measure.MeasureMode;
 
@@ -62,10 +63,8 @@ public final class MeasureCallback implements AutoCloseable {
 
     private static final MethodHandle INVOKE = invokeHandle();
 
-    private static final long WIDTH_OFFSET =
-            Layouts.YG_SIZE.offsetOf("width");
-    private static final long HEIGHT_OFFSET =
-            Layouts.YG_SIZE.offsetOf("height");
+    private static final long WIDTH_OFFSET = Layouts.YG_SIZE.offsetOf("width");
+    private static final long HEIGHT_OFFSET = Layouts.YG_SIZE.offsetOf("height");
 
     private final MeasureFunction function;
     private final Arena arena;
@@ -147,11 +146,9 @@ public final class MeasureCallback implements AutoCloseable {
     ///
     /// The `node` pointer is ignored — a callback belongs to one node already,
     /// and passing the address on would leak a raw segment out of the module.
-    private MemorySegment invoke(
-            MemorySegment node, float width, int widthMode, float height, int heightMode) {
+    private MemorySegment invoke(MemorySegment node, float width, int widthMode, float height, int heightMode) {
         try {
-            var measured = function.measure(
-                    width, MeasureMode.of(widthMode), height, MeasureMode.of(heightMode));
+            var measured = function.measure(width, MeasureMode.of(widthMode), height, MeasureMode.of(heightMode));
             result.set(ValueLayout.JAVA_FLOAT, WIDTH_OFFSET, measured.width());
             result.set(ValueLayout.JAVA_FLOAT, HEIGHT_OFFSET, measured.height());
         } catch (Throwable t) {
@@ -175,19 +172,19 @@ public final class MeasureCallback implements AutoCloseable {
 
     private static MethodHandle invokeHandle() {
         try {
-            return MethodHandles.lookup().findVirtual(
-                    MeasureCallback.class,
-                    "invoke",
-                    MethodType.methodType(
-                            MemorySegment.class,
-                            MemorySegment.class,
-                            float.class,
-                            int.class,
-                            float.class,
-                            int.class));
+            return MethodHandles.lookup()
+                    .findVirtual(
+                            MeasureCallback.class,
+                            "invoke",
+                            MethodType.methodType(
+                                    MemorySegment.class,
+                                    MemorySegment.class,
+                                    float.class,
+                                    int.class,
+                                    float.class,
+                                    int.class));
         } catch (ReflectiveOperationException e) {
             throw new ExceptionInInitializerError(e);
         }
     }
-
 }

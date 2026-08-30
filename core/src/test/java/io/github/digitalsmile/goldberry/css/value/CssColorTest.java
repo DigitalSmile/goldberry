@@ -8,23 +8,26 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
+
 import io.github.digitalsmile.goldberry.css.parse.CssParser;
 
 class CssColorTest {
 
     /// Parses a colour the way it would arrive: as a declaration's value.
     private static Integer parse(String css) {
-        return CssColor.parse(
-                CssParser.parse("a { color: " + css + " }").getFirst()
-                        .declarations().getFirst().value());
+        return CssColor.parse(CssParser.parse("a { color: " + css + " }")
+                .getFirst()
+                .declarations()
+                .getFirst()
+                .value());
     }
 
     @ParameterizedTest
     @CsvSource({
-            "'#000000', 0xFF000000",
-            "'#ffffff', 0xFFFFFFFF",
-            "'#2e3440', 0xFF2E3440",
-            "'#88c0d0', 0xFF88C0D0",
+        "'#000000', 0xFF000000",
+        "'#ffffff', 0xFFFFFFFF",
+        "'#2e3440', 0xFF2E3440",
+        "'#88c0d0', 0xFF88C0D0",
     })
     @DisplayName("six-digit hex is opaque")
     void sixDigitHex(String css, long expected) {
@@ -56,9 +59,9 @@ class CssColorTest {
 
     @ParameterizedTest
     @CsvSource({
-            "'rgb(46, 52, 64)', 0xFF2E3440",
-            "'rgb(46 52 64)', 0xFF2E3440",
-            "'rgba(46, 52, 64, 1)', 0xFF2E3440",
+        "'rgb(46, 52, 64)', 0xFF2E3440",
+        "'rgb(46 52 64)', 0xFF2E3440",
+        "'rgba(46, 52, 64, 1)', 0xFF2E3440",
     })
     @DisplayName("rgb() in the comma form and the space form")
     void rgbForms(String css, long expected) {
@@ -109,16 +112,17 @@ class CssColorTest {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {
-            "#12",           // no such hex length
-            "#12345",
-            "#gggggg",       // not hex digits
-            "papayawhip",    // outside the Level 1 set, on purpose
-            "rgb(1, 2)",     // too few channels
-            "rgb(1, 2, 3, 4, 5)",
-            "4px",
-            "var(--x)",      // unresolved: the resolver deals with these first
-    })
+    @ValueSource(
+            strings = {
+                "#12", // no such hex length
+                "#12345",
+                "#gggggg", // not hex digits
+                "papayawhip", // outside the Level 1 set, on purpose
+                "rgb(1, 2)", // too few channels
+                "rgb(1, 2, 3, 4, 5)",
+                "4px",
+                "var(--x)", // unresolved: the resolver deals with these first
+            })
     @DisplayName("what is not a colour returns null rather than a guess")
     void notAColour(String css) {
         // Null and not TRANSPARENT: the caller has to be able to tell "no colour

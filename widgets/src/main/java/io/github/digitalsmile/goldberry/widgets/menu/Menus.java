@@ -1,18 +1,19 @@
 package io.github.digitalsmile.goldberry.widgets.menu;
 
-import io.github.digitalsmile.goldberry.Host;
-import io.github.digitalsmile.goldberry.Placement;
-import io.github.digitalsmile.goldberry.Popup;
-import io.github.digitalsmile.goldberry.render.event.EventLoop;
-import io.github.digitalsmile.goldberry.render.model.LogicalRect;
-import io.github.digitalsmile.goldberry.render.model.LogicalPoint;
-import io.github.digitalsmile.goldberry.render.model.LogicalSize;
-import io.github.digitalsmile.goldberry.widget.Widget;
-import io.github.digitalsmile.goldberry.widgets.core.scroll.Fitted;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+
+import io.github.digitalsmile.goldberry.Host;
+import io.github.digitalsmile.goldberry.Placement;
+import io.github.digitalsmile.goldberry.Popup;
+import io.github.digitalsmile.goldberry.render.event.EventLoop;
+import io.github.digitalsmile.goldberry.render.model.LogicalPoint;
+import io.github.digitalsmile.goldberry.render.model.LogicalRect;
+import io.github.digitalsmile.goldberry.render.model.LogicalSize;
+import io.github.digitalsmile.goldberry.widget.Widget;
+import io.github.digitalsmile.goldberry.widgets.core.scroll.Fitted;
 
 /// Opens a [Menu] — the half of `docs/core-widgets.md` §8 that is not a widget.
 ///
@@ -49,11 +50,9 @@ import java.util.Optional;
 /// items with submenus leaves one open rather than three.
 public final class Menus {
 
-    private static final org.slf4j.Logger LOG =
-            org.slf4j.LoggerFactory.getLogger(Menus.class);
+    private static final org.slf4j.Logger LOG = org.slf4j.LoggerFactory.getLogger(Menus.class);
 
-    private Menus() {
-    }
+    private Menus() {}
 
     /// How long the pointer has to rest on a row before its submenu opens —
     /// §8's "hover-intent timing".
@@ -94,8 +93,7 @@ public final class Menus {
         host.onContextMenu((menuId, at) -> {
             var menu = menus.get(menuId);
             if (menu == null) {
-                LOG.warn("no context menu is registered as \"{}\"; known: {}",
-                        menuId, menus.keySet());
+                LOG.warn("no context menu is registered as \"{}\"; known: {}", menuId, menus.keySet());
                 return;
             }
             open(host, at, menu);
@@ -115,8 +113,7 @@ public final class Menus {
     /// `menubar` is what wanted this: a heading's menu hangs from the bar with no
     /// gap, where a context menu stands off the pointer so as not to open
     /// underneath it (ADR-0163).
-    public static Optional<Popup> open(Host host, String anchorId, Menu menu,
-            Placement placement) {
+    public static Optional<Popup> open(Host host, String anchorId, Menu menu, Placement placement) {
 
         return open(host, anchorId, menu, placement, null);
     }
@@ -128,15 +125,13 @@ public final class Menus {
     /// the menu. Everything else passes null, and those two arrows do nothing at
     /// the root of a context menu — which is right, because there is nowhere to
     /// go ([ADR-0219](../../../../../../../book/src/adr/0219-an-item-tells-its-menu-what-the-keyboard-did.md)).
-    public static Optional<Popup> open(Host host, String anchorId, Menu menu,
-            Placement placement, Siblings siblings) {
+    public static Optional<Popup> open(Host host, String anchorId, Menu menu, Placement placement, Siblings siblings) {
 
         Objects.requireNonNull(host, "host");
         Objects.requireNonNull(anchorId, "anchorId");
         Objects.requireNonNull(placement, "placement");
         return host.anchor(anchorId)
-                .flatMap(anchor -> open(host, anchor.bounds(), menu, placement,
-                        new ArrayList<>(), null, siblings));
+                .flatMap(anchor -> open(host, anchor.bounds(), menu, placement, new ArrayList<>(), null, siblings));
     }
 
     /// Opens `menu` against a rectangle in the window's own coordinates — where a
@@ -170,8 +165,14 @@ public final class Menus {
     /// The real one. `stack` is every popup opened from this root, so a command
     /// can close all of them; `parent` is the menu this one hangs off, or null
     /// for the root; `siblings` is a bar's two arrows, or null.
-    private static Optional<Popup> open(Host host, LogicalRect anchor, Menu menu,
-            Placement placement, List<Popup> stack, OpenMenu parent, Siblings siblings) {
+    private static Optional<Popup> open(
+            Host host,
+            LogicalRect anchor,
+            Menu menu,
+            Placement placement,
+            List<Popup> stack,
+            OpenMenu parent,
+            Siblings siblings) {
 
         Objects.requireNonNull(host, "host");
         Objects.requireNonNull(anchor, "anchor");
@@ -179,8 +180,7 @@ public final class Menus {
 
         var open = new OpenMenu(host, menu, stack, parent, siblings);
         var opened = host.popup(
-                menu.withAttributes(menu.attributes()).children(open.describe()),
-                anchor, placement, 0, VIEWPORT);
+                menu.withAttributes(menu.attributes()).children(open.describe()), anchor, placement, 0, VIEWPORT);
         opened.ifPresent(popup -> {
             open.self = popup;
             stack.add(popup);
@@ -296,8 +296,7 @@ public final class Menus {
             // neither has no column at all, which is most menus and which is the
             // unexplained indent this removes (ADR-0113).
             var reserve = menu.children().stream()
-                    .anyMatch(child -> child instanceof Item item
-                            && (item.isCheckable() || item.icon() != null));
+                    .anyMatch(child -> child instanceof Item item && (item.isCheckable() || item.icon() != null));
             var children = new ArrayList<Widget>(menu.children().size());
             for (var index = 0; index < menu.children().size(); index++) {
                 children.add(prepare(menu.children().get(index), index, reserve));
@@ -464,8 +463,14 @@ public final class Menus {
             //
             // No `Siblings`: a submenu is not on the bar, so `Left` in it goes
             // back to this menu rather than to the menu on the bar's left.
-            open(host, beside, new Menu(item.submenu(), item.attributes().id(null)),
-                    Placement.AFTER.gap(SUBMENU_GAP), stack, this, null);
+            open(
+                    host,
+                    beside,
+                    new Menu(item.submenu(), item.attributes().id(null)),
+                    Placement.AFTER.gap(SUBMENU_GAP),
+                    stack,
+                    this,
+                    null);
         }
     }
 }

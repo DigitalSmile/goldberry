@@ -18,14 +18,15 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.function.Function;
-import io.github.digitalsmile.goldberry.bind.registry.ActionRegistry;
-import io.github.digitalsmile.goldberry.bind.registry.BindingRegistry;
+
 import io.github.digitalsmile.goldberry.bind.Action;
 import io.github.digitalsmile.goldberry.bind.Bind;
 import io.github.digitalsmile.goldberry.bind.Model;
 import io.github.digitalsmile.goldberry.bind.Observable;
 import io.github.digitalsmile.goldberry.bind.Property;
 import io.github.digitalsmile.goldberry.bind.Subscription;
+import io.github.digitalsmile.goldberry.bind.registry.ActionRegistry;
+import io.github.digitalsmile.goldberry.bind.registry.BindingRegistry;
 
 /// A [Model] bound by reflection, for a build that did not run the weaver.
 ///
@@ -203,8 +204,7 @@ final class RuntimeBinding implements BoundModel {
     public Object boundValue(int slot) {
         var woven = plan.woven();
         if (slot < 0 || slot >= woven.length) {
-            throw new IllegalArgumentException(
-                    plan.type().getName() + " has no bound field in slot " + slot);
+            throw new IllegalArgumentException(plan.type().getName() + " has no bound field in slot " + slot);
         }
         return woven[slot].read(alive());
     }
@@ -222,9 +222,9 @@ final class RuntimeBinding implements BoundModel {
         var registry = BindingRegistry.strict();
         var owner = alive();
         for (var bound : plan.bounds()) {
-            registry.bind(bound.path, bound.property()
-                    ? (Observable<?>) bound.read(owner)
-                    : listeners.view(this, bound.slot));
+            registry.bind(
+                    bound.path,
+                    bound.property() ? (Observable<?>) bound.read(owner) : listeners.view(this, bound.slot));
         }
         bindings = registry;
         return registry;
@@ -364,8 +364,8 @@ final class RuntimeBinding implements BoundModel {
 
     @Override
     public String toString() {
-        return "RuntimeBinding[" + plan.type().getName() + ", " + plan.bounds().length
-                + " binding(s), " + plan.actions().length + " action(s)]";
+        return "RuntimeBinding[" + plan.type().getName() + ", " + plan.bounds().length + " binding(s), "
+                + plan.actions().length + " action(s)]";
     }
 
     // --- the per-class plan --------------------------------------------------
@@ -405,10 +405,10 @@ final class RuntimeBinding implements BoundModel {
                         + " @Actions. A class with values is a model; @Actions is for one that"
                         + " acts on somebody else's (ADR-0139).");
             }
-            for (var parent = type.getSuperclass(); parent != null && parent != Object.class;
+            for (var parent = type.getSuperclass();
+                    parent != null && parent != Object.class;
                     parent = parent.getSuperclass()) {
-                if (parent.isAnnotationPresent(Model.class)
-                        || parent.isAnnotationPresent(Actions.class)) {
+                if (parent.isAnnotationPresent(Model.class) || parent.isAnnotationPresent(Actions.class)) {
                     throw new IllegalStateException(type.getName() + " extends " + parent.getName()
                             + ", which is also a model. A subclass would publish its parent's paths"
                             + " against its own listeners and notify neither reliably; keep the"
@@ -442,17 +442,19 @@ final class RuntimeBinding implements BoundModel {
             try {
                 return MethodHandles.privateLookupIn(type, MethodHandles.lookup());
             } catch (IllegalAccessException e) {
-                throw new IllegalStateException(type.getName() + " cannot be bound at run time:"
-                        + " its package is not open to this module. Add\n\n    opens "
-                        + type.getPackageName() + " to io.github.digitalsmile.goldberry.core;\n\n"
-                        + "to module " + application.getName() + ", or weave this module -- the"
-                        + " woven form reflects on nothing and needs no `opens` at all"
-                        + " (ADR-0155).", e);
+                throw new IllegalStateException(
+                        type.getName() + " cannot be bound at run time:"
+                                + " its package is not open to this module. Add\n\n    opens "
+                                + type.getPackageName() + " to io.github.digitalsmile.goldberry.core;\n\n"
+                                + "to module " + application.getName() + ", or weave this module -- the"
+                                + " woven form reflects on nothing and needs no `opens` at all"
+                                + " (ADR-0155).",
+                        e);
             }
         }
 
-        private static List<Bound> collectBinds(Class<?> type, MethodHandles.Lookup lookup,
-                Map<String, String> claimed) {
+        private static List<Bound> collectBinds(
+                Class<?> type, MethodHandles.Lookup lookup, Map<String, String> claimed) {
 
             var bounds = new ArrayList<Bound>();
             var slot = 0;
@@ -493,8 +495,8 @@ final class RuntimeBinding implements BoundModel {
                 } catch (IllegalAccessException e) {
                     throw new IllegalStateException(where + " cannot be read reflectively", e);
                 }
-                bounds.add(boundFor(field.getType(), bind.value(), handle, property ? -1 : slot,
-                        bind.restyle(), bind.repaint()));
+                bounds.add(boundFor(
+                        field.getType(), bind.value(), handle, property ? -1 : slot, bind.restyle(), bind.repaint()));
                 if (!property) {
                     slot++;
                 }
@@ -502,8 +504,8 @@ final class RuntimeBinding implements BoundModel {
             return bounds;
         }
 
-        private static List<Act> collectActions(Class<?> type, MethodHandles.Lookup lookup,
-                Map<String, String> claimed) {
+        private static List<Act> collectActions(
+                Class<?> type, MethodHandles.Lookup lookup, Map<String, String> claimed) {
 
             var actions = new ArrayList<Act>();
             for (Method method : declared(type.getDeclaredMethods(), Method::getName)) {
@@ -534,9 +536,11 @@ final class RuntimeBinding implements BoundModel {
                     // Erased to `(Object[, Object])void`, so the call below is one
                     // `invokeExact` and the cast, the unboxing and the dropped
                     // return value are all the handle's business.
-                    handle = lookup.unreflect(method).asType(param == null
-                            ? MethodType.methodType(void.class, Object.class)
-                            : MethodType.methodType(void.class, Object.class, Object.class));
+                    handle = lookup.unreflect(method)
+                            .asType(
+                                    param == null
+                                            ? MethodType.methodType(void.class, Object.class)
+                                            : MethodType.methodType(void.class, Object.class, Object.class));
                 } catch (IllegalAccessException e) {
                     throw new IllegalStateException(where + " cannot be called reflectively", e);
                 }
@@ -815,8 +819,8 @@ final class RuntimeBinding implements BoundModel {
     }
 
     /// The subclass for a field of `type`.
-    private static Bound boundFor(Class<?> type, String path, VarHandle handle, int slot,
-            boolean restyle, boolean repaint) {
+    private static Bound boundFor(
+            Class<?> type, String path, VarHandle handle, int slot, boolean restyle, boolean repaint) {
 
         return switch (type.getName()) {
             case "boolean" -> new Bool(path, handle, slot, restyle, repaint);
@@ -902,8 +906,7 @@ final class RuntimeBinding implements BoundModel {
             // removable by the reference the queue handed back and reachable by
             // no lookup.
             var model = get();
-            return other instanceof Identity key && key.hash == hash && model != null
-                    && model == key.get();
+            return other instanceof Identity key && key.hash == hash && model != null && model == key.get();
         }
     }
 }

@@ -174,39 +174,87 @@ tasks.register('benchmark', Test) {
 // ============================================================================
 // Formatting (docs/testing.md §2)
 //
-// Spotless, and **not** a whole-file formatter. testing.md names
-// palantir-java-format; applying it rewrote 138 files for no defect, because
-// this codebase's line breaks are load-bearing -- the comments are prose, the
-// argument in one runs across lines chosen by hand, and a formatter reflowing
-// them destroys the thing that makes them readable. Enforcing an import order
-// alone moved every static import below the rest, which is the opposite of what
-// this codebase does. A thousand lines of churn that makes every `git blame`
-// point at the formatting commit is a worse outcome than two people putting a
-// brace in different places.
+// Spotless with palantir-java-format, over every Java file the formatter can
+// safely read -- which is all but nineteen of them, and the exclusion list below
+// is not a preference.
 //
-// So this enforces what is mechanical and unarguable, and leaves the judgement
-// calls alone.
+// **palantir-java-format 2.97.0 corrupts JDK 23+ `///` markdown javadoc.** When a
+// `///` line is too long to fit, it wraps the content onto a new line *without*
+// re-emitting the `///` prefix, so a doc comment becomes a statement and the file
+// stops compiling. This project's doc comments carry ADR links whose URLs are
+// single unbreakable tokens of ninety-odd characters, and running the formatter
+// over the whole tree produced eleven corrupted files and eighty compile errors.
+// `formatJavadoc(false)` does not prevent it -- the step treats `///` as a line
+// comment, which that flag does not govern.
+//
+// The alternative to excluding them was rewriting nineteen doc comments to suit
+// the tool, and the only way to shorten those lines is to shorten the URLs, which
+// are relative paths the book resolves. Prose does not get rewritten to fit a
+// formatter, and links do not get broken to fit one either.
+//
+// Everything else -- every brace, wrap and blank line in roughly nine hundred
+// files -- is now the formatter's decision rather than an author's, which is what
+// §2 asked for and what ends the arguments it exists to end.
 // ============================================================================
+
+/// The files palantir-java-format writes invalid Java for. See the note above.
+///
+/// Verified rather than guessed: this is the set `spotlessApply --continue`
+/// reported, and `spotlessCheck` passing is what says the list is still exactly
+/// right. A file added here needs a reason; a file that no longer needs to be
+/// here will make nothing fail, so the list is re-derived when the formatter is
+/// upgraded rather than trusted for ever.
+def palantirCannotFormat = [
+        '**/goldberry/Host.java',
+        '**/goldberry/paint/Box.java',
+        '**/goldberry/css/select/Selector.java',
+        '**/goldberry/css/value/Transform.java',
+        '**/goldberry/text/font/Font.java',
+        '**/goldberry/widget/style/Paints.java',
+        '**/goldberry/widgets/controls/Scale.java',
+        '**/goldberry/widgets/controls/checkbox/Checkbox.java',
+        '**/goldberry/widgets/controls/knob/Knob.java',
+        '**/goldberry/widgets/controls/knob/KnobTrack.java',
+        '**/goldberry/widgets/controls/knob/KnobGoldenTest.java',
+        '**/goldberry/widgets/controls/option/Option.java',
+        '**/goldberry/widgets/controls/radio/Radio.java',
+        '**/goldberry/widgets/controls/slider/Slider.java',
+        '**/goldberry/widgets/controls/toggle/Toggle.java',
+        '**/goldberry/widgets/form/textarea/TextAreaState.java',
+        '**/goldberry/widgets/overlay/hud/Hud.java',
+        '**/goldberry/widgets/overlay/toast/ToasterBox.java',
+        '**/goldberry/widgets/panel/tabs/TabList.java',
+        '**/goldberry/example/ui/Screen.java',
+        'src/main/java/module-info.java',
+]
+
 spotless {
     java {
         target fileTree(projectDir) {
             include 'src/*/java/**/*.java'
             exclude '**/build/**'
+            exclude palantirCannotFormat
         }
 
-        // A tab renders differently in every review tool.
+        palantirJavaFormat(catalog.findVersion('palantirFormat').get().requiredVersion)
+
+        // An import nothing uses is a dependency the file does not have, and the
+        // compiler does not say so. It used to throw inside its own parser on
+        // `TourState.java`; the cause was a javadoc reference split across two
+        // lines there, which is fixed, so the step runs.
+        removeUnusedImports()
+
+        // Static imports first, which is where this codebase already puts them.
+        // The formatter's own default puts them last, so adopting it would have
+        // been a reformat that quietly reversed a convention.
+        importOrder('\\#', 'java', 'javax', '', 'io.github.digitalsmile')
+
+        // After the formatter rather than instead of it: palantir settles
+        // indentation and wrapping, and these settle what it does not speak to --
+        // including in the excluded files above, which still get this much.
         leadingTabsToSpaces(4)
-        // Trailing space is invisible, survives review, and turns up as a
-        // whitespace-only hunk in somebody else's commit.
         trimTrailingWhitespace()
-        // Without one, a diff carries a "no newline at end of file" marker on an
-        // unrelated line.
         endWithNewline()
-        // **No `removeUnusedImports`.** It is the one step here that parses Java
-        // rather than treating the file as text, and it throws a bare
-        // NoSuchElementException on `TourState.java` -- a tool bug, not an unused
-        // import; that file has none. Everything above is whitespace, which
-        // cannot fail on a file it does not understand.
     }
 
     format 'markdown', {

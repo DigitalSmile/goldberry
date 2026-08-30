@@ -4,28 +4,30 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+
 import io.github.digitalsmile.goldberry.RendererRequirement;
-import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
 import io.github.digitalsmile.goldberry.css.Stylesheet;
 import io.github.digitalsmile.goldberry.css.Theme;
+import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
 import io.github.digitalsmile.goldberry.golden.GoldenImage;
 import io.github.digitalsmile.goldberry.kdl.KdlParser;
 import io.github.digitalsmile.goldberry.paint.BoxPainter;
 import io.github.digitalsmile.goldberry.paint.TestFrames;
 import io.github.digitalsmile.goldberry.render.model.LogicalSize;
-import io.github.digitalsmile.goldberry.widget.attr.Attributes;
 import io.github.digitalsmile.goldberry.widget.ElementTree;
 import io.github.digitalsmile.goldberry.widget.WidgetRenderer;
+import io.github.digitalsmile.goldberry.widget.attr.Attributes;
 import io.github.digitalsmile.goldberry.widgets.Controls;
 import io.github.digitalsmile.goldberry.widgets.Widgets;
 import io.github.digitalsmile.goldberry.widgets.controls.TestFont;
 import io.github.digitalsmile.goldberry.widgets.core.Column;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
 
 /// §11's `sparkline` — the first chart, and the one `statistic` has been waiting
 /// for since M2.
@@ -82,8 +84,7 @@ class SparklineTest {
         var left = columnInk(target, 1, 20);
         var right = columnInk(target, 38, 20);
 
-        assertTrue(left > right,
-                "a rising series should be lower on the left; left=" + left + " right=" + right);
+        assertTrue(left > right, "a rising series should be lower on the left; left=" + left + " right=" + right);
     }
 
     /// The middle row of whatever ink is in column `x`.
@@ -121,9 +122,9 @@ class SparklineTest {
         var target = painted(new Sparkline(List.of(7.0, 7.0, 7.0, 7.0)), 40, 21);
 
         var middle = columnInk(target, 20, 21);
-        assertTrue(Math.abs(middle - 10) <= 1,
-                "a series that did not change should be drawn down the middle, and this is at "
-                        + middle);
+        assertTrue(
+                Math.abs(middle - 10) <= 1,
+                "a series that did not change should be drawn down the middle, and this is at " + middle);
     }
 
     @Test
@@ -135,8 +136,7 @@ class SparklineTest {
         var target = painted(new Sparkline(List.of(0.0, 10.0, 0.0)), 40, 20);
 
         assertTrue(topmostInk(target, 40, 20) >= 0, "something was drawn");
-        assertEquals(0, topmostInk(target, 40, 20),
-                "the peak reaches the top row but is not clipped through it");
+        assertEquals(0, topmostInk(target, 40, 20), "the peak reaches the top row but is not clipped through it");
     }
 
     @Test
@@ -156,7 +156,9 @@ class SparklineTest {
         assertTrue(target.pixel(cx, cy) != 0xFF000000, "the marker's centre is inked");
         // Two pixels out on the diagonal is outside a disc of radius 2 and
         // inside the square that would replace it.
-        assertEquals(0xFF000000, target.pixel(cx - 2, cy - 2),
+        assertEquals(
+                0xFF000000,
+                target.pixel(cx - 2, cy - 2),
                 "the corner of the marker's box should be empty, and a square would fill it");
     }
 
@@ -165,8 +167,7 @@ class SparklineTest {
     void tooFewPointsDrawNothing() {
         for (var values : List.of(List.<Double>of(), List.of(1.0))) {
             var target = painted(new Sparkline(values), 40, 20);
-            assertEquals(-1, topmostInk(target, 40, 20),
-                    "one point is not a trend and nothing is not a picture");
+            assertEquals(-1, topmostInk(target, 40, 20), "one point is not a trend and nothing is not a picture");
         }
     }
 
@@ -175,11 +176,12 @@ class SparklineTest {
     void colourIsTheCascade() {
         var sheet = Stylesheet.parse(CascadeLayer.APPLICATION, "#spark { color: #ff0000 }");
         var tree = new ElementTree(new Sparkline(List.of(0.0, 1.0), false, false, id("spark")));
-        var renderer = new WidgetRenderer(
-                List.of(Controls.baseStylesheet(), Theme.NORD_DARK.load(), sheet), TestFont.get());
+        var renderer =
+                new WidgetRenderer(List.of(Controls.baseStylesheet(), Theme.NORD_DARK.load(), sheet), TestFont.get());
 
         var box = renderer.render(tree)
-                .size(io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength.points(40),
+                .size(
+                        io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength.points(40),
                         io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength.points(20));
         assertNotNull(box.painting(), "a sparkline is a canvas");
 
@@ -194,9 +196,9 @@ class SparklineTest {
             target.end();
         }
         var ink = target.pixel(1, columnInk(target, 1, 20));
-        assertTrue((ink >>> 16 & 0xFF) > 200 && (ink >>> 8 & 0xFF) < 60,
-                "the line should be the red the stylesheet asked for, and it is 0x"
-                        + Integer.toHexString(ink));
+        assertTrue(
+                (ink >>> 16 & 0xFF) > 200 && (ink >>> 8 & 0xFF) < 60,
+                "the line should be the red the stylesheet asked for, and it is 0x" + Integer.toHexString(ink));
     }
 
     @Test
@@ -237,9 +239,9 @@ class SparklineTest {
                 peakColumn = x;
             }
         }
-        assertTrue(Math.abs(peakColumn - 127) <= 2,
-                "the spike is at 63.4% of the series, so about column 127, and it is at "
-                        + peakColumn);
+        assertTrue(
+                Math.abs(peakColumn - 127) <= 2,
+                "the spike is at 63.4% of the series, so about column 127, and it is at " + peakColumn);
     }
 
     @Test
@@ -250,14 +252,14 @@ class SparklineTest {
                 #spark { width: 176px; height: 44px; color: var(--gb-accent) }
                 """);
 
-        var tree = new ElementTree(new Column(List.of(
-                new Sparkline(List.of(4.0, 9.0, 7.0, 12.0, 11.0, 15.0, 13.0, 18.0, 22.0, 19.0),
-                        true, true, id("spark"))),
+        var tree = new ElementTree(new Column(
+                List.of(new Sparkline(
+                        List.of(4.0, 9.0, 7.0, 12.0, 11.0, 15.0, 13.0, 18.0, 22.0, 19.0), true, true, id("spark"))),
                 id("frame")));
-        var renderer = new WidgetRenderer(
-                List.of(Controls.baseStylesheet(), Theme.NORD_DARK.load(), sheet), TestFont.get());
+        var renderer =
+                new WidgetRenderer(List.of(Controls.baseStylesheet(), Theme.NORD_DARK.load(), sheet), TestFont.get());
 
-        GoldenImage.assertMatches("sparkline-dark", 200, 68, 1.0f,
-                frame -> BoxPainter.paint(frame, renderer.render(tree)));
+        GoldenImage.assertMatches(
+                "sparkline-dark", 200, 68, 1.0f, frame -> BoxPainter.paint(frame, renderer.render(tree)));
     }
 }

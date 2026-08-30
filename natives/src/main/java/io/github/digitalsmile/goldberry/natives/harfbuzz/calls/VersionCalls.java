@@ -2,26 +2,25 @@ package io.github.digitalsmile.goldberry.natives.harfbuzz.calls;
 
 import static java.lang.foreign.ValueLayout.ADDRESS;
 
-import io.github.digitalsmile.goldberry.natives.Downcalls;
 import java.lang.foreign.FunctionDescriptor;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.SymbolLookup;
 import java.lang.invoke.MethodHandle;
+
+import io.github.digitalsmile.goldberry.natives.Downcalls;
 
 /// HarfBuzz's version query.
 ///
 /// One holder per function: its handle, its address, and a `call` whose
 /// parameters are the C prototype’s. See [Downcalls] for why the handle is a
 /// `static final` constant and why these live in a package of their own.
-public record VersionCalls(
-        Version version) {
+public record VersionCalls(Version version) {
 
     /// Binds every function above, failing if the library exports none of them.
     ///
     /// @param lookup the loaded `libgoldberry`
     public static VersionCalls bind(SymbolLookup lookup) {
-        return new VersionCalls(
-                new Version(lookup));
+        return new VersionCalls(new Version(lookup));
     }
 
     /// Reads the version of HarfBuzz linked into `libgoldberry`.

@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.List;
+
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -30,8 +31,7 @@ class DonutGeometryTest {
     private static double[] at(DonutGeometry geometry, double turns, double radius) {
         var angle = DonutGeometry.START + turns * Math.PI * 2;
         return new double[] {
-            geometry.cx() + radius * Math.cos(angle),
-            geometry.cy() + radius * Math.sin(angle),
+            geometry.cx() + radius * Math.cos(angle), geometry.cy() + radius * Math.sin(angle),
         };
     }
 
@@ -43,14 +43,17 @@ class DonutGeometryTest {
 
         // The maths starts at three o'clock if nobody intervenes, so this is the
         // assertion that says somebody did.
-        assertEquals(0, geometry.sliceAt(
-                at(geometry, 0.01, middle)[0], at(geometry, 0.01, middle)[1], THIRDS),
+        assertEquals(
+                0,
+                geometry.sliceAt(at(geometry, 0.01, middle)[0], at(geometry, 0.01, middle)[1], THIRDS),
                 "just clockwise of the top is the first slice");
-        assertEquals(2, geometry.sliceAt(
-                at(geometry, 0.99, middle)[0], at(geometry, 0.99, middle)[1], THIRDS),
+        assertEquals(
+                2,
+                geometry.sliceAt(at(geometry, 0.99, middle)[0], at(geometry, 0.99, middle)[1], THIRDS),
                 "just anticlockwise of it is the last");
-        assertEquals(1, geometry.sliceAt(
-                at(geometry, 0.6, middle)[0], at(geometry, 0.6, middle)[1], THIRDS),
+        assertEquals(
+                1,
+                geometry.sliceAt(at(geometry, 0.6, middle)[0], at(geometry, 0.6, middle)[1], THIRDS),
                 "three fifths round is the second, which spans a half to three quarters");
     }
 
@@ -66,8 +69,7 @@ class DonutGeometryTest {
         // would drop the readout and pick it up again.
         for (var step = 0; step < 720; step++) {
             var point = at(geometry, step / 720.0, middle);
-            assertTrue(geometry.sliceAt(point[0], point[1], THIRDS) >= 0,
-                    "nothing at " + step + "/720 of a turn");
+            assertTrue(geometry.sliceAt(point[0], point[1], THIRDS) >= 0, "nothing at " + step + "/720 of a turn");
         }
     }
 
@@ -76,15 +78,12 @@ class DonutGeometryTest {
     void onlyTheRingIsHoverable() {
         var geometry = geometry();
 
-        assertEquals(-1, geometry.sliceAt(geometry.cx(), geometry.cy(), THIRDS),
-                "the middle of the hole");
+        assertEquals(-1, geometry.sliceAt(geometry.cx(), geometry.cy(), THIRDS), "the middle of the hole");
         var justInside = at(geometry, 0.2, geometry.inner() - 2);
-        assertEquals(-1, geometry.sliceAt(justInside[0], justInside[1], THIRDS),
-                "just inside the hole's edge");
+        assertEquals(-1, geometry.sliceAt(justInside[0], justInside[1], THIRDS), "just inside the hole's edge");
         assertEquals(-1, geometry.sliceAt(2, 2, THIRDS), "the corner of the box");
         var justOutside = at(geometry, 0.2, geometry.outer() + 2);
-        assertEquals(-1, geometry.sliceAt(justOutside[0], justOutside[1], THIRDS),
-                "just outside the ring");
+        assertEquals(-1, geometry.sliceAt(justOutside[0], justOutside[1], THIRDS), "just outside the ring");
     }
 
     @Test
@@ -110,8 +109,7 @@ class DonutGeometryTest {
 
         // Half of the first slice is a quarter turn, so its middle is at three
         // o'clock: START + π/2.
-        assertEquals(DonutGeometry.START + Math.PI / 2,
-                geometry.middleOf(0, THIRDS), 1e-9);
+        assertEquals(DonutGeometry.START + Math.PI / 2, geometry.middleOf(0, THIRDS), 1e-9);
         // And pointing at that middle finds the slice it is the middle of, for
         // every slice.
         var middle = (geometry.inner() + geometry.outer()) / 2;
@@ -128,7 +126,8 @@ class DonutGeometryTest {
     void nothingToDrawIntoIsNull() {
         assertNull(DonutGeometry.of(0, 100, DonutSurface.HOLE));
         assertNull(DonutGeometry.of(100, 0, DonutSurface.HOLE));
-        assertNull(DonutGeometry.of(2, 2, DonutSurface.HOLE),
+        assertNull(
+                DonutGeometry.of(2, 2, DonutSurface.HOLE),
                 "a collapsed split pane produces this, and it is not an error");
     }
 

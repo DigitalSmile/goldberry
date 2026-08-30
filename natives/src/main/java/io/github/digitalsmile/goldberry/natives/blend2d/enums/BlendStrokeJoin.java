@@ -1,6 +1,5 @@
 package io.github.digitalsmile.goldberry.natives.blend2d.enums;
 
-
 /// What a stroke does where two segments meet — `BLStrokeJoin`.
 ///
 /// Three of Blend2D's five. The two omitted are miter-with-a-fallback variants

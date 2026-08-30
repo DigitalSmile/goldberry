@@ -1,13 +1,13 @@
 package io.github.digitalsmile.goldberry.paint;
 
-import io.github.digitalsmile.goldberry.render.model.DisplayScale;
-import io.github.digitalsmile.goldberry.render.model.PhysicalSize;
-import io.github.digitalsmile.goldberry.render.PixelBuffer;
-import io.github.digitalsmile.goldberry.render.model.PixelFormat;
-import io.github.digitalsmile.goldberry.paint.tree.RenderTree;
-
 import java.util.Objects;
 import java.util.function.Consumer;
+
+import io.github.digitalsmile.goldberry.paint.tree.RenderTree;
+import io.github.digitalsmile.goldberry.render.PixelBuffer;
+import io.github.digitalsmile.goldberry.render.model.DisplayScale;
+import io.github.digitalsmile.goldberry.render.model.PhysicalSize;
+import io.github.digitalsmile.goldberry.render.model.PixelFormat;
 
 /// An offscreen surface a subtree is rendered into and composited back from.
 ///
@@ -70,8 +70,7 @@ public final class Layer implements AutoCloseable {
     public static Layer of(PhysicalSize size) {
         Objects.requireNonNull(size, "size");
         if (size.isEmpty()) {
-            throw new IllegalArgumentException(
-                    "a layer needs a positive size, and " + size + " has none");
+            throw new IllegalArgumentException("a layer needs a positive size, and " + size + " has none");
         }
         return new Layer(size);
     }
@@ -140,8 +139,7 @@ public final class Layer implements AutoCloseable {
 
     private void requireUsable() {
         if (Thread.currentThread() != owner) {
-            throw new IllegalStateException(
-                    "a Layer belongs to the thread that created it, and this is not it");
+            throw new IllegalStateException("a Layer belongs to the thread that created it, and this is not it");
         }
         if (closed) {
             throw new IllegalStateException("this layer has been closed");

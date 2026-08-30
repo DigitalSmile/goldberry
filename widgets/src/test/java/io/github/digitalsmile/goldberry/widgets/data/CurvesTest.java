@@ -63,7 +63,7 @@ class CurvesTest {
 
     @Test
     @DisplayName("a peak is a peak, and the curve does not climb past it")
-    void localExtremaAreFlat()  {
+    void localExtremaAreFlat() {
         // Found by the interval test below: averaging the secants at the top of
         // `1, 9, 2` gives a tangent of +0.5, and the curve reaches 9.0013 on a
         // series whose maximum is 9. The circle limiter does not catch it —
@@ -88,7 +88,8 @@ class CurvesTest {
             var high = Math.max(y[i], y[i + 1]);
             for (var step = 0; step <= 50; step++) {
                 var at = Curves.at(x, y, m, i, step / 50.0);
-                assertTrue(at >= low - 1e-9 && at <= high + 1e-9,
+                assertTrue(
+                        at >= low - 1e-9 && at <= high + 1e-9,
                         "segment " + i + " reached " + at + " outside " + low + "…" + high);
             }
         }

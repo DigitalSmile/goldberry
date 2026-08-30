@@ -7,10 +7,11 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.nio.ByteBuffer;
 
-import io.github.digitalsmile.goldberry.render.model.PhysicalSize;
-import io.github.digitalsmile.goldberry.render.model.PixelFormat;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+
+import io.github.digitalsmile.goldberry.render.model.PhysicalSize;
+import io.github.digitalsmile.goldberry.render.model.PixelFormat;
 
 class PixelBufferTest {
 
@@ -58,8 +59,7 @@ class PixelBufferTest {
         var size = new PhysicalSize(10, 4);
 
         var thrown = assertThrows(
-                IllegalArgumentException.class,
-                () -> new PixelBuffer(size, FORMAT, 39, ByteBuffer.allocate(1000)));
+                IllegalArgumentException.class, () -> new PixelBuffer(size, FORMAT, 39, ByteBuffer.allocate(1000)));
 
         assertTrue(thrown.getMessage().contains("stride"), thrown::getMessage);
     }
@@ -70,8 +70,7 @@ class PixelBufferTest {
         var size = new PhysicalSize(100, 100);
 
         var thrown = assertThrows(
-                IllegalArgumentException.class,
-                () -> new PixelBuffer(size, FORMAT, 400, ByteBuffer.allocate(400)));
+                IllegalArgumentException.class, () -> new PixelBuffer(size, FORMAT, 400, ByteBuffer.allocate(400)));
 
         assertTrue(thrown.getMessage().contains("bytes"), thrown::getMessage);
     }

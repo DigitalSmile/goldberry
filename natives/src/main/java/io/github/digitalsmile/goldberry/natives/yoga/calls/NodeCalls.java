@@ -6,11 +6,12 @@ import static java.lang.foreign.ValueLayout.JAVA_FLOAT;
 import static java.lang.foreign.ValueLayout.JAVA_INT;
 import static java.lang.foreign.ValueLayout.JAVA_LONG;
 
-import io.github.digitalsmile.goldberry.natives.Downcalls;
 import java.lang.foreign.FunctionDescriptor;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.SymbolLookup;
 import java.lang.invoke.MethodHandle;
+
+import io.github.digitalsmile.goldberry.natives.Downcalls;
 
 /// Yoga's `YGNode` — the tree, its lifecycle, and the layout pass.
 ///
@@ -61,8 +62,7 @@ public record NodeCalls(
     /// @return the new `YGNodeRef`
     public static final class NodeNew {
 
-        private static final MethodHandle FD_YGNodeNew =
-                Downcalls.link(FunctionDescriptor.of(ADDRESS));
+        private static final MethodHandle FD_YGNodeNew = Downcalls.link(FunctionDescriptor.of(ADDRESS));
 
         private final MemorySegment address;
 
@@ -116,8 +116,7 @@ public record NodeCalls(
     /// @param node the node to release; its children are not freed
     public static final class NodeFree {
 
-        private static final MethodHandle FD_YGNodeFree =
-                Downcalls.link(FunctionDescriptor.ofVoid(ADDRESS));
+        private static final MethodHandle FD_YGNodeFree = Downcalls.link(FunctionDescriptor.ofVoid(ADDRESS));
 
         private final MemorySegment address;
 
@@ -305,8 +304,7 @@ public record NodeCalls(
     /// @param node a node with a measure function; Yoga aborts otherwise
     public static final class NodeMarkDirty {
 
-        private static final MethodHandle FD_YGNodeMarkDirty =
-                Downcalls.link(FunctionDescriptor.ofVoid(ADDRESS));
+        private static final MethodHandle FD_YGNodeMarkDirty = Downcalls.link(FunctionDescriptor.ofVoid(ADDRESS));
 
         private final MemorySegment address;
 
@@ -416,8 +414,7 @@ public record NodeCalls(
     public static final class NodeCalculateLayout {
 
         private static final MethodHandle FD_YGNodeCalculateLayout =
-                Downcalls.link(FunctionDescriptor.ofVoid(
-                        ADDRESS, JAVA_FLOAT, JAVA_FLOAT, JAVA_INT));
+                Downcalls.link(FunctionDescriptor.ofVoid(ADDRESS, JAVA_FLOAT, JAVA_FLOAT, JAVA_INT));
 
         private final MemorySegment address;
 
@@ -425,12 +422,9 @@ public record NodeCalls(
             this.address = Downcalls.symbol(lookup, "YGNodeCalculateLayout");
         }
 
-        public void call(
-                MemorySegment node, float availableWidth, float availableHeight,
-                int ownerDirection) {
+        public void call(MemorySegment node, float availableWidth, float availableHeight, int ownerDirection) {
             try {
-                FD_YGNodeCalculateLayout.invokeExact(
-                        address, node, availableWidth, availableHeight, ownerDirection);
+                FD_YGNodeCalculateLayout.invokeExact(address, node, availableWidth, availableHeight, ownerDirection);
             } catch (Throwable t) {
                 throw Downcalls.failure("YGNodeCalculateLayout", t);
             }

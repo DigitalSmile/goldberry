@@ -12,7 +12,6 @@ import io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength;
 /// one, and every corner in the toolkit flips with it because none of them wrote
 /// down a side.
 public enum Corner {
-
     TOP_START,
     TOP_END,
     BOTTOM_START,
@@ -37,8 +36,7 @@ public enum Corner {
             }
         }
         throw new IllegalArgumentException(
-                "\"" + text + "\" is not a corner. Use one of: top-start, top-end,"
-                        + " bottom-start, bottom-end");
+                "\"" + text + "\" is not a corner. Use one of: top-start, top-end," + " bottom-start, bottom-end");
     }
 
     /// Whether this corner is on the top edge.

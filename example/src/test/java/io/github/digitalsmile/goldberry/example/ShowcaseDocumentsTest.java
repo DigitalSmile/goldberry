@@ -7,6 +7,13 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.function.Function;
+
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+
 import io.github.digitalsmile.goldberry.bind.runtime.Models;
 import io.github.digitalsmile.goldberry.example.ui.Panes;
 import io.github.digitalsmile.goldberry.widget.Element;
@@ -16,11 +23,6 @@ import io.github.digitalsmile.goldberry.widget.style.Styled;
 import io.github.digitalsmile.goldberry.widgets.Icons;
 import io.github.digitalsmile.goldberry.widgets.Widgets;
 import io.github.digitalsmile.goldberry.widgets.panel.masonry.Masonry;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.function.Function;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
 
 /// That the five documents behind the window still say what the application
 /// thinks they say.
@@ -39,13 +41,15 @@ class ShowcaseDocumentsTest {
 
     private <T> T modelOf(Class<T> type) {
         return showcase.models().stream()
-                .filter(type::isInstance).map(type::cast).findFirst().orElseThrow(
-                        () -> new AssertionError(
-                                "Showcase.models() has no " + type.getSimpleName()));
+                .filter(type::isInstance)
+                .map(type::cast)
+                .findFirst()
+                .orElseThrow(() -> new AssertionError("Showcase.models() has no " + type.getSimpleName()));
     }
 
     private io.github.digitalsmile.goldberry.kdl.KdlInflater<Widget> inflater() {
-        return Widgets.inflater(model.named(), Icons.lenient(), showcase.models().toArray());
+        return Widgets.inflater(
+                model.named(), Icons.lenient(), showcase.models().toArray());
     }
 
     /// Every document whose root is a wall of cards, by the name the failure
@@ -92,11 +96,11 @@ class ShowcaseDocumentsTest {
         // test fail when the *switch* was restyled rather than when the bar
         // changed.
         var types = new ArrayList<String>();
-        new ElementTree(Panes.bar(inflater())).root().children()
-                .forEach(child -> types.add(child.type()));
+        new ElementTree(Panes.bar(inflater())).root().children().forEach(child -> types.add(child.type()));
 
-        assertEquals(List.of("text", "badge", "text", "text", "spacer",
-                        "text", "toggle", "text", "button"), types,
+        assertEquals(
+                List.of("text", "badge", "text", "text", "spacer", "text", "toggle", "text", "button"),
+                types,
                 "the bar is startup on the left and the light on the right");
     }
 
@@ -109,8 +113,7 @@ class ShowcaseDocumentsTest {
             // Not a detail: `Wall.of` rebuilds the masonry with the Java cards
             // added, and a column count of zero would throw where a wrong one
             // would silently re-lay the whole screen.
-            assertTrue(wall.columns() >= 1, () -> name + ".kdl asks for " + wall.columns()
-                    + " columns");
+            assertTrue(wall.columns() >= 1, () -> name + ".kdl asks for " + wall.columns() + " columns");
         }
     }
 
@@ -120,8 +123,7 @@ class ShowcaseDocumentsTest {
         // The failure this guards: a `column` wrapped round the masonry during an
         // edit. Nothing throws at inflation -- it is a perfectly good document --
         // and the screen quietly grows a second wall under the first.
-        var thrown = assertThrows(IllegalStateException.class,
-                () -> Panes.wallOf(inflater(), "statusbar.kdl"));
+        var thrown = assertThrows(IllegalStateException.class, () -> Panes.wallOf(inflater(), "statusbar.kdl"));
 
         assertTrue(thrown.getMessage().contains("statusbar.kdl"), thrown.getMessage());
         assertTrue(thrown.getMessage().contains("masonry"), thrown.getMessage());
@@ -137,28 +139,50 @@ class ShowcaseDocumentsTest {
                 // that carries a css type is the `select-field` its state builds,
                 // and the widget itself reports none. It is asserted by class in
                 // `theLightIsPickedFourWays` instead.
-                "radio-group", "radio", "segmented", "option", "badge",
-                "checkbox", "toggle", "slider", "knob", "spinner", "progress", "button",
+                "radio-group",
+                "radio",
+                "segmented",
+                "option",
+                "badge",
+                "checkbox",
+                "toggle",
+                "slider",
+                "knob",
+                "spinner",
+                "progress",
+                "button",
                 // §5 -- the containers
-                "panel", "card", "group-box", "masonry", "statistic", "skeleton",
-                "split-pane", "carousel", "collapse",
+                "panel",
+                "card",
+                "group-box",
+                "masonry",
+                "statistic",
+                "skeleton",
+                "split-pane",
+                "carousel",
+                "collapse",
                 // §4 -- the fields
-                "text-input", "text-area", "form", "field",
+                "text-input",
+                "text-area",
+                "form",
+                "field",
                 // §7 and §8. No `item` and no `separator`: a menu bar draws a row
                 // of titles and builds its rows only when one is *opened*, so the
                 // items `overlays.kdl` writes are not in a closed bar's tree at
                 // all -- which is the whole point of a menu being a popup.
-                "menubar", "text", "row", "column", "spacer")) {
-            assertTrue(types.contains(control),
-                    () -> "no document builds a " + control + " any more: " + types);
+                "menubar",
+                "text",
+                "row",
+                "column",
+                "spacer")) {
+            assertTrue(types.contains(control), () -> "no document builds a " + control + " any more: " + types);
         }
     }
 
     @Test
     @DisplayName("every screen document inflates against the real registries")
     void everyScreenInflates() {
-        WALLS.forEach(name -> assertFalse(typesIn(wall(name)).isEmpty(),
-                () -> name + ".kdl inflated to nothing"));
+        WALLS.forEach(name -> assertFalse(typesIn(wall(name)).isEmpty(), () -> name + ".kdl inflated to nothing"));
         assertFalse(typesIn(Panes.bar(inflater())).isEmpty());
     }
 
@@ -170,11 +194,10 @@ class ShowcaseDocumentsTest {
         collectBound(new ElementTree(Panes.bar(inflater())).root(), bound);
 
         assertFalse(bound.isEmpty(), "nothing in the gallery's documents is bound");
-        for (var path : List.of("app.gain", "app.theme", "app.light", "app.status",
-                "app.startup", "app.clicks", "app.prose")) {
+        for (var path :
+                List.of("app.gain", "app.theme", "app.light", "app.status", "app.startup", "app.clicks", "app.prose")) {
             var property = Models.observable(model, path);
-            assertTrue(bound.stream().anyMatch(w -> w.binding() == property),
-                    () -> "no control follows " + path);
+            assertTrue(bound.stream().anyMatch(w -> w.binding() == property), () -> "no control follows " + path);
         }
     }
 
@@ -189,10 +212,11 @@ class ShowcaseDocumentsTest {
     @DisplayName("the slider, the knob, the fader and the bar are on one property")
     void oneValueManyReaders() {
         var onGain = new ArrayList<String>();
-        collectOn(new ElementTree(wall("basic")).root(),
-                Models.observable(model, "app.gain"), onGain);
+        collectOn(new ElementTree(wall("basic")).root(), Models.observable(model, "app.gain"), onGain);
 
-        assertEquals(List.of("slider", "knob", "slider", "progress"), onGain,
+        assertEquals(
+                List.of("slider", "knob", "slider", "progress"),
+                onGain,
                 "the slider, the knob, the fader and the bar — four readers of one number");
     }
 
@@ -203,13 +227,14 @@ class ShowcaseDocumentsTest {
         var byName = new ArrayList<Widget>();
         collectBoundTo(new ElementTree(wall("basic")).root(), theme, byName);
         var asFlag = new ArrayList<Widget>();
-        collectBoundTo(new ElementTree(Panes.bar(inflater())).root(),
-                Models.observable(model, "app.light"), asFlag);
+        collectBoundTo(new ElementTree(Panes.bar(inflater())).root(), Models.observable(model, "app.light"), asFlag);
 
-        assertEquals(List.of("RadioGroup", "Segmented", "Select"),
+        assertEquals(
+                List.of("RadioGroup", "Segmented", "Select"),
                 byName.stream().map(w -> w.getClass().getSimpleName()).toList(),
                 "three pickers read the theme by name");
-        assertEquals(List.of("Toggle"),
+        assertEquals(
+                List.of("Toggle"),
                 asFlag.stream().map(w -> w.getClass().getSimpleName()).toList(),
                 "and the bar's switch reads the same fact as a boolean, because a switch"
                         + " falls back to its own flag for anything that is not one");
@@ -232,11 +257,14 @@ class ShowcaseDocumentsTest {
     @Test
     @DisplayName("a path the model does not expose fails at inflation")
     void strictRegistriesRefuseATypo() {
-        var thrown = assertThrows(RuntimeException.class, () -> inflater()
-                .inflate(io.github.digitalsmile.goldberry.kdl.KdlParser
-                        .parse("slider bind=\"app.gian\"").getFirst()));
+        var thrown = assertThrows(
+                RuntimeException.class,
+                () -> inflater()
+                        .inflate(io.github.digitalsmile.goldberry.kdl.KdlParser.parse("slider bind=\"app.gian\"")
+                                .getFirst()));
 
-        assertTrue(thrown.getMessage().contains("app.gian"),
+        assertTrue(
+                thrown.getMessage().contains("app.gian"),
                 () -> "the failure does not name the path: " + thrown.getMessage());
     }
 
@@ -251,8 +279,7 @@ class ShowcaseDocumentsTest {
     @DisplayName("the showcase stylesheet loads and is not empty")
     void stylesheetLoads() {
         var sheet = io.github.digitalsmile.goldberry.css.Stylesheet.resource(
-                io.github.digitalsmile.goldberry.css.cascade.CascadeLayer.APPLICATION,
-                Showcase.class, "showcase.css");
+                io.github.digitalsmile.goldberry.css.cascade.CascadeLayer.APPLICATION, Showcase.class, "showcase.css");
 
         assertFalse(sheet.rules().isEmpty());
     }
@@ -268,19 +295,37 @@ class ShowcaseDocumentsTest {
         // the Java cards build are deliberately absent here.
         for (var id : List.of(
                 // the bar
-                "bar", "title", "clicks", "startup", "status", "light-switch",
-                "dark-label", "light-label", "theme",
+                "bar",
+                "title",
+                "clicks",
+                "startup",
+                "status",
+                "light-switch",
+                "dark-label",
+                "light-label",
+                "theme",
                 // Basic
-                "themes", "theme-bar", "theme-select", "badges", "gain", "knobs",
-                "faders", "busy",
+                "themes",
+                "theme-bar",
+                "theme-select",
+                "badges",
+                "gain",
+                "knobs",
+                "faders",
+                "busy",
                 // Panels
-                "surfaces", "numbers", "demo-split", "demo-carousel", "demo-accordion",
+                "surfaces",
+                "numbers",
+                "demo-split",
+                "demo-carousel",
+                "demo-accordion",
                 // Overlays
-                "overlays", "context-target",
+                "overlays",
+                "context-target",
                 // Forms
-                "signup", "named-echo")) {
-            assertTrue(ids.contains(id),
-                    () -> "showcase.css styles #" + id + " and no document builds it: " + ids);
+                "signup",
+                "named-echo")) {
+            assertTrue(ids.contains(id), () -> "showcase.css styles #" + id + " and no document builds it: " + ids);
         }
     }
 
@@ -358,7 +403,9 @@ class ShowcaseDocumentsTest {
         Function<Object, Boolean> asFlag = value -> "light".equals(value);
         for (var route : routes) {
             route.run();
-            assertEquals(asFlag.apply(name.get()), flag.get(),
+            assertEquals(
+                    asFlag.apply(name.get()),
+                    flag.get(),
                     () -> "app.theme says " + name.get() + " and app.light says " + flag.get());
         }
     }
@@ -368,7 +415,7 @@ class ShowcaseDocumentsTest {
     void generatedValuedActionParses() {
         Models.actions(actions).resolveValued("app.set-gain").accept("62.5");
 
-        assertEquals(62.5,
-                Models.observable(model, "app.gain", Number.class).get().doubleValue(), 1e-9);
+        assertEquals(
+                62.5, Models.observable(model, "app.gain", Number.class).get().doubleValue(), 1e-9);
     }
 }

@@ -11,9 +11,11 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+
 import io.github.digitalsmile.goldberry.widget.style.Styled;
 
 class ElementTreeTest {
@@ -195,7 +197,7 @@ class ElementTreeTest {
                         public Widget build(BuildContext context) {
                             builds++;
                             if (builds < 3) {
-                                setState(() -> { });
+                                setState(() -> {});
                             }
                             return new Label("settled after " + builds);
                         }
@@ -220,7 +222,7 @@ class ElementTreeTest {
                     return new State<Widget.Stateful>() {
                         @Override
                         public Widget build(BuildContext context) {
-                            setState(() -> { });
+                            setState(() -> {});
                             return new Label("never done");
                         }
                     };
@@ -286,8 +288,7 @@ class ElementTreeTest {
         @Test
         @DisplayName("keyed children keep their state when reordered")
         void reorderingKeepsState() {
-            var tree = new ElementTree(new Row(
-                    List.of(new Counter("a", "a"), new Counter("b", "b")), null));
+            var tree = new ElementTree(new Row(List.of(new Counter("a", "a"), new Counter("b", "b")), null));
 
             var stateA = stateOf(tree.root().children().get(0));
             var stateB = stateOf(tree.root().children().get(1));
@@ -296,8 +297,7 @@ class ElementTreeTest {
             stateB.click();
             tree.flush();
 
-            tree.root().update(new Row(
-                    List.of(new Counter("b", "b"), new Counter("a", "a")), null));
+            tree.root().update(new Row(List.of(new Counter("b", "b"), new Counter("a", "a")), null));
 
             // This is the case keys exist for: without them, position matching
             // would hand A's element to B and silently swap their counters.
@@ -324,8 +324,7 @@ class ElementTreeTest {
         @Test
         @DisplayName("an unkeyed child does not steal an element a key claimed")
         void unkeyedDoesNotStealKeyed() {
-            var tree = new ElementTree(new Row(
-                    List.of(new Counter("keyed", "k"), new Counter("plain")), null));
+            var tree = new ElementTree(new Row(List.of(new Counter("keyed", "k"), new Counter("plain")), null));
             var keyedState = stateOf(tree.root().children().get(0));
             keyedState.click();
             tree.flush();
@@ -333,8 +332,7 @@ class ElementTreeTest {
             // The keyed one moves to the end; an unkeyed description now sits at
             // position 0. It must create a new element rather than adopt the
             // keyed one.
-            tree.root().update(new Row(
-                    List.of(new Counter("plain"), new Counter("keyed", "k")), null));
+            tree.root().update(new Row(List.of(new Counter("plain"), new Counter("keyed", "k")), null));
 
             assertSame(keyedState, stateOf(tree.root().children().get(1)));
             assertEquals(0, stateOf(tree.root().children().get(0)).clicks);
@@ -397,7 +395,8 @@ class ElementTreeTest {
         void depth() {
             var tree = new ElementTree(new Row(new Row(new Label("leaf"))));
             assertEquals(0, tree.root().depth());
-            assertEquals(2, tree.root().children().getFirst().children().getFirst().depth());
+            assertEquals(
+                    2, tree.root().children().getFirst().children().getFirst().depth());
         }
     }
 
@@ -408,8 +407,7 @@ class ElementTreeTest {
         @Test
         @DisplayName("a styled widget's type is its kebab-case name")
         void typeName() {
-            record TextInput(Object key) implements Widget.Leaf, Styled {
-            }
+            record TextInput(Object key) implements Widget.Leaf, Styled {}
 
             var tree = new ElementTree(new TextInput(null));
             // One name in one place: `text-input` in CSS, in KDL and in Java.
@@ -419,8 +417,7 @@ class ElementTreeTest {
         @Test
         @DisplayName("classes and id come from the widget")
         void classesAndId() {
-            record Button(String id, Set<String> classes) implements Widget.Leaf, Styled {
-            }
+            record Button(String id, Set<String> classes) implements Widget.Leaf, Styled {}
 
             var tree = new ElementTree(new Button("apply", Set.of("primary")));
 
@@ -440,8 +437,7 @@ class ElementTreeTest {
 
             // A button does not stop being hovered because its parent
             // re-described it.
-            assertTrue(element.hasState(
-                    io.github.digitalsmile.goldberry.css.select.Selector.PseudoClass.HOVER));
+            assertTrue(element.hasState(io.github.digitalsmile.goldberry.css.select.Selector.PseudoClass.HOVER));
         }
 
         @Test

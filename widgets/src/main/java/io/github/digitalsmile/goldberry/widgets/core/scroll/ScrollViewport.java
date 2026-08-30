@@ -1,20 +1,21 @@
 package io.github.digitalsmile.goldberry.widgets.core.scroll;
 
+import java.util.List;
+import java.util.Set;
+
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
-import io.github.digitalsmile.goldberry.input.hit.Extent;
-import io.github.digitalsmile.goldberry.input.handler.Handles;
-import io.github.digitalsmile.goldberry.input.handler.Measured;
 import io.github.digitalsmile.goldberry.input.event.KeyEvent;
 import io.github.digitalsmile.goldberry.input.event.PointerEvent;
-import io.github.digitalsmile.goldberry.paint.Box;
+import io.github.digitalsmile.goldberry.input.handler.Handles;
+import io.github.digitalsmile.goldberry.input.handler.Measured;
+import io.github.digitalsmile.goldberry.input.hit.Extent;
 import io.github.digitalsmile.goldberry.natives.yoga.style.FlexDirection;
 import io.github.digitalsmile.goldberry.natives.yoga.style.Overflow;
+import io.github.digitalsmile.goldberry.paint.Box;
+import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widget.attr.Attributes;
 import io.github.digitalsmile.goldberry.widget.style.Paints;
 import io.github.digitalsmile.goldberry.widget.style.Styled;
-import io.github.digitalsmile.goldberry.widget.Widget;
-import java.util.List;
-import java.util.Set;
 
 /// The rectangle a [Scroll] shows through: the CSS type `scroll`, the node that
 /// clips, and the node that takes the wheel and the keys.
@@ -49,10 +50,19 @@ import java.util.Set;
 /// for free by the router's ordinary bubble path rather than by anything here
 /// knowing an ancestor exists.
 record ScrollViewport(
-        List<Widget> children, ScrollAxis axis, double height, double offsetX, double offsetY,
-        Extent viewport, Extent content, ScrollFade fade, ScrollTarget onScroll,
-        Boolean draggingVertical, java.util.function.BiConsumer<Boolean, Boolean> onDrag,
-        java.util.function.BiConsumer<Extent, Extent> onMeasured, Attributes attributes)
+        List<Widget> children,
+        ScrollAxis axis,
+        double height,
+        double offsetX,
+        double offsetY,
+        Extent viewport,
+        Extent content,
+        ScrollFade fade,
+        ScrollTarget onScroll,
+        Boolean draggingVertical,
+        java.util.function.BiConsumer<Boolean, Boolean> onDrag,
+        java.util.function.BiConsumer<Extent, Extent> onMeasured,
+        Attributes attributes)
         implements Widget.Leaf, Styled, Paints, Handles, Measured {
 
     /// What one wheel line moves, in logical pixels.
@@ -115,7 +125,11 @@ record ScrollViewport(
     }
 
     private ScrollBar bar(boolean vertical, double along, double contentAlong, double offset) {
-        return new ScrollBar(vertical, along, contentAlong, offset,
+        return new ScrollBar(
+                vertical,
+                along,
+                contentAlong,
+                offset,
                 value -> {
                     // A bar reports one axis; the other keeps what it had.
                     if (vertical) {
@@ -161,9 +175,10 @@ record ScrollViewport(
     /// screen cannot hold.
     @Override
     public ComputedStyle restyle(ComputedStyle resolved) {
-        return Double.isNaN(height) ? resolved
-                : resolved.height(io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength
-                        .points((float) height));
+        return Double.isNaN(height)
+                ? resolved
+                : resolved.height(
+                        io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength.points((float) height));
     }
 
     @Override
@@ -172,15 +187,16 @@ record ScrollViewport(
         // "when did this move" can be answered.
         fade.stamp(context.nowMillis());
         var opacity = fade.opacity();
-        return Box.of().children(fadeBars(boxes, opacity).toArray(Box[]::new)).style(style)
+        return Box.of()
+                .children(fadeBars(boxes, opacity).toArray(Box[]::new))
+                .style(style)
                 // Along the axis, and this is load-bearing rather than tidy. A
                 // horizontal viewport laid out as a column would **stretch** its
                 // content to the viewport's width, so the content's measured
                 // width would equal the viewport's, the overflow would be zero
                 // and nothing would ever scroll -- while the tabs inside it
                 // spilled out of a box that claimed to fit them.
-                .direction(axis == ScrollAxis.HORIZONTAL
-                        ? FlexDirection.ROW : FlexDirection.COLUMN)
+                .direction(axis == ScrollAxis.HORIZONTAL ? FlexDirection.ROW : FlexDirection.COLUMN)
                 // The one property a stylesheet must not be able to take back.
                 // Yoga reads it for sizing -- a child may exceed this box without
                 // it growing -- and the painter reads it as a clip (ADR-0114).
@@ -211,8 +227,7 @@ record ScrollViewport(
         }
         // The fraction, not the detents: this is a distance, and a trackpad's
         // eighths are what stop it moving in jerks (ADR-0115).
-        var moved = scrollBy(event.deltaX() * LINE, event.deltaY() * LINE,
-                event.bounds(), event.part());
+        var moved = scrollBy(event.deltaX() * LINE, event.deltaY() * LINE, event.bounds(), event.part());
         if (moved) {
             event.consume();
         }
@@ -226,20 +241,20 @@ record ScrollViewport(
         var viewport = event.bounds();
         var content = event.part();
         var page = Math.max(LINE, viewport.height() - PAGE_OVERLAP);
-        var moved = switch (event.key()) {
-            case PAGE_DOWN -> scrollBy(0, page, viewport, content);
-            case PAGE_UP -> scrollBy(0, -page, viewport, content);
-            case DOWN -> scrollBy(0, ARROW, viewport, content);
-            case UP -> scrollBy(0, -ARROW, viewport, content);
-            case RIGHT -> scrollBy(ARROW, 0, viewport, content);
-            case LEFT -> scrollBy(-ARROW, 0, viewport, content);
-            // Absolute rather than a large relative move, so Home reaches the top
-            // of a document of any length in one press.
-            case HOME -> scrollTo(0, 0, viewport, content);
-            case END -> scrollTo(viewport.overflowX(content), viewport.overflowY(content),
-                    viewport, content);
-            default -> false;
-        };
+        var moved =
+                switch (event.key()) {
+                    case PAGE_DOWN -> scrollBy(0, page, viewport, content);
+                    case PAGE_UP -> scrollBy(0, -page, viewport, content);
+                    case DOWN -> scrollBy(0, ARROW, viewport, content);
+                    case UP -> scrollBy(0, -ARROW, viewport, content);
+                    case RIGHT -> scrollBy(ARROW, 0, viewport, content);
+                    case LEFT -> scrollBy(-ARROW, 0, viewport, content);
+                    // Absolute rather than a large relative move, so Home reaches the top
+                    // of a document of any length in one press.
+                    case HOME -> scrollTo(0, 0, viewport, content);
+                    case END -> scrollTo(viewport.overflowX(content), viewport.overflowY(content), viewport, content);
+                    default -> false;
+                };
         if (moved) {
             event.consume();
         }

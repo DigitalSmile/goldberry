@@ -1,18 +1,19 @@
 package io.github.digitalsmile.goldberry.widgets.core;
 
+import java.util.List;
+import java.util.Set;
+
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
-import io.github.digitalsmile.goldberry.paint.Box;
+import io.github.digitalsmile.goldberry.kdl.KdlNode;
 import io.github.digitalsmile.goldberry.natives.yoga.style.FlexDirection;
+import io.github.digitalsmile.goldberry.paint.Box;
+import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widget.attr.Attributed;
 import io.github.digitalsmile.goldberry.widget.attr.Attributes;
 import io.github.digitalsmile.goldberry.widget.style.Paints;
 import io.github.digitalsmile.goldberry.widget.style.Styled;
-import io.github.digitalsmile.goldberry.widget.Widget;
-import java.util.List;
-import java.util.Set;
-import io.github.digitalsmile.goldberry.kdl.KdlNode;
-import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
 import io.github.digitalsmile.goldberry.widgets.markup.Markup;
+import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
 
 /// Children laid out along the cross axis — `docs/core-widgets.md` §1's `column`.
 ///
@@ -64,8 +65,7 @@ public record Column(List<Widget> children, Attributes attributes)
 
     @Override
     public Box render(ComputedStyle style, List<Box> boxes, Context context) {
-        return Box.of().children(boxes.toArray(Box[]::new)).style(style)
-                .direction(FlexDirection.COLUMN);
+        return Box.of().children(boxes.toArray(Box[]::new)).style(style).direction(FlexDirection.COLUMN);
     }
 
     /// Builds a `column` from markup.
@@ -87,7 +87,9 @@ public record Column(List<Widget> children, Attributes attributes)
         if (node.booleanProperty("accordion")) {
             return new io.github.digitalsmile.goldberry.widgets.panel.accordion.Accordion(
                     io.github.digitalsmile.goldberry.widgets.panel.accordion.Accordion.NONE,
-                    null, children, Attributes.of(node));
+                    null,
+                    children,
+                    Attributes.of(node));
         }
         return new Column(children, Attributes.of(node));
     }

@@ -4,19 +4,21 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.ArrayList;
+import java.util.List;
+
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+
 import io.github.digitalsmile.goldberry.render.backend.headless.HeadlessTray;
 import io.github.digitalsmile.goldberry.render.tray.TrayItem;
 import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widget.attr.Attributes;
 import io.github.digitalsmile.goldberry.widgets.TestHost;
-import io.github.digitalsmile.goldberry.widgets.text.Text;
 import io.github.digitalsmile.goldberry.widgets.menu.Item;
 import io.github.digitalsmile.goldberry.widgets.menu.Menu;
 import io.github.digitalsmile.goldberry.widgets.menu.Separator;
-import java.util.ArrayList;
-import java.util.List;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
+import io.github.digitalsmile.goldberry.widgets.text.Text;
 
 /// A `menu` description, read as the rows a desktop shell will draw.
 ///
@@ -29,14 +31,16 @@ class TraysTest {
     private final List<String> chosen = new ArrayList<>();
 
     private Menu menu() {
-        return new Menu(List.of(
-                new Item("Open", () -> chosen.add("Open")),
-                new Separator(),
-                new Item("Notifications", () -> chosen.add("Notifications")).checked(true),
-                new Item("Recent").submenu(
-                        new Item("report.pdf", () -> chosen.add("report.pdf")),
-                        new Item("notes.md", () -> chosen.add("notes.md")).disabled(true)),
-                new Item("Quit", () -> chosen.add("Quit")).accelerator("Ctrl+Q")),
+        return new Menu(
+                List.of(
+                        new Item("Open", () -> chosen.add("Open")),
+                        new Separator(),
+                        new Item("Notifications", () -> chosen.add("Notifications")).checked(true),
+                        new Item("Recent")
+                                .submenu(
+                                        new Item("report.pdf", () -> chosen.add("report.pdf")),
+                                        new Item("notes.md", () -> chosen.add("notes.md")).disabled(true)),
+                        new Item("Quit", () -> chosen.add("Quit")).accelerator("Ctrl+Q")),
                 Attributes.NONE);
     }
 
@@ -66,7 +70,8 @@ class TraysTest {
         var row = Trays.rowsOf(menu()).get(3);
 
         assertEquals(TrayItem.Kind.SUBMENU, row.kind());
-        assertEquals(List.of("report.pdf", "notes.md"),
+        assertEquals(
+                List.of("report.pdf", "notes.md"),
                 row.children().stream().map(TrayItem::label).toList());
         assertFalse(row.children().get(1).enabled());
     }
@@ -78,11 +83,7 @@ class TraysTest {
         // -- and there is nothing the shell could do with it. Skipping is the
         // same answer `Accelerators` gives a non-item, and the warning is what
         // keeps it from being silent.
-        var rows = Trays.rowsOf(List.<Widget>of(
-                new Item("Open", () -> {
-                }),
-                new Text("not a row"),
-                new Separator()));
+        var rows = Trays.rowsOf(List.<Widget>of(new Item("Open", () -> {}), new Text("not a row"), new Separator()));
 
         assertEquals(2, rows.size());
     }
@@ -92,7 +93,8 @@ class TraysTest {
     void showingAndChoosing() {
         var host = new TestHost();
 
-        var tray = (HeadlessTray) Trays.show(host, TrayIcon.of("Goldberry", menu())).orElseThrow();
+        var tray = (HeadlessTray)
+                Trays.show(host, TrayIcon.of("Goldberry", menu())).orElseThrow();
 
         tray.choose("Open");
         tray.choose("Recent/report.pdf");
@@ -105,7 +107,8 @@ class TraysTest {
     @DisplayName("runs a checkbox's command whichever way the platform toggled it")
     void checkboxesRunTheirCommand() {
         var host = new TestHost();
-        var tray = (HeadlessTray) Trays.show(host, TrayIcon.of("Goldberry", menu())).orElseThrow();
+        var tray = (HeadlessTray)
+                Trays.show(host, TrayIcon.of("Goldberry", menu())).orElseThrow();
 
         // Described as ticked, so the shell's first click unticks it -- and the
         // item's command runs either way, because an `Item`'s command takes no
@@ -126,7 +129,8 @@ class TraysTest {
         // a frame and a tray row asks for no frame. Quit worked because closing
         // a window is a platform effect rather than a model change.
         var host = new TestHost();
-        var tray = (HeadlessTray) Trays.show(host, TrayIcon.of("Goldberry", menu())).orElseThrow();
+        var tray = (HeadlessTray)
+                Trays.show(host, TrayIcon.of("Goldberry", menu())).orElseThrow();
         var before = host.repaints();
 
         tray.choose("Open");

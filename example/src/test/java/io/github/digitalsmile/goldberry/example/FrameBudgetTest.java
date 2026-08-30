@@ -2,15 +2,24 @@ package io.github.digitalsmile.goldberry.example;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+
 import io.github.digitalsmile.goldberry.RendererRequirement;
-import io.github.digitalsmile.goldberry.paint.TestFrames;
 import io.github.digitalsmile.goldberry.assets.BundledFont;
-import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
 import io.github.digitalsmile.goldberry.css.Stylesheet;
 import io.github.digitalsmile.goldberry.css.Theme;
+import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
 import io.github.digitalsmile.goldberry.example.ui.AppMenu;
 import io.github.digitalsmile.goldberry.example.ui.Screen;
 import io.github.digitalsmile.goldberry.icon.Icon;
+import io.github.digitalsmile.goldberry.paint.TestFrames;
 import io.github.digitalsmile.goldberry.paint.tree.RenderTree;
 import io.github.digitalsmile.goldberry.text.font.Font;
 import io.github.digitalsmile.goldberry.widget.ElementTree;
@@ -18,13 +27,6 @@ import io.github.digitalsmile.goldberry.widget.WidgetRenderer;
 import io.github.digitalsmile.goldberry.widgets.Controls;
 import io.github.digitalsmile.goldberry.widgets.Icons;
 import io.github.digitalsmile.goldberry.widgets.Widgets;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
 
 /// What a frame of the real application costs, stage by stage and resolution by
 /// resolution — and a ceiling under each, so a regression fails the build
@@ -153,7 +155,10 @@ class FrameBudgetTest {
 
     private <T> T modelOf(Class<T> type) {
         return showcase.models().stream()
-                .filter(type::isInstance).map(type::cast).findFirst().orElseThrow();
+                .filter(type::isInstance)
+                .map(type::cast)
+                .findFirst()
+                .orElseThrow();
     }
 
     /// One screen's tree, wired to the application's own models.
@@ -162,18 +167,19 @@ class FrameBudgetTest {
         var inflater = Widgets.inflater(
                 Icons.strict().bind("palette", palette).bind("plus", plus),
                 showcase.models().toArray());
-        return new ElementTree(new Screen(model, actions, inflater, plus, () -> { },
-                new AppMenu(actions,
-                        new AppMenu.Handlers(() -> { }, () -> { }, () -> { }, () -> { }),
-                        plus)));
+        return new ElementTree(new Screen(
+                model,
+                actions,
+                inflater,
+                plus,
+                () -> {},
+                new AppMenu(actions, new AppMenu.Handlers(() -> {}, () -> {}, () -> {}, () -> {}), plus)));
     }
 
     private WidgetRenderer rendererFor() {
-        var sheets = new ArrayList<Stylesheet>(
-                Controls.stylesheets(Theme.NORD_DARK, model.density()));
+        var sheets = new ArrayList<Stylesheet>(Controls.stylesheets(Theme.NORD_DARK, model.density()));
         sheets.add(Stylesheet.resource(CascadeLayer.APPLICATION, Showcase.class, "showcase.css"));
-        return new WidgetRenderer(sheets, font)
-                .clock(io.github.digitalsmile.goldberry.motion.Clock.virtual());
+        return new WidgetRenderer(sheets, font).clock(io.github.digitalsmile.goldberry.motion.Clock.virtual());
     }
 
     /// The median of `runs` timings, in milliseconds.
@@ -194,8 +200,7 @@ class FrameBudgetTest {
     }
 
     /// What one settled frame of `screen` costs at `resolution`, stage by stage.
-    private record Cost(double build, double style, double layout, double raster) {
-    }
+    private record Cost(double build, double style, double layout, double raster) {}
 
     private Cost measure(String screen, Resolution resolution) {
         // **Zero workers.** A threaded Blend2D context queues its work and only
@@ -203,8 +208,7 @@ class FrameBudgetTest {
         // those measures *submitting* a frame -- which is how the first run of
         // this test reported a 4K raster as cheaper than an 800x600 one.
         // `FrameBenchmark` pins it for the same reason.
-        var target = TestFrames.of(resolution.width(), resolution.height(),
-                resolution.scale(), 0);
+        var target = TestFrames.of(resolution.width(), resolution.height(), resolution.scale(), 0);
         var tree = treeFor(screen);
         var renderer = rendererFor();
         try (var render = RenderTree.create()) {
@@ -225,8 +229,7 @@ class FrameBudgetTest {
             // `paint(frame, damage)` would measure the empty case and report a
             // rasterizer that costs nothing at 4K. The number worth a ceiling is
             // the one a resize pays.
-            var raster = medianMillis(resolution.pixels() > 4_000_000 ? 20 : 60,
-                    () -> render.paint(target.frame()));
+            var raster = medianMillis(resolution.pixels() > 4_000_000 ? 20 : 60, () -> render.paint(target.frame()));
             return new Cost(build, style, layout, raster);
         }
     }
@@ -246,15 +249,15 @@ class FrameBudgetTest {
     void withinBudget() {
         warmUp();
         var failures = new ArrayList<String>();
-        System.out.printf("%n  %-18s %8s %8s %8s %8s%n",
-                "resolution", "build", "style", "layout", "raster");
+        System.out.printf("%n  %-18s %8s %8s %8s %8s%n", "resolution", "build", "style", "layout", "raster");
         for (var resolution : RESOLUTIONS) {
             var cost = measure("controls", resolution);
-            System.out.printf("  %-18s %7.3f %7.3f %7.3f %7.3f  (ms, median)%n",
+            System.out.printf(
+                    "  %-18s %7.3f %7.3f %7.3f %7.3f  (ms, median)%n",
                     resolution.name(), cost.build(), cost.style(), cost.layout(), cost.raster());
 
-            var rasterBudget = Math.max(RASTER_BUDGET_FLOOR_MS,
-                    RASTER_BUDGET_MS_PER_MEGAPIXEL * resolution.pixels() / 1_000_000.0);
+            var rasterBudget = Math.max(
+                    RASTER_BUDGET_FLOOR_MS, RASTER_BUDGET_MS_PER_MEGAPIXEL * resolution.pixels() / 1_000_000.0);
             check(failures, resolution, "build", cost.build(), BUILD_BUDGET_MS);
             check(failures, resolution, "style", cost.style(), STYLE_BUDGET_MS);
             check(failures, resolution, "layout", cost.layout(), LAYOUT_BUDGET_MS);
@@ -263,8 +266,7 @@ class FrameBudgetTest {
         assertTrue(failures.isEmpty(), String.join("\n", failures));
     }
 
-    private static void check(List<String> into, Resolution resolution, String stage,
-            double measured, double budget) {
+    private static void check(List<String> into, Resolution resolution, String stage, double measured, double budget) {
         if (measured > budget) {
             into.add(String.format(
                     "%s at %s took %.3f ms, over its %.3f ms budget."
@@ -290,20 +292,26 @@ class FrameBudgetTest {
         warmUp();
         var small = measure("controls", RESOLUTIONS.getFirst());
         var large = measure("controls", RESOLUTIONS.getLast());
-        var pixelRatio = (double) RESOLUTIONS.getLast().pixels() / RESOLUTIONS.getFirst().pixels();
+        var pixelRatio =
+                (double) RESOLUTIONS.getLast().pixels() / RESOLUTIONS.getFirst().pixels();
 
-        System.out.printf("%n  pixels x%.1f -> style x%.2f, layout x%.2f, raster x%.2f%n",
-                pixelRatio, large.style() / small.style(),
-                large.layout() / small.layout(), large.raster() / small.raster());
+        System.out.printf(
+                "%n  pixels x%.1f -> style x%.2f, layout x%.2f, raster x%.2f%n",
+                pixelRatio,
+                large.style() / small.style(),
+                large.layout() / small.layout(),
+                large.raster() / small.raster());
 
-        assertTrue(large.style() <= Math.max(small.style() * 3, STYLE_BUDGET_MS),
+        assertTrue(
+                large.style() <= Math.max(small.style() * 3, STYLE_BUDGET_MS),
                 () -> String.format(
                         "style went from %.3f ms at 800x600 to %.3f ms at 4K, and the cascade"
                                 + " runs per element -- so something is keyed on the frame",
                         small.style(), large.style()));
-        assertTrue(large.build() <= Math.max(small.build() * 3, BUILD_BUDGET_MS),
-                () -> String.format("build went from %.3f ms to %.3f ms with the resolution",
-                        small.build(), large.build()));
+        assertTrue(
+                large.build() <= Math.max(small.build() * 3, BUILD_BUDGET_MS),
+                () -> String.format(
+                        "build went from %.3f ms to %.3f ms with the resolution", small.build(), large.build()));
     }
 
     /// **A settled frame re-resolves nothing** — the property ADR-0142 restored,
@@ -325,20 +333,21 @@ class FrameBudgetTest {
             render.update(target.frame(), renderer.render(tree));
             var warm = medianMillis(200, () -> renderer.render(tree));
 
-            System.out.printf("%n  first render %.3f ms, settled render %.3f ms (x%.1f)%n",
-                    cold, warm, cold / warm);
+            System.out.printf("%n  first render %.3f ms, settled render %.3f ms (x%.1f)%n", cold, warm, cold / warm);
 
             // Forty, and the number is chosen against both outcomes rather than
             // picked: with the cache working this ratio is 450-520x, and with
             // ADR-0142's defect reintroduced it is 11x. Anywhere in between is a
             // threshold; 40 leaves an order of magnitude of headroom under the
             // good case and nearly four times over the bad one.
-            assertTrue(warm * 40 < cold, () -> String.format(
-                    "a settled render cost %.3f ms against a cold one's %.3f ms,"
-                            + " which is not the two orders of magnitude a working style cache"
-                            + " gives. They come within 11x of each other when it never hits,"
-                            + " which is what ADR-0142 was about",
-                    warm, cold));
+            assertTrue(
+                    warm * 40 < cold,
+                    () -> String.format(
+                            "a settled render cost %.3f ms against a cold one's %.3f ms,"
+                                    + " which is not the two orders of magnitude a working style cache"
+                                    + " gives. They come within 11x of each other when it never hits,"
+                                    + " which is what ADR-0142 was about",
+                            warm, cold));
         }
     }
 }

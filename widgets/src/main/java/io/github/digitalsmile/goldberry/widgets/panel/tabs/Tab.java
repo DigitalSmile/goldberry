@@ -1,26 +1,27 @@
 package io.github.digitalsmile.goldberry.widgets.panel.tabs;
 
-import io.github.digitalsmile.goldberry.render.model.LogicalRect;
-import io.github.digitalsmile.goldberry.css.ComputedStyle;
-import io.github.digitalsmile.goldberry.css.value.Transform;
-import io.github.digitalsmile.goldberry.icon.Icon;
-import io.github.digitalsmile.goldberry.input.handler.Handles;
-import io.github.digitalsmile.goldberry.input.key.Key;
-import io.github.digitalsmile.goldberry.input.event.KeyEvent;
-import io.github.digitalsmile.goldberry.input.event.PointerEvent;
-import io.github.digitalsmile.goldberry.paint.Box;
-import io.github.digitalsmile.goldberry.widget.attr.Attributed;
-import io.github.digitalsmile.goldberry.widget.attr.Attributes;
-import io.github.digitalsmile.goldberry.widget.style.Paints;
-import io.github.digitalsmile.goldberry.widget.style.Styled;
-import io.github.digitalsmile.goldberry.widget.Widget;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+
+import io.github.digitalsmile.goldberry.css.ComputedStyle;
+import io.github.digitalsmile.goldberry.css.value.Transform;
+import io.github.digitalsmile.goldberry.icon.Icon;
+import io.github.digitalsmile.goldberry.input.event.KeyEvent;
+import io.github.digitalsmile.goldberry.input.event.PointerEvent;
+import io.github.digitalsmile.goldberry.input.handler.Handles;
+import io.github.digitalsmile.goldberry.input.key.Key;
 import io.github.digitalsmile.goldberry.kdl.KdlNode;
-import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
+import io.github.digitalsmile.goldberry.paint.Box;
+import io.github.digitalsmile.goldberry.render.model.LogicalRect;
+import io.github.digitalsmile.goldberry.widget.Widget;
+import io.github.digitalsmile.goldberry.widget.attr.Attributed;
+import io.github.digitalsmile.goldberry.widget.attr.Attributes;
+import io.github.digitalsmile.goldberry.widget.style.Paints;
+import io.github.digitalsmile.goldberry.widget.style.Styled;
 import io.github.digitalsmile.goldberry.widgets.markup.Markup;
+import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
 
 /// One tab of a [Tabs] — its label, its icon, its colour, and the content behind
 /// it.
@@ -74,53 +75,96 @@ import io.github.digitalsmile.goldberry.widgets.markup.Markup;
 /// @param attributes `id` and `class`, exactly as on the primitives
 @Markup("tab")
 public record Tab(
-        String value, String label, Icon icon, int colour, boolean closable,
-        List<Widget> content, boolean selected, Runnable onSelect, Runnable onClose,
+        String value,
+        String label,
+        Icon icon,
+        int colour,
+        boolean closable,
+        List<Widget> content,
+        boolean selected,
+        Runnable onSelect,
+        Runnable onClose,
         java.util.function.BooleanSupplier animating,
         java.util.function.DoubleUnaryOperator visibility,
-        java.util.function.BiConsumer<
-                LogicalRect,
-                LogicalRect> reveal,
+        java.util.function.BiConsumer<LogicalRect, LogicalRect> reveal,
         Attributes attributes)
-        implements Widget.Leaf, Styled, Paints, Handles,
-                io.github.digitalsmile.goldberry.input.handler.Located, Attributed<Tab> {
+        implements Widget.Leaf,
+                Styled,
+                Paints,
+                Handles,
+                io.github.digitalsmile.goldberry.input.handler.Located,
+                Attributed<Tab> {
 
     public Tab {
         Objects.requireNonNull(value, "value");
         Objects.requireNonNull(label, "label");
         content = List.copyOf(content == null ? List.of() : content);
         if (label.isEmpty() && icon == null) {
-            throw new IllegalArgumentException(
-                    "a tab with neither a label nor an icon has nothing to click on"
-                            + " and nothing to read out (§13)");
+            throw new IllegalArgumentException("a tab with neither a label nor an icon has nothing to click on"
+                    + " and nothing to read out (§13)");
         }
         attributes = attributes == null ? Attributes.NONE : attributes;
     }
 
     /// A tab with a value and a label, and whatever it shows.
     public Tab(String value, String label, Widget... content) {
-        this(value, label, null, 0, false, List.of(content), false, null, null, null, null, null,
-                Attributes.NONE);
+        this(value, label, null, 0, false, List.of(content), false, null, null, null, null, null, Attributes.NONE);
     }
 
     /// This tab with an icon before its label.
     public Tab icon(Icon value) {
-        return new Tab(this.value, label, value, colour, closable, content, selected, onSelect,
-                onClose, animating, visibility, reveal, attributes);
+        return new Tab(
+                this.value,
+                label,
+                value,
+                colour,
+                closable,
+                content,
+                selected,
+                onSelect,
+                onClose,
+                animating,
+                visibility,
+                reveal,
+                attributes);
     }
 
     /// This tab in a colour of its own — see the class note.
     public Tab colour(int argb) {
-        return new Tab(value, label, icon, argb, closable, content, selected, onSelect, onClose,
-                animating, visibility, reveal, attributes);
+        return new Tab(
+                value,
+                label,
+                icon,
+                argb,
+                closable,
+                content,
+                selected,
+                onSelect,
+                onClose,
+                animating,
+                visibility,
+                reveal,
+                attributes);
     }
 
     /// This tab with a close affordance in its header, which raises the strip's
     /// `close` rather than removing anything: what a tab strip shows is the
     /// application's list, and only the application may shorten it (ADR-0063).
     public Tab closable(boolean value) {
-        return new Tab(this.value, label, icon, colour, value, content, selected, onSelect,
-                onClose, animating, visibility, reveal, attributes);
+        return new Tab(
+                this.value,
+                label,
+                icon,
+                colour,
+                value,
+                content,
+                selected,
+                onSelect,
+                onClose,
+                animating,
+                visibility,
+                reveal,
+                attributes);
     }
 
     /// Used by [Tabs] to tell a tab what it is and what it may ask for.
@@ -130,19 +174,31 @@ public record Tab(
     /// [io.github.digitalsmile.goldberry.input.handler.Located] in effect: it is told
     /// where it is once a frame, hands both rectangles over and is then wired
     /// without one again ([ADR-0120]).
-    Tab wired(boolean isSelected, Runnable select, Runnable close,
+    Tab wired(
+            boolean isSelected,
+            Runnable select,
+            Runnable close,
             java.util.function.BooleanSupplier isAnimating,
             java.util.function.DoubleUnaryOperator howVisible,
-            java.util.function.BiConsumer<
-                    LogicalRect,
-                    LogicalRect> reveal) {
-        return new Tab(value, label, icon, colour, closable, content, isSelected, select, close,
-                isAnimating, howVisible, reveal, attributes);
+            java.util.function.BiConsumer<LogicalRect, LogicalRect> reveal) {
+        return new Tab(
+                value,
+                label,
+                icon,
+                colour,
+                closable,
+                content,
+                isSelected,
+                select,
+                close,
+                isAnimating,
+                howVisible,
+                reveal,
+                attributes);
     }
 
     @Override
-    public void located(LogicalRect self,
-                        LogicalRect clip) {
+    public void located(LogicalRect self, LogicalRect clip) {
         if (reveal != null) {
             reveal.accept(self, clip);
         }
@@ -165,8 +221,20 @@ public record Tab(
 
     @Override
     public Tab withAttributes(Attributes value) {
-        return new Tab(this.value, label, icon, colour, closable, content, selected, onSelect,
-                onClose, animating, visibility, reveal, value);
+        return new Tab(
+                this.value,
+                label,
+                icon,
+                colour,
+                closable,
+                content,
+                selected,
+                onSelect,
+                onClose,
+                animating,
+                visibility,
+                reveal,
+                value);
     }
 
     /// A tab takes the focus — it is what the strip's arrows rove between.
@@ -216,7 +284,8 @@ public record Tab(
     /// is one Tab stop with a roving selection (§7.2).
     @Override
     public void onKey(KeyEvent event) {
-        if (event.kind() != KeyEvent.Kind.PRESSED || event.isRepeat()
+        if (event.kind() != KeyEvent.Kind.PRESSED
+                || event.isRepeat()
                 || !event.modifiers().none()) {
             return;
         }
@@ -279,9 +348,7 @@ public record Tab(
         // Reading it is what starts an arrival and what finishes a departure: the
         // strip's phase is stamped from the frame clock on its first read, and
         // `render` is the only place a widget has one.
-        var visible = context.reducedMotion()
-                ? 1
-                : visibility.applyAsDouble(context.nowMillis());
+        var visible = context.reducedMotion() ? 1 : visibility.applyAsDouble(context.nowMillis());
         if (visible >= 1) {
             return box;
         }
@@ -297,13 +364,21 @@ public record Tab(
     /// document that could mark two tabs selected would break the one invariant a
     /// strip exists to hold.
     public static Widget inflate(KdlNode node, List<Widget> children, Wiring wiring) {
-        return new Tab(Wiring.requiredValue("tab", node), Wiring.label(node),
+        return new Tab(
+                Wiring.requiredValue("tab", node),
+                Wiring.label(node),
                 wiring.icon(node),
                 // Written the way a stylesheet writes a colour, because it is one
                 // -- an author who knows `#bf616a` in CSS writes the same here.
                 Wiring.colour(node),
-                node.booleanProperty("closable"), children,
-                false, null, null, null, null, null,
+                node.booleanProperty("closable"),
+                children,
+                false,
+                null,
+                null,
+                null,
+                null,
+                null,
                 Attributes.of(node));
     }
 }

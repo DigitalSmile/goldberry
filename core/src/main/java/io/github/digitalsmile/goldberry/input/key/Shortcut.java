@@ -2,6 +2,7 @@ package io.github.digitalsmile.goldberry.input.key;
 
 import java.util.Locale;
 import java.util.Objects;
+
 import io.github.digitalsmile.goldberry.input.event.KeyEvent;
 
 /// A key with modifiers, as an accelerator table names one (§7.2).
@@ -77,8 +78,7 @@ public record Shortcut(Key key, Modifiers modifiers) {
                 case "meta", "cmd", "command", "super", "win" -> mods = mods.and(Mod.META);
                 default -> {
                     if (key != null) {
-                        throw new IllegalArgumentException(
-                                "\"" + text + "\" names two keys: " + key + " and " + part);
+                        throw new IllegalArgumentException("\"" + text + "\" names two keys: " + key + " and " + part);
                     }
                     key = parseKey(part, text);
                 }
@@ -123,8 +123,9 @@ public record Shortcut(Key key, Modifiers modifiers) {
             return Key.valueOf(name);
         } catch (IllegalArgumentException e) {
             throw new IllegalArgumentException(
-                    "\"" + text + "\" names no key this toolkit has: " + part
-                            + ". Keys are named as in " + Key.class.getName() + ".", e);
+                    "\"" + text + "\" names no key this toolkit has: " + part + ". Keys are named as in "
+                            + Key.class.getName() + ".",
+                    e);
         }
     }
 

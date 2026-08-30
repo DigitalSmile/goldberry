@@ -1,12 +1,13 @@
 package io.github.digitalsmile.goldberry.widgets.panel.masonry;
 
-import io.github.digitalsmile.goldberry.widget.BuildContext;
-import io.github.digitalsmile.goldberry.widget.State;
-import io.github.digitalsmile.goldberry.widget.Widget;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import io.github.digitalsmile.goldberry.widget.BuildContext;
+import io.github.digitalsmile.goldberry.widget.State;
+import io.github.digitalsmile.goldberry.widget.Widget;
 
 /// What a [Masonry] remembers between frames: how tall each card came out.
 ///
@@ -70,8 +71,7 @@ final class MasonryState extends State<Masonry> {
                 }
             }
             var index = i;
-            buckets.get(shortest).add(
-                    new MasonryCell(cards.get(i), i, height -> measured(index, height)));
+            buckets.get(shortest).add(new MasonryCell(cards.get(i), i, height -> measured(index, height)));
             totals[shortest] += heights.getOrDefault(i, 0.0);
         }
 

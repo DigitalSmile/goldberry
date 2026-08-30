@@ -12,15 +12,19 @@ import io.github.digitalsmile.goldberry.bind.Model;
 /// hold one thing and hold it immutably.
 public final class Split {
 
-    private Split() {
-    }
+    private Split() {}
 
     @Model
     public static final class Values {
 
-        @Bind("split.count") private int count;
-        @Bind("split.label") private String label = "idle";
-        @Bind(value = "split.quiet", repaint = false) private int quiet;
+        @Bind("split.count")
+        private int count;
+
+        @Bind("split.label")
+        private String label = "idle";
+
+        @Bind(value = "split.quiet", repaint = false)
+        private int quiet;
     }
 
     @io.github.digitalsmile.goldberry.bind.runtime.Actions

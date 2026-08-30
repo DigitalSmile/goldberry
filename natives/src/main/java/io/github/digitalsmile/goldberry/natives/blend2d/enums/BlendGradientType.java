@@ -1,6 +1,5 @@
 package io.github.digitalsmile.goldberry.natives.blend2d.enums;
 
-
 /// Which shape a gradient's stops are laid along — `BLGradientType`.
 ///
 /// All three are named although only [#LINEAR] is constructed, and that is not

@@ -1,6 +1,7 @@
 package io.github.digitalsmile.goldberry.widgets.data;
 
 import java.util.List;
+
 import net.jqwik.api.Arbitraries;
 import net.jqwik.api.Arbitrary;
 import net.jqwik.api.ForAll;
@@ -44,8 +45,7 @@ class SeriesPropertyTest {
     /// its own line is not (ADR-0206).
     @Property
     void linearScaleRoundTrips(
-            @ForAll @DoubleRange(min = -1e6, max = 1e6) double value,
-            @ForAll("domains") Scale scale) {
+            @ForAll @DoubleRange(min = -1e6, max = 1e6) double value, @ForAll("domains") Scale scale) {
 
         var back = scale.from(scale.at(value));
 
@@ -53,8 +53,7 @@ class SeriesPropertyTest {
         // absolute epsilon: one ulp there is far larger than 1e-9.
         var tolerance = Math.max(EPSILON, Math.abs(value) * 1e-9);
         if (Math.abs(back - value) > tolerance) {
-            throw new AssertionError(
-                    "at/from lost " + value + ": came back as " + back + " through " + scale);
+            throw new AssertionError("at/from lost " + value + ": came back as " + back + " through " + scale);
         }
     }
 
@@ -74,8 +73,7 @@ class SeriesPropertyTest {
         var a = scale.at(first);
         var b = scale.at(second);
         if (ascending ? a > b + EPSILON : a < b - EPSILON) {
-            throw new AssertionError(
-                    first + " < " + second + " but mapped to " + a + " and " + b);
+            throw new AssertionError(first + " < " + second + " but mapped to " + a + " and " + b);
         }
     }
 
@@ -91,12 +89,9 @@ class SeriesPropertyTest {
     @Provide
     Arbitrary<Scale> domains() {
         var bounds = Arbitraries.doubles().between(-1e5, 1e5);
-        return Arbitraries.of(true, false).flatMap(inverted ->
-                bounds.flatMap(low -> bounds
-                        .filter(high -> high - low > 1e-3)
-                        .map(high -> inverted
-                                ? Scale.linear(low, high, 400, 0)
-                                : Scale.linear(low, high, 0, 400))));
+        return Arbitraries.of(true, false)
+                .flatMap(inverted -> bounds.flatMap(low -> bounds.filter(high -> high - low > 1e-3)
+                        .map(high -> inverted ? Scale.linear(low, high, 400, 0) : Scale.linear(low, high, 0, 400))));
     }
 
     // --- Lttb: a subsequence --------------------------------------------------
@@ -108,8 +103,7 @@ class SeriesPropertyTest {
     /// the objection ADR-0201 raises about holes and the same one applies here.
     @Property
     void downsampleKeepsOnlyRealReadings(
-            @ForAll("series") List<Double> values,
-            @ForAll @IntRange(min = 0, max = 200) int threshold) {
+            @ForAll("series") List<Double> values, @ForAll @IntRange(min = 0, max = 200) int threshold) {
 
         var kept = Lttb.downsample(values, threshold);
 
@@ -128,17 +122,14 @@ class SeriesPropertyTest {
     /// sizing an array depends on.
     @Property
     void downsampleRespectsItsThreshold(
-            @ForAll("series") List<Double> values,
-            @ForAll @IntRange(min = 0, max = 200) int threshold) {
+            @ForAll("series") List<Double> values, @ForAll @IntRange(min = 0, max = 200) int threshold) {
 
         var kept = Lttb.downsample(values, threshold);
 
-        var expected = threshold >= values.size() || threshold < 3
-                ? values.size()
-                : threshold;
+        var expected = threshold >= values.size() || threshold < 3 ? values.size() : threshold;
         if (kept.size() != expected) {
-            throw new AssertionError("asked for " + threshold + " of " + values.size()
-                    + " and got " + kept.size() + ", expected " + expected);
+            throw new AssertionError("asked for " + threshold + " of " + values.size() + " and got " + kept.size()
+                    + ", expected " + expected);
         }
     }
 
@@ -147,23 +138,20 @@ class SeriesPropertyTest {
     /// data does not.
     @Property
     void downsampleKeepsBothEnds(
-            @ForAll("series") List<Double> values,
-            @ForAll @IntRange(min = 3, max = 200) int threshold) {
+            @ForAll("series") List<Double> values, @ForAll @IntRange(min = 3, max = 200) int threshold) {
 
         var kept = Lttb.downsample(values, threshold);
 
-        if (!kept.getFirst().equals(values.getFirst())
-                || !kept.getLast().equals(values.getLast())) {
-            throw new AssertionError("the ends moved: " + values.getFirst() + "…"
-                    + values.getLast() + " became " + kept.getFirst() + "…" + kept.getLast());
+        if (!kept.getFirst().equals(values.getFirst()) || !kept.getLast().equals(values.getLast())) {
+            throw new AssertionError("the ends moved: " + values.getFirst() + "…" + values.getLast() + " became "
+                    + kept.getFirst() + "…" + kept.getLast());
         }
     }
 
     /// Indices come back in order, which is what lets a caller use one as an x.
     @Property
     void indicesAreOrderedAndInRange(
-            @ForAll("series") List<Double> values,
-            @ForAll @IntRange(min = 0, max = 200) int threshold) {
+            @ForAll("series") List<Double> values, @ForAll @IntRange(min = 0, max = 200) int threshold) {
 
         var indices = Lttb.indices(values, threshold);
 
@@ -181,8 +169,7 @@ class SeriesPropertyTest {
     /// what it keeps has nothing to say about a series with nothing in it.
     @Provide
     Arbitrary<List<Double>> series() {
-        return Arbitraries.doubles().between(-1e4, 1e4)
-                .list().ofMinSize(1).ofMaxSize(300);
+        return Arbitraries.doubles().between(-1e4, 1e4).list().ofMinSize(1).ofMaxSize(300);
     }
 
     // --- Ticks: an axis somebody can read -------------------------------------
@@ -243,14 +230,12 @@ class SeriesPropertyTest {
         var values = labelling.values();
 
         if (values.size() != labelling.count()) {
-            throw new AssertionError(
-                    "count says " + labelling.count() + " and values() has " + values.size());
+            throw new AssertionError("count says " + labelling.count() + " and values() has " + values.size());
         }
         var last = labelling.min() + (labelling.count() - 1) * labelling.step();
         var slack = Math.max(1e-6, Math.abs(last) * 1e-9);
         if (Math.abs(last - labelling.max()) > slack) {
-            throw new AssertionError("max is " + labelling.max()
-                    + " but min + (count-1)*step is " + last);
+            throw new AssertionError("max is " + labelling.max() + " but min + (count-1)*step is " + last);
         }
     }
 
@@ -261,8 +246,7 @@ class SeriesPropertyTest {
         var labelling = Ticks.extended(5, 5, 5);
 
         if (labelling.count() != 1 || labelling.min() != 5 || labelling.step() != 0) {
-            throw new AssertionError("a flat series should get one label at its value,"
-                    + " and got " + labelling);
+            throw new AssertionError("a flat series should get one label at its value," + " and got " + labelling);
         }
     }
 }

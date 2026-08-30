@@ -1,14 +1,15 @@
 package io.github.digitalsmile.goldberry.widgets.controls.select;
 
+import java.util.List;
+import java.util.Set;
+
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
 import io.github.digitalsmile.goldberry.input.FocusScope;
 import io.github.digitalsmile.goldberry.input.handler.Handles;
 import io.github.digitalsmile.goldberry.paint.Box;
+import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widget.style.Paints;
 import io.github.digitalsmile.goldberry.widget.style.Styled;
-import io.github.digitalsmile.goldberry.widget.Widget;
-import java.util.List;
-import java.util.Set;
 
 /// The open half of a [Select]: the panel of options, in a popup window of its
 /// own.
@@ -48,8 +49,7 @@ import java.util.Set;
 /// under a user who is only looking (§4).
 ///
 /// @param children the rows — the options, already told what they are
-public record SelectList(List<Widget> children)
-        implements Widget.Leaf, Styled, Paints, Handles {
+public record SelectList(List<Widget> children) implements Widget.Leaf, Styled, Paints, Handles {
 
     public SelectList {
         children = List.copyOf(children == null ? List.of() : children);

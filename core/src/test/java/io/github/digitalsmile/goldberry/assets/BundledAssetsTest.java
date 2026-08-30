@@ -4,14 +4,15 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import io.github.digitalsmile.goldberry.RendererRequirement;
-import io.github.digitalsmile.goldberry.natives.harfbuzz.ShapedFont;
-import io.github.digitalsmile.goldberry.natives.harfbuzz.ShapingBuffer;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
+
+import io.github.digitalsmile.goldberry.RendererRequirement;
+import io.github.digitalsmile.goldberry.natives.harfbuzz.ShapedFont;
+import io.github.digitalsmile.goldberry.natives.harfbuzz.ShapingBuffer;
 
 /// The bundled fonts and icons, and the first shaping that uses real outlines.
 ///
@@ -27,7 +28,8 @@ class BundledAssetsTest {
         // 1544 icons in Lucide 0.469.0. An exact count would break on every
         // upstream bump for no benefit; an order of magnitude catches a table
         // that failed to compile.
-        assertTrue(BundledAssets.iconNames().size() > 1000,
+        assertTrue(
+                BundledAssets.iconNames().size() > 1000,
                 () -> "only " + BundledAssets.iconNames().size() + " icons loaded");
 
         var check = BundledAssets.icon("check").orElseThrow();
@@ -43,7 +45,8 @@ class BundledAssetsTest {
     void everyIconIsWellFormed() {
         for (var name : BundledAssets.iconNames()) {
             var path = BundledAssets.icon(name).orElseThrow();
-            assertTrue(path.startsWith("M") || path.startsWith("m"),
+            assertTrue(
+                    path.startsWith("M") || path.startsWith("m"),
                     () -> name + " does not begin with a moveto: " + path);
         }
     }
@@ -63,9 +66,9 @@ class BundledAssetsTest {
         assertTrue(bytes.length > 10_000, () -> font + " is only " + bytes.length + " bytes");
         // TrueType outlines start with the version tag 0x00010000; OpenType with
         // 'OTTO'. Anything else means the extraction picked up the wrong entry.
-        var tag = ((bytes[0] & 0xFF) << 24) | ((bytes[1] & 0xFF) << 16)
-                | ((bytes[2] & 0xFF) << 8) | (bytes[3] & 0xFF);
-        assertTrue(tag == 0x00010000 || tag == 0x4F54544F,
+        var tag = ((bytes[0] & 0xFF) << 24) | ((bytes[1] & 0xFF) << 16) | ((bytes[2] & 0xFF) << 8) | (bytes[3] & 0xFF);
+        assertTrue(
+                tag == 0x00010000 || tag == 0x4F54544F,
                 () -> font + " starts with 0x" + Integer.toHexString(tag) + ", not a font tag");
     }
 
@@ -158,8 +161,7 @@ class BundledAssetsTest {
             buffer.addText("iW");
             buffer.guessSegmentProperties();
             var proportional = buffer.shape(ui);
-            assertNotEquals(proportional.xAdvance(0), proportional.xAdvance(1),
-                    "Inter is proportional");
+            assertNotEquals(proportional.xAdvance(0), proportional.xAdvance(1), "Inter is proportional");
 
             buffer.reset();
             buffer.addText("iW");
@@ -190,8 +192,7 @@ class BundledAssetsTest {
 
             // Twice the size, twice the width, within the rounding that integer
             // units force.
-            assertTrue(Math.abs(large - 2 * small) <= 8,
-                    () -> large + " should be about twice " + small);
+            assertTrue(Math.abs(large - 2 * small) <= 8, () -> large + " should be about twice " + small);
         }
     }
 

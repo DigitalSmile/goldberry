@@ -14,7 +14,6 @@ package io.github.digitalsmile.goldberry.natives.sdl.desktop;
 /// falling back to the two-headed arrows below; they are absent because nothing
 /// asks for them until client-side decorations do (M3).
 public enum SdlSystemCursor {
-
     DEFAULT(0),
     TEXT(1),
     WAIT(2),

@@ -1,11 +1,12 @@
 package io.github.digitalsmile.goldberry.natives.layout;
 
-import io.github.digitalsmile.goldberry.natives.GoldberryShim;
 import java.lang.foreign.MemoryLayout;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.ValueLayout;
 import java.util.ArrayList;
 import java.util.List;
+
+import io.github.digitalsmile.goldberry.natives.GoldberryShim;
 
 /// Reads the layout table out of the loaded `libgoldberry`.
 ///
@@ -30,8 +31,7 @@ public final class LayoutProbe {
     private static final long OFFSET_OFFSET = offsetOf("offset");
     private static final long ALIGNMENT_OFFSET = offsetOf("alignment");
 
-    private LayoutProbe() {
-    }
+    private LayoutProbe() {}
 
     /// Reads the whole table.
     ///
@@ -44,9 +44,8 @@ public final class LayoutProbe {
         var shim = GoldberryShim.get();
         var count = shim.layoutCount();
         if (count <= 0 || count > MAX_PLAUSIBLE_ENTRIES) {
-            throw new IllegalStateException(
-                    "libgoldberry reports " + count + " layout entries, which is not plausible."
-                            + " The layout-entry struct is probably modelled incorrectly.");
+            throw new IllegalStateException("libgoldberry reports " + count + " layout entries, which is not plausible."
+                    + " The layout-entry struct is probably modelled incorrectly.");
         }
 
         var table = shim.layoutTable().reinterpret(count * ENTRY_SIZE);

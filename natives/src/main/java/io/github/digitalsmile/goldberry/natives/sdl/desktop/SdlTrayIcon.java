@@ -30,9 +30,8 @@ public record SdlTrayIcon(ByteBuffer pixels, int width, int height, int stride) 
                     "an icon must have a positive size, and " + width + "x" + height + " does not");
         }
         if (stride < Math.multiplyExact(width, 4)) {
-            throw new IllegalArgumentException(
-                    "a stride of " + stride + " cannot hold a row of " + width
-                            + " 32-bit pixels, which needs " + (width * 4));
+            throw new IllegalArgumentException("a stride of " + stride + " cannot hold a row of " + width
+                    + " 32-bit pixels, which needs " + (width * 4));
         }
         if (!pixels.isDirect()) {
             throw new IllegalArgumentException(
@@ -42,12 +41,10 @@ public record SdlTrayIcon(ByteBuffer pixels, int width, int height, int stride) 
         // The last row needs no padding after it, which is why this is one row
         // short of stride * height -- the other arithmetic rejects a legal
         // tightly-packed buffer.
-        var required = Math.addExact(
-                Math.multiplyExact((long) stride, height - 1), Math.multiplyExact(width, 4L));
+        var required = Math.addExact(Math.multiplyExact((long) stride, height - 1), Math.multiplyExact(width, 4L));
         if (pixels.remaining() < required) {
-            throw new IllegalArgumentException(
-                    "a " + width + "x" + height + " icon at stride " + stride + " needs "
-                            + required + " bytes, and the buffer offers " + pixels.remaining());
+            throw new IllegalArgumentException("a " + width + "x" + height + " icon at stride " + stride + " needs "
+                    + required + " bytes, and the buffer offers " + pixels.remaining());
         }
     }
 

@@ -5,28 +5,30 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import io.github.digitalsmile.goldberry.RendererRequirement;
-import io.github.digitalsmile.goldberry.input.FocusScope;
-import io.github.digitalsmile.goldberry.input.key.Key;
-import io.github.digitalsmile.goldberry.input.event.KeyEvent;
-import io.github.digitalsmile.goldberry.input.key.Modifiers;
-import io.github.digitalsmile.goldberry.input.event.PointerEvent;
-import io.github.digitalsmile.goldberry.input.key.Shortcut;
-import io.github.digitalsmile.goldberry.kdl.KdlParser;
-import io.github.digitalsmile.goldberry.widget.attr.Attributes;
-import io.github.digitalsmile.goldberry.widget.Element;
-import io.github.digitalsmile.goldberry.widget.ElementTree;
-import io.github.digitalsmile.goldberry.widget.Widget;
-import io.github.digitalsmile.goldberry.widgets.TestHost;
-import io.github.digitalsmile.goldberry.widgets.Widgets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+
+import io.github.digitalsmile.goldberry.RendererRequirement;
+import io.github.digitalsmile.goldberry.input.FocusScope;
+import io.github.digitalsmile.goldberry.input.event.KeyEvent;
+import io.github.digitalsmile.goldberry.input.event.PointerEvent;
+import io.github.digitalsmile.goldberry.input.key.Key;
+import io.github.digitalsmile.goldberry.input.key.Modifiers;
+import io.github.digitalsmile.goldberry.input.key.Shortcut;
+import io.github.digitalsmile.goldberry.kdl.KdlParser;
+import io.github.digitalsmile.goldberry.widget.Element;
+import io.github.digitalsmile.goldberry.widget.ElementTree;
+import io.github.digitalsmile.goldberry.widget.Widget;
+import io.github.digitalsmile.goldberry.widget.attr.Attributes;
+import io.github.digitalsmile.goldberry.widgets.TestHost;
+import io.github.digitalsmile.goldberry.widgets.Widgets;
 
 /// `menubar` — §8's in-window bar, and the accelerator registration that was
 /// waiting on it ([ADR-0163]).
@@ -84,10 +86,11 @@ class MenuBarTest {
         @DisplayName("a bar of items describes a menubar of headings")
         void headings() {
             var tree = new ElementTree(new MenuBar(
-                    new Item("File").submenu(new Item("Open…", () -> { })),
-                    new Item("Edit").submenu(new Item("Undo", () -> { }))));
+                    new Item("File").submenu(new Item("Open…", () -> {})),
+                    new Item("Edit").submenu(new Item("Undo", () -> {}))));
 
-            assertEquals(List.of("File", "Edit"),
+            assertEquals(
+                    List.of("File", "Edit"),
                     titles(tree).stream().map(MenuTitle::label).toList());
         }
 
@@ -97,7 +100,7 @@ class MenuBarTest {
         @DisplayName("the id and classes the document wrote land on the menubar node")
         void attributesLandOnTheRow() {
             var tree = new ElementTree(new MenuBar(
-                    List.of(new Item("File").submenu(new Item("Open…", () -> { }))),
+                    List.of(new Item("File").submenu(new Item("Open…", () -> {}))),
                     id("main-bar").classes("compact")));
 
             assertEquals("main-bar", row(tree).id());
@@ -109,8 +112,7 @@ class MenuBarTest {
         @Test
         @DisplayName("a bar is a horizontal focus scope where a menu is a vertical one")
         void horizontal() {
-            var tree = new ElementTree(new MenuBar(
-                    new Item("File").submenu(new Item("Open…", () -> { }))));
+            var tree = new ElementTree(new MenuBar(new Item("File").submenu(new Item("Open…", () -> {}))));
 
             assertEquals(FocusScope.HORIZONTAL, row(tree).focusScope());
             assertEquals(FocusScope.VERTICAL, new Menu().focusScope());
@@ -122,8 +124,8 @@ class MenuBarTest {
         @DisplayName("a heading with no id of its own is given one")
         void generatedIds() {
             var tree = new ElementTree(new MenuBar(
-                    new Item("File").submenu(new Item("Open…", () -> { })),
-                    new Item("Edit").submenu(new Item("Undo", () -> { }))));
+                    new Item("File").submenu(new Item("Open…", () -> {})),
+                    new Item("Edit").submenu(new Item("Undo", () -> {}))));
 
             var ids = titles(tree).stream().map(MenuTitle::id).toList();
             assertEquals(2, ids.size());
@@ -134,8 +136,7 @@ class MenuBarTest {
         @DisplayName("a heading the document named keeps its own id")
         void authorsIdWins() {
             var tree = new ElementTree(new MenuBar(
-                    new Item("File").submenu(new Item("Open…", () -> { }))
-                            .withAttributes(id("file"))));
+                    new Item("File").submenu(new Item("Open…", () -> {})).withAttributes(id("file"))));
 
             assertEquals("file", titles(tree).getFirst().id());
         }
@@ -145,8 +146,7 @@ class MenuBarTest {
         @Test
         @DisplayName("a heading has no tick column, accelerator or chevron")
         void headingsAreNotRows() {
-            var tree = new ElementTree(new MenuBar(
-                    new Item("File").submenu(new Item("Open…", () -> { }))));
+            var tree = new ElementTree(new MenuBar(new Item("File").submenu(new Item("Open…", () -> {}))));
 
             assertTrue(described(tree.root()).stream().noneMatch(ItemLead.class::isInstance));
             assertTrue(described(tree.root()).stream().noneMatch(ItemChevron.class::isInstance));
@@ -157,14 +157,13 @@ class MenuBarTest {
     @DisplayName("opening a menu, which is what needs a window")
     class Opening {
 
-        private final TestHost host = new TestHost()
-                .anchoring("menubar-title-0", 0, 0, 40, 28)
-                .anchoring("menubar-title-1", 40, 0, 40, 28);
+        private final TestHost host =
+                new TestHost().anchoring("menubar-title-0", 0, 0, 40, 28).anchoring("menubar-title-1", 40, 0, 40, 28);
 
         private MenuBar bar() {
             return new MenuBar(
-                    new Item("File").submenu(new Item("Open…", () -> { })),
-                    new Item("Edit").submenu(new Item("Undo", () -> { })));
+                    new Item("File").submenu(new Item("Open…", () -> {})),
+                    new Item("Edit").submenu(new Item("Undo", () -> {})));
         }
 
         private ElementTree tree() {
@@ -172,13 +171,11 @@ class MenuBarTest {
         }
 
         private void click(MenuTitle title) {
-            title.onPointer(new PointerEvent(PointerEvent.Kind.CLICKED, 0, 0,
-                    PointerEvent.Button.PRIMARY, 1, null));
+            title.onPointer(new PointerEvent(PointerEvent.Kind.CLICKED, 0, 0, PointerEvent.Button.PRIMARY, 1, null));
         }
 
         private void hover(MenuTitle title) {
-            title.onPointer(new PointerEvent(PointerEvent.Kind.ENTERED, 0, 0,
-                    PointerEvent.Button.PRIMARY, 0, null));
+            title.onPointer(new PointerEvent(PointerEvent.Kind.ENTERED, 0, 0, PointerEvent.Button.PRIMARY, 0, null));
         }
 
         @Test
@@ -190,8 +187,8 @@ class MenuBarTest {
             assertEquals(1, host.opened.size());
             var opened = host.opened.getFirst();
             assertEquals(0, opened.anchor().left(), "under the first heading");
-            assertEquals(28, opened.anchor().top() + opened.anchor().size().height(),
-                    "hanging from the bottom of the bar");
+            assertEquals(
+                    28, opened.anchor().top() + opened.anchor().size().height(), "hanging from the bottom of the bar");
         }
 
         /// The one placement no menu bar anywhere uses is a menu centred under
@@ -204,10 +201,8 @@ class MenuBarTest {
             click(titles(tree).getFirst());
 
             var placement = host.opened.getFirst().placement();
-            assertEquals(io.github.digitalsmile.goldberry.Placement.Side.BOTTOM,
-                    placement.side());
-            assertEquals(io.github.digitalsmile.goldberry.Placement.Align.START,
-                    placement.align());
+            assertEquals(io.github.digitalsmile.goldberry.Placement.Side.BOTTOM, placement.side());
+            assertEquals(io.github.digitalsmile.goldberry.Placement.Align.START, placement.align());
             assertEquals(0, placement.gap(), "a bar's menu touches the bar");
         }
 
@@ -232,15 +227,16 @@ class MenuBarTest {
             var tree = new ElementTree(new MenuBar(new Item("Help")), host);
             click(titles(tree).getFirst());
 
-            assertTrue(host.opened.isEmpty(),
-                    "there is nothing to show, so nothing is asked for");
+            assertTrue(host.opened.isEmpty(), "there is nothing to show, so nothing is asked for");
         }
 
         @Test
         @DisplayName("a disabled heading opens nothing")
         void disabledHeading() {
-            var tree = new ElementTree(new MenuBar(
-                    new Item("File").submenu(new Item("Open…", () -> { })).disabled(true)),
+            var tree = new ElementTree(
+                    new MenuBar(new Item("File")
+                            .submenu(new Item("Open…", () -> {}))
+                            .disabled(true)),
                     host);
             click(titles(tree).getFirst());
 
@@ -257,12 +253,10 @@ class MenuBarTest {
             var tree = tree();
             var title = titles(tree).getFirst();
 
-            title.onKey(new KeyEvent(KeyEvent.Kind.PRESSED, Key.RIGHT, Modifiers.NONE,
-                    false, null));
+            title.onKey(new KeyEvent(KeyEvent.Kind.PRESSED, Key.RIGHT, Modifiers.NONE, false, null));
             assertTrue(host.opened.isEmpty(), "Right is traversal here, not activation");
 
-            title.onKey(new KeyEvent(KeyEvent.Kind.PRESSED, Key.DOWN, Modifiers.NONE,
-                    false, null));
+            title.onKey(new KeyEvent(KeyEvent.Kind.PRESSED, Key.DOWN, Modifiers.NONE, false, null));
             assertEquals(1, host.opened.size());
         }
     }
@@ -279,9 +273,9 @@ class MenuBarTest {
         @DisplayName("an accelerator fires with the menu shut, which is the whole point")
         void firesWithNothingOnScreen() {
             var opened = new AtomicInteger();
-            new ElementTree(new MenuBar(
-                    new Item("File").submenu(
-                            new Item("Open…", opened::incrementAndGet).accelerator("Ctrl+O"))),
+            new ElementTree(
+                    new MenuBar(
+                            new Item("File").submenu(new Item("Open…", opened::incrementAndGet).accelerator("Ctrl+O"))),
                     host);
 
             assertTrue(host.press("Ctrl+O"), "Ctrl+O should be bound");
@@ -295,10 +289,10 @@ class MenuBarTest {
         @DisplayName("an accelerator inside a submenu is registered too")
         void nested() {
             var chosen = new AtomicInteger();
-            new ElementTree(new MenuBar(
-                    new Item("File").submenu(
-                            new Item("Recent").submenu(
-                                    new Item("notes.txt", chosen::incrementAndGet)
+            new ElementTree(
+                    new MenuBar(new Item("File")
+                            .submenu(new Item("Recent")
+                                    .submenu(new Item("notes.txt", chosen::incrementAndGet)
                                             .accelerator("Ctrl+Shift+R")))),
                     host);
 
@@ -311,14 +305,13 @@ class MenuBarTest {
         @Test
         @DisplayName("unmounting the bar gives the accelerators back")
         void unmountUnbinds() {
-            var tree = new ElementTree(new MenuBar(
-                    new Item("File").submenu(
-                            new Item("Open…", () -> { }).accelerator("Ctrl+O"))),
-                    host);
+            var tree = new ElementTree(
+                    new MenuBar(new Item("File").submenu(new Item("Open…", () -> {}).accelerator("Ctrl+O"))), host);
 
             assertTrue(host.shortcuts().containsKey(Shortcut.of("Ctrl+O")));
             tree.unmount();
-            assertFalse(host.shortcuts().containsKey(Shortcut.of("Ctrl+O")),
+            assertFalse(
+                    host.shortcuts().containsKey(Shortcut.of("Ctrl+O")),
                     "a bar that has gone away must not still own Ctrl+O");
         }
 
@@ -333,18 +326,15 @@ class MenuBarTest {
         @DisplayName("unmounting the bar leaves a key the application took after it")
         void unmountLeavesSomebodyElsesBinding() {
             var application = new AtomicInteger();
-            var tree = new ElementTree(new MenuBar(
-                    new Item("File").submenu(
-                            new Item("Open…", () -> { }).accelerator("Ctrl+O"))),
-                    host);
+            var tree = new ElementTree(
+                    new MenuBar(new Item("File").submenu(new Item("Open…", () -> {}).accelerator("Ctrl+O"))), host);
 
             // The application takes the key over after the bar was mounted, which
             // is the last registration and therefore the one that fires.
             host.shortcut(Shortcut.of("Ctrl+O"), application::incrementAndGet);
             tree.unmount();
 
-            assertTrue(host.press("Ctrl+O"),
-                    "the bar gave back a key that was no longer its to give");
+            assertTrue(host.press("Ctrl+O"), "the bar gave back a key that was no longer its to give");
             assertEquals(1, application.get());
         }
 
@@ -353,19 +343,18 @@ class MenuBarTest {
         @Test
         @DisplayName("but it still gives back the keys nobody took from it")
         void unmountStillUnbindsItsOwn() {
-            var tree = new ElementTree(new MenuBar(
-                    new Item("File").submenu(
-                            new Item("Open…", () -> { }).accelerator("Ctrl+O"),
-                            new Item("Save", () -> { }).accelerator("Ctrl+S"))),
+            var tree = new ElementTree(
+                    new MenuBar(new Item("File")
+                            .submenu(
+                                    new Item("Open…", () -> {}).accelerator("Ctrl+O"),
+                                    new Item("Save", () -> {}).accelerator("Ctrl+S"))),
                     host);
-            host.shortcut(Shortcut.of("Ctrl+O"), () -> { });
+            host.shortcut(Shortcut.of("Ctrl+O"), () -> {});
 
             tree.unmount();
 
-            assertTrue(host.shortcuts().containsKey(Shortcut.of("Ctrl+O")),
-                    "the one the application took");
-            assertFalse(host.shortcuts().containsKey(Shortcut.of("Ctrl+S")),
-                    "and not the one it did not");
+            assertTrue(host.shortcuts().containsKey(Shortcut.of("Ctrl+O")), "the one the application took");
+            assertFalse(host.shortcuts().containsKey(Shortcut.of("Ctrl+S")), "and not the one it did not");
         }
 
         /// A greyed row that still fires on its key is worse than no accelerator
@@ -374,10 +363,11 @@ class MenuBarTest {
         @DisplayName("a disabled item's accelerator is displayed and not bound")
         void disabledIsNotBound() {
             var ran = new AtomicInteger();
-            new ElementTree(new MenuBar(
-                    new Item("File").submenu(
-                            new Item("Open…", ran::incrementAndGet)
-                                    .accelerator("Ctrl+O").disabled(true))),
+            new ElementTree(
+                    new MenuBar(new Item("File")
+                            .submenu(new Item("Open…", ran::incrementAndGet)
+                                    .accelerator("Ctrl+O")
+                                    .disabled(true))),
                     host);
 
             assertFalse(host.press("Ctrl+O"));
@@ -389,10 +379,8 @@ class MenuBarTest {
         @Test
         @DisplayName("a heading's own accelerator is not bound, because it has no command")
         void headingsAreNotBound() {
-            new ElementTree(new MenuBar(
-                    new Item("File").accelerator("Ctrl+F")
-                            .submenu(new Item("Open…", () -> { }))),
-                    host);
+            new ElementTree(
+                    new MenuBar(new Item("File").accelerator("Ctrl+F").submenu(new Item("Open…", () -> {}))), host);
 
             assertFalse(host.press("Ctrl+F"));
         }
@@ -403,14 +391,14 @@ class MenuBarTest {
         @Test
         @DisplayName("an accelerator that does not parse is skipped, not thrown")
         void unparseableIsSkipped() {
-            var tree = new ElementTree(new MenuBar(
-                    new Item("File").submenu(
-                            new Item("Open…", () -> { }).accelerator("Ctrl+Zork"),
-                            new Item("Save", () -> { }).accelerator("Ctrl+S"))),
+            var tree = new ElementTree(
+                    new MenuBar(new Item("File")
+                            .submenu(
+                                    new Item("Open…", () -> {}).accelerator("Ctrl+Zork"),
+                                    new Item("Save", () -> {}).accelerator("Ctrl+S"))),
                     host);
 
-            assertTrue(host.shortcuts().containsKey(Shortcut.of("Ctrl+S")),
-                    "the good one beside it is still bound");
+            assertTrue(host.shortcuts().containsKey(Shortcut.of("Ctrl+S")), "the good one beside it is still bound");
             assertEquals(2, titles(tree).size() + 1, "and the bar still built");
         }
 
@@ -420,8 +408,7 @@ class MenuBarTest {
         @DisplayName("F10 opens the first heading")
         void f10() {
             var host = new TestHost().anchoring("menubar-title-0", 0, 0, 40, 28);
-            new ElementTree(new MenuBar(
-                    new Item("File").submenu(new Item("Open…", () -> { }))), host);
+            new ElementTree(new MenuBar(new Item("File").submenu(new Item("Open…", () -> {}))), host);
 
             assertTrue(host.press("F10"));
             assertEquals(1, host.opened.size());
@@ -436,15 +423,15 @@ class MenuBarTest {
         @DisplayName("every command with an accelerator is found, in document order")
         void order() {
             var bindings = Accelerators.in(List.of(
-                    new Item("File").submenu(
-                            new Item("Open…", () -> { }).accelerator("Ctrl+O"),
-                            new Separator(),
-                            new Item("Recent").submenu(
-                                    new Item("notes.txt", () -> { }).accelerator("Ctrl+1"))),
-                    new Item("Edit").submenu(
-                            new Item("Undo", () -> { }).accelerator("Ctrl+Z"))));
+                    new Item("File")
+                            .submenu(
+                                    new Item("Open…", () -> {}).accelerator("Ctrl+O"),
+                                    new Separator(),
+                                    new Item("Recent").submenu(new Item("notes.txt", () -> {}).accelerator("Ctrl+1"))),
+                    new Item("Edit").submenu(new Item("Undo", () -> {}).accelerator("Ctrl+Z"))));
 
-            assertEquals(List.of("Open…", "notes.txt", "Undo"),
+            assertEquals(
+                    List.of("Open…", "notes.txt", "Undo"),
                     bindings.stream().map(b -> b.label()).toList());
             assertEquals(Shortcut.of("Ctrl+O"), bindings.getFirst().shortcut());
         }
@@ -482,7 +469,8 @@ class MenuBarTest {
 
             assertEquals("bar", bar.attributes().id());
             var tree = new ElementTree(bar);
-            assertEquals(List.of("File", "Edit"),
+            assertEquals(
+                    List.of("File", "Edit"),
                     titles(tree).stream().map(MenuTitle::label).toList());
         }
     }

@@ -3,12 +3,13 @@ package io.github.digitalsmile.goldberry.natives.layout;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 
-import io.github.digitalsmile.goldberry.natives.GoldberryShim;
-import io.github.digitalsmile.goldberry.natives.NativeLibraryRequirement;
-import io.github.digitalsmile.goldberry.natives.NativePlatform;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+
+import io.github.digitalsmile.goldberry.natives.GoldberryShim;
+import io.github.digitalsmile.goldberry.natives.NativeLibraryRequirement;
+import io.github.digitalsmile.goldberry.natives.NativePlatform;
 
 /// Verifies the hand-written layouts against the library that was actually
 /// compiled for this machine.
@@ -44,13 +45,13 @@ class LayoutVerificationTest {
     @DisplayName("every hand-written layout and constant agrees with the compiled library")
     void handWrittenLayoutsAgreeWithC() {
         var platform = NativePlatform.current();
-        var mismatches = LayoutVerifier.verify(
-                platform, Layouts.registry(), NativeConstants.registry(), LayoutProbe.read());
+        var mismatches =
+                LayoutVerifier.verify(platform, Layouts.registry(), NativeConstants.registry(), LayoutProbe.read());
 
         assertEquals(
                 java.util.List.of(),
                 mismatches,
-                () -> "hand-written layouts disagree with libgoldberry on " + platform.classifier()
-                        + ":\n  " + String.join("\n  ", mismatches));
+                () -> "hand-written layouts disagree with libgoldberry on " + platform.classifier() + ":\n  "
+                        + String.join("\n  ", mismatches));
     }
 }

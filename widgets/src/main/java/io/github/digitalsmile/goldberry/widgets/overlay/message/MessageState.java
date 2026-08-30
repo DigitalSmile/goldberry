@@ -1,13 +1,13 @@
 package io.github.digitalsmile.goldberry.widgets.overlay.message;
 
+import java.time.Duration;
+
 import io.github.digitalsmile.goldberry.Host;
 import io.github.digitalsmile.goldberry.render.event.EventLoop;
 import io.github.digitalsmile.goldberry.widget.BuildContext;
 import io.github.digitalsmile.goldberry.widget.State;
 import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widgets.core.Phase;
-
-import java.time.Duration;
 
 /// A [Message]'s arrival and its departure — the whole of its state, and it
 /// holds no value at all.
@@ -98,9 +98,14 @@ final class MessageState extends State<Message> {
     public Widget build(BuildContext context) {
         host = context.host().orElse(null);
         var message = widget();
-        return new MessageBox(message.kind(), message.text(), message.actions(),
+        return new MessageBox(
+                message.kind(),
+                message.text(),
+                message.actions(),
                 message.onDismiss() == null ? null : this::asked,
-                leaving != null ? leaving : arriving, departed, this::motion,
+                leaving != null ? leaving : arriving,
+                departed,
+                this::motion,
                 message.attributes());
     }
 

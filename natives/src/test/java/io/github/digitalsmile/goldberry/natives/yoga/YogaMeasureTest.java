@@ -7,16 +7,18 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import io.github.digitalsmile.goldberry.natives.NativeLibraryRequirement;
 import java.util.ArrayList;
 import java.util.List;
+
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+
+import io.github.digitalsmile.goldberry.natives.NativeLibraryRequirement;
+import io.github.digitalsmile.goldberry.natives.yoga.measure.MeasuredSize;
 import io.github.digitalsmile.goldberry.natives.yoga.style.Edge;
 import io.github.digitalsmile.goldberry.natives.yoga.style.FlexDirection;
 import io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength;
-import io.github.digitalsmile.goldberry.natives.yoga.measure.MeasuredSize;
 
 /// The measure callback driven by a real layout pass.
 ///
@@ -42,8 +44,7 @@ class YogaMeasureTest {
     @DisplayName("Yoga sizes a measured leaf from what the callback returns")
     void measuredSizeBecomesTheLayout() {
         try (var root = YogaNode.create()) {
-            root.setMeasureFunction((width, widthMode, height, heightMode) ->
-                    new MeasuredSize(123f, 45f));
+            root.setMeasureFunction((width, widthMode, height, heightMode) -> new MeasuredSize(123f, 45f));
 
             root.calculateLayout(YogaNode.UNDEFINED, YogaNode.UNDEFINED);
 
@@ -91,8 +92,7 @@ class YogaMeasureTest {
             // Reaching the assertion at all is half the result: had the
             // exception escaped into Yoga, the process would be gone.
             var thrown = assertThrows(
-                    IllegalStateException.class,
-                    () -> root.calculateLayout(YogaNode.UNDEFINED, YogaNode.UNDEFINED));
+                    IllegalStateException.class, () -> root.calculateLayout(YogaNode.UNDEFINED, YogaNode.UNDEFINED));
 
             assertSame(boom, thrown, "the caller's own exception, not a wrapper");
         }
@@ -110,8 +110,7 @@ class YogaMeasureTest {
             root.addChild(throwing(config, first));
             root.addChild(throwing(config, second));
 
-            var thrown = assertThrows(
-                    IllegalStateException.class, () -> root.calculateLayout(200f, 100f));
+            var thrown = assertThrows(IllegalStateException.class, () -> root.calculateLayout(200f, 100f));
 
             assertSame(first, thrown, "the first in tree order");
             assertEquals(
@@ -141,8 +140,7 @@ class YogaMeasureTest {
     void markDirtyForcesAFreshMeasurement() {
         var height = new float[] {20f};
         try (var root = YogaNode.create()) {
-            root.setMeasureFunction((width, widthMode, heightIn, heightMode) ->
-                    new MeasuredSize(50f, height[0]));
+            root.setMeasureFunction((width, widthMode, heightIn, heightMode) -> new MeasuredSize(50f, height[0]));
 
             root.calculateLayout(YogaNode.UNDEFINED, YogaNode.UNDEFINED);
             assertEquals(20f, root.layout().height(), "the first measurement");

@@ -1,5 +1,14 @@
 package io.github.digitalsmile.goldberry.example;
 
+import java.time.Duration;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import io.github.digitalsmile.goldberry.Application;
 import io.github.digitalsmile.goldberry.Goldberry;
 import io.github.digitalsmile.goldberry.Host;
@@ -38,13 +47,6 @@ import io.github.digitalsmile.goldberry.widgets.overlay.tour.Tours;
 import io.github.digitalsmile.goldberry.widgets.shell.tray.TrayIcon;
 import io.github.digitalsmile.goldberry.widgets.shell.tray.Trays;
 import io.github.digitalsmile.goldberry.widgets.text.Text;
-import java.time.Duration;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /// Goldberry's showcase — the [Application], and nothing else.
 ///
@@ -90,8 +92,7 @@ public final class Showcase implements Application {
 
     /// The window's own stylesheet, read from `showcase.css` beside this class —
     /// the layout of *this* window and nothing about how a button looks.
-    private final Stylesheet styles =
-            Stylesheet.resource(CascadeLayer.APPLICATION, Showcase.class, "showcase.css");
+    private final Stylesheet styles = Stylesheet.resource(CascadeLayer.APPLICATION, Showcase.class, "showcase.css");
 
     private final ShowcaseModel model = new ShowcaseModel();
     private final ShowcaseModel.Actions actions = new ShowcaseModel.Actions(model);
@@ -99,8 +100,7 @@ public final class Showcase implements Application {
     /// The four commands `overlays.kdl` presses by name. Not on the model,
     /// because every one of them needs a [Host] — see [WindowActions].
     private final WindowActions window =
-            new WindowActions(this::toggleMenu, this::toggleHud, this::openDialog,
-                    this::raiseToast);
+            new WindowActions(this::toggleMenu, this::toggleHud, this::openDialog, this::raiseToast);
 
     private Host host;
 
@@ -136,8 +136,7 @@ public final class Showcase implements Application {
     /// §9's `tray-icon`, while this desktop has one. Empty on a session with no
     /// notification area, which is an ordinary answer and not a failure — every
     /// platform's own guidance says an application must run without one.
-    private Optional<io.github.digitalsmile.goldberry.render.tray.BackendTray> tray =
-            Optional.empty();
+    private Optional<io.github.digitalsmile.goldberry.render.tray.BackendTray> tray = Optional.empty();
 
     // --- Application ---------------------------------------------------------
 
@@ -196,7 +195,8 @@ public final class Showcase implements Application {
         // icon and must not be able to build one, or a document reloaded on every
         // keystroke would leak one per reload (ADR-0043).
         screen = new Screen(
-                model, actions,
+                model,
+                actions,
                 Widgets.inflater(
                         // The **objects** the Forms document names: the handle
                         // that submits its form and the rule one of its fields
@@ -213,9 +213,13 @@ public final class Showcase implements Application {
                 // The window's menu bar. Its four window commands arrive as
                 // handlers because only a `Host` can open a dialog, float a HUD or
                 // close a window -- and a widget has none (ADR-0222).
-                new AppMenu(actions,
-                        new AppMenu.Handlers(this::openDialog, this::toggleHud,
-                                this::raiseToast, () -> host.window().close()),
+                new AppMenu(
+                        actions,
+                        new AppMenu.Handlers(
+                                this::openDialog,
+                                this::toggleHud,
+                                this::raiseToast,
+                                () -> host.window().close()),
                         paletteIcon));
 
         // No `repaint()` and no `restyle()` here. `models()` below hands both
@@ -259,19 +263,25 @@ public final class Showcase implements Application {
         // ordinary `Menu` -- the same value a `menubar` holds -- so the light
         // toggle here and the one in the File menu are one command written once
         // (ADR-0191).
-        tray = Trays.show(host, TrayIcon.of("Goldberry — showcase", new Menu(List.of(
-                new Item("Switch the light", actions::toggleTheme),
-                new Item("Switch the density", actions::toggleDensity),
-                new Separator(),
-                // Every screen, off the one list -- so a screen added to the
-                // gallery arrives in the tray without this file being touched.
-                new Item("Screens").submenu(Screen.GALLERY.stream()
-                        .map(name -> (Widget) new Item(Screen.title(name),
-                                () -> actions.pickScreen(name)))
-                        .toArray(Widget[]::new)),
-                new Separator(),
-                new Item("Quit", () -> host.window().close())),
-                Attributes.NONE)));
+        tray = Trays.show(
+                host,
+                TrayIcon.of(
+                        "Goldberry — showcase",
+                        new Menu(
+                                List.of(
+                                        new Item("Switch the light", actions::toggleTheme),
+                                        new Item("Switch the density", actions::toggleDensity),
+                                        new Separator(),
+                                        // Every screen, off the one list -- so a screen added to the
+                                        // gallery arrives in the tray without this file being touched.
+                                        new Item("Screens")
+                                                .submenu(Screen.GALLERY.stream()
+                                                        .map(name -> (Widget) new Item(
+                                                                Screen.title(name), () -> actions.pickScreen(name)))
+                                                        .toArray(Widget[]::new)),
+                                        new Separator(),
+                                        new Item("Quit", () -> host.window().close())),
+                                Attributes.NONE)));
         LOG.info("tray {}", tray.isPresent() ? "shown" : "unavailable on this desktop");
 
         host.window().onResize(size -> LOG.info("resized to {}", size));
@@ -288,31 +298,33 @@ public final class Showcase implements Application {
 
         // Work that is not instant belongs off the UI thread. It comes back on it
         // automatically, so touching the window here is safe (ADR-0020).
-        Goldberry.async(Showcase::describeEnvironment).thenAccept(text -> {
-            host.title("Goldberry — " + text);
-            // Nothing here reaches into the tree: the field is set, and the bar's
-            // line bound to it redraws itself.
-            actions.setStatus(text);
-            // The one place an application says this, and the reason it is here
-            // rather than in every method: `setStatus` is a plain Java call from
-            // a background job's continuation, so it is neither an action a
-            // document dispatched nor a write the toolkit had any reason to look
-            // for. A woven model notices it from inside the assignment and this
-            // returns false; a jar's model is swept here
-            // ([ADR-0155](../../../../../../book/src/adr/0155-a-jar-binds-at-run-time-an-image-is-woven.md)).
-            Models.refresh(model);
-        }).exceptionally(failure -> {
-            // Error Prone caught this: a `thenAccept` whose future nobody holds
-            // swallows whatever the job threw, so a describeEnvironment that
-            // failed would leave the bar reading "reading the map…" for ever with
-            // nothing in the log to say why. The handler is the whole fix -- an
-            // application still has nothing to await, it simply has somewhere for
-            // the failure to go.
-            LOG.warn("could not describe the environment", failure);
-            actions.setStatus("could not read the environment");
-            Models.refresh(model);
-            return null;
-        });
+        Goldberry.async(Showcase::describeEnvironment)
+                .thenAccept(text -> {
+                    host.title("Goldberry — " + text);
+                    // Nothing here reaches into the tree: the field is set, and the bar's
+                    // line bound to it redraws itself.
+                    actions.setStatus(text);
+                    // The one place an application says this, and the reason it is here
+                    // rather than in every method: `setStatus` is a plain Java call from
+                    // a background job's continuation, so it is neither an action a
+                    // document dispatched nor a write the toolkit had any reason to look
+                    // for. A woven model notices it from inside the assignment and this
+                    // returns false; a jar's model is swept here
+                    // ([ADR-0155](../../../../../../book/src/adr/0155-a-jar-binds-at-run-time-an-image-is-woven.md)).
+                    Models.refresh(model);
+                })
+                .exceptionally(failure -> {
+                    // Error Prone caught this: a `thenAccept` whose future nobody holds
+                    // swallows whatever the job threw, so a describeEnvironment that
+                    // failed would leave the bar reading "reading the map…" for ever with
+                    // nothing in the log to say why. The handler is the whole fix -- an
+                    // application still has nothing to await, it simply has somewhere for
+                    // the failure to go.
+                    LOG.warn("could not describe the environment", failure);
+                    actions.setStatus("could not read the environment");
+                    Models.refresh(model);
+                    return null;
+                });
     }
 
     /// Hangs `Ctrl+1`… off the gallery, in strip order.
@@ -335,11 +347,19 @@ public final class Showcase implements Application {
     /// @param bind what to call for each accelerator — `host::shortcut`
     /// @param pick what a key does — `actions::pickScreen`
     static void screenShortcuts(
-            java.util.function.BiConsumer<Shortcut, Runnable> bind,
-            java.util.function.Consumer<String> pick) {
+            java.util.function.BiConsumer<Shortcut, Runnable> bind, java.util.function.Consumer<String> pick) {
 
-        var digits = List.of(Key.DIGIT_1, Key.DIGIT_2, Key.DIGIT_3, Key.DIGIT_4, Key.DIGIT_5,
-                Key.DIGIT_6, Key.DIGIT_7, Key.DIGIT_8, Key.DIGIT_9, Key.DIGIT_0);
+        var digits = List.of(
+                Key.DIGIT_1,
+                Key.DIGIT_2,
+                Key.DIGIT_3,
+                Key.DIGIT_4,
+                Key.DIGIT_5,
+                Key.DIGIT_6,
+                Key.DIGIT_7,
+                Key.DIGIT_8,
+                Key.DIGIT_9,
+                Key.DIGIT_0);
         for (var index = 0; index < Math.min(Screen.GALLERY.size(), digits.size()); index++) {
             var name = Screen.GALLERY.get(index);
             bind.accept(Mod.CTRL.and(digits.get(index)), () -> pick.accept(name));
@@ -385,10 +405,11 @@ public final class Showcase implements Application {
         // with a flip if it would open off the bottom of the screen, open a
         // platform window, close the whole stack when a command is chosen, and
         // open a submenu beside the row that owns one (ADR-0104, ADR-0106).
-        Menus.open(host, "menu-button", contextMenu()).ifPresentOrElse(
-                open -> menu = open,
-                () -> LOG.info("nowhere to put a menu: either this video driver has no popup"
-                        + " windows, or the button has not been painted yet"));
+        Menus.open(host, "menu-button", contextMenu())
+                .ifPresentOrElse(
+                        open -> menu = open,
+                        () -> LOG.info("nowhere to put a menu: either this video driver has no popup"
+                                + " windows, or the button has not been painted yet"));
     }
 
     /// Raises a toast — §7's smallest overlay.
@@ -400,10 +421,11 @@ public final class Showcase implements Application {
     /// one is not a demonstration of the other.
     private void raiseToast() {
         var number = ++toastsRaised;
-        toasts.show(number % 3 == 0
-                ? new Toast("Word " + number + " sent to Rivendell.")
-                        .action("Recall it", () -> actions.setStatus("Recalled word " + number))
-                : new Toast("Word " + number + " — a rider went out and did not wait."));
+        toasts.show(
+                number % 3 == 0
+                        ? new Toast("Word " + number + " sent to Rivendell.")
+                                .action("Recall it", () -> actions.setStatus("Recalled word " + number))
+                        : new Toast("Word " + number + " — a rider went out and did not wait."));
     }
 
     /// The modal — §7's `dialog`, opened the way ADR-0176 says one is: it is a
@@ -422,16 +444,27 @@ public final class Showcase implements Application {
         if (open != null && open.isAttached()) {
             return;
         }
-        open = Dialogs.show(host, new Dialog("Turn back?", List.of(
-                new Text("The pass is closing and the low road is watched. Choosing"
-                        + " either cannot be undone."),
-                new DialogAction("Wait for word", DialogAction.Role.NEUTRAL,
-                        () -> answered("Waiting at the gate")),
-                new DialogAction("Keep to the pass", DialogAction.Role.DISMISSIVE,
-                        () -> answered("Still on the mountain")),
-                new DialogAction("Take the low road", DialogAction.Role.AFFIRMATIVE,
-                        () -> answered("Under the mountain"))),
-                Attributes.NONE).id("turn-back"));
+        open = Dialogs.show(
+                host,
+                new Dialog(
+                                "Turn back?",
+                                List.of(
+                                        new Text("The pass is closing and the low road is watched. Choosing"
+                                                + " either cannot be undone."),
+                                        new DialogAction(
+                                                "Wait for word",
+                                                DialogAction.Role.NEUTRAL,
+                                                () -> answered("Waiting at the gate")),
+                                        new DialogAction(
+                                                "Keep to the pass",
+                                                DialogAction.Role.DISMISSIVE,
+                                                () -> answered("Still on the mountain")),
+                                        new DialogAction(
+                                                "Take the low road",
+                                                DialogAction.Role.AFFIRMATIVE,
+                                                () -> answered("Under the mountain"))),
+                                Attributes.NONE)
+                        .id("turn-back"));
     }
 
     /// What every one of the dialog's buttons does: say so, and take the dialog
@@ -464,20 +497,32 @@ public final class Showcase implements Application {
         // found. §5 asks a tour to wait for a frame before positioning, and this
         // is that wait at its coarsest: the screen has to be *built* before any
         // of it can be anchored to.
-        host.after(Duration.ofMillis(80), () -> Tours.start(host, List.of(
-                new Stop("demo-tabs", "A strip of your own",
-                        "Chapters that can be closed, and a + that opens the next stage"
-                                + " of the road. The gallery's own strip above can do"
-                                + " neither."),
-                new Stop("jump-bar", "Jump to a chapter",
-                        "These ask the list beside them to bring a section into view."
-                                + " The viewport moves the least it can."),
-                new Stop("scroll-demo", "A viewport of its own",
-                        "Scroll it with the wheel, or focus it and use PageDown."
-                                + " The headers stick as their sections pass."),
-                new Stop("gallery", "The gallery strip",
-                        "Seven screens, and a Ctrl+digit for each — which is what"
-                                + " going from twelve screens to seven bought."))));
+        host.after(
+                Duration.ofMillis(80),
+                () -> Tours.start(
+                        host,
+                        List.of(
+                                new Stop(
+                                        "demo-tabs",
+                                        "A strip of your own",
+                                        "Chapters that can be closed, and a + that opens the next stage"
+                                                + " of the road. The gallery's own strip above can do"
+                                                + " neither."),
+                                new Stop(
+                                        "jump-bar",
+                                        "Jump to a chapter",
+                                        "These ask the list beside them to bring a section into view."
+                                                + " The viewport moves the least it can."),
+                                new Stop(
+                                        "scroll-demo",
+                                        "A viewport of its own",
+                                        "Scroll it with the wheel, or focus it and use PageDown."
+                                                + " The headers stick as their sections pass."),
+                                new Stop(
+                                        "gallery",
+                                        "The gallery strip",
+                                        "Seven screens, and a Ctrl+digit for each — which is what"
+                                                + " going from twelve screens to seven bought."))));
     }
 
     /// Puts a `hud` in the window's overlay layer, or takes it away again.
@@ -522,12 +567,11 @@ public final class Showcase implements Application {
                         .accelerator("Ctrl+T"),
                 new Item("Switch the density", actions::toggleDensity).accelerator("Ctrl+D"),
                 new Separator(),
-                new Item("Frame rate", this::toggleHud)
-                        .accelerator("Ctrl+F")
-                        .checked(model.isHudShown()),
-                new Item("More").submenu(
-                        new Item("Begin again at Bag End", actions::reset),
-                        new Item("Nothing here", () -> { }).disabled(true)));
+                new Item("Frame rate", this::toggleHud).accelerator("Ctrl+F").checked(model.isHudShown()),
+                new Item("More")
+                        .submenu(
+                                new Item("Begin again at Bag End", actions::reset),
+                                new Item("Nothing here", () -> {}).disabled(true)));
     }
 
     /// What [#start] opened, in reverse. The launcher closes what the launcher
@@ -568,7 +612,6 @@ public final class Showcase implements Application {
     /// font, talking to a service. The point is where its result lands.
     private static String describeEnvironment() {
         LOG.debug("describing the environment on {}", Thread.currentThread());
-        return "showcase on " + System.getProperty("os.name")
-                + " / " + System.getProperty("os.arch");
+        return "showcase on " + System.getProperty("os.name") + " / " + System.getProperty("os.arch");
     }
 }

@@ -1,9 +1,9 @@
 package io.github.digitalsmile.goldberry.widgets.overlay.dialog;
 
+import java.util.Objects;
+
 import io.github.digitalsmile.goldberry.Host;
 import io.github.digitalsmile.goldberry.Overlay;
-
-import java.util.Objects;
 
 /// The half of a dialog that is not a widget: putting one on a window.
 ///
@@ -47,8 +47,7 @@ public final class Dialogs {
     /// in a golden image depend on how many dialogs the test had opened before.
     public static final String DEFAULT_ID = "dialog";
 
-    private Dialogs() {
-    }
+    private Dialogs() {}
 
     /// Shows `dialog` over the whole of `host`'s window.
     ///

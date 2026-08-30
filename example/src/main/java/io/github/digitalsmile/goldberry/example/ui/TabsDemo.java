@@ -1,5 +1,8 @@
 package io.github.digitalsmile.goldberry.example.ui;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import io.github.digitalsmile.goldberry.bind.runtime.Models;
 import io.github.digitalsmile.goldberry.example.ShowcaseModel;
 import io.github.digitalsmile.goldberry.widget.BuildContext;
@@ -8,8 +11,6 @@ import io.github.digitalsmile.goldberry.widget.attr.Attributes;
 import io.github.digitalsmile.goldberry.widgets.panel.tabs.Tab;
 import io.github.digitalsmile.goldberry.widgets.panel.tabs.Tabs;
 import io.github.digitalsmile.goldberry.widgets.text.Text;
-import java.util.ArrayList;
-import java.util.List;
 
 /// A tab strip demonstrating itself, inside the tab strip that is showing it.
 ///
@@ -32,8 +33,7 @@ import java.util.List;
 /// [ADR-0107](../../../../../../../book/src/adr/0107-a-tab-strip-is-a-model-a-header-and-a-panel.md)).
 ///
 /// @param model what it reads and what its strip asks of
-public record TabsDemo(ShowcaseModel model, ShowcaseModel.Actions actions)
-        implements Widget.Stateless {
+public record TabsDemo(ShowcaseModel model, ShowcaseModel.Actions actions) implements Widget.Stateless {
 
     private static final String NOTE = """
             Close a chapter and it fades out before it goes; open one and it fades in. \
@@ -64,11 +64,18 @@ public record TabsDemo(ShowcaseModel model, ShowcaseModel.Actions actions)
                     .colour("Moria".equals(name) ? 0xFFBF616A : 0));
         }
 
-        return Notifications.card("chapters-card", "A strip that gains and loses chapters",
+        return Notifications.card(
+                "chapters-card",
+                "A strip that gains and loses chapters",
                 List.of(
-                        new Tabs(null, strip, Models.observable(model, "app.tab"),
-                                actions::pickTab, actions::closeTab, actions::newTab,
-                                Attributes.NONE)
+                        new Tabs(
+                                        null,
+                                        strip,
+                                        Models.observable(model, "app.tab"),
+                                        actions::pickTab,
+                                        actions::closeTab,
+                                        actions::newTab,
+                                        Attributes.NONE)
                                 .id("demo-tabs"),
                         new Text(NOTE, Attributes.NONE.classes("caption")).id("tabs-note")));
     }

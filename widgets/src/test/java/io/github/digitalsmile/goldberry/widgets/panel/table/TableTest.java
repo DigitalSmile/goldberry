@@ -6,6 +6,15 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
+
 import io.github.digitalsmile.goldberry.RendererRequirement;
 import io.github.digitalsmile.goldberry.input.event.KeyEvent;
 import io.github.digitalsmile.goldberry.input.event.PointerEvent;
@@ -17,13 +26,6 @@ import io.github.digitalsmile.goldberry.widgets.panel.Described;
 import io.github.digitalsmile.goldberry.widgets.panel.list.ListView;
 import io.github.digitalsmile.goldberry.widgets.panel.list.Selection;
 import io.github.digitalsmile.goldberry.widgets.text.Text;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.Test;
 
 /// `table` — `docs/core-widgets.md` §10's list with columns ([ADR-0214]).
 ///
@@ -33,12 +35,10 @@ import org.junit.jupiter.api.Test;
 /// widget, and the two assertions below check the wiring rather than repeat them.
 class TableTest {
 
-    private record Person(String id, String name, int age) { }
+    private record Person(String id, String name, int age) {}
 
     private static final List<Person> PEOPLE = List.of(
-            new Person("fro", "Frodo", 50),
-            new Person("sam", "Samwise", 38),
-            new Person("mer", "Meriadoc", 36));
+            new Person("fro", "Frodo", 50), new Person("sam", "Samwise", 38), new Person("mer", "Meriadoc", 36));
 
     private final TestHost host = new TestHost();
     private final List<Sort> sorts = new ArrayList<>();
@@ -65,19 +65,28 @@ class TableTest {
 
     private static List<String> headers(ElementTree tree) {
         return Described.of(tree, TableHead.TableHeader.class).stream()
-                .map(h -> h.column().key()).toList();
+                .map(h -> h.column().key())
+                .toList();
     }
 
     private static TableHead.TableHeader header(ElementTree tree, String key) {
         return Described.of(tree, TableHead.TableHeader.class).stream()
                 .filter(h -> h.column().key().equals(key))
-                .findFirst().orElseThrow(() -> new AssertionError(
-                        "no header \"" + key + "\"; showing " + headers(tree)));
+                .findFirst()
+                .orElseThrow(() -> new AssertionError("no header \"" + key + "\"; showing " + headers(tree)));
     }
 
     private static void click(io.github.digitalsmile.goldberry.input.handler.Handles target) {
-        target.onPointer(new PointerEvent(PointerEvent.Kind.CLICKED, 0, 0,
-                PointerEvent.Button.PRIMARY, 1, Float.NaN, Float.NaN, Modifiers.NONE, null));
+        target.onPointer(new PointerEvent(
+                PointerEvent.Kind.CLICKED,
+                0,
+                0,
+                PointerEvent.Button.PRIMARY,
+                1,
+                Float.NaN,
+                Float.NaN,
+                Modifiers.NONE,
+                null));
     }
 
     @Nested
@@ -103,19 +112,25 @@ class TableTest {
         @Test
         @DisplayName("a cell-factory may return any widget, not only text")
         void anyWidgetAsACell() {
-            var widget = new Table<>(PEOPLE, Person::id, List.of(
-                    Column.<Person>widget("tag", "Tag", p -> new Text("<" + p.name() + ">"))));
+            var widget = new Table<>(
+                    PEOPLE,
+                    Person::id,
+                    List.of(Column.<Person>widget("tag", "Tag", p -> new Text("<" + p.name() + ">"))));
             var texts = Described.of(tree(widget), Text.class).stream()
-                    .map(Text::content).filter(s -> s.startsWith("<")).toList();
+                    .map(Text::content)
+                    .filter(s -> s.startsWith("<"))
+                    .toList();
             assertEquals(List.of("<Frodo>", "<Samwise>", "<Meriadoc>"), texts);
         }
 
         @Test
         @DisplayName("a column with no width at all is refused where it is written")
         void aZeroWidthIsRefused() {
-            assertThrows(IllegalArgumentException.class,
+            assertThrows(
+                    IllegalArgumentException.class,
                     () -> Column.of("a", "A", Person::name).fixed(0));
-            assertThrows(IllegalArgumentException.class,
+            assertThrows(
+                    IllegalArgumentException.class,
                     () -> Column.of("a", "A", Person::name).weight(-1));
         }
 
@@ -152,9 +167,12 @@ class TableTest {
         @Test
         @DisplayName("clicking another column starts it ascending rather than inheriting")
         void anotherColumnStartsFresh() {
-            var widget = new Table<>(PEOPLE, Person::id, List.of(
-                    Column.<Person>of("name", "Name", Person::name).sortable(true),
-                    Column.<Person>of("age", "Age", p -> "" + p.age()).sortable(true)));
+            var widget = new Table<>(
+                    PEOPLE,
+                    Person::id,
+                    List.of(
+                            Column.<Person>of("name", "Name", Person::name).sortable(true),
+                            Column.<Person>of("age", "Age", p -> "" + p.age()).sortable(true)));
             click(header(tree(widget.sorted(new Sort("name", true), sorts::add)), "age"));
             assertEquals(List.of(Sort.by("age")), sorts);
         }
@@ -174,8 +192,16 @@ class TableTest {
         @Test
         @DisplayName("a column that does not sort ignores the click entirely")
         void anUnsortableHeaderDoesNothing() {
-            var event = new PointerEvent(PointerEvent.Kind.CLICKED, 0, 0,
-                    PointerEvent.Button.PRIMARY, 1, Float.NaN, Float.NaN, Modifiers.NONE, null);
+            var event = new PointerEvent(
+                    PointerEvent.Kind.CLICKED,
+                    0,
+                    0,
+                    PointerEvent.Button.PRIMARY,
+                    1,
+                    Float.NaN,
+                    Float.NaN,
+                    Modifiers.NONE,
+                    null);
             header(tree(sortable(null)), "age").onPointer(event);
             assertTrue(sorts.isEmpty());
             assertFalse(event.isConsumed());
@@ -203,13 +229,17 @@ class TableTest {
         @Test
         @DisplayName("the caret is drawn on the sorted column and nowhere else")
         void oneCaret() {
-            var widget = new Table<>(PEOPLE, Person::id, List.of(
-                    Column.<Person>of("name", "Name", Person::name).sortable(true),
-                    Column.<Person>of("age", "Age", p -> "" + p.age()).sortable(true)));
+            var widget = new Table<>(
+                    PEOPLE,
+                    Person::id,
+                    List.of(
+                            Column.<Person>of("name", "Name", Person::name).sortable(true),
+                            Column.<Person>of("age", "Age", p -> "" + p.age()).sortable(true)));
             var tree = tree(widget.sorted(Sort.by("name"), sorts::add));
 
             var drawn = Described.of(tree, TableHead.SortCaret.class).stream()
-                    .filter(caret -> caret.sort() != null).toList();
+                    .filter(caret -> caret.sort() != null)
+                    .toList();
             assertEquals(1, drawn.size());
             assertTrue(header(tree, "name").classes().contains("sorted"));
             assertFalse(header(tree, "age").classes().contains("sorted"));
@@ -221,12 +251,17 @@ class TableTest {
             // `tree-chevron`'s rule. Without it, sorting a column takes 16px away
             // from its own label at the moment the reader clicks it, so every
             // header the sort visits shuffles its text.
-            var widget = new Table<>(PEOPLE, Person::id, List.of(
-                    Column.<Person>of("name", "Name", Person::name).sortable(true),
-                    Column.<Person>of("age", "Age", p -> "" + p.age()).sortable(true)));
+            var widget = new Table<>(
+                    PEOPLE,
+                    Person::id,
+                    List.of(
+                            Column.<Person>of("name", "Name", Person::name).sortable(true),
+                            Column.<Person>of("age", "Age", p -> "" + p.age()).sortable(true)));
             var tree = tree(widget.sorted(Sort.by("name"), sorts::add));
 
-            assertEquals(2, Described.of(tree, TableHead.SortCaret.class).size(),
+            assertEquals(
+                    2,
+                    Described.of(tree, TableHead.SortCaret.class).size(),
                     "a sortable header lost its caret slot when the sort moved away");
         }
 
@@ -234,7 +269,9 @@ class TableTest {
         @DisplayName("and a column that does not sort has no slot to keep")
         void anUnsortableHeaderHasNoSlot() {
             var tree = tree(sortable(Sort.by("name")));
-            assertEquals(1, Described.of(tree, TableHead.SortCaret.class).size(),
+            assertEquals(
+                    1,
+                    Described.of(tree, TableHead.SortCaret.class).size(),
                     "the unsortable column reserved a caret slot it can never use");
         }
 
@@ -244,8 +281,7 @@ class TableTest {
             var up = Described.of(tree(sortable(Sort.by("name"))), TableHead.SortCaret.class);
             assertFalse(up.getFirst().descending());
 
-            var down = Described.of(tree(sortable(new Sort("name", true))),
-                    TableHead.SortCaret.class);
+            var down = Described.of(tree(sortable(new Sort("name", true))), TableHead.SortCaret.class);
             assertTrue(down.getFirst().descending());
         }
 
@@ -253,7 +289,8 @@ class TableTest {
         @DisplayName("an unsorted table draws no caret at all")
         void noSortNoCaret() {
             var drawn = Described.of(tree(sortable(null)), TableHead.SortCaret.class).stream()
-                    .filter(caret -> caret.sort() != null).toList();
+                    .filter(caret -> caret.sort() != null)
+                    .toList();
             assertEquals(List.of(), drawn);
         }
 
@@ -290,9 +327,7 @@ class TableTest {
         @Test
         @DisplayName("the selection is `list`'s, unchanged")
         void selectionReachesTheList() {
-            var list = list(table()
-                    .selection(Selection.MULTIPLE)
-                    .selected(Set.of("sam"), asked::add));
+            var list = list(table().selection(Selection.MULTIPLE).selected(Set.of("sam"), asked::add));
 
             assertEquals(Selection.MULTIPLE, list.selection());
             assertEquals(Set.of("sam"), list.selected());

@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.List;
+
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -68,8 +69,7 @@ class LayoutsTest {
     /// `BLPathCore` is the same union again under its own name, registered
     /// separately because `BlendPath` allocates by it (ADR-0043), and
     /// `BLGradientCore` is a third for the same reason (ADR-0207).
-    private static final List<String> OPAQUE =
-            List.of("SDL_Event", "BLObjectDetail", "BLPathCore", "BLGradientCore");
+    private static final List<String> OPAQUE = List.of("SDL_Event", "BLObjectDetail", "BLPathCore", "BLGradientCore");
 
     @Test
     @DisplayName("every registered layout is named and non-empty")
@@ -81,8 +81,7 @@ class LayoutsTest {
             assertFalse(struct.name().isBlank(), "struct name must not be blank");
             assertTrue(struct.byteSize() > 0, () -> struct.name() + " has zero size");
             if (!OPAQUE.contains(struct.name())) {
-                assertFalse(
-                        struct.fieldNames().isEmpty(), () -> struct.name() + " has no named fields");
+                assertFalse(struct.fieldNames().isEmpty(), () -> struct.name() + " has no named fields");
             }
         }
     }

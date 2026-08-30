@@ -1,16 +1,17 @@
 package io.github.digitalsmile.goldberry.widgets.overlay.tour;
 
-import io.github.digitalsmile.goldberry.render.model.LogicalRect;
+import java.util.List;
+import java.util.Set;
+
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
-import io.github.digitalsmile.goldberry.paint.Box;
 import io.github.digitalsmile.goldberry.natives.yoga.Insets;
 import io.github.digitalsmile.goldberry.natives.yoga.style.PositionType;
 import io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength;
+import io.github.digitalsmile.goldberry.paint.Box;
+import io.github.digitalsmile.goldberry.render.model.LogicalRect;
+import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widget.style.Paints;
 import io.github.digitalsmile.goldberry.widget.style.Styled;
-import io.github.digitalsmile.goldberry.widget.Widget;
-import java.util.List;
-import java.util.Set;
 
 /// The dim over everything except the widget being described — §5's "the window
 /// dims outside the target with a `veil` cut to its rect".
@@ -32,8 +33,7 @@ import java.util.Set;
 /// @param target what to leave uncovered, or null to dim everything
 /// @param window the rectangle to fill — the veil's own, since a band's size is
 ///               stated in pixels and Yoga has no `100%` minus anything
-record TourVeil(LogicalRect target, LogicalRect window)
-        implements Widget.Leaf, Styled, Paints {
+record TourVeil(LogicalRect target, LogicalRect window) implements Widget.Leaf, Styled, Paints {
 
     @Override
     public String cssType() {
@@ -61,33 +61,39 @@ record TourVeil(LogicalRect target, LogicalRect window)
             // Nothing to cut around: one band covering everything, and the other
             // three collapsed. A tour between stops looks like a dimmed window
             // rather than flashing to clear.
-            return Box.of().style(style).children(
-                    band(children.get(0), 0, 0, width, height),
-                    collapsed(children.get(1)), collapsed(children.get(2)),
-                    collapsed(children.get(3)));
+            return Box.of()
+                    .style(style)
+                    .children(
+                            band(children.get(0), 0, 0, width, height),
+                            collapsed(children.get(1)),
+                            collapsed(children.get(2)),
+                            collapsed(children.get(3)));
         }
         var left = target.left();
         var top = target.top();
         var right = left + target.size().width();
         var bottom = top + target.size().height();
-        return Box.of().style(style).children(
-                // Above and below span the full width; the two sides fill only
-                // the gap between them, so the four tile the window with no
-                // overlap -- which matters because they are translucent and a
-                // doubled band would be visibly darker.
-                band(children.get(0), 0, 0, width, Math.max(0, top)),
-                band(children.get(1), 0, bottom, width, Math.max(0, height - bottom)),
-                band(children.get(2), 0, top, Math.max(0, left), Math.max(0, bottom - top)),
-                band(children.get(3), right, top, Math.max(0, width - right),
-                        Math.max(0, bottom - top)));
+        return Box.of()
+                .style(style)
+                .children(
+                        // Above and below span the full width; the two sides fill only
+                        // the gap between them, so the four tile the window with no
+                        // overlap -- which matters because they are translucent and a
+                        // doubled band would be visibly darker.
+                        band(children.get(0), 0, 0, width, Math.max(0, top)),
+                        band(children.get(1), 0, bottom, width, Math.max(0, height - bottom)),
+                        band(children.get(2), 0, top, Math.max(0, left), Math.max(0, bottom - top)),
+                        band(children.get(3), right, top, Math.max(0, width - right), Math.max(0, bottom - top)));
     }
 
     private static Box band(Box box, double x, double y, double width, double height) {
         return box.position(PositionType.ABSOLUTE)
                 // CSS order: top, right, bottom, left.
                 .inset(new Insets(
-                        StyleLength.points((float) y), StyleLength.UNDEFINED,
-                        StyleLength.UNDEFINED, StyleLength.points((float) x)))
+                        StyleLength.points((float) y),
+                        StyleLength.UNDEFINED,
+                        StyleLength.UNDEFINED,
+                        StyleLength.points((float) x)))
                 .size(StyleLength.points((float) width), StyleLength.points((float) height));
     }
 

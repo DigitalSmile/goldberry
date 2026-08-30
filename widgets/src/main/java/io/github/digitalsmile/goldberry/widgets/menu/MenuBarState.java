@@ -1,15 +1,16 @@
 package io.github.digitalsmile.goldberry.widgets.menu;
 
+import java.util.ArrayList;
+import java.util.Set;
+
 import io.github.digitalsmile.goldberry.Host;
 import io.github.digitalsmile.goldberry.Placement;
 import io.github.digitalsmile.goldberry.Popup;
 import io.github.digitalsmile.goldberry.input.key.Shortcut;
-import io.github.digitalsmile.goldberry.widget.attr.Attributes;
 import io.github.digitalsmile.goldberry.widget.BuildContext;
 import io.github.digitalsmile.goldberry.widget.State;
 import io.github.digitalsmile.goldberry.widget.Widget;
-import java.util.ArrayList;
-import java.util.Set;
+import io.github.digitalsmile.goldberry.widget.attr.Attributes;
 
 /// Which of a [MenuBar]'s menus is showing, and what its accelerators are bound
 /// to.
@@ -25,8 +26,7 @@ final class MenuBarState extends State<MenuBar> {
     private static final String TITLE_ID = "menubar-title-";
 
     /// Where a heading's menu goes: below it, left edges lined up, touching.
-    private static final Placement UNDER_THE_BAR =
-            new Placement(Placement.Side.BOTTOM, Placement.Align.START, 0);
+    private static final Placement UNDER_THE_BAR = new Placement(Placement.Side.BOTTOM, Placement.Align.START, 0);
 
     /// The open menu, or null. Closed by choosing a command, by clicking the
     /// heading again, and by the popup's own light dismissal — a press outside or
@@ -95,10 +95,11 @@ final class MenuBarState extends State<MenuBar> {
             // puts at the end of its bar.
             return child;
         }
-        var id = item.attributes().id() == null ? TITLE_ID + index : item.attributes().id();
-        var attributes = Attributes.NONE
-                .id(id)
-                .classes(item.attributes().classes().toArray(String[]::new));
+        var id = item.attributes().id() == null
+                ? TITLE_ID + index
+                : item.attributes().id();
+        var attributes =
+                Attributes.NONE.id(id).classes(item.attributes().classes().toArray(String[]::new));
         if (index == openIndex && isOpen()) {
             // `.open` rather than a pseudo-class, because "the branch that is
             // showing" is not one of CSS's states and inventing one would put a
@@ -106,8 +107,8 @@ final class MenuBarState extends State<MenuBar> {
             // `select` uses for its field while the list is down.
             attributes = attributes.classes(concat(item.attributes().classes(), "open"));
         }
-        return new MenuTitle(item.label(), item.icon(), item.disabled(), attributes,
-                () -> toggle(index), () -> switchTo(index));
+        return new MenuTitle(
+                item.label(), item.icon(), item.disabled(), attributes, () -> toggle(index), () -> switchTo(index));
     }
 
     private static String[] concat(Set<String> classes, String extra) {
@@ -155,8 +156,7 @@ final class MenuBarState extends State<MenuBar> {
         if (host == null || index < 0 || index >= bar.children().size()) {
             return;
         }
-        if (!(bar.children().get(index) instanceof Item item) || item.disabled()
-                || !item.hasSubmenu()) {
+        if (!(bar.children().get(index) instanceof Item item) || item.disabled() || !item.hasSubmenu()) {
             return;
         }
         // `Placement.BELOW`'s side and alignment with **no gap**: a menu hangs
@@ -164,15 +164,17 @@ final class MenuBarState extends State<MenuBar> {
         // stands 4px off the pointer so as not to open under it. The alignment is
         // already START, which is what puts a `File` menu at the left edge of the
         // word rather than centred under it.
-        var id = item.attributes().id() == null ? TITLE_ID + index : item.attributes().id();
+        var id = item.attributes().id() == null
+                ? TITLE_ID + index
+                : item.attributes().id();
         var menu = new Menu(item.submenu(), Attributes.NONE);
         // What `Left` and `Right` mean at the **root** of this menu, which is the
         // one thing about it that is the bar's business rather than the menu's:
         // with a menu down, running along the bar swaps menus, and the arrows do
         // what the pointer does (ADR-0219). A submenu gets no siblings — `Left`
         // in one goes back to the menu it came from.
-        var opened = Menus.open(host, id, menu, UNDER_THE_BAR,
-                new Menus.Siblings(() -> step(index, -1), () -> step(index, +1)));
+        var opened = Menus.open(
+                host, id, menu, UNDER_THE_BAR, new Menus.Siblings(() -> step(index, -1), () -> step(index, +1)));
         // Empty is normal — a driver with no popup windows (ADR-0102) — and it
         // must not leave the heading marked open, because nothing would ever
         // unmark it.
@@ -197,8 +199,7 @@ final class MenuBarState extends State<MenuBar> {
         }
         for (var step = 1; step <= children.size(); step++) {
             var candidate = Math.floorMod(from + delta * step, children.size());
-            if (children.get(candidate) instanceof Item item
-                    && item.hasSubmenu() && !item.disabled()) {
+            if (children.get(candidate) instanceof Item item && item.hasSubmenu() && !item.disabled()) {
                 if (candidate == from) {
                     // The only openable heading on the bar is the one already
                     // showing. Closing and reopening it would flicker for no
@@ -264,8 +265,7 @@ final class MenuBarState extends State<MenuBar> {
     private void activateFromKeyboard() {
         var bar = widget();
         for (var index = 0; index < bar.children().size(); index++) {
-            if (bar.children().get(index) instanceof Item item
-                    && item.hasSubmenu() && !item.disabled()) {
+            if (bar.children().get(index) instanceof Item item && item.hasSubmenu() && !item.disabled()) {
                 var target = index;
                 setState(() -> show(target));
                 return;

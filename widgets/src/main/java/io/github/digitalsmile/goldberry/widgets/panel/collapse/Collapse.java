@@ -1,15 +1,16 @@
 package io.github.digitalsmile.goldberry.widgets.panel.collapse;
 
-import io.github.digitalsmile.goldberry.kdl.KdlNode;
-import io.github.digitalsmile.goldberry.widget.attr.Attributed;
-import io.github.digitalsmile.goldberry.widget.attr.Attributes;
-import io.github.digitalsmile.goldberry.widget.State;
-import io.github.digitalsmile.goldberry.widget.Widget;
-import io.github.digitalsmile.goldberry.widgets.markup.Markup;
-import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Consumer;
+
+import io.github.digitalsmile.goldberry.kdl.KdlNode;
+import io.github.digitalsmile.goldberry.widget.State;
+import io.github.digitalsmile.goldberry.widget.Widget;
+import io.github.digitalsmile.goldberry.widget.attr.Attributed;
+import io.github.digitalsmile.goldberry.widget.attr.Attributes;
+import io.github.digitalsmile.goldberry.widgets.markup.Markup;
+import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
 
 /// A header and a body that folds away — `docs/core-widgets.md` §5's `collapse`.
 ///
@@ -66,8 +67,7 @@ import java.util.function.Consumer;
 /// @param attributes the `id` and classes, which land on the `collapse` node
 @Markup("collapse")
 public record Collapse(
-        String title, boolean open, Consumer<Boolean> onToggle, List<Widget> children,
-        Attributes attributes)
+        String title, boolean open, Consumer<Boolean> onToggle, List<Widget> children, Attributes attributes)
         implements Widget.Stateful, Attributed<Collapse> {
 
     public Collapse(String title, Widget... kids) {

@@ -3,6 +3,7 @@ package io.github.digitalsmile.goldberry.widget;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.List;
+
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -40,8 +41,7 @@ class DirtyNotifiesTest {
         }
     }
 
-    private record Leafy(String text) implements Widget.Leaf {
-    }
+    private record Leafy(String text) implements Widget.Leaf {}
 
     private static CounterState stateOf(ElementTree tree) {
         return (CounterState) tree.root().state().orElseThrow();
@@ -61,8 +61,7 @@ class DirtyNotifiesTest {
 
             stateOf(tree).bump();
 
-            assertEquals(1, asked[0],
-                    "a setState that asked for no frame is a change nobody paints");
+            assertEquals(1, asked[0], "a setState that asked for no frame is a change nobody paints");
         }
 
         @Test

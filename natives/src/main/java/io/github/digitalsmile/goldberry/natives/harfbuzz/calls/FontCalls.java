@@ -3,11 +3,12 @@ package io.github.digitalsmile.goldberry.natives.harfbuzz.calls;
 import static java.lang.foreign.ValueLayout.ADDRESS;
 import static java.lang.foreign.ValueLayout.JAVA_INT;
 
-import io.github.digitalsmile.goldberry.natives.Downcalls;
 import java.lang.foreign.FunctionDescriptor;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.SymbolLookup;
 import java.lang.invoke.MethodHandle;
+
+import io.github.digitalsmile.goldberry.natives.Downcalls;
 
 /// HarfBuzz's blob, face and font — the three things a shaper needs.
 ///
@@ -55,8 +56,7 @@ public record FontCalls(
     public static final class BlobCreate {
 
         private static final MethodHandle FD_hb_blob_create =
-                Downcalls.link(FunctionDescriptor.of(
-                        ADDRESS, ADDRESS, JAVA_INT, JAVA_INT, ADDRESS, ADDRESS));
+                Downcalls.link(FunctionDescriptor.of(ADDRESS, ADDRESS, JAVA_INT, JAVA_INT, ADDRESS, ADDRESS));
 
         private final MemorySegment address;
 
@@ -65,11 +65,9 @@ public record FontCalls(
         }
 
         public MemorySegment call(
-                MemorySegment data, int length, int mode, MemorySegment userData,
-                MemorySegment destroy) {
+                MemorySegment data, int length, int mode, MemorySegment userData, MemorySegment destroy) {
             try {
-                return (MemorySegment) FD_hb_blob_create.invokeExact(
-                        address, data, length, mode, userData, destroy);
+                return (MemorySegment) FD_hb_blob_create.invokeExact(address, data, length, mode, userData, destroy);
             } catch (Throwable t) {
                 throw Downcalls.failure("hb_blob_create", t);
             }
@@ -83,8 +81,7 @@ public record FontCalls(
     /// @param blob the blob to release
     public static final class BlobDestroy {
 
-        private static final MethodHandle FD_hb_blob_destroy =
-                Downcalls.link(FunctionDescriptor.ofVoid(ADDRESS));
+        private static final MethodHandle FD_hb_blob_destroy = Downcalls.link(FunctionDescriptor.ofVoid(ADDRESS));
 
         private final MemorySegment address;
 
@@ -138,8 +135,7 @@ public record FontCalls(
     /// @param face the face to release
     public static final class FaceDestroy {
 
-        private static final MethodHandle FD_hb_face_destroy =
-                Downcalls.link(FunctionDescriptor.ofVoid(ADDRESS));
+        private static final MethodHandle FD_hb_face_destroy = Downcalls.link(FunctionDescriptor.ofVoid(ADDRESS));
 
         private final MemorySegment address;
 
@@ -166,8 +162,7 @@ public record FontCalls(
     /// @return the shared empty `hb_face_t*`
     public static final class FaceGetEmpty {
 
-        private static final MethodHandle FD_hb_face_get_empty =
-                Downcalls.link(FunctionDescriptor.of(ADDRESS));
+        private static final MethodHandle FD_hb_face_get_empty = Downcalls.link(FunctionDescriptor.of(ADDRESS));
 
         private final MemorySegment address;
 
@@ -223,8 +218,7 @@ public record FontCalls(
     /// @return the new `hb_font_t*`
     public static final class FontCreate {
 
-        private static final MethodHandle FD_hb_font_create =
-                Downcalls.link(FunctionDescriptor.of(ADDRESS, ADDRESS));
+        private static final MethodHandle FD_hb_font_create = Downcalls.link(FunctionDescriptor.of(ADDRESS, ADDRESS));
 
         private final MemorySegment address;
 
@@ -248,8 +242,7 @@ public record FontCalls(
     /// @param font the font to release
     public static final class FontDestroy {
 
-        private static final MethodHandle FD_hb_font_destroy =
-                Downcalls.link(FunctionDescriptor.ofVoid(ADDRESS));
+        private static final MethodHandle FD_hb_font_destroy = Downcalls.link(FunctionDescriptor.ofVoid(ADDRESS));
 
         private final MemorySegment address;
 

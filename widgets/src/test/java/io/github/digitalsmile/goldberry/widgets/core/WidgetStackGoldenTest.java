@@ -1,20 +1,22 @@
 package io.github.digitalsmile.goldberry.widgets.core;
 
+import java.util.List;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+
 import io.github.digitalsmile.goldberry.RendererRequirement;
-import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
 import io.github.digitalsmile.goldberry.css.Stylesheet;
 import io.github.digitalsmile.goldberry.css.Theme;
+import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
 import io.github.digitalsmile.goldberry.golden.GoldenImage;
 import io.github.digitalsmile.goldberry.kdl.KdlParser;
 import io.github.digitalsmile.goldberry.paint.BoxPainter;
 import io.github.digitalsmile.goldberry.widget.ElementTree;
 import io.github.digitalsmile.goldberry.widget.WidgetRenderer;
-import io.github.digitalsmile.goldberry.widgets.controls.TestFont;
-import java.util.List;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
 import io.github.digitalsmile.goldberry.widgets.Widgets;
+import io.github.digitalsmile.goldberry.widgets.controls.TestFont;
 
 /// The whole stack in one image: KDL → widgets → element tree → cascade → boxes
 /// → Blend2D. If any of the six breaks, this changes.
@@ -59,7 +61,7 @@ class WidgetStackGoldenTest {
         var tree = new ElementTree(widget);
         var renderer = new WidgetRenderer(List.of(base, Theme.NORD_DARK.load()), TestFont.get());
 
-        GoldenImage.assertMatches("widget-tree", 200, 90, 1.0f,
-                frame -> BoxPainter.paint(frame, renderer.render(tree)));
+        GoldenImage.assertMatches(
+                "widget-tree", 200, 90, 1.0f, frame -> BoxPainter.paint(frame, renderer.render(tree)));
     }
 }

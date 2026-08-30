@@ -15,6 +15,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Stream;
+
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -44,12 +45,13 @@ class HolderShapeTest {
         var root = classesRoot();
         var found = new ArrayList<Class<?>>();
         try (Stream<Path> files = Files.walk(root)) {
-            for (var file : files.filter(f -> f.toString().endsWith("Calls.class")).toList()) {
-                var binary = root.relativize(file).toString()
-                        .replace(java.io.File.separatorChar, '.');
+            for (var file :
+                    files.filter(f -> f.toString().endsWith("Calls.class")).toList()) {
+                var binary = root.relativize(file).toString().replace(java.io.File.separatorChar, '.');
                 var enclosing = Class.forName(
                         binary.substring(0, binary.length() - ".class".length()),
-                        false, HolderShapeTest.class.getClassLoader());
+                        false,
+                        HolderShapeTest.class.getClassLoader());
                 for (var nested : enclosing.getDeclaredClasses()) {
                     if (handleOf(nested) != null) {
                         found.add(nested);
@@ -111,7 +113,8 @@ class HolderShapeTest {
     @DisplayName("declares a call whose Java types are the handle's, with the address dropped")
     void callMatchesItsHandle() {
         var holders = holders();
-        assertTrue(holders.size() > 100,
+        assertTrue(
+                holders.size() > 100,
                 "found only " + holders.size() + " holders; this test discovers them by walking "
                         + "the compiled classes, and finding almost none means it checks nothing");
 
@@ -151,8 +154,7 @@ class HolderShapeTest {
                     .filter(f -> f.getType() == MethodHandle.class)
                     .toList();
             for (var field : handles) {
-                if (!Modifier.isStatic(field.getModifiers())
-                        || !Modifier.isFinal(field.getModifiers())) {
+                if (!Modifier.isStatic(field.getModifiers()) || !Modifier.isFinal(field.getModifiers())) {
                     // This is the whole performance argument: a handle that is not
                     // a static final constant is an interpreted lambda form in a
                     // native image, and 450x slower (ADR-0161, ADR-0173).

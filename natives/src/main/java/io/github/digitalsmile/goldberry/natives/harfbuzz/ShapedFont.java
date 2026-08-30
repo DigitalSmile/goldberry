@@ -188,8 +188,7 @@ public final class ShapedFont implements AutoCloseable {
 
     private void requireOwner() {
         if (Thread.currentThread() != owner) {
-            throw new IllegalStateException(
-                    "a ShapedFont belongs to the thread that created it, and this is not it");
+            throw new IllegalStateException("a ShapedFont belongs to the thread that created it, and this is not it");
         }
     }
 

@@ -1,13 +1,14 @@
 package io.github.digitalsmile.goldberry.widgets.menu;
 
+import java.util.List;
+
 import io.github.digitalsmile.goldberry.kdl.KdlNode;
-import io.github.digitalsmile.goldberry.widget.attr.Attributed;
-import io.github.digitalsmile.goldberry.widget.attr.Attributes;
 import io.github.digitalsmile.goldberry.widget.State;
 import io.github.digitalsmile.goldberry.widget.Widget;
+import io.github.digitalsmile.goldberry.widget.attr.Attributed;
+import io.github.digitalsmile.goldberry.widget.attr.Attributes;
 import io.github.digitalsmile.goldberry.widgets.markup.Markup;
 import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
-import java.util.List;
 
 /// An in-window menu bar — `docs/core-widgets.md` §8's `menubar`.
 ///
@@ -67,8 +68,7 @@ import java.util.List;
 /// @param children   the headings, each an [Item] with a submenu
 /// @param attributes the `id` and classes, which land on the `menubar` node
 @Markup("menubar")
-public record MenuBar(List<Widget> children, Attributes attributes)
-        implements Widget.Stateful, Attributed<MenuBar> {
+public record MenuBar(List<Widget> children, Attributes attributes) implements Widget.Stateful, Attributed<MenuBar> {
 
     public MenuBar {
         children = List.copyOf(children == null ? List.of() : children);

@@ -4,13 +4,14 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import io.github.digitalsmile.goldberry.natives.NativeLibraryRequirement.Fail;
-import io.github.digitalsmile.goldberry.natives.NativeLibraryRequirement.Run;
-import io.github.digitalsmile.goldberry.natives.NativeLibraryRequirement.Skip;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
+
+import io.github.digitalsmile.goldberry.natives.NativeLibraryRequirement.Fail;
+import io.github.digitalsmile.goldberry.natives.NativeLibraryRequirement.Run;
+import io.github.digitalsmile.goldberry.natives.NativeLibraryRequirement.Skip;
 
 /// The rule that decides whether a missing `libgoldberry` is a skip or a failure.
 ///
@@ -23,8 +24,7 @@ class NativeLibraryRequirementTest {
     @ValueSource(booleans = {true, false})
     @DisplayName("an available library runs the test whether or not it was required")
     void availableAlwaysRuns(boolean required) {
-        assertInstanceOf(
-                Run.class, NativeLibraryRequirement.decide(true, required, "/tmp/libgoldberry.so"));
+        assertInstanceOf(Run.class, NativeLibraryRequirement.decide(true, required, "/tmp/libgoldberry.so"));
     }
 
     @Test

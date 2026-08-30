@@ -2,25 +2,27 @@ package io.github.digitalsmile.goldberry.example;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.List;
+import java.util.TreeSet;
+import java.util.concurrent.CopyOnWriteArrayList;
+
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.AppenderBase;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
-import io.github.digitalsmile.goldberry.widgets.Controls;
-import io.github.digitalsmile.goldberry.widgets.Density;
+import io.github.digitalsmile.goldberry.css.StyleElement;
 import io.github.digitalsmile.goldberry.css.Stylesheet;
 import io.github.digitalsmile.goldberry.css.Theme;
-import io.github.digitalsmile.goldberry.css.StyleElement;
 import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
 import io.github.digitalsmile.goldberry.css.cascade.StyleResolver;
 import io.github.digitalsmile.goldberry.css.select.Selector;
 import io.github.digitalsmile.goldberry.css.value.CssLength;
-import java.util.List;
-import java.util.TreeSet;
-import java.util.concurrent.CopyOnWriteArrayList;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
+import io.github.digitalsmile.goldberry.widgets.Controls;
+import io.github.digitalsmile.goldberry.widgets.Density;
 
 /// Every declaration the toolkit's own stylesheets write is one the engine
 /// applies — the property exists, **and** the value parses.
@@ -89,8 +91,7 @@ class SupportedPropertyTest {
     /// them would report a hundred and fifty-eight failures on a healthy tree —
     /// which is how this filter came to be written.
     private static boolean isUnsupportedProperty(String line) {
-        return line.contains("ignoring unsupported property")
-                && !line.contains("\"--");
+        return line.contains("ignoring unsupported property") && !line.contains("\"--");
     }
 
     /// Whether a complaint is about a **value** the engine would not take.
@@ -108,8 +109,7 @@ class SupportedPropertyTest {
     /// @param sheets what is in force — the theme included, because a value half
     ///               of this check has to see what `var(--gb-surface)` stood for
     /// @param linted which of them is under scrutiny
-    private static java.util.SortedSet<String> deadDeclarations(
-            List<Stylesheet> sheets, List<Stylesheet> linted) {
+    private static java.util.SortedSet<String> deadDeclarations(List<Stylesheet> sheets, List<Stylesheet> linted) {
 
         return new TreeSet<>(complaintsFrom(sheets, linted).stream()
                 .filter(line -> isUnsupportedProperty(line) || isDroppedValue(line))
@@ -211,7 +211,8 @@ class SupportedPropertyTest {
 
         var dead = deadDeclarations(sheets, sheets);
 
-        assertTrue(dead.isEmpty(),
+        assertTrue(
+                dead.isEmpty(),
                 () -> "the toolkit's stylesheets write " + dead.size()
                         + " declaration(s) the engine drops on the floor, so the rule"
                         + " does nothing and nothing reads the line that says so: " + dead);
@@ -222,12 +223,10 @@ class SupportedPropertyTest {
     void theShowcaseWritesOnlySupportedProperties() {
         // The gallery is the visual regression corpus (§14), so a dead
         // declaration in it is a screen that has been photographed wrong.
-        var sheet = Stylesheet.resource(CascadeLayer.APPLICATION,
-                Showcase.class, "showcase.css");
+        var sheet = Stylesheet.resource(CascadeLayer.APPLICATION, Showcase.class, "showcase.css");
         // Under the toolkit's sheets, which is where the showcase runs: its own
         // rules read the theme's custom properties like everybody else's.
-        var inForce = new java.util.ArrayList<>(
-                Controls.stylesheets(Theme.NORD_DARK, Density.REGULAR));
+        var inForce = new java.util.ArrayList<>(Controls.stylesheets(Theme.NORD_DARK, Density.REGULAR));
         inForce.add(sheet);
 
         var dead = deadDeclarations(List.copyOf(inForce), List.of(sheet));
@@ -240,10 +239,10 @@ class SupportedPropertyTest {
     void theCheckCatchesOne() {
         // Without this, a change to the log's wording or to the appender wiring
         // would make the two tests above pass by seeing nothing at all.
-        var bad = Stylesheet.parse(CascadeLayer.APPLICATION,
-                "table-head { border-bottom: 1px solid #fff }");
+        var bad = Stylesheet.parse(CascadeLayer.APPLICATION, "table-head { border-bottom: 1px solid #fff }");
 
-        assertTrue(complaintsFrom(List.of(bad), List.of(bad)).stream()
+        assertTrue(
+                complaintsFrom(List.of(bad), List.of(bad)).stream()
                         .anyMatch(SupportedPropertyTest::isUnsupportedProperty),
                 "the check saw nothing wrong with `border-bottom`, which the engine"
                         + " does not implement — so it would see nothing wrong with anything");
@@ -255,11 +254,10 @@ class SupportedPropertyTest {
         // The half added by ADR-0216, guarded the same way: `border-radius` is a
         // property the engine has, and `50%` is a value it refuses because the
         // box has no size until Yoga has run.
-        var bad = Stylesheet.parse(CascadeLayer.APPLICATION,
-                "group-box-title { border-radius: 50% }");
+        var bad = Stylesheet.parse(CascadeLayer.APPLICATION, "group-box-title { border-radius: 50% }");
 
-        assertTrue(complaintsFrom(List.of(bad), List.of(bad)).stream()
-                        .anyMatch(SupportedPropertyTest::isDroppedValue),
+        assertTrue(
+                complaintsFrom(List.of(bad), List.of(bad)).stream().anyMatch(SupportedPropertyTest::isDroppedValue),
                 "the check saw nothing wrong with `border-radius: 50%`, which the engine"
                         + " drops — so a rule with a bad value would sail past it");
     }

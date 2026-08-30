@@ -3,6 +3,7 @@ package io.github.digitalsmile.goldberry.css.value;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+
 import io.github.digitalsmile.goldberry.css.parse.CssTokenizer;
 import io.github.digitalsmile.goldberry.css.parse.Token;
 import io.github.digitalsmile.goldberry.css.parse.TokenType;
@@ -26,8 +27,7 @@ import io.github.digitalsmile.goldberry.css.parse.TokenType;
 /// is 148 chances for `grey`/`gray` confusion to look like a toolkit bug.
 public final class CssColor {
 
-    private CssColor() {
-    }
+    private CssColor() {}
 
     /// Fully transparent, and what an unparseable colour is never silently
     /// turned into.
@@ -150,10 +150,13 @@ public final class CssColor {
         return switch (digits.length()) {
             // Each digit doubled: #abc is #aabbcc, which is why this is not a
             // shift of the 6-digit path.
-            case 3 -> 0xFF000000 | expand(digits.charAt(0)) << 16
-                    | expand(digits.charAt(1)) << 8 | expand(digits.charAt(2));
-            case 4 -> expand(digits.charAt(3)) << 24 | expand(digits.charAt(0)) << 16
-                    | expand(digits.charAt(1)) << 8 | expand(digits.charAt(2));
+            case 3 ->
+                0xFF000000 | expand(digits.charAt(0)) << 16 | expand(digits.charAt(1)) << 8 | expand(digits.charAt(2));
+            case 4 ->
+                expand(digits.charAt(3)) << 24
+                        | expand(digits.charAt(0)) << 16
+                        | expand(digits.charAt(1)) << 8
+                        | expand(digits.charAt(2));
             case 6 -> 0xFF000000 | (int) Long.parseLong(digits, 16);
             // CSS writes the alpha last; the packed form wants it first.
             case 8 -> {

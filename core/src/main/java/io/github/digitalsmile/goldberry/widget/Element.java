@@ -1,19 +1,19 @@
 package io.github.digitalsmile.goldberry.widget;
 
-import io.github.digitalsmile.goldberry.bind.Subscription;
-import io.github.digitalsmile.goldberry.css.select.Selector;
-import io.github.digitalsmile.goldberry.css.ComputedStyle;
-import io.github.digitalsmile.goldberry.css.StyleElement;
-import io.github.digitalsmile.goldberry.css.cascade.StyleResolver;
-import io.github.digitalsmile.goldberry.motion.Animations;
-import io.github.digitalsmile.goldberry.stats.FrameStats;
-
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+
+import io.github.digitalsmile.goldberry.bind.Subscription;
+import io.github.digitalsmile.goldberry.css.ComputedStyle;
+import io.github.digitalsmile.goldberry.css.StyleElement;
+import io.github.digitalsmile.goldberry.css.cascade.StyleResolver;
+import io.github.digitalsmile.goldberry.css.select.Selector;
+import io.github.digitalsmile.goldberry.motion.Animations;
+import io.github.digitalsmile.goldberry.stats.FrameStats;
 import io.github.digitalsmile.goldberry.widget.style.Styled;
 
 /// The persistent instantiation of a [Widget] — the second of ADR-0004's three
@@ -102,8 +102,7 @@ public final class Element implements BuildContext, StyleElement {
     // and the root -- eleven of them at the showcase's depth, and the largest
     // term left in a frame (ADR-0152).
 
-    private java.util.Map<String, java.util.List<io.github.digitalsmile.goldberry.css.parse.Token>>
-            customProperties;
+    private java.util.Map<String, java.util.List<io.github.digitalsmile.goldberry.css.parse.Token>> customProperties;
 
     private StyleResolver customPropertiesResolver;
 
@@ -112,16 +111,15 @@ public final class Element implements BuildContext, StyleElement {
 
     @Override
     public java.util.Map<String, java.util.List<io.github.digitalsmile.goldberry.css.parse.Token>>
-            cachedCustomProperties(StyleResolver resolver,
-                    java.util.Map<String,
-                            java.util.List<io.github.digitalsmile.goldberry.css.parse.Token>> inherited) {
-        return customPropertiesResolver == resolver && customPropertiesInherited == inherited
-                ? customProperties
-                : null;
+            cachedCustomProperties(
+                    StyleResolver resolver,
+                    java.util.Map<String, java.util.List<io.github.digitalsmile.goldberry.css.parse.Token>> inherited) {
+        return customPropertiesResolver == resolver && customPropertiesInherited == inherited ? customProperties : null;
     }
 
     @Override
-    public void cacheCustomProperties(StyleResolver resolver,
+    public void cacheCustomProperties(
+            StyleResolver resolver,
             java.util.Map<String, java.util.List<io.github.digitalsmile.goldberry.css.parse.Token>> inherited,
             java.util.Map<String, java.util.List<io.github.digitalsmile.goldberry.css.parse.Token>> resolved) {
         this.customPropertiesResolver = resolver;
@@ -376,8 +374,9 @@ public final class Element implements BuildContext, StyleElement {
             case Widget.Stateful ignored -> List.of(state.build(this));
             case Widget.Stateless stateless -> List.of(stateless.build(this));
             case Widget.Leaf leaf -> leaf.children();
-            default -> throw new IllegalStateException(
-                    widget.getClass().getName() + " implements Widget but none of its three shapes");
+            default ->
+                throw new IllegalStateException(
+                        widget.getClass().getName() + " implements Widget but none of its three shapes");
         };
     }
 
@@ -599,8 +598,10 @@ public final class Element implements BuildContext, StyleElement {
             invalidateOwnStyle();
             if (resolver == null || resolver.reachesDescendants(pseudoClass, type())) {
                 if (FrameTrace.ENABLED) {
-                    tree.trace().walked(type() + ":" + pseudoClass
-                            + (resolver == null ? " (no resolver yet)" : ""), subtreeSize());
+                    tree.trace()
+                            .walked(
+                                    type() + ":" + pseudoClass + (resolver == null ? " (no resolver yet)" : ""),
+                                    subtreeSize());
                 }
                 for (var child : children) {
                     child.invalidateStyle();

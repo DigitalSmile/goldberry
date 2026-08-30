@@ -1,12 +1,13 @@
 package io.github.digitalsmile.goldberry.widgets.controls.slider;
 
-import io.github.digitalsmile.goldberry.css.ComputedStyle;
-import io.github.digitalsmile.goldberry.paint.Box;
-import io.github.digitalsmile.goldberry.widget.style.Paints;
-import io.github.digitalsmile.goldberry.widget.style.Styled;
-import io.github.digitalsmile.goldberry.widget.Widget;
 import java.util.List;
 import java.util.Set;
+
+import io.github.digitalsmile.goldberry.css.ComputedStyle;
+import io.github.digitalsmile.goldberry.paint.Box;
+import io.github.digitalsmile.goldberry.widget.Widget;
+import io.github.digitalsmile.goldberry.widget.style.Paints;
+import io.github.digitalsmile.goldberry.widget.style.Styled;
 
 /// The 4px channel a slider's thumb runs along — a **part** of [Slider], and the
 /// eighth.
@@ -59,10 +60,7 @@ record SliderGroove(double fraction, boolean disabled) implements Widget.Leaf, S
 
     @Override
     public List<Widget> children() {
-        return List.of(
-                new SliderFill(fraction, disabled),
-                new SliderThumb(disabled),
-                new SliderRest(1 - fraction));
+        return List.of(new SliderFill(fraction, disabled), new SliderThumb(disabled), new SliderRest(1 - fraction));
     }
 
     @Override

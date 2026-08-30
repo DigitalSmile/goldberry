@@ -1,27 +1,28 @@
 package io.github.digitalsmile.goldberry.widgets.controls.progressbar;
 
-import io.github.digitalsmile.goldberry.widget.attr.Attributes;
-import io.github.digitalsmile.goldberry.widgets.core.Column;
-import io.github.digitalsmile.goldberry.widgets.core.Row;
-
-import io.github.digitalsmile.goldberry.RendererRequirement;
-import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
-import io.github.digitalsmile.goldberry.css.Stylesheet;
-import io.github.digitalsmile.goldberry.css.Theme;
-import io.github.digitalsmile.goldberry.golden.GoldenImage;
-import io.github.digitalsmile.goldberry.paint.BoxPainter;
-import io.github.digitalsmile.goldberry.motion.Clock;
-import io.github.digitalsmile.goldberry.widget.ElementTree;
-import io.github.digitalsmile.goldberry.widget.Widget;
-import io.github.digitalsmile.goldberry.widget.WidgetRenderer;
-import io.github.digitalsmile.goldberry.widgets.Controls;
-import io.github.digitalsmile.goldberry.widgets.controls.TestFont;
-import io.github.digitalsmile.goldberry.widgets.controls.spinner.Spinner;
 import java.util.List;
 import java.util.Set;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+
+import io.github.digitalsmile.goldberry.RendererRequirement;
+import io.github.digitalsmile.goldberry.css.Stylesheet;
+import io.github.digitalsmile.goldberry.css.Theme;
+import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
+import io.github.digitalsmile.goldberry.golden.GoldenImage;
+import io.github.digitalsmile.goldberry.motion.Clock;
+import io.github.digitalsmile.goldberry.paint.BoxPainter;
+import io.github.digitalsmile.goldberry.widget.ElementTree;
+import io.github.digitalsmile.goldberry.widget.Widget;
+import io.github.digitalsmile.goldberry.widget.WidgetRenderer;
+import io.github.digitalsmile.goldberry.widget.attr.Attributes;
+import io.github.digitalsmile.goldberry.widgets.Controls;
+import io.github.digitalsmile.goldberry.widgets.controls.TestFont;
+import io.github.digitalsmile.goldberry.widgets.controls.spinner.Spinner;
+import io.github.digitalsmile.goldberry.widgets.core.Column;
+import io.github.digitalsmile.goldberry.widgets.core.Row;
 
 /// What a progress bar and a spinner look like (§14, [ADR-0050]).
 ///
@@ -42,26 +43,25 @@ class ProgressGoldenTest {
         RendererRequirement.enforce();
     }
 
-    private void paint(String name, Theme theme, int width, int height, double now,
-            boolean reduced, Widget content) {
+    private void paint(String name, Theme theme, int width, int height, double now, boolean reduced, Widget content) {
         var clock = Clock.virtual();
         var renderer = new WidgetRenderer(
-                List.of(
-                        Controls.baseStylesheet(),
-                        theme.load(),
-                        Stylesheet.parse(CascadeLayer.APPLICATION, """
+                        List.of(
+                                Controls.baseStylesheet(),
+                                theme.load(),
+                                Stylesheet.parse(CascadeLayer.APPLICATION, """
                                 #scene { flex-direction: column; padding: 12px; gap: 12px;
                                          align-items: center; background: var(--gb-bg) }
                                 #row   { gap: 16px; padding: 12px; align-items: center;
                                          background: var(--gb-bg) }
                                 """)),
-                TestFont.get())
+                        TestFont.get())
                 .clock(clock)
                 .reducedMotion(reduced);
         clock.advance(now);
 
-        GoldenImage.assertMatches(name, width, height, 1.0f,
-                frame -> BoxPainter.paint(frame, renderer.render(new ElementTree(content))));
+        GoldenImage.assertMatches(
+                name, width, height, 1.0f, frame -> BoxPainter.paint(frame, renderer.render(new ElementTree(content))));
     }
 
     private static Attributes id(String id) {
@@ -74,17 +74,27 @@ class ProgressGoldenTest {
         // The image that says the value became a *width*. Every way of getting
         // that wrong -- the fraction against the wrong denominator, the fill
         // grown instead of sized, the track painted over -- lays out perfectly.
-        paint("progress-determinate", Theme.NORD_DARK, 300, 100, 0, false, new Column(
-                List.of(new Progress(0), new Progress(0.4), new Progress(1)),
-                id("scene")));
+        paint(
+                "progress-determinate",
+                Theme.NORD_DARK,
+                300,
+                100,
+                0,
+                false,
+                new Column(List.of(new Progress(0), new Progress(0.4), new Progress(1)), id("scene")));
     }
 
     @Test
     @DisplayName("the same on light")
     void light() {
-        paint("progress-light", Theme.NORD_LIGHT, 300, 100, 0, false, new Column(
-                List.of(new Progress(0), new Progress(0.4), new Progress(1)),
-                id("scene")));
+        paint(
+                "progress-light",
+                Theme.NORD_LIGHT,
+                300,
+                100,
+                0,
+                false,
+                new Column(List.of(new Progress(0), new Progress(0.4), new Progress(1)), id("scene")));
     }
 
     /// The bar a third of the way into its travel, entering from the left.
@@ -97,9 +107,14 @@ class ProgressGoldenTest {
     @Test
     @DisplayName("a sweep 180ms into its loop, and two of them agreeing")
     void sweeping() {
-        paint("progress-sweeping", Theme.NORD_DARK, 300, 80, 180, false, new Column(
-                List.of(Progress.sweeping(), Progress.sweeping()),
-                id("scene")));
+        paint(
+                "progress-sweeping",
+                Theme.NORD_DARK,
+                300,
+                80,
+                180,
+                false,
+                new Column(List.of(Progress.sweeping(), Progress.sweeping()), id("scene")));
     }
 
     /// The far end of the same loop, at 600 ms — flush against the right-hand
@@ -111,9 +126,14 @@ class ProgressGoldenTest {
     @Test
     @DisplayName("and at 600ms, flush against the far end")
     void sweepingAtTheEnd() {
-        paint("progress-sweeping-end", Theme.NORD_DARK, 300, 60, 600, false, new Column(
-                List.of(Progress.sweeping()),
-                id("scene")));
+        paint(
+                "progress-sweeping-end",
+                Theme.NORD_DARK,
+                300,
+                60,
+                600,
+                false,
+                new Column(List.of(Progress.sweeping()), id("scene")));
     }
 
     /// §3.1's reduced-motion answer, and the thing to look for is that there is
@@ -122,9 +142,14 @@ class ProgressGoldenTest {
     @Test
     @DisplayName("reduced motion holds the bar still across a third of the track")
     void sweepingReduced() {
-        paint("progress-reduced", Theme.NORD_DARK, 300, 60, 600, true, new Column(
-                List.of(Progress.sweeping()),
-                id("scene")));
+        paint(
+                "progress-reduced",
+                Theme.NORD_DARK,
+                300,
+                60,
+                600,
+                true,
+                new Column(List.of(Progress.sweeping()), id("scene")));
     }
 
     /// The picture the arc exists for, and the only thing that can see it: a
@@ -135,9 +160,14 @@ class ProgressGoldenTest {
     @Test
     @DisplayName("a ring with a gap, three of them in step")
     void spinner() {
-        paint("spinner-turning", Theme.NORD_DARK, 160, 60, 0, false, new Row(
-                List.of(new Spinner(id("a")), new Spinner(id("b")), new Spinner(id("c"))),
-                id("row")));
+        paint(
+                "spinner-turning",
+                Theme.NORD_DARK,
+                160,
+                60,
+                0,
+                false,
+                new Row(List.of(new Spinner(id("a")), new Spinner(id("b")), new Spinner(id("c"))), id("row")));
     }
 
     /// Half a turn later, so the gap is at the bottom. Two images rather than one
@@ -147,8 +177,13 @@ class ProgressGoldenTest {
     @Test
     @DisplayName("450ms later, the gap is at the bottom")
     void spinnerHalfTurn() {
-        paint("spinner-half-turn", Theme.NORD_DARK, 160, 60, 450, false, new Row(
-                List.of(new Spinner(id("a")), new Spinner(id("b")), new Spinner(id("c"))),
-                id("row")));
+        paint(
+                "spinner-half-turn",
+                Theme.NORD_DARK,
+                160,
+                60,
+                450,
+                false,
+                new Row(List.of(new Spinner(id("a")), new Spinner(id("b")), new Spinner(id("c"))), id("row")));
     }
 }

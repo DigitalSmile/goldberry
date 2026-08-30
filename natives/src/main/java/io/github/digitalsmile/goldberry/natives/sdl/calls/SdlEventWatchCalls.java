@@ -3,28 +3,25 @@ package io.github.digitalsmile.goldberry.natives.sdl.calls;
 import static java.lang.foreign.ValueLayout.ADDRESS;
 import static java.lang.foreign.ValueLayout.JAVA_BOOLEAN;
 
-import io.github.digitalsmile.goldberry.natives.Downcalls;
 import java.lang.foreign.FunctionDescriptor;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.SymbolLookup;
 import java.lang.invoke.MethodHandle;
+
+import io.github.digitalsmile.goldberry.natives.Downcalls;
 
 /// SDL's event watches — a callback SDL runs as events arrive.
 ///
 /// One holder per function: its handle, its address, and a `call` whose
 /// parameters are the C prototype’s. See [Downcalls] for why the handle is a
 /// `static final` constant and why these live in a package of their own.
-public record SdlEventWatchCalls(
-        AddEventWatch addEventWatch,
-        RemoveEventWatch removeEventWatch) {
+public record SdlEventWatchCalls(AddEventWatch addEventWatch, RemoveEventWatch removeEventWatch) {
 
     /// Binds every function above.
     ///
     /// @param lookup the loaded `libgoldberry`
     public static SdlEventWatchCalls bind(SymbolLookup lookup) {
-        return new SdlEventWatchCalls(
-                new AddEventWatch(lookup),
-                new RemoveEventWatch(lookup));
+        return new SdlEventWatchCalls(new AddEventWatch(lookup), new RemoveEventWatch(lookup));
     }
 
     /// Registers a callback SDL runs for every event, as it is queued.

@@ -1,6 +1,5 @@
 package io.github.digitalsmile.goldberry.natives.yoga.style;
 
-
 /// What happens to content that does not fit — `YGOverflow`.
 ///
 /// Yoga only decides *sizing* from this; nothing here clips. [#HIDDEN] and
@@ -8,7 +7,6 @@ package io.github.digitalsmile.goldberry.natives.yoga.style;
 /// and the paint layer is what actually clips (§5). A node whose overflow is
 /// [#VISIBLE] is allowed to make its parent's content box larger.
 public enum Overflow implements YogaEnum {
-
     VISIBLE(0, "YGOverflowVisible"),
 
     HIDDEN(1, "YGOverflowHidden"),

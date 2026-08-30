@@ -1,23 +1,24 @@
 package io.github.digitalsmile.goldberry.widgets.menu;
 
-import io.github.digitalsmile.goldberry.css.ComputedStyle;
-import io.github.digitalsmile.goldberry.icon.Icon;
-import io.github.digitalsmile.goldberry.input.handler.Handles;
-import io.github.digitalsmile.goldberry.input.event.KeyEvent;
-import io.github.digitalsmile.goldberry.input.event.PointerEvent;
-import io.github.digitalsmile.goldberry.paint.Box;
-import io.github.digitalsmile.goldberry.widget.attr.Attributed;
-import io.github.digitalsmile.goldberry.widget.attr.Attributes;
-import io.github.digitalsmile.goldberry.widget.style.Paints;
-import io.github.digitalsmile.goldberry.widget.style.Styled;
-import io.github.digitalsmile.goldberry.widget.Widget;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+
+import io.github.digitalsmile.goldberry.css.ComputedStyle;
+import io.github.digitalsmile.goldberry.icon.Icon;
+import io.github.digitalsmile.goldberry.input.event.KeyEvent;
+import io.github.digitalsmile.goldberry.input.event.PointerEvent;
+import io.github.digitalsmile.goldberry.input.handler.Handles;
 import io.github.digitalsmile.goldberry.kdl.KdlNode;
-import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
+import io.github.digitalsmile.goldberry.paint.Box;
+import io.github.digitalsmile.goldberry.widget.Widget;
+import io.github.digitalsmile.goldberry.widget.attr.Attributed;
+import io.github.digitalsmile.goldberry.widget.attr.Attributes;
+import io.github.digitalsmile.goldberry.widget.style.Paints;
+import io.github.digitalsmile.goldberry.widget.style.Styled;
 import io.github.digitalsmile.goldberry.widgets.markup.Markup;
+import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
 
 /// One command in a [Menu] — `docs/core-widgets.md` §8's `item`: "label, optional
 /// icon, accelerator (displayed right-aligned …), checkable items, disabled
@@ -68,13 +69,22 @@ import io.github.digitalsmile.goldberry.widgets.markup.Markup;
 ///                    item holds [MenuSignals#NONE]. It was a single "the pointer
 ///                    arrived" callback, and the four keyboard gaps that closed
 ///                    when it stopped being one are in
-///                    [ADR-0219](../../../../../../../book/src/adr/0219-an-item-tells-its-menu-what-the-keyboard-did.md)
-///                    ([ADR-0112](../../../../../../../book/src/adr/0112-a-menu-follows-the-pointer-and-lights-for-the-keyboard.md))
+///
+/// [ADR-0219](../../../../../../../book/src/adr/0219-an-item-tells-its-menu-what-the-keyboard-did.md)
+///
+/// ([ADR-0112](../../../../../../../book/src/adr/0112-a-menu-follows-the-pointer-and-lights-for-the-keyboard.md))
 /// @param attributes  `id` and `class`, exactly as on the primitives
 @Markup("item")
 public record Item(
-        String label, Icon icon, String accelerator, Runnable onPress, Boolean checked,
-        boolean disabled, List<Widget> submenu, boolean reservesLead, MenuSignals signals,
+        String label,
+        Icon icon,
+        String accelerator,
+        Runnable onPress,
+        Boolean checked,
+        boolean disabled,
+        List<Widget> submenu,
+        boolean reservesLead,
+        MenuSignals signals,
         Attributes attributes)
         implements Widget.Leaf, Styled, Paints, Handles, Attributed<Item> {
 
@@ -91,8 +101,7 @@ public record Item(
 
     /// A command.
     public Item(String label, Runnable onPress) {
-        this(label, null, null, onPress, null, false, List.of(), false, MenuSignals.NONE,
-                Attributes.NONE);
+        this(label, null, null, onPress, null, false, List.of(), false, MenuSignals.NONE, Attributes.NONE);
     }
 
     /// A command with nothing behind it yet.
@@ -102,21 +111,19 @@ public record Item(
 
     /// This item with an icon before its label.
     public Item icon(Icon value) {
-        return new Item(label, value, accelerator, onPress, checked, disabled, submenu,
-                reservesLead, signals, attributes);
+        return new Item(
+                label, value, accelerator, onPress, checked, disabled, submenu, reservesLead, signals, attributes);
     }
 
     /// This item showing `text` as its accelerator — the display half of §8's
     /// accelerator, right-aligned. See the class note for the other half.
     public Item accelerator(String text) {
-        return new Item(label, icon, text, onPress, checked, disabled, submenu, reservesLead,
-                signals, attributes);
+        return new Item(label, icon, text, onPress, checked, disabled, submenu, reservesLead, signals, attributes);
     }
 
     /// This item with a tick, or without one.
     public Item checked(boolean value) {
-        return new Item(label, icon, accelerator, onPress, value, disabled, submenu,
-                reservesLead, signals, attributes);
+        return new Item(label, icon, accelerator, onPress, value, disabled, submenu, reservesLead, signals, attributes);
     }
 
     /// This row with room for a tick and no tick in it — a checkable command that
@@ -136,34 +143,40 @@ public record Item(
 
     /// Used by [Menus] to tell a row whether its menu reserves a leading column.
     Item reservingLead(boolean value) {
-        return new Item(label, icon, accelerator, onPress, checked, disabled, submenu, value,
-                signals, attributes);
+        return new Item(label, icon, accelerator, onPress, checked, disabled, submenu, value, signals, attributes);
     }
 
     public Item disabled(boolean value) {
-        return new Item(label, icon, accelerator, onPress, checked, value, submenu,
-                reservesLead, signals, attributes);
+        return new Item(label, icon, accelerator, onPress, checked, value, submenu, reservesLead, signals, attributes);
     }
 
     /// This item with a submenu under it.
     public Item submenu(Widget... items) {
-        return new Item(label, icon, accelerator, onPress, checked, disabled, List.of(items),
-                reservesLead, signals, attributes);
+        return new Item(
+                label,
+                icon,
+                accelerator,
+                onPress,
+                checked,
+                disabled,
+                List.of(items),
+                reservesLead,
+                signals,
+                attributes);
     }
 
     /// This item running `action` when chosen — used by [Menus] to wrap an
     /// author's command in "and close the menu", which is what choosing a command
     /// does everywhere.
     public Item pressing(Runnable action) {
-        return new Item(label, icon, accelerator, action, checked, disabled, submenu,
-                reservesLead, signals, attributes);
+        return new Item(
+                label, icon, accelerator, action, checked, disabled, submenu, reservesLead, signals, attributes);
     }
 
     /// Used by [Menus] to hand an item the way to talk back to the menu it is in
     /// — see [MenuSignals].
     public Item signalling(MenuSignals value) {
-        return new Item(label, icon, accelerator, onPress, checked, disabled, submenu,
-                reservesLead, value, attributes);
+        return new Item(label, icon, accelerator, onPress, checked, disabled, submenu, reservesLead, value, attributes);
     }
 
     /// Whether this item leads somewhere rather than doing something.
@@ -188,8 +201,7 @@ public record Item(
 
     @Override
     public Item withAttributes(Attributes value) {
-        return new Item(label, icon, accelerator, onPress, checked, disabled, submenu,
-                reservesLead, signals, value);
+        return new Item(label, icon, accelerator, onPress, checked, disabled, submenu, reservesLead, signals, value);
     }
 
     @Override
@@ -242,7 +254,9 @@ public record Item(
     /// (ADR-0219).
     @Override
     public void onKey(KeyEvent event) {
-        if (disabled || event.kind() != KeyEvent.Kind.PRESSED || event.isRepeat()
+        if (disabled
+                || event.kind() != KeyEvent.Kind.PRESSED
+                || event.isRepeat()
                 || !event.modifiers().none()) {
             return;
         }
@@ -266,8 +280,7 @@ public record Item(
                 signals.back();
                 event.consume();
             }
-            default -> {
-            }
+            default -> {}
         }
     }
 
@@ -351,7 +364,8 @@ public record Item(
         if (accelerator != null && !accelerator.isEmpty()) {
             // The same, and more obviously: `Ctrl+Shift+K` broken over two lines
             // is not an accelerator anybody can read.
-            content.add(Box.text(context.paragraph(style, accelerator), style.color()).shrink(0));
+            content.add(Box.text(context.paragraph(style, accelerator), style.color())
+                    .shrink(0));
         }
         if (hasSubmenu() && !children.isEmpty()) {
             content.add(children.getLast());
@@ -366,7 +380,9 @@ public record Item(
     /// forget. `reservesCheck` and the hover callback are the menu's to supply on
     /// every open, which is why neither is an attribute.
     public static Widget inflate(KdlNode node, List<Widget> children, Wiring wiring) {
-        return new Item(Wiring.label(node), wiring.icon(node),
+        return new Item(
+                Wiring.label(node),
+                wiring.icon(node),
                 node.stringProperty("accelerator"),
                 wiring.action(node, "press"),
                 // Three states: `checked=#true` is on, `checked=#false` is a
@@ -374,7 +390,10 @@ public record Item(
                 // that is not checkable -- which is what decides whether its menu
                 // reserves a tick column (ADR-0113).
                 node.property("checked").isPresent() ? node.booleanProperty("checked") : null,
-                Wiring.disabled(node), children, false, null,
+                Wiring.disabled(node),
+                children,
+                false,
+                null,
                 Attributes.of(node));
     }
 }

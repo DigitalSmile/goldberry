@@ -1,27 +1,28 @@
 package io.github.digitalsmile.goldberry.widgets;
 
-import io.github.digitalsmile.goldberry.widget.attr.Attributes;
-import io.github.digitalsmile.goldberry.widgets.core.Row;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
 
 import io.github.digitalsmile.goldberry.RendererRequirement;
-import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
 import io.github.digitalsmile.goldberry.css.Stylesheet;
 import io.github.digitalsmile.goldberry.css.Theme;
+import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
 import io.github.digitalsmile.goldberry.golden.GoldenImage;
 import io.github.digitalsmile.goldberry.paint.BoxPainter;
 import io.github.digitalsmile.goldberry.widget.ElementTree;
 import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widget.WidgetRenderer;
+import io.github.digitalsmile.goldberry.widget.attr.Attributes;
 import io.github.digitalsmile.goldberry.widgets.controls.TestFont;
 import io.github.digitalsmile.goldberry.widgets.controls.button.Button;
 import io.github.digitalsmile.goldberry.widgets.controls.checkbox.Checkbox;
 import io.github.digitalsmile.goldberry.widgets.controls.radio.Radio;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
+import io.github.digitalsmile.goldberry.widgets.core.Row;
 
 /// What a density looks like (§1.3, [ADR-0074]).
 ///
@@ -54,8 +55,8 @@ class DensityGoldenTest {
                 """));
 
         var renderer = new WidgetRenderer(sheets, TestFont.get());
-        GoldenImage.assertMatches(name, 460, 56, 1.0f,
-                frame -> BoxPainter.paint(frame, renderer.render(new ElementTree(scene()))));
+        GoldenImage.assertMatches(
+                name, 460, 56, 1.0f, frame -> BoxPainter.paint(frame, renderer.render(new ElementTree(scene()))));
     }
 
     /// One of each sized control, so a density that reached only some of them

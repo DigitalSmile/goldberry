@@ -41,9 +41,8 @@ public record Modifiers(int mask) {
 
     public Modifiers {
         if ((mask & ~0xF) != 0) {
-            throw new IllegalArgumentException(
-                    "0x" + Integer.toHexString(mask) + " has bits no Mod owns;"
-                            + " build one with Modifiers.of(Mod…) rather than by hand");
+            throw new IllegalArgumentException("0x" + Integer.toHexString(mask) + " has bits no Mod owns;"
+                    + " build one with Modifiers.of(Mod…) rather than by hand");
         }
     }
 
@@ -70,11 +69,10 @@ public record Modifiers(int mask) {
 
     /// Reads a platform bitmask — SDL's, at the only boundary that has one.
     public static Modifiers fromSdl(int sdlMask) {
-        return new Modifiers(
-                ((sdlMask & SDL_SHIFT) != 0 ? Mod.SHIFT.bit() : 0)
-                        | ((sdlMask & SDL_CTRL) != 0 ? Mod.CTRL.bit() : 0)
-                        | ((sdlMask & SDL_ALT) != 0 ? Mod.ALT.bit() : 0)
-                        | ((sdlMask & SDL_GUI) != 0 ? Mod.META.bit() : 0));
+        return new Modifiers(((sdlMask & SDL_SHIFT) != 0 ? Mod.SHIFT.bit() : 0)
+                | ((sdlMask & SDL_CTRL) != 0 ? Mod.CTRL.bit() : 0)
+                | ((sdlMask & SDL_ALT) != 0 ? Mod.ALT.bit() : 0)
+                | ((sdlMask & SDL_GUI) != 0 ? Mod.META.bit() : 0));
     }
 
     /// Whether `mod` was held.

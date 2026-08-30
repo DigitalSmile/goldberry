@@ -5,38 +5,40 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
+
 import io.github.digitalsmile.goldberry.RendererRequirement;
-import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
 import io.github.digitalsmile.goldberry.css.Stylesheet;
 import io.github.digitalsmile.goldberry.css.Theme;
+import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
 import io.github.digitalsmile.goldberry.golden.GoldenImage;
-import io.github.digitalsmile.goldberry.input.key.Modifiers;
+import io.github.digitalsmile.goldberry.input.PointerRouter;
 import io.github.digitalsmile.goldberry.input.hit.HitTest;
 import io.github.digitalsmile.goldberry.input.key.Key;
-import io.github.digitalsmile.goldberry.input.PointerRouter;
+import io.github.digitalsmile.goldberry.input.key.Modifiers;
 import io.github.digitalsmile.goldberry.paint.TestFrames;
 import io.github.digitalsmile.goldberry.paint.tree.RenderTree;
 import io.github.digitalsmile.goldberry.render.model.LogicalRect;
-import io.github.digitalsmile.goldberry.widget.attr.Attributes;
 import io.github.digitalsmile.goldberry.widget.Element;
 import io.github.digitalsmile.goldberry.widget.ElementTree;
 import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widget.WidgetRenderer;
+import io.github.digitalsmile.goldberry.widget.attr.Attributes;
 import io.github.digitalsmile.goldberry.widgets.Controls;
 import io.github.digitalsmile.goldberry.widgets.controls.TestFont;
 import io.github.digitalsmile.goldberry.widgets.core.Column;
 import io.github.digitalsmile.goldberry.widgets.core.scroll.Scroll;
 import io.github.digitalsmile.goldberry.widgets.core.scroll.ScrollAxis;
-import io.github.digitalsmile.goldberry.widgets.text.Text;
 import io.github.digitalsmile.goldberry.widgets.data.donutchart.DonutChart;
 import io.github.digitalsmile.goldberry.widgets.data.linechart.LineChart;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.Test;
+import io.github.digitalsmile.goldberry.widgets.text.Text;
 
 /// A donut answering the pointer, and every chart answering the keyboard.
 ///
@@ -60,19 +62,19 @@ class ChartInputTest {
 
     private static List<Series> two() {
         return List.of(
-                Series.of("Downloads", 12, 19, 15, 27, 31, 28, 36),
-                Series.of("Installs", 8, 11, 9, 18, 21, 19, 24));
+                Series.of("Downloads", 12, 19, 15, 27, 31, 28, 36), Series.of("Installs", 8, 11, 9, 18, 21, 19, 24));
     }
 
     private static Widget lineChart() {
-        return framed(new LineChart(two(),
+        return framed(new LineChart(
+                two(),
                 List.of("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"),
                 new Attributes("plot", Set.of(), "plot")));
     }
 
     private static Widget donut() {
-        return framed(new DonutChart(List.of(
-                Series.of("Cache", 62), Series.of("Origin", 24), Series.of("Miss", 14)),
+        return framed(new DonutChart(
+                List.of(Series.of("Cache", 62), Series.of("Origin", 24), Series.of("Miss", 14)),
                 new Attributes("plot", Set.of(), "plot")));
     }
 
@@ -93,8 +95,7 @@ class ChartInputTest {
         var radius = Math.min(plot.width(), plot.height()) / 2 * 0.81;
         var angle = -Math.PI / 2 + turns * Math.PI * 2;
         return new float[] {
-            (float) (cx + radius * Math.cos(angle)),
-            (float) (cy + radius * Math.sin(angle)),
+            (float) (cx + radius * Math.cos(angle)), (float) (cy + radius * Math.sin(angle)),
         };
     }
 
@@ -112,7 +113,8 @@ class ChartInputTest {
                 var point = onTheRing(plot, 0.15);
                 harness.move(point[0], point[1]);
 
-                assertFalse(java.util.Arrays.equals(quiet, harness.frame()),
+                assertFalse(
+                        java.util.Arrays.equals(quiet, harness.frame()),
                         "a donut nobody is reading and one somebody is are different pictures");
             }
         }
@@ -142,8 +144,7 @@ class ChartInputTest {
 
                 var point = onTheRing(plot, 0.15);
                 harness.move(point[0], point[1]);
-                assertFalse(java.util.Arrays.equals(quiet, harness.frame()),
-                        "the pointer really did land on the ring");
+                assertFalse(java.util.Arrays.equals(quiet, harness.frame()), "the pointer really did land on the ring");
                 harness.exit();
 
                 assertArrayEquals(quiet, harness.frame());
@@ -161,8 +162,7 @@ class ChartInputTest {
                 var point = onTheRing(plot, 0.25);
                 harness.move(point[0], point[1]);
 
-                GoldenImage.assertMatches("donut-chart-hover-dark", WIDTH, HEIGHT, 1.0f,
-                        harness::paintInto);
+                GoldenImage.assertMatches("donut-chart-hover-dark", WIDTH, HEIGHT, 1.0f, harness::paintInto);
             }
         }
     }
@@ -183,13 +183,18 @@ class ChartInputTest {
         /// The chart, pushed down a viewport so that reading it means scrolling
         /// first — which is every chart on a dashboard taller than its window.
         private Widget inAViewport() {
-            return new Column(List.of(new Scroll(List.of(new Column(List.of(
-                    new Text("filler", new Attributes("spacer", Set.of(), "spacer")),
-                    new LineChart(two(),
-                            List.of("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"),
-                            new Attributes("plot", Set.of(), "plot"))),
-                    Attributes.NONE)), ScrollAxis.VERTICAL,
-                    new Attributes("viewport", Set.of(), "viewport"))),
+            return new Column(
+                    List.of(new Scroll(
+                            List.of(new Column(
+                                    List.of(
+                                            new Text("filler", new Attributes("spacer", Set.of(), "spacer")),
+                                            new LineChart(
+                                                    two(),
+                                                    List.of("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"),
+                                                    new Attributes("plot", Set.of(), "plot"))),
+                                    Attributes.NONE)),
+                            ScrollAxis.VERTICAL,
+                            new Attributes("viewport", Set.of(), "viewport"))),
                     new Attributes("frame", Set.of(), "frame"));
         }
 
@@ -208,15 +213,15 @@ class ChartInputTest {
                 // same pointer cannot make this pass on its own.
                 var quiet = harness.crop(readable(plot));
 
-                harness.move(plot.left() + plot.width() * 0.6f,
-                        plot.top() + plot.height() / 2);
+                harness.move(plot.left() + plot.width() * 0.6f, plot.top() + plot.height() / 2);
 
                 // A `scroll` moves its content with a transform, so the plot is
                 // laid out where it always was and painted somewhere else. The
                 // pointer reached it either way -- hit testing has always undone
                 // the matrix -- and *where inside* did not, so the crosshair
                 // stopped the moment the panel moved.
-                assertFalse(java.util.Arrays.equals(quiet, harness.crop(readable(plot))),
+                assertFalse(
+                        java.util.Arrays.equals(quiet, harness.crop(readable(plot))),
                         "a scrolled chart still answers the pointer");
             }
         }
@@ -230,8 +235,7 @@ class ChartInputTest {
             try (var harness = new Harness(lineChart())) {
                 harness.frame();
                 var plot = harness.plotRect("chart-plot");
-                harness.move(plot.left() + plot.width() * 0.6f,
-                        plot.top() + plot.height() / 2);
+                harness.move(plot.left() + plot.width() * 0.6f, plot.top() + plot.height() / 2);
                 harness.frame();
                 alone = harness.crop(readable(plot));
             }
@@ -242,14 +246,15 @@ class ChartInputTest {
                 harness.wheel(20);
                 harness.frame();
                 var plot = harness.plotRect("chart-plot");
-                harness.move(plot.left() + plot.width() * 0.6f,
-                        plot.top() + plot.height() / 2);
+                harness.move(plot.left() + plot.width() * 0.6f, plot.top() + plot.height() / 2);
                 harness.frame();
 
                 // Six tenths across is the same point wherever the panel has been
                 // scrolled to. Before the fix this crop was a chart with no
                 // crosshair on it at all.
-                assertArrayEquals(alone, harness.crop(readable(plot)),
+                assertArrayEquals(
+                        alone,
+                        harness.crop(readable(plot)),
                         "the point under the pointer does not depend on the scroll offset");
             }
         }
@@ -268,8 +273,7 @@ class ChartInputTest {
             }
             try (var harness = new Harness(framed(new LineChart(List.of())))) {
                 harness.frame();
-                assertFalse(harness.focus("chart-plot"),
-                        "a chart with nothing in it has nothing to walk");
+                assertFalse(harness.focus("chart-plot"), "a chart with nothing in it has nothing to walk");
             }
         }
 
@@ -298,8 +302,7 @@ class ChartInputTest {
 
                 // The two paths have to produce one state, or a chart read with a
                 // keyboard is a different chart.
-                assertArrayEquals(byKey, harness.frame(),
-                        "the last point by key and the last point by mouse");
+                assertArrayEquals(byKey, harness.frame(), "the last point by key and the last point by mouse");
             }
         }
 
@@ -318,12 +321,10 @@ class ChartInputTest {
                 harness.press(Key.HOME);
                 var first = harness.frame();
 
-                assertFalse(java.util.Arrays.equals(last, first),
-                        "Sunday and Monday are not the same readout");
+                assertFalse(java.util.Arrays.equals(last, first), "Sunday and Monday are not the same readout");
 
                 harness.press(Key.ESCAPE);
-                assertArrayEquals(quiet, harness.frame(),
-                        "Escape is the way back to a chart with no crosshair on it");
+                assertArrayEquals(quiet, harness.frame(), "Escape is the way back to a chart with no crosshair on it");
             }
         }
 
@@ -392,10 +393,8 @@ class ChartInputTest {
             // worked the step out for itself would compute both presses from the
             // same stale index and move once. The state owns the step for exactly
             // this reason, and this is the assertion that says so.
-            assertFalse(java.util.Arrays.equals(frameless, onlyOne),
-                    "two arrows in one frame are not one arrow");
-            assertArrayEquals(spaced, frameless,
-                    "and they are the same two steps a frame apart");
+            assertFalse(java.util.Arrays.equals(frameless, onlyOne), "two arrows in one frame are not one arrow");
+            assertArrayEquals(spaced, frameless, "and they are the same two steps a frame apart");
         }
 
         @Test
@@ -408,8 +407,7 @@ class ChartInputTest {
                 harness.press(Key.RIGHT);
                 var first = harness.frame();
                 harness.press(Key.RIGHT);
-                assertFalse(java.util.Arrays.equals(first, harness.frame()),
-                        "the second slice is not the first");
+                assertFalse(java.util.Arrays.equals(first, harness.frame()), "the second slice is not the first");
 
                 harness.press(Key.RIGHT);
                 harness.press(Key.RIGHT);
@@ -418,7 +416,8 @@ class ChartInputTest {
                 // the third and fourth are pressed **without a frame between
                 // them**, which is what a fast key repeat does and what caught
                 // the widget reading its own stale index.
-                assertArrayEquals(first, harness.frame(), "round the ring and back");            }
+                assertArrayEquals(first, harness.frame(), "round the ring and back");
+            }
         }
     }
 
@@ -426,7 +425,9 @@ class ChartInputTest {
     private static final class Harness implements AutoCloseable {
 
         private final WidgetRenderer renderer = new WidgetRenderer(
-                List.of(Controls.baseStylesheet(), Theme.NORD_DARK.load(),
+                List.of(
+                        Controls.baseStylesheet(),
+                        Theme.NORD_DARK.load(),
                         Stylesheet.parse(CascadeLayer.APPLICATION, """
                                 #frame { padding: 12px; background: var(--gb-bg) }
                                 #plot  { width: 296px; height: 156px }
@@ -502,8 +503,8 @@ class ChartInputTest {
         /// would — and answers whether the widget accepted it.
         boolean focus(String cssType) {
             var element = elementOf(cssType);
-            if (element == null || !(element.widget()
-                    instanceof io.github.digitalsmile.goldberry.input.handler.Handles handles)
+            if (element == null
+                    || !(element.widget() instanceof io.github.digitalsmile.goldberry.input.handler.Handles handles)
                     || !handles.isFocusable()) {
                 return false;
             }
@@ -523,17 +524,15 @@ class ChartInputTest {
             var found = new ArrayList<LogicalRect>();
             render.forEachPlacedBox(placed -> {
                 if (placed.box().owner() instanceof Element element
-                        && element.widget() instanceof io.github.digitalsmile.goldberry.widget
-                                .style.Styled styled
+                        && element.widget() instanceof io.github.digitalsmile.goldberry.widget.style.Styled styled
                         && cssType.equals(styled.cssType())) {
                     var layout = placed.layout();
                     var matrix = placed.transform();
                     found.add(LogicalRect.of(
-                            (float) (matrix.a() * layout.left()
-                                    + matrix.c() * layout.top() + matrix.e()),
-                            (float) (matrix.b() * layout.left()
-                                    + matrix.d() * layout.top() + matrix.f()),
-                            layout.width(), layout.height()));
+                            (float) (matrix.a() * layout.left() + matrix.c() * layout.top() + matrix.e()),
+                            (float) (matrix.b() * layout.left() + matrix.d() * layout.top() + matrix.f()),
+                            layout.width(),
+                            layout.height()));
                 }
             });
             assertEquals(1, found.size(), "expected exactly one " + cssType);
@@ -545,8 +544,8 @@ class ChartInputTest {
         }
 
         private static Element search(Element element, String cssType) {
-            if (element.widget() instanceof io.github.digitalsmile.goldberry.widget.style.Styled
-                    styled && cssType.equals(styled.cssType())) {
+            if (element.widget() instanceof io.github.digitalsmile.goldberry.widget.style.Styled styled
+                    && cssType.equals(styled.cssType())) {
                 return element;
             }
             for (var child : element.children()) {

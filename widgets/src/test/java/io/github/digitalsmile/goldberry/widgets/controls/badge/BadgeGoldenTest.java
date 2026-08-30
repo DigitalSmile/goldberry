@@ -1,26 +1,26 @@
 package io.github.digitalsmile.goldberry.widgets.controls.badge;
 
-import io.github.digitalsmile.goldberry.widget.attr.Attributes;
-import io.github.digitalsmile.goldberry.widgets.core.Row;
-import io.github.digitalsmile.goldberry.widgets.panel.Panel;
+import java.util.List;
+import java.util.Set;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
 
 import io.github.digitalsmile.goldberry.RendererRequirement;
-import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
 import io.github.digitalsmile.goldberry.css.Stylesheet;
 import io.github.digitalsmile.goldberry.css.Theme;
+import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
 import io.github.digitalsmile.goldberry.golden.GoldenImage;
 import io.github.digitalsmile.goldberry.paint.BoxPainter;
 import io.github.digitalsmile.goldberry.widget.ElementTree;
 import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widget.WidgetRenderer;
+import io.github.digitalsmile.goldberry.widget.attr.Attributes;
 import io.github.digitalsmile.goldberry.widgets.Controls;
 import io.github.digitalsmile.goldberry.widgets.controls.TestFont;
-
-import java.util.List;
-import java.util.Set;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
+import io.github.digitalsmile.goldberry.widgets.core.Row;
+import io.github.digitalsmile.goldberry.widgets.panel.Panel;
 
 /// What a badge looks like (§14, [ADR-0050]).
 ///
@@ -43,10 +43,7 @@ class BadgeGoldenTest {
 
     private void paint(String name, Theme theme, int width, int height, Widget content) {
         var renderer = new WidgetRenderer(
-                List.of(
-                        Controls.baseStylesheet(),
-                        theme.load(),
-                        Stylesheet.parse(CascadeLayer.APPLICATION, """
+                List.of(Controls.baseStylesheet(), theme.load(), Stylesheet.parse(CascadeLayer.APPLICATION, """
                                 #row   { gap: 8px; padding: 12px; align-items: center;
                                          background: var(--gb-bg) }
                                 #panel { gap: 8px; padding: 12px; align-items: center;
@@ -54,8 +51,8 @@ class BadgeGoldenTest {
                                 """)),
                 TestFont.get());
 
-        GoldenImage.assertMatches(name, width, height, 1.0f,
-                frame -> BoxPainter.paint(frame, renderer.render(new ElementTree(content))));
+        GoldenImage.assertMatches(
+                name, width, height, 1.0f, frame -> BoxPainter.paint(frame, renderer.render(new ElementTree(content))));
     }
 
     private static Attributes id(String id) {
@@ -102,9 +99,12 @@ class BadgeGoldenTest {
     @Test
     @DisplayName("a default chip is still a chip on a panel")
     void onSurface() {
-        paint("badge-on-surface", Theme.NORD_DARK, 200, 44, new Panel(
-                List.of(new Badge("3"), new Badge("128"), new Badge("1024")),
-                id("panel")));
+        paint(
+                "badge-on-surface",
+                Theme.NORD_DARK,
+                200,
+                44,
+                new Panel(List.of(new Badge("3"), new Badge("128"), new Badge("1024")), id("panel")));
     }
 
     /// One, two, three and four digits. The chip grows with its content and its
@@ -117,8 +117,11 @@ class BadgeGoldenTest {
     @Test
     @DisplayName("it grows sideways and never taller")
     void digits() {
-        paint("badge-digits", Theme.NORD_DARK, 240, 44, new Row(
-                List.of(new Badge("3"), new Badge("12"), new Badge("128"), new Badge("1024")),
-                id("row")));
+        paint(
+                "badge-digits",
+                Theme.NORD_DARK,
+                240,
+                44,
+                new Row(List.of(new Badge("3"), new Badge("12"), new Badge("128"), new Badge("1024")), id("row")));
     }
 }

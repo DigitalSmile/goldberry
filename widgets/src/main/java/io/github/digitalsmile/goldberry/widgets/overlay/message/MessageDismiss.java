@@ -1,5 +1,8 @@
 package io.github.digitalsmile.goldberry.widgets.overlay.message;
 
+import java.util.List;
+import java.util.Set;
+
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
 import io.github.digitalsmile.goldberry.input.event.KeyEvent;
 import io.github.digitalsmile.goldberry.input.event.PointerEvent;
@@ -9,9 +12,6 @@ import io.github.digitalsmile.goldberry.paint.Box;
 import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widget.style.Paints;
 import io.github.digitalsmile.goldberry.widget.style.Styled;
-
-import java.util.List;
-import java.util.Set;
 
 /// The × that closes a [Message] — a **part**.
 ///
@@ -63,7 +63,9 @@ record MessageDismiss(Runnable onDismiss) implements Widget.Leaf, Styled, Paints
     /// key down is one dismissal and the banner is gone after the first.
     @Override
     public void onKey(KeyEvent event) {
-        if (event.kind() != KeyEvent.Kind.PRESSED || event.isRepeat() || !event.modifiers().none()) {
+        if (event.kind() != KeyEvent.Kind.PRESSED
+                || event.isRepeat()
+                || !event.modifiers().none()) {
             return;
         }
         if (event.key() == Key.SPACE || event.key() == Key.ENTER) {

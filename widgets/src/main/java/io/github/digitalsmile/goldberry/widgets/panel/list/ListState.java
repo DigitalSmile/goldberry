@@ -1,17 +1,17 @@
 package io.github.digitalsmile.goldberry.widgets.panel.list;
 
-import io.github.digitalsmile.goldberry.Host;
-import io.github.digitalsmile.goldberry.input.key.Modifiers;
-import io.github.digitalsmile.goldberry.widget.attr.Attributes;
-import io.github.digitalsmile.goldberry.widget.BuildContext;
-import io.github.digitalsmile.goldberry.widget.State;
-import io.github.digitalsmile.goldberry.widget.Widget;
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
+
+import io.github.digitalsmile.goldberry.Host;
+import io.github.digitalsmile.goldberry.input.key.Modifiers;
+import io.github.digitalsmile.goldberry.widget.BuildContext;
+import io.github.digitalsmile.goldberry.widget.State;
+import io.github.digitalsmile.goldberry.widget.Widget;
+import io.github.digitalsmile.goldberry.widget.attr.Attributes;
 
 /// The two things a list remembers, and neither is its value.
 ///
@@ -95,7 +95,9 @@ final class ListState<T> extends State<ListView<T>> {
         for (var index = from; index < to; index++) {
             var item = items.get(index);
             var id = list.identity().apply(item);
-            children.add(new ListRow(rowId(id), selectable,
+            children.add(new ListRow(
+                    rowId(id),
+                    selectable,
                     list.selected().contains(id),
                     list.factory().apply(item),
                     menuOf(item),
@@ -120,7 +122,8 @@ final class ListState<T> extends State<ListView<T>> {
     /// what keeps it from oscillating: the spacers absorb every row the window
     /// leaves out, so the rectangle reported by the next frame is the one that
     /// produced this window.
-    private void located(io.github.digitalsmile.goldberry.render.model.LogicalRect self,
+    private void located(
+            io.github.digitalsmile.goldberry.render.model.LogicalRect self,
             io.github.digitalsmile.goldberry.render.model.LogicalRect clip) {
 
         var list = widget();
@@ -224,9 +227,7 @@ final class ListState<T> extends State<ListView<T>> {
             return Attributes.NONE;
         }
         var named = widget().itemMenu().apply(item);
-        return named == null || named.isBlank()
-                ? Attributes.NONE
-                : Attributes.NONE.contextMenu(named);
+        return named == null || named.isBlank() ? Attributes.NONE : Attributes.NONE.contextMenu(named);
     }
 
     /// A row's focus name, **scoped to its list**.
@@ -399,8 +400,9 @@ final class ListState<T> extends State<ListView<T>> {
     /// built and driven outside a window. Typeahead still works there; it is
     /// simply not drivable, and there is nothing else to read.
     private long now() {
-        return (long) (host == null
-                ? io.github.digitalsmile.goldberry.motion.Clock.system().nowMillis()
-                : host.clock().nowMillis());
+        return (long)
+                (host == null
+                        ? io.github.digitalsmile.goldberry.motion.Clock.system().nowMillis()
+                        : host.clock().nowMillis());
     }
 }

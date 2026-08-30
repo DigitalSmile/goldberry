@@ -1,16 +1,17 @@
 package io.github.digitalsmile.goldberry.widgets.controls.segmented;
 
+import java.util.List;
+import java.util.Set;
+
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
 import io.github.digitalsmile.goldberry.css.value.Transform;
-import io.github.digitalsmile.goldberry.paint.Box;
 import io.github.digitalsmile.goldberry.natives.yoga.Insets;
 import io.github.digitalsmile.goldberry.natives.yoga.style.PositionType;
 import io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength;
+import io.github.digitalsmile.goldberry.paint.Box;
+import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widget.style.Paints;
 import io.github.digitalsmile.goldberry.widget.style.Styled;
-import io.github.digitalsmile.goldberry.widget.Widget;
-import java.util.List;
-import java.util.Set;
 
 /// The filled pill that marks the selected segment — a **part** of [Segmented],
 /// and the thing that moves.
@@ -50,15 +51,13 @@ record SegmentedIndicator(int index, int count) implements Widget.Leaf, Styled, 
 
     /// Pinned to the track's top and bottom, and to its left — the horizontal
     /// place is the transform's, because that is the half that has to move.
-    private static final Insets PINNED = new Insets(
-            StyleLength.points(0), StyleLength.UNDEFINED,
-            StyleLength.points(0), StyleLength.points(0));
+    private static final Insets PINNED =
+            new Insets(StyleLength.points(0), StyleLength.UNDEFINED, StyleLength.points(0), StyleLength.points(0));
 
     SegmentedIndicator {
         if (count <= 0) {
-            throw new IllegalArgumentException(
-                    "an indicator over " + count + " segments has nothing to point at;"
-                            + " SegmentedTrack builds one only when there are segments");
+            throw new IllegalArgumentException("an indicator over " + count + " segments has nothing to point at;"
+                    + " SegmentedTrack builds one only when there are segments");
         }
     }
 
@@ -94,18 +93,16 @@ record SegmentedIndicator(int index, int count) implements Widget.Leaf, Styled, 
     @Override
     public ComputedStyle restyle(ComputedStyle resolved) {
         var cell = Math.max(index, 0);
-        return resolved
-                .width(StyleLength.percent((float) (100.0 / count)))
+        return resolved.width(StyleLength.percent((float) (100.0 / count)))
                 // §3's "radius 8 outer, 0 between", on the fill: the pill is round
                 // only at the ends of the bar, and square everywhere between --
                 // which is a third thing a selector cannot say, because it depends
                 // on which cell of how many this one is (ADR-0217). The radius
                 // itself is the stylesheet's; only the choice of corners is here.
-                .decoration(resolved.decoration().corners(
-                        resolved.decoration().corners().inRow(cell == 0, cell == count - 1)))
+                .decoration(resolved.decoration()
+                        .corners(resolved.decoration().corners().inRow(cell == 0, cell == count - 1)))
                 .transform(Transform.of(new Transform.Function.Translate(
-                        Transform.Length.percent(100.0 * cell),
-                        Transform.Length.ZERO)));
+                        Transform.Length.percent(100.0 * cell), Transform.Length.ZERO)));
     }
 
     @Override
@@ -115,8 +112,6 @@ record SegmentedIndicator(int index, int count) implements Widget.Leaf, Styled, 
         // push the labels along. Pinned in Java rather than in `controls.css`
         // for `row`'s reason -- a stylesheet that could put this back in flow
         // would break the widget rather than restyle it.
-        return Box.of().style(style)
-                .position(PositionType.ABSOLUTE)
-                .inset(PINNED);
+        return Box.of().style(style).position(PositionType.ABSOLUTE).inset(PINNED);
     }
 }

@@ -1,39 +1,39 @@
 package io.github.digitalsmile.goldberry.widgets.controls.progressbar;
 
-import io.github.digitalsmile.goldberry.css.Corners;
-import io.github.digitalsmile.goldberry.paint.Box;
-import io.github.digitalsmile.goldberry.widget.attr.Attributes;
-import io.github.digitalsmile.goldberry.widgets.core.Row;
-
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.List;
+import java.util.Set;
+
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
+
 import io.github.digitalsmile.goldberry.bind.Property;
-import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
-import io.github.digitalsmile.goldberry.css.value.CssLength;
-import io.github.digitalsmile.goldberry.css.cascade.StyleResolver;
+import io.github.digitalsmile.goldberry.css.Corners;
 import io.github.digitalsmile.goldberry.css.Stylesheet;
 import io.github.digitalsmile.goldberry.css.Theme;
+import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
+import io.github.digitalsmile.goldberry.css.cascade.StyleResolver;
+import io.github.digitalsmile.goldberry.css.value.CssLength;
 import io.github.digitalsmile.goldberry.css.value.Transform;
 import io.github.digitalsmile.goldberry.kdl.KdlParser;
 import io.github.digitalsmile.goldberry.motion.Clock;
 import io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength;
+import io.github.digitalsmile.goldberry.paint.Box;
 import io.github.digitalsmile.goldberry.widget.ElementTree;
 import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widget.WidgetRenderer;
+import io.github.digitalsmile.goldberry.widget.attr.Attributes;
 import io.github.digitalsmile.goldberry.widgets.Controls;
-import io.github.digitalsmile.goldberry.widgets.controls.TestFont;
-
-import java.util.List;
-import java.util.Set;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.Test;
 import io.github.digitalsmile.goldberry.widgets.Widgets;
+import io.github.digitalsmile.goldberry.widgets.controls.TestFont;
+import io.github.digitalsmile.goldberry.widgets.core.Row;
 
 /// The seventh control, and the first that is not a control: it reports and takes
 /// nothing back ([ADR-0081]).
@@ -44,14 +44,12 @@ import io.github.digitalsmile.goldberry.widgets.Widgets;
 /// is that this needs no state, which is what these tests are mostly about.
 class ProgressTest {
 
-    private static final Attributes ID =
-            new Attributes("p", Set.of(), "p");
+    private static final Attributes ID = new Attributes("p", Set.of(), "p");
 
     /// The box tree a renderer produces for `widget` at `now` on a virtual clock.
     private static Box paint(Widget widget, double now) {
         var clock = Clock.virtual();
-        var renderer = new WidgetRenderer(Controls.stylesheets(Theme.NORD_DARK), TestFont.get())
-                .clock(clock);
+        var renderer = new WidgetRenderer(Controls.stylesheets(Theme.NORD_DARK), TestFont.get()).clock(clock);
         clock.advance(now);
         return renderer.render(new ElementTree(widget));
     }
@@ -158,8 +156,7 @@ class ProgressTest {
         @DisplayName("the renderer reports a sweeping bar as animating")
         void rendererStaysAwake() {
             var clock = Clock.virtual();
-            var renderer = new WidgetRenderer(Controls.stylesheets(Theme.NORD_DARK), TestFont.get())
-                    .clock(clock);
+            var renderer = new WidgetRenderer(Controls.stylesheets(Theme.NORD_DARK), TestFont.get()).clock(clock);
 
             renderer.render(new ElementTree(Progress.sweeping()));
             assertTrue(renderer.isAnimating());
@@ -191,9 +188,13 @@ class ProgressTest {
             var second = Progress.sweeping();
 
             var one = fillOf(new Row(List.of(first), ID), 400)
-                    .children().getFirst().transform();
+                    .children()
+                    .getFirst()
+                    .transform();
             var other = fillOf(new Row(List.of(second), ID), 400)
-                    .children().getFirst().transform();
+                    .children()
+                    .getFirst()
+                    .transform();
 
             assertEquals(one, other);
         }
@@ -259,14 +260,15 @@ class ProgressTest {
                     .reducedMotion(true);
 
             clock.advance(500);
-            var fill = renderer.render(new ElementTree(Progress.sweeping())).children().getFirst();
+            var fill = renderer.render(new ElementTree(Progress.sweeping()))
+                    .children()
+                    .getFirst();
 
             assertTrue(fill.transform().isNone());
         }
 
         private static double translateOf(Box box) {
-            if (box.transform().functions().getFirst()
-                    instanceof Transform.Function.Translate(var x, var ignored)) {
+            if (box.transform().functions().getFirst() instanceof Transform.Function.Translate(var x, var ignored)) {
                 assertTrue(x.percentage(), "the travel is a proportion of the bar itself");
                 return x.value();
             }
@@ -296,9 +298,7 @@ class ProgressTest {
         @DisplayName("`progress:indeterminate` reaches a sweeping bar and not a valued one")
         void indeterminateIsSelectable() {
             var sheets = List.of(
-                    Controls.baseStylesheet(),
-                    Theme.NORD_DARK.load(),
-                    Stylesheet.parse(CascadeLayer.APPLICATION, """
+                    Controls.baseStylesheet(), Theme.NORD_DARK.load(), Stylesheet.parse(CascadeLayer.APPLICATION, """
                             progress:indeterminate { gap: 7px }
                             """));
 
@@ -311,8 +311,8 @@ class ProgressTest {
             // onto the element by the renderer, which is the step being asserted.
             var tree = new ElementTree(widget);
             new WidgetRenderer(sheets, TestFont.get()).render(tree);
-            return ComputedStyle.of(new StyleResolver(sheets).resolve(tree.root()),
-                    CssLength.Context.DEFAULT).gap();
+            return ComputedStyle.of(new StyleResolver(sheets).resolve(tree.root()), CssLength.Context.DEFAULT)
+                    .gap();
         }
     }
 }

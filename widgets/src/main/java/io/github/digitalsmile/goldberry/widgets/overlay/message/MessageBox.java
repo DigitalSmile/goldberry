@@ -1,5 +1,10 @@
 package io.github.digitalsmile.goldberry.widgets.overlay.message;
 
+import java.util.ArrayList;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Set;
+
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
 import io.github.digitalsmile.goldberry.css.value.Transform;
 import io.github.digitalsmile.goldberry.paint.Box;
@@ -7,11 +12,6 @@ import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widget.attr.Attributes;
 import io.github.digitalsmile.goldberry.widget.style.Paints;
 import io.github.digitalsmile.goldberry.widget.style.Styled;
-
-import java.util.ArrayList;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Set;
 import io.github.digitalsmile.goldberry.widgets.core.Phase;
 
 /// The node a stylesheet calls `message`.
@@ -32,8 +32,13 @@ import io.github.digitalsmile.goldberry.widgets.core.Phase;
 ///                   that the handler which acts on it has an answer
 /// @param attributes the `id` and classes the document wrote
 record MessageBox(
-        Message.Kind kind, String text, List<Widget> actions, Runnable onDismiss,
-        Phase phase, boolean departed, java.util.function.Consumer<Boolean> onMotion,
+        Message.Kind kind,
+        String text,
+        List<Widget> actions,
+        Runnable onDismiss,
+        Phase phase,
+        boolean departed,
+        java.util.function.Consumer<Boolean> onMotion,
         Attributes attributes)
         implements Widget.Leaf, Styled, Paints {
 

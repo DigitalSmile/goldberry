@@ -1,27 +1,29 @@
 package io.github.digitalsmile.goldberry.widgets.panel.tabs;
 
-import io.github.digitalsmile.goldberry.RendererRequirement;
-import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
-import io.github.digitalsmile.goldberry.css.select.Selector;
-import io.github.digitalsmile.goldberry.css.Stylesheet;
-import io.github.digitalsmile.goldberry.css.Theme;
-import io.github.digitalsmile.goldberry.golden.GoldenImage;
-import io.github.digitalsmile.goldberry.icon.Icon;
-import io.github.digitalsmile.goldberry.paint.BoxPainter;
-import io.github.digitalsmile.goldberry.widget.attr.Attributes;
-import io.github.digitalsmile.goldberry.widget.ElementTree;
-import io.github.digitalsmile.goldberry.widget.Widget;
-import io.github.digitalsmile.goldberry.widget.WidgetRenderer;
-import io.github.digitalsmile.goldberry.widgets.Controls;
-import io.github.digitalsmile.goldberry.widgets.controls.TestFont;
-import io.github.digitalsmile.goldberry.widgets.core.Column;
-import io.github.digitalsmile.goldberry.widgets.text.Text;
 import java.util.List;
 import java.util.Set;
+
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+
+import io.github.digitalsmile.goldberry.RendererRequirement;
+import io.github.digitalsmile.goldberry.css.Stylesheet;
+import io.github.digitalsmile.goldberry.css.Theme;
+import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
+import io.github.digitalsmile.goldberry.css.select.Selector;
+import io.github.digitalsmile.goldberry.golden.GoldenImage;
+import io.github.digitalsmile.goldberry.icon.Icon;
+import io.github.digitalsmile.goldberry.paint.BoxPainter;
+import io.github.digitalsmile.goldberry.widget.ElementTree;
+import io.github.digitalsmile.goldberry.widget.Widget;
+import io.github.digitalsmile.goldberry.widget.WidgetRenderer;
+import io.github.digitalsmile.goldberry.widget.attr.Attributes;
+import io.github.digitalsmile.goldberry.widgets.Controls;
+import io.github.digitalsmile.goldberry.widgets.controls.TestFont;
+import io.github.digitalsmile.goldberry.widgets.core.Column;
+import io.github.digitalsmile.goldberry.widgets.text.Text;
 
 /// What a tab strip looks like (§14, [ADR-0050]).
 ///
@@ -56,24 +58,19 @@ class TabsGoldenTest {
         return new Attributes(id, Set.of(), id);
     }
 
-    private void paint(String name, Theme theme, int width, int height, Widget strip,
-            PseudoState... states) {
+    private void paint(String name, Theme theme, int width, int height, Widget strip, PseudoState... states) {
         var scene = new Column(List.of(strip), id("scene"));
         var tree = new ElementTree(scene);
         for (var state : states) {
             state.applyTo(tree.root().children().getFirst());
         }
         var renderer = new WidgetRenderer(
-                List.of(
-                        Controls.baseStylesheet(),
-                        theme.load(),
-                        Stylesheet.parse(CascadeLayer.APPLICATION, """
+                List.of(Controls.baseStylesheet(), theme.load(), Stylesheet.parse(CascadeLayer.APPLICATION, """
                                 #scene { padding: 12px; background: var(--gb-bg) }
                                 """)),
                 TestFont.get());
 
-        GoldenImage.assertMatches(name, width, height, 1.0f,
-                frame -> BoxPainter.paint(frame, renderer.render(tree)));
+        GoldenImage.assertMatches(name, width, height, 1.0f, frame -> BoxPainter.paint(frame, renderer.render(tree)));
     }
 
     /// Which header gets which pseudo-class, set by hand for `ButtonGoldenTest`'s
@@ -87,18 +84,25 @@ class TabsGoldenTest {
         /// looks. The viewport is there so a strip wider than its window scrolls
         /// rather than overflowing (ADR-0118).
         void applyTo(io.github.digitalsmile.goldberry.widget.Element strip) {
-            strip.children().getFirst()     // tabs
-                    .children().getFirst()  // tab-list
-                    .children().get(1)      // Scroll, the composition node
-                    .children().getFirst()  // the scroll viewport it builds
-                    .children().getFirst()  // scroll-content
-                    .children().get(tab)
+            strip.children()
+                    .getFirst() // tabs
+                    .children()
+                    .getFirst() // tab-list
+                    .children()
+                    .get(1) // Scroll, the composition node
+                    .children()
+                    .getFirst() // the scroll viewport it builds
+                    .children()
+                    .getFirst() // scroll-content
+                    .children()
+                    .get(tab)
                     .setPseudoClass(pseudoClass, true);
         }
     }
 
     private Tabs strip() {
-        return new Tabs("editor",
+        return new Tabs(
+                "editor",
                 new Tab("editor", "Editor", new Text("The selected tab's content.")).icon(icon),
                 new Tab("log", "Log"),
                 new Tab("output", "Output"));
@@ -123,11 +127,16 @@ class TabsGoldenTest {
     @Test
     @DisplayName("a tab carries its own colour into its underline")
     void colour() {
-        paint("tabs-colour", Theme.NORD_DARK, 380, 110, new Tabs("log",
-                new Tab("editor", "Editor"),
-                new Tab("log", "Log", new Text("A tab coloured after what it shows."))
-                        .colour(0xFFBF616A),
-                new Tab("output", "Output")));
+        paint(
+                "tabs-colour",
+                Theme.NORD_DARK,
+                380,
+                110,
+                new Tabs(
+                        "log",
+                        new Tab("editor", "Editor"),
+                        new Tab("log", "Log", new Text("A tab coloured after what it shows.")).colour(0xFFBF616A),
+                        new Tab("output", "Output")));
     }
 
     /// Closable tabs and the add affordance, which are the two ends of "a strip's
@@ -135,10 +144,16 @@ class TabsGoldenTest {
     @Test
     @DisplayName("closable tabs and the add affordance")
     void closableAndAddable() {
-        paint("tabs-closable", Theme.NORD_DARK, 380, 110, new Tabs("editor",
-                new Tab("editor", "Editor", new Text("Both ends of the list.")).closable(true),
-                new Tab("log", "Log").closable(true))
-                .onNew(() -> { }));
+        paint(
+                "tabs-closable",
+                Theme.NORD_DARK,
+                380,
+                110,
+                new Tabs(
+                                "editor",
+                                new Tab("editor", "Editor", new Text("Both ends of the list.")).closable(true),
+                                new Tab("log", "Log").closable(true))
+                        .onNew(() -> {}));
     }
 
     /// Hover on an unselected tab, which is the state that says the row is
@@ -146,8 +161,7 @@ class TabsGoldenTest {
     @Test
     @DisplayName("hover on an unselected tab")
     void hover() {
-        paint("tabs-hover", Theme.NORD_DARK, 380, 110, strip(),
-                new PseudoState(1, Selector.PseudoClass.HOVER));
+        paint("tabs-hover", Theme.NORD_DARK, 380, 110, strip(), new PseudoState(1, Selector.PseudoClass.HOVER));
     }
 
     /// The focus ring is *inside* the header, which is the one place in the
@@ -156,7 +170,6 @@ class TabsGoldenTest {
     @Test
     @DisplayName("the focus ring sits inside the header")
     void focusRing() {
-        paint("tabs-focus", Theme.NORD_DARK, 380, 110, strip(),
-                new PseudoState(2, Selector.PseudoClass.FOCUS_VISIBLE));
+        paint("tabs-focus", Theme.NORD_DARK, 380, 110, strip(), new PseudoState(2, Selector.PseudoClass.FOCUS_VISIBLE));
     }
 }

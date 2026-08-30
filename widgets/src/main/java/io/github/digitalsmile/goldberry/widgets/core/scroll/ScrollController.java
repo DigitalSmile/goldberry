@@ -46,8 +46,7 @@ public final class ScrollController {
 
     /// A controller with nothing attached yet, which is every controller for at
     /// least one frame — see the note on lifetime.
-    public ScrollController() {
-    }
+    public ScrollController() {}
 
     /// The attached viewport's state, or null before one is built.
     ///
@@ -85,10 +84,16 @@ public final class ScrollController {
         if (attached == null) {
             return;
         }
-        var dy = distance(self.top(), self.top() + self.size().height(),
-                clip.top(), clip.top() + clip.size().height());
-        var dx = distance(self.left(), self.left() + self.size().width(),
-                clip.left(), clip.left() + clip.size().width());
+        var dy = distance(
+                self.top(),
+                self.top() + self.size().height(),
+                clip.top(),
+                clip.top() + clip.size().height());
+        var dx = distance(
+                self.left(),
+                self.left() + self.size().width(),
+                clip.left(),
+                clip.left() + clip.size().width());
         if (dx != 0 || dy != 0) {
             attached.scrollBy(dx, dy);
         }

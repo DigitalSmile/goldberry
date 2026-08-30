@@ -1,12 +1,13 @@
 package io.github.digitalsmile.goldberry.widgets.controls.select;
 
-import io.github.digitalsmile.goldberry.css.ComputedStyle;
-import io.github.digitalsmile.goldberry.paint.Box;
-import io.github.digitalsmile.goldberry.widget.style.Paints;
-import io.github.digitalsmile.goldberry.widget.style.Styled;
-import io.github.digitalsmile.goldberry.widget.Widget;
 import java.util.List;
 import java.util.Set;
+
+import io.github.digitalsmile.goldberry.css.ComputedStyle;
+import io.github.digitalsmile.goldberry.paint.Box;
+import io.github.digitalsmile.goldberry.widget.Widget;
+import io.github.digitalsmile.goldberry.widget.style.Paints;
+import io.github.digitalsmile.goldberry.widget.style.Styled;
 
 /// The `v` at the end of a closed [Select] — a **part**, so it is CSS-selectable
 /// and not constructible
@@ -34,7 +35,6 @@ record SelectChevron() implements Widget.Leaf, Styled, Paints {
 
     @Override
     public Box render(ComputedStyle style, List<Box> children, Context context) {
-        return Box.of().style(style)
-                .mark(new Box.Mark(Box.Mark.Kind.CHEVRON_DOWN, style.color(), 1.5));
+        return Box.of().style(style).mark(new Box.Mark(Box.Mark.Kind.CHEVRON_DOWN, style.color(), 1.5));
     }
 }

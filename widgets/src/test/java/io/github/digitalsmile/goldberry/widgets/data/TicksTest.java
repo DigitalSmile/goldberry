@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.List;
+
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -60,8 +61,7 @@ class TicksTest {
         var labels = Ticks.extended(0, 10, 6);
 
         assertTrue(isNice(labels.step()), "step " + labels.step());
-        assertTrue(Math.abs(labels.count() - 6) <= 2,
-                "and stays near the count asked for: " + labels.count());
+        assertTrue(Math.abs(labels.count() - 6) <= 2, "and stays near the count asked for: " + labels.count());
     }
 
     @Test
@@ -72,7 +72,8 @@ class TicksTest {
         // zero rather than from -40 in even steps.
         var labels = Ticks.extended(-40, 60, 5);
 
-        assertTrue(labels.values().stream().anyMatch(v -> Math.abs(v) < 1e-9),
+        assertTrue(
+                labels.values().stream().anyMatch(v -> Math.abs(v) < 1e-9),
                 "an axis spanning zero should label it: " + labels.values());
     }
 
@@ -82,7 +83,8 @@ class TicksTest {
         var labels = Ticks.extended(1000, 1004, 5);
 
         assertTrue(isNice(labels.step()), "step " + labels.step());
-        assertTrue(labels.min() <= 1000 && labels.max() >= 1004,
+        assertTrue(
+                labels.min() <= 1000 && labels.max() >= 1004,
                 "the axis covers the data: " + labels.min() + "…" + labels.max());
         // And it does not fall back to labelling from zero, which would put the
         // whole series in the last thousandth of the axis.
@@ -95,8 +97,7 @@ class TicksTest {
         var labels = Ticks.extended(-97, -3, 5);
 
         assertTrue(isNice(labels.step()), "step " + labels.step());
-        assertTrue(labels.min() <= -97 && labels.max() >= -3,
-                labels.min() + "…" + labels.max());
+        assertTrue(labels.min() <= -97 && labels.max() >= -3, labels.min() + "…" + labels.max());
     }
 
     @Test
@@ -107,8 +108,7 @@ class TicksTest {
         // being nice at some magnitude is a rounding bug.
         for (var magnitude : List.of(1e-9, 1e-3, 1.0, 1e6, 1e12)) {
             var labels = Ticks.extended(0, 97 * magnitude, 5);
-            assertTrue(isNice(labels.step() / magnitude),
-                    "at " + magnitude + " the step was " + labels.step());
+            assertTrue(isNice(labels.step() / magnitude), "at " + magnitude + " the step was " + labels.step());
         }
     }
 
@@ -131,19 +131,18 @@ class TicksTest {
 
         for (var value : labels.values()) {
             var rounded = Math.round(value * 1e9) / 1e9;
-            assertEquals(rounded, value, 1e-12,
-                    "a label drifted: " + labels.values());
+            assertEquals(rounded, value, 1e-12, "a label drifted: " + labels.values());
         }
     }
 
     @Test
     @DisplayName("takes the bounds either way round, and refuses what is not a range")
     void argumentsAreChecked() {
-        assertEquals(Ticks.extended(0, 100, 5).values(), Ticks.extended(100, 0, 5).values());
+        assertEquals(
+                Ticks.extended(0, 100, 5).values(), Ticks.extended(100, 0, 5).values());
         assertThrows(IllegalArgumentException.class, () -> Ticks.extended(0, 1, 1));
         assertThrows(IllegalArgumentException.class, () -> Ticks.extended(Double.NaN, 1, 5));
-        assertThrows(IllegalArgumentException.class,
-                () -> Ticks.extended(0, Double.POSITIVE_INFINITY, 5));
+        assertThrows(IllegalArgumentException.class, () -> Ticks.extended(0, Double.POSITIVE_INFINITY, 5));
     }
 
     @Test
@@ -158,7 +157,6 @@ class TicksTest {
         }
         var perCall = (System.nanoTime() - started) / 1_000.0 / 1_000.0;
 
-        assertTrue(perCall < 200,
-                "an axis labelling took " + perCall + " µs, which is too slow to do per frame");
+        assertTrue(perCall < 200, "an axis labelling took " + perCall + " µs, which is too slow to do per frame");
     }
 }

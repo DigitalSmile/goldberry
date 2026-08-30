@@ -1,22 +1,22 @@
 package io.github.digitalsmile.goldberry.widgets.controls.badge;
 
-import io.github.digitalsmile.goldberry.widget.attr.Attributed;
-import io.github.digitalsmile.goldberry.widget.attr.Bindable;
-import io.github.digitalsmile.goldberry.widget.attr.Attributes;
-import io.github.digitalsmile.goldberry.widgets.text.Text;
-
-import io.github.digitalsmile.goldberry.bind.Observable;
-import io.github.digitalsmile.goldberry.css.ComputedStyle;
-import io.github.digitalsmile.goldberry.paint.Box;
-import io.github.digitalsmile.goldberry.widget.style.Paints;
-import io.github.digitalsmile.goldberry.widget.style.Styled;
-import io.github.digitalsmile.goldberry.widget.Widget;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+
+import io.github.digitalsmile.goldberry.bind.Observable;
+import io.github.digitalsmile.goldberry.css.ComputedStyle;
 import io.github.digitalsmile.goldberry.kdl.KdlNode;
-import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
+import io.github.digitalsmile.goldberry.paint.Box;
+import io.github.digitalsmile.goldberry.widget.Widget;
+import io.github.digitalsmile.goldberry.widget.attr.Attributed;
+import io.github.digitalsmile.goldberry.widget.attr.Attributes;
+import io.github.digitalsmile.goldberry.widget.attr.Bindable;
+import io.github.digitalsmile.goldberry.widget.style.Paints;
+import io.github.digitalsmile.goldberry.widget.style.Styled;
 import io.github.digitalsmile.goldberry.widgets.markup.Markup;
+import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
+import io.github.digitalsmile.goldberry.widgets.text.Text;
 
 /// A count or a status — `docs/core-widgets.md` §3's `badge`, "count/status chip,
 /// typically composed inside `stack`".
@@ -43,7 +43,8 @@ import io.github.digitalsmile.goldberry.widgets.markup.Markup;
 ///
 /// Classes rather than an enum, for §11's parity invariant: KDL spells a variant
 /// `class="danger"`, and an enum would be a second vocabulary only Java could
-/// use. [io.github.digitalsmile.goldberry.widgets.controls.button.Button#styled] made the same choice for the same reason.
+/// use. [io.github.digitalsmile.goldberry.widgets.controls.button.Button#styled] made the same choice for the same
+/// reason.
 ///
 /// **The foreground is not the theme's.** A filled chip in an aurora hue cannot
 /// take `--gb-text`: white on `--gb-warning` is 1.35:1 against §1.2's 4.5:1
@@ -87,7 +88,6 @@ public record Badge(String text, Observable<?> source, Attributes attributes)
     public static Badge of(String fallback, Observable<?> source) {
         return new Badge(fallback, Objects.requireNonNull(source, "source"), Attributes.NONE);
     }
-
 
     /// What the chip says right now: the bound value, or the literal.
     ///
@@ -136,7 +136,8 @@ public record Badge(String text, Observable<?> source, Attributes attributes)
     @Override
     public Box render(ComputedStyle style, List<Box> children, Context context) {
         // The text is a **child box** and not text on the chip's own box, which
-        // is [io.github.digitalsmile.goldberry.widgets.controls.button.Button]'s split and here it buys the one thing a pill needs: a box
+        // is [io.github.digitalsmile.goldberry.widgets.controls.button.Button]'s split and here it buys the one thing a
+        // pill needs: a box
         // that measures its own text is a measured leaf, and Yoga sizes a
         // measured node to its content, so the chip could not be given the
         // 20px height that makes `border-radius: 10px` a full radius. With the
@@ -144,8 +145,7 @@ public record Badge(String text, Observable<?> source, Attributes attributes)
         // stylesheet pins -- and it is still **one styled element**, because the
         // paragraph is built from the chip's own `style` rather than from a
         // second widget's (`SliderValue` takes the other branch, and says why).
-        return Box.of().style(style)
-                .children(Box.text(context.paragraph(style, resolved()), style.color()));
+        return Box.of().style(style).children(Box.text(context.paragraph(style, resolved()), style.color()));
     }
 
     /// Builds a `badge` from markup.

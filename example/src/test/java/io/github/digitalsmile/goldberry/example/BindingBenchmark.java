@@ -1,18 +1,20 @@
 package io.github.digitalsmile.goldberry.example;
 
-import io.github.digitalsmile.goldberry.bind.Action;
-import io.github.digitalsmile.goldberry.bind.registry.ActionRegistry;
-import io.github.digitalsmile.goldberry.bind.Bind;
-import io.github.digitalsmile.goldberry.bind.registry.BindingRegistry;
-import io.github.digitalsmile.goldberry.bind.Model;
-import io.github.digitalsmile.goldberry.bind.runtime.Models;
-import io.github.digitalsmile.goldberry.bind.Observable;
-import io.github.digitalsmile.goldberry.bind.Property;
 import java.util.Arrays;
 import java.util.function.LongSupplier;
+
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
+
+import io.github.digitalsmile.goldberry.bind.Action;
+import io.github.digitalsmile.goldberry.bind.Bind;
+import io.github.digitalsmile.goldberry.bind.Model;
+import io.github.digitalsmile.goldberry.bind.Observable;
+import io.github.digitalsmile.goldberry.bind.Property;
+import io.github.digitalsmile.goldberry.bind.registry.ActionRegistry;
+import io.github.digitalsmile.goldberry.bind.registry.BindingRegistry;
+import io.github.digitalsmile.goldberry.bind.runtime.Models;
 
 /// What the binding schema costs, before and after ADR-0125.
 ///
@@ -112,8 +114,7 @@ class BindingBenchmark {
 
         /// Changes nothing, so a loop over it measures the call site and not the
         /// model behind it.
-        void noop() {
-        }
+        void noop() {}
 
         BindingRegistry bindings() {
             return BindingRegistry.strict()
@@ -143,10 +144,13 @@ class BindingBenchmark {
 
         @Bind("app.clicks")
         private int clicks;
+
         @Bind("app.label")
         private String label = "idle";
+
         @Bind("app.on")
         private boolean on;
+
         @Bind("app.gain")
         private Number gain = 40;
 
@@ -173,8 +177,7 @@ class BindingBenchmark {
         /// Changes nothing, so a loop over it measures the call site and not the
         /// model behind it.
         @Action("app.noop")
-        void noop() {
-        }
+        void noop() {}
     }
 
     // --- the measurements ----------------------------------------------------
@@ -396,7 +399,8 @@ class BindingBenchmark {
         report(FORM + " bindings() + actions(), x1000", () -> {
             var total = 0L;
             for (var i = 0; i < 1_000; i++) {
-                total += Models.bindings(woven).bound().size() + Models.actions(woven).bound().size();
+                total += Models.bindings(woven).bound().size()
+                        + Models.actions(woven).bound().size();
             }
             return total;
         });
@@ -441,7 +445,7 @@ class BindingBenchmark {
         var model = new ShowcaseModel();
         var actions = Models.actions(model);
         var click = actions.resolve("app.click");
-        Models.bindings(model).resolve("app.clicks").subscribe(v -> { });
+        Models.bindings(model).resolve("app.clicks").subscribe(v -> {});
 
         report("ShowcaseModel click, 1 listener", () -> {
             for (var i = 0; i < WRITES; i++) {

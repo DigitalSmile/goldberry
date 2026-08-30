@@ -3,18 +3,20 @@ package io.github.digitalsmile.goldberry.input;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
+
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+
 import io.github.digitalsmile.goldberry.css.value.Affine;
 import io.github.digitalsmile.goldberry.input.event.PointerEvent;
 import io.github.digitalsmile.goldberry.input.handler.Handles;
 import io.github.digitalsmile.goldberry.input.hit.HitTest;
 import io.github.digitalsmile.goldberry.widget.ElementTree;
-import io.github.digitalsmile.goldberry.widget.style.Styled;
 import io.github.digitalsmile.goldberry.widget.Widget;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
+import io.github.digitalsmile.goldberry.widget.style.Styled;
 
 /// Where the pointer is inside a widget that has been **moved** since it was laid
 /// out.
@@ -61,9 +63,8 @@ class LocalUnderTransformTest {
         var tree = new ElementTree(new Control());
         var moved = Affine.translate(0, -offset);
         var regions = new ArrayList<HitTest.Region>();
-        regions.add(new HitTest.Region(tree.root(),
-                io.github.digitalsmile.goldberry.render.Cursor.DEFAULT,
-                0, 500, 100, 40, moved.invert()));
+        regions.add(new HitTest.Region(
+                tree.root(), io.github.digitalsmile.goldberry.render.Cursor.DEFAULT, 0, 500, 100, 40, moved.invert()));
         router.updateRegions(List.copyOf(regions));
         return router;
     }
@@ -95,7 +96,8 @@ class LocalUnderTransformTest {
         assertEquals(10, local.y(), 1e-6);
         assertEquals(100, local.width(), 1e-6);
         assertEquals(40, local.height(), 1e-6);
-        assertTrue(local.fractionY() > 0 && local.fractionY() < 1,
+        assertTrue(
+                local.fractionY() > 0 && local.fractionY() < 1,
                 "and the fraction is inside the box rather than clamped to an end");
     }
 

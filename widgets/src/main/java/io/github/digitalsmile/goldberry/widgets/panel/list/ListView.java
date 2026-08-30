@@ -1,17 +1,17 @@
 package io.github.digitalsmile.goldberry.widgets.panel.list;
 
-import io.github.digitalsmile.goldberry.widget.attr.Attributed;
-import io.github.digitalsmile.goldberry.widget.attr.Attributes;
-import io.github.digitalsmile.goldberry.widget.State;
-import io.github.digitalsmile.goldberry.widget.Widget;
-import io.github.digitalsmile.goldberry.widgets.text.Text;
-
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Function;
+
+import io.github.digitalsmile.goldberry.widget.State;
+import io.github.digitalsmile.goldberry.widget.Widget;
+import io.github.digitalsmile.goldberry.widget.attr.Attributed;
+import io.github.digitalsmile.goldberry.widget.attr.Attributes;
+import io.github.digitalsmile.goldberry.widgets.text.Text;
 
 /// A vertical list over an item model — `docs/core-widgets.md` §10's `list`.
 ///
@@ -108,10 +108,17 @@ import java.util.function.Function;
 /// @param rowHeight   how tall a row is, in logical pixels — the number that
 ///                    turns virtualization on; zero builds every row
 /// @param attributes  `id` and `class`, exactly as on the primitives
-public record ListView<T>(List<T> items, Function<T, String> identity,
-        Function<T, Widget> factory, Function<T, String> text, Function<T, String> itemMenu,
-        Set<String> selected, Consumer<Set<String>> onSelect, Selection selection,
-        double rowHeight, Attributes attributes)
+public record ListView<T>(
+        List<T> items,
+        Function<T, String> identity,
+        Function<T, Widget> factory,
+        Function<T, String> text,
+        Function<T, String> itemMenu,
+        Set<String> selected,
+        Consumer<Set<String>> onSelect,
+        Selection selection,
+        double rowHeight,
+        Attributes attributes)
         implements Widget.Stateful, Attributed<ListView<T>> {
 
     public ListView {
@@ -124,9 +131,8 @@ public record ListView<T>(List<T> items, Function<T, String> identity,
         selected = unmodifiableOrdered(selected);
         selection = selection == null ? Selection.SINGLE : selection;
         if (rowHeight < 0 || Double.isNaN(rowHeight)) {
-            throw new IllegalArgumentException(
-                    "a row height must be a positive number of logical pixels,"
-                            + " or zero to build every row; got " + rowHeight);
+            throw new IllegalArgumentException("a row height must be a positive number of logical pixels,"
+                    + " or zero to build every row; got " + rowHeight);
         }
         attributes = attributes == null ? Attributes.NONE : attributes;
     }
@@ -142,8 +148,7 @@ public record ListView<T>(List<T> items, Function<T, String> identity,
     /// The two functions §10 cannot supply a default for: what an item *is* and
     /// what it looks like. Everything else has one.
     public ListView(List<T> items, Function<T, String> identity, Function<T, Widget> factory) {
-        this(items, identity, factory, null, null,
-                Set.of(), null, Selection.SINGLE, 0, Attributes.NONE);
+        this(items, identity, factory, null, null, Set.of(), null, Selection.SINGLE, 0, Attributes.NONE);
     }
 
     /// A list of plain strings, drawn as `text` — the shape a list most often
@@ -155,9 +160,17 @@ public record ListView<T>(List<T> items, Function<T, String> identity,
     /// to the selection and to the reconciler. A caller with duplicates has items
     /// that are not strings, and should say what their identity is.
     public static ListView<String> of(List<String> labels) {
-        return new ListView<>(labels, java.util.function.Function.identity(), Text::new,
-                java.util.function.Function.identity(), null,
-                Set.of(), null, Selection.SINGLE, 0, Attributes.NONE);
+        return new ListView<>(
+                labels,
+                java.util.function.Function.identity(),
+                Text::new,
+                java.util.function.Function.identity(),
+                null,
+                Set.of(),
+                null,
+                Selection.SINGLE,
+                0,
+                Attributes.NONE);
     }
 
     /// The one chosen id, or null — the single-selection reading of [#selected].
@@ -175,8 +188,8 @@ public record ListView<T>(List<T> items, Function<T, String> identity,
     /// listener with no value has nothing to draw — ADR-0063's loop needs both
     /// ends or neither.
     public ListView<T> selected(Set<String> values, Consumer<Set<String>> onSelect) {
-        return new ListView<>(items, identity, factory, text, itemMenu,
-                values, onSelect, selection, rowHeight, attributes);
+        return new ListView<>(
+                items, identity, factory, text, itemMenu, values, onSelect, selection, rowHeight, attributes);
     }
 
     /// The same, for the caller that holds **one** value.
@@ -187,22 +200,25 @@ public record ListView<T>(List<T> items, Function<T, String> identity,
     /// common case for the benefit of the rare one. What crosses inside is a set
     /// either way.
     public ListView<T> selected(String value, Consumer<String> onSelect) {
-        return selected(value == null ? Set.of() : Set.of(value),
-                onSelect == null ? null : chosen -> onSelect.accept(
-                        chosen.isEmpty() ? null : chosen.iterator().next()));
+        return selected(
+                value == null ? Set.of() : Set.of(value),
+                onSelect == null
+                        ? null
+                        : chosen -> onSelect.accept(
+                                chosen.isEmpty() ? null : chosen.iterator().next()));
     }
 
     /// This list with a different selection model — §10's "none / single / multi".
     public ListView<T> selection(Selection value) {
-        return new ListView<>(items, identity, factory, text, itemMenu,
-                selected, onSelect, value, rowHeight, attributes);
+        return new ListView<>(
+                items, identity, factory, text, itemMenu, selected, onSelect, value, rowHeight, attributes);
     }
 
     /// This list with items that expose text, which is what §10 makes
     /// type-to-select conditional on.
     public ListView<T> text(Function<T, String> value) {
-        return new ListView<>(items, identity, factory, value, itemMenu,
-                selected, onSelect, selection, rowHeight, attributes);
+        return new ListView<>(
+                items, identity, factory, value, itemMenu, selected, onSelect, selection, rowHeight, attributes);
     }
 
     /// This list building **only the rows its viewport can see** — §10's
@@ -227,8 +243,8 @@ public record ListView<T>(List<T> items, Function<T, String> identity,
     ///
     /// @param height a row's height in logical pixels, or zero to build them all
     public ListView<T> virtualized(double height) {
-        return new ListView<>(items, identity, factory, text, itemMenu,
-                selected, onSelect, selection, height, attributes);
+        return new ListView<>(
+                items, identity, factory, text, itemMenu, selected, onSelect, selection, height, attributes);
     }
 
     /// This list with a context menu per item — §10's "item context menus".
@@ -242,14 +258,14 @@ public record ListView<T>(List<T> items, Function<T, String> identity,
     /// the pointer, and the menu key walks up from what has the focus, which is
     /// the row itself ([ADR-0208]).
     public ListView<T> itemMenu(Function<T, String> value) {
-        return new ListView<>(items, identity, factory, text, value,
-                selected, onSelect, selection, rowHeight, attributes);
+        return new ListView<>(
+                items, identity, factory, text, value, selected, onSelect, selection, rowHeight, attributes);
     }
 
     @Override
     public ListView<T> withAttributes(Attributes value) {
-        return new ListView<>(items, identity, factory, text, itemMenu,
-                selected, onSelect, selection, rowHeight, value);
+        return new ListView<>(
+                items, identity, factory, text, itemMenu, selected, onSelect, selection, rowHeight, value);
     }
 
     @Override

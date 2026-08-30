@@ -1,10 +1,11 @@
 package io.github.digitalsmile.goldberry.widget.attr;
 
-import io.github.digitalsmile.goldberry.kdl.KdlNode;
 import java.util.LinkedHashSet;
 import java.util.Set;
-import io.github.digitalsmile.goldberry.widget.style.Styled;
+
+import io.github.digitalsmile.goldberry.kdl.KdlNode;
 import io.github.digitalsmile.goldberry.widget.Widget;
+import io.github.digitalsmile.goldberry.widget.style.Styled;
 
 /// `id`, `class` and the reconciler's key — what every widget carries and no
 /// widget decides.
@@ -27,8 +28,7 @@ import io.github.digitalsmile.goldberry.widget.Widget;
 ///
 /// [#of(KdlNode)] is here for the same reason: parsing `id` and `class` off a
 /// markup node is the inflater's contract, and the inflater is `:core`'s.
-public record Attributes(
-        String id, Set<String> classes, Object key, String tooltip, String contextMenu) {
+public record Attributes(String id, Set<String> classes, Object key, String tooltip, String contextMenu) {
 
     /// No id, no classes, no key, no tooltip — what a widget built in Java gets
     /// unless it says otherwise.
@@ -55,8 +55,7 @@ public record Attributes(
     /// a tooltip is not a property of being a button, and a catalog where each
     /// control had to remember to carry one would have thirty chances to forget.
     public Attributes tooltip(String text) {
-        return new Attributes(id, classes, key,
-                text == null || text.isBlank() ? null : text, contextMenu);
+        return new Attributes(id, classes, key, text == null || text.isBlank() ? null : text, contextMenu);
     }
 
     /// This, with the name of the menu a right-click should open —
@@ -68,8 +67,7 @@ public record Attributes(
     /// a thing that has to be opened, and opening needs a window
     /// ([ADR-0108](../../../../../../../book/src/adr/0108-a-context-menu-is-a-name-on-a-widget.md)).
     public Attributes contextMenu(String menuId) {
-        return new Attributes(id, classes, key, tooltip,
-                menuId == null || menuId.isBlank() ? null : menuId);
+        return new Attributes(id, classes, key, tooltip, menuId == null || menuId.isBlank() ? null : menuId);
     }
 
     /// This, with a different `id` — **and the same id as the key**.
@@ -115,7 +113,6 @@ public record Attributes(
                 }
             }
         }
-        return new Attributes(id, classes, id, node.stringProperty("tooltip"),
-                node.stringProperty("context-menu"));
+        return new Attributes(id, classes, id, node.stringProperty("tooltip"), node.stringProperty("context-menu"));
     }
 }

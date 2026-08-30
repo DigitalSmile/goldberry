@@ -1,5 +1,11 @@
 package io.github.digitalsmile.goldberry.widgets.panel.tree;
 
+import java.util.List;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+
 import io.github.digitalsmile.goldberry.RendererRequirement;
 import io.github.digitalsmile.goldberry.css.Stylesheet;
 import io.github.digitalsmile.goldberry.css.Theme;
@@ -15,10 +21,6 @@ import io.github.digitalsmile.goldberry.widgets.Controls;
 import io.github.digitalsmile.goldberry.widgets.TestHost;
 import io.github.digitalsmile.goldberry.widgets.controls.TestFont;
 import io.github.digitalsmile.goldberry.widgets.panel.Described;
-import java.util.List;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
 
 /// What a `tree` looks like with two levels open — the picture [TreeTest] cannot
 /// take.
@@ -41,13 +43,18 @@ class TreeGoldenTest {
 
     private void paint(String name, Theme theme) {
         var host = new TestHost();
-        var tree = new ElementTree(new Tree(List.of(
-                TreeNode.of("europe", "Europe",
-                        TreeNode.leaf("no", "Norway"),
-                        TreeNode.of("uk", "United Kingdom",
-                                TreeNode.leaf("sct", "Scotland"))),
-                TreeNode.leaf("asia", "Asia")),
-                "no", value -> { }), host);
+        var tree = new ElementTree(
+                new Tree(
+                        List.of(
+                                TreeNode.of(
+                                        "europe",
+                                        "Europe",
+                                        TreeNode.leaf("no", "Norway"),
+                                        TreeNode.of("uk", "United Kingdom", TreeNode.leaf("sct", "Scotland"))),
+                                TreeNode.leaf("asia", "Asia")),
+                        "no",
+                        value -> {}),
+                host);
 
         // Opened from the keyboard, which is the only way in: expansion is the
         // widget's own state and no document can set it (ADR-0184).
@@ -55,12 +62,10 @@ class TreeGoldenTest {
         open(tree, "uk");
 
         var renderer = new WidgetRenderer(
-                List.of(Controls.baseStylesheet(), theme.load(),
-                        Stylesheet.parse(CascadeLayer.APPLICATION, SCENE)),
+                List.of(Controls.baseStylesheet(), theme.load(), Stylesheet.parse(CascadeLayer.APPLICATION, SCENE)),
                 TestFont.get());
 
-        GoldenImage.assertMatches(name, 240, 176, 1.0f,
-                frame -> BoxPainter.paint(frame, renderer.render(tree)));
+        GoldenImage.assertMatches(name, 240, 176, 1.0f, frame -> BoxPainter.paint(frame, renderer.render(tree)));
     }
 
     private static void open(ElementTree tree, String id) {
@@ -95,25 +100,32 @@ class TreeGoldenTest {
     @DisplayName("a cascade tree, with a branch that is only partly ticked")
     void cascade() {
         var host = new TestHost();
-        var tree = new ElementTree(new Tree(List.of(
-                TreeNode.of("europe", "Europe",
-                        TreeNode.leaf("no", "Norway"),
-                        TreeNode.of("uk", "United Kingdom",
-                                TreeNode.leaf("sct", "Scotland"))),
-                TreeNode.leaf("asia", "Asia")),
-                "no", value -> { })
-                .checkable(Checkable.CASCADE)
-                .checked(java.util.Set.of("no"), values -> { }), host);
+        var tree = new ElementTree(
+                new Tree(
+                                List.of(
+                                        TreeNode.of(
+                                                "europe",
+                                                "Europe",
+                                                TreeNode.leaf("no", "Norway"),
+                                                TreeNode.of("uk", "United Kingdom", TreeNode.leaf("sct", "Scotland"))),
+                                        TreeNode.leaf("asia", "Asia")),
+                                "no",
+                                value -> {})
+                        .checkable(Checkable.CASCADE)
+                        .checked(java.util.Set.of("no"), values -> {}),
+                host);
 
         open(tree, "europe");
         open(tree, "uk");
 
         var renderer = new WidgetRenderer(
-                List.of(Controls.baseStylesheet(), Theme.NORD_DARK.load(),
+                List.of(
+                        Controls.baseStylesheet(),
+                        Theme.NORD_DARK.load(),
                         Stylesheet.parse(CascadeLayer.APPLICATION, SCENE)),
                 TestFont.get());
 
-        GoldenImage.assertMatches("tree-cascade-dark", 240, 176, 1.0f,
-                frame -> BoxPainter.paint(frame, renderer.render(tree)));
+        GoldenImage.assertMatches(
+                "tree-cascade-dark", 240, 176, 1.0f, frame -> BoxPainter.paint(frame, renderer.render(tree)));
     }
 }

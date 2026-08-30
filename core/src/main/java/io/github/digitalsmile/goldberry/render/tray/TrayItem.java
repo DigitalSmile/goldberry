@@ -24,12 +24,7 @@ import java.util.Objects;
 ///                 nothing itself — which every submenu and separator is
 /// @param children the submenu's rows; empty for everything but [Kind#SUBMENU]
 public record TrayItem(
-        Kind kind,
-        String label,
-        boolean enabled,
-        boolean checked,
-        Chosen onChosen,
-        List<TrayItem> children) {
+        Kind kind, String label, boolean enabled, boolean checked, Chosen onChosen, List<TrayItem> children) {
 
     /// What a row is.
     public enum Kind {
@@ -64,13 +59,11 @@ public record TrayItem(
             Objects.requireNonNull(label, "label");
         }
         if (kind == Kind.SUBMENU && children.isEmpty()) {
-            throw new IllegalArgumentException(
-                    "a submenu with no rows is a row that opens nothing: " + label);
+            throw new IllegalArgumentException("a submenu with no rows is a row that opens nothing: " + label);
         }
         if (kind != Kind.SUBMENU && !children.isEmpty()) {
             throw new IllegalArgumentException(
-                    "only a submenu has children, and " + kind + " " + label + " has "
-                            + children.size());
+                    "only a submenu has children, and " + kind + " " + label + " has " + children.size());
         }
     }
 
@@ -122,7 +115,12 @@ public record TrayItem(
                     choose(nowChecked);
                     after.run();
                 };
-        return new TrayItem(kind, label, enabled, checked, wrapped,
+        return new TrayItem(
+                kind,
+                label,
+                enabled,
+                checked,
+                wrapped,
                 children.stream().map(child -> child.andThen(after)).toList());
     }
 

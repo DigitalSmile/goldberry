@@ -1,5 +1,8 @@
 package io.github.digitalsmile.goldberry.render.backend.sdl3;
 
+import java.util.List;
+import java.util.Optional;
+
 import io.github.digitalsmile.goldberry.natives.sdl.desktop.SdlTray;
 import io.github.digitalsmile.goldberry.natives.sdl.desktop.SdlTrayIcon;
 import io.github.digitalsmile.goldberry.natives.sdl.desktop.SdlTrayItem;
@@ -7,8 +10,6 @@ import io.github.digitalsmile.goldberry.render.PixelBuffer;
 import io.github.digitalsmile.goldberry.render.tray.BackendTray;
 import io.github.digitalsmile.goldberry.render.tray.TrayItem;
 import io.github.digitalsmile.goldberry.render.tray.TraySpec;
-import java.util.List;
-import java.util.Optional;
 
 /// The tray, on a real desktop.
 ///
@@ -42,12 +43,13 @@ final class Sdl3Tray implements BackendTray {
         // The handler crosses as itself. Nothing is wrapped or posted: SDL calls
         // back from inside its own pump, which is the pump this backend is in, so
         // the row's handler runs on the UI thread like every other event handler.
-        var kind = switch (item.kind()) {
-            case COMMAND -> SdlTrayItem.Kind.COMMAND;
-            case CHECKBOX -> SdlTrayItem.Kind.CHECKBOX;
-            case SUBMENU -> SdlTrayItem.Kind.SUBMENU;
-            case SEPARATOR -> SdlTrayItem.Kind.SEPARATOR;
-        };
+        var kind =
+                switch (item.kind()) {
+                    case COMMAND -> SdlTrayItem.Kind.COMMAND;
+                    case CHECKBOX -> SdlTrayItem.Kind.CHECKBOX;
+                    case SUBMENU -> SdlTrayItem.Kind.SUBMENU;
+                    case SEPARATOR -> SdlTrayItem.Kind.SEPARATOR;
+                };
         return new SdlTrayItem(
                 kind,
                 item.label(),
@@ -61,8 +63,7 @@ final class Sdl3Tray implements BackendTray {
         if (icon == null) {
             return null;
         }
-        return new SdlTrayIcon(
-                icon.pixels(), icon.size().width(), icon.size().height(), icon.stride());
+        return new SdlTrayIcon(icon.pixels(), icon.size().width(), icon.size().height(), icon.stride());
     }
 
     @Override

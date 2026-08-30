@@ -7,13 +7,14 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import io.github.digitalsmile.goldberry.RendererRequirement;
-import io.github.digitalsmile.goldberry.assets.BundledFont;
-import io.github.digitalsmile.goldberry.natives.yoga.measure.MeasureMode;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+
+import io.github.digitalsmile.goldberry.RendererRequirement;
+import io.github.digitalsmile.goldberry.assets.BundledFont;
+import io.github.digitalsmile.goldberry.natives.yoga.measure.MeasureMode;
 import io.github.digitalsmile.goldberry.text.font.Font;
 
 /// Wrapping, and the number a measure function reports.
@@ -66,7 +67,8 @@ class ParagraphTest {
         var wide = paragraph.layout(600);
         var narrow = paragraph.layout(150);
 
-        assertTrue(narrow.lineCount() > wide.lineCount(),
+        assertTrue(
+                narrow.lineCount() > wide.lineCount(),
                 () -> narrow.lineCount() + " lines at 150 against " + wide.lineCount() + " at 600");
         assertTrue(narrow.height() > wide.height(), "taller, by exactly the extra lines");
         assertEquals(narrow.lineCount() * font.lineHeight(), narrow.height(), 0.01);
@@ -84,8 +86,8 @@ class ParagraphTest {
                 // The one exception is a single word wider than the line, and
                 // none of these words is: at 80 points the longest word still
                 // fits, which the assertion below confirms by holding.
-                assertTrue(line.width() <= width + 0.01,
-                        () -> "a line of " + line.width() + " does not fit in " + width);
+                assertTrue(
+                        line.width() <= width + 0.01, () -> "a line of " + line.width() + " does not fit in " + width);
             }
             assertTrue(layout.width() <= width + 0.01, "and neither does the paragraph");
         }
@@ -259,7 +261,8 @@ class ParagraphTest {
         var paragraph = Paragraph.of(font, ARABIC);
 
         assertTrue(paragraph.isBidiApproximate(), "it says so, rather than pretending");
-        assertFalse(Paragraph.of(font, "Goldberry").isBidiApproximate(),
+        assertFalse(
+                Paragraph.of(font, "Goldberry").isBidiApproximate(),
                 "and text that never needed bidi is shaped exactly as it always was");
     }
 
@@ -279,16 +282,15 @@ class ParagraphTest {
 
         assertEquals(1, layout.lineCount());
         assertTrue(layout.width() > 0, "text with glyphs in it has a width");
-        assertEquals(layout.width(), paragraph.widthBetween(0, ARABIC.length()), 0.01,
-                "the line is as wide as its text");
+        assertEquals(
+                layout.width(), paragraph.widthBetween(0, ARABIC.length()), 0.01, "the line is as wide as its text");
 
         // Monotone in the offset, which is the property a visually ordered run
         // would not have.
         var previous = 0.0;
         for (var offset = 1; offset <= ARABIC.length(); offset++) {
             var width = paragraph.widthBetween(0, offset);
-            assertTrue(width >= previous,
-                    "width to " + offset + " went backwards: " + width + " after " + previous);
+            assertTrue(width >= previous, "width to " + offset + " went backwards: " + width + " after " + previous);
             previous = width;
         }
     }
@@ -302,8 +304,7 @@ class ParagraphTest {
         var paragraph = Paragraph.of(font, ARABIC);
         var space = ARABIC.indexOf(' ') + 1;
 
-        assertEquals(space,
-                paragraph.offsetAt(0, ARABIC.length(), paragraph.widthBetween(0, space)));
+        assertEquals(space, paragraph.offsetAt(0, ARABIC.length(), paragraph.widthBetween(0, space)));
     }
 
     @Test

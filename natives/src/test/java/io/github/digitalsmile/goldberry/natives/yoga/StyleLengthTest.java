@@ -10,6 +10,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
+
 import io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength;
 
 /// The value type that puts Yoga's three setters per property back together.
@@ -39,8 +40,7 @@ class StyleLengthTest {
     void nanIsRefused() {
         // Admitting NaN would give one state two spellings, and the second of
         // them does not even equal itself.
-        var thrown = assertThrows(
-                IllegalArgumentException.class, () -> StyleLength.points(Float.NaN));
+        var thrown = assertThrows(IllegalArgumentException.class, () -> StyleLength.points(Float.NaN));
 
         assertTrue(thrown.getMessage().contains("UNDEFINED"), thrown.getMessage());
         assertThrows(IllegalArgumentException.class, () -> StyleLength.percent(Float.NaN));

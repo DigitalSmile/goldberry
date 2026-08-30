@@ -1,25 +1,27 @@
 package io.github.digitalsmile.goldberry.render.backend.sdl3;
 
+import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
+
+import org.slf4j.Logger;
+
+import io.github.digitalsmile.goldberry.log.Logs;
+import io.github.digitalsmile.goldberry.natives.sdl.SdlException;
+import io.github.digitalsmile.goldberry.natives.sdl.SdlVideo;
+import io.github.digitalsmile.goldberry.natives.sdl.SdlWindowHandle;
+import io.github.digitalsmile.goldberry.natives.sdl.desktop.SdlSystemCursor;
 import io.github.digitalsmile.goldberry.render.BackendException;
-import io.github.digitalsmile.goldberry.render.window.BackendWindow;
 import io.github.digitalsmile.goldberry.render.Cursor;
 import io.github.digitalsmile.goldberry.render.DamageRect;
+import io.github.digitalsmile.goldberry.render.PixelBuffer;
 import io.github.digitalsmile.goldberry.render.model.DisplayScale;
 import io.github.digitalsmile.goldberry.render.model.LogicalPoint;
 import io.github.digitalsmile.goldberry.render.model.LogicalRect;
 import io.github.digitalsmile.goldberry.render.model.LogicalSize;
 import io.github.digitalsmile.goldberry.render.model.PhysicalSize;
-import io.github.digitalsmile.goldberry.render.PixelBuffer;
-import io.github.digitalsmile.goldberry.log.Logs;
-import io.github.digitalsmile.goldberry.natives.sdl.SdlException;
-import io.github.digitalsmile.goldberry.natives.sdl.desktop.SdlSystemCursor;
-import io.github.digitalsmile.goldberry.natives.sdl.SdlVideo;
-import io.github.digitalsmile.goldberry.natives.sdl.SdlWindowHandle;
 import io.github.digitalsmile.goldberry.render.model.PixelFormat;
-import java.util.List;
-import java.util.Objects;
-import java.util.Optional;
-import org.slf4j.Logger;
+import io.github.digitalsmile.goldberry.render.window.BackendWindow;
 
 /// An SDL window behind the SPI.
 ///
@@ -141,14 +143,12 @@ sealed class Sdl3Window implements BackendWindow permits Sdl3Popup {
 
         var expected = physicalSize();
         if (!frame.size().equals(expected)) {
-            throw new IllegalArgumentException(
-                    "frame is " + frame.size() + " but the window is " + expected
-                            + ". The frame was rasterized against a stale size.");
+            throw new IllegalArgumentException("frame is " + frame.size() + " but the window is " + expected
+                    + ". The frame was rasterized against a stale size.");
         }
         for (var rect : damage) {
             if (!rect.fitsWithin(expected)) {
-                throw new IllegalArgumentException(
-                        "damage " + rect + " falls outside the " + expected + " frame");
+                throw new IllegalArgumentException("damage " + rect + " falls outside the " + expected + " frame");
             }
         }
 
@@ -165,15 +165,14 @@ sealed class Sdl3Window implements BackendWindow permits Sdl3Popup {
             if (frame == acquired) {
                 // Painted straight into SDL's surface. Nothing to copy -- just
                 // tell SDL which parts changed.
-                video().presentAcquired(
-                        handle, new SdlVideo.SdlSize(expected.width(), expected.height()), rects);
+                video().presentAcquired(handle, new SdlVideo.SdlSize(expected.width(), expected.height()), rects);
             } else {
                 video().present(
-                        handle,
-                        frame.pixels().duplicate(),
-                        frame.stride(),
-                        new SdlVideo.SdlSize(expected.width(), expected.height()),
-                        rects);
+                                handle,
+                                frame.pixels().duplicate(),
+                                frame.stride(),
+                                new SdlVideo.SdlSize(expected.width(), expected.height()),
+                                rects);
             }
         } catch (SdlException e) {
             throw new BackendException("presenting a frame failed", e);

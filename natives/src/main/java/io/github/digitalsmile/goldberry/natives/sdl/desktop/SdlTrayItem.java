@@ -24,12 +24,7 @@ import java.util.Objects;
 ///                 [Kind#SEPARATOR] is
 /// @param children the submenu's rows, empty for everything but [Kind#SUBMENU]
 public record SdlTrayItem(
-        Kind kind,
-        String label,
-        boolean enabled,
-        boolean checked,
-        Chosen onChosen,
-        List<SdlTrayItem> children) {
+        Kind kind, String label, boolean enabled, boolean checked, Chosen onChosen, List<SdlTrayItem> children) {
 
     /// What a row is. See the note above on why this is not a flags mask.
     public enum Kind {
@@ -69,13 +64,11 @@ public record SdlTrayItem(
             Objects.requireNonNull(label, "label");
         }
         if (kind == Kind.SUBMENU && children.isEmpty()) {
-            throw new IllegalArgumentException(
-                    "a submenu with no rows is a row that opens nothing: " + label);
+            throw new IllegalArgumentException("a submenu with no rows is a row that opens nothing: " + label);
         }
         if (kind != Kind.SUBMENU && !children.isEmpty()) {
             throw new IllegalArgumentException(
-                    "only a submenu has children, and " + kind + " " + label + " has "
-                            + children.size());
+                    "only a submenu has children, and " + kind + " " + label + " has " + children.size());
         }
     }
 

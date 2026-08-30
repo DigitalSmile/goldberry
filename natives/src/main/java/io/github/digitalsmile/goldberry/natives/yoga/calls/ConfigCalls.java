@@ -4,11 +4,12 @@ import static java.lang.foreign.ValueLayout.ADDRESS;
 import static java.lang.foreign.ValueLayout.JAVA_BOOLEAN;
 import static java.lang.foreign.ValueLayout.JAVA_FLOAT;
 
-import io.github.digitalsmile.goldberry.natives.Downcalls;
 import java.lang.foreign.FunctionDescriptor;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.SymbolLookup;
 import java.lang.invoke.MethodHandle;
+
+import io.github.digitalsmile.goldberry.natives.Downcalls;
 
 /// Yoga's `YGConfig` — the settings a whole tree is laid out under.
 ///
@@ -43,8 +44,7 @@ public record ConfigCalls(
     /// @return the new `YGConfigRef`
     public static final class ConfigNew {
 
-        private static final MethodHandle FD_YGConfigNew =
-                Downcalls.link(FunctionDescriptor.of(ADDRESS));
+        private static final MethodHandle FD_YGConfigNew = Downcalls.link(FunctionDescriptor.of(ADDRESS));
 
         private final MemorySegment address;
 
@@ -68,8 +68,7 @@ public record ConfigCalls(
     /// @param config the config to release
     public static final class ConfigFree {
 
-        private static final MethodHandle FD_YGConfigFree =
-                Downcalls.link(FunctionDescriptor.ofVoid(ADDRESS));
+        private static final MethodHandle FD_YGConfigFree = Downcalls.link(FunctionDescriptor.ofVoid(ADDRESS));
 
         private final MemorySegment address;
 

@@ -52,9 +52,7 @@ class Sdl3BackendTest {
         assertTrue(message.contains("-XstartOnFirstThread"), () -> "flag missing from: " + message);
         // The string SDL itself prints, so that searching for the error people
         // actually see leads to the explanation rather than away from it.
-        assertTrue(
-                message.contains("No available video device"),
-                () -> "SDL's own wording missing from: " + message);
+        assertTrue(message.contains("No available video device"), () -> "SDL's own wording missing from: " + message);
     }
 
     @Test

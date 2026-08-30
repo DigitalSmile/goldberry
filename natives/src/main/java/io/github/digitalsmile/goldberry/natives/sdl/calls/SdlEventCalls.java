@@ -4,30 +4,25 @@ import static java.lang.foreign.ValueLayout.ADDRESS;
 import static java.lang.foreign.ValueLayout.JAVA_BOOLEAN;
 import static java.lang.foreign.ValueLayout.JAVA_INT;
 
-import io.github.digitalsmile.goldberry.natives.Downcalls;
 import java.lang.foreign.FunctionDescriptor;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.SymbolLookup;
 import java.lang.invoke.MethodHandle;
+
+import io.github.digitalsmile.goldberry.natives.Downcalls;
 
 /// SDL's event queue — polling it, waiting on it, and pushing to it.
 ///
 /// One holder per function: its handle, its address, and a `call` whose
 /// parameters are the C prototype’s. See [Downcalls] for why the handle is a
 /// `static final` constant and why these live in a package of their own.
-public record SdlEventCalls(
-        PollEvent pollEvent,
-        WaitEventTimeout waitEventTimeout,
-        PushEvent pushEvent) {
+public record SdlEventCalls(PollEvent pollEvent, WaitEventTimeout waitEventTimeout, PushEvent pushEvent) {
 
     /// Binds every function above.
     ///
     /// @param lookup the loaded `libgoldberry`
     public static SdlEventCalls bind(SymbolLookup lookup) {
-        return new SdlEventCalls(
-                new PollEvent(lookup),
-                new WaitEventTimeout(lookup),
-                new PushEvent(lookup));
+        return new SdlEventCalls(new PollEvent(lookup), new WaitEventTimeout(lookup), new PushEvent(lookup));
     }
 
     /// Takes the next event if there is one, without waiting.
@@ -78,8 +73,7 @@ public record SdlEventCalls(
 
         public boolean call(MemorySegment outEvent, int timeoutMillis) {
             try {
-                return (boolean) FD_SDL_WaitEventTimeout.invokeExact(
-                        address, outEvent, timeoutMillis);
+                return (boolean) FD_SDL_WaitEventTimeout.invokeExact(address, outEvent, timeoutMillis);
             } catch (Throwable t) {
                 throw Downcalls.failure("SDL_WaitEventTimeout", t);
             }

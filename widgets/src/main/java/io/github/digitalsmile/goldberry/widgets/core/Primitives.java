@@ -1,21 +1,6 @@
 package io.github.digitalsmile.goldberry.widgets.core;
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 import java.util.List;
-
 
 /// The KDL registry for `docs/core-widgets.md` §1, §2 and §5's structural
 /// widgets: `text`, `row`, `column`, `panel`, `spacer`, `scroll`, `affix`,
@@ -33,9 +18,7 @@ import java.util.List;
 /// application that wants a layout and no controls can register these alone.
 public final class Primitives {
 
-    private Primitives() {
-    }
-
+    private Primitives() {}
 
     // The inflater used to be here. The structural widgets carry `@Markup` like
     // every other widget now, so the build collects them into the same generated

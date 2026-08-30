@@ -1,17 +1,19 @@
 package io.github.digitalsmile.goldberry.text;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import io.github.digitalsmile.goldberry.RendererRequirement;
-import io.github.digitalsmile.goldberry.paint.TestFrames;
-import io.github.digitalsmile.goldberry.assets.BundledFont;
 import java.util.OptionalInt;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+
+import io.github.digitalsmile.goldberry.RendererRequirement;
+import io.github.digitalsmile.goldberry.assets.BundledFont;
+import io.github.digitalsmile.goldberry.paint.TestFrames;
 import io.github.digitalsmile.goldberry.text.font.Font;
 
 /// The ink itself: what reached the buffer when text was drawn.
@@ -41,8 +43,7 @@ class TextPaintTest {
             target.end();
         }
 
-        assertTrue(inkedColumns(target, 200, 64) > 0,
-                "nothing was drawn — the glyph run never reached the rasterizer");
+        assertTrue(inkedColumns(target, 200, 64) > 0, "nothing was drawn — the glyph run never reached the rasterizer");
     }
 
     @Test
@@ -64,8 +65,7 @@ class TextPaintTest {
             target.end();
         }
 
-        var first = firstInkedColumn(target, 400, 64).orElseThrow(
-                () -> new AssertionError("nothing was drawn at all"));
+        var first = firstInkedColumn(target, 400, 64).orElseThrow(() -> new AssertionError("nothing was drawn at all"));
         var last = lastInkedColumn(target, 400, 64).orElseThrow();
 
         // The ink runs from the first glyph's left bearing to the last glyph's
@@ -73,7 +73,8 @@ class TextPaintTest {
         // the pen keeps moving past the final letter's ink. A few points of
         // slack covers that; it does not come close to covering a factor of 128.
         var inked = last - first + 1;
-        assertTrue(inked > expected - 8 && inked < expected + 4,
+        assertTrue(
+                inked > expected - 8 && inked < expected + 4,
                 () -> "ink spans " + inked + " pixels, but the run measures " + expected);
     }
 
@@ -95,8 +96,8 @@ class TextPaintTest {
         // Two rows of slack for the antialiasing of the baseline itself.
         for (var y = baseline + 2; y < 64; y++) {
             var row = y;
-            assertTrue(!rowIsInked(target, 200, row),
-                    () -> "row " + row + " is below the baseline and should be empty");
+            assertTrue(
+                    !rowIsInked(target, 200, row), () -> "row " + row + " is below the baseline and should be empty");
         }
     }
 
@@ -124,7 +125,8 @@ class TextPaintTest {
 
         // Twice the size is about twice the ink, and the glyph run behind both
         // was identical: only the font matrix differed.
-        assertTrue(wide > narrow * 1.7 && wide < narrow * 2.3,
+        assertTrue(
+                wide > narrow * 1.7 && wide < narrow * 2.3,
                 () -> wide + " inked columns at 24pt against " + narrow + " at 12pt");
     }
 
@@ -153,7 +155,8 @@ class TextPaintTest {
         var atOne = inkedColumns(unscaled, 400, 80);
         var atTwo = inkedColumns(scaled, 400, 80);
 
-        assertTrue(atTwo > atOne * 1.7 && atTwo < atOne * 2.3,
+        assertTrue(
+                atTwo > atOne * 1.7 && atTwo < atOne * 2.3,
                 () -> atTwo + " inked columns at 2x against " + atOne + " at 1x");
     }
 
@@ -178,8 +181,7 @@ class TextPaintTest {
             // Blend2D would rasterize this as nothing at all, and an arithmetic
             // bug in a layout pass would look like text that never loaded.
             assertThrows(
-                    IllegalArgumentException.class,
-                    () -> font.draw(target.frame(), 10, Double.NaN, "Goldberry", INK));
+                    IllegalArgumentException.class, () -> font.draw(target.frame(), 10, Double.NaN, "Goldberry", INK));
             target.end();
         }
     }
@@ -212,8 +214,7 @@ class TextPaintTest {
         return count;
     }
 
-    private static OptionalInt firstInkedColumn(
-            TestFrames.Target target, int width, int height) {
+    private static OptionalInt firstInkedColumn(TestFrames.Target target, int width, int height) {
         for (var x = 0; x < width; x++) {
             for (var y = 0; y < height; y++) {
                 if (isInk(target, x, y)) {

@@ -46,8 +46,7 @@ class DeterminismTest {
 
     /// Where the assertions are exact, and therefore where a clock is a bug.
     private static final String[] DETERMINISTIC_LAYER = {
-        "..goldberry.css..", "..goldberry.paint..", "..goldberry.text..",
-        "..goldberry.widgets..",
+        "..goldberry.css..", "..goldberry.paint..", "..goldberry.text..", "..goldberry.widgets..",
     };
 
     /// The one door the machine's time zone comes through.
@@ -57,8 +56,7 @@ class DeterminismTest {
     /// matters is that there is exactly one such call in the catalog, so the
     /// Charts screen passing `ZoneOffset.UTC` is enough to make its picture the
     /// same picture in every time zone (ADR-0203).
-    private static final String TIME_AXIS =
-            "io.github.digitalsmile.goldberry.widgets.data.TimeAxis";
+    private static final String TIME_AXIS = "io.github.digitalsmile.goldberry.widgets.data.TimeAxis";
 
     /// `src/testFixtures` is not `src/test`, so ArchUnit's test filter does not
     /// reach it — and a fixture that prints a diff to the console is doing its
@@ -78,9 +76,12 @@ class DeterminismTest {
     @DisplayName("nothing in the deterministic layer reads a clock")
     void noClockUnderAnAssertion() {
         noClasses()
-                .that().resideInAnyPackage(DETERMINISTIC_LAYER)
-                .should().callMethod(System.class, "currentTimeMillis")
-                .orShould().callMethod(System.class, "nanoTime")
+                .that()
+                .resideInAnyPackage(DETERMINISTIC_LAYER)
+                .should()
+                .callMethod(System.class, "currentTimeMillis")
+                .orShould()
+                .callMethod(System.class, "nanoTime")
                 .because("§0.1: a virtual clock is what lets a motion test assert a"
                         + " mid-transition frame. A painter that read the real one would"
                         + " draw whatever the machine happened to be doing")
@@ -91,9 +92,12 @@ class DeterminismTest {
     @DisplayName("the machine's time zone enters through exactly one door")
     void oneTimeZoneSeam() {
         noClasses()
-                .that().resideInAnyPackage(DETERMINISTIC_LAYER)
-                .and().haveNameNotMatching(TIME_AXIS)
-                .should().callMethod(java.time.ZoneId.class, "systemDefault")
+                .that()
+                .resideInAnyPackage(DETERMINISTIC_LAYER)
+                .and()
+                .haveNameNotMatching(TIME_AXIS)
+                .should()
+                .callMethod(java.time.ZoneId.class, "systemDefault")
                 .because("ADR-0203: a time axis is time, and which zone it is drawn in is"
                         + " the application's answer. One seam is what makes passing UTC"
                         + " enough to pin a chart's picture")
@@ -104,10 +108,15 @@ class DeterminismTest {
     @DisplayName("nothing in the deterministic layer invents a random number")
     void noRandomness() {
         noClasses()
-                .that().resideInAnyPackage(DETERMINISTIC_LAYER)
-                .or().resideInAPackage("..goldberry.motion..")
-                .should().dependOnClassesThat().haveFullyQualifiedName("java.util.Random")
-                .orShould().callMethod(Math.class, "random")
+                .that()
+                .resideInAnyPackage(DETERMINISTIC_LAYER)
+                .or()
+                .resideInAPackage("..goldberry.motion..")
+                .should()
+                .dependOnClassesThat()
+                .haveFullyQualifiedName("java.util.Random")
+                .orShould()
+                .callMethod(Math.class, "random")
                 .because("§0.1: seeded randomness or none. An unseeded source anywhere"
                         + " under a golden makes the image a different image each run")
                 .check(classes);
@@ -117,8 +126,10 @@ class DeterminismTest {
     @DisplayName("nothing in the deterministic layer reads the machine's locale")
     void noDefaultLocale() {
         noClasses()
-                .that().resideInAnyPackage(DETERMINISTIC_LAYER)
-                .should().callMethod(java.util.Locale.class, "getDefault")
+                .that()
+                .resideInAnyPackage(DETERMINISTIC_LAYER)
+                .should()
+                .callMethod(java.util.Locale.class, "getDefault")
                 .because("§1.3: no locale dependence. Every label this toolkit formats is"
                         + " in the root locale, so a golden taken in Istanbul matches one"
                         + " taken in Reykjavik — the dotted capital I is not hypothetical")
@@ -129,11 +140,16 @@ class DeterminismTest {
     @DisplayName("the toolkit logs through the facade and never through stdout")
     void noPrinting() {
         noClasses()
-                .that().resideOutsideOfPackage("..goldberry.assets..")
-                .and().resideOutsideOfPackage(FIXTURES)
-                .should().accessField(System.class, "out")
-                .orShould().accessField(System.class, "err")
-                .orShould().callMethod(Throwable.class, "printStackTrace")
+                .that()
+                .resideOutsideOfPackage("..goldberry.assets..")
+                .and()
+                .resideOutsideOfPackage(FIXTURES)
+                .should()
+                .accessField(System.class, "out")
+                .orShould()
+                .accessField(System.class, "err")
+                .orShould()
+                .callMethod(Throwable.class, "printStackTrace")
                 .because("ADR-0023: a library that writes to stdout has taken a decision"
                         + " belonging to the application. :assets is a build-time tool"
                         + " whose console output IS its product")

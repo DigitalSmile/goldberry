@@ -1,8 +1,5 @@
 package io.github.digitalsmile.goldberry.render.event;
 
-import io.github.digitalsmile.goldberry.render.Backend;
-import io.github.digitalsmile.goldberry.render.BackendException;
-import io.github.digitalsmile.goldberry.log.Logs;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
@@ -11,7 +8,12 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.function.Supplier;
+
 import org.slf4j.Logger;
+
+import io.github.digitalsmile.goldberry.log.Logs;
+import io.github.digitalsmile.goldberry.render.Backend;
+import io.github.digitalsmile.goldberry.render.BackendException;
 
 /// Drives a backend: drains queued UI work, pumps platform events, repeats.
 ///
@@ -162,9 +164,7 @@ public final class EventLoop implements AutoCloseable {
             return IDLE_TIMEOUT;
         }
         var remaining = earliest - now;
-        return remaining <= 0
-                ? Duration.ZERO
-                : Duration.ofNanos(Math.min(remaining, IDLE_TIMEOUT.toNanos()));
+        return remaining <= 0 ? Duration.ZERO : Duration.ofNanos(Math.min(remaining, IDLE_TIMEOUT.toNanos()));
     }
 
     /// Runs whatever is due, and drops it.
@@ -178,7 +178,7 @@ public final class EventLoop implements AutoCloseable {
         }
         var now = System.nanoTime();
         var due = new ArrayList<Timer>();
-        for (var iterator = timers.iterator(); iterator.hasNext();) {
+        for (var iterator = timers.iterator(); iterator.hasNext(); ) {
             var timer = iterator.next();
             if (timer.cancelled) {
                 iterator.remove();

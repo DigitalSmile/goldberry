@@ -1,15 +1,16 @@
 package io.github.digitalsmile.goldberry.natives.blend2d;
 
+import java.lang.foreign.Arena;
+import java.lang.foreign.MemorySegment;
+import java.lang.foreign.SymbolLookup;
+import java.lang.foreign.ValueLayout;
+
+import io.github.digitalsmile.goldberry.natives.NativeLibrary;
 import io.github.digitalsmile.goldberry.natives.blend2d.calls.ContextCalls;
 import io.github.digitalsmile.goldberry.natives.blend2d.enums.BlendCompOp;
 import io.github.digitalsmile.goldberry.natives.blend2d.enums.BlendStrokeCap;
 import io.github.digitalsmile.goldberry.natives.blend2d.enums.BlendStrokeJoin;
 import io.github.digitalsmile.goldberry.natives.blend2d.enums.BlendTransformOp;
-import java.lang.foreign.Arena;
-import java.lang.foreign.MemorySegment;
-import java.lang.foreign.SymbolLookup;
-import java.lang.foreign.ValueLayout;
-import io.github.digitalsmile.goldberry.natives.NativeLibrary;
 import io.github.digitalsmile.goldberry.natives.blend2d.error.BlendException;
 
 /// Blend2D's context calls, behind [BlendContext] — everything that draws.
@@ -19,7 +20,8 @@ import io.github.digitalsmile.goldberry.natives.blend2d.error.BlendException;
 final class Blend2dContext {
 
     private static final class Holder {
-        private static final Blend2dContext INSTANCE = new Blend2dContext(NativeLibrary.get().lookup());
+        private static final Blend2dContext INSTANCE =
+                new Blend2dContext(NativeLibrary.get().lookup());
     }
 
     private final ContextCalls calls;
@@ -54,8 +56,8 @@ final class Blend2dContext {
         check("bl_context_flush", calls.contextFlush().call(context, flags));
     }
 
-    /// Applies a transform whose operand is a pair of doubles — [
-    /// BlendTransformOp#SCALE] or [BlendTransformOp#TRANSLATE].
+    /// Applies a transform whose operand is a pair of doubles —
+    /// [BlendTransformOp#SCALE] or [BlendTransformOp#TRANSLATE].
     ///
     /// The operand crosses as `const void*`, so nothing on either side checks
     /// that the shape matches the operation. Restricting this method to the two
@@ -64,17 +66,16 @@ final class Blend2dContext {
     /// were never written.
     void contextTransform(MemorySegment context, BlendTransformOp op, double x, double y) {
         if (op != BlendTransformOp.SCALE && op != BlendTransformOp.TRANSLATE) {
-            throw new IllegalArgumentException(
-                    op + " does not take a pair of doubles, and its operand crosses as void*"
-                            + " — nothing downstream would catch the mismatch");
+            throw new IllegalArgumentException(op + " does not take a pair of doubles, and its operand crosses as void*"
+                    + " — nothing downstream would catch the mismatch");
         }
         try (var arena = Arena.ofConfined()) {
             var point = arena.allocate(ValueLayout.JAVA_DOUBLE, 2);
             point.setAtIndex(ValueLayout.JAVA_DOUBLE, 0, x);
             point.setAtIndex(ValueLayout.JAVA_DOUBLE, 1, y);
-            check("bl_context_apply_transform_op",
-                    calls.contextApplyTransformOp().call(
-                            context, op.nativeValue(), point));
+            check(
+                    "bl_context_apply_transform_op",
+                    calls.contextApplyTransformOp().call(context, op.nativeValue(), point));
         }
     }
 
@@ -86,15 +87,13 @@ final class Blend2dContext {
     /// confined arena per call to hold forty-eight bytes Blend2D reads and does
     /// not keep is the same trade [BlendContext] already made for `BLRect`.
     void contextTransform(MemorySegment context, MemorySegment matrix) {
-        check("bl_context_apply_transform_op",
-                calls.contextApplyTransformOp().call(
-                        context, BlendTransformOp.ASSIGN.nativeValue(), matrix));
+        check(
+                "bl_context_apply_transform_op",
+                calls.contextApplyTransformOp().call(context, BlendTransformOp.ASSIGN.nativeValue(), matrix));
     }
 
     void contextCompOp(MemorySegment context, BlendCompOp compOp) {
-        check("bl_context_set_comp_op",
-                calls.contextSetCompOp().call(context,
-                        compOp.nativeValue()));
+        check("bl_context_set_comp_op", calls.contextSetCompOp().call(context, compOp.nativeValue()));
     }
 
     void contextClearAll(MemorySegment context) {
@@ -112,9 +111,7 @@ final class Blend2dContext {
 
     /// Fills a rectangle in the context's current user space.
     void contextFillRect(MemorySegment context, MemorySegment rect, int argb) {
-        check("bl_context_fill_rect_d_rgba32",
-                calls.contextFillRectDRgba32().call(
-                        context, rect, argb));
+        check("bl_context_fill_rect_d_rgba32", calls.contextFillRectDRgba32().call(context, rect, argb));
     }
 
     /// Fills a run of positioned glyphs, with `origin` on the baseline.
@@ -130,11 +127,10 @@ final class Blend2dContext {
     /// bound, because rounding the baseline is exactly what ADR-0031 went to some
     /// trouble to stop doing for rectangles.
     void contextFillGlyphRun(
-            MemorySegment context, MemorySegment origin, MemorySegment font,
-            MemorySegment glyphRun, int argb) {
-        check("bl_context_fill_glyph_run_d_rgba32",
-                calls.contextFillGlyphRunDRgba32().call(
-                        context, origin, font, glyphRun, argb));
+            MemorySegment context, MemorySegment origin, MemorySegment font, MemorySegment glyphRun, int argb) {
+        check(
+                "bl_context_fill_glyph_run_d_rgba32",
+                calls.contextFillGlyphRunDRgba32().call(context, origin, font, glyphRun, argb));
     }
 
     /// Stroke state (ADR-0043). The width is in the context's own units, so a
@@ -181,8 +177,7 @@ final class Blend2dContext {
     /// The only styleless drawing call bound, and the only way a gradient
     /// reaches a path (ADR-0207). Its caller is responsible for what the style
     /// is when it runs and for what it is afterwards.
-    void contextFillPathStyled(
-            MemorySegment context, MemorySegment origin, MemorySegment path) {
+    void contextFillPathStyled(MemorySegment context, MemorySegment origin, MemorySegment path) {
         int result;
         result = calls.contextFillPathD().call(context, origin, path);
         check("bl_context_fill_path_d", result);
@@ -208,8 +203,7 @@ final class Blend2dContext {
         check("bl_context_set_fill_style_rgba32", result);
     }
 
-    void contextStrokePath(
-            MemorySegment context, MemorySegment origin, MemorySegment path, int argb) {
+    void contextStrokePath(MemorySegment context, MemorySegment origin, MemorySegment path, int argb) {
         int result;
         result = calls.contextStrokePathDRgba32().call(context, origin, path, argb);
         check("bl_context_stroke_path_d_rgba32", result);

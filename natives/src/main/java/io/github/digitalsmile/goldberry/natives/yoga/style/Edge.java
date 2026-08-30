@@ -1,6 +1,5 @@
 package io.github.digitalsmile.goldberry.natives.yoga.style;
 
-
 /// Which side an edge-valued style applies to — `YGEdge`.
 ///
 /// Margin, padding, border and inset are all set per edge, and the shorthands
@@ -13,7 +12,6 @@ package io.github.digitalsmile.goldberry.natives.yoga.style;
 /// entire mechanism behind mirrored layouts — a widget that uses them is
 /// bidi-correct without knowing it.
 public enum Edge implements YogaEnum {
-
     LEFT(0, "YGEdgeLeft"),
 
     TOP(1, "YGEdgeTop"),

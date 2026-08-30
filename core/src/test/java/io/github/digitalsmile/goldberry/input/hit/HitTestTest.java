@@ -3,14 +3,16 @@ package io.github.digitalsmile.goldberry.input.hit;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import io.github.digitalsmile.goldberry.RendererRequirement;
-import io.github.digitalsmile.goldberry.paint.TestFrames;
-import io.github.digitalsmile.goldberry.paint.Box;
-import io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength;
 import java.util.List;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+
+import io.github.digitalsmile.goldberry.RendererRequirement;
+import io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength;
+import io.github.digitalsmile.goldberry.paint.Box;
+import io.github.digitalsmile.goldberry.paint.TestFrames;
 
 /// Hit testing against a real layout pass.
 ///
@@ -36,10 +38,13 @@ class HitTestTest {
     @Test
     @DisplayName("the topmost box under a point wins")
     void topmostWins() {
-        var child = Box.filled(0xFF00FF00).size(StyleLength.points(40), StyleLength.points(40))
+        var child = Box.filled(0xFF00FF00)
+                .size(StyleLength.points(40), StyleLength.points(40))
                 .owner("child");
-        var root = Box.filled(0xFFFF0000).padding(StyleLength.points(20))
-                .children(child).owner("root");
+        var root = Box.filled(0xFFFF0000)
+                .padding(StyleLength.points(20))
+                .children(child)
+                .owner("root");
 
         var regions = capture(root, 100, 100, 1.0f);
 
@@ -53,7 +58,8 @@ class HitTestTest {
     @DisplayName("a point outside everything hits nothing")
     void missesEverything() {
         var root = Box.filled(0xFFFF0000)
-                .size(StyleLength.points(20), StyleLength.points(20)).owner("root");
+                .size(StyleLength.points(20), StyleLength.points(20))
+                .owner("root");
 
         assertTrue(HitTest.at(capture(root, 100, 100, 1.0f), 50, 50).isEmpty());
     }
@@ -64,8 +70,10 @@ class HitTestTest {
         // A box nobody claimed has nowhere to deliver an event, so hit testing
         // passes through it rather than returning something undeliverable.
         var child = Box.filled(0xFF00FF00).size(StyleLength.points(40), StyleLength.points(40));
-        var root = Box.filled(0xFFFF0000).padding(StyleLength.points(20))
-                .children(child).owner("root");
+        var root = Box.filled(0xFFFF0000)
+                .padding(StyleLength.points(20))
+                .children(child)
+                .owner("root");
 
         assertEquals("root", HitTest.at(capture(root, 100, 100, 1.0f), 30, 30).orElseThrow());
     }
@@ -88,11 +96,13 @@ class HitTestTest {
     @Test
     @DisplayName("regions are recorded parents first, as a paint draws them")
     void paintOrder() {
-        var child = Box.filled(0xFF00FF00).size(StyleLength.points(10), StyleLength.points(10))
+        var child = Box.filled(0xFF00FF00)
+                .size(StyleLength.points(10), StyleLength.points(10))
                 .owner("child");
         var root = Box.filled(0xFFFF0000).children(child).owner("root");
 
-        var owners = capture(root, 50, 50, 1.0f).stream().map(HitTest.Region::owner).toList();
+        var owners =
+                capture(root, 50, 50, 1.0f).stream().map(HitTest.Region::owner).toList();
 
         // The order is what lets `at` take the last match as the topmost.
         assertEquals(List.of("root", "child"), owners);

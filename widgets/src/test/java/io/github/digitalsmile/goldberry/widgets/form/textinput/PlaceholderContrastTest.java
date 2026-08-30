@@ -2,18 +2,20 @@ package io.github.digitalsmile.goldberry.widgets.form.textinput;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.ArrayList;
+import java.util.List;
+
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
-import io.github.digitalsmile.goldberry.css.value.CssLength;
-import io.github.digitalsmile.goldberry.css.cascade.StyleResolver;
 import io.github.digitalsmile.goldberry.css.Theme;
+import io.github.digitalsmile.goldberry.css.cascade.StyleResolver;
+import io.github.digitalsmile.goldberry.css.value.CssLength;
 import io.github.digitalsmile.goldberry.widget.ElementTree;
 import io.github.digitalsmile.goldberry.widgets.Controls;
 import io.github.digitalsmile.goldberry.widgets.panel.Panel;
 import io.github.digitalsmile.goldberry.widgets.panel.card.Card;
-import java.util.ArrayList;
-import java.util.List;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
 
 /// A placeholder has to be dimmer than a value **and** readable, and both of
 /// those are numbers.
@@ -47,23 +49,19 @@ class PlaceholderContrastTest {
     private static final double DIMMER_THAN_A_VALUE = 0.67;
 
     /// The backgrounds a field actually sits on, worst case first.
-    private record Surface(String name, io.github.digitalsmile.goldberry.widget.Widget host) {
-    }
+    private record Surface(String name, io.github.digitalsmile.goldberry.widget.Widget host) {}
 
     private static List<Surface> surfaces() {
         return List.of(
                 // A card is the lightest thing a field sits on in the dark theme
                 // and the whitest in the light one, so it is where a translucent
                 // fill has least room and where the ratio is tightest.
-                new Surface("card", new Card()),
-                new Surface("panel", new Panel()));
+                new Surface("card", new Card()), new Surface("panel", new Panel()));
     }
 
-    private static ComputedStyle resolve(Theme theme,
-            io.github.digitalsmile.goldberry.widget.Widget widget) {
+    private static ComputedStyle resolve(Theme theme, io.github.digitalsmile.goldberry.widget.Widget widget) {
         return ComputedStyle.of(
-                new StyleResolver(Controls.stylesheets(theme))
-                        .resolve(new ElementTree(widget).root()),
+                new StyleResolver(Controls.stylesheets(theme)).resolve(new ElementTree(widget).root()),
                 CssLength.Context.DEFAULT);
     }
 
@@ -152,14 +150,12 @@ class PlaceholderContrastTest {
                 }
                 if (placeholderRatio > valueRatio * DIMMER_THAN_A_VALUE) {
                     failures.add(("%s: a placeholder at %.2f:1 against a value at %.2f:1 does not"
-                            + " read as standing in for one")
+                                    + " read as standing in for one")
                             .formatted(name, placeholderRatio, valueRatio));
                 }
             }
         }
 
-        assertTrue(failures.isEmpty(),
-                String.join("\n", failures) + "\n\n" + report);
+        assertTrue(failures.isEmpty(), String.join("\n", failures) + "\n\n" + report);
     }
-
 }

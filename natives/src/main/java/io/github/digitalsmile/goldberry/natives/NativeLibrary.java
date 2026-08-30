@@ -1,7 +1,5 @@
 package io.github.digitalsmile.goldberry.natives;
 
-import io.github.digitalsmile.goldberry.log.Logs;
-import io.github.digitalsmile.goldberry.log.Startup;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
@@ -11,7 +9,11 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.Optional;
+
 import org.slf4j.Logger;
+
+import io.github.digitalsmile.goldberry.log.Logs;
+import io.github.digitalsmile.goldberry.log.Startup;
 
 /// Locates and loads `libgoldberry`, and hands out the symbol lookup every
 /// binding is built from.
@@ -53,8 +55,7 @@ public final class NativeLibrary {
     /// Kept in step with the `nativeJar*` tasks in `natives/build.gradle`;
     /// tested on both sides so a rename cannot silently break loading.
     public static String resourcePath(NativePlatform platform) {
-        return "/io/github/digitalsmile/goldberry/natives/"
-                + platform.classifier() + "/" + platform.libraryFileName();
+        return "/io/github/digitalsmile/goldberry/natives/" + platform.classifier() + "/" + platform.libraryFileName();
     }
 
     /// Opens the classifier jar's library resource, from wherever it is.
@@ -127,21 +128,19 @@ public final class NativeLibrary {
     @SuppressWarnings("restricted")
     private static NativeLibrary load() {
         var platform = NativePlatform.current();
-        var explicit = Optional.ofNullable(System.getProperty(LIBRARY_PATH_PROPERTY)).map(Path::of);
+        var explicit =
+                Optional.ofNullable(System.getProperty(LIBRARY_PATH_PROPERTY)).map(Path::of);
 
         var libraryPath = explicit.orElseGet(() -> extractFromClasspath(platform));
         if (!Files.isRegularFile(libraryPath)) {
             throw new UnsatisfiedLinkError(
-                    "libgoldberry not found at " + libraryPath
-                            + " (set -D" + LIBRARY_PATH_PROPERTY + " to override)");
+                    "libgoldberry not found at " + libraryPath + " (set -D" + LIBRARY_PATH_PROPERTY + " to override)");
         }
 
         // Arena.global(): the library stays mapped for the life of the JVM.
         // Unloading it would invalidate every downcall handle in the toolkit,
         // so this is deliberately not scoped.
-        var lookup = Startup.time(
-                "libgoldberry mapped",
-                () -> SymbolLookup.libraryLookup(libraryPath, Arena.global()));
+        var lookup = Startup.time("libgoldberry mapped", () -> SymbolLookup.libraryLookup(libraryPath, Arena.global()));
         // The first question asked of any bug report that starts "it works on my
         // machine": which library, from where.
         LOG.info("loaded libgoldberry for {} from {}", platform.classifier(), libraryPath);
@@ -152,16 +151,14 @@ public final class NativeLibrary {
         var resource = resourcePath(platform);
         try (InputStream in = openClassifierResource(resource)) {
             if (in == null) {
-                throw new UnsatisfiedLinkError(
-                        "No libgoldberry for " + platform.classifier() + " on the classpath"
-                                + " (expected resource " + resource + ")."
-                                + " Add the goldberry-natives-" + platform.classifier()
-                                + " artifact, or set -D" + LIBRARY_PATH_PROPERTY + ".");
+                throw new UnsatisfiedLinkError("No libgoldberry for " + platform.classifier() + " on the classpath"
+                        + " (expected resource " + resource + ")."
+                        + " Add the goldberry-natives-" + platform.classifier()
+                        + " artifact, or set -D" + LIBRARY_PATH_PROPERTY + ".");
             }
             // A shared library must be a real file to be dlopen-ed; it cannot be
             // loaded from inside a jar.
-            var target = Files.createTempDirectory("goldberry-natives")
-                    .resolve(platform.libraryFileName());
+            var target = Files.createTempDirectory("goldberry-natives").resolve(platform.libraryFileName());
             LOG.debug("unpacking {} to {}", resource, target);
             Startup.mark("unpacking libgoldberry from the classifier jar");
             Files.copy(in, target, StandardCopyOption.REPLACE_EXISTING);

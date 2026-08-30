@@ -5,28 +5,30 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import io.github.digitalsmile.goldberry.RendererRequirement;
-import io.github.digitalsmile.goldberry.render.event.EventLoop;
-import io.github.digitalsmile.goldberry.input.FocusScope;
-import io.github.digitalsmile.goldberry.input.key.Key;
-import io.github.digitalsmile.goldberry.input.event.KeyEvent;
-import io.github.digitalsmile.goldberry.input.key.Modifiers;
-import io.github.digitalsmile.goldberry.input.event.PointerEvent;
-import io.github.digitalsmile.goldberry.kdl.KdlParser;
-import io.github.digitalsmile.goldberry.widget.attr.Attributes;
-import io.github.digitalsmile.goldberry.widget.ElementTree;
-import io.github.digitalsmile.goldberry.widgets.TestHost;
-import io.github.digitalsmile.goldberry.widgets.Widgets;
-import io.github.digitalsmile.goldberry.widgets.panel.Described;
-import io.github.digitalsmile.goldberry.widgets.text.Text;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+
+import io.github.digitalsmile.goldberry.RendererRequirement;
+import io.github.digitalsmile.goldberry.input.FocusScope;
+import io.github.digitalsmile.goldberry.input.event.KeyEvent;
+import io.github.digitalsmile.goldberry.input.event.PointerEvent;
+import io.github.digitalsmile.goldberry.input.key.Key;
+import io.github.digitalsmile.goldberry.input.key.Modifiers;
+import io.github.digitalsmile.goldberry.kdl.KdlParser;
+import io.github.digitalsmile.goldberry.render.event.EventLoop;
+import io.github.digitalsmile.goldberry.widget.ElementTree;
+import io.github.digitalsmile.goldberry.widget.attr.Attributes;
+import io.github.digitalsmile.goldberry.widgets.TestHost;
+import io.github.digitalsmile.goldberry.widgets.Widgets;
+import io.github.digitalsmile.goldberry.widgets.panel.Described;
+import io.github.digitalsmile.goldberry.widgets.text.Text;
 
 /// `carousel` — §5's one-at-a-time list, and the only widget in the group that is
 /// a controller ([ADR-0165]).
@@ -98,8 +100,7 @@ class CarouselTest {
     }
 
     private static boolean showing(ElementTree tree, String text) {
-        return Described.in(tree).stream()
-                .anyMatch(w -> w instanceof Text it && text.equals(it.content()));
+        return Described.in(tree).stream().anyMatch(w -> w instanceof Text it && text.equals(it.content()));
     }
 
     private static void key(ElementTree tree, Key which) {
@@ -233,9 +234,9 @@ class CarouselTest {
         void dotsGo() {
             var tree = new ElementTree(carousel(0, false, null, 3));
 
-            Described.of(tree, CarouselView.CarouselDot.class).get(2).onPointer(
-                    new PointerEvent(PointerEvent.Kind.CLICKED, 0, 0,
-                            PointerEvent.Button.PRIMARY, 1, null));
+            Described.of(tree, CarouselView.CarouselDot.class)
+                    .get(2)
+                    .onPointer(new PointerEvent(PointerEvent.Kind.CLICKED, 0, 0, PointerEvent.Button.PRIMARY, 1, null));
             tree.flush();
 
             assertEquals(2, view(tree).index());
@@ -259,8 +260,7 @@ class CarouselTest {
         @DisplayName("a controlled carousel asks and does not decide")
         void controlled() {
             var asked = new AtomicInteger(-1);
-            var tree = new ElementTree(new Carousel(0, asked::set,
-                    new Text("a"), new Text("b")));
+            var tree = new ElementTree(new Carousel(0, asked::set, new Text("a"), new Text("b")));
 
             key(tree, Key.RIGHT);
 
@@ -276,8 +276,7 @@ class CarouselTest {
         private final TimedHost host = new TimedHost();
 
         private ElementTree rotating(int slides, boolean loop) {
-            return new ElementTree(
-                    carousel(0, loop, Duration.ofSeconds(5), slides), host);
+            return new ElementTree(carousel(0, loop, Duration.ofSeconds(5), slides), host);
         }
 
         /// §5: "**Nothing advances on its own unless `interval` is set**". The
@@ -338,12 +337,10 @@ class CarouselTest {
             var tree = rotating(3, true);
             host.clear();
 
-            view(tree).onPointer(new PointerEvent(PointerEvent.Kind.ENTERED, 0, 0,
-                    null, 0, null));
+            view(tree).onPointer(new PointerEvent(PointerEvent.Kind.ENTERED, 0, 0, null, 0, null));
             assertFalse(host.pending(), "the pointer is on it");
 
-            view(tree).onPointer(new PointerEvent(PointerEvent.Kind.EXITED, 0, 0,
-                    null, 0, null));
+            view(tree).onPointer(new PointerEvent(PointerEvent.Kind.EXITED, 0, 0, null, 0, null));
             assertTrue(host.pending(), "and off it again");
         }
 
@@ -415,8 +412,7 @@ class CarouselTest {
 
             tree.unmount();
 
-            assertTrue(host.allCancelled(),
-                    "the timer must be cancelled, not left to fire into a dead tree");
+            assertTrue(host.allCancelled(), "the timer must be cancelled, not left to fire into a dead tree");
         }
     }
 
@@ -432,7 +428,10 @@ class CarouselTest {
             var tree = new ElementTree(carousel(0, false, null, 3));
             var viewport = Described.first(tree, CarouselView.CarouselViewport.class);
 
-            assertEquals(1, viewport.visibility().applyAsDouble(0), 1e-9,
+            assertEquals(
+                    1,
+                    viewport.visibility().applyAsDouble(0),
+                    1e-9,
                     "nothing has moved, so the first slide is fully arrived");
         }
 
@@ -461,12 +460,14 @@ class CarouselTest {
             var tree = new ElementTree(carousel(1, false, null, 3));
 
             key(tree, Key.RIGHT);
-            assertEquals(1, Described.first(tree,
-                    CarouselView.CarouselViewport.class).direction());
+            assertEquals(
+                    1,
+                    Described.first(tree, CarouselView.CarouselViewport.class).direction());
 
             key(tree, Key.LEFT);
-            assertEquals(-1, Described.first(tree,
-                    CarouselView.CarouselViewport.class).direction());
+            assertEquals(
+                    -1,
+                    Described.first(tree, CarouselView.CarouselViewport.class).direction());
         }
 
         /// Wrapping from the last slide to the first is a move **forwards**: what
@@ -478,14 +479,16 @@ class CarouselTest {
 
             key(tree, Key.RIGHT);
             assertEquals(0, view(tree).index());
-            assertEquals(1, Described.first(tree,
-                    CarouselView.CarouselViewport.class).direction(),
+            assertEquals(
+                    1,
+                    Described.first(tree, CarouselView.CarouselViewport.class).direction(),
                     "last to first is still forwards");
 
             key(tree, Key.LEFT);
             assertEquals(2, view(tree).index());
-            assertEquals(-1, Described.first(tree,
-                    CarouselView.CarouselViewport.class).direction(),
+            assertEquals(
+                    -1,
+                    Described.first(tree, CarouselView.CarouselViewport.class).direction(),
                     "and first to last is still backwards");
         }
 
@@ -496,8 +499,8 @@ class CarouselTest {
         void animating() {
             var tree = new ElementTree(carousel(0, false, null, 3));
 
-            assertTrue(Described.first(tree, CarouselView.CarouselViewport.class)
-                    .isAnimating());
+            assertTrue(
+                    Described.first(tree, CarouselView.CarouselViewport.class).isAnimating());
         }
     }
 
@@ -527,8 +530,9 @@ class CarouselTest {
         @Test
         @DisplayName("no change action means the carousel keeps its own index")
         void unwiredIsUncontrolled() {
-            var widget = Widgets.inflater().inflate(
-                    KdlParser.parse("carousel { text \"one\"; text \"two\" }").getFirst());
+            var widget = Widgets.inflater()
+                    .inflate(KdlParser.parse("carousel { text \"one\"; text \"two\" }")
+                            .getFirst());
             var it = assertInstanceOf(Carousel.class, widget);
 
             assertFalse(it.isControlled());
@@ -537,8 +541,9 @@ class CarouselTest {
         @Test
         @DisplayName("no interval means no rotation")
         void noInterval() {
-            var widget = Widgets.inflater().inflate(
-                    KdlParser.parse("carousel { text \"one\"; text \"two\" }").getFirst());
+            var widget = Widgets.inflater()
+                    .inflate(KdlParser.parse("carousel { text \"one\"; text \"two\" }")
+                            .getFirst());
 
             assertFalse(assertInstanceOf(Carousel.class, widget).rotates());
         }

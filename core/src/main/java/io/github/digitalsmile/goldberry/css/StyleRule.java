@@ -2,6 +2,7 @@ package io.github.digitalsmile.goldberry.css;
 
 import java.util.List;
 import java.util.Objects;
+
 import io.github.digitalsmile.goldberry.css.select.Selector;
 
 /// A selector list and the declarations it applies.
@@ -29,7 +30,9 @@ public record StyleRule(List<Selector> selectors, List<Declaration> declarations
 
     @Override
     public String toString() {
-        return selectors.stream().map(Object::toString).reduce((a, b) -> a + ", " + b).orElse("")
-                + " { " + declarations.size() + " declaration(s) }";
+        return selectors.stream()
+                        .map(Object::toString)
+                        .reduce((a, b) -> a + ", " + b)
+                        .orElse("") + " { " + declarations.size() + " declaration(s) }";
     }
 }

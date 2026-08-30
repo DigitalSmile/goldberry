@@ -1,11 +1,12 @@
 package io.github.digitalsmile.goldberry.css.cascade;
 
-import io.github.digitalsmile.goldberry.motion.Easing;
 import java.util.EnumMap;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
+import io.github.digitalsmile.goldberry.motion.Easing;
 
 /// Which of a node's properties move rather than snap, and how —
 /// `docs/design-system.md` §1.7.
@@ -34,9 +35,7 @@ public record Transitions(Map<Animatable, Timing> byProperty) {
     public static final Transitions NONE = new Transitions(Map.of());
 
     public Transitions {
-        byProperty = byProperty == null || byProperty.isEmpty()
-                ? Map.of()
-                : Map.copyOf(byProperty);
+        byProperty = byProperty == null || byProperty.isEmpty() ? Map.of() : Map.copyOf(byProperty);
     }
 
     /// The properties a transition may name.
@@ -145,8 +144,7 @@ public record Transitions(Map<Animatable, Timing> byProperty) {
     public Transitions with(Animatable property, Timing timing) {
         var next = new EnumMap<Animatable, Timing>(Animatable.class);
         next.putAll(byProperty);
-        next.put(Objects.requireNonNull(property, "property"),
-                Objects.requireNonNull(timing, "timing"));
+        next.put(Objects.requireNonNull(property, "property"), Objects.requireNonNull(timing, "timing"));
         return new Transitions(next);
     }
 

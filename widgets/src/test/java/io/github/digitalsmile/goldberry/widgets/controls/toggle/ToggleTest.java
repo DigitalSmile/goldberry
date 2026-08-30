@@ -1,42 +1,43 @@
 package io.github.digitalsmile.goldberry.widgets.controls.toggle;
 
-import io.github.digitalsmile.goldberry.widget.attr.Attributes;
-import io.github.digitalsmile.goldberry.widgets.core.Row;
-import io.github.digitalsmile.goldberry.widgets.core.Spacer;
-
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import io.github.digitalsmile.goldberry.bind.registry.BindingRegistry;
-import io.github.digitalsmile.goldberry.bind.Property;
-import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
-import io.github.digitalsmile.goldberry.css.ComputedStyle;
-import io.github.digitalsmile.goldberry.css.value.CssLength;
-import io.github.digitalsmile.goldberry.css.select.Selector;
-import io.github.digitalsmile.goldberry.css.cascade.StyleResolver;
-import io.github.digitalsmile.goldberry.css.Stylesheet;
-import io.github.digitalsmile.goldberry.css.Theme;
-import io.github.digitalsmile.goldberry.input.key.Key;
-import io.github.digitalsmile.goldberry.input.event.KeyEvent;
-import io.github.digitalsmile.goldberry.input.key.Modifiers;
-import io.github.digitalsmile.goldberry.input.event.PointerEvent;
-import io.github.digitalsmile.goldberry.kdl.KdlParser;
-import io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength;
-import io.github.digitalsmile.goldberry.widget.ElementTree;
-import io.github.digitalsmile.goldberry.bind.registry.ActionRegistry;
-import io.github.digitalsmile.goldberry.widgets.Controls;
-import io.github.digitalsmile.goldberry.widgets.Density;
-import io.github.digitalsmile.goldberry.widgets.Icons;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+
+import io.github.digitalsmile.goldberry.bind.Property;
+import io.github.digitalsmile.goldberry.bind.registry.ActionRegistry;
+import io.github.digitalsmile.goldberry.bind.registry.BindingRegistry;
+import io.github.digitalsmile.goldberry.css.ComputedStyle;
+import io.github.digitalsmile.goldberry.css.Stylesheet;
+import io.github.digitalsmile.goldberry.css.Theme;
+import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
+import io.github.digitalsmile.goldberry.css.cascade.StyleResolver;
+import io.github.digitalsmile.goldberry.css.select.Selector;
+import io.github.digitalsmile.goldberry.css.value.CssLength;
+import io.github.digitalsmile.goldberry.input.event.KeyEvent;
+import io.github.digitalsmile.goldberry.input.event.PointerEvent;
+import io.github.digitalsmile.goldberry.input.key.Key;
+import io.github.digitalsmile.goldberry.input.key.Modifiers;
+import io.github.digitalsmile.goldberry.kdl.KdlParser;
+import io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength;
+import io.github.digitalsmile.goldberry.widget.ElementTree;
+import io.github.digitalsmile.goldberry.widget.attr.Attributes;
+import io.github.digitalsmile.goldberry.widgets.Controls;
+import io.github.digitalsmile.goldberry.widgets.Density;
+import io.github.digitalsmile.goldberry.widgets.Icons;
 import io.github.digitalsmile.goldberry.widgets.Widgets;
+import io.github.digitalsmile.goldberry.widgets.core.Row;
+import io.github.digitalsmile.goldberry.widgets.core.Spacer;
 
 /// The fifth control, and the first with a **gesture**
 /// ([ADR-0075](../../../../../../../../book/src/adr/0075-a-gestures-origin-is-the-routers.md)).
@@ -53,8 +54,8 @@ class ToggleTest {
         @Test
         @DisplayName("the Java-built and KDL-built toggles are equal values")
         void javaAndKdlAgree() {
-            var fromJava = new Toggle("Frost", true, null, null, false,
-                    new Attributes("frost", Set.of("compact"), "frost"));
+            var fromJava =
+                    new Toggle("Frost", true, null, null, false, new Attributes("frost", Set.of("compact"), "frost"));
 
             var fromKdl = Widgets.inflater().inflateAll(KdlParser.parse("""
                     toggle id="frost" class="compact" on=#true "Frost"
@@ -71,11 +72,10 @@ class ToggleTest {
                     #frost    { gap: 2px }
                     .compact  { gap: 3px }
                     """));
-            var tree = new ElementTree(new Toggle("Frost", true, null, null, false,
-                    new Attributes("frost", Set.of("compact"), "frost")));
+            var tree = new ElementTree(
+                    new Toggle("Frost", true, null, null, false, new Attributes("frost", Set.of("compact"), "frost")));
 
-            var style = ComputedStyle.of(new StyleResolver(sheets).resolve(tree.root()),
-                    CssLength.Context.DEFAULT);
+            var style = ComputedStyle.of(new StyleResolver(sheets).resolve(tree.root()), CssLength.Context.DEFAULT);
 
             // The id wins on specificity, which is what says all three matched.
             assertEquals(StyleLength.points(2), style.gap());
@@ -168,8 +168,8 @@ class ToggleTest {
             var asked = new ArrayList<Boolean>();
             var toggle = new Toggle("Frost", false, asked::add);
 
-            toggle.onPointer(new PointerEvent(PointerEvent.Kind.RELEASED, 30, 10,
-                    PointerEvent.Button.PRIMARY, 1, null));
+            toggle.onPointer(
+                    new PointerEvent(PointerEvent.Kind.RELEASED, 30, 10, PointerEvent.Button.PRIMARY, 1, null));
 
             assertEquals(List.of(true), asked);
         }
@@ -183,8 +183,8 @@ class ToggleTest {
             var asked = new ArrayList<Boolean>();
             var toggle = new Toggle("Frost", false, asked::add);
 
-            toggle.onPointer(new PointerEvent(PointerEvent.Kind.CLICKED, 34, 30,
-                    PointerEvent.Button.PRIMARY, 1, 30, 30, null));
+            toggle.onPointer(
+                    new PointerEvent(PointerEvent.Kind.CLICKED, 34, 30, PointerEvent.Button.PRIMARY, 1, 30, 30, null));
 
             assertTrue(asked.isEmpty(), "a toggle acts on the release; the click would be a second time");
         }
@@ -194,16 +194,16 @@ class ToggleTest {
         void secondaryButtonDoesNothing() {
             var asked = new ArrayList<Boolean>();
 
-            new Toggle("Frost", false, asked::add).onPointer(
-                    new PointerEvent(PointerEvent.Kind.RELEASED, 34, 30,
-                            PointerEvent.Button.SECONDARY, 1, 30, 30, null));
+            new Toggle("Frost", false, asked::add)
+                    .onPointer(new PointerEvent(
+                            PointerEvent.Kind.RELEASED, 34, 30, PointerEvent.Button.SECONDARY, 1, 30, 30, null));
 
             assertTrue(asked.isEmpty());
         }
 
         private static PointerEvent release(float pressX, float releaseX) {
-            return new PointerEvent(PointerEvent.Kind.RELEASED, releaseX, 30,
-                    PointerEvent.Button.PRIMARY, 1, pressX, 30, null);
+            return new PointerEvent(
+                    PointerEvent.Kind.RELEASED, releaseX, 30, PointerEvent.Button.PRIMARY, 1, pressX, 30, null);
         }
     }
 
@@ -266,7 +266,7 @@ class ToggleTest {
         @DisplayName("a bound toggle shows the property")
         void boundShowsTheProperty() {
             var frost = Property.of(true);
-            var toggle = Toggle.of("Frost", frost, value -> { });
+            var toggle = Toggle.of("Frost", frost, value -> {});
 
             assertTrue(toggle.resolved());
             frost.set(false);
@@ -279,8 +279,8 @@ class ToggleTest {
         @Test
         @DisplayName("a non-boolean or null property falls back to the widget's value")
         void nonBooleanFallsBack() {
-            assertTrue(new Toggle("Frost", true, Property.of("yes"), value -> { }, false, null).resolved());
-            assertTrue(new Toggle("Frost", true, Property.of(null), value -> { }, false, null).resolved());
+            assertTrue(new Toggle("Frost", true, Property.of("yes"), value -> {}, false, null).resolved());
+            assertTrue(new Toggle("Frost", true, Property.of(null), value -> {}, false, null).resolved());
         }
 
         /// The whole of ADR-0063 in one assertion: a bound toggle whose handler
@@ -289,7 +289,7 @@ class ToggleTest {
         @DisplayName("a handler that does nothing leaves the switch where it was")
         void controlled() {
             var frost = Property.of(false);
-            var toggle = Toggle.of("Frost", frost, value -> { });
+            var toggle = Toggle.of("Frost", frost, value -> {});
 
             toggle.onKey(new KeyEvent(KeyEvent.Kind.PRESSED, Key.SPACE, Modifiers.NONE, false, null));
 
@@ -302,7 +302,7 @@ class ToggleTest {
         void readOnly() {
             var frost = Property.of(false);
 
-            assertSame(frost, Toggle.of("Frost", frost, value -> { }).binding());
+            assertSame(frost, Toggle.of("Frost", frost, value -> {}).binding());
         }
 
         @Test
@@ -311,8 +311,8 @@ class ToggleTest {
             var asked = new ArrayList<Boolean>();
             var toggle = new Toggle("Frost", false, null, asked::add, true, null);
 
-            toggle.onPointer(new PointerEvent(PointerEvent.Kind.RELEASED, 34, 30,
-                    PointerEvent.Button.PRIMARY, 1, 30, 30, null));
+            toggle.onPointer(
+                    new PointerEvent(PointerEvent.Kind.RELEASED, 34, 30, PointerEvent.Button.PRIMARY, 1, 30, 30, null));
             toggle.onKey(new KeyEvent(KeyEvent.Kind.PRESSED, Key.SPACE, Modifiers.NONE, false, null));
 
             assertTrue(asked.isEmpty());
@@ -332,7 +332,8 @@ class ToggleTest {
             var toggle = (Toggle) Widgets.inflater(actions, Icons.none(), BindingRegistry.none())
                     .inflateAll(KdlParser.parse("""
                             toggle change="setFrost" "Frost"
-                            """)).getFirst();
+                            """))
+                    .getFirst();
             toggle.onKey(new KeyEvent(KeyEvent.Kind.PRESSED, Key.SPACE, Modifiers.NONE, false, null));
 
             assertEquals(List.of("true"), got);
@@ -374,7 +375,10 @@ class ToggleTest {
             assertEquals(StyleLength.points(2), padding.top());
             // §3's travel 16 is what is *left over* rather than a number chosen
             // separately: change the track width and the travel is wrong.
-            assertEquals(16, 36 - points(padding.left()) - points(padding.right()) - 16, 1e-6,
+            assertEquals(
+                    16,
+                    36 - points(padding.left()) - points(padding.right()) - 16,
+                    1e-6,
                     "track 36 - padding 2+2 - thumb 16 must leave exactly §3's travel");
         }
 
@@ -392,8 +396,8 @@ class ToggleTest {
         @Test
         @DisplayName("disabled reaches both parts, so neither needs a descendant selector")
         void disabledReachesTheParts() {
-            var track = (ToggleTrack) new Toggle("Frost", true, null, null, true, null)
-                    .children().getFirst();
+            var track = (ToggleTrack)
+                    new Toggle("Frost", true, null, null, true, null).children().getFirst();
 
             assertTrue(track.isDisabled());
             assertTrue(((ToggleThumb) track.children().getFirst()).isDisabled());
@@ -414,9 +418,7 @@ class ToggleTest {
         /// under the toggle, and (1, 0) the thumb under that.
         private static ComputedStyle styleOf(int... path) {
             var resolver = new StyleResolver(Controls.stylesheets(Theme.NORD_DARK));
-            var tree = new ElementTree(new Row(
-                    List.of(new Spacer(), new Toggle("Frost", true)),
-                    Attributes.NONE));
+            var tree = new ElementTree(new Row(List.of(new Spacer(), new Toggle("Frost", true)), Attributes.NONE));
             var element = tree.root().children().get(path[0]);
             for (var i = 1; i < path.length; i++) {
                 element = element.children().get(path[i]);
@@ -445,8 +447,8 @@ class ToggleTest {
             for (var density : Density.values()) {
                 var resolver = new StyleResolver(Controls.stylesheets(Theme.NORD_DARK, density));
                 var tree = new ElementTree(new Toggle("Frost", true));
-                var track = ComputedStyle.of(resolver.resolve(tree.root().children().getFirst()),
-                        CssLength.Context.DEFAULT);
+                var track = ComputedStyle.of(
+                        resolver.resolve(tree.root().children().getFirst()), CssLength.Context.DEFAULT);
 
                 assertEquals(StyleLength.points(36), track.width(), "track width at " + density);
                 assertEquals(StyleLength.points(20), track.height(), "track height at " + density);
@@ -476,15 +478,17 @@ class ToggleTest {
             tree.root().setPseudoClass(Selector.PseudoClass.DISABLED, true);
             var resolver = new StyleResolver(Controls.stylesheets(Theme.NORD_DARK));
 
-            assertEquals(0.45,
-                    ComputedStyle.of(resolver.resolve(tree.root()), CssLength.Context.DEFAULT).opacity(),
+            assertEquals(
+                    0.45,
+                    ComputedStyle.of(resolver.resolve(tree.root()), CssLength.Context.DEFAULT)
+                            .opacity(),
                     1e-6);
         }
 
         private static ComputedStyle toggleStyle(Density density) {
             var resolver = new StyleResolver(Controls.stylesheets(Theme.NORD_DARK, density));
-            return ComputedStyle.of(resolver.resolve(new ElementTree(new Toggle("Frost", true)).root()),
-                    CssLength.Context.DEFAULT);
+            return ComputedStyle.of(
+                    resolver.resolve(new ElementTree(new Toggle("Frost", true)).root()), CssLength.Context.DEFAULT);
         }
     }
 }

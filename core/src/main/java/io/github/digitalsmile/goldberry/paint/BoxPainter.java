@@ -1,15 +1,16 @@
 package io.github.digitalsmile.goldberry.paint;
-import io.github.digitalsmile.goldberry.css.value.Affine;
-import io.github.digitalsmile.goldberry.natives.blend2d.BlendPath;
-import io.github.digitalsmile.goldberry.natives.blend2d.enums.BlendStrokeCap;
-import io.github.digitalsmile.goldberry.natives.blend2d.enums.BlendStrokeJoin;
-import io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength;
-import io.github.digitalsmile.goldberry.natives.yoga.ComputedLayout;
-import io.github.digitalsmile.goldberry.paint.tree.RenderTree;
 
 import java.util.Objects;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
+
+import io.github.digitalsmile.goldberry.css.value.Affine;
+import io.github.digitalsmile.goldberry.natives.blend2d.BlendPath;
+import io.github.digitalsmile.goldberry.natives.blend2d.enums.BlendStrokeCap;
+import io.github.digitalsmile.goldberry.natives.blend2d.enums.BlendStrokeJoin;
+import io.github.digitalsmile.goldberry.natives.yoga.ComputedLayout;
+import io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength;
+import io.github.digitalsmile.goldberry.paint.tree.RenderTree;
 
 /// Lays a [Box] tree out with Yoga and paints it with Blend2D.
 ///
@@ -36,8 +37,7 @@ import java.util.function.Consumer;
 /// the render tree is blocked on ADR-0004.
 public final class BoxPainter {
 
-    private BoxPainter() {
-    }
+    private BoxPainter() {}
 
     /// Lays `root` out to fill `frame` and paints it, keeping nothing.
     ///
@@ -81,8 +81,7 @@ public final class BoxPainter {
             walk.accept(placed -> {
                 var matrix = placed.transform();
                 if (!matrix.equals(current[0])) {
-                    frame.transform(matrix.a(), matrix.b(), matrix.c(),
-                            matrix.d(), matrix.e(), matrix.f());
+                    frame.transform(matrix.a(), matrix.b(), matrix.c(), matrix.d(), matrix.e(), matrix.f());
                     current[0] = matrix;
                 }
                 paintOne(frame, path, placed.box(), placed.layout(), matrix);
@@ -131,8 +130,7 @@ public final class BoxPainter {
     ///
     /// @param ambient what the frame's transform was set to before this box —
     ///                [Affine#IDENTITY] for the overwhelming majority of boxes
-    public static void paintOne(Frame frame, BlendPath path, Box box, ComputedLayout layout,
-            Affine ambient) {
+    public static void paintOne(Frame frame, BlendPath path, Box box, ComputedLayout layout, Affine ambient) {
         var decoration = box.decoration();
         var x = layout.left();
         var y = layout.top();
@@ -159,11 +157,21 @@ public final class BoxPainter {
             // control leave 30px of content rather than 32.
             var inset = decoration.borderWidth() / 2;
             path.reset();
-            RoundRect.addTo(path, inset, inset,
-                    width - decoration.borderWidth(), height - decoration.borderWidth(),
+            RoundRect.addTo(
+                    path,
+                    inset,
+                    inset,
+                    width - decoration.borderWidth(),
+                    height - decoration.borderWidth(),
                     decoration.corners().shrunkBy(inset));
-            frame.strokePath(x, y, path, decoration.borderWidth(),
-                    BlendStrokeCap.BUTT, BlendStrokeJoin.MITER_CLIP, decoration.borderColor());
+            frame.strokePath(
+                    x,
+                    y,
+                    path,
+                    decoration.borderWidth(),
+                    BlendStrokeCap.BUTT,
+                    BlendStrokeJoin.MITER_CLIP,
+                    decoration.borderColor());
         }
 
         if (box.text() != null) {
@@ -183,9 +191,14 @@ public final class BoxPainter {
             var left = resolve(box.padding().left(), width);
             var top = resolve(box.padding().top(), height);
             var right = resolve(box.padding().right(), width);
-            box.text().paragraph().paint(
-                    frame, x + left, y + top, Math.max(0, width - left - right),
-                    box.text().argb());
+            box.text()
+                    .paragraph()
+                    .paint(
+                            frame,
+                            x + left,
+                            y + top,
+                            Math.max(0, width - left - right),
+                            box.text().argb());
         }
 
         if (box.icon() != null) {
@@ -201,8 +214,13 @@ public final class BoxPainter {
             // wrong"; centring is what a slot means
             // ([ADR-0143](../../../../../../book/src/adr/0143-a-strip-keeps-its-height-and-an-icon-its-centre.md)).
             var glyph = box.icon().icon().size();
-            box.icon().icon().draw(frame,
-                    x + (width - glyph) / 2, y + (height - glyph) / 2, box.icon().argb());
+            box.icon()
+                    .icon()
+                    .draw(
+                            frame,
+                            x + (width - glyph) / 2,
+                            y + (height - glyph) / 2,
+                            box.icon().argb());
         }
 
         if (box.mark() != null) {
@@ -220,14 +238,25 @@ public final class BoxPainter {
             // controls 8px apart not have their rings touch.
             var out = decoration.outlineOffset() + decoration.outlineWidth() / 2;
             path.reset();
-            RoundRect.addTo(path, -out, -out, width + out * 2, height + out * 2,
+            RoundRect.addTo(
+                    path,
+                    -out,
+                    -out,
+                    width + out * 2,
+                    height + out * 2,
                     // A ring around a rounded corner is concentric with it, so
                     // its radius grows by the same distance it moved out. A
                     // square corner stays square: a ring that rounded itself
                     // around a sharp box would not follow the control.
                     decoration.corners().grownBy(out));
-            frame.strokePath(x, y, path, decoration.outlineWidth(),
-                    BlendStrokeCap.BUTT, BlendStrokeJoin.MITER_CLIP, decoration.outlineColor());
+            frame.strokePath(
+                    x,
+                    y,
+                    path,
+                    decoration.outlineWidth(),
+                    BlendStrokeCap.BUTT,
+                    BlendStrokeJoin.MITER_CLIP,
+                    decoration.outlineColor());
         }
     }
 
@@ -240,8 +269,7 @@ public final class BoxPainter {
     /// Lucide grid the rest of the toolkit's iconography sits on (§1.6), so a
     /// tick beside a Lucide icon reads as the same drawing.
     private static void paintMark(
-            Frame frame, BlendPath path, Box.Mark mark,
-            double x, double y, double width, double height) {
+            Frame frame, BlendPath path, Box.Mark mark, double x, double y, double width, double height) {
 
         path.reset();
         switch (mark.kind()) {
@@ -302,9 +330,13 @@ public final class BoxPainter {
                 // indicator is the same ring as a spinner's, cut to a fraction
                 // (ADR-0089). A zero sweep draws nothing, which is what a knob at
                 // its minimum wants and is `Arc.addTo`'s own early return.
-                Arc.addTo(path, width / 2, height / 2,
+                Arc.addTo(
+                        path,
+                        width / 2,
+                        height / 2,
                         Math.min(width, height) / 2 - mark.thickness() / 2,
-                        mark.start(), mark.sweep());
+                        mark.start(),
+                        mark.sweep());
             }
             case POINTER -> {
                 // A line out from the middle at the mark's angle -- which way the
@@ -314,17 +346,18 @@ public final class BoxPainter {
                 var radius = Math.min(width, height) / 2;
                 var cos = Math.cos(mark.start());
                 var sin = Math.sin(mark.start());
-                path.moveTo(width / 2 + radius * Box.Mark.POINTER_INNER * cos,
+                path.moveTo(
+                        width / 2 + radius * Box.Mark.POINTER_INNER * cos,
                         height / 2 + radius * Box.Mark.POINTER_INNER * sin);
-                path.lineTo(width / 2 + radius * Box.Mark.POINTER_OUTER * cos,
+                path.lineTo(
+                        width / 2 + radius * Box.Mark.POINTER_OUTER * cos,
                         height / 2 + radius * Box.Mark.POINTER_OUTER * sin);
             }
             case DOT -> {
                 // Filled rather than stroked, so a radio's dot is solid at any
                 // size instead of becoming a ring as the box grows.
                 var radius = Math.min(width, height) * 0.25;
-                RoundRect.addTo(path, width / 2 - radius, height / 2 - radius,
-                        radius * 2, radius * 2, radius);
+                RoundRect.addTo(path, width / 2 - radius, height / 2 - radius, radius * 2, radius * 2, radius);
                 frame.fillPath(x, y, path, mark.argb());
                 return;
             }
@@ -398,8 +431,7 @@ public final class BoxPainter {
             path.closeSubPath();
             return;
         }
-        Arc.addTo(path, width / 2, height / 2,
-                Math.min(width, height) / 2 - inset, 0, 2 * Math.PI);
+        Arc.addTo(path, width / 2, height / 2, Math.min(width, height) / 2 - inset, 0, 2 * Math.PI);
     }
 
     /// The dot under an `i` or over a `!`.
@@ -407,8 +439,7 @@ public final class BoxPainter {
     /// Filled at the stroke's own radius, so it reads as the same pen that drew
     /// the bar above it. Resets the path first: the outline and the symbol have
     /// already been stroked by the time this runs.
-    private static void dot(Frame frame, BlendPath path, Box.Mark mark,
-            double x, double y, double cx, double cy) {
+    private static void dot(Frame frame, BlendPath path, Box.Mark mark, double x, double y, double cx, double cy) {
 
         var radius = mark.thickness() / 2;
         path.reset();
@@ -419,8 +450,7 @@ public final class BoxPainter {
     /// Strokes whatever is in `path` as a mark — see the note on caps and joins
     /// at the end of [#paintMark].
     private static void strokeMark(Frame frame, BlendPath path, Box.Mark mark, double x, double y) {
-        frame.strokePath(x, y, path, mark.thickness(),
-                BlendStrokeCap.ROUND, BlendStrokeJoin.ROUND, mark.argb());
+        frame.strokePath(x, y, path, mark.thickness(), BlendStrokeCap.ROUND, BlendStrokeJoin.ROUND, mark.argb());
     }
 
     /// One box, where it ended up, and what moves it.
@@ -471,8 +501,7 @@ public final class BoxPainter {
     /// around a canvas means eight pixels of surface, and painting at the box's
     /// own origin would put all of them on the right and the bottom.
     private static void paintCanvas(
-            Frame frame, Box box, double x, double y, double width, double height,
-            Affine ambient) {
+            Frame frame, Box box, double x, double y, double width, double height, Affine ambient) {
 
         var left = resolve(box.padding().left(), width);
         var top = resolve(box.padding().top(), height);
@@ -500,11 +529,12 @@ public final class BoxPainter {
             // there** rather than assigned over it: translate the painter's
             // (0, 0) to the content corner, then everything the ancestors do.
             var painting = Affine.translate(x + left, y + top).then(ambient);
-            frame.transform(painting.a(), painting.b(), painting.c(),
-                    painting.d(), painting.e(), painting.f());
-            box.painting().paint(frame,
-                    new io.github.digitalsmile.goldberry.render.model.LogicalSize(
-                            (float) contentWidth, (float) contentHeight));
+            frame.transform(painting.a(), painting.b(), painting.c(), painting.d(), painting.e(), painting.f());
+            box.painting()
+                    .paint(
+                            frame,
+                            new io.github.digitalsmile.goldberry.render.model.LogicalSize(
+                                    (float) contentWidth, (float) contentHeight));
         } finally {
             // In a finally, because a painter that throws is an application bug
             // and must not also be a window that draws wrong from then on. The

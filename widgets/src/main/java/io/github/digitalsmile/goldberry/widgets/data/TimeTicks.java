@@ -41,8 +41,7 @@ import java.util.Locale;
 /// is what a step measured from the first data point could never give.
 public final class TimeTicks {
 
-    private TimeTicks() {
-    }
+    private TimeTicks() {}
 
     /// One rung: an amount of a unit, and how long that is in milliseconds when
     /// you only need to know *roughly*.
@@ -50,8 +49,7 @@ public final class TimeTicks {
     /// The approximation is for choosing the rung and nothing else. A month is
     /// 30.44 days here and exactly as long as it is when the ticks are actually
     /// produced.
-    private record Step(ChronoUnit unit, int amount, double approxMillis) {
-    }
+    private record Step(ChronoUnit unit, int amount, double approxMillis) {}
 
     private static final double SECOND = 1000;
     private static final double MINUTE = 60 * SECOND;
@@ -98,13 +96,14 @@ public final class TimeTicks {
     /// a numeric axis takes its decimals from the step: a column where one label
     /// says `14:00` and the next says `12 Mar` is a column that reads as ragged.
     private static DateTimeFormatter formatFor(Step step) {
-        var pattern = switch (step.unit()) {
-            case SECONDS -> "HH:mm:ss";
-            case MINUTES, HOURS -> "HH:mm";
-            case DAYS -> "d MMM";
-            case MONTHS -> "MMM yyyy";
-            default -> "yyyy";
-        };
+        var pattern =
+                switch (step.unit()) {
+                    case SECONDS -> "HH:mm:ss";
+                    case MINUTES, HOURS -> "HH:mm";
+                    case DAYS -> "d MMM";
+                    case MONTHS -> "MMM yyyy";
+                    default -> "yyyy";
+                };
         return DateTimeFormatter.ofPattern(pattern, Locale.ROOT);
     }
 
@@ -165,28 +164,26 @@ public final class TimeTicks {
             }
             at = next;
         }
-        return new Labelling(List.copyOf(values), formatFor(chosen),
-                chosen.unit(), chosen.amount());
+        return new Labelling(List.copyOf(values), formatFor(chosen), chosen.unit(), chosen.amount());
     }
 
     /// `time` moved back to the previous boundary of `step`'s own unit.
     private static ZonedDateTime snap(ZonedDateTime time, Step step) {
         return switch (step.unit()) {
-            case SECONDS -> time.truncatedTo(ChronoUnit.MINUTES)
-                    .plusSeconds(floor(time.getSecond(), step.amount()));
-            case MINUTES -> time.truncatedTo(ChronoUnit.HOURS)
-                    .plusMinutes(floor(time.getMinute(), step.amount()));
-            case HOURS -> time.truncatedTo(ChronoUnit.DAYS)
-                    .plusHours(floor(time.getHour(), step.amount()));
+            case SECONDS -> time.truncatedTo(ChronoUnit.MINUTES).plusSeconds(floor(time.getSecond(), step.amount()));
+            case MINUTES -> time.truncatedTo(ChronoUnit.HOURS).plusMinutes(floor(time.getMinute(), step.amount()));
+            case HOURS -> time.truncatedTo(ChronoUnit.DAYS).plusHours(floor(time.getHour(), step.amount()));
             // A day step snaps to midnight and no further: a "week" boundary is
             // Sunday in one country and Monday in the next, and a 14-day step has
             // no natural boundary at all. Midnight is a boundary every reader
             // agrees about.
             case DAYS -> time.truncatedTo(ChronoUnit.DAYS);
-            case MONTHS -> time.withDayOfMonth(1).truncatedTo(ChronoUnit.DAYS)
-                    .withMonth(1 + floor(time.getMonthValue() - 1, step.amount()));
-            default -> time.withDayOfYear(1).truncatedTo(ChronoUnit.DAYS)
-                    .withYear(floor(time.getYear(), step.amount()));
+            case MONTHS ->
+                time.withDayOfMonth(1)
+                        .truncatedTo(ChronoUnit.DAYS)
+                        .withMonth(1 + floor(time.getMonthValue() - 1, step.amount()));
+            default ->
+                time.withDayOfYear(1).truncatedTo(ChronoUnit.DAYS).withYear(floor(time.getYear(), step.amount()));
         };
     }
 
@@ -202,8 +199,7 @@ public final class TimeTicks {
     /// @param format what to write each one as, in the root locale
     /// @param unit   the unit the step is counted in
     /// @param amount how many of them
-    public record Labelling(
-            List<Instant> values, DateTimeFormatter format, ChronoUnit unit, int amount) {
+    public record Labelling(List<Instant> values, DateTimeFormatter format, ChronoUnit unit, int amount) {
 
         /// `at` as its label, in `zone`.
         public String label(Instant at, ZoneId zone) {

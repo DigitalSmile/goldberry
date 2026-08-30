@@ -93,7 +93,8 @@ interface TextEditor {
     /// suggestions is anchored to a *position* that no widget can compute and
     /// only the painted frame knows ([ADR-0119]). §4's autocomplete is what
     /// needed it.
-    void located(io.github.digitalsmile.goldberry.render.model.LogicalRect self,
+    void located(
+            io.github.digitalsmile.goldberry.render.model.LogicalRect self,
             io.github.digitalsmile.goldberry.render.model.LogicalRect clip);
 
     /// A frame is being described: here is the paragraph the field's text shaped

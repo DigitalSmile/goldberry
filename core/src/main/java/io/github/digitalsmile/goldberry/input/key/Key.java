@@ -1,9 +1,9 @@
 package io.github.digitalsmile.goldberry.input.key;
 
-import io.github.digitalsmile.goldberry.render.event.BackendEvent;
-
 import java.util.HashMap;
 import java.util.Map;
+
+import io.github.digitalsmile.goldberry.render.event.BackendEvent;
 
 /// The keys a toolkit has to name.
 ///
@@ -27,7 +27,6 @@ import java.util.Map;
 /// `Ctrl+S` is `Ctrl+S` everywhere, while on AZERTY it stays where the user's own
 /// layout puts it (ADR-0055).
 public enum Key {
-
     UNKNOWN(0),
 
     // --- editing and confirmation ---
@@ -82,14 +81,49 @@ public enum Key {
     //
     // SDL's keycodes for these are the ASCII code of the *lowercase* character,
     // which is why the values look like a lookup table nobody wrote: 'a' is 0x61.
-    A('a'), B('b'), C('c'), D('d'), E('e'), F('f'), G('g'), H('h'), I('i'),
-    J('j'), K('k'), L('l'), M('m'), N('n'), O('o'), P('p'), Q('q'), R('r'),
-    S('s'), T('t'), U('u'), V('v'), W('w'), X('x'), Y('y'), Z('z'),
+    A('a'),
+    B('b'),
+    C('c'),
+    D('d'),
+    E('e'),
+    F('f'),
+    G('g'),
+    H('h'),
+    I('i'),
+    J('j'),
+    K('k'),
+    L('l'),
+    M('m'),
+    N('n'),
+    O('o'),
+    P('p'),
+    Q('q'),
+    R('r'),
+    S('s'),
+    T('t'),
+    U('u'),
+    V('v'),
+    W('w'),
+    X('x'),
+    Y('y'),
+    Z('z'),
 
-    DIGIT_0('0'), DIGIT_1('1'), DIGIT_2('2'), DIGIT_3('3'), DIGIT_4('4'),
-    DIGIT_5('5'), DIGIT_6('6'), DIGIT_7('7'), DIGIT_8('8'), DIGIT_9('9'),
+    DIGIT_0('0'),
+    DIGIT_1('1'),
+    DIGIT_2('2'),
+    DIGIT_3('3'),
+    DIGIT_4('4'),
+    DIGIT_5('5'),
+    DIGIT_6('6'),
+    DIGIT_7('7'),
+    DIGIT_8('8'),
+    DIGIT_9('9'),
 
-    COMMA(','), PERIOD('.'), SLASH('/'), MINUS('-'), EQUALS('=');
+    COMMA(','),
+    PERIOD('.'),
+    SLASH('/'),
+    MINUS('-'),
+    EQUALS('=');
 
     private static final Map<Integer, Key> BY_KEYCODE = new HashMap<>();
 

@@ -5,32 +5,34 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import io.github.digitalsmile.goldberry.render.event.BackendEvent;
-import io.github.digitalsmile.goldberry.render.model.LogicalPoint;
-import io.github.digitalsmile.goldberry.render.model.LogicalSize;
-import io.github.digitalsmile.goldberry.render.backend.headless.HeadlessBackend;
-import io.github.digitalsmile.goldberry.render.backend.headless.HeadlessPopup;
-import io.github.digitalsmile.goldberry.render.backend.headless.HeadlessWindow;
-import io.github.digitalsmile.goldberry.render.model.LogicalRect;
-import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
-import io.github.digitalsmile.goldberry.css.ComputedStyle;
-import io.github.digitalsmile.goldberry.css.Stylesheet;
-import io.github.digitalsmile.goldberry.input.key.Key;
-import io.github.digitalsmile.goldberry.paint.Box;
-import io.github.digitalsmile.goldberry.widget.attr.Attributes;
-import io.github.digitalsmile.goldberry.widget.style.Paints;
-import io.github.digitalsmile.goldberry.widget.style.Styled;
-import io.github.digitalsmile.goldberry.widget.Widget;
-import java.util.List;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Consumer;
+
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
+
+import io.github.digitalsmile.goldberry.css.ComputedStyle;
+import io.github.digitalsmile.goldberry.css.Stylesheet;
+import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
+import io.github.digitalsmile.goldberry.input.key.Key;
+import io.github.digitalsmile.goldberry.paint.Box;
+import io.github.digitalsmile.goldberry.render.backend.headless.HeadlessBackend;
+import io.github.digitalsmile.goldberry.render.backend.headless.HeadlessPopup;
+import io.github.digitalsmile.goldberry.render.backend.headless.HeadlessWindow;
+import io.github.digitalsmile.goldberry.render.event.BackendEvent;
+import io.github.digitalsmile.goldberry.render.model.LogicalPoint;
+import io.github.digitalsmile.goldberry.render.model.LogicalRect;
+import io.github.digitalsmile.goldberry.render.model.LogicalSize;
+import io.github.digitalsmile.goldberry.widget.Widget;
+import io.github.digitalsmile.goldberry.widget.attr.Attributes;
+import io.github.digitalsmile.goldberry.widget.style.Paints;
+import io.github.digitalsmile.goldberry.widget.style.Styled;
 
 /// A [Popup] driven through the **real** launcher and the real frame loop, on
 /// the backend that needs no display.
@@ -220,16 +222,17 @@ class PopupLifecycleTest {
     void opensAndPaints() {
         var opened = new Popup[1];
         var backing = new HeadlessPopup[1];
-        Goldberry.launch(new TestApp(
-                host -> {
-                    opened[0] = host.popup(new Plate("menu"),
-                            LogicalPoint.of(40, 60), LogicalSize.of(180, 132)).orElseThrow();
-                    // Held now rather than looked up later: by the time `launch`
-                    // returns, the launcher has closed every popup and
-                    // `windows()` is empty — which the last test here asserts.
-                    backing[0] = onlyPopup();
-                },
-                host -> { }),
+        Goldberry.launch(
+                new TestApp(
+                        host -> {
+                            opened[0] = host.popup(new Plate("menu"), LogicalPoint.of(40, 60), LogicalSize.of(180, 132))
+                                    .orElseThrow();
+                            // Held now rather than looked up later: by the time `launch`
+                            // returns, the launcher has closed every popup and
+                            // `windows()` is empty — which the last test here asserts.
+                            backing[0] = onlyPopup();
+                        },
+                        host -> {}),
                 new String[] {"--frames=3"});
 
         assertNotNull(opened[0]);
@@ -250,14 +253,14 @@ class PopupLifecycleTest {
     @DisplayName("a press in the window below closes the popup")
     void lightDismissedByAPress() {
         var opened = new Popup[1];
-        Goldberry.launch(new TestApp(
-                host -> {
-                    opened[0] = host.popup(new Plate("menu"),
-                            LogicalPoint.of(40, 60), LogicalSize.of(180, 132)).orElseThrow();
-                    backend.post(new BackendEvent.PointerPressed(
-                            ownerWindow(), 10, 10, 1, 1, 0));
-                },
-                host -> { }),
+        Goldberry.launch(
+                new TestApp(
+                        host -> {
+                            opened[0] = host.popup(new Plate("menu"), LogicalPoint.of(40, 60), LogicalSize.of(180, 132))
+                                    .orElseThrow();
+                            backend.post(new BackendEvent.PointerPressed(ownerWindow(), 10, 10, 1, 1, 0));
+                        },
+                        host -> {}),
                 new String[] {"--frames=3"});
 
         assertFalse(opened[0].isOpen(), "a press below a menu closes it (§7's light dismissal)");
@@ -268,14 +271,14 @@ class PopupLifecycleTest {
     @DisplayName("Escape closes it too")
     void lightDismissedByEscape() {
         var opened = new Popup[1];
-        Goldberry.launch(new TestApp(
-                host -> {
-                    opened[0] = host.popup(new Plate("menu"),
-                            LogicalPoint.of(40, 60), LogicalSize.of(180, 132)).orElseThrow();
-                    backend.post(new BackendEvent.KeyPressed(
-                            ownerWindow(), Key.ESCAPE.sdlKeycode(), 0, false));
-                },
-                host -> { }),
+        Goldberry.launch(
+                new TestApp(
+                        host -> {
+                            opened[0] = host.popup(new Plate("menu"), LogicalPoint.of(40, 60), LogicalSize.of(180, 132))
+                                    .orElseThrow();
+                            backend.post(new BackendEvent.KeyPressed(ownerWindow(), Key.ESCAPE.sdlKeycode(), 0, false));
+                        },
+                        host -> {}),
                 new String[] {"--frames=3"});
 
         assertFalse(opened[0].isOpen());
@@ -292,21 +295,27 @@ class PopupLifecycleTest {
     void minimumWidth() {
         var wide = new LogicalSize[1];
         var narrow = new LogicalSize[1];
-        Goldberry.launch(new TestApp(
-                host -> {
-                    wide[0] = host.popup(new Sized("menu"),
-                            LogicalRect.of(0, 0, 10, 10),
-                            Placement.BELOW, 320).orElseThrow().bounds().size();
-                    narrow[0] = host.popup(new Sized("menu2"),
-                            LogicalRect.of(0, 0, 10, 10),
-                            Placement.BELOW, 100).orElseThrow().bounds().size();
-                },
-                host -> { }),
+        Goldberry.launch(
+                new TestApp(
+                        host -> {
+                            wide[0] = host.popup(new Sized("menu"), LogicalRect.of(0, 0, 10, 10), Placement.BELOW, 320)
+                                    .orElseThrow()
+                                    .bounds()
+                                    .size();
+                            narrow[0] = host.popup(
+                                            new Sized("menu2"), LogicalRect.of(0, 0, 10, 10), Placement.BELOW, 100)
+                                    .orElseThrow()
+                                    .bounds()
+                                    .size();
+                        },
+                        host -> {}),
                 new String[] {"--frames=3"});
 
-        assertEquals(320, wide[0].width(), 0.5,
-                "the floor won, because the content wanted less");
-        assertEquals(200, narrow[0].width(), 0.5,
+        assertEquals(320, wide[0].width(), 0.5, "the floor won, because the content wanted less");
+        assertEquals(
+                200,
+                narrow[0].width(),
+                0.5,
                 "and the content won, because it wanted more — this is a floor, not a width");
     }
 
@@ -316,13 +325,14 @@ class PopupLifecycleTest {
     /// returns is asserting the teardown.
     private static void later(long millis, Runnable action) {
         Goldberry.async(() -> {
-            try {
-                Thread.sleep(millis);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-            }
-            return null;
-        }).thenRun(action);
+                    try {
+                        Thread.sleep(millis);
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                    }
+                    return null;
+                })
+                .thenRun(action);
     }
 
     /// **A popup goes away when the application does** — [ADR-0144].
@@ -338,15 +348,15 @@ class PopupLifecycleTest {
         var stillOpen = new boolean[] {true};
         Goldberry.launch(new TestApp(
                 host -> {
-                    var opened = host.popup(new Plate("menu"),
-                            LogicalPoint.of(40, 60), LogicalSize.of(180, 132)).orElseThrow();
+                    var opened = host.popup(new Plate("menu"), LogicalPoint.of(40, 60), LogicalSize.of(180, 132))
+                            .orElseThrow();
                     backend.post(new BackendEvent.FocusChanged(ownerWindow(), false));
                     later(300, () -> {
                         stillOpen[0] = opened.isOpen();
                         Goldberry.stop();
                     });
                 },
-                host -> { }));
+                host -> {}));
 
         assertFalse(stillOpen[0]);
     }
@@ -361,8 +371,8 @@ class PopupLifecycleTest {
         var stillOpen = new boolean[1];
         Goldberry.launch(new TestApp(
                 host -> {
-                    var opened = host.popup(new Plate("menu"),
-                            LogicalPoint.of(40, 60), LogicalSize.of(180, 132)).orElseThrow();
+                    var opened = host.popup(new Plate("menu"), LogicalPoint.of(40, 60), LogicalSize.of(180, 132))
+                            .orElseThrow();
                     // Exactly the pair a compositor sends.
                     backend.post(new BackendEvent.FocusChanged(ownerWindow(), false));
                     backend.post(new BackendEvent.FocusChanged(onlyPopup(), true));
@@ -371,7 +381,7 @@ class PopupLifecycleTest {
                         Goldberry.stop();
                     });
                 },
-                host -> { }));
+                host -> {}));
 
         assertTrue(stillOpen[0], "the focus went to the popup, not out of the application");
     }
@@ -381,18 +391,17 @@ class PopupLifecycleTest {
     @DisplayName("a popup that opted out of light dismissal stays open")
     void lightDismissCanBeTurnedOff() {
         var opened = new Popup[1];
-        Goldberry.launch(new TestApp(
-                host -> {
-                    opened[0] = host.popup(new Plate("menu"),
-                                    LogicalPoint.of(40, 60), LogicalSize.of(180, 132))
-                            .orElseThrow()
-                            .lightDismiss(false);
-                    backend.post(new BackendEvent.PointerPressed(
-                            ownerWindow(), 10, 10, 1, 1, 0));
-                },
-                // Closed on the way out, or the loop would never end: the event
-                // loop runs until every window has closed, and a popup is one.
-                host -> opened[0].close()),
+        Goldberry.launch(
+                new TestApp(
+                        host -> {
+                            opened[0] = host.popup(new Plate("menu"), LogicalPoint.of(40, 60), LogicalSize.of(180, 132))
+                                    .orElseThrow()
+                                    .lightDismiss(false);
+                            backend.post(new BackendEvent.PointerPressed(ownerWindow(), 10, 10, 1, 1, 0));
+                        },
+                        // Closed on the way out, or the loop would never end: the event
+                        // loop runs until every window has closed, and a popup is one.
+                        host -> opened[0].close()),
                 new String[] {"--frames=3"});
 
         assertFalse(opened[0].isOpen(), "closed by stop(), not by the press");
@@ -410,9 +419,8 @@ class PopupLifecycleTest {
                 Optional<io.github.digitalsmile.goldberry.input.hit.HitTest.Region>>(Optional.empty());
         var missing = new java.util.concurrent.atomic.AtomicReference<
                 Optional<io.github.digitalsmile.goldberry.input.hit.HitTest.Region>>(Optional.empty());
-        Goldberry.launch(new TestApp(
-                host -> { },
-                host -> {
+        Goldberry.launch(
+                new TestApp(host -> {}, host -> {
                     content.set(host.anchor("content"));
                     missing.set(host.anchor("nothing-by-that-name"));
                 }),
@@ -438,19 +446,20 @@ class PopupLifecycleTest {
     void measuredAndPlaced() {
         var opened = new Popup[1];
         var backing = new HeadlessPopup[1];
-        Goldberry.launch(new TestApp(
-                host -> {
-                    opened[0] = host.popup(new Sized("menu"),
-                            LogicalRect.of(40, 40, 100, 30),
-                            Placement.BELOW).orElseThrow();
-                    backing[0] = onlyPopup();
-                },
-                host -> { }),
+        Goldberry.launch(
+                new TestApp(
+                        host -> {
+                            opened[0] = host.popup(new Sized("menu"), LogicalRect.of(40, 40, 100, 30), Placement.BELOW)
+                                    .orElseThrow();
+                            backing[0] = onlyPopup();
+                        },
+                        host -> {}),
                 new String[] {"--frames=2"});
 
-        assertEquals(LogicalSize.of(200, 80), backing[0].size(),
-                "the size came from the content, not from the caller");
-        assertEquals(new LogicalPoint(40, 74), backing[0].offset(),
+        assertEquals(LogicalSize.of(200, 80), backing[0].size(), "the size came from the content, not from the caller");
+        assertEquals(
+                new LogicalPoint(40, 74),
+                backing[0].offset(),
                 "4px under a 30px-tall anchor at y=40, left edges together");
     }
 
@@ -461,9 +470,8 @@ class PopupLifecycleTest {
     void anchoredById() {
         var backing = new HeadlessPopup[1];
         var missing = new boolean[1];
-        Goldberry.launch(new TestApp(
-                host -> { },
-                host -> {
+        Goldberry.launch(
+                new TestApp(host -> {}, host -> {
                     // In `stop()`, because an anchor is a rectangle from a frame
                     // that has been painted and `start()` runs before any have.
                     host.popup(new Sized("menu"), "content", Placement.BELOW)
@@ -473,7 +481,9 @@ class PopupLifecycleTest {
                 }),
                 new String[] {"--frames=2"});
 
-        assertEquals(new LogicalPoint(0, 304), backing[0].offset(),
+        assertEquals(
+                new LogicalPoint(0, 304),
+                backing[0].offset(),
                 "the content plate fills the 400x300 window, so its bottom edge is 300");
         assertTrue(missing[0], "nothing with that id was painted, so there is nowhere to put it");
     }
@@ -491,29 +501,31 @@ class PopupLifecycleTest {
     @DisplayName("a menu at the bottom of the screen opens upwards")
     void flipsAgainstTheRealWorkArea() {
         var backing = new HeadlessPopup[1];
-        Goldberry.launch(new TestApp(
-                host -> {
-                    // 300 tall, so its bottom edge is at 1300 on a desktop whose
-                    // work area ends at 1040 — the window is hanging off the
-                    // bottom, which is where this is interesting.
-                    ownerWindow().moveTo(new LogicalPoint(200, 1000));
-                    opened(host, 40, 40);
-                    backing[0] = onlyPopup();
-                },
-                host -> { }),
+        Goldberry.launch(
+                new TestApp(
+                        host -> {
+                            // 300 tall, so its bottom edge is at 1300 on a desktop whose
+                            // work area ends at 1040 — the window is hanging off the
+                            // bottom, which is where this is interesting.
+                            ownerWindow().moveTo(new LogicalPoint(200, 1000));
+                            opened(host, 40, 40);
+                            backing[0] = onlyPopup();
+                        },
+                        host -> {}),
                 new String[] {"--frames=2"});
 
         // Below would be y = 74, and 1000 + 74 + 80 is past the work area's 1040.
-        assertEquals(new LogicalPoint(40, -44), backing[0].offset(),
+        assertEquals(
+                new LogicalPoint(40, -44),
+                backing[0].offset(),
                 "4px above a 30px anchor at y=40: the menu flipped, and its offset is"
                         + " negative because it is above the window's own top edge — which is"
                         + " the point of a popup being a window rather than an overlay");
     }
 
     private static void opened(Host host, float x, float y) {
-        host.popup(new Sized("menu"),
-                LogicalRect.of(x, y, 100, 30),
-                Placement.BELOW).orElseThrow();
+        host.popup(new Sized("menu"), LogicalRect.of(x, y, 100, 30), Placement.BELOW)
+                .orElseThrow();
     }
 
     /// The keyboard belongs to the menu while the menu is open — whether or not
@@ -528,22 +540,25 @@ class PopupLifecycleTest {
     @DisplayName("keys go to the open popup rather than to the window beneath it")
     void theKeyboardBelongsToThePopup() {
         var focused = new ArrayList<String>();
-        Goldberry.launch(new TestApp(
-                host -> {
-                    host.popup(new Menu(List.of(
-                                    new Item("one", focused), new Item("two", focused))),
-                            LogicalRect.of(0, 0, 10, 10),
-                            Placement.BELOW).orElseThrow();
-                    // Queued behind the frames the popup needs to build its tree:
-                    // focus traversal walks elements, and there are none until it
-                    // has been painted once.
-                    backend.post(new BackendEvent.KeyPressed(
-                            ownerWindow(), Key.DOWN.sdlKeycode(), 0, false));
-                },
-                host -> { }),
+        Goldberry.launch(
+                new TestApp(
+                        host -> {
+                            host.popup(
+                                            new Menu(List.of(new Item("one", focused), new Item("two", focused))),
+                                            LogicalRect.of(0, 0, 10, 10),
+                                            Placement.BELOW)
+                                    .orElseThrow();
+                            // Queued behind the frames the popup needs to build its tree:
+                            // focus traversal walks elements, and there are none until it
+                            // has been painted once.
+                            backend.post(new BackendEvent.KeyPressed(ownerWindow(), Key.DOWN.sdlKeycode(), 0, false));
+                        },
+                        host -> {}),
                 new String[] {"--frames=4"});
 
-        assertEquals(List.of("one", "two"), focused,
+        assertEquals(
+                List.of("one", "two"),
+                focused,
                 "the first item takes focus when the menu opens, and Down moves to the second"
                         + " — inside the popup, from a key the owner window received");
     }
@@ -586,16 +601,16 @@ class PopupLifecycleTest {
     @DisplayName("shutting the window down takes its popups with it")
     void closedWithTheWindow() {
         var opened = new Popup[1];
-        Goldberry.launch(new TestApp(
-                host -> opened[0] = host.popup(new Plate("menu"),
-                                LogicalPoint.of(40, 60), LogicalSize.of(180, 132))
-                        .orElseThrow()
-                        .lightDismiss(false),
-                host -> { }),
+        Goldberry.launch(
+                new TestApp(
+                        host -> opened[0] = host.popup(
+                                        new Plate("menu"), LogicalPoint.of(40, 60), LogicalSize.of(180, 132))
+                                .orElseThrow()
+                                .lightDismiss(false),
+                        host -> {}),
                 new String[] {"--frames=2"});
 
         assertFalse(opened[0].isOpen());
-        assertTrue(backend.windows().isEmpty(),
-                "a popup left open is an event loop that never finishes");
+        assertTrue(backend.windows().isEmpty(), "a popup left open is an event loop that never finishes");
     }
 }

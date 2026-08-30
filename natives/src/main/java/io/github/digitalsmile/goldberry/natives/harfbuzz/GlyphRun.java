@@ -35,10 +35,7 @@ public final class GlyphRun {
     private final int[] xOffsets;
     private final int[] yOffsets;
 
-    GlyphRun(
-            int[] glyphIds, int[] clusters,
-            int[] xAdvances, int[] yAdvances,
-            int[] xOffsets, int[] yOffsets) {
+    GlyphRun(int[] glyphIds, int[] clusters, int[] xAdvances, int[] yAdvances, int[] xOffsets, int[] yOffsets) {
         this.glyphIds = glyphIds;
         this.clusters = clusters;
         this.xAdvances = xAdvances;

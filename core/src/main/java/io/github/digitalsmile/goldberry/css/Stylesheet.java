@@ -2,9 +2,10 @@ package io.github.digitalsmile.goldberry.css;
 
 import java.util.List;
 import java.util.Objects;
+
+import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
 import io.github.digitalsmile.goldberry.css.parse.CssParser;
 import io.github.digitalsmile.goldberry.css.parse.CssSyntaxException;
-import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
 
 /// A parsed stylesheet and the layer it belongs to.
 ///
@@ -47,20 +48,17 @@ public record Stylesheet(CascadeLayer layer, List<StyleRule> rules) {
         java.util.Objects.requireNonNull(name, "name");
         try (var in = owner.getResourceAsStream(name)) {
             if (in == null) {
-                throw new IllegalStateException(
-                        "no stylesheet resource \"" + name + "\" beside " + owner.getName()
-                                + ". Either it is missing from src/main/resources/"
-                                + owner.getPackageName().replace('.', '/') + "/, or "
-                                + (owner.getModule().isNamed()
-                                        && !owner.getModule().isOpen(owner.getPackageName())
-                                    ? "module " + owner.getModule().getName()
-                                            + " does not open the package: JPMS encapsulates"
-                                            + " resources, so add `opens "
-                                            + owner.getPackageName() + ";` to its module-info"
-                                    : "it is not on the module path"));
+                throw new IllegalStateException("no stylesheet resource \"" + name + "\" beside " + owner.getName()
+                        + ". Either it is missing from src/main/resources/"
+                        + owner.getPackageName().replace('.', '/') + "/, or "
+                        + (owner.getModule().isNamed() && !owner.getModule().isOpen(owner.getPackageName())
+                                ? "module " + owner.getModule().getName()
+                                        + " does not open the package: JPMS encapsulates"
+                                        + " resources, so add `opens "
+                                        + owner.getPackageName() + ";` to its module-info"
+                                : "it is not on the module path"));
             }
-            return parse(layer, new String(
-                    in.readAllBytes(), java.nio.charset.StandardCharsets.UTF_8));
+            return parse(layer, new String(in.readAllBytes(), java.nio.charset.StandardCharsets.UTF_8));
         } catch (java.io.IOException e) {
             throw new java.io.UncheckedIOException("could not read " + name, e);
         }

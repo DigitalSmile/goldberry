@@ -64,8 +64,7 @@ final class FieldState extends State<Field> implements Validated {
         follow();
         var field = widget();
         return new FieldBox(
-                field.label(), field.children(), field.required(), message,
-                field.attributes(), this::blurred);
+                field.label(), field.children(), field.required(), message, field.attributes(), this::blurred);
     }
 
     @Override
@@ -225,5 +224,4 @@ final class FieldState extends State<Field> implements Validated {
     String currentValue() {
         return value();
     }
-
 }

@@ -1,12 +1,13 @@
 package io.github.digitalsmile.goldberry.widgets.controls.knob;
 
-import io.github.digitalsmile.goldberry.css.ComputedStyle;
-import io.github.digitalsmile.goldberry.paint.Box;
-import io.github.digitalsmile.goldberry.widget.style.Paints;
-import io.github.digitalsmile.goldberry.widget.style.Styled;
-import io.github.digitalsmile.goldberry.widget.Widget;
 import java.util.List;
 import java.util.Set;
+
+import io.github.digitalsmile.goldberry.css.ComputedStyle;
+import io.github.digitalsmile.goldberry.paint.Box;
+import io.github.digitalsmile.goldberry.widget.Widget;
+import io.github.digitalsmile.goldberry.widget.style.Paints;
+import io.github.digitalsmile.goldberry.widget.style.Styled;
 
 /// The body you grab — a **part** of [Knob], and the seventeenth in the catalog.
 ///
@@ -62,8 +63,9 @@ record KnobDial(double fraction, boolean disabled) implements Widget.Leaf, Style
 
     @Override
     public Box render(ComputedStyle style, List<Box> children, Context context) {
-        return Box.of().style(style)
-                .mark(new Box.Mark(Box.Mark.Kind.POINTER, style.color(), KnobTrack.THICKNESS,
-                        Knob.angleAt(fraction), 0));
+        return Box.of()
+                .style(style)
+                .mark(new Box.Mark(
+                        Box.Mark.Kind.POINTER, style.color(), KnobTrack.THICKNESS, Knob.angleAt(fraction), 0));
     }
 }

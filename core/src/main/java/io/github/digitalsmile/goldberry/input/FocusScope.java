@@ -58,10 +58,12 @@ public enum FocusScope {
         if (this == NONE) {
             return false;
         }
-        return axis == null || this == BOTH || switch (axis) {
-            case HORIZONTAL -> this == FocusScope.HORIZONTAL;
-            case VERTICAL -> this == FocusScope.VERTICAL;
-        };
+        return axis == null
+                || this == BOTH
+                || switch (axis) {
+                    case HORIZONTAL -> this == FocusScope.HORIZONTAL;
+                    case VERTICAL -> this == FocusScope.VERTICAL;
+                };
     }
 
     /// The axis an arrow key lies on.

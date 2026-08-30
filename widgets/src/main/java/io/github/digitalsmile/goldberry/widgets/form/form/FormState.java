@@ -1,13 +1,14 @@
 package io.github.digitalsmile.goldberry.widgets.form.form;
 
-import io.github.digitalsmile.goldberry.widget.BuildContext;
-import io.github.digitalsmile.goldberry.widget.State;
-import io.github.digitalsmile.goldberry.widget.Widget;
-import io.github.digitalsmile.goldberry.widgets.form.field.Validated;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
+
+import io.github.digitalsmile.goldberry.widget.BuildContext;
+import io.github.digitalsmile.goldberry.widget.State;
+import io.github.digitalsmile.goldberry.widget.Widget;
+import io.github.digitalsmile.goldberry.widgets.form.field.Validated;
 
 /// The fields a [Form] has collected, and what happens when it submits.
 ///

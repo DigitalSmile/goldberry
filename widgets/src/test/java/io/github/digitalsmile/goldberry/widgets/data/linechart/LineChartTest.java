@@ -4,26 +4,28 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.List;
+import java.util.Set;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+
 import io.github.digitalsmile.goldberry.RendererRequirement;
-import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
 import io.github.digitalsmile.goldberry.css.Stylesheet;
 import io.github.digitalsmile.goldberry.css.Theme;
+import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
 import io.github.digitalsmile.goldberry.golden.GoldenImage;
 import io.github.digitalsmile.goldberry.kdl.KdlParser;
 import io.github.digitalsmile.goldberry.paint.BoxPainter;
-import io.github.digitalsmile.goldberry.widget.attr.Attributes;
 import io.github.digitalsmile.goldberry.widget.ElementTree;
 import io.github.digitalsmile.goldberry.widget.WidgetRenderer;
+import io.github.digitalsmile.goldberry.widget.attr.Attributes;
 import io.github.digitalsmile.goldberry.widgets.Controls;
 import io.github.digitalsmile.goldberry.widgets.Widgets;
 import io.github.digitalsmile.goldberry.widgets.controls.TestFont;
 import io.github.digitalsmile.goldberry.widgets.core.Column;
 import io.github.digitalsmile.goldberry.widgets.data.Series;
-import java.util.List;
-import java.util.Set;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
 
 /// §11's `line-chart`: the first chart with axes, and the first with more than
 /// one of anything.
@@ -40,8 +42,7 @@ class LineChartTest {
 
     private static List<Series> two() {
         return List.of(
-                Series.of("Downloads", 12, 19, 15, 27, 31, 28, 36),
-                Series.of("Installs", 8, 11, 9, 18, 21, 19, 24));
+                Series.of("Downloads", 12, 19, 15, 27, 31, 28, 36), Series.of("Installs", 8, 11, 9, 18, 21, 19, 24));
     }
 
     @Test
@@ -54,11 +55,11 @@ class LineChartTest {
         // charts call -- a chart itself is a stateful widget now and has no
         // children of its own to count.
         var one = io.github.digitalsmile.goldberry.widgets.data.ChartParts.of(
-                List.of(Series.of("Downloads", 1, 2, 3)), List.of(),
+                List.of(Series.of("Downloads", 1, 2, 3)),
+                List.of(),
                 io.github.digitalsmile.goldberry.widgets.data.ChartParts.Mode.LINE);
         var two = io.github.digitalsmile.goldberry.widgets.data.ChartParts.of(
-                two(), List.of(),
-                io.github.digitalsmile.goldberry.widgets.data.ChartParts.Mode.LINE);
+                two(), List.of(), io.github.digitalsmile.goldberry.widgets.data.ChartParts.Mode.LINE);
 
         assertEquals(1, one.size(), "one series: the plot and nothing else");
         assertTrue(one.getFirst() instanceof ChartPlot);
@@ -70,14 +71,16 @@ class LineChartTest {
     @DisplayName("the legend names every series, in the order their colours were assigned")
     void legendEntriesFollowTheSeriesOrder() {
         var legend = (ChartLegend) io.github.digitalsmile.goldberry.widgets.data.ChartParts.of(
-                two(), List.of(),
-                io.github.digitalsmile.goldberry.widgets.data.ChartParts.Mode.LINE).getLast();
+                        two(), List.of(), io.github.digitalsmile.goldberry.widgets.data.ChartParts.Mode.LINE)
+                .getLast();
 
         var entries = legend.children();
         assertEquals(2, entries.size());
         assertEquals("Downloads", ((ChartLegendEntry) entries.getFirst()).name());
         assertEquals(0, ((ChartLegendEntry) entries.getFirst()).slot());
-        assertEquals(1, ((ChartLegendEntry) entries.getLast()).slot(),
+        assertEquals(
+                1,
+                ((ChartLegendEntry) entries.getLast()).slot(),
                 "the second series takes the second slot -- the order is the CVD mechanism");
     }
 
@@ -87,15 +90,14 @@ class LineChartTest {
         // §14's rule about text: a colour beside a word carries identity, and the
         // word stays in the ordinary ink. A legend drawn in the series colour
         // fails a contrast check the moment somebody picks a pale slot.
-        var renderer = new WidgetRenderer(
-                List.of(Controls.baseStylesheet(), Theme.NORD_DARK.load()), TestFont.get());
-        var box = renderer.render(new ElementTree(
-                new ChartLegendEntry(0, "Downloads")));
+        var renderer = new WidgetRenderer(List.of(Controls.baseStylesheet(), Theme.NORD_DARK.load()), TestFont.get());
+        var box = renderer.render(new ElementTree(new ChartLegendEntry(0, "Downloads")));
 
         var swatch = box.children().getFirst();
         var label = box.children().getLast();
         assertEquals(0xFF73A340, swatch.background(), "the swatch is series slot 1");
-        assertFalse(label.text() != null && label.text().argb() == 0xFF73A340,
+        assertFalse(
+                label.text() != null && label.text().argb() == 0xFF73A340,
                 "the label is not drawn in the series colour");
     }
 
@@ -104,13 +106,11 @@ class LineChartTest {
     void oneRuleRecoloursBothHalves() {
         // Custom properties inherit, so the token set on the chart reaches the
         // legend entry nested inside it. One rule, both halves (ADR-0195).
-        var sheet = Stylesheet.parse(CascadeLayer.APPLICATION,
-                "#plot { --gb-chart-1: #b48ead }");
-        var renderer = new WidgetRenderer(
-                List.of(Controls.baseStylesheet(), Theme.NORD_DARK.load(), sheet), TestFont.get());
+        var sheet = Stylesheet.parse(CascadeLayer.APPLICATION, "#plot { --gb-chart-1: #b48ead }");
+        var renderer =
+                new WidgetRenderer(List.of(Controls.baseStylesheet(), Theme.NORD_DARK.load(), sheet), TestFont.get());
 
-        var box = renderer.render(new ElementTree(
-                new LineChart(two(), List.of(), id("plot"))));
+        var box = renderer.render(new ElementTree(new LineChart(two(), List.of(), id("plot"))));
 
         // chart-legend -> chart-legend-entry -> swatch
         var legend = box.children().getLast();
@@ -140,8 +140,7 @@ class LineChartTest {
     @Test
     @DisplayName("a chart with no series says so rather than drawing an empty grid")
     void emptyIsNotAnError() {
-        var renderer = new WidgetRenderer(
-                List.of(Controls.baseStylesheet(), Theme.NORD_DARK.load()), TestFont.get());
+        var renderer = new WidgetRenderer(List.of(Controls.baseStylesheet(), Theme.NORD_DARK.load()), TestFont.get());
 
         var box = renderer.render(new ElementTree(new LineChart(List.of())));
 
@@ -159,15 +158,13 @@ class LineChartTest {
                 #plot  { width: 296px; height: 156px }
                 """);
 
-        var tree = new ElementTree(new Column(List.of(
-                new LineChart(two(),
-                        List.of("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"),
-                        id("plot"))),
+        var tree = new ElementTree(new Column(
+                List.of(new LineChart(two(), List.of("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"), id("plot"))),
                 id("frame")));
-        var renderer = new WidgetRenderer(
-                List.of(Controls.baseStylesheet(), Theme.NORD_DARK.load(), sheet), TestFont.get());
+        var renderer =
+                new WidgetRenderer(List.of(Controls.baseStylesheet(), Theme.NORD_DARK.load(), sheet), TestFont.get());
 
-        GoldenImage.assertMatches("line-chart-dark", 320, 180, 1.0f,
-                frame -> BoxPainter.paint(frame, renderer.render(tree)));
+        GoldenImage.assertMatches(
+                "line-chart-dark", 320, 180, 1.0f, frame -> BoxPainter.paint(frame, renderer.render(tree)));
     }
 }

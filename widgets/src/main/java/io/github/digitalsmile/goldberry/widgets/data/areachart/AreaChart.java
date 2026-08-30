@@ -1,14 +1,15 @@
 package io.github.digitalsmile.goldberry.widgets.data.areachart;
 
+import java.util.List;
+
 import io.github.digitalsmile.goldberry.kdl.KdlNode;
+import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widget.attr.Attributed;
 import io.github.digitalsmile.goldberry.widget.attr.Attributes;
-import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widgets.data.ChartParts;
 import io.github.digitalsmile.goldberry.widgets.data.Series;
 import io.github.digitalsmile.goldberry.widgets.markup.Markup;
 import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
-import java.util.List;
 
 /// A total, and what it is made of — `docs/core-widgets.md` §11's `area-chart`.
 ///
@@ -34,24 +35,23 @@ import java.util.List;
 /// is its area, and an area measured from a baseline nobody stated is a
 /// proportion that lies.
 @Markup("area-chart")
-public record AreaChart(List<Series> series, List<String> categories,
+public record AreaChart(
+        List<Series> series,
+        List<String> categories,
         io.github.digitalsmile.goldberry.widgets.data.ChartOptions options,
         Attributes attributes)
-        implements Widget.Stateful, io.github.digitalsmile.goldberry.widgets.data.ChartSpec,
-                Attributed<AreaChart> {
+        implements Widget.Stateful, io.github.digitalsmile.goldberry.widgets.data.ChartSpec, Attributed<AreaChart> {
 
     public AreaChart {
         series = List.copyOf(series == null ? List.of() : series);
         categories = List.copyOf(categories == null ? List.of() : categories);
         attributes = attributes == null ? Attributes.NONE : attributes;
-        options = options == null
-                ? io.github.digitalsmile.goldberry.widgets.data.ChartOptions.DEFAULTS : options;
+        options = options == null ? io.github.digitalsmile.goldberry.widgets.data.ChartOptions.DEFAULTS : options;
     }
 
     /// The ordinary form: a chart that has its data.
     public AreaChart(List<Series> series, List<String> categories, Attributes attributes) {
-        this(series, categories,
-                io.github.digitalsmile.goldberry.widgets.data.ChartOptions.DEFAULTS, attributes);
+        this(series, categories, io.github.digitalsmile.goldberry.widgets.data.ChartOptions.DEFAULTS, attributes);
     }
 
     /// This chart with an axis that reaches **at least** `min…max`, and further
@@ -64,8 +64,7 @@ public record AreaChart(List<Series> series, List<String> categories,
     /// the axis down to meet it
     /// ([io.github.digitalsmile.goldberry.widgets.data.Bounds]).
     public AreaChart softAxis(double min, double max) {
-        return options(options.bounds(
-                io.github.digitalsmile.goldberry.widgets.data.Bounds.soft(min, max)));
+        return options(options.bounds(io.github.digitalsmile.goldberry.widgets.data.Bounds.soft(min, max)));
     }
 
     /// This chart with an axis that is **exactly** `min…max`, whatever the data
@@ -76,8 +75,7 @@ public record AreaChart(List<Series> series, List<String> categories,
     /// the plot and clipped, which is the correct rendering of a promise that was
     /// wrong.
     public AreaChart axis(double min, double max) {
-        return options(options.bounds(
-                io.github.digitalsmile.goldberry.widgets.data.Bounds.hard(min, max)));
+        return options(options.bounds(io.github.digitalsmile.goldberry.widgets.data.Bounds.hard(min, max)));
     }
 
     /// This chart sharing its crosshair with every other chart in `group`.
@@ -86,8 +84,7 @@ public record AreaChart(List<Series> series, List<String> categories,
     /// which is how a reader asks what the other panel was doing at the same
     /// moment. Only the chart under the pointer draws the readout
     /// ([io.github.digitalsmile.goldberry.widgets.data.CrosshairGroup]).
-    public AreaChart crosshair(
-            io.github.digitalsmile.goldberry.widgets.data.CrosshairGroup group) {
+    public AreaChart crosshair(io.github.digitalsmile.goldberry.widgets.data.CrosshairGroup group) {
 
         return options(options.crosshair(group));
     }
@@ -151,8 +148,7 @@ public record AreaChart(List<Series> series, List<String> categories,
     /// across second, minute, hour, day, month and year boundaries
     /// ([io.github.digitalsmile.goldberry.widgets.data.TimeAxis]).
     public AreaChart times(List<java.time.Instant> value) {
-        return options(options.time(
-                io.github.digitalsmile.goldberry.widgets.data.TimeAxis.of(value)));
+        return options(options.time(io.github.digitalsmile.goldberry.widgets.data.TimeAxis.of(value)));
     }
 
     /// The same, in a zone the application chooses — a server's clock, or `UTC`
@@ -174,8 +170,7 @@ public record AreaChart(List<Series> series, List<String> categories,
     }
 
     /// This chart with exactly these limits, replacing whatever it had.
-    public AreaChart thresholds(
-            List<io.github.digitalsmile.goldberry.widgets.data.Threshold> limits) {
+    public AreaChart thresholds(List<io.github.digitalsmile.goldberry.widgets.data.Threshold> limits) {
 
         return options(options.thresholds(limits));
     }

@@ -1,30 +1,31 @@
 package io.github.digitalsmile.goldberry.widgets.controls.badge;
 
-import io.github.digitalsmile.goldberry.css.Corners;
-import io.github.digitalsmile.goldberry.widget.attr.Attributes;
-
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.List;
+import java.util.Set;
+
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+
 import io.github.digitalsmile.goldberry.bind.Property;
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
-import io.github.digitalsmile.goldberry.css.value.CssLength;
-import io.github.digitalsmile.goldberry.css.cascade.StyleResolver;
+import io.github.digitalsmile.goldberry.css.Corners;
 import io.github.digitalsmile.goldberry.css.Theme;
+import io.github.digitalsmile.goldberry.css.cascade.StyleResolver;
+import io.github.digitalsmile.goldberry.css.value.CssLength;
 import io.github.digitalsmile.goldberry.input.handler.Handles;
 import io.github.digitalsmile.goldberry.kdl.KdlParser;
 import io.github.digitalsmile.goldberry.natives.yoga.style.Align;
 import io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength;
 import io.github.digitalsmile.goldberry.widget.ElementTree;
 import io.github.digitalsmile.goldberry.widget.Widget;
+import io.github.digitalsmile.goldberry.widget.attr.Attributes;
 import io.github.digitalsmile.goldberry.widgets.Controls;
-import java.util.List;
-import java.util.Set;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
 import io.github.digitalsmile.goldberry.widgets.Widgets;
 
 /// The ninth entry in §3's table and the first that is not a control
@@ -102,9 +103,13 @@ class BadgeTest {
         assertEquals(StyleLength.points(20), style.height());
         assertEquals(StyleLength.points(8), style.padding().left());
         assertEquals(StyleLength.points(8), style.padding().right());
-        assertEquals(StyleLength.points(0), style.padding().top(),
+        assertEquals(
+                StyleLength.points(0),
+                style.padding().top(),
                 "no vertical padding: the height is pinned and centring does the rest");
-        assertEquals(Corners.all(10), style.decoration().corners(),
+        assertEquals(
+                Corners.all(10),
+                style.decoration().corners(),
                 "§1.5's `full` on a 20px box, spelled the way toggle-track spells it");
         assertEquals(11, style.typography().size(), 1e-9, "§1.4's `caption`");
         assertEquals(Align.CENTER, style.alignItems());
@@ -133,10 +138,8 @@ class BadgeTest {
     void takesNoInput() {
         Widget badge = new Badge("3");
 
-        assertFalse(badge instanceof Handles,
-                "a chip that could be pressed would be a button that looks like a label");
-        assertFalse(new Badge("3").isDisabled(),
-                "and there is no state for a disabled chip to be in");
+        assertFalse(badge instanceof Handles, "a chip that could be pressed would be a button that looks like a label");
+        assertFalse(new Badge("3").isDisabled(), "and there is no state for a disabled chip to be in");
         assertEquals(List.of(), new Badge("3").children());
     }
 
@@ -149,7 +152,8 @@ class BadgeTest {
         for (var theme : List.of(Theme.NORD_DARK, Theme.NORD_LIGHT)) {
             var plain = styleOf(new Badge("3"), theme).background();
             for (var variant : List.of("accent", "danger", "warning", "success", "info")) {
-                assertFalse(plain == styleOf(new Badge("3").styled(variant), theme).background(),
+                assertFalse(
+                        plain == styleOf(new Badge("3").styled(variant), theme).background(),
                         () -> "badge." + variant + " resolves to the default fill on " + theme);
             }
         }

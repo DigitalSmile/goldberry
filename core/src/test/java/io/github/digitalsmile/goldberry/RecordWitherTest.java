@@ -3,15 +3,17 @@ package io.github.digitalsmile.goldberry;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import io.github.digitalsmile.goldberry.css.ComputedStyle;
-import io.github.digitalsmile.goldberry.paint.Box;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.RecordComponent;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
+
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+
+import io.github.digitalsmile.goldberry.css.ComputedStyle;
+import io.github.digitalsmile.goldberry.paint.Box;
 
 /// The one failure mode a 24-component record with 25 hand-written copies has:
 /// **an argument in the wrong slot**.
@@ -84,7 +86,7 @@ class RecordWitherTest {
                 // A painter that draws nothing: the wither check needs a value
                 // no other component equals, and a lambda's identity is that by
                 // construction.
-                (frame, size) -> { },
+                (frame, size) -> {},
                 List.of(Box.of()),
                 "owner");
     }
@@ -133,8 +135,10 @@ class RecordWitherTest {
 
         var checked = 0;
         for (var method : type.getDeclaredMethods()) {
-            if (!Modifier.isPublic(method.getModifiers()) || Modifier.isStatic(method.getModifiers())
-                    || method.getReturnType() != type || method.getParameterCount() != 1) {
+            if (!Modifier.isPublic(method.getModifiers())
+                    || Modifier.isStatic(method.getModifiers())
+                    || method.getReturnType() != type
+                    || method.getParameterCount() != 1) {
                 continue;
             }
             var component = components.get(method.getName());
@@ -148,7 +152,9 @@ class RecordWitherTest {
             var current = component.getAccessor().invoke(original);
             var result = method.invoke(original, current);
 
-            assertEquals(original, result,
+            assertEquals(
+                    original,
+                    result,
                     type.getSimpleName() + "." + method.getName()
                             + "(its own value) did not give back an equal record, so one of its"
                             + " arguments is in the wrong slot");
@@ -159,15 +165,13 @@ class RecordWitherTest {
 
     /// The premise the check rests on: two components of one type holding equal
     /// values would make a swap between them invisible.
-    private static <T extends Record> void componentsAreDistinct(Class<T> type, T fixture)
-            throws Exception {
+    private static <T extends Record> void componentsAreDistinct(Class<T> type, T fixture) throws Exception {
         var byType = new LinkedHashMap<Class<?>, List<String>>();
         var values = new LinkedHashMap<String, Object>();
         for (var component : type.getRecordComponents()) {
             var value = component.getAccessor().invoke(fixture);
             values.put(component.getName(), value);
-            byType.computeIfAbsent(component.getType(), k -> new ArrayList<>())
-                    .add(component.getName());
+            byType.computeIfAbsent(component.getType(), k -> new ArrayList<>()).add(component.getName());
         }
         for (var entry : byType.entrySet()) {
             var names = entry.getValue();
@@ -180,7 +184,8 @@ class RecordWitherTest {
                     if (a == null && b == null) {
                         continue;
                     }
-                    assertTrue(a == null || !a.equals(b),
+                    assertTrue(
+                            a == null || !a.equals(b),
                             type.getSimpleName() + "'s " + names.get(i) + " and " + names.get(j)
                                     + " are both " + a + ", so this test could not tell them"
                                     + " apart if a wither swapped them");
@@ -197,7 +202,8 @@ class RecordWitherTest {
 
         var checked = checkWithers(Box.class, fixture);
 
-        assertTrue(checked >= 15,
+        assertTrue(
+                checked >= 15,
                 "only " + checked + " withers were found on Box, which is fewer than it has —"
                         + " the check is looking for the wrong shape");
     }
@@ -210,7 +216,6 @@ class RecordWitherTest {
 
         var checked = checkWithers(ComputedStyle.class, fixture);
 
-        assertTrue(checked >= 15,
-                "only " + checked + " withers were found on ComputedStyle");
+        assertTrue(checked >= 15, "only " + checked + " withers were found on ComputedStyle");
     }
 }

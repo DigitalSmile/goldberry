@@ -1,14 +1,15 @@
 package io.github.digitalsmile.goldberry.natives.blend2d;
 
-import io.github.digitalsmile.goldberry.natives.blend2d.calls.RuntimeCalls;
-import io.github.digitalsmile.goldberry.natives.blend2d.enums.BlendRuntimeInfoType;
-import io.github.digitalsmile.goldberry.natives.layout.Layouts;
 import java.lang.foreign.Arena;
 import java.lang.foreign.SymbolLookup;
 import java.lang.foreign.ValueLayout;
-import io.github.digitalsmile.goldberry.natives.NativeLibrary;
-import io.github.digitalsmile.goldberry.natives.blend2d.error.BlendException;
 import java.nio.charset.StandardCharsets;
+
+import io.github.digitalsmile.goldberry.natives.NativeLibrary;
+import io.github.digitalsmile.goldberry.natives.blend2d.calls.RuntimeCalls;
+import io.github.digitalsmile.goldberry.natives.blend2d.enums.BlendRuntimeInfoType;
+import io.github.digitalsmile.goldberry.natives.blend2d.error.BlendException;
+import io.github.digitalsmile.goldberry.natives.layout.Layouts;
 
 /// Blend2D's process-wide runtime query.
 ///
@@ -29,7 +30,8 @@ final class Blend2dRuntime {
     private static final long COMPILER_SIZE = Layouts.BL_RUNTIME_BUILD_INFO.sizeOf("compiler_info");
 
     private static final class Holder {
-        private static final Blend2dRuntime INSTANCE = new Blend2dRuntime(NativeLibrary.get().lookup());
+        private static final Blend2dRuntime INSTANCE =
+                new Blend2dRuntime(NativeLibrary.get().lookup());
     }
 
     private final RuntimeCalls calls;
@@ -49,10 +51,11 @@ final class Blend2dRuntime {
             // The type and the buffer must agree: asking for SYSTEM with a
             // BUILD-sized allocation writes past the end. Pairing them here is
             // what makes that unrepresentable rather than merely documented.
-            check("bl_runtime_query_info", calls.runtimeQueryInfo().call(BlendRuntimeInfoType.BUILD.nativeValue(), info));
+            check(
+                    "bl_runtime_query_info",
+                    calls.runtimeQueryInfo().call(BlendRuntimeInfoType.BUILD.nativeValue(), info));
 
-            var compiler = info.asSlice(COMPILER_OFFSET, COMPILER_SIZE)
-                    .toArray(ValueLayout.JAVA_BYTE);
+            var compiler = info.asSlice(COMPILER_OFFSET, COMPILER_SIZE).toArray(ValueLayout.JAVA_BYTE);
             var end = 0;
             while (end < compiler.length && compiler[end] != 0) {
                 end++;

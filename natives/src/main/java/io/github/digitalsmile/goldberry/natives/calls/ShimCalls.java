@@ -3,11 +3,12 @@ package io.github.digitalsmile.goldberry.natives.calls;
 import static java.lang.foreign.ValueLayout.ADDRESS;
 import static java.lang.foreign.ValueLayout.JAVA_INT;
 
-import io.github.digitalsmile.goldberry.natives.Downcalls;
 import java.lang.foreign.FunctionDescriptor;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.SymbolLookup;
 import java.lang.invoke.MethodHandle;
+
+import io.github.digitalsmile.goldberry.natives.Downcalls;
 
 /// The three functions `libgoldberry` exports for itself.
 ///
@@ -16,19 +17,13 @@ import java.lang.invoke.MethodHandle;
 /// One holder per function: its handle, its address, and a `call` whose
 /// parameters are the C prototype’s. See [Downcalls] for why the handle is a
 /// `static final` constant and why these live in a package of their own.
-public record ShimCalls(
-        AbiVersion abiVersion,
-        LayoutTable layoutTable,
-        LayoutCount layoutCount) {
+public record ShimCalls(AbiVersion abiVersion, LayoutTable layoutTable, LayoutCount layoutCount) {
 
     /// Binds every function above.
     ///
     /// @param lookup the loaded `libgoldberry`
     public static ShimCalls bind(SymbolLookup lookup) {
-        return new ShimCalls(
-                new AbiVersion(lookup),
-                new LayoutTable(lookup),
-                new LayoutCount(lookup));
+        return new ShimCalls(new AbiVersion(lookup), new LayoutTable(lookup), new LayoutCount(lookup));
     }
 
     /// The ABI version the loaded `libgoldberry` reports.
@@ -42,8 +37,7 @@ public record ShimCalls(
     /// @return the library’s ABI version
     public static final class AbiVersion {
 
-        private static final MethodHandle FD_goldberry_abi_version =
-                Downcalls.link(FunctionDescriptor.of(JAVA_INT));
+        private static final MethodHandle FD_goldberry_abi_version = Downcalls.link(FunctionDescriptor.of(JAVA_INT));
 
         private final MemorySegment address;
 
@@ -72,8 +66,7 @@ public record ShimCalls(
     /// @return a `const goldberry_layout_entry*`
     public static final class LayoutTable {
 
-        private static final MethodHandle FD_goldberry_layout_table =
-                Downcalls.link(FunctionDescriptor.of(ADDRESS));
+        private static final MethodHandle FD_goldberry_layout_table = Downcalls.link(FunctionDescriptor.of(ADDRESS));
 
         private final MemorySegment address;
 
@@ -97,8 +90,7 @@ public record ShimCalls(
     /// @return the entry count
     public static final class LayoutCount {
 
-        private static final MethodHandle FD_goldberry_layout_count =
-                Downcalls.link(FunctionDescriptor.of(JAVA_INT));
+        private static final MethodHandle FD_goldberry_layout_count = Downcalls.link(FunctionDescriptor.of(JAVA_INT));
 
         private final MemorySegment address;
 

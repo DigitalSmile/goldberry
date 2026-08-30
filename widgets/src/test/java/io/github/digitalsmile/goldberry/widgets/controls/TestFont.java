@@ -1,9 +1,10 @@
 package io.github.digitalsmile.goldberry.widgets.controls;
 
+import org.junit.jupiter.api.Assumptions;
+
 import io.github.digitalsmile.goldberry.assets.BundledFont;
 import io.github.digitalsmile.goldberry.text.font.Font;
 import io.github.digitalsmile.goldberry.text.font.Fonts;
-import org.junit.jupiter.api.Assumptions;
 
 /// A real font book for the tests that render, and a skip for the machines with
 /// no libgoldberry to shape with.
@@ -16,8 +17,7 @@ public final class TestFont {
 
     private static Fonts fonts;
 
-    private TestFont() {
-    }
+    private TestFont() {}
 
     /// The bundled faces, opened lazily and kept for the run.
     ///
@@ -38,8 +38,7 @@ public final class TestFont {
                 fonts.of(BundledFont.UI, 13);
             } catch (UnsatisfiedLinkError | NoClassDefFoundError | ExceptionInInitializerError e) {
                 Assumptions.abort(
-                        "libgoldberry is not loadable from :widgets' tests, so nothing can shape"
-                                + " text: " + e);
+                        "libgoldberry is not loadable from :widgets' tests, so nothing can shape" + " text: " + e);
             }
         }
         return fonts;

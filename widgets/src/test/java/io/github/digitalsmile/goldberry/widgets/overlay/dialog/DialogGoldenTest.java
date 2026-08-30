@@ -3,6 +3,12 @@ package io.github.digitalsmile.goldberry.widgets.overlay.dialog;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.List;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+
 import io.github.digitalsmile.goldberry.RendererRequirement;
 import io.github.digitalsmile.goldberry.css.Stylesheet;
 import io.github.digitalsmile.goldberry.css.Theme;
@@ -24,10 +30,6 @@ import io.github.digitalsmile.goldberry.widgets.core.Column;
 import io.github.digitalsmile.goldberry.widgets.overlay.dialog.DialogAction.Role;
 import io.github.digitalsmile.goldberry.widgets.panel.Described;
 import io.github.digitalsmile.goldberry.widgets.text.Text;
-import java.util.List;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
 
 /// What a `dialog` looks like: over a window, in both themes, and caught opening.
 ///
@@ -65,26 +67,29 @@ class DialogGoldenTest {
             """;
 
     private static Widget window() {
-        return new Column(List.of(
-                new Text("A window with a document in it.",
-                        Attributes.NONE.classes("prose")),
-                new Text("The veil dims this and takes every press.",
-                        Attributes.NONE.classes("caption")),
-                new Dialog("Unsaved changes", List.of(
-                        new Text("Your draft has not been saved. Discarding it cannot be"
-                                + " undone."),
-                        new DialogAction("Don't save", Role.NEUTRAL, () -> { }),
-                        new DialogAction("Keep editing", Role.DISMISSIVE, () -> { }),
-                        new DialogAction("Discard", Role.AFFIRMATIVE, () -> { })),
-                        Attributes.NONE.id("unsaved"))),
+        return new Column(
+                List.of(
+                        new Text("A window with a document in it.", Attributes.NONE.classes("prose")),
+                        new Text("The veil dims this and takes every press.", Attributes.NONE.classes("caption")),
+                        new Dialog(
+                                "Unsaved changes",
+                                List.of(
+                                        new Text("Your draft has not been saved. Discarding it cannot be" + " undone."),
+                                        new DialogAction("Don't save", Role.NEUTRAL, () -> {}),
+                                        new DialogAction("Keep editing", Role.DISMISSIVE, () -> {}),
+                                        new DialogAction("Discard", Role.AFFIRMATIVE, () -> {})),
+                                Attributes.NONE.id("unsaved"))),
                 Attributes.NONE.id("window"));
     }
 
     private WidgetRenderer rendererFor(Theme theme) {
         return new WidgetRenderer(
-                List.of(Controls.baseStylesheet(), theme.load(),
-                        Stylesheet.parse(CascadeLayer.APPLICATION, SCENE)),
-                TestFont.get()).clock(clock);
+                        List.of(
+                                Controls.baseStylesheet(),
+                                theme.load(),
+                                Stylesheet.parse(CascadeLayer.APPLICATION, SCENE)),
+                        TestFont.get())
+                .clock(clock);
     }
 
     /// One frame to start the opening, then past the end of it.
@@ -104,8 +109,7 @@ class DialogGoldenTest {
         renderer.render(tree);
         assertFalse(renderer.isAnimating(), "a dialog that has been open 300ms is still moving");
 
-        GoldenImage.assertMatches(name, 460, 300, 1.0f,
-                frame -> BoxPainter.paint(frame, settled));
+        GoldenImage.assertMatches(name, 460, 300, 1.0f, frame -> BoxPainter.paint(frame, settled));
     }
 
     @Test
@@ -134,8 +138,7 @@ class DialogGoldenTest {
         clock.advance(120);
         var midway = renderer.render(tree);
 
-        GoldenImage.assertMatches("dialog-opening", 460, 300, 1.0f,
-                frame -> BoxPainter.paint(frame, midway));
+        GoldenImage.assertMatches("dialog-opening", 460, 300, 1.0f, frame -> BoxPainter.paint(frame, midway));
     }
 
     /// §3: "out: base, reverse", and §1.7's `closing` — the panel is still
@@ -149,15 +152,14 @@ class DialogGoldenTest {
         clock.advance(300);
         renderer.render(tree);
 
-        Described.first(tree, DialogPanel.class).onKey(
-                new KeyEvent(KeyEvent.Kind.PRESSED, Key.ESCAPE, Modifiers.NONE, false, null));
+        Described.first(tree, DialogPanel.class)
+                .onKey(new KeyEvent(KeyEvent.Kind.PRESSED, Key.ESCAPE, Modifiers.NONE, false, null));
         tree.flush();
 
         renderer.render(tree);
         clock.advance(80);
         var midway = renderer.render(tree);
 
-        GoldenImage.assertMatches("dialog-closing", 460, 300, 1.0f,
-                frame -> BoxPainter.paint(frame, midway));
+        GoldenImage.assertMatches("dialog-closing", 460, 300, 1.0f, frame -> BoxPainter.paint(frame, midway));
     }
 }

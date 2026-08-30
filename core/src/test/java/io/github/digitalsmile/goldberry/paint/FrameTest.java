@@ -5,15 +5,16 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import io.github.digitalsmile.goldberry.render.model.DisplayScale;
-import io.github.digitalsmile.goldberry.render.model.LogicalSize;
-import io.github.digitalsmile.goldberry.render.model.PhysicalSize;
-import io.github.digitalsmile.goldberry.render.PixelBuffer;
-import io.github.digitalsmile.goldberry.render.model.PixelFormat;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+
 import io.github.digitalsmile.goldberry.RendererRequirement;
+import io.github.digitalsmile.goldberry.render.PixelBuffer;
+import io.github.digitalsmile.goldberry.render.model.DisplayScale;
+import io.github.digitalsmile.goldberry.render.model.LogicalSize;
+import io.github.digitalsmile.goldberry.render.model.PhysicalSize;
+import io.github.digitalsmile.goldberry.render.model.PixelFormat;
 
 /// The wiring between an application's coordinates and the pixels that result.
 ///
@@ -65,7 +66,7 @@ class FrameTest {
             frame.clipTo(0, 0, 4, 8);
 
             frame.save();
-            frame.clipTo(0, 0, 8, 2);   // an inner clip, as a canvas would set
+            frame.clipTo(0, 0, 8, 2); // an inner clip, as a canvas would set
             frame.restore();
 
             // Still confined to the outer clip. Painted after the restore, so a
@@ -76,7 +77,9 @@ class FrameTest {
         }
 
         assertEquals(0xFFFFFFFF, pixel(buffer, 3, 7), "inside the outer clip");
-        assertEquals(0xFF000000, pixel(buffer, 5, 7),
+        assertEquals(
+                0xFF000000,
+                pixel(buffer, 5, 7),
                 "outside it -- the restore went back to the outer clip, not to the frame");
     }
 
@@ -99,8 +102,7 @@ class FrameTest {
         var edge = pixel(buffer, 1, 0) & 0xFF;
         assertTrue(
                 edge > 100 && edge < 160,
-                () -> "the half-covered pixel should be about half lit, and it is 0x"
-                        + Integer.toHexString(edge));
+                () -> "the half-covered pixel should be about half lit, and it is 0x" + Integer.toHexString(edge));
     }
 
     @Test
@@ -135,9 +137,7 @@ class FrameTest {
         }
 
         var grey = pixel(buffer, 0, 0) & 0xFF;
-        assertTrue(
-                grey > 110 && grey < 145,
-                () -> "expected roughly mid grey, got 0x" + Integer.toHexString(grey));
+        assertTrue(grey > 110 && grey < 145, () -> "expected roughly mid grey, got 0x" + Integer.toHexString(grey));
     }
 
     @Test
@@ -188,7 +188,9 @@ class FrameTest {
         assertDoesNotThrow(() -> frame.fill(0xFF102030));
         frame.end();
 
-        assertThrows(IllegalStateException.class, () -> frame.fill(0xFFFFFFFF),
+        assertThrows(
+                IllegalStateException.class,
+                () -> frame.fill(0xFFFFFFFF),
                 "a frame handed out through the factory is no more usable after ending"
                         + " than one built in its own package");
         assertDoesNotThrow(frame::end, "ending twice does nothing");
@@ -197,10 +199,8 @@ class FrameTest {
     @Test
     @DisplayName("over() with a pinned worker count paints what the automatic one does")
     void pinnedWorkersPaintTheSamePixels() {
-        var automatic = PixelBuffer.allocate(
-                new PhysicalSize(4, 4), PixelFormat.BGRA32_PREMULTIPLIED);
-        var pinned = PixelBuffer.allocate(
-                new PhysicalSize(4, 4), PixelFormat.BGRA32_PREMULTIPLIED);
+        var automatic = PixelBuffer.allocate(new PhysicalSize(4, 4), PixelFormat.BGRA32_PREMULTIPLIED);
+        var pinned = PixelBuffer.allocate(new PhysicalSize(4, 4), PixelFormat.BGRA32_PREMULTIPLIED);
 
         var one = Frame.over(automatic, DisplayScale.ONE);
         one.fillRect(1, 1, 2, 2, 0x80204060);
@@ -215,8 +215,7 @@ class FrameTest {
 
         for (var y = 0; y < 4; y++) {
             for (var x = 0; x < 4; x++) {
-                assertEquals(pixel(automatic, x, y), pixel(pinned, x, y),
-                        "pixel (" + x + ", " + y + ")");
+                assertEquals(pixel(automatic, x, y), pixel(pinned, x, y), "pixel (" + x + ", " + y + ")");
             }
         }
     }

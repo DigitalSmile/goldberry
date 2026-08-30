@@ -1,8 +1,9 @@
 package io.github.digitalsmile.goldberry.natives.blend2d;
 
-import io.github.digitalsmile.goldberry.natives.layout.Layouts;
 import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;
+
+import io.github.digitalsmile.goldberry.natives.layout.Layouts;
 
 /// A Blend2D path — a sequence of move, line, curve and close commands.
 ///
@@ -99,8 +100,7 @@ public final class BlendPath implements AutoCloseable {
     /// with 45 where 0.785 was meant produces an icon that is subtly wrong
     /// rather than absent.
     public void ellipticArcTo(
-            double rx, double ry, double rotation, boolean largeArc, boolean sweep,
-            double x, double y) {
+            double rx, double ry, double rotation, boolean largeArc, boolean sweep, double x, double y) {
         requireUsable();
         calls.pathEllipticArcTo(path, rx, ry, rotation, largeArc, sweep, x, y);
     }
@@ -172,8 +172,7 @@ public final class BlendPath implements AutoCloseable {
 
     private void requireOwner() {
         if (Thread.currentThread() != owner) {
-            throw new IllegalStateException(
-                    "a BlendPath belongs to the thread that created it, and this is not it");
+            throw new IllegalStateException("a BlendPath belongs to the thread that created it, and this is not it");
         }
     }
 

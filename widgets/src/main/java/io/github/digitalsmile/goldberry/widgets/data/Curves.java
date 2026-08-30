@@ -28,8 +28,7 @@ package io.github.digitalsmile.goldberry.widgets.data;
 /// for free, because the x spacing is already whatever it really was.
 public final class Curves {
 
-    private Curves() {
-    }
+    private Curves() {}
 
     /// The tangent at each point of the monotone cubic through `(x, y)`.
     ///
@@ -65,9 +64,7 @@ public final class Curves {
             //
             // The circle limiter below does not catch it: it scales tangents
             // back, and this one needs to be zero rather than smaller.
-            m[i] = secant[i - 1] * secant[i] <= 0
-                    ? 0
-                    : (secant[i - 1] + secant[i]) / 2;
+            m[i] = secant[i - 1] * secant[i] <= 0 ? 0 : (secant[i - 1] + secant[i]) / 2;
         }
 
         for (var i = 0; i < n - 1; i++) {

@@ -1,13 +1,14 @@
 package io.github.digitalsmile.goldberry.widgets.panel.collapse;
 
+import java.util.List;
+import java.util.Set;
+
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
 import io.github.digitalsmile.goldberry.css.value.Transform;
 import io.github.digitalsmile.goldberry.paint.Box;
+import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widget.style.Paints;
 import io.github.digitalsmile.goldberry.widget.style.Styled;
-import io.github.digitalsmile.goldberry.widget.Widget;
-import java.util.List;
-import java.util.Set;
 
 /// What a [Collapse] shows when it is open — §5's "region".
 ///
@@ -75,8 +76,7 @@ record CollapseBody(List<Widget> children, java.util.function.DoubleUnaryOperato
         }
         // Reading it is what starts the arrival -- the phase is stamped from the
         // frame clock on its first read, and this is the only place there is one.
-        var visible = context.reducedMotion() ? 1 : visibility.applyAsDouble(
-                context.nowMillis());
+        var visible = context.reducedMotion() ? 1 : visibility.applyAsDouble(context.nowMillis());
         if (visible >= 1) {
             return box;
         }

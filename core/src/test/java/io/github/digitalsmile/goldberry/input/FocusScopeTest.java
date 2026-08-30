@@ -5,21 +5,23 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import io.github.digitalsmile.goldberry.css.select.Selector.PseudoClass;
-import io.github.digitalsmile.goldberry.widget.Element;
-import io.github.digitalsmile.goldberry.widget.ElementTree;
-import io.github.digitalsmile.goldberry.widget.style.Styled;
-import io.github.digitalsmile.goldberry.widget.Widget;
 import java.util.ArrayList;
 import java.util.List;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+
+import io.github.digitalsmile.goldberry.css.select.Selector.PseudoClass;
 import io.github.digitalsmile.goldberry.input.event.KeyEvent;
+import io.github.digitalsmile.goldberry.input.handler.Handles;
 import io.github.digitalsmile.goldberry.input.key.Key;
 import io.github.digitalsmile.goldberry.input.key.Modifiers;
-import io.github.digitalsmile.goldberry.input.handler.Handles;
+import io.github.digitalsmile.goldberry.widget.Element;
+import io.github.digitalsmile.goldberry.widget.ElementTree;
+import io.github.digitalsmile.goldberry.widget.Widget;
+import io.github.digitalsmile.goldberry.widget.style.Styled;
 
 /// §7.2's "composites are one Tab stop with roving arrow-key focus inside".
 ///
@@ -146,10 +148,11 @@ class FocusScopeTest {
             assertTrue(router.moveFocus(1, false));
 
             assertSame(before, router.focused());
-            assertTrue(before.hasState(io.github.digitalsmile.goldberry.css.select.Selector.PseudoClass.FOCUS),
+            assertTrue(
+                    before.hasState(io.github.digitalsmile.goldberry.css.select.Selector.PseudoClass.FOCUS),
                     "it is focused, so an arrow has somewhere to start");
-            assertFalse(before.hasState(
-                            io.github.digitalsmile.goldberry.css.select.Selector.PseudoClass.FOCUS_VISIBLE),
+            assertFalse(
+                    before.hasState(io.github.digitalsmile.goldberry.css.select.Selector.PseudoClass.FOCUS_VISIBLE),
                     "and nothing is lit, because nobody pressed anything");
         }
 
@@ -159,8 +162,9 @@ class FocusScopeTest {
             router.moveFocus(1, false);
             tab();
 
-            assertTrue(router.focused().hasState(
-                            io.github.digitalsmile.goldberry.css.select.Selector.PseudoClass.FOCUS_VISIBLE),
+            assertTrue(
+                    router.focused()
+                            .hasState(io.github.digitalsmile.goldberry.css.select.Selector.PseudoClass.FOCUS_VISIBLE),
                     "the keyboard moved it, so the keyboard's affordance is drawn");
         }
 
@@ -169,8 +173,8 @@ class FocusScopeTest {
         void theDefaultIsKeyboard() {
             assertTrue(router.moveFocus(1));
 
-            assertTrue(router.focused().hasState(
-                    io.github.digitalsmile.goldberry.css.select.Selector.PseudoClass.FOCUS_VISIBLE));
+            assertTrue(router.focused()
+                    .hasState(io.github.digitalsmile.goldberry.css.select.Selector.PseudoClass.FOCUS_VISIBLE));
         }
     }
 
@@ -247,9 +251,7 @@ class FocusScopeTest {
             var tree = new ElementTree(new Item("root", false) {
                 @Override
                 public List<Widget> children() {
-                    return List.of(
-                            new FocusableGroup(new Item("one"), new Item("two")),
-                            new Item("after"));
+                    return List.of(new FocusableGroup(new Item("one"), new Item("two")), new Item("after"));
                 }
             });
             var router = new PointerRouter();
@@ -267,10 +269,7 @@ class FocusScopeTest {
             var tree = new ElementTree(new Item("root", false) {
                 @Override
                 public List<Widget> children() {
-                    return List.of(
-                            new Item("before"),
-                            new Group(new Item("inert", false)),
-                            new Item("after"));
+                    return List.of(new Item("before"), new Group(new Item("inert", false)), new Item("after"));
                 }
             });
             var empty = new PointerRouter();

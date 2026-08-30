@@ -6,14 +6,23 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.ArrayList;
+import java.util.List;
+
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
+
 import io.github.digitalsmile.goldberry.RendererRequirement;
-import io.github.digitalsmile.goldberry.paint.TestFrames;
 import io.github.digitalsmile.goldberry.css.Theme;
+import io.github.digitalsmile.goldberry.input.PointerRouter;
+import io.github.digitalsmile.goldberry.input.event.PointerEvent;
 import io.github.digitalsmile.goldberry.input.hit.HitTest;
 import io.github.digitalsmile.goldberry.input.key.Key;
 import io.github.digitalsmile.goldberry.input.key.Modifiers;
-import io.github.digitalsmile.goldberry.input.event.PointerEvent;
-import io.github.digitalsmile.goldberry.input.PointerRouter;
+import io.github.digitalsmile.goldberry.paint.TestFrames;
 import io.github.digitalsmile.goldberry.paint.tree.RenderTree;
 import io.github.digitalsmile.goldberry.widget.Element;
 import io.github.digitalsmile.goldberry.widget.ElementTree;
@@ -23,13 +32,6 @@ import io.github.digitalsmile.goldberry.widgets.Controls;
 import io.github.digitalsmile.goldberry.widgets.controls.TestFont;
 import io.github.digitalsmile.goldberry.widgets.core.Column;
 import io.github.digitalsmile.goldberry.widgets.text.Text;
-import java.util.ArrayList;
-import java.util.List;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.Test;
 
 /// `scroll` — the viewport three separate pieces of work were waiting on
 /// ([ADR-0116](../../../../../../../../book/src/adr/0116-a-scroll-view-is-a-clip-an-offset-and-two-extents.md)).
@@ -84,8 +86,7 @@ class ScrollTest {
 
         Harness(Widget root) {
             target = TestFrames.of(200, VIEWPORT_HEIGHT, 1.0f, 0);
-            renderer = new WidgetRenderer(
-                    List.of(Controls.baseStylesheet(), Theme.NORD_DARK.load()), TestFont.get());
+            renderer = new WidgetRenderer(List.of(Controls.baseStylesheet(), Theme.NORD_DARK.load()), TestFont.get());
             tree = new ElementTree(root);
             render = RenderTree.create();
             router.focusRoot(tree.root());
@@ -110,8 +111,7 @@ class ScrollTest {
         double contentTop() {
             var found = new ArrayList<Double>();
             render.forEachPlacedBox(placed -> {
-                if (placed.box().owner() instanceof Element element
-                        && "scroll-content".equals(element.type())) {
+                if (placed.box().owner() instanceof Element element && "scroll-content".equals(element.type())) {
                     var matrix = placed.transform();
                     var layout = placed.layout();
                     found.add(matrix.b() * layout.left() + matrix.d() * layout.top() + matrix.f());
@@ -147,15 +147,12 @@ class ScrollTest {
             // never moves — and would have passed before any of it was built,
             // which is the trap SegmentedTest hit first.
             render.forEachPlacedBox(placed -> {
-                if (placed.box().owner() instanceof Element element
-                        && "scroll-thumb".equals(element.type())) {
+                if (placed.box().owner() instanceof Element element && "scroll-thumb".equals(element.type())) {
                     var matrix = placed.transform();
                     var layout = placed.layout();
                     found.add(new Rect(
-                            (float) (matrix.a() * layout.left() + matrix.c() * layout.top()
-                                    + matrix.e()),
-                            (float) (matrix.b() * layout.left() + matrix.d() * layout.top()
-                                    + matrix.f()),
+                            (float) (matrix.a() * layout.left() + matrix.c() * layout.top() + matrix.e()),
+                            (float) (matrix.b() * layout.left() + matrix.d() * layout.top() + matrix.f()),
                             (float) (matrix.a() * layout.width()),
                             (float) (matrix.d() * layout.height())));
                 }
@@ -186,8 +183,7 @@ class ScrollTest {
 
     /// A painted rectangle, for the assertions that are about where something
     /// ended up rather than about what it is.
-    private record Rect(float left, float top, float width, float height) {
-    }
+    private record Rect(float left, float top, float width, float height) {}
 
     private static Element find(Element from, String type) {
         if (type.equals(from.type())) {
@@ -208,8 +204,10 @@ class ScrollTest {
         for (var i = 0; i < ROWS; i++) {
             rows.add(new Text("row " + i));
         }
-        return new Scroll(List.of(new Column(rows.toArray(Widget[]::new))),
-                ScrollAxis.VERTICAL, io.github.digitalsmile.goldberry.widget.attr.Attributes.NONE);
+        return new Scroll(
+                List.of(new Column(rows.toArray(Widget[]::new))),
+                ScrollAxis.VERTICAL,
+                io.github.digitalsmile.goldberry.widget.attr.Attributes.NONE);
     }
 
     @Nested
@@ -222,8 +220,7 @@ class ScrollTest {
             var harness = new Harness(tallContent());
 
             assertNotNull(harness.viewport(), "no element of type scroll");
-            assertNotNull(find(harness.viewport(), "scroll-content"),
-                    "the viewport built no content node");
+            assertNotNull(find(harness.viewport(), "scroll-content"), "the viewport built no content node");
         }
 
         @Test
@@ -263,8 +260,7 @@ class ScrollTest {
             var atEnd = harness.contentTop();
             harness.wheel(100);
 
-            assertEquals(atEnd, harness.contentTop(), 0.01,
-                    "a second scroll past the end moved it further");
+            assertEquals(atEnd, harness.contentTop(), 0.01, "a second scroll past the end moved it further");
             // §2.4: hard edges, no overscroll bounce. The content's bottom is
             // level with the viewport's, so it has travelled exactly its own
             // overflow and not a pixel more.
@@ -317,8 +313,8 @@ class ScrollTest {
         void consumesWhenItMoves() {
             var harness = new Harness(tallContent());
 
-            assertTrue(harness.router.pointerWheel(100, 50, 0, 1),
-                    "a scroll view that moved did not consume the wheel");
+            assertTrue(
+                    harness.router.pointerWheel(100, 50, 0, 1), "a scroll view that moved did not consume the wheel");
         }
 
         @Test
@@ -330,8 +326,7 @@ class ScrollTest {
             // an upward scroll -- and §2.4 says it chains rather than swallowing
             // it. Unconsumed is the whole mechanism: the router's ordinary
             // bubble does the rest.
-            assertFalse(harness.router.pointerWheel(100, 50, 0, -1),
-                    "a scroll view at its edge swallowed the wheel");
+            assertFalse(harness.router.pointerWheel(100, 50, 0, -1), "a scroll view at its edge swallowed the wheel");
         }
     }
 
@@ -360,8 +355,7 @@ class ScrollTest {
             // Not a whole viewport: a page that moved 100 of a 100-tall window
             // would leave nothing on screen that was there before, and a reader
             // could not tell whether they had missed a line.
-            assertEquals(before - (VIEWPORT_HEIGHT - ScrollViewport.PAGE_OVERLAP),
-                    harness.contentTop(), 0.5);
+            assertEquals(before - (VIEWPORT_HEIGHT - ScrollViewport.PAGE_OVERLAP), harness.contentTop(), 0.5);
         }
 
         @Test
@@ -372,8 +366,7 @@ class ScrollTest {
 
             harness.press(Key.END);
             var bottom = harness.contentTop();
-            assertTrue(bottom < top - 100, "End did not reach the end; it moved "
-                    + (top - bottom));
+            assertTrue(bottom < top - 100, "End did not reach the end; it moved " + (top - bottom));
 
             harness.press(Key.HOME);
             assertEquals(top, harness.contentTop(), 0.01);
@@ -398,7 +391,8 @@ class ScrollTest {
 
             // At the top already, so Up has nowhere to go -- and a focus scope
             // above this one should still get its turn.
-            assertFalse(harness.router.keyPressed(Key.UP, Modifiers.NONE, false),
+            assertFalse(
+                    harness.router.keyPressed(Key.UP, Modifiers.NONE, false),
                     "a scroll view at its edge swallowed the key");
         }
     }
@@ -452,8 +446,8 @@ class ScrollTest {
             // The content is a little over three viewports, so the thumb is a
             // little under a third of the track. Asserted as a band rather than
             // a number because the content's height is the test font's business.
-            assertTrue(thumb.height() > VIEWPORT_HEIGHT * 0.15
-                            && thumb.height() < VIEWPORT_HEIGHT * 0.5,
+            assertTrue(
+                    thumb.height() > VIEWPORT_HEIGHT * 0.15 && thumb.height() < VIEWPORT_HEIGHT * 0.5,
                     "thumb was " + thumb.height() + " on a " + VIEWPORT_HEIGHT + " track");
         }
 
@@ -509,8 +503,7 @@ class ScrollTest {
             // top -- so §2.4's "track-click pages" means forward.
             harness.pressAt(195, 90);
 
-            assertTrue(harness.contentTop() < before - 50,
-                    "a track click moved " + (before - harness.contentTop()));
+            assertTrue(harness.contentTop() < before - 50, "a track click moved " + (before - harness.contentTop()));
         }
 
         @Test
@@ -523,13 +516,12 @@ class ScrollTest {
             // Press on the thumb itself -- which must *not* jump -- then drag.
             var thumb = harness.thumb();
             harness.pressAt(195, thumb.top() + thumb.height() / 2);
-            assertEquals(before, harness.contentTop(), 0.5,
-                    "grabbing the thumb moved the content before the drag began");
+            assertEquals(
+                    before, harness.contentTop(), 0.5, "grabbing the thumb moved the content before the drag began");
 
             harness.moveTo(195, 60);
 
-            assertTrue(harness.contentTop() < before - 20,
-                    "the drag moved " + (before - harness.contentTop()));
+            assertTrue(harness.contentTop() < before - 20, "the drag moved " + (before - harness.contentTop()));
 
             harness.release(195, 60);
         }

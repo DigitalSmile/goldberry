@@ -1,32 +1,32 @@
 package io.github.digitalsmile.goldberry.widgets.controls.toggle;
 
-import io.github.digitalsmile.goldberry.widget.attr.Attributes;
-import io.github.digitalsmile.goldberry.widgets.core.Row;
-
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.List;
+import java.util.Set;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+
 import io.github.digitalsmile.goldberry.RendererRequirement;
 import io.github.digitalsmile.goldberry.bind.Property;
-import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
-import io.github.digitalsmile.goldberry.css.select.Selector;
 import io.github.digitalsmile.goldberry.css.Stylesheet;
 import io.github.digitalsmile.goldberry.css.Theme;
+import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
+import io.github.digitalsmile.goldberry.css.select.Selector;
 import io.github.digitalsmile.goldberry.golden.GoldenImage;
-import io.github.digitalsmile.goldberry.paint.BoxPainter;
 import io.github.digitalsmile.goldberry.motion.Clock;
+import io.github.digitalsmile.goldberry.paint.BoxPainter;
 import io.github.digitalsmile.goldberry.widget.Element;
 import io.github.digitalsmile.goldberry.widget.ElementTree;
 import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widget.WidgetRenderer;
+import io.github.digitalsmile.goldberry.widget.attr.Attributes;
 import io.github.digitalsmile.goldberry.widgets.Controls;
 import io.github.digitalsmile.goldberry.widgets.controls.TestFont;
-
-import java.util.List;
-import java.util.Set;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
+import io.github.digitalsmile.goldberry.widgets.core.Row;
 
 /// What a switch actually looks like (§14, [ADR-0050]).
 ///
@@ -50,16 +50,17 @@ class ToggleGoldenTest {
         for (var state : states) {
             state.applyTo(tree.root());
         }
-        GoldenImage.assertMatches(name, 460, 56, 1.0f,
+        GoldenImage.assertMatches(
+                name,
+                460,
+                56,
+                1.0f,
                 frame -> BoxPainter.paint(frame, renderer(theme, null).render(tree)));
     }
 
     private static WidgetRenderer renderer(Theme theme, Clock.Virtual clock) {
         var renderer = new WidgetRenderer(
-                List.of(
-                        Controls.baseStylesheet(),
-                        theme.load(),
-                        Stylesheet.parse(CascadeLayer.APPLICATION, """
+                List.of(Controls.baseStylesheet(), theme.load(), Stylesheet.parse(CascadeLayer.APPLICATION, """
                                 #row { padding: 12px; gap: 16px; align-items: center;
                                        background: var(--gb-bg) }
                                 """)),
@@ -95,9 +96,12 @@ class ToggleGoldenTest {
     void statesDark() {
         // The image that says the pill adds up: 2 + 16 + 16 + 2 = 36, so the
         // thumb sits flush inside each end rather than hanging over one.
-        paint("toggle-states-dark", Theme.NORD_DARK, row(
-                new Toggle("Off", false, null, null, false, id("a")),
-                new Toggle("On", true, null, null, false, id("b"))));
+        paint(
+                "toggle-states-dark",
+                Theme.NORD_DARK,
+                row(
+                        new Toggle("Off", false, null, null, false, id("a")),
+                        new Toggle("On", true, null, null, false, id("b"))));
     }
 
     @Test
@@ -107,9 +111,12 @@ class ToggleGoldenTest {
         // dark-on-accent on the dark theme, dark-on-grey to light-on-accent
         // here, because no one colour clears §1.2 against both pills. This is
         // the image where that is visible rather than argued (ADR-0075).
-        paint("toggle-states-light", Theme.NORD_LIGHT, row(
-                new Toggle("Off", false, null, null, false, id("a")),
-                new Toggle("On", true, null, null, false, id("b"))));
+        paint(
+                "toggle-states-light",
+                Theme.NORD_LIGHT,
+                row(
+                        new Toggle("Off", false, null, null, false, id("a")),
+                        new Toggle("On", true, null, null, false, id("b"))));
     }
 
     @Test
@@ -120,7 +127,10 @@ class ToggleGoldenTest {
         // ring. The disabled one fades the pill, the thumb and the label
         // together at 45%, because the painter multiplies opacity down the
         // subtree -- which is why there is no `toggle-track:disabled` rule.
-        paint("toggle-interaction", Theme.NORD_DARK, row(
+        paint(
+                "toggle-interaction",
+                Theme.NORD_DARK,
+                row(
                         new Toggle("Hover", false, null, null, false, id("a")),
                         new Toggle("Focus", true, null, null, false, id("b")),
                         new Toggle("Off", true, null, null, true, id("c"))),
@@ -148,9 +158,7 @@ class ToggleGoldenTest {
         // through the binding, exactly as an application would (ADR-0063).
         var offToOn = Property.of(false);
         var onToOff = Property.of(true);
-        var tree = new ElementTree(row(
-                Toggle.of("Off", offToOn, value -> { }),
-                Toggle.of("On", onToOff, value -> { })));
+        var tree = new ElementTree(row(Toggle.of("Off", offToOn, value -> {}), Toggle.of("On", onToOff, value -> {})));
 
         // Frame one establishes the resting style. Nothing transitions on a
         // first frame -- a control appearing is not a control changing.
@@ -169,7 +177,6 @@ class ToggleGoldenTest {
         var midway = renderer.render(tree);
         assertTrue(renderer.isAnimating(), "and neither has arrived");
 
-        GoldenImage.assertMatches("toggle-mid-travel", 460, 56, 1.0f,
-                frame -> BoxPainter.paint(frame, midway));
+        GoldenImage.assertMatches("toggle-mid-travel", 460, 56, 1.0f, frame -> BoxPainter.paint(frame, midway));
     }
 }

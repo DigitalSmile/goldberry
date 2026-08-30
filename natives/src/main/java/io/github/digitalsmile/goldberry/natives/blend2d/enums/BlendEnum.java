@@ -3,6 +3,7 @@ package io.github.digitalsmile.goldberry.natives.blend2d.enums;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Stream;
+
 import io.github.digitalsmile.goldberry.natives.blend2d.error.BlendResultCode;
 
 /// A Java enum standing in for one of Blend2D's C enums.
@@ -17,9 +18,16 @@ import io.github.digitalsmile.goldberry.natives.blend2d.error.BlendResultCode;
 /// against what the C compiler computed for the library that is actually loaded.
 /// The interface is sealed so the permitted list and [#all()] sit together.
 public sealed interface BlendEnum
-        permits BlendCompOp, BlendDataAccess, BlendExtendMode, BlendFormat,
-                BlendGlyphPlacementType, BlendGradientType, BlendResultCode,
-                BlendRuntimeInfoType, BlendStrokeCap, BlendStrokeJoin,
+        permits BlendCompOp,
+                BlendDataAccess,
+                BlendExtendMode,
+                BlendFormat,
+                BlendGlyphPlacementType,
+                BlendGradientType,
+                BlendResultCode,
+                BlendRuntimeInfoType,
+                BlendStrokeCap,
+                BlendStrokeJoin,
                 BlendTransformOp {
 
     /// The value Blend2D's header gives this constant.

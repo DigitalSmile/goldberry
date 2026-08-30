@@ -5,16 +5,18 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
-import io.github.digitalsmile.goldberry.css.parse.CssSyntaxException;
-import io.github.digitalsmile.goldberry.css.Stylesheet;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+
+import io.github.digitalsmile.goldberry.css.Stylesheet;
+import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
+import io.github.digitalsmile.goldberry.css.parse.CssSyntaxException;
 
 /// Reloading, with the file watching taken out.
 ///
@@ -175,8 +177,7 @@ class ReloadableSourceTest {
         @DisplayName("KDL is reloadable through the same type")
         void kdl() throws IOException {
             var file = write("ui.kdl", "window title=\"One\"");
-            var source = ReloadableSource.load(
-                    file, io.github.digitalsmile.goldberry.kdl.KdlParser::parse);
+            var source = ReloadableSource.load(file, io.github.digitalsmile.goldberry.kdl.KdlParser::parse);
 
             assertEquals("One", source.current().getFirst().stringProperty("title"));
 

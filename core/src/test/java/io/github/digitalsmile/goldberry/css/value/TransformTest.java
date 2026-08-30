@@ -10,14 +10,15 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.List;
 
-import io.github.digitalsmile.goldberry.paint.Box;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
-import io.github.digitalsmile.goldberry.css.cascade.StyleResolver;
+
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
 import io.github.digitalsmile.goldberry.css.Stylesheet;
+import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
+import io.github.digitalsmile.goldberry.css.cascade.StyleResolver;
+import io.github.digitalsmile.goldberry.paint.Box;
 
 /// The matrix, the property, and the arithmetic between them — ADR-0068.
 class TransformTest {
@@ -33,10 +34,8 @@ class TransformTest {
     }
 
     private static void assertMaps(Affine matrix, double x, double y, double toX, double toY) {
-        assertEquals(toX, matrix.mapX(x, y), 1e-9,
-                "(" + x + ", " + y + ") should land at x=" + toX);
-        assertEquals(toY, matrix.mapY(x, y), 1e-9,
-                "(" + x + ", " + y + ") should land at y=" + toY);
+        assertEquals(toX, matrix.mapX(x, y), 1e-9, "(" + x + ", " + y + ") should land at x=" + toX);
+        assertEquals(toY, matrix.mapY(x, y), 1e-9, "(" + x + ", " + y + ") should land at y=" + toY);
     }
 
     /// The whole cascade, so a `transform` declaration is tested through the
@@ -159,8 +158,7 @@ class TransformTest {
             // Entry-by-entry interpolation gives all zeroes here — a box scaled
             // to a point — which is the reason `decompose` exists at all.
             var halfway = Affine.IDENTITY.mix(Affine.rotate(Math.PI), 0.5);
-            assertEquals(1, Math.abs(halfway.determinant()), 1e-9,
-                    "area is preserved through the whole turn");
+            assertEquals(1, Math.abs(halfway.determinant()), 1e-9, "area is preserved through the whole turn");
             assertMaps(halfway, 1, 0, 0, 1);
         }
     }
@@ -180,8 +178,7 @@ class TransformTest {
         @DisplayName("a percentage translate is of the box's own size")
         void percentageTranslate() {
             var transform = Transform.of(
-                    new Transform.Function.Translate(
-                            Transform.Length.percent(50), Transform.Length.percent(25)));
+                    new Transform.Function.Translate(Transform.Length.percent(50), Transform.Length.percent(25)));
             // 50% of 200 and 25% of 40. The default origin cancels out for a pure
             // translation, which is why this can be asserted directly.
             assertMaps(transform.matrix(200, 40), 0, 0, 100, 10);
@@ -226,9 +223,10 @@ class TransformTest {
         @DisplayName("the functions of the 2D subset")
         void functions() {
             assertEquals(
-                    List.of(new Transform.Function.Translate(
-                            Transform.Length.px(10), Transform.Length.px(-4))),
-                    compute("button { transform: translate(10px, -4px) }").transform().functions());
+                    List.of(new Transform.Function.Translate(Transform.Length.px(10), Transform.Length.px(-4))),
+                    compute("button { transform: translate(10px, -4px) }")
+                            .transform()
+                            .functions());
 
             assertEquals(
                     List.of(new Transform.Function.Scale(0.6, 0.6)),
@@ -239,8 +237,7 @@ class TransformTest {
                     compute("button { transform: scaleY(2) }").transform().functions());
 
             assertEquals(
-                    List.of(new Transform.Function.Translate(
-                            Transform.Length.ZERO, Transform.Length.px(3))),
+                    List.of(new Transform.Function.Translate(Transform.Length.ZERO, Transform.Length.px(3))),
                     compute("button { transform: translateY(3px) }").transform().functions());
         }
 
@@ -249,7 +246,8 @@ class TransformTest {
         void angles() {
             for (var spelling : List.of("90deg", "1.5707963267948966rad", "100grad", "0.25turn")) {
                 var functions = compute("button { transform: rotate(" + spelling + ") }")
-                        .transform().functions();
+                        .transform()
+                        .functions();
                 assertEquals(1, functions.size(), spelling);
                 var rotate = (Transform.Function.Rotate) functions.getFirst();
                 assertEquals(Math.PI / 2, rotate.radians(), 1e-9, spelling);
@@ -271,45 +269,55 @@ class TransformTest {
             // Half of this is valid. Taking the valid half would move the box
             // somewhere nobody wrote, which is worse than not moving it.
             assertTrue(compute("button { transform: scale(2) rotate(bananas) }")
-                    .transform().isNone());
-            assertTrue(compute("button { transform: translate(10) }").transform().isNone(),
+                    .transform()
+                    .isNone());
+            assertTrue(
+                    compute("button { transform: translate(10) }").transform().isNone(),
                     "a unitless non-zero length is not a length");
-            assertTrue(compute("button { transform: perspective(400px) }").transform().isNone(),
+            assertTrue(
+                    compute("button { transform: perspective(400px) }")
+                            .transform()
+                            .isNone(),
                     "3D is not in the subset");
         }
 
         @Test
         @DisplayName("transform-origin takes lengths, percentages and keywords")
         void origins() {
-            assertEquals(Transform.Origin.CENTER,
+            assertEquals(
+                    Transform.Origin.CENTER,
                     compute("button { transform-origin: center }").transform().origin());
-            assertEquals(Transform.Origin.TOP_LEFT,
+            assertEquals(
+                    Transform.Origin.TOP_LEFT,
                     compute("button { transform-origin: left top }").transform().origin());
-            assertEquals(new Transform.Origin(Transform.Length.px(4), Transform.Length.percent(100)),
-                    compute("button { transform-origin: 4px bottom }").transform().origin());
+            assertEquals(
+                    new Transform.Origin(Transform.Length.px(4), Transform.Length.percent(100)),
+                    compute("button { transform-origin: 4px bottom }")
+                            .transform()
+                            .origin());
         }
 
         @Test
         @DisplayName("`top left` is as valid as `left top`")
         void originKeywordsCommute() {
-            assertEquals(Transform.Origin.TOP_LEFT,
+            assertEquals(
+                    Transform.Origin.TOP_LEFT,
                     compute("button { transform-origin: top left }").transform().origin());
         }
 
         @Test
         @DisplayName("a lone vertical keyword centres the other axis")
         void loneVerticalKeyword() {
-            assertEquals(new Transform.Origin(Transform.Length.HALF, Transform.Length.ZERO),
+            assertEquals(
+                    new Transform.Origin(Transform.Length.HALF, Transform.Length.ZERO),
                     compute("button { transform-origin: top }").transform().origin());
         }
 
         @Test
         @DisplayName("the origin survives whichever declaration comes first")
         void originAndTransformCommute() {
-            var originFirst = compute(
-                    "button { transform-origin: left top; transform: scale(2) }");
-            var transformFirst = compute(
-                    "button { transform: scale(2); transform-origin: left top }");
+            var originFirst = compute("button { transform-origin: left top; transform: scale(2) }");
+            var transformFirst = compute("button { transform: scale(2); transform-origin: left top }");
 
             assertEquals(Transform.Origin.TOP_LEFT, originFirst.transform().origin());
             assertEquals(Transform.Origin.TOP_LEFT, transformFirst.transform().origin());
@@ -348,8 +356,7 @@ class TransformTest {
             // the missing function is filled in as its own identity. Padding with
             // a bare identity matrix instead would make a scale start at zero and
             // the control would appear out of a point.
-            var halfway = Transform.NONE.mix(
-                    Transform.of(new Transform.Function.Scale(1.2, 1.2)), 0.5);
+            var halfway = Transform.NONE.mix(Transform.of(new Transform.Function.Scale(1.2, 1.2)), 0.5);
             assertEquals(List.of(new Transform.Function.Scale(1.1, 1.1)), halfway.functions());
         }
 

@@ -1,17 +1,18 @@
 package io.github.digitalsmile.goldberry.widgets.form.textarea;
 
-import io.github.digitalsmile.goldberry.bind.Observable;
-import io.github.digitalsmile.goldberry.kdl.KdlNode;
-import io.github.digitalsmile.goldberry.widget.attr.Attributed;
-import io.github.digitalsmile.goldberry.widget.attr.Attributes;
-import io.github.digitalsmile.goldberry.widget.attr.Bindable;
-import io.github.digitalsmile.goldberry.widget.State;
-import io.github.digitalsmile.goldberry.widget.Widget;
-import io.github.digitalsmile.goldberry.widgets.markup.Markup;
-import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Consumer;
+
+import io.github.digitalsmile.goldberry.bind.Observable;
+import io.github.digitalsmile.goldberry.kdl.KdlNode;
+import io.github.digitalsmile.goldberry.widget.State;
+import io.github.digitalsmile.goldberry.widget.Widget;
+import io.github.digitalsmile.goldberry.widget.attr.Attributed;
+import io.github.digitalsmile.goldberry.widget.attr.Attributes;
+import io.github.digitalsmile.goldberry.widget.attr.Bindable;
+import io.github.digitalsmile.goldberry.widgets.markup.Markup;
+import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
 
 /// A multi-line text field — `docs/core-widgets.md` §4's `text-area`.
 ///
@@ -62,8 +63,15 @@ import java.util.function.Consumer;
 /// @param attributes  the `id`, classes and key the document wrote
 @Markup("text-area")
 public record TextArea(
-        String value, Observable<?> source, Consumer<String> onChange, String placeholder,
-        int rows, int maxRows, int maxLength, boolean readOnly, boolean disabled,
+        String value,
+        Observable<?> source,
+        Consumer<String> onChange,
+        String placeholder,
+        int rows,
+        int maxRows,
+        int maxLength,
+        boolean readOnly,
+        boolean disabled,
         Attributes attributes)
         implements Widget.Stateful, Attributed<TextArea>, Bindable<TextArea> {
 
@@ -87,49 +95,52 @@ public record TextArea(
         placeholder = placeholder == null ? "" : placeholder;
         attributes = attributes == null ? Attributes.NONE : attributes;
         if (rows < 1) {
-            throw new IllegalArgumentException(
-                    "a text-area is at least one line tall, and " + rows + " is not");
+            throw new IllegalArgumentException("a text-area is at least one line tall, and " + rows + " is not");
         }
         if (maxRows < rows) {
             throw new IllegalArgumentException(
-                    "a text-area cannot grow to fewer lines than it starts at: rows=" + rows
-                            + " max-rows=" + maxRows);
+                    "a text-area cannot grow to fewer lines than it starts at: rows=" + rows + " max-rows=" + maxRows);
         }
         if (maxLength < UNLIMITED) {
-            throw new IllegalArgumentException(
-                    "a maximum length is a count of characters or " + UNLIMITED
-                            + " for no limit, and " + maxLength + " is neither");
+            throw new IllegalArgumentException("a maximum length is a count of characters or " + UNLIMITED
+                    + " for no limit, and " + maxLength + " is neither");
         }
     }
 
     /// An empty area of the default height.
     public TextArea() {
-        this("", null, null, "", DEFAULT_ROWS, DEFAULT_MAX_ROWS, UNLIMITED, false, false,
-                Attributes.NONE);
+        this("", null, null, "", DEFAULT_ROWS, DEFAULT_MAX_ROWS, UNLIMITED, false, false, Attributes.NONE);
     }
 
     /// An area holding `value`, reporting every change.
     public TextArea(String value, Consumer<String> onChange) {
-        this(value, null, onChange, "", DEFAULT_ROWS, DEFAULT_MAX_ROWS, UNLIMITED, false, false,
-                Attributes.NONE);
+        this(value, null, onChange, "", DEFAULT_ROWS, DEFAULT_MAX_ROWS, UNLIMITED, false, false, Attributes.NONE);
     }
 
     /// An area following a property. The Java spelling of `bind=`.
     public static TextArea of(Observable<?> source, Consumer<String> onChange) {
-        return new TextArea("", Objects.requireNonNull(source, "source"), onChange, "",
-                DEFAULT_ROWS, DEFAULT_MAX_ROWS, UNLIMITED, false, false, Attributes.NONE);
+        return new TextArea(
+                "",
+                Objects.requireNonNull(source, "source"),
+                onChange,
+                "",
+                DEFAULT_ROWS,
+                DEFAULT_MAX_ROWS,
+                UNLIMITED,
+                false,
+                false,
+                Attributes.NONE);
     }
 
     /// This area with `text` shown when it is empty.
     public TextArea placeholder(String text) {
-        return new TextArea(value, source, onChange, text, rows, maxRows, maxLength, readOnly,
-                disabled, attributes);
+        return new TextArea(value, source, onChange, text, rows, maxRows, maxLength, readOnly, disabled, attributes);
     }
 
     /// This area `lines` tall, growing to at most `most`.
     public TextArea rows(int lines, int most) {
-        return new TextArea(value, source, onChange, placeholder, lines, most, maxLength, readOnly,
-                disabled, attributes);
+        return new TextArea(
+                value, source, onChange, placeholder, lines, most, maxLength, readOnly, disabled, attributes);
     }
 
     /// This area `lines` tall, keeping its current maximum — raised to `lines` if
@@ -140,20 +151,20 @@ public record TextArea(
 
     /// This area holding at most `characters`, or [#UNLIMITED].
     public TextArea maxLength(int characters) {
-        return new TextArea(value, source, onChange, placeholder, rows, maxRows, characters,
-                readOnly, disabled, attributes);
+        return new TextArea(
+                value, source, onChange, placeholder, rows, maxRows, characters, readOnly, disabled, attributes);
     }
 
     /// This area taking a caret and a selection but no edits.
     public TextArea readOnly(boolean value) {
-        return new TextArea(this.value, source, onChange, placeholder, rows, maxRows, maxLength,
-                value, disabled, attributes);
+        return new TextArea(
+                this.value, source, onChange, placeholder, rows, maxRows, maxLength, value, disabled, attributes);
     }
 
     /// This area, disabled or not.
     public TextArea disabled(boolean value) {
-        return new TextArea(this.value, source, onChange, placeholder, rows, maxRows, maxLength,
-                readOnly, value, attributes);
+        return new TextArea(
+                this.value, source, onChange, placeholder, rows, maxRows, maxLength, readOnly, value, attributes);
     }
 
     /// What this area starts from — the bound value, or [#value()].
@@ -174,14 +185,14 @@ public record TextArea(
 
     @Override
     public TextArea bound(Observable<?> value) {
-        return new TextArea(this.value, value, onChange, placeholder, rows, maxRows, maxLength,
-                readOnly, disabled, attributes);
+        return new TextArea(
+                this.value, value, onChange, placeholder, rows, maxRows, maxLength, readOnly, disabled, attributes);
     }
 
     @Override
     public TextArea withAttributes(Attributes value) {
-        return new TextArea(this.value, source, onChange, placeholder, rows, maxRows, maxLength,
-                readOnly, disabled, value);
+        return new TextArea(
+                this.value, source, onChange, placeholder, rows, maxRows, maxLength, readOnly, disabled, value);
     }
 
     @Override

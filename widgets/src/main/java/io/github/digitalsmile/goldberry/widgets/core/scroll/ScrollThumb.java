@@ -1,13 +1,14 @@
 package io.github.digitalsmile.goldberry.widgets.core.scroll;
 
+import java.util.List;
+
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
 import io.github.digitalsmile.goldberry.css.value.Transform;
-import io.github.digitalsmile.goldberry.paint.Box;
 import io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength;
+import io.github.digitalsmile.goldberry.paint.Box;
+import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widget.style.Paints;
 import io.github.digitalsmile.goldberry.widget.style.Styled;
-import io.github.digitalsmile.goldberry.widget.Widget;
-import java.util.List;
 
 /// The draggable part of a [ScrollBar] — §2.4's `full`-radius thumb.
 ///
@@ -63,8 +64,7 @@ record ScrollThumb(boolean vertical, double length, double offset, boolean dragg
             return sized;
         }
         return sized.transform(Transform.of(new Transform.Function.Translate(
-                Transform.Length.px(vertical ? 0 : offset),
-                Transform.Length.px(vertical ? offset : 0))));
+                Transform.Length.px(vertical ? 0 : offset), Transform.Length.px(vertical ? offset : 0))));
     }
 
     @Override

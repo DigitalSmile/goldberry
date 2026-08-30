@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
+
 import io.github.digitalsmile.goldberry.css.select.Selector;
 
 /// A [StyleElement] tree, built by hand.
@@ -38,7 +39,9 @@ public final class TestElement implements StyleElement {
         while (i < rest.length()) {
             var marker = rest.charAt(i);
             var end = i + 1;
-            while (end < rest.length() && rest.charAt(end) != '.' && rest.charAt(end) != '#'
+            while (end < rest.length()
+                    && rest.charAt(end) != '.'
+                    && rest.charAt(end) != '#'
                     && rest.charAt(end) != ':') {
                 end++;
             }

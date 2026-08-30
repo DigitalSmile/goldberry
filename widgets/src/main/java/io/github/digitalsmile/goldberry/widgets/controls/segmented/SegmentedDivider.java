@@ -1,5 +1,8 @@
 package io.github.digitalsmile.goldberry.widgets.controls.segmented;
 
+import java.util.List;
+import java.util.Set;
+
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
 import io.github.digitalsmile.goldberry.natives.yoga.Insets;
 import io.github.digitalsmile.goldberry.natives.yoga.style.PositionType;
@@ -8,8 +11,6 @@ import io.github.digitalsmile.goldberry.paint.Box;
 import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widget.style.Paints;
 import io.github.digitalsmile.goldberry.widget.style.Styled;
-import java.util.List;
-import java.util.Set;
 
 /// One of the hairlines between a [Segmented]'s segments — §3's "1px divider in
 /// `--gb-border`", and a **part**.
@@ -53,9 +54,8 @@ record SegmentedDivider(int boundary, int count, int index) implements Widget.Le
 
     SegmentedDivider {
         if (count <= 1) {
-            throw new IllegalArgumentException(
-                    "a row of " + count + " segment(s) has no gap to divide;"
-                            + " SegmentedTrack builds one divider per boundary");
+            throw new IllegalArgumentException("a row of " + count + " segment(s) has no gap to divide;"
+                    + " SegmentedTrack builds one divider per boundary");
         }
         if (boundary < 1 || boundary >= count) {
             throw new IllegalArgumentException(
@@ -88,8 +88,8 @@ record SegmentedDivider(int boundary, int count, int index) implements Widget.Le
     @Override
     public ComputedStyle restyle(ComputedStyle resolved) {
         var placed = resolved.inset(new Insets(
-                StyleLength.points(0), StyleLength.UNDEFINED,
-                StyleLength.points(0), StyleLength.percent((float) (100.0 * boundary / count))));
+                StyleLength.points(0), StyleLength.UNDEFINED, StyleLength.points(0), StyleLength.percent((float)
+                        (100.0 * boundary / count))));
         return besideTheSelection() ? placed.opacity(0) : placed;
     }
 

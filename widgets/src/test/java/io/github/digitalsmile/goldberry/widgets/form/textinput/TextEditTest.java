@@ -297,8 +297,7 @@ class TextEditTest {
         void snapsAfterRebinding() {
             var edit = new TextEdit("abcd", 2, 2).withText("a🎨");
 
-            assertTrue(edit.caret() == 1 || edit.caret() == 3,
-                    "the caret landed inside the pair at " + edit.caret());
+            assertTrue(edit.caret() == 1 || edit.caret() == 3, "the caret landed inside the pair at " + edit.caret());
         }
     }
 }

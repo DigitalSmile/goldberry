@@ -24,8 +24,7 @@ final class Arc {
     /// 180°, which is the difference between invisible and visible on a 16px ring.
     private static final double KAPPA = 0.5522847498307933;
 
-    private Arc() {
-    }
+    private Arc() {}
 
     /// Appends an arc of `radius` about `(cx, cy)`, running `sweep` radians from
     /// `start`, to `path`.
@@ -33,8 +32,7 @@ final class Arc {
     /// Angles are in radians, clockwise, with zero pointing right — Blend2D's
     /// coordinates have y downwards, so this is the direction a clock's hands go
     /// on screen.
-    static void addTo(BlendPath path, double cx, double cy, double radius,
-            double start, double sweep) {
+    static void addTo(BlendPath path, double cx, double cy, double radius, double start, double sweep) {
 
         if (radius <= 0 || sweep == 0) {
             return;
@@ -59,8 +57,7 @@ final class Arc {
     /// The control points sit on the tangents at each end, `k` of the radius
     /// along them — where `k` is KAPPA scaled to the segment, because KAPPA is the
     /// answer for 90° and a shorter arc needs a proportionally shorter handle.
-    private static void addSegment(BlendPath path, double cx, double cy, double radius,
-            double start, double sweep) {
+    private static void addSegment(BlendPath path, double cx, double cy, double radius, double start, double sweep) {
 
         var end = start + sweep;
         var k = KAPPA * radius * (sweep / (Math.PI / 2));
@@ -71,8 +68,11 @@ final class Arc {
         var y2 = cy + radius * Math.sin(end);
 
         path.cubicTo(
-                x1 - k * Math.sin(start), y1 + k * Math.cos(start),
-                x2 + k * Math.sin(end), y2 - k * Math.cos(end),
-                x2, y2);
+                x1 - k * Math.sin(start),
+                y1 + k * Math.cos(start),
+                x2 + k * Math.sin(end),
+                y2 - k * Math.cos(end),
+                x2,
+                y2);
     }
 }
