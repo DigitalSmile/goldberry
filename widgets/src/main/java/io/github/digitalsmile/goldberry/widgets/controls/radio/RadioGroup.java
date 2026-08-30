@@ -6,6 +6,8 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.function.Consumer;
 
+import org.jspecify.annotations.Nullable;
+
 import io.github.digitalsmile.goldberry.bind.Observable;
 import io.github.digitalsmile.goldberry.bind.registry.ActionRegistry;
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
@@ -132,7 +134,7 @@ public record RadioGroup(
     /// what an object *means*, only how the author would have spelled it. A null —
     /// a model that has not loaded — selects nothing rather than the first option,
     /// because a group that guessed would report a value the user never picked.
-    public String resolved() {
+    public @Nullable String resolved() {
         if (source == null) {
             return value;
         }

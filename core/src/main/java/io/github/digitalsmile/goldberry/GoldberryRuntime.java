@@ -3,6 +3,7 @@ package io.github.digitalsmile.goldberry;
 import java.util.IdentityHashMap;
 import java.util.Objects;
 
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 
 import io.github.digitalsmile.goldberry.log.Logs;
@@ -27,7 +28,7 @@ final class GoldberryRuntime {
 
     private static final Logger LOG = Logs.of(GoldberryRuntime.class);
 
-    private static GoldberryRuntime instance;
+    private static @Nullable GoldberryRuntime instance;
 
     private final Backend backend;
     private final EventLoop loop;
@@ -42,7 +43,7 @@ final class GoldberryRuntime {
     private final IdentityHashMap<BackendWindow, Window> windows = new IdentityHashMap<>();
 
     /// Told after **any** window's focus changed — see [#onFocusChange].
-    private Runnable focusWatcher;
+    private @Nullable Runnable focusWatcher;
 
     /// Watches every window's focus, for the one consumer that needs the set
     /// rather than the event.

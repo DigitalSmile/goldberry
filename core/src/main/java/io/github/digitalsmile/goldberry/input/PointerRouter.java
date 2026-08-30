@@ -8,6 +8,8 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.function.Consumer;
 
+import org.jspecify.annotations.Nullable;
+
 import io.github.digitalsmile.goldberry.css.select.Selector.PseudoClass;
 import io.github.digitalsmile.goldberry.input.event.KeyEvent;
 import io.github.digitalsmile.goldberry.input.event.PointerEvent;
@@ -43,9 +45,9 @@ public final class PointerRouter {
 
     private List<HitTest.Region> regions = List.of();
 
-    private Element hovered;
-    private Element pressed;
-    private Element focused;
+    private @Nullable Element hovered;
+    private @Nullable Element pressed;
+    private @Nullable Element focused;
     private boolean focusFromKeyboard;
 
     /// Where the keyboard goes back to when the thing holding it leaves the tree
@@ -64,7 +66,7 @@ public final class PointerRouter {
     /// focus — and it is allowed to go stale on purpose: [#refocus] drops it the
     /// moment what it points at leaves the tree, rather than anything having to
     /// keep it true.
-    private Element restoreTo;
+    private @Nullable Element restoreTo;
 
     /// Whether [#restoreTo] had the ring when it lost focus, so that giving the
     /// keyboard back gives back the state it was in. A dialog dismissed with
@@ -78,7 +80,7 @@ public final class PointerRouter {
     /// stops moving when the pointer wanders off the track is the bug this
     /// prevents, and so is a button that never learns the press it started ended
     /// somewhere else.
-    private Element captured;
+    private @Nullable Element captured;
 
     /// Whether [#captured] was taken by the press rather than asked for.
     ///
@@ -330,7 +332,7 @@ public final class PointerRouter {
     }
 
     /// Told when the hovered or the focused node changes — see [#onPointingChanged].
-    private Runnable pointingListener;
+    private @Nullable Runnable pointingListener;
 
     /// Called when the pointer moves to a different node, or focus does.
     ///
@@ -353,15 +355,15 @@ public final class PointerRouter {
         }
     }
 
-    public Element hovered() {
+    public @Nullable Element hovered() {
         return hovered;
     }
 
-    public Element pressed() {
+    public @Nullable Element pressed() {
         return pressed;
     }
 
-    public Element focused() {
+    public @Nullable Element focused() {
         return focused;
     }
 
@@ -586,7 +588,7 @@ public final class PointerRouter {
     }
 
     /// Who has the pointer, or null.
-    public Element captured() {
+    public @Nullable Element captured() {
         return captured;
     }
 
@@ -704,7 +706,7 @@ public final class PointerRouter {
     ///
     /// Set by whoever owns the widget tree. Without it, focus still works by
     /// pointer -- traversal is the only thing that needs to enumerate.
-    private Element focusRoot;
+    private @Nullable Element focusRoot;
 
     public void focusRoot(Element root) {
         this.focusRoot = root;
@@ -808,7 +810,7 @@ public final class PointerRouter {
     /// Strictly an ancestor: a scope is not itself one of the things its arrow
     /// keys move between, and a focusable widget that also declared itself a
     /// scope would otherwise rove within its own children from outside them.
-    private static Element enclosingScope(Element element) {
+    private static @Nullable Element enclosingScope(Element element) {
         if (element == null) {
             return null;
         }
@@ -986,7 +988,7 @@ public final class PointerRouter {
     ///
     /// The walk costs the size of the tree and happens on a Tab press, which is
     /// an order of magnitude rarer than a frame.
-    private Element traversalRoot() {
+    private @Nullable Element traversalRoot() {
         var modal = deepestModal(focusRoot);
         return modal != null ? modal : focusRoot;
     }
@@ -1001,7 +1003,7 @@ public final class PointerRouter {
     /// overlays on one window and the later one is drawn on top. Walking
     /// forwards would hand the keyboard to the dialog *underneath* the one the
     /// user is looking at.
-    private static Element deepestModal(Element element) {
+    private static @Nullable Element deepestModal(Element element) {
         if (element == null) {
             return null;
         }
@@ -1071,13 +1073,13 @@ public final class PointerRouter {
     /// What a modal is given when focus is outside it. Not [#collectFocusable]'s
     /// whole list: this is asked on every focus change, and the answer is the
     /// first entry.
-    private static Element firstFocusableIn(Element element) {
+    private static @Nullable Element firstFocusableIn(Element element) {
         var found = new ArrayList<Element>();
         collectFocusable(element, found);
         return found.isEmpty() ? null : found.getFirst();
     }
 
-    private static Element findById(Element element, String id) {
+    private static @Nullable Element findById(Element element, String id) {
         if (element == null || id == null) {
             return null;
         }
@@ -1133,7 +1135,7 @@ public final class PointerRouter {
     ///
     /// A composite whose items are not selectable — a toolbar — therefore always
     /// enters at the first, which is the right answer for it too.
-    private static Element scopeEntry(Element scope) {
+    private static @Nullable Element scopeEntry(Element scope) {
         var within = new ArrayList<Element>();
         for (var child : scope.children()) {
             collectFocusable(child, within);
@@ -1186,7 +1188,7 @@ public final class PointerRouter {
 
     // --- internals ---------------------------------------------------------
 
-    private Element elementAt(float x, float y) {
+    private @Nullable Element elementAt(float x, float y) {
         return HitTest.at(regions, x, y)
                 .filter(Element.class::isInstance)
                 .map(Element.class::cast)
@@ -1338,7 +1340,7 @@ public final class PointerRouter {
         return chain;
     }
 
-    private static Element parentOf(Element element) {
+    private static @Nullable Element parentOf(Element element) {
         return element.parent() instanceof Element parent ? parent : null;
     }
 
@@ -1416,7 +1418,7 @@ public final class PointerRouter {
     /// child instead. That is how clicking a `field`'s label focuses the control
     /// beside it, which no upward walk can reach because a label is the control's
     /// sibling.
-    private static Element nearestFocusable(Element element) {
+    private static @Nullable Element nearestFocusable(Element element) {
         for (var current = element; current != null; current = parentOf(current)) {
             if (isFocusable(current)) {
                 return current;
@@ -1432,7 +1434,7 @@ public final class PointerRouter {
     }
 
     /// The first focusable node in `element`'s subtree, in document order.
-    private static Element firstFocusable(Element element) {
+    private static @Nullable Element firstFocusable(Element element) {
         for (var child : element.children()) {
             if (isFocusable(child)) {
                 return child;
@@ -1558,7 +1560,7 @@ public final class PointerRouter {
 
     /// The first descendant of `element` whose CSS type is `cssType`, in document
     /// order.
-    private static Element partOf(Element element, String cssType) {
+    private static @Nullable Element partOf(Element element, String cssType) {
         for (var child : element.children()) {
             if (child.widget() instanceof Styled styled && cssType.equals(styled.cssType())) {
                 return child;

@@ -6,6 +6,13 @@
 /// Building this on the classpath instead would leave that untested.
 module io.github.digitalsmile.goldberry.example {
     requires io.github.digitalsmile.goldberry.core;
+
+    /// JSpecify's nullness annotations, for the packages under NullAway.
+    ///
+    /// `static`, because they are compile-time only. `transitive`, because
+    /// `@Nullable` appears on exported signatures and a consumer compiling
+    /// against one has to read it (`docs/testing.md` §2).
+    requires transitive static org.jspecify;
     requires io.github.digitalsmile.goldberry.widgets;
     requires org.slf4j;
 

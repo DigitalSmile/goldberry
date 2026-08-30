@@ -5,6 +5,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 
 import io.github.digitalsmile.goldberry.assets.BundledFont;
@@ -1267,7 +1268,7 @@ public record ComputedStyle(
     /// unitless is refused: `transition: color 200` almost certainly means
     /// milliseconds, and guessing would make the one stylesheet that meant
     /// seconds silently wrong.
-    private static Double milliseconds(List<Token> part) {
+    private static @Nullable Double milliseconds(List<Token> part) {
         if (part.size() != 1) {
             return null;
         }

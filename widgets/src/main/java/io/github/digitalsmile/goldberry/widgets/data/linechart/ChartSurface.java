@@ -3,6 +3,8 @@ package io.github.digitalsmile.goldberry.widgets.data.linechart;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.jspecify.annotations.Nullable;
+
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
 import io.github.digitalsmile.goldberry.css.value.CssColor;
 import io.github.digitalsmile.goldberry.input.event.PointerEvent;
@@ -391,7 +393,7 @@ record ChartSurface(
     /// the hovered index is part of this widget: one point's worth of text,
     /// re-shaped when the pointer moves to a different point and served from the
     /// cache when it moves within one (ADR-0037).
-    private Readout readout(
+    private @Nullable Readout readout(
             ComputedStyle style,
             Context context,
             List<io.github.digitalsmile.goldberry.widgets.data.Gaps.Resolved> resolved) {

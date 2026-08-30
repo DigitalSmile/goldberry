@@ -4,6 +4,8 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 
+import org.jspecify.annotations.Nullable;
+
 import io.github.digitalsmile.goldberry.render.BackendException;
 import io.github.digitalsmile.goldberry.render.Cursor;
 import io.github.digitalsmile.goldberry.render.DamageRect;
@@ -36,7 +38,7 @@ public sealed class HeadlessWindow implements BackendWindow permits HeadlessPopu
     /// Where this window pretends to be on the backend's desktop.
     private LogicalPoint position = LogicalPoint.ZERO;
 
-    private PixelBuffer lastFrame;
+    private @Nullable PixelBuffer lastFrame;
     private List<DamageRect> lastDamage = List.of();
     private int presentCount;
     private Cursor cursor = Cursor.DEFAULT;

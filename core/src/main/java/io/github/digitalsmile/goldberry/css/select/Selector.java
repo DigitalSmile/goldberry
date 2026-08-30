@@ -2,6 +2,7 @@ package io.github.digitalsmile.goldberry.css.select;
 
 import java.util.List;
 import java.util.Objects;
+import org.jspecify.annotations.Nullable;
 
 /// A selector: what a rule matches, and how strongly.
 ///
@@ -154,7 +155,7 @@ public record Selector(List<Part> parts) {
 
         /// Public because the parser that calls it is `css.parse`'s and a
         /// selector is `css.select`'s (ADR-0172).
-        public static PseudoClass parse(String name) {
+        public static @Nullable PseudoClass parse(String name) {
             for (var candidate : values()) {
                 if (candidate.cssName().equalsIgnoreCase(name)) {
                     return candidate;

@@ -3,6 +3,7 @@ package io.github.digitalsmile.goldberry;
 import java.util.Objects;
 import java.util.function.Supplier;
 
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -77,7 +78,7 @@ public final class Popup implements AutoCloseable {
 
     /// Which node to put the keyboard on when this popup first paints, or null
     /// for "the first focusable one". See [#focusOn].
-    private String focusId;
+    private @Nullable String focusId;
 
     /// The last painted frame's geometry — see [#anchor].
     private java.util.List<HitTest.Region> regions = java.util.List.of();
@@ -274,7 +275,7 @@ public final class Popup implements AutoCloseable {
         LogicalSize measure(ElementTree tree, RenderTree render);
     }
 
-    private Measurer measurer;
+    private @Nullable Measurer measurer;
 
     /// Told by the launcher, which opened this and knows how it was measured.
     void measuredBy(Measurer value) {
@@ -444,7 +445,7 @@ public final class Popup implements AutoCloseable {
     /// A walk rather than a lookup in [#regions], which [#anchor] uses: focus is
     /// placed *before* anything asks where a node was painted, and a region
     /// carries a rectangle where this needs the element itself.
-    private static io.github.digitalsmile.goldberry.widget.Element elementWithId(
+    private static io.github.digitalsmile.goldberry.widget.@Nullable Element elementWithId(
             io.github.digitalsmile.goldberry.widget.Element element, String id) {
         if (element.widget() instanceof io.github.digitalsmile.goldberry.widget.style.Styled styled
                 && id.equals(styled.id())) {

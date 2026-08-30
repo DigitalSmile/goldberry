@@ -2,6 +2,8 @@ package io.github.digitalsmile.goldberry.widgets.data.donutchart;
 
 import java.util.List;
 
+import org.jspecify.annotations.Nullable;
+
 /// Where the ring is inside the box, and which slice a point is on.
 ///
 /// The donut's answer to
@@ -29,7 +31,7 @@ record DonutGeometry(double cx, double cy, double outer, double inner) {
 
     /// The geometry of a ring in a box this size, or **null** when there is no
     /// room for one.
-    static DonutGeometry of(double width, double height, double hole) {
+    static @Nullable DonutGeometry of(double width, double height, double hole) {
         if (width <= 0 || height <= 0) {
             return null;
         }

@@ -4,6 +4,8 @@ import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.Objects;
 
+import org.jspecify.annotations.Nullable;
+
 /// The undo and redo stacks of one field.
 ///
 /// `docs/core-widgets.md` §4 asks a `text-input` for an "undo/redo stack", and
@@ -75,7 +77,7 @@ public final class EditHistory {
     /// The state the last recorded change ended at, or null if nothing has been
     /// recorded. Compared against the next change's starting state to decide
     /// whether the two are one run.
-    private TextEdit lastAfter;
+    private @Nullable TextEdit lastAfter;
     private Kind lastKind = Kind.OTHER;
 
     /// An empty history, for a field that has just been mounted.

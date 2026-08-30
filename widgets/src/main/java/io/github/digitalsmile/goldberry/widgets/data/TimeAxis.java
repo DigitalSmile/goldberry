@@ -5,6 +5,8 @@ import java.time.ZoneId;
 import java.util.List;
 import java.util.Objects;
 
+import org.jspecify.annotations.Nullable;
+
 /// When each point happened — `content-widgets.md` §3.1's `java.time`-driven time
 /// axis.
 ///
@@ -99,12 +101,12 @@ public record TimeAxis(List<Instant> times, ZoneId zone) {
     }
 
     /// The first instant, or null when there are none.
-    public Instant first() {
+    public @Nullable Instant first() {
         return times.isEmpty() ? null : times.getFirst();
     }
 
     /// The last instant, or null when there are none.
-    public Instant last() {
+    public @Nullable Instant last() {
         return times.isEmpty() ? null : times.getLast();
     }
 }

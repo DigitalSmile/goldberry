@@ -2,6 +2,8 @@ package io.github.digitalsmile.goldberry.widgets.data.linechart;
 
 import java.util.List;
 
+import org.jspecify.annotations.Nullable;
+
 import io.github.digitalsmile.goldberry.widget.State;
 import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widgets.data.Series;
@@ -87,11 +89,11 @@ public record ChartPlot(
         private int hovered = -1;
 
         /// The group's registration, while there is one.
-        private io.github.digitalsmile.goldberry.bind.Subscription linked;
+        private io.github.digitalsmile.goldberry.bind.@Nullable Subscription linked;
 
         /// The group this state is currently registered with, so a rebuild that
         /// changes it re-registers rather than listening to the old one for ever.
-        private io.github.digitalsmile.goldberry.widgets.data.CrosshairGroup group;
+        private io.github.digitalsmile.goldberry.widgets.data.@Nullable CrosshairGroup group;
 
         @Override
         protected void initState() {

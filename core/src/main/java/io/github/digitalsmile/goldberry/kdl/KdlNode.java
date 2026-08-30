@@ -6,6 +6,8 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 
+import org.jspecify.annotations.Nullable;
+
 /// One node in a KDL document — which, per §9, is one widget.
 ///
 /// The mapping the architecture states, in one place: node name is the widget
@@ -53,7 +55,7 @@ public record KdlNode(
     ///
     /// Attributes are overwhelmingly strings — `class`, `id`, `icon`, `action` —
     /// so this is the accessor an inflater reaches for.
-    public String stringProperty(String key) {
+    public @Nullable String stringProperty(String key) {
         var value = properties.get(key);
         return value == null ? null : value.asString();
     }

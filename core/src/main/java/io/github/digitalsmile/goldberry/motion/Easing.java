@@ -2,6 +2,8 @@ package io.github.digitalsmile.goldberry.motion;
 
 import java.util.Locale;
 
+import org.jspecify.annotations.Nullable;
+
 /// How a value moves between two others — `docs/design-system.md` §1.7.
 ///
 /// **Three keywords, and no raw beziers in the stylesheet.** §1.7 says the CSS
@@ -56,7 +58,7 @@ public enum Easing {
     /// Null rather than a default, so a stylesheet writing `ease-in-out` — a
     /// keyword CSS has and this system does not — is a dropped declaration with
     /// the text quoted rather than a curve nobody chose.
-    public static Easing parse(String name) {
+    public static @Nullable Easing parse(String name) {
         for (var candidate : values()) {
             if (candidate.cssName().equalsIgnoreCase(name)) {
                 return candidate;

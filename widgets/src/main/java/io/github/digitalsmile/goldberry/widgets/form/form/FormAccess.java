@@ -1,5 +1,7 @@
 package io.github.digitalsmile.goldberry.widgets.form.form;
 
+import org.jspecify.annotations.Nullable;
+
 import io.github.digitalsmile.goldberry.widget.BuildContext;
 import io.github.digitalsmile.goldberry.widgets.form.field.Validated;
 
@@ -29,7 +31,7 @@ public interface FormAccess {
     /// layout contract before it is anything, and one used on its own validates
     /// on blur exactly as it would inside a form — it simply has nothing to
     /// submit with.
-    static FormAccess of(BuildContext context) {
+    static @Nullable FormAccess of(BuildContext context) {
         return context.findAncestorState(FormState.class).orElse(null);
     }
 }

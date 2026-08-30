@@ -2,6 +2,8 @@ package io.github.digitalsmile.goldberry.widgets.form.textinput;
 
 import java.time.Duration;
 
+import org.jspecify.annotations.Nullable;
+
 import io.github.digitalsmile.goldberry.Host;
 import io.github.digitalsmile.goldberry.input.hit.Extent;
 import io.github.digitalsmile.goldberry.render.event.EventLoop;
@@ -53,7 +55,7 @@ final class TextInputState extends State<TextInput> implements TextEditor {
 
     /// The window, captured in `build` and used only from a handler — which is
     /// what [BuildContext#host()] allows.
-    private Host host;
+    private @Nullable Host host;
 
     /// §4's autocomplete: the popover of suggestions under the field, or null.
     ///
@@ -61,7 +63,7 @@ final class TextInputState extends State<TextInput> implements TextEditor {
     /// makes the arrows move the focus and `Enter` commit, which is exactly what
     /// "the field's text is never rewritten without the user choosing" needs
     /// ([ADR-0182]).
-    private io.github.digitalsmile.goldberry.Popup suggestions;
+    private io.github.digitalsmile.goldberry.@Nullable Popup suggestions;
 
     /// Where the last frame painted this field, for anchoring the popover.
     private io.github.digitalsmile.goldberry.render.model.LogicalRect fieldBounds;
@@ -73,7 +75,7 @@ final class TextInputState extends State<TextInput> implements TextEditor {
 
     private boolean focused;
     private boolean caretShown = true;
-    private EventLoop.Timer blink;
+    private EventLoop.@Nullable Timer blink;
 
     /// How far the content has been scrolled left, in logical pixels.
     ///

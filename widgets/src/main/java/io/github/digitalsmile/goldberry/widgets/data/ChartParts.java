@@ -3,6 +3,8 @@ package io.github.digitalsmile.goldberry.widgets.data;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.jspecify.annotations.Nullable;
+
 import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widgets.data.linechart.ChartLegend;
 import io.github.digitalsmile.goldberry.widgets.data.linechart.ChartPlot;
@@ -153,7 +155,7 @@ public final class ChartParts {
     ///
     /// @param status  what the application said
     /// @param hasData whether the data it passed has anything in it
-    public static Widget messageFor(ChartStatus status, boolean hasData) {
+    public static @Nullable Widget messageFor(ChartStatus status, boolean hasData) {
         var text = (status == null ? ChartStatus.READY : status).messageFor(hasData);
         if (text == null) {
             return null;

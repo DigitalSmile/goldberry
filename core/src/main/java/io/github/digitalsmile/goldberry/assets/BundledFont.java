@@ -1,5 +1,7 @@
 package io.github.digitalsmile.goldberry.assets;
 
+import org.jspecify.annotations.Nullable;
+
 /// The faces that ship inside `goldberry-core`.
 ///
 /// Three families, and that is the whole fallback chain: a primary family and an
@@ -101,7 +103,7 @@ public enum BundledFont {
     /// Falls back to the family's regular when it has no face at that weight —
     /// `JetBrains Mono` has no SemiBold, and refusing would mean bold code text
     /// throwing from inside a paint pass.
-    public static BundledFont of(String family, Weight weight) {
+    public static @Nullable BundledFont of(String family, Weight weight) {
         BundledFont fallback = null;
         for (var candidate : values()) {
             if (!candidate.family.equalsIgnoreCase(family)) {

@@ -22,10 +22,10 @@ module io.github.digitalsmile.goldberry.common {
     /// NullAway (`docs/testing.md` §2).
     ///
     /// **`static`**, because they are compile-time only: a consumer's runtime
-    /// module path does not need them, and requiring them non-statically would
-    /// put an annotation jar on every application's module path to describe
-    /// something the compiler has already checked.
-    requires static org.jspecify;
+    /// module path does not need them. **`transitive`**, because `@Nullable`
+    /// appears on exported signatures, and a consumer compiling against one has
+    /// to be able to read it — which `-Xlint:exports` requires in as many words.
+    requires transitive static org.jspecify;
 
     /// Where every Goldberry logger comes from, and the start-up timeline they
     /// report. Both are cross-cutting diagnostics: `NativeLibrary` marks the

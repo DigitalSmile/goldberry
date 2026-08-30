@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -107,7 +108,7 @@ public final class Showcase implements Application {
     /// The dialog that is showing, or null. One at a time: a second `Ctrl+O`
     /// while one is up would put a modal over a modal, which the router handles
     /// and which this application has no reason to demonstrate.
-    private Overlay open;
+    private @Nullable Overlay open;
 
     /// §7's toast stack, attached once and raised through for ever after.
     ///
@@ -121,14 +122,14 @@ public final class Showcase implements Application {
     /// The frame-rate readout, while it is on screen. Null when it is not — see
     /// [#toggleHud]. Whether it is up is *also* on the model, because the Help
     /// menu draws a tick beside it and a menu row's `checked` is a constant.
-    private Overlay hud;
+    private @Nullable Overlay hud;
 
     /// The context menu, while it is open. Null when it is not.
     ///
     /// A popup is light-dismissed by default, so it can also close itself: a
     /// press anywhere in the window below it, or `Escape`. `isOpen()` is what
     /// this field is checked with rather than nullness alone.
-    private Popup menu;
+    private @Nullable Popup menu;
     private Icon paletteIcon;
     private Icon plusIcon;
     private Screen screen;

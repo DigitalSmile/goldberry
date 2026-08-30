@@ -1,5 +1,7 @@
 package io.github.digitalsmile.goldberry.widgets.form.textinput;
 
+import org.jspecify.annotations.Nullable;
+
 /// What a field will accept — `docs/core-widgets.md` §4's "input filters
 /// (numeric etc.)".
 ///
@@ -86,7 +88,7 @@ public interface TextFilter {
     /// an unparseable accelerator gets (ADR-0163).
     ///
     /// @return the named filter, or null if there is no such name
-    static TextFilter named(String name) {
+    static @Nullable TextFilter named(String name) {
         if (name == null) {
             return NONE;
         }

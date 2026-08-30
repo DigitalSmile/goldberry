@@ -3,6 +3,8 @@ package io.github.digitalsmile.goldberry.paint.tree;
 import java.util.Objects;
 import java.util.function.Consumer;
 
+import org.jspecify.annotations.Nullable;
+
 import io.github.digitalsmile.goldberry.css.value.Affine;
 import io.github.digitalsmile.goldberry.css.value.Transform;
 import io.github.digitalsmile.goldberry.natives.blend2d.BlendPath;
@@ -67,7 +69,7 @@ public final class RenderTree implements AutoCloseable {
     private final YogaConfig config = YogaConfig.create();
     private final Thread owner = Thread.currentThread();
 
-    private RenderObject root;
+    private @Nullable RenderObject root;
 
     /// The scale the config is currently set to.
     ///
@@ -534,7 +536,7 @@ public final class RenderTree implements AutoCloseable {
     ///
     /// Returns null when the subtree covers nothing, which is a zero-sized node
     /// and not an error.
-    private Bounds bounds(RenderObject object, double left, double top) {
+    private @Nullable Bounds bounds(RenderObject object, double left, double top) {
         var box = new double[] {
             Double.POSITIVE_INFINITY, Double.POSITIVE_INFINITY,
             Double.NEGATIVE_INFINITY, Double.NEGATIVE_INFINITY
@@ -758,7 +760,7 @@ public final class RenderTree implements AutoCloseable {
     }
 
     /// `rect` cut down to `size`, or null if none of it is inside.
-    private static DamageRect clampTo(DamageRect rect, PhysicalSize size) {
+    private static @Nullable DamageRect clampTo(DamageRect rect, PhysicalSize size) {
         var x = Math.clamp(rect.x(), 0, size.width());
         var y = Math.clamp(rect.y(), 0, size.height());
         var right = Math.clamp(rect.x() + rect.width(), 0, size.width());

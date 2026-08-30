@@ -1,5 +1,7 @@
 package io.github.digitalsmile.goldberry.widgets.form.field;
 
+import org.jspecify.annotations.Nullable;
+
 import io.github.digitalsmile.goldberry.bind.Observable;
 import io.github.digitalsmile.goldberry.bind.Subscription;
 import io.github.digitalsmile.goldberry.widget.BuildContext;
@@ -45,8 +47,8 @@ final class FieldState extends State<Field> implements Validated {
     private boolean complained;
 
     /// The control's value, and the subscription that keeps this in step with it.
-    private Observable<?> source;
-    private Subscription watching;
+    private @Nullable Observable<?> source;
+    private @Nullable Subscription watching;
 
     /// The form this field is in, or null — found once, on the first build.
     ///
@@ -55,7 +57,7 @@ final class FieldState extends State<Field> implements Validated {
     /// form, a form knows however many fields the document wrote, and looking
     /// *up* is the direction that needs no subtree walk and no knowledge of what
     /// to skip.
-    private io.github.digitalsmile.goldberry.widgets.form.form.FormAccess form;
+    private io.github.digitalsmile.goldberry.widgets.form.form.@Nullable FormAccess form;
     private boolean looked;
 
     @Override
@@ -129,7 +131,7 @@ final class FieldState extends State<Field> implements Validated {
     /// wrote inside it, and walking the whole subtree would find a binding on
     /// something incidental — the `text` in a hint under the control, say — and
     /// validate that instead.
-    private Observable<?> boundChild() {
+    private @Nullable Observable<?> boundChild() {
         for (var child : widget().children()) {
             if (child.binding() != null) {
                 return child.binding();
@@ -144,7 +146,7 @@ final class FieldState extends State<Field> implements Validated {
     /// typed is text until something parses it, and parsing is what a validator
     /// decides is possible. A control bound to a number reports its `toString`,
     /// which is what `select` and `text` already do with a binding.
-    private String value() {
+    private @Nullable String value() {
         if (source == null) {
             return null;
         }
@@ -221,6 +223,7 @@ final class FieldState extends State<Field> implements Validated {
     }
 
     /// The bound value, for a form assembling what it would submit.
+    @Nullable
     String currentValue() {
         return value();
     }

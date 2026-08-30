@@ -5,6 +5,8 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 
+import org.jspecify.annotations.Nullable;
+
 import io.github.digitalsmile.goldberry.Host;
 import io.github.digitalsmile.goldberry.Placement;
 import io.github.digitalsmile.goldberry.Popup;
@@ -216,7 +218,7 @@ public final class Menus {
     /// Static because there is one pointer: two menus cannot both be being
     /// hovered, and a per-menu timer would let a submenu open after the pointer
     /// had already moved to a different menu entirely.
-    private static EventLoop.Timer pending;
+    private static EventLoop.@Nullable Timer pending;
 
     private static void cancelPending() {
         if (pending != null) {
@@ -269,7 +271,7 @@ public final class Menus {
 
         /// The popup this menu became. Filled in as soon as it exists — which is
         /// before anything can be hovered, let alone pressed.
-        private Popup self;
+        private @Nullable Popup self;
 
         /// Which row's submenu is showing, or -1. Read by [#describe] to mark
         /// that row `.open`, which is the only thing that tells a reader which

@@ -3,6 +3,8 @@ package io.github.digitalsmile.goldberry.widgets.menu;
 import java.util.ArrayList;
 import java.util.Set;
 
+import org.jspecify.annotations.Nullable;
+
 import io.github.digitalsmile.goldberry.Host;
 import io.github.digitalsmile.goldberry.Placement;
 import io.github.digitalsmile.goldberry.Popup;
@@ -32,13 +34,13 @@ final class MenuBarState extends State<MenuBar> {
     /// heading again, and by the popup's own light dismissal — a press outside or
     /// `Escape` — which this notices through [Popup#isOpen()] rather than being
     /// told, exactly as `select` does.
-    private Popup open;
+    private @Nullable Popup open;
 
     /// Which heading [#open] belongs to; -1 when nothing is showing.
     private int openIndex = -1;
 
     /// The window this is being built into, captured for the handlers.
-    private Host host;
+    private @Nullable Host host;
 
     /// What [#host] currently has bound on this bar's behalf.
     ///
@@ -51,7 +53,7 @@ final class MenuBarState extends State<MenuBar> {
     /// The host the accelerators in [#bound] are bound on. Not always [#host]:
     /// an element can be rebuilt without one and must still give back what it
     /// took from the one it had.
-    private Host boundOn;
+    private @Nullable Host boundOn;
 
     @Override
     public Widget build(BuildContext context) {

@@ -2,6 +2,8 @@ package io.github.digitalsmile.goldberry.widget;
 
 import java.util.Objects;
 
+import org.jspecify.annotations.Nullable;
+
 /// The mutable half of a [Widget.Stateful], living on its element.
 ///
 /// This is the API ADR-0004 called "the largest gap in the current design", and
@@ -30,8 +32,8 @@ import java.util.Objects;
 /// @param <W> the widget type this state belongs to
 public abstract class State<W extends Widget> {
 
-    private Element element;
-    private W widget;
+    private @Nullable Element element;
+    private @Nullable W widget;
 
     /// Subclasses only. A state is created by [Widget.Stateful#createState()]
     /// and mounted by the framework; constructing one directly gives you an

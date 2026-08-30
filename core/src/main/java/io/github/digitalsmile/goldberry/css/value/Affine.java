@@ -1,5 +1,7 @@
 package io.github.digitalsmile.goldberry.css.value;
 
+import org.jspecify.annotations.Nullable;
+
 /// A 2D affine transform — the six numbers CSS, SVG and Blend2D all spell the
 /// same way.
 ///
@@ -134,7 +136,7 @@ public record Affine(double a, double b, double c, double d, double e, double f)
     /// box per frame while capturing the hit-test snapshot, and the caller's
     /// answer to "not invertible" is to drop the region rather than to handle a
     /// failure.
-    public Affine invert() {
+    public @Nullable Affine invert() {
         var determinant = determinant();
         if (!Double.isFinite(determinant) || Math.abs(determinant) <= 1e-12) {
             return null;
@@ -237,7 +239,7 @@ public record Affine(double a, double b, double c, double d, double e, double f)
     ///
     /// A singular matrix has no meaningful decomposition and returns null, for the
     /// same reason [#invert()] does.
-    public Decomposed decompose() {
+    public @Nullable Decomposed decompose() {
         var determinant = determinant();
         if (!Double.isFinite(determinant) || Math.abs(determinant) <= 1e-12) {
             return null;

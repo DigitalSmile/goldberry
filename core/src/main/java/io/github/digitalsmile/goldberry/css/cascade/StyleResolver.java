@@ -10,6 +10,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 
 import io.github.digitalsmile.goldberry.css.Declaration;
@@ -244,7 +245,7 @@ public final class StyleResolver {
     ///
     /// @return the substituted tokens, or null when the property is unset or its
     ///         `var()` resolves to nothing
-    public List<Token> customProperty(StyleElement element, String name) {
+    public @Nullable List<Token> customProperty(StyleElement element, String name) {
         var properties = customPropertiesFor(element);
         var tokens = properties.get(name);
         return tokens == null ? null : substitute(tokens, properties, new HashSet<>());
@@ -350,7 +351,8 @@ public final class StyleResolver {
     ///                   cycle is caught rather than overflowing the stack
     /// @return the substituted tokens, or null if the value is invalid at
     ///         computed-value time
-    static List<Token> substitute(List<Token> value, Map<String, List<Token>> variables, Set<String> inProgress) {
+    static @Nullable List<Token> substitute(
+            List<Token> value, Map<String, List<Token>> variables, Set<String> inProgress) {
 
         if (value.stream().noneMatch(t -> t.is(TokenType.FUNCTION) && t.text().equalsIgnoreCase("var"))) {
             return value;
@@ -382,7 +384,7 @@ public final class StyleResolver {
     }
 
     /// `--name` or `--name, fallback…`.
-    private static List<Token> expandVar(
+    private static @Nullable List<Token> expandVar(
             List<Token> arguments, Map<String, List<Token>> variables, Set<String> inProgress) {
 
         var trimmed = trim(arguments);

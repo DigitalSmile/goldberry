@@ -6,6 +6,8 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.function.Consumer;
 
+import org.jspecify.annotations.Nullable;
+
 import io.github.digitalsmile.goldberry.bind.Observable;
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
 import io.github.digitalsmile.goldberry.input.FocusScope;
@@ -113,7 +115,7 @@ public record Segmented(
     /// wrote — the narrow coercion `radio-group` uses and for the same reason. A
     /// null, or a value no segment carries, selects nothing rather than the first
     /// one: a bar that guessed would report a value the user never picked.
-    public String resolved() {
+    public @Nullable String resolved() {
         if (source == null) {
             return value;
         }

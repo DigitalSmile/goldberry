@@ -2,6 +2,8 @@ package io.github.digitalsmile.goldberry.widget;
 
 import java.util.List;
 
+import org.jspecify.annotations.Nullable;
+
 import io.github.digitalsmile.goldberry.bind.Observable;
 
 /// An immutable description of a piece of user interface.
@@ -37,7 +39,7 @@ public interface Widget {
     /// position".
     ///
     /// Compared with `equals`, so a `String`, an `Integer` or a record all work.
-    default Object key() {
+    default @Nullable Object key() {
         return null;
     }
 
@@ -67,7 +69,7 @@ public interface Widget {
     /// reach the application's model, and what the user did travels back up as an
     /// action instead
     /// (ADR-0063).
-    default Observable<?> binding() {
+    default @Nullable Observable<?> binding() {
         return null;
     }
 

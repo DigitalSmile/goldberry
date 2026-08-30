@@ -2,6 +2,8 @@ package io.github.digitalsmile.goldberry.widgets.data.linechart;
 
 import java.util.List;
 
+import org.jspecify.annotations.Nullable;
+
 import io.github.digitalsmile.goldberry.text.Paragraph;
 import io.github.digitalsmile.goldberry.widgets.data.Scale;
 
@@ -79,7 +81,7 @@ record PlotGeometry(
     ///
     /// @param domainMin the smallest value that has to fit, before labelling
     /// @param domainMax the largest
-    static PlotGeometry of(
+    static @Nullable PlotGeometry of(
             List<Paragraph> labels, boolean hasXLabels, double axisMin, double axisMax, double width, double height) {
 
         return of(labels, hasXLabels, axisMin, axisMax, false, width, height, null);
@@ -102,7 +104,7 @@ record PlotGeometry(
     ///
     /// @param logarithmic whether the value axis maps the logarithm — see
     ///                    [Scale#log]
-    static PlotGeometry of(
+    static @Nullable PlotGeometry of(
             List<Paragraph> labels,
             boolean hasXLabels,
             double axisMin,

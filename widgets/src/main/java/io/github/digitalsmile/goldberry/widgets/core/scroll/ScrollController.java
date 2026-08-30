@@ -1,5 +1,7 @@
 package io.github.digitalsmile.goldberry.widgets.core.scroll;
 
+import org.jspecify.annotations.Nullable;
+
 import io.github.digitalsmile.goldberry.render.model.LogicalRect;
 
 /// A handle on a [Scroll] that something outside it can hold —
@@ -53,6 +55,7 @@ public final class ScrollController {
     /// Package-private and set only by [ScrollState], which attaches on mount and
     /// detaches on unmount — so a controller outliving its viewport holds nothing
     /// and a stale one cannot scroll a tree that is gone.
+    @Nullable
     ScrollState attached;
 
     /// Whether a viewport is currently listening.

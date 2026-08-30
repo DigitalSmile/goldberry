@@ -2,6 +2,8 @@ package io.github.digitalsmile.goldberry.widgets.form.form;
 
 import java.util.List;
 
+import org.jspecify.annotations.Nullable;
+
 /// A handle on a [Form] — what a Save button holds.
 ///
 /// The arrangement [io.github.digitalsmile.goldberry.widgets.core.scroll.ScrollController]
@@ -36,6 +38,7 @@ public final class FormController {
 
     /// The attached form's state, or null. Package-private and set only by
     /// [FormState], which attaches on mount and detaches on unmount.
+    @Nullable
     FormState attached;
 
     /// Whether a form is currently listening.

@@ -2,6 +2,8 @@ package io.github.digitalsmile.goldberry.css.value;
 
 import java.util.List;
 
+import org.jspecify.annotations.Nullable;
+
 import io.github.digitalsmile.goldberry.css.parse.Token;
 import io.github.digitalsmile.goldberry.css.parse.TokenType;
 import io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength;
@@ -40,7 +42,7 @@ public final class CssLength {
     /// Parses a length.
     ///
     /// @return the length, or null if these tokens are not one
-    public static StyleLength parse(List<Token> value, Context context) {
+    public static @Nullable StyleLength parse(List<Token> value, Context context) {
         var tokens = value.stream().filter(t -> !t.is(TokenType.WHITESPACE)).toList();
         if (tokens.size() != 1) {
             return null;
@@ -76,7 +78,7 @@ public final class CssLength {
     /// and divided into the 0..1 the property means.
     ///
     /// @return the number, or null if these tokens are not one
-    public static Double parseNumber(List<Token> value) {
+    public static @Nullable Double parseNumber(List<Token> value) {
         var tokens = value.stream().filter(t -> !t.is(TokenType.WHITESPACE)).toList();
         if (tokens.size() != 1) {
             return null;

@@ -2,6 +2,8 @@ package io.github.digitalsmile.goldberry.render.backend.headless;
 
 import java.util.Objects;
 
+import org.jspecify.annotations.Nullable;
+
 import io.github.digitalsmile.goldberry.render.event.BackendEvent;
 import io.github.digitalsmile.goldberry.render.model.DisplayScale;
 import io.github.digitalsmile.goldberry.render.model.LogicalPoint;
@@ -28,7 +30,7 @@ public final class HeadlessPopup extends HeadlessWindow implements BackendPopup 
     private int resizes;
 
     /// The size asked for and not yet in force. See [#resize].
-    private LogicalSize requestedSize;
+    private @Nullable LogicalSize requestedSize;
 
     HeadlessPopup(HeadlessBackend backend, HeadlessWindow owner, PopupSpec spec, DisplayScale scale) {
         super(backend, spec.size(), scale, "");

@@ -4,6 +4,8 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
 
+import org.jspecify.annotations.Nullable;
+
 import io.github.digitalsmile.goldberry.bind.registry.ActionRegistry;
 import io.github.digitalsmile.goldberry.icon.Icon;
 
@@ -71,7 +73,7 @@ public final class Icons {
     ///
     /// @throws IllegalArgumentException if this registry is [#strict()] and the
     ///         name is not registered
-    public Icon resolve(String name) {
+    public @Nullable Icon resolve(String name) {
         if (name == null) {
             return null;
         }

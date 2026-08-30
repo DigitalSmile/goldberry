@@ -4,6 +4,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
+import org.jspecify.annotations.Nullable;
+
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
 import io.github.digitalsmile.goldberry.css.Stylesheet;
 import io.github.digitalsmile.goldberry.css.cascade.StyleResolver;
@@ -83,7 +85,7 @@ public final class WidgetRenderer {
     /// The shaping cache the paint context is built over, for the frame trace —
     /// a frame that shapes text it shaped last frame is a frame with a defect in
     /// it, and the count is the only thing that says so (ADR-0152).
-    private ParagraphCache paragraphs;
+    private @Nullable ParagraphCache paragraphs;
 
     /// A paint context over `fonts`, with a shaping cache behind it.
     ///
@@ -166,7 +168,7 @@ public final class WidgetRenderer {
     /// The element whose box is being built, for [Paints.Context#color] — the
     /// one question on that interface whose answer is per node rather than per
     /// frame.
-    private io.github.digitalsmile.goldberry.widget.Element currentElement;
+    private io.github.digitalsmile.goldberry.widget.@Nullable Element currentElement;
 
     /// See [#WidgetRenderer(List, Font, CssLength.Context)].
     public WidgetRenderer(List<Stylesheet> stylesheets, Font font) {

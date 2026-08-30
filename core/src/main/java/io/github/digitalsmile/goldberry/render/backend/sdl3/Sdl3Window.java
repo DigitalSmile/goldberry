@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 
 import io.github.digitalsmile.goldberry.log.Logs;
@@ -49,14 +50,14 @@ sealed class Sdl3Window implements BackendWindow permits Sdl3Popup {
 
     /// The buffer handed out by the last [#acquireFrame()], so [#present] can
     /// recognise it coming back and skip the copy.
-    private PixelBuffer acquired;
+    private @Nullable PixelBuffer acquired;
 
     /// 0 = not asked yet, [#UNAVAILABLE] = asked and refused. See [#refreshRate()].
     private float refreshRate;
 
     /// The sizes the last reported resize carried. See [#resizedTo].
-    private LogicalSize reportedSize;
-    private PhysicalSize reportedPhysicalSize;
+    private @Nullable LogicalSize reportedSize;
+    private @Nullable PhysicalSize reportedPhysicalSize;
 
     /// The handle, for a subclass that has to make its own SDL calls.
     final SdlWindowHandle handle() {

@@ -4,6 +4,8 @@ import java.util.EnumMap;
 import java.util.Map;
 import java.util.Objects;
 
+import org.jspecify.annotations.Nullable;
+
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
 import io.github.digitalsmile.goldberry.css.cascade.Transitions;
 import io.github.digitalsmile.goldberry.css.cascade.Transitions.Animatable;
@@ -96,7 +98,7 @@ public final class Animations {
 
     /// The style the cascade resolved last frame, which is what a change is
     /// measured against. Null until the first frame.
-    private ComputedStyle previous;
+    private @Nullable ComputedStyle previous;
 
     /// Notes what the cascade resolved for this node and starts whatever moved.
     ///

@@ -1,5 +1,7 @@
 package io.github.digitalsmile.goldberry.widgets.core.scroll;
 
+import org.jspecify.annotations.Nullable;
+
 import io.github.digitalsmile.goldberry.input.handler.Measured;
 import io.github.digitalsmile.goldberry.input.hit.Extent;
 import io.github.digitalsmile.goldberry.widget.BuildContext;
@@ -43,7 +45,7 @@ final class ScrollState extends State<Scroll> {
     private final ScrollFade fade = new ScrollFade();
 
     /// Which bar the pointer is dragging, or null.
-    private Boolean draggingVertical;
+    private @Nullable Boolean draggingVertical;
 
     /// Attaches to the controller the application gave this viewport, if any.
     ///

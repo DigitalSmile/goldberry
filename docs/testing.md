@@ -119,8 +119,10 @@ status beside it reads as a description of what exists.
   exclusions. Plus `removeUnusedImports` and an import order that keeps static
   imports first, where the tool's own default would have moved them last.
 - **§2 Error Prone + NullAway**, blocking on `src/main`. NullAway runs in
-  `OnlyNullMarked` mode; `io.github.digitalsmile.goldberry.log` is the first
-  package to opt in, and a `return null` added to it fails the build.
+  `OnlyNullMarked` mode, and **33 of 93 packages** have opted in — all of
+  `:common`, 17 of `:core`'s 36 and 15 of `:widgets`' 54 — carrying 168
+  `@Nullable` annotations that document nullness the code already had. A `return
+  null` added to a marked package fails the build.
 - **§2 PMD**, eight hand-picked rules in `config/pmd/ruleset.xml`, on `src/main`
   only.
 - **510 broken ADR links repaired.** Every relative `.md` link from Java source
@@ -180,9 +182,18 @@ status beside it reads as a description of what exists.
   path. Passing the test task's JVM arguments and system properties through got
   it as far as creating 92 mutation units; the module path is the remaining
   problem, and it is a real integration rather than a setting.
-- **JSpecify on all public API.** The plumbing is live and one package is marked.
-  The sweep is nine hundred classes and belongs in its own commits, one package
-  at a time, each checked from the moment it opts in.
+- **JSpecify on the remaining 60 packages.** 33 are marked and checked. What is
+  left is not more of the same work: the mechanical half is done — a method that
+  already returned null now says so — and every package still unmarked has at
+  least one finding that is *behavioural*. A dereference that needs a real null
+  check, or a parameter contract somebody has to decide. `tools/nullness/` is the
+  machinery: `adopt.py` marks a module, annotates what the compiler can prove,
+  and unmarks whatever still has a finding, so re-running it after a package is
+  fixed by hand costs nothing.
+
+  The split at the point of stopping was 64 "passing @Nullable where @NonNull is
+  required" and 21 "dereferenced expression is @Nullable" in `:core` alone.
+  Neither is a thing a script should decide.
 - **JMH (§1.5).** The plugin resolves; wiring it into a JPMS build with a
   generated benchmark source set is the same class of problem PIT hit. The
   `benchmark` task is what exists and it runs nightly, on the footing ADR-0028

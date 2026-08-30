@@ -6,4 +6,13 @@
 /// rearchitecture. See `docs/ARCHITECTURE.md` §12. Populated in M4.
 module io.github.digitalsmile.goldberry.gpu {
     requires transitive io.github.digitalsmile.goldberry.core;
+
+    /// JSpecify's nullness annotations, for the packages under NullAway.
+    ///
+    /// `static`, because they are compile-time only: a consumer's runtime module
+    /// path does not need them. `transitive`, because `@Nullable` appears on
+    /// exported signatures, and a consumer compiling against one has to be able
+    /// to read it — `-Xlint:exports` says so in as many words
+    /// (`docs/testing.md` §2).
+    requires transitive static org.jspecify;
 }

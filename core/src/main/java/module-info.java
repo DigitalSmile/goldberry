@@ -17,6 +17,15 @@ module io.github.digitalsmile.goldberry.core {
     requires transitive io.github.digitalsmile.goldberry.common;
     requires org.slf4j;
 
+    /// JSpecify's nullness annotations, for the packages under NullAway.
+    ///
+    /// `static`, because they are compile-time only: a consumer's runtime module
+    /// path does not need them. `transitive`, because `@Nullable` appears on
+    /// exported signatures — a consumer compiling against `stringProperty` has to
+    /// be able to read the annotation on it, and `-Xlint:exports` says so in as
+    /// many words (`docs/testing.md` §2).
+    requires transitive static org.jspecify;
+
     exports io.github.digitalsmile.goldberry;
 
     // The fonts and icons that ship in this jar (§6.1, ADR-0033). Exported

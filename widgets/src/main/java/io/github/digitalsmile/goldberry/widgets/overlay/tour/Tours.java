@@ -3,6 +3,8 @@ package io.github.digitalsmile.goldberry.widgets.overlay.tour;
 import java.util.List;
 import java.util.Objects;
 
+import org.jspecify.annotations.Nullable;
+
 import io.github.digitalsmile.goldberry.Host;
 import io.github.digitalsmile.goldberry.Overlay;
 
@@ -30,7 +32,7 @@ public final class Tours {
     /// A tour with no stops is not started, and that is deliberately not an
     /// error: a tour assembled from a filtered list is empty exactly when nothing
     /// in it applies, and throwing would make "nothing to show you" a crash.
-    public static Overlay start(Host host, List<Stop> stops) {
+    public static @Nullable Overlay start(Host host, List<Stop> stops) {
         return start(host, stops, () -> {});
     }
 
@@ -40,7 +42,7 @@ public final class Tours {
     /// out of stops it could find. An application that wants to know *how* it
     /// ended wants a different API than a tour; what this is for is putting the
     /// "don't show me again" flag away.
-    public static Overlay start(Host host, List<Stop> stops, Runnable onEnd) {
+    public static @Nullable Overlay start(Host host, List<Stop> stops, Runnable onEnd) {
         Objects.requireNonNull(host, "host");
         Objects.requireNonNull(stops, "stops");
         Objects.requireNonNull(onEnd, "onEnd");

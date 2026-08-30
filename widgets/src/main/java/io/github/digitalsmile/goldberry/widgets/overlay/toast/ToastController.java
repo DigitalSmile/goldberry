@@ -3,6 +3,8 @@ package io.github.digitalsmile.goldberry.widgets.overlay.toast;
 import java.util.List;
 import java.util.Objects;
 
+import org.jspecify.annotations.Nullable;
+
 /// A handle on the [Toaster] — what an application holds, and the only thing it
 /// ever touches.
 ///
@@ -41,6 +43,7 @@ public final class ToastController {
 
     /// The attached stack's state, or null. Package-private and set only by
     /// [ToasterState], which attaches on mount and detaches on unmount.
+    @Nullable
     ToasterState attached;
 
     /// Whether a stack is currently listening.

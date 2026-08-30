@@ -1,5 +1,7 @@
 package io.github.digitalsmile.goldberry.input.handler;
 
+import org.jspecify.annotations.Nullable;
+
 import io.github.digitalsmile.goldberry.input.FocusScope;
 import io.github.digitalsmile.goldberry.input.event.KeyEvent;
 import io.github.digitalsmile.goldberry.input.event.PointerEvent;
@@ -46,7 +48,7 @@ public interface Handles extends Widget {
     /// A part that is not there — not built, or not painted yet — falls back to
     /// this widget's own box rather than to nothing, so a control keeps working
     /// while its scale or its label is absent.
-    default String localPart() {
+    default @Nullable String localPart() {
         return null;
     }
 

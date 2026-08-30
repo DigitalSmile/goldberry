@@ -5,6 +5,8 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 
+import org.jspecify.annotations.Nullable;
+
 import io.github.digitalsmile.goldberry.render.PixelBuffer;
 import io.github.digitalsmile.goldberry.render.tray.BackendTray;
 import io.github.digitalsmile.goldberry.render.tray.TrayItem;
@@ -115,7 +117,7 @@ public final class HeadlessTray implements BackendTray {
         row.choose(nowChecked);
     }
 
-    private static TrayItem find(List<TrayItem> rows, String prefix, String path) {
+    private static @Nullable TrayItem find(List<TrayItem> rows, String prefix, String path) {
         for (var row : rows) {
             if (row.kind() == TrayItem.Kind.SEPARATOR) {
                 continue;

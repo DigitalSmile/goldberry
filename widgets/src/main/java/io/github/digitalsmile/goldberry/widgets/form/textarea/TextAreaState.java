@@ -12,6 +12,7 @@ import io.github.digitalsmile.goldberry.widgets.form.textinput.EditHistory;
 import io.github.digitalsmile.goldberry.widgets.form.textinput.TextEdit;
 import java.time.Duration;
 import java.util.List;
+import org.jspecify.annotations.Nullable;
 
 /// What a [TextArea] holds — `text-input`'s state, with a column to remember.
 ///
@@ -41,10 +42,10 @@ final class TextAreaState extends State<TextArea> implements AreaEditor {
     private TextEdit edit = TextEdit.EMPTY;
     private final EditHistory history = new EditHistory();
 
-    private Host host;
+    private @Nullable Host host;
     private boolean focused;
     private boolean caretShown = true;
-    private EventLoop.Timer blink;
+    private EventLoop.@Nullable Timer blink;
 
     /// How far the content has been scrolled **up**, in logical pixels. Not
     /// `setState`: it is computed during `render` and applied in the same frame.

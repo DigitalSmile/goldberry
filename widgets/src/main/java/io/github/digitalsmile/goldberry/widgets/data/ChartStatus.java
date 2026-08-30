@@ -2,6 +2,8 @@ package io.github.digitalsmile.goldberry.widgets.data;
 
 import java.util.Objects;
 
+import org.jspecify.annotations.Nullable;
+
 /// Whether a chart has its data, is waiting for it, or could not get it.
 ///
 /// `charts.md` §3.1: "a chart with no data draws a themed message, never an empty
@@ -99,6 +101,7 @@ public record ChartStatus(Kind kind, String message) {
     ///
     /// Null when there is nothing to say, which is a chart that is ready and has
     /// something in it.
+    @Nullable
     String messageFor(boolean hasData) {
         return switch (kind) {
             case READY -> hasData ? null : message == null ? NO_DATA : message;
@@ -113,6 +116,7 @@ public record ChartStatus(Kind kind, String message) {
     /// A class rather than three CSS types, because what is drawn is the same
     /// node saying different words: `chart-message.failed` is one rule and three
     /// types would be three copies of the centring.
+    @Nullable
     String styleClass(boolean hasData) {
         return switch (kind) {
             case READY -> hasData ? null : "empty";

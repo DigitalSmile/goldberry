@@ -2,6 +2,8 @@ package io.github.digitalsmile.goldberry.widgets.overlay.dialog;
 
 import java.util.List;
 
+import org.jspecify.annotations.Nullable;
+
 import io.github.digitalsmile.goldberry.kdl.KdlNode;
 import io.github.digitalsmile.goldberry.widget.State;
 import io.github.digitalsmile.goldberry.widget.Widget;
@@ -120,6 +122,7 @@ public record Dialog(String title, List<Widget> children, Attributes attributes)
     }
 
     /// The action a key presses, or null — see the class note.
+    @Nullable
     DialogAction actionFor(DialogAction.Role role) {
         return actions().stream()
                 .filter(action -> action.role() == role)

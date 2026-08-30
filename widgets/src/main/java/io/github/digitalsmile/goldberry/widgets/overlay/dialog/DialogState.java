@@ -4,6 +4,8 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.jspecify.annotations.Nullable;
+
 import io.github.digitalsmile.goldberry.Host;
 import io.github.digitalsmile.goldberry.render.event.EventLoop;
 import io.github.digitalsmile.goldberry.widget.BuildContext;
@@ -66,7 +68,7 @@ final class DialogState extends State<Dialog> {
     private boolean closed;
 
     /// Captured in `build` for the handlers that run later.
-    private Host host;
+    private @Nullable Host host;
 
     /// Whether the focus request has been made. Once per mount: asking again on
     /// every build would drag focus back out of whatever the user tabbed to.
@@ -74,7 +76,7 @@ final class DialogState extends State<Dialog> {
 
     private boolean reducedMotion;
 
-    private EventLoop.Timer pending;
+    private EventLoop.@Nullable Timer pending;
 
     /// The zero-delay timer that asks for focus — see [#askForFocus].
     ///
@@ -82,7 +84,7 @@ final class DialogState extends State<Dialog> {
     /// opened would otherwise leave one pointing at a tree that is gone; nothing
     /// bad would happen, because the id resolves to nothing, but a timer nobody
     /// can account for is how a leak looks before it is one.
-    private EventLoop.Timer focusing;
+    private EventLoop.@Nullable Timer focusing;
 
     @Override
     protected void dispose() {

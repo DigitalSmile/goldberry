@@ -1,5 +1,7 @@
 package io.github.digitalsmile.goldberry.css;
 
+import org.jspecify.annotations.Nullable;
+
 import io.github.digitalsmile.goldberry.assets.BundledFont;
 import io.github.digitalsmile.goldberry.css.value.CssLength;
 
@@ -71,7 +73,7 @@ public record Typography(String family, double size, BundledFont.Weight weight, 
     }
 
     /// The bundled face this asks for, or null if no family matches.
-    public BundledFont face() {
+    public @Nullable BundledFont face() {
         return BundledFont.of(family, weight);
     }
 

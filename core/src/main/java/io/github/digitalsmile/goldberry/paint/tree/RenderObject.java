@@ -3,6 +3,8 @@ package io.github.digitalsmile.goldberry.paint.tree;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.jspecify.annotations.Nullable;
+
 import io.github.digitalsmile.goldberry.natives.yoga.YogaConfig;
 import io.github.digitalsmile.goldberry.natives.yoga.YogaNode;
 import io.github.digitalsmile.goldberry.natives.yoga.style.Edge;
@@ -63,7 +65,7 @@ public final class RenderObject implements AutoCloseable {
     ///
     /// The comparison target for every guard below. Null until the first
     /// [#apply], which is what makes the first frame set everything.
-    private Box applied;
+    private @Nullable Box applied;
 
     /// The paragraph the attached measure callback measures, by identity.
     ///
@@ -72,7 +74,7 @@ public final class RenderObject implements AutoCloseable {
     /// memo. `ParagraphCache` is what makes this stable frame to frame, which is
     /// why [io.github.digitalsmile.goldberry.widget.style.Paints.Context] shapes through
     /// it rather than letting widgets call `Paragraph.of`.
-    private Object measured;
+    private @Nullable Object measured;
 
     /// Whether this is a measured leaf.
     ///
@@ -97,6 +99,7 @@ public final class RenderObject implements AutoCloseable {
     }
 
     /// The box last applied — what the painter draws.
+    @Nullable
     Box box() {
         return applied;
     }
@@ -292,10 +295,10 @@ public final class RenderObject implements AutoCloseable {
     /// The raster of this node's subtree, kept between frames while it is valid.
     ///
     /// Null unless this node is promoted, which almost none are.
-    private Layer layer;
+    private @Nullable Layer layer;
 
     /// The bounds the current [#layer] was allocated for.
-    private RenderTree.Bounds layerBounds;
+    private RenderTree.@Nullable Bounds layerBounds;
 
     /// Whether anything in this subtree changed on the most recent update.
     ///
@@ -326,7 +329,7 @@ public final class RenderObject implements AutoCloseable {
     /// Kept so that a node which *moved* damages both the place it left and the
     /// place it arrived. Damaging only the new one leaves the old drawing on
     /// screen, which is the classic partial-repaint artefact.
-    private DamageRect lastRect;
+    private @Nullable DamageRect lastRect;
 
     /// Whether this node's raster needs redrawing — see [#contentChanged].
     boolean hasContentChanged() {
@@ -337,6 +340,7 @@ public final class RenderObject implements AutoCloseable {
         return selfChanged;
     }
 
+    @Nullable
     DamageRect lastRect() {
         return lastRect;
     }

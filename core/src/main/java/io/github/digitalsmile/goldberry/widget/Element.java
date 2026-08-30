@@ -7,6 +7,8 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 
+import org.jspecify.annotations.Nullable;
+
 import io.github.digitalsmile.goldberry.bind.Subscription;
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
 import io.github.digitalsmile.goldberry.css.StyleElement;
@@ -35,7 +37,7 @@ public final class Element implements BuildContext, StyleElement {
     private Element parent;
 
     private Widget widget;
-    private State<?> state;
+    private @Nullable State<?> state;
     private List<Element> children = List.of();
 
     private boolean needsBuild = true;
@@ -43,7 +45,7 @@ public final class Element implements BuildContext, StyleElement {
     private final Set<Selector.PseudoClass> states = new LinkedHashSet<>();
 
     /// Live for as long as this element describes a widget with a [Widget#binding].
-    private Subscription binding;
+    private @Nullable Subscription binding;
 
     /// This node's running transitions, created the first time it is styled.
     ///
@@ -57,7 +59,7 @@ public final class Element implements BuildContext, StyleElement {
     ///
     /// Lazily created: most nodes never animate, and an `Animations` per element
     /// per frame for a static tree is an allocation for nothing.
-    private Animations animations;
+    private @Nullable Animations animations;
 
     // --- the style cache ---------------------------------------------------
     //
@@ -70,14 +72,14 @@ public final class Element implements BuildContext, StyleElement {
 
     /// What the cascade last resolved for this node, or null if it must be asked
     /// again.
-    private ComputedStyle style;
+    private @Nullable ComputedStyle style;
 
     /// The resolver that produced [#style].
     ///
     /// Compared by identity, which is what makes a theme swap or a hot reload
     /// invalidate everything for free: an application builds a new renderer over
     /// the new stylesheets, and every cached style was resolved by the old one.
-    private StyleResolver styleResolver;
+    private @Nullable StyleResolver styleResolver;
 
     /// The inherited style [#style] was resolved against.
     ///
@@ -85,10 +87,11 @@ public final class Element implements BuildContext, StyleElement {
     /// hands down the *same instance* every frame — so a parent that did change
     /// hands down a different one and its children re-resolve without anything
     /// having to tell them to. That is inheritance invalidating itself.
-    private ComputedStyle styleInherited;
+    private @Nullable ComputedStyle styleInherited;
 
     /// The style the cascade resolved for this node last frame, if it is still
     /// good for `resolver` and `inherited`. Null means ask again.
+    @Nullable
     ComputedStyle cachedStyle(StyleResolver resolver, ComputedStyle inherited) {
         return styleResolver == resolver && styleInherited == inherited ? style : null;
     }
@@ -104,9 +107,9 @@ public final class Element implements BuildContext, StyleElement {
 
     private java.util.Map<String, java.util.List<io.github.digitalsmile.goldberry.css.parse.Token>> customProperties;
 
-    private StyleResolver customPropertiesResolver;
+    private @Nullable StyleResolver customPropertiesResolver;
 
-    private java.util.Map<String, java.util.List<io.github.digitalsmile.goldberry.css.parse.Token>>
+    private java.util.@Nullable Map<String, java.util.List<io.github.digitalsmile.goldberry.css.parse.Token>>
             customPropertiesInherited;
 
     @Override
@@ -135,7 +138,7 @@ public final class Element implements BuildContext, StyleElement {
 
     /// What this node last handed its children, kept so that an equal style can
     /// be handed down as the **same instance**. See [#stableStyle].
-    private ComputedStyle handedDown;
+    private @Nullable ComputedStyle handedDown;
 
     /// `candidate`, or the identical style this node handed down last frame.
     ///
@@ -511,12 +514,12 @@ public final class Element implements BuildContext, StyleElement {
     /// `Shell` would break a stylesheet that never named either, and a toolkit
     /// internal would be styleable by accident.
     @Override
-    public String type() {
+    public @Nullable String type() {
         return widget instanceof Styled styled ? styled.cssType() : null;
     }
 
     @Override
-    public String id() {
+    public @Nullable String id() {
         return widget instanceof Styled styled ? styled.id() : null;
     }
 

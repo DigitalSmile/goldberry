@@ -4,6 +4,8 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.jspecify.annotations.Nullable;
+
 import io.github.digitalsmile.goldberry.Host;
 import io.github.digitalsmile.goldberry.render.event.EventLoop;
 import io.github.digitalsmile.goldberry.widget.BuildContext;
@@ -54,7 +56,7 @@ final class ToasterState extends State<Toaster> {
 
         /// The timer that ends its stay, or null while paused, while it is
         /// leaving, or for a toast that never expires.
-        EventLoop.Timer pending;
+        EventLoop.@Nullable Timer pending;
 
         /// How much of its stay is left, in milliseconds. Counted down rather
         /// than counted up, so a resumed toast gets the time it had left and not
@@ -78,7 +80,7 @@ final class ToasterState extends State<Toaster> {
 
         /// Where it is on its way to because a sibling went, or null when it is
         /// where it belongs.
-        ToastBox.Reflow reflow;
+        ToastBox.@Nullable Reflow reflow;
 
         Entry(int number, Toast toast) {
             this.number = number;
@@ -106,7 +108,7 @@ final class ToasterState extends State<Toaster> {
     /// cascade last resolved it — see [ToasterBox.OnFrame].
     private double gap;
 
-    private Host host;
+    private @Nullable Host host;
 
     @Override
     protected void initState() {

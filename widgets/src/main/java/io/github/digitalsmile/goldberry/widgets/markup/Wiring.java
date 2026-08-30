@@ -4,6 +4,8 @@ import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.function.DoubleConsumer;
 
+import org.jspecify.annotations.Nullable;
+
 import io.github.digitalsmile.goldberry.bind.Observable;
 import io.github.digitalsmile.goldberry.bind.registry.ActionRegistry;
 import io.github.digitalsmile.goldberry.bind.registry.BindingRegistry;
@@ -171,7 +173,7 @@ public record Wiring(ActionRegistry actions, Icons icons, BindingRegistry bindin
     /// Named and not built: an `Icon` owns native memory and has to be closed, so
     /// a document reloaded on every keystroke may only name one the application
     /// registered.
-    public Icon icon(KdlNode node) {
+    public @Nullable Icon icon(KdlNode node) {
         return icons.resolve(node.stringProperty("icon"));
     }
 
@@ -194,7 +196,7 @@ public record Wiring(ActionRegistry actions, Icons icons, BindingRegistry bindin
     /// and an application that wants a `double` parses it in Java, where a bad
     /// value is a bug it can see. `toggle`, `slider` and `knob` all arrive at this
     /// door, and used to write the adapter out one at a time.
-    public DoubleConsumer numeric(KdlNode node, String attribute) {
+    public @Nullable DoubleConsumer numeric(KdlNode node, String attribute) {
         var change = valued(node, attribute);
         return change == null ? null : value -> change.accept(String.valueOf(value));
     }
@@ -204,7 +206,7 @@ public record Wiring(ActionRegistry actions, Icons icons, BindingRegistry bindin
     /// `toggle` reports `true` or `false` rather than "the other one", because a
     /// drag is a request for a particular state and dragging right on a switch
     /// already on asks for on (ADR-0075).
-    public Consumer<Boolean> flag(KdlNode node, String attribute) {
+    public @Nullable Consumer<Boolean> flag(KdlNode node, String attribute) {
         var change = valued(node, attribute);
         return change == null ? null : value -> change.accept(String.valueOf(value));
     }

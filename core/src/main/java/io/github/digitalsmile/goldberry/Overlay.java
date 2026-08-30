@@ -2,6 +2,8 @@ package io.github.digitalsmile.goldberry;
 
 import java.util.Objects;
 
+import org.jspecify.annotations.Nullable;
+
 import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widget.style.Corner;
 
@@ -50,7 +52,7 @@ public final class Overlay {
 
     /// How this overlay takes itself out of the layer that holds it, or null once
     /// it has. Set by whoever attached it.
-    private Runnable detach;
+    private @Nullable Runnable detach;
 
     /// An overlay that is not on a window yet.
     ///

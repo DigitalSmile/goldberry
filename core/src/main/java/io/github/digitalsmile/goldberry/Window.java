@@ -5,6 +5,7 @@ import java.util.Objects;
 import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
 
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 
 import io.github.digitalsmile.goldberry.input.key.Modifiers;
@@ -62,7 +63,7 @@ public final class Window implements AutoCloseable {
     /// Reused between frames while the size holds. Repainting is the common case
     /// and a fresh multi-megabyte buffer per frame is a lot of garbage for
     /// something the backend copies out immediately.
-    private PixelBuffer cached;
+    private @Nullable PixelBuffer cached;
 
     /// What this window's frame loop has been managing lately (§1.7's frame
     /// budget, made visible). Written once per painted frame and read by whatever
@@ -219,7 +220,7 @@ public final class Window implements AutoCloseable {
     /// upload nothing", which is what a still window reports and is the whole
     /// point; null is a caller that has not said anything, which has to mean the
     /// whole frame.
-    private List<DamageRect> damage;
+    private @Nullable List<DamageRect> damage;
 
     /// Reports which regions of this frame differ from the last one.
     ///
@@ -254,7 +255,7 @@ public final class Window implements AutoCloseable {
     /// buffer — rotating between two, or reallocating after a resize. Identity is
     /// what catches that, and it is checked separately from the promise because
     /// they fail independently.
-    private PixelBuffer lastTarget;
+    private @Nullable PixelBuffer lastTarget;
 
     /// Whether the frame currently being painted may be repainted in part.
     private boolean partialRepaint;
@@ -469,7 +470,7 @@ public final class Window implements AutoCloseable {
     }
 
     /// See [#inputWatcher].
-    private InputWatcher inputWatcher;
+    private @Nullable InputWatcher inputWatcher;
 
     /// Input this window's router will not deliver, for whoever needs it anyway.
     ///
@@ -531,7 +532,7 @@ public final class Window implements AutoCloseable {
     /// Null until an application asks for one. A window with no router does the
     /// hit testing work of nothing at all, which is what a window painting with
     /// a plain `onPaint` callback should cost.
-    private io.github.digitalsmile.goldberry.input.PointerRouter router;
+    private io.github.digitalsmile.goldberry.input.@Nullable PointerRouter router;
 
     /// Routes this window's pointer events through `router`.
     ///
@@ -640,7 +641,7 @@ public final class Window implements AutoCloseable {
 
     /// SDL numbers buttons from 1, left first. Anything past the three the
     /// toolkit names is dropped rather than guessed at.
-    private static io.github.digitalsmile.goldberry.input.event.PointerEvent.Button toButton(int sdlButton) {
+    private static io.github.digitalsmile.goldberry.input.event.PointerEvent.@Nullable Button toButton(int sdlButton) {
         return switch (sdlButton) {
             case 1 -> io.github.digitalsmile.goldberry.input.event.PointerEvent.Button.PRIMARY;
             case 2 -> io.github.digitalsmile.goldberry.input.event.PointerEvent.Button.MIDDLE;

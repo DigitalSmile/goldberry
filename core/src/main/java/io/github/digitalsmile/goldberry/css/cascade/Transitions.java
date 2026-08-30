@@ -5,6 +5,8 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 
+import org.jspecify.annotations.Nullable;
+
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
 import io.github.digitalsmile.goldberry.motion.Easing;
 
@@ -83,7 +85,7 @@ public record Transitions(Map<Animatable, Timing> byProperty) {
         /// the toolkit's own rules are written with the shorthand and an author
         /// who wrote `transition: background` meant the colour — it is the only
         /// part of `background` that exists here.
-        public static Animatable parse(String name) {
+        public static @Nullable Animatable parse(String name) {
             var lower = name.toLowerCase(Locale.ROOT);
             if (lower.equals("background")) {
                 return BACKGROUND_COLOR;
@@ -131,7 +133,7 @@ public record Transitions(Map<Animatable, Timing> byProperty) {
     }
 
     /// The timing for one property, or null if it does not transition.
-    public Timing get(Animatable property) {
+    public @Nullable Timing get(Animatable property) {
         return byProperty.get(property);
     }
 

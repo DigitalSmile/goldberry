@@ -2,6 +2,8 @@ package io.github.digitalsmile.goldberry.widget.style;
 
 import java.util.Set;
 
+import org.jspecify.annotations.Nullable;
+
 import io.github.digitalsmile.goldberry.stats.FrameStats;
 import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widget.WidgetRenderer;
@@ -40,7 +42,7 @@ public interface Styled extends Widget {
     }
 
     /// The `#id`, or null.
-    default String id() {
+    default @Nullable String id() {
         return null;
     }
 

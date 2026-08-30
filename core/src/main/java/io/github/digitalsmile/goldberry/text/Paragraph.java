@@ -6,6 +6,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
+import org.jspecify.annotations.Nullable;
+
 import io.github.digitalsmile.goldberry.log.Logs;
 import io.github.digitalsmile.goldberry.natives.harfbuzz.GlyphRun;
 import io.github.digitalsmile.goldberry.natives.harfbuzz.enums.TextDirection;
@@ -86,7 +88,7 @@ public final class Paragraph {
     /// than a map: the access pattern is a run of identical widths, and a map
     /// would cost a hash of a `double` to serve the same hit.
     private double memoWidth = Double.NaN;
-    private TextLayout memo;
+    private @Nullable TextLayout memo;
 
     /// Whether the text was shaped in logical order because it needed bidi.
     private final boolean bidiApproximate;
@@ -180,7 +182,7 @@ public final class Paragraph {
     ///
     /// @param maxWidth the width to fit in, or [#UNCONSTRAINED] for one line per
     ///                 explicit newline and no wrapping at all
-    public TextLayout layout(double maxWidth) {
+    public @Nullable TextLayout layout(double maxWidth) {
         if (Double.isNaN(maxWidth)) {
             throw new IllegalArgumentException(
                     "a NaN width would wrap every line to nothing; pass Paragraph.UNCONSTRAINED"

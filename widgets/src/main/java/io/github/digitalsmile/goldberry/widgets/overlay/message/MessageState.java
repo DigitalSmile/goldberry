@@ -2,6 +2,8 @@ package io.github.digitalsmile.goldberry.widgets.overlay.message;
 
 import java.time.Duration;
 
+import org.jspecify.annotations.Nullable;
+
 import io.github.digitalsmile.goldberry.Host;
 import io.github.digitalsmile.goldberry.render.event.EventLoop;
 import io.github.digitalsmile.goldberry.widget.BuildContext;
@@ -72,7 +74,7 @@ final class MessageState extends State<Message> {
     /// Captured in `build` for the handler that runs later, which is the only
     /// thing [BuildContext#host()] may be used for. Null in a test or a golden
     /// with no window, and the departure degrades to an instant one.
-    private Host host;
+    private @Nullable Host host;
 
     /// What the last frame said about the motion preference.
     ///
@@ -83,7 +85,7 @@ final class MessageState extends State<Message> {
 
     /// The timer that ends the departure. Cancelled on unmount, or a banner
     /// removed while it was fading would call a handler for a tree that is gone.
-    private EventLoop.Timer pending;
+    private EventLoop.@Nullable Timer pending;
 
     @Override
     protected void dispose() {

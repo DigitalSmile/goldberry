@@ -3,6 +3,8 @@ package io.github.digitalsmile.goldberry.render.backend.sdl3;
 import java.util.List;
 import java.util.Optional;
 
+import org.jspecify.annotations.Nullable;
+
 import io.github.digitalsmile.goldberry.natives.sdl.desktop.SdlTray;
 import io.github.digitalsmile.goldberry.natives.sdl.desktop.SdlTrayIcon;
 import io.github.digitalsmile.goldberry.natives.sdl.desktop.SdlTrayItem;
@@ -59,7 +61,7 @@ final class Sdl3Tray implements BackendTray {
                 itemsOf(item.children()));
     }
 
-    private static SdlTrayIcon iconOf(PixelBuffer icon) {
+    private static @Nullable SdlTrayIcon iconOf(PixelBuffer icon) {
         if (icon == null) {
             return null;
         }

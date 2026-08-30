@@ -1,5 +1,6 @@
 package io.github.digitalsmile.goldberry.widgets.overlay.tour;
 
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -69,7 +70,7 @@ final class TourState extends State<Tour> {
 
     /// The first stop from here whose target is on screen, skipping any that are
     /// not — §5's "a target that is not in the tree is skipped with a warning".
-    private Stop advanceToAFindableStop() {
+    private @Nullable Stop advanceToAFindableStop() {
         var tour = widget();
         while (index < tour.stops().size()) {
             var stop = tour.stops().get(index);

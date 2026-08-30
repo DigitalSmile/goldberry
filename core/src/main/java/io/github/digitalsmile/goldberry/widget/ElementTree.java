@@ -6,6 +6,7 @@ import java.util.LinkedHashSet;
 import java.util.Objects;
 import java.util.Set;
 
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 
 import io.github.digitalsmile.goldberry.log.Logs;
@@ -74,14 +75,14 @@ public final class ElementTree {
     /// composition node in the hover chain has no cache and no resolver, and
     /// treating that as "unknown, be conservative" re-resolved the whole tree on
     /// every click (ADR-0149).
-    private io.github.digitalsmile.goldberry.css.cascade.StyleResolver styleResolver;
+    private io.github.digitalsmile.goldberry.css.cascade.@Nullable StyleResolver styleResolver;
 
     /// Told by the renderer at the start of every frame.
     public void styleResolver(io.github.digitalsmile.goldberry.css.cascade.StyleResolver resolver) {
         this.styleResolver = resolver;
     }
 
-    io.github.digitalsmile.goldberry.css.cascade.StyleResolver styleResolver() {
+    io.github.digitalsmile.goldberry.css.cascade.@Nullable StyleResolver styleResolver() {
         return styleResolver;
     }
 
@@ -197,7 +198,7 @@ public final class ElementTree {
     }
 
     /// Told when this tree goes from clean to dirty — see [#onDirty].
-    private Runnable onDirty;
+    private @Nullable Runnable onDirty;
 
     /// Asks `listener` for a frame whenever a `setState` lands on a clean tree.
     ///

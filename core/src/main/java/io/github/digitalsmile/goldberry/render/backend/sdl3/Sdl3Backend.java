@@ -10,6 +10,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 
 import io.github.digitalsmile.goldberry.log.Logs;
@@ -105,16 +106,16 @@ public final class Sdl3Backend implements Backend {
     /// `libgoldberry` built before the cursor symbols were exported would
     /// otherwise stop opening windows at all, to enable a nicety. An application
     /// that never sets a cursor never creates one either.
-    private SdlCursors cursors;
+    private @Nullable SdlCursors cursors;
     private boolean cursorsUnavailable;
 
     /// Draws while the platform is holding the thread. See [#drawDuringModalLoop]
     /// and ADR-0060. Null when `libgoldberry` does not export the watch calls.
-    private SdlEventWatch resizeWatch;
+    private @Nullable SdlEventWatch resizeWatch;
 
     /// Where a watched event goes — non-null only for the duration of a
     /// [#pumpEvents] call, which is the only time there is anywhere to send one.
-    private EventSink activeSink;
+    private @Nullable EventSink activeSink;
 
     /// Guards against the watch re-entering itself. Painting pushes events —
     /// [Sdl3Window#requestFrame] wakes the loop — and every push runs the watch

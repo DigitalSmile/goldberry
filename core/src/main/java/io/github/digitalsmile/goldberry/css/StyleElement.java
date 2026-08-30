@@ -2,6 +2,8 @@ package io.github.digitalsmile.goldberry.css;
 
 import java.util.Set;
 
+import org.jspecify.annotations.Nullable;
+
 import io.github.digitalsmile.goldberry.css.cascade.StyleResolver;
 import io.github.digitalsmile.goldberry.css.parse.Token;
 import io.github.digitalsmile.goldberry.css.select.Selector;
@@ -62,7 +64,7 @@ public interface StyleElement {
     ///
     /// @param resolver  the resolver asking, compared by identity
     /// @param inherited what this element's parent handed down, by identity
-    default java.util.Map<String, java.util.List<Token>> cachedCustomProperties(
+    default java.util.@Nullable Map<String, java.util.List<Token>> cachedCustomProperties(
             StyleResolver resolver, java.util.Map<String, java.util.List<Token>> inherited) {
         return null;
     }

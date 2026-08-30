@@ -3,6 +3,8 @@ package io.github.digitalsmile.goldberry.widgets.data.donutchart;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.jspecify.annotations.Nullable;
+
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
 import io.github.digitalsmile.goldberry.css.value.CssColor;
 import io.github.digitalsmile.goldberry.input.event.KeyEvent;
@@ -105,7 +107,7 @@ record DonutSurface(
     /// reason: the hovered index is part of this widget, so this is two strings
     /// rather than two per slice, and moving between slices re-shapes two of them
     /// (ADR-0037).
-    private Readout readout(ComputedStyle style, Context context) {
+    private @Nullable Readout readout(ComputedStyle style, Context context) {
         if (hovered < 0 || hovered >= values.size() || !(values.get(hovered) > 0)) {
             return null;
         }

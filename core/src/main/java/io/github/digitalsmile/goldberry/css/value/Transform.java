@@ -7,6 +7,7 @@ import java.util.Objects;
 import io.github.digitalsmile.goldberry.css.parse.Token;
 import io.github.digitalsmile.goldberry.css.parse.TokenType;
 import io.github.digitalsmile.goldberry.css.Decoration;
+import org.jspecify.annotations.Nullable;
 
 /// CSS's `transform` and `transform-origin`, as the cascade resolves them.
 ///
@@ -400,7 +401,7 @@ public record Transform(List<Function> functions, Origin origin) {
             }
 
             @Override
-            public String toString() {
+            public @Nullable String toString() {
                 return value.toString();
             }
         }
@@ -417,7 +418,7 @@ public record Transform(List<Function> functions, Origin origin) {
     /// would be worse than none: the box would move somewhere nobody wrote.
     /// Public because the computed style that calls it is the `css` package's
     /// and a value type is `css.value`'s (ADR-0172).
-    public static Transform parse(List<Token> value, Origin origin) {
+    public static @Nullable Transform parse(List<Token> value, Origin origin) {
         var tokens = value.stream().filter(t -> !t.is(TokenType.WHITESPACE)).toList();
         if (tokens.isEmpty()) {
             return null;
@@ -471,7 +472,7 @@ public record Transform(List<Function> functions, Origin origin) {
     }
 
     /// A function's arguments split on commas.
-    private static List<List<Token>> arguments(List<Token> tokens) {
+    private static @Nullable List<List<Token>> arguments(List<Token> tokens) {
         var parts = new ArrayList<List<Token>>();
         var current = new ArrayList<Token>();
         for (var token : tokens) {
@@ -494,7 +495,7 @@ public record Transform(List<Function> functions, Origin origin) {
     // method gets longer to satisfy a preference. The suggestion is about style
     // and there is no defect under it.
     @SuppressWarnings("RefactorSwitch")
-    private static Function function(String name, List<List<Token>> arguments) {
+    private static @Nullable Function function(String name, List<List<Token>> arguments) {
         var count = arguments.size();
         switch (name) {
             case "translate" -> {
@@ -573,7 +574,7 @@ public record Transform(List<Function> functions, Origin origin) {
         }
     }
 
-    private static Length[] lengths(List<List<Token>> arguments, int count) {
+    private static @Nullable Length[] lengths(List<List<Token>> arguments, int count) {
         var values = new Length[count];
         for (var i = 0; i < count; i++) {
             var length = length(arguments.get(i));
@@ -585,7 +586,7 @@ public record Transform(List<Function> functions, Origin origin) {
         return values;
     }
 
-    private static Length length(List<Token> argument) {
+    private static @Nullable Length length(List<Token> argument) {
         if (argument.size() != 1) {
             return null;
         }
@@ -613,7 +614,7 @@ public record Transform(List<Function> functions, Origin origin) {
         };
     }
 
-    private static double[] numbers(List<List<Token>> arguments, int count) {
+    private static double @Nullable [] numbers(List<List<Token>> arguments, int count) {
         var values = new double[count];
         for (var i = 0; i < count; i++) {
             var argument = arguments.get(i);
@@ -635,7 +636,7 @@ public record Transform(List<Function> functions, Origin origin) {
 
     /// Angles as radians. CSS's four units, because refusing three of them would
     /// be refusing valid CSS to save a `switch` arm.
-    private static double[] angles(List<List<Token>> arguments, int count) {
+    private static double @Nullable [] angles(List<List<Token>> arguments, int count) {
         var values = new double[count];
         for (var i = 0; i < count; i++) {
             var argument = arguments.get(i);
@@ -677,7 +678,7 @@ public record Transform(List<Function> functions, Origin origin) {
     // parser in this package uses. Error Prone's heuristic does not model a
     // switch expression's target type.
     @SuppressWarnings("NullTernary")
-    public static Origin parseOrigin(List<Token> value) {
+    public static @Nullable Origin parseOrigin(List<Token> value) {
         var parts = new ArrayList<List<Token>>();
         var current = new ArrayList<Token>();
         for (var token : value) {
@@ -726,7 +727,7 @@ public record Transform(List<Function> functions, Origin origin) {
     /// Which axis a `transform-origin` keyword names, or null if it is not one.
     private enum Axis { HORIZONTAL, VERTICAL }
 
-    private static Axis keyword(List<Token> part) {
+    private static @Nullable Axis keyword(List<Token> part) {
         if (part.size() != 1 || !part.getFirst().is(TokenType.IDENT)) {
             return null;
         }
@@ -737,7 +738,7 @@ public record Transform(List<Function> functions, Origin origin) {
         };
     }
 
-    private static Length originLength(List<Token> part) {
+    private static @Nullable Length originLength(List<Token> part) {
         if (part.size() == 1 && part.getFirst().is(TokenType.IDENT)) {
             return switch (part.getFirst().text().toLowerCase(Locale.ROOT)) {
                 case "left", "top" -> Length.ZERO;
