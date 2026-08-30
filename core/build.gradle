@@ -1,5 +1,9 @@
 plugins {
     id 'goldberry.java-conventions'
+    // docs/testing.md §1.5. On :core only for now: this is where the hot seams
+    // are -- shaping, the paragraph cache, the cascade -- and a benchmark source
+    // set in every module would be five empty ones.
+    alias(libs.plugins.jmh)
     // GoldenImage, TestFrames and RendererRequirement are shared with :widgets,
     // which needs the same rasterizer guard and the same golden comparison.
     // Fixtures rather than a copy: two golden comparators would drift on the

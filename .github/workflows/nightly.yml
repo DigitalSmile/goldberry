@@ -59,6 +59,19 @@ jobs:
           path: '**/build/reports/pitest'
           if-no-files-found: ignore
 
+      # SpotBugs reports rather than gates (docs/testing.md §2), so the artifact
+      # is the deliverable: 146 findings across the project at the time of
+      # writing, most of them nullness in packages NullAway cannot see yet.
+      - name: SpotBugs
+        run: ./gradlew spotbugsMain --no-daemon --continue
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: spotbugs
+          path: '**/build/reports/spotbugs'
+          if-no-files-found: ignore
+
   # §1.5's frame budget. The benchmarks print measurements and assert almost
   # nothing on purpose, so this lane exists to keep a record rather than to fail:
   # the numbers are read in the log and argued about in prose.
@@ -81,6 +94,20 @@ jobs:
 
       - name: Run the benchmarks
         run: ./gradlew benchmark --no-daemon --continue
+
+      # JMH on the hot seams that are pure logic (docs/testing.md §1.5). Distinct
+      # from the task above, which measures whole operations against a real
+      # rasterizer: this one adds forks, warm-up and a blackhole, so the number is
+      # not an artifact of the JIT specialising the loop away.
+      - name: JMH
+        run: ./gradlew :core:jmh --no-daemon
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: jmh
+          path: core/build/results/jmh
+          if-no-files-found: ignore
 
   # §1.3's scale sweep, run wide. Every golden is redrawn at 2x and 1.5x on every
   # PR already; what this adds is the whole suite on one machine in one place, so

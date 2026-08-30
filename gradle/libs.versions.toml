@@ -23,6 +23,10 @@ errorproneCore = "2.50.0"
 nullaway = "0.14.1"
 jspecify = "1.0.1"
 pitestPlugin = "1.15.0"
+# The Gradle plugin and the SpotBugs tool version independently: 6.5.11 is the
+# plugin, 4.10.4 is the analyser it runs.
+spotbugsPlugin = "6.5.11"
+spotbugs = "4.10.4"
 pitest = "1.20.5"
 jmhPlugin = "0.7.3"
 jmh = "1.37"
@@ -73,3 +77,9 @@ errorprone-core = { module = "com.google.errorprone:error_prone_core", version.r
 nullaway = { module = "com.uber.nullaway:nullaway", version.ref = "nullaway" }
 jspecify = { module = "org.jspecify:jspecify", version.ref = "jspecify" }
 jqwik = { module = "net.jqwik:jqwik", version.ref = "jqwik" }
+
+[plugins]
+# Applied by :core only -- see its build script. The other analysis plugins are
+# applied by the conventions plugin and so are ordinary dependencies of
+# build-logic rather than entries here.
+jmh = { id = "me.champeau.jmh", version.ref = "jmhPlugin" }

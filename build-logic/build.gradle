@@ -23,7 +23,7 @@ dependencies {
     // blocks -- the one place this build pays for using precompiled scripts.
     implementation "com.diffplug.spotless:spotless-plugin-gradle:${libs.versions.spotless.get()}"
     implementation "net.ltgt.gradle:gradle-errorprone-plugin:${libs.versions.errorprone.get()}"
-    implementation "info.solidsoft.gradle.pitest:gradle-pitest-plugin:${libs.versions.pitestPlugin.get()}"
+    implementation "com.github.spotbugs.snom:spotbugs-gradle-plugin:${libs.versions.spotbugsPlugin.get()}"
     implementation "me.champeau.jmh:jmh-gradle-plugin:${libs.versions.jmhPlugin.get()}"
 
     testImplementation platform(libs.junit.bom)

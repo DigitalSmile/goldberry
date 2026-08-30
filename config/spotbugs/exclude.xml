@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<FindBugsFilter>
+  <!--
+    docs/testing.md §2. What is excluded and why, in the same spirit as
+    config/pmd/ruleset.xml: a gate that is wrong every time it fires teaches
+    people to skip the report.
+  -->
+
+  <!-- Hand-written FFM bindings: layout tables, downcall handles and pointers
+       resized against a verified extent. The same module Error Prone is off for,
+       and for the same reason - its contract is the layout probe. -->
+  <Match>
+    <Package name="~io\.github\.digitalsmile\.goldberry\.natives.*"/>
+  </Match>
+
+  <!-- A widget is a value that holds the arrays it was given and never mutates
+       them. EI_EXPOSE_REP wants a defensive copy per accessor, which on a
+       per-frame path is a copy per frame of data that is already immutable. -->
+  <Match>
+    <Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2,MS_EXPOSE_REP"/>
+  </Match>
+
+  <!-- Reference equality on a thread is the confinement check eighteen files
+       make and is correct every time (ADR-0020). Error Prone's ReferenceEquality
+       is off for the same reason. -->
+  <Match>
+    <Bug pattern="ES_COMPARING_PARAMETER_STRING_WITH_EQ,RC_REF_COMPARISON"/>
+  </Match>
+  <!-- A `@Bind` field is read by path through the generated registry, or by a
+       woven call site in a native image (ADR-0125, ADR-0155). SpotBugs sees a
+       private field nothing in this class reads and is right about what it can
+       see; the reader is generated. Error Prone's UnusedVariable needed the same
+       exemption, for the same reason and in the same words. -->
+  <Match>
+    <Bug pattern="URF_UNREAD_FIELD,UUF_UNUSED_FIELD,SS_SHOULD_BE_STATIC"/>
+    <Class name="~.*(Model|Actions)$"/>
+  </Match>
+</FindBugsFilter>

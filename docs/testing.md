@@ -39,10 +39,10 @@ The `headless` backend renders to `BLImage` and pumps synthetic events through t
 - Superbuild smoke: `libgoldberry` loads, version symbols match pinned dependency versions.
 - FFM lifecycle tests: arena closure invalidates wrappers with `IllegalStateException`, `Cleaner` safety net fires under leak simulation.
 
-### 1.5 Performance (frame budget)
+### 1.5 Performance (JMH + frame budget)
 - **Benchmarks are JUnit classes tagged `benchmark`**, run by `./gradlew benchmark` and never by `check`. They print measurements and assert almost nothing, deliberately: a timing assertion on shared CI hardware fails for reasons that have nothing to do with the code, and ADR-0028 and ADR-0031 both took their numbers this way — measured, written down, and argued about in prose.
 - Hot seams covered: shaping and the paragraph cache, Yoga measure upcalls, binding schemes (woven against reflective), and `FrameBudgetTest`'s scripted scenarios on the headless backend.
-- **JMH itself is not wired.** Its Gradle plugin generates a source set, and doing that inside a JPMS build is the integration PIT also ran into (§6). The `benchmark` task is what exists, and it runs nightly.
+- **JMH is wired on `:core`**, where the hot seams that are pure logic live. `CascadeBenchmark` resolves one element against a six-rule sheet: **0.476 ± 0.067 µs/op**. It is a source set (`src/jmh`) with forks, warm-up and a blackhole, so the number is not an artifact of the JIT specialising the loop away — which is what JMH adds over the `benchmark` task, and the only reason to run both.
 
 ### 1.6 Dual-mode & native-image lanes
 - Full suite twice per PR: reflection-fallback (the default, which is what a jar does) and woven (`-Pgoldberry.nativeImage=true`, which is what a native image does — ADR-0155). Two invocations rather than two tasks, because weaving rewrites the compiled classes in place and one build cannot hold both forms. Coverage survives the split: the exec file is named for the mode and the report reads every file it finds.
@@ -125,6 +125,14 @@ status beside it reads as a description of what exists.
   null` added to a marked package fails the build.
 - **§2 PMD**, eight hand-picked rules in `config/pmd/ruleset.xml`, on `src/main`
   only.
+- **§2 SpotBugs**, on `src/main`, at max effort. **Reports, does not gate**: the
+  triage §2 asks for has not happened, and 146 findings appearing as a red build
+  nobody caused is how an analyser gets switched off. 78 of them are
+  `NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE` — the defect class NullAway blocks on
+  in a marked package and cannot see in the 60 that are not marked yet, which is
+  a good argument for finishing that sweep.
+- **§1.5 JMH** on `:core`, alongside the `benchmark` task rather than instead of
+  it.
 - **510 broken ADR links repaired.** Every relative `.md` link from Java source
   into the book resolved to nothing — the `../` depths had been wrong since they
   were written — and the book is built and published by nothing, so there was
@@ -189,14 +197,6 @@ status beside it reads as a description of what exists.
   The split at the point of stopping was 64 "passing @Nullable where @NonNull is
   required" and 21 "dereferenced expression is @Nullable" in `:core` alone.
   Neither is a thing a script should decide.
-- **JMH (§1.5).** The plugin resolves; wiring it into a JPMS build with a
-  generated benchmark source set is the same class of problem PIT hit. The
-  `benchmark` task is what exists and it runs nightly, on the footing ADR-0028
-  and ADR-0031 set: numbers printed and argued about in prose rather than pinned
-  by a threshold that fails on shared CI hardware.
-- **SpotBugs + fb-contrib (§2).** Not attempted after PMD: two overlapping
-  bytecode analysers on the same codebase is a second report to triage for the
-  same findings, and PMD's ruleset here took three attempts to make load at all.
 - **Qodana and Codecov are wired but not connected.** Both need a token this
   repository does not have. Neither fails a build in the meantime — the Qodana
   job gates itself on the secret and skips with a note, and the Codecov step is
