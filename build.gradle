@@ -1,3 +1,10 @@
+plugins {
+    // Aggregates every module's coverage into one report (docs/testing.md §3).
+    // The root applies it and nothing else: it has no source of its own, which is
+    // exactly the shape this plugin is for.
+    id 'jacoco-report-aggregation'
+}
+
 // The root project is a container only. Shared configuration lives in the
 // `goldberry.java-conventions` precompiled script plugin under `build-logic/`,
 // which each module applies explicitly -- no cross-project `subprojects {}`
@@ -82,3 +89,64 @@ tasks.register('checkLicenses') {
 // task the same way `./gradlew test` finds every module's tests, and IDEs import
 // it with the rest. Nothing to delegate.
 // ============================================================================
+
+// ============================================================================
+// Coverage, aggregated (docs/testing.md §3)
+//
+// One XML and one HTML for the whole project, so "is this line reached by
+// anything" is a question with a single answer -- a line covered by :widgets'
+// tests and not by :core's is covered.
+//
+// `:natives` is deliberately absent. Its module is generated FFM bindings whose
+// real test is the layout probe agreeing across four platforms, not a line
+// count; including it would put thousands of trivially-uncovered accessor lines
+// into the denominator and make every other module's figure meaningless
+// (testing.md §3, "exclusions").
+//
+// `:assets` and `:weaver` are build-time tools rather than shipped modules. The
+// weaver is included anyway -- testing.md is explicit that the weaver *itself* is
+// covered normally, and only its *output* classes are excluded, those having no
+// source to map back to.
+// ============================================================================
+dependencies {
+    jacocoAggregation project(':common')
+    jacocoAggregation project(':core')
+    jacocoAggregation project(':widgets')
+    jacocoAggregation project(':gpu')
+    jacocoAggregation project(':weaver')
+    jacocoAggregation project(':example')
+}
+
+reporting {
+    reports {
+        testCodeCoverageReport(JacocoCoverageReport) {
+            testSuiteName = 'test'
+        }
+    }
+}
+
+tasks.register('coverage') {
+    group = 'verification'
+    description = 'Runs every module\'s tests and writes one aggregated coverage report.'
+    dependsOn tasks.named('testCodeCoverageReport')
+    doLast {
+        logger.lifecycle('Coverage report: ' +
+                "${layout.buildDirectory.get()}/reports/jacoco/testCodeCoverageReport/html/index.html")
+    }
+}
+
+// ============================================================================
+// Blessing every module's goldens at once (docs/testing.md §5)
+//
+// The per-module task is in the conventions plugin; this is the one a
+// contributor actually types.
+// ============================================================================
+tasks.register('blessGoldens') {
+    group = 'verification'
+    description = 'Rewrites every golden image in the project from what the code draws.'
+    dependsOn subprojects.collect { ":${it.name}:blessGoldens" }
+    doLast {
+        logger.lifecycle('Goldens rewritten. `git diff --stat` is the review: ' +
+                'an image that changed and should not have is the only thing this cannot tell you.')
+    }
+}

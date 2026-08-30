@@ -2,6 +2,7 @@ import org.gradle.api.artifacts.VersionCatalogsExtension
 
 plugins {
     id 'java-library'
+    id 'jacoco'
 }
 
 // Precompiled Groovy script plugins do not get the generated `libs` accessors
@@ -98,6 +99,75 @@ tasks.register('benchmark', Test) {
     }
     // Never up to date: a benchmark whose result is cached from last week is
     // worse than no benchmark.
+    outputs.upToDateWhen { false }
+}
+
+// ============================================================================
+// Coverage (docs/testing.md §3)
+//
+// Per module, aggregated at the root. The interesting rule is the *merge*: the
+// suite runs twice -- once binding reflectively, which is what a jar does, and
+// once over woven classes, which is what a native image does (ADR-0155) -- and
+// a line is uncovered only if NEITHER mode reached it. JaCoCo appends to one
+// exec file across both tasks, so that merge costs nothing and happens by
+// construction.
+//
+// No global percentage gate. `jacocoTestCoverageVerification` is configured per
+// module by the module that knows what its own floor means: strict on the logic
+// modules, where a line is either exercised or it is not, and absent on the
+// painters, where the goldens carry correctness and line coverage would only
+// prove reachability (testing.md §0.2).
+// ============================================================================
+jacoco {
+    toolVersion = catalog.findVersion('jacoco').get().requiredVersion
+}
+
+tasks.withType(Test).configureEach {
+    // Benchmarks print numbers; counting their lines as covered would be a
+    // coverage figure that goes up when somebody adds a benchmark.
+    jacoco.enabled = name != 'benchmark'
+}
+
+tasks.withType(JacocoReport).configureEach {
+    reports {
+        // XML for the aggregate and for anything that imports it; HTML because
+        // the question "which branch is missed" is not answerable from a number.
+        xml.required = true
+        html.required = true
+    }
+}
+
+// ============================================================================
+// Blessing the goldens (docs/testing.md §1.3, §5)
+//
+// `GoldenImage` already rewrites its references under a system property; this is
+// the task that says so out loud, because a workflow documented only in a
+// Javadoc is one every contributor rediscovers.
+//
+// It runs the WHOLE suite rather than a filtered set. Goldens are asserted from
+// classes named `*GoldenTest` and from several that are not -- a screen test that
+// ends in a picture, a motion test that ends in three -- and a filter that had to
+// list them would be a list that goes stale the first time somebody adds one. The
+// non-golden tests simply run and pass, which costs a minute and cannot be wrong.
+//
+// It is deliberately NOT wired into `check`: rewriting a reference is a review
+// step, and a build that quietly re-blessed on every run would assert nothing at
+// all.
+// ============================================================================
+tasks.register('blessGoldens', Test) {
+    group = 'verification'
+    description = 'Rewrites this module\'s golden images from what the code currently draws.'
+
+    testClassesDirs = sourceSets.test.output.classesDirs
+    classpath = sourceSets.test.runtimeClasspath
+
+    systemProperty 'goldberry.golden.update', 'true'
+    // The scale sweep compares a golden against itself at 2x and 1.5x. It has
+    // nothing to say while the references are being rewritten, and it is slow
+    // enough to be worth skipping (ADR-0162).
+    systemProperty 'goldberry.golden.scales', 'false'
+
+    // A blessed golden is a *file*, so the answer is never up to date.
     outputs.upToDateWhen { false }
 }
 

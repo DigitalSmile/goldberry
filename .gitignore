@@ -55,3 +55,8 @@ natives/.deps/
 example/build/
 example/.gradle/
 example/run.log
+
+# jqwik records the seed of a failing property so it can replay it first next
+# run. That is a local cache of *this* machine's last failure, not a fact about
+# the code (docs/testing.md §1.1).
+.jqwik-database
