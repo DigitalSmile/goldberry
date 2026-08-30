@@ -53,6 +53,16 @@ public interface Host {
     /// ([ADR-0095](../../../../../book/src/adr/0095-a-shortcut-is-built-from-enums.md)).
     void shortcut(io.github.digitalsmile.goldberry.input.key.Shortcut accelerator, Runnable action);
 
+    /// Binds a window accelerator and remembers **who** bound it.
+    ///
+    /// The owner is a token for [#removeShortcut(Shortcut, Object)], compared by
+    /// identity and never called. A widget that binds keys while it is mounted —
+    /// `menubar` is the one in the toolkit — passes itself, so that giving them
+    /// back cannot take somebody else's binding with it
+    /// ([ADR-0220](../../../../../book/src/adr/0220-an-accelerator-is-given-back-by-whoever-took-it.md)).
+    void shortcut(io.github.digitalsmile.goldberry.input.key.Shortcut accelerator, Runnable action,
+            Object owner);
+
     /// Binds a window accelerator, written the way a menu prints it — `"Ctrl+S"`.
     ///
     /// The modifiers must match exactly, so `Ctrl+S` does not fire on
@@ -68,11 +78,26 @@ public interface Host {
     /// it is mounted and has to give them back when it is not
     /// ([ADR-0163](../../../../../book/src/adr/0163-a-menu-bar-owns-its-menus.md)).
     ///
-    /// **The map is keyed by the shortcut and not by who bound it**, so this
-    /// removes whatever is bound to `accelerator` — including a binding somebody
-    /// else made. Two things claiming `Ctrl+O` is already a conflict the last
-    /// registration wins; this is the same conflict at the other end.
+    /// **This form removes whatever is bound to `accelerator`**, including a
+    /// binding somebody else made — which is what an application unbinding its own
+    /// key means. A widget giving back keys it took should pass an owner, so that
+    /// a binding made after its own is left alone
+    /// ([#removeShortcut(Shortcut, Object)]).
     void removeShortcut(io.github.digitalsmile.goldberry.input.key.Shortcut accelerator);
+
+    /// Unbinds a window accelerator **only if `owner` still holds it**.
+    ///
+    /// The other half of [#shortcut(Shortcut, Runnable, Object)], and the reason
+    /// both exist: a `menubar` registers every accelerator in its menus when it is
+    /// mounted and has to give them back when it is not, and the map used to be
+    /// keyed by the shortcut alone — so a bar going away took `Ctrl+O` with it
+    /// even when the application had bound that key to something else in between
+    /// ([ADR-0220](../../../../../book/src/adr/0220-an-accelerator-is-given-back-by-whoever-took-it.md)).
+    ///
+    /// Owners are compared by identity. Harmless when nothing was bound, and a
+    /// no-op when something else was.
+    void removeShortcut(io.github.digitalsmile.goldberry.input.key.Shortcut accelerator,
+            Object owner);
 
     /// Unbinds a window accelerator written the way a menu prints it.
     ///

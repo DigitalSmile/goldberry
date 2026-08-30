@@ -62,8 +62,28 @@ public interface Application {
     }
 
     /// The window's opening size, in logical pixels.
+    ///
+    /// Still the size that matters when [#maximized] is true: it is what the
+    /// window restores to when the user un-maximizes it.
     default LogicalSize size() {
         return new LogicalSize(960, 640);
+    }
+
+    /// Whether the window opens filling the desktop's work area.
+    ///
+    /// A *state* the desktop owns rather than a large [#size]: it snaps to the
+    /// work area rather than to the whole display, stays clear of panels and
+    /// docks, and restores to [#size] when the user un-maximizes it. Asking for a
+    /// screen-sized window instead gives one that is too big on a laptop and that
+    /// no titlebar button can put back
+    /// ([ADR-0221](../../../../../book/src/adr/0221-a-window-may-open-maximized.md)).
+    ///
+    /// False by default, which is the right default for a tool: an application
+    /// that takes the whole screen without being asked is one the user has to
+    /// undo before they can see anything else. A gallery whose whole subject is
+    /// how much fits on a screen is the case for saying otherwise.
+    default boolean maximized() {
+        return false;
     }
 
     /// The stylesheets, in cascade order — the toolkit's, then the theme's, then

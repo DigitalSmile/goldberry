@@ -3,304 +3,273 @@
  * how a button looks.
  *
  * In the APPLICATION layer, so it wins over the toolkit's base rules -- and every
- * colour in it is a var(--gb-*), which is what lets the theme button work without
+ * colour in it is a var(--gb-*), which is what lets the light switch work without
  * this file knowing a theme exists.
  *
  * A resource and not a text block in Showcase.java: the toolkit loads its own
  * theme and control sheets this way, an application should be able to as well,
  * and CSS wrapped in Java quotes is CSS no editor will highlight (ADR-0093).
+ *
+ * The window is three bands and seven screens, and this file is in the same
+ * order: the chrome, then what every screen has in common, then the handful of
+ * rules a particular screen needs (ADR-0222).
  */
 
+/* --- the window ------------------------------------------------------------ */
+
 /* `color` on the root, so nothing in this window can resolve to
-   ComputedStyle.INITIAL's black. That default is deliberate --
-   ADR-0066 keeps it unthemed so a missing stylesheet looks missing --
-   which means an application has to say what its text colour is
-   somewhere, and the root is the one place that covers everything.
-   A control gets away with saying nothing because `controls.css` sets
-   `color` on `checkbox`, `radio`, `toggle` and `slider` themselves; a
-   bare `text` does not. */
-#root      { flex-direction: column; background: var(--gb-bg);
-             color: var(--gb-text) }
-
-/* `flex-shrink: 0`, and it is not tidiness. Yoga's children shrink by default,
-   so a window whose content asks for more height than there is takes it out of
-   whatever will give -- and a title bar with a definite height is the most
-   willing thing in the tree. The Panels screen was the first to ask for more, and
-   the symptom was a title bar that was 44px tall on six screens and half that on
-   the seventh. Chrome does not shrink: if the content does not fit, the content
-   is what scrolls. */
-#bar       { height: 44px; flex-shrink: 0; padding: 0 16px; gap: 12px;
-             align-items: center; background: var(--gb-surface) }
-#title     { color: var(--gb-text) }
-
-/* The gallery: a strip of screens filling everything under the title bar.
-   `flex-grow` on the strip and on its panel is what makes a screen as tall as
-   the window rather than as tall as its contents (ADR-0110). */
-#gallery   { flex-grow: 1; padding: 0 16px 16px 16px }
-
-/* Every screen is a column of groups with §1.3's 16 between them, whether it
-   came from a document or from Java -- which is the point of the split being
-   about *expressions* rather than about appearance. */
-/* A screen inside the gallery's viewport is **content-sized**, and the growing is
-   the viewport's. `flex-grow` here did nothing and looked as though it did: a
-   scroll view's content column is as tall as its content by construction, so
-   there is no remaining height for a child to claim. The `scroll` rule in
-   `controls.css` is where the growth is, and it is the container that grows. */
-#screen-controls, #screen-values, #screen-overlays,
-#screen-text, #screen-tabs, #screen-panels, #screen-forms,
-#screen-notifications
-           { flex-direction: column; gap: 16px; padding-top: 16px }
-
-/* The three stacks of banners on the Notifications screen.
- *
- * **A `column` has no gap of its own**, which is the toolkit's rule everywhere:
- * a widget does not decide how far it sits from its neighbours, because the
- * neighbour it is next to is not its business. The first version of this screen
- * left it out and the banners touched -- four bordered blocks sharing edges,
- * which reads as one control with rules through it rather than as four notices.
- *
- * 12 rather than §1.3's 8 for related controls or 16 for groups: these are
- * neither. Each banner is a block of prose with a border round it, and 8 makes
- * two of them look joined while 16 puts a hole between things that arrived
- * together. It is on the ramp, which is what §1.3 asks of a number. */
-#notice-kinds, #notice-summary, #notices
-           { flex-direction: column; gap: 12px }
-
-/* The Forms screen's groups, side by side. Each is a `card`, because a form is a
-   set of groups rather than a list of lines, and columns are what make the set
-   visible in one look instead of one scroll.
-
-   `flex-basis` is not in §8's subset, so equal columns are `flex-grow: 1` on
-   children of a row that has no width of its own — which works because a card's
-   content is narrower than a third of this screen. A column of fields that
-   *was* wider would push the others narrow rather than wrapping, and §10's
-   `wrap` is not built. */
-#form-columns, #form-columns-2
-           { flex-direction: row; gap: 16px; align-items: flex-start }
-
-#named-card, #limits-card, #overflow-card,
-#signup-card, #stacked-card, #label-card
-           { flex-direction: column; gap: 6px; flex-grow: 1; flex-shrink: 1 }
-
-/* A narrower label column than the 120 the toolkit defaults to, because this
-   card is a third of a screen. Which is the token doing its job: an application
-   moves every field in a form at once rather than writing a rule per row, and
-   what "consistent label column" is worth depends on how much width there is. */
-#signup { --gb-field-label-width: 56px }
-
-/* A card's own heading. `heading` like a screen title and a rung quieter, so the
-   three cards read as parts of one screen rather than as three screens. */
-.card-title {
+   ComputedStyle.INITIAL's black. That default is deliberate -- ADR-0066 keeps it
+   unthemed so a missing stylesheet looks missing -- which means an application
+   has to say what its text colour is somewhere, and the root is the one place
+   that covers everything. A control gets away with saying nothing because
+   `controls.css` sets `color` on `checkbox`, `radio`, `toggle` and `slider`
+   themselves; a bare `text` does not. */
+#root {
+  flex-direction: column;
+  background: var(--gb-bg);
   color: var(--gb-text);
-  font-size: var(--gb-font-body);
-  line-height: var(--gb-line-body);
+}
+
+/* The window's menu bar, hard against the top edge. `flex-shrink: 0` for the
+   bar's reason below, and no radius: it is an edge of the window rather than a
+   thing sitting on one. */
+#app-menu {
+  flex-shrink: 0;
+  padding: 0 8px;
+  background: var(--gb-surface);
+}
+
+/* The bar under it: what this run cost, and the switch.
+ *
+ * `flex-shrink: 0`, and it is not tidiness. Yoga's children shrink by default, so
+ * a window whose content asks for more height than there is takes it out of
+ * whatever will give -- and a bar with a definite height is the most willing
+ * thing in the tree. The symptom was a bar that was 44px tall on six screens and
+ * half that on the seventh. Chrome does not shrink: if the content does not fit,
+ * the content is what scrolls. */
+#bar {
+  height: 44px;
+  flex-shrink: 0;
+  padding: 0 16px;
+  gap: 12px;
+  align-items: center;
+  background: var(--gb-surface-2);
+  border: 1px solid var(--gb-border);
+}
+
+#title {
+  color: var(--gb-text);
   font-weight: var(--gb-weight-strong);
 }
 
-#named-echo { flex-direction: row; gap: 6px; align-items: center }
+/* The two startup readings. Muted and at `caption`, because what they say is a
+   fact about the process rather than content -- and 8px apart rather than the
+   bar's 12, because they are two halves of one sentence. */
+#startup, #status {
+  color: var(--gb-text-muted);
+  font-size: var(--gb-font-caption);
+  line-height: var(--gb-line-caption);
+}
 
-/* Except this one, which is the screen that owns its own viewport rather than
-   sitting in the gallery's — so here the growth is real and it is this box that
-   has to fill the tab panel. */
-#screen-scrolling
-           { flex-direction: column; gap: 16px; flex-grow: 1; padding-top: 16px }
+/* The switch and the two words that name its ends. §1.2 again: a switch whose
+   only label is "Lothlórien" leaves the off position unnamed, so the state has
+   to be read out of the thumb's position alone. */
+#dark-label, #light-label {
+  color: var(--gb-text-muted);
+  font-size: var(--gb-font-caption);
+  line-height: var(--gb-line-caption);
+}
 
-/* A group's heading. This used to be `font-weight: 600` and nothing else, which
-   made a screen title `body-strong` -- the same 13px as the prose under it, told
-   apart only by weight. On a 900px gallery screen that reads as a page with no
-   headings at all, which is what "the paragraph text looks tiny" actually is: not
-   a size that shrank, but a hierarchy that was never there.
+/* The gallery: a strip of screens filling everything under the bar. `flex-grow`
+   on the strip and on its panel is what makes a screen as tall as the window
+   rather than as tall as its contents (ADR-0110). */
+#gallery {
+  flex-grow: 1;
+  padding: 0 16px 16px 16px;
+}
 
-   §1.4's `heading` is the token for exactly this -- 15/20 at 600 -- and it is what
-   the class now uses. The comment it replaces argued these "label groups inside
-   one screen, not sections of a document"; a gallery screen *is* a document, and
-   the four other screens have the same headings for the same reason. */
-.screen-title {
+/* --- what every screen has ------------------------------------------------- */
+
+/* Every screen is a heading, a line of prose and a wall, with §1.3's 16 between
+   them -- whether it came from a document or from Java, which is the point of the
+   split being about *expressions* rather than about appearance.
+
+   A screen inside the gallery's viewport is **content-sized**, and the growing is
+   the viewport's. `flex-grow` here did nothing and looked as though it did: a
+   scroll view's content column is as tall as its content by construction, so
+   there is no remaining height for a child to claim. */
+.screen {
+  flex-direction: column;
+  gap: 16px;
+  padding-top: 16px;
+}
+
+/* Except the Navigation screen, which the gallery does not wrap in a viewport --
+   §2.4 bans a scroller inside a scroller and one of its cards owns one. Here the
+   growth is real and it is this box that has to fill the tab panel. */
+#screen-navigation {
+  flex-grow: 1;
+}
+
+/* The wall itself. `masonry` carries the gap between its columns and
+   `masonry-column` the gap between cards, both in `controls.css` -- there is
+   nothing for this file to say, and the rule is here as a named place to say it
+   if a screen ever needs to. */
+.wall {
+  flex-shrink: 0;
+}
+
+/* Every card in every wall. A column with §1.3's 8 between its rows: a card is a
+   set of related controls, which is exactly what that rung is for.
+
+   `flex-shrink: 0` because a masonry column is as tall as the cards in it by
+   construction -- a card that gave up height would be one whose contents no
+   longer fit inside its own border. */
+.wall-card {
+  flex-direction: column;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+/* A card's own heading: §1.4's `label` rank, muted, above the thing it names. */
+.card-title {
+  color: var(--gb-text-muted);
+  font-size: var(--gb-font-caption);
+  line-height: var(--gb-line-caption);
+  font-weight: var(--gb-weight-strong);
+}
+
+/* A screen's heading. §1.4's `heading` is the token for exactly this -- 15/20 at
+   600. It used to be `font-weight: 600` and nothing else, which made a screen
+   title `body-strong`: the same 13px as the prose under it, told apart only by
+   weight. On a wide gallery screen that reads as a page with no headings at all,
+   which is what "the paragraph text looks tiny" actually is -- not a size that
+   shrank, but a hierarchy that was never there. */
+section-header {
+  padding: 0;
+  /* A heading is not something to take height out of. The Navigation screen is
+     the one the gallery does not put in a viewport, so when its cards ask for
+     more room than the window has, Yoga takes it from whatever will give -- and
+     the first thing that gave was the heading and the paragraph under it, which
+     clipped mid-word. */
+  flex-shrink: 0;
   color: var(--gb-text);
   font-size: var(--gb-font-heading);
   line-height: var(--gb-line-heading);
   font-weight: var(--gb-weight-strong);
 }
 
-#overlay-note, #tabs-note { color: var(--gb-text-muted) }
-
-/* The demo strip fills what the screen leaves it, so its panel is a panel rather
-   than a caption. Without this the strip is content-sized and the tab's content
-   ends wherever its text does, with the screen's background under it -- which
-   reads as a tab that failed to draw. */
-/* A definite height, and **not** `flex-grow: 1`, which was the first attempt and
-   does nothing here. Every gallery screen is inside a `scroll`, and a scroll
-   view's content column is as tall as its content by construction -- so there is
-   no "remaining height" for a child to grow into, and a strip that asked for one
-   stayed exactly as tall as its text. A panel that should fill has to be told
-   what to fill. */
-#demo-tabs { height: 300px }
-
-/* And its panel takes a surface, so that "the panel fills the screen" is
-   something you can see rather than something you have to measure. A tab panel
-   is transparent by default and rightly so -- most applications put their own
-   background behind it -- which is why the fill was invisible either way. */
-#demo-tabs > tab-panel {
-  background: var(--gb-surface);
-  border-radius: 8px;
-  padding: 12px;
-}
-
-/* A segmented control has **no width of its own**: its cells are proportions, so
-   it fills whatever it is given (ADR-0099). In a 30% sidebar that was the right
-   answer and needed saying nowhere; on a screen 900px wide it is a two-option
-   bar stretched across the window, so the screen says how wide it is. */
-#theme-bar { width: 280px }
-
-/* The prose keeps the window's width. A measure would read better and there is
-   no way to ask for one: §8's subset has `width` and no `max-width`, and a fixed
-   width would stop the paragraph re-wrapping when the window narrows — which is
-   the one thing this screen exists to show. */
-#context-target { padding: 16px; background: var(--gb-surface-2) }
-#faders    { gap: 12px; align-items: center; height: 120px }
-#fader-label { color: var(--gb-text-muted) }
-#demo-tabs { flex-grow: 0 }
-#tab-body  { color: var(--gb-text) }
 /* Prose is not UI. §1.4's `body` is 13/18 and is the right size for a label
    beside a control; a paragraph set at it across the width of this window is
    technically correct and hard to read, which is the difference between a type
-   scale for chrome and one for text.
-
-   `heading`'s 15/20 is the largest thing in the scale that is still body copy,
-   so the prose is set at it. Nothing about the toolkit changed to allow this --
-   the sizes were always right and always applied; what was missing was anyone
-   choosing between them here. */
-#prose {
+   scale for chrome and one for text. `heading`'s 15/20 is the largest thing in
+   the scale that is still body copy, so the prose is set at it. */
+.prose, #prose {
+  flex-shrink: 0;
   color: var(--gb-text);
   font-size: var(--gb-font-heading);
   line-height: var(--gb-line-heading);
 }
-#actions   { gap: 8px; align-items: center }
-/* §1.3's 8 between related controls, and `align-items: center`
+
+.caption {
+  color: var(--gb-text-muted);
+}
+
+/* A row of controls: §1.3's 8 for related things, and `align-items: center`
    because a chip's 20px is shorter than the row it sits in. */
-#badges    { gap: 8px; align-items: center }
-#knobs     { gap: 8px; align-items: center }
-/* §1.3's 8 for related controls. It was 4, which is tighter than the
-   design system's own scale and which the progress bar was the first
-   thing to show: a 4px line sitting 4px from a control above it and a
-   spinner below it reads as one crowded lump rather than as three
-   things. */
-#options   { flex-direction: column; gap: 8px }
-/* The bar and the spinner are one group and the options above them
-   are another, so §1.3's 16 separates them -- as a `padding-top` on
-   top of the column's 8, because a gap is one number for every child
-   and this is a boundary rather than a spacing. */
-#task      { flex-direction: column; gap: 8px; padding-top: 8px }
-/* The spinner and its label are a glyph and its text, so they take the
-   same 8px gap and the same centred alignment a `checkbox` gives its
-   own -- and without `align-items` the label would stretch to the
-   row's height and sit off the ring's centre. */
-#busy      { gap: 8px; align-items: center }
-/* `body`, not `caption`: this is a status line beside a control, which
-   is the line §1.4 draws -- `caption` is for secondary text under one.
-   Muted, because what it says is a state and not content. */
-#busy-label { color: var(--gb-text-muted) }
-.caption   { color: var(--gb-text-muted) }
-
-/* The two overlay buttons, side by side like every other row here. */
-#overlays {
-  gap: 8px;
-  align-items: center;
-}
-
-/* Nothing here about the menu: it is a `popover`, and §7's panel carries its own
-   surface, edge, radius and padding in `controls.css` — which it has to, being
-   the root of its own element tree with nothing above it to inherit from
-   (ADR-0103, ADR-0104). */
-
-/* --- the scrolling screen -------------------------------------------- */
-
-/* The list's frame. A fixed height rather than `flex-grow`, so the screen shows
-   a viewport that is visibly shorter than its content -- one that filled the
-   window would look exactly like a window, and there would be nothing to say
-   that a viewport is what it is.
-
-   The border is the other half of that: without an edge, a scroll view is just
-   text that stops, and the reader has no way to tell the bottom of the list from
-   the bottom of the screen. */
-.scroll-demo {
-  height: 320px;
-  padding: 0;
-  border: 1px solid var(--gb-border);
-  border-radius: 8px;
-}
-
-/* The row of jump buttons. `flex-shrink: 0` because the list below it grows,
-   and a toolbar that gave up its height first would vanish before it did. */
-.toolbar {
+.toolbar, #actions, #badges, #knobs, #busy, #overlays, #named-echo {
+  flex-direction: row;
   gap: 8px;
   align-items: center;
   flex-shrink: 0;
 }
 
-/* The "Jump to" label. Its own class and **not** `.caption`, which this file
-   already defines: a second rule for one name is not an override, it is two
-   authors disagreeing, and the later one silently re-coloured every caption on
-   the Values screen. */
-.jump-label {
-  font-size: 11px;
-  line-height: 16px;
-  color: var(--gb-text-muted);
-}
+/* --- Basic ----------------------------------------------------------------- */
 
-.scroll-row {
-  padding: 6px 12px;
-  font-size: 13px;
-  line-height: 18px;
-  color: var(--gb-text-muted);
-}
-
-/* A section heading. It gets its surface from `:affixed` below rather than
-   here: an opaque header at rest would draw a band across a list that has not
-   scrolled, which is exactly the thing that should only appear on lift. */
-section-header {
-  padding: 8px 12px;
-  font-size: 13px;
-  line-height: 18px;
-  font-weight: 600;
+/* §1.4's six ranks, written out so that the card is the scale rather than a
+   description of it. Nothing here is a heading element -- there is no such
+   widget -- which is the whole of what a type scale is. */
+.rank-display {
   color: var(--gb-text);
+  font-size: var(--gb-font-display);
+  line-height: var(--gb-line-display);
+  font-weight: var(--gb-weight-strong);
 }
 
-/* The moment it lifts. §1's whole argument for `:affixed` being a pseudo-class:
-   no selector can say "this node is currently over another one", and a sticky
-   header without a surface has the rows travelling *through* it.
-
-   `border` and not `border-bottom`: §8's subset has one `border` and no per-edge
-   longhands (ADR-0107), and a declaration it does not know is dropped with a
-   line in the log rather than drawn. A full border reads correctly here because
-   the header spans the list's whole width, so only the bottom edge is ever
-   against anything. */
-.section:affixed > affix-content > section-header {
-  background: var(--gb-surface-2);
+.rank-title {
+  color: var(--gb-text);
+  font-size: var(--gb-font-title);
+  line-height: var(--gb-line-title);
+  font-weight: var(--gb-weight-strong);
 }
 
+.rank-heading {
+  color: var(--gb-text);
+  font-size: var(--gb-font-heading);
+  line-height: var(--gb-line-heading);
+  font-weight: var(--gb-weight-strong);
+}
 
-/* --- the panels screen ------------------------------------------------ */
+.rank-body {
+  color: var(--gb-text);
+  font-size: var(--gb-font-body);
+  line-height: var(--gb-line-body);
+}
 
-/* §5's containers, and the only screen in the gallery with no value on it at
-   all — which is why it is a document with not one line of Java behind it.
-   Nothing here styles the widgets themselves: `card`, `group-box`, `statistic`,
-   `skeleton` and `collapse` all carry their own appearance in `controls.css`,
-   the way every other control in this catalog does. What is here is the
-   screen's *layout*, which is an application's business.
+.rank-caption {
+  color: var(--gb-text-muted);
+  font-size: var(--gb-font-caption);
+  line-height: var(--gb-line-caption);
+}
 
-   The one exception is `.surface-demo`, and it is the point of the row: a
+/* The one rank with a face of its own rather than only a size. */
+.rank-code {
+  color: var(--gb-text-muted);
+  font-size: var(--gb-font-code);
+  line-height: var(--gb-line-code);
+  font-family: monospace;
+}
+
+/* A segmented control has **no width of its own**: its cells are proportions, so
+   it fills whatever it is given (ADR-0099). In a card that is the right answer
+   and needs saying nowhere; what it does need is a ceiling, or a two-option bar
+   stretches across a 640px column. */
+#theme-bar {
+  width: 280px;
+}
+
+/* The vertical fader and its label. A definite height, because a slider turned on
+   its side has no length of its own to take. */
+#faders {
+  flex-direction: row;
+  gap: 12px;
+  align-items: center;
+  height: 120px;
+}
+
+#fader-label, #gain-knob-label, #busy-label {
+  color: var(--gb-text-muted);
+}
+
+/* The leagues line, which is the only thing on the Basic screen that is a
+   *number* rather than a control. */
+#leagues {
+  color: var(--gb-text);
+  font-size: var(--gb-font-title);
+  line-height: var(--gb-line-title);
+  font-weight: var(--gb-weight-strong);
+}
+
+/* --- Panels ---------------------------------------------------------------- */
+
+/* Three surfaces at equal width, so they are compared and not merely listed: a
    `panel` and a `card` beside each other at the same size is the only way to see
-   an elevation that is expressed as contrast rather than as a shadow — a card on
-   its own looks exactly like a panel (ADR-0164). */
+   an elevation expressed as contrast rather than as a shadow (ADR-0164). */
 #surfaces, #numbers, #loading {
   gap: 12px;
   align-items: stretch;
 }
 
-/* Equal thirds, so the three surfaces are compared and not merely listed. The
-   `panel` needs its own padding and radius because §5 gives it none: it is "the
-   building block", and the one container a theme can restyle completely. */
 .surface-demo {
   flex-direction: column;
   flex-grow: 1;
@@ -308,14 +277,14 @@ section-header {
   gap: 6px;
 }
 
-/* Only the padding. The surface, the edge and the radius are `panel`'s own now —
-   inventing them here is what made a panel look exactly like a card, which is
-   how the missing rule was reported (ADR-0166). */
+/* Only the padding. The surface, the edge and the radius are `panel`'s own now --
+   inventing them here is what made a panel look exactly like a card, which is how
+   the missing rule was reported (ADR-0166). */
 panel.surface-demo {
   padding: 12px;
 }
 
-/* A settings row: a label, the gap that pushes the value out, and the value. */
+/* A settings row: a label, the spacer that pushes the value out, and the value. */
 .setting {
   flex-direction: row;
   align-items: center;
@@ -323,7 +292,7 @@ panel.surface-demo {
 }
 
 /* Each statistic takes an equal share of the row rather than only as much as its
-   own number needs — otherwise a five-digit figure beside a one-digit one puts
+   own number needs -- otherwise a four-digit figure beside a one-digit one puts
    them at wildly different places and they stop reading as a set. */
 #numbers > statistic {
   flex-grow: 1;
@@ -337,10 +306,10 @@ panel.surface-demo {
   gap: 8px;
 }
 
-/* `flex-start` and not `start`: §10's `align-items` takes Yoga's keywords, and
-   the CSS alias is not one of them. Written as `start` first, which was dropped
-   with a warning on every style resolution — so the avatar sat centred against
-   its two lines *and* the console filled up while the screen scrolled. */
+/* `flex-start` and not `start`: §10's `align-items` takes Yoga's keywords, and the
+   CSS alias is not one of them. Written as `start` first, which was dropped with a
+   warning on every style resolution -- so the avatar sat centred against its two
+   lines *and* the console filled up while the screen scrolled. */
 .loading-row {
   flex-direction: row;
   align-items: flex-start;
@@ -365,9 +334,9 @@ panel.surface-demo {
 }
 
 /* A definite height, because a split pane grows to fill what it is given and a
-   gallery screen's column gives it nothing: the screen is content-sized inside
-   the gallery's viewport, so without this the split is as tall as its taller pane
-   and the divider has nothing to travel along. */
+   card's column gives it nothing: a card is content-sized, so without this the
+   split is as tall as its taller pane and the divider has nothing to travel
+   along. */
 #demo-split {
   height: 140px;
   flex-grow: 0;
@@ -380,30 +349,145 @@ panel.surface-demo {
   height: 90px;
 }
 
-/* The accordion demo. Nothing about the `accordion` class here — it is on the
+/* The accordion demo. Nothing about the `accordion` class here -- it is on the
    node so a stylesheet *can* reach it, and this one has nothing to say. What is
    here is the gap between sections, which is an application's business. */
 #demo-accordion {
   gap: 4px;
 }
 
-/* --- the Charts screen ----------------------------------------------------
-   A wall of cards in a `masonry`. Nothing here says how tall a card is: the
-   whole point of the layout is that a card is as tall as its contents and the
-   *columns* come out uneven. What the cards do need is a height for the plots,
-   because a chart has no intrinsic size — it takes the room it is given, which
-   is a stylesheet's business and not a number the toolkit should invent. */
-/* --- the Collections screen (§10) -------------------------------------- */
+/* --- Overlays -------------------------------------------------------------- */
 
-#collections {
-  gap: 8px;
+#overlay-note, #menubar-note, #tabs-note {
+  color: var(--gb-text-muted);
 }
 
+#context-target {
+  padding: 16px;
+  background: var(--gb-surface-2);
+}
+
+/* The three stacks of banners.
+ *
+ * **A `column` has no gap of its own**, which is the toolkit's rule everywhere: a
+ * widget does not decide how far it sits from its neighbours, because the
+ * neighbour it is next to is not its business. The first version of this screen
+ * left it out and the banners touched -- four bordered blocks sharing edges, which
+ * reads as one control with rules through it rather than as four notices.
+ *
+ * 12 rather than §1.3's 8 for related controls or 16 for groups: these are
+ * neither. Each banner is a block of prose with a border round it, and 8 makes two
+ * of them look joined while 16 puts a hole between things that arrived together.
+ * It is on the ramp, which is what §1.3 asks of a number. */
+#notice-kinds, #notice-summary, #notices {
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Nothing here about the context menu itself: it is a `popover`, and §7's panel
+   carries its own surface, edge, radius and padding in `controls.css` -- which it
+   has to, being the root of its own element tree with nothing above it to inherit
+   from (ADR-0103, ADR-0104). */
+
+/* --- Forms ----------------------------------------------------------------- */
+
+/* A narrower label column than the 120 the toolkit defaults to, because this card
+   is a third of a screen. Which is the token doing its job: an application moves
+   every field in a form at once rather than writing a rule per row, and what
+   "consistent label column" is worth depends on how much width there is. */
+#signup {
+  --gb-field-label-width: 72px;
+}
+
+/* --- Navigation ------------------------------------------------------------ */
+
+/* The demo strip fills what its card leaves it, so its panel is a panel rather
+   than a caption. A definite height, and **not** `flex-grow: 1`, which was the
+   first attempt and does nothing here: a card is content-sized, so there is no
+   "remaining height" for a child to grow into, and a strip that asked for one
+   stayed exactly as tall as its text. A panel that should fill has to be told what
+   to fill. */
+#demo-tabs {
+  height: 260px;
+  flex-grow: 0;
+  flex-shrink: 0;
+}
+
+/* And its panel takes a surface, so that "the panel fills the card" is something
+   you can see rather than something you have to measure. A tab panel is
+   transparent by default and rightly so -- most applications put their own
+   background behind it -- which is why the fill was invisible either way. */
+#demo-tabs > tab-panel {
+  background: var(--gb-surface);
+  border-radius: 8px;
+  padding: 12px;
+}
+
+#tab-body {
+  color: var(--gb-text);
+}
+
+/* The list's frame. A fixed height rather than `flex-grow`, so the card shows a
+   viewport that is visibly shorter than its content -- one that filled the card
+   would look exactly like a card, and there would be nothing to say that a
+   viewport is what it is.
+
+   The border is the other half of that: without an edge, a scroll view is just
+   text that stops, and the reader has no way to tell the bottom of the list from
+   the bottom of the card. */
+.scroll-demo {
+  height: 260px;
+  padding: 0;
+  border: 1px solid var(--gb-border);
+  border-radius: 8px;
+}
+
+/* The "Jump to" label. Its own class and **not** `.caption`, which this file
+   already defines: a second rule for one name is not an override, it is two
+   authors disagreeing, and the later one silently re-coloured every caption on the
+   screen. */
+.jump-label {
+  font-size: var(--gb-font-caption);
+  line-height: var(--gb-line-caption);
+  color: var(--gb-text-muted);
+}
+
+.scroll-row {
+  padding: 6px 12px;
+  font-size: var(--gb-font-body);
+  line-height: var(--gb-line-body);
+  color: var(--gb-text-muted);
+}
+
+/* A section heading inside that list. It gets its surface from `:affixed` below
+   rather than here: an opaque header at rest would draw a band across a list that
+   has not scrolled, which is exactly the thing that should only appear on lift. */
+.section > affix-content > section-header {
+  padding: 8px 12px;
+  font-size: var(--gb-font-body);
+  line-height: var(--gb-line-body);
+}
+
+/* The moment it lifts. §1's whole argument for `:affixed` being a pseudo-class: no
+   selector can say "this node is currently over another one", and a sticky header
+   without a surface has the rows travelling *through* it.
+
+   `border` and not `border-bottom`: §8's subset has one `border` and no per-edge
+   longhands (ADR-0107), and a declaration it does not know is dropped with a line
+   in the log rather than drawn. A full border reads correctly here because the
+   header spans the list's whole width, so only the bottom edge is ever against
+   anything. */
+.section:affixed > affix-content > section-header {
+  background: var(--gb-surface-2);
+}
+
+/* --- Collections ----------------------------------------------------------- */
+
 /* The viewport the virtual list is measured against, and the reason it has a
-   height at all: a virtual list clipped only by the screen's own scroll would
-   have a window the height of the screen, which is correct and shows nothing.
-   Eight rows is enough to see the scrollbar's thumb be honest about ten
-   thousand (ADR-0213). */
+   height at all: a virtual list clipped only by the screen's own scroll would have
+   a window the height of the screen, which is correct and shows nothing. Eight
+   rows is enough to see the scrollbar's thumb be honest about ten thousand
+   (ADR-0213). */
 scroll.tall-list {
   height: 256px;
   flex-grow: 0;
@@ -413,9 +497,10 @@ scroll.tall-list {
   border-radius: 8px;
 }
 
-/* The table gets the same plate, so the two collections on this screen read as
-   two of a kind rather than as one framed thing and one loose one. */
-#peaks {
+/* The table and the tree get the same plate, so the three collections on this
+   screen read as three of a kind rather than as one framed thing and two loose
+   ones. */
+#company, #lands {
   background: var(--gb-surface);
   border: 1px solid var(--gb-border);
   border-radius: 8px;
@@ -424,49 +509,41 @@ scroll.tall-list {
   padding: 4px 0;
 }
 
-#charts {
-  gap: 12px;
-}
+/* --- Charts ---------------------------------------------------------------- */
 
-#wall {
-  gap: 12px;
-}
-
-/* Every chart plot on this screen. A `statistic`'s sparkline is deliberately not
-   in this list: it is 28px because it sits under a number rather than beside an
-   axis, and a trend as tall as a chart would read as the point of the card. */
-#requests, #bytes, #errors, #latency {
+/* Nothing here says how tall a card is: the whole point of the layout is that a
+   card is as tall as its contents and the *columns* come out uneven. What the
+   cards do need is a height for the plots, because a chart has no intrinsic size
+   -- it takes the room it is given, which is a stylesheet's business and not a
+   number the toolkit should invent. */
+#marched, #provisions, #sightings, #watch {
   height: 148px;
 }
 
-/* The two plots in the dropout card, sized as one: the argument they make is
-   that the *same* numbers read two ways, so a difference in height between them
-   would be a difference the reader has to rule out first. Shorter than the
-   charts above because there are two of them in one card, each with a line of
-   prose under it (ADR-0201). */
-#signal, #signal-zero {
+/* The two plots in the dropout card, sized as one: the argument they make is that
+   the *same* numbers read two ways, so a difference in height between them would
+   be a difference the reader has to rule out first. Shorter than the charts above
+   because there are two of them in one card, each with a line of prose under it
+   (ADR-0201). */
+#beacons, #beacons-zero {
   height: 96px;
 }
 
-#cache {
+#packs {
   height: 168px;
 }
 
+/* A `statistic`'s sparkline is deliberately not in the list above: it is 28px
+   because it sits under a number rather than beside an axis, and a trend as tall
+   as a chart would read as the point of the card. */
 sparkline {
   height: 28px;
 }
 
-/* The card's own title: §1.4's `label` rank, muted, above the thing it names. */
-.card-title {
-  color: var(--gb-text-muted);
-  font-size: var(--gb-font-caption);
-  line-height: var(--gb-line-caption);
-}
-
-/* One rule, both halves. `--gb-chart-1` is a custom property, so it inherits
-   from this card into the chart's plot *and* into its legend swatch -- the line
-   and the key cannot disagree, which is what a Java palette table could not have
-   promised (ADR-0195). */
-#latency-card {
+/* One rule, both halves. `--gb-chart-1` is a custom property, so it inherits from
+   this card into the chart's plot *and* into its legend swatch -- the line and the
+   key cannot disagree, which is what a Java palette table could not have promised
+   (ADR-0195). */
+#watch-card {
   --gb-chart-1: var(--gb-warning);
 }

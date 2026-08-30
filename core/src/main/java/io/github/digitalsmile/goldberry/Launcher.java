@@ -17,6 +17,7 @@ import io.github.digitalsmile.goldberry.widget.style.Corner;
 import io.github.digitalsmile.goldberry.widget.ElementTree;
 import io.github.digitalsmile.goldberry.widget.WidgetRenderer;
 import io.github.digitalsmile.goldberry.widget.Widget;
+import io.github.digitalsmile.goldberry.render.window.WindowSpec;
 import io.github.digitalsmile.goldberry.widget.root.WindowRoot;
 import java.util.ArrayList;
 import java.util.List;
@@ -122,7 +123,12 @@ final class Launcher implements Host {
                 application.getClass().getSimpleName());
 
         var size = options.size() == null ? application.size() : options.size();
-        window = Window.open(application.title(), size.width(), size.height());
+        // `--size=` un-maximizes as well as resizing, because an explicit size on
+        // the command line and a window that ignores it is the one combination
+        // nobody means: the flag exists so a screenshot or a golden run can pin
+        // the window's geometry (ADR-0221).
+        window = Window.open(WindowSpec.of(application.title(), size)
+                .withMaximized(application.maximized() && options.size() == null));
 
         // On the UI thread and staying there: the book owns native objects from
         // two libraries, confined to the thread that built them, and opening a
@@ -737,6 +743,12 @@ final class Launcher implements Host {
     }
 
     @Override
+    public void shortcut(io.github.digitalsmile.goldberry.input.key.Shortcut accelerator,
+            Runnable action, Object owner) {
+        router.shortcut(accelerator, action, owner);
+    }
+
+    @Override
     public void shortcut(String accelerator, Runnable action) {
         router.shortcut(accelerator, action);
     }
@@ -744,6 +756,12 @@ final class Launcher implements Host {
     @Override
     public void removeShortcut(io.github.digitalsmile.goldberry.input.key.Shortcut accelerator) {
         router.removeShortcut(accelerator);
+    }
+
+    @Override
+    public void removeShortcut(io.github.digitalsmile.goldberry.input.key.Shortcut accelerator,
+            Object owner) {
+        router.removeShortcut(accelerator, owner);
     }
 
     @Override

@@ -1310,16 +1310,22 @@ knob-arc {
  *
  * The anatomy those two rows add up to:
  *
- *   segmented                 height, radius 8, 1px --gb-border, padding 2
+ *   segmented                 height, radius 8, 1px --gb-border, padding 1
  *   `-- segmented-track       the grid: no padding of its own
+ *       |-- segmented-divider ... absolute, at each 1/n boundary
  *       |-- segmented-indicator   absolute, 1/n wide, translated n cells along
  *       `-- option ...            each exactly 1/n, so the grid is regular
  *
- * **"radius 8 outer, 0 between" is still not what is drawn**, and ADR-0097 is
- * still why: it describes per-corner radii, and §8's subset resolves one radius
- * per box with no clipping to hide a square fill inside a round bar. The bar
- * carries the 8, the pill is inset by the bar's 2 and takes §1.5's 4, and the
- * divider goes with the joined drawing it belonged to.
+ * **"radius 8 outer, 0 between" is what is drawn**, since ADR-0217. ADR-0097
+ * deferred it on two grounds and both are gone: `border-radius` resolves four
+ * corners now (ADR-0216), and the clipping that was the other objection is not
+ * needed once a fill can round its own outer corners to match the bar. The
+ * padding is 1 — the border's own width, so the track is exactly the bar's inner
+ * box — and the segments and the pill take 7, which is the 8 less that border.
+ *
+ * Which cell is an end is a fact about a **count**, and no selector can count:
+ * `SegmentedTrack` and `SegmentedIndicator` square the corners that are not at an
+ * end, and the radius they square stays here where a theme can change it.
  *
  * **The travelling indicator is drawn now**, which ADR-0097 deferred. What
  * unblocked it was not geometry: `flex-basis: 0` makes every segment exactly
@@ -1330,7 +1336,11 @@ knob-arc {
 segmented {
   height: var(--gb-segmented-height);
   flex-direction: row;
-  padding: 2px;
+  /* The border's own width, so the track is the bar's inner box: a segment that
+     started at the bar's edge would paint its fill over the 1px the border is
+     stroked into, and its rounded end would sit outside the border's arc rather
+     than inside it (ADR-0216's group-box header, one control along). */
+  padding: 1px;
   border-radius: 8px;
   border: 1px solid var(--gb-border);
   background: var(--gb-segmented-bg);
@@ -1354,7 +1364,11 @@ segmented-track {
    Everything here is what a theme *should* be able to change: the colour, the
    radius, and how long the travel takes. */
 segmented-indicator {
-  border-radius: 4px;
+  /* The bar's 8 less its 1px border, which is what "concentric" means for a fill
+     lying against the inside of a rounded edge. Only the two corners at the end
+     of the bar keep it -- `SegmentedIndicator` squares the rest, because which
+     end this pill is at depends on a count no selector can write. */
+  border-radius: 7px;
   background: var(--gb-segmented-selected-bg);
   /* No pill until something is selected. Built in every state anyway, because a
      node that appears cannot transition -- `radio-dot`'s rule (ADR-0065). */
@@ -1402,10 +1416,27 @@ option {
   font-weight: var(--gb-weight-strong);
   align-items: center;
   justify-content: center;
-  border-radius: 4px;
+  /* The pill's radius, for the pill's reason and squared by the same rule: a
+     segment's own drawing is its hover wash and its focus ring, and both have to
+     stop where the bar's corner does. `select-list option` overrides it, which is
+     what one widget in two surroundings looks like in CSS. */
+  border-radius: 7px;
   cursor: pointer;
   background: transparent;
   color: var(--gb-segmented-text);
+}
+
+/* §3's "1px divider in `--gb-border`", as a node: §8's subset has one `border`
+   and no per-edge longhands, so a line between two cells is a box one pixel wide
+   -- `table-rule`'s answer (ADR-0215) and `separator`'s before it.
+ *
+ * Where each one sits is `SegmentedDivider`'s, because it is a fraction of a
+ * count; what a theme owns is here. The two beside the selection fade out rather
+ * than blinking, because the pill takes `base` to reach them. */
+segmented-divider {
+  width: 1px;
+  background: var(--gb-border);
+  transition: opacity var(--gb-motion-fast) ease-enter;
 }
 
 /* §2.1's hover and press, as a **wash** rather than as a surface step -- the
@@ -2043,6 +2074,20 @@ item:focus-visible {
 
 item:active {
   background: var(--gb-overlay-active);
+}
+
+/* The row whose submenu is showing. Nothing said which branch was open until
+   ADR-0219: a row is `:focus-visible` when the keyboard is on it and `:hover`
+   when the pointer is, and neither means "this is the one that is down" — the
+   pointer can be three rows away with a submenu still on screen.
+
+   `.open` rather than a pseudo-class, because "the branch that is showing" is
+   not one of CSS's states and inventing one would put a menu's internals in the
+   selector engine. `menu-title` marks the heading whose menu is down the same
+   way. The wash is `:hover`'s, so a branch that is open and hovered does not
+   step up a second time. */
+item.open {
+  background: var(--gb-overlay-hover);
 }
 
 item:disabled {

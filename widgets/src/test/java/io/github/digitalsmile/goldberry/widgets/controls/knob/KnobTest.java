@@ -1,5 +1,6 @@
 package io.github.digitalsmile.goldberry.widgets.controls.knob;
 
+import io.github.digitalsmile.goldberry.css.Corners;
 import io.github.digitalsmile.goldberry.paint.Box;
 import io.github.digitalsmile.goldberry.widget.attr.Attributes;
 
@@ -466,7 +467,7 @@ class KnobTest {
     void diameters() {
         assertEquals(StyleLength.points(32), styleOf(new Knob(0, 1, 0, 0, null)).width());
         assertEquals(StyleLength.points(48), styleOf(new Knob(0, 1, 0, 0, null).styled("large")).width());
-        assertEquals(16, styleOf(new Knob(0, 1, 0, 0, null)).decoration().radius(), 1e-9,
+        assertEquals(Corners.all(16), styleOf(new Knob(0, 1, 0, 0, null)).decoration().corners(),
                 "half the side, which is what makes a rounded rectangle a disc");
     }
 

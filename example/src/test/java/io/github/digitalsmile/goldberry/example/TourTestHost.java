@@ -63,11 +63,21 @@ record TourTestHost(List<HitTest.Region> regions) implements Host {
     }
 
     @Override
+    public void shortcut(io.github.digitalsmile.goldberry.input.key.Shortcut a, Runnable r,
+            Object owner) {
+    }
+
+    @Override
     public void shortcut(String accelerator, Runnable action) {
     }
 
     @Override
     public void removeShortcut(io.github.digitalsmile.goldberry.input.key.Shortcut accelerator) {
+    }
+
+    @Override
+    public void removeShortcut(io.github.digitalsmile.goldberry.input.key.Shortcut accelerator,
+            Object owner) {
     }
 
     @Override

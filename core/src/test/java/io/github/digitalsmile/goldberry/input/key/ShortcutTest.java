@@ -220,6 +220,44 @@ class ShortcutTest {
             assertEquals(List.of("second"), fired);
         }
 
+        /// Who bound a key, so that giving it back cannot take somebody else's
+        /// ([ADR-0220]). The map still holds one binding per key and the last
+        /// registration still wins — what changed is that the loser can no longer
+        /// unbind the winner.
+        @Test
+        @DisplayName("an owner gives back only what it still holds")
+        void ownedUnbinding() {
+            var bar = new Object();
+            var application = new Object();
+            var ctrl = new Modifiers(false, true, false, false);
+            router.shortcut(Shortcut.of("Ctrl+O"), () -> fired.add("menu"), bar);
+            router.shortcut(Shortcut.of("Ctrl+O"), () -> fired.add("application"), application);
+
+            router.removeShortcut(Shortcut.of("Ctrl+O"), bar);
+
+            assertTrue(router.keyPressed(Key.O, ctrl, false), "the key was taken by the wrong owner");
+            assertEquals(List.of("application"), fired, "and the last registration is what fires");
+
+            router.removeShortcut(Shortcut.of("Ctrl+O"), application);
+            assertFalse(router.keyPressed(Key.O, ctrl, false),
+                    "the owner that does hold it gives it back");
+        }
+
+        /// An application binds without an owner and unbinds by key, which is
+        /// what it means to give up a key you took: both forms still work, and
+        /// the unowned one removes whatever is there.
+        @Test
+        @DisplayName("removing by key alone still removes whoever holds it")
+        void unownedUnbindingIsUnchanged() {
+            var bar = new Object();
+            router.shortcut(Shortcut.of("Ctrl+O"), () -> fired.add("menu"), bar);
+
+            router.removeShortcut(Shortcut.of("Ctrl+O"));
+
+            assertFalse(router.keyPressed(Key.O, new Modifiers(false, true, false, false), false));
+            assertTrue(fired.isEmpty());
+        }
+
         @Test
         @DisplayName("the bound set is listed in the order it was bound")
         void listed() {

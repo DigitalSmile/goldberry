@@ -1,5 +1,6 @@
 package io.github.digitalsmile.goldberry.widgets.controls.progressbar;
 
+import io.github.digitalsmile.goldberry.css.Corners;
 import io.github.digitalsmile.goldberry.paint.Box;
 import io.github.digitalsmile.goldberry.widget.attr.Attributes;
 import io.github.digitalsmile.goldberry.widgets.core.Row;
@@ -286,7 +287,7 @@ class ProgressTest {
             var bar = ComputedStyle.of(resolver.resolve(tree.root()), CssLength.Context.DEFAULT);
 
             assertEquals(StyleLength.points(4), bar.height());
-            assertEquals(2, bar.decoration().radius(), 1e-9, "half of 4 is a pill");
+            assertEquals(Corners.all(2), bar.decoration().corners(), "half of 4 is a pill");
         }
 
         /// One widget, two drawings, and the selector that tells them apart is one

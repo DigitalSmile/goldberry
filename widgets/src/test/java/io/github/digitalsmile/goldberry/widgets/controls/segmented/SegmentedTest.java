@@ -1,5 +1,7 @@
 package io.github.digitalsmile.goldberry.widgets.controls.segmented;
 
+import io.github.digitalsmile.goldberry.css.Corners;
+import io.github.digitalsmile.goldberry.paint.Box;
 import io.github.digitalsmile.goldberry.widgets.controls.option.Option;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -80,6 +82,12 @@ class SegmentedTest {
 
     private static SegmentedTrack track(Segmented bar) {
         return (SegmentedTrack) bar.children().getFirst();
+    }
+
+    /// The alpha of a packed `0xAARRGGBB`, which is how "does this paint
+    /// anything" is asked of a colour.
+    private static int alpha(int argb) {
+        return (argb >>> 24) & 0xFF;
     }
 
     @Nested
@@ -343,8 +351,15 @@ class SegmentedTest {
         /// The bar's element, then its track, then the segment — and `+ 1`
         /// because the track's first child is the indicator, which is painted
         /// under the labels and takes no focus.
+        /// The `index`-th segment, found **by type** rather than by counting
+        /// parts: the track also holds the pill and one hairline per boundary
+        /// (ADR-0217), and a fixed offset would say something different every
+        /// time the anatomy changed.
         private Element segment(ElementTree tree, int index) {
-            return tree.root().children().get(1).children().getFirst().children().get(index + 1);
+            return tree.root().children().get(1).children().getFirst().children().stream()
+                    .filter(child -> "option".equals(child.type()))
+                    .toList()
+                    .get(index);
         }
 
         @Test
@@ -528,33 +543,53 @@ class SegmentedTest {
     }
 
     @Nested
-    @DisplayName("the drawing §3 asks for, and the two halves it could not have")
+    @DisplayName("§3's drawing, joined")
     class Drawing {
 
-        /// §3: "radius 8 outer, 0 between". §8's subset resolves **one** radius
-        /// per box, so the bar carries the 8 and the segment is inset inside it
-        /// and takes §1.5's 4 — see ADR-0097. Pinned, because the day a per-corner
-        /// radius exists this is the rule that should be revisited rather than
-        /// quietly left behind.
+        /// §3: "radius 8 outer, 0 between". It is drawn, since ADR-0217 — the bar
+        /// carries the 8, the segments and the pill carry the 7 that is the 8 less
+        /// the bar's own border, and only the corners at the **ends** of the row
+        /// keep it. ADR-0097 deferred this for two reasons and ADR-0216 removed
+        /// the first; the second, that nothing clips, stopped mattering once a
+        /// fill could round its own outer corners instead of being cut to shape.
         @Test
-        @DisplayName("the bar carries the outer radius and the segment an inset one")
+        @DisplayName("the bar's radius is §3's 8, and what is inside it is that less the border")
         void radii() {
-            assertEquals(8.0, styleOf("segmented").decoration().radius());
-            assertEquals(4.0, styleOf("option").decoration().radius());
+            assertEquals(Corners.all(8), styleOf("segmented").decoration().corners());
+            assertEquals(Corners.all(7), styleOf("option").decoration().corners(),
+                    "the stylesheet carries the radius; which corners keep it is the track's");
+            assertEquals(Corners.all(7), styleOf("segmented-indicator").decoration().corners());
         }
 
-        /// The inset is what makes the two radii legal together: without it a
-        /// square-cornered fill would paint over the bar's curve, and nothing in
-        /// this toolkit clips.
+        /// The joined drawing's own arithmetic: the bar's padding is its border,
+        /// so the track is exactly the box inside the edge. It was 2 while the
+        /// segments were inset pills, and that 2 was §1.3's ramp; this 1 is not a
+        /// spacing step at all but the width of the line it clears.
         @Test
-        @DisplayName("the bar's padding is the inset, and it is on §1.3's ramp")
-        void inset() {
-            var padding = styleOf("segmented").padding();
+        @DisplayName("the bar's padding is its border's width, so the track is its inner box")
+        void insetIsTheBorder() {
+            var bar = styleOf("segmented");
 
-            assertEquals(StyleLength.points(2), padding.top());
-            assertEquals(StyleLength.points(2), padding.left());
-            assertEquals(padding.top(), padding.bottom());
-            assertEquals(padding.left(), padding.right());
+            assertEquals(StyleLength.points(1), bar.padding().top());
+            assertEquals(bar.decoration().borderWidth(), 1, 1e-9);
+            assertEquals(bar.padding().top(), bar.padding().left());
+            assertEquals(bar.padding().top(), bar.padding().bottom());
+            assertEquals(bar.padding().left(), bar.padding().right());
+        }
+
+        /// §3's "1px divider in `--gb-border`", which came back with the drawing
+        /// it belonged to — ADR-0097 dropped it because "a divider separates
+        /// segments that meet", and they meet again.
+        @Test
+        @DisplayName("a divider is a hairline in the border's own colour")
+        void dividerIsAHairline() {
+            var divider = styleOf("segmented-divider");
+
+            assertEquals(StyleLength.points(1), divider.width());
+            assertEquals(styleOf("segmented").decoration().borderColor(), divider.background(),
+                    "the line between two segments is the line around them");
+            assertNotNull(divider.transitions().get(Transitions.Animatable.OPACITY),
+                    "a hairline that blinked would beat the pill that is still travelling");
         }
 
         /// The one layout property the control asserts, because it is the one
@@ -616,13 +651,10 @@ class SegmentedTest {
         var pill = styleOf("segmented-indicator");
 
         assertEquals(255, alpha(pill.background()), "the pill is opaque");
-        assertEquals(4.0, pill.decoration().radius(), "§1.5's small-control radius, inside the bar's 8");
+        assertEquals(Corners.all(7), pill.decoration().corners(),
+                "the bar's 8 less its border, before the track squares what is not an end");
         assertEquals(0.0, pill.opacity(), "and invisible until something is selected");
         assertEquals(1.0, styleOf("segmented-indicator", Selector.PseudoClass.CHECKED).opacity());
-    }
-
-    private static int alpha(int argb) {
-        return (argb >>> 24) & 0xFF;
     }
 
     /// The selected segment's foreground is the **fill's** and not the
@@ -736,15 +768,104 @@ class SegmentedTest {
                     var type = placed.box().owner() instanceof Element element ? element.type() : null;
                     out.add(new Drawn(type,
                             matrix.a() * layout.left() + matrix.c() * layout.top() + matrix.e(),
-                            matrix.a() * layout.width()));
+                            matrix.a() * layout.width(),
+                            placed.box()));
                 });
             }
             return List.copyOf(out);
         }
 
         /// One box as the screen receives it: its type, its left edge and its
-        /// width, both after the matrix.
-        private record Drawn(String type, double left, double width) {
+        /// width — both after the matrix — and the box itself, for the questions
+        /// that are about paint rather than place.
+        private record Drawn(String type, double left, double width, Box box) {
+        }
+
+        /// Four segments, so that "between" is a cell with a neighbour on both
+        /// sides and not merely the other end.
+        private static Segmented bar(String selected) {
+            return new Segmented(selected,
+                    List.of(new Option("list", "List"), new Option("grid", "Grid"),
+                            new Option("map", "Map"), new Option("sat", "Satellite")),
+                    null, null, false, Attributes.NONE);
+        }
+
+        /// §3's "radius 8 outer, 0 between", on the cells: the bar's own 8 less
+        /// its 1px border at the two ends of the row, and nothing in between.
+        @Test
+        @DisplayName("a segment is round only at the ends of the row")
+        void cellsAreRoundOnlyAtTheEnds() {
+            var cells = ofType(drawn(bar("grid"), 400), "option");
+
+            assertEquals(4, cells.size());
+            assertEquals(new Corners(7, 0, 0, 7), cells.getFirst().box().decoration().corners());
+            assertEquals(Corners.SQUARE, cells.get(1).box().decoration().corners());
+            assertEquals(Corners.SQUARE, cells.get(2).box().decoration().corners());
+            assertEquals(new Corners(0, 7, 7, 0), cells.getLast().box().decoration().corners());
+        }
+
+        /// And the same rule on the fill that moves, which is what keeps the
+        /// drawing right at both ends of a travel.
+        @Test
+        @DisplayName("the pill takes the corners of the cell it is on")
+        void pillTakesItsCellsCorners() {
+            assertEquals(new Corners(7, 0, 0, 7),
+                    ofType(drawn(bar("list"), 400), "segmented-indicator")
+                            .getFirst().box().decoration().corners());
+            assertEquals(Corners.SQUARE,
+                    ofType(drawn(bar("grid"), 400), "segmented-indicator")
+                            .getFirst().box().decoration().corners());
+            assertEquals(new Corners(0, 7, 7, 0),
+                    ofType(drawn(bar("sat"), 400), "segmented-indicator")
+                            .getFirst().box().decoration().corners());
+        }
+
+        /// One hairline per boundary, each exactly where two cells meet — which
+        /// is the claim that says a percentage of the track and the grid the
+        /// cells are laid on are the same measurement (ADR-0217).
+        @Test
+        @DisplayName("a hairline sits where two cells meet, one per boundary")
+        void hairlinesSitOnTheBoundaries() {
+            var boxes = drawn(bar("grid"), 400);
+            var cells = ofType(boxes, "option");
+            var lines = ofType(boxes, "segmented-divider");
+
+            assertEquals(cells.size() - 1, lines.size(), "one gap fewer than there are cells");
+            for (var gap = 0; gap < lines.size(); gap++) {
+                assertEquals(cells.get(gap + 1).left(), lines.get(gap).left(), 0.5,
+                        "hairline " + gap + " is not on the seam it divides");
+                assertEquals(1, lines.get(gap).width(), 1e-9, "§3's 1px");
+            }
+        }
+
+        /// The two beside the selection are faded out: the pill covers the seam on
+        /// its left and abuts the one on its right, and a line there would draw a
+        /// boundary the selection already is.
+        @Test
+        @DisplayName("the hairlines beside the selection are invisible, and the rest are not")
+        void hairlinesBesideTheSelectionAreHidden() {
+            // Read as the **fill that reaches the screen** rather than as the
+            // node's `opacity`: the render tree multiplies opacity down the
+            // subtree into the colours themselves (ADR-0064), so a box that has
+            // been faded out carries a transparent background and an opacity of 1.
+            var lines = ofType(drawn(bar("grid"), 400), "segmented-divider");
+
+            assertEquals(0, alpha(lines.get(0).box().background()), "left of the pill");
+            assertEquals(0, alpha(lines.get(1).box().background()), "right of the pill");
+            assertEquals(255, alpha(lines.get(2).box().background()),
+                    "and the far one still shows");
+        }
+
+        /// A bar whose value matches no segment is a real state — a model that has
+        /// not loaded — and it is the only one in which every hairline shows.
+        @Test
+        @DisplayName("nothing selected leaves every hairline drawn")
+        void nothingSelectedShowsThemAll() {
+            var lines = ofType(drawn(bar(null), 400), "segmented-divider");
+
+            assertEquals(3, lines.size());
+            assertTrue(lines.stream().allMatch(line -> alpha(line.box().background()) == 255),
+                    "a bar with no selection has nothing to hide a hairline for");
         }
 
         private static List<Drawn> ofType(List<Drawn> boxes, String type) {

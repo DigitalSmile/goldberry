@@ -8,6 +8,7 @@ import io.github.digitalsmile.goldberry.assets.BundledFont;
 import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
 import io.github.digitalsmile.goldberry.css.Stylesheet;
 import io.github.digitalsmile.goldberry.css.Theme;
+import io.github.digitalsmile.goldberry.example.ui.AppMenu;
 import io.github.digitalsmile.goldberry.example.ui.Screen;
 import io.github.digitalsmile.goldberry.icon.Icon;
 import io.github.digitalsmile.goldberry.paint.tree.RenderTree;
@@ -161,7 +162,10 @@ class FrameBudgetTest {
         var inflater = Widgets.inflater(
                 Icons.strict().bind("palette", palette).bind("plus", plus),
                 showcase.models().toArray());
-        return new ElementTree(new Screen(model, actions, inflater, plus, () -> { }));
+        return new ElementTree(new Screen(model, actions, inflater, plus, () -> { },
+                new AppMenu(actions,
+                        new AppMenu.Handlers(() -> { }, () -> { }, () -> { }, () -> { }),
+                        plus)));
     }
 
     private WidgetRenderer rendererFor() {

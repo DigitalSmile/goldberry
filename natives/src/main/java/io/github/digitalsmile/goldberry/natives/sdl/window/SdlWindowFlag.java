@@ -18,6 +18,20 @@ public enum SdlWindowFlag {
     /// The user can resize the window.
     RESIZABLE(0x20L),
 
+    /// Created already filling the work area, as though the user had pressed the
+    /// maximize button before the window was mapped.
+    ///
+    /// **Not the same as asking for a big size.** A maximized window is a *state*
+    /// the desktop owns: it snaps to the work area rather than to the whole
+    /// display, it stays clear of panels and docks, and un-maximizing restores
+    /// the size the window was created with. Asking for a 3840×2160 window
+    /// instead would be a window larger than the screen on a laptop and one the
+    /// user cannot un-maximize anywhere.
+    ///
+    /// Only meaningful with [#RESIZABLE] — a fixed-size window has no maximized
+    /// state to be in, and SDL ignores the flag on one.
+    MAXIMIZED(0x80L),
+
     /// Created hidden. Goldberry creates windows hidden and shows them once the
     /// first frame is ready, so the user never sees an unpainted window.
     HIDDEN(0x08L),

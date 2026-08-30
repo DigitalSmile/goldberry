@@ -140,9 +140,9 @@ public final class BoxPainter {
         var height = layout.height();
 
         if ((box.background() >>> 24) != 0) {
-            if (decoration.radius() > 0) {
+            if (!decoration.corners().isSquare()) {
                 path.reset();
-                RoundRect.addTo(path, 0, 0, width, height, decoration.radius());
+                RoundRect.addTo(path, 0, 0, width, height, decoration.corners());
                 frame.fillPath(x, y, path, box.background());
             } else {
                 // The square case keeps the call it always had. A rectangle is
@@ -161,7 +161,7 @@ public final class BoxPainter {
             path.reset();
             RoundRect.addTo(path, inset, inset,
                     width - decoration.borderWidth(), height - decoration.borderWidth(),
-                    Math.max(0, decoration.radius() - inset));
+                    decoration.corners().shrunkBy(inset));
             frame.strokePath(x, y, path, decoration.borderWidth(),
                     BlendStrokeCap.BUTT, BlendStrokeJoin.MITER_CLIP, decoration.borderColor());
         }
@@ -225,7 +225,7 @@ public final class BoxPainter {
                     // its radius grows by the same distance it moved out. A
                     // square corner stays square: a ring that rounded itself
                     // around a sharp box would not follow the control.
-                    decoration.radius() > 0 ? decoration.radius() + out : 0);
+                    decoration.corners().grownBy(out));
             frame.strokePath(x, y, path, decoration.outlineWidth(),
                     BlendStrokeCap.BUTT, BlendStrokeJoin.MITER_CLIP, decoration.outlineColor());
         }

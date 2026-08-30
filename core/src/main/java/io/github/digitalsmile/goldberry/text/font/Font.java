@@ -6,6 +6,7 @@ import io.github.digitalsmile.goldberry.assets.BundledFont;
 import io.github.digitalsmile.goldberry.natives.blend2d.BlendFont;
 import io.github.digitalsmile.goldberry.natives.blend2d.BlendGlyphBuffer;
 import io.github.digitalsmile.goldberry.natives.harfbuzz.GlyphRun;
+import io.github.digitalsmile.goldberry.natives.harfbuzz.enums.TextDirection;
 import io.github.digitalsmile.goldberry.natives.harfbuzz.ShapedFont;
 import io.github.digitalsmile.goldberry.natives.harfbuzz.ShapingBuffer;
 import java.util.Objects;
@@ -182,6 +183,24 @@ public final class Font implements AutoCloseable {
     /// The result is in font design units and is therefore correct at any size:
     /// it is this face's shaping of that string, not this `Font`'s.
     public GlyphRun shape(CharSequence text) {
+        return shape(text, null);
+    }
+
+    /// Shapes `text`, **forcing the direction** rather than guessing it.
+    ///
+    /// Script and language are still guessed — they are facts about the
+    /// characters, and Arabic joins whichever way the glyphs are then ordered.
+    /// What the direction changes is the *order* the run comes back in.
+    ///
+    /// One caller: [Paragraph], which asks for `LTR` on text HarfBuzz would have
+    /// guessed `RTL` for, because its measurements are prefix sums in **logical**
+    /// order and a visually ordered run would make every one of them measure the
+    /// wrong glyphs. That is an approximation with a name and a plan
+    /// ([ADR-0218](../../../../../../../book/src/adr/0218-a-paragraph-approximates-bidi-rather-than-refusing-it.md));
+    /// real bidi is run splitting, and this is not it.
+    ///
+    /// @param direction the direction to shape in, or null to guess
+    public GlyphRun shape(CharSequence text, TextDirection direction) {
         requireUsable();
         Objects.requireNonNull(text, "text");
         if (text.isEmpty()) {
@@ -190,6 +209,9 @@ public final class Font implements AutoCloseable {
         this.text.reset();
         this.text.addText(text);
         this.text.guessSegmentProperties();
+        if (direction != null) {
+            this.text.setDirection(direction);
+        }
         return this.text.shape(shaper);
     }
 

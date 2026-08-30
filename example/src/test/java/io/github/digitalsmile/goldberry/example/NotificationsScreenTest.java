@@ -22,6 +22,7 @@ import io.github.digitalsmile.goldberry.widget.Element;
 import io.github.digitalsmile.goldberry.widget.ElementTree;
 import io.github.digitalsmile.goldberry.widget.WidgetRenderer;
 import io.github.digitalsmile.goldberry.widgets.Controls;
+import io.github.digitalsmile.goldberry.widgets.core.Column;
 import io.github.digitalsmile.goldberry.widgets.Density;
 import java.util.ArrayList;
 import org.junit.jupiter.api.AfterEach;
@@ -83,7 +84,11 @@ class NotificationsScreenTest {
                     Controls.stylesheets(Theme.NORD_DARK, Density.REGULAR));
             sheets.add(Stylesheet.resource(CascadeLayer.APPLICATION, Showcase.class, "showcase.css"));
             renderer = new WidgetRenderer(sheets, fonts);
-            tree = new ElementTree(new Notifications());
+            // The three cards as the Overlays screen's wall offers them, in a
+            // plain column rather than a `masonry`: what this test asserts is
+            // which banners are described, and a wall would put them in three
+            // columns without changing one of those answers (ADR-0222).
+            tree = new ElementTree(new Column(Notifications.cards().toArray(io.github.digitalsmile.goldberry.widget.Widget[]::new)));
             render = RenderTree.create();
             router.focusRoot(tree.root());
             router.windowBounds(LogicalRect.of(0, 0, 900, HEIGHT));

@@ -233,9 +233,10 @@ points draws the text 128× too wide and reports no error at all. `Font` exists 
 make that unrepresentable
 ([ADR-0034](book/src/adr/0034-one-size-and-the-design-unit-crossing.md)).
 
-Not yet: bidirectional runs — right-to-left text is refused at construction rather
-than wrapped wrongly — fallback between the UI and emoji faces, and style runs
-within a paragraph.
+Not yet: bidirectional runs — right-to-left text is shaped in logical order and
+therefore drawn mirrored, which is an approximation that says so rather than a
+crash ([ADR-0218](book/src/adr/0218-a-paragraph-approximates-bidi-rather-than-refusing-it.md))
+— fallback between the UI and emoji faces, and style runs within a paragraph.
 
 ## Icons
 
@@ -1271,9 +1272,27 @@ catches an unexported package or a wrong `--enable-native-access` (ADR-0023).
 ./gradlew run
 ```
 
-A window opens. It is a widget tree — a bar, a sidebar, wrapped prose, a theme
-radio group and a row of buttons — styled by the cascade and driven by the input
-router, so hovering, clicking, `Tab`, the arrow keys, `Space` and `Ctrl+T` all do
+A window opens, **maximized**, in three bands
+([ADR-0221](book/src/adr/0221-a-window-may-open-maximized.md),
+[ADR-0222](book/src/adr/0222-a-showcase-is-a-window-a-bar-and-seven-screens.md)):
+
+- a **menu bar** — File, Edit, Help, with accelerators, a checkable row and a
+  submenu built from the gallery's own list of screens;
+- a **bar** saying how long this process took to put a window up and what it
+  found when it looked around, and a switch that changes the light everywhere;
+- a **gallery** of seven screens — Basic, Panels, Overlays, Forms, Navigation,
+  Collections, Charts — reachable by the strip, by `Ctrl+1`…`Ctrl+7`, and by
+  Edit ▸ Go to.
+
+Every screen is a wall of cards in a `masonry`, and every card is a `card` or a
+`group-box`. Four of the seven are `.kdl` documents with Java appending the cards
+markup cannot write — an expression, a list the application edits, a channel that
+hands values back. The content is Middle-earth rather than `Item 1`, because a
+placeholder label cannot show whether a sortable header or a wrapped paragraph
+*reads*; only whether it draws.
+
+It is all one widget tree, styled by the cascade and driven by the input router,
+so hovering, clicking, `Tab`, `F10`, the arrow keys, `Space` and `Ctrl+T` all do
 what they should. `-Pgoldberry.example.frames=3` paints three frames and exits,
 which is what CI runs under Xvfb.
 

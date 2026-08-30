@@ -75,6 +75,11 @@ wrong glyphs and the paragraph would wrap confidently in the wrong places.
 `java.text.Bidi.requiresBidi` detects it — the same class that will eventually do
 the run splitting — and `Paragraph.of` throws rather than mis-wrapping.
 
+> **Amended by [ADR-0218](0218-a-paragraph-approximates-bidi-rather-than-refusing-it.md).**
+> The detection stands and the refusal does not: a paragraph does not choose its
+> text, so throwing meant a window lost to a paste. The text is now shaped with
+> the direction forced to `LTR` — right glyphs, mirrored order — and says so.
+
 ## Alternatives considered
 
 **Re-shape each candidate line.** Correct at every boundary, and the cost is a

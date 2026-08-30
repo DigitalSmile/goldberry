@@ -53,6 +53,7 @@ public class TestHost implements Host {
     public final List<Widget> filled = new ArrayList<>();
     private final Map<String, LogicalRect> anchors = new LinkedHashMap<>();
     private final Map<Shortcut, Runnable> shortcuts = new LinkedHashMap<>();
+    private final Map<Shortcut, Object> owners = new LinkedHashMap<>();
     private ContextMenuHandler contextMenus;
     private int repaints;
 
@@ -179,7 +180,16 @@ public class TestHost implements Host {
 
     @Override
     public void shortcut(Shortcut accelerator, Runnable action) {
+        shortcut(accelerator, action, null);
+    }
+
+    /// The router's ownership, mirrored: what is bound, and who bound it
+    /// (ADR-0220). Kept beside the actions rather than in them so that
+    /// [#shortcuts()] can stay the map a test wants to read.
+    @Override
+    public void shortcut(Shortcut accelerator, Runnable action, Object owner) {
         shortcuts.put(accelerator, action);
+        owners.put(accelerator, owner);
     }
 
     @Override
@@ -190,6 +200,14 @@ public class TestHost implements Host {
     @Override
     public void removeShortcut(Shortcut accelerator) {
         shortcuts.remove(accelerator);
+        owners.remove(accelerator);
+    }
+
+    @Override
+    public void removeShortcut(Shortcut accelerator, Object owner) {
+        if (shortcuts.containsKey(accelerator) && owners.get(accelerator) == owner) {
+            removeShortcut(accelerator);
+        }
     }
 
     @Override

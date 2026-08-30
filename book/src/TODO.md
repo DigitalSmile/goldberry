@@ -45,21 +45,24 @@ the mechanism the sentence named.
   rule, at the window level where the `InputWatcher` already lives. `F10` is the
   companion binding on every platform that has the `Alt` one and is what ships. —
   [ADR-0163](adr/0163-a-menu-bar-owns-its-menus.md)
-- **`Left` and `Right` do not move between menus while one is showing.** They walk
-  the headings when the bar has focus and nothing is down, which is the horizontal
-  focus scope doing its job. Once a menu is open the focus is in a **different
-  window**, so the bar never sees the arrow — the same missing item-to-popup
-  callback that keeps `Left` from closing a submenu, one entry below. Fixing
-  either would probably fix both. —
-  [ADR-0163](adr/0163-a-menu-bar-owns-its-menus.md),
-  [ADR-0112](adr/0112-a-menu-follows-the-pointer-and-lights-for-the-keyboard.md)
-- **An accelerator is unbound by key, so a `menubar` going away can take somebody
-  else's binding with it.** The window's shortcut map is keyed by the shortcut and
-  not by who bound it, so `Host.removeShortcut(Ctrl+O)` removes whatever is on
-  `Ctrl+O` — including a binding the application made afterwards. Two things
-  claiming one key is already a conflict where the last registration wins; this is
-  that conflict at the other end. Fixing it means the map remembering owners, and
-  `menubar` would be the only thing that used it. —
+- ~~**`Left` and `Right` do not move between menus while one is showing.**~~
+  **They do, and fixing either did fix both.** The missing item-to-popup callback
+  is `MenuSignals`, and a bar hands its root menu a `Menus.Siblings` saying what
+  the two arrows that leave it mean — wrapping at the ends and skipping a
+  separator or a disabled heading. A submenu gets none, which is what keeps
+  `Left` in one going back a level rather than leaping along the bar. —
+  [ADR-0219](adr/0219-an-item-tells-its-menu-what-the-keyboard-did.md),
+  [ADR-0163](adr/0163-a-menu-bar-owns-its-menus.md)
+- ~~**An accelerator is unbound by key, so a `menubar` going away can take
+  somebody else's binding with it.**~~ **The map remembers owners now, and
+  `menubar` is the only thing that uses it** — which is what the entry predicted.
+  A binding is `(action, owner)` compared by identity; `removeShortcut(key)`
+  still removes whatever is there, and `removeShortcut(key, owner)` is a no-op
+  when somebody else has taken the key since. The bind side is unchanged: two
+  commands on one key is still last-writer-wins, and what changed is that the
+  loser cannot unbind the winner. **A displaced binding is still not restored** —
+  that needs a stack per key, and nothing has asked for one. —
+  [ADR-0220](adr/0220-an-accelerator-is-given-back-by-whoever-took-it.md),
   [ADR-0163](adr/0163-a-menu-bar-owns-its-menus.md)
 - ~~**The keyboard menu key does not open a context menu.**~~ **It does, and so
   does `Shift+F10`.** The entry named both pieces correctly: `Key.MENU` is SDL's
@@ -77,19 +80,28 @@ the mechanism the sentence named.
   its handler today, because the toolkit has no notion of what "select" means for
   an arbitrary widget. —
   [ADR-0108](adr/0108-a-context-menu-is-a-name-on-a-widget.md)
-- **A keyboard `Right` into a submenu waits 150ms**, because it goes through the
-  same hover-intent path as a pointer. Wrong, and one line to fix once `Item` can
-  tell a hover from a keypress. —
-  [ADR-0106](adr/0106-a-menu-is-a-widget-and-opening-one-is-not.md),
+- ~~**A keyboard `Right` into a submenu waits 150ms.**~~ **It opens in the same
+  frame.** `Item` can tell a hover from a keypress now: `hovered()` is what the
+  pointer did and `open()` is what a key did, and the delay is for the pointer —
+  it stops a submenu dropping out of one travelling past three rows, and a
+  keypress has travelled past nothing. —
+  [ADR-0219](adr/0219-an-item-tells-its-menu-what-the-keyboard-did.md),
   [ADR-0112](adr/0112-a-menu-follows-the-pointer-and-lights-for-the-keyboard.md)
-- **`Left` does not close a submenu.** The arrow that opens one has no opposite:
-  it needs a callback from the item to the *popup it is in*, which is one more
-  thing `Menus` would have to wire. —
+- ~~**`Left` does not close a submenu.**~~ **It does, and it is the arrow that
+  opened it, undone.** In a submenu it closes back to the menu above; at the root
+  of a bar's menu it moves along the bar; at the root of a context menu it does
+  nothing, deliberately — a menu that vanished on an arrow key would be a menu
+  nobody could navigate, and `Escape` is the key that means "put this away". —
+  [ADR-0219](adr/0219-an-item-tells-its-menu-what-the-keyboard-did.md),
   [ADR-0112](adr/0112-a-menu-follows-the-pointer-and-lights-for-the-keyboard.md)
-- **Nothing marks the row whose submenu is showing.** A row is `:focus-visible`
-  when the keyboard is on it and `:hover` when the pointer is, and neither says
-  "this is the branch that is open" — which is what a chevron rotating or a row
-  staying highlighted would say. —
+- ~~**Nothing marks the row whose submenu is showing.**~~ **`item.open` does.**
+  The row keeps `:hover`'s wash for as long as its branch is on screen, which is
+  what the pointer moving *into* the submenu made visible: the row it came from
+  went plain while its submenu was still showing. A class rather than a
+  pseudo-class, because "the branch that is showing" is a menu's own bookkeeping
+  and not a state the element tree tracks — the shape `menu-title.open` already
+  used. —
+  [ADR-0219](adr/0219-an-item-tells-its-menu-what-the-keyboard-did.md),
   [ADR-0113](adr/0113-a-submenu-is-placed-beside-its-menu.md)
 - ~~**A `message` cannot go away with a fade.**~~ **It can, by reversing the
   order**: the × fades the banner while it is still described and tells the
@@ -146,8 +158,8 @@ the mechanism the sentence named.
   and empty* when the value was blank — a bordered box with 12px of padding
   saying nothing — and §8's subset has no `display`, so no widget can take itself
   out of a layout. Whatever describes it can, which is why
-  `Message.summary` returns an `Optional`, and why the showcase's **Notifications**
-  screen is Java where its neighbours are documents. What would close this
+  `Message.summary` returns an `Optional`, and why the showcase's banner cards are
+  Java where the rest of the **Overlays** screen is a document. What would close this
   properly is a way for a widget to describe *nothing*, which the element tree has
   no word for and which `collapse`, `group-box` and `field-message` have each
   worked around differently. —
@@ -326,12 +338,19 @@ the mechanism the sentence named.
   `SDL_SetTextInputArea` so the candidate window lands under the caret rather
   than in the corner of the screen. M5, as ARCHITECTURE §17 says. —
   [ADR-0167](adr/0167-a-field-owns-its-caret-and-the-model-is-told.md)
-- **A field refuses right-to-left text outright.** `Paragraph.of` throws on it
-  ([ADR-0036]) and nothing catches that, so a field a user pastes Arabic into
-  takes the window down. The fix is `java.text.Bidi` run splitting, which is the
-  same missing work the paragraph documents — but the *field* needs a decision
-  the paragraph does not: refusing the paste is not acceptable and neither is
-  crashing, so the interim behaviour has to be chosen. —
+- ~~**A field refuses right-to-left text outright.**~~ **It takes it, and draws
+  it mirrored.** The interim this entry asked for is chosen: a paragraph shapes
+  bidi text with the direction forced to `LTR`, so the glyphs are right, their
+  order is not, and every width, caret and hit test agrees with what is on
+  screen. It says so — `Paragraph.isBidiApproximate()` and one warning per
+  distinct string — because the alternative to a crash should not be a silence.
+  **What is still ahead is the real thing**: `java.text.Bidi` run splitting,
+  which is several runs per line, visual reordering within a line, and a caret
+  that knows which run it is in and which side of it. That last part is why the
+  half-measure of handling *uniformly* right-to-left paragraphs was not taken —
+  it changes what `widthBetween` means to every caller, which is the same change
+  full bidi needs. M5, with the IME preedit it sits beside. —
+  [ADR-0218](adr/0218-a-paragraph-approximates-bidi-rather-than-refusing-it.md),
   [ADR-0167](adr/0167-a-field-owns-its-caret-and-the-model-is-told.md)
 - **An absolutely positioned child is placed against the border box, and the
   clip is the padding box.** `text-input` allows for it by adding its own padding
@@ -506,6 +525,26 @@ the mechanism the sentence named.
   Yoga knows and does not report. —
   [ADR-0116](adr/0116-a-scroll-view-is-a-clip-an-offset-and-two-extents.md)
 
+- **A window's maximized state is write-once and cannot be read back.**
+  `Application.maximized()` is a creation flag: it becomes `SDL_WINDOW_MAXIMIZED`
+  and after that nobody involved knows whether the window still is one. There is
+  no `Window.maximize()`, no `restore()`, no `isMaximized()`, and no
+  `SDL_EVENT_WINDOW_MAXIMIZED` plumbed through — so an application cannot find out
+  that the *user* maximized it, which is the half that makes a "remember my window
+  size" preference possible. Each of the three is small on its own; together they
+  are a window-state feature with a question in it that nothing has asked yet
+  (what does `isMaximized()` return between the request and the event?). —
+  [ADR-0221](adr/0221-a-window-may-open-maximized.md)
+- **A `masonry`'s column count is a number and not a breakpoint.** Two columns at
+  1200px are two columns at 720px — half as wide and twice as tall — because the
+  count is a constructor argument and no selector can count columns. The showcase
+  keeps a narrow golden to assert the cards still *fit*, which is the most a
+  fixed count can promise; what a wall actually wants is "as many columns as fit
+  at a minimum width", and that is a layout pass that reads its own width, which
+  is the loop ADR-0196 built the last-frame read to avoid. —
+  [ADR-0222](adr/0222-a-showcase-is-a-window-a-bar-and-seven-screens.md),
+  [ADR-0196](adr/0196-a-masonry-is-a-layout-that-reads-last-frame.md)
+
 - **A `tour` cannot find the viewport its target is in.** §5 asks it to scroll a
   target into view, and `Stop` takes a `ScrollController` the application
   supplies. Discovering it means walking from an element to its nearest scrolling
@@ -642,9 +681,12 @@ the mechanism the sentence named.
   `SupportedPropertyTest` resolves every rule the catalog and the showcase ship
   through the real cascade and fails on anything reported as unsupported — so a
   dead declaration is one failure with the property in it rather than a debug
-  line among thousands. **An application's stylesheet is still on its own**,
-  deliberately: naming `box-shadow` before it exists must not stop a window
-  opening. —
+  line among thousands. **And on anything reported as a bad *value*, since
+  ADR-0216**: `border-radius: 7px 7px 0 0` and `background: none` were two more
+  rules doing nothing, with the property spelled right and the value refused.
+  **An application's stylesheet is still on its own**, deliberately: naming
+  `box-shadow` before it exists must not stop a window opening. —
+  [ADR-0216](adr/0216-a-corner-is-four-numbers-and-a-lint-reads-values-too.md),
   [ADR-0215](adr/0215-a-property-the-engine-drops-is-a-rule-that-does-nothing.md),
   [ADR-0109](adr/0109-a-tab-arrives-and-departs-on-the-frame-clock.md)
 - **The catalog's specified surface roughly tripled, and none of it is built.**
@@ -1133,12 +1175,17 @@ on, which in four cases is the same thing.
   `ComputedStyle` and one in `Box`, both of which are records whose every wither
   would have to be revisited. —
   [ADR-0111](adr/0111-a-text-box-is-painted-inside-its-padding.md)
-- **Nothing warns when a declaration is dropped for being unsupported.** A
-  property the subset does not have is logged at DEBUG and ignored, so
-  `border-bottom`, `currentColor`, `margin` and `max-width` were each written,
-  silently discarded, and found by looking at a picture. A stylesheet is data and
-  should not be fatal — but the four of them cost more to find than a warning
-  would have cost to read. —
+- **Nothing warns when a declaration is dropped for being unsupported** — in an
+  *application's* stylesheet. A property the subset does not have is logged at
+  DEBUG and ignored, so `border-bottom`, `currentColor`, `margin` and `max-width`
+  were each written, silently discarded, and found by looking at a picture. A
+  stylesheet is data and should not be fatal — but the four of them cost more to
+  find than a warning would have cost to read. **The toolkit's own sheets are
+  linted now** (ADR-0215), on the value half as well as the name half
+  (ADR-0216); what is left open is the author writing their own. And the second
+  record is the argument that a louder log is not the answer: a dropped *value*
+  already warns, and `group-box-title` drew square corners for months anyway. —
+  [ADR-0216](adr/0216-a-corner-is-four-numbers-and-a-lint-reads-values-too.md),
   [ADR-0109](adr/0109-a-tab-arrives-and-departs-on-the-frame-clock.md),
   [ADR-0111](adr/0111-a-text-box-is-painted-inside-its-padding.md)
 - **A popup's transparent corners need a compositor**, and are unverified on
@@ -1151,14 +1198,23 @@ on, which in four cases is the same thing.
   nobody else can compute, wrong for anything else. It has one caller in the toolkit and
   one rule ("only what a stylesheet could not have written"); a second caller that is
   *not* a count is the signal to look at it again.
-- **Per-corner radii do not exist, and `segmented` is the second control that wanted
-  one.** ARCHITECTURE §8 resolves "`border-radius` … (one radius, not per-side)"
-  deliberately, and `button.square` was the first thing to ask — §3 gives it radius 0
-  "where buttons butt against each other", which is the joined drawing seen from the
-  other side. `segmented` is the second, and it went round the outside: the bar keeps
-  the radius and the segment is inset. `SegmentedTest` pins both numbers so a third
-  asking is a decision that gets revisited rather than one that quietly outlives its
-  reason (ADR-0097).
+- ~~**Per-corner radii do not exist, and `segmented` is the second control that
+  wanted one.**~~ **They exist, `segmented` uses them, and the fourth asking is
+  what built them.**
+  `button.square` asked first, `segmented` second — both went round the outside,
+  the bar keeping the radius and the segment inset. `group-box-title` could not:
+  its top corners meet a rounded frame and its bottom ones meet the body, and no
+  arrangement of nodes fakes that. It had been writing `border-radius: 7px 7px 0
+  0` since it shipped, and the engine had been dropping the declaration with a
+  warning nobody read. `Corners` is four numbers over CSS's 1-4 shorthand, the
+  uniform case emits the drawing it always did, and elliptical corners are still
+  refused. `SegmentedTest`'s pinned numbers did what they were pinned for: the
+  bar is drawn joined again, with §3's hairline between its cells, and the design
+  system's row is amended back. `button.square`'s joined buttons and `tabs` are
+  the two callers of `Corners.inRow` that have not arrived yet. —
+  [ADR-0217](adr/0217-a-segmented-control-is-joined-again.md),
+  [ADR-0216](adr/0216-a-corner-is-four-numbers-and-a-lint-reads-values-too.md),
+  [ADR-0097](adr/0097-a-selection-that-travels-needs-a-geometry.md)
 - **A `tabs` indicator still cannot travel, though `segmented`'s does.** §3.1 gives the
   two the same effect and the same controller.
   [ADR-0099](adr/0099-an-indicator-travels-on-a-grid.md) got `segmented` moving by
@@ -2045,10 +2101,12 @@ out of it is usually worth more than the fact that it is fixed.
 - ~~**Nothing measures text for layout yet.**~~ **It does.** A `Paragraph` shapes once
   and wraps with arithmetic, and its measure function reports a height to Yoga through
   the `YGSize` upcall. What is still ahead is bidi run splitting — right-to-left text is
-  **refused at construction** rather than mis-wrapped, because HarfBuzz returns those
-  glyphs in visual order and prefix sums taken in logical order would measure the wrong
-  ones — and font fallback between the UI and emoji slots, which makes a paragraph
-  several runs rather than one. —
+  shaped in **logical** order and therefore drawn mirrored, because HarfBuzz returns
+  those glyphs in visual order and prefix sums taken in logical order would otherwise
+  measure the wrong ones (it was refused outright until ADR-0218, which cost a window
+  every time somebody pasted Arabic into a field) — and font fallback between the UI and
+  emoji slots, which makes a paragraph several runs rather than one. —
+  [ADR-0218](adr/0218-a-paragraph-approximates-bidi-rather-than-refusing-it.md),
   [ADR-0036](adr/0036-the-paragraph-is-shaped-once-and-wrapped-many-times.md)
 - ~~**The paragraph cache is a one-entry memo.**~~ **Both caches exist, and the numbers
   say why.** `ParagraphCache` holds shaped paragraphs keyed by `(font, text)`; the width

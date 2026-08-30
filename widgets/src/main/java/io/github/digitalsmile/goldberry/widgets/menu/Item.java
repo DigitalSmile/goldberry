@@ -34,7 +34,7 @@ import io.github.digitalsmile.goldberry.widgets.markup.Markup;
 ///
 /// **It does not open its own submenu.** Opening anything is [Menus]'s, because
 /// it needs a `Host` and a widget does not have one — so an item with children
-/// carries them and is handed an `onHovered` by whoever opened the menu it is
+/// carries them and is handed a [MenuSignals] by whoever opened the menu it is
 /// in, exactly as a `radio` is handed `selected` and `onSelect` by its group
 /// ([ADR-0106](../../../../../../../book/src/adr/0106-a-menu-is-a-widget-and-opening-one-is-not.md)).
 ///
@@ -63,23 +63,26 @@ import io.github.digitalsmile.goldberry.widgets.markup.Markup;
 ///                    labels in and out down the list ([ItemLead])
 /// @param disabled    whether it refuses
 /// @param submenu     the items of its submenu, or empty
-/// @param onHovered   how it tells the menu the pointer has arrived on it.
-///                    Supplied by [Menus], never by an author — and given to
-///                    **every** row, not only the ones with children: a submenu
-///                    closes when the pointer moves to a sibling, and a row with
-///                    no submenu is the commonest sibling there is
+/// @param signals     how it tells the menu what happened to it — the pointer
+///                    arriving, a keyboard `Right`, a `Left`. Supplied by
+///                    [Menus], never by an author, and never null: an unwired
+///                    item holds [MenuSignals#NONE]. It was a single "the pointer
+///                    arrived" callback, and the four keyboard gaps that closed
+///                    when it stopped being one are in
+///                    [ADR-0219](../../../../../../../book/src/adr/0219-an-item-tells-its-menu-what-the-keyboard-did.md)
 ///                    ([ADR-0112](../../../../../../../book/src/adr/0112-a-menu-follows-the-pointer-and-lights-for-the-keyboard.md))
 /// @param attributes  `id` and `class`, exactly as on the primitives
 @Markup("item")
 public record Item(
         String label, Icon icon, String accelerator, Runnable onPress, Boolean checked,
-        boolean disabled, List<Widget> submenu, boolean reservesLead, Runnable onHovered,
+        boolean disabled, List<Widget> submenu, boolean reservesLead, MenuSignals signals,
         Attributes attributes)
         implements Widget.Leaf, Styled, Paints, Handles, Attributed<Item> {
 
     public Item {
         Objects.requireNonNull(label, "label");
         submenu = List.copyOf(submenu == null ? List.of() : submenu);
+        signals = signals == null ? MenuSignals.NONE : signals;
         if (label.isEmpty() && icon == null) {
             throw new IllegalArgumentException(
                     "a menu item with neither a label nor an icon has nothing to read out (§13)");
@@ -89,7 +92,8 @@ public record Item(
 
     /// A command.
     public Item(String label, Runnable onPress) {
-        this(label, null, null, onPress, null, false, List.of(), false, null, Attributes.NONE);
+        this(label, null, null, onPress, null, false, List.of(), false, MenuSignals.NONE,
+                Attributes.NONE);
     }
 
     /// A command with nothing behind it yet.
@@ -100,20 +104,20 @@ public record Item(
     /// This item with an icon before its label.
     public Item icon(Icon value) {
         return new Item(label, value, accelerator, onPress, checked, disabled, submenu,
-                reservesLead, onHovered, attributes);
+                reservesLead, signals, attributes);
     }
 
     /// This item showing `text` as its accelerator — the display half of §8's
     /// accelerator, right-aligned. See the class note for the other half.
     public Item accelerator(String text) {
         return new Item(label, icon, text, onPress, checked, disabled, submenu, reservesLead,
-                onHovered, attributes);
+                signals, attributes);
     }
 
     /// This item with a tick, or without one.
     public Item checked(boolean value) {
         return new Item(label, icon, accelerator, onPress, value, disabled, submenu,
-                reservesLead, onHovered, attributes);
+                reservesLead, signals, attributes);
     }
 
     /// This row with room for a tick and no tick in it — a checkable command that
@@ -134,18 +138,18 @@ public record Item(
     /// Used by [Menus] to tell a row whether its menu reserves a leading column.
     Item reservingLead(boolean value) {
         return new Item(label, icon, accelerator, onPress, checked, disabled, submenu, value,
-                onHovered, attributes);
+                signals, attributes);
     }
 
     public Item disabled(boolean value) {
         return new Item(label, icon, accelerator, onPress, checked, value, submenu,
-                reservesLead, onHovered, attributes);
+                reservesLead, signals, attributes);
     }
 
     /// This item with a submenu under it.
     public Item submenu(Widget... items) {
         return new Item(label, icon, accelerator, onPress, checked, disabled, List.of(items),
-                reservesLead, onHovered, attributes);
+                reservesLead, signals, attributes);
     }
 
     /// This item running `action` when chosen — used by [Menus] to wrap an
@@ -153,14 +157,14 @@ public record Item(
     /// does everywhere.
     public Item pressing(Runnable action) {
         return new Item(label, icon, accelerator, action, checked, disabled, submenu,
-                reservesLead, onHovered, attributes);
+                reservesLead, signals, attributes);
     }
 
-    /// Used by [Menus] to hand an item the way to tell its menu that the pointer
-    /// has arrived — see [#onHovered].
-    public Item hovering(Runnable onHovered) {
+    /// Used by [Menus] to hand an item the way to talk back to the menu it is in
+    /// — see [MenuSignals].
+    public Item signalling(MenuSignals value) {
         return new Item(label, icon, accelerator, onPress, checked, disabled, submenu,
-                reservesLead, onHovered, attributes);
+                reservesLead, value, attributes);
     }
 
     /// Whether this item leads somewhere rather than doing something.
@@ -186,7 +190,7 @@ public record Item(
     @Override
     public Item withAttributes(Attributes value) {
         return new Item(label, icon, accelerator, onPress, checked, disabled, submenu,
-                reservesLead, onHovered, value);
+                reservesLead, signals, value);
     }
 
     @Override
@@ -225,24 +229,46 @@ public record Item(
             // when the pointer moves to a sibling, and the menu is the only thing
             // that can close it — so every row says "I am the one now" and the
             // menu decides what that means (ADR-0112).
-            hovered();
+            signals.hovered();
         }
     }
 
-    /// `Enter` and `Space` activate. `Right` opens a submenu, which is the one
-    /// arrow a menu does not spend on traversal.
+    /// `Enter` and `Space` activate. `Right` opens a submenu or leaves for the
+    /// next menu; `Left` goes back. Those two are the arrows a menu does not spend
+    /// on traversal, because `Up` and `Down` already are.
+    ///
+    /// **None of it happens here.** Each key becomes a [MenuSignals] call, and
+    /// what "back" means — close this submenu, or move along the bar — is the
+    /// menu's to decide: only it knows whether there is a menu to the left of it
+    /// (ADR-0219).
     @Override
     public void onKey(KeyEvent event) {
         if (disabled || event.kind() != KeyEvent.Kind.PRESSED || event.isRepeat()
                 || !event.modifiers().none()) {
             return;
         }
-        if (event.key() == Key.ENTER || event.key() == Key.SPACE) {
-            activate();
-            event.consume();
-        } else if (event.key() == Key.RIGHT && hasSubmenu()) {
-            hovered();
-            event.consume();
+        switch (event.key()) {
+            case ENTER, SPACE -> {
+                activate();
+                event.consume();
+            }
+            // Opening the branch under the cursor beats leaving the menu it is
+            // in, so a row with children takes this key and a row without it
+            // passes it on to whatever is holding the menu.
+            case RIGHT -> {
+                if (hasSubmenu()) {
+                    signals.open();
+                } else {
+                    signals.forward();
+                }
+                event.consume();
+            }
+            case LEFT -> {
+                signals.back();
+                event.consume();
+            }
+            default -> {
+            }
         }
     }
 
@@ -253,15 +279,11 @@ public record Item(
     /// heading, and every desktop menu agrees.
     private void activate() {
         if (hasSubmenu()) {
-            hovered();
+            // Now, not after the pointer's hover-intent delay: `Enter` on a row
+            // that leads somewhere is as deliberate as a key gets.
+            signals.open();
         } else if (onPress != null) {
             onPress.run();
-        }
-    }
-
-    private void hovered() {
-        if (onHovered != null) {
-            onHovered.run();
         }
     }
 

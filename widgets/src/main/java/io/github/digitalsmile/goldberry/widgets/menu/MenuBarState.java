@@ -167,7 +167,13 @@ final class MenuBarState extends State<MenuBar> {
         // word rather than centred under it.
         var id = item.attributes().id() == null ? TITLE_ID + index : item.attributes().id();
         var menu = new Menu(item.submenu(), Attributes.NONE);
-        var opened = Menus.open(host, id, menu, UNDER_THE_BAR);
+        // What `Left` and `Right` mean at the **root** of this menu, which is the
+        // one thing about it that is the bar's business rather than the menu's:
+        // with a menu down, running along the bar swaps menus, and the arrows do
+        // what the pointer does (ADR-0219). A submenu gets no siblings — `Left`
+        // in one goes back to the menu it came from.
+        var opened = Menus.open(host, id, menu, UNDER_THE_BAR,
+                new Menus.Siblings(() -> step(index, -1), () -> step(index, +1)));
         // Empty is normal — a driver with no popup windows (ADR-0102) — and it
         // must not leave the heading marked open, because nothing would ever
         // unmark it.
@@ -175,6 +181,35 @@ final class MenuBarState extends State<MenuBar> {
             open = popup;
             openIndex = index;
         });
+    }
+
+    /// Opens the next heading that can be opened, `delta` along from `from`,
+    /// wrapping at the ends.
+    ///
+    /// Wrapping because a bar is a ring in every desktop menu bar there is, and
+    /// **skipping** what cannot open because a `separator` between two groups of
+    /// headings is not a menu and neither is a disabled one — a `Right` that
+    /// landed on either would put the bar in a state with nothing showing and no
+    /// way back to a menu except the pointer.
+    private void step(int from, int delta) {
+        var children = widget().children();
+        if (children.isEmpty()) {
+            return;
+        }
+        for (var step = 1; step <= children.size(); step++) {
+            var candidate = Math.floorMod(from + delta * step, children.size());
+            if (children.get(candidate) instanceof Item item
+                    && item.hasSubmenu() && !item.disabled()) {
+                if (candidate == from) {
+                    // The only openable heading on the bar is the one already
+                    // showing. Closing and reopening it would flicker for no
+                    // reason a user could see.
+                    return;
+                }
+                setState(() -> show(candidate));
+                return;
+            }
+        }
     }
 
     private void close() {
@@ -197,13 +232,16 @@ final class MenuBarState extends State<MenuBar> {
         if (host == null) {
             return;
         }
-        bound = Accelerators.bind(host, widget().children());
+        // Bound **on this state's behalf**, so unbinding gives back only what is
+        // still ours: an application that binds `Ctrl+O` after this bar did keeps
+        // it when the bar goes away (ADR-0220).
+        bound = Accelerators.bind(host, widget().children(), this);
         boundOn = host;
         // F10 is the keyboard's way in. Registered with the accelerators so it
         // goes away with them, and reported as bound for the same reason.
         if (!bound.isEmpty() || !widget().children().isEmpty()) {
             var focusBar = Shortcut.of(io.github.digitalsmile.goldberry.input.key.Key.F10);
-            host.shortcut(focusBar, this::activateFromKeyboard);
+            host.shortcut(focusBar, this::activateFromKeyboard, this);
             var all = new java.util.LinkedHashSet<>(bound);
             all.add(focusBar);
             bound = Set.copyOf(all);
@@ -212,7 +250,7 @@ final class MenuBarState extends State<MenuBar> {
 
     private void unbind() {
         if (boundOn != null && !bound.isEmpty()) {
-            Accelerators.unbind(boundOn, bound);
+            Accelerators.unbind(boundOn, bound, this);
         }
         bound = Set.of();
         boundOn = null;

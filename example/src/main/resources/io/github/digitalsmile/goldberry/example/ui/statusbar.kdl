@@ -1,0 +1,41 @@
+// The bar under the window's menu: **what this run cost**, and the one switch
+// that changes the light everywhere.
+//
+// Three bound readings and one control, all of them `bind=`/`change=` and no Java
+// at all — which is why it is a document. The startup line comes off a background
+// job's continuation and the count off the Basic screen's buttons; neither knows
+// this file exists, and this file names no widget that either of them holds
+// (ADR-0063, ADR-0222).
+row id="bar" {
+
+  text id="title" "Goldberry"
+
+  // The leagues walked, in the one place on screen that is never scrolled away.
+  badge id="clicks" class="accent" bind="app.clicks"
+
+  // How long this process took to put a window up, and what it found when it
+  // looked around. Two readings and not one: they answer different questions and
+  // they arrive at different times, so a single line would flicker between them.
+  text id="startup" class="caption" bind="app.startup"
+  text id="status" class="caption" bind="app.status"
+
+  spacer
+
+  // §10's "global switch from dark to light". A `toggle` and not a `button`,
+  // because the two lights are a *state* and not a step: a switch says which one
+  // you are in without being pressed, and reports the state it was dragged to
+  // rather than "the other one" (ADR-0075).
+  //
+  // Labelled on both sides by the two `text` nodes around it, because a switch's
+  // own label sits after the track and "Lothlórien" alone would leave the off
+  // position unnamed — which is §1.2's rule about never carrying meaning in
+  // position alone.
+  text id="dark-label" class="caption" "Moria"
+  toggle id="light-switch" bind="app.light" change="app.set-light" ""
+  text id="light-label" class="caption" "Lothlórien"
+
+  // And the same property a third way, with an icon on it: the switch, this, the
+  // File menu, the tray, the Basic screen's three pickers and Ctrl+T are seven
+  // routes to one value and not one of them owns it.
+  button id="theme" class="ghost" icon="palette" press="app.toggle-theme" "Switch"
+}

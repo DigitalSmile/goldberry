@@ -1,6 +1,5 @@
 package io.github.digitalsmile.goldberry.example;
 
-import io.github.digitalsmile.goldberry.bind.runtime.Models;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -8,36 +7,31 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import io.github.digitalsmile.goldberry.bind.runtime.Models;
 import io.github.digitalsmile.goldberry.example.ui.Panes;
-import io.github.digitalsmile.goldberry.kdl.KdlSyntaxException;
-import io.github.digitalsmile.goldberry.widget.ElementTree;
-import io.github.digitalsmile.goldberry.widget.style.Styled;
 import io.github.digitalsmile.goldberry.widget.Element;
+import io.github.digitalsmile.goldberry.widget.ElementTree;
 import io.github.digitalsmile.goldberry.widget.Widget;
-import io.github.digitalsmile.goldberry.widgets.Controls;
+import io.github.digitalsmile.goldberry.widget.style.Styled;
 import io.github.digitalsmile.goldberry.widgets.Icons;
+import io.github.digitalsmile.goldberry.widgets.Widgets;
+import io.github.digitalsmile.goldberry.widgets.panel.masonry.Masonry;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Function;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import io.github.digitalsmile.goldberry.widgets.Widgets;
 
-/// The showcase's two markup documents, inflated against the registries the
-/// application really supplies.
+/// That the five documents behind the window still say what the application
+/// thinks they say.
 ///
-/// A window that opens is not evidence that a document did anything: an empty
-/// `sidebar.kdl` inflates to an empty column and paints a blank panel, and the
-/// three-frame headless run would pass. So this asserts the **shape** — that
-/// every control the document claims is in the tree, and that its bindings point
-/// at the model's own properties rather than at copies of their values.
-///
-/// It is also a guard against the documents drifting: the registries are strict,
-/// so a `bind=` naming a property the model stopped exposing fails here with the
-/// line and column rather than in front of a user
-/// ([ADR-0094](../../../../../../book/src/adr/0094-name-the-overload-not-the-allocation.md)).
+/// None of this is a thing a golden image can show. A `bind=` that resolved to a
+/// *copy* of a property draws exactly like one that reached the model; a `#name`
+/// the stylesheet targets and no document builds is a rule that silently does
+/// nothing; and a screen whose root stopped being a `masonry` would put its Java
+/// cards in a second wall with no error at all (ADR-0222).
 class ShowcaseDocumentsTest {
 
-    /// The real application, for the sake of its real model list.
     private final Showcase showcase = new Showcase();
 
     private final ShowcaseModel model = modelOf(ShowcaseModel.class);
@@ -46,25 +40,26 @@ class ShowcaseDocumentsTest {
     private <T> T modelOf(Class<T> type) {
         return showcase.models().stream()
                 .filter(type::isInstance).map(type::cast).findFirst().orElseThrow(
-                        () -> new AssertionError("Showcase.models() has no " + type.getSimpleName()));
+                        () -> new AssertionError(
+                                "Showcase.models() has no " + type.getSimpleName()));
     }
 
-    /// The inflater, built from **the application's own** `models()` — minus the
-    /// icons, which own native memory and are the one thing a test cannot have.
-    ///
-    /// From `models()` and not from a list assembled here, because a list
-    /// assembled here is a list that can be right while the application's is
-    /// wrong. That is not hypothetical: the showcase shipped for one commit with
-    /// `Widgets.inflater(icons, model, this)` in `start` and `model, actions,
-    /// new Showcase()` in this file, so every test passed and the window threw
-    /// `no action named "app.toggle-theme" is bound` on the first frame.
     private io.github.digitalsmile.goldberry.kdl.KdlInflater<Widget> inflater() {
-        return Widgets.inflater(
-                // Strict, and that is the point of it being here: the documents
-                // name a controller and a validator, and a lenient registry would
-                // resolve a typo in either to null and let this test pass a
-                // screen whose form nothing can submit.
-                model.named(), Icons.lenient(), showcase.models().toArray());
+        return Widgets.inflater(model.named(), Icons.lenient(), showcase.models().toArray());
+    }
+
+    /// Every document whose root is a wall of cards, by the name the failure
+    /// should print.
+    private static final List<String> WALLS = List.of("basic", "panels", "overlays", "forms");
+
+    private Masonry wall(String name) {
+        return switch (name) {
+            case "basic" -> Panes.basic(inflater());
+            case "panels" -> Panes.panels(inflater());
+            case "overlays" -> Panes.overlays(inflater());
+            case "forms" -> Panes.forms(inflater());
+            default -> throw new AssertionError("no document called " + name);
+        };
     }
 
     private static List<String> typesIn(Widget widget) {
@@ -80,66 +75,107 @@ class ShowcaseDocumentsTest {
         element.children().forEach(child -> collect(child, into));
     }
 
-    @Test
-    @DisplayName("the title bar names a label, a bound count and the theme button")
-    void titleBar() {
-        var types = typesIn(Panes.titleBar(inflater()));
-
-        assertEquals(List.of("row", "text", "badge", "spacer", "button"), types);
+    /// Every node type in every wall, which is what "the gallery covers the
+    /// catalog" is asked against.
+    private List<String> everyType() {
+        var types = new ArrayList<String>();
+        WALLS.forEach(name -> types.addAll(typesIn(wall(name))));
+        types.addAll(typesIn(Panes.bar(inflater())));
+        return types;
     }
 
-    /// Every control §3 has shipped so far appears across the gallery's
-    /// documents, which is what makes them the showcase's coverage as well as its
-    /// demo — `core-widgets.md` asks for exactly this: "a widget isn't done until
-    /// it's in the gallery".
-    ///
-    /// Across the three rather than in one: a screen is a file now, and which file
-    /// a control lives in is the gallery's business rather than this test's
-    /// (ADR-0110).
+    @Test
+    @DisplayName("the bar names a label, a bound count, two readings, a switch and a button")
+    void bar() {
+        // The row's own children, not `typesIn`'s whole subtree: a `toggle` is a
+        // track and a thumb underneath, and asserting those here would make this
+        // test fail when the *switch* was restyled rather than when the bar
+        // changed.
+        var types = new ArrayList<String>();
+        new ElementTree(Panes.bar(inflater())).root().children()
+                .forEach(child -> types.add(child.type()));
+
+        assertEquals(List.of("text", "badge", "text", "text", "spacer",
+                        "text", "toggle", "text", "button"), types,
+                "the bar is startup on the left and the light on the right");
+    }
+
+    @Test
+    @DisplayName("every wall has a masonry at its root, because a screen appends to it")
+    void everyWallIsAWall() {
+        for (var name : WALLS) {
+            var wall = wall(name);
+            assertFalse(wall.children().isEmpty(), () -> name + ".kdl built no cards");
+            // Not a detail: `Wall.of` rebuilds the masonry with the Java cards
+            // added, and a column count of zero would throw where a wrong one
+            // would silently re-lay the whole screen.
+            assertTrue(wall.columns() >= 1, () -> name + ".kdl asks for " + wall.columns()
+                    + " columns");
+        }
+    }
+
+    @Test
+    @DisplayName("a document whose root is not a masonry is refused by name")
+    void aRootThatIsNotAWallIsRefused() {
+        // The failure this guards: a `column` wrapped round the masonry during an
+        // edit. Nothing throws at inflation -- it is a perfectly good document --
+        // and the screen quietly grows a second wall under the first.
+        var thrown = assertThrows(IllegalStateException.class,
+                () -> Panes.wallOf(inflater(), "statusbar.kdl"));
+
+        assertTrue(thrown.getMessage().contains("statusbar.kdl"), thrown.getMessage());
+        assertTrue(thrown.getMessage().contains("masonry"), thrown.getMessage());
+    }
+
     @Test
     @DisplayName("the gallery's documents hold every control the catalog has")
     void galleryCoversTheCatalog() {
-        var types = new ArrayList<String>();
-        types.addAll(typesIn(Panes.controls(inflater())));
-        types.addAll(typesIn(Panes.values(inflater())));
-        types.addAll(typesIn(Panes.overlays(inflater())));
+        var types = everyType();
 
-        for (var control : List.of("radio-group", "radio", "segmented", "option", "badge",
-                "text", "checkbox", "toggle", "slider", "knob", "spinner", "progress",
-                "button", "panel")) {
+        for (var control : List.of(
+                // §3 -- the controls. No `select`: it is `Stateful`, so the node
+                // that carries a css type is the `select-field` its state builds,
+                // and the widget itself reports none. It is asserted by class in
+                // `theLightIsPickedFourWays` instead.
+                "radio-group", "radio", "segmented", "option", "badge",
+                "checkbox", "toggle", "slider", "knob", "spinner", "progress", "button",
+                // §5 -- the containers
+                "panel", "card", "group-box", "masonry", "statistic", "skeleton",
+                "split-pane", "carousel", "collapse",
+                // §4 -- the fields
+                "text-input", "text-area", "form", "field",
+                // §7 and §8. No `item` and no `separator`: a menu bar draws a row
+                // of titles and builds its rows only when one is *opened*, so the
+                // items `overlays.kdl` writes are not in a closed bar's tree at
+                // all -- which is the whole point of a menu being a popup.
+                "menubar", "text", "row", "column", "spacer")) {
             assertTrue(types.contains(control),
                     () -> "no document builds a " + control + " any more: " + types);
         }
     }
 
-    /// A screen is a file, and every one of them parses and inflates — which is
-    /// the assertion that fails when a document is added to the gallery and its
-    /// names were never resolved against the registries.
     @Test
     @DisplayName("every screen document inflates against the real registries")
     void everyScreenInflates() {
-        assertFalse(typesIn(Panes.controls(inflater())).isEmpty());
-        assertFalse(typesIn(Panes.values(inflater())).isEmpty());
-        assertFalse(typesIn(Panes.overlays(inflater())).isEmpty());
+        WALLS.forEach(name -> assertFalse(typesIn(wall(name)).isEmpty(),
+                () -> name + ".kdl inflated to nothing"));
+        assertFalse(typesIn(Panes.bar(inflater())).isEmpty());
     }
 
-    /// The half that a shape assertion would miss: a `bind=` that resolved to
-    /// nothing would still inflate to a control, and the control would render
-    /// perfectly and never move.
     @Test
     @DisplayName("a bound control holds the model's own property, not a copy")
     void bindingsReachTheModel() {
         var bound = new ArrayList<Widget>();
-        collectBound(new ElementTree(Panes.controls(inflater())).root(), bound);
-        collectBound(new ElementTree(Panes.values(inflater())).root(), bound);
+        collectBound(new ElementTree(wall("basic")).root(), bound);
+        collectBound(new ElementTree(Panes.bar(inflater())).root(), bound);
 
         assertFalse(bound.isEmpty(), "nothing in the gallery's documents is bound");
-        assertTrue(bound.stream().anyMatch(w -> w.binding() == Models.observable(model, "app.gain")),
-                "no control follows app.gain");
-        assertTrue(bound.stream().anyMatch(w -> w.binding() == Models.observable(model, "app.theme")),
-                "the theme picker does not follow app.theme");
-        assertTrue(bound.stream().anyMatch(w -> w.binding() == Models.observable(model, "app.status")),
-                "the status line does not follow app.status");
+        for (var path : List.of("app.gain", "app.theme", "app.light", "app.status",
+                "app.startup", "app.clicks", "app.prose")) {
+            var property = Models.observable(model, path);
+            assertTrue(bound.stream().anyMatch(w -> w.binding() == property),
+                    () -> "no control follows " + path);
+        }
     }
 
     private static void collectBound(Element element, List<Widget> into) {
@@ -149,17 +185,41 @@ class ShowcaseDocumentsTest {
         element.children().forEach(child -> collectBound(child, into));
     }
 
-    /// Three controls on one number is the showcase's clearest demonstration of
-    /// ADR-0063, and it is a property of the *document* — so it is asserted here
-    /// rather than left to whoever reads the file.
     @Test
-    @DisplayName("the slider, the knob and the bar are on the same property")
+    @DisplayName("the slider, the knob, the fader and the bar are on one property")
     void oneValueManyReaders() {
         var onGain = new ArrayList<String>();
-        collectOn(new ElementTree(Panes.values(inflater())).root(), Models.observable(model, "app.gain"), onGain);
+        collectOn(new ElementTree(wall("basic")).root(),
+                Models.observable(model, "app.gain"), onGain);
 
         assertEquals(List.of("slider", "knob", "slider", "progress"), onGain,
                 "the slider, the knob, the fader and the bar — four readers of one number");
+    }
+
+    @Test
+    @DisplayName("the light is picked four ways, on one property in two spellings")
+    void theLightIsPickedFourWays() {
+        var theme = Models.observable(model, "app.theme");
+        var byName = new ArrayList<Widget>();
+        collectBoundTo(new ElementTree(wall("basic")).root(), theme, byName);
+        var asFlag = new ArrayList<Widget>();
+        collectBoundTo(new ElementTree(Panes.bar(inflater())).root(),
+                Models.observable(model, "app.light"), asFlag);
+
+        assertEquals(List.of("RadioGroup", "Segmented", "Select"),
+                byName.stream().map(w -> w.getClass().getSimpleName()).toList(),
+                "three pickers read the theme by name");
+        assertEquals(List.of("Toggle"),
+                asFlag.stream().map(w -> w.getClass().getSimpleName()).toList(),
+                "and the bar's switch reads the same fact as a boolean, because a switch"
+                        + " falls back to its own flag for anything that is not one");
+    }
+
+    private static void collectBoundTo(Element element, Object property, List<Widget> into) {
+        if (element.widget().binding() == property) {
+            into.add(element.widget());
+        }
+        element.children().forEach(child -> collectBoundTo(child, property, into));
     }
 
     private static void collectOn(Element element, Object property, List<String> into) {
@@ -169,8 +229,6 @@ class ShowcaseDocumentsTest {
         element.children().forEach(child -> collectOn(child, property, into));
     }
 
-    /// The reason the registries are strict. A typo in a document is a mistake
-    /// that otherwise renders as a control that quietly never moves.
     @Test
     @DisplayName("a path the model does not expose fails at inflation")
     void strictRegistriesRefuseATypo() {
@@ -185,14 +243,10 @@ class ShowcaseDocumentsTest {
     @Test
     @DisplayName("every document is on the module path and parses")
     void documentsExist() {
-        assertNotNull(Panes.titleBar(inflater()));
-        assertNotNull(Panes.controls(inflater()));
-        assertNotNull(Panes.values(inflater()));
-        assertNotNull(Panes.overlays(inflater()));
+        assertNotNull(Panes.bar(inflater()));
+        WALLS.forEach(name -> assertNotNull(wall(name)));
     }
 
-    /// The stylesheet is a resource too, and an unstyled window is a window that
-    /// renders — badly, and with no error at all.
     @Test
     @DisplayName("the showcase stylesheet loads and is not empty")
     void stylesheetLoads() {
@@ -207,17 +261,24 @@ class ShowcaseDocumentsTest {
     @DisplayName("every id the stylesheet targets exists in the tree")
     void stylesheetAndDocumentsAgree() {
         var ids = new ArrayList<String>();
-        collectIds(new ElementTree(Panes.titleBar(inflater())).root(), ids);
-        collectIds(new ElementTree(Panes.controls(inflater())).root(), ids);
-        collectIds(new ElementTree(Panes.values(inflater())).root(), ids);
-        collectIds(new ElementTree(Panes.overlays(inflater())).root(), ids);
+        collectIds(new ElementTree(Panes.bar(inflater())).root(), ids);
+        WALLS.forEach(name -> collectIds(new ElementTree(wall(name)).root(), ids));
 
-        // The ids the documents own. `#root`, `#gallery` and the two Java
-        // screens' are deliberately absent here.
-        for (var id : List.of("bar", "title", "clicks", "theme", "themes",
-                "badges", "status", "options", "gain", "knobs", "task", "busy",
-                "screen-controls", "screen-values", "screen-overlays",
-                "faders", "overlays", "context-target")) {
+        // The ids the documents own. `#root`, `#gallery`, `#app-menu` and the ids
+        // the Java cards build are deliberately absent here.
+        for (var id : List.of(
+                // the bar
+                "bar", "title", "clicks", "startup", "status", "light-switch",
+                "dark-label", "light-label", "theme",
+                // Basic
+                "themes", "theme-bar", "theme-select", "badges", "gain", "knobs",
+                "faders", "busy",
+                // Panels
+                "surfaces", "numbers", "demo-split", "demo-carousel", "demo-accordion",
+                // Overlays
+                "overlays", "context-target",
+                // Forms
+                "signup", "named-echo")) {
             assertTrue(ids.contains(id),
                     () -> "showcase.css styles #" + id + " and no document builds it: " + ids);
         }
@@ -230,20 +291,23 @@ class ShowcaseDocumentsTest {
         element.children().forEach(child -> collectIds(child, into));
     }
 
-    /// A document is inflated once and reused, so the same widget value must come
-    /// back — otherwise every rebuild would re-parse a file.
+    /// Two inflations of one document are the same **value**.
+    ///
+    /// On `panels.kdl`, and it has to be: it is the one document in the gallery
+    /// with no `change=` in it. A `change=` on a `toggle`, a `slider` or a `knob`
+    /// arrives through `Wiring.flag`/`numeric`, which wrap the registry's
+    /// `Consumer<String>` in a **new** lambda every call — so two inflations of
+    /// `basic.kdl` are equal in every component but that one, and never equal.
+    /// That is a fact about adapters rather than about determinism, and asserting
+    /// it here would only pin the adapter.
     @Test
     @DisplayName("two inflations of one document are equal values")
     void inflationIsDeterministic() {
         var shared = inflater();
 
-        assertEquals(Panes.titleBar(shared), Panes.titleBar(shared));
+        assertEquals(Panes.panels(shared), Panes.panels(shared));
     }
 
-    /// The registries are **generated** from `@Bind` and `@Action`, so this is
-    /// really asserting that the processor read the model correctly — including
-    /// the parse it writes for a valued action, which is the boilerplate the
-    /// annotations exist to remove ([ADR-0096]).
     @Test
     @DisplayName("the generated registry exposes what the documents name")
     void registriesAreComplete() {
@@ -251,23 +315,20 @@ class ShowcaseDocumentsTest {
         var registry = Models.actions(actions);
 
         assertSame(Models.observable(model, "app.gain"), bindings.resolve("app.gain"));
-        assertSame(Models.observable(model, "app.status"), bindings.resolve("app.status"));
+        assertSame(Models.observable(model, "app.startup"), bindings.resolve("app.startup"));
         assertNotNull(registry.resolve("app.toggle-theme"));
         assertNotNull(registry.resolveValued("app.set-gain"));
+        assertNotNull(registry.resolve("app.submit-signup"));
     }
 
-    /// Every member the registry wires is **private** now, so this is also the
-    /// assertion that the handles ADR-0098 generates reach a real field and a
-    /// real method in a real application — the processor's own tests prove the
-    /// mechanism, and this proves the showcase uses it.
     @Test
     @DisplayName("the registry reaches the model's private members")
     void privateMembersAreReachable() {
         var bindings = Models.bindings(model);
         var registry = Models.actions(actions);
 
-        // The field is package-private and the value is reached by path, which
-        // is the only route markup has (ADR-0129).
+        // The field is private and the value is reached by path, which is the only
+        // route markup has (ADR-0129).
         assertSame(Models.observable(model, "app.theme"), bindings.resolve("app.theme"));
 
         // Called through the woven call site, with the value parsed on the way in.
@@ -275,14 +336,39 @@ class ShowcaseDocumentsTest {
         assertEquals("light", Models.observable(model, "app.theme").get());
     }
 
-    /// A valued action crosses as a `String` and the generated lambda parses it —
-    /// so this is the one assertion that the *generated* arithmetic is right and
-    /// not merely present.
+    /// The two spellings of the light, which is the one place in the model where
+    /// a value is written down twice.
+    ///
+    /// Asserted because the failure is silent and asymmetric: a `pickTheme` that
+    /// forgot the flag would leave the bar's switch stuck while every other
+    /// control moved, and only in one direction.
+    @Test
+    @DisplayName("every route to the theme moves both spellings of it")
+    void theTwoSpellingsAgree() {
+        var name = Models.observable(model, "app.theme");
+        var flag = Models.observable(model, "app.light");
+
+        List<Runnable> routes = List.of(
+                actions::toggleTheme,
+                () -> actions.pickTheme("light"),
+                () -> actions.pickTheme("dark"),
+                () -> actions.setLight(true),
+                () -> actions.setLight(false));
+
+        Function<Object, Boolean> asFlag = value -> "light".equals(value);
+        for (var route : routes) {
+            route.run();
+            assertEquals(asFlag.apply(name.get()), flag.get(),
+                    () -> "app.theme says " + name.get() + " and app.light says " + flag.get());
+        }
+    }
+
     @Test
     @DisplayName("a generated valued action parses the value it is handed")
     void generatedValuedActionParses() {
         Models.actions(actions).resolveValued("app.set-gain").accept("62.5");
 
-        assertEquals(62.5, Models.observable(model, "app.gain", Number.class).get().doubleValue(), 1e-9);
+        assertEquals(62.5,
+                Models.observable(model, "app.gain", Number.class).get().doubleValue(), 1e-9);
     }
 }

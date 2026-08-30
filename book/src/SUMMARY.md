@@ -225,6 +225,13 @@
 - [ADR-0213 A virtual list is two spacers and a window](adr/0213-a-virtual-list-is-two-spacers-and-a-window.md)
 - [ADR-0214 A table is a list with columns](adr/0214-a-table-is-a-list-with-columns.md)
 - [ADR-0215 A property the engine drops is a rule that does nothing](adr/0215-a-property-the-engine-drops-is-a-rule-that-does-nothing.md)
+- [ADR-0216 A corner is four numbers, and the lint reads values too](adr/0216-a-corner-is-four-numbers-and-a-lint-reads-values-too.md)
+- [ADR-0217 A segmented control is joined again](adr/0217-a-segmented-control-is-joined-again.md)
+- [ADR-0218 A paragraph approximates bidi rather than refusing it](adr/0218-a-paragraph-approximates-bidi-rather-than-refusing-it.md)
+- [ADR-0219 An item tells its menu what the keyboard did](adr/0219-an-item-tells-its-menu-what-the-keyboard-did.md)
+- [ADR-0220 An accelerator is given back by whoever took it](adr/0220-an-accelerator-is-given-back-by-whoever-took-it.md)
+- [ADR-0221 A window may open maximized](adr/0221-a-window-may-open-maximized.md)
+- [ADR-0222 A showcase is a window, a bar and seven screens](adr/0222-a-showcase-is-a-window-a-bar-and-seven-screens.md)
 
 ---
 

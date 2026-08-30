@@ -368,6 +368,28 @@ class TextInputTest {
             assertEquals("Yoga laid", text(tree));
         }
 
+        /// The crash this replaced: `Paragraph.of` refused right-to-left text,
+        /// nothing between the clipboard and the paint caught it, and a user who
+        /// pasted Arabic into a field took the window down with them. The
+        /// paragraph approximates it now — the glyphs are shaped and their order
+        /// is mirrored — and what this asserts is the half that is not an
+        /// opinion: the paste lands, the field keeps it, and the frame is
+        /// described ([ADR-0218]).
+        @Test
+        @DisplayName("pasting right-to-left text keeps it, and does not take the window down")
+        void pastesRightToLeftText() {
+            host.clipboardText("مرحبا");
+            var tree = mounted(new TextInput());
+
+            key(tree, Key.V, Modifiers.of(Mod.CTRL));
+
+            assertEquals("مرحبا", text(tree));
+            // Again, because the crash was on the *next* frame rather than in the
+            // handler: the field held the text and died describing it.
+            render(tree);
+            assertEquals("مرحبا", text(tree));
+        }
+
         @Test
         @DisplayName("one paste is one undo step")
         void pasteIsOneStep() {

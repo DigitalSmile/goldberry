@@ -76,7 +76,7 @@ class ScrollingScreenTest {
                     Controls.stylesheets(Theme.NORD_DARK, io.github.digitalsmile.goldberry.widgets.Density.REGULAR));
             sheets.add(Stylesheet.resource(CascadeLayer.APPLICATION, Showcase.class, "showcase.css"));
             renderer = new WidgetRenderer(sheets, fonts);
-            tree = new ElementTree(new Scrolling(() -> { }));
+            tree = new ElementTree(new Scrolling());
             render = RenderTree.create();
             router.focusRoot(tree.root());
             router.windowBounds(LogicalRect.of(0, 0, 900, 560));
@@ -166,7 +166,7 @@ class ScrollingScreenTest {
     @DisplayName("the first header lifts and sticks as its section scrolls under it")
     void headerSticks() {
         var harness = new Harness();
-        var first = harness.byId("section-beginnings");
+        var first = harness.byId("section-hobbiton");
         var list = harness.rectOf(harness.byId("scroll-demo"));
         assertFalse(first.hasState(PseudoClass.AFFIXED), "it was affixed before anything moved");
 
@@ -187,11 +187,11 @@ class ScrollingScreenTest {
         var harness = new Harness();
         var list = harness.rectOf(harness.byId("scroll-demo"));
 
-        harness.click("jump-endings");
+        harness.click("jump-moria");
 
         // The last section starts about forty rows down, so this is a scroll of
         // most of the document -- and the affix has to end up inside the list.
-        var endings = harness.rectOf(harness.byId("section-endings"));
+        var endings = harness.rectOf(harness.byId("section-moria"));
         assertTrue(endings.top() < list.top() + list.size().height() + 1,
                 "the last section is still below the fold, at " + endings.top());
     }
@@ -206,17 +206,17 @@ class ScrollingScreenTest {
         // ends is the case: each press has somewhere to go, so a press that does
         // nothing is a press that was dropped rather than one already satisfied.
         for (var round = 1; round <= 4; round++) {
-            harness.click("jump-endings");
-            var endings = harness.rectOf(harness.byId("section-endings"));
+            harness.click("jump-moria");
+            var endings = harness.rectOf(harness.byId("section-moria"));
             var r = round;
             assertTrue(endings.top() < list.top() + list.size().height() + 1,
-                    () -> "round " + r + ": Endings never arrived; it is at " + endings.top());
+                    () -> "round " + r + ": Moria never arrived; it is at " + endings.top());
 
-            harness.click("jump-beginnings");
-            var beginnings = harness.rectOf(harness.byId("section-beginnings"));
+            harness.click("jump-hobbiton");
+            var beginnings = harness.rectOf(harness.byId("section-hobbiton"));
             assertTrue(beginnings.top() >= list.top() - 1
                             && beginnings.top() < list.top() + list.size().height() + 1,
-                    () -> "round " + r + ": Beginnings never came back; it is at "
+                    () -> "round " + r + ": Hobbiton never came back; it is at "
                             + beginnings.top());
         }
     }
@@ -225,12 +225,12 @@ class ScrollingScreenTest {
     @DisplayName("a jump acts once, so the user can scroll away from it afterwards")
     void jumpDoesNotHold() {
         var harness = new Harness();
-        harness.click("jump-endings");
-        var afterJump = harness.rectOf(harness.byId("section-endings")).top();
+        harness.click("jump-moria");
+        var afterJump = harness.rectOf(harness.byId("section-moria")).top();
 
         harness.wheel(-4);
 
-        assertTrue(harness.rectOf(harness.byId("section-endings")).top() > afterJump + 10,
+        assertTrue(harness.rectOf(harness.byId("section-moria")).top() > afterJump + 10,
                 "the jump dragged the list back rather than letting go");
     }
 }

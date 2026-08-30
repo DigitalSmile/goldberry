@@ -1,6 +1,7 @@
 package io.github.digitalsmile.goldberry.text;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -22,6 +23,10 @@ import io.github.digitalsmile.goldberry.text.font.Font;
 /// measuring the same text directly gets. Those three disagreeing is the failure
 /// mode a layout engine cannot see — Yoga believes the measure function.
 class ParagraphTest {
+
+    /// "Hello, world" — the shortest text that needs bidi and has a space in it,
+    /// which is what makes it a wrapping question as well as a shaping one.
+    private static final String ARABIC = "مرحبا بالعالم";
 
     private Font font;
 
@@ -245,17 +250,60 @@ class ParagraphTest {
         assertThrows(IllegalArgumentException.class, () -> paragraph.layout(Double.NaN));
     }
 
+    /// It threw until ADR-0218, and what that cost was a window: a field a user
+    /// pasted Arabic into took the whole window down on the next frame, because
+    /// nothing between the paste and the paint was going to catch it.
     @Test
-    @DisplayName("right-to-left text is refused at construction, not mis-wrapped")
-    void rightToLeftIsRefused() {
-        // HarfBuzz returns these glyphs in visual order, so accumulating prefix
-        // widths in logical order would measure the wrong glyphs -- and produce
-        // a paragraph that wraps confidently in the wrong places. Loud beats
-        // silent until bidi run splitting exists.
-        var arabic = "مرحبا بالعالم";
-        var thrown = assertThrows(
-                UnsupportedOperationException.class, () -> Paragraph.of(font, arabic));
-        assertTrue(thrown.getMessage().contains("right-to-left"), thrown.getMessage());
+    @DisplayName("right-to-left text is approximated rather than refused")
+    void rightToLeftIsApproximated() {
+        var paragraph = Paragraph.of(font, ARABIC);
+
+        assertTrue(paragraph.isBidiApproximate(), "it says so, rather than pretending");
+        assertFalse(Paragraph.of(font, "Goldberry").isBidiApproximate(),
+                "and text that never needed bidi is shaped exactly as it always was");
+    }
+
+    /// The approximation's one promise: the glyphs are in **logical** order, so
+    /// every measurement in this class measures the glyphs it thinks it does.
+    ///
+    /// What is wrong is the reading order on screen, and nothing here can see
+    /// that. What would be wrong *without* the forced direction is this test:
+    /// HarfBuzz would return the run visually ordered, the prefix sums are built
+    /// by walking clusters forward, and a run whose clusters count *down* leaves
+    /// every width at zero — an invisible, zero-width field.
+    @Test
+    @DisplayName("and what it measures agrees with what it draws")
+    void approximateMeasurementsAreConsistent() {
+        var paragraph = Paragraph.of(font, ARABIC);
+        var layout = paragraph.layout(Paragraph.UNCONSTRAINED);
+
+        assertEquals(1, layout.lineCount());
+        assertTrue(layout.width() > 0, "text with glyphs in it has a width");
+        assertEquals(layout.width(), paragraph.widthBetween(0, ARABIC.length()), 0.01,
+                "the line is as wide as its text");
+
+        // Monotone in the offset, which is the property a visually ordered run
+        // would not have.
+        var previous = 0.0;
+        for (var offset = 1; offset <= ARABIC.length(); offset++) {
+            var width = paragraph.widthBetween(0, offset);
+            assertTrue(width >= previous,
+                    "width to " + offset + " went backwards: " + width + " after " + previous);
+            previous = width;
+        }
+    }
+
+    /// And a click lands where the caret is drawn, which is the other half of
+    /// "self-consistent": a field whose hit testing disagreed with its painting
+    /// would be unusable in a way an exception at least made obvious.
+    @Test
+    @DisplayName("a caret in approximated text round-trips through the same widths")
+    void approximateCaretRoundTrips() {
+        var paragraph = Paragraph.of(font, ARABIC);
+        var space = ARABIC.indexOf(' ') + 1;
+
+        assertEquals(space,
+                paragraph.offsetAt(0, ARABIC.length(), paragraph.widthBetween(0, space)));
     }
 
     @Test

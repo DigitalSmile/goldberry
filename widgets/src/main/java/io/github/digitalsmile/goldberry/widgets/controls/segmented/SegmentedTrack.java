@@ -19,12 +19,14 @@ import java.util.Set;
 /// The indicator is absolutely positioned and its width is a percentage. Yoga
 /// resolves an in-flow child's percentage against its parent's **content** box
 /// and an absolute child's against the parent's **padding** box — CSS's rule,
-/// and a real 4px of disagreement on a bar whose padding is 2. A pill one-third
+/// and a real 2px of disagreement on a bar whose padding is 1. A pill one-third
 /// of the padding box is not one-third of the row it is meant to cover, and the
 /// error is per segment, so the last one is visibly off.
 ///
 /// A track with no padding of its own makes the two bases the same box. The bar
-/// keeps the padding, the border and the radius; the track keeps the grid. That
+/// keeps the padding, the border and the radius; the track keeps the grid, and
+/// the hairlines between its cells are placed against it for the same reason
+/// ([ADR-0217](../../../../../../../../book/src/adr/0217-a-segmented-control-is-joined-again.md)). That
 /// is `slider`'s anatomy for the same reason it grew one: two boxes were doing
 /// one job, and the day a third thing joined they stopped being the same box
 /// ([ADR-0080](../../../../../../../../book/src/adr/0080-a-value-is-measured-along-a-part.md),
@@ -48,21 +50,40 @@ record SegmentedTrack(List<Widget> segments, int index) implements Widget.Leaf, 
         return Set.of();
     }
 
-    /// The indicator **first**, so it is painted first and the labels sit on top
-    /// of it. A box tree has no z-order beyond document order (ADR-0053), which
-    /// is the whole of why this is a list and not a decision.
+    /// **Dividers, then the indicator, then the labels** — a box tree has no
+    /// z-order beyond document order (ADR-0053), so this list *is* the stacking
+    /// and it is a decision rather than an accident.
+    ///
+    /// The hairlines go under the pill because the pill **travels**: painted
+    /// after it, a divider would draw a line across the moving fill for the
+    /// 160 ms it takes to cross. Under it, the pill covers whatever it passes.
+    /// The labels go on top of both, because a segment's own wash is translucent
+    /// and its text has to be legible on the fill (ADR-0217).
     @Override
     public List<Widget> children() {
-        var count = (int) segments.stream().filter(Option.class::isInstance).count();
+        var count = optionCount();
         if (count == 0) {
             // A bar with no segments has nothing to indicate. Not an error: a
             // group whose options have not loaded is a normal frame.
             return segments;
         }
-        var children = new ArrayList<Widget>(segments.size() + 1);
+        var children = new ArrayList<Widget>(segments.size() + count);
+        for (var boundary = 1; boundary < count; boundary++) {
+            children.add(new SegmentedDivider(boundary, count, index));
+        }
         children.add(new SegmentedIndicator(index, count));
         children.addAll(segments);
         return List.copyOf(children);
+    }
+
+    /// How many of this track's children are segments.
+    ///
+    /// Not `segments.size()`: a bar carries what a document wrote, and something
+    /// that is not an [Option] is laid out and left alone rather than counted —
+    /// a heading between two segments is not a segment, and counting it would put
+    /// the indicator one cell along from the option it marks.
+    private int optionCount() {
+        return (int) segments.stream().filter(Option.class::isInstance).count();
     }
 
     /// The cells, all the same width, and the width is a **proportion**.
@@ -82,18 +103,36 @@ record SegmentedTrack(List<Widget> segments, int index) implements Widget.Leaf, 
     /// ([ADR-0099](../../../../../../../../book/src/adr/0099-an-indicator-travels-on-a-grid.md)).
     @Override
     public Box render(ComputedStyle style, List<Box> children, Context context) {
-        var count = (int) segments.stream().filter(Option.class::isInstance).count();
+        var count = optionCount();
         if (count == 0) {
             return Box.of().style(style).children(children.toArray(Box[]::new));
         }
         var share = StyleLength.percent((float) (100.0 / count));
+        // The parts come first and size themselves: `count - 1` dividers, then
+        // the indicator, whose width is the same proportion written through
+        // `restyle` so that the travel beside it can transition. Everything after
+        // them is what the document wrote.
+        var parts = count;   // (count - 1) dividers, and one indicator
         var cells = new ArrayList<Box>(children.size());
+        var seen = 0;
         for (var i = 0; i < children.size(); i++) {
             var child = children.get(i);
-            // The indicator is child 0 and sizes itself -- its width is the same
-            // proportion, written through `restyle` so that the *travel* beside
-            // it can transition. Everything after it is a segment.
-            cells.add(i == 0 ? child : child.size(share, child.height()));
+            if (i < parts) {
+                cells.add(child);
+                continue;
+            }
+            var cell = child.size(share, child.height());
+            if (segments.get(i - parts) instanceof Option) {
+                // §3's "radius 8 outer, 0 between", on the segment: a cell is
+                // round only where the bar it is joined into is. Which cell is an
+                // end is a fact about a count, and no selector can count -- so
+                // the *radius* stays in `controls.css` and only the choice of
+                // which corners keep it is made here (ADR-0217).
+                cell = cell.decoration(cell.decoration().corners(
+                        cell.decoration().corners().inRow(seen == 0, seen == count - 1)));
+                seen++;
+            }
+            cells.add(cell);
         }
         return Box.of().style(style).children(cells.toArray(Box[]::new));
     }

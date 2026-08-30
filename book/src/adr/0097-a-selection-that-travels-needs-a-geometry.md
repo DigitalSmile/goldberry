@@ -1,6 +1,11 @@
 # ADR-0097: A selection that travels needs a geometry
 
-- **Status:** Accepted
+- **Status:** Accepted. The **drawing** half is superseded by
+  [ADR-0217](0217-a-segmented-control-is-joined-again.md), which builds §3's
+  joined bar once per-corner radii exist ([ADR-0216](0216-a-corner-is-four-numbers-and-a-lint-reads-values-too.md));
+  the deferral of the travelling indicator was already superseded by
+  [ADR-0099](0099-an-indicator-travels-on-a-grid.md). The model, the axis and
+  "a segment is a widget" stand.
 - **Date:** 2026-08-18
 - **Relates to:** `docs/design-system.md` §3 and §3.1, `docs/core-widgets.md` §3,
   `docs/ARCHITECTURE.md` §8, extends

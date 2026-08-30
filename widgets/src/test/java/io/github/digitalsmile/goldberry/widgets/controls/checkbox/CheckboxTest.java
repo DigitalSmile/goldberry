@@ -1,5 +1,6 @@
 package io.github.digitalsmile.goldberry.widgets.controls.checkbox;
 
+import io.github.digitalsmile.goldberry.css.Corners;
 import io.github.digitalsmile.goldberry.widget.attr.Attributes;
 import io.github.digitalsmile.goldberry.widgets.text.Text;
 
@@ -339,7 +340,7 @@ class CheckboxTest {
             var glyph = style("check-indicator");
             assertEquals(StyleLength.points(16), glyph.width());
             assertEquals(StyleLength.points(16), glyph.height());
-            assertEquals(4, glyph.decoration().radius(), 1e-9, "§1.5's small-control corner");
+            assertEquals(Corners.all(4), glyph.decoration().corners(), "§1.5's small-control corner");
             assertTrue(glyph.decoration().hasBorder(),
                     "an unchecked box has to be visible on a surface it would otherwise match");
         }

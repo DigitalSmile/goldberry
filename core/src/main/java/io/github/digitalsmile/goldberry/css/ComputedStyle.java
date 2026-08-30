@@ -354,7 +354,19 @@ public record ComputedStyle(
                     .map(this::overflow)
                     .orElseGet(() -> dropped(property, value));
 
-            case "background", "background-color" -> colour(value)
+            // `background` is CSS's shorthand and `background-color` its longhand,
+            // and the toolkit implements the one layer of it that exists: a
+            // colour. The difference between them is `none` — valid in the
+            // shorthand, where it means "no layer at all", and not a colour, so
+            // not a value the longhand takes. `select text-input` is what wanted
+            // it, for the same sentence that made it write `border: none` on the
+            // line above: an editor inside a control is that control's interior,
+            // with no fill of its own (ADR-0183).
+            case "background" -> backgroundLayer(value)
+                    .map(this::background)
+                    .orElseGet(() -> dropped(property, value));
+
+            case "background-color" -> colour(value)
                     .map(this::background)
                     .orElseGet(() -> dropped(property, value));
 
@@ -369,12 +381,13 @@ public record ComputedStyle(
 
             // --- the decoration half (docs/design-system.md §1.5, §2.2) -------
             //
-            // A single radius rather than CSS's four corners: every radius the
-            // design system pins is uniform (4, 8, 12, full), and four would be
-            // four numbers to interpolate the day corners animate. `full` is
-            // spelled `9999px` until there is a pill to need it.
-            case "border-radius" -> points(value, context)
-                    .map(v -> decoration(decoration.radius(v)))
+            // CSS's 1-4 corner shorthand, over [Corners]. Every radius the design
+            // system pins is uniform (4, 8, 12, full) and writes one number; the
+            // second form is for a box that meets a rounded parent on one edge
+            // and a square sibling on the other, which is `group-box-title` and
+            // which ADR-0216 is about. `full` is spelled `9999px`.
+            case "border-radius" -> corners(value, context)
+                    .map(v -> decoration(decoration.corners(v)))
                     .orElseGet(() -> dropped(property, value));
 
             case "border-width" -> points(value, context)
@@ -522,10 +535,14 @@ public record ComputedStyle(
     /// Forgets what has been reported, so a test can drive the same bad
     /// declaration twice.
     ///
-    /// Package-private: this exists for `ComputedStyleTest` and for nothing else.
-    /// A cache that could not be cleared would make the second test in a class
-    /// depend on whether the first one had already tripped the same warning.
-    static void forgetReportedDrops() {
+    /// This exists for tests and for nothing else: a cache that could not be
+    /// cleared would make the second test in a class depend on whether the first
+    /// one had already tripped the same warning. It is **public** because one of
+    /// those tests is in another module — `:example`'s lint over the toolkit's own
+    /// stylesheets reads what the cascade said about them (ADR-0215), and a drop
+    /// another test in the same JVM had already reported would be a lint that
+    /// passed by seeing nothing at all (ADR-0216).
+    public static void forgetReportedDrops() {
         REPORTED.clear();
     }
 
@@ -978,6 +995,52 @@ public record ComputedStyle(
             case 4 -> new Insets(parts.get(0), parts.get(1), parts.get(2), parts.get(3));
             default -> null;
         });
+    }
+
+    /// CSS's 1-4 value corner shorthand, in CSS's order.
+    ///
+    /// The order is the one CSS names the corners in — top-left, top-right,
+    /// bottom-right, bottom-left, clockwise from the top-left — and the fill-in
+    /// rule is CSS's own: one value is every corner, two are the two diagonals,
+    /// and three name the fourth as the opposite of the second.
+    ///
+    /// Empty if any part fails to parse, for [#insets]'s reason: a half-applied
+    /// shorthand is harder to see than one that did nothing. That is also what
+    /// refuses the elliptical form — `10px / 20px` has a `/` in it, which is not
+    /// a length, and `RoundRect` draws circles.
+    private static java.util.Optional<Corners> corners(List<Token> value, CssLength.Context context) {
+        var parts = new java.util.ArrayList<Double>();
+        for (var token : split(value)) {
+            var radius = points(token, context);
+            if (radius.isEmpty()) {
+                return java.util.Optional.empty();
+            }
+            parts.add(radius.get());
+        }
+        return java.util.Optional.ofNullable(switch (parts.size()) {
+            case 1 -> Corners.all(parts.getFirst());
+            case 2 -> new Corners(parts.get(0), parts.get(1), parts.get(0), parts.get(1));
+            case 3 -> new Corners(parts.get(0), parts.get(1), parts.get(2), parts.get(1));
+            case 4 -> new Corners(parts.get(0), parts.get(1), parts.get(2), parts.get(3));
+            default -> null;
+        });
+    }
+
+    /// The `background` shorthand: a colour, or `none`.
+    ///
+    /// `none` is transparent here. In CSS it turns off the *image* layers and
+    /// leaves `background-color` alone, but the toolkit has no image layer — so
+    /// what "no background" can mean is the one thing it does mean to a painter,
+    /// and it is how a rule turns a fill off without having to know what colour
+    /// it is turning off. The same answer `border: none` gives, one property up.
+    private static java.util.Optional<Integer> backgroundLayer(List<Token> value) {
+        var parts = split(value);
+        if (parts.size() == 1 && parts.getFirst().size() == 1
+                && parts.getFirst().getFirst().is(TokenType.IDENT)
+                && parts.getFirst().getFirst().text().toLowerCase(Locale.ROOT).equals("none")) {
+            return java.util.Optional.of(CssColor.TRANSPARENT);
+        }
+        return colour(value);
     }
 
     /// Splits a value on whitespace into the component values of a shorthand.

@@ -13,7 +13,7 @@ page is the other half: it says what works and what it cost to find out.
 | [M0 — Skeleton](#m0--skeleton) | **done** | One native library on four targets, two backends, a window at the right fractional DPI |
 | [M1 — Vertical slice](#m1--vertical-slice) | **started** | Blend2D rasterizes, HarfBuzz shapes, text lays out, and a frame's cost is measured |
 | [M2 — Widgets & style](#m2--widgets--style) | **done** | CSS, KDL, the three trees, input, motion — and every §3 control, `select` included |
-| [M3 — Shell](#m3--shell) | **started** | **The whole of §7**, §9's `tray-icon`, `menubar`, §5's containers, the whole `scroll` family and §4's fields — with the clipboard, text input, a focus trap and a third rank of every semantic hue that nothing had asked for |
+| [M3 — Shell](#m3--shell) | **started** | **The whole of §7**, §9's `tray-icon`, `menubar`, §5's containers, the whole `scroll` family and §4's fields — with the clipboard, text input, a focus trap and a third rank of every semantic hue that nothing had asked for. The showcase is a menu bar, a bar and seven walls of cards, in a window that opens maximized |
 | [M4 — GPU](#m4--gpu) | not started | `canvas3d`, GPU composition |
 | [M5 — Hardening](#m5--hardening) | not started | Text editing depth, AccessKit bridge, IME preedit, docs, 0.1 release |
 | [Content modules](#content-modules) | not started | Eleven optional artifacts in `docs/content-widgets.md`; nothing exists, nothing scheduled |
@@ -4433,6 +4433,226 @@ is the `scroll` box's.
   make the other two pass by seeing nothing at all.
 - **Two live instances in the whole tree**, and that was all: this one, and a
   `padding-bottom` in the showcase's own sheet.
+
+### The corner that was written and never drawn
+
+- **`group-box-title` asked for `border-radius: 7px 7px 0 0` and got four square
+  corners** ([ADR-0216](adr/0216-a-corner-is-four-numbers-and-a-lint-reads-values-too.md)).
+  §5's frame is 8px round with a 1px edge and the header fills the top of it, so
+  the header's top corners are the frame's less the border and its bottom ones
+  are square. The engine resolved one radius per box, dropped the declaration
+  whole, and two square shoulders spilled out of the frame's curve. `select
+  text-input { background: none }` was the second line in the same log, doing
+  nothing for the same kind of reason.
+- **A radius is four numbers now.** `Corners` over CSS's 1-4 shorthand, in CSS's
+  order. This is the change ADR-0215 declined to make for `border-bottom`, and
+  the difference is that a rule under a table header is expressible as a node and
+  a corner is not — nothing in this toolkit clips.
+- **One drawing serves both**, and the uniform case emits exactly the point
+  sequence the single-radius painter always did. Two goldens changed by 31 pixels
+  each — the two with a `group-box` in them — and every other golden is
+  byte-identical, which is the assertion that a hundred controls did not move.
+- **`background: none` is transparent and `background-color: none` is not**,
+  which is CSS's own division: `none` turns off the layers in the shorthand, and
+  the longhand takes a colour. It is what `border: none` has always done one
+  property up, and it is why the field inside a `select` had a fill it was told
+  not to have.
+- **The lint reads values as well as names now** — and had to start running the
+  real cascade to do it. Every colour in the toolkit is `var(--gb-something)`, so
+  raw declarations handed to `ComputedStyle` reported 164 failures on a healthy
+  tree; the check builds a probe element per selector, chained by parent so
+  `select text-input` is a `text-input` inside a `select`, and resolves it
+  through `StyleResolver`. The leftmost probe has no parent, which is what makes
+  it `:root` and how the theme's custom properties reach the chain.
+- **The mistake was not that the log was too quiet.** A dropped value has always
+  warned, one level above the dropped property that started ADR-0215, and it was
+  read exactly as often. What catches it is a test.
+- **ADR-0097's parked question is unblocked**: `SegmentedTest` said the bar's
+  inset grid should be revisited "the day a per-corner radius exists". It is not
+  revisited — the control draws correctly — but it is now a choice rather than a
+  limit.
+
+### A key given back by whoever took it
+
+- **A `menubar` going away could unbind an application's own `Ctrl+O`**
+  ([ADR-0220](adr/0220-an-accelerator-is-given-back-by-whoever-took-it.md)). The
+  window's map was keyed by the shortcut alone, so giving back what the bar took
+  removed whatever was on those keys — including a binding made after the bar
+  was mounted.
+- **A binding is `(action, owner)` now**, compared by identity, and there are two
+  ways to give a key back: by key, which removes whatever is there and is what an
+  application means; and by key *and owner*, which is a no-op when somebody else
+  holds it and is what a widget means.
+- **The bind side did not change.** Two commands on one key is still an authoring
+  mistake where the later one wins; the loser simply cannot take the winner away
+  with it any more.
+- **A displaced binding is not restored**, deliberately: that needs a stack per
+  key, and a stack needs an answer for what happens when the middle of it leaves.
+- **`menubar` is the only owner in the toolkit**, which is exactly what the entry
+  predicted when it was filed.
+
+### Four entries that were one missing callback
+
+- **An `item` could tell its menu one thing** — "the pointer arrived on me" — and
+  four `TODO.md` entries were all the sentences it could not say
+  ([ADR-0219](adr/0219-an-item-tells-its-menu-what-the-keyboard-did.md)): a
+  keyboard `Right` waited out the pointer's 150 ms hover-intent, `Left` closed
+  nothing, `Left`/`Right` did not move between a bar's menus, and nothing marked
+  the row whose submenu was showing.
+- **`MenuSignals` is the sentence**: `hovered`, `open`, `back`, `forward`. Each
+  says what *happened to the row*, not what to do about it — which is how `Left`
+  means "close this submenu" in one menu and "the menu on the bar's left" in
+  another without the row knowing either.
+- **A delay is for a pointer.** Hover-intent stops a submenu dropping out of one
+  travelling past three rows; a keypress has travelled past nothing, so `open()`
+  cancels the timer and opens in the same frame.
+- **A bar hands its root menu a `Siblings`** and a submenu gets none, which is the
+  whole of why `Left` goes back one level inside a branch and along the bar at the
+  top of one. It wraps, and skips a separator or a disabled heading.
+- **`Menus` grew an object.** Three of the four fixes need state that lived
+  nowhere — which row's branch is open, and which menu is above this one — so an
+  open menu is an `OpenMenu` rather than five parameters passed down a chain of
+  statics.
+- **The mark is read in pixels.** A popup's tree is in another window, so the test
+  moves the pointer out of the parent menu and compares the row's own pixels
+  before and after: the only thing left on it is the mark. Four of the five new
+  tests fail against the old code.
+
+### The paste that took the window down
+
+- **`Paragraph.of` refused right-to-left text and a `text-input` does not choose
+  its text** ([ADR-0218](adr/0218-a-paragraph-approximates-bidi-rather-than-refusing-it.md)).
+  A user pasting Arabic lost the window: the paste succeeded, the field held the
+  text, and the frame that tried to describe it threw. The last crash on
+  `TODO.md`.
+- **A paragraph never refuses text now.** Bidi text is shaped with the direction
+  forced to `LTR`, so the glyphs come back in the order every measurement here
+  assumes. The glyphs are right — joining comes from the script, which is still
+  guessed — and the *order* is mirrored.
+- **Wrong in exactly one way.** Widths, wrapping, carets, hit testing and
+  selection all come off the same prefix sums, so a click lands where the caret
+  is drawn. What is wrong is the reading order, which is the thing that needs run
+  splitting.
+- **It says so twice**: `isBidiApproximate()` for a caller, and one warning per
+  distinct string for a reader. The alternative to a crash should not be a
+  silence.
+- **`Font.shape(text, direction)` is the seam the real fix will use**, because
+  bidi run splitting *is* "shape each run in its own direction".
+- **The test fails against the old paragraph**, which is what says it tests the
+  crash rather than the fix.
+
+### The bar that was drawn the other way
+
+- **`segmented` draws §3's row now** — "radius 8 outer, 0 between; 1px divider in
+  `--gb-border`" ([ADR-0217](adr/0217-a-segmented-control-is-joined-again.md)).
+  ADR-0097 declined it on two grounds: per-corner radii did not exist, and
+  nothing clips. ADR-0216 removed the first, and the second turned out not to
+  need answering — clipping was only ever needed to cut a square fill to the
+  bar's shape, and a fill that rounds its own outer corners already is that
+  shape.
+- **The bar's padding is its border's width**, which is the whole of the new
+  arithmetic: 1px puts the track on the bar's inner box, and the 7 the segments
+  and the pill carry is the bar's 8 less that border. Concentric, which is what
+  makes a fill lie flat against a rounded edge instead of poking through it.
+- **The radius is the stylesheet's and the corners are Java's.** Which cell is at
+  an end of the row depends on a count, and no selector can count segments — the
+  same argument ADR-0099 used for the cell width. `Corners.inRow` is in `:core`
+  because `button.square`'s joined buttons and `tabs` are the next two callers.
+- **The divider came back as a node and out of flow.** In flow it would take a
+  pixel of the row, and the row is a grid — `(100% - 3px) / 4` is not a
+  percentage anything can name, and the travel depends on every cell being
+  exactly `1/n`. The two beside the selection fade rather than blink, because the
+  pill takes `base` to reach them, and all of them are painted **under** the pill
+  so a moving fill never has a line drawn across it.
+- **A new golden, `segmented-unset`, is the only image that shows a hairline at
+  all**: with three segments and the middle one selected, both dividers are
+  beside the selection. That is correct and it is exactly why the image exists.
+- **The focus ring left the bar's edge.** ADR-0097 recorded as a coincidence that
+  a 2px ring at a 2px offset landed on the border when the segment was inset by
+  2; with the segment against the inner edge the ring sits just outside the bar
+  and takes the segment's own corners.
+- **Two tests were counting past the track's parts** — `children().get(index + 1)`,
+  one past the indicator — and there are `n` parts now. Both find an `option` by
+  type instead, which is what they meant.
+
+### The gallery that was twelve lists and is seven questions
+
+- **The showcase is a `menubar`, a bar and seven screens**
+  ([ADR-0222](adr/0222-a-showcase-is-a-window-a-bar-and-seven-screens.md)).
+  ADR-0110's rule for what went where was *one screen per widget family*, and it
+  did not survive the catalog reaching fifty-one widgets: `Controls`, `Values` and
+  `Text` were three tabs you had to visit in turn to see one screen's worth of
+  chrome; `Overlays` and `Notifications` were the two halves of one comparison
+  with a tab between them; and twelve screens against ten digits left two of them
+  with no accelerator at all, which ADR-0110's own note had admitted.
+- **Every screen is a `Wall`** — a heading, a line of prose, and a `masonry` of
+  cards. A *type* and not a convention, because it was a convention first and
+  four screens had already drifted off it: one had its heading inside the wall,
+  one had no prose, two disagreed about whether the caption was `.caption` or
+  `.prose`.
+- **A document supplies the cards it can and Java appends the rest to the same
+  masonry.** `Panes.wallOf` refuses a document whose root is not a `masonry`, and
+  that check is the load-bearing one: a `column` wrapped round it during an edit
+  is a perfectly good document, nothing throws, and the screen quietly grows a
+  *second* wall laid out against different columns. The Java cards are exactly
+  the five things markup cannot write — an expression, a list the application
+  edits, a set that is toggled, a filter that hands options back, and series
+  data.
+- **The window opens maximized**
+  ([ADR-0221](adr/0221-a-window-may-open-maximized.md)), which is a `default
+  false` predicate on `Application` and a `SDL_WINDOW_MAXIMIZED` flag beside the
+  size rather than an enormous size instead of one. `WindowSpec` refuses
+  maximized-and-not-resizable, because SDL silently drops the flag there and both
+  readings of a warning would be wrong. The layout verification caught the
+  missing `GB_CONSTANT` in `goldberry_shim.c` on the first run, which is the
+  check doing exactly what it is for.
+- **The theme is one fact in two spellings, written in one place.** `app.theme`
+  is a name because three controls pick from a list; `app.light` is a boolean
+  because `Toggle.resolved` reads `source.get() instanceof Boolean` and falls
+  back to its own flag otherwise — a switch bound to `"light"` never moves. Both
+  are assigned in `pickTheme` and nowhere else, and a test walks every route to
+  the theme asserting the two agree after each.
+- **`Set.of` is now banned from anything a golden image prints.** Its iteration
+  order is randomized once per JVM, so the Collections tree's caption —
+  `String.join(", ", checked)` — came out "buckland, weathertop" on one run and
+  the other way on the next. A thousand pixels of caption failed the image at
+  random; a `LinkedHashSet` fixed it. Three consecutive `--rerun-tasks` runs are
+  what confirmed it.
+- **`Scrolling` keeps §2.4's nested-scroll ban and stops being a special case.**
+  It used to be the one screen the gallery did not wrap in a viewport; it is now
+  a card in a two-column wall, and the screen fits without scrolling at all. The
+  wall is what made the ban affordable rather than awkward.
+- **Section names are one word each**, because a section's name becomes its
+  `#section-<name>` and its button's `#jump-<name>`, and `#jump-bag end` is not a
+  selector. The slug helper that had appeared to cope with the others went with
+  them.
+- **`SectionHeader` is public and is the screen title.** `text.screen-title` did
+  the job for eleven screens and stopped being honest: a class is something any
+  node can wear, a heading is a *kind* of node, and being an element type is what
+  lets one rule say "a heading inside an affixed section takes a surface".
+  `ShowcaseTypographyTest` asserts its rank through the cascade, which is the one
+  place that can see it — every golden image is drawn with the single-font
+  renderer and is blind to every typographic rank there is.
+- **The content is Middle-earth.** Not decoration: a table of nine companions
+  with a `Kindred` column that repeats and a `Leagues` column that does not shows
+  a sortable header doing something `Row 1`…`Row 6` cannot, and names of wildly
+  different lengths are what a layout has to survive. No text is quoted — the
+  prose is written for the purpose.
+- **Eleven golden images at 1200×900**, replacing twelve at 900×560, plus
+  `gallery-basic-narrow` at 720: a `masonry`'s columns are a count and not a media
+  query, so two columns at 1200 are two columns at 720, half as wide and twice as
+  tall, and a card with a minimum width would overflow rather than wrap.
+- **`WindowActions` survives, and the reason is the interesting one.** It was
+  deleted when the menu bar started holding its handlers directly — and put back,
+  because `overlays.kdl` presses `app.open-menu` by *name* and only a registry
+  can turn a string into a call. The two halves of §9 are now visible side by
+  side in one window.
+- **Two new test classes**: `WindowSpecTest` in `:core` for the flag and its
+  refusal, and `ShowcaseShellTest` in `:example` for the three bands, the seven
+  screens, and every row of the menu bar including the one that is honestly
+  disabled. Neither is a thing a golden image can show — every picture is drawn
+  at a size the test chose, so a window that opened 200px wide would look
+  identical in all of them.
 
 ### Not started
 

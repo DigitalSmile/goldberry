@@ -29,7 +29,9 @@ import io.github.digitalsmile.goldberry.css.value.CssColor;
 /// carried: a percentage radius means "of this box's size", and a box does not
 /// know its size until Yoga has run — long after the cascade.
 ///
-/// @param radius        corner radius; 0 is a square corner
+/// @param corners       the four corner radii; [Corners#SQUARE] is a square box.
+///                      One number until `border-radius: 7px 7px 0 0` needed two
+///                      (ADR-0216) — see [Corners] for why a box ever wants that
 /// @param borderWidth   border thickness, drawn *inside* the box's edge as CSS's
 ///                      `border-box` sizing requires
 /// @param borderColor   `0xAARRGGBB`, not premultiplied
@@ -37,7 +39,7 @@ import io.github.digitalsmile.goldberry.css.value.CssColor;
 /// @param outlineColor  `0xAARRGGBB`, not premultiplied
 /// @param outlineOffset the gap between the box's edge and the inside of the ring
 public record Decoration(
-        double radius,
+        Corners corners,
         double borderWidth,
         int borderColor,
         double outlineWidth,
@@ -46,13 +48,14 @@ public record Decoration(
 
     /// Square corners, no border, no ring — what every box starts as.
     public static final Decoration NONE =
-            new Decoration(0, 0, CssColor.TRANSPARENT, 0, CssColor.TRANSPARENT, 0);
+            new Decoration(Corners.SQUARE, 0, CssColor.TRANSPARENT, 0, CssColor.TRANSPARENT, 0);
 
     public Decoration {
         // Clamped rather than refused. These arrive from a stylesheet, and §8's
         // rule for a bad declaration is to drop it and carry on — a negative
-        // radius should not take a window down mid-frame.
-        radius = Math.max(0, finite(radius, "radius"));
+        // radius should not take a window down mid-frame. The corners clamp
+        // themselves, in [Corners], for the same reason.
+        java.util.Objects.requireNonNull(corners, "corners");
         borderWidth = Math.max(0, finite(borderWidth, "border-width"));
         outlineWidth = Math.max(0, finite(outlineWidth, "outline-width"));
         outlineOffset = finite(outlineOffset, "outline-offset");
@@ -74,40 +77,46 @@ public record Decoration(
 
     /// Whether this is [#NONE] in effect — nothing to draw and nothing to round.
     public boolean isPlain() {
-        return radius == 0 && !hasBorder() && !hasOutline();
+        return corners.isSquare() && !hasBorder() && !hasOutline();
     }
 
+    /// The same radius on all four corners — `border-radius: 8px`, which is every
+    /// radius the design system pins.
     public Decoration radius(double value) {
+        return corners(Corners.all(value));
+    }
+
+    public Decoration corners(Corners value) {
         return new Decoration(value, borderWidth, borderColor, outlineWidth, outlineColor,
                 outlineOffset);
     }
 
     public Decoration border(double width, int argb) {
-        return new Decoration(radius, width, argb, outlineWidth, outlineColor, outlineOffset);
+        return new Decoration(corners, width, argb, outlineWidth, outlineColor, outlineOffset);
     }
 
     public Decoration borderWidth(double value) {
-        return new Decoration(radius, value, borderColor, outlineWidth, outlineColor, outlineOffset);
+        return new Decoration(corners, value, borderColor, outlineWidth, outlineColor, outlineOffset);
     }
 
     public Decoration borderColor(int argb) {
-        return new Decoration(radius, borderWidth, argb, outlineWidth, outlineColor, outlineOffset);
+        return new Decoration(corners, borderWidth, argb, outlineWidth, outlineColor, outlineOffset);
     }
 
     public Decoration outline(double width, int argb, double offset) {
-        return new Decoration(radius, borderWidth, borderColor, width, argb, offset);
+        return new Decoration(corners, borderWidth, borderColor, width, argb, offset);
     }
 
     public Decoration outlineWidth(double value) {
-        return new Decoration(radius, borderWidth, borderColor, value, outlineColor, outlineOffset);
+        return new Decoration(corners, borderWidth, borderColor, value, outlineColor, outlineOffset);
     }
 
     public Decoration outlineColor(int argb) {
-        return new Decoration(radius, borderWidth, borderColor, outlineWidth, argb, outlineOffset);
+        return new Decoration(corners, borderWidth, borderColor, outlineWidth, argb, outlineOffset);
     }
 
     public Decoration outlineOffset(double value) {
-        return new Decoration(radius, borderWidth, borderColor, outlineWidth, outlineColor, value);
+        return new Decoration(corners, borderWidth, borderColor, outlineWidth, outlineColor, value);
     }
 
     /// This decoration with every colour's alpha scaled by `alpha`.
@@ -120,7 +129,7 @@ public record Decoration(
         if (alpha >= 1) {
             return this;
         }
-        return new Decoration(radius, borderWidth, CssColor.fade(borderColor, alpha),
+        return new Decoration(corners, borderWidth, CssColor.fade(borderColor, alpha),
                 outlineWidth, CssColor.fade(outlineColor, alpha), outlineOffset);
     }
 

@@ -1,5 +1,6 @@
 package io.github.digitalsmile.goldberry.widgets.controls.button;
 
+import io.github.digitalsmile.goldberry.css.Corners;
 import io.github.digitalsmile.goldberry.render.Cursor;
 import io.github.digitalsmile.goldberry.widget.attr.Attributes;
 
@@ -241,7 +242,7 @@ class ButtonTest {
             assertEquals(new Insets(StyleLength.points(0), StyleLength.points(12),
                     StyleLength.points(0), StyleLength.points(12)), style.padding());
             assertEquals(StyleLength.points(6), style.gap());
-            assertEquals(8, style.decoration().radius(), 1e-9);
+            assertEquals(Corners.all(8), style.decoration().corners());
 
             // And no border, because §3's button row does not have one. The
             // machinery exists -- the checkbox's glyph uses it -- and using it
@@ -290,7 +291,7 @@ class ButtonTest {
             assertEquals(2, tabbed.decoration().outlineWidth(), 1e-9);
             assertEquals(2, tabbed.decoration().outlineOffset(), 1e-9);
             assertEquals(0xFF88C0D0, tabbed.decoration().outlineColor(), "nord8, --gb-focus");
-            assertEquals(8, tabbed.decoration().radius(), 1e-9, "the ring follows the radius");
+            assertEquals(Corners.all(8), tabbed.decoration().corners(), "the ring follows the radius");
         }
 
         @Test

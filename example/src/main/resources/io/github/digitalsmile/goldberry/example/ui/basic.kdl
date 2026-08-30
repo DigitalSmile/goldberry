@@ -1,0 +1,146 @@
+// The **Basic** screen's cards: §1's type scale and every §3 control whose value
+// is a state or a number.
+//
+// ## Why the root is a `masonry` and not a screen
+//
+// Because two of this screen's cards cannot be written here and the rest can, and
+// a masonry places by *column height* — so the two have to go into the same wall
+// as the six or they would be a second wall under the first, laid out against
+// different columns.
+//
+// So this document is the **cards**, not the screen:
+// [io.github.digitalsmile.goldberry.example.ui.Basic] takes these children, adds
+// the prose card (in the tree only while the checkbox says so) and the road card
+// (whose Turn back is disabled while the count is zero), and builds one wall out
+// of all eight. §8's markup has no expressions and is not going to grow any
+// (ADR-0062, ADR-0110, ADR-0222).
+//
+// Everything below flows down through `bind=` and back up through `change=`, so
+// the file names what the application registered and never touches a `Property`
+// (ADR-0063).
+masonry id="basic-wall" columns=2 {
+
+  // §1.4's six ranks, in order, so a reader can see what "one rung quieter"
+  // buys. Nothing here is a heading element -- there is no such widget -- they
+  // are `text` nodes with a class each, which is the whole of what a type scale
+  // is.
+  card id="type-card" class="wall-card" {
+    text class="card-title" "The type scale"
+    text class="rank-display" "A map of the West"
+    text class="rank-title" "From Bag End to the Sea"
+    text class="rank-heading" "Nine set out from Rivendell in the winter"
+    text class="rank-body" "The Company kept to the high paths while the passes held, \
+and turned under the mountain only when the snow refused them."
+    text class="rank-caption" "Marked in the Red Book, in a hand that was not steady"
+    text class="rank-code" "leagues = 1795  //  pace 3.1/hr"
+  }
+
+  // One Tab stop, not two: Tab reaches the group and the arrow keys move inside
+  // it. An arrow does not move the tick -- it raises the change, the application
+  // sets the property, and the tick follows it back down (ADR-0073, ADR-0063).
+  //
+  // Three controls on **one** property, which is the argument of this card: none
+  // of the three owns the value, so picking from the dropdown moves the radios
+  // and the bar, the switch in the window's bar moves all three, and Ctrl+T
+  // moves all four.
+  card id="theme-card" class="wall-card" {
+    text class="card-title" "One value, four controls"
+
+    radio-group id="themes" bind="app.theme" change="app.pick-theme" {
+      radio value="dark" "Moria — dark"
+      radio value="light" "Lothlórien — light"
+    }
+
+    // It shares `radio-group`'s model exactly and is a different widget anyway:
+    // the arrows here answer only Left and Right, because a bar has an axis of
+    // its own where a group's is its stylesheet's (ADR-0078, ADR-0097).
+    segmented id="theme-bar" bind="app.theme" change="app.pick-theme" {
+      option value="dark" "Moria"
+      option value="light" "Lórien"
+    }
+
+    // The list opens in a window of its own, so it is not clipped by this card.
+    // It writes the same `option` nodes the bar above does -- one node by §3, one
+    // record since it had two callers (ADR-0141).
+    select id="theme-select" bind="app.theme" change="app.pick-theme" \
+           placeholder="Choose a light" {
+      option value="dark" "Moria — dark"
+      option value="light" "Lothlórien — light"
+    }
+
+    text class="caption" "And the switch in the bar above. Four controls, one \
+property, and not one of them owns it."
+  }
+
+  card id="switch-card" class="wall-card" {
+    text class="card-title" "Switches"
+    checkbox id="prose-toggle" bind="app.prose" change="app.toggle-prose" \
+             "Read the verse"
+    // MIXED is a state a user can never click their way back into -- only the
+    // application can put a box there, which is what makes it worth showing.
+    checkbox id="partly" bind="app.partly" change="app.toggle-partly" \
+             "Provisions packed"
+    checkbox id="unavailable" checked=#true disabled=#true "Sworn to the Fellowship"
+    checkbox id="indeterminate-still" indeterminate=#true disabled=#true \
+             "Counsel not yet taken"
+    // The same property as the checkbox at the top of this card, so the two move
+    // together -- and the switch reports the state it was dragged *to* rather
+    // than "the other one" (ADR-0075).
+    toggle id="prose-switch" bind="app.prose" change="app.set-prose" \
+           "Read the verse (as a switch)"
+    toggle id="prose-switch-off" on=#true disabled=#true "Bound by oath"
+  }
+
+  card id="chip-card" class="wall-card" {
+    text class="card-title" "Chips"
+    row id="badges" {
+      badge "9"
+      badge class="info" "Shire"
+      badge class="success" "Rivendell"
+      badge class="warning" "Rohan"
+      badge class="danger" "Mordor"
+    }
+    text class="caption" "A badge takes its rank from a class, and the bare one \
+takes the neutral surface -- five hues on one row so that §1.2's rule about \
+never carrying meaning in colour alone has something to be read against."
+  }
+
+  // §3's controls whose value is a *number*, and the two that report one back.
+  card id="value-card" class="wall-card" {
+    text class="card-title" "Provisions, four ways"
+    slider id="gain" min=0 max=100 step=5 ticks=5 format="%.0f%%" \
+           bind="app.gain" change="app.set-gain"
+    row id="knobs" {
+      knob id="gain-knob" min=0 max=100 step=5 detents=5 \
+           bind="app.gain" change="app.set-gain"
+      text id="gain-knob-label" class="caption" "The same sack, as a dial"
+    }
+    row id="faders" {
+      slider id="fader" class="vertical" min=0 max=100 step=5 \
+             bind="app.gain" change="app.set-gain"
+      text id="fader-label" class="caption" "And vertically"
+    }
+    slider id="locked-fader" min=0 max=100 value=70 disabled=#true
+    text class="caption" "A slider out of the tab order entirely"
+  }
+
+  card id="report-card" class="wall-card" {
+    text class="card-title" "Reporting"
+    row id="busy" {
+      spinner
+      text id="busy-label" "The Company is on the road"
+    }
+    // The caption goes *above* the bar it names, and both of them do. A 4px bar
+    // under a line of prose reads as an underline of that line rather than as a
+    // control -- which is exactly how the first version of this card read, with
+    // each caption naming the bar above it and appearing to belong to the one
+    // below.
+    text class="caption" "Determinate — it is the sack above."
+    // The same number again, read-only this time: a bar reports where a slider
+    // asks.
+    progress max=100 bind="app.gain"
+    text class="caption" "Indeterminate: something is happening and nobody can \
+say how much of it is left."
+    progress id="unknowable" indeterminate=#true
+  }
+}

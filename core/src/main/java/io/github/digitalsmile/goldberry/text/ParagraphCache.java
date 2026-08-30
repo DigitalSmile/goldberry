@@ -110,8 +110,9 @@ public final class ParagraphCache {
     /// widths — that is what its memo is for — and it must not be held past the
     /// life of its font, which is true of any paragraph.
     ///
-    /// @throws UnsupportedOperationException if the text is right-to-left, which
-    ///         [Paragraph#of] refuses; nothing is cached in that case
+    /// Text that needs bidi is held like any other: [Paragraph#of] approximates
+    /// it rather than refusing it (ADR-0218), so there is no longer a string this
+    /// cache can be asked for and cannot answer.
     public Paragraph paragraph(Font font, String text) {
         requireOwner();
         Objects.requireNonNull(font, "font");
@@ -123,9 +124,10 @@ public final class ParagraphCache {
             hits++;
             return held;
         }
-        // Shaped outside the map: Paragraph.of can throw, and a computeIfAbsent
-        // that throws leaves the map in a state LinkedHashMap does not promise
-        // anything about.
+        // Shaped outside the map rather than in a `computeIfAbsent`: shaping
+        // crosses into HarfBuzz, and a mapping function that threw -- an
+        // unusable font, a closed buffer -- would leave the map in a state
+        // `LinkedHashMap` promises nothing about.
         var shaped = Paragraph.of(font, text);
         misses++;
         entries.put(key, shaped);

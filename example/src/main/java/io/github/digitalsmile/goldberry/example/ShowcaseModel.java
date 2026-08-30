@@ -11,10 +11,18 @@ import java.util.List;
 
 /// Everything the showcase *knows*. Values, and nothing that happens to them.
 ///
-/// The state half of a view model. What changes these is [ActionRegistry], nested below
+/// The state half of a view model. What changes these is [Actions], nested below
 /// — the build rewrites a write to a `@Bind` field wherever it appears, so an
 /// assignment in one class notifies exactly as one in the other would
 /// ([ADR-0134](../../../../../../book/src/adr/0134-a-write-is-rewritten-wherever-it-is.md)).
+///
+/// ## Why the content is Middle-earth
+///
+/// Because a gallery whose every label reads "Item 1" is a gallery you cannot
+/// read. Real prose wraps at awkward places, real names are of wildly different
+/// lengths, and a table of six companions with a `Kindred` column shows a
+/// sortable header doing something a column of `Row 1`… cannot
+/// ([ADR-0222](../../../../../../book/src/adr/0222-a-showcase-is-a-window-a-bar-and-seven-screens.md)).
 ///
 /// ## Why a class and not a record
 ///
@@ -22,7 +30,7 @@ import java.util.List;
 /// is the whole mechanism. So the values are a class, and the *actions* are the
 /// record, which is the half that genuinely holds nothing.
 ///
-/// ## Why [ActionRegistry] is nested
+/// ## Why [Actions] is nested
 ///
 /// So these fields can stay `private`. A nestmate reaches a private field and a
 /// private method, so nesting the actions costs nothing in encapsulation — where
@@ -30,20 +38,22 @@ import java.util.List;
 /// ([ADR-0137](../../../../../../book/src/adr/0137-a-model-keeps-its-fields.md)).
 ///
 /// Nesting is **scoping, not coupling**: this class holds no reference to
-/// [ActionRegistry], mentions it in no signature, and would compile with it deleted. The
+/// [Actions], mentions it in no signature, and would compile with it deleted. The
 /// arrow still points one way.
 ///
 /// ## Why here and not on the element
 ///
 /// [io.github.digitalsmile.goldberry.widget.State] is for what the *UI* remembers
 /// — a scroll offset, a caret, which tab is open — and it is right that those die
-/// with the widget that owns them (ADR-0052). This is the other kind: the number
-/// of clicks and the gain are what the application is *about*, they outlive any
-/// particular screen, and a second screen showing the same gain would read this
-/// object rather than a copy of it.
+/// with the widget that owns them (ADR-0052). This is the other kind: the leagues
+/// walked and the provisions left are what the application is *about*, they
+/// outlive any particular screen, and a second screen showing the same number
+/// would read this object rather than a copy of it.
 @Model
 public final class ShowcaseModel {
 
+    /// Leagues walked from Bag End. The counter, in the one unit a hobbit
+    /// measures anything in.
     @Bind("app.clicks")
     private int clicks;
 
@@ -66,20 +76,36 @@ public final class ShowcaseModel {
     @Bind(value = "app.theme", restyle = true)
     private String themeName = "dark";
 
-    /// The Forms screen's bound field, and the one that proves the round trip:
-    /// the field reports every keystroke, the action below writes it here, and
-    /// the `text` beside it reads the same path. A field that reset its caret on
+    /// The same fact as [#themeName], spelled the way a **switch** can read it.
+    ///
+    /// Two fields and one writer. A `radio-group`, a `segmented` and a `select`
+    /// all pick from a list, so their value is a *name*; the bar's `toggle` is a
+    /// two-state control and a switch's value is a `boolean` by definition — it
+    /// reads `source.get() instanceof Boolean` and falls back to its own flag
+    /// otherwise, so binding it to `"light"` would give a switch that never
+    /// moves.
+    ///
+    /// The two can only disagree inside [Actions#pickTheme], which is four lines
+    /// long and is the single route every theme control in the window goes
+    /// through — the strip, the switch, the menu, the tray and `Ctrl+T`.
+    @Bind(value = "app.light", restyle = true)
+    private boolean light;
+
+    /// The Red Book's own field, and the one that proves the round trip: the
+    /// field reports every keystroke, the action below writes it here, and the
+    /// `text` beside it reads the same path. A field that reset its caret on
     /// that round trip would be unusable, which is exactly what `TextInput`'s
     /// "has the value changed since the last build" test is there to prevent.
     @Bind("app.name")
     private String name = "";
 
     /// A field with a filter on it, so the screen shows one refusing a keystroke
-    /// rather than only describing that it would.
+    /// rather than only describing that it would. A palantír answers on a port
+    /// like anything else that talks over a distance.
     @Bind("app.port")
     private String port = "8080";
 
-    /// The §4 form's two values. The status line is what the Save button writes,
+    /// The enlistment form's two values. The status line is what Enlist writes,
     /// and is the smallest thing that shows a submission being **refused** — the
     /// interesting half of a form, and the half a screenshot of a happy one never
     /// shows.
@@ -90,37 +116,57 @@ public final class ShowcaseModel {
     private String signupPort = "";
 
     @Bind("app.signup-status")
-    private String signupStatus = "Nothing submitted yet";
+    private String signupStatus = "Nobody has enlisted yet";
 
     /// The `text-area`'s value, so the screen shows a multi-line control that a
     /// model can see — and one long enough to wrap, which is the half of it
     /// `text-input` cannot demonstrate.
     @Bind("app.bio")
-    private String bio = "Yoga laid this out, HarfBuzz shaped it, and Blend2D drew "
-            + "every glyph.\n\nPress Enter for a new line.";
+    private String bio = "We came down out of the pass at dusk and found the road still "
+            + "under snow.\n\nPress Enter for a new line.";
 
+    /// What the bar says about how this window came up. Written once, from a
+    /// background job's continuation — see [io.github.digitalsmile.goldberry.example.Showcase].
     @Bind("app.status")
-    private String status = "checking the environment…";
+    private String status = "reading the map…";
 
-    /// The tabs, and which of them is showing. The strip reports what the user
-    /// asked for and changes nothing itself — closing a tab removes it from here
-    /// or it does not close (ADR-0107).
+    /// How long this process took to get a window on screen, as the bar prints
+    /// it. Separate from [#status] because they answer different questions and
+    /// arrive at different times.
+    @Bind("app.startup")
+    private String startup = "…";
+
+    /// Whether the frame-rate readout is up.
+    ///
+    /// On the model and not in the window, although the overlay is the window's,
+    /// because the **menu** has to draw a tick beside it — and a menu row's
+    /// `checked` is a constant resolved when the bar is built. A window that kept
+    /// this to itself would give a bar that had to be told to rebuild by whoever
+    /// toggled the HUD, which is exactly the arrangement bound values exist to
+    /// replace (ADR-0063, ADR-0135).
+    @Bind("app.hud")
+    private boolean hud;
+
+    /// The chapters open in the Navigation screen's strip, and which of them is
+    /// showing. The strip reports what the user asked for and changes nothing
+    /// itself — closing a chapter removes it from here or it does not close
+    /// (ADR-0107).
     ///
     /// **Assignment is what is observed**, which is why this is a `List` that
     /// gets replaced rather than one that gets edited. A list mutated in place
     /// changes nothing anybody can see (ADR-0109) — the same rule the weaver
     /// enforces by refusing to bind an array at all.
     @Bind("app.tabs")
-    private List<String> tabs = List.of("Notes", "Log");
+    private List<String> tabs = List.of("Rivendell", "Moria");
 
     @Bind("app.tab")
-    private String tab = "Notes";
+    private String tab = "Rivendell";
 
-    /// Which gallery screen is showing — the tab strip across the top of the
-    /// window (ADR-0110). `Ctrl+1`, a menu item and the strip itself are three
-    /// ways to set one value rather than three copies of a selection.
+    /// Which gallery screen is showing — the tab strip under the bar (ADR-0110).
+    /// `Ctrl+1`, a menu item and the strip itself are three ways to set one value
+    /// rather than three copies of a selection.
     @Bind("app.screen")
-    private String screen = "controls";
+    private String screen = "basic";
 
     /// §1.3's density preference. It moves every control's height, which is what
     /// "token-conformant apps adapt with zero code" means (ADR-0074) — and which
@@ -128,24 +174,32 @@ public final class ShowcaseModel {
     @Bind(value = "app.density", restyle = true)
     private Density density = Density.REGULAR;
 
-    /// How many tabs have been added, so a new one gets a name nobody has used.
+    /// How many chapters have been opened, so a new one gets a name nobody has
+    /// used.
     ///
     /// Bound, and declared `repaint = false`: it is genuinely part of what this
     /// model knows, and nothing on screen shows it, so a change to it has no
-    /// frame to ask for (ADR-0135). It is also why [ShowcaseModel.Actions] can be a
-    /// record — this counter is state, and it lives with the rest of the state
-    /// rather than in the thing that increments it.
+    /// frame to ask for (ADR-0135). It is also why [Actions] can be a record —
+    /// this counter is state, and it lives with the rest of the state rather than
+    /// in the thing that increments it.
     @Bind(value = "app.tabs-added", repaint = false)
     private int added;
+
+    /// The places a new chapter is named after, in order. Ten of them, which is
+    /// more than anybody will open — and a name that repeats would be two tabs
+    /// with one identity, which a strip keyed by name cannot tell apart.
+    private static final List<String> STAGES = List.of(
+            "Bree", "Weathertop", "Lothlórien", "Anduin", "Amon Hen",
+            "Fangorn", "Edoras", "Helm's Deep", "Osgiliath", "Cirith Ungol");
 
     // --- what these values mean ---------------------------------------------
     //
     // Projections, not logic: each one is a question about the fields above with
-    // exactly one answer, and moving them into `ShowcaseModel.Actions` would put a read
-    // in a class named for writes.
+    // exactly one answer, and moving them into `Actions` would put a read in a
+    // class named for writes.
 
     public Theme theme() {
-        return "light".equals(themeName) ? Theme.NORD_LIGHT : Theme.NORD_DARK;
+        return light ? Theme.NORD_LIGHT : Theme.NORD_DARK;
     }
 
     public Density density() {
@@ -158,6 +212,14 @@ public final class ShowcaseModel {
 
     public boolean hasClicks() {
         return clicks > 0;
+    }
+
+    public boolean isHudShown() {
+        return hud;
+    }
+
+    public int clicks() {
+        return clicks;
     }
 
     /// Everything that *happens* to these values. One method per thing a control
@@ -175,51 +237,16 @@ public final class ShowcaseModel {
     ///
     /// **A record**, because it holds one thing and holds it immutably: one
     /// dependency, no state, and a constructor nobody writes. The counter behind
-    /// "Untitled 3" lives on the values for the same reason — it is state, and
-    /// this type has none.
+    /// "Bree" lives on the values for the same reason — it is state, and this
+    /// type has none.
     ///
     /// **Nested**, because a nestmate reaches a private field. A sibling
     /// top-level class would have forced every value above open to the package
     /// (ADR-0137).
-    /// The objects the Forms document **names**: the handle that submits its form
-    /// and the rule one of its fields applies.
-    ///
-    /// Not `@Bind` fields, and the binding machinery is what settled that — it
-    /// refuses a `final` one with "a value that cannot change is not something to
-    /// subscribe to", which is exactly what a controller and a validator are. They
-    /// go in a `Named` registry instead (ADR-0170).
-    private final io.github.digitalsmile.goldberry.widgets.form.form.FormController signup =
-            new io.github.digitalsmile.goldberry.widgets.form.form.FormController();
-
-    /// A rule the toolkit does not ship, which is the point of it being here: a
-    /// port is a number **and** in range, and only the application knows the
-    /// range.
-    private final io.github.digitalsmile.goldberry.widgets.form.Validator<String> portRule =
-            io.github.digitalsmile.goldberry.widgets.form.Validator.of(
-                    value -> {
-                        if (value == null || value.isEmpty()) {
-                            return true;
-                        }
-                        try {
-                            var port = Integer.parseInt(value);
-                            return port >= 1024 && port <= 65535;
-                        } catch (NumberFormatException e) {
-                            return false;
-                        }
-                    },
-                    "Ports run from 1024 to 65535");
-
-    /// What the Forms document may name — see [io.github.digitalsmile.goldberry.widgets.markup.Named].
-    public io.github.digitalsmile.goldberry.widgets.markup.Named named() {
-        return io.github.digitalsmile.goldberry.widgets.markup.Named.strict()
-                .bind("app.signup-form", signup)
-                .bind("app.port-rule", portRule);
-    }
-
     @io.github.digitalsmile.goldberry.bind.runtime.Actions
     public record Actions(ShowcaseModel values) {
 
-        // --- the gallery ---------------------------------------------------------
+        // --- the gallery -----------------------------------------------------
 
         /// Shows a screen. What the gallery's strip asks for and this decides.
         @Action("app.pick-screen")
@@ -227,7 +254,7 @@ public final class ShowcaseModel {
             values.screen = name;
         }
 
-        // --- the counter ---------------------------------------------------------
+        // --- the road --------------------------------------------------------
 
         @Action("app.click")
         public void click() {
@@ -244,14 +271,14 @@ public final class ShowcaseModel {
             values.clicks = 0;
         }
 
-        // --- the controls --------------------------------------------------------
+        // --- the controls ----------------------------------------------------
 
         /// The other half of ADR-0063's loop: the checkbox is handed the read-only
         /// half of `showProse` and cannot write it, so the tick moves only when this
         /// moves it. Delete this method and the control stops working — which is the
         /// behaviour, not a bug.
         @Action("app.toggle-prose")
-        void toggleProse() {
+        public void toggleProse() {
             values.showProse = !values.showProse;
         }
 
@@ -279,7 +306,7 @@ public final class ShowcaseModel {
             values.gain = value;
         }
 
-        /// What the Name field reports. Every keystroke arrives here and is
+        /// What the Red Book's field reports. Every keystroke arrives here and is
         /// written straight back to the model the field is bound to — the round
         /// trip a real form makes, and the one that would move the caret to the
         /// end on every letter if the field adopted its own echo.
@@ -308,7 +335,7 @@ public final class ShowcaseModel {
             values.signupPort = value;
         }
 
-        /// What Save does, and the whole of what an application writes: the form
+        /// What Enlist does, and the whole of what an application writes: the form
         /// validates itself and this is told whether it may proceed.
         ///
         /// The submit event carries **nothing**, which is right — `bind=` reads
@@ -318,11 +345,11 @@ public final class ShowcaseModel {
         @Action("app.submit-signup")
         void submitSignup() {
             if (values.signup.submit()) {
-                values.signupStatus = "Saved " + values.signupName + " on port "
+                values.signupStatus = values.signupName + " rides for Rivendell, hailed on "
                         + values.signupPort;
             } else {
                 var count = values.signup.errors().size();
-                values.signupStatus = count + (count == 1 ? " thing" : " things") + " to fix";
+                values.signupStatus = count + (count == 1 ? " thing" : " things") + " to put right";
             }
         }
 
@@ -330,30 +357,55 @@ public final class ShowcaseModel {
             values.status = value;
         }
 
-        // --- the theme -----------------------------------------------------------
+        public void setStartup(String value) {
+            values.startup = value;
+        }
+
+        /// What the window reports after it has floated a HUD or taken one away.
+        /// Not an `@Action`: no document names it, and the only caller is the
+        /// application itself.
+        public void setHud(boolean value) {
+            values.hud = value;
+        }
+
+        // --- the theme -------------------------------------------------------
 
         @Action("app.toggle-theme")
         public void toggleTheme() {
-            pickTheme("light".equals(values.themeName) ? "dark" : "light");
+            pickTheme(values.light ? "dark" : "light");
         }
 
-        /// One route for three controls — the radio group, the title bar's button and
-        /// `Ctrl+T`. Which is the point of the value being bound: a theme changed from
-        /// the keyboard moves the tick without the shortcut knowing a radio group
+        /// What the **switch** in the bar asks for, and the reason it is not
+        /// [#toggleTheme()]: a switch reports the state it was dragged to rather
+        /// than "the other one", exactly as `app.set-prose` does (ADR-0075).
+        @Action("app.set-light")
+        public void setLight(boolean value) {
+            pickTheme(value ? "light" : "dark");
+        }
+
+        /// One route for every theme control there is — the radios, the segmented
+        /// bar, the select, the bar's switch, the File menu, the tray and
+        /// `Ctrl+T`. Which is the point of the value being bound: a theme changed
+        /// from the keyboard moves the switch without the shortcut knowing a bar
         /// exists.
+        ///
+        /// The two spellings are written here and nowhere else, which is what
+        /// keeps them from disagreeing.
         @Action("app.pick-theme")
-        void pickTheme(String name) {
+        public void pickTheme(String name) {
             values.themeName = name;
+            values.light = "light".equals(name);
         }
 
+        @Action("app.toggle-density")
         public void toggleDensity() {
             values.density = values.density == Density.REGULAR ? Density.COMPACT : Density.REGULAR;
         }
 
-        // --- the tabs ------------------------------------------------------------
+        // --- the chapters ----------------------------------------------------
 
-        /// Shows a tab. What the strip asks for and this decides, like every other
-        /// value here.
+        /// Shows a chapter. What the strip asks for and this decides, like every
+        /// other value here.
         public void pickTab(String value) {
             values.tab = value;
         }
@@ -371,17 +423,64 @@ public final class ShowcaseModel {
             // *value*, and a list changed in place is the same value.
             values.tabs = List.copyOf(current);
             if (value.equals(values.tab)) {
-                values.tab = current.isEmpty() ? null : current.get(Math.min(index, current.size() - 1));
+                values.tab = current.isEmpty()
+                        ? null
+                        : current.get(Math.min(index, current.size() - 1));
             }
         }
 
-        /// Adds one, and shows it — which is what every editor does with a new tab.
+        /// Opens one, and shows it — which is what every editor does with a new
+        /// tab. The name is the next place on the road, so a strip of chapters
+        /// reads as a journey rather than as `Untitled 3`.
         public void newTab() {
-            var name = "Untitled " + (++values.added);
+            var name = STAGES.get(values.added++ % STAGES.size());
             var current = new ArrayList<>(values.tabs);
+            // A repeat would be two tabs with one identity, and a strip keyed by
+            // name cannot tell those apart -- so the road is walked twice rather
+            // than the same stage being opened twice.
+            while (current.contains(name)) {
+                name = name + " again";
+            }
             current.add(name);
             values.tabs = List.copyOf(current);
             values.tab = name;
         }
+    }
+
+    // --- what the documents name --------------------------------------------
+
+    /// The objects the Forms document **names**: the handle that submits its form
+    /// and the rule one of its fields applies.
+    ///
+    /// Not `@Bind` fields, and the binding machinery is what settled that — it
+    /// refuses a `final` one with "a value that cannot change is not something to
+    /// subscribe to", which is exactly what a controller and a validator are. They
+    /// go in a `Named` registry instead (ADR-0170).
+    private final io.github.digitalsmile.goldberry.widgets.form.form.FormController signup =
+            new io.github.digitalsmile.goldberry.widgets.form.form.FormController();
+
+    /// A rule the toolkit does not ship, which is the point of it being here: a
+    /// port is a number **and** in range, and only the application knows the
+    /// range.
+    private final io.github.digitalsmile.goldberry.widgets.form.Validator<String> portRule =
+            io.github.digitalsmile.goldberry.widgets.form.Validator.of(
+                    value -> {
+                        if (value == null || value.isEmpty()) {
+                            return true;
+                        }
+                        try {
+                            var port = Integer.parseInt(value);
+                            return port >= 1024 && port <= 65535;
+                        } catch (NumberFormatException e) {
+                            return false;
+                        }
+                    },
+                    "A palantír answers between 1024 and 65535");
+
+    /// What the Forms document may name — see [io.github.digitalsmile.goldberry.widgets.markup.Named].
+    public io.github.digitalsmile.goldberry.widgets.markup.Named named() {
+        return io.github.digitalsmile.goldberry.widgets.markup.Named.strict()
+                .bind("app.signup-form", signup)
+                .bind("app.port-rule", portRule);
     }
 }

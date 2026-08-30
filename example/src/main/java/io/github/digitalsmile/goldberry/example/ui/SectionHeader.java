@@ -18,7 +18,21 @@ import java.util.Set;
 /// concluded the section was already visible and moved nothing. What travels
 /// with the document is the affix's hole, and the affix is what hands it out
 /// ([ADR-0124](../../../../../../../book/src/adr/0124-a-pinned-affix-is-revealed-by-its-hole.md)).
-record SectionHeader(String title) implements Widget.Leaf, Styled, Paints {
+/// A screen's heading: the one widget in this application that exists so a
+/// stylesheet has a **type** to select on.
+///
+/// A `text.screen-title` did the same job for eleven screens and stopped being
+/// honest when the gallery went to seven walls: a class is something any node can
+/// wear, and a heading is a *kind* of node. `section-header` is selectable as an
+/// element, which is what lets `showcase.css` say "a heading inside an affixed
+/// section takes a surface" without a second class travelling beside it
+/// ([ADR-0222](../../../../../../../book/src/adr/0222-a-showcase-is-a-window-a-bar-and-seven-screens.md)).
+///
+/// Public because [io.github.digitalsmile.goldberry.example.ShowcaseTypographyTest]
+/// asserts its size through the cascade — the gallery's golden images are drawn
+/// with the single-font renderer and are blind to every typographic rank there
+/// is, so the hierarchy has to be asserted where it is decided.
+public record SectionHeader(String title) implements Widget.Leaf, Styled, Paints {
 
     @Override
     public String cssType() {

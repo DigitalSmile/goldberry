@@ -339,6 +339,13 @@ public final class Sdl3Backend implements Backend {
         if (!spec.decorated()) {
             flags.add(SdlWindowFlag.BORDERLESS);
         }
+        // The size below is still asked for and still matters: it is what the
+        // window restores to when the user un-maximizes it. SDL keeps the two
+        // apart, which is why this is a flag beside the size rather than an
+        // enormous size instead of one (ADR-0221).
+        if (spec.maximized()) {
+            flags.add(SdlWindowFlag.MAXIMIZED);
+        }
 
         // SDL takes window sizes in logical pixels, which is what WindowSpec
         // carries -- no conversion, and deliberately none: converting here would

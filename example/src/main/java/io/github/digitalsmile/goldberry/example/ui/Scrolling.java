@@ -1,14 +1,13 @@
 package io.github.digitalsmile.goldberry.example.ui;
 
 import io.github.digitalsmile.goldberry.render.model.LogicalRect;
-import io.github.digitalsmile.goldberry.widget.attr.Attributes;
 import io.github.digitalsmile.goldberry.widget.BuildContext;
 import io.github.digitalsmile.goldberry.widget.State;
 import io.github.digitalsmile.goldberry.widget.Widget;
+import io.github.digitalsmile.goldberry.widget.attr.Attributes;
 import io.github.digitalsmile.goldberry.widgets.controls.button.Button;
 import io.github.digitalsmile.goldberry.widgets.core.Column;
 import io.github.digitalsmile.goldberry.widgets.core.Row;
-import io.github.digitalsmile.goldberry.widgets.core.Spacer;
 import io.github.digitalsmile.goldberry.widgets.core.affix.Affix;
 import io.github.digitalsmile.goldberry.widgets.core.affix.Edge;
 import io.github.digitalsmile.goldberry.widgets.core.scroll.Scroll;
@@ -18,61 +17,51 @@ import io.github.digitalsmile.goldberry.widgets.panel.Panel;
 import io.github.digitalsmile.goldberry.widgets.text.Text;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
-/// The sixth gallery screen: `scroll`, `affix` and `tour`, which are the three
-/// widgets the scroll work produced and the three that are hardest to see in a
-/// still picture.
+/// A viewport of its own, with headers that stick — §2.4's `scroll`, §5's `affix`
+/// and the `reveal` that puts a section back on screen.
 ///
-/// It is the one screen that is **not** wrapped in the gallery's own viewport.
-/// Every other screen is, because a screen taller than the window should scroll
-/// ([ADR-0110](../../../../../../../book/src/adr/0110-the-showcase-is-a-gallery-of-screens.md));
-/// this one owns a viewport of its own with sticky headers in it, and nesting
-/// two same-axis scrollers is banned in the canon (`docs/design-system.md` §2.4)
-/// — so the screen that demonstrates the rule is the one place the gallery has
-/// to honour it.
+/// **A card and not a screen**, which is what changed when the gallery went to
+/// seven tabs: this used to be the one screen the gallery did not wrap in a
+/// viewport, because §2.4 bans nested same-axis scrollers and a screen inside the
+/// gallery's `scroll` that owned another one would be exactly that. As a card in
+/// a masonry it keeps its own fixed height and the ban keeps holding — the
+/// Navigation screen is not scrolled either, and the wall is what makes that
+/// possible: two columns of cards are half as tall as one
+/// ([ADR-0222](../../../../../../../book/src/adr/0222-a-showcase-is-a-window-a-bar-and-seven-screens.md)).
 ///
-/// ## What each part shows
-///
-/// - **`scroll`** — the list itself: a wheel, a keyboard, a thumb that fades, and
-///   an edge it stops at.
-/// - **`affix`** — the four section headers, which lift and stick as their
-///   sections pass. `:affixed` gives each a surface the moment it lifts, so the
-///   rows travelling underneath are not read through it.
-/// - **`scrollIntoView`** — the buttons above the list, which ask the controller
-///   to bring a section back. One is deliberately near the end, so pressing it
-///   from the top is a scroll of most of the document.
-/// - **`tour`** — the button that starts one, which then points at the three
-///   above in turn.
-///
-/// @param startTour what to run when the tour button is pressed — the application's,
-///                  because starting a tour needs a `Host` and a widget has none
-public record Scrolling(Runnable startTour) implements Widget.Stateful {
+/// Jumping is a **request**, not a scroll: pressing a button records which section
+/// is wanted, the affix for that section is built with a `revealedBy` callback,
+/// and the callback hands the controller the two rectangles only a laid-out frame
+/// knows. Nothing here computes an offset ([ADR-0116]).
+public record Scrolling() implements Widget.Stateful {
 
-    /// How many rows each section has. Enough that a section is taller than the
-    /// viewport at any reasonable window size, which is what makes a sticky
-    /// header stick for long enough to be seen doing it.
     public static final int ROWS_PER_SECTION = 12;
 
+    /// The chapters the list is divided into. Four, because the interesting case
+    /// is a header lifting while the *next* one pushes it off, and that needs at
+    /// least three to be seen happening twice.
+    /// One word each, and that is a constraint rather than a coincidence: a
+    /// section's name becomes its `#section-<name>` and its button's
+    /// `#jump-<name>`, and `#jump-bag end` is not a selector. Lower-casing is the
+    /// whole of the transformation, which is what keeps the ids something a
+    /// stylesheet and a test can both write down without asking this class how.
     public static final List<String> SECTIONS =
-            List.of("Beginnings", "Middles", "Complications", "Endings");
+            List.of("Hobbiton", "Bree", "Rivendell", "Moria");
 
     @Override
     public State<?> createState() {
         return new ScrollingState();
     }
 
-    /// Holds the controller, which has to outlive the builds that use it.
     private static final class ScrollingState extends State<Scrolling> {
 
-        /// The handle the "jump to" buttons scroll with. A field and not a local:
-        /// a controller made in `build` would have a new identity every frame and
-        /// would be attached to a viewport that had already let go of the last one
-        /// ([ADR-0120](../../../../../../../book/src/adr/0120-a-widget-scrolls-itself-into-view.md)).
         private final ScrollController list = new ScrollController();
 
-        /// Which section the buttons last asked for, so exactly one `affix` is
-        /// asked where it is. Cleared as soon as it has been acted on, because a
-        /// standing request would take the scrollbar away from the user.
+        /// Which section has been asked for, until the frame that reveals it.
+        /// Null the rest of the time, which is what keeps the callback from
+        /// firing on every frame after the first jump.
         private String wanted;
 
         @Override
@@ -82,13 +71,8 @@ public record Scrolling(Runnable startTour) implements Widget.Stateful {
                 var affix = new Affix(
                         List.of(new SectionHeader(section)),
                         Edge.TOP, 0,
-                        Attributes.NONE.id("section-" + section.toLowerCase())
+                        Attributes.NONE.id("section-" + section.toLowerCase(Locale.ROOT))
                                 .classes("section"));
-                // Only the section that has been asked for listens, so exactly
-                // one affix per build is measured — and it is the affix and not
-                // the header, because a pinned header sits at the viewport's edge
-                // and reads as already visible however far away its section is
-                // ([ADR-0124](../../../../../../../book/src/adr/0124-a-pinned-affix-is-revealed-by-its-hole.md)).
                 rows.add(section.equals(wanted) ? affix.revealedBy(this::revealed) : affix);
                 for (var i = 1; i <= Scrolling.ROWS_PER_SECTION; i++) {
                     rows.add(new Text(section + " — line " + i,
@@ -100,44 +84,29 @@ public record Scrolling(Runnable startTour) implements Widget.Stateful {
             jumps.add(new Text("Jump to", Attributes.NONE.classes("jump-label")));
             for (var section : Scrolling.SECTIONS) {
                 jumps.add(new Button(section, () -> ask(section))
-                        .withAttributes(Attributes.NONE.id("jump-" + section.toLowerCase())));
+                        .withAttributes(Attributes.NONE
+                                .id("jump-" + section.toLowerCase(Locale.ROOT))));
             }
-            jumps.add(new Spacer());
-            jumps.add(new Button("Take the tour", widget().startTour())
-                    .withAttributes(Attributes.NONE.id("tour-button")
-                            .classes("primary")));
 
-            return new Column(List.of(
-                    new Text("Scrolling, sticking and touring",
-                            Attributes.NONE.classes("screen-title")),
-                    new Text("The list below owns its own viewport. Its four headers are"
-                            + " `affix`, so each one lifts and stays put while its section"
-                            + " passes underneath.",
-                            Attributes.NONE.classes("prose")),
+            return Notifications.card("scroll-card", "A viewport of its own", List.of(
+                    new Text("Its four headers are `affix`, so each one lifts and stays put"
+                            + " while its section passes underneath. The buttons ask the list"
+                            + " to bring a section into view, and it moves the least it can.",
+                            Attributes.NONE.classes("caption")),
                     new Row(jumps.toArray(Widget[]::new))
-                            .withAttributes(Attributes.NONE.id("jump-bar")
-                                    .classes("toolbar")),
+                            .withAttributes(Attributes.NONE.id("jump-bar").classes("toolbar")),
                     new Panel(List.of(
                             new Scroll(List.of(new Column(rows.toArray(Widget[]::new))),
                                     ScrollAxis.VERTICAL, Attributes.NONE)
                                     .controlledBy(list)),
-                            Attributes.NONE.id("scroll-demo").classes("scroll-demo"))),
-                    Attributes.NONE.id("screen-scrolling"));
+                            Attributes.NONE.id("scroll-demo").classes("scroll-demo"))));
         }
 
         private void ask(String section) {
             setState(() -> wanted = section);
         }
 
-        /// Told where the asked-for section's hole is, and what clips it.
-        ///
-        /// The controller turns the pair into a distance and the viewport clamps
-        /// it; nothing here does arithmetic. Cleared whether or not anything
-        /// moved — a section already in view is a request that has been met, and
-        /// leaving it outstanding would make the next frame act on a stale one.
-        private void revealed(
-                LogicalRect self,
-                LogicalRect clip) {
+        private void revealed(LogicalRect self, LogicalRect clip) {
             list.reveal(self, clip);
             setState(() -> wanted = null);
         }

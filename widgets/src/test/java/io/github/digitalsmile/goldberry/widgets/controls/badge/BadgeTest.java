@@ -1,5 +1,6 @@
 package io.github.digitalsmile.goldberry.widgets.controls.badge;
 
+import io.github.digitalsmile.goldberry.css.Corners;
 import io.github.digitalsmile.goldberry.widget.attr.Attributes;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -104,7 +105,7 @@ class BadgeTest {
         assertEquals(StyleLength.points(8), style.padding().right());
         assertEquals(StyleLength.points(0), style.padding().top(),
                 "no vertical padding: the height is pinned and centring does the rest");
-        assertEquals(10, style.decoration().radius(), 1e-9,
+        assertEquals(Corners.all(10), style.decoration().corners(),
                 "§1.5's `full` on a 20px box, spelled the way toggle-track spells it");
         assertEquals(11, style.typography().size(), 1e-9, "§1.4's `caption`");
         assertEquals(Align.CENTER, style.alignItems());

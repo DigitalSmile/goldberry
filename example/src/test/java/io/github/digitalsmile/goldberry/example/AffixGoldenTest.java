@@ -41,7 +41,7 @@ class AffixGoldenTest {
 
         try (var fonts = Fonts.bundled()) {
             var renderer = new WidgetRenderer(sheets, fonts);
-            var tree = new ElementTree(new Scrolling(() -> { }));
+            var tree = new ElementTree(new Scrolling());
             var router = new PointerRouter();
             router.focusRoot(tree.root());
             router.windowBounds(LogicalRect.of(0, 0, 900, 560));

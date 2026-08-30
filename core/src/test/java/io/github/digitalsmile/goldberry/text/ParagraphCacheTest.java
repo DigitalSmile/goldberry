@@ -133,18 +133,19 @@ class ParagraphCacheTest {
     }
 
     @Test
-    @DisplayName("text the shaper refuses is not cached")
-    void refusedTextIsNotHeld() {
+    @DisplayName("text that needs bidi is held like any other, because nothing is refused")
+    void bidiTextIsHeldLikeAnyOther() {
         var cache = ParagraphCache.create();
 
-        assertThrows(
-                UnsupportedOperationException.class,
-                () -> cache.paragraph(font, "مرحبا بالعالم"));
+        // It used to throw here, and nothing is refused any more (ADR-0218): the
+        // paragraph approximates right-to-left text rather than declining it, so
+        // there is no string this cache can be asked for and cannot answer.
+        var held = cache.paragraph(font, "مرحبا بالعالم");
 
-        // Neither a null entry nor a miss counted for something that never
-        // became a paragraph.
-        assertEquals(0, cache.size());
-        assertEquals(0, cache.misses());
+        assertTrue(held.isBidiApproximate(), "and it is honest about what it did");
+        assertEquals(1, cache.size());
+        assertEquals(1, cache.misses());
+        assertSame(held, cache.paragraph(font, "مرحبا بالعالم"), "cached like any other");
     }
 
     @Test

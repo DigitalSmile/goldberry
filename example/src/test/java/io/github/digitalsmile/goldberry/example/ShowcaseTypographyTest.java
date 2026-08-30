@@ -12,6 +12,7 @@ import io.github.digitalsmile.goldberry.css.Theme;
 import io.github.digitalsmile.goldberry.widget.Element;
 import io.github.digitalsmile.goldberry.widget.ElementTree;
 import io.github.digitalsmile.goldberry.widgets.Controls;
+import io.github.digitalsmile.goldberry.example.ui.SectionHeader;
 import io.github.digitalsmile.goldberry.widgets.core.Column;
 import io.github.digitalsmile.goldberry.widgets.text.Text;
 import java.util.List;
@@ -56,8 +57,11 @@ class ShowcaseTypographyTest {
     @DisplayName("a screen title is larger than the prose under it, not merely bolder")
     void titleOutranksProse() {
         var resolver = resolver();
+        // The real widget, not a `text.screen-title`: a screen's heading is a
+        // `section-header` element now, which is what lets a stylesheet select it
+        // as a *kind* rather than as a class any node can wear (ADR-0222).
         var tree = new ElementTree(new Column(
-                new Text("A title").styled("screen-title"),
+                new SectionHeader("A title"),
                 new Text("Some prose").id("prose")).id("screen-text"));
         tree.flush();
 

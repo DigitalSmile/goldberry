@@ -5,6 +5,8 @@ import io.github.digitalsmile.goldberry.natives.harfbuzz.GlyphRun;
 import io.github.digitalsmile.goldberry.natives.yoga.measure.MeasureFunction;
 import io.github.digitalsmile.goldberry.natives.yoga.measure.MeasureMode;
 import io.github.digitalsmile.goldberry.natives.yoga.measure.MeasuredSize;
+import io.github.digitalsmile.goldberry.log.Logs;
+import io.github.digitalsmile.goldberry.natives.harfbuzz.enums.TextDirection;
 import java.text.Bidi;
 import java.text.BreakIterator;
 import java.util.ArrayList;
@@ -33,13 +35,20 @@ import io.github.digitalsmile.goldberry.text.font.Font;
 ///
 /// ## What it does not do yet
 ///
-/// **One direction, one face, one style.** A paragraph is a single left-to-right
-/// run in one font. Mixed-direction text is refused at construction rather than
-/// mis-wrapped: prefix widths are accumulated in logical order, and in a
-/// right-to-left run HarfBuzz returns glyphs in *visual* order, so every
-/// measurement would be quietly wrong. Splitting text into directional runs is
-/// `java.text.Bidi`'s job and is still ahead — the check here uses the same class
-/// that will do it.
+/// **One direction, one face, one style.** A paragraph is a single run in one
+/// font, measured as prefix sums in **logical** order. Text that needs bidi — any
+/// right-to-left character, which `java.text.Bidi.requiresBidi` detects — is
+/// therefore shaped with the direction forced to `LTR`, so the glyphs come back
+/// in the order the measurements assume. Every width, every caret position and
+/// every hit test is then self-consistent, and the text is drawn in the **wrong
+/// visual order**: it is mirrored, not reordered.
+///
+/// That is an approximation, and [#isBidiApproximate()] is how a caller asks
+/// whether it is in force. It replaced an exception, because a paragraph that
+/// refused meant a field a user pasted Arabic into took the window down with it
+/// ([ADR-0218](../../../../../../book/src/adr/0218-a-paragraph-approximates-bidi-rather-than-refusing-it.md)).
+/// The real fix is splitting text into directional runs — `java.text.Bidi`'s job,
+/// with the same class already here — and it is still ahead.
 ///
 /// **Breaks are not re-shaped.** Each line is a slice of the whole paragraph's
 /// shaping, so a kern between the last character of one line and the first of the
@@ -50,6 +59,8 @@ import io.github.digitalsmile.goldberry.text.font.Font;
 /// Confined to its font's thread. Not immutable — it memoises the last wrap —
 /// but it holds no native resources of its own, so there is nothing to close.
 public final class Paragraph {
+
+    private static final org.slf4j.Logger LOG = Logs.of(Paragraph.class);
 
     /// What [#layout] is passed when there is no width constraint at all.
     public static final double UNCONSTRAINED = Double.POSITIVE_INFINITY;
@@ -76,20 +87,27 @@ public final class Paragraph {
     private double memoWidth = Double.NaN;
     private TextLayout memo;
 
-    private Paragraph(Font font, String text) {
+    /// Whether the text was shaped in logical order because it needed bidi.
+    private final boolean bidiApproximate;
+
+    private Paragraph(Font font, String text, boolean bidiApproximate) {
         this.font = font;
         this.text = text;
-        this.run = font.shape(text);
+        this.bidiApproximate = bidiApproximate;
+        // Forced to logical order when the text would otherwise come back
+        // visually ordered. Guessed as usual when it would not, so every
+        // paragraph the toolkit has ever drawn is shaped exactly as before.
+        this.run = font.shape(text, bidiApproximate ? TextDirection.LTR : null);
 
         var length = text.length();
         this.advanceBefore = new int[length + 1];
         this.glyphBefore = new int[length + 1];
 
-        // Glyphs are in logical order here -- guaranteed, because a
-        // right-to-left paragraph was refused above. Several glyphs can share a
-        // cluster (a mark over a base) and a cluster can span several characters
-        // (a ligature, a surrogate pair), so this walks glyphs and fills the
-        // offsets each one covers.
+        // Glyphs are in logical order here -- guaranteed, because the shaping
+        // above forced `LTR` for anything HarfBuzz would have ordered visually.
+        // Several glyphs can share a cluster (a mark over a base) and a cluster
+        // can span several characters (a ligature, a surrogate pair), so this
+        // walks glyphs and fills the offsets each one covers.
         var advance = 0;
         var glyph = 0;
         var offset = 0;
@@ -117,21 +135,37 @@ public final class Paragraph {
 
     /// Shapes `text` with `font`, ready to be wrapped.
     ///
-    /// @throws UnsupportedOperationException if the text contains right-to-left
-    ///         characters — see the note on this class. Refused here, at
-    ///         construction, rather than during a paint pass
+    /// **Never refuses.** Text that needs bidi is shaped in logical order and
+    /// drawn mirrored rather than throwing — see the note on this class and
+    /// [#isBidiApproximate()]. It used to throw, and what that cost was a window
+    /// taken down by a paste (ADR-0218).
     public static Paragraph of(Font font, String text) {
         Objects.requireNonNull(font, "font");
         Objects.requireNonNull(text, "text");
 
-        if (Bidi.requiresBidi(text.toCharArray(), 0, text.length())) {
-            throw new UnsupportedOperationException(
-                    "this paragraph contains right-to-left text, which needs bidi run splitting"
-                            + " before it can be wrapped: HarfBuzz returns those glyphs in visual"
-                            + " order, so measuring a prefix of the text would measure the wrong"
-                            + " glyphs. Splitting into directional runs is not built yet.");
+        var approximate = Bidi.requiresBidi(text.toCharArray(), 0, text.length());
+        if (approximate) {
+            // Once per distinct string, because a paragraph is shaped once and
+            // held by `ParagraphCache`. Loud, because what it says is that
+            // something on screen is drawn in the wrong order -- and quiet
+            // enough not to be a per-frame log, because nothing here runs per
+            // frame.
+            LOG.warn("drawing \"{}\" in logical order: it contains right-to-left text, and bidi"
+                    + " run splitting is not built — the glyphs are shaped correctly and their"
+                    + " order is mirrored", text);
         }
-        return new Paragraph(font, text);
+        return new Paragraph(font, text, approximate);
+    }
+
+    /// Whether this paragraph's text needed bidi and did not get it.
+    ///
+    /// True means the glyphs are right and their **order** is not: the text was
+    /// shaped left-to-right because every measurement here is a prefix sum in
+    /// logical order. Measurements, carets and hit tests all agree with what is
+    /// drawn — they are consistent with each other and with a reading order the
+    /// text does not have.
+    public boolean isBidiApproximate() {
+        return bidiApproximate;
     }
 
     /// Breaks the text into lines that fit in `maxWidth` logical units.

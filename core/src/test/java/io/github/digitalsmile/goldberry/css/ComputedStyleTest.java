@@ -226,6 +226,30 @@ class ComputedStyleTest {
         }
 
         @Test
+        @DisplayName("`background: none` turns a fill off, which is what the shorthand means")
+        void backgroundNone() {
+            // `select text-input` writes it, beside the `border: none` that says
+            // the same thing about the edge: an editor inside a control is that
+            // control's interior and has no fill of its own (ADR-0183). It was
+            // dropped with a warning until ADR-0216, so the field kept the well
+            // colour `text-input` gives it.
+            assertEquals(CssColor.TRANSPARENT,
+                    compute("button { background: #2e3440; background: none }").background());
+        }
+
+        @Test
+        @DisplayName("`background-color: none` is not, because `none` is not a colour")
+        void backgroundColorNone() {
+            // CSS's own division: `none` in the shorthand means "no layer", and
+            // the longhand takes a colour or nothing. `transparent` is how the
+            // longhand says it.
+            assertEquals(0xFF2E3440,
+                    compute("button { background: #2e3440; background-color: none }").background());
+            assertEquals(CssColor.TRANSPARENT,
+                    compute("button { background-color: transparent }").background());
+        }
+
+        @Test
         @DisplayName("opacity clamps into 0..1")
         void opacity() {
             assertEquals(0.5, compute("button { opacity: 0.5 }").opacity());
@@ -369,6 +393,66 @@ class ComputedStyleTest {
         void tooMany() {
             assertEquals(ComputedStyle.INITIAL.padding(),
                     compute("button { padding: 1px 2px 3px 4px 5px }").padding());
+        }
+    }
+
+    /// CSS's 1-4 corner shorthand, which `group-box-title` needs and which was
+    /// dropped with a warning until ADR-0216.
+    @Nested
+    @DisplayName("border-radius (§1.5)")
+    class BorderRadius {
+
+        private Corners corners(String value) {
+            return compute("button { border-radius: " + value + " }").decoration().corners();
+        }
+
+        @Test
+        @DisplayName("one value is every corner, which is every radius the system pins")
+        void one() {
+            assertEquals(Corners.all(8), corners("8px"));
+        }
+
+        @Test
+        @DisplayName("two values are the two diagonals")
+        void two() {
+            assertEquals(new Corners(4, 12, 4, 12), corners("4px 12px"));
+        }
+
+        @Test
+        @DisplayName("three values name the fourth as the opposite of the second")
+        void three() {
+            assertEquals(new Corners(1, 2, 3, 2), corners("1px 2px 3px"));
+        }
+
+        @Test
+        @DisplayName("four values run clockwise from the top-left, as CSS does")
+        void four() {
+            // `group-box-title`'s own declaration: the frame's radius less its
+            // border on top, square where the body carries on underneath.
+            assertEquals(new Corners(7, 7, 0, 0), corners("7px 7px 0 0"));
+        }
+
+        @Test
+        @DisplayName("a shorthand with one bad part is dropped whole")
+        void partiallyBad() {
+            // `padding`'s rule, for `padding`'s reason: two corners rounded and
+            // two not, from a typo, reads as a drawing bug rather than a bad value.
+            assertEquals(Corners.SQUARE, corners("7px nonsense"));
+            assertEquals(Corners.SQUARE, corners("1px 2px 3px 4px 5px"));
+        }
+
+        @Test
+        @DisplayName("a percentage is refused, because the box has no size yet")
+        void percentage() {
+            // The cascade runs before Yoga, so "half of this box" is a number
+            // nobody has. ADR-0216 kept the answer the single radius gave.
+            assertEquals(Corners.SQUARE, corners("50%"));
+        }
+
+        @Test
+        @DisplayName("the elliptical form is refused, because a corner here is a circle")
+        void elliptical() {
+            assertEquals(Corners.SQUARE, corners("10px / 20px"));
         }
     }
 
@@ -651,7 +735,8 @@ class ComputedStyleTest {
         void decorationDoesNot() {
             var style = child("panel { border-radius: 8px; border: 1px solid #abc }");
 
-            assertEquals(0, style.decoration().radius(), 1e-9);
+            assertEquals(io.github.digitalsmile.goldberry.css.Corners.SQUARE,
+                    style.decoration().corners());
             assertEquals(false, style.decoration().hasBorder());
         }
 

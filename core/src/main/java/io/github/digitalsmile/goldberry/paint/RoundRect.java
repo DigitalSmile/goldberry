@@ -1,5 +1,6 @@
 package io.github.digitalsmile.goldberry.paint;
 
+import io.github.digitalsmile.goldberry.css.Corners;
 import io.github.digitalsmile.goldberry.natives.blend2d.BlendPath;
 
 /// A rounded rectangle, as a Blend2D path.
@@ -51,8 +52,26 @@ public final class RoundRect {
     public static void addTo(BlendPath path, double x, double y, double width, double height,
             double radius) {
 
-        var r = Math.min(radius, Math.min(width, height) / 2);
-        if (r <= 0) {
+        addTo(path, x, y, width, height, Corners.all(radius));
+    }
+
+    /// The same, with **a radius per corner** — CSS's `border-radius: 7px 7px 0 0`.
+    ///
+    /// One drawing for both, rather than a rounded path and a square one: the
+    /// uniform case emits exactly the point sequence the single-radius version
+    /// always did, which is what says the four corners did not move
+    /// (ADR-0216). A square corner is a `lineTo` into the corner point and no
+    /// cubic at all — a degenerate zero-length curve would be handed to the
+    /// rasterizer on every square box otherwise.
+    ///
+    /// The corners are fitted to the box first, so a pair that together overrun
+    /// an edge is scaled down in proportion rather than crossing over —
+    /// [Corners#fittedTo].
+    public static void addTo(BlendPath path, double x, double y, double width, double height,
+            Corners corners) {
+
+        var fitted = corners.fittedTo(width, height);
+        if (fitted.isSquare()) {
             path.moveTo(x, y);
             path.lineTo(x + width, y);
             path.lineTo(x + width, y + height);
@@ -63,17 +82,34 @@ public final class RoundRect {
 
         var right = x + width;
         var bottom = y + height;
-        var c = r * KAPPA;
+        var topLeft = fitted.topLeft();
+        var topRight = fitted.topRight();
+        var bottomRight = fitted.bottomRight();
+        var bottomLeft = fitted.bottomLeft();
 
-        path.moveTo(x + r, y);
-        path.lineTo(right - r, y);
-        path.cubicTo(right - r + c, y, right, y + r - c, right, y + r);
-        path.lineTo(right, bottom - r);
-        path.cubicTo(right, bottom - r + c, right - r + c, bottom, right - r, bottom);
-        path.lineTo(x + r, bottom);
-        path.cubicTo(x + r - c, bottom, x, bottom - r + c, x, bottom - r);
-        path.lineTo(x, y + r);
-        path.cubicTo(x, y + r - c, x + r - c, y, x + r, y);
+        path.moveTo(x + topLeft, y);
+        path.lineTo(right - topRight, y);
+        if (topRight > 0) {
+            var c = topRight * KAPPA;
+            path.cubicTo(right - topRight + c, y, right, y + topRight - c, right, y + topRight);
+        }
+        path.lineTo(right, bottom - bottomRight);
+        if (bottomRight > 0) {
+            var c = bottomRight * KAPPA;
+            path.cubicTo(right, bottom - bottomRight + c, right - bottomRight + c, bottom,
+                    right - bottomRight, bottom);
+        }
+        path.lineTo(x + bottomLeft, bottom);
+        if (bottomLeft > 0) {
+            var c = bottomLeft * KAPPA;
+            path.cubicTo(x + bottomLeft - c, bottom, x, bottom - bottomLeft + c,
+                    x, bottom - bottomLeft);
+        }
+        path.lineTo(x, y + topLeft);
+        if (topLeft > 0) {
+            var c = topLeft * KAPPA;
+            path.cubicTo(x, y + topLeft - c, x + topLeft - c, y, x + topLeft, y);
+        }
         path.closeSubPath();
     }
 }

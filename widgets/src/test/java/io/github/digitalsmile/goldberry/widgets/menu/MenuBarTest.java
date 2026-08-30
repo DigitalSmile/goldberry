@@ -322,6 +322,52 @@ class MenuBarTest {
                     "a bar that has gone away must not still own Ctrl+O");
         }
 
+        /// The bug the ownership fix is about: a bar that goes away must give
+        /// back **its own** keys and not whatever is on them.
+        ///
+        /// Two things claiming `Ctrl+O` is a conflict the last registration wins
+        /// — that half is unchanged — and this is the same conflict at the other
+        /// end, where the loser used to be able to unbind the winner
+        /// ([ADR-0220]).
+        @Test
+        @DisplayName("unmounting the bar leaves a key the application took after it")
+        void unmountLeavesSomebodyElsesBinding() {
+            var application = new AtomicInteger();
+            var tree = new ElementTree(new MenuBar(
+                    new Item("File").submenu(
+                            new Item("Open…", () -> { }).accelerator("Ctrl+O"))),
+                    host);
+
+            // The application takes the key over after the bar was mounted, which
+            // is the last registration and therefore the one that fires.
+            host.shortcut(Shortcut.of("Ctrl+O"), application::incrementAndGet);
+            tree.unmount();
+
+            assertTrue(host.press("Ctrl+O"),
+                    "the bar gave back a key that was no longer its to give");
+            assertEquals(1, application.get());
+        }
+
+        /// And the half that must keep working: what the bar still holds when it
+        /// goes away is still given back.
+        @Test
+        @DisplayName("but it still gives back the keys nobody took from it")
+        void unmountStillUnbindsItsOwn() {
+            var tree = new ElementTree(new MenuBar(
+                    new Item("File").submenu(
+                            new Item("Open…", () -> { }).accelerator("Ctrl+O"),
+                            new Item("Save", () -> { }).accelerator("Ctrl+S"))),
+                    host);
+            host.shortcut(Shortcut.of("Ctrl+O"), () -> { });
+
+            tree.unmount();
+
+            assertTrue(host.shortcuts().containsKey(Shortcut.of("Ctrl+O")),
+                    "the one the application took");
+            assertFalse(host.shortcuts().containsKey(Shortcut.of("Ctrl+S")),
+                    "and not the one it did not");
+        }
+
         /// A greyed row that still fires on its key is worse than no accelerator
         /// at all: the command is unavailable and the keyboard says otherwise.
         @Test

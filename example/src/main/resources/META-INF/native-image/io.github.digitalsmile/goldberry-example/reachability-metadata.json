@@ -204,7 +204,11 @@
     },
     {
       "module": "io.github.digitalsmile.goldberry.example",
-      "glob": "io/github/digitalsmile/goldberry/example/ui/controls.kdl"
+      "glob": "io/github/digitalsmile/goldberry/example/ui/basic.kdl"
+    },
+    {
+      "module": "io.github.digitalsmile.goldberry.example",
+      "glob": "io/github/digitalsmile/goldberry/example/ui/forms.kdl"
     },
     {
       "module": "io.github.digitalsmile.goldberry.example",
@@ -212,11 +216,11 @@
     },
     {
       "module": "io.github.digitalsmile.goldberry.example",
-      "glob": "io/github/digitalsmile/goldberry/example/ui/titlebar.kdl"
+      "glob": "io/github/digitalsmile/goldberry/example/ui/panels.kdl"
     },
     {
       "module": "io.github.digitalsmile.goldberry.example",
-      "glob": "io/github/digitalsmile/goldberry/example/ui/values.kdl"
+      "glob": "io/github/digitalsmile/goldberry/example/ui/statusbar.kdl"
     },
     {
       "module": "io.github.digitalsmile.goldberry.widgets",

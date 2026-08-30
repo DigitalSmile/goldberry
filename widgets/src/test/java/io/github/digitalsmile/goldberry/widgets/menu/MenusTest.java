@@ -2,6 +2,7 @@ package io.github.digitalsmile.goldberry.widgets.menu;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.github.digitalsmile.goldberry.Application;
@@ -9,6 +10,7 @@ import io.github.digitalsmile.goldberry.Goldberry;
 import io.github.digitalsmile.goldberry.GoldberryTestAccess;
 import io.github.digitalsmile.goldberry.Host;
 import io.github.digitalsmile.goldberry.RendererRequirement;
+import io.github.digitalsmile.goldberry.input.key.Key;
 import io.github.digitalsmile.goldberry.render.event.BackendEvent;
 import io.github.digitalsmile.goldberry.render.model.LogicalRect;
 import io.github.digitalsmile.goldberry.render.model.LogicalSize;
@@ -41,14 +43,21 @@ class MenusTest {
     private static final class TestApp implements Application {
 
         private final Consumer<Host> onStart;
+        private final Widget root;
 
         TestApp(Consumer<Host> onStart) {
+            this(new Column(List.of(), io.github.digitalsmile.goldberry.widget.attr.Attributes.NONE),
+                    onStart);
+        }
+
+        TestApp(Widget root, Consumer<Host> onStart) {
+            this.root = root;
             this.onStart = onStart;
         }
 
         @Override
         public Widget root() {
-            return new Column(List.of(), io.github.digitalsmile.goldberry.widget.attr.Attributes.NONE);
+            return root;
         }
 
         @Override
@@ -303,6 +312,216 @@ class MenusTest {
         assertEquals(2, openWhileHovering[0], "the submenu opened");
         assertEquals(1, openAfterMovingAway[0],
                 "and closed again when the pointer moved to a sibling — the menu itself stays");
+    }
+
+    /// The window the popups belong to — where keys are posted, because the owner
+    /// forwards them to whatever popup is open ([ADR-0104]).
+    private HeadlessWindow ownerWindow() {
+        return backend.windows().stream()
+                .filter(window -> !(window instanceof HeadlessPopup))
+                .map(HeadlessWindow.class::cast)
+                .findFirst()
+                .orElseThrow();
+    }
+
+    private void press(Key key) {
+        backend.post(new BackendEvent.KeyPressed(ownerWindow(), key.sdlKeycode(), 0, false));
+    }
+
+    private static long openCount(List<HeadlessPopup> popups) {
+        return popups.stream().filter(HeadlessPopup::isOpen).count();
+    }
+
+    /// One pixel of a window's last painted frame, as `0xAARRGGBB`-ish — the
+    /// packing does not matter, because every use of this compares two of them.
+    private static int pixel(HeadlessWindow window, int x, int y) {
+        var frame = window.lastFrame().orElseThrow();
+        return frame.pixels().getInt(y * frame.stride() + x * 4);
+    }
+
+    /// §8's hover-intent delay is for a **pointer** travelling past three rows on
+    /// its way somewhere. A keypress has travelled past nothing, and waiting the
+    /// same 150 ms made `Right` feel broken.
+    ///
+    /// The assertion is the timing: 100 ms after the key, which is inside the
+    /// delay the old code would still have been waiting out ([ADR-0219]).
+    @Test
+    @Timeout(20)
+    @DisplayName("a keyboard Right opens a submenu at once, not after the pointer's delay")
+    void rightOpensAtOnce() {
+        var openSoonAfter = new long[1];
+        Goldberry.launch(new TestApp(host -> {
+            var menu = new Menu(
+                    new Item("Plain", () -> { }),
+                    new Item("More").submenu(new Item("Inner", () -> { })));
+            Menus.open(host, ANCHOR, menu).orElseThrow();
+
+            later(300, () -> {
+                // The menu focuses its first row when it opens, so one Down is
+                // the row with children.
+                press(Key.DOWN);
+                press(Key.RIGHT);
+                later(100, () -> {
+                    openSoonAfter[0] = openCount(popups());
+                    Goldberry.stop();
+                });
+            });
+        }));
+
+        assertEquals(2, openSoonAfter[0],
+                "the submenu was still waiting out a delay meant for the pointer");
+    }
+
+    /// The arrow that opens a submenu had no opposite: `Left` did nothing, so a
+    /// keyboard user who opened a branch could not leave it.
+    @Test
+    @Timeout(20)
+    @DisplayName("Left closes a submenu and leaves the menu it came from")
+    void leftClosesASubmenu() {
+        var afterOpening = new long[1];
+        var afterBack = new long[1];
+        Goldberry.launch(new TestApp(host -> {
+            var menu = new Menu(
+                    new Item("Plain", () -> { }),
+                    new Item("More").submenu(new Item("Inner", () -> { })));
+            Menus.open(host, ANCHOR, menu).orElseThrow();
+
+            later(300, () -> {
+                press(Key.DOWN);
+                press(Key.RIGHT);
+                later(300, () -> {
+                    afterOpening[0] = openCount(popups());
+                    press(Key.LEFT);
+                    later(300, () -> {
+                        afterBack[0] = openCount(popups());
+                        Goldberry.stop();
+                    });
+                });
+            });
+        }));
+
+        assertEquals(2, afterOpening[0], "the submenu opened");
+        assertEquals(1, afterBack[0], "and Left put it away without taking its menu with it");
+    }
+
+    /// `Left` at the **root** of a context menu has nowhere to go, and a menu that
+    /// vanished on an arrow key would be a menu nobody could navigate. A bar's
+    /// root menu answers it differently, which is `Siblings`.
+    @Test
+    @Timeout(20)
+    @DisplayName("Left at the root of a context menu does nothing")
+    void leftAtTheRootDoesNothing() {
+        var stillOpen = new long[1];
+        Goldberry.launch(new TestApp(host -> {
+            Menus.open(host, ANCHOR, new Menu(
+                    new Item("Plain", () -> { }),
+                    new Item("Other", () -> { }))).orElseThrow();
+
+            later(300, () -> {
+                press(Key.LEFT);
+                later(200, () -> {
+                    stillOpen[0] = openCount(popups());
+                    Goldberry.stop();
+                });
+            });
+        }));
+
+        assertEquals(1, stillOpen[0]);
+    }
+
+    /// Nothing said which branch was open: a row is `:focus-visible` when the
+    /// keyboard is on it and `:hover` when the pointer is, and neither means "this
+    /// is the one that is down" — the pointer is usually three rows away, *in the
+    /// submenu*, by the time it matters.
+    ///
+    /// Measured in pixels, at a point on the row where no label is drawn, before
+    /// and after — with the pointer moved out of this window in between, so the
+    /// only thing that can have changed the row is the mark ([ADR-0219]).
+    @Test
+    @Timeout(20)
+    @DisplayName("the row whose submenu is showing is marked, once the pointer has left it")
+    void theOpenBranchIsMarked() {
+        var before = new int[1];
+        var after = new int[1];
+        Goldberry.launch(new TestApp(host -> {
+            var menu = new Menu(
+                    new Item("Plain", () -> { }),
+                    new Item("More").submenu(new Item("Inner", () -> { })));
+            Menus.open(host, ANCHOR, menu).orElseThrow();
+
+            later(300, () -> {
+                var first = (HeadlessWindow) popups().getFirst();
+                before[0] = pixel(first, (int) first.size().width() - 30, 52);
+                backend.post(new BackendEvent.PointerMoved(first, 40, 52, 0));
+                later(400, () -> {
+                    // Into the submenu, which is where a pointer goes next — and
+                    // out of the menu that opened it, so the row keeps nothing
+                    // but the mark.
+                    backend.post(new BackendEvent.PointerExited(first));
+                    backend.post(new BackendEvent.PointerMoved(
+                            (HeadlessWindow) popups().get(1), 20, 20, 0));
+                    later(400, () -> {
+                        after[0] = pixel(first, (int) first.size().width() - 30, 52);
+                        Goldberry.stop();
+                    });
+                });
+            });
+        }));
+
+        assertNotEquals(before[0], after[0],
+                "the row whose submenu is showing looks exactly like the rows that are not");
+    }
+
+    /// §8's bar: with a menu down, `Right` from a row that leads nowhere goes to
+    /// the next menu, exactly as running along the bar with the pointer does.
+    ///
+    /// Which menu is showing is read from the popup's **height**: `File` has three
+    /// rows and `Edit` has one, and a menu is as tall as its rows.
+    @Test
+    @Timeout(20)
+    @DisplayName("Right and Left move between a menu bar's menus while one is showing")
+    void arrowsMoveAlongTheBar() {
+        var bar = new MenuBar(List.of(
+                new Item("File").submenu(
+                        new Item("New", () -> { }),
+                        new Item("Open", () -> { }),
+                        new Item("Save", () -> { })),
+                new Item("Edit").submenu(new Item("Undo", () -> { }))),
+                io.github.digitalsmile.goldberry.widget.attr.Attributes.NONE);
+        var fileHeight = new float[1];
+        var editHeight = new float[1];
+        var backAgain = new float[1];
+        Goldberry.launch(new TestApp(bar, host -> later(400, () -> {
+            // F10 is the keyboard's way into the bar (ADR-0163), and it opens the
+            // first heading that can open.
+            press(Key.F10);
+            later(400, () -> {
+                fileHeight[0] = openPopup().size().height();
+                press(Key.RIGHT);
+                later(400, () -> {
+                    editHeight[0] = openPopup().size().height();
+                    press(Key.LEFT);
+                    later(400, () -> {
+                        backAgain[0] = openPopup().size().height();
+                        Goldberry.stop();
+                    });
+                });
+            });
+        })));
+
+        assertTrue(fileHeight[0] > editHeight[0],
+                "Right did not move to the one-row Edit menu: " + fileHeight[0]
+                        + " then " + editHeight[0]);
+        assertEquals(fileHeight[0], backAgain[0], "and Left came back to File");
+    }
+
+    /// The one popup that is open, which is how "which menu is showing" is asked
+    /// of a bar that only ever has one down.
+    private HeadlessPopup openPopup() {
+        return popups().stream()
+                .filter(HeadlessPopup::isOpen)
+                .reduce((first, second) -> second)
+                .orElseThrow();
     }
 
     @Test

@@ -734,9 +734,9 @@ public final class PointerRouter {
         // so every letter, digit and punctuation mark that arrives as text is
         // `UNKNOWN`, and the crash was one keystroke away at all times.
         if (key != Key.UNKNOWN) {
-            var action = shortcuts.get(new Shortcut(key, modifiers));
-            if (action != null) {
-                action.run();
+            var bound = shortcuts.get(new Shortcut(key, modifiers));
+            if (bound != null) {
+                bound.action().run();
                 return true;
             }
         }
@@ -825,7 +825,25 @@ public final class PointerRouter {
     /// Per window rather than per application, because that is the scope a user
     /// means: `Ctrl+W` closes *this* window, and a dialog's Escape is not the main
     /// window's.
-    private final Map<Shortcut, Runnable> shortcuts = new LinkedHashMap<>();
+    private final Map<Shortcut, Binding> shortcuts = new LinkedHashMap<>();
+
+    /// One accelerator: what it runs, and **who asked for it**.
+    ///
+    /// The owner is why this is a record rather than a `Runnable`. A `menubar`
+    /// binds every accelerator in its menus when it is mounted and gives them
+    /// back when it is not — and it used to give back whatever was on those keys,
+    /// including a binding the application made in between
+    /// ([ADR-0220](../../../../../../book/src/adr/0220-an-accelerator-is-given-back-by-whoever-took-it.md)).
+    ///
+    /// Compared by **identity**: "who bound it" is a question about an object,
+    /// not about a value that might be equal to another one. Null is nobody in
+    /// particular, which is what an application's own binding is.
+    private record Binding(Runnable action, Object owner) {
+
+        boolean ownedBy(Object candidate) {
+            return owner == candidate;
+        }
+    }
 
     /// Binds an accelerator, replacing any binding for the same combination.
     ///
@@ -833,9 +851,19 @@ public final class PointerRouter {
     /// exactly — so the two can be bound to different things, which applications
     /// do.
     public PointerRouter shortcut(Shortcut shortcut, Runnable action) {
+        return shortcut(shortcut, action, null);
+    }
+
+    /// The same, remembering **who** bound it.
+    ///
+    /// The owner is a token for [#removeShortcut(Shortcut, Object)] and nothing
+    /// else: it is never called, never compared by value, and never held past the
+    /// binding it belongs to. A widget that binds while it is mounted passes
+    /// itself.
+    public PointerRouter shortcut(Shortcut shortcut, Runnable action, Object owner) {
         shortcuts.put(
                 Objects.requireNonNull(shortcut, "shortcut"),
-                Objects.requireNonNull(action, "action"));
+                new Binding(Objects.requireNonNull(action, "action"), owner));
         return this;
     }
 
@@ -856,15 +884,33 @@ public final class PointerRouter {
         return shortcut(Shortcut.of(shortcut), action);
     }
 
-    /// Unbinds an accelerator. Harmless when nothing was bound.
+    /// Unbinds an accelerator, **whoever** bound it. Harmless when nothing was.
     public void removeShortcut(Shortcut shortcut) {
         shortcuts.remove(Objects.requireNonNull(shortcut, "shortcut"));
+    }
+
+    /// Unbinds an accelerator **only if `owner` is what is currently bound to
+    /// it**.
+    ///
+    /// What a `menubar` going away should do: give back the keys it took and
+    /// leave alone the ones somebody else has taken since. Two things claiming
+    /// `Ctrl+O` is a conflict the last registration wins, and this is the same
+    /// conflict at the other end — the loser must not be able to unbind the
+    /// winner (ADR-0220).
+    public void removeShortcut(Shortcut shortcut, Object owner) {
+        Objects.requireNonNull(shortcut, "shortcut");
+        var bound = shortcuts.get(shortcut);
+        if (bound != null && bound.ownedBy(owner)) {
+            shortcuts.remove(shortcut);
+        }
     }
 
     /// Every accelerator bound here, in the order they were bound — which is what
     /// a menu or a keyboard-shortcut sheet wants to print.
     public Map<Shortcut, Runnable> shortcuts() {
-        return Collections.unmodifiableMap(new LinkedHashMap<>(shortcuts));
+        var actions = new LinkedHashMap<Shortcut, Runnable>();
+        shortcuts.forEach((shortcut, bound) -> actions.put(shortcut, bound.action()));
+        return Collections.unmodifiableMap(actions);
     }
 
     /// A key came up.

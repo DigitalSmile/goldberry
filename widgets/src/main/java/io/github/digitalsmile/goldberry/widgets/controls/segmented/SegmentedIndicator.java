@@ -93,10 +93,18 @@ record SegmentedIndicator(int index, int count) implements Widget.Leaf, Styled, 
     /// every bar at every size.
     @Override
     public ComputedStyle restyle(ComputedStyle resolved) {
+        var cell = Math.max(index, 0);
         return resolved
                 .width(StyleLength.percent((float) (100.0 / count)))
+                // §3's "radius 8 outer, 0 between", on the fill: the pill is round
+                // only at the ends of the bar, and square everywhere between --
+                // which is a third thing a selector cannot say, because it depends
+                // on which cell of how many this one is (ADR-0217). The radius
+                // itself is the stylesheet's; only the choice of corners is here.
+                .decoration(resolved.decoration().corners(
+                        resolved.decoration().corners().inRow(cell == 0, cell == count - 1)))
                 .transform(Transform.of(new Transform.Function.Translate(
-                        Transform.Length.percent(100.0 * Math.max(index, 0)),
+                        Transform.Length.percent(100.0 * cell),
                         Transform.Length.ZERO)));
     }
 

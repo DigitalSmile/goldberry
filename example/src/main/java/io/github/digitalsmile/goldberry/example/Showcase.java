@@ -5,26 +5,27 @@ import io.github.digitalsmile.goldberry.Goldberry;
 import io.github.digitalsmile.goldberry.Host;
 import io.github.digitalsmile.goldberry.Overlay;
 import io.github.digitalsmile.goldberry.Popup;
-import io.github.digitalsmile.goldberry.render.model.LogicalSize;
-import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
+import io.github.digitalsmile.goldberry.bind.runtime.Models;
 import io.github.digitalsmile.goldberry.css.Stylesheet;
+import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
+import io.github.digitalsmile.goldberry.example.ui.AppMenu;
 import io.github.digitalsmile.goldberry.example.ui.Screen;
 import io.github.digitalsmile.goldberry.icon.Icon;
 import io.github.digitalsmile.goldberry.input.key.Key;
 import io.github.digitalsmile.goldberry.input.key.Mod;
 import io.github.digitalsmile.goldberry.input.key.Shortcut;
-import io.github.digitalsmile.goldberry.widget.style.Corner;
+import io.github.digitalsmile.goldberry.log.Startup;
+import io.github.digitalsmile.goldberry.render.model.LogicalSize;
 import io.github.digitalsmile.goldberry.widget.Widget;
-import io.github.digitalsmile.goldberry.bind.runtime.Models;
+import io.github.digitalsmile.goldberry.widget.attr.Attributes;
+import io.github.digitalsmile.goldberry.widget.style.Corner;
 import io.github.digitalsmile.goldberry.widgets.Controls;
 import io.github.digitalsmile.goldberry.widgets.Icons;
+import io.github.digitalsmile.goldberry.widgets.Widgets;
 import io.github.digitalsmile.goldberry.widgets.menu.Item;
 import io.github.digitalsmile.goldberry.widgets.menu.Menu;
 import io.github.digitalsmile.goldberry.widgets.menu.Menus;
 import io.github.digitalsmile.goldberry.widgets.menu.Separator;
-import io.github.digitalsmile.goldberry.widgets.shell.tray.TrayIcon;
-import io.github.digitalsmile.goldberry.widgets.shell.tray.Trays;
-import io.github.digitalsmile.goldberry.widgets.text.Text;
 import io.github.digitalsmile.goldberry.widgets.overlay.dialog.Dialog;
 import io.github.digitalsmile.goldberry.widgets.overlay.dialog.DialogAction;
 import io.github.digitalsmile.goldberry.widgets.overlay.dialog.Dialogs;
@@ -34,43 +35,46 @@ import io.github.digitalsmile.goldberry.widgets.overlay.toast.ToastController;
 import io.github.digitalsmile.goldberry.widgets.overlay.toast.Toasts;
 import io.github.digitalsmile.goldberry.widgets.overlay.tour.Stop;
 import io.github.digitalsmile.goldberry.widgets.overlay.tour.Tours;
+import io.github.digitalsmile.goldberry.widgets.shell.tray.TrayIcon;
+import io.github.digitalsmile.goldberry.widgets.shell.tray.Trays;
+import io.github.digitalsmile.goldberry.widgets.text.Text;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import io.github.digitalsmile.goldberry.widgets.Widgets;
 
 /// Goldberry's showcase — the [Application], and nothing else.
 ///
-/// Four things live here and each is the application's own: the **lifecycle**
+/// Five things live here and each is the application's own: the **lifecycle**
 /// (what to open and what to close), the **stylesheets**, the **registries** a
-/// markup document resolves its names against, and the two window accelerators.
-/// The window, the trees, the renderer, the router and the frame loop are
-/// [Goldberry#launch]'s ([ADR-0093]); the state and the actions are
-/// [ShowcaseModel]'s; the widgets are
-/// [io.github.digitalsmile.goldberry.example.ui.Screen]'s and the two `.kdl`
+/// markup document resolves its names against, the **window's own commands** —
+/// the four things a menu row can ask for that a view model cannot answer — and
+/// the accelerators. The window, the trees, the renderer, the router and the
+/// frame loop are [Goldberry#launch]'s ([ADR-0093]); the state and the actions
+/// are [ShowcaseModel]'s; the widgets are [Screen]'s and the five `.kdl`
 /// documents beside it.
-///
-/// That split is the point of the file being this short. It was one 770-line
-/// class holding all four ([ADR-0094]).
 ///
 /// ## What the showcase exercises
 ///
 /// - **The three trees.** Widgets are values, the element tree persists across
 ///   rebuilds, the box tree is materialized per frame (ADR-0052, ADR-0053).
-/// - **Markup with all three registries.** `titlebar.kdl` and `sidebar.kdl` name
-///   properties, actions and icons that this class registers, so `bind=`,
-///   `change=`, `press=` and `icon=` all run in a window rather than only in a
-///   test (§9, ADR-0062).
-/// - **The cascade, with a theme in it.** Picking a theme swaps one stylesheet
-///   and calls [Host#restyle]; everything restyles, including rules that name no
-///   colour (§10).
-/// - **Input, end to end.** Hover, press, click, focus, `Tab`, `Space`/`Enter`
-///   and two accelerators, through a router fed by the frame that was painted
-///   rather than a fresh layout (ADR-0054, ADR-0058).
-/// - **A cursor and an icon in a box**, which is what makes
-///   `SDL_CreateSystemCursor` and the icon-as-a-box path run outside a unit test
-///   (ADR-0043, ADR-0057).
+/// - **Markup with all four registries.** `statusbar.kdl` and the four screen
+///   documents name properties, actions, icons and objects that this class
+///   registers, so `bind=`, `change=`, `press=`, `icon=`, `controller=` and
+///   `validator=` all run in a window rather than only in a test (§9, ADR-0062,
+///   ADR-0170).
+/// - **The cascade, with a theme in it.** Throwing the switch in the bar swaps
+///   one stylesheet and calls [Host#restyle]; everything restyles, including
+///   rules that name no colour (§10).
+/// - **Input, end to end.** Hover, press, click, focus, `Tab`, `Space`/`Enter`,
+///   a menu bar's `F10` and eleven accelerators, through a router fed by the
+///   frame that was painted rather than a fresh layout (ADR-0054, ADR-0058).
+/// - **A window that opens maximized**, which is a *state* the desktop owns
+///   rather than a large size (ADR-0221) — and the reason it does is the gallery
+///   itself: a wall of cards is a layout whose whole subject is how much fits.
 ///
 /// Logging is configured here too — `logback.xml` beside this class, because
 /// binding a logging implementation is an application's decision and never a
@@ -91,6 +95,9 @@ public final class Showcase implements Application {
 
     private final ShowcaseModel model = new ShowcaseModel();
     private final ShowcaseModel.Actions actions = new ShowcaseModel.Actions(model);
+
+    /// The four commands `overlays.kdl` presses by name. Not on the model,
+    /// because every one of them needs a [Host] — see [WindowActions].
     private final WindowActions window =
             new WindowActions(this::toggleMenu, this::toggleHud, this::openDialog,
                     this::raiseToast);
@@ -112,10 +119,11 @@ public final class Showcase implements Application {
     private int toastsRaised;
 
     /// The frame-rate readout, while it is on screen. Null when it is not — see
-    /// [#toggleHud].
+    /// [#toggleHud]. Whether it is up is *also* on the model, because the Help
+    /// menu draws a tick beside it and a menu row's `checked` is a constant.
     private Overlay hud;
 
-    /// The menu, while it is open. Null when it is not — see [#toggleMenu].
+    /// The context menu, while it is open. Null when it is not.
     ///
     /// A popup is light-dismissed by default, so it can also close itself: a
     /// press anywhere in the window below it, or `Escape`. `isOpen()` is what
@@ -128,9 +136,8 @@ public final class Showcase implements Application {
     /// §9's `tray-icon`, while this desktop has one. Empty on a session with no
     /// notification area, which is an ordinary answer and not a failure — every
     /// platform's own guidance says an application must run without one.
-    private java.util.Optional<
-            io.github.digitalsmile.goldberry.render.tray.BackendTray> tray =
-                    java.util.Optional.empty();
+    private Optional<io.github.digitalsmile.goldberry.render.tray.BackendTray> tray =
+            Optional.empty();
 
     // --- Application ---------------------------------------------------------
 
@@ -139,9 +146,27 @@ public final class Showcase implements Application {
         return "Goldberry — showcase";
     }
 
+    /// The size the window **restores** to, since it opens maximized.
+    ///
+    /// Still worth choosing: un-maximizing a window that had never been given a
+    /// size would drop it to whatever the desktop felt like, and 1280×800 is the
+    /// smallest shape on which the widest wall on this screen — the Forms
+    /// screen's three columns — still reads as three columns.
     @Override
     public LogicalSize size() {
-        return new LogicalSize(960, 640);
+        return new LogicalSize(1280, 800);
+    }
+
+    /// **Yes**, and this is the one application in the repository that says so.
+    ///
+    /// A gallery is a layout whose whole subject is how much fits on a screen: a
+    /// masonry with three cards per column at 1280 has two at 900, and a reader
+    /// who opens the showcase in a small window is looking at a different
+    /// argument from the one it is making. Every other example stays false, which
+    /// is the default and the right one for a tool (ADR-0221).
+    @Override
+    public boolean maximized() {
+        return true;
     }
 
     /// The toolkit's sheets for the current theme and density, then this window's.
@@ -184,7 +209,14 @@ public final class Showcase implements Application {
                         Icons.strict().bind("palette", paletteIcon).bind("plus", plusIcon),
                         models().toArray()),
                 plusIcon,
-                this::startTour);
+                this::startTour,
+                // The window's menu bar. Its four window commands arrive as
+                // handlers because only a `Host` can open a dialog, float a HUD or
+                // close a window -- and a widget has none (ADR-0222).
+                new AppMenu(actions,
+                        new AppMenu.Handlers(this::openDialog, this::toggleHud,
+                                this::raiseToast, () -> host.window().close()),
+                        paletteIcon));
 
         // No `repaint()` and no `restyle()` here. `models()` below hands both
         // objects to the toolkit, which subscribes: a change asks for a frame,
@@ -200,16 +232,21 @@ public final class Showcase implements Application {
         // was already painting, so the interesting time to switch it on is
         // *during* a resize or a drag, when there is something to watch.
         host.shortcut(Mod.CTRL.and(Key.F), this::toggleHud);
+        // The four rows in the File and Edit menus that are not the model's.
+        host.shortcut(Mod.CTRL.and(Key.O), this::openDialog);
+        host.shortcut(Mod.CTRL.and(Key.Q), () -> host.window().close());
+        host.shortcut(Mod.CTRL.and(Key.K), actions::click);
+        host.shortcut(Mod.CTRL.and(Key.Z), actions::undo);
 
         // One accelerator per screen — three ways to set one property rather
-        // than three copies of a selection: the strip, these keys, and the menu
-        // (ADR-0110).
+        // than three copies of a selection: the strip, these keys, and Edit ▸ Go
+        // to (ADR-0110).
         screenShortcuts(host::shortcut, actions::pickScreen);
 
         // §8's other half: `context-menu="…"` on any widget, and one line to say
         // what the names mean. The toolkit notices the right-click and finds the
         // name; only the catalog can turn a name into a menu (ADR-0108).
-        Menus.contextMenus(host, java.util.Map.of("content", menuContent()));
+        Menus.contextMenus(host, Map.of("content", contextMenu()));
 
         // §7's toast stack, attached once. After this line the application never
         // mentions the stack again: it holds a controller and raises values
@@ -219,20 +256,22 @@ public final class Showcase implements Application {
         // §9's tray, which is the one thing in this application Goldberry does
         // not draw: the rows below are handed to the desktop's shell, which
         // themes them, spaces them and clicks them. The description is an
-        // ordinary `Menu` -- the same value a `menubar` holds -- so the theme
-        // toggle here and the one in the menu bar are one command written once
+        // ordinary `Menu` -- the same value a `menubar` holds -- so the light
+        // toggle here and the one in the File menu are one command written once
         // (ADR-0191).
         tray = Trays.show(host, TrayIcon.of("Goldberry — showcase", new Menu(List.of(
-                new Item("Toggle theme", actions::toggleTheme),
-                new Item("Toggle density", actions::toggleDensity),
+                new Item("Switch the light", actions::toggleTheme),
+                new Item("Switch the density", actions::toggleDensity),
                 new Separator(),
-                new Item("Screens").submenu(
-                        new Item("Controls", () -> actions.pickScreen("controls")),
-                        new Item("Overlays", () -> actions.pickScreen("overlays")),
-                        new Item("Forms", () -> actions.pickScreen("forms"))),
+                // Every screen, off the one list -- so a screen added to the
+                // gallery arrives in the tray without this file being touched.
+                new Item("Screens").submenu(Screen.GALLERY.stream()
+                        .map(name -> (Widget) new Item(Screen.title(name),
+                                () -> actions.pickScreen(name)))
+                        .toArray(Widget[]::new)),
                 new Separator(),
                 new Item("Quit", () -> host.window().close())),
-                io.github.digitalsmile.goldberry.widget.attr.Attributes.NONE)));
+                Attributes.NONE)));
         LOG.info("tray {}", tray.isPresent() ? "shown" : "unavailable on this desktop");
 
         host.window().onResize(size -> LOG.info("resized to {}", size));
@@ -242,12 +281,17 @@ public final class Showcase implements Application {
             return true;
         });
 
+        // What the bar's first reading is: how long this process took to get
+        // here. Read on the UI thread and now, because `Startup` is measuring
+        // *this* thread's journey and a background job would time its own.
+        actions.setStartup(describeStartup());
+
         // Work that is not instant belongs off the UI thread. It comes back on it
         // automatically, so touching the window here is safe (ADR-0020).
         Goldberry.async(Showcase::describeEnvironment).thenAccept(text -> {
             host.title("Goldberry — " + text);
-            // Nothing here reaches into the tree: the field is set, and the
-            // sidebar line bound to it redraws itself.
+            // Nothing here reaches into the tree: the field is set, and the bar's
+            // line bound to it redraws itself.
             actions.setStatus(text);
             // The one place an application says this, and the reason it is here
             // rather than in every method: `setStatus` is a plain Java call from
@@ -264,16 +308,14 @@ public final class Showcase implements Application {
     ///
     /// **In [Screen#GALLERY]'s order**, which is the strip's own, so the digit
     /// and the tab agree: a `Ctrl+5` that landed on the fourth strip position
-    /// would be a gallery with two orders in it, and a list copied here is a
-    /// list that drifts the first time a screen goes in the middle.
+    /// would be a gallery with two orders in it, and a list copied here is a list
+    /// that drifts the first time a screen goes in the middle.
     ///
-    /// **Ten digits, eleven screens.** `Ctrl+0` is the tenth, which is where a
-    /// keyboard's digits run out; the last screen is reached by the strip, by
-    /// the menu, and by the tour that opens it by name. Which screen goes
-    /// without is therefore the order's decision rather than this loop's, and it
-    /// is stated here because the alternative — a two-digit accelerator, or a
-    /// key that means "the next one" — is worse than a screen with two ways in
-    /// instead of three.
+    /// **Ten digits, seven screens**, which is the other half of what the
+    /// restructure bought: every screen has a key, where twelve screens left two
+    /// of them reachable only by the strip. The loop still stops at ten rather
+    /// than assuming, because the next screen added is exactly when that stops
+    /// being true.
     ///
     /// Takes the binding rather than the [Host] it comes from, so that what this
     /// binds can be asserted without a window: everything else in [#start] wants
@@ -293,58 +335,15 @@ public final class Showcase implements Application {
         }
     }
 
-    /// The action registry the two documents resolve against: the model's
-    /// generated one, plus the two handlers that are the **window's**.
-    ///
-    /// Opening a popup and floating a HUD are facts about this window rather than
-    /// about the application's data, so they are not `@Action`s on the model —
-    /// and they are bound here, in one place, because `sidebar.kdl` names them
-    /// and a strict registry refuses a name nobody bound. That refusal is the
-    /// point (a `press=` typo is otherwise a button that silently does nothing),
-    /// which is why the test resolves through this method rather than keeping its
-    /// own list of what the document happens to mention.
-    ///
-    /// @param model     the model whose `@Action`s the processor generated
-    /// @param openMenu  what `app.open-menu` does
-    /// @param toggleHud what `app.toggle-hud` does
-    /// Starts §5's `tour` over the scrolling screen.
-    ///
-    /// The application's rather than the screen's, because starting one needs a
-    /// [Host] and a widget has none — the same seam `Menus.open` sits on
-    /// ([ADR-0121](../../../../../../book/src/adr/0121-a-tour-is-a-veil-and-a-sequence.md)).
-    ///
-    /// The screen is selected first, because a tour whose targets are on a screen
-    /// nobody is looking at would skip every stop and end immediately — which is
-    /// correct behaviour and a useless demonstration.
-    private void startTour() {
-        actions.pickScreen("scrolling");
-        if (host == null) {
-            return;
-        }
-        // After the frame that switches screens, so the targets exist to be
-        // found. §5 asks a tour to wait for a frame before positioning, and this
-        // is that wait at its coarsest: the screen has to be *built* before any
-        // of it can be anchored to.
-        host.after(java.time.Duration.ofMillis(80), () -> Tours.start(host, List.of(
-                new Stop("jump-bar", "Jump to a section",
-                        "These ask the list to bring a section into view."
-                                + " The viewport moves the least it can."),
-                new Stop("scroll-demo", "A viewport of its own",
-                        "Scroll it with the wheel, or focus it and use PageDown."
-                                + " The headers stick as their sections pass."),
-                new Stop("gallery", "The gallery strip",
-                        "This scrolls too — and selecting a tab that has scrolled"
-                                + " out of the strip brings it back."))));
-    }
-
-
     /// The two objects this window is driven by.
     ///
-    /// The view model, and the window itself — because "open the menu" and
-    /// "toggle the HUD" are the *window's* actions and have no business on a view
-    /// model that knows nothing about menus. Naming both here is what lets a
-    /// document write `press="app.open-menu"` beside `press="app.click"` without
-    /// the application merging two registries by hand (ADR-0132).
+    /// The view model, its actions, and the window's own four commands.
+    ///
+    /// The third is there because a **document** names them: `press=` is a string
+    /// and only a registry can turn one into a call. The window's own menu bar
+    /// needs no such thing — it is built in Java and holds its handlers directly
+    /// — which is the difference between the two halves of §9 stated in one list
+    /// ([ADR-0132], [ADR-0222]).
     @Override
     public List<Object> models() {
         return List.of(model, actions, window);
@@ -355,19 +354,15 @@ public final class Showcase implements Application {
         return screen;
     }
 
-    /// Opens the menu under the button that opened it, or closes it again.
+    /// Opens the context menu under the button that opened it, or closes it again.
     ///
     /// The showcase's demonstration of the **other** place an overlay can go: a
     /// real platform window, parented to this one and free of its bounds
-    /// (ADR-0102). The menu is 132px tall and the button that opens it sits near
-    /// the bottom of a short window — so on a window under about 300px this menu
-    /// is drawn *outside* it, which is the whole point and is impossible in the
-    /// in-window layer the HUD uses.
-    ///
-    /// Anchored to the button's painted rectangle, which is a fact about the last
-    /// frame rather than something this method can compute (ADR-0080) — and
-    /// **sized by its own content**, so adding an item here changes nothing else.
-    /// Drag the window to the bottom of the screen and it opens upwards.
+    /// (ADR-0102). Anchored to the button's painted rectangle, which is a fact
+    /// about the last frame rather than something this method can compute
+    /// (ADR-0080) — and **sized by its own content**, so adding an item changes
+    /// nothing else. Drag the window to the bottom of the screen and it opens
+    /// upwards.
     private void toggleMenu() {
         if (menu != null && menu.isOpen()) {
             menu.close();
@@ -379,13 +374,13 @@ public final class Showcase implements Application {
         // with a flip if it would open off the bottom of the screen, open a
         // platform window, close the whole stack when a command is chosen, and
         // open a submenu beside the row that owns one (ADR-0104, ADR-0106).
-        Menus.open(host, "menu-button", menuContent()).ifPresentOrElse(
+        Menus.open(host, "menu-button", contextMenu()).ifPresentOrElse(
                 open -> menu = open,
                 () -> LOG.info("nowhere to put a menu: either this video driver has no popup"
                         + " windows, or the button has not been painted yet"));
     }
 
-    /// Raises a toast — §7's last widget, and the shortest thing in this class.
+    /// Raises a toast — §7's smallest overlay.
     ///
     /// No `Host`, no widget, no overlay: the stack was attached once when the
     /// window started, and everything after that goes through the controller
@@ -394,20 +389,20 @@ public final class Showcase implements Application {
     /// one is not a demonstration of the other.
     private void raiseToast() {
         var number = ++toastsRaised;
-        var toast = new Toast("Notification " + number + " — this one goes on its own.");
         toasts.show(number % 3 == 0
-                ? new Toast("Message " + number + " sent.")
-                        .action("Undo", () -> actions.setStatus("Undone message " + number))
-                : toast);
+                ? new Toast("Word " + number + " sent to Rivendell.")
+                        .action("Recall it", () -> actions.setStatus("Recalled word " + number))
+                : new Toast("Word " + number + " — a rider went out and did not wait."));
     }
 
     /// The modal — §7's `dialog`, opened the way ADR-0176 says one is: it is a
     /// widget, and showing it is `Dialogs.show`.
     ///
-    /// The three roles are all here, because the three-button save dialog is the
-    /// case that makes the roles worth having: `Enter` presses Discard, `Esc` and
-    /// a press on the veil press Keep editing, and "Don't save" has no key at
-    /// all. The bar puts the affirmative on the right without being told to.
+    /// The three roles are all here, because the three-button dialog is the case
+    /// that makes the roles worth having: `Enter` presses the affirmative, `Esc`
+    /// and a press on the veil press the dismissive, and the neutral one has no
+    /// key at all. The bar puts the affirmative on the right without being told
+    /// to.
     ///
     /// Each handler ends by removing the overlay, and gets the closing animation
     /// for nothing: every route out fades the panel first and calls the handler
@@ -416,15 +411,16 @@ public final class Showcase implements Application {
         if (open != null && open.isAttached()) {
             return;
         }
-        open = Dialogs.show(host, new Dialog("Unsaved changes", List.of(
-                new Text("Your draft has not been saved. Discarding it cannot be undone."),
-                new DialogAction("Don't save", DialogAction.Role.NEUTRAL,
-                        () -> answered("Not saved")),
-                new DialogAction("Keep editing", DialogAction.Role.DISMISSIVE,
-                        () -> answered("Still editing")),
-                new DialogAction("Discard", DialogAction.Role.AFFIRMATIVE,
-                        () -> answered("Discarded"))),
-                io.github.digitalsmile.goldberry.widget.attr.Attributes.NONE).id("unsaved"));
+        open = Dialogs.show(host, new Dialog("Turn back?", List.of(
+                new Text("The pass is closing and the low road is watched. Choosing"
+                        + " either cannot be undone."),
+                new DialogAction("Wait for word", DialogAction.Role.NEUTRAL,
+                        () -> answered("Waiting at the gate")),
+                new DialogAction("Keep to the pass", DialogAction.Role.DISMISSIVE,
+                        () -> answered("Still on the mountain")),
+                new DialogAction("Take the low road", DialogAction.Role.AFFIRMATIVE,
+                        () -> answered("Under the mountain"))),
+                Attributes.NONE).id("turn-back"));
     }
 
     /// What every one of the dialog's buttons does: say so, and take the dialog
@@ -439,33 +435,38 @@ public final class Showcase implements Application {
         }
     }
 
-    /// What the menu contains: three things that do something visible, so that
-    /// the popup is demonstrably live rather than a picture of a menu.
+    /// Starts §5's `tour` over the Navigation screen.
     ///
-    /// A `menu` with everything §8 gives a row: a label, an icon, an accelerator
-    /// shown right-aligned, a checkable item, a disabled one, a rule, and a
-    /// submenu.
+    /// The application's rather than the screen's, because starting one needs a
+    /// [Host] and a widget has none — the same seam `Menus.open` sits on
+    /// ([ADR-0121](../../../../../../book/src/adr/0121-a-tour-is-a-veil-and-a-sequence.md)).
     ///
-    /// Nothing here closes the menu — `Menus` wraps every command in "and close
-    /// the stack", which is what choosing a command does everywhere and which an
-    /// application that had to remember it would eventually forget on one row.
-    ///
-    /// Built in Java rather than in KDL because its handlers are direct calls
-    /// with no names to resolve — the shorter half of §9's story, and worth having
-    /// one of in the showcase.
-    private Menu menuContent() {
-        return new Menu(
-                new Item("Switch theme", actions::toggleTheme)
-                        .icon(paletteIcon)
-                        .accelerator("Ctrl+T"),
-                new Item("Switch density", actions::toggleDensity).accelerator("Ctrl+D"),
-                new Separator(),
-                new Item("Frame rate", this::toggleHud)
-                        .accelerator("Ctrl+F")
-                        .checked(hud != null),
-                new Item("More").submenu(
-                        new Item("Reset the counter", actions::reset),
-                        new Item("Nothing here", () -> { }).disabled(true)));
+    /// The screen is selected first, because a tour whose targets are on a screen
+    /// nobody is looking at would skip every stop and end immediately — which is
+    /// correct behaviour and a useless demonstration.
+    private void startTour() {
+        actions.pickScreen("navigation");
+        if (host == null) {
+            return;
+        }
+        // After the frame that switches screens, so the targets exist to be
+        // found. §5 asks a tour to wait for a frame before positioning, and this
+        // is that wait at its coarsest: the screen has to be *built* before any
+        // of it can be anchored to.
+        host.after(Duration.ofMillis(80), () -> Tours.start(host, List.of(
+                new Stop("demo-tabs", "A strip of your own",
+                        "Chapters that can be closed, and a + that opens the next stage"
+                                + " of the road. The gallery's own strip above can do"
+                                + " neither."),
+                new Stop("jump-bar", "Jump to a chapter",
+                        "These ask the list beside them to bring a section into view."
+                                + " The viewport moves the least it can."),
+                new Stop("scroll-demo", "A viewport of its own",
+                        "Scroll it with the wheel, or focus it and use PageDown."
+                                + " The headers stick as their sections pass."),
+                new Stop("gallery", "The gallery strip",
+                        "Seven screens, and a Ctrl+digit for each — which is what"
+                                + " going from twelve screens to seven bought."))));
     }
 
     /// Puts a `hud` in the window's overlay layer, or takes it away again.
@@ -474,6 +475,11 @@ public final class Showcase implements Application {
     /// the handle that comes back is the way out. Nothing about `screen` changes
     /// — the overlay is a sibling of it, which is why switching this on mid-drag
     /// does not cost a single element its state.
+    ///
+    /// The model is told afterwards, and that is not bookkeeping: the Help menu
+    /// draws a tick beside this row, a menu row's `checked` is a constant
+    /// resolved when the bar is built, and `app.hud` is what asks for the bar to
+    /// be built again.
     private void toggleHud() {
         if (hud != null) {
             hud.remove();
@@ -481,12 +487,36 @@ public final class Showcase implements Application {
         } else {
             // The breakdown rather than the two-number default: a total is what
             // tells you a frame is slow and the stages are what tell you which
-            // part of it is, which is the question the showcase's own 10ms frame
-            // went a month without anybody being able to ask (ADR-0142,
-            // ADR-0146).
+            // part of it is (ADR-0142, ADR-0146).
             hud = host.overlay(Hud.stages(), Corner.BOTTOM_END);
         }
+        actions.setHud(hud != null);
         LOG.info("hud {}", hud == null ? "off" : "on");
+    }
+
+    /// What a right-click anywhere in the window opens.
+    ///
+    /// A short menu with everything §8 gives a row — a label, an icon, an
+    /// accelerator shown right-aligned, a checkable item, a disabled one, a rule
+    /// and a submenu — because a context menu is where those are seen *together*.
+    /// The window's own bar is where they are seen doing work.
+    ///
+    /// Nothing here closes the menu — `Menus` wraps every command in "and close
+    /// the stack", which is what choosing a command does everywhere and which an
+    /// application that had to remember it would eventually forget on one row.
+    private Menu contextMenu() {
+        return new Menu(
+                new Item("Switch the light", actions::toggleTheme)
+                        .icon(paletteIcon)
+                        .accelerator("Ctrl+T"),
+                new Item("Switch the density", actions::toggleDensity).accelerator("Ctrl+D"),
+                new Separator(),
+                new Item("Frame rate", this::toggleHud)
+                        .accelerator("Ctrl+F")
+                        .checked(model.isHudShown()),
+                new Item("More").submenu(
+                        new Item("Begin again at Bag End", actions::reset),
+                        new Item("Nothing here", () -> { }).disabled(true)));
     }
 
     /// What [#start] opened, in reverse. The launcher closes what the launcher
@@ -499,6 +529,9 @@ public final class Showcase implements Application {
         // picture in somebody's notification area that the shell will not clean
         // away.
         tray.ifPresent(io.github.digitalsmile.goldberry.render.tray.BackendTray::close);
+        if (menu != null && menu.isOpen()) {
+            menu.close();
+        }
         plusIcon.close();
         paletteIcon.close();
     }
@@ -507,6 +540,17 @@ public final class Showcase implements Application {
 
     public static void main(String[] args) {
         Goldberry.launch(new Showcase(), args);
+    }
+
+    /// The bar's first reading: how long this process took to reach [#start].
+    ///
+    /// [Startup] is already counting — it marks the native library, the window
+    /// and the first frame — so this asks it rather than starting a stopwatch of
+    /// its own. Read here and not in a background job, because what is being
+    /// measured is *this* thread's journey to this line.
+    static String describeStartup() {
+        var millis = Startup.sinceProcessStart().toMillis();
+        return millis + " ms to start";
     }
 
     /// Stands in for real background work — reading a config file, loading a

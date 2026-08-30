@@ -11,17 +11,19 @@ import io.github.digitalsmile.goldberry.widgets.Controls;
 import io.github.digitalsmile.goldberry.widgets.Density;
 import io.github.digitalsmile.goldberry.css.Stylesheet;
 import io.github.digitalsmile.goldberry.css.Theme;
+import io.github.digitalsmile.goldberry.css.StyleElement;
 import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
+import io.github.digitalsmile.goldberry.css.cascade.StyleResolver;
+import io.github.digitalsmile.goldberry.css.select.Selector;
 import io.github.digitalsmile.goldberry.css.value.CssLength;
-import io.github.digitalsmile.goldberry.css.parse.Token;
 import java.util.List;
 import java.util.TreeSet;
 import java.util.concurrent.CopyOnWriteArrayList;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-/// Every property the toolkit's own stylesheets write is one the engine
-/// implements.
+/// Every declaration the toolkit's own stylesheets write is one the engine
+/// applies — the property exists, **and** the value parses.
 ///
 /// ## Why this exists
 ///
@@ -38,9 +40,20 @@ import org.junit.jupiter.api.Test;
 /// declaration that draws nothing is a screen photographed wrong.
 ///
 /// It is `TokenClosureTest`'s argument applied to the other half of a
-/// declaration. That one checks the values resolve; this one checks the
-/// properties exist. Between them, a rule the toolkit writes either does
-/// something or fails a test.
+/// declaration. That one checks the `var()`s resolve; this one checks the engine
+/// then does something with what they resolved to. Between them, a rule the
+/// toolkit writes either does something or fails a test.
+///
+/// ## Both halves of "nothing happened"
+///
+/// It began (ADR-0215) as a check on the property name alone, and half a year of
+/// stylesheets later two rules were found doing nothing for the *other* reason:
+/// `group-box-title` wrote `border-radius: 7px 7px 0 0` and `select text-input`
+/// wrote `background: none`, both properties the engine implements and neither a
+/// value it took. Those are logged at **warn** rather than debug, which is louder
+/// and was still not read — a start-up stream nobody is watching is a stream
+/// nobody is watching at either level. So the lint reads both, and ADR-0216 is
+/// the entry that made the values legal and this test the reason they stay so.
 ///
 /// ## It asserts the behaviour rather than a copy of it
 ///
@@ -80,31 +93,107 @@ class SupportedPropertyTest {
                 && !line.contains("\"--");
     }
 
-    /// Resolves every rule in `sheets` against the engine and returns what it
-    /// complained about.
+    /// Whether a complaint is about a **value** the engine would not take.
     ///
-    /// **Every rule**, because a property is only reached when its declaration is
-    /// applied: a sheet that is merely parsed says nothing about whether the
-    /// engine knows `border-bottom`.
-    private static List<String> complaintsFrom(List<Stylesheet> sheets) {
+    /// The other way a rule does nothing: `border-radius: 7px 7px 0 0` named a
+    /// property the engine has and a value it did not parse, so the declaration
+    /// was dropped whole and the header drew square corners for as long as
+    /// nobody read the log.
+    private static boolean isDroppedValue(String line) {
+        return line.contains("is not a valid value");
+    }
+
+    /// Every line saying a declaration did nothing, whichever half was at fault.
+    ///
+    /// @param sheets what is in force — the theme included, because a value half
+    ///               of this check has to see what `var(--gb-surface)` stood for
+    /// @param linted which of them is under scrutiny
+    private static java.util.SortedSet<String> deadDeclarations(
+            List<Stylesheet> sheets, List<Stylesheet> linted) {
+
+        return new TreeSet<>(complaintsFrom(sheets, linted).stream()
+                .filter(line -> isUnsupportedProperty(line) || isDroppedValue(line))
+                .toList());
+    }
+
+    /// An element that exists only to make one rule apply.
+    ///
+    /// The value half needs the **resolver** and not just [ComputedStyle]: every
+    /// colour in the toolkit is `var(--gb-something)`, substitution is the
+    /// resolver's, and a raw declaration handed straight to the engine is a
+    /// `var()` it has never been asked to understand — 164 false failures on a
+    /// healthy tree, which is how this class came to build elements.
+    ///
+    /// One probe per compound of the selector, chained by [#parent], so
+    /// `select text-input` is a `text-input` inside a `select`. Both combinators
+    /// are satisfied by a direct parent, and the leftmost probe has no parent —
+    /// which is what makes it `:root` and is how the theme's custom properties
+    /// reach the rest of the chain.
+    private record Probe(Selector.Compound compound, StyleElement parent) implements StyleElement {
+
+        @Override
+        public String type() {
+            return compound.type();
+        }
+
+        @Override
+        public String id() {
+            return compound.id();
+        }
+
+        @Override
+        public java.util.Set<String> classes() {
+            return java.util.Set.copyOf(compound.classes());
+        }
+
+        @Override
+        public boolean hasState(Selector.PseudoClass state) {
+            return compound.pseudoClasses().contains(state);
+        }
+    }
+
+    /// The element `selector` was written for, as a chain of [Probe]s.
+    ///
+    /// One per selector rather than one per rule: `.a, .b { … }` is one rule with
+    /// two selectors, and a declaration only reaches the engine through an
+    /// element that matches — so a rule whose second selector is the live one
+    /// would go unchecked if only the first were built.
+    private static StyleElement probeFor(Selector selector) {
+        StyleElement element = null;
+        // `parts` is rightmost first, so walking it backwards builds the chain
+        // from the root down and ends holding the element the rule is *about*.
+        var parts = selector.parts();
+        for (var i = parts.size() - 1; i >= 0; i--) {
+            element = new Probe(parts.get(i).compound(), element);
+        }
+        return element;
+    }
+
+    /// Resolves every rule in `linted` the way the cascade would and returns what
+    /// the engine complained about.
+    ///
+    /// **Every rule**, because a declaration is only reached when it is applied:
+    /// a sheet that is merely parsed says nothing about whether the engine knows
+    /// `border-bottom` or takes `7px 7px 0 0`.
+    private static List<String> complaintsFrom(List<Stylesheet> sheets, List<Stylesheet> linted) {
         var logger = (Logger) org.slf4j.LoggerFactory.getLogger(ComputedStyle.class);
+        // A dropped value is reported **once per JVM** so that a typo cannot
+        // repeat itself sixty times a second (the dedup on `ComputedStyle`).
+        // Another test that had already resolved the same sheet would otherwise
+        // leave this one reading an empty log and passing on it.
+        ComputedStyle.forgetReportedDrops();
+        var resolver = new StyleResolver(sheets);
         var captured = new Captured();
         captured.start();
         var previous = logger.getLevel();
         logger.setLevel(Level.DEBUG);
         logger.addAppender(captured);
         try {
-            for (var sheet : sheets) {
+            for (var sheet : linted) {
                 for (var rule : sheet.rules()) {
-                    // One style per rule, built the way the cascade builds one:
-                    // a declaration is only *reached* when it is applied, so a
-                    // sheet that is merely parsed says nothing about whether the
-                    // engine knows `border-bottom`.
-                    var declarations = new java.util.LinkedHashMap<String, List<Token>>();
-                    for (var declaration : rule.declarations()) {
-                        declarations.put(declaration.property(), declaration.value());
+                    for (var selector : rule.selectors()) {
+                        ComputedStyle.of(resolver.resolve(probeFor(selector)), CONTEXT);
                     }
-                    ComputedStyle.of(declarations, CONTEXT);
                 }
             }
         } finally {
@@ -116,18 +205,16 @@ class SupportedPropertyTest {
     }
 
     @Test
-    @DisplayName("no rule the catalog ships names a property the engine does not implement")
-    void theCatalogWritesOnlySupportedProperties() {
-        var sheets = Controls.stylesheets(Theme.NORD_DARK, Density.REGULAR);
+    @DisplayName("no rule the catalog ships is one the engine drops, by name or by value")
+    void theCatalogWritesOnlyDeclarationsTheEngineApplies() {
+        var sheets = List.copyOf(Controls.stylesheets(Theme.NORD_DARK, Density.REGULAR));
 
-        var ignored = new TreeSet<>(complaintsFrom(List.copyOf(sheets)).stream()
-                .filter(SupportedPropertyTest::isUnsupportedProperty)
-                .toList());
+        var dead = deadDeclarations(sheets, sheets);
 
-        assertTrue(ignored.isEmpty(),
-                () -> "the toolkit's stylesheets write " + ignored.size()
-                        + " property/properties the engine drops on the floor, so the rule"
-                        + " does nothing and nothing says so: " + ignored);
+        assertTrue(dead.isEmpty(),
+                () -> "the toolkit's stylesheets write " + dead.size()
+                        + " declaration(s) the engine drops on the floor, so the rule"
+                        + " does nothing and nothing reads the line that says so: " + dead);
     }
 
     @Test
@@ -137,12 +224,15 @@ class SupportedPropertyTest {
         // declaration in it is a screen that has been photographed wrong.
         var sheet = Stylesheet.resource(CascadeLayer.APPLICATION,
                 Showcase.class, "showcase.css");
+        // Under the toolkit's sheets, which is where the showcase runs: its own
+        // rules read the theme's custom properties like everybody else's.
+        var inForce = new java.util.ArrayList<>(
+                Controls.stylesheets(Theme.NORD_DARK, Density.REGULAR));
+        inForce.add(sheet);
 
-        var ignored = new TreeSet<>(complaintsFrom(List.of(sheet)).stream()
-                .filter(SupportedPropertyTest::isUnsupportedProperty)
-                .toList());
+        var dead = deadDeclarations(List.copyOf(inForce), List.of(sheet));
 
-        assertTrue(ignored.isEmpty(), () -> "the showcase writes " + ignored);
+        assertTrue(dead.isEmpty(), () -> "the showcase writes " + dead);
     }
 
     @Test
@@ -153,9 +243,24 @@ class SupportedPropertyTest {
         var bad = Stylesheet.parse(CascadeLayer.APPLICATION,
                 "table-head { border-bottom: 1px solid #fff }");
 
-        assertTrue(complaintsFrom(List.of(bad)).stream()
+        assertTrue(complaintsFrom(List.of(bad), List.of(bad)).stream()
                         .anyMatch(SupportedPropertyTest::isUnsupportedProperty),
                 "the check saw nothing wrong with `border-bottom`, which the engine"
                         + " does not implement — so it would see nothing wrong with anything");
+    }
+
+    @Test
+    @DisplayName("and so does the value half — a property that exists with a value that does not")
+    void theCheckCatchesABadValue() {
+        // The half added by ADR-0216, guarded the same way: `border-radius` is a
+        // property the engine has, and `50%` is a value it refuses because the
+        // box has no size until Yoga has run.
+        var bad = Stylesheet.parse(CascadeLayer.APPLICATION,
+                "group-box-title { border-radius: 50% }");
+
+        assertTrue(complaintsFrom(List.of(bad), List.of(bad)).stream()
+                        .anyMatch(SupportedPropertyTest::isDroppedValue),
+                "the check saw nothing wrong with `border-radius: 50%`, which the engine"
+                        + " drops — so a rule with a bad value would sail past it");
     }
 }

@@ -5,6 +5,7 @@ import io.github.digitalsmile.goldberry.assets.BundledFont;
 import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
 import io.github.digitalsmile.goldberry.css.Stylesheet;
 import io.github.digitalsmile.goldberry.css.Theme;
+import io.github.digitalsmile.goldberry.example.ui.AppMenu;
 import io.github.digitalsmile.goldberry.example.ui.Screen;
 import io.github.digitalsmile.goldberry.golden.GoldenImage;
 import io.github.digitalsmile.goldberry.icon.Icon;
@@ -92,7 +93,10 @@ class GalleryGoldenTest {
                 model.named(),
                 Icons.strict().bind("palette", palette).bind("plus", plus),
                 showcase.models().toArray());
-        var tree = new ElementTree(new Screen(model, actions, inflater, plus, () -> { }));
+        var tree = new ElementTree(new Screen(model, actions, inflater, plus, () -> { },
+                new AppMenu(actions,
+                        new AppMenu.Handlers(() -> { }, () -> { }, () -> { }, () -> { }),
+                        plus)));
 
         var sheets = new ArrayList<Stylesheet>(Controls.stylesheets(theme, model.density()));
         sheets.add(Stylesheet.resource(CascadeLayer.APPLICATION, Showcase.class, "showcase.css"));
@@ -148,173 +152,69 @@ class GalleryGoldenTest {
     }
 
     @Test
-    @DisplayName("the Controls screen")
-    void controls() {
-        paint("gallery-controls", "controls", Theme.NORD_DARK);
+    @DisplayName("the Basic screen")
+    void basic() {
+        paint("gallery-basic", "basic", Theme.NORD_DARK, 1200, 900);
     }
 
     @Test
-    @DisplayName("the Values screen")
-    void values() {
-        paint("gallery-values", "values", Theme.NORD_DARK);
-    }
-
-    @Test
-    @DisplayName("the Text screen")
-    void text() {
-        paint("gallery-text", "text", Theme.NORD_DARK);
+    @DisplayName("the Panels screen")
+    void panels() {
+        paint("gallery-panels", "panels", Theme.NORD_DARK, 1200, 900);
     }
 
     @Test
     @DisplayName("the Overlays screen")
     void overlays() {
-        paint("gallery-overlays", "overlays", Theme.NORD_DARK);
+        paint("gallery-overlays", "overlays", Theme.NORD_DARK, 1200, 900);
     }
 
-    /// §5's containers, and the screen with no value on it at all — so this is
-    /// also the image that says a gallery screen can be a document with not one
-    /// line of Java behind it.
-    ///
-    /// The `skeleton`s on it pulse from the frame clock, which is why the clock
-    /// this test freezes is load-bearing here in a way it was not for the other
-    /// six: without it the placeholders draw a different opacity every run.
-    @Test
-    @DisplayName("the Panels screen")
-    void panels() {
-        paint("gallery-panels", "panels", Theme.NORD_DARK);
-    }
-
-    /// §4's `text-input`, in the six states one has: bound, filtered, masked,
-    /// read-only, disabled, and holding more than it can show.
-    ///
-    /// **Nothing on it has focus**, so there is no caret in this image — which is
-    /// the right thing for a golden to pin. A caret blinks on a timer, so an
-    /// image that contained one would be an image of whichever half of the blink
-    /// the test happened to catch; what a caret does is [io.github.digitalsmile.goldberry.widgets.form.textinput]'s
-    /// unit tests' business, and what a field *looks* like is this one's.
     @Test
     @DisplayName("the Forms screen")
     void forms() {
-        paint("gallery-forms", "forms", Theme.NORD_DARK);
+        paint("gallery-forms", "forms", Theme.NORD_DARK, 1200, 900);
     }
 
-    /// The Notifications screen, which is where §7's `message` lives.
-    ///
-    /// Taller than the window on purpose: the four kinds, §4's error summary and
-    /// the spawning bar are three groups and the picture is worth having whole.
-    /// What it cannot show is the screen's actual subject — a banner arriving and
-    /// a banner going — which is `NotificationsScreenTest`'s job.
     @Test
-    @DisplayName("the Notifications screen")
-    void notifications() {
-        paint("gallery-notifications", "notifications", Theme.NORD_DARK, 900, 860);
+    @DisplayName("the Navigation screen")
+    void navigation() {
+        paint("gallery-navigation", "navigation", Theme.NORD_DARK, 1200, 900);
     }
 
-    /// §3's two `select` options that a still picture of the Controls screen
-    /// cannot show: a `multiple` holding a set of chips, and a combobox whose
-    /// closed control is an editable `text-input` ([ADR-0182], [ADR-0183]).
-    ///
-    /// The screen is Java for the reason it says out loud: the set and the
-    /// filtering are both the application's, and a document has no way to hand a
-    /// control a narrowed list of options back.
-    @Test
-    @DisplayName("the Choosers screen")
-    void choosers() {
-        paint("gallery-choosers", "choosers", Theme.NORD_DARK);
-    }
-
-    /// §10's collections. What the picture is the only proof of is the
-    /// **table's alignment** — that a header and the cells under it come out the
-    /// same width, which every count-and-key assertion in `TableTest` would pass
-    /// without (ADR-0214).
-    ///
-    /// The virtual list above it looks exactly like an ordinary one, which is the
-    /// point of it and also the reason no image can show the virtualization: the
-    /// scrollbar is an overlay and is not drawn at rest, so what a reader would
-    /// have to check is a row *count*, which is `ListVirtualTest`'s to assert.
     @Test
     @DisplayName("the Collections screen")
     void collections() {
-        // Taller than the default, because the table is the second half of the
-        // screen and at the usual height the picture stops at its caption.
-        //
-        // **Two frames**, for the virtual list: its window is computed from where
-        // the frame before put it, so the first is the guess and the second is the
-        // real one -- a golden of the first would be a picture of the settling
-        // rather than of the widget (ADR-0213, and `masonry`'s reason before it).
-        paint("gallery-collections", "collections", Theme.NORD_DARK, 900, 860);
+        paint("gallery-collections", "collections", Theme.NORD_DARK, 1200, 900);
     }
 
     @Test
     @DisplayName("the Charts screen")
     void charts() {
-        // Taller than the default, because the wall is what is worth seeing: at
-        // the usual height the picture is three cards and the top of a fourth.
-        //
-        // **Two frames.** A masonry reads the frame before it, so the first is
-        // round-robin and the second is the real layout -- and a golden of the
-        // first would be a picture of the settling rather than of the widget
-        // (ADR-0196).
-        paint("gallery-charts", "charts", Theme.NORD_DARK, 900, 900);
+        paint("gallery-charts", "charts", Theme.NORD_DARK, 1200, 900);
     }
 
+    /// The same screen at the size a small window gives it.
+    ///
+    /// Worth a picture of its own because a masonry's columns are a *count* and
+    /// not a media query: two columns of cards at 1200 are two columns at 720 as
+    /// well, half as wide and twice as tall. What this asserts is that they still
+    /// fit -- a card whose contents had a minimum width would overflow rather than
+    /// wrap, and §10's `wrap` is not built (ADR-0196).
     @Test
-    @DisplayName("the Tabs screen")
-    void tabs() {
-        paint("gallery-tabs", "tabs", Theme.NORD_DARK);
+    @DisplayName("the Basic screen in a narrow window")
+    void basicNarrow() {
+        paint("gallery-basic-narrow", "basic", Theme.NORD_DARK, 720, 900);
     }
 
-    /// The sixth screen, and the only one that is not wrapped in the gallery's
-    /// own viewport — it owns one, and §2.4 bans nesting two on an axis.
-    ///
-    /// It cannot show what it is *for*. A thumb has faded by the time anything is
-    /// painted, a sticky header at rest is a header, and a tour has not been
-    /// started. What it does prove is that the screen lays out: four sections in a
-    /// viewport shorter than they are, with a toolbar above that does not give up
-    /// its height to them.
-    @Test
-    @DisplayName("the Scrolling screen")
-    void scrolling() {
-        paint("gallery-scrolling", "scrolling", Theme.NORD_DARK);
-    }
-
-    /// The Forms screen's **second row**, which the 560-point window cuts off.
-    ///
-    /// A taller image rather than a scrolled one: what is being pinned is the
-    /// form, the `text-area` and the label — three controls whose whole point is
-    /// how they lay out — and a golden that had to drive a scroll first would be
-    /// testing the scroll as well, on a screen that is not about scrolling.
-    ///
-    /// The gallery's other images stay at the window's real size, because a
-    /// screen that only looks right when the window is unusually tall is a screen
-    /// with a defect this would hide.
-    @Test
-    @DisplayName("the Forms screen, tall enough to show its second row")
-    void formsTall() {
-        paint("gallery-forms-tall", "forms", Theme.NORD_DARK, 900, 900);
-    }
-
-    /// The Forms screen on the light theme, and the second screen to earn a
-    /// light image rather than share the one.
-    ///
-    /// It earned it by being wrong there and right on the dark theme, which is a
-    /// failure a one-screen light corpus cannot catch: a field's fill was
-    /// `--gb-surface-2`, one rung off an `--nord6` page, and read as barely
-    /// there — the same defect ADR-0166 corrected for `card`, in the same place,
-    /// found the same way (ADR-0168). A **light** image of a screen full of
-    /// fields is what would have caught it.
     @Test
     @DisplayName("the Forms screen on the light theme")
     void formsLight() {
-        paint("gallery-forms-light", "forms", Theme.NORD_LIGHT);
+        paint("gallery-forms-light", "forms", Theme.NORD_LIGHT, 1200, 900);
     }
 
-    /// One screen on the light theme, because a gallery that only ever proves
-    /// itself on one is half a corpus — and the theme is a stylesheet swap, so one
-    /// screen is enough to say the swap works.
     @Test
-    @DisplayName("the Controls screen on the light theme")
+    @DisplayName("the Basic screen on the light theme")
     void lightTheme() {
-        paint("gallery-controls-light", "controls", Theme.NORD_LIGHT);
+        paint("gallery-basic-light", "basic", Theme.NORD_LIGHT, 1200, 900);
     }
 }

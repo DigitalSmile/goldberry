@@ -126,6 +126,17 @@ public final class Accelerators {
     /// mistake with no good silent resolution: refusing the second would make a
     /// menu whose second `Ctrl+O` does nothing and says nothing.
     public static Set<Shortcut> bind(Host host, List<Widget> widgets) {
+        return bind(host, widgets, null);
+    }
+
+    /// The same, binding **on behalf of `owner`** — which is what makes
+    /// [#unbind(Host, Set, Object)] able to give back only what it took.
+    ///
+    /// A `menubar` passes its own state object. Nothing else in the toolkit binds
+    /// accelerators, and an application binding its own does not need an owner:
+    /// unbinding by key is what it means to give up a key you took
+    /// ([ADR-0220](../../../../../../../book/src/adr/0220-an-accelerator-is-given-back-by-whoever-took-it.md)).
+    public static Set<Shortcut> bind(Host host, List<Widget> widgets, Object owner) {
         Objects.requireNonNull(host, "host");
         var bound = new LinkedHashSet<Shortcut>();
         var byShortcut = new java.util.LinkedHashMap<Shortcut, String>();
@@ -135,25 +146,32 @@ public final class Accelerators {
                 LOG.warn("{} is the accelerator of both \"{}\" and \"{}\"; the later one wins",
                         binding.shortcut(), previous, binding.label());
             }
-            host.shortcut(binding.shortcut(), binding.action());
+            host.shortcut(binding.shortcut(), binding.action(), owner);
             bound.add(binding.shortcut());
         }
         return bound;
     }
 
-    /// Unbinds what [#bind] bound.
-    ///
-    /// Removes by key, which is all the window's map can do — so a shortcut some
-    /// other part of the application bound to the *same* key afterwards goes with
-    /// it. That collision is the authoring mistake above at the other end, and it
-    /// is stated rather than defended against, because defending would mean the
-    /// map remembering who bound what and a `menubar` being the only thing that
-    /// could use it.
+    /// Unbinds what [#bind] bound, whoever holds those keys now.
     public static void unbind(Host host, Set<Shortcut> bound) {
+        unbind(host, bound, null);
+    }
+
+    /// Unbinds what `owner` bound, and **only** what it still holds.
+    ///
+    /// The map remembers who bound what now, which it did not when this class was
+    /// written: removing by key alone took a shortcut some other part of the
+    /// application had bound to the *same* key afterwards, so a bar being
+    /// unmounted could silently unbind an application's own `Ctrl+O`. The
+    /// collision at bind time is unchanged — two commands on one key is an
+    /// authoring mistake and the later one wins — but the loser can no longer
+    /// take the winner away with it
+    /// ([ADR-0220](../../../../../../../book/src/adr/0220-an-accelerator-is-given-back-by-whoever-took-it.md)).
+    public static void unbind(Host host, Set<Shortcut> bound, Object owner) {
         Objects.requireNonNull(host, "host");
         Objects.requireNonNull(bound, "bound");
         for (var shortcut : bound) {
-            host.removeShortcut(shortcut);
+            host.removeShortcut(shortcut, owner);
         }
     }
 }

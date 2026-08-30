@@ -60,7 +60,7 @@ class TourGoldenTest {
 
         try (var fonts = Fonts.bundled()) {
             var renderer = new WidgetRenderer(sheets, fonts);
-            var screen = new Scrolling(() -> { });
+            var screen = new Scrolling();
 
             List<HitTest.Region> regions;
             var probeTarget = TestFrames.of(900, 560, 1.0f, 0);

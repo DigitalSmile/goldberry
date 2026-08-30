@@ -73,11 +73,15 @@ class SegmentedGoldenTest {
     /// is about what a state looks like, and the router's tests are about whether
     /// input reaches it.
     private record PseudoState(int segment, Selector.PseudoClass pseudoClass) {
-        /// Through the track, and `+ 1` past the indicator: the pill is the
-        /// track's first child so that it is painted under the labels
-        /// ([ADR-0099]).
+        /// Through the track, and found **by type**: the track's children are its
+        /// parts first — one hairline per boundary, then the pill, both painted
+        /// under the labels ([ADR-0099], [ADR-0217]) — so counting past them is a
+        /// number that changes with the anatomy and a type is not.
         void applyTo(Element bar) {
-            bar.children().getFirst().children().get(segment + 1)
+            bar.children().getFirst().children().stream()
+                    .filter(child -> "option".equals(child.type()))
+                    .toList()
+                    .get(segment)
                     .setPseudoClass(pseudoClass, true);
         }
     }
@@ -118,12 +122,25 @@ class SegmentedGoldenTest {
     }
 
     /// The image this control exists to be checked by: three labels, one plate,
-    /// and the middle segment filled — inside the corners rather than across
-    /// them.
+    /// and the middle segment filled — meeting its neighbours rather than sitting
+    /// inside them, which is §3's "radius 8 outer, 0 between" ([ADR-0217]).
     @Test
     @DisplayName("three segments with the middle one selected, on dark")
     void selectedDark() {
         paint("segmented-dark", Theme.NORD_DARK, 220, bar("grid"));
+    }
+
+    /// Nothing selected, which is a real state — a bar bound to a model that has
+    /// not loaded, or holding a value no segment carries.
+    ///
+    /// It is also the **only** state in which every hairline shows, and so the
+    /// image that says §3's divider is drawn at all: the two beside the selection
+    /// are faded out, and with three segments and the middle one on, that is both
+    /// of them ([ADR-0217]).
+    @Test
+    @DisplayName("nothing selected: no pill, and every hairline showing")
+    void nothingSelected() {
+        paint("segmented-unset", Theme.NORD_DARK, 220, bar(null));
     }
 
     /// The same bar on light, where every colour in it is a different token and
@@ -149,9 +166,12 @@ class SegmentedGoldenTest {
                 new PseudoState(1, Selector.PseudoClass.HOVER));
     }
 
-    /// The focus ring goes round the **segment**, at §2.2's 2px offset, and the
-    /// bar's own padding is 2 — so the ring lands on the bar's edge and this is
-    /// the image that says it is still legible there.
+    /// The focus ring goes round the **segment**, at §2.2's 2px offset. In the
+    /// joined drawing a segment reaches the bar's inner edge, so the ring sits
+    /// just outside the bar rather than on it — and it takes the segment's own
+    /// corners, which are round at the ends of the row and square between
+    /// ([ADR-0217]). This is the image that says a ring on a middle segment is
+    /// still legible where it crosses the bar's edge.
     @Test
     @DisplayName("the ring is on the segment and not on the bar")
     void focusRing() {

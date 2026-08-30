@@ -6,8 +6,16 @@ import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.github.digitalsmile.goldberry.RendererRequirement;
+import io.github.digitalsmile.goldberry.css.ComputedStyle;
+import io.github.digitalsmile.goldberry.css.Corners;
+import io.github.digitalsmile.goldberry.css.StyleElement;
+import io.github.digitalsmile.goldberry.css.Theme;
+import io.github.digitalsmile.goldberry.css.cascade.StyleResolver;
+import io.github.digitalsmile.goldberry.css.select.Selector;
+import io.github.digitalsmile.goldberry.css.value.CssLength;
 import io.github.digitalsmile.goldberry.kdl.KdlParser;
 import io.github.digitalsmile.goldberry.widget.ElementTree;
+import io.github.digitalsmile.goldberry.widgets.Controls;
 import io.github.digitalsmile.goldberry.widgets.Widgets;
 import io.github.digitalsmile.goldberry.widgets.panel.Described;
 import io.github.digitalsmile.goldberry.widgets.text.Text;
@@ -39,6 +47,52 @@ class GroupBoxTest {
         assertEquals(1, Described.of(tree, GroupBox.GroupBoxTitle.class).size());
         assertEquals(1, Described.of(tree, GroupBox.GroupBoxBody.class).size());
         assertEquals("Appearance", Described.first(tree, GroupBox.GroupBoxTitle.class).text());
+    }
+
+    /// §5's frame is 8px round with a 1px edge, and the header fills the top of
+    /// it — so the header's top corners are the frame's less its border, and its
+    /// bottom ones are square where the body carries on underneath. That is
+    /// `border-radius: 7px 7px 0 0`, which the stylesheet has said since the
+    /// widget shipped and which the engine dropped with a warning until
+    /// ADR-0216: the header drew four square corners, and two of them spilled
+    /// out of the frame's curve.
+    @Test
+    @DisplayName("the header's top corners follow the frame and its bottom ones do not")
+    void headerCornersFollowTheFrame() {
+        assertEquals(Corners.all(8), styleOf("group-box").decoration().corners(),
+                "§5's frame");
+        assertEquals(new Corners(7, 7, 0, 0), styleOf("group-box-title").decoration().corners(),
+                "the frame's radius less its border on top, square underneath");
+    }
+
+    /// A node that exists only to be styled — `SegmentedTest`'s probe, for its
+    /// reason: what is under test is a rule in the catalog, not a widget.
+    private record Probe(String type) implements StyleElement {
+
+        @Override
+        public String id() {
+            return null;
+        }
+
+        @Override
+        public java.util.Set<String> classes() {
+            return java.util.Set.of();
+        }
+
+        @Override
+        public StyleElement parent() {
+            return null;
+        }
+
+        @Override
+        public boolean hasState(Selector.PseudoClass state) {
+            return false;
+        }
+    }
+
+    private static ComputedStyle styleOf(String type) {
+        var resolver = new StyleResolver(Controls.stylesheets(Theme.NORD_DARK));
+        return ComputedStyle.of(resolver.resolve(new Probe(type)), CssLength.Context.DEFAULT);
     }
 
     /// An empty heading with `gap` above it is a gap nobody asked for.
