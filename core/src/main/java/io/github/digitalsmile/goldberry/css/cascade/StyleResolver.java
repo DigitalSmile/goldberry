@@ -173,7 +173,7 @@ public final class StyleResolver {
     /// Conservative in both directions it can be: an untyped ancestor compound
     /// makes its pseudo-class reach everything, and a caller with no type of its
     /// own gets `true`.
-    public boolean reachesDescendants(Selector.PseudoClass state, String type) {
+    public boolean reachesDescendants(Selector.PseudoClass state, @Nullable String type) {
         Objects.requireNonNull(state, "state");
         if (untypedAncestorStates.contains(state)) {
             return true;
@@ -256,7 +256,8 @@ public final class StyleResolver {
     ///
     /// @param ownCascade this element's winning declarations, or null to compute
     ///                   them here
-    private Map<String, List<Token>> customPropertiesFor(StyleElement element, Map<String, List<Token>> ownCascade) {
+    private Map<String, List<Token>> customPropertiesFor(
+            StyleElement element, @Nullable Map<String, List<Token>> ownCascade) {
         // Built from the root down so a nearer definition overwrites a farther
         // one. Recursion rather than a loop because the chain is walked upward
         // and applied downward.

@@ -2,6 +2,8 @@ package io.github.digitalsmile.goldberry.widgets.data;
 
 import java.util.Objects;
 
+import org.jspecify.annotations.Nullable;
+
 import io.github.digitalsmile.goldberry.widget.style.Paints;
 
 /// A limit drawn across a chart — `charts.md` §3.1's "thresholds: lines and
@@ -47,7 +49,8 @@ import io.github.digitalsmile.goldberry.widget.style.Paints;
 ///              [Double#POSITIVE_INFINITY]
 /// @param level which semantic hue it is drawn in
 /// @param label a word for it — `SLO`, `p99 budget` — or null for a bare line
-public record Threshold(double from, double to, Level level, String label) {
+public record Threshold(
+        double from, double to, Level level, @Nullable String label) {
 
     /// Which semantic hue a threshold is drawn in.
     ///

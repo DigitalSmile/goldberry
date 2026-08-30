@@ -248,7 +248,11 @@ record DonutSurface(
     /// The hovered slice's name and share, shaped.
     private record Readout(Paragraph name, Paragraph share, int ink, int muted) {}
 
-    private record Painted(List<Double> values, List<Integer> colours, int hovered, Readout readout) {
+    private record Painted(
+            List<Double> values,
+            List<Integer> colours,
+            int hovered,
+            @Nullable Readout readout) {
 
         void paint(Frame frame, LogicalSize size) {
             var total = values.stream()

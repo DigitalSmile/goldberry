@@ -66,7 +66,7 @@ public final class ChartParts {
             List<String> categories,
             Mode mode,
             int isolated,
-            java.util.function.IntConsumer onIsolate) {
+            java.util.function.@Nullable IntConsumer onIsolate) {
 
         return of(series, categories, mode, isolated, onIsolate, ChartOptions.DEFAULTS);
     }

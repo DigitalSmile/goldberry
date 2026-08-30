@@ -119,8 +119,7 @@ status beside it reads as a description of what exists.
   exclusions. Plus `removeUnusedImports` and an import order that keeps static
   imports first, where the tool's own default would have moved them last.
 - **§2 Error Prone + NullAway**, blocking on `src/main`. NullAway runs in
-  `OnlyNullMarked` mode, and **33 of 93 packages** have opted in — all of
-  `:common`, 17 of `:core`'s 36 and 15 of `:widgets`' 54 — carrying 168
+  `OnlyNullMarked` mode, and **34 of 93 packages** have opted in, carrying 240
   `@Nullable` annotations that document nullness the code already had. A `return
   null` added to a marked package fails the build.
 - **§2 PMD**, eight hand-picked rules in `config/pmd/ruleset.xml`, on `src/main`
@@ -185,7 +184,7 @@ status beside it reads as a description of what exists.
   `ARCHITECTURE.md` prose and the AccessKit bridge is M5, not started. This is
   the one item here blocked on a subsystem rather than on effort. Contrast, the
   other half of §1.7, is built and has been for a while (`ContrastTest`).
-- **JSpecify on the remaining 60 packages.** 33 are marked and checked. What is
+- **JSpecify on the remaining 59 packages.** 34 are marked and checked. What is
   left is not more of the same work: the mechanical half is done — a method that
   already returned null now says so — and every package still unmarked has at
   least one finding that is *behavioural*. A dereference that needs a real null
@@ -194,9 +193,13 @@ status beside it reads as a description of what exists.
   and unmarks whatever still has a finding, so re-running it after a package is
   fixed by hand costs nothing.
 
-  The split at the point of stopping was 64 "passing @Nullable where @NonNull is
-  required" and 21 "dereferenced expression is @Nullable" in `:core` alone.
-  Neither is a thing a script should decide.
+  **This is where automation tops out, and the second attempt proved it.** A
+  parameter annotator was added — it reads "passing @Nullable parameter 'X'" at
+  the *call*, resolves the callee, and annotates the right parameter — and it
+  applied 72 more annotations for a net gain of **one** package. Every remaining
+  finding is behavioural: a dereference needing a real null check, or an overload
+  whose contract somebody has to choose. A hundred of those are left, and they
+  are an afternoon of reading rather than another tool.
 - **Qodana and Codecov are wired but not connected.** Both need a token this
   repository does not have. Neither fails a build in the meantime — the Qodana
   job gates itself on the secret and skips with a note, and the Codecov step is

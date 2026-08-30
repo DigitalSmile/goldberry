@@ -3,6 +3,8 @@ package io.github.digitalsmile.goldberry.widgets.overlay.tour;
 import java.util.List;
 import java.util.Set;
 
+import org.jspecify.annotations.Nullable;
+
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
 import io.github.digitalsmile.goldberry.natives.yoga.Insets;
 import io.github.digitalsmile.goldberry.natives.yoga.style.PositionType;
@@ -33,7 +35,7 @@ import io.github.digitalsmile.goldberry.widget.style.Styled;
 /// @param target what to leave uncovered, or null to dim everything
 /// @param window the rectangle to fill — the veil's own, since a band's size is
 ///               stated in pixels and Yoga has no `100%` minus anything
-record TourVeil(LogicalRect target, LogicalRect window) implements Widget.Leaf, Styled, Paints {
+record TourVeil(@Nullable LogicalRect target, LogicalRect window) implements Widget.Leaf, Styled, Paints {
 
     @Override
     public String cssType() {

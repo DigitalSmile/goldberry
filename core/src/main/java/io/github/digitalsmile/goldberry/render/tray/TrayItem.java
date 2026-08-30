@@ -3,6 +3,8 @@ package io.github.digitalsmile.goldberry.render.tray;
 import java.util.List;
 import java.util.Objects;
 
+import org.jspecify.annotations.Nullable;
+
 /// One row of a tray menu.
 ///
 /// **Not a widget, and the reason is not packaging.** Every other row in the
@@ -24,7 +26,12 @@ import java.util.Objects;
 ///                 nothing itself — which every submenu and separator is
 /// @param children the submenu's rows; empty for everything but [Kind#SUBMENU]
 public record TrayItem(
-        Kind kind, String label, boolean enabled, boolean checked, Chosen onChosen, List<TrayItem> children) {
+        Kind kind,
+        @Nullable String label,
+        boolean enabled,
+        boolean checked,
+        @Nullable Chosen onChosen,
+        List<TrayItem> children) {
 
     /// What a row is.
     public enum Kind {

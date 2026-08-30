@@ -6,6 +6,8 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.function.Consumer;
 
+import org.jspecify.annotations.Nullable;
+
 /// What a name in markup means (§9's `action` half).
 ///
 /// KDL is data. `button press="save"` can say *which* action, and cannot say what
@@ -129,7 +131,7 @@ public final class ActionRegistry {
     ///
     /// @throws IllegalArgumentException if this registry is [#strict()] and the
     ///         name is not bound
-    public Consumer<String> resolveValued(String name) {
+    public Consumer<String> resolveValued(@Nullable String name) {
         if (name == null) {
             return null;
         }

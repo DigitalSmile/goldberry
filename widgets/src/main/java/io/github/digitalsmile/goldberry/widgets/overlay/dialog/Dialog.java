@@ -72,7 +72,7 @@ import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
 /// @param children   the content and the actions, as the document wrote them
 /// @param attributes the `id` and classes, which land on the panel
 @Markup("dialog")
-public record Dialog(String title, List<Widget> children, Attributes attributes)
+public record Dialog(@Nullable String title, List<Widget> children, Attributes attributes)
         implements Widget.Stateful, Attributed<Dialog> {
 
     public Dialog {

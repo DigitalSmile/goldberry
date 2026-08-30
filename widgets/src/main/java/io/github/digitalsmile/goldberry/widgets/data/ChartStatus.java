@@ -29,7 +29,7 @@ import org.jspecify.annotations.Nullable;
 ///
 /// @param kind    which of the three
 /// @param message what to say, or null for the default
-public record ChartStatus(Kind kind, String message) {
+public record ChartStatus(Kind kind, @Nullable String message) {
 
     /// Which of the three.
     public enum Kind {

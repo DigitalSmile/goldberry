@@ -102,7 +102,16 @@ tasks.withType(JavaCompile).configureEach {
         // `@NullMarked` and is invisible until then -- which is the only way a
         // codebase this size adopts it at all.
         option('NullAway:OnlyNullMarked', 'true')
-        error('NullAway')
+        // ERROR normally, so a violation fails the build. `-Pgoldberry.nullaway=warn`
+        // demotes it for the adoption sweep in `tools/nullness/`: at ERROR a
+        // failing :core stops :widgets compiling at all, so a sweep over the
+        // whole graph only ever saw the first module's diagnostics -- and
+        // "annotated 17 parameters" was 17 in the wrong module.
+        if (providers.gradleProperty('goldberry.nullaway').orNull == 'warn') {
+            warn('NullAway')
+        } else {
+            error('NullAway')
+        }
     }
 }
 

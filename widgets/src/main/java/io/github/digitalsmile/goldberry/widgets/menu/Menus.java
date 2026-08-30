@@ -127,7 +127,8 @@ public final class Menus {
     /// the menu. Everything else passes null, and those two arrows do nothing at
     /// the root of a context menu — which is right, because there is nowhere to
     /// go (ADR-0219).
-    public static Optional<Popup> open(Host host, String anchorId, Menu menu, Placement placement, Siblings siblings) {
+    public static Optional<Popup> open(
+            Host host, String anchorId, Menu menu, Placement placement, @Nullable Siblings siblings) {
 
         Objects.requireNonNull(host, "host");
         Objects.requireNonNull(anchorId, "anchorId");
@@ -382,7 +383,7 @@ public final class Menus {
         /// arriving on a row *without* one closes whatever the row above had
         /// opened. `item` is the row's submenu to open, or null for "there is
         /// nothing here — put away what is showing".
-        private void intend(Item item, int index) {
+        private void intend(@Nullable Item item, int index) {
             cancelPending();
             pending = host.after(HOVER_INTENT, () -> {
                 pending = null;

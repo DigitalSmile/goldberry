@@ -3,6 +3,8 @@ package io.github.digitalsmile.goldberry.widgets.data;
 import java.util.List;
 import java.util.Set;
 
+import org.jspecify.annotations.Nullable;
+
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
 import io.github.digitalsmile.goldberry.paint.Box;
 import io.github.digitalsmile.goldberry.widget.Widget;
@@ -40,7 +42,7 @@ record ChartView(String cssType, List<Widget> parts, Attributes attributes) impl
     }
 
     @Override
-    public String id() {
+    public @Nullable String id() {
         return attributes.id();
     }
 

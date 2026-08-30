@@ -3,6 +3,8 @@ package io.github.digitalsmile.goldberry.widget.attr;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
+import org.jspecify.annotations.Nullable;
+
 import io.github.digitalsmile.goldberry.kdl.KdlNode;
 import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widget.style.Styled;
@@ -28,7 +30,7 @@ import io.github.digitalsmile.goldberry.widget.style.Styled;
 ///
 /// [#of(KdlNode)] is here for the same reason: parsing `id` and `class` off a
 /// markup node is the inflater's contract, and the inflater is `:core`'s.
-public record Attributes(String id, Set<String> classes, Object key, String tooltip, String contextMenu) {
+public record Attributes(@Nullable String id, Set<String> classes, Object key, String tooltip, String contextMenu) {
 
     /// No id, no classes, no key, no tooltip — what a widget built in Java gets
     /// unless it says otherwise.

@@ -431,7 +431,8 @@ public final class PointerRouter {
     }
 
     /// The same, with modifiers.
-    public void pointerPressed(float x, float y, PointerEvent.Button button, int clickCount, Modifiers modifiers) {
+    public void pointerPressed(
+            float x, float y, PointerEvent.@Nullable Button button, int clickCount, Modifiers modifiers) {
         var target = elementAt(x, y);
         updateHover(target, x, y);
         if (target == null) {
@@ -471,7 +472,8 @@ public final class PointerRouter {
     }
 
     /// The same, with modifiers.
-    public void pointerReleased(float x, float y, PointerEvent.Button button, int clickCount, Modifiers modifiers) {
+    public void pointerReleased(
+            float x, float y, PointerEvent.@Nullable Button button, int clickCount, Modifiers modifiers) {
         var under = elementAt(x, y);
         var target = captured != null ? captured : under;
         // Read before `setPressed(null)` clears it: whether this was a click is a
@@ -597,7 +599,7 @@ public final class PointerRouter {
     /// §7.2 keeps `:focus` and `:focus-visible` distinct: the focus ring renders
     /// only for keyboard focus. Both are set here so a stylesheet can tell them
     /// apart without input having to know what a ring is.
-    public void focus(Element element, boolean fromKeyboard) {
+    public void focus(@Nullable Element element, boolean fromKeyboard) {
         if (element != null && !isFocusable(element)) {
             return;
         }
@@ -678,7 +680,7 @@ public final class PointerRouter {
     /// Walking two chains on every focus change is the cost, and it is a walk to
     /// the root of a widget tree per keystroke that moves focus — the same order
     /// as the pointer dispatch that already happens per motion.
-    private static void notifyFocusWithin(Element lost, Element gained, boolean fromKeyboard) {
+    private static void notifyFocusWithin(@Nullable Element lost, Element gained, boolean fromKeyboard) {
         if (lost == gained) {
             return;
         }
@@ -781,7 +783,7 @@ public final class PointerRouter {
     /// @param direction -1 for the previous, 1 for the next
     /// @param toEnd     whether to go all the way (Home/End) rather than one step
     /// @return whether focus moved
-    private boolean moveFocusWithinScope(int direction, boolean toEnd, FocusScope.Axis axis) {
+    private boolean moveFocusWithinScope(int direction, boolean toEnd, FocusScope.@Nullable Axis axis) {
         var scope = enclosingScope(focused);
         // A scope that does not answer to this axis leaves the key alone, and
         // "alone" is the whole point: the focused chain has already declined it,
@@ -1201,7 +1203,7 @@ public final class PointerRouter {
     /// `.card:hover .title` has to work — so the chains are compared rather than
     /// the two elements. Only the parts that differ change, which is what stops
     /// a move within one widget from invalidating its ancestors.
-    private void updateHover(Element next, float x, float y) {
+    private void updateHover(@Nullable Element next, float x, float y) {
         if (hovered == next) {
             return;
         }
@@ -1262,7 +1264,7 @@ public final class PointerRouter {
     /// Chains rather than elements, so a press that moves within one widget does
     /// not invalidate its ancestors — the same reason [#updateHover] compares
     /// them.
-    private void setPressed(Element next) {
+    private void setPressed(@Nullable Element next) {
         if (pressed == next) {
             return;
         }
@@ -1332,7 +1334,7 @@ public final class PointerRouter {
     private static final org.slf4j.Logger INPUT_LOG = org.slf4j.LoggerFactory.getLogger(PointerRouter.class);
 
     /// An element and its ancestors, deepest first.
-    private static List<Element> chain(Element element) {
+    private static List<Element> chain(@Nullable Element element) {
         var chain = new ArrayList<Element>();
         for (var current = element; current != null; current = parentOf(current)) {
             chain.add(current);

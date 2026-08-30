@@ -3,6 +3,8 @@ package io.github.digitalsmile.goldberry.widgets.data.linechart;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.jspecify.annotations.Nullable;
+
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
 import io.github.digitalsmile.goldberry.kdl.KdlNode;
 import io.github.digitalsmile.goldberry.kdl.KdlValue;
@@ -34,7 +36,7 @@ import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
 /// mechanism every widget in the catalog goes through, for a case two widgets
 /// have.
 @Markup("series")
-public record ChartSeries(String name, List<Double> values, List<String> labels)
+public record ChartSeries(@Nullable String name, List<Double> values, List<String> labels)
         implements Widget.Leaf, Styled, Paints {
 
     public ChartSeries {

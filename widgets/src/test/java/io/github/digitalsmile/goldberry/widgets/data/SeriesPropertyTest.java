@@ -88,10 +88,20 @@ class SeriesPropertyTest {
     /// builds — `Scale.linear(min, max, ...)` is named for its argument order.
     @Provide
     Arbitrary<Scale> domains() {
-        var bounds = Arbitraries.doubles().between(-1e5, 1e5);
+        // A **width**, not a filtered second bound. Filtering `high > low` misses
+        // whenever `low` lands near the top of the range, and jqwik gives up after
+        // ten thousand tries with TooManyFilterMisses -- a flake that depends on
+        // the seed, and so passed for as long as the seed was kind. Generating a
+        // positive width cannot miss.
+        var low = Arbitraries.doubles().between(-1e5, 1e5);
+        // `ofScale(6)`, because jqwik generates decimals at scale 2 by default and
+        // refuses a range it cannot represent: "Decimal value 0.001 cannot be
+        // represented with scale 2". A narrow domain is the interesting edge, so
+        // the scale moves rather than the bound.
+        var width = Arbitraries.doubles().ofScale(6).between(1e-3, 2e5);
         return Arbitraries.of(true, false)
-                .flatMap(inverted -> bounds.flatMap(low -> bounds.filter(high -> high - low > 1e-3)
-                        .map(high -> inverted ? Scale.linear(low, high, 400, 0) : Scale.linear(low, high, 0, 400))));
+                .flatMap(inverted -> low.flatMap(from -> width.map(
+                        w -> inverted ? Scale.linear(from, from + w, 400, 0) : Scale.linear(from, from + w, 0, 400))));
     }
 
     // --- Lttb: a subsequence --------------------------------------------------

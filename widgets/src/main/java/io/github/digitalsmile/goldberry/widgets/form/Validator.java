@@ -3,6 +3,8 @@ package io.github.digitalsmile.goldberry.widgets.form;
 import java.util.Objects;
 import java.util.function.Predicate;
 
+import org.jspecify.annotations.Nullable;
+
 /// Whether a value is acceptable, and what to say when it is not —
 /// `docs/core-widgets.md` §4's validation model.
 ///
@@ -39,7 +41,7 @@ public interface Validator<T> {
     /// The outcome — valid, or a message saying what is wrong.
     ///
     /// @param message what to show, or null when the value is acceptable
-    record Result(String message) {
+    record Result(@Nullable String message) {
 
         /// Nothing wrong.
         public static final Result VALID = new Result(null);

@@ -3,6 +3,8 @@ package io.github.digitalsmile.goldberry.widgets.data;
 import java.util.List;
 import java.util.Set;
 
+import org.jspecify.annotations.Nullable;
+
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
 import io.github.digitalsmile.goldberry.paint.Box;
 import io.github.digitalsmile.goldberry.widget.Widget;
@@ -38,7 +40,7 @@ import io.github.digitalsmile.goldberry.widgets.text.Text;
 /// @param text  the sentence, already decided by [ChartStatus]
 /// @param kind  `empty`, `loading` or `failed` — the class a stylesheet selects
 ///              it by
-record ChartMessage(String text, String kind) implements Widget.Leaf, Styled, Paints {
+record ChartMessage(String text, @Nullable String kind) implements Widget.Leaf, Styled, Paints {
 
     @Override
     public String cssType() {

@@ -19,6 +19,7 @@ import java.util.Set;
 import io.github.digitalsmile.goldberry.kdl.KdlNode;
 import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
 import io.github.digitalsmile.goldberry.widgets.markup.Markup;
+import org.jspecify.annotations.Nullable;
 
 /// One choice in a [io.github.digitalsmile.goldberry.widgets.controls.segmented.Segmented]
 /// or a [io.github.digitalsmile.goldberry.widgets.controls.select.Select]
@@ -117,8 +118,7 @@ public record Option(
     /// still the one to reach for: an option is [#roving()] unless a control says
     /// otherwise, because that is `segmented`'s and `radio-group`'s shape and
     /// they are two of the three callers.
-    public Option(String value, String label, Icon icon, boolean selected, Runnable onSelect,
-            boolean disabled, Attributes attributes) {
+    public Option(String value, String label, @Nullable Icon icon, boolean selected, Runnable onSelect, boolean disabled, Attributes attributes) {
         this(value, label, icon, selected, onSelect, disabled, attributes, true);
     }
 
@@ -199,7 +199,7 @@ public record Option(
     }
 
     @Override
-    public String id() {
+    public @Nullable String id() {
         return attributes.id();
     }
 

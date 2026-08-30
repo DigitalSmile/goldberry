@@ -4,6 +4,8 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
 
+import org.jspecify.annotations.Nullable;
+
 import io.github.digitalsmile.goldberry.kdl.KdlNode;
 import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widget.attr.Attributed;
@@ -72,7 +74,7 @@ public record DialogAction(String label, Role role, Runnable onPress, Attributes
         /// The role a document named.
         ///
         /// @throws IllegalArgumentException if the word is not one of the three
-        public static Role of(String text) {
+        public static Role of(@Nullable String text) {
             if (text == null || text.isBlank()) {
                 return NEUTRAL;
             }

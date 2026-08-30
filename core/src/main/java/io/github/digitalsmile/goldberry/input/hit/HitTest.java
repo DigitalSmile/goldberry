@@ -5,6 +5,8 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 
+import org.jspecify.annotations.Nullable;
+
 import io.github.digitalsmile.goldberry.css.value.Affine;
 import io.github.digitalsmile.goldberry.paint.Box;
 import io.github.digitalsmile.goldberry.paint.BoxPainter;
@@ -68,7 +70,14 @@ public final class HitTest {
         }
 
         /// A rectangle nothing clips.
-        public Region(Object owner, Cursor cursor, float left, float top, float width, float height, Affine inverse) {
+        public Region(
+                Object owner,
+                Cursor cursor,
+                float left,
+                float top,
+                float width,
+                float height,
+                @Nullable Affine inverse) {
             this(owner, cursor, left, top, width, height, inverse, Clip.NONE);
         }
 

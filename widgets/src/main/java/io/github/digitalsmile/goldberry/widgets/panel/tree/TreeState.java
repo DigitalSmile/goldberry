@@ -7,6 +7,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.jspecify.annotations.Nullable;
+
 import io.github.digitalsmile.goldberry.widget.BuildContext;
 import io.github.digitalsmile.goldberry.widget.State;
 import io.github.digitalsmile.goldberry.widget.Widget;
@@ -456,7 +458,7 @@ final class TreeState extends State<Tree> {
     /// partially ticked folder is asking for all of it, which is the only reading
     /// of that click that is ever what was meant. `Checkbox.Value.toggled()` has
     /// said so since it shipped and this is its second caller.
-    private void check(TreeNode node) {
+    private void check(@Nullable TreeNode node) {
         var tree = widget();
         var state = checkStateOf(node);
         if (state == null || tree.onCheck() == null) {

@@ -10,6 +10,6 @@
 /// one is checked from the moment it opts in — which is the only way a codebase
 /// this size adopts nullness at all (`docs/testing.md` §2).
 @NullMarked
-package io.github.digitalsmile.goldberry.render.backend.headless;
+package io.github.digitalsmile.goldberry.widgets.form;
 
 import org.jspecify.annotations.NullMarked;

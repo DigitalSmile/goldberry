@@ -2,6 +2,8 @@ package io.github.digitalsmile.goldberry.example.ui;
 
 import java.util.List;
 
+import org.jspecify.annotations.Nullable;
+
 import io.github.digitalsmile.goldberry.widget.BuildContext;
 import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widget.attr.Attributes;
@@ -48,7 +50,7 @@ record Wall(String id, String title, String note, int columns, List<Widget> card
     /// The order matters and is the caller's: a masonry places each card under
     /// whichever column is shortest, so a card appended here lands *after* the
     /// document's rather than beside any particular one of them.
-    static Wall of(String id, String title, String note, Masonry document, Widget... extra) {
+    static Wall of(String id, String title, String note, Masonry document, Widget @Nullable ... extra) {
         var cards = new java.util.ArrayList<>(document.children());
         cards.addAll(List.of(extra));
         return new Wall(id, title, note, document.columns(), cards);

@@ -4,6 +4,8 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
 
+import org.jspecify.annotations.Nullable;
+
 import io.github.digitalsmile.goldberry.assets.BundledFont;
 import io.github.digitalsmile.goldberry.css.Typography;
 
@@ -149,7 +151,7 @@ public final class Fonts implements AutoCloseable {
         }
     }
 
-    private static RuntimeException closeQuietly(AutoCloseable target, RuntimeException failure) {
+    private static RuntimeException closeQuietly(AutoCloseable target, @Nullable RuntimeException failure) {
         try {
             target.close();
             return failure;

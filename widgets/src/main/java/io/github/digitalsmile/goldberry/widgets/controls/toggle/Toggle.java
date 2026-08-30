@@ -23,6 +23,7 @@ import java.util.function.Consumer;
 import io.github.digitalsmile.goldberry.kdl.KdlNode;
 import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
 import io.github.digitalsmile.goldberry.widgets.markup.Markup;
+import org.jspecify.annotations.Nullable;
 
 /// A switch — `docs/core-widgets.md` §3's `toggle`. The fifth control.
 ///
@@ -158,7 +159,7 @@ public record Toggle(
     }
 
     @Override
-    public String id() {
+    public @Nullable String id() {
         return attributes.id();
     }
 

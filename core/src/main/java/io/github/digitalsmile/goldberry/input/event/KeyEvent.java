@@ -2,6 +2,8 @@ package io.github.digitalsmile.goldberry.input.event;
 
 import java.util.Objects;
 
+import org.jspecify.annotations.Nullable;
+
 import io.github.digitalsmile.goldberry.input.handler.Handles;
 import io.github.digitalsmile.goldberry.input.hit.Extent;
 import io.github.digitalsmile.goldberry.input.key.Key;
@@ -30,7 +32,7 @@ public final class KeyEvent {
     private Extent part = Extent.NONE;
     private boolean consumed;
 
-    public KeyEvent(Kind kind, Key key, Modifiers modifiers, boolean repeat, Element target) {
+    public KeyEvent(Kind kind, Key key, Modifiers modifiers, boolean repeat, @Nullable Element target) {
         this.kind = Objects.requireNonNull(kind, "kind");
         this.key = Objects.requireNonNull(key, "key");
         this.modifiers = Objects.requireNonNull(modifiers, "modifiers");

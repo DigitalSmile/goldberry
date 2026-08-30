@@ -203,7 +203,7 @@ public record ComputedStyle(
     ///
     /// @param parent the resolved style of the nearest ancestor, or null
     public static ComputedStyle of(
-            Map<String, List<Token>> declarations, CssLength.Context context, ComputedStyle parent) {
+            Map<String, List<Token>> declarations, CssLength.Context context, @Nullable ComputedStyle parent) {
 
         Objects.requireNonNull(declarations, "declarations");
         Objects.requireNonNull(context, "context");

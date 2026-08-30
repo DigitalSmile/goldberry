@@ -5,6 +5,8 @@ import java.util.Locale;
 import java.util.Objects;
 import java.util.Optional;
 
+import org.jspecify.annotations.Nullable;
+
 import io.github.digitalsmile.goldberry.kdl.KdlNode;
 import io.github.digitalsmile.goldberry.paint.Box;
 import io.github.digitalsmile.goldberry.widget.State;
@@ -122,7 +124,7 @@ public record Message(Kind kind, String text, List<Widget> actions, Runnable onD
         /// refusing to build one would take a window down over a missing word.
         /// A kind that is *misspelt* is refused, because that is a document
         /// saying something it does not mean.
-        public static Kind of(String text) {
+        public static Kind of(@Nullable String text) {
             if (text == null || text.isBlank()) {
                 return INFO;
             }

@@ -4,6 +4,8 @@ import java.util.List;
 import java.util.Objects;
 import java.util.function.Consumer;
 
+import org.jspecify.annotations.Nullable;
+
 import io.github.digitalsmile.goldberry.bind.Observable;
 import io.github.digitalsmile.goldberry.kdl.KdlNode;
 import io.github.digitalsmile.goldberry.widget.State;
@@ -89,7 +91,7 @@ public record Tabs(
         Objects.requireNonNull(children, "children");
     }
 
-    public Tabs(String value, Widget... children) {
+    public Tabs(@Nullable String value, Widget... children) {
         this(value, List.of(children), null, null, null, null, Attributes.NONE);
     }
 

@@ -105,7 +105,8 @@ public final class Element implements BuildContext, StyleElement {
     // and the root -- eleven of them at the showcase's depth, and the largest
     // term left in a frame (ADR-0152).
 
-    private java.util.Map<String, java.util.List<io.github.digitalsmile.goldberry.css.parse.Token>> customProperties;
+    private java.util.@Nullable Map<String, java.util.List<io.github.digitalsmile.goldberry.css.parse.Token>>
+            customProperties;
 
     private @Nullable StyleResolver customPropertiesResolver;
 
@@ -252,7 +253,7 @@ public final class Element implements BuildContext, StyleElement {
         }
     }
 
-    Element(ElementTree tree, Element parent, Widget widget) {
+    Element(ElementTree tree, @Nullable Element parent, Widget widget) {
         this.tree = tree;
         this.parent = parent;
         this.widget = widget;
@@ -341,7 +342,7 @@ public final class Element implements BuildContext, StyleElement {
     /// places a value can change.
     ///
     /// @param previous the widget being replaced, or null when mounting
-    private void subscribeToBinding(Widget previous) {
+    private void subscribeToBinding(@Nullable Widget previous) {
         var property = widget.binding();
         if (previous != null && previous.binding() == property) {
             return;

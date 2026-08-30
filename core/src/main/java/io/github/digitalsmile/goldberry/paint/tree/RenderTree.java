@@ -847,7 +847,7 @@ public final class RenderTree implements AutoCloseable {
     /// Outward, because a rectangle that rounded inward would leave the outermost
     /// row of antialiased pixels out of the damage and therefore un-uploaded — a
     /// one-pixel fringe of the previous frame around everything that moved.
-    private static DamageRect toPhysical(Bounds bounds, Frame frame) {
+    private static DamageRect toPhysical(@Nullable Bounds bounds, Frame frame) {
         var size = frame.pixelSize();
         if (bounds == null) {
             return new DamageRect(0, 0, 0, 0);

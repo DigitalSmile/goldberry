@@ -5,6 +5,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Objects;
 
+import org.jspecify.annotations.Nullable;
+
 /// Reads [KDL 2.0][spec] markup into [KdlNode]s.
 ///
 /// Hand-written, for the reason [ADR-0010] gives about the FFM bindings: KDL 2.0
@@ -182,7 +184,7 @@ public final class KdlParser {
     }
 
     /// An argument or a property, told apart by whether an `=` follows.
-    private record Entry(String key, KdlValue value) {}
+    private record Entry(@Nullable String key, KdlValue value) {}
 
     private Entry entry() {
         refuseTypeAnnotation();

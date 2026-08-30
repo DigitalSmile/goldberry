@@ -10,7 +10,7 @@ passes="${2:-8}"
 log=$(mktemp)
 
 for i in $(seq 1 "$passes"); do
-    ./gradlew ":${module}:compileJava" -Pgoldberry.lenient --no-daemon >"$log" 2>&1
+    ./gradlew ":${module}:compileJava" -Pgoldberry.lenient -Pgoldberry.nullaway=warn --no-daemon >"$log" 2>&1
     status=$?
     count=$(grep -c 'error: \[NullAway\]' "$log" || true)
     other=$(( $(grep -c 'error:' "$log" || true) - count ))

@@ -2,6 +2,8 @@ package io.github.digitalsmile.goldberry.input.event;
 
 import java.util.Objects;
 
+import org.jspecify.annotations.Nullable;
+
 import io.github.digitalsmile.goldberry.input.handler.Handles;
 import io.github.digitalsmile.goldberry.input.hit.Extent;
 import io.github.digitalsmile.goldberry.input.key.Modifiers;
@@ -164,7 +166,7 @@ public final class PointerEvent {
         this.local = value == null ? Local.UNKNOWN : value;
     }
 
-    public PointerEvent(Kind kind, float x, float y, Button button, int clickCount, Element target) {
+    public PointerEvent(Kind kind, float x, float y, @Nullable Button button, int clickCount, Element target) {
         this(kind, x, y, button, clickCount, 0, 0, Float.NaN, Float.NaN, Modifiers.NONE, target);
     }
 

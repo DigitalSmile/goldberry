@@ -6,6 +6,8 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 
+import org.jspecify.annotations.Nullable;
+
 import io.github.digitalsmile.goldberry.Host;
 import io.github.digitalsmile.goldberry.input.key.Shortcut;
 import io.github.digitalsmile.goldberry.widget.Widget;
@@ -136,7 +138,7 @@ public final class Accelerators {
     /// accelerators, and an application binding its own does not need an owner:
     /// unbinding by key is what it means to give up a key you took
     /// (ADR-0220).
-    public static Set<Shortcut> bind(Host host, List<Widget> widgets, Object owner) {
+    public static Set<Shortcut> bind(Host host, List<Widget> widgets, @Nullable Object owner) {
         Objects.requireNonNull(host, "host");
         var bound = new LinkedHashSet<Shortcut>();
         var byShortcut = new java.util.LinkedHashMap<Shortcut, String>();
@@ -170,7 +172,7 @@ public final class Accelerators {
     /// authoring mistake and the later one wins — but the loser can no longer
     /// take the winner away with it
     /// (ADR-0220).
-    public static void unbind(Host host, Set<Shortcut> bound, Object owner) {
+    public static void unbind(Host host, Set<Shortcut> bound, @Nullable Object owner) {
         Objects.requireNonNull(host, "host");
         Objects.requireNonNull(bound, "bound");
         for (var shortcut : bound) {

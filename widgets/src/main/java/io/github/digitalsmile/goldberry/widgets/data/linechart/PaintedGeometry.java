@@ -1,5 +1,7 @@
 package io.github.digitalsmile.goldberry.widgets.data.linechart;
 
+import org.jspecify.annotations.Nullable;
+
 /// What the last painted frame turned out to be, kept for the pointer that
 /// arrives after it.
 ///
@@ -27,15 +29,16 @@ package io.github.digitalsmile.goldberry.widgets.data.linechart;
 /// plot that has never been drawn, but a test can.
 final class PaintedGeometry {
 
-    private PlotGeometry geometry;
+    private @Nullable PlotGeometry geometry;
 
     /// The geometry of the last painted frame, or null before the first.
+    @Nullable
     PlotGeometry geometry() {
         return geometry;
     }
 
     /// Called by the painter, once per frame, with what it worked out.
-    void paintedAs(PlotGeometry value) {
+    void paintedAs(@Nullable PlotGeometry value) {
         this.geometry = value;
     }
 }

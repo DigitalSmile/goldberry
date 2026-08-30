@@ -3,6 +3,8 @@ package io.github.digitalsmile.goldberry.widgets.form.form;
 import java.util.List;
 import java.util.Set;
 
+import org.jspecify.annotations.Nullable;
+
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
 import io.github.digitalsmile.goldberry.paint.Box;
 import io.github.digitalsmile.goldberry.widget.Widget;
@@ -29,7 +31,7 @@ record FormBox(List<Widget> children, Attributes attributes) implements Widget.L
     }
 
     @Override
-    public String id() {
+    public @Nullable String id() {
         return attributes.id();
     }
 

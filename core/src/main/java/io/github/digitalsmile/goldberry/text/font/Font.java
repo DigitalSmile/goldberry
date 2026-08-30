@@ -1,5 +1,6 @@
 package io.github.digitalsmile.goldberry.text.font;
 
+import org.jspecify.annotations.Nullable;
 import io.github.digitalsmile.goldberry.paint.Frame;
 import io.github.digitalsmile.goldberry.assets.BundledFont;
 import io.github.digitalsmile.goldberry.natives.blend2d.BlendFont;
@@ -199,7 +200,7 @@ public final class Font implements AutoCloseable {
     /// real bidi is run splitting, and this is not it.
     ///
     /// @param direction the direction to shape in, or null to guess
-    public GlyphRun shape(CharSequence text, TextDirection direction) {
+    public GlyphRun shape(CharSequence text, @Nullable TextDirection direction) {
         requireUsable();
         Objects.requireNonNull(text, "text");
         if (text.isEmpty()) {

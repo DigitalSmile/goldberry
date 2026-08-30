@@ -1,5 +1,6 @@
 package io.github.digitalsmile.goldberry.widgets.overlay.hud;
 
+import org.jspecify.annotations.Nullable;
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
 import io.github.digitalsmile.goldberry.paint.Box;
 import io.github.digitalsmile.goldberry.stats.FrameStats;
@@ -116,7 +117,7 @@ public record Hud(List<Reading> readings, Attributes attributes)
     }
 
     @Override
-    public String id() {
+    public @Nullable String id() {
         return attributes.id();
     }
 
@@ -173,7 +174,7 @@ public record Hud(List<Reading> readings, Attributes attributes)
     ///
     /// Null and blank both mean [#DEFAULT] rather than an error: a bare `hud` is
     /// the form almost every document will write.
-    private static List<Reading> readings(String value) {
+    private static List<Reading> readings(@Nullable String value) {
         if (value == null || value.isBlank()) {
             return DEFAULT;
         }

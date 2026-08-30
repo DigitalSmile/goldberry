@@ -209,7 +209,7 @@ public record Transform(List<Function> functions, Origin origin) {
     }
 
     /// The point a transform is applied about — CSS's `transform-origin`.
-    public record Origin(Length x, Length y) {
+    public record Origin(Length x, @Nullable Length y) {
 
         /// `50% 50%`, CSS's default and the reason a scaled control grows from
         /// its middle instead of its top-left corner.

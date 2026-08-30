@@ -281,7 +281,7 @@ public final class WidgetRenderer {
     ///
     /// @param inherited the resolved style of the nearest ancestor that had one,
     ///                  or null at the root
-    private List<Box> render(Element element, ComputedStyle inherited, double now) {
+    private List<Box> render(Element element, @Nullable ComputedStyle inherited, double now) {
         // The pseudo-classes a widget owns rather than the router. `:disabled`,
         // `:checked` and `:indeterminate` are facts about the *description* —
         // what the widget was built with — so they are mirrored onto the element
