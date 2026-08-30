@@ -139,10 +139,9 @@ status beside it reads as a description of what exists.
 - **§1.6 dual-mode CI.** `linux.yml` runs the suite reflectively and again with
   `-Pgoldberry.nativeImage=true`, then uploads the aggregate report.
 - **§2 CodeQL**, nightly and on pull requests (`codeql.yml`).
-- **§3 PIT**, a `pitest` task per module, **running to completion**. First
-  measurement: `:widgets` kills 2445 of 2995 mutations (82%), `:core` 205 of
-  1146 (18%), both against 95% line coverage of the mutated classes. The gap
-  between those two numbers is the whole reason §3 asks for this.
+- **§3 PIT**, a `pitest` task per module, running to completion over the logic
+  packages: `:core` kills 1597 of 2145 mutations (**74%**) and `:widgets` 1419 of
+  1558 (**91%**).
 
 ### Deliberately narrowed
 
@@ -202,6 +201,25 @@ status beside it reads as a description of what exists.
   repository does not have. Neither fails a build in the meantime — the Qodana
   job gates itself on the secret and skips with a note, and the Codecov step is
   conditional on the same. §7 is the two checklists.
+
+### Two diagnoses that were wrong
+
+PIT produced a `:core` mutation score of 18% against 95% line coverage, and this
+document reported that as the finding §3 exists for — lines that run and assert
+nothing. It was not a finding. PIT was mutating the **tests**: they live in the
+same packages as the code they cover, so `--targetClasses` matched them, and a
+mutated assertion survives by construction because nothing is checking the
+checker. Two thirds of the mutants were test code.
+
+Excluding by name does not work here — `*Test` misses
+`CssParserTest$Declarations` and `*Test*` would exclude `HitTest`, which is real
+code. `--mutableCodePaths` is the right tool, and it takes the **jar** as well as
+the classes directory: `modularity.inferModulePath` puts the module on the test
+path as an archive, so a classes-directory entry alone matches nothing and PIT
+reports "0 mutation test units" rather than a misconfiguration.
+
+The real numbers are 74% and 91%. The lesson is the same one below: a number a
+tool hands you is not a measurement until you know what it measured.
 
 ### One diagnosis that was wrong
 

@@ -404,7 +404,7 @@ tasks.register('pitest', JavaExec) {
     group = 'verification'
     description = 'Mutation-tests the logic packages and reports which mutants survived.'
 
-    dependsOn tasks.named('testClasses')
+    dependsOn tasks.named('testClasses'), tasks.named('jar')
     mainClass = 'org.pitest.mutationtest.commandline.MutationCoverageReport'
     // PIT's own classpath, plus everything the tests run against.
     classpath = configurations.pitest + sourceSets.test.runtimeClasspath
@@ -430,6 +430,25 @@ tasks.register('pitest', JavaExec) {
                 // module that deliberately avoids it.
             ].join(','),
             '--targetTests', 'io.github.digitalsmile.goldberry.*',
+            // **Only `src/main` is mutable.** Tests live in the same packages as
+            // the code they test, so `--targetClasses` matches them too and PIT
+            // will happily mutate the assertions -- a mutated test survives by
+            // construction, nothing being there to check the checker, and the
+            // score it produces is meaningless. :core read 18% for exactly that
+            // reason, almost all of it test code.
+            //
+            // By output directory rather than by name, because the names do not
+            // separate cleanly: `*Test` misses `CssParserTest$Declarations` and
+            // `*Test*` would exclude `HitTest`, which is real code with real
+            // coverage to measure.
+            // Both the classes directory and the jar: `modularity.inferModulePath`
+            // puts this module on the test path as a *jar*, so the class's code
+            // source is the archive and a classes-directory entry alone matches
+            // nothing -- which PIT reports as "0 mutation test units", not as a
+            // misconfiguration.
+            '--mutableCodePaths',
+            (sourceSets.main.output.classesDirs.files
+                    + [tasks.jar.archiveFile.get().asFile]).join(','),
             // Benchmarks are excluded from the suite everywhere else, and here it
             // matters more: PIT would run them once per mutant.
             '--excludedTestClasses', '*Benchmark*',
