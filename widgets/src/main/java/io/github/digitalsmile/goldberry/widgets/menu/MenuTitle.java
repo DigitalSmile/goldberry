@@ -15,6 +15,8 @@ import io.github.digitalsmile.goldberry.input.key.Key;
 import io.github.digitalsmile.goldberry.paint.Box;
 import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widget.attr.Attributes;
+import io.github.digitalsmile.goldberry.widget.semantics.Role;
+import io.github.digitalsmile.goldberry.widget.semantics.Semantics;
 import io.github.digitalsmile.goldberry.widget.style.Paints;
 import io.github.digitalsmile.goldberry.widget.style.Styled;
 
@@ -63,7 +65,7 @@ import io.github.digitalsmile.goldberry.widget.style.Styled;
 ///                   "switch to me" only when something is already open
 record MenuTitle(
         String label, Icon icon, boolean disabled, Attributes attributes, Runnable onActivate, Runnable onHovered)
-        implements Widget.Leaf, Styled, Paints, Handles {
+        implements Widget.Leaf, Styled, Paints, Handles, Semantics {
 
     @Override
     public String cssType() {
@@ -149,5 +151,15 @@ record MenuTitle(
             content.add(Box.text(context.paragraph(style, label), style.color()).shrink(0));
         }
         return Box.of().style(style).children(content.toArray(Box[]::new));
+    }
+
+    @Override
+    public Role role() {
+        return Role.MENU_BUTTON;
+    }
+
+    @Override
+    public String accessibleName() {
+        return label;
     }
 }

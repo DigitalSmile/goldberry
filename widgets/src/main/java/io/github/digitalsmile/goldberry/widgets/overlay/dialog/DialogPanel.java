@@ -16,6 +16,8 @@ import io.github.digitalsmile.goldberry.input.key.Key;
 import io.github.digitalsmile.goldberry.paint.Box;
 import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widget.attr.Attributes;
+import io.github.digitalsmile.goldberry.widget.semantics.Role;
+import io.github.digitalsmile.goldberry.widget.semantics.Semantics;
 import io.github.digitalsmile.goldberry.widget.style.Paints;
 import io.github.digitalsmile.goldberry.widget.style.Styled;
 import io.github.digitalsmile.goldberry.widgets.core.Phase;
@@ -49,7 +51,7 @@ record DialogPanel(
         boolean closed,
         Consumer<Boolean> onMotion,
         Attributes attributes)
-        implements Widget.Leaf, Styled, Paints, Handles {
+        implements Widget.Leaf, Styled, Paints, Handles, Semantics {
 
     /// §3: "panel `opacity` & `scale` 0.96→1". Near enough to one that it reads
     /// as the panel settling rather than as something flying at the reader.
@@ -252,5 +254,15 @@ record DialogPanel(
         public Box render(ComputedStyle style, List<Box> boxes, Context context) {
             return Box.of().style(style).children(boxes.toArray(Box[]::new));
         }
+    }
+
+    @Override
+    public Role role() {
+        return Role.DIALOG;
+    }
+
+    @Override
+    public String accessibleName() {
+        return title;
     }
 }

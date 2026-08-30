@@ -1,5 +1,8 @@
 package io.github.digitalsmile.goldberry.widgets.controls.slider;
 
+import org.jspecify.annotations.Nullable;
+import io.github.digitalsmile.goldberry.widget.semantics.Semantics;
+import io.github.digitalsmile.goldberry.widget.semantics.Role;
 import io.github.digitalsmile.goldberry.widget.attr.Attributed;
 import io.github.digitalsmile.goldberry.widget.attr.Bindable;
 import io.github.digitalsmile.goldberry.widget.attr.Attributes;
@@ -113,7 +116,7 @@ public record Slider(
         int ticks, String format, Scale scale,
         Observable<?> source, DoubleConsumer onChange,
         boolean disabled, Attributes attributes)
-        implements Widget.Leaf, Styled, Paints, Handles, Attributed<Slider>, Bindable<Slider> {
+        implements Widget.Leaf, Styled, Paints, Handles, Attributed<Slider>, Bindable<Slider> , Semantics {
 
     public Slider {
         if (!Double.isFinite(min) || !Double.isFinite(max) || max <= min) {
@@ -494,4 +497,16 @@ public record Slider(
                 wiring.bound(node), wiring.numeric(node, "change"),
                 Wiring.disabled(node), Attributes.of(node));
     }
+
+    @Override
+    public Role role() {
+        return Role.SLIDER;
+    }
+
+    /// No name of its own: a slider carries no label of its own; the `field` or the text beside it names it.
+    @Override
+    public @Nullable String accessibleName() {
+        return null;
+    }
+
 }

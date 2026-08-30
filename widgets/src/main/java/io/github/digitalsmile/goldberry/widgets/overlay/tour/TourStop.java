@@ -14,6 +14,8 @@ import io.github.digitalsmile.goldberry.paint.Box;
 import io.github.digitalsmile.goldberry.render.model.LogicalRect;
 import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widget.attr.Attributes;
+import io.github.digitalsmile.goldberry.widget.semantics.Role;
+import io.github.digitalsmile.goldberry.widget.semantics.Semantics;
 import io.github.digitalsmile.goldberry.widget.style.Paints;
 import io.github.digitalsmile.goldberry.widget.style.Styled;
 import io.github.digitalsmile.goldberry.widgets.controls.button.Button;
@@ -51,7 +53,12 @@ record TourStop(
         Runnable onNext,
         Runnable onSkip,
         java.util.function.Consumer<LogicalRect> onWindow)
-        implements Widget.Leaf, Styled, Paints, Handles, io.github.digitalsmile.goldberry.input.handler.Located {
+        implements Widget.Leaf,
+                Styled,
+                Paints,
+                Handles,
+                io.github.digitalsmile.goldberry.input.handler.Located,
+                Semantics {
 
     /// How far the card sits from the target, and from the window's edge.
     private static final float GAP = 12;
@@ -207,5 +214,15 @@ record TourStop(
                                         StyleLength.UNDEFINED,
                                         StyleLength.points(cardLeft)))
                                 .size(StyleLength.points(WIDTH), StyleLength.UNDEFINED));
+    }
+
+    @Override
+    public Role role() {
+        return Role.DIALOG;
+    }
+
+    @Override
+    public String accessibleName() {
+        return stop.title();
     }
 }

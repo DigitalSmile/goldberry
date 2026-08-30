@@ -1,5 +1,8 @@
 package io.github.digitalsmile.goldberry.widgets.controls.knob;
 
+import org.jspecify.annotations.Nullable;
+import io.github.digitalsmile.goldberry.widget.semantics.Semantics;
+import io.github.digitalsmile.goldberry.widget.semantics.Role;
 import io.github.digitalsmile.goldberry.widget.attr.Attributed;
 import io.github.digitalsmile.goldberry.widget.attr.Bindable;
 import io.github.digitalsmile.goldberry.widget.attr.Attributes;
@@ -81,7 +84,7 @@ public record Knob(
         double min, double max, double value, double step, int detents,
         Observable<?> source, DoubleConsumer onChange,
         boolean disabled, Attributes attributes)
-        implements Widget.Leaf, Styled, Paints, Handles, Attributed<Knob>, Bindable<Knob> {
+        implements Widget.Leaf, Styled, Paints, Handles, Attributed<Knob>, Bindable<Knob> , Semantics {
 
     /// §3: "value drag **200px** per full range". Logical pixels, so a knob
     /// behaves the same on a hidpi screen as on a 1× one.
@@ -510,4 +513,16 @@ public record Knob(
                 wiring.bound(node), wiring.numeric(node, "change"),
                 Wiring.disabled(node), Attributes.of(node));
     }
+
+    @Override
+    public Role role() {
+        return Role.SLIDER;
+    }
+
+    /// No name of its own: as `Slider`: the label is the caller's, beside the control.
+    @Override
+    public @Nullable String accessibleName() {
+        return null;
+    }
+
 }

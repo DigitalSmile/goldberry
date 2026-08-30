@@ -8,6 +8,8 @@ import io.github.digitalsmile.goldberry.input.event.PointerEvent;
 import io.github.digitalsmile.goldberry.input.handler.Handles;
 import io.github.digitalsmile.goldberry.paint.Box;
 import io.github.digitalsmile.goldberry.widget.Widget;
+import io.github.digitalsmile.goldberry.widget.semantics.Role;
+import io.github.digitalsmile.goldberry.widget.semantics.Semantics;
 import io.github.digitalsmile.goldberry.widget.style.Paints;
 import io.github.digitalsmile.goldberry.widget.style.Styled;
 
@@ -31,7 +33,7 @@ import io.github.digitalsmile.goldberry.widget.style.Styled;
 /// @param label    what it reads — the option's label, not its value, for the
 ///                 reason `option value="nord-dark" "Nord Dark"` exists
 /// @param onRemove what to ask when the × is clicked
-record SelectChip(String label, Runnable onRemove) implements Widget.Leaf, Styled, Paints {
+record SelectChip(String label, Runnable onRemove) implements Widget.Leaf, Styled, Paints, Semantics {
 
     @Override
     public String cssType() {
@@ -116,5 +118,15 @@ record SelectChip(String label, Runnable onRemove) implements Widget.Leaf, Style
         public Box render(ComputedStyle style, List<Box> children, Context context) {
             return Box.of().style(style).mark(new Box.Mark(Box.Mark.Kind.CROSS, style.color(), 1.5));
         }
+    }
+
+    @Override
+    public Role role() {
+        return Role.OPTION;
+    }
+
+    @Override
+    public String accessibleName() {
+        return label;
     }
 }

@@ -17,6 +17,8 @@ import io.github.digitalsmile.goldberry.paint.Box;
 import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widget.attr.Attributed;
 import io.github.digitalsmile.goldberry.widget.attr.Attributes;
+import io.github.digitalsmile.goldberry.widget.semantics.Role;
+import io.github.digitalsmile.goldberry.widget.semantics.Semantics;
 import io.github.digitalsmile.goldberry.widget.style.Paints;
 import io.github.digitalsmile.goldberry.widget.style.Styled;
 import io.github.digitalsmile.goldberry.widgets.markup.Markup;
@@ -88,7 +90,7 @@ public record Item(
         boolean reservesLead,
         MenuSignals signals,
         Attributes attributes)
-        implements Widget.Leaf, Styled, Paints, Handles, Attributed<Item> {
+        implements Widget.Leaf, Styled, Paints, Handles, Attributed<Item>, Semantics {
 
     public Item {
         Objects.requireNonNull(label, "label");
@@ -397,5 +399,15 @@ public record Item(
                 false,
                 null,
                 Attributes.of(node));
+    }
+
+    @Override
+    public Role role() {
+        return Role.MENU_ITEM;
+    }
+
+    @Override
+    public String accessibleName() {
+        return label;
     }
 }

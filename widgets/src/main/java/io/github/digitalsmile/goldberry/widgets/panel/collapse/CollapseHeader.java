@@ -10,6 +10,8 @@ import io.github.digitalsmile.goldberry.input.event.PointerEvent;
 import io.github.digitalsmile.goldberry.input.handler.Handles;
 import io.github.digitalsmile.goldberry.paint.Box;
 import io.github.digitalsmile.goldberry.widget.Widget;
+import io.github.digitalsmile.goldberry.widget.semantics.Role;
+import io.github.digitalsmile.goldberry.widget.semantics.Semantics;
 import io.github.digitalsmile.goldberry.widget.style.Paints;
 import io.github.digitalsmile.goldberry.widget.style.Styled;
 
@@ -24,7 +26,8 @@ import io.github.digitalsmile.goldberry.widget.style.Styled;
 /// on an open section leaves it open. A user holding `Right` down a list of
 /// sections opens all of them, where a toggle would flap the one under the
 /// cursor.
-record CollapseHeader(String title, boolean open, Runnable onToggle) implements Widget.Leaf, Styled, Paints, Handles {
+record CollapseHeader(String title, boolean open, Runnable onToggle)
+        implements Widget.Leaf, Styled, Paints, Handles, Semantics {
 
     @Override
     public String cssType() {
@@ -138,5 +141,15 @@ record CollapseHeader(String title, boolean open, Runnable onToggle) implements 
         public Box render(ComputedStyle style, List<Box> children, Context context) {
             return Box.of().style(style).mark(new Box.Mark(Box.Mark.Kind.CHEVRON_END, style.color(), 1.5));
         }
+    }
+
+    @Override
+    public Role role() {
+        return Role.DISCLOSURE;
+    }
+
+    @Override
+    public String accessibleName() {
+        return title;
     }
 }

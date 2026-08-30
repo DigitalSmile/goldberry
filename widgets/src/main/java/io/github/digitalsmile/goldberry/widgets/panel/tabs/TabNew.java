@@ -10,6 +10,8 @@ import io.github.digitalsmile.goldberry.input.handler.Handles;
 import io.github.digitalsmile.goldberry.input.key.Key;
 import io.github.digitalsmile.goldberry.paint.Box;
 import io.github.digitalsmile.goldberry.widget.Widget;
+import io.github.digitalsmile.goldberry.widget.semantics.Role;
+import io.github.digitalsmile.goldberry.widget.semantics.Semantics;
 import io.github.digitalsmile.goldberry.widget.style.Paints;
 import io.github.digitalsmile.goldberry.widget.style.Styled;
 
@@ -25,7 +27,7 @@ import io.github.digitalsmile.goldberry.widget.style.Styled;
 /// logical pixels inside a control, an icon's metrics and lookup buy nothing.
 ///
 /// @param onNew what to ask when it is chosen
-record TabNew(Runnable onNew) implements Widget.Leaf, Styled, Paints, Handles {
+record TabNew(Runnable onNew) implements Widget.Leaf, Styled, Paints, Handles, Semantics {
 
     @Override
     public String cssType() {
@@ -72,5 +74,15 @@ record TabNew(Runnable onNew) implements Widget.Leaf, Styled, Paints, Handles {
     @Override
     public Box render(ComputedStyle style, List<Box> children, Context context) {
         return Box.of().style(style).mark(new Box.Mark(Box.Mark.Kind.PLUS, style.color(), 1.5));
+    }
+
+    @Override
+    public Role role() {
+        return Role.BUTTON;
+    }
+
+    @Override
+    public String accessibleName() {
+        return "New tab";
     }
 }

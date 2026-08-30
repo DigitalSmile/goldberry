@@ -5,6 +5,8 @@ import java.util.Set;
 import java.util.function.DoubleConsumer;
 import java.util.function.DoubleSupplier;
 
+import org.jspecify.annotations.Nullable;
+
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
 import io.github.digitalsmile.goldberry.input.event.KeyEvent;
 import io.github.digitalsmile.goldberry.input.event.PointerEvent;
@@ -12,6 +14,8 @@ import io.github.digitalsmile.goldberry.input.handler.Handles;
 import io.github.digitalsmile.goldberry.paint.Box;
 import io.github.digitalsmile.goldberry.render.Cursor;
 import io.github.digitalsmile.goldberry.widget.Widget;
+import io.github.digitalsmile.goldberry.widget.semantics.Role;
+import io.github.digitalsmile.goldberry.widget.semantics.Semantics;
 import io.github.digitalsmile.goldberry.widget.style.Paints;
 import io.github.digitalsmile.goldberry.widget.style.Styled;
 
@@ -55,7 +59,7 @@ record SplitDivider(
         DoubleConsumer onDrag,
         SplitPaneView.Nudge onNudge,
         Runnable onCollapse)
-        implements Widget.Leaf, Styled, Paints, Handles {
+        implements Widget.Leaf, Styled, Paints, Handles, Semantics {
 
     @Override
     public String cssType() {
@@ -177,5 +181,16 @@ record SplitDivider(
                 .shrink(0)
                 .grow(0)
                 .children(children.toArray(Box[]::new));
+    }
+
+    @Override
+    public Role role() {
+        return Role.SEPARATOR;
+    }
+
+    /// No name of its own: a divider has no name; it has a position.
+    @Override
+    public @Nullable String accessibleName() {
+        return null;
     }
 }

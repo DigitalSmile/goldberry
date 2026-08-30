@@ -5,6 +5,8 @@ import java.util.List;
 import java.util.Set;
 import java.util.function.Consumer;
 
+import org.jspecify.annotations.Nullable;
+
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
 import io.github.digitalsmile.goldberry.input.event.KeyEvent;
 import io.github.digitalsmile.goldberry.input.event.PointerEvent;
@@ -12,6 +14,8 @@ import io.github.digitalsmile.goldberry.input.handler.Handles;
 import io.github.digitalsmile.goldberry.input.key.Key;
 import io.github.digitalsmile.goldberry.paint.Box;
 import io.github.digitalsmile.goldberry.widget.Widget;
+import io.github.digitalsmile.goldberry.widget.semantics.Role;
+import io.github.digitalsmile.goldberry.widget.semantics.Semantics;
 import io.github.digitalsmile.goldberry.widget.style.Paints;
 import io.github.digitalsmile.goldberry.widget.style.Styled;
 
@@ -22,7 +26,7 @@ import io.github.digitalsmile.goldberry.widget.style.Styled;
 /// @param sort    what it is sorted by, or null
 /// @param onSort  asked to sort by a column key
 record TableHead(List<? extends Column<?>> columns, Sort sort, Consumer<String> onSort)
-        implements Widget.Leaf, Styled, Paints {
+        implements Widget.Leaf, Styled, Paints, Semantics {
 
     @Override
     public String cssType() {
@@ -214,5 +218,16 @@ record TableHead(List<? extends Column<?>> columns, Sort sort, Consumer<String> 
                             style.color(),
                             1.5));
         }
+    }
+
+    @Override
+    public Role role() {
+        return Role.ROW;
+    }
+
+    /// No name of its own: the header row is named by its columns, each of which draws its own text.
+    @Override
+    public @Nullable String accessibleName() {
+        return null;
     }
 }

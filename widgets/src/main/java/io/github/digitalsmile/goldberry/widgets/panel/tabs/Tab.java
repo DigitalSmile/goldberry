@@ -18,6 +18,8 @@ import io.github.digitalsmile.goldberry.render.model.LogicalRect;
 import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widget.attr.Attributed;
 import io.github.digitalsmile.goldberry.widget.attr.Attributes;
+import io.github.digitalsmile.goldberry.widget.semantics.Role;
+import io.github.digitalsmile.goldberry.widget.semantics.Semantics;
 import io.github.digitalsmile.goldberry.widget.style.Paints;
 import io.github.digitalsmile.goldberry.widget.style.Styled;
 import io.github.digitalsmile.goldberry.widgets.markup.Markup;
@@ -93,7 +95,8 @@ public record Tab(
                 Paints,
                 Handles,
                 io.github.digitalsmile.goldberry.input.handler.Located,
-                Attributed<Tab> {
+                Attributed<Tab>,
+                Semantics {
 
     public Tab {
         Objects.requireNonNull(value, "value");
@@ -380,5 +383,15 @@ public record Tab(
                 null,
                 null,
                 Attributes.of(node));
+    }
+
+    @Override
+    public Role role() {
+        return Role.TAB;
+    }
+
+    @Override
+    public String accessibleName() {
+        return label;
     }
 }

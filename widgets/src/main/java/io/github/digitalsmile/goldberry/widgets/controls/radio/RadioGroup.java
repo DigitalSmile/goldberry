@@ -19,6 +19,8 @@ import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widget.attr.Attributed;
 import io.github.digitalsmile.goldberry.widget.attr.Attributes;
 import io.github.digitalsmile.goldberry.widget.attr.Bindable;
+import io.github.digitalsmile.goldberry.widget.semantics.Role;
+import io.github.digitalsmile.goldberry.widget.semantics.Semantics;
 import io.github.digitalsmile.goldberry.widget.style.Paints;
 import io.github.digitalsmile.goldberry.widget.style.Styled;
 import io.github.digitalsmile.goldberry.widgets.markup.Markup;
@@ -88,7 +90,7 @@ public record RadioGroup(
         Consumer<String> onChange,
         boolean disabled,
         Attributes attributes)
-        implements Widget.Leaf, Styled, Paints, Handles, Attributed<RadioGroup>, Bindable<RadioGroup> {
+        implements Widget.Leaf, Styled, Paints, Handles, Attributed<RadioGroup>, Bindable<RadioGroup>, Semantics {
 
     public RadioGroup {
         children = List.copyOf(children == null ? List.of() : children);
@@ -266,5 +268,16 @@ public record RadioGroup(
                 wiring.valued(node, "change"),
                 Wiring.disabled(node),
                 Attributes.of(node));
+    }
+
+    @Override
+    public Role role() {
+        return Role.RADIO_GROUP;
+    }
+
+    /// No name of its own: the group is named by whatever heading precedes it.
+    @Override
+    public @Nullable String accessibleName() {
+        return null;
     }
 }

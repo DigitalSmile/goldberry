@@ -16,6 +16,8 @@ import io.github.digitalsmile.goldberry.paint.Frame;
 import io.github.digitalsmile.goldberry.render.model.LogicalSize;
 import io.github.digitalsmile.goldberry.text.Paragraph;
 import io.github.digitalsmile.goldberry.widget.Widget;
+import io.github.digitalsmile.goldberry.widget.semantics.Role;
+import io.github.digitalsmile.goldberry.widget.semantics.Semantics;
 import io.github.digitalsmile.goldberry.widget.style.Paints;
 import io.github.digitalsmile.goldberry.widget.style.Styled;
 import io.github.digitalsmile.goldberry.widgets.data.SeriesPalette;
@@ -51,7 +53,7 @@ record DonutSurface(
         int hovered,
         java.util.function.IntPredicate onHover,
         java.util.function.IntPredicate onWalk)
-        implements Widget.Leaf, Styled, Paints, Handles {
+        implements Widget.Leaf, Styled, Paints, Handles, Semantics {
 
     /// The hole, as a fraction of the outer radius.
     ///
@@ -355,5 +357,16 @@ record DonutSurface(
             path.ellipticArcTo(inner, inner, 0, large, false, cx + inner * Math.cos(from), cy + inner * Math.sin(from));
             path.closeSubPath();
         }
+    }
+
+    @Override
+    public Role role() {
+        return Role.FIGURE;
+    }
+
+    /// No name of its own: as `ChartSurface`.
+    @Override
+    public @Nullable String accessibleName() {
+        return null;
     }
 }

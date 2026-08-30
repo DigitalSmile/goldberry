@@ -12,6 +12,8 @@ import io.github.digitalsmile.goldberry.input.key.Key;
 import io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength;
 import io.github.digitalsmile.goldberry.paint.Box;
 import io.github.digitalsmile.goldberry.widget.Widget;
+import io.github.digitalsmile.goldberry.widget.semantics.Role;
+import io.github.digitalsmile.goldberry.widget.semantics.Semantics;
 import io.github.digitalsmile.goldberry.widget.style.Paints;
 import io.github.digitalsmile.goldberry.widget.style.Styled;
 
@@ -81,7 +83,7 @@ record TreeRow(
         Runnable onSiblings,
         java.util.function.Consumer<String> onType,
         Runnable onCheck)
-        implements Widget.Leaf, Styled, Paints, Handles {
+        implements Widget.Leaf, Styled, Paints, Handles, Semantics {
 
     /// §2's "indent 20 per level".
     static final double INDENT = 20;
@@ -447,5 +449,15 @@ record TreeRow(
         public Box render(ComputedStyle style, List<Box> children, Context context) {
             return Box.of().style(style).children(Box.text(context.paragraph(style, text), style.color()));
         }
+    }
+
+    @Override
+    public Role role() {
+        return Role.ROW;
+    }
+
+    @Override
+    public String accessibleName() {
+        return node.label();
     }
 }

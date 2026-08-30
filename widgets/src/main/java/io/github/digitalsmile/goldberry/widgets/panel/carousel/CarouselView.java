@@ -7,6 +7,8 @@ import java.util.function.Consumer;
 import java.util.function.DoubleUnaryOperator;
 import java.util.function.IntConsumer;
 
+import org.jspecify.annotations.Nullable;
+
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
 import io.github.digitalsmile.goldberry.css.value.Transform;
 import io.github.digitalsmile.goldberry.input.FocusScope;
@@ -17,6 +19,8 @@ import io.github.digitalsmile.goldberry.input.key.Key;
 import io.github.digitalsmile.goldberry.paint.Box;
 import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widget.attr.Attributes;
+import io.github.digitalsmile.goldberry.widget.semantics.Role;
+import io.github.digitalsmile.goldberry.widget.semantics.Semantics;
 import io.github.digitalsmile.goldberry.widget.style.Paints;
 import io.github.digitalsmile.goldberry.widget.style.Styled;
 
@@ -68,7 +72,7 @@ record CarouselView(
         Consumer<Boolean> onMotion,
         DoubleUnaryOperator visibility,
         int direction)
-        implements Widget.Leaf, Styled, Paints, Handles {
+        implements Widget.Leaf, Styled, Paints, Handles, Semantics {
 
     @Override
     public String cssType() {
@@ -412,5 +416,16 @@ record CarouselView(
         public Box render(ComputedStyle style, List<Box> children, Context context) {
             return Box.of().style(style);
         }
+    }
+
+    @Override
+    public Role role() {
+        return Role.GROUP;
+    }
+
+    /// No name of its own: the carousel is named by its surroundings; the slides carry the content.
+    @Override
+    public @Nullable String accessibleName() {
+        return null;
     }
 }

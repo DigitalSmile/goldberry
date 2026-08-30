@@ -18,6 +18,8 @@ import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widget.attr.Attributed;
 import io.github.digitalsmile.goldberry.widget.attr.Attributes;
 import io.github.digitalsmile.goldberry.widget.attr.Bindable;
+import io.github.digitalsmile.goldberry.widget.semantics.Role;
+import io.github.digitalsmile.goldberry.widget.semantics.Semantics;
 import io.github.digitalsmile.goldberry.widget.style.Paints;
 import io.github.digitalsmile.goldberry.widget.style.Styled;
 import io.github.digitalsmile.goldberry.widgets.controls.option.Option;
@@ -77,7 +79,7 @@ public record Segmented(
         Consumer<String> onChange,
         boolean disabled,
         Attributes attributes)
-        implements Widget.Leaf, Styled, Paints, Handles, Attributed<Segmented>, Bindable<Segmented> {
+        implements Widget.Leaf, Styled, Paints, Handles, Attributed<Segmented>, Bindable<Segmented>, Semantics {
 
     public Segmented {
         children = List.copyOf(children == null ? List.of() : children);
@@ -253,5 +255,16 @@ public record Segmented(
                 wiring.valued(node, "change"),
                 Wiring.disabled(node),
                 Attributes.of(node));
+    }
+
+    @Override
+    public Role role() {
+        return Role.RADIO_GROUP;
+    }
+
+    /// No name of its own: as `RadioGroup`: one Tab stop, named from outside.
+    @Override
+    public @Nullable String accessibleName() {
+        return null;
     }
 }

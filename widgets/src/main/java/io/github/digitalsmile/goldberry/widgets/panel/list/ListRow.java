@@ -5,6 +5,8 @@ import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.IntConsumer;
 
+import org.jspecify.annotations.Nullable;
+
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
 import io.github.digitalsmile.goldberry.input.event.KeyEvent;
 import io.github.digitalsmile.goldberry.input.event.PointerEvent;
@@ -16,6 +18,8 @@ import io.github.digitalsmile.goldberry.paint.Box;
 import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widget.attr.Attributed;
 import io.github.digitalsmile.goldberry.widget.attr.Attributes;
+import io.github.digitalsmile.goldberry.widget.semantics.Role;
+import io.github.digitalsmile.goldberry.widget.semantics.Semantics;
 import io.github.digitalsmile.goldberry.widget.style.Paints;
 import io.github.digitalsmile.goldberry.widget.style.Styled;
 
@@ -65,7 +69,7 @@ record ListRow(
         Consumer<Modifiers> onSelect,
         IntConsumer onEnd,
         Consumer<String> onType)
-        implements Widget.Leaf, Styled, Paints, Handles, Attributed<ListRow> {
+        implements Widget.Leaf, Styled, Paints, Handles, Attributed<ListRow>, Semantics {
 
     @Override
     public String cssType() {
@@ -192,5 +196,16 @@ record ListRow(
     @Override
     public Box render(ComputedStyle style, List<Box> boxes, Context context) {
         return Box.of().style(style).children(boxes.toArray(Box[]::new));
+    }
+
+    @Override
+    public Role role() {
+        return Role.ROW;
+    }
+
+    /// No name of its own: a row is named by the content it was handed.
+    @Override
+    public @Nullable String accessibleName() {
+        return null;
     }
 }

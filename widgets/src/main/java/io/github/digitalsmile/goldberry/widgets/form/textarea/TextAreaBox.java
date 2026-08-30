@@ -23,6 +23,8 @@ import io.github.digitalsmile.goldberry.text.Paragraph;
 import io.github.digitalsmile.goldberry.text.TextLine;
 import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widget.attr.Attributes;
+import io.github.digitalsmile.goldberry.widget.semantics.Role;
+import io.github.digitalsmile.goldberry.widget.semantics.Semantics;
 import io.github.digitalsmile.goldberry.widget.style.Paints;
 import io.github.digitalsmile.goldberry.widget.style.Styled;
 import io.github.digitalsmile.goldberry.widgets.form.parts.Caret;
@@ -87,7 +89,7 @@ record TextAreaBox(
         boolean readOnly,
         Attributes attributes,
         AreaEditor editor)
-        implements Widget.Leaf, Styled, Paints, Handles, Measured {
+        implements Widget.Leaf, Styled, Paints, Handles, Measured, Semantics {
 
     /// How wide the caret is, in logical pixels — `text-input`'s, and for its
     /// reason: the width is set in the same call that sets the position, so a
@@ -411,4 +413,15 @@ record TextAreaBox(
 
     /// A placed rectangle, one line tall.
     private record Rect(double x, double y, double width) {}
+
+    @Override
+    public Role role() {
+        return Role.TEXT_FIELD;
+    }
+
+    /// No name of its own: as `TextField`.
+    @Override
+    public @Nullable String accessibleName() {
+        return null;
+    }
 }

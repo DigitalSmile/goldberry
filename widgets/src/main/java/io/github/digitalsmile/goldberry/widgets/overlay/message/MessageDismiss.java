@@ -10,6 +10,8 @@ import io.github.digitalsmile.goldberry.input.handler.Handles;
 import io.github.digitalsmile.goldberry.input.key.Key;
 import io.github.digitalsmile.goldberry.paint.Box;
 import io.github.digitalsmile.goldberry.widget.Widget;
+import io.github.digitalsmile.goldberry.widget.semantics.Role;
+import io.github.digitalsmile.goldberry.widget.semantics.Semantics;
 import io.github.digitalsmile.goldberry.widget.style.Paints;
 import io.github.digitalsmile.goldberry.widget.style.Styled;
 
@@ -29,7 +31,7 @@ import io.github.digitalsmile.goldberry.widget.style.Styled;
 ///
 /// @param onDismiss what to tell; never null, because a banner with nothing
 ///                  listening does not build one of these at all
-record MessageDismiss(Runnable onDismiss) implements Widget.Leaf, Styled, Paints, Handles {
+record MessageDismiss(Runnable onDismiss) implements Widget.Leaf, Styled, Paints, Handles, Semantics {
 
     /// The same weight the glyph at the other end draws at, so the two ends of a
     /// banner are one pen.
@@ -77,5 +79,15 @@ record MessageDismiss(Runnable onDismiss) implements Widget.Leaf, Styled, Paints
     @Override
     public Box render(ComputedStyle style, List<Box> children, Context context) {
         return Box.of().style(style).mark(new Box.Mark(Box.Mark.Kind.CROSS, style.color(), STROKE));
+    }
+
+    @Override
+    public Role role() {
+        return Role.BUTTON;
+    }
+
+    @Override
+    public String accessibleName() {
+        return "Dismiss";
     }
 }

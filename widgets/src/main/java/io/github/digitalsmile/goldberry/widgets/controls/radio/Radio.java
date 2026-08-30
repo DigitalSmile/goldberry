@@ -1,5 +1,7 @@
 package io.github.digitalsmile.goldberry.widgets.controls.radio;
 
+import io.github.digitalsmile.goldberry.widget.semantics.Semantics;
+import io.github.digitalsmile.goldberry.widget.semantics.Role;
 import io.github.digitalsmile.goldberry.widget.attr.Attributed;
 import io.github.digitalsmile.goldberry.widget.attr.Attributes;
 import io.github.digitalsmile.goldberry.widgets.text.Text;
@@ -70,7 +72,7 @@ import io.github.digitalsmile.goldberry.widgets.markup.Markup;
 public record Radio(
         String value, String label, boolean selected, Runnable onSelect, boolean disabled,
         Attributes attributes)
-        implements Widget.Leaf, Styled, Paints, Handles, Attributed<Radio> {
+        implements Widget.Leaf, Styled, Paints, Handles, Attributed<Radio> , Semantics {
 
     public Radio {
         Objects.requireNonNull(value, "value");
@@ -233,4 +235,15 @@ public record Radio(
         return new Radio(Wiring.requiredValue("radio", node), Wiring.label(node),
                 false, null, Wiring.disabled(node), Attributes.of(node));
     }
+
+    @Override
+    public Role role() {
+        return Role.RADIO;
+    }
+
+    @Override
+    public String accessibleName() {
+        return label;
+    }
+
 }

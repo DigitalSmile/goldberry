@@ -15,6 +15,8 @@ import io.github.digitalsmile.goldberry.paint.Box;
 import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widget.attr.Attributed;
 import io.github.digitalsmile.goldberry.widget.attr.Attributes;
+import io.github.digitalsmile.goldberry.widget.semantics.Role;
+import io.github.digitalsmile.goldberry.widget.semantics.Semantics;
 import io.github.digitalsmile.goldberry.widget.style.Paints;
 import io.github.digitalsmile.goldberry.widget.style.Styled;
 import io.github.digitalsmile.goldberry.widgets.markup.Markup;
@@ -53,7 +55,7 @@ import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
 /// @param attributes `id` and `class`, exactly as on the primitives
 @Markup("button")
 public record Button(String label, Icon icon, Runnable onPress, boolean disabled, Attributes attributes)
-        implements Widget.Leaf, Styled, Paints, Handles, Attributed<Button> {
+        implements Widget.Leaf, Styled, Paints, Handles, Attributed<Button>, Semantics {
 
     public Button {
         Objects.requireNonNull(label, "label");
@@ -205,5 +207,15 @@ public record Button(String label, Icon icon, Runnable onPress, boolean disabled
                 wiring.action(node, "press"),
                 Wiring.disabled(node),
                 Attributes.of(node));
+    }
+
+    @Override
+    public Role role() {
+        return Role.BUTTON;
+    }
+
+    @Override
+    public String accessibleName() {
+        return label;
     }
 }

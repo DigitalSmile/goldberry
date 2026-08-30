@@ -1,5 +1,7 @@
 package io.github.digitalsmile.goldberry.widgets.controls.checkbox;
 
+import io.github.digitalsmile.goldberry.widget.semantics.Semantics;
+import io.github.digitalsmile.goldberry.widget.semantics.Role;
 import io.github.digitalsmile.goldberry.widget.attr.Attributed;
 import io.github.digitalsmile.goldberry.widget.attr.Bindable;
 import io.github.digitalsmile.goldberry.widget.attr.Attributes;
@@ -73,7 +75,7 @@ import io.github.digitalsmile.goldberry.widgets.markup.Markup;
 public record Checkbox(
         String label, Value state, Observable<?> source, Runnable onChange, boolean disabled,
         Attributes attributes)
-        implements Widget.Leaf, Styled, Paints, Handles, Attributed<Checkbox>, Bindable<Checkbox> {
+        implements Widget.Leaf, Styled, Paints, Handles, Attributed<Checkbox>, Bindable<Checkbox> , Semantics {
 
     /// The three states of a tri-state checkbox.
     public enum Value {
@@ -302,4 +304,15 @@ public record Checkbox(
                 wiring.bound(node), wiring.action(node, "change"),
                 Wiring.disabled(node), Attributes.of(node));
     }
+
+    @Override
+    public Role role() {
+        return Role.CHECKBOX;
+    }
+
+    @Override
+    public String accessibleName() {
+        return label;
+    }
+
 }

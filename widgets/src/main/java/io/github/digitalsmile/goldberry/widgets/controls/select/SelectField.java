@@ -15,6 +15,8 @@ import io.github.digitalsmile.goldberry.paint.Box;
 import io.github.digitalsmile.goldberry.render.model.LogicalRect;
 import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widget.attr.Attributes;
+import io.github.digitalsmile.goldberry.widget.semantics.Role;
+import io.github.digitalsmile.goldberry.widget.semantics.Semantics;
 import io.github.digitalsmile.goldberry.widget.style.Paints;
 import io.github.digitalsmile.goldberry.widget.style.Styled;
 
@@ -73,7 +75,7 @@ record SelectField(
         Runnable onRestore,
         Runnable onSettle,
         BiConsumer<LogicalRect, LogicalRect> onLocated)
-        implements Widget.Leaf, Styled, Paints, Handles, Located {
+        implements Widget.Leaf, Styled, Paints, Handles, Located, Semantics {
 
     @Override
     public String cssType() {
@@ -299,5 +301,15 @@ record SelectField(
         if (!disabled) {
             onToggle.run();
         }
+    }
+
+    @Override
+    public Role role() {
+        return Role.COMBO_BOX;
+    }
+
+    @Override
+    public String accessibleName() {
+        return text;
     }
 }

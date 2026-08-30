@@ -65,6 +65,11 @@ module io.github.digitalsmile.goldberry.core {
     // it is the element tree's own paint pass and shares its style cache.
     exports io.github.digitalsmile.goldberry.widget.attr;
     exports io.github.digitalsmile.goldberry.widget.style;
+
+    /// §1.7's role and name. Exported because the catalog implements it and a
+    /// second catalog would have to as well — and because the AccessKit bridge,
+    /// when it lands, reads it from outside :core.
+    exports io.github.digitalsmile.goldberry.widget.semantics;
     exports io.github.digitalsmile.goldberry.widget.root;
 
     // Observable values and the paths markup binds to (§9, ADR-0062). Exported

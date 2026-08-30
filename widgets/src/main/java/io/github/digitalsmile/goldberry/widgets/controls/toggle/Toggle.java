@@ -1,5 +1,7 @@
 package io.github.digitalsmile.goldberry.widgets.controls.toggle;
 
+import io.github.digitalsmile.goldberry.widget.semantics.Semantics;
+import io.github.digitalsmile.goldberry.widget.semantics.Role;
 import io.github.digitalsmile.goldberry.widget.attr.Attributed;
 import io.github.digitalsmile.goldberry.widget.attr.Bindable;
 import io.github.digitalsmile.goldberry.widget.attr.Attributes;
@@ -89,7 +91,7 @@ import org.jspecify.annotations.Nullable;
 public record Toggle(
         String label, boolean on, Observable<?> source, Consumer<Boolean> onChange,
         boolean disabled, Attributes attributes)
-        implements Widget.Leaf, Styled, Paints, Handles, Attributed<Toggle>, Bindable<Toggle> {
+        implements Widget.Leaf, Styled, Paints, Handles, Attributed<Toggle>, Bindable<Toggle> , Semantics {
 
     /// Half of §3's "travel 16": the point at which the thumb has passed the
     /// middle, and therefore the point at which a gesture is a drag rather than a
@@ -265,4 +267,15 @@ public record Toggle(
                 wiring.bound(node), wiring.flag(node, "change"),
                 Wiring.disabled(node), Attributes.of(node));
     }
+
+    @Override
+    public Role role() {
+        return Role.SWITCH;
+    }
+
+    @Override
+    public String accessibleName() {
+        return label;
+    }
+
 }

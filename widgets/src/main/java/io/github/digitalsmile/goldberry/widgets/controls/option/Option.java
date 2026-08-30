@@ -1,5 +1,7 @@
 package io.github.digitalsmile.goldberry.widgets.controls.option;
 
+import io.github.digitalsmile.goldberry.widget.semantics.Semantics;
+import io.github.digitalsmile.goldberry.widget.semantics.Role;
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
 import io.github.digitalsmile.goldberry.icon.Icon;
 import io.github.digitalsmile.goldberry.input.handler.Handles;
@@ -101,7 +103,7 @@ import org.jspecify.annotations.Nullable;
 public record Option(
         String value, String label, Icon icon, boolean selected, Runnable onSelect,
         boolean disabled, Attributes attributes, boolean roving)
-        implements Widget.Leaf, Styled, Paints, Handles, Attributed<Option> {
+        implements Widget.Leaf, Styled, Paints, Handles, Attributed<Option> , Semantics {
 
     public Option {
         Objects.requireNonNull(value, "value");
@@ -313,4 +315,15 @@ public record Option(
                 wiring.icon(node), false, null,
                 Wiring.disabled(node), Attributes.of(node));
     }
+
+    @Override
+    public Role role() {
+        return Role.OPTION;
+    }
+
+    @Override
+    public String accessibleName() {
+        return label;
+    }
+
 }

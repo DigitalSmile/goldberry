@@ -19,6 +19,8 @@ import io.github.digitalsmile.goldberry.paint.Box;
 import io.github.digitalsmile.goldberry.render.Cursor;
 import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widget.attr.Attributes;
+import io.github.digitalsmile.goldberry.widget.semantics.Role;
+import io.github.digitalsmile.goldberry.widget.semantics.Semantics;
 import io.github.digitalsmile.goldberry.widget.style.Paints;
 import io.github.digitalsmile.goldberry.widget.style.Styled;
 import io.github.digitalsmile.goldberry.widgets.form.parts.Caret;
@@ -82,7 +84,8 @@ record TextField(
                 Paints,
                 Handles,
                 Measured,
-                io.github.digitalsmile.goldberry.input.handler.Located {
+                io.github.digitalsmile.goldberry.input.handler.Located,
+                Semantics {
 
     /// How wide the caret is, in logical pixels.
     ///
@@ -353,5 +356,16 @@ record TextField(
 
     private static int clamp(int offset, int length) {
         return Math.clamp(offset, 0, length);
+    }
+
+    @Override
+    public Role role() {
+        return Role.TEXT_FIELD;
+    }
+
+    /// No name of its own: `field` supplies the label, which is the whole point of §4 having one.
+    @Override
+    public @Nullable String accessibleName() {
+        return null;
     }
 }

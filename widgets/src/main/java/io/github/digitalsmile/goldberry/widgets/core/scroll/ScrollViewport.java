@@ -3,6 +3,8 @@ package io.github.digitalsmile.goldberry.widgets.core.scroll;
 import java.util.List;
 import java.util.Set;
 
+import org.jspecify.annotations.Nullable;
+
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
 import io.github.digitalsmile.goldberry.input.event.KeyEvent;
 import io.github.digitalsmile.goldberry.input.event.PointerEvent;
@@ -14,6 +16,8 @@ import io.github.digitalsmile.goldberry.natives.yoga.style.Overflow;
 import io.github.digitalsmile.goldberry.paint.Box;
 import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widget.attr.Attributes;
+import io.github.digitalsmile.goldberry.widget.semantics.Role;
+import io.github.digitalsmile.goldberry.widget.semantics.Semantics;
 import io.github.digitalsmile.goldberry.widget.style.Paints;
 import io.github.digitalsmile.goldberry.widget.style.Styled;
 
@@ -63,7 +67,7 @@ record ScrollViewport(
         java.util.function.BiConsumer<Boolean, Boolean> onDrag,
         java.util.function.BiConsumer<Extent, Extent> onMeasured,
         Attributes attributes)
-        implements Widget.Leaf, Styled, Paints, Handles, Measured {
+        implements Widget.Leaf, Styled, Paints, Handles, Measured, Semantics {
 
     /// What one wheel line moves, in logical pixels.
     ///
@@ -285,5 +289,16 @@ record ScrollViewport(
 
     private static double clamp(double value, double max) {
         return value < 0 ? 0 : value > max ? max : value;
+    }
+
+    @Override
+    public Role role() {
+        return Role.SCROLL_VIEW;
+    }
+
+    /// No name of its own: a viewport is named by whatever it is showing.
+    @Override
+    public @Nullable String accessibleName() {
+        return null;
     }
 }

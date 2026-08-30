@@ -18,6 +18,8 @@ import io.github.digitalsmile.goldberry.paint.Frame;
 import io.github.digitalsmile.goldberry.render.model.LogicalSize;
 import io.github.digitalsmile.goldberry.text.Paragraph;
 import io.github.digitalsmile.goldberry.widget.Widget;
+import io.github.digitalsmile.goldberry.widget.semantics.Role;
+import io.github.digitalsmile.goldberry.widget.semantics.Semantics;
 import io.github.digitalsmile.goldberry.widget.style.Paints;
 import io.github.digitalsmile.goldberry.widget.style.Styled;
 import io.github.digitalsmile.goldberry.widgets.data.Fill;
@@ -73,7 +75,7 @@ record ChartSurface(
         PaintedGeometry painted,
         java.util.function.IntPredicate onHover,
         java.util.function.IntPredicate onWalk)
-        implements Widget.Leaf, Styled, Paints, Handles {
+        implements Widget.Leaf, Styled, Paints, Handles, Semantics {
 
     /// How many labels a time axis aims for.
     ///
@@ -1528,5 +1530,16 @@ record ChartSurface(
                 y += lineHeight + READOUT_GAP;
             }
         }
+    }
+
+    @Override
+    public Role role() {
+        return Role.FIGURE;
+    }
+
+    /// No name of its own: a chart is named by the card title above it.
+    @Override
+    public @Nullable String accessibleName() {
+        return null;
     }
 }

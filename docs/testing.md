@@ -18,7 +18,7 @@ Pure-logic modules with exact assertions: CSS tokenizer/parser/cascade/specifici
 
 ### 1.2 Widget & interaction tests (headless backend)
 The `headless` backend renders to `BLImage` and pumps synthetic events through the normal dispatch path — no display server anywhere.
-- **Semantics queries, not pixel poking** — *planned, not built*. There is no role and no name to query: the semantics tree is `ARCHITECTURE.md` prose and the AccessKit bridge is M5. Tests find widgets through `Described`, which walks the element tree by type and id. When roles exist this is where `byRole` goes, and the rewrite is mechanical.
+- **Semantics queries, not pixel poking** — roles exist now (§1.7), so `byRole` is a helper over `Described` rather than a subsystem. Tests still find widgets by type and id; converting them is mechanical and has not been done, because a rewrite of every test in the catalog is its own change.
 - **Virtual clock:** `clock.advance(160)` steps animations deterministically; tests assert mid-transition frames, enter/exit lifecycle states (`closing` disables input), and reduced-motion collapse.
 - Focus-order tests walk Tab/arrow traversal per the `core-widgets.md` keyboard maps.
 - Capture UIs test against synthetic sources (color-bar camera, sine/noise/sweep mic) — no hardware in CI.
@@ -50,7 +50,7 @@ The `headless` backend renders to `BLImage` and pumps synthetic events through t
 
 ### 1.7 Accessibility & design-system checks
 - Contrast: every semantic text/surface token pair validated ≥ 4.5:1 (3:1 large) in both themes, including the frost worst-case floor — plain unit tests over the token tables.
-- Semantics completeness: walking the gallery asserts every interactive node exposes role + name.
+- Semantics completeness: **built**. `Semantics` (a `Role` and an accessible name) is implemented by all 30 focusable widgets in the catalog, and `SemanticsSweepTest` reads the source tree and fails on any focusable widget that does not. The name half is not a rule — a `text-input` is named by its `field`, a divider has a position rather than a name — so those return null with the reason written at the override, and the widgets that *do* carry a label are asserted to expose it.
 - GDS conformance: gallery renders at 150% text scale must not clip (golden + overflow assertions); spacing values are asserted against the legal ramp where computable.
 
 ## 2. Architecture & static analysis gates
@@ -132,6 +132,8 @@ status beside it reads as a description of what exists.
   a good argument for finishing that sweep.
 - **§1.5 JMH** on `:core`, alongside the `benchmark` task rather than instead of
   it.
+- **§1.7 semantics.** `Role`, `Semantics`, 30 widgets, and a sweep that reads the
+  source tree — verified non-vacuous by removing a role and watching it fail.
 - **510 broken ADR links repaired.** Every relative `.md` link from Java source
   into the book resolved to nothing — the `../` depths had been wrong since they
   were written — and the book is built and published by nothing, so there was
@@ -179,11 +181,13 @@ status beside it reads as a description of what exists.
 
 ### Not built, and what each is waiting on
 
-- **§1.7's semantics sweep.** It asserts "every interactive node exposes role +
-  name", and there is no role and no name to expose: the semantics tree is
-  `ARCHITECTURE.md` prose and the AccessKit bridge is M5, not started. This is
-  the one item here blocked on a subsystem rather than on effort. Contrast, the
-  other half of §1.7, is built and has been for a while (`ContrastTest`).
+- **The AccessKit bridge (M5).** `Semantics` is the *data* a bridge needs — a
+  role and a name, which is the shape of an AccessKit node — and no platform API
+  is touched. Exporting it to a screen reader is the remaining work and is a
+  milestone rather than a test.
+- **`byRole` in the tests.** The roles exist; converting the catalog's tests from
+  `Described.of(tree, Button.class)` to a role query is mechanical and is its own
+  change.
 - **JSpecify on the remaining 59 packages.** 34 are marked and checked. What is
   left is not more of the same work: the mechanical half is done — a method that
   already returned null now says so — and every package still unmarked has at

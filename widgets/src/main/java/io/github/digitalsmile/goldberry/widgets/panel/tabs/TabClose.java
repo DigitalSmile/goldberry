@@ -8,6 +8,8 @@ import io.github.digitalsmile.goldberry.input.event.PointerEvent;
 import io.github.digitalsmile.goldberry.input.handler.Handles;
 import io.github.digitalsmile.goldberry.paint.Box;
 import io.github.digitalsmile.goldberry.widget.Widget;
+import io.github.digitalsmile.goldberry.widget.semantics.Role;
+import io.github.digitalsmile.goldberry.widget.semantics.Semantics;
 import io.github.digitalsmile.goldberry.widget.style.Paints;
 import io.github.digitalsmile.goldberry.widget.style.Styled;
 
@@ -24,7 +26,7 @@ import io.github.digitalsmile.goldberry.widget.style.Styled;
 /// affordance costs no icon lookup and scales with the tab's own colour.
 ///
 /// @param onClose what to ask when it is clicked
-record TabClose(Runnable onClose) implements Widget.Leaf, Styled, Paints, Handles {
+record TabClose(Runnable onClose) implements Widget.Leaf, Styled, Paints, Handles, Semantics {
 
     @Override
     public String cssType() {
@@ -57,5 +59,15 @@ record TabClose(Runnable onClose) implements Widget.Leaf, Styled, Paints, Handle
     @Override
     public Box render(ComputedStyle style, List<Box> children, Context context) {
         return Box.of().style(style).mark(new Box.Mark(Box.Mark.Kind.CROSS, style.color(), 1.5));
+    }
+
+    @Override
+    public Role role() {
+        return Role.BUTTON;
+    }
+
+    @Override
+    public String accessibleName() {
+        return "Close";
     }
 }
