@@ -311,6 +311,100 @@ tasks.withType(JacocoReport).configureEach {
 }
 
 // ============================================================================
+// Mutation testing (docs/testing.md §3)
+//
+// PIT answers the question coverage cannot: a line that ran is not a line that
+// was *checked*. It changes the code -- flips a comparison, drops a call,
+// returns a different constant -- and reports which mutants the suite still
+// passes with. Every survivor is a line the tests execute and assert nothing
+// about, which is precisely the failure mode a golden-heavy suite develops:
+// paint the frame, compare the picture, and never notice that the branch above
+// it can never be false.
+//
+// **Run through PIT's own command line, not `gradle-pitest-plugin`.** The plugin
+// is at 1.15.0, its newest release, and it reads `reporting.baseDir` -- which
+// Gradle 9 removed, so applying it fails the build outright. The CLI is what the
+// plugin wraps, this task hands it the same three things it would have (the
+// classes, the tests, the classpath), and it is twenty lines rather than a
+// dependency that has to catch up.
+//
+// **Not wired into `check`.** It compiles and runs the suite once per mutant, so
+// it is minutes rather than seconds; §3 puts it on the nightly lane. Run it by
+// name: `./gradlew :core:pitest`.
+//
+// The target classes are the logic packages, and naming them is the point:
+// mutating a painter tells you the goldens caught it, which the goldens already
+// said.
+// ============================================================================
+configurations {
+    pitest {
+        canBeConsumed = false
+        canBeResolved = true
+        description = 'PIT\'s command line and its JUnit 5 plugin.'
+    }
+}
+
+dependencies {
+    pitest "org.pitest:pitest-command-line:${catalog.findVersion('pitest').get().requiredVersion}"
+    pitest 'org.pitest:pitest-junit5-plugin:1.2.1'
+}
+
+tasks.register('pitest', JavaExec) {
+    group = 'verification'
+    description = 'Mutation-tests the logic packages and reports which mutants survived.'
+
+    dependsOn tasks.named('testClasses')
+    mainClass = 'org.pitest.mutationtest.commandline.MutationCoverageReport'
+    // PIT's own classpath, plus everything the tests run against.
+    classpath = configurations.pitest + sourceSets.test.runtimeClasspath
+
+    def out = layout.buildDirectory.dir('reports/pitest')
+    outputs.dir(out)
+
+    argumentProviders.add({ ->
+        [
+            '--reportDir', out.get().asFile.absolutePath,
+            '--sourceDirs', sourceSets.main.java.srcDirs.join(','),
+            '--targetClasses', [
+                'io.github.digitalsmile.goldberry.css.*',
+                'io.github.digitalsmile.goldberry.kdl.*',
+                'io.github.digitalsmile.goldberry.bind.*',
+                'io.github.digitalsmile.goldberry.text.*',
+                'io.github.digitalsmile.goldberry.widgets.data.*',
+                // No `weaver.*`: :weaver is a build-time tool on plain `java`
+                // rather than these conventions (ADR-0125), so it has no pitest
+                // task for the entry to reach. testing.md §3 wants it covered and
+                // it is -- by `check`, like everything else; what it does not get
+                // is mutation testing, which would need this plugin applied to a
+                // module that deliberately avoids it.
+            ].join(','),
+            '--targetTests', 'io.github.digitalsmile.goldberry.*',
+            // Benchmarks are excluded from the suite everywhere else, and here it
+            // matters more: PIT would run them once per mutant.
+            '--excludedTestClasses', '*Benchmark*',
+            '--testPlugin', 'junit5',
+            // PIT forks a "minion" JVM per run and it inherits nothing from the
+            // `test` task -- not its JVM arguments and not its system
+            // properties. Both matter here: without the first, every test that
+            // touches Blend2D, HarfBuzz or Yoga dies on a restricted native
+            // call; without the second, `goldberry.native.library` is unset and
+            // there is no rasterizer to find. The symptom either way is
+            // `Coverage generation minion exited abnormally (UNKNOWN_ERROR)`,
+            // which says nothing about which.
+            '--jvmArgs', (['--enable-native-access=ALL-UNNAMED']
+                    + tasks.test.systemProperties.collect { k, v -> "-D${k}=${v}" }).join(','),
+            '--outputFormats', 'HTML,XML',
+            // Reported, not gated. A mutation score is a number to read and argue
+            // about -- the footing ADR-0028 and ADR-0031 put their measurements
+            // on -- and a threshold on a nightly job breaks while nobody looks.
+            '--failWhenNoMutations', 'false',
+            '--timestampedReports', 'false',
+            '--threads', String.valueOf(Math.max(1, Runtime.runtime.availableProcessors().intdiv(2))),
+        ]
+    } as CommandLineArgumentProvider)
+}
+
+// ============================================================================
 // Blessing the goldens (docs/testing.md §1.3, §5)
 //
 // `GoldenImage` already rewrites its references under a system property; this is

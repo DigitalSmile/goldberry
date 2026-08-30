@@ -88,48 +88,93 @@ status beside it reads as a description of what exists.
 
 ### Built
 
-- **§1.1 property-based tests.** jqwik, on the three pieces of the chart stack
-  that have invariants rather than answers — `Scale` is a bijection (`from(at(v))`
-  is `v`), `Lttb` returns a subsequence with both ends kept, `Ticks` produces an
-  ordered labelling that is internally consistent. `SeriesPropertyTest`.
-- **§1.2/§1.3/§1.4 were already built** and predate this document: the headless
-  backend, the virtual clock, `GoldenImage` with its scale sweep, and the native
-  layout probe.
-- **§1.3/§5 `blessGoldens`.** Per module and aggregated at the root. It runs the
-  whole suite under `goldberry.golden.update` rather than a filtered set, because
-  goldens are asserted from classes that are not all named `*GoldenTest`.
-- **§2 ArchUnit.** `BoundaryTest` asserts the arrows in `ARCHITECTURE.md` §2 and
-  the FFM boundary in §3.1 — a raw `MemorySegment` never leaves `:natives`,
-  `:common` knows nobody, `:core` never reaches its own catalog, a widget never
-  imports a backend or opens a window. `DeterminismTest` asserts §0.1 over the
-  layer whose output is compared exactly.
-- **§3 JaCoCo.** Per module, aggregated at the root by `jacoco-report-aggregation`;
-  `./gradlew coverage` writes one XML and one HTML. `:natives` is excluded — its
-  real test is the layout probe, and thousands of generated accessors in the
-  denominator would make every other module's figure meaningless.
+- **§1.1 property-based tests.** jqwik, over the three pieces of the chart stack
+  that have invariants rather than answers — `Scale` is a bijection, `Lttb`
+  returns a subsequence with both ends kept, `Ticks` produces an ordered,
+  internally consistent labelling (`SeriesPropertyTest`).
+- **§1.2/§1.3/§1.4 predate this document**: the headless backend, the virtual
+  clock, `GoldenImage` with its scale sweep, and the native layout probe.
+- **§0.1 determinism, enforced and with no exceptions.** `DeterminismTest` bans
+  clocks, randomness, default locale and default time zone in the layer whose
+  output is asserted exactly. The three typeahead sites that used to be
+  allow-listed now read `Host.clock()`, so `TypeaheadClockTest` asserts a timeout
+  by advancing a virtual clock instead of sleeping through it.
+- **§1.3/§5 `blessGoldens`**, per module and at the root.
+- **§2 ArchUnit.** `BoundaryTest` asserts `ARCHITECTURE.md` §2's arrows and
+  §3.1's FFM boundary — seven rules the module graph cannot state.
+- **§2 Spotless**, whitespace/tabs/final-newline only. See "deliberately
+  narrowed" below.
+- **§2 Error Prone + NullAway**, blocking on `src/main`. NullAway runs in
+  `OnlyNullMarked` mode; `io.github.digitalsmile.goldberry.log` is the first
+  package to opt in, and a `return null` added to it fails the build.
+- **§2 PMD**, eight hand-picked rules in `config/pmd/ruleset.xml`.
+- **§3 JaCoCo**, per module and aggregated, genuinely **merged across binding
+  modes**: the exec file is named for the mode, so a reflective run and a woven
+  run leave two files and one report reads both. Floors on `:core` and
+  `:widgets` are ratchets set from measured values.
+- **§1.6 dual-mode CI.** `linux.yml` runs the suite reflectively and again with
+  `-Pgoldberry.nativeImage=true`, then uploads the aggregate report.
+- **§2 CodeQL**, nightly and on pull requests (`codeql.yml`).
+- **§3 PIT**, as a `pitest` task per module — see the limit below.
+
+### Deliberately narrowed
+
+- **Spotless does not run a whole-file formatter.** §2 names
+  palantir-java-format; applying it rewrote 138 files and produced no defect.
+  The comments in this codebase are prose whose line breaks are chosen by hand,
+  and a formatter reflowing them destroys what makes them readable. Enforcing an
+  import order alone moved every static import below the rest, which is the
+  opposite of the existing convention. `removeUnusedImports` throws inside its
+  own parser on `TourState.java`. What is enforced is what is mechanical and
+  unarguable.
+- **`ReferenceEquality` is off**, and `CloseResource` is out of the PMD set. Each
+  was wrong every time it fired — the first on the thread-confinement check
+  eighteen files make, the second on 47 sites where an owner holds a closeable
+  and closes it in its own lifecycle (ADR-0043). A gate that is never right
+  teaches people to skip the report.
+- **`:natives` has Error Prone off**: it is hand-written FFM bindings, and the
+  plugin throws rather than reports on `Blend2dContext`. Its contract is the
+  layout probe, which is the same argument §3 uses for keeping it out of the
+  coverage gates.
 
 ### Not built, and what each is waiting on
 
-- **§1.3's per-platform byte-exact goldens.** This *contradicts* what is built.
-  `GoldenImage` deliberately keeps one reference set with a per-channel tolerance,
-  and argues the case in its own class documentation: Blend2D compiles its
-  pipelines at run time with AsmJit, so AVX2 and NEON agree on what they draw and
-  not on the last bit of a blended subpixel — and three reference sets are three
-  things that can each rot separately. Adopting §1.3 means reversing that
-  decision, which needs an ADR superseding it rather than a patch.
-- **§0.1's last three wall-clock reads.** `SelectState`, `ListState` and
-  `TreeState` measure typeahead against a real clock, so the typeahead timeout is
-  the one behaviour in the catalog a test cannot drive. Allow-listed in
-  `DeterminismTest` with the cost written down; the fix is threading the frame
-  clock into three `State` subclasses that already hold a `host`.
-- **§2's formatting and nullness gates.** Spotless with palantir-java-format
-  would reformat every file in the repository, and this codebase's line breaks
-  and comment layout are deliberate. Error Prone, NullAway and JSpecify need an
-  annotation sweep across every public API. Both are worth doing and neither is a
-  side-effect of adding a plugin.
-- **§1.5 JMH, §1.6 dual-mode lanes, §1.7 semantics sweep, §3's PIT, §4's CI
-  matrix.** Nightly and CI-shaped work. The two binding modes already exist as
-  `-Pgoldberry.nativeImage=true` versus the default, and JaCoCo appends across
-  runs, so §3's "merged across modes" needs a lane rather than a mechanism.
-- **§2's advisory dashboards.** Qodana, CodeQL and Codecov need repository
-  secrets and an account, which is not something a commit can establish.
+- **§1.7's semantics sweep.** It asserts "every interactive node exposes role +
+  name", and there is no role and no name to expose: the semantics tree is
+  `ARCHITECTURE.md` prose and the AccessKit bridge is M5, not started. This is
+  the one item here blocked on a subsystem rather than on effort. Contrast, the
+  other half of §1.7, is built and has been for a while (`ContrastTest`).
+- **PIT on the modular modules.** The task is wired and runs, and reports "no
+  mutations" correctly where the target packages are absent. On `:core` the
+  coverage minion exits with `UNKNOWN_ERROR` after the tests are sent: PIT forks
+  a JVM that runs everything on the classpath, and these tests run on the module
+  path. Passing the test task's JVM arguments and system properties through got
+  it as far as creating 92 mutation units; the module path is the remaining
+  problem, and it is a real integration rather than a setting.
+- **JSpecify on all public API.** The plumbing is live and one package is marked.
+  The sweep is nine hundred classes and belongs in its own commits, one package
+  at a time, each checked from the moment it opts in.
+- **JMH (§1.5).** The plugin resolves; wiring it into a JPMS build with a
+  generated benchmark source set is the same class of problem PIT hit. The
+  repository already measures the hot seams through its `benchmark` task, on the
+  footing ADR-0028 and ADR-0031 set: numbers printed and argued about in prose
+  rather than pinned by a threshold that fails on shared CI hardware.
+- **SpotBugs + fb-contrib (§2).** Not attempted after PMD: two overlapping
+  bytecode analysers on the same codebase is a second report to triage for the
+  same findings, and PMD's ruleset here took three attempts to make load at all.
+- **Qodana and Codecov (§2, §3).** Both need repository secrets and an account,
+  which a commit cannot establish. CodeQL is in because it needs neither.
+- **§4's full CI matrix.** The dual-mode and coverage lanes are in `linux.yml`;
+  spreading them across the Windows and macOS workflows and adding a nightly
+  schedule is mechanical and untestable from here.
+
+### Two failures worth keeping
+
+Both were silent, and both were found by reading output rather than exit codes.
+
+- The PMD ruleset **did not load** for its first two revisions — an XML comment
+  cannot contain `--`, and PMD 7 had removed a rule I named. Each time PMD
+  printed `Cannot load ruleset` to stderr and then passed with no rules at all.
+- `TourState.java` carried a javadoc reference split across two lines, `[` on
+  one and the target on the next. It crashed Spotless's parser and Error Prone's,
+  and neither said why.

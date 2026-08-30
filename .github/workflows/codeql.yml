@@ -1,0 +1,56 @@
+# CodeQL — docs/testing.md §2's security half.
+#
+# Nightly and on pull requests, not on every push: a CodeQL database is built by
+# compiling the project, so it costs a full build, and the findings it produces
+# are not the kind that change between two commits an hour apart.
+#
+# `-Pgoldberry.skipNative=true` for the reason the `java` job in linux.yml uses
+# it: CodeQL analyses Java, the CMake superbuild produces a shared library it
+# cannot read, and building one would add twenty minutes to a job that would then
+# ignore the result.
+name: CodeQL
+
+on:
+  pull_request:
+    branches: [main, master]
+  schedule:
+    # Early on a Monday, so a week's findings are waiting rather than
+    # interrupting.
+    - cron: '17 4 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  analyze:
+    name: Analyze Java
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '25'
+
+      - uses: github/codeql-action/init@v3
+        with:
+          languages: java-kotlin
+          # `security-and-quality` over the default `security-extended`: this is
+          # an advisory dashboard rather than a gate (§2), so the wider set is
+          # worth having and a false positive costs nothing but a read.
+          queries: security-and-quality
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      # CodeQL needs to watch a real compilation. `--no-build-cache` because a
+      # cache hit produces no compiler invocation for it to observe, and the
+      # database then comes out empty with no error.
+      - name: Build for the database
+        run: ./gradlew compileJava compileTestJava -Pgoldberry.skipNative=true --no-daemon --no-build-cache
+
+      - uses: github/codeql-action/analyze@v3
+        with:
+          category: /language:java-kotlin

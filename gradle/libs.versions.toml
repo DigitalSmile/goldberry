@@ -21,7 +21,10 @@ errorprone = "4.4.0"
 errorproneCore = "2.50.0"
 nullaway = "0.14.1"
 jspecify = "1.0.1"
-pitestPlugin = "1.19.0-rc.1"
+pitestPlugin = "1.15.0"
+pitest = "1.20.5"
+jmhPlugin = "0.7.3"
+jmh = "1.37"
 
 # SLF4J is the only compile-time logging dependency the toolkit has: a facade, so
 # applications choose the implementation. Goldberry binds no backend of its own
