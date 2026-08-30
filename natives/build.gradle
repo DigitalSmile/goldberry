@@ -660,3 +660,24 @@ if (skipNative) {
         tasks.named('test') { dependsOn cmakeBuild }
     }
 }
+
+// ============================================================================
+// No Error Prone here (docs/testing.md §2)
+//
+// Two reasons, and the second is the one that settles it:
+//
+//  - This module is hand-written FFM bindings -- downcall handles, layout
+//    tables, `@SuppressWarnings("restricted")` and pointers resized against a
+//    verified extent. Almost every check Error Prone has either does not apply
+//    or fires on the idiom the whole module is made of.
+//  - It crashes. `Blend2dContext.contextTransform` makes the plugin throw an
+//    unhandled exception rather than report a finding, and a static analyser
+//    that cannot analyse the file is not a gate.
+//
+// The module is not unchecked: its contract is the layout probe agreeing across
+// four platforms, which is a stronger statement than any of these checks make --
+// the same argument §3 uses for keeping :natives out of the coverage gates.
+// ============================================================================
+tasks.withType(JavaCompile).configureEach {
+    options.errorprone.enabled = false
+}

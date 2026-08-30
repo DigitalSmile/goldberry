@@ -30,7 +30,15 @@ final class GoldberryRuntime {
 
     private final Backend backend;
     private final EventLoop loop;
-    private final Map<BackendWindow, Window> windows = new IdentityHashMap<>();
+    /// Declared as an `IdentityHashMap` rather than a `Map`, which is the
+    /// difference between the identity semantics being a fact about this field
+    /// and a fact about one line of its initializer.
+    ///
+    /// It matters here more than most places: a `BackendWindow` is looked up by
+    /// *which window it is*, and an implementation that grew a value-based
+    /// `equals` would silently make two windows one entry. Reading the
+    /// declaration now tells you that cannot happen.
+    private final IdentityHashMap<BackendWindow, Window> windows = new IdentityHashMap<>();
 
     /// Told after **any** window's focus changed — see [#onFocusChange].
     private Runnable focusWatcher;

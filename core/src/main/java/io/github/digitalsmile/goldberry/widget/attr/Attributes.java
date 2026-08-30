@@ -105,7 +105,11 @@ public record Attributes(
         var classes = new LinkedHashSet<String>();
         var raw = node.stringProperty("class");
         if (raw != null) {
-            for (var name : raw.trim().split("\\s+")) {
+            // Split on runs of whitespace after a trim, so there is no trailing
+            // empty to drop -- and the loop skips one regardless.
+            @SuppressWarnings("StringSplitter")
+            var names = raw.trim().split("\\s+");
+            for (var name : names) {
                 if (!name.isEmpty()) {
                     classes.add(name);
                 }

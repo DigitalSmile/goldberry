@@ -221,7 +221,7 @@ public final class PointerRouter {
     /// the one call every window makes once per frame — the same argument that
     /// put [#localFor] here rather than in the widget ([ADR-0117]).
     private void notifyMeasured() {
-        java.util.Map<Element, Measurement> next = null;
+        java.util.IdentityHashMap<Element, Measurement> next = null;
         for (var region : regions) {
             if (!(region.owner() instanceof Element element)
                     || !(element.widget() instanceof Measured measured)) {
@@ -229,8 +229,13 @@ public final class PointerRouter {
             }
             var bounds = new Extent(region.width(), region.height());
             var part = bounds;
-            if (element.widget() instanceof Handles handles && handles.localPart() != null
-                    && partOf(element, handles.localPart()) instanceof Element named) {
+            // `partOf` returns an Element or null, so `instanceof Element` here
+            // was a null check wearing a pattern's clothes -- it read as though
+            // the type were in question when only the presence ever was.
+            var named = element.widget() instanceof Handles handles && handles.localPart() != null
+                    ? partOf(element, handles.localPart())
+                    : null;
+            if (named != null) {
                 var namedExtent = extentOf(named);
                 if (namedExtent != Extent.NONE) {
                     part = namedExtent;
@@ -286,7 +291,7 @@ public final class PointerRouter {
     /// position and does not care how big it is. One walk each, over the nodes
     /// that asked ([ADR-0119]).
     private void notifyLocated() {
-        java.util.Map<Element, Location> next = null;
+        java.util.IdentityHashMap<Element, Location> next = null;
         for (var region : regions) {
             if (!(region.owner() instanceof Element element)
                     || !(element.widget() instanceof Located located)) {
@@ -1506,7 +1511,8 @@ public final class PointerRouter {
         var own = extentOf(element);
         var name = handles.localPart();
         var part = own;
-        if (name != null && partOf(element, name) instanceof Element named) {
+        var named = name == null ? null : partOf(element, name);
+        if (named != null) {
             var namedExtent = extentOf(named);
             // A part that has never been painted falls back to the whole, which
             // is `localPart`'s own rule: a control keeps working while the thing
@@ -1544,7 +1550,8 @@ public final class PointerRouter {
     /// answer is wrong in a way that moves a value.
     private PointerEvent.Local localFor(Element element, Handles handles, PointerEvent event) {
         var name = handles.localPart();
-        if (name != null && partOf(element, name) instanceof Element part) {
+        var part = name == null ? null : partOf(element, name);
+        if (part != null) {
             var local = localTo(part, event);
             if (local != PointerEvent.Local.UNKNOWN) {
                 return local;

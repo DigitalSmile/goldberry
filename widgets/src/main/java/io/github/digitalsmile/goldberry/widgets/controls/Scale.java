@@ -45,6 +45,18 @@ public sealed interface Scale {
     }
 
     /// Position is the value. What every control has unless it says otherwise.
+    ///
+    /// `ClassInitializationDeadlock` is right that an interface constant holding
+    /// an instance of its own implementor is a cycle: initializing `Scale` runs
+    /// `Linear`'s initializer, which needs `Scale`. Two threads entering that
+    /// cycle from opposite ends deadlock.
+    ///
+    /// It cannot happen here, and the reason is architectural rather than lucky:
+    /// widgets are built on the UI thread and only the UI thread (ADR-0020), so
+    /// there is never a second thread to enter from. Restructuring into a holder
+    /// class would move the constant somewhere no reader looks for it, to fix a
+    /// race this toolkit does not permit.
+    @SuppressWarnings("ClassInitializationDeadlock")
     Scale LINEAR = new Linear();
 
     /// A fader in **decibels** over a linear gain, with silence at the bottom of

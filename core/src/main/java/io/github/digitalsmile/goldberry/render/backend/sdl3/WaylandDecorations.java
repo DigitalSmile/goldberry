@@ -221,6 +221,10 @@ final class WaylandDecorations {
         try {
             // e.g. "55887/task/55887" on the initial thread, "55889/task/55890"
             // on any other.
+            // A procfs path never ends in a separator, so there are no trailing
+            // empties to drop -- and the length check below rejects anything
+            // that is not the shape expected.
+            @SuppressWarnings("StringSplitter")
             var parts = Files.readSymbolicLink(threadSelf).toString().split("/");
             if (parts.length < 3 || !parts[1].equals("task")) {
                 return Optional.empty();

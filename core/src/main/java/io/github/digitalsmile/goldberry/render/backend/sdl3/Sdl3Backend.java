@@ -485,7 +485,7 @@ public final class Sdl3Backend implements Backend {
         // when they do not return for as long as the drag lasts (ADR-0060).
         activeSink = sink;
         try {
-            var hasEvent = wait.isZero() || millis == 0
+            var hasEvent = (wait.isZero() || millis == 0)
                     ? video.pollEvent(eventBuffer)
                     : video.waitEvent(eventBuffer, millis);
             while (hasEvent) {

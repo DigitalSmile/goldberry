@@ -154,17 +154,6 @@ record ChartSurface(
         return isolated < 0 || isolated == index;
     }
 
-    /// The series that are drawn, which is one of them when a legend entry has
-    /// isolated it.
-    private List<Series> shown() {
-        var visible = new ArrayList<Series>(series.size());
-        for (var i = 0; i < series.size(); i++) {
-            if (shows(i)) {
-                visible.add(series.get(i));
-            }
-        }
-        return visible;
-    }
 
     /// Every series with its holes resolved, in the original order.
     ///
@@ -462,6 +451,9 @@ record ChartSurface(
     /// the readout already names every series at the point rather than one of
     /// them. Recorded in `ARCHITECTURE.md` §17.1 rather than resolved by quietly
     /// not doing it.
+    // See onPointer: the predicate's answer only matters where this widget
+    // has to decide whether to consume the event.
+    @SuppressWarnings("ReturnValueIgnored")
     @Override
     public void onKey(
             io.github.digitalsmile.goldberry.input.event.KeyEvent event) {
@@ -516,6 +508,12 @@ record ChartSurface(
     /// crosshair that needed a button held would be a chart you have to grab to
     /// read. Nothing is consumed — a chart inside a `scroll` must still scroll,
     /// and a right-click must still reach the context menu.
+    // `IntPredicate` is the right type and most of these call sites ignore its
+    // answer on purpose. The boolean means "was that handled", and it is only
+    // interesting where this widget must decide whether to consume the event --
+    // which is the one `if (onHover.test(-1))` below. Everywhere else the state
+    // is being *told* where the readout went, and there is nothing to decide.
+    @SuppressWarnings("ReturnValueIgnored")
     @Override
     public void onPointer(PointerEvent event) {
         if (onHover == null) {
@@ -658,6 +656,8 @@ record ChartSurface(
     }
 
     /// Everything the painter needs, decided while the cascade was in hand.
+    // Arrays for the frame path's reason -- see PlotGeometry. Never compared.
+    @SuppressWarnings("ArrayRecordComponent")
     private record Painted(
             List<Paragraph> labels, List<Paragraph> xLabels,
             List<Integer> colours, int grid, int ink,

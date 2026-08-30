@@ -35,6 +35,11 @@ import java.util.List;
 /// @param y           values to vertical positions, already swapped (see [Scale])
 /// @param times       epoch milliseconds per point index when this chart has a
 ///                    time axis, or null when its x is the point index
+    // Arrays, and deliberately: these are read on every frame of a chart that may
+    // hold a hundred thousand points, and `equals` is never called on one. A
+    // `List<Double>` here would box every reading to buy a correctness property
+    // nothing uses.
+    @SuppressWarnings("ArrayRecordComponent")
 record PlotGeometry(
         double left, double top, double plotWidth, double plotHeight,
         double gutter, double lineHeight, Scale y, double[] times) {

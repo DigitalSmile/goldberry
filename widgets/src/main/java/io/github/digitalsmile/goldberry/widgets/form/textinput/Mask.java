@@ -22,6 +22,10 @@ package io.github.digitalsmile.goldberry.widgets.form.textinput;
 ///                  one more entry than `display` has characters
 /// @param toDisplay `toDisplay[i]` is the display offset of real offset `i`, with
 ///                  one more entry than the real text has characters
+    // The two index tables are arrays for the reason above: a mask is rebuilt on
+    // every keystroke and walked per character, and a `List<Integer>` would box
+    // an offset per glyph. Never compared.
+    @SuppressWarnings("ArrayRecordComponent")
 record Mask(String display, int[] toReal, int[] toDisplay) {
 
     /// The character a masked field draws.

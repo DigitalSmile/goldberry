@@ -134,6 +134,12 @@ record DonutSurface(
     }
 
     /// The pointer picks a slice, and lets go when it leaves the ring.
+    // `IntPredicate` is the right type and most of these call sites ignore its
+    // answer on purpose. The boolean means "was that handled", and it is only
+    // interesting where this widget must decide whether to consume the event --
+    // which is the one `if (onHover.test(-1))` below. Everywhere else the state
+    // is being *told* where the readout went, and there is nothing to decide.
+    @SuppressWarnings("ReturnValueIgnored")
     @Override
     public void onPointer(PointerEvent event) {
         if (onHover == null) {
@@ -159,6 +165,12 @@ record DonutSurface(
     /// `scroll`, and a focused widget that consumed the vertical arrows would
     /// swallow the keys that move the page. Two arrows are enough to reach every
     /// slice.
+    // `IntPredicate` is the right type and most of these call sites ignore its
+    // answer on purpose. The boolean means "was that handled", and it is only
+    // interesting where this widget must decide whether to consume the event --
+    // which is the one `if (onHover.test(-1))` below. Everywhere else the state
+    // is being *told* where the readout went, and there is nothing to decide.
+    @SuppressWarnings("ReturnValueIgnored")
     @Override
     public void onKey(KeyEvent event) {
         if (onHover == null || onWalk == null || event.kind() != KeyEvent.Kind.PRESSED

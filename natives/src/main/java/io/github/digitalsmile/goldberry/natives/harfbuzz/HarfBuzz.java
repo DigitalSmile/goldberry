@@ -252,7 +252,4 @@ final class HarfBuzz {
         return pointer.reinterpret(bytes);
     }
 
-    private static IllegalStateException failure(String name, Throwable cause) {
-        return new IllegalStateException(name + "() failed", cause);
-    }
 }

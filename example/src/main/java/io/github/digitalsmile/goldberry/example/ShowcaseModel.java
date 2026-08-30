@@ -50,6 +50,13 @@ import java.util.List;
 /// outlive any particular screen, and a second screen showing the same number
 /// would read this object rather than a copy of it.
 @Model
+// Every field below is read, and none of them is read *here*: a `@Bind` field is
+// reached by path through the generated registry, or through a woven call site
+// in a native image (ADR-0125, ADR-0155). Error Prone sees a private field with
+// no reader in this compilation unit and is right about what it can see; the
+// reader is generated. This is the one annotation in the project that means
+// "assume the build wired it up".
+@SuppressWarnings("UnusedVariable")
 public final class ShowcaseModel {
 
     /// Leagues walked from Bag End. The counter, in the one unit a hobbit

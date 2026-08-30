@@ -450,7 +450,7 @@ public final class RenderObject implements AutoCloseable {
     ///
     /// Only meaningful for a promoted node, and only used there.
     private static boolean sameRaster(Box a, Box b) {
-        return a.opacity() == b.opacity() && a.transform().equals(b.transform())
+        return (a.opacity() == b.opacity() && a.transform().equals(b.transform()))
                 ? sameAppearance(a, b)
                 // Compare everything else by putting this box's blit properties
                 // onto the other one: cheaper to reason about than a second

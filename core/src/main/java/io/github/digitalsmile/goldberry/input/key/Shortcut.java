@@ -156,6 +156,9 @@ public record Shortcut(Key key, Modifiers modifiers) {
     }
 
     private static String capitalize(String name) {
+        // `split` drops trailing empties, which cannot matter here: this splits
+        // an enum constant's name, and `DIGIT_1__` is not one.
+        @SuppressWarnings("StringSplitter")
         var words = name.split("_");
         var text = new StringBuilder();
         for (var word : words) {

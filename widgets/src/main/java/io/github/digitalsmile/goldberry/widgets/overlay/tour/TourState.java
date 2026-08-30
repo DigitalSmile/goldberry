@@ -17,8 +17,10 @@ final class TourState extends State<Tour> {
     private int index;
 
     /// Whether the current stop has already asked its viewport to reveal the
-    /// target. A request, cleared on every move, for [
-    /// io.github.digitalsmile.goldberry.widgets.core.scroll.ScrollController]'s
+    /// target.
+    ///
+    /// A request, cleared on every move, for
+    /// [io.github.digitalsmile.goldberry.widgets.core.scroll.ScrollController]'s
     /// reason: a stop that scrolled on every frame would hold the viewport
     /// against a user trying to look at something else (ADR-0120).
     private boolean revealed;

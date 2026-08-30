@@ -380,6 +380,10 @@ final class RuntimeBinding implements BoundModel {
     /// @param actions its `@Action` methods
     /// Arrays and not lists, and never compared: this is walked on every sweep,
     /// and an enhanced `for` over a `List` allocates an iterator each time.
+    // The arrays are the point, and the comment above says why: this record is
+    // walked on every sweep and never compared, so a `List` would buy a correct
+    // `equals` nobody calls at the price of an iterator per sweep.
+    @SuppressWarnings("ArrayRecordComponent")
     private record Plan(Class<?> type, Bound[] bounds, Bound[] woven, Act[] actions) {
 
         /// Reads `type`'s annotations and resolves a handle per member.

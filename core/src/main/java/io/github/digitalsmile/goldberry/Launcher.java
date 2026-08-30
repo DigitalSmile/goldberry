@@ -114,6 +114,9 @@ final class Launcher implements Host {
                 if (arg.startsWith("--frames=")) {
                     frames = Integer.parseInt(arg.substring("--frames=".length()));
                 } else if (arg.startsWith("--size=")) {
+                    // Trailing empties dropped is the behaviour wanted: the
+                    // length check below is what rejects `--size=800x` anyway.
+                    @SuppressWarnings("StringSplitter")
                     var parts = arg.substring("--size=".length()).split("x");
                     if (parts.length == 2) {
                         size = new LogicalSize(

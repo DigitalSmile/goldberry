@@ -221,7 +221,10 @@ public final class Font implements AutoCloseable {
     public double widthOf(GlyphRun run) {
         requireUsable();
         Objects.requireNonNull(run, "run");
-        return toLogical(run.totalXAdvance());
+        // The cast is explicit because the advance is a 26.6 fixed-point `long`
+        // and `toLogical` takes a double: the widening was happening anyway, and
+        // saying so is the difference between a conversion and an accident.
+        return toLogical((double) run.totalXAdvance());
     }
 
     /// How wide `text` is once shaped, in logical units.

@@ -488,6 +488,12 @@ public record Transform(List<Function> functions, Origin origin) {
         return parts;
     }
 
+    // RefactorSwitch wants this turned into a switch *expression*. It would be
+    // one `return switch` over eleven cases, several of which need two statements
+    // before they can answer -- so every one of them grows a `yield` and the
+    // method gets longer to satisfy a preference. The suggestion is about style
+    // and there is no defect under it.
+    @SuppressWarnings("RefactorSwitch")
     private static Function function(String name, List<List<Token>> arguments) {
         var count = arguments.size();
         switch (name) {
@@ -665,6 +671,12 @@ public record Transform(List<Function> functions, Origin origin) {
     /// keywords. A single component sets the horizontal one and leaves the
     /// vertical centred, which is CSS's rule.
     /// Public for the same reason [#parse(List, Origin)] is.
+    // NullTernary reads `yield x == null ? null : ...` as a ternary that will be
+    // unboxed. It will not: this method returns `Origin`, a record, and null is
+    // its documented "this is not an origin" answer -- the same shape every
+    // parser in this package uses. Error Prone's heuristic does not model a
+    // switch expression's target type.
+    @SuppressWarnings("NullTernary")
     public static Origin parseOrigin(List<Token> value) {
         var parts = new ArrayList<List<Token>>();
         var current = new ArrayList<Token>();

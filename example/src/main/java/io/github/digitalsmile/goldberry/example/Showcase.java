@@ -301,6 +301,17 @@ public final class Showcase implements Application {
             // returns false; a jar's model is swept here
             // ([ADR-0155](../../../../../../book/src/adr/0155-a-jar-binds-at-run-time-an-image-is-woven.md)).
             Models.refresh(model);
+        }).exceptionally(failure -> {
+            // Error Prone caught this: a `thenAccept` whose future nobody holds
+            // swallows whatever the job threw, so a describeEnvironment that
+            // failed would leave the bar reading "reading the map…" for ever with
+            // nothing in the log to say why. The handler is the whole fix -- an
+            // application still has nothing to await, it simply has somewhere for
+            // the failure to go.
+            LOG.warn("could not describe the environment", failure);
+            actions.setStatus("could not read the environment");
+            Models.refresh(model);
+            return null;
         });
     }
 
