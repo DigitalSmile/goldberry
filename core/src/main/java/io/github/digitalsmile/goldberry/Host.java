@@ -1,5 +1,6 @@
 package io.github.digitalsmile.goldberry;
 
+import io.github.digitalsmile.goldberry.motion.Clock;
 import io.github.digitalsmile.goldberry.render.Clipboard;
 import io.github.digitalsmile.goldberry.render.event.EventLoop;
 import io.github.digitalsmile.goldberry.render.model.LogicalPoint;
@@ -20,6 +21,27 @@ import io.github.digitalsmile.goldberry.widget.Widget;
 ///
 /// Confined to the UI thread, except [#repaint()] — see there.
 public interface Host {
+
+    /// The clock this window's frames are timed against.
+    ///
+    /// A widget that needs to know how long ago something happened asks here
+    /// rather than reading `System.nanoTime()`, and the difference is the whole
+    /// of `docs/testing.md` §0.1: a test drives a [Clock#virtual()] and can then
+    /// assert what happens *after* a timeout, where against the real clock it
+    /// would have to sleep and hope.
+    ///
+    /// Distinct from the frame time a painter is handed. That one is read once
+    /// per frame and shared, so two spinners tick together
+    /// ([io.github.digitalsmile.goldberry.widget.WidgetRenderer]); this is the
+    /// clock *behind* it, and it is what input handling has to use because input
+    /// does not run inside a frame.
+    ///
+    /// Defaulted rather than abstract because almost no implementation has an
+    /// opinion — the real one is the launcher's, which hands over the renderer's,
+    /// and a test that never asks is unaffected.
+    default Clock clock() {
+        return Clock.system();
+    }
 
     /// Asks for another frame.
     ///

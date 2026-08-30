@@ -40,6 +40,23 @@ import java.util.Optional;
 /// reaches them wants a real window and should say so rather than get a fake.
 public class TestHost implements Host {
 
+    /// The clock every widget under this host reads.
+    ///
+    /// Virtual, and that is the whole reason it is here: a `typeahead` measured
+    /// against the real clock can only be tested by sleeping, so nothing tested
+    /// it. `host.clock.advance(600)` and a keystroke is what asserting a timeout
+    /// looks like instead (`docs/testing.md` §0.1).
+    ///
+    /// Public and mutable, like the other fields on this host: it is a test
+    /// double, and a getter would be ceremony over a field every test writes to.
+    public final io.github.digitalsmile.goldberry.motion.Clock.Virtual clock =
+            io.github.digitalsmile.goldberry.motion.Clock.virtual();
+
+    @Override
+    public io.github.digitalsmile.goldberry.motion.Clock clock() {
+        return clock;
+    }
+
     /// One call to a `popup` overload, whichever one it was.
     public record Opened(Widget content, LogicalRect anchor, Placement placement,
             float minimumWidth) {

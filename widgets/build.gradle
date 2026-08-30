@@ -78,3 +78,19 @@ def externalLibrary = providers.systemProperty('goldberry.native.library').isPre
 if (!skipNative && !externalLibrary) {
     tasks.withType(Test).configureEach { dependsOn ':natives:cmakeBuild' }
 }
+
+// ============================================================================
+// Coverage floor (docs/testing.md §3)
+//
+// Higher than :core's, and it should be: a widget is a value with a `build`
+// method, and the catalog is the part of this project a unit test reaches
+// without a frame. See :core's note for why these are a ratchet.
+// ============================================================================
+tasks.named('jacocoTestCoverageVerification') {
+    violationRules {
+        rule {
+            limit { counter = 'LINE'; minimum = 0.87 }
+            limit { counter = 'BRANCH'; minimum = 0.71 }
+        }
+    }
+}

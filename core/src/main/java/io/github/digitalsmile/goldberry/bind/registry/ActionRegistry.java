@@ -5,7 +5,6 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.Consumer;
-import io.github.digitalsmile.goldberry.bind.Bind;
 
 /// What a name in markup means (§9's `action` half).
 ///

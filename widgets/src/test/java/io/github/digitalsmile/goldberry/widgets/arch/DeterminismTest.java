@@ -5,7 +5,6 @@ import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
 import com.tngtech.archunit.core.domain.JavaClasses;
 import com.tngtech.archunit.core.importer.ClassFileImporter;
 import com.tngtech.archunit.core.importer.ImportOption;
-import java.util.List;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -31,13 +30,18 @@ import org.junit.jupiter.api.Test;
 /// implementation a virtual one is swapped in *for*. None of that is a violation
 /// of §0.1 — it is what §0.1 is built on.
 ///
-/// ## Why there is an allowlist rather than a green build
+/// ## There is no allowlist
 ///
-/// Because three of these are real, none is a one-line fix, and a rule switched
-/// off is a rule that never comes back on. It is the shape `ContrastTest` already
-/// uses for the same reason: each exception is named, the cost of fixing it is
-/// written down, and the list is short enough that adding to it is an argument
-/// rather than a habit.
+/// There was one, briefly: `SelectState`, `ListState` and `TreeState` each
+/// measured typeahead against `System.nanoTime()`, which made the typeahead
+/// timeout the one behaviour in the catalog a test could not drive. They now ask
+/// [io.github.digitalsmile.goldberry.Host#clock()], so a test advances a virtual
+/// clock and asserts what happens after the window closes rather than sleeping
+/// for it — see `TypeaheadClockTest`.
+///
+/// The rule is better for having no exceptions, and that is the point of writing
+/// the cost of each one down while it exists: an exception with a price on it
+/// gets paid.
 class DeterminismTest {
 
     /// Where the assertions are exact, and therefore where a clock is a bug.
@@ -45,23 +49,6 @@ class DeterminismTest {
         "..goldberry.css..", "..goldberry.paint..", "..goldberry.text..",
         "..goldberry.widgets..",
     };
-
-    /// The clock reads that are known, deliberate, and not yet fixed.
-    ///
-    /// All three are `typeahead`: a select, a list and a tree each decide whether
-    /// the keystroke that just arrived continues the previous search or starts a
-    /// new one, and they measure that gap against a real clock. None is on a paint
-    /// path and no golden depends on one — but it does mean the typeahead timeout
-    /// is the one behaviour in the catalog a test cannot drive, which §0.1 calls a
-    /// bug rather than a limitation.
-    ///
-    /// Fixing it is threading the frame clock into three `State` subclasses that
-    /// already hold a `host`. That is a change worth making on its own rather than
-    /// as a side-effect of adding this rule.
-    private static final List<String> TYPEAHEAD = List.of(
-            "io.github.digitalsmile.goldberry.widgets.controls.select.SelectState",
-            "io.github.digitalsmile.goldberry.widgets.panel.list.ListState",
-            "io.github.digitalsmile.goldberry.widgets.panel.tree.TreeState");
 
     /// The one door the machine's time zone comes through.
     ///
@@ -88,11 +75,10 @@ class DeterminismTest {
     }
 
     @Test
-    @DisplayName("nothing in the deterministic layer reads a clock, bar three typeaheads")
+    @DisplayName("nothing in the deterministic layer reads a clock")
     void noClockUnderAnAssertion() {
         noClasses()
                 .that().resideInAnyPackage(DETERMINISTIC_LAYER)
-                .and().haveNameNotMatching(String.join("|", TYPEAHEAD))
                 .should().callMethod(System.class, "currentTimeMillis")
                 .orShould().callMethod(System.class, "nanoTime")
                 .because("§0.1: a virtual clock is what lets a motion test assert a"

@@ -8,8 +8,6 @@ import io.github.digitalsmile.goldberry.widget.style.Paints;
 import io.github.digitalsmile.goldberry.widget.style.Styled;
 import io.github.digitalsmile.goldberry.widget.Widget;
 
-import io.github.digitalsmile.goldberry.widgets.core.Primitives;
-import io.github.digitalsmile.goldberry.widgets.core.Row;
 import io.github.digitalsmile.goldberry.widgets.text.Text;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;

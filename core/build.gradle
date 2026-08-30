@@ -176,3 +176,37 @@ def externalLibrary = providers.systemProperty('goldberry.native.library').isPre
 if (!skipNative && !externalLibrary) {
     tasks.withType(Test).configureEach { dependsOn ':natives:cmakeBuild' }
 }
+
+// ============================================================================
+// Coverage floor (docs/testing.md §3)
+//
+// A ratchet, not a target. Each number is a little under what the suite reaches
+// today, so the gate catches a change that *drops* coverage and never blocks one
+// that merely fails to raise it. Raising a floor is a deliberate edit.
+//
+// The module figure is deliberately modest, because more than half of :core is
+// painters and §0.2 is explicit that line coverage proves reachability there
+// rather than correctness -- the goldens carry that. The packages below are the
+// other kind: a cascade either resolves a declaration or it does not, and there
+// is no picture to fall back on.
+// ============================================================================
+tasks.named('jacocoTestCoverageVerification') {
+    violationRules {
+        rule {
+            limit { counter = 'LINE'; minimum = 0.80 }
+            limit { counter = 'BRANCH'; minimum = 0.68 }
+        }
+        rule {
+            element = 'PACKAGE'
+            includes = [
+                    'io.github.digitalsmile.goldberry.css*',
+                    'io.github.digitalsmile.goldberry.kdl',
+                    'io.github.digitalsmile.goldberry.bind*',
+            ]
+            // 0.70 and not higher because `bind.registry` sits at 0.71 today --
+            // measured, not guessed. A floor above what the suite reaches is a
+            // broken build on the first commit rather than a ratchet.
+            limit { counter = 'LINE'; minimum = 0.70 }
+        }
+    }
+}

@@ -15,7 +15,6 @@ import io.github.digitalsmile.goldberry.css.parse.Token;
 import io.github.digitalsmile.goldberry.css.parse.TokenType;
 import io.github.digitalsmile.goldberry.css.select.Selector;
 import io.github.digitalsmile.goldberry.css.select.SelectorMatcher;
-import io.github.digitalsmile.goldberry.css.ComputedStyle;
 import io.github.digitalsmile.goldberry.css.Declaration;
 import io.github.digitalsmile.goldberry.css.StyleElement;
 import io.github.digitalsmile.goldberry.css.StyleRule;

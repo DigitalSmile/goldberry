@@ -3,6 +3,7 @@ import org.gradle.api.artifacts.VersionCatalogsExtension
 plugins {
     id 'java-library'
     id 'jacoco'
+    id 'com.diffplug.spotless'
 }
 
 // Precompiled Groovy script plugins do not get the generated `libs` accessors
@@ -103,6 +104,51 @@ tasks.register('benchmark', Test) {
 }
 
 // ============================================================================
+// Formatting (docs/testing.md §2)
+//
+// Spotless, and **not** a whole-file formatter. testing.md names
+// palantir-java-format; applying it rewrote 138 files for no defect, because
+// this codebase's line breaks are load-bearing -- the comments are prose, the
+// argument in one runs across lines chosen by hand, and a formatter reflowing
+// them destroys the thing that makes them readable. Enforcing an import order
+// alone moved every static import below the rest, which is the opposite of what
+// this codebase does. A thousand lines of churn that makes every `git blame`
+// point at the formatting commit is a worse outcome than two people putting a
+// brace in different places.
+//
+// So this enforces what is mechanical and unarguable, and leaves the judgement
+// calls alone.
+// ============================================================================
+spotless {
+    java {
+        target fileTree(projectDir) {
+            include 'src/*/java/**/*.java'
+            exclude '**/build/**'
+        }
+
+        // A tab renders differently in every review tool.
+        leadingTabsToSpaces(4)
+        // Trailing space is invisible, survives review, and turns up as a
+        // whitespace-only hunk in somebody else's commit.
+        trimTrailingWhitespace()
+        // Without one, a diff carries a "no newline at end of file" marker on an
+        // unrelated line.
+        endWithNewline()
+        // **No `removeUnusedImports`.** It is the one step here that parses Java
+        // rather than treating the file as text, and it throws a bare
+        // NoSuchElementException on `TourState.java` -- a tool bug, not an unused
+        // import; that file has none. Everything above is whitespace, which
+        // cannot fail on a file it does not understand.
+    }
+
+    format 'markdown', {
+        target 'docs/**/*.md', 'book/src/**/*.md', '*.md'
+        trimTrailingWhitespace()
+        endWithNewline()
+    }
+}
+
+// ============================================================================
 // Coverage (docs/testing.md §3)
 //
 // Per module, aggregated at the root. The interesting rule is the *merge*: the
@@ -122,10 +168,41 @@ jacoco {
     toolVersion = catalog.findVersion('jacoco').get().requiredVersion
 }
 
+// Which binding mode this invocation runs in -- the property the weaver reads
+// (ADR-0155). A jar binds `@Bind` reflectively; a native image runs over woven
+// classes. testing.md §0.3 calls both first-class and §3 asks for one report
+// across them.
+def bindingMode = providers.gradleProperty('goldberry.nativeImage')
+        .map { it.isEmpty() || Boolean.parseBoolean(it) }
+        .getOrElse(false) ? 'woven' : 'reflective'
+
 tasks.withType(Test).configureEach {
     // Benchmarks print numbers; counting their lines as covered would be a
     // coverage figure that goes up when somebody adds a benchmark.
     jacoco.enabled = name != 'benchmark'
+
+    // A file per mode, so the second run does not overwrite the first. This is
+    // the whole mechanism behind §3's "a line is uncovered only if NEITHER mode
+    // reached it": two invocations leave two exec files and the report reads
+    // both. One invocation leaves one, and the report is still correct -- it
+    // simply describes one mode.
+    jacoco.destinationFile = layout.buildDirectory
+            .file("jacoco/${name}-${bindingMode}.exec").get().asFile
+}
+
+// Both the report and the gate read every exec file, not the one this invocation
+// happened to write. `JacocoReportBase` is the type they share.
+tasks.withType(JacocoReportBase).configureEach {
+    executionData.setFrom(fileTree(layout.buildDirectory.dir('jacoco')) {
+        include '**/*.exec'
+    })
+}
+
+// The gate runs with `check`, and passes trivially in a module that declares no
+// rules -- which is the design §3 asks for ("no single global number"), so a
+// floor exists only where a module has said what its own means.
+tasks.named('check') {
+    dependsOn tasks.named('jacocoTestCoverageVerification')
 }
 
 tasks.withType(JacocoReport).configureEach {

@@ -25,7 +25,12 @@ The `headless` backend renders to `BLImage` and pumps synthetic events through t
 
 ### 1.3 Golden-image tests
 - **Corpus:** the gallery matrix — every widget × every state (rest/hover/active/focus-visible/disabled/checked/invalid) × light+dark × regular+compact density × text scale 100% and 150%. Plus content modules: HTML documents, PDF pages, chart types, animation keyframes.
-- **Comparison:** byte-exact against per-platform goldens (linux-x64 is the reference; each CI OS/arch keeps its own set — Blend2D SIMD paths may differ across architectures, and hiding that behind epsilon would hide real regressions).
+- **Comparison:** **one** reference set, shared by every platform, compared with a per-channel tolerance of 2/256 and a cap of 2% of pixels allowed to differ at all (`GoldenImage`, ADR-0050).
+
+  This is the reverse of the obvious design, and the reason is Blend2D: it compiles its rasterizer pipelines at run time with AsmJit, specialized to the CPU it finds — AVX2 on one runner, SSE2 on another, NEON on an Apple Silicon one. Those pipelines agree on what they draw and are *not* required to agree on the last bit of a blended subpixel. Byte-exactness would therefore fail on whichever architecture the goldens were not generated on, and the fix would be per-platform sets: three references that can each rot separately, and three diffs a reviewer has to read to approve one visual change.
+
+  The tolerance does not hide regressions, because it is not an epsilon on the whole image: a colour that changed, a box in the wrong place or text that stopped shaping moves thousands of pixels by tens of levels, and either bound catches it on its own. What the tolerance absorbs is antialiased edges, which is exactly where the pipelines disagree and a small fraction of any frame.
+- **Scale sweep:** a golden pins one scale, and it is 1.0 for almost all of them. Every image that matches is then redrawn at 2× and 1.5× and checked for describing the same picture, with nothing further committed — a second *question* rather than a second set of files (`ScaleInvariance`, ADR-0157, ADR-0162). `-Dgoldberry.golden.scales=false` turns it off.
 - **Workflow:** failures upload actual/expected/diff triptychs as CI artifacts; intentional changes are blessed with `./gradlew blessGoldens` and reviewed as image diffs in the PR. Goldens live in-repo as PNGs (small, UI-sized); move to Git LFS only if the corpus outgrows ~100 MB.
 - **Determinism rules for golden tests:** embedded fonts only, fixed scale factor, virtual clock, seeded RNG, no wall-clock or locale dependence.
 

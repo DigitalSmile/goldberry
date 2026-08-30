@@ -8,7 +8,6 @@ import io.github.digitalsmile.goldberry.paint.tree.RenderTree;
 
 import java.util.Objects;
 import java.util.function.Consumer;
-import io.github.digitalsmile.goldberry.Goldberry;
 
 /// An offscreen surface a subtree is rendered into and composited back from.
 ///

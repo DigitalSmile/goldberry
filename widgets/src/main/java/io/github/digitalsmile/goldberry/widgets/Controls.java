@@ -34,8 +34,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Stream;
-import io.github.digitalsmile.goldberry.widgets.markup.Markup;
-import io.github.digitalsmile.goldberry.widgets.markup.WidgetCatalog;
 
 /// The catalog: every widget this module ships, and how it is registered and
 /// styled.

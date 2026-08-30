@@ -9,7 +9,6 @@ import io.github.digitalsmile.goldberry.widgets.markup.Markup;
 import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
 
 import java.util.List;
-import java.util.Objects;
 
 /// A modal — `docs/core-widgets.md` §7's `dialog`.
 ///

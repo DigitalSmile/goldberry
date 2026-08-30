@@ -2,7 +2,6 @@ package io.github.digitalsmile.goldberry.widgets.data.linechart;
 
 import io.github.digitalsmile.goldberry.text.Paragraph;
 import io.github.digitalsmile.goldberry.widgets.data.Scale;
-import io.github.digitalsmile.goldberry.widgets.data.Ticks;
 import java.util.List;
 
 /// Where the plot area is inside the box, and what a coordinate in it means.

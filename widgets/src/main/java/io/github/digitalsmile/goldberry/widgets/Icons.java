@@ -5,7 +5,6 @@ import io.github.digitalsmile.goldberry.icon.Icon;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
-import io.github.digitalsmile.goldberry.widgets.markup.Markup;
 
 /// What an icon name in markup means.
 ///

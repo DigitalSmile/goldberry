@@ -3,7 +3,6 @@ package io.github.digitalsmile.goldberry.natives.yoga;
 import io.github.digitalsmile.goldberry.natives.yoga.calls.ProbeCalls;
 import io.github.digitalsmile.goldberry.natives.NativeLibrary;
 import java.lang.foreign.Arena;
-import java.lang.foreign.MemorySegment;
 import java.lang.foreign.ValueLayout;
 import io.github.digitalsmile.goldberry.natives.yoga.measure.MeasureMode;
 import io.github.digitalsmile.goldberry.natives.yoga.measure.MeasuredSize;

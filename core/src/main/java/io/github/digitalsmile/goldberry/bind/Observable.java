@@ -1,7 +1,6 @@
 package io.github.digitalsmile.goldberry.bind;
 
 import java.util.function.Consumer;
-import io.github.digitalsmile.goldberry.bind.registry.BindingRegistry;
 
 /// A value that can be read and watched, and **not** written.
 ///

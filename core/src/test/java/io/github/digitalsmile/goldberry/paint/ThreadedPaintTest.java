@@ -16,7 +16,6 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
-import io.github.digitalsmile.goldberry.Goldberry;
 import io.github.digitalsmile.goldberry.RendererRequirement;
 
 /// Threaded painting must produce the same frame as synchronous painting.

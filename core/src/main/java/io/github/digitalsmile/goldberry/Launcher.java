@@ -46,6 +46,20 @@ final class Launcher implements Host {
     private PointerRouter router;
     private WidgetRenderer renderer;
 
+    /// The one clock this window runs on.
+    ///
+    /// A field rather than the renderer's default, because two things read it and
+    /// they must agree: the renderer times transitions against it, and [#clock()]
+    /// hands it to widgets that need to know how long ago a keystroke arrived. A
+    /// renderer left on its own `Clock.system()` would be a second clock -- the
+    /// same defect `frameNow` exists to prevent one level down.
+    ///
+    /// It is also what a restyle must not disturb: `renderer()` rebuilds the
+    /// renderer whenever the sheets change, and a clock rebuilt with it would
+    /// restart every transition in flight when the theme switched.
+    private final io.github.digitalsmile.goldberry.motion.Clock clock =
+            io.github.digitalsmile.goldberry.motion.Clock.system();
+
     /// Set when the stylesheets must be re-read — see [#restyle()].
     private boolean stylesDirty = true;
 
@@ -273,7 +287,8 @@ final class Launcher implements Host {
     private WidgetRenderer renderer() {
         if (stylesDirty || renderer == null) {
             renderer = new WidgetRenderer(application.stylesheets(), fonts)
-                    .frames(window.frames());
+                    .frames(window.frames())
+                    .clock(clock);
             stylesDirty = false;
         }
         return renderer;
@@ -719,6 +734,11 @@ final class Launcher implements Host {
     }
 
     // --- Host ---------------------------------------------------------------
+
+    @Override
+    public io.github.digitalsmile.goldberry.motion.Clock clock() {
+        return clock;
+    }
 
     @Override
     public void repaint() {

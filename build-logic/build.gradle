@@ -17,6 +17,13 @@ java {
 // tool across three platforms is real logic, and the bug it fixes is one nobody
 // reproduces by reading (ADR-0040).
 dependencies {
+    // The analysis plugins the conventions plugin applies (docs/testing.md §2).
+    // A precompiled script plugin can only apply a plugin that is on its own
+    // compile classpath, so these are the marker artifacts rather than `plugins`
+    // blocks -- the one place this build pays for using precompiled scripts.
+    implementation "com.diffplug.spotless:spotless-plugin-gradle:${libs.versions.spotless.get()}"
+    implementation "net.ltgt.gradle:gradle-errorprone-plugin:${libs.versions.errorprone.get()}"
+
     testImplementation platform(libs.junit.bom)
     testImplementation libs.junit.jupiter
     testRuntimeOnly libs.junit.platform.launcher

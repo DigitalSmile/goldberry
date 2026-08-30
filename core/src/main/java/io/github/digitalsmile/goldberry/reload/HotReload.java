@@ -4,7 +4,6 @@ import io.github.digitalsmile.goldberry.log.Logs;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.FileSystems;
-import java.nio.file.Path;
 import java.nio.file.StandardWatchEventKinds;
 import java.nio.file.WatchService;
 import java.time.Duration;

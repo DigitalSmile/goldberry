@@ -1,7 +1,5 @@
 package io.github.digitalsmile.goldberry.render.backend.sdl3;
 
-import io.github.digitalsmile.goldberry.render.backend.sdl3.Sdl3Backend;
-import io.github.digitalsmile.goldberry.render.backend.sdl3.WaylandDecorations;
 import io.github.digitalsmile.goldberry.render.backend.sdl3.WaylandDecorations.Verdict;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;

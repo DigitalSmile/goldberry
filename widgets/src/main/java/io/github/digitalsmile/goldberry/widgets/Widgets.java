@@ -3,8 +3,6 @@ package io.github.digitalsmile.goldberry.widgets;
 import io.github.digitalsmile.goldberry.kdl.KdlInflater;
 import io.github.digitalsmile.goldberry.widget.Widget;
 import java.util.ServiceLoader;
-import io.github.digitalsmile.goldberry.bind.registry.ActionRegistry;
-import io.github.digitalsmile.goldberry.bind.registry.BindingRegistry;
 import io.github.digitalsmile.goldberry.widgets.markup.Inflatable;
 import io.github.digitalsmile.goldberry.widgets.markup.Named;
 import io.github.digitalsmile.goldberry.widgets.markup.WidgetCatalog;

@@ -186,7 +186,7 @@ final class TreeState extends State<Tree> {
         if (visible.isEmpty()) {
             return;
         }
-        var now = System.currentTimeMillis();
+        var now = now();
         var stale = now - typedAt > TYPEAHEAD_MILLIS;
         typedAt = now;
         if (stale || (text.length() == 1 && typed.equals(text))) {
@@ -498,5 +498,23 @@ final class TreeState extends State<Tree> {
         for (var child : knownChildrenOf(node)) {
             applyDeep(child, wanted, into);
         }
+    }
+
+    /// How long ago the previous keystroke arrived, on the window's clock.
+    ///
+    /// The **host's** and not `System.nanoTime()`, which is what this used to
+    /// read. A typeahead measured against the real clock is the one behaviour in
+    /// this catalog a test cannot drive: asserting that a gap longer than the
+    /// window starts a fresh search meant sleeping for it and hoping, so nothing
+    /// asserted it. Against a `Clock.virtual()` it is `advance(600)` and a
+    /// keystroke (`docs/testing.md` §0.1).
+    ///
+    /// Falls back to the system clock when there is no host, which is a widget
+    /// built and driven outside a window. Typeahead still works there; it is
+    /// simply not drivable, and there is nothing else to read.
+    private long now() {
+        return (long) (host == null
+                ? io.github.digitalsmile.goldberry.motion.Clock.system().nowMillis()
+                : host.clock().nowMillis());
     }
 }

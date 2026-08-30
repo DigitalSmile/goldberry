@@ -9,7 +9,6 @@ import io.github.digitalsmile.goldberry.widget.BuildContext;
 import io.github.digitalsmile.goldberry.widget.State;
 import io.github.digitalsmile.goldberry.widget.Widget;
 import java.util.ArrayList;
-import java.util.List;
 import java.util.Set;
 
 /// Which of a [MenuBar]'s menus is showing, and what its accelerators are bound
