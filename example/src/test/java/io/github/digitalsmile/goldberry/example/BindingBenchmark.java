@@ -74,7 +74,7 @@ class BindingBenchmark {
 
     /// What to call the second scheme in this run's output — `woven` when the
     /// build ran the weaver over this module, `runtime` when it did not
-    /// ([ADR-0155](../../../../../../book/src/adr/0155-a-jar-binds-at-run-time-an-image-is-woven.md)).
+    /// (ADR-0155).
     private static final String FORM = Models.isWoven(new New()) ? "woven" : "runtime";
 
     /// How many writes one sample does, so a sample is long enough to time.

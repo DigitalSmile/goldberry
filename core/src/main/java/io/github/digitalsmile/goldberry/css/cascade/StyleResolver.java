@@ -71,7 +71,7 @@ public final class StyleResolver {
     /// showcase: four stylesheets, some two thousand rules, matched in full
     /// against every element — and then again against every one of its ancestors,
     /// because custom properties are collected by walking to the root
-    /// ([ADR-0152](../../../../../../../book/src/adr/0152-the-cascade-looks-at-rules-that-could-match.md)).
+    /// (ADR-0152).
     private final java.util.Map<String, List<Candidate>> byType = new java.util.HashMap<>();
 
     /// Rules whose rightmost compound names no type — `.primary`, `#gain`, `*`.
@@ -167,7 +167,7 @@ public final class StyleResolver {
     /// check-indicator` means yes for `:hover` on a `checkbox`; nothing in any
     /// sheet says `column:hover …`, so hovering a `column` — which is what a
     /// click on empty space does — changes that node and nothing under it
-    /// ([ADR-0149](../../../../../../../book/src/adr/0149-a-state-invalidates-what-it-can-reach.md)).
+    /// (ADR-0149).
     ///
     /// Conservative in both directions it can be: an untyped ancestor compound
     /// makes its pseudo-class reach everything, and a caller with no type of its
@@ -234,7 +234,7 @@ public final class StyleResolver {
     /// For the one reader outside the cascade: a widget that needs a value the
     /// cascade has nowhere to put — a chart's eight series colours, which cannot
     /// be eight properties on one node
-    /// ([ADR-0195](../../../../../../../book/src/adr/0195-a-painter-reads-the-theme-through-a-custom-property.md)).
+    /// (ADR-0195).
     ///
     /// **Substituted, because a custom property may hold another one.**
     /// `--gb-chart-1: var(--gb-warning)` is the natural way to say "this series

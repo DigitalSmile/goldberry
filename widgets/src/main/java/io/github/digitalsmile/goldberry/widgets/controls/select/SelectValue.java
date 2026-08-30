@@ -11,7 +11,7 @@ import io.github.digitalsmile.goldberry.widget.style.Styled;
 
 /// The text in a closed [Select] — a **part**, so it is CSS-selectable and not
 /// constructible
-/// ([ADR-0065](../../../../../../../../book/src/adr/0065-a-part-is-styleable-and-not-constructible.md)).
+/// (ADR-0065).
 ///
 /// A node of its own rather than text on the field, for the reason a `button`'s
 /// content is boxes: a box with text is a measured leaf and Yoga never lays a
@@ -24,7 +24,7 @@ import io.github.digitalsmile.goldberry.widget.style.Styled;
 /// in the same place. Expressed as a class rather than a pseudo-class because
 /// nothing in §8's subset means "this is standing in for a value" and inventing
 /// a pseudo-class for one widget would be inventing a language
-/// ([ADR-0141](../../../../../../../../book/src/adr/0141-a-select-is-a-closed-control-and-a-list.md)).
+/// (ADR-0141).
 ///
 /// @param text        the label to draw, which may be empty
 /// @param placeholder whether `text` is the placeholder rather than a chosen

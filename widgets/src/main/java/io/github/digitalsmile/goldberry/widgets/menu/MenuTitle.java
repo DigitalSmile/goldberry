@@ -21,7 +21,7 @@ import io.github.digitalsmile.goldberry.widget.style.Styled;
 /// A part, not a node anybody writes: a document declares a bar of `item`s and
 /// the bar turns each into one of these, the way `radio-group` turns its
 /// children into wired `radio`s
-/// ([ADR-0073](../../../../../../../book/src/adr/0073-a-composite-is-one-tab-stop.md)).
+/// (ADR-0073).
 /// It is a separate widget from [Item] rather than a flag on it because the two
 /// answer the keyboard differently, and that difference is the whole of what
 /// makes a bar a bar:
@@ -34,7 +34,7 @@ import io.github.digitalsmile.goldberry.widget.style.Styled;
 ///
 /// `Right` and `Left` are the scope's, not this widget's: a bar is a
 /// **horizontal** focus scope where a menu is a vertical one
-/// ([ADR-0078](../../../../../../../book/src/adr/0078-a-focus-scope-has-an-axis.md)),
+/// (ADR-0078),
 /// so traversal comes free and the two arrows the bar does not spend on it are
 /// `Up` and `Down`.
 ///
@@ -141,7 +141,7 @@ record MenuTitle(
         }
         if (!label.isEmpty()) {
             // Does not shrink, for the reason a menu row does not
-            // ([ADR-0148](../../../../../../../book/src/adr/0148-a-menu-row-does-not-wrap.md)):
+            // (ADR-0148):
             // a heading squeezed narrower than its label would wrap it, and a
             // two-line `File` in a one-line bar is worse than a bar too wide.
             content.add(Box.text(context.paragraph(style, label), style.color()).shrink(0));

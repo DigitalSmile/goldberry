@@ -20,9 +20,9 @@ import io.github.digitalsmile.goldberry.widgets.menu.Separator;
 /// will draw.
 ///
 /// The split `menu` already has: a `Menu` is a value and **showing** one is not
-/// ([ADR-0106](../../../../../../../../book/src/adr/0106-a-menu-is-a-widget-and-opening-one-is-not.md)).
+/// (ADR-0106).
 /// The reason the *same* value works here is
-/// [ADR-0163](../../../../../../../../book/src/adr/0163-a-menu-bar-owns-its-menus.md)'s:
+/// ADR-0163's:
 /// what is short-lived about a menu is the popup, not the description, so a
 /// description outlives an opening — and a tray menu, which the platform holds
 /// for as long as the icon is up, is the longest-lived opening there is.

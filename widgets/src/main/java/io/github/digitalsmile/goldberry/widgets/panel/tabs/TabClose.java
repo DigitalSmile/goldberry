@@ -12,7 +12,7 @@ import io.github.digitalsmile.goldberry.widget.style.Paints;
 import io.github.digitalsmile.goldberry.widget.style.Styled;
 
 /// The × on a closable [Tab] — a **part**, so it is styleable and not
-/// constructible ([ADR-0065](../../../../../../../../book/src/adr/0065-a-part-is-styleable-and-not-constructible.md)).
+/// constructible (ADR-0065).
 ///
 /// **Not focusable**, which is the decision worth writing down: a tab strip is
 /// *one* Tab stop with the arrows roving inside it (§7.2), and a focusable close

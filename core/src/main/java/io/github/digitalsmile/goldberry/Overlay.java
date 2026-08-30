@@ -67,7 +67,7 @@ public final class Overlay {
     /// Every other overlay is content-sized and tucked into a corner, which is
     /// what a `hud` or a `toast` wants. A `tour` wants the opposite: it dims
     /// everything except one widget, so it has to cover everything
-    /// ([ADR-0121](../../../book/src/adr/0121-a-tour-is-a-veil-and-a-sequence.md)).
+    /// (ADR-0121).
     ///
     /// The corner is [Corner#TOP_START] and the margin zero, which with insets on
     /// all four sides is Yoga's way of saying "fill" — so this adds a flag and no

@@ -60,7 +60,7 @@ public enum Edge implements YogaEnum {
     /// Yoga returns zero rather than saying so.
     /// Public because [io.github.digitalsmile.goldberry.natives.yoga.YogaNode]
     /// asks it and an edge is `yoga.style`'s now
-    /// ([ADR-0172](../../../../../../../../book/src/adr/0172-a-package-is-a-role-and-the-module-is-the-fence.md)).
+    /// (ADR-0172).
     public boolean isPhysicalSide() {
         return switch (this) {
             case LEFT, TOP, RIGHT, BOTTOM -> true;

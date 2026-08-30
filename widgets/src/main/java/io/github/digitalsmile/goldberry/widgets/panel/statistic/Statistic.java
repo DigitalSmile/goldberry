@@ -54,7 +54,7 @@ import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
 /// §5's "optional `sparkline` from a `canvas`" is built, and it turned out to be
 /// exactly what this note predicted: **one more child at the end of the column**,
 /// with no other change. It waited on `canvas`
-/// ([ADR-0193](../../../../../../../../book/src/adr/0193-a-canvas-is-a-second-clip-depth.md)),
+/// (ADR-0193),
 /// which was §1's last unbuilt primitive.
 ///
 /// It inherits its colour like everything else here, which is what makes

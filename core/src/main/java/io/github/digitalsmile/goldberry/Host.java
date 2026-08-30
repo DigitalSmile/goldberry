@@ -17,7 +17,7 @@ import io.github.digitalsmile.goldberry.widget.Widget;
 /// Handed to [Application#start], and the only handle an application needs: the
 /// window, the frame loop and the trees are the launcher's, and everything an
 /// application legitimately wants from them is a method here
-/// ([ADR-0093](../../../../../book/src/adr/0093-an-application-is-a-root-widget.md)).
+/// (ADR-0093).
 ///
 /// Confined to the UI thread, except [#repaint()] — see there.
 public interface Host {
@@ -51,7 +51,7 @@ public interface Host {
     ///
     /// The one method here that is safe from any thread, because a value set from
     /// a virtual thread wanting to redraw is the ordinary case
-    /// ([ADR-0020](../../../../../book/src/adr/0020-one-ui-thread-and-virtual-threads-behind-it.md)).
+    /// (ADR-0020).
     void repaint();
 
     /// Re-reads [Application#stylesheets()] before the next frame and rebuilds
@@ -72,7 +72,7 @@ public interface Host {
     ///
     /// The form to reach for: a `Shortcut` built this way cannot be misspelled,
     /// where a string is only checked when it is parsed
-    /// ([ADR-0095](../../../../../book/src/adr/0095-a-shortcut-is-built-from-enums.md)).
+    /// (ADR-0095).
     void shortcut(io.github.digitalsmile.goldberry.input.key.Shortcut accelerator, Runnable action);
 
     /// Binds a window accelerator and remembers **who** bound it.
@@ -81,7 +81,7 @@ public interface Host {
     /// identity and never called. A widget that binds keys while it is mounted —
     /// `menubar` is the one in the toolkit — passes itself, so that giving them
     /// back cannot take somebody else's binding with it
-    /// ([ADR-0220](../../../../../book/src/adr/0220-an-accelerator-is-given-back-by-whoever-took-it.md)).
+    /// (ADR-0220).
     void shortcut(io.github.digitalsmile.goldberry.input.key.Shortcut accelerator, Runnable action,
             Object owner);
 
@@ -98,7 +98,7 @@ public interface Host {
     /// The other end of [#shortcut(Shortcut, Runnable)], and it exists because
     /// `menubar` registers the accelerators of every command in its menus when
     /// it is mounted and has to give them back when it is not
-    /// ([ADR-0163](../../../../../book/src/adr/0163-a-menu-bar-owns-its-menus.md)).
+    /// (ADR-0163).
     ///
     /// **This form removes whatever is bound to `accelerator`**, including a
     /// binding somebody else made — which is what an application unbinding its own
@@ -114,7 +114,7 @@ public interface Host {
     /// mounted and has to give them back when it is not, and the map used to be
     /// keyed by the shortcut alone — so a bar going away took `Ctrl+O` with it
     /// even when the application had bound that key to something else in between
-    /// ([ADR-0220](../../../../../book/src/adr/0220-an-accelerator-is-given-back-by-whoever-took-it.md)).
+    /// (ADR-0220).
     ///
     /// Owners are compared by identity. Harmless when nothing was bound, and a
     /// no-op when something else was.
@@ -157,7 +157,7 @@ public interface Host {
     ///
     /// For the one thing a corner cannot express: a `tour` dims everything except
     /// the widget it is describing, so it has to reach every edge
-    /// ([ADR-0121](../../../../../../book/src/adr/0121-a-tour-is-a-veil-and-a-sequence.md)).
+    /// (ADR-0121).
     ///
     /// It takes the pointer wherever it is opaque, which for a veil is
     /// everywhere except the cut-out — that is the point of a veil, and it is
@@ -170,7 +170,7 @@ public interface Host {
     /// **What a popup is anchored to.** A menu belongs under the button that
     /// opened it, and where that button *is* is a fact about the last frame:
     /// geometry exists after a paint and it is the router that has it
-    /// ([ADR-0080](../../../../../book/src/adr/0080-a-value-is-measured-along-a-part.md)).
+    /// (ADR-0080).
     ///
     /// By `id` rather than by element because that is how the specification asks
     /// for it — `docs/core-widgets.md` §7's `tour` "names a target by id" — and
@@ -199,7 +199,7 @@ public interface Host {
     /// video driver rather than to the request: every desktop driver has it, and
     /// a caller that gets empty falls back to [#overlay(Widget, Corner)] at the
     /// cost of being clipped to the window
-    /// ([ADR-0102](../../../../../book/src/adr/0102-a-popup-is-a-window-the-platform-may-refuse.md)).
+    /// (ADR-0102).
     ///
     /// The popup is light-dismissed by default: a press anywhere in this window,
     /// or `Escape`, closes it.
@@ -255,7 +255,7 @@ public interface Host {
     /// reads as a mistake rather than as a menu. The options decide the rest —
     /// one longer than the field widens the list past it, which is the other half
     /// of the same rule
-    /// ([ADR-0145](../../../../../book/src/adr/0145-a-dropdown-is-as-wide-as-what-it-drops-from.md)).
+    /// (ADR-0145).
     ///
     /// A floor and not a width: this is still measure-then-place, and a caller
     /// asking for less than its content needs would get its content's size.
@@ -279,7 +279,7 @@ public interface Host {
     /// needed it **guessed** — a menu decided whether it would be taller than the
     /// screen from its row count times an assumed height, and a `select` did not
     /// try, which is why a long list lost its bottom
-    /// ([ADR-0179](../../../../../book/src/adr/0179-a-popup-says-what-it-measured.md)).
+    /// (ADR-0179).
     ///
     /// @param fit consulted between the measure and the place, or null for the
     ///            behaviour of the overload above
@@ -297,13 +297,13 @@ public interface Host {
     /// window opened as a menu is focusable, and every window manager will hand
     /// it the keyboard the moment it appears. A field whose suggestion list did
     /// that took one character and then went dead
-    /// ([ADR-0186](../../../../../book/src/adr/0186-a-panel-that-hangs-off-a-field-is-not-a-menu.md)).
+    /// (ADR-0186).
     ///
     /// So it is opened as the same *kind* of window a tooltip is — never
     /// focusable, and treated as an attached panel by the window manager — while
     /// still being measured, placed and light-dismissed like any other popup. The
     /// arrows reach it because the owner forwards keys to whatever popup is open
-    /// ([ADR-0104](../../../../../book/src/adr/0104-a-popup-is-measured-then-placed.md)).
+    /// (ADR-0104).
     java.util.Optional<Popup> attachedPopup(Widget content,
                                             LogicalRect anchor, Placement placement,
                                             float minimumWidth, Fit fit);
@@ -316,10 +316,10 @@ public interface Host {
     /// about the content.** A menu that lost its last three commands is the worst
     /// kind of wrong and wants a viewport; a tooltip that scrolled would be
     /// absurd and would rather be clamped — or rather should have been a dialog
-    /// ([ADR-0118](../../../../../book/src/adr/0118-a-popup-that-does-not-fit-scrolls.md)).
+    /// (ADR-0118).
     /// `:core` could not act on the answer anyway: a viewport is a widget, and
     /// `:core` has none
-    /// ([ADR-0092](../../../../../book/src/adr/0092-a-primitive-is-a-widget-like-any-other.md)).
+    /// (ADR-0092).
     ///
     /// So the facility reports and the caller answers. Returning `content`
     /// unchanged is the ordinary answer and costs nothing; returning anything
@@ -344,7 +344,7 @@ public interface Host {
     /// leaving the placement to clamp: a menu longer than the screen wants to
     /// become a menu of the screen's height with a scroll view in it, and only
     /// the thing building the menu can decide that
-    /// ([ADR-0118](../../../../../../book/src/adr/0118-a-popup-that-does-not-fit-scrolls.md)).
+    /// (ADR-0118).
     ///
     /// **A rectangle and not just a height**, because the same question arises
     /// horizontally for a wide popup and answering half of it would mean
@@ -366,7 +366,7 @@ public interface Host {
     /// up from what is under the pointer to find the name, and hands it over with
     /// the point it happened at. What the name *means* — and the opening — is the
     /// catalog's, because a menu is a widget and opening one needs `Menus`
-    /// ([ADR-0108](../../../../../book/src/adr/0108-a-context-menu-is-a-name-on-a-widget.md)).
+    /// (ADR-0108).
     ///
     /// An application using the catalog writes one line:
     ///
@@ -394,7 +394,7 @@ public interface Host {
     /// Refused rather than obeyed when the node cannot take focus, is disabled,
     /// or is **outside a modal that is open** — a dialog's focus trap is not
     /// something a stray call gets to step around
-    /// ([ADR-0176](../../../../../book/src/adr/0176-a-dialog-is-a-widget-and-showing-one-is-not.md)).
+    /// (ADR-0176).
     ///
     /// @param id           the `id` of the node to focus
     /// @param fromKeyboard whether to show the focus ring — §7.2's
@@ -413,7 +413,7 @@ public interface Host {
     ///
     /// What §8's "hover-intent timing" is made of, and §7's tooltip delay before
     /// that. An application wanting to do something in half a second wants this
-    /// rather than a thread ([ADR-0105](../../../../../book/src/adr/0105-a-tooltip-is-an-attribute-not-a-widget.md)).
+    /// rather than a thread (ADR-0105).
     ///
     /// @return a handle that cancels it
     EventLoop.Timer after(

@@ -45,7 +45,7 @@ import io.github.digitalsmile.goldberry.widget.style.Styled;
 /// wanted here — the bar's own width is the unit the travel is naturally
 /// expressed in — and it is the same rule that made `translate` *unable* to place
 /// a slider's thumb. Two controls, one rule, opposite conclusions
-/// ([ADR-0081](../../../../../../../../book/src/adr/0081-a-perpetual-loop-has-no-state.md)).
+/// (ADR-0081).
 ///
 /// @param fraction      how far along, `0..1`; ignored when indeterminate
 /// @param indeterminate which of the two drawings this is

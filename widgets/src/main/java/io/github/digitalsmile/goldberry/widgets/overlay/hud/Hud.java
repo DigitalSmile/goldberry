@@ -78,7 +78,7 @@ public record Hud(List<Reading> readings, Attributes attributes)
     /// one — so it measured how long the user had not touched the window and read
     /// as a stall every time they stopped. What is worth knowing is what one
     /// frame of *this display* is, because that is what every budget below is a
-    /// share of ([ADR-0153](../../../../../../../../book/src/adr/0153-a-rate-is-counted-a-refresh-is-asked-for.md)).
+    /// share of (ADR-0153).
     ///
     /// Four stages rather than "everything a frame does": the hit-test capture and
     /// the frame's own setup are in [Reading#PAINT] and not in any of these, so
@@ -86,7 +86,7 @@ public record Hud(List<Reading> readings, Attributes attributes)
     /// is telling *which* of the four moved, which is the question a total cannot
     /// answer — and which went unanswered for a month while the cascade was
     /// running uncached (ADR-0142,
-    /// [ADR-0146](../../../../../../../../book/src/adr/0146-a-hud-shows-where-the-frame-went.md)).
+    /// ADR-0146).
     public static final List<Reading> STAGES = List.of(
             Reading.FPS, Reading.REFRESH, Reading.PAINT,
             Reading.BUILD, Reading.STYLE, Reading.LAYOUT, Reading.RASTER);
@@ -142,7 +142,7 @@ public record Hud(List<Reading> readings, Attributes attributes)
     /// sixty frames** and nothing said so: `paint 2.1 ms` reads as "this frame"
     /// and is not, which makes a spike look like a plateau and a plateau look
     /// like a spike
-    /// ([ADR-0150](../../../../../../../../book/src/adr/0150-a-hud-reads-itself-against-a-budget.md)).
+    /// (ADR-0150).
     ///
     @Override
     public List<Widget> children() {

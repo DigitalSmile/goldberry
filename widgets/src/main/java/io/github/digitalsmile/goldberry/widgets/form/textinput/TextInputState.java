@@ -15,7 +15,8 @@ import io.github.digitalsmile.goldberry.widget.Widget;
 ///
 /// ## The caret blinks on a timer, not on the frame clock
 ///
-/// A spinner draws itself from [io.github.digitalsmile.goldberry.widget.style.Paints.Context#nowMillis]
+/// A spinner draws itself from
+/// [io.github.digitalsmile.goldberry.widget.style.Paints.Context#nowMillis]
 /// and says [io.github.digitalsmile.goldberry.widget.style.Paints#isAnimating], which
 /// asks for a frame every frame — right for something that moves continuously,
 /// and badly wrong for a caret. A caret changes **twice a second**, so animating

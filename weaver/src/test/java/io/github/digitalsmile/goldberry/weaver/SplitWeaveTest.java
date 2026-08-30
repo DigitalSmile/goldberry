@@ -20,7 +20,7 @@ import org.junit.jupiter.api.Test;
 /// compiled, ran, and notified nobody.
 ///
 /// It lived in `:widgets` while every module wove its models. Since
-/// [ADR-0155](../../../../book/src/adr/0155-a-jar-binds-at-run-time-an-image-is-woven.md)
+/// ADR-0155
 /// they do not, so the assertion moved to where the woven bytes are actually
 /// produced: [Woven#group] does in memory what `WeaverMain` does to a directory,
 /// which is the two-pass collection this rule needs. `SplitModelTest` in

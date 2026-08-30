@@ -5,7 +5,7 @@
 /// exists: logging is used by the FFM bindings and by the widget catalog alike,
 /// and `:natives` is the lower of those two, so before this module the shared
 /// code had to live *inside* the native layer and be exported from it
-/// ([ADR-0174](../../../../book/src/adr/0174-what-both-halves-need-is-its-own-module.md)).
+/// (ADR-0174).
 ///
 /// The bar for adding something here is that **both** halves need it and neither
 /// owns it. A type that needs `:natives` belongs in `:natives`; one that only the

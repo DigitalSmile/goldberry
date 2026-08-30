@@ -20,7 +20,7 @@ import java.lang.annotation.Target;
 /// the weaver emits the right registration for each — including the parse from
 /// the `String` a valued action crosses as, which is the one piece of boilerplate
 /// every application was writing by hand
-/// ([ADR-0073](../../../../../../book/src/adr/0073-a-composite-is-one-tab-stop.md)).
+/// (ADR-0073).
 ///
 /// Supported parameter types: `String`, `double`, `int`, `boolean` and their
 /// boxes. Anything else is a build failure naming the method.
@@ -33,7 +33,7 @@ import java.lang.annotation.Target;
 /// a direct virtual call behind an interface the JIT inlines through, there is no
 /// reflection on the path, and the linkage is the one shape GraalVM's closed
 /// world can resolve when it builds the image
-/// ([ADR-0126](../../../../../../book/src/adr/0126-actions-are-bound-by-lambdametafactory.md)).
+/// (ADR-0126).
 ///
 /// A `private` method is fine, and is the expected case: the call site is written
 /// into the model's own class, where private is not a barrier. An action only the

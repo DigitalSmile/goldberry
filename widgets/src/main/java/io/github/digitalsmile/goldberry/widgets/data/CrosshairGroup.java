@@ -42,7 +42,7 @@ import io.github.digitalsmile.goldberry.bind.Subscription;
 /// ## An application holds it, like a `ToastController`
 ///
 /// It is mutable and it outlives any one build, which is what a widget cannot be
-/// ([ADR-0177](../../../../../../../book/src/adr/0177-a-toast-is-raised-through-a-controller.md)'s
+/// (ADR-0177's
 /// shape). Confined to the UI thread, like everything in the widget layer.
 public final class CrosshairGroup {
 

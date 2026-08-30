@@ -25,7 +25,7 @@ import io.github.digitalsmile.goldberry.css.value.Affine;
 /// transform stack, arrived at from the other end. There it was so hit testing
 /// could invert the matrix; here it is because the native side offers no way to
 /// undo one clip without undoing all of them
-/// ([ADR-0114](../../../../../../book/src/adr/0114-a-clip-is-a-rectangle-the-painter-carries.md)).
+/// (ADR-0114).
 ///
 /// @param left   the leftmost logical pixel drawn
 /// @param top    the topmost

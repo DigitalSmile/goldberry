@@ -24,7 +24,7 @@ public final class FrameRing implements FrameStats {
     ///
     /// Public along with the class: a [io.github.digitalsmile.goldberry.Window]
     /// owns one and lives in another package now
-    /// ([ADR-0172](../../../../../../book/src/adr/0172-a-package-is-a-role-and-the-module-is-the-fence.md)).
+    /// (ADR-0172).
     /// Nothing is lost by an application making its own -- a ring nobody feeds
     /// reads as zero, and [FixedFrameStats] is the better way to fake one.
     public FrameRing() {}

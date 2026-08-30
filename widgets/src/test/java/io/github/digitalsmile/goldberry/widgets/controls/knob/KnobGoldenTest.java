@@ -97,7 +97,8 @@ class KnobGoldenTest {
     /// §3's two diameters, side by side and at the same value.
     ///
     /// The ring's stroke is a **constant** 2px rather than a proportion (§1.6's
-    /// line weight, which is [io.github.digitalsmile.goldberry.widgets.controls.spinner.Spinner]'s answer to the same gap), so this is the
+    /// line weight, which is [io.github.digitalsmile.goldberry.widgets.controls.spinner.Spinner]'s
+    /// answer to the same gap), so this is the
     /// image that says a 48px knob is a bigger circle and not a scaled drawing.
     @Test
     @DisplayName("32 and 48, and the ring is the same weight on both")

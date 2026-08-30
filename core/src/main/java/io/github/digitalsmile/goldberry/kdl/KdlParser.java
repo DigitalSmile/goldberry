@@ -66,7 +66,7 @@ public final class KdlParser {
     /// and it exists for the same reason: a `.kdl` file next to the class that
     /// inflates it is a document a designer can edit and a text block in Java is
     /// not — which is most of the point of having markup at all
-    /// ([ADR-0093](../../../../../../book/src/adr/0093-an-application-is-a-root-widget.md)).
+    /// (ADR-0093).
     ///
     /// UTF-8, and a missing resource is an error rather than an empty document:
     /// a window that inflates nothing renders nothing, with no clue why.

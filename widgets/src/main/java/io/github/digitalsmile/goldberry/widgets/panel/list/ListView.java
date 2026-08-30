@@ -80,7 +80,7 @@ import io.github.digitalsmile.goldberry.widgets.text.Text;
 /// is what a list does by default. [#virtualized(double)] is §10's committed
 /// follow-up: told how tall a row is, the list builds **only the rows the
 /// viewport can see** and stands the rest off with two spacers
-/// ([ADR-0213](../../../../../../../../book/src/adr/0213-a-virtual-list-is-two-spacers-and-a-window.md)).
+/// (ADR-0213).
 ///
 /// Opt-in, and it takes a number rather than a flag, because the number is the
 /// one thing the widget cannot find out: §8's subset resolves
@@ -194,7 +194,8 @@ public record ListView<T>(
 
     /// The same, for the caller that holds **one** value.
     ///
-    /// A `String` and not a set of one, for [io.github.digitalsmile.goldberry.widgets.panel.tree.Tree]'s
+    /// A `String` and not a set of one, for
+    /// [io.github.digitalsmile.goldberry.widgets.panel.tree.Tree]'s
     /// reason: an application holds a field, and asking it to wrap that in a set
     /// to hand it over and unwrap it to read it back would be ceremony in the
     /// common case for the benefit of the rare one. What crosses inside is a set
@@ -239,7 +240,7 @@ public record ListView<T>(
     /// Everything else is unchanged: the same item-factory is called with the
     /// same items, which is what §10 means by "a performance upgrade, not an API
     /// break". `Home`, `End` and the typeahead still reach rows that are not
-    /// built ([ADR-0213](../../../../../../../../book/src/adr/0213-a-virtual-list-is-two-spacers-and-a-window.md)).
+    /// built (ADR-0213).
     ///
     /// @param height a row's height in logical pixels, or zero to build them all
     public ListView<T> virtualized(double height) {

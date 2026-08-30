@@ -178,7 +178,7 @@ class FrameTest {
         // `Window` lives in the shell package and this one is `paint`, so the
         // constructor it used to call is out of reach and this factory is what it
         // calls instead
-        // ([ADR-0172](../../../../../../../book/src/adr/0172-a-package-is-a-role-and-the-module-is-the-fence.md)).
+        // (ADR-0172).
         // The contract that used to be kept by package-privacy -- a frame is
         // valid only until it ends -- has to be kept by the frame now.
         var buffer = PixelBuffer.allocate(new PhysicalSize(4, 4), PixelFormat.BGRA32_PREMULTIPLIED);

@@ -21,7 +21,7 @@ import io.github.digitalsmile.goldberry.widget.style.Styled;
 /// its own, a transform belongs to a `ComputedStyle`, and a `ComputedStyle`
 /// belongs to an element. So the dot is an element.
 ///
-/// [ADR-0065](../../../../../../../../book/src/adr/0065-a-part-is-styleable-and-not-constructible.md)
+/// ADR-0065
 /// asked that the part argument be re-made rather than reused each time, and this
 /// is the third asking. It holds again, for a reason the first two did not have:
 /// not "two surfaces need two backgrounds" but **two things need to move

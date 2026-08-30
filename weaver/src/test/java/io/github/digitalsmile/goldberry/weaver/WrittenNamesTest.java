@@ -18,7 +18,7 @@ import org.junit.jupiter.api.Test;
 /// nothing checks", and that was true of the *annotations* and false of these:
 /// nothing checked them at all.
 ///
-/// [ADR-0172](../../../../../../book/src/adr/0172-a-package-is-a-role-and-the-module-is-the-fence.md)
+/// ADR-0172
 /// moved `BoundModel`, `FieldListeners`, `BindingRegistry` and `ActionRegistry`
 /// into packages of their own, and every one of those names is written here as
 /// text. The build stayed green through the move; a woven native image would

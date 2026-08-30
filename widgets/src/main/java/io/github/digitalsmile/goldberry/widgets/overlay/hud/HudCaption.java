@@ -18,7 +18,7 @@ import io.github.digitalsmile.goldberry.widget.style.Styled;
 /// a spike looks like a plateau on the way in and a plateau looks like a spike on
 /// the way out, and a reader with the wrong model of the number draws the wrong
 /// conclusion from every one of them
-/// ([ADR-0150](../../../../../../../../book/src/adr/0150-a-hud-reads-itself-against-a-budget.md)).
+/// (ADR-0150).
 ///
 /// **A mean and not a median**, which is worth saying because the benchmarks in
 /// this repository report medians and a reader who knows that would otherwise

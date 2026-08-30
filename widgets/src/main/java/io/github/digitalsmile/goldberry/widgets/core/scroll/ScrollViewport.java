@@ -24,12 +24,12 @@ import io.github.digitalsmile.goldberry.widget.style.Styled;
 ///
 /// Scrolling is arithmetic on two rectangles — the viewport's and the content's —
 /// and a widget cannot measure either. `build` and `render` both run before Yoga,
-/// which is [ADR-0080](../../../../../../../../book/src/adr/0080-a-value-is-measured-along-a-part.md)'s
+/// which is ADR-0080's
 /// finding. So the two extents arrive **on the event**, resolved by the router
 /// out of the snapshot the last paint left behind: [PointerEvent#bounds()] is this
 /// viewport and [PointerEvent#part()] is the `scroll-content` named by
 /// [#localPart()]
-/// ([ADR-0116](../../../../../../../../book/src/adr/0116-a-scroll-view-is-a-clip-an-offset-and-two-extents.md)).
+/// (ADR-0116).
 ///
 /// That is also why the keyboard works. A key event carries no position and
 /// `PageDown` needs no position — but it needs both extents exactly as the wheel

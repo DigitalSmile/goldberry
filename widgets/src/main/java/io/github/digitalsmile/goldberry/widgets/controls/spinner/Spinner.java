@@ -28,14 +28,15 @@ import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
 /// The obvious implementation is an icon, and it is the wrong one twice over: an
 /// [io.github.digitalsmile.goldberry.icon.Icon] owns native memory and a widget
 /// is a value rebuilt every frame, so a spinner holding one would leak a ring per
-/// reload — the argument [io.github.digitalsmile.goldberry.widgets.controls.button.Button]'s borrowed icon makes — and
+/// reload — the argument [io.github.digitalsmile.goldberry.widgets.controls.button.Button]'s
+/// borrowed icon makes — and
 /// it would put the
 /// toolkit's own spinner behind an asset an application has to register.
 ///
 /// So it is a `Box.Mark`, like a checkbox's tick and a radio's dot, and the arc
 /// behind it is **three cubics through the already-exported `bl_path_cubic_to`**.
 /// No symbol was added to the export list, which is the rule
-/// [ADR-0064](../../../../../../../../book/src/adr/0064-a-rounded-rectangle-is-four-cubics.md)
+/// ADR-0064
 /// set when a rounded corner turned out to be four of them.
 ///
 /// Three quarters rather than a whole circle because **a spinning circle is a
@@ -46,7 +47,7 @@ import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
 /// §3.1: "rotation 900ms `linear` loop". There is no controller, no start, no
 /// stop and no state — the angle is `(now mod 900) / 900` of a turn, so a row of
 /// spinners is in step by construction and one that unmounts leaves nothing
-/// behind ([ADR-0081](../../../../../../../../book/src/adr/0081-a-perpetual-loop-has-no-state.md)).
+/// behind (ADR-0081).
 ///
 /// Reduced motion replaces the rotation with §3.1's opacity pulse, which is the
 /// stylesheet's: this widget simply stops turning.

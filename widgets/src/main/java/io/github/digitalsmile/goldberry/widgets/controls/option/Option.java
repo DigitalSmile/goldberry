@@ -36,10 +36,10 @@ import io.github.digitalsmile.goldberry.widgets.markup.Markup;
 /// §3 gives `segmented` and `select` the same child node — a value, a label, an
 /// icon, and nothing else — so this is one widget by specification. It lived in
 /// `…controls.segmented` while that was its only caller, under
-/// [ADR-0092](../../../../../../../../book/src/adr/0092-a-primitive-is-a-widget-like-any-other.md)'s
+/// ADR-0092's
 /// rule about not generalising from one, and moved here when the second arrived:
 /// a package named after one of two callers tells the reader the wrong thing
-/// ([ADR-0141](../../../../../../../../book/src/adr/0141-a-select-is-a-closed-control-and-a-list.md)).
+/// (ADR-0141).
 ///
 /// **The drawing is not shared, and does not need to be.** A segment is a cell in
 /// a bar and a choice in a dropdown is a row; both are `option` in CSS, and which
@@ -56,7 +56,8 @@ import io.github.digitalsmile.goldberry.widgets.markup.Markup;
 /// *exactly*: an option owns its [#value()], its label and its icon, and is told
 /// whether it is selected, what picking it does, and whether the set as a whole
 /// is unavailable. "Exactly one of these is on" is a fact about the set
-/// ([io.github.digitalsmile.goldberry.widgets.controls.segmented.Segmented#children()]), so an option inflated from markup starts unselected
+/// ([io.github.digitalsmile.goldberry.widgets.controls.segmented.Segmented#children()]), so an
+/// option inflated from markup starts unselected
 /// and unwired and the control rewrites it on every build — which is also what
 /// keeps §11's parity invariant honest, since that is precisely the value a Java
 /// caller writes.
@@ -67,7 +68,7 @@ import io.github.digitalsmile.goldberry.widgets.markup.Markup;
 /// drawings that share a model. Sharing the *widget* would mean one CSS type for
 /// both, and a stylesheet could then only tell them apart by their ancestor —
 /// `segmented radio` — which is the descendant-selector improvisation
-/// [ADR-0065](../../../../../../../../book/src/adr/0065-a-part-is-styleable-and-not-constructible.md)
+/// ADR-0065
 /// exists to avoid. It is named `option` rather than `segment` because that is
 /// the node `docs/core-widgets.md` §3 writes, in both that control and `select` —
 /// which is what eventually put it in a package of its own.
@@ -245,7 +246,8 @@ public record Option(
     ///
     /// Arrow keys are absent on purpose. Which segment is *next* is a fact about
     /// the bar, and an option cannot see its siblings; the router moves the focus
-    /// along [io.github.digitalsmile.goldberry.widgets.controls.segmented.Segmented#focusScope()]'s axis and this widget hears about it in
+    /// along [io.github.digitalsmile.goldberry.widgets.controls.segmented.Segmented#focusScope()]'s
+    /// axis and this widget hears about it in
     /// [#onFocusChanged] ([ADR-0073]).
     @Override
     public void onKey(KeyEvent event) {

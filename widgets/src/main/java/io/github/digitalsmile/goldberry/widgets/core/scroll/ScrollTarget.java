@@ -7,7 +7,7 @@ package io.github.digitalsmile.goldberry.widgets.core.scroll;
 /// and it points at the [ScrollState] that holds the position — the same shape a
 /// control's `change` handler has, and the same direction: what the user did
 /// travels **up**, and the new offset comes back **down** on the next build
-/// ([ADR-0063](../../../../../../../../book/src/adr/0063-data-flows-down-events-flow-up.md)).
+/// (ADR-0063).
 ///
 /// Not a `BiConsumer<Double, Double>`: two boxes per wheel event, on the one path
 /// in this widget that runs at the pointer's rate.

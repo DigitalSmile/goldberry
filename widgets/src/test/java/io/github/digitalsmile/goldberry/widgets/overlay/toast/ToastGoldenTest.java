@@ -145,7 +145,7 @@ class ToastGoldenTest {
     /// laid out as an ordinary top-aligned box, which is what a scene like
     /// [#SCENE] gives it, is anchored at the other end and would photograph the
     /// opposite toast moving
-    /// ([ADR-0178](../../../../../../../../../book/src/adr/0178-a-stack-closes-its-own-hole.md)).
+    /// (ADR-0178).
     /// This is [io.github.digitalsmile.goldberry.widgets.overlay.hud.HudGoldenTest]'s
     /// finding in a second place: overlay placement is not assertable as a number.
     ///

@@ -34,7 +34,7 @@ record HudReading(Reading reading) implements Widget.Leaf, Styled, Paints {
     /// itself would be a widget that cannot be themed, and §10's whole mechanism
     /// is that a colour comes from a token. What this node knows is which of the
     /// three states it is in; what that looks like is `controls.css`'s
-    /// ([ADR-0150](../../../../../../../../book/src/adr/0150-a-hud-reads-itself-against-a-budget.md)).
+    /// (ADR-0150).
     ///
     /// **The level cannot be in [#classes()]**, and that is what
     /// [Styled#classes(FrameStats)] exists for:

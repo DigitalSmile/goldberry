@@ -11,7 +11,7 @@ import io.github.digitalsmile.goldberry.widget.Widget;
 /// fraction the widget may or may not own — a controlled split reads it from its
 /// widget every build. The **length** is a measurement, which no widget can own
 /// at all: it arrives from the frame that was laid out
-/// ([ADR-0117](../../../../../../../../book/src/adr/0117-a-widget-may-be-told-what-it-measured.md)).
+/// (ADR-0117).
 final class SplitPaneState extends State<SplitPane> {
 
     /// What a key press moves the divider by, in logical pixels.

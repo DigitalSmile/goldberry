@@ -31,17 +31,19 @@ import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
 /// reduced-motion aware)", and those draw differently enough that the obvious
 /// design is two widgets. They are one, because `:indeterminate` already exists
 /// and already means exactly this: a control whose value is not a point on its
-/// scale. [io.github.digitalsmile.goldberry.widgets.controls.checkbox.Checkbox] mirrors it for its mixed state
-/// ([ADR-0065](../../../../../../../../book/src/adr/0065-a-part-is-styleable-and-not-constructible.md)),
+/// scale. [io.github.digitalsmile.goldberry.widgets.controls.checkbox.Checkbox] mirrors it for its
+/// mixed state
+/// (ADR-0065),
 /// the renderer mirrors it onto the element for free, and a stylesheet reaches
 /// the two states with `progress-fill` and `progress:indeterminate progress-fill`.
 ///
 /// ## The determinate half places a value, and does not use a ratio to do it
 ///
-/// [io.github.digitalsmile.goldberry.widgets.controls.slider.Slider] places its thumb by flex ratio because a
+/// [io.github.digitalsmile.goldberry.widgets.controls.slider.Slider] places its thumb by flex ratio
+/// because a
 /// percentage `translate` is a
 /// proportion of the *moving box* and could not express it
-/// ([ADR-0079](../../../../../../../../book/src/adr/0079-a-continuous-value-is-placed-by-ratio.md)).
+/// (ADR-0079).
 /// A progress bar has no thumb, so its fill is simply `width: 40%` — the plain
 /// answer, available here and not there, and the difference between the two is
 /// worth reading before assuming one control's technique belongs on the other.
@@ -53,7 +55,7 @@ import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
 /// [Paints.Context#nowMillis()] instead, with **no state anywhere**: the phase is
 /// `now mod 1200`, so two bars in one window sweep together and nothing has to be
 /// started, stopped or disposed
-/// ([ADR-0081](../../../../../../../../book/src/adr/0081-a-perpetual-loop-has-no-state.md)).
+/// (ADR-0081).
 ///
 /// The sweep is a `transform`, which is what keeps it affordable: animating the
 /// fill's *width* would run Yoga on every frame of a loop that never ends, and

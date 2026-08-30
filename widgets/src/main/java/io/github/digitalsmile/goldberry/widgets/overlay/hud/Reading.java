@@ -37,7 +37,7 @@ public enum Reading {
         /// you stop clicking and stays low for the next sixty frames. Judging it
         /// against a budget turned normal idling into an alarm, which is the
         /// opposite of what a budget is for
-        /// ([ADR-0153](../../../../../../../../book/src/adr/0153-a-rate-is-counted-a-refresh-is-asked-for.md)).
+        /// (ADR-0153).
         ///
         /// It is worth showing anyway: while something *is* moving — a drag, a
         /// scroll, a transition — the loop runs continuously and this is exactly
@@ -125,7 +125,7 @@ public enum Reading {
     /// **Two decimals for the stages**, unlike the three readings above. A stage
     /// that reads `0.0 ms` at one decimal is indistinguishable from a stage that
     /// is not running, and the whole use of a breakdown is telling those apart
-    /// ([ADR-0146](../../../../../../../../book/src/adr/0146-a-hud-shows-where-the-frame-went.md)).
+    /// (ADR-0146).
     BUILD("build") {
         @Override
         String text(FrameStats stats) {
@@ -221,7 +221,7 @@ public enum Reading {
     /// Three levels and not a number, because what a colour can say is "fine",
     /// "watch this" and "this is the problem", and a gradient would say none of
     /// them at a glance
-    /// ([ADR-0150](../../../../../../../../book/src/adr/0150-a-hud-reads-itself-against-a-budget.md)).
+    /// (ADR-0150).
     enum Level {
         OK("ok"),
         NEAR("near"),
@@ -281,7 +281,7 @@ public enum Reading {
     /// budget is judged. The two either side are the shape of the cost, which a
     /// mean cannot show: 2 ms that never leaves 1.9–2.1 is steady work, and 2 ms
     /// ranging 0.2–14 is a spike being averaged away over sixty frames
-    /// ([ADR-0154](../../../../../../../../book/src/adr/0154-a-reading-is-a-range.md)).
+    /// (ADR-0154).
     ///
     /// The unit is said once, at the end, because the caption already says the
     /// numbers are milliseconds a frame and three `ms` on one line is two too
@@ -303,7 +303,7 @@ public enum Reading {
     /// that can disagree with the number beside it, which is exactly what the
     /// first draft of the over-budget golden did — `style 4.80 / 9.60 / 38.40 ms`
     /// in the quiet colour, nine milliseconds over an eighth of a frame
-    /// ([ADR-0154](../../../../../../../../book/src/adr/0154-a-reading-is-a-range.md)).
+    /// (ADR-0154).
     abstract double value(FrameStats stats);
 
     /// What this reading is allowed to cost, in milliseconds, or 0 for one that

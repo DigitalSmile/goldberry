@@ -163,7 +163,7 @@ public final class SdlEventBuffer implements AutoCloseable {
     /// each fractional event separately would report nothing at all, forever.
     /// That is the difference between a detent counter that works on a trackpad
     /// and one that does not
-    /// ([ADR-0115](../../../../../../../book/src/adr/0115-a-wheel-reports-a-fraction-and-a-detent.md)).
+    /// (ADR-0115).
     ///
     /// Un-flipped like the floats, and for the same reason.
     public int wheelTicksX() {
@@ -271,7 +271,7 @@ public final class SdlEventBuffer implements AutoCloseable {
     /// What a test needs to reach the case the `integer_*` pair exists for: a
     /// touchpad reporting a long run of fractions and SDL emitting a whole click
     /// part-way through, which no function of one event's floats can produce
-    /// ([ADR-0115](../../../../../../../book/src/adr/0115-a-wheel-reports-a-fraction-and-a-detent.md)).
+    /// (ADR-0115).
     public void writeWheel(
             int windowId,
             float x,
@@ -299,7 +299,7 @@ public final class SdlEventBuffer implements AutoCloseable {
     ///
     /// [#writeWheel]'s reason, for a different unreachable case: a test cannot
     /// move a pointer, and the coordinates a motion arrives with are the subject
-    /// of [ADR-0211](../../../../../../../book/src/adr/0211-a-popup-asks-the-desktop-where-the-pointer-is.md)
+    /// of ADR-0211
     /// — a window and a coordinate that disagree about which space they are in.
     /// Pushing one is the only way to state that disagreement on purpose.
     ///

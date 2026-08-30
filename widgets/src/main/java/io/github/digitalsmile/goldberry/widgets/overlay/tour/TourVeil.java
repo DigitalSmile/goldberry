@@ -22,7 +22,7 @@ import io.github.digitalsmile.goldberry.widget.style.Styled;
 /// state "this box, minus that rectangle". Four absolutely-positioned bands need
 /// none of it: above the target, below it, and the two beside it between those
 /// two — which tile the window exactly and leave the target uncovered
-/// ([ADR-0121](../../../../../../../../book/src/adr/0121-a-tour-is-a-veil-and-a-sequence.md)).
+/// (ADR-0121).
 ///
 /// The consequence is better than the workaround it started as. **The target
 /// stays live**: nothing is drawn over it, so it takes the pointer and the

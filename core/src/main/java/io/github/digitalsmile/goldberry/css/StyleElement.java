@@ -54,7 +54,7 @@ public interface StyleElement {
     /// ran eleven cascades. Cached against the parent's map by identity, the walk
     /// collapses to one, and an unchanged parent keeps its children's entries
     /// valid without anything having to tell them
-    /// ([ADR-0152](../../../../../../book/src/adr/0152-the-cascade-looks-at-rules-that-could-match.md)).
+    /// (ADR-0152).
     ///
     /// The same scheme the computed style already uses (ADR-0070), one level
     /// down: a cascade is to custom properties what a style resolve is to a

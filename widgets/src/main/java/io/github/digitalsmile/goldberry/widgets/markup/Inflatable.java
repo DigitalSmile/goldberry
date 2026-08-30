@@ -15,7 +15,7 @@ import io.github.digitalsmile.goldberry.widgets.Controls;
 /// beside the record it builds and the javadoc describing the attributes it
 /// reads, so the three forms §9 requires every widget to have — Java, KDL and CSS
 /// — are three things in one file rather than one thing in three
-/// ([ADR-0130](../../../../../../../book/src/adr/0130-a-widget-inflates-itself.md)).
+/// (ADR-0130).
 ///
 /// A factory is a `static` method referenced as `Button::inflate`, which is what
 /// keeps [Controls] a list of names.

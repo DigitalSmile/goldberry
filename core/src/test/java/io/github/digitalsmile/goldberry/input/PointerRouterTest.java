@@ -26,7 +26,8 @@ import io.github.digitalsmile.goldberry.widget.style.Styled;
 /// Dispatch, pseudo-classes and focus, without a window.
 ///
 /// The hit-test snapshot is supplied directly rather than captured from a paint,
-/// so these are about the routing rules and not about Yoga. [io.github.digitalsmile.goldberry.input.hit.HitTestTest]
+/// so these are about the routing rules and not about Yoga.
+/// [io.github.digitalsmile.goldberry.input.hit.HitTestTest]
 /// covers
 /// the other half.
 class PointerRouterTest {

@@ -164,7 +164,7 @@ record ToastBox(
     /// Banked against the day it is dismissed: closing the hole it leaves needs
     /// the height of the hole, and `render` runs before Yoga, so a widget cannot
     /// ask what size it came out as
-    /// ([ADR-0117](../../../../../../../../book/src/adr/0117-a-widget-may-be-told-what-it-measured.md)).
+    /// (ADR-0117).
     ///
     /// This is **last frame's**, which is exactly right here: a toast has to have
     /// been on screen to be dismissed, so by the time the number is wanted it has

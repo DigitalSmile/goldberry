@@ -30,7 +30,8 @@ import io.github.digitalsmile.goldberry.widgets.markup.Markup;
 ///
 /// ## Its drag is a rate, and that is the whole of what is new
 ///
-/// [io.github.digitalsmile.goldberry.widgets.controls.slider.Slider] and this control answer the same question — what value is the user
+/// [io.github.digitalsmile.goldberry.widgets.controls.slider.Slider] and this control answer the
+/// same question — what value is the user
 /// asking for — from opposite ends. A slider's value is a **position**: the
 /// pointer is somewhere along a track and the fraction it sits at *is* the
 /// answer, read fresh on every event with no history at all ([ADR-0079]). A knob
@@ -105,7 +106,8 @@ public record Knob(
     /// of the gap between two — see the class comment.
     private static final double PULL = 0.25;
 
-    /// How far the pointer may travel and still have been a *click* — [io.github.digitalsmile.goldberry.widgets.controls.toggle.Toggle]'s
+    /// How far the pointer may travel and still have been a *click* —
+    /// [io.github.digitalsmile.goldberry.widgets.controls.toggle.Toggle]'s
     /// number, and the same job: one gesture has to mean two things and the
     /// distance is what tells them apart.
     private static final float CLICK_SLOP = 8;
@@ -147,7 +149,8 @@ public record Knob(
 
 
     /// The value actually showing: the bound property's if there is one, else
-    /// [#value()] — clamped either way, for [io.github.digitalsmile.goldberry.widgets.controls.slider.Slider#resolved()]'s reason.
+    /// [#value()] — clamped either way, for
+    /// [io.github.digitalsmile.goldberry.widgets.controls.slider.Slider#resolved()]'s reason.
     public double resolved() {
         var raw = source == null ? value
                 : source.get() instanceof Number number ? number.doubleValue() : value;
@@ -191,7 +194,8 @@ public record Knob(
         return delta - ARC_SWEEP <= (turn - ARC_SWEEP) / 2 ? 1 : 0;
     }
 
-    /// What `PageUp` and `PageDown` move by — [io.github.digitalsmile.goldberry.widgets.controls.slider.Slider#largeStep()]'s rule, so the
+    /// What `PageUp` and `PageDown` move by —
+    /// [io.github.digitalsmile.goldberry.widgets.controls.slider.Slider#largeStep()]'s rule, so the
     /// two controls do not disagree about what a page is.
     public double largeStep() {
         return step > 0 ? step * 10 : (max - min) / 10;
@@ -344,7 +348,8 @@ public record Knob(
     /// cannot know which one it is; the router synthesizes `CLICKED` only when the
     /// press and the release landed on the same node ([ADR-0058]), and the
     /// remaining ambiguity — a drag that ended where it began — is settled by
-    /// [#CLICK_SLOP], which is [io.github.digitalsmile.goldberry.widgets.controls.toggle.Toggle]'s answer to the same question. Jumping on
+    /// [#CLICK_SLOP], which is [io.github.digitalsmile.goldberry.widgets.controls.toggle.Toggle]'s
+    /// answer to the same question. Jumping on
     /// the press would also have to fight the anchor: the router reads
     /// [#gestureAnchor()] *before* dispatching, so a drag after a jump would
     /// continue from the value the jump replaced.
@@ -404,7 +409,8 @@ public record Knob(
         event.consume();
     }
 
-    /// [io.github.digitalsmile.goldberry.widgets.controls.slider.Slider]'s keyboard map exactly, and deliberately so: §3 gives both
+    /// [io.github.digitalsmile.goldberry.widgets.controls.slider.Slider]'s keyboard map exactly,
+    /// and deliberately so: §3 gives both
     /// controls "keyboard arrows (step), PgUp/PgDn, Home/End", and a knob that
     /// answered them differently would be a second thing to learn.
     @Override
@@ -432,7 +438,8 @@ public record Knob(
         event.consume();
     }
 
-    /// [io.github.digitalsmile.goldberry.widgets.controls.slider.Slider#stepFrom]'s rule — the next value the user can *reach*, which is
+    /// [io.github.digitalsmile.goldberry.widgets.controls.slider.Slider#stepFrom]'s rule — the next
+    /// value the user can *reach*, which is
     /// not always one step away when the model is off the grid.
     private double stepFrom(double current, int direction, double share) {
         if (step <= 0) {
@@ -479,7 +486,8 @@ public record Knob(
         return raw < min ? min : raw > max ? max : raw;
     }
 
-    /// [io.github.digitalsmile.goldberry.widgets.controls.slider.Slider#snap]'s rule: the grid counts from `min`, and the ends are always
+    /// [io.github.digitalsmile.goldberry.widgets.controls.slider.Slider#snap]'s rule: the grid
+    /// counts from `min`, and the ends are always
     /// reachable even when the range is not a whole number of steps.
     private double snap(double raw) {
         if (step <= 0 || raw == min || raw == max) {

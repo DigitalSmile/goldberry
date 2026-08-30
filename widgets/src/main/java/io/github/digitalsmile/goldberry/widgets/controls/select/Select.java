@@ -287,7 +287,7 @@ public record Select(
     /// Selection is **leaf-only**, which is §3's default and its reason —
     /// "'Europe' is usually a heading and not an answer". A parent row is still
     /// navigable and openable; it is simply not a value
-    /// ([ADR-0184](../../../../../../../../book/src/adr/0184-a-tree-is-a-list-that-remembers-what-is-open.md)).
+    /// (ADR-0184).
     public Select tree(List<io.github.digitalsmile.goldberry.widgets.panel.tree.TreeNode> roots) {
         return new Select(
                 value,

@@ -50,7 +50,7 @@ import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
 /// is written through `restyle`, so a stylesheet still decides *what* the colour
 /// means — `controls.css` puts it on the selected tab's underline and on its icon
 /// — and an application that sets none gets the theme's accent
-/// ([ADR-0107](../../../../../../../../book/src/adr/0107-a-tab-strip-is-a-model-a-header-and-a-panel.md)).
+/// (ADR-0107).
 ///
 /// @param value      what this tab is called in the model — what `change` reports
 /// @param label      the text in the header
@@ -335,7 +335,7 @@ public record Tab(
     /// **Opacity and a translation, and nothing else** — §1.7's whitelist is the
     /// compositor-cheap set, and a tab that animated its own *width* would run
     /// Yoga on every frame of every arrival and reflow the row beside it
-    /// ([ADR-0068](../../../../../../../../book/src/adr/0068-the-transform-stack-is-java-side.md)).
+    /// (ADR-0068).
     /// So a tab appears in its final place and fades up into it, which is also
     /// what makes an arrival and a departure the same animation backwards.
     ///

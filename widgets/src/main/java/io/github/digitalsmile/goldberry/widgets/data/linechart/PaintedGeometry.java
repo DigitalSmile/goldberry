@@ -9,7 +9,7 @@ package io.github.digitalsmile.goldberry.widgets.data.linechart;
 /// ([io.github.digitalsmile.goldberry.input.event.PointerEvent.Local]) and no
 /// text stack. So the painter leaves its answer here and the pointer reads it.
 ///
-/// **This is [ADR-0054](../../../../../../../../book/src/adr/0054-hit-testing-runs-against-the-painted-frame.md)'s
+/// **This is ADR-0054's
 /// rule one level down.** The toolkit routes a pointer against a snapshot of the
 /// frame that was painted, rather than against a fresh layout, for the reason
 /// that the frame is what the user was looking at when they pointed at it. A

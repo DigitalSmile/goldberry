@@ -8,7 +8,7 @@ import io.github.digitalsmile.goldberry.widget.style.Paints;
 /// The order is not a preference: it is the mechanism that keeps adjacent series
 /// distinguishable under colour-vision deficiency, and it was searched over all
 /// 40 320 permutations rather than chosen
-/// ([ADR-0194](../../../../../../../book/src/adr/0194-a-series-colour-is-derived-from-nord-not-taken-from-it.md)).
+/// (ADR-0194).
 ///
 /// ## Never cycled
 ///
@@ -25,7 +25,7 @@ import io.github.digitalsmile.goldberry.widget.style.Paints;
 /// overrides one with an ordinary rule — `#revenue { --gb-chart-1: #b48ead }`
 /// recolours one chart's first series and nothing else. A Java table would have
 /// been simpler and would have made the palette the toolkit's rather than the
-/// theme's ([ADR-0195](../../../../../../../book/src/adr/0195-a-painter-reads-the-theme-through-a-custom-property.md)).
+/// theme's (ADR-0195).
 public final class SeriesPalette {
 
     /// How many slots the theme defines. Past this the answer repeats; see the

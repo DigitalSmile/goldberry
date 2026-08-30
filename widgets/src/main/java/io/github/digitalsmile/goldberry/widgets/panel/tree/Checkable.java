@@ -13,7 +13,7 @@ package io.github.digitalsmile.goldberry.widgets.panel.tree;
 /// checkbox is a *second* value beside the selection rather than a rendering of
 /// it: a file manager where the highlighted row and the ticked rows are the same
 /// thing is a file manager that cannot copy six files
-/// ([ADR-0210](../../../../../../../../book/src/adr/0210-a-tree-checks-and-selects-two-different-things.md)).
+/// (ADR-0210).
 ///
 /// The disagreement between the two readings is recorded in `ARCHITECTURE.md`
 /// §17.1 rather than resolved by picking one, because both sentences are in the

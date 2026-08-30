@@ -10,7 +10,7 @@ import io.github.digitalsmile.goldberry.widget.style.Styled;
 
 /// The chips a `select multiple` is holding — a **part**, so it is CSS-selectable
 /// and not constructible
-/// ([ADR-0065](../../../../../../../../book/src/adr/0065-a-part-is-styleable-and-not-constructible.md)).
+/// (ADR-0065).
 ///
 /// It exists because of *where* the wrapping goes. §8's subset gained
 /// `flex-wrap` for this control, and putting it on the field was the obvious
@@ -18,7 +18,7 @@ import io.github.digitalsmile.goldberry.widget.style.Styled;
 /// a row that wraps drops the chevron onto a second line under the chips rather
 /// than keeping it at the edge. Which is a worse picture than the shrinking it
 /// was meant to fix, and it took a golden image to see it
-/// ([ADR-0192](../../../../../../../../book/src/adr/0192-a-row-of-chips-wraps-and-the-chevron-does-not.md)).
+/// (ADR-0192).
 ///
 /// So the chips get a box of their own that wraps and grows, and the field stays
 /// the one-line row it always was: chips, then the mark. It also takes over the

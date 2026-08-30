@@ -32,7 +32,7 @@ import io.github.digitalsmile.goldberry.widgets.core.Row;
 /// left the gap that makes the rotation visible. And a sweep is a picture of a
 /// moment: the whole point of a virtual clock is that a frame 300 ms into a
 /// 1.2 s loop is a still image that is exactly reproducible
-/// ([ADR-0067](../../../../../../../../book/src/adr/0067-motion-is-an-overlay-on-a-frame-clock.md)),
+/// (ADR-0067),
 /// which is impossible against a wall clock.
 ///
 /// `./gradlew :widgets:test -Dgoldberry.golden.update=true` rewrites them.

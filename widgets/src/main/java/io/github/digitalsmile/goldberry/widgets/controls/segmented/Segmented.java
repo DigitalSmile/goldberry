@@ -47,7 +47,7 @@ import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
 /// [FocusScope#BOTH]. A radio group has no axis because its direction is its
 /// stylesheet's; **a segmented control's axis is its own** — it is a bar, in one
 /// direction, and no class turns it into a column. That is
-/// [ADR-0078](../../../../../../../../book/src/adr/0078-a-focus-scope-has-an-axis.md)'s
+/// ADR-0078's
 /// rule applied for the first time to something that is not a menu, and it is
 /// the machine-checkable form of "these are two widgets".
 ///

@@ -47,7 +47,7 @@ public final class BoxPainter {
     /// times a second wants one `RenderTree` held for the life of the window, so
     /// that Yoga's nodes, its layout cache and the measure callbacks survive
     /// between frames
-    /// ([ADR-0069](../../../../../../book/src/adr/0069-the-render-tree-is-retained.md)).
+    /// (ADR-0069).
     ///
     /// There is one implementation and two lifetimes, rather than two
     /// implementations — which is what ADR-0053 rejected and what would otherwise
@@ -106,7 +106,7 @@ public final class BoxPainter {
     /// Public because [io.github.digitalsmile.goldberry.paint.tree.RenderTree] is
     /// in a package of its own now: the render tree paints one retained box at a
     /// time and this is the single-box painter it calls. See
-    /// [ADR-0172](../../../../../../book/src/adr/0172-a-package-is-a-role-and-the-module-is-the-fence.md).
+    /// ADR-0172.
     ///
     /// For a box drawn where it was laid out. A box under a `transform` — every
     /// box inside a `scroll`, whose content is translated rather than moved —
@@ -122,7 +122,7 @@ public final class BoxPainter {
     /// it — with one exception. A `canvas` sets a transform of its own, to move
     /// the origin to its content corner, and
     /// [Frame#transform] *assigns* rather than composes
-    /// ([ADR-0068](../../../../../../book/src/adr/0068-the-transform-stack-is-java-side.md)):
+    /// (ADR-0068):
     /// the six numbers replace whatever was there. So a canvas that spelled its
     /// own translation alone would **discard its ancestors'** — and a chart
     /// inside a `scroll` would stay where it was laid out while the panel moved
@@ -182,7 +182,7 @@ public final class BoxPainter {
             // with the text hanging off the top-left corner. A tooltip was the
             // first widget in the catalog to put padding on a text box rather
             // than on a container around one, and it looked exactly like that
-            // ([ADR-0111](../../../../../../book/src/adr/0111-a-text-box-is-painted-inside-its-padding.md)).
+            // (ADR-0111).
             //
             // Wrapped at the width the layout pass settled on, less the padding:
             // the same width the measure function was last asked about, so the
@@ -212,7 +212,7 @@ public final class BoxPainter {
             // 4px above and left of the tick it lines up with. An icon parked in
             // the corner of its slot is the report "the row with the icon looks
             // wrong"; centring is what a slot means
-            // ([ADR-0143](../../../../../../book/src/adr/0143-a-strip-keeps-its-height-and-an-icon-its-centre.md)).
+            // (ADR-0143).
             var glyph = box.icon().icon().size();
             box.icon()
                     .icon()
@@ -487,7 +487,7 @@ public final class BoxPainter {
     /// goes back to the whole frame rather than to the clip in force before, so a
     /// canvas inside a `scroll` would paint over the viewport's edge — which is
     /// the whole reason `bl_context_save` is on the export list
-    /// ([ADR-0193](../../../../../../book/src/adr/0193-a-canvas-is-a-second-clip-depth.md)).
+    /// (ADR-0193).
     ///
     /// **Clipped to the content box**, so a painter's arithmetic mistake is a
     /// picture that is wrong inside its own rectangle rather than one that has

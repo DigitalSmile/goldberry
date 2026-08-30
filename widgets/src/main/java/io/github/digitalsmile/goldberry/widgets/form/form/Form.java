@@ -25,7 +25,8 @@ import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
 ///
 /// A `form`'s fields are anywhere in its subtree — inside rows, inside cards,
 /// inside a `collapse` — so a form that went looking for them would have to walk
-/// its whole subtree and know what to skip. Instead each [io.github.digitalsmile.goldberry.widgets.form.field.Field]
+/// its whole subtree and know what to skip. Instead each
+/// [io.github.digitalsmile.goldberry.widgets.form.field.Field]
 /// registers with the nearest enclosing form when it mounts, through
 /// `BuildContext.findAncestorState`.
 ///

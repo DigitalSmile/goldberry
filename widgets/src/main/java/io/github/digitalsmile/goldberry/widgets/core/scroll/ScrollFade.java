@@ -5,12 +5,12 @@ package io.github.digitalsmile.goldberry.widgets.core.scroll;
 /// §2.4 asks for "overlay auto-hiding scrollbars […] fade after 800ms idle".
 /// That is not a transition and cannot be one: a transition interpolates between
 /// two styles the cascade resolved
-/// ([ADR-0067](../../../../../../../../book/src/adr/0067-motion-is-an-overlay-on-a-frame-clock.md)),
+/// (ADR-0067),
 /// and "800ms after the last time anything happened" is not a style — no selector
 /// can express *when*. So this is [Phase]'s shape and `spinner`'s before it: a
 /// function of the frame clock, read in `render`, which is the only place a
 /// widget is handed one
-/// ([ADR-0081](../../../../../../../../book/src/adr/0081-a-perpetual-loop-has-no-state.md)).
+/// (ADR-0081).
 ///
 /// Mutable and confined to the UI thread, for [Phase]'s reason exactly: when
 /// something last happened cannot be known until the frame that draws it, and a

@@ -28,7 +28,8 @@ record KnobTrack(double fraction, boolean disabled) implements Widget.Leaf, Styl
     /// The ring's stroke, in logical pixels.
     ///
     /// §3's `knob` row pins the diameters and the arc and says nothing about the
-    /// weight, so this is [io.github.digitalsmile.goldberry.widgets.controls.spinner.Spinner]'s answer for the same gap: Lucide's 2px stroke
+    /// weight, so this is [io.github.digitalsmile.goldberry.widgets.controls.spinner.Spinner]'s
+    /// answer for the same gap: Lucide's 2px stroke
     /// at 24 (§1.6), which is already the toolkit's line weight for anything drawn
     /// on that grid. Inventing a third number would be inventing a scale the
     /// design system does not have.

@@ -22,7 +22,7 @@ public enum BlendTransformOp implements BlendEnum {
     /// it afterwards. Assigning an absolute matrix per box needs neither: the
     /// stack is accumulated in Java, where hit testing can invert it, and each
     /// box says where it is rather than where it moved to
-    /// ([ADR-0068](../../../../../../../../book/src/adr/0068-the-transform-stack-is-java-side.md)).
+    /// (ADR-0068).
     ASSIGN(1, "BL_TRANSFORM_OP_ASSIGN"),
 
     /// Offset by `[x, y]`. Two doubles.

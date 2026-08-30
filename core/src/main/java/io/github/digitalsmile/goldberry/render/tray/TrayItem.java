@@ -10,7 +10,7 @@ import java.util.Objects;
 /// handed to the desktop's shell, which draws it in its own theme with its own
 /// font at its own spacing. There is no `ComputedStyle` to give it and no pointer
 /// event to route to it — so `tray-icon` joins `toast` as a widget whose value is
-/// not a widget ([ADR-0177](../../../../../../../book/src/adr/0177-a-toast-is-a-queue-and-the-stack-is-the-widget.md)).
+/// not a widget (ADR-0177).
 ///
 /// The kinds are an enum rather than SDL's flags mask on purpose: exactly one of
 /// command/checkbox/submenu is mandatory down there, and a mask is precisely the

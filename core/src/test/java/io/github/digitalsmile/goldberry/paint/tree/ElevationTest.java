@@ -16,7 +16,7 @@ import io.github.digitalsmile.goldberry.paint.Box;
 import io.github.digitalsmile.goldberry.paint.TestFrames;
 
 /// `Box.elevated` — one bit meaning "draw me last"
-/// ([ADR-0123](../../../../../../../book/src/adr/0123-a-pinned-box-paints-after-its-siblings.md)).
+/// (ADR-0123).
 class ElevationTest {
 
     @BeforeAll

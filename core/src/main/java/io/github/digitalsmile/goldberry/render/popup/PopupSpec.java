@@ -19,7 +19,7 @@ import io.github.digitalsmile.goldberry.render.window.WindowSpec;
 /// anchoring a menu under the button that opened it is the button's own rectangle
 /// and no conversion. A popup may extend beyond the owner's bounds, which is the
 /// entire reason it is a platform window rather than something in the in-window
-/// overlay layer ([ADR-0100](../../../../../../book/src/adr/0100-a-window-has-a-layer-above-its-application.md)).
+/// overlay layer (ADR-0100).
 ///
 /// Nothing here decides *where a menu near a screen edge should flip to*. That is
 /// placement policy — it needs the display's work area, the anchor rectangle and a

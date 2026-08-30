@@ -79,7 +79,7 @@ public record Button(String label, Icon icon, Runnable onPress, boolean disabled
     /// The icon is **borrowed**. A widget is a value that is rebuilt every frame
     /// and thrown away, so it must not own something with a `close()`; the
     /// application builds the icon once and keeps it, exactly as it keeps a
-    /// `Font` ([ADR-0043](../../../../../../../../book/src/adr/0043-icons-are-stroked-paths.md)).
+    /// `Font` (ADR-0043).
     public Button withIcon(Icon icon) {
         return new Button(label, Objects.requireNonNull(icon, "icon"), onPress, disabled, attributes);
     }

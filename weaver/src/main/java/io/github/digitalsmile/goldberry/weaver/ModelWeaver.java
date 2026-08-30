@@ -110,7 +110,7 @@ public final class ModelWeaver {
     /// `model.gain` wherever it appears — not only inside the model. Which is
     /// what lets an application keep its values in one class and the methods that
     /// change them in another
-    /// ([ADR-0134](../../../../book/src/adr/0134-a-write-is-rewritten-wherever-it-is.md)).
+    /// (ADR-0134).
     ///
     /// @param owner  the model's own type
     /// @param fields every rewired `@Bind` field, by name, to its declared type
@@ -326,7 +326,7 @@ public final class ModelWeaver {
     ///
     /// What decides whether a model's synthesised setters can stay `private`: a
     /// nestmate may call one, and anything else needs the package
-    /// ([ADR-0137](../../../../book/src/adr/0137-a-model-keeps-its-fields.md)).
+    /// (ADR-0137).
     public static String nestHost(byte[] bytes) {
         var model = ClassFile.of().parse(bytes);
         return model.findAttribute(java.lang.classfile.Attributes.nestHost())

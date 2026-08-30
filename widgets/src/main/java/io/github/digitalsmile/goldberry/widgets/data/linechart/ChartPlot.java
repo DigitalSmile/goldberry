@@ -17,7 +17,7 @@ import io.github.digitalsmile.goldberry.widgets.data.Series;
 ///
 /// The split is the shape `SplitPane` already has — a stateful widget above, and
 /// a leaf below that hears the pointer and reports upward
-/// ([ADR-0063](../../../../../../../../book/src/adr/0063-data-flows-down-events-flow-up.md)).
+/// (ADR-0063).
 /// It costs one element and it is what makes the crosshair possible at all.
 ///
 /// One part rather than three, because the axes, the gridlines, the gutter

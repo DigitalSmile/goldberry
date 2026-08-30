@@ -32,7 +32,7 @@ import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
 /// collapsed section that kept a live subtree would keep its subscriptions, its
 /// images and its scroll position alive for content nobody can see, and 'cheap to
 /// rebuild' is what the widget tree is for"
-/// ([ADR-0004](../../../../../../../../book/src/adr/0004-three-tree-retained-declarative-model.md)).
+/// (ADR-0004).
 ///
 /// So a closed `collapse` describes **one** child. Not a child with `display:
 /// none`, which §10's subset does not have; not a child of zero height, which
@@ -41,7 +41,7 @@ import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
 /// The price is stated rather than hidden: **reopening a section rebuilds it**,
 /// and anything that has to survive belongs in the model — which is the same
 /// bargain `tabs` makes for its unselected content
-/// ([ADR-0107](../../../../../../../../book/src/adr/0107-a-tab-strip-is-a-model-a-header-and-a-panel.md)).
+/// (ADR-0107).
 ///
 /// ## The height does not animate, and that is not a limitation
 ///

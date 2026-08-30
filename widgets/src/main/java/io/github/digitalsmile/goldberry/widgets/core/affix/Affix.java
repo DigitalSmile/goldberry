@@ -34,7 +34,7 @@ import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
 /// would be told a new position and move again, forever. The outer node's position
 /// is a function of the layout alone, so the inner one sliding under it changes
 /// nothing that is reported
-/// ([ADR-0119](../../../../../../../../book/src/adr/0119-a-widget-may-be-told-where-it-is.md)).
+/// (ADR-0119).
 ///
 /// ## Not `position: sticky`
 ///
@@ -57,7 +57,7 @@ import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
 /// sits at the viewport's edge, so anything measuring it concludes it is already
 /// in view and scrolls nowhere. What travels with the document is the *hole*, and
 /// only this widget can hand that out
-/// ([ADR-0124](../../../../../../../../book/src/adr/0124-a-pinned-affix-is-revealed-by-its-hole.md)).
+/// (ADR-0124).
 ///
 /// So [#onReveal] is a door rather than a policy: give it a callback and it is
 /// handed the hole's rectangle and the viewport's, once a frame, which is exactly

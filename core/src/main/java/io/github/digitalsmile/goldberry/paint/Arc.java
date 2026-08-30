@@ -5,7 +5,7 @@ import io.github.digitalsmile.goldberry.natives.blend2d.BlendPath;
 /// A circular arc, as a Blend2D path.
 ///
 /// The sibling of [RoundRect] and it exists for the same reason, which
-/// [ADR-0064](../../../../../../book/src/adr/0064-a-rounded-rectangle-is-four-cubics.md)
+/// ADR-0064
 /// argues in full: Blend2D has an arc call, using it would put a symbol on the
 /// export list, and that list has caught the same class of local-symbol bug three
 /// times — each answered only by a CI run across four targets. `bl_path_cubic_to`

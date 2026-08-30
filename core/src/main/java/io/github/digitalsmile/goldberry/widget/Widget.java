@@ -66,7 +66,7 @@ public interface Widget {
     /// purpose — there is no `set` to call, so a control built from markup cannot
     /// reach the application's model, and what the user did travels back up as an
     /// action instead
-    /// ([ADR-0063](../../../../../../book/src/adr/0063-data-flows-down-events-flow-up.md)).
+    /// (ADR-0063).
     default Observable<?> binding() {
         return null;
     }

@@ -37,7 +37,7 @@ import io.github.digitalsmile.goldberry.widgets.text.Text;
 /// Records give the *shallow* half for free. What this checks is the half they do
 /// not: that a collection handed to a constructor is copied rather than kept, so
 /// a caller holding the original cannot reach in afterwards
-/// ([ADR-0095](../../../../../../book/src/adr/0095-a-shortcut-is-built-from-enums.md)).
+/// (ADR-0095).
 class ImmutabilityTest {
 
     /// Every widget the catalog registers, built the way markup builds it.

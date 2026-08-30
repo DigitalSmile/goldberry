@@ -35,7 +35,8 @@ import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
 /// the dialog's to write: an affirmative is `button.primary`, and the others are
 /// what a `button` is by default.
 ///
-/// A description rather than a widget that draws itself — [io.github.digitalsmile.goldberry.widgets.panel.tabs.Tab]'s
+/// A description rather than a widget that draws itself —
+/// [io.github.digitalsmile.goldberry.widgets.panel.tabs.Tab]'s
 /// arrangement, and for the same reason: the bar decides the order, so the
 /// buttons cannot each decide where they go.
 ///

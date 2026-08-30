@@ -18,11 +18,11 @@ import io.github.digitalsmile.goldberry.widget.Widget;
 /// positional arguments, four of which are usually defaults. Every widget that
 /// has a `source` component implements this, so the binding is one named step in
 /// a chain rather than the fourth `null` in a row
-/// ([ADR-0093](../../../../../../../book/src/adr/0093-an-application-is-a-root-widget.md)).
+/// (ADR-0093).
 ///
 /// An [Observable] and never a `Property`: data flows down and events flow up, so
 /// a widget reads and watches and cannot write
-/// ([ADR-0063](../../../../../../../book/src/adr/0063-data-flows-down-events-flow-up.md)).
+/// (ADR-0063).
 ///
 /// @param <W> the implementing widget's own type
 public interface Bindable<W extends Widget> extends Widget {

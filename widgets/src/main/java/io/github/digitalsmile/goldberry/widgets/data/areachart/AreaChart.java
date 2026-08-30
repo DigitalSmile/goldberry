@@ -102,7 +102,7 @@ public record AreaChart(
     /// [io.github.digitalsmile.goldberry.widgets.data.Fill#GRADIENT] fades each
     /// band **within its own extent** rather than across the plot, so a thin
     /// band under a thick one is still there to be read
-    /// ([ADR-0207](../../../../../../../../book/src/adr/0207-a-fill-may-be-a-ramp.md)).
+    /// (ADR-0207).
     ///
     /// [io.github.digitalsmile.goldberry.widgets.data.Fill#NONE] is read as a
     /// flat wash: a band with no fill is not a band.
@@ -119,7 +119,7 @@ public record AreaChart(
     /// **It costs the zeroes.** `log10(0)` is negative infinity, so a
     /// non-positive reading has no position and becomes a hole — the line breaks
     /// there rather than sliding off the bottom
-    /// ([ADR-0205](../../../../../../../../book/src/adr/0205-a-log-axis-has-no-room-for-zero.md)).
+    /// (ADR-0205).
     /// Only `line-chart` draws one: a bar and a band are lengths from zero, and
     /// zero is not on the axis.
     public AreaChart logY() {

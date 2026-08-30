@@ -16,13 +16,13 @@ import io.github.digitalsmile.goldberry.widget.Widget;
 ///
 /// ## Why this can exist now
 ///
-/// [ADR-0106](../../../../../../../book/src/adr/0106-a-menu-is-a-widget-and-opening-one-is-not.md)
+/// ADR-0106
 /// left the registration undone with a reason: "a shortcut has to work while the
 /// menu is shut, and a menu is built when it opens and thrown away when it
 /// closes". That is true of the *popup*. It was never true of the [Menu] — a
 /// widget is a value, and a value handed to a `menubar` is held for as long as
 /// the bar is
-/// ([ADR-0163](../../../../../../../book/src/adr/0163-a-menu-bar-owns-its-menus.md)).
+/// (ADR-0163).
 /// So the model that has to outlive one opening is the one the author already
 /// wrote, and this walks it.
 ///
@@ -135,7 +135,7 @@ public final class Accelerators {
     /// A `menubar` passes its own state object. Nothing else in the toolkit binds
     /// accelerators, and an application binding its own does not need an owner:
     /// unbinding by key is what it means to give up a key you took
-    /// ([ADR-0220](../../../../../../../book/src/adr/0220-an-accelerator-is-given-back-by-whoever-took-it.md)).
+    /// (ADR-0220).
     public static Set<Shortcut> bind(Host host, List<Widget> widgets, Object owner) {
         Objects.requireNonNull(host, "host");
         var bound = new LinkedHashSet<Shortcut>();
@@ -169,7 +169,7 @@ public final class Accelerators {
     /// collision at bind time is unchanged — two commands on one key is an
     /// authoring mistake and the later one wins — but the loser can no longer
     /// take the winner away with it
-    /// ([ADR-0220](../../../../../../../book/src/adr/0220-an-accelerator-is-given-back-by-whoever-took-it.md)).
+    /// (ADR-0220).
     public static void unbind(Host host, Set<Shortcut> bound, Object owner) {
         Objects.requireNonNull(host, "host");
         Objects.requireNonNull(bound, "bound");

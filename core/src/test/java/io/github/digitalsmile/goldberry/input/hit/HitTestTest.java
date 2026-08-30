@@ -16,7 +16,8 @@ import io.github.digitalsmile.goldberry.paint.TestFrames;
 
 /// Hit testing against a real layout pass.
 ///
-/// The other half of [io.github.digitalsmile.goldberry.input.PointerRouterTest], which supplies its own rectangles:
+/// The other half of [io.github.digitalsmile.goldberry.input.PointerRouterTest], which supplies its
+/// own rectangles:
 /// this one checks that the rectangles a paint produces are the ones a pointer
 /// is tested against.
 class HitTestTest {

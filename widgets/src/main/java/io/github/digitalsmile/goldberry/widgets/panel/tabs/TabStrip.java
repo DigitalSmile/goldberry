@@ -13,7 +13,7 @@ import io.github.digitalsmile.goldberry.widget.style.Styled;
 /// What a [Tabs] actually draws: a [TabList] and a [TabPanel].
 ///
 /// [Tabs] became stateful when arrivals and departures needed remembering
-/// ([ADR-0109](../../../../../../../../book/src/adr/0109-a-tab-arrives-and-departs-on-the-frame-clock.md)),
+/// (ADR-0109),
 /// and a stateful widget builds other widgets rather than a box. This is the box
 /// half, split off unchanged — which is why it keeps `tabs` as its CSS type: the
 /// split is an implementation detail of where state lives, and a stylesheet

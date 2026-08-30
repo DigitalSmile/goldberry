@@ -12,7 +12,7 @@ import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
 import io.github.digitalsmile.goldberry.kdl.KdlParser;
 
 /// An application's CSS and markup come from files beside its code
-/// ([ADR-0093](../../../../../../book/src/adr/0093-an-application-is-a-root-widget.md)).
+/// (ADR-0093).
 ///
 /// The toolkit read its own theme and control sheets from resources from the
 /// start; an application had no supported way to do the same and wrote its CSS in

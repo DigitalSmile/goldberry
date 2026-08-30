@@ -46,7 +46,7 @@ import io.github.digitalsmile.goldberry.widget.style.Styled;
 /// `Home`, `End` and `*` all need to know about rows this one cannot see — the
 /// first and last of the whole flattened list, and every sibling of this one — so
 /// each is a callback the tree hands down, in the shape [#onOut] already had
-/// ([ADR-0209](../../../../../../../../book/src/adr/0209-a-tree-finishes-its-keyboard.md)).
+/// (ADR-0209).
 /// Type-to-select is the same, and arrives as [TextEvent] rather than a key for
 /// `select`'s reason: what a typeahead wants is what was *typed*, and one
 /// character can take several keys.
@@ -368,7 +368,7 @@ record TreeRow(
     /// where the reasoning about the tri-state lives — that the mixed mark is a
     /// *bar* and not a greyed tick, because "some of these are on" and "all of
     /// these are on" have to be distinguishable at a glance
-    /// ([ADR-0210](../../../../../../../../book/src/adr/0210-a-tree-checks-and-selects-two-different-things.md)).
+    /// (ADR-0210).
     ///
     /// What this adds is the hit target and the click. The indicator is a
     /// [Paints] leaf with no handler — it is a square inside a control, and the

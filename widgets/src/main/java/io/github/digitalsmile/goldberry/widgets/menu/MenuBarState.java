@@ -17,7 +17,7 @@ import io.github.digitalsmile.goldberry.widget.attr.Attributes;
 ///
 /// Everything here is the half of a bar that cannot be a value: a platform
 /// window, and a set of registrations in somebody else's map
-/// ([ADR-0163](../../../../../../../book/src/adr/0163-a-menu-bar-owns-its-menus.md)).
+/// (ADR-0163).
 final class MenuBarState extends State<MenuBar> {
 
     /// A prefix for the generated heading ids, which is how a menu is anchored

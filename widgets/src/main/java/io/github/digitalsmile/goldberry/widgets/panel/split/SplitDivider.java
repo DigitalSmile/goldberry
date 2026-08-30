@@ -26,7 +26,7 @@ import io.github.digitalsmile.goldberry.widget.style.Styled;
 ///
 /// The pointer is somewhere inside a six-point bar. Mapping that position to a
 /// fraction of the pane — a slider's arrangement
-/// ([ADR-0079](../../../../../../../../book/src/adr/0079-a-slider-reads-the-pointer.md))
+/// (ADR-0079)
 /// — would snap the divider so that its centre jumped under the finger on every
 /// press, by up to three points, which is visible and feels broken.
 ///
@@ -34,7 +34,7 @@ import io.github.digitalsmile.goldberry.widget.style.Styled;
 /// [Handles#gestureAnchor()], the router hands that number back on every event of
 /// the gesture as [PointerEvent#anchor()], and the new offset is
 /// `anchor + dragX`. That is the knob's arrangement
-/// ([ADR-0089](../../../../../../../../book/src/adr/0089-a-knobs-gesture-is-a-rate.md)),
+/// (ADR-0089),
 /// and this is the second widget to want it — for a reason that is not the
 /// knob's, which is worth noticing: a knob needs the anchor because its value has
 /// *already moved* by the second frame; a divider needs it because the pointer's

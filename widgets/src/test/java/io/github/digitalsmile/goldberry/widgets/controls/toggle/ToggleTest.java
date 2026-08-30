@@ -40,7 +40,7 @@ import io.github.digitalsmile.goldberry.widgets.core.Row;
 import io.github.digitalsmile.goldberry.widgets.core.Spacer;
 
 /// The fifth control, and the first with a **gesture**
-/// ([ADR-0075](../../../../../../../../book/src/adr/0075-a-gestures-origin-is-the-routers.md)).
+/// (ADR-0075).
 ///
 /// [ButtonTest] proves the shape a control has and [CheckboxTest] proves the
 /// controlled-value loop. What is new here is the drag: a sequence of events

@@ -403,7 +403,7 @@ public final class Window implements AutoCloseable {
             // repaint everything and did, and uploading only what changed leaves
             // the rest of the window showing whatever the compositor had there.
             // Which is black, and during a live resize it is black that flickers
-            // ([ADR-0158](../../../../../book/src/adr/0158-a-full-repaint-is-a-full-upload.md)).
+            // (ADR-0158).
             //
             // Here rather than at the call site, because a painter reporting what
             // changed is right and there is nothing for it to do differently --

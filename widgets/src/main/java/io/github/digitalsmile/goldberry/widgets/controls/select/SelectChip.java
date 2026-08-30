@@ -16,7 +16,7 @@ import io.github.digitalsmile.goldberry.widget.style.Styled;
 /// affordance".
 ///
 /// A **part**, so it is styleable and not constructible
-/// ([ADR-0065](../../../../../../../../book/src/adr/0065-a-part-is-styleable-and-not-constructible.md)):
+/// (ADR-0065):
 /// nobody writes a `select-chip`, a `select multiple` describes one per value it
 /// was handed.
 ///
@@ -74,7 +74,8 @@ record SelectChip(String label, Runnable onRemove) implements Widget.Leaf, Style
         }
     }
 
-    /// The × that takes one value back out — [io.github.digitalsmile.goldberry.widgets.panel.tabs.TabClose]'s
+    /// The × that takes one value back out —
+    /// [io.github.digitalsmile.goldberry.widgets.panel.tabs.TabClose]'s
     /// shape, and not focusable for the same reason: a `select` is **one** Tab
     /// stop, and a focusable × per chip would make a five-value select six stops
     /// where a document wrote one control.

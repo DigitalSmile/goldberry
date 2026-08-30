@@ -25,9 +25,9 @@ import io.github.digitalsmile.goldberry.widget.style.Styled;
 /// row describes, and it is only expressible because the segments are a **grid**
 /// — every one of them exactly `1/n` of the track, so the distance to segment
 /// *k* is `k` times this box's own width and needs no measurement at all
-/// ([ADR-0099](../../../../../../../../book/src/adr/0099-an-indicator-travels-on-a-grid.md)).
+/// (ADR-0099).
 ///
-/// [ADR-0097](../../../../../../../../book/src/adr/0097-a-selection-that-travels-needs-a-geometry.md)
+/// ADR-0097
 /// deferred this on the grounds that a `translate` "would have to name the
 /// distance from the segment being left to the one being arrived at — a fact
 /// about two boxes' laid-out geometry". On a grid it is not: a percentage in a

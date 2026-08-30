@@ -52,7 +52,7 @@ public final class Frame {
     /// The caller keeps the buffer and must [#end()] the frame before reading it.
     /// Public because [Window] is in another package now: a frame is the paint
     /// package's surface and the shell is what lends it a buffer
-    /// ([ADR-0172](../../../../../../book/src/adr/0172-a-package-is-a-role-and-the-module-is-the-fence.md)).
+    /// (ADR-0172).
     public static Frame over(PixelBuffer buffer, DisplayScale scale) {
         return new Frame(buffer, scale);
     }
@@ -171,7 +171,7 @@ public final class Frame {
     /// from the top of a plot to its baseline is the same ramp for every band
     /// filled through it, which is what lets a chart build one gradient and draw
     /// several figures in it
-    /// ([ADR-0207](../../../../../../book/src/adr/0207-a-fill-may-be-a-ramp.md)).
+    /// (ADR-0207).
     ///
     /// Its coordinates are logical, like everything else here.
     ///
@@ -219,7 +219,7 @@ public final class Frame {
     /// sets an absolute matrix per node. That is not a limitation worked around —
     /// it is what lets hit testing invert the same matrix the painter used,
     /// rather than a second one built from the same inputs by different code
-    /// ([ADR-0068](../../../../../../book/src/adr/0068-the-transform-stack-is-java-side.md)).
+    /// (ADR-0068).
     ///
     /// The display scale is **not** the caller's to apply: it is already on the
     /// context and is composed with this. A frame at 150% given `translate(10, 0)`
@@ -243,7 +243,7 @@ public final class Frame {
     /// strength; fading happens once, here, to the finished raster. Fading each
     /// shape as it was drawn gives a different answer wherever two of them
     /// overlap — the lower one shows through the upper — and CSS specifies this
-    /// one ([ADR-0071](../../../../../../book/src/adr/0071-a-layer-is-a-subtrees-raster.md)).
+    /// one (ADR-0071).
     ///
     /// The layer's pixels are its own; this reads them and copies. Nothing here
     /// takes ownership, so the same layer can be composited into several frames
@@ -262,7 +262,7 @@ public final class Frame {
         // so the blit has to say how big the raster is in the context's units or
         // it is drawn one raster pixel per logical unit -- which is right at 1x
         // and twice the size at 2x
-        // ([ADR-0157](../../../../../../book/src/adr/0157-a-layer-is-blitted-into-its-own-size.md)).
+        // (ADR-0157).
         //
         // Derived from the raster rather than from the bounds the caller laid
         // out: `Layer.of` rounds the physical size *up*, so at a fractional scale
@@ -305,7 +305,7 @@ public final class Frame {
     /// the pixels the last frame left there. That last clause is the whole
     /// correctness condition, and it is not this class's to promise — see
     /// [BackendWindow#retainsFrameContents()]
-    /// ([ADR-0072](../../../../../../book/src/adr/0072-a-partial-repaint-needs-a-promise.md)).
+    /// (ADR-0072).
     ///
     /// Intersected with any clip already in force. [#resetClip()] undoes it.
     public void clipTo(double x, double y, double width, double height) {
@@ -329,7 +329,7 @@ public final class Frame {
     /// undo that — it goes back to the *whole frame*, so a canvas inside a
     /// `scroll` would paint over the viewport's edge — which is why this exists
     /// and why the export list grew a state stack for it
-    /// ([ADR-0193](../../../../../../book/src/adr/0193-a-canvas-is-a-second-clip-depth.md)).
+    /// (ADR-0193).
     ///
     /// Must be paired with [#restore()], and the pair is the caller's to balance.
     public void save() {
@@ -355,7 +355,7 @@ public final class Frame {
     /// this being package-private, and is now enforced by the frame itself:
     /// ending twice is a no-op and painting afterwards throws, so the mistake is
     /// loud rather than a half-drawn window
-    /// ([ADR-0172](../../../../../../book/src/adr/0172-a-package-is-a-role-and-the-module-is-the-fence.md)).
+    /// (ADR-0172).
     public void end() {
         if (ended) {
             return;

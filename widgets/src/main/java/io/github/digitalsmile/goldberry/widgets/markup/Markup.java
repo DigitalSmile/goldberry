@@ -18,7 +18,7 @@ import java.lang.annotation.Target;
 /// That is the whole registration. The build collects every annotated class in
 /// the module into one [WidgetCatalog] and declares it as a service, so a module
 /// that ships widgets is found by an application that never names it
-/// ([ADR-0131](../../../../../../../book/src/adr/0131-a-widget-package-announces-itself.md)).
+/// (ADR-0131).
 ///
 /// ## What it requires
 ///

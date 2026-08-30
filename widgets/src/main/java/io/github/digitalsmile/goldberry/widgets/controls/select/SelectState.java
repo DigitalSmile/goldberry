@@ -250,7 +250,7 @@ final class SelectState extends State<Select> {
         // which is the same gap `menu` had and the same fix: the popup facility
         // says what it measured, and a list that does not fit becomes a list of
         // the screen's height with the options scrolling inside it
-        // ([ADR-0179](../../../../../../../../book/src/adr/0179-a-popup-says-what-it-measured.md)).
+        // (ADR-0179).
         // A combobox's list is **attached** rather than a menu: it hangs off a
         // field the user is typing into, and a focusable window would take the
         // keyboard off it (ADR-0186). Every other select opens a menu, which is

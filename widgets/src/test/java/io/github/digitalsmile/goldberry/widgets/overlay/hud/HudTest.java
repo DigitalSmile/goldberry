@@ -29,7 +29,8 @@ import io.github.digitalsmile.goldberry.widgets.controls.TestFont;
 
 /// `hud` — the numbers, where they come from, and the two ways it can be wrong.
 ///
-/// The interesting half is not the arithmetic ([io.github.digitalsmile.goldberry.stats.FrameRingTest]
+/// The interesting half is not the arithmetic
+/// ([io.github.digitalsmile.goldberry.stats.FrameRingTest]
 /// covers that): it is that the numbers arrive on the **render context** rather
 /// than in the widget, which is what lets a bare `hud` node in a document show
 /// live figures and lets this test show figures it chose.

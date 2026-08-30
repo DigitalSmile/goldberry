@@ -10,7 +10,7 @@ import io.github.digitalsmile.goldberry.Overlay;
 ///
 /// A tour is declared as a list of [Stop]s and *started* by a call, exactly as a
 /// `menu` is declared and opened by one
-/// ([ADR-0106](../../../../../../../../book/src/adr/0106-a-menu-is-a-widget-and-opening-one-is-not.md)):
+/// (ADR-0106):
 /// both need to resolve a target id against the painted frame and to put
 /// something on the window, and neither is a thing a widget tree can do to
 /// itself.

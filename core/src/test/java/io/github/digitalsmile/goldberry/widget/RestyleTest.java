@@ -37,7 +37,7 @@ import io.github.digitalsmile.goldberry.widget.style.Styled;
 /// seam rather than a special case is *where* it applies. A value written in
 /// [Paints#render] is applied after the animation has already looked at the
 /// style, so it snaps; the same value written here is part of what the animation
-/// observes ([ADR-0099](../../../../../../book/src/adr/0099-an-indicator-travels-on-a-grid.md)).
+/// observes (ADR-0099).
 ///
 /// So these tests are about ordering, and each of the three is a way the ordering
 /// could be wrong: applied before the cache (and frozen), applied after the

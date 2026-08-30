@@ -55,7 +55,7 @@ public enum Key {
     /// "windows contextual menu, compose", which is the whole of its story: it
     /// is the keyboard's way of asking the question a right-click asks, and
     /// `docs/core-widgets.md` §7 names it as the other half of a context menu
-    /// ([ADR-0208](../../../../../../../book/src/adr/0208-a-context-menu-answers-the-keyboard.md)).
+    /// (ADR-0208).
     ///
     /// A Mac keyboard does not have one, which is why `Shift+F10` is bound
     /// beside it rather than instead of it — that is the companion binding on

@@ -12,7 +12,7 @@ import io.github.digitalsmile.goldberry.widget.Widget;
 /// rebuilds". This is that state, and it needs no key and no application field to
 /// survive one: the element tree keeps a state across every rebuild of the widget
 /// that described it, which is what the element layer is for
-/// ([ADR-0052](../../../../../../../../book/src/adr/0052-state-is-a-plain-object-and-setstate-defers.md)).
+/// (ADR-0052).
 ///
 /// **Unlike a control's value, this is genuinely the widget's own.** ADR-0063
 /// sends every *value* up to the application and reads it back down through

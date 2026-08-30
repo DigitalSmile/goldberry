@@ -37,7 +37,7 @@ import io.github.digitalsmile.goldberry.widgets.core.scroll.ScrollAxis;
 import io.github.digitalsmile.goldberry.widgets.text.Text;
 
 /// `affix` — a child pinned to an edge of the nearest `scroll`
-/// ([ADR-0119](../../../../../../../../book/src/adr/0119-a-widget-may-be-told-where-it-is.md)).
+/// (ADR-0119).
 ///
 /// Like `scroll`'s tests, every one of these needs a **painted frame**: the whole
 /// widget is a comparison between two rectangles that do not exist until Yoga has

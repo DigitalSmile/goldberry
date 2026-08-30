@@ -183,7 +183,7 @@ public record RadioGroup(
     /// — so input cannot know which pair a user is looking at, and answering to
     /// only one would be wrong half the time. It is also ARIA's rule for a radio
     /// group. A `menu` or a `tabs` will name an axis, because theirs is theirs
-    /// ([ADR-0078](../../../../../../../../book/src/adr/0078-a-focus-scope-has-an-axis.md)).
+    /// (ADR-0078).
     ///
     /// A scope even when the group is disabled: a disabled group has no focusable
     /// options left, so the traversal contributes nothing and skips it either

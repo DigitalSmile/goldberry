@@ -23,7 +23,7 @@ public interface BuildContext {
     /// widget. This finds the ancestor's **live half**, and exists for the case
     /// where the answer is not a value but an action — Flutter's
     /// `Scrollable.of(context)`, and here `scrollIntoView`
-    /// ([ADR-0120](../../../../../../book/src/adr/0120-a-widget-scrolls-itself-into-view.md)).
+    /// (ADR-0120).
     ///
     /// A scroll view's offset lives on its state and cannot live anywhere else: a
     /// widget is a value rebuilt every frame, so a descendant that reached the
@@ -41,7 +41,7 @@ public interface BuildContext {
     /// Flutter's `Overlay.of(context)`, and the door a control needs when the
     /// thing it has to do is not describable as a widget: a `select` opens a
     /// popup window under itself, and a popup is the platform's rather than the
-    /// tree's ([ADR-0140](../../../../../../book/src/adr/0140-a-widget-may-reach-its-window.md)).
+    /// tree's (ADR-0140).
     ///
     /// **For acting, not for reading.** A build must stay a pure function of its
     /// widget, its state and this context, so what a build may do with a host is

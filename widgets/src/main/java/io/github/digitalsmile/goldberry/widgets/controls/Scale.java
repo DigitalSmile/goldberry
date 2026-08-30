@@ -3,7 +3,8 @@ package io.github.digitalsmile.goldberry.widgets.controls;
 
 /// The curve between a control's **value** and its **position** along its track.
 ///
-/// [io.github.digitalsmile.goldberry.widgets.controls.slider.Slider] places its thumb at a fraction of the travel and reads the pointer
+/// [io.github.digitalsmile.goldberry.widgets.controls.slider.Slider] places its thumb at a fraction
+/// of the travel and reads the pointer
 /// back the same way ([ADR-0079]). Both directions go through here, so a control
 /// whose value is not linear in what the ear or the eye does with it can say so
 /// without any other part of the widget changing.
@@ -11,7 +12,7 @@ package io.github.digitalsmile.goldberry.widgets.controls;
 /// `docs/core-widgets.md` §3 asks for exactly one of these — "`fader` = vertical
 /// variant with **optional dB scale mapping**" — and `knob`'s "taper" is the same
 /// thing again, which is why this is an interface rather than a boolean on the
-/// fader ([ADR-0080](../../../../../../../book/src/adr/0080-a-value-is-measured-along-a-part.md)).
+/// fader (ADR-0080).
 ///
 /// ## Why it is a value and not a function
 ///
@@ -38,7 +39,8 @@ public sealed interface Scale {
 
     /// Whether this scale can describe a `min..max` range at all.
     ///
-    /// Checked when a [io.github.digitalsmile.goldberry.widgets.controls.slider.Slider] is constructed, so a fader over a range its scale
+    /// Checked when a [io.github.digitalsmile.goldberry.widgets.controls.slider.Slider] is
+    /// constructed, so a fader over a range its scale
     /// cannot express fails at inflation rather than drawing a thumb at `NaN`.
     /// The default accepts everything the slider itself accepts.
     default void validate(double min, double max) {

@@ -15,7 +15,7 @@ import io.github.digitalsmile.goldberry.render.window.BackendWindow;
 ///
 /// ## Why this exists at all, given the overlay layer
 ///
-/// [ADR-0100](../../../../../../book/src/adr/0100-a-window-has-a-layer-above-its-application.md)
+/// ADR-0100
 /// put a layer above the application's root for the overlays that stay inside the
 /// window — a toast, a scrim, a HUD. Three of `docs/core-widgets.md` §7's widgets
 /// cannot use it, and for one reason each time: a `menu`, a `select`'s list and a

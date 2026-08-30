@@ -14,11 +14,11 @@ package io.github.digitalsmile.goldberry.css.value;
 /// `bl_matrix2d_apply_op`, `bl_matrix2d_invert`. None of it is on the export
 /// list, and putting it there would add symbols to a boundary that has caught the
 /// same class of local-symbol bug three times
-/// ([ADR-0064](../../../../../../../book/src/adr/0064-a-rounded-rectangle-is-four-cubics.md)).
+/// (ADR-0064).
 /// It would also be the wrong place for the arithmetic to live: **hit testing
 /// needs the inverse**, and hit testing runs against a snapshot of the last
 /// painted frame, on the input path, with no rendering context anywhere near it
-/// ([ADR-0054](../../../../../../../book/src/adr/0054-hit-testing-runs-against-the-painted-frame.md)).
+/// (ADR-0054).
 /// A matrix that could only be inverted by a context would have to be inverted
 /// during paint and carried, or inverted by a second implementation — and two
 /// implementations of an inverse that must agree exactly is how a pointer starts

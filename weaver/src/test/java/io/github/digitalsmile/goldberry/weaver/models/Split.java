@@ -14,7 +14,7 @@ import io.github.digitalsmile.goldberry.bind.Model;
 /// Both are nested in this one, which is not decoration: they are then
 /// **nestmates**, so `Actions.bump()` may call the private setter the weaver
 /// synthesises on `Values` and nothing about the split has to open up
-/// ([ADR-0137](../../../../../../book/src/adr/0137-a-model-keeps-its-fields.md)).
+/// (ADR-0137).
 public final class Split {
 
     private Split() {

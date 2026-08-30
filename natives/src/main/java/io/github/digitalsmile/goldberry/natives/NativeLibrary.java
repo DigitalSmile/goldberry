@@ -72,7 +72,7 @@ public final class NativeLibrary {
     /// `-Dgoldberry.native.library`, so nothing ever took this branch on the
     /// module path. A native image does — it carries the classifier jar's
     /// resource and has no file to point at — which is where it surfaced
-    /// ([ADR-0159](../../../../../../book/src/adr/0159-a-native-image-carries-its-own-library.md)).
+    /// (ADR-0159).
     ///
     /// @param resource an absolute resource name, leading slash and all
     /// @return the open stream, or null when neither lookup finds it

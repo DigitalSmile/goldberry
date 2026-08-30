@@ -29,7 +29,7 @@ import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
 /// is set, the text shown is whatever the property holds *now*, and `content` is
 /// what it falls back to before anything is bound — which is what a lenient
 /// inflater produces for a path nothing answers
-/// ([ADR-0062](../../../../../../../book/src/adr/0062-bind-is-a-path-and-nothing-else.md)).
+/// (ADR-0062).
 ///
 /// Everything visual is the stylesheet's. This sets no size, no weight and no
 /// colour; `class="body"` and the rest of §1.4's scale are rules in

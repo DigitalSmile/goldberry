@@ -24,7 +24,7 @@ import io.github.digitalsmile.goldberry.widgets.core.Row;
 import io.github.digitalsmile.goldberry.widgets.text.Text;
 
 /// Every widget is chainable, and the chain keeps its type
-/// ([ADR-0093](../../../../../../book/src/adr/0093-an-application-is-a-root-widget.md)).
+/// (ADR-0093).
 ///
 /// The parity invariant of §11 covers the *shapes* — a widget is a record, a KDL
 /// node and a CSS type. This covers the third form of building one: a

@@ -32,7 +32,7 @@ import io.github.digitalsmile.goldberry.widget.style.Styled;
 /// Holds the small amount of state that input needs between frames — who is
 /// hovered, who is pressed, who has focus — and it holds it against **elements**,
 /// which is why the element tree exists
-/// ([ADR-0052](../../../../../../book/src/adr/0052-state-lives-on-the-element-and-rebuilds-are-deferred.md)):
+/// (ADR-0052):
 /// a widget is rebuilt constantly and could not remember any of this.
 ///
 /// Confined to the UI thread.
@@ -58,7 +58,7 @@ public final class PointerRouter {
     /// one back for nothing when it unmounts. A remembered element cannot be
     /// derived that way — what had focus before a modal opened is a fact about
     /// the *past*, and the tree does not record it
-    /// ([ADR-0180](../../../../../../book/src/adr/0180-the-keyboard-goes-back-where-it-was.md)).
+    /// (ADR-0180).
     ///
     /// So it is kept to one slot, written at exactly one moment — the trap taking
     /// focus — and it is allowed to go stale on purpose: [#refocus] drops it the
@@ -833,7 +833,7 @@ public final class PointerRouter {
     /// binds every accelerator in its menus when it is mounted and gives them
     /// back when it is not — and it used to give back whatever was on those keys,
     /// including a binding the application made in between
-    /// ([ADR-0220](../../../../../../book/src/adr/0220-an-accelerator-is-given-back-by-whoever-took-it.md)).
+    /// (ADR-0220).
     ///
     /// Compared by **identity**: "who bound it" is a question about an object,
     /// not about a value that might be equal to another one. Null is nobody in
@@ -872,7 +872,7 @@ public final class PointerRouter {
     /// The form that cannot be misspelled, and the one an application should
     /// reach for; [#shortcut(String, Runnable)] is for a menu table or a config
     /// file, where the accelerator is text before it is anything
-    /// ([ADR-0095](../../../../../../book/src/adr/0095-a-shortcut-is-built-from-enums.md)).
+    /// (ADR-0095).
     public PointerRouter shortcut(Mod modifier, Key key, Runnable action) {
         return shortcut(modifier.and(key), action);
     }
@@ -955,7 +955,7 @@ public final class PointerRouter {
     /// anything: a menu focuses its first item as it opens, so that an arrow key
     /// has somewhere to start — and a first row lit up before the user has
     /// touched the keyboard is a menu that looks like it has already chosen
-    /// ([ADR-0112](../../../../../../book/src/adr/0112-a-menu-follows-the-pointer-and-lights-for-the-keyboard.md)).
+    /// (ADR-0112).
     public boolean moveFocus(int direction, boolean fromKeyboard) {
         var root = traversalRoot();
         if (root == null) {
@@ -982,7 +982,7 @@ public final class PointerRouter {
     /// else. Nothing is registered when a dialog opens and nothing has to be
     /// unregistered when it closes; the answer is recomputed from the tree, so a
     /// modal that goes away by any route at all gives the keyboard back
-    /// ([ADR-0176](../../../../../../book/src/adr/0176-a-dialog-is-a-widget-and-showing-one-is-not.md)).
+    /// (ADR-0176).
     ///
     /// The walk costs the size of the tree and happens on a Tab press, which is
     /// an order of magnitude rarer than a frame.
@@ -1363,7 +1363,7 @@ public final class PointerRouter {
     /// walk up the ancestors on input events only.
     ///
     /// It deliberately does **not** feed `:disabled`. See
-    /// [ADR-0077](../../../../../../book/src/adr/0077-disabled-propagates-for-input-and-not-for-paint.md):
+    /// ADR-0077:
     /// the container's own 45% already fades everything under it, because opacity
     /// multiplies down a subtree, and a descendant that also matched `:disabled`
     /// would be faded twice.

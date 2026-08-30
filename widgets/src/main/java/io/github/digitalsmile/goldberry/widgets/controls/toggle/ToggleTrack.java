@@ -17,7 +17,7 @@ import io.github.digitalsmile.goldberry.widget.style.Styled;
 /// [ComputedStyle] carries one background. It is also CSS-selectable and
 /// deliberately **not** KDL-constructible, because a `toggle-track` outside a
 /// `toggle` is a pill that means nothing
-/// ([ADR-0065](../../../../../../../../book/src/adr/0065-a-part-is-styleable-and-not-constructible.md)).
+/// (ADR-0065).
 ///
 /// It is the node `:checked` is mirrored onto rather than [Toggle] alone, which
 /// is what lets the stylesheet write `toggle-track:checked toggle-thumb` and move

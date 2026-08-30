@@ -33,7 +33,7 @@ import io.github.digitalsmile.goldberry.widget.style.Corner;
 /// Not public — [Goldberry#launch] is the door. There is exactly one right way to
 /// wire these six objects together and no reason for an application to hold a
 /// launcher, so what it gets is a [Host]
-/// ([ADR-0093](../../../../../book/src/adr/0093-an-application-is-a-root-widget.md)).
+/// (ADR-0093).
 final class Launcher implements Host {
 
     private static final Logger LOG = LoggerFactory.getLogger(Launcher.class);
@@ -84,7 +84,7 @@ final class Launcher implements Host {
     /// changed it. For one bound at run time it is how a change made from
     /// somewhere no listener could see — a timer callback, a background job
     /// reporting in — reaches the screen rather than waiting for the next action
-    /// ([ADR-0155](../../../../../book/src/adr/0155-a-jar-binds-at-run-time-an-image-is-woven.md)).
+    /// (ADR-0155).
     ///
     /// Read once at start-up rather than per frame: `models()` is a description of
     /// the wiring, and an application that returns a fresh list every call would
@@ -306,7 +306,7 @@ final class Launcher implements Host {
         // what a `hud` shows, so they are measured on every frame or the number
         // on screen would be a different frame's. Five `nanoTime` calls against a
         // frame that costs hundreds of microseconds is not a cost worth a branch
-        // ([ADR-0146](../../../../../book/src/adr/0146-a-hud-shows-where-the-frame-went.md)).
+        // (ADR-0146).
         var beganAt = System.nanoTime();
         if (io.github.digitalsmile.goldberry.widget.FrameTrace.ENABLED) {
             tree.trace().reset();
@@ -442,7 +442,7 @@ final class Launcher implements Host {
     /// Finds the menu the **keyboard** asked for, and asks for it to be opened.
     ///
     /// The menu key, and `Shift+F10` on the keyboards that have no menu key
-    /// ([ADR-0208](../../../book/src/adr/0208-a-context-menu-answers-the-keyboard.md)).
+    /// (ADR-0208).
     /// Two things differ from the pointer's half and both follow from there being
     /// no pointer.
     ///
@@ -1098,7 +1098,7 @@ final class Launcher implements Host {
     /// set a field changed nothing anybody looks at. It is the only input in the
     /// toolkit that arrives without an event behind it, which is why this is the
     /// one call site that has to say so
-    /// ([ADR-0191](../../../../../book/src/adr/0191-a-tray-is-a-menu-somebody-else-draws.md)).
+    /// (ADR-0191).
     @Override
     public java.util.Optional<io.github.digitalsmile.goldberry.render.tray.BackendTray> tray(
             io.github.digitalsmile.goldberry.render.tray.TraySpec spec) {

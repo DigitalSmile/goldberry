@@ -19,7 +19,7 @@ import io.github.digitalsmile.goldberry.widgets.menu.Separator;
 /// this toolkit, styled by the same stylesheet as everything under it, and reaches
 /// the keyboard through the same router — so `F10`, `Alt`, the arrow keys and the
 /// accelerators are one implementation rather than four
-/// ([ADR-0163](../../../../../../../book/src/adr/0163-a-menu-bar-owns-its-menus.md)).
+/// (ADR-0163).
 /// The one menu this application does hand to the desktop is the tray's, and it
 /// is an ordinary [io.github.digitalsmile.goldberry.widgets.menu.Menu] value for
 /// exactly that reason ([ADR-0191]).
@@ -35,7 +35,7 @@ import io.github.digitalsmile.goldberry.widgets.menu.Separator;
 /// The rows that *are* the model's — the light, the density, the counter — are
 /// direct method references on [ShowcaseModel.Actions], which is the shorter half
 /// of §9's story and worth having one of in the showcase
-/// ([ADR-0222](../../../../../../../book/src/adr/0222-a-showcase-is-a-window-a-bar-and-seven-screens.md)).
+/// (ADR-0222).
 ///
 /// @param actions   the model's half — the light, the density and the road
 /// @param window    the window's half — see [Handlers]

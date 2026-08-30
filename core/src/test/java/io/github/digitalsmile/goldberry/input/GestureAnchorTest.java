@@ -19,7 +19,7 @@ import io.github.digitalsmile.goldberry.widget.style.Styled;
 
 /// What a gesture *started from*, which — like where it started — only the router
 /// can answer
-/// ([ADR-0089](../../../../../../book/src/adr/0089-a-knobs-gesture-is-a-rate.md)).
+/// (ADR-0089).
 ///
 /// [DragOriginTest]'s sibling, and the same argument one step further. That test
 /// is about a gesture's origin as a **point**; this one is about the two facts

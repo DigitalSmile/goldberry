@@ -20,7 +20,7 @@ import io.github.digitalsmile.goldberry.widget.style.Styled;
 /// §8's subset has one `border` and no per-edge longhands, so "a line on the left
 /// of every segment but the first" is not a declaration anything can write. A box
 /// one pixel wide with a background is
-/// [ADR-0215](../../../../../../../../book/src/adr/0215-a-property-the-engine-drops-is-a-rule-that-does-nothing.md)'s
+/// ADR-0215's
 /// answer to exactly that question, one widget later — the same shape as
 /// `table-rule` and `separator`.
 ///
@@ -29,7 +29,7 @@ import io.github.digitalsmile.goldberry.widget.style.Styled;
 /// A divider in flow would take a pixel of the row, and the row is a **grid**:
 /// every segment is exactly `1/n` of the track, which is what lets the indicator
 /// travel by a percentage of its own width and never measure anything
-/// ([ADR-0099](../../../../../../../../book/src/adr/0099-an-indicator-travels-on-a-grid.md)).
+/// (ADR-0099).
 /// Three dividers between four segments would make each cell `(100% - 3px) / 4`,
 /// which no percentage names. Absolute, at a percentage of the track, costs the
 /// grid nothing.

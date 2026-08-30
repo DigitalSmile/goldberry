@@ -17,7 +17,7 @@ import io.github.digitalsmile.goldberry.render.model.PixelFormat;
 /// into a buffer and composites *that* once. Goldberry has always multiplied
 /// alpha into each box's colours instead, which differs exactly where two
 /// children overlap: faded separately, the lower one shows through the upper.
-/// [ADR-0064](../../../../../../book/src/adr/0064-a-rounded-rectangle-is-four-cubics.md)
+/// ADR-0064
 /// stated the difference as an open question and predicted `stack` would make it
 /// visible; this is the answer.
 ///

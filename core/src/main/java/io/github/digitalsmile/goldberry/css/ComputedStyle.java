@@ -224,13 +224,13 @@ public record ComputedStyle(
     ///   stack of painted rectangles instead — hit testing reads it off whichever
     ///   box the pointer is over, because what the cursor should be is a question
     ///   about what is on screen
-    ///   ([ADR-0057](../../../../../../book/src/adr/0057-the-cursor-rides-on-the-painted-box.md)).
+    ///   (ADR-0057).
     ///   Inheriting it here as well would be a second mechanism for one property,
     ///   and the two would disagree the first time a box was styled without an
     ///   element behind it.
     /// - **`opacity`**, which CSS does not inherit — its *effect* does, and the
     ///   painter accumulates it down the box tree
-    ///   ([ADR-0064](../../../../../../book/src/adr/0064-a-rounded-rectangle-is-four-cubics.md)).
+    ///   (ADR-0064).
     ///   Inheriting the value here would then apply it once per level per
     ///   ancestor: a label under a control at 45% would be drawn at 20%.
     private ComputedStyle inheritingFrom(ComputedStyle parent) {

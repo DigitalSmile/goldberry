@@ -29,7 +29,7 @@ import io.github.digitalsmile.goldberry.widgets.Density;
 /// about *positions* and was true throughout the whole time the header was being
 /// painted underneath the rows sliding past it. Whether you can read it is a fact
 /// about pixels and paint order, and only an image says so
-/// ([ADR-0123](../../../../../../../book/src/adr/0123-a-pinned-box-paints-after-its-siblings.md)).
+/// (ADR-0123).
 class AffixGoldenTest {
 
     @Test

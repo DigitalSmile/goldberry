@@ -35,7 +35,7 @@ import io.github.digitalsmile.goldberry.widgets.text.Text;
 /// reused, because `Placement` positions a **window** against a display's work
 /// area and this positions a box inside another box — the same idea, different
 /// coordinate space, and sharing it would mean teaching it about both
-/// ([ADR-0121](../../../../../../../../book/src/adr/0121-a-tour-is-a-veil-and-a-sequence.md)).
+/// (ADR-0121).
 ///
 /// ## Keyboard
 ///
@@ -92,7 +92,7 @@ record TourStop(
     /// rectangle **is** the window — and there is no other way to learn it. The
     /// cascade cannot say: a box sized by absolute insets has no `width` in its
     /// style, so reading the resolved style gives nothing
-    /// ([ADR-0121](../../../../../../../../book/src/adr/0121-a-tour-is-a-veil-and-a-sequence.md)).
+    /// (ADR-0121).
     ///
     /// Safe against [io.github.digitalsmile.goldberry.input.handler.Located]'s rule: what
     /// this reports is fixed by the overlay's insets, so nothing drawn inside it

@@ -74,7 +74,7 @@ record AffixSlot(
                 // sitting where the layout put it has the rows *below* it drawn
                 // afterwards, straight over the top of it. Which is a sticky
                 // header you can read the list through
-                // ([ADR-0123](../../../../../../../../book/src/adr/0123-a-pinned-box-paints-after-its-siblings.md)).
+                // (ADR-0123).
                 .elevated(affixed);
     }
 }

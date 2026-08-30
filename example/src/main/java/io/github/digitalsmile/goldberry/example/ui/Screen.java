@@ -24,17 +24,17 @@ import java.util.Map;
 /// of seven screens under them.
 ///
 /// ```text
-/// ┌──────────────────────────────────────────────┐
-/// │ File   Edit   Help                           │  menubar   — the window's
-/// ├──────────────────────────────────────────────┤
-/// │ Goldberry  9  42 ms  linux/x64   ◐  Switch   │  #bar      — startup, and the light
-/// ├──────────────────────────────────────────────┤
-/// │ Basic │ Panels │ Overlays │ … │ Charts       │  #gallery  — seven screens
-/// │ ┌────────┐ ┌────────┐                        │
-/// │ │  card  │ │  card  │   a masonry of cards   │
-/// │ └────────┘ └────────┘                        │
-/// └──────────────────────────────────────────────┘
-/// ```
+    /// ┌──────────────────────────────────┐
+    /// │ File  Edit  Help                 │  menubar  — the window's
+    /// ├──────────────────────────────────┤
+    /// │ Goldberry 9  42 ms  ◐  Switch    │  #bar     — startup, and the light
+    /// ├──────────────────────────────────┤
+    /// │ Basic │ Panels │ … │ Charts      │  #gallery — seven screens
+    /// │ ┌────────┐ ┌────────┐            │
+    /// │ │  card  │ │  card  │  a masonry │
+    /// │ └────────┘ └────────┘            │
+    /// └──────────────────────────────────┘
+    /// ```
 ///
 /// ## Why seven screens and not twelve
 ///
@@ -45,8 +45,8 @@ import java.util.Map;
 /// with a tab between them; `Tabs` and `Scrolling` were both "how do I get around
 /// a window". Seven screens are seven *questions*, and every one of them is a wall
 /// of cards
-/// ([ADR-0222](../../../../../../../book/src/adr/0222-a-showcase-is-a-window-a-bar-and-seven-screens.md),
-/// [ADR-0110](../../../../../../../book/src/adr/0110-the-showcase-is-a-gallery-of-screens.md)).
+/// (ADR-0222,
+/// ADR-0110).
 ///
 /// ## What this widget rebuilds for
 ///
@@ -197,7 +197,7 @@ public record Screen(ShowcaseModel model, ShowcaseModel.Actions actions,
         /// tall.
         ///
         /// The gallery is what `scroll` was built for
-        /// ([ADR-0116](../../../../../../../book/src/adr/0116-a-scroll-view-is-a-clip-an-offset-and-two-extents.md)).
+        /// (ADR-0116).
         ///
         /// Every screen but one, and the exception is the rule rather than a
         /// special case: [Navigation] holds a card that owns a viewport of its

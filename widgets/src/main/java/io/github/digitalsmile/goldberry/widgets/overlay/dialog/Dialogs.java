@@ -7,7 +7,7 @@ import io.github.digitalsmile.goldberry.Overlay;
 
 /// The half of a dialog that is not a widget: putting one on a window.
 ///
-/// [ADR-0106](../../../../../../../../book/src/adr/0106-a-menu-is-a-widget-and-opening-one-is-not.md)
+/// ADR-0106
 /// split `menu` this way and this is the same split for the same reason. A modal
 /// needs the **window** — something has to cover it and dim it — and a widget has
 /// no window. `Menus` is the other one of these.
@@ -30,7 +30,7 @@ import io.github.digitalsmile.goldberry.Overlay;
 /// What it does **not** have to know is the animation. Every route out of a
 /// dialog — a button, `Esc`, a press on the scrim — runs the closing animation
 /// first and calls the handler when it is over
-/// ([ADR-0176](../../../../../../../../book/src/adr/0176-a-dialog-is-a-widget-and-showing-one-is-not.md)),
+/// (ADR-0176),
 /// so a handler that removes the overlay immediately still gets the fade.
 ///
 /// Confined to the UI thread, like everything that touches a [Host].

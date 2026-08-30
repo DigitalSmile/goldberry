@@ -29,7 +29,7 @@ import io.github.digitalsmile.goldberry.widget.style.Styled;
 /// them a pixel away from the thumb centre it is supposed to name. A cell of zero
 /// width takes no part in that arithmetic, so the marks sit exactly where the
 /// ratio says and the mark's own size is free to be whatever the theme wants
-/// ([ADR-0080](../../../../../../../../book/src/adr/0080-a-value-is-measured-along-a-part.md)).
+/// (ADR-0080).
 ///
 /// The cell is zero on **both** axes rather than on the main one, which is what
 /// keeps this widget from having to know which axis it is on: a fader flips the

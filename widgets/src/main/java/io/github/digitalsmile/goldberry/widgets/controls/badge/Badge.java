@@ -43,7 +43,8 @@ import io.github.digitalsmile.goldberry.widgets.text.Text;
 ///
 /// Classes rather than an enum, for §11's parity invariant: KDL spells a variant
 /// `class="danger"`, and an enum would be a second vocabulary only Java could
-/// use. [io.github.digitalsmile.goldberry.widgets.controls.button.Button#styled] made the same choice for the same
+/// use. [io.github.digitalsmile.goldberry.widgets.controls.button.Button#styled] made the same
+/// choice for the same
 /// reason.
 ///
 /// **The foreground is not the theme's.** A filled chip in an aurora hue cannot
@@ -51,7 +52,7 @@ import io.github.digitalsmile.goldberry.widgets.text.Text;
 /// floor. Each variant therefore pins its own text token, and two of the hues
 /// carry no legible text at either end of the palette and ship as a derived,
 /// darker fill
-/// ([ADR-0087](../../../../../../../../book/src/adr/0087-a-semantic-fill-brings-its-own-foreground.md)).
+/// (ADR-0087).
 ///
 /// ## Nothing about it moves
 ///

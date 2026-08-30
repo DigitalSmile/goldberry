@@ -38,7 +38,7 @@ import io.github.digitalsmile.goldberry.widgets.panel.Panel;
 /// [SegmentedTest] pins the two radii and the inset as numbers. These are the
 /// images that say the numbers add up to a control: **the selected segment sits
 /// *inside* the bar's rounded corners**, which is the whole of
-/// [ADR-0097](../../../../../../../../book/src/adr/0097-a-selection-that-travels-needs-a-geometry.md)'s
+/// ADR-0097's
 /// drawing decision, and it is the kind of thing no assertion reaches — a fill
 /// painted over the bar's curve resolves to exactly the same numbers and looks
 /// like a corner that lost its radius.

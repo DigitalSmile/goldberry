@@ -43,7 +43,7 @@ import io.github.digitalsmile.goldberry.widgets.panel.masonry.Masonry;
 /// So a screen is a document *and* a class rather than one or the other, and the
 /// wall is where they meet: the document supplies the cards it can and Java
 /// appends the rest to the same masonry
-/// ([ADR-0222](../../../../../../../book/src/adr/0222-a-showcase-is-a-window-a-bar-and-seven-screens.md)).
+/// (ADR-0222).
 public final class Panes {
 
     private Panes() {}

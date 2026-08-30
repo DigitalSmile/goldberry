@@ -43,21 +43,21 @@ import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
 /// Hovering draws a **crosshair** at the nearest point, a marker on each series
 /// there, and a readout of what they read; clicking a **legend entry** shows that
 /// series alone and clicking it again puts them all back
-/// ([ADR-0198](../../../../../../../../book/src/adr/0198-a-charts-readout-is-painted-and-its-legend-is-a-control.md)).
+/// (ADR-0198).
 ///
 /// It answers the **keyboard** too, because §2.2 says everything is reachable:
 /// `Left` and `Right` walk the crosshair, `Home` and `End` are the ends, and
 /// `Escape` lets go
-/// ([ADR-0199](../../../../../../../../book/src/adr/0199-a-chart-answers-the-keyboard-and-a-step-is-relative.md)).
+/// (ADR-0199).
 ///
 /// ## Missing values
 ///
 /// A hole is `Double.NaN` and a `null` is read as one, and what happens there is
 /// [#nulls]: a **gap** by default, because it is the only one of the three that
 /// invents nothing
-/// ([ADR-0201](../../../../../../../../book/src/adr/0201-a-hole-is-not-a-zero.md)).
+/// (ADR-0201).
 /// A chart with no values at all says so rather than drawing an empty grid
-/// ([ADR-0200](../../../../../../../../book/src/adr/0200-a-chart-with-no-data-says-so.md)),
+/// (ADR-0200),
 /// and [#loading] and [#failed] are how an application says the rest.
 ///
 /// ## Limits
@@ -65,26 +65,27 @@ import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
 /// [#threshold] draws one across the chart — a line or a shaded region, in one of
 /// four semantic hues and never a series colour, and part of the domain so a
 /// limit you have not reached is still on screen
-/// ([ADR-0202](../../../../../../../../book/src/adr/0202-a-limit-is-not-a-series.md)).
+/// (ADR-0202).
 ///
 /// ## When, rather than which
 ///
 /// [#times] gives the chart one `Instant` per point, and the x becomes time: an
 /// unscraped stretch is as wide as it was long, and the labels step across
 /// second, minute, hour, day, month and year boundaries
-/// ([ADR-0203](../../../../../../../../book/src/adr/0203-a-time-axis-is-time-not-a-relabelled-index.md)).
+/// (ADR-0203).
 ///
 /// ## Straight, smooth or stepped
 ///
 /// [#curve] decides what the line claims happened between two readings. The
 /// default is straight; **smooth is monotone**, so it cannot draw a percentage
 /// below zero on its way up
-/// ([ADR-0204](../../../../../../../../book/src/adr/0204-a-smooth-line-cannot-overshoot.md)).
+/// (ADR-0204).
 ///
 /// ## What it does not have yet
 ///
 /// A **gradient fill**, which is the one thing in `charts.md` §3.1 that needs a
-/// symbol the native export list does not carry — see `TODO.md` — `charts.md` §3.1 is the list. The x is the point
+/// symbol the native export list does not carry — see `TODO.md` — `charts.md` §3.1 is the list. The
+/// x is the point
 /// **index**; [#categories] labels the points and a `java.time` axis is §3.1's
 /// and is not built.
 ///
@@ -164,7 +165,7 @@ public record LineChart(
     /// encoding for it. [io.github.digitalsmile.goldberry.widgets.data.Fill#GRADIENT]
     /// is the dashboard convention and says what it means — the fade thins out
     /// downward, so the line stays the data and the area is a hint at magnitude
-    /// ([ADR-0207](../../../../../../../../book/src/adr/0207-a-fill-may-be-a-ramp.md)).
+    /// (ADR-0207).
     ///
     /// The fill runs down to **zero**, or to the bottom of the plot on a log
     /// axis, where zero has no position at all.
@@ -181,7 +182,7 @@ public record LineChart(
     /// **It costs the zeroes.** `log10(0)` is negative infinity, so a
     /// non-positive reading has no position and becomes a hole — the line breaks
     /// there rather than sliding off the bottom
-    /// ([ADR-0205](../../../../../../../../book/src/adr/0205-a-log-axis-has-no-room-for-zero.md)).
+    /// (ADR-0205).
     /// Only `line-chart` draws one: a bar and a band are lengths from zero, and
     /// zero is not on the axis.
     public LineChart logY() {

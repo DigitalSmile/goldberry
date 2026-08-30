@@ -38,13 +38,13 @@ record ToasterBox(List<Widget> children, Corner corner, OnFrame onFrame)
     ///
     ///   - **the clock**, which is what pauses and resumes a timeout — `Host.after`
     ///     gives a timer and no way to ask how much of it has run
-    ///     ([ADR-0177](../../../../../../../../book/src/adr/0177-a-toast-is-a-queue-and-the-stack-is-the-widget.md));
+    ///     (ADR-0177);
     ///   - **the gap**, because the distance a surviving toast travels when one of
     ///     them goes is the departed one's height *plus the space it was keeping*.
     ///     Read rather than assumed: a stylesheet that changed `toaster { gap }`
     ///     and nothing else would otherwise leave the whole stack reflowing to
     ///     somewhere it is not
-    ///     ([ADR-0178](../../../../../../../../book/src/adr/0178-a-stack-closes-its-own-hole.md)).
+    ///     (ADR-0178).
     interface OnFrame {
 
         /// @param nowMillis the renderer's clock, not the wall one

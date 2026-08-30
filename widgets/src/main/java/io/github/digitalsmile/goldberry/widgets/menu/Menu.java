@@ -34,19 +34,19 @@ import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
 /// ## A menu is a widget; opening one is not
 ///
 /// This is the panel and its items, exactly as `popover` is a panel
-/// ([ADR-0104](../../../../../../../book/src/adr/0104-a-popup-is-measured-then-placed.md)):
+/// (ADR-0104):
 /// a document can write it, a stylesheet can style it, and it draws in whatever
 /// it is put in. **Opening** it — measuring, placing it against the thing that
 /// summoned it, opening a platform window, closing it again — is [Menus], because
 /// it needs a `Host` and a widget must not have one
-/// ([ADR-0106](../../../../../../../book/src/adr/0106-a-menu-is-a-widget-and-opening-one-is-not.md)).
+/// (ADR-0106).
 ///
 /// ## The keyboard
 ///
 /// A **vertical focus scope**: `Up` and `Down` move between items and `Left` and
 /// `Right` are left alone, because in a menu they mean "close this submenu" and
 /// "open that one" — which is [Item]'s business and not a traversal
-/// ([ADR-0078](../../../../../../../book/src/adr/0078-a-focus-scope-has-an-axis.md)).
+/// (ADR-0078).
 /// `Escape` closes the whole thing and belongs to the popup, not to any item.
 ///
 /// @param children   the items, separators and anything else a menu is made of

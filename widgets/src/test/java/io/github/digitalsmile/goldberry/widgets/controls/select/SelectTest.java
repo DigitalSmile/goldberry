@@ -366,7 +366,8 @@ class SelectTest {
         /// anything out either.
         ///
         /// `StubHost` is [io.github.digitalsmile.goldberry.widgets.TestHost],
-        /// which consults the `Fit` with whatever [io.github.digitalsmile.goldberry.widgets.TestHost#measuring]
+        /// which consults the `Fit` with whatever
+        /// [io.github.digitalsmile.goldberry.widgets.TestHost#measuring]
         /// says the content came out as — the one thing a test without a window
         /// cannot get any other way.
         @Test

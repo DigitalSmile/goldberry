@@ -36,7 +36,7 @@ import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
 /// it needs a `Host` and a widget does not have one — so an item with children
 /// carries them and is handed a [MenuSignals] by whoever opened the menu it is
 /// in, exactly as a `radio` is handed `selected` and `onSelect` by its group
-/// ([ADR-0106](../../../../../../../book/src/adr/0106-a-menu-is-a-widget-and-opening-one-is-not.md)).
+/// (ADR-0106).
 ///
 /// **It does not register its accelerator.** §8 says an accelerator is "displayed
 /// right-aligned *and* auto-registered in the window's shortcut map"; this is the
@@ -55,7 +55,7 @@ import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
 ///                    Three states rather than two, because "unchecked" and "not
 ///                    a checkbox" are different things and only the second means
 ///                    "reserve no room for a tick"
-///                    ([ADR-0113](../../../../../../../book/src/adr/0113-a-submenu-is-placed-beside-its-menu.md))
+///                    (ADR-0113)
 /// @param reservesLead whether this row leaves room for the leading column — the
 ///                    tick, or the icon, or nothing. Supplied by [Menus] and the
 ///                    same for every row in one menu: a column that appeared only
@@ -70,9 +70,9 @@ import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
 ///                    arrived" callback, and the four keyboard gaps that closed
 ///                    when it stopped being one are in
 ///
-/// [ADR-0219](../../../../../../../book/src/adr/0219-an-item-tells-its-menu-what-the-keyboard-did.md)
+/// ADR-0219
 ///
-/// ([ADR-0112](../../../../../../../book/src/adr/0112-a-menu-follows-the-pointer-and-lights-for-the-keyboard.md))
+/// (ADR-0112)
 /// @param attributes  `id` and `class`, exactly as on the primitives
 @Markup("item")
 public record Item(
@@ -226,7 +226,7 @@ public record Item(
     ///
     /// The hover-intent delay §8 asks for is [Menus]'s: the timer belongs to the
     /// event loop and a widget has no way to reach it
-    /// ([ADR-0105](../../../../../../../book/src/adr/0105-a-tooltip-is-an-attribute-not-a-widget.md)).
+    /// (ADR-0105).
     @Override
     public void onPointer(PointerEvent event) {
         if (disabled) {
@@ -351,7 +351,7 @@ public record Item(
             // edge. That is what "the item after the iconed one is aligned to the
             // top" turned out to be: the widest row wraps first, and the widest
             // row is rarely the one with the icon
-            // ([ADR-0148](../../../../../../../book/src/adr/0148-a-menu-row-does-not-wrap.md)).
+            // (ADR-0148).
             //
             // The cost is `option`'s, documented there and taken for the same
             // reason: a label longer than the room for it overflows, because

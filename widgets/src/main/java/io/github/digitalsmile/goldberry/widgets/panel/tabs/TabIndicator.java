@@ -16,7 +16,7 @@ import io.github.digitalsmile.goldberry.widget.style.Styled;
 /// border.
 ///
 /// §8's CSS subset has one `border` and no per-edge longhands, which
-/// [ADR-0097](../../../../../../../../book/src/adr/0097-a-selection-that-travels-needs-a-geometry.md)
+/// ADR-0097
 /// recorded when `segmented` wanted per-corner radii. A `border-bottom` is
 /// therefore not a thing that can be written, and the first version of this
 /// widget wrote one anyway: the declaration was dropped, and the golden image is
@@ -28,7 +28,7 @@ import io.github.digitalsmile.goldberry.widget.style.Styled;
 ///
 /// **Always built**, selected or not: a node that only exists while a tab is
 /// selected cannot transition, because the first frame of a newly built element
-/// starts nothing ([ADR-0065](../../../../../../../../book/src/adr/0065-a-part-is-styleable-and-not-constructible.md)).
+/// starts nothing (ADR-0065).
 ///
 /// @param selected whether this tab is the selected one
 /// @param colour   the tab's own colour, or 0 for the stylesheet's

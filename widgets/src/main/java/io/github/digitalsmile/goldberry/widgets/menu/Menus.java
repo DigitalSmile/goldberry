@@ -78,7 +78,7 @@ public final class Menus {
     /// catalog boundary. The toolkit notices the right-click and knows which name
     /// the widget carried; only the catalog can turn that name into a menu and
     /// open it, which means wrapping every item so that choosing it closes the
-    /// stack ([ADR-0108](../../../../../../../book/src/adr/0108-a-context-menu-is-a-name-on-a-widget.md)).
+    /// stack (ADR-0108).
     ///
     /// A name nobody registered is **logged and ignored**, not thrown: a right
     /// click is not a request that can fail usefully, and taking a window down
@@ -124,7 +124,7 @@ public final class Menus {
     /// to whatever is on its left, which is a fact about the bar and not about
     /// the menu. Everything else passes null, and those two arrows do nothing at
     /// the root of a context menu — which is right, because there is nowhere to
-    /// go ([ADR-0219](../../../../../../../book/src/adr/0219-an-item-tells-its-menu-what-the-keyboard-did.md)).
+    /// go (ADR-0219).
     public static Optional<Popup> open(Host host, String anchorId, Menu menu, Placement placement, Siblings siblings) {
 
         Objects.requireNonNull(host, "host");
@@ -202,11 +202,11 @@ public final class Menus {
     /// It is a measurement now. The decision is still made **here** rather than
     /// in the popup facility, for the two reasons that have not changed: `:core`
     /// has no widgets to wrap anything in
-    /// ([ADR-0092](../../../../../../../book/src/adr/0092-a-primitive-is-a-widget-like-any-other.md)),
+    /// (ADR-0092),
     /// and whether long content should scroll or be clamped is a fact about the
     /// content — a tooltip that scrolled would be absurd
-    /// ([ADR-0118](../../../../../../../book/src/adr/0118-a-popup-that-does-not-fit-scrolls.md),
-    /// [ADR-0179](../../../../../../../book/src/adr/0179-a-popup-says-what-it-measured.md)).
+    /// (ADR-0118,
+    /// ADR-0179).
     ///
     /// **Nothing happens to a menu that fits**, which is nearly all of them.
     private static final Fitted VIEWPORT = new Fitted("menu-viewport");
@@ -252,7 +252,7 @@ public final class Menus {
     /// a keyboard `Right` waited out the pointer's delay, `Left` closed nothing,
     /// and the row whose branch was open looked like every other row. All four are
     /// answers only the menu can give, and this is the menu
-    /// ([ADR-0219](../../../../../../../book/src/adr/0219-an-item-tells-its-menu-what-the-keyboard-did.md)).
+    /// (ADR-0219).
     private static final class OpenMenu {
 
         private final Host host;

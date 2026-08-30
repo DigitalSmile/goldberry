@@ -22,7 +22,7 @@ import io.github.digitalsmile.goldberry.bind.runtime.BoundField;
 /// rewrites every assignment to it inside the class into a store that also
 /// notifies, and gives [BindingRegistry] a [BoundField] window onto it — so `gain++`
 /// moves a slider and the model never mentions a `Property`
-/// ([ADR-0125](../../../../../../book/src/adr/0125-a-raw-field-is-woven-into-a-binding.md)).
+/// (ADR-0125).
 ///
 /// A [Property] field is still accepted and left alone. It is already observable,
 /// so there is nothing to rewire — the weaver binds it directly. That is what
@@ -79,7 +79,7 @@ public @interface Bind {
     /// `Models.observable(model, "app.theme").subscribe(v -> host.restyle())` is
     /// a line that says in Java what this says in one word, and gets forgotten
     /// the same way the old `changed()` did
-    /// ([ADR-0133](../../../../../../book/src/adr/0133-a-restyle-is-declared.md)).
+    /// (ADR-0133).
     ///
     /// The toolkit wires it: an application that hands its model to
     /// [io.github.digitalsmile.goldberry.Application#model()] restyles on a
@@ -105,7 +105,7 @@ public @interface Bind {
     /// question has: one model routinely holds both the gain a slider shows and
     /// the byte count nothing shows, and a switch on the class would have to be
     /// wrong about one of them
-    /// ([ADR-0135](../../../../../../book/src/adr/0135-a-frame-is-asked-for-by-the-value-that-moved.md)).
+    /// (ADR-0135).
     ///
     /// Decided in the **build**: a field that does not ask has no call to emit,
     /// so it costs an instruction that is not there rather than a branch that is.

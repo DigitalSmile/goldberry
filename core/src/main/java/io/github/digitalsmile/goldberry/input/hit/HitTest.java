@@ -45,7 +45,7 @@ public final class HitTest {
     /// a pointer starts landing where the ink is not, and the failure is silent —
     /// the control looks right and simply does not respond where it looks like it
     /// should
-    /// ([ADR-0068](../../../../../../../book/src/adr/0068-the-transform-stack-is-java-side.md)).
+    /// (ADR-0068).
     ///
     /// Null for an untransformed box, which is almost all of them, and the test
     /// then costs the four comparisons it always did.
@@ -95,7 +95,7 @@ public final class HitTest {
         /// reasoning about what the user can *see* wants this one instead: a row
         /// inside a scrolled list is laid out where it always was and drawn a
         /// long way from there
-        /// ([ADR-0123](../../../../../../../book/src/adr/0123-a-pinned-box-paints-after-its-siblings.md)).
+        /// (ADR-0123).
         ///
         /// A region stores the **inverse** of its matrix, because undoing a
         /// transform is what hit testing needs and inverting once while painting
@@ -167,7 +167,7 @@ public final class HitTest {
     /// lays the tree out again to answer, so a window using it pays for two full
     /// layout passes per frame — one to paint and one to know where it painted.
     /// A [RenderTree] has already done the pass, and both questions read the same
-    /// answer ([ADR-0069](../../../../../../../book/src/adr/0069-the-render-tree-is-retained.md)).
+    /// answer (ADR-0069).
     ///
     /// @throws IllegalStateException if the tree has never been updated
     public static List<Region> capture(RenderTree tree) {

@@ -6,7 +6,7 @@ import io.github.digitalsmile.goldberry.widgets.core.scroll.ScrollController;
 /// id, a title, a body, and Back/Next/Skip".
 ///
 /// The target is named rather than referenced, for `menu`'s reason
-/// ([ADR-0108](../../../../../../../../book/src/adr/0108-a-context-menu-is-a-name-on-a-widget.md)):
+/// (ADR-0108):
 /// an application holds ids, not elements, and a tour is usually written far away
 /// from the widgets it describes — often in a different file, and often before
 /// they exist.

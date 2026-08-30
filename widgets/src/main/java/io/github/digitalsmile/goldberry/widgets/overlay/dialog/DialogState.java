@@ -40,7 +40,7 @@ import io.github.digitalsmile.goldberry.widgets.core.Phase;
 ///
 /// The **trap** is not asked for: [io.github.digitalsmile.goldberry.input.handler.Handles#isModal]
 /// on the panel is a fact about the tree, and the router reads it
-/// ([ADR-0176](../../../../../../../../book/src/adr/0176-a-dialog-is-a-widget-and-showing-one-is-not.md)).
+/// (ADR-0176).
 final class DialogState extends State<Dialog> {
 
     /// §1.7's `overlay`, which §3 names for a dialog's entrance: 240ms.

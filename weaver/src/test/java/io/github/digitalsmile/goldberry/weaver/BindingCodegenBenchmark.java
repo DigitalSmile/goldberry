@@ -16,7 +16,7 @@ import org.junit.jupiter.api.Test;
 
 /// Pricing an option: should a jar **generate** its binding instead of reflecting?
 ///
-/// [ADR-0155](../../../../book/src/adr/0155-a-jar-binds-at-run-time-an-image-is-woven.md)
+/// ADR-0155
 /// gave an ordinary jar a reflective binding, and `BindingSchemeBenchmark`
 /// measured what that costs against the woven form. The obvious next thought is
 /// to close the gap without a build step: bind reflectively at start-up, and the

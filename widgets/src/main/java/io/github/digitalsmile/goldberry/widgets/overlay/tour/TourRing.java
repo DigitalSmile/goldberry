@@ -19,7 +19,7 @@ import io.github.digitalsmile.goldberry.widget.style.Styled;
 ///
 /// It draws no fill, so the widget underneath is untouched — and it takes no
 /// pointer, because the whole point of the cut-out is that the target stays live
-/// ([ADR-0121](../../../../../../../../book/src/adr/0121-a-tour-is-a-veil-and-a-sequence.md)).
+/// (ADR-0121).
 record TourRing(LogicalRect target) implements Widget.Leaf, Styled, Paints {
 
     @Override

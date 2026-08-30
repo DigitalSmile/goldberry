@@ -11,7 +11,7 @@ import io.github.digitalsmile.goldberry.widget.style.Styled;
 
 /// The glyph at the head of a [Message] — a **part**, so it is styleable and not
 /// constructible
-/// ([ADR-0065](../../../../../../../../../book/src/adr/0065-a-part-is-styleable-and-not-constructible.md)).
+/// (ADR-0065).
 ///
 /// It draws the kind's [Box.Mark], not an icon, and the difference is lifetime:
 /// an `Icon` owns native memory that has to be closed exactly once, and a banner

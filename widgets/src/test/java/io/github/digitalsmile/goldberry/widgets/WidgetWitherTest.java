@@ -17,7 +17,7 @@ import io.github.digitalsmile.goldberry.widget.Widget;
 /// `RecordWitherTest`'s check, applied to **every widget in the catalog** rather
 /// than to `Box` and `ComputedStyle`.
 ///
-/// The argument moved. [ADR-0181](../../../../../../book/src/adr/0181-a-box-may-say-how-small-and-how-large.md)
+/// The argument moved. ADR-0181
 /// made it about the two widest records in `:core`; since then `Select` has grown
 /// to twelve components across four sessions of adding options to it — `multiple`,
 /// `autocomplete`, `free`, `onQuery`, `tree` — and every one of those churned

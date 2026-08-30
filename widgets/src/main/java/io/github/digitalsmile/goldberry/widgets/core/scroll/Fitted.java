@@ -22,13 +22,13 @@ import io.github.digitalsmile.goldberry.widget.attr.Attributes;
 /// which keeps the top visible and silently drops everything below it. A menu
 /// that loses its last three commands with no indication that it has is the
 /// worst kind of wrong, and it was the honest thing to do before `scroll`
-/// existed ([ADR-0118](../../../../../../../../book/src/adr/0118-a-popup-that-does-not-fit-scrolls.md)).
+/// existed (ADR-0118).
 ///
 /// `Menus` has done this since, from an **estimate** — rows times an assumed
 /// height — because nothing reported what a menu actually measured. `select`
 /// did not do it at all, so a list longer than the screen still lost its bottom.
 /// One guess and one gap, and both go away once the popup facility says what it
-/// measured ([ADR-0179](../../../../../../../../book/src/adr/0179-a-popup-says-what-it-measured.md)).
+/// measured (ADR-0179).
 ///
 /// ## Nothing happens to content that fits
 ///

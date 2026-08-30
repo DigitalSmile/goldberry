@@ -22,11 +22,11 @@ import io.github.digitalsmile.goldberry.widget.style.Styled;
 /// whole subtree on every wheel notch, sixty times a second, to move a box that
 /// did not change size. A `transform` is resolved by the painter, after layout,
 /// and the tree underneath it is untouched
-/// ([ADR-0116](../../../../../../../../book/src/adr/0116-a-scroll-view-is-a-clip-an-offset-and-two-extents.md)).
+/// (ADR-0116).
 ///
 /// It is also what makes hit testing come out right for free. The painter carries
 /// the accumulated matrix and the router inverts it
-/// ([ADR-0068](../../../../../../../../book/src/adr/0068-the-transform-stack-is-java-side.md)),
+/// (ADR-0068),
 /// so a row scrolled up by 200px is clicked where it *looks*, with nothing in the
 /// scroll view arranging that.
 ///

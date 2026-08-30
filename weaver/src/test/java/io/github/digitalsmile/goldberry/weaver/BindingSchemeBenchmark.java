@@ -21,7 +21,7 @@ import org.junit.jupiter.api.TestMethodOrder;
 
 /// What the two ways of binding a model cost.
 ///
-/// [ADR-0155](../../../../book/src/adr/0155-a-jar-binds-at-run-time-an-image-is-woven.md)
+/// ADR-0155
 /// made weaving the **native-image** path and reflection the ordinary jar's, and
 /// said the trade was worth it. This is where that claim gets a number instead of
 /// an adjective.

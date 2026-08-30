@@ -94,7 +94,7 @@ public record Box(
     /// The same shape as [Text] and for the same reason: an icon with no colour
     /// cannot be drawn. Unlike text it needs no measure function — an icon knows
     /// its own size, which is why it can be a box at all
-    /// ([ADR-0043](../../../../../../book/src/adr/0043-icons-are-stroked-paths.md)).
+    /// (ADR-0043).
     ///
     /// @param icon the icon, already built at the size it will draw at
     /// @param argb `0xAARRGGBB`, not premultiplied
@@ -147,7 +147,7 @@ public record Box(
             /// pixels inside another control, where an icon's own metrics and
             /// lookup buy nothing: what a close × has to do is line up with the
             /// glyph beside it and take the colour of the thing it closes
-            /// ([ADR-0107](../../../../../../book/src/adr/0107-a-tab-strip-is-a-model-a-header-and-a-panel.md)).
+            /// (ADR-0107).
             CROSS,
 
             /// Two crossed strokes at right angles — the add affordance on a tab
@@ -171,7 +171,7 @@ public record Box(
             /// drop-down chevron is not "a submenu arrow that happens to point
             /// down": one says *beside*, the other says *below*, and a control
             /// that drew the wrong one would be pointing at the wrong place
-            /// ([ADR-0141](../../../../../../book/src/adr/0141-a-select-is-a-closed-control-and-a-list.md)).
+            /// (ADR-0141).
             CHEVRON_DOWN,
 
             /// A single `^` — a `table`'s ascending sort caret.
@@ -181,7 +181,7 @@ public record Box(
             /// are not decoration but the *value* — a caret pointing the wrong way
             /// says the column is sorted the other way, which is a lie a rotation
             /// would make easy to ship
-            /// ([ADR-0214](../../../../../../book/src/adr/0214-a-table-is-a-list-with-columns.md)).
+            /// (ADR-0214).
             CHEVRON_UP,
 
             /// A filled circle — `:checked` on a radio, which is why this is here
@@ -231,7 +231,7 @@ public record Box(
             /// is the only one that has to *show a number*: [#start] and [#sweep]
             /// are what a knob's arc indicator is. Every other kind draws the
             /// same shape at every size and ignores them
-            /// ([ADR-0089](../../../../../../book/src/adr/0089-a-knobs-gesture-is-a-rate.md)).
+            /// (ADR-0089).
             ARC,
 
             /// A radial line — a `knob`'s pointer, saying which way the control
@@ -397,7 +397,7 @@ public record Box(
     /// elevated siblings: they keep document order relative to each other. It is
     /// a single bit meaning "draw me last", which is the whole of what a pinned
     /// header needs and considerably less than a layer
-    /// ([ADR-0123](../../../../../../book/src/adr/0123-a-pinned-box-paints-after-its-siblings.md)).
+    /// (ADR-0123).
     ///
     /// **Layout is untouched.** Yoga sees the children in the order they were
     /// given; only the painter and the hit test reorder, and they reorder
@@ -510,7 +510,7 @@ public record Box(
     /// transform is applied to the result, which is CSS's rule and the reason
     /// `transform` is cheap enough to animate at all: a control that scales on
     /// hover moves no sibling. It is also why `transition: width` is refused
-    /// ([ADR-0067](../../../../../../book/src/adr/0067-motion-is-an-overlay-on-a-frame-clock.md))
+    /// (ADR-0067)
     /// and `transition: transform` is not.
     public Box transform(Transform value) {
         return new Box(background, decoration, opacity, Objects.requireNonNull(value, "transform"),
@@ -568,7 +568,7 @@ public record Box(
     /// the same door `Scroll.height` opens: an overlay capped at a fraction of a
     /// window it cannot measure. Everything else writes `min-width` and
     /// `max-width` in CSS and arrives here through [#style(ComputedStyle)]
-    /// ([ADR-0181](../../../../../book/src/adr/0181-a-box-may-say-how-small-and-how-large.md)).
+    /// (ADR-0181).
     public Box limits(Limits value) {
         return new Box(background, decoration, opacity, transform, cursor, direction, justifyContent, alignItems,
                 wrap, width, height, value, padding, gap, flexGrow, flexShrink, position, inset, elevated, overflow, text, icon, mark, painting, children, owner);
@@ -587,7 +587,7 @@ public record Box(
     /// another box. An absolute box is taken out of flow and placed against its
     /// nearest ancestor that is not [PositionType#STATIC], so it can sit *over*
     /// its siblings and move without disturbing them
-    /// ([ADR-0099](../../../../../../book/src/adr/0099-an-indicator-travels-on-a-grid.md)).
+    /// (ADR-0099).
     public Box position(PositionType value) {
         return new Box(background, decoration, opacity, transform, cursor, direction, justifyContent,
                 alignItems, wrap, width, height, limits, padding, gap, flexGrow, flexShrink,
@@ -627,7 +627,7 @@ public record Box(
     /// is free to take it back. `0` is what a fixed-size thing wants: a
     /// checkbox's 16px glyph, a switch's 36px pill, a control's 32px hit target.
     /// Every one of those was squashed by a narrow window before this existed
-    /// ([ADR-0076](../../../../../../book/src/adr/0076-a-glyph-does-not-negotiate.md)).
+    /// (ADR-0076).
     public Box shrink(double value) {
         return new Box(background, decoration, opacity, transform, cursor, direction, justifyContent, alignItems,
                 wrap, width, height, limits, padding, gap, flexGrow, value, position, inset, elevated, overflow, text, icon, mark, painting, children, owner);
@@ -715,7 +715,7 @@ public record Box(
     /// overruns it, which is what makes a viewport a fixed size with a taller
     /// thing inside it. **The painter** reads it for the clip: the subtree is
     /// drawn inside this box's rectangle and nothing of it escapes
-    /// ([ADR-0114](../../../../../../book/src/adr/0114-a-clip-is-a-rectangle-the-painter-carries.md)).
+    /// (ADR-0114).
     ///
     /// The clip reaches hit testing as well as paint, so a row scrolled out of
     /// sight is not merely invisible — it is not clickable either. That is

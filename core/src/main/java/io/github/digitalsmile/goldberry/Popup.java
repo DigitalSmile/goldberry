@@ -22,11 +22,11 @@ import io.github.digitalsmile.goldberry.widget.WidgetRenderer;
 /// tooltip.
 ///
 /// The widget layer over [BackendPopup]
-/// ([ADR-0102](../../../../../book/src/adr/0102-a-popup-is-a-window-the-platform-may-refuse.md)),
+/// (ADR-0102),
 /// and the answer to the one thing the in-window overlay layer cannot do: leave
 /// the window. A dropdown near the bottom of a window is routinely taller than
 /// the space below its button, and clipped to the window a nine-item list shows
-/// four ([ADR-0100](../../../../../book/src/adr/0100-a-window-has-a-layer-above-its-application.md)).
+/// four (ADR-0100).
 ///
 /// ```java
 /// host.popup(menu(), LogicalPoint.of(24, 120), LogicalSize.of(180, 132))
@@ -172,7 +172,7 @@ public final class Popup implements AutoCloseable {
     /// which is what a submenu is placed beside. The difference is the panel's
     /// padding and its border — an item's right edge is a few pixels inside the
     /// menu's, so a submenu anchored to the item overlaps the border of the menu
-    /// it came from ([ADR-0113](../../../../../book/src/adr/0113-a-submenu-is-placed-beside-its-menu.md)).
+    /// it came from (ADR-0113).
     public LogicalRect bounds() {
         return new LogicalRect(backend.offset(), window.size());
     }
@@ -223,7 +223,7 @@ public final class Popup implements AutoCloseable {
     ///
     /// A `select multiple` is what needed it: its list stays open while values
     /// are picked, so the rows have to follow a model that moves under them
-    /// ([ADR-0182](../../../book/src/adr/0182-a-select-may-hold-more-than-one.md)).
+    /// (ADR-0182).
     /// Reconciled from the root rather than rebuilt, so the keyboard keeps its
     /// place and nothing flickers.
     ///
@@ -246,7 +246,7 @@ public final class Popup implements AutoCloseable {
     /// branch expanded drew its new rows into a window still the height of the
     /// collapsed one, so they were simply not there, and no viewport appeared
     /// either because the fit that would have added one runs at open time
-    /// ([ADR-0186](../../../book/src/adr/0186-a-panel-that-hangs-off-a-field-is-not-a-menu.md)).
+    /// (ADR-0186).
     ///
     /// The fit is re-applied with the measurement, which is what puts the
     /// viewport in when the content outgrows the screen rather than only when it
@@ -320,7 +320,7 @@ public final class Popup implements AutoCloseable {
             // `content` therefore missed exactly the case that needed it — the
             // new rows were drawn into a window still the height of the
             // collapsed one
-            // ([ADR-0187](../../../book/src/adr/0187-a-panel-takes-the-pointer-and-leaves-the-keyboard.md)).
+            // (ADR-0187).
             resizeToContent();
         }
         var current = renderer.get();
@@ -376,7 +376,7 @@ public final class Popup implements AutoCloseable {
     /// from; starting at the first row makes `Down` mean "go to the second
     /// option" whatever the value was, which is a control that loses the user's
     /// place every time they open it
-    /// ([ADR-0141](../../../../../book/src/adr/0141-a-select-is-a-closed-control-and-a-list.md)).
+    /// (ADR-0141).
     ///
     /// Called between [Host#popup] returning and the first frame, which is the
     /// only window there is: the focus is placed after that frame, because
@@ -398,11 +398,11 @@ public final class Popup implements AutoCloseable {
     /// what is being typed into, and a list that focused its first row on opening
     /// swallowed the second keystroke and every one after it — which is what "it
     /// allows only one character and then is disabled" was
-    /// ([ADR-0185](../../../book/src/adr/0185-a-list-that-hangs-off-a-field-does-not-take-the-keyboard.md)).
+    /// (ADR-0185).
     ///
     /// The arrows still reach it. A popup may or may not have the platform's
     /// focus either way, so the owner forwards keys to whatever popup is open
-    /// ([ADR-0104](../../../book/src/adr/0104-a-popup-is-measured-then-placed.md))
+    /// (ADR-0104)
     /// — which is the mechanism that makes this safe rather than a compromise.
     public Popup takesFocus(boolean value) {
         this.takesFocus = value;

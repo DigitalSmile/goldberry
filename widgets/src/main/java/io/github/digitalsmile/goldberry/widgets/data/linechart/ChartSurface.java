@@ -29,7 +29,7 @@ import io.github.digitalsmile.goldberry.widgets.data.Ticks;
 /// pointer lands on.
 ///
 /// A **part**, so it is CSS-selectable and not constructible
-/// ([ADR-0065](../../../../../../../../book/src/adr/0065-a-part-is-styleable-and-not-constructible.md)).
+/// (ADR-0065).
 /// [ChartPlot] is the widget a chart builds and this is what it builds: the
 /// split exists because a hovered point is *state* and a widget is a value, so
 /// something above the drawing has to remember which point that is.
@@ -42,7 +42,7 @@ import io.github.digitalsmile.goldberry.widgets.data.Ticks;
 /// needs writing out. Shaping is 56 µs and a widget tree is rebuilt every frame,
 /// so a chart that shaped its own axis inside the painter would re-shape five
 /// unchanged numbers sixty times a second
-/// ([ADR-0037](../../../../../../../../book/src/adr/0037-what-the-text-path-costs.md)).
+/// (ADR-0037).
 ///
 /// **In the painter**, which has the size: where the gridlines go, where the
 /// polylines go, and how wide the label gutter turned out to be — all of it

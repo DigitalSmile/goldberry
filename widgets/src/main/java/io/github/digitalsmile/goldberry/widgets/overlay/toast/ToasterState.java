@@ -21,7 +21,7 @@ import io.github.digitalsmile.goldberry.widgets.core.Phase;
 /// is describable, and none of it is the application's: §7 asks for "queued,
 /// timeout with hover-pause" and an application that had to implement those
 /// would be writing a toast stack rather than using one
-/// ([ADR-0177](../../../../../../../../book/src/adr/0177-a-toast-is-a-queue-and-the-stack-is-the-widget.md)).
+/// (ADR-0177).
 ///
 /// ## Every duration here is a frame-clock reading
 ///
@@ -352,7 +352,7 @@ final class ToasterState extends State<Toaster> {
     /// (`book/src/TODO.md`), and it is four lines: read what is left, add the new
     /// distance, start again. A controller for a single consumer would be a
     /// mechanism where an arithmetic is
-    /// ([ADR-0178](../../../../../../../../book/src/adr/0178-a-stack-closes-its-own-hole.md)).
+    /// (ADR-0178).
     private ToastBox.Reflow travel(Entry entry, double distance) {
         var left = entry.reflow == null
                 ? 0

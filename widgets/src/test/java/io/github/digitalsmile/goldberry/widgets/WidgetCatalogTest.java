@@ -30,7 +30,7 @@ import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
 /// `@Markup` class in the module into a `GoldberryCatalog` and declared it in the
 /// module descriptor. Nothing here builds a catalog by hand — that would test a
 /// fixture rather than the thing that ships
-/// ([ADR-0131](../../../../../../book/src/adr/0131-a-widget-package-announces-itself.md)).
+/// (ADR-0131).
 @DisplayName("a widget module announces itself")
 class WidgetCatalogTest {
 

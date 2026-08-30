@@ -12,13 +12,13 @@ import io.github.digitalsmile.goldberry.widget.style.Styled;
 
 /// The column before an [Item]'s label — a **part**, so it is CSS-selectable and
 /// not constructible
-/// ([ADR-0065](../../../../../../../book/src/adr/0065-a-part-is-styleable-and-not-constructible.md)).
+/// (ADR-0065).
 ///
 /// ## One column, three things in it
 ///
 /// A tick, an icon, or nothing — and never a tick *and* an icon, which is what
 /// every desktop menu does and what this got wrong twice
-/// ([ADR-0113](../../../../../../../book/src/adr/0113-a-submenu-is-placed-beside-its-menu.md)):
+/// (ADR-0113):
 /// first by giving every row a tick column whether its menu had anything
 /// checkable in it or not, and then, once that was fixed, by drawing an icon
 /// *after* the tick column so a row with an icon was indented further than the

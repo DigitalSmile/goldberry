@@ -26,7 +26,8 @@ import io.github.digitalsmile.goldberry.widgets.markup.Markup;
 
 /// A switch — `docs/core-widgets.md` §3's `toggle`. The fifth control.
 ///
-/// A binary control like [io.github.digitalsmile.goldberry.widgets.controls.checkbox.Checkbox], and the reason it comes next is the half
+/// A binary control like [io.github.digitalsmile.goldberry.widgets.controls.checkbox.Checkbox], and
+/// the reason it comes next is the half
 /// that is *not* like one: §3 says "switch; **drag** or click/Space", so this is
 /// the first widget in the catalog with a **gesture** rather than an activation.
 /// Everything shipped so far responds to a click, a key or a focus change, all of
@@ -36,7 +37,7 @@ import io.github.digitalsmile.goldberry.widgets.markup.Markup;
 /// ## The drag, and why the router carries its origin
 ///
 /// A press on a toggle takes the pointer until the release
-/// ([ADR-0058](../../../../../../../../book/src/adr/0058-a-press-captures-the-pointer.md)),
+/// (ADR-0058),
 /// so every move in between arrives here wherever it goes. What is missing is
 /// *where it started*, and this widget cannot remember: the `Toggle` that sees
 /// the release is a different instance from the one that saw the press. The
@@ -64,7 +65,7 @@ import io.github.digitalsmile.goldberry.widgets.markup.Markup;
 /// ## The value is the application's
 ///
 /// Controlled in the sense
-/// [ADR-0063](../../../../../../../../book/src/adr/0063-data-flows-down-events-flow-up.md)
+/// ADR-0063
 /// settled: dragging a bound toggle whose handler does nothing moves neither the
 /// property nor the thumb. What travels up is **the value the user asked for**
 /// rather than "toggle", because a drag is a request for a *particular* state —
@@ -73,7 +74,7 @@ import io.github.digitalsmile.goldberry.widgets.markup.Markup;
 ///
 /// That is why the handler is a `Consumer<Boolean>` and not a `Runnable`, and it
 /// is the second valued action in the toolkit after `radio-group`'s
-/// ([ADR-0073](../../../../../../../../book/src/adr/0073-a-composite-is-one-tab-stop.md)).
+/// (ADR-0073).
 /// A `Space` press, which has no direction, asks for the opposite of what is
 /// showing — the one place this widget reads its own value.
 ///
@@ -125,7 +126,9 @@ public record Toggle(
     /// A `Boolean` is taken as itself. Anything else — including a null, which is
     /// a property that has not loaded — reads as [#on()], because guessing that
     /// some other object means "on" would be worse than showing what the markup
-    /// said. That is [io.github.digitalsmile.goldberry.widgets.controls.checkbox.Checkbox#resolved()]'s rule with one fewer case, since a
+    /// said. That is
+    /// [io.github.digitalsmile.goldberry.widgets.controls.checkbox.Checkbox#resolved()]'s rule with
+    /// one fewer case, since a
     /// switch has no mixed state to reach.
     public boolean resolved() {
         if (source == null) {
@@ -217,7 +220,8 @@ public record Toggle(
 
     /// `Space` asks for the opposite — and `Enter` deliberately does not.
     ///
-    /// The line [io.github.digitalsmile.goldberry.widgets.controls.checkbox.Checkbox] draws and for the same reason: Enter belongs to a
+    /// The line [io.github.digitalsmile.goldberry.widgets.controls.checkbox.Checkbox] draws and for
+    /// the same reason: Enter belongs to a
     /// dialog's default action (`docs/design-system.md` §2.3), and a control that
     /// swallowed it would leave a form with no keyboard route to submit once
     /// focus was on one.

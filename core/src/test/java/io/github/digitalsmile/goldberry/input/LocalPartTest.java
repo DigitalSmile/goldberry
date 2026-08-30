@@ -17,7 +17,7 @@ import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widget.style.Styled;
 
 /// Measuring the pointer against a **part** rather than against the control
-/// ([ADR-0080](../../../../../../book/src/adr/0080-a-value-is-measured-along-a-part.md)).
+/// (ADR-0080).
 ///
 /// A control's hit target and the thing it is pointed *along* are the same box
 /// until something else joins the row. `slider` is where that stopped being true

@@ -20,7 +20,7 @@ import io.github.digitalsmile.goldberry.widget.style.Styled;
 /// widget and opened by the toolkit when the pointer rests on that widget, so
 /// there is no call site an application could pass a widget to — and the thing
 /// doing the opening is the launcher, which is `:core`'s and cannot see the
-/// catalog ([ADR-0092](../../../../../../../book/src/adr/0092-a-primitive-is-a-widget-like-any-other.md)
+/// catalog (ADR-0092
 /// is the record of `:core` not shipping widgets, and this is [WindowRoot]'s
 /// exception rather than a hole in it).
 ///

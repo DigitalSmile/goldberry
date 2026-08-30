@@ -17,7 +17,7 @@ import io.github.digitalsmile.goldberry.render.model.LogicalSize;
 /// [#maximized] is the odd one out and deliberately so: it is a *state* the
 /// desktop owns rather than a property of the window, so it is asked for at
 /// creation and never read back here. See
-/// [ADR-0221](../../../../../../book/src/adr/0221-a-window-may-open-maximized.md).
+/// ADR-0221.
 ///
 /// @param size      the size the window is created at, and the one it returns to
 ///                  when a [#maximized] window is restored

@@ -11,7 +11,7 @@ import io.github.digitalsmile.goldberry.css.select.Selector;
 ///
 /// Public because the CSS engine's stages are packages of their own now and
 /// each of them tests against this same hand-built tree
-/// ([ADR-0172](../../../../../../book/src/adr/0172-a-package-is-a-role-and-the-module-is-the-fence.md)).
+/// (ADR-0172).
 ///
 /// Stands in for the element tree of ADR-0004, which does not exist yet. That is
 /// exactly what [StyleElement] is for: the cascade can be built and tested

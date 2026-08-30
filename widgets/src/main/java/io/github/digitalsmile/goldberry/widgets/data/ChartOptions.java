@@ -10,7 +10,7 @@ import java.util.Objects;
 /// seven, with every one of them threaded by hand through `ChartParts`,
 /// `ChartPlot` and `ChartSurface` — which is four places to forget something and
 /// three charts to forget it in.
-/// [ADR-0202](../../../../../../../book/src/adr/0202-a-limit-is-not-a-series.md)
+/// ADR-0202
 /// said the next one should bundle them, and the time axis is the next one.
 ///
 /// **A subject rather than a bag.** What is in here is what a chart does with

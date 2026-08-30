@@ -109,7 +109,7 @@ public final class Goldberry {
     /// launcher's — the element tree, the render tree, the renderer, the router,
     /// the frame loop, damage, the hit-test snapshot and the shutdown ordering —
     /// because none of it is a decision an application makes differently
-    /// ([ADR-0093](../../../../../book/src/adr/0093-an-application-is-a-root-widget.md)).
+    /// (ADR-0093).
     ///
     /// Returns when the loop ends: the last window closed, or something called
     /// [#stop()].

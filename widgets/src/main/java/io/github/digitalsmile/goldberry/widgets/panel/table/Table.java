@@ -35,7 +35,7 @@ import io.github.digitalsmile.goldberry.widgets.panel.list.Selection;
 /// and the selection models, the typeahead, `Home`/`End`, the item context menus
 /// and the ten-thousand-row window are **inherited rather than written twice** —
 /// a bug fixed in one is fixed in both
-/// ([ADR-0214](../../../../../../../../book/src/adr/0214-a-table-is-a-list-with-columns.md)).
+/// (ADR-0214).
 ///
 /// ## Sorting is the application's
 ///

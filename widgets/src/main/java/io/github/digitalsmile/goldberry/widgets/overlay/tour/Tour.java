@@ -20,7 +20,7 @@ import io.github.digitalsmile.goldberry.widget.Widget;
 ///
 /// The veil is **four rectangles rather than one with a hole**, because §8's
 /// subset has no path and no mask, and four boxes need neither
-/// ([ADR-0121](../../../../../../../../book/src/adr/0121-a-tour-is-a-veil-and-a-sequence.md)).
+/// (ADR-0121).
 /// It is also why the target stays interactive: nothing covers it, so a tour that
 /// says "click here" can be obeyed without the tour having to arrange an
 /// exception to itself.

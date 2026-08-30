@@ -25,7 +25,7 @@ import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
 /// wider than its window overflows it; `select` over a realistic option list
 /// cannot be written at all. All three are this, and it is the reason `scroll`
 /// came before the rest of §5
-/// ([ADR-0116](../../../../../../../../book/src/adr/0116-a-scroll-view-is-a-clip-an-offset-and-two-extents.md)).
+/// (ADR-0116).
 ///
 /// ## What it is made of
 ///
@@ -41,7 +41,7 @@ import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
 /// position is retained state surviving rebuilds" and the element tree is what
 /// makes that true without anybody writing a key: a rebuild re-describes the
 /// widget and the element keeps the state
-/// ([ADR-0052](../../../../../../../../book/src/adr/0052-state-is-a-plain-object-and-setstate-defers.md)).
+/// (ADR-0052).
 ///
 /// **This node styles nothing.** `scroll` as a CSS type is [ScrollViewport], the
 /// node this builds — for [io.github.digitalsmile.goldberry.widgets.panel.tabs.Tabs]'
@@ -94,7 +94,7 @@ public record Scroll(
     /// capped at the screen's height is the case it was added for: nothing in
     /// `controls.css` can know how tall the display is, and §8's subset has no
     /// `max-height` to express "no taller than" with
-    /// ([ADR-0118](../../../../../../../../book/src/adr/0118-a-popup-that-does-not-fit-scrolls.md)).
+    /// (ADR-0118).
     ///
     /// An ordinary `scroll` leaves this alone and takes its height from the
     /// stylesheet, which is `flex-grow: 1` — fill what is left of the column.

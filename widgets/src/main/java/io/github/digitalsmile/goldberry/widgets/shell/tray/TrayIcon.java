@@ -10,7 +10,7 @@ import io.github.digitalsmile.goldberry.widgets.menu.Menu;
 /// §9's `tray-icon`.
 ///
 /// **A value, not a widget**, and the second one in the catalog after `toast`
-/// ([ADR-0177](../../../../../../../../book/src/adr/0177-a-toast-is-a-queue-and-the-stack-is-the-widget.md)).
+/// (ADR-0177).
 /// The reason is stronger here than it was there: a toast is at least drawn by
 /// Goldberry, and this is not drawn by Goldberry at all. The shell owns the
 /// pixels, the font, the spacing and the click. There is no box to lay out, no

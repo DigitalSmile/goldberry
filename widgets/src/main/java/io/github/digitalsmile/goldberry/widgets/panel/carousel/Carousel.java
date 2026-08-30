@@ -57,7 +57,7 @@ import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
 /// ## Only the current slide is built
 ///
 /// `tabs`'s bargain, for `tabs`'s reason
-/// ([ADR-0107](../../../../../../../../book/src/adr/0107-a-tab-strip-is-a-model-a-header-and-a-panel.md)):
+/// (ADR-0107):
 /// a slide nobody can see should not hold subscriptions, images or a scroll
 /// position. The cost is the same too — moving away from a slide and back
 /// rebuilds it, and anything that has to survive belongs in the model.

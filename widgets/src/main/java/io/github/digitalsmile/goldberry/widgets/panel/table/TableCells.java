@@ -16,7 +16,7 @@ import io.github.digitalsmile.goldberry.widget.style.Styled;
 /// row", and this is that widget. Everything a row does — being focusable, being
 /// selected, carrying a context menu, being built only when the viewport can see
 /// it — is `list-row`'s and arrives unchanged
-/// ([ADR-0214](../../../../../../../../book/src/adr/0214-a-table-is-a-list-with-columns.md)).
+/// (ADR-0214).
 ///
 /// **The cells come from the same column model the header does**, which is what
 /// keeps them in step: there is no way to draw four headers over five cells,

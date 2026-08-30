@@ -17,7 +17,7 @@ import java.lang.invoke.MethodHandle;
 /// place.
 ///
 /// A function is now a **holder**
-/// ([ADR-0173](../../../../../../book/src/adr/0173-a-bound-function-is-a-holder-and-its-handle-is-a-constant.md)):
+/// (ADR-0173):
 /// its handle, its address, and a `call` with ordinary Java argument types.
 ///
 /// ```java

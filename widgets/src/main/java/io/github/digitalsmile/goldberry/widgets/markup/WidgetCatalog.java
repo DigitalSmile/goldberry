@@ -5,7 +5,7 @@ package io.github.digitalsmile.goldberry.widgets.markup;
 /// The unit of §9's "built-ins and application widgets register identically". A
 /// module that ships widgets provides one of these; an application that inflates
 /// a document gets all of them, from every module on the path, without naming any
-/// ([ADR-0131](../../../../../../../book/src/adr/0131-a-widget-package-announces-itself.md)).
+/// (ADR-0131).
 ///
 /// ## Nobody writes one
 ///

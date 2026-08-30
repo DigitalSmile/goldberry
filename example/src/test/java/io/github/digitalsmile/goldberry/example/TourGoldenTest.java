@@ -35,7 +35,7 @@ import io.github.digitalsmile.goldberry.widgets.overlay.tour.Tour;
 /// order — top, right, bottom, left — and the call passed left and top. Anchoring
 /// a box by its top *and its bottom* stretches it, and every test that asked the
 /// tree what it contained passed while this was true
-/// ([ADR-0121](../../../../../../../book/src/adr/0121-a-tour-is-a-veil-and-a-sequence.md)).
+/// (ADR-0121).
 class TourGoldenTest {
 
     @Test

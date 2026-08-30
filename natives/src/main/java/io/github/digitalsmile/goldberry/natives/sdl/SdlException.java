@@ -19,7 +19,7 @@ public final class SdlException extends RuntimeException {
 
     /// Public because the watch and the desktop wrappers that throw it are
     /// packages of their own now
-    /// ([ADR-0172](../../../../../../../book/src/adr/0172-a-package-is-a-role-and-the-module-is-the-fence.md)).
+    /// (ADR-0172).
     public SdlException(String operation, String sdlError) {
         super(message(operation, sdlError));
         this.operation = operation;

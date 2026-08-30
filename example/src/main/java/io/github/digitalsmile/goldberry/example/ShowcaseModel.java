@@ -15,7 +15,7 @@ import io.github.digitalsmile.goldberry.widgets.controls.checkbox.Checkbox;
 /// The state half of a view model. What changes these is [Actions], nested below
 /// — the build rewrites a write to a `@Bind` field wherever it appears, so an
 /// assignment in one class notifies exactly as one in the other would
-/// ([ADR-0134](../../../../../../book/src/adr/0134-a-write-is-rewritten-wherever-it-is.md)).
+/// (ADR-0134).
 ///
 /// ## Why the content is Middle-earth
 ///
@@ -23,7 +23,7 @@ import io.github.digitalsmile.goldberry.widgets.controls.checkbox.Checkbox;
 /// read. Real prose wraps at awkward places, real names are of wildly different
 /// lengths, and a table of six companions with a `Kindred` column shows a
 /// sortable header doing something a column of `Row 1`… cannot
-/// ([ADR-0222](../../../../../../book/src/adr/0222-a-showcase-is-a-window-a-bar-and-seven-screens.md)).
+/// (ADR-0222).
 ///
 /// ## Why a class and not a record
 ///
@@ -36,7 +36,7 @@ import io.github.digitalsmile.goldberry.widgets.controls.checkbox.Checkbox;
 /// So these fields can stay `private`. A nestmate reaches a private field and a
 /// private method, so nesting the actions costs nothing in encapsulation — where
 /// a sibling top-level class would have forced every field open to the package
-/// ([ADR-0137](../../../../../../book/src/adr/0137-a-model-keeps-its-fields.md)).
+/// (ADR-0137).
 ///
 /// Nesting is **scoping, not coupling**: this class holds no reference to
 /// [Actions], mentions it in no signature, and would compile with it deleted. The
@@ -490,7 +490,8 @@ public final class ShowcaseModel {
                     },
                     "A palantír answers between 1024 and 65535");
 
-    /// What the Forms document may name — see [io.github.digitalsmile.goldberry.widgets.markup.Named].
+    /// What the Forms document may name — see
+    /// [io.github.digitalsmile.goldberry.widgets.markup.Named].
     public io.github.digitalsmile.goldberry.widgets.markup.Named named() {
         return io.github.digitalsmile.goldberry.widgets.markup.Named.strict()
                 .bind("app.signup-form", signup)

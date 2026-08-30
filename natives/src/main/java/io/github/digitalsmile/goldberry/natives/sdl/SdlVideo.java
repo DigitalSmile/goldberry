@@ -646,7 +646,7 @@ public final class SdlVideo {
     /// boundary would put it in a module the SPI cannot see. The backend converts,
     /// which is also where "SDL's idea of a size" becomes "the toolkit's" and
     /// where a future disagreement between them would have somewhere to live
-    /// ([ADR-0174](../../../../../../book/src/adr/0174-what-both-halves-need-is-its-own-module.md)).
+    /// (ADR-0174).
     public record SdlSize(int width, int height) {
 
         public SdlSize {

@@ -17,7 +17,7 @@ import io.github.digitalsmile.goldberry.widget.style.Styled;
 /// How long a thumb is says what proportion of the document is on screen, and
 /// that is the one thing about it a stylesheet cannot know. So the length and the
 /// travel are written here through [Styled#restyle], which is the door
-/// [ADR-0099](../../../../../../../../book/src/adr/0099-an-indicator-travels-on-a-grid.md)
+/// ADR-0099
 /// opened for exactly this: "a widget may write here only what a stylesheet could
 /// not have written".
 ///

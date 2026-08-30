@@ -31,7 +31,7 @@ import io.github.digitalsmile.goldberry.widget.style.Corner;
 /// **Opening nothing is not a crippled host.** `Backend.createPopup` returns an
 /// `Optional` and empty is one of the two real answers — SDL's `dummy` driver,
 /// which every headless test here runs under, has no popup windows
-/// ([ADR-0102](../../../../../../book/src/adr/0102-a-popup-is-a-window-the-platform-may-refuse.md)).
+/// (ADR-0102).
 /// A control that misbehaves against this misbehaves on a real machine whose
 /// driver refuses, which is the branch CI exercises on every platform.
 ///

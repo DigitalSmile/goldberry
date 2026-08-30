@@ -38,7 +38,7 @@ import io.github.digitalsmile.goldberry.widget.attr.Attributes;
 /// The sections become **controlled**: each is re-issued with the `open` this
 /// widget decides and an `onToggle` that reports back — which is exactly what
 /// `radio-group` does to its `radio` children
-/// ([ADR-0073](../../../../../../../../book/src/adr/0073-a-composite-is-one-tab-stop.md)),
+/// (ADR-0073),
 /// and it is why a section can stay a value. A section that was already
 /// controlled by the *application* is left alone: two things deciding one boolean
 /// is a bug, and the application asked first.

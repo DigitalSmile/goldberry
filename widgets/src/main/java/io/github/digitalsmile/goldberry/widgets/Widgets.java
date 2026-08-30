@@ -19,7 +19,7 @@ import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
 /// [io.github.digitalsmile.goldberry.bind.Model] and its `@Bind` paths and
 /// `@Action` names are read off it; the node names come from every
 /// [WidgetCatalog] the build generated, in this module and in any other
-/// ([ADR-0131](../../../../../../book/src/adr/0131-a-widget-package-announces-itself.md)).
+/// (ADR-0131).
 ///
 /// ## Why this and not `Controls.inflater`
 ///

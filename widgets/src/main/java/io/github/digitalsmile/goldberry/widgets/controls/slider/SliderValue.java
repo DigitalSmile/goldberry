@@ -19,9 +19,10 @@ import io.github.digitalsmile.goldberry.widget.style.Styled;
 /// the pointer that is setting it, at the moment it is being set. The width is
 /// the stylesheet's (`slider-value { width: … }`), and the drift is gone because
 /// there is nothing left to drift
-/// ([ADR-0080](../../../../../../../../book/src/adr/0080-a-value-is-measured-along-a-part.md)).
+/// (ADR-0080).
 ///
-/// It draws text directly rather than holding a [io.github.digitalsmile.goldberry.widgets.text.Text]
+/// It draws text directly rather than holding a
+/// [io.github.digitalsmile.goldberry.widgets.text.Text]
 /// child, so `slider-value` is one node with one [ComputedStyle] — the type
 /// selector is the whole of what an author needs to restyle it, and a `text`
 /// inside it would be a second node for `slider-value text` to have to reach.

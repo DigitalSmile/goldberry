@@ -22,7 +22,7 @@ import io.github.digitalsmile.goldberry.bind.runtime.Models;
 /// `gain++` is an ordinary field increment. After weaving it also notifies every
 /// widget bound to `app.gain`, because the build rewrote that one `putfield` into
 /// a call that stores the value and then tells the listeners
-/// ([ADR-0125](../../../../../../book/src/adr/0125-a-raw-field-is-woven-into-a-binding.md)).
+/// (ADR-0125).
 ///
 /// ## Why the field, and not a `Property`
 ///

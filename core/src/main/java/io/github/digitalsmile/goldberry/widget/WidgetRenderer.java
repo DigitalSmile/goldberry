@@ -22,7 +22,7 @@ import io.github.digitalsmile.goldberry.widget.style.Styled;
 ///
 /// The join that makes the last six ADRs one thing: the element tree gives nodes
 /// identity ([ADR-0052]), the cascade resolves each one's style
-/// ([ADR-0049](../../../../../../book/src/adr/0049-the-css-engine-stops-at-computedstyle.md)),
+/// (ADR-0049),
 /// and `BoxPainter` rasterizes what comes out.
 ///
 /// Not every element renders. A [Widget.Stateless] exists to describe others and

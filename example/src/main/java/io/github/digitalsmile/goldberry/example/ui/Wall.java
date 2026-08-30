@@ -17,7 +17,7 @@ import io.github.digitalsmile.goldberry.widgets.text.Text;
 /// off it — one had its heading inside the wall, one had no prose, two disagreed
 /// about whether the caption was `.caption` or `.prose`. A screen that is a
 /// *value* cannot drift
-/// ([ADR-0222](../../../../../../../book/src/adr/0222-a-showcase-is-a-window-a-bar-and-seven-screens.md)).
+/// (ADR-0222).
 ///
 /// ## Why a masonry and not a grid
 ///
@@ -27,7 +27,7 @@ import io.github.digitalsmile.goldberry.widgets.text.Text;
 /// card is as tall as the tallest in its row, so the short ones sit in acres of
 /// empty surface and the wall reads as badly aligned rather than as varied. That
 /// is the case `masonry` exists for
-/// ([ADR-0196](../../../../../../../book/src/adr/0196-a-masonry-is-a-layout-that-reads-last-frame.md)).
+/// (ADR-0196).
 ///
 /// @param id      the screen's name, which is also its `#screen-<id>` and its
 ///                `#<id>-wall`

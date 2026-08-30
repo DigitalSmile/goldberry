@@ -38,7 +38,7 @@ import io.github.digitalsmile.goldberry.css.value.Transform;
 ///
 /// One of these per element, living on the element, so it survives the rebuilds
 /// that replace the widget describing it
-/// ([ADR-0052](../../../../../../book/src/adr/0052-state-lives-on-the-element-and-rebuilds-are-deferred.md)).
+/// (ADR-0052).
 /// A transition that outlived its element would animate something nobody can see;
 /// one that died with a *widget* would restart on every `setState`.
 ///

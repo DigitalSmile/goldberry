@@ -19,11 +19,11 @@ import io.github.digitalsmile.goldberry.widgets.core.scroll.ScrollController;
 ///
 /// The list of tabs is the application's — a strip reports `close` and the
 /// application shortens its own list
-/// ([ADR-0107](../../../../../../../../book/src/adr/0107-a-tab-strip-is-a-model-a-header-and-a-panel.md)).
+/// (ADR-0107).
 /// Which means that by the time a tab should be *animating out*, it is already
 /// gone from everything the strip is given. Something has to hold on to it for
 /// the length of its departure, and this is that something
-/// ([ADR-0109](../../../../../../../../book/src/adr/0109-a-tab-arrives-and-departs-on-the-frame-clock.md)).
+/// (ADR-0109).
 ///
 /// Arrivals need it for the mirror-image reason: a tab that has just appeared
 /// must be told it is new, and only something that saw the *previous* build knows

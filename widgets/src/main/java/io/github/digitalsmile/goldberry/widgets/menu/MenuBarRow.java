@@ -19,7 +19,7 @@ import io.github.digitalsmile.goldberry.widget.style.Styled;
 /// and classes the document wrote. The same split `select` and `tabs` already
 /// use, and the reason markup parity is checked against what a widget
 /// *describes* rather than against the widget
-/// ([ADR-0116](../../../../../../../book/src/adr/0116-a-widget-is-checked-against-the-markup-it-claims.md)).
+/// (ADR-0116).
 ///
 /// A part in every other respect: not registered for markup, because
 /// `menubar-row` is not a node anybody writes.
@@ -30,11 +30,11 @@ import io.github.digitalsmile.goldberry.widget.style.Styled;
 /// for its submenus. A bar is the other one: `Left` and `Right` walk the
 /// headings, and `Up` and `Down` are what it leaves alone — `Down` because
 /// [MenuTitle] spends it on opening the menu below, which is where the menu is
-/// ([ADR-0078](../../../../../../../book/src/adr/0078-a-focus-scope-has-an-axis.md)).
+/// (ADR-0078).
 ///
 /// One tab stop, like every other composite here: `Tab` reaches the bar, the
 /// arrows move within it, and `Tab` again leaves it
-/// ([ADR-0073](../../../../../../../book/src/adr/0073-a-composite-is-one-tab-stop.md)).
+/// (ADR-0073).
 record MenuBarRow(List<Widget> children, Attributes attributes) implements Widget.Leaf, Styled, Paints, Handles {
 
     MenuBarRow {

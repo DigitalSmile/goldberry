@@ -21,10 +21,10 @@ import io.github.digitalsmile.goldberry.widgets.data.SeriesPalette;
 /// The ring itself — the `donut-plot` part, and the node the pointer lands on.
 ///
 /// A **part**, so it is CSS-selectable and not constructible
-/// ([ADR-0065](../../../../../../../../book/src/adr/0065-a-part-is-styleable-and-not-constructible.md)).
+/// (ADR-0065).
 /// [DonutPlot] is what a `donut-chart` builds and this is what *it* builds; the
 /// split is there because a hovered slice is state and a widget is a value
-/// ([ADR-0198](../../../../../../../../book/src/adr/0198-a-charts-readout-is-painted-and-its-legend-is-a-control.md)).
+/// (ADR-0198).
 ///
 /// ## The readout goes in the hole
 ///
@@ -100,7 +100,8 @@ record DonutSurface(
 
     /// The hovered slice, written out — or null when nothing is hovered.
     ///
-    /// Shaped in `render` for [io.github.digitalsmile.goldberry.widgets.data.linechart.ChartSurface]'s
+    /// Shaped in `render` for
+    /// [io.github.digitalsmile.goldberry.widgets.data.linechart.ChartSurface]'s
     /// reason: the hovered index is part of this widget, so this is two strings
     /// rather than two per slice, and moving between slices re-shapes two of them
     /// (ADR-0037).

@@ -18,7 +18,7 @@ import io.github.digitalsmile.goldberry.widget.style.Styled;
 /// to be one specific box. Until §3's value label there was no difference — the
 /// track was the control — and a label at the end of the row is exactly what
 /// makes them different, by its own width
-/// ([ADR-0080](../../../../../../../../book/src/adr/0080-a-value-is-measured-along-a-part.md)).
+/// (ADR-0080).
 /// [Slider#localPart()] names this part, and the router measures against it.
 ///
 /// It is also what gives the groove and the tick marks somewhere to be *stacked*:

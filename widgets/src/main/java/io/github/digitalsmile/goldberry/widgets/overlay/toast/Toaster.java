@@ -16,7 +16,7 @@ import io.github.digitalsmile.goldberry.widget.style.Corner;
 ///
 /// A `message` is a description an author writes where it goes, so it has no
 /// owner and had to learn to fade itself out
-/// ([ADR-0175](../../../../../../../../book/src/adr/0175-a-banner-says-its-kind-twice.md)).
+/// (ADR-0175).
 /// A toast is raised rather than written, so something has to hold it — and that
 /// something is this. Holding the list is what lets the stack do the two things
 /// a lone banner could not:

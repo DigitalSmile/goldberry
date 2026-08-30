@@ -25,7 +25,7 @@ import org.junit.jupiter.api.Test;
 /// module, and the module descriptor is what enforces it: the binding classes
 /// live in packages that are not exported, and the wrapper packages that *are*
 /// exported traffic in Java types. Until
-/// [ADR-0172](../../../../../../book/src/adr/0172-a-package-is-a-role-and-the-module-is-the-fence.md)
+/// ADR-0172
 /// each library was one package, so the rule was mostly kept by a binding class
 /// being package-private. Splitting each library into the wrappers that hold a
 /// handle and the enums that hold nothing moved several types across an export

@@ -23,7 +23,7 @@ import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
 /// `tabs`, `split-pane`, `accordion`, `collapse`, `carousel`, `skeleton`, and the
 /// group is complete without this one. It is an addition, recorded in
 /// `ARCHITECTURE.md` §17.1 rather than slipped in as though the canon had asked
-/// for it ([ADR-0196](../../../../../../../../book/src/adr/0196-a-masonry-is-a-layout-that-reads-last-frame.md)).
+/// for it (ADR-0196).
 /// The case it answers is real and has no other answer here: a wall of cards
 /// whose heights differ — a chart beside a statistic beside a paragraph — laid
 /// out in a `row` of `column`s by hand leaves whichever column got the tall ones

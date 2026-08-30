@@ -153,12 +153,12 @@ public final class ElementTree {
     ///
     /// What a **popup whose content changed while it was open** needs. A popup is
     /// an element tree of its own with its own build schedule
-    /// ([ADR-0103](../../../../../../book/src/adr/0103-a-popup-is-a-tree-in-a-window.md)),
+    /// (ADR-0103),
     /// so a `setState` in the widget that opened it reaches that widget's tree and
     /// nothing in the window the popup is drawn in — and until this existed, the
     /// only way to show a popup something new was to close it and open another
     /// one, which flickers and loses the keyboard's place
-    /// ([ADR-0182](../../../../../../book/src/adr/0182-a-select-may-hold-more-than-one.md)).
+    /// (ADR-0182).
     ///
     /// Reconciliation from the root down, exactly as a rebuild anywhere else: the
     /// elements, their state and their focus survive, and only what the new
@@ -207,7 +207,7 @@ public final class ElementTree {
     /// frame, and then showed the change one interaction late. A scroll view was
     /// where it was noticed: the first turn of the wheel appeared to do nothing
     /// and the second appeared to do one turn's worth
-    /// ([ADR-0122](../../../../../../book/src/adr/0122-a-setstate-asks-for-a-frame.md)).
+    /// (ADR-0122).
     ///
     /// The window sets this. It is a single listener rather than a list because
     /// there is exactly one thing that can paint a tree, and a second one would

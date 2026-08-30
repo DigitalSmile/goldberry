@@ -14,7 +14,7 @@ import java.util.Optional;
 /// positions."
 ///
 /// Generic in what it builds. The widget tree does not exist yet
-/// ([ADR-0004](../../../../../../book/src/adr/0004-three-tree-retained-declarative-model.md)),
+/// (ADR-0004),
 /// and the inflater does not need it to: a factory takes a [KdlNode] and its
 /// already-inflated children and returns whatever the application is building.
 /// The showcase inflates to a `Box`; a widget tree will inflate to widgets;

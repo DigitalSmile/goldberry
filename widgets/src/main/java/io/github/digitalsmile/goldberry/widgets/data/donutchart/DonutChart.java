@@ -44,7 +44,7 @@ import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
 /// **Nine slices is a `bar-chart`.** Past about eight, arcs get too narrow to
 /// compare and the palette has run out of hues that stay distinguishable under
 /// colour-vision deficiency
-/// ([ADR-0194](../../../../../../../../book/src/adr/0194-a-series-colour-is-derived-from-nord-not-taken-from-it.md)).
+/// (ADR-0194).
 /// A bar chart answers the same question and keeps answering it at forty
 /// categories.
 ///

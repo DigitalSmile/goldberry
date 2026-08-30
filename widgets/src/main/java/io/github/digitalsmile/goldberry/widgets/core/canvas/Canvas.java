@@ -39,7 +39,7 @@ import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
 /// stylesheet's, exactly as for `panel`. The painter draws **inside the padding**
 /// and is clipped to it, so `canvas { padding: 8px; background: var(--gb-surface) }`
 /// is a framed drawing surface and not a surprise
-/// ([ADR-0193](../../../../../../../../book/src/adr/0193-a-canvas-is-a-second-clip-depth.md)).
+/// (ADR-0193).
 ///
 /// ## It has no size of its own
 ///
@@ -55,7 +55,7 @@ import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
 /// A `canvas` node inflates to a styled, sized surface that draws nothing. The
 /// painter is Java, and naming one from a document would need the indirection
 /// `icon` and `action` use — a registry the application owns
-/// ([ADR-0043](../../../../../../../../book/src/adr/0043-icons-are-stroked-paths.md)).
+/// (ADR-0043).
 /// That is filed rather than guessed at, because the shape of the registry
 /// depends on whether a painter is a value or a method and nothing has needed
 /// one yet.

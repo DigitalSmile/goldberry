@@ -62,7 +62,7 @@ import io.github.digitalsmile.goldberry.widgets.text.Text;
 /// composite machinery; this proves the thing `docs/core-widgets.md` §3 asks for
 /// that the first composite could not show — that a set's **axis** is a property
 /// of the widget and not always of its stylesheet ([ADR-0078]) — and the drawing
-/// decisions [ADR-0097](../../../../../../../../book/src/adr/0097-a-selection-that-travels-needs-a-geometry.md)
+/// decisions ADR-0097
 /// had to make when §3's row turned out to describe something §8's subset cannot
 /// express.
 class SegmentedTest {

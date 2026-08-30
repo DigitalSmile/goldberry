@@ -12,7 +12,8 @@ module io.github.digitalsmile.goldberry.widgets {
     requires transitive io.github.digitalsmile.goldberry.core;
 
     /// The module-level furniture: the KDL registry, the stylesheets, and the
-    /// three lookups a document resolves names against ([Controls], [io.github.digitalsmile.goldberry.bind.registry.ActionRegistry],
+    /// three lookups a document resolves names against ([Controls],
+    /// [io.github.digitalsmile.goldberry.bind.registry.ActionRegistry],
     /// [Icons], [Density]). Not widgets — an application reaches for exactly one
     /// of these to wire a window up, and then never again.
     /// Every widget module announces its node names this way, and this one
@@ -102,7 +103,8 @@ module io.github.digitalsmile.goldberry.widgets {
     /// application writing its own field should not have to reimplement them.
     exports io.github.digitalsmile.goldberry.widgets.form.textinput;
 
-    /// §4's layout contract and its validation model. [io.github.digitalsmile.goldberry.widgets.form.Validator]
+    /// §4's layout contract and its validation model.
+    /// [io.github.digitalsmile.goldberry.widgets.form.Validator]
     /// is the rule an application writes; `field` is the label, the control slot
     /// and the message under it; `form` is what gates a submission on all of
     /// them. `field` exports [io.github.digitalsmile.goldberry.widgets.form.field.Validated]
@@ -150,7 +152,8 @@ module io.github.digitalsmile.goldberry.widgets {
     /// layer ([io.github.digitalsmile.goldberry.Overlay]), where `toast` and a
     /// `dialog`'s scrim will join it, while `menu`, `tooltip` and `popover` wait
     /// for the backend popup windows §4 reserves.
-    /// `dialog` — §7's modal, and [io.github.digitalsmile.goldberry.widgets.overlay.dialog.Dialogs],
+    /// `dialog` — §7's modal, and
+    /// [io.github.digitalsmile.goldberry.widgets.overlay.dialog.Dialogs],
     /// which is the half that shows one. A modal needs a window to cover and a
     /// widget has none, so the split is `menu`'s exactly (ADR-0106, ADR-0176).
     exports io.github.digitalsmile.goldberry.widgets.overlay.dialog;

@@ -121,7 +121,7 @@ record CollapseHeader(String title, boolean open, Runnable onToggle) implements 
 
     /// The disclosure marker — a **part**, so it is CSS-selectable and not
     /// constructible
-    /// ([ADR-0065](../../../../../../../../book/src/adr/0065-a-part-is-styleable-and-not-constructible.md)).
+    /// (ADR-0065).
     record CollapseChevron(boolean open) implements Widget.Leaf, Styled, Paints {
 
         @Override

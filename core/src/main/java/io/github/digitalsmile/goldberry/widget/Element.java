@@ -53,7 +53,7 @@ public final class Element implements BuildContext, StyleElement {
     /// it survives every rebuild that keeps this element and dies with the
     /// element itself — which is exactly the lifetime an animation should have,
     /// because one that outlived its node would be animating something nobody can
-    /// see ([ADR-0067](../../../../../../book/src/adr/0067-motion-is-an-overlay-on-a-frame-clock.md)).
+    /// see (ADR-0067).
     ///
     /// Lazily created: most nodes never animate, and an `Animations` per element
     /// per frame for a static tree is an allocation for nothing.
@@ -149,7 +149,7 @@ public final class Element implements BuildContext, StyleElement {
     /// inside a `scroll` re-resolved on every frame, and in the showcase that is
     /// every node on the screen: 56 of 72 elements missing, and 10ms of cascade
     /// in a frame that should have cost nothing
-    /// ([ADR-0142](../../../../../../book/src/adr/0142-a-style-handed-down-keeps-its-identity.md)).
+    /// (ADR-0142).
     ///
     /// A value comparison against one instance, which is a flat record `equals`
     /// — against a re-resolve that costs two orders of magnitude more.

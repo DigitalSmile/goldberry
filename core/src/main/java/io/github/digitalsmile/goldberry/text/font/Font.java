@@ -195,7 +195,7 @@ public final class Font implements AutoCloseable {
     /// guessed `RTL` for, because its measurements are prefix sums in **logical**
     /// order and a visually ordered run would make every one of them measure the
     /// wrong glyphs. That is an approximation with a name and a plan
-    /// ([ADR-0218](../../../../../../../book/src/adr/0218-a-paragraph-approximates-bidi-rather-than-refusing-it.md));
+    /// (ADR-0218);
     /// real bidi is run splitting, and this is not it.
     ///
     /// @param direction the direction to shape in, or null to guess

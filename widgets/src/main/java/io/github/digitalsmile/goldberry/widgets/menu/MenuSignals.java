@@ -15,7 +15,7 @@ package io.github.digitalsmile.goldberry.widgets.menu;
 /// `Left` and `Right` did not move between a menu bar's menus, and nothing marked
 /// the row whose submenu was showing. Every one of them is a thing the *menu*
 /// does and the *item* knows about first
-/// ([ADR-0219](../../../../../../../book/src/adr/0219-an-item-tells-its-menu-what-the-keyboard-did.md)).
+/// (ADR-0219).
 ///
 /// ## The signals are what happened, not what to do
 ///

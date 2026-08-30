@@ -33,7 +33,7 @@ import io.github.digitalsmile.goldberry.render.model.PhysicalSize;
 ///   function is not — a [io.github.digitalsmile.goldberry.natives.yoga.MeasureCallback]
 ///   is a confined `Arena` and a `MethodHandle` bound into native code, measured
 ///   at 11 µs against 0.3 µs for actually calling through it
-///   ([ADR-0037](../../../../../../book/src/adr/0037-what-the-text-path-costs.md)).
+///   (ADR-0037).
 ///   Paid per text node per frame, it was the largest single cost of text in a
 ///   layout pass.
 /// - **Yoga skips what did not change.** Yoga dirties a node when a style is
@@ -46,7 +46,7 @@ import io.github.digitalsmile.goldberry.render.model.PhysicalSize;
 /// ## Reconciled against a value, not mutated by widgets
 ///
 /// A widget still describes itself as an immutable [Box]
-/// ([ADR-0053](../../../../../../book/src/adr/0053-the-render-tree-is-a-box-tree-for-now.md)),
+/// (ADR-0053),
 /// and this tree is diffed against that description. Widgets never touch a render
 /// object. That keeps the declarative contract intact and makes the diff input an
 /// immutable tree, which is the ideal thing to diff — and it means this whole
@@ -242,7 +242,7 @@ public final class RenderObject implements AutoCloseable {
     ///
     /// Matched by position and then checked with [#accepts], which is enough
     /// because the **element tree has already done the keyed diff**
-    /// ([ADR-0052](../../../../../../book/src/adr/0052-state-lives-on-the-element-and-rebuilds-are-deferred.md)):
+    /// (ADR-0052):
     /// by the time a box tree exists, the order is stable and a node that moved
     /// moved for a reason. A mismatch costs a rebuilt subtree, never a wrong
     /// result.
@@ -351,7 +351,7 @@ public final class RenderObject implements AutoCloseable {
     /// translucent *and has children*, because that is exactly where CSS's group
     /// opacity and Goldberry's per-box alpha multiply give different answers —
     /// faded separately, a lower child shows through an upper one
-    /// ([ADR-0064](../../../../../../book/src/adr/0064-a-rounded-rectangle-is-four-cubics.md)
+    /// (ADR-0064
     /// stated that difference and left it open).
     ///
     /// A translucent **leaf** is deliberately not promoted. Its own background,
@@ -466,7 +466,7 @@ public final class RenderObject implements AutoCloseable {
     /// Most of these comparisons are reference checks in practice: a cached
     /// `ComputedStyle` hands `Box.style` the same `Decoration`, `Insets` and
     /// `Transform` instances every frame
-    /// ([ADR-0070](../../../../../../book/src/adr/0070-the-cascade-resolves-invalidated-nodes.md)).
+    /// (ADR-0070).
     private static boolean sameAppearance(Box a, Box b) {
         return a.background() == b.background()
                 && a.opacity() == b.opacity()

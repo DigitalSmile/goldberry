@@ -62,7 +62,7 @@ public interface BackendWindow extends AutoCloseable {
     /// that region is correct *only* if everything outside it is still on the
     /// buffer. Against a backend that hands over a fresh or recycled buffer it
     /// would draw one control on a field of whatever was there before
-    /// ([ADR-0072](../../../../../../book/src/adr/0072-a-partial-repaint-needs-a-promise.md)).
+    /// (ADR-0072).
     ///
     /// **False by default**, which is the safe answer: a backend that says
     /// nothing gets a full repaint, exactly as every backend did before this
@@ -149,7 +149,7 @@ public interface BackendWindow extends AutoCloseable {
     /// The one honest rate a platform can give. SDL has no notion of an achieved
     /// frame rate — `SDL_GetCurrentDisplayMode` reports what the *display* does,
     /// and what a loop managed can only be counted by the loop
-    /// ([ADR-0153](../../../../../../book/src/adr/0153-a-rate-is-counted-a-refresh-is-asked-for.md)).
+    /// (ADR-0153).
     ///
     /// Zero is a legitimate answer rather than a failure: a headless backend has
     /// no display, and SDL documents `refresh_rate` as 0 for a mode it cannot

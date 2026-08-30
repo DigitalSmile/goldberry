@@ -21,7 +21,7 @@ import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
 import io.github.digitalsmile.goldberry.widgets.text.Text;
 
 /// `bind=` from **markup** to a widget (§9,
-/// [ADR-0062](../../../../../../../book/src/adr/0062-bind-is-a-path-and-nothing-else.md)).
+/// ADR-0062).
 ///
 /// The other half — what an element does with a binding once it holds one, and
 /// when it lets go — is `:core`'s `BindingLifecycleTest`, because it is about the

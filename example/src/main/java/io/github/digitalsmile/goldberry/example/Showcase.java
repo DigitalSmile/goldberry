@@ -310,7 +310,7 @@ public final class Showcase implements Application {
                     // document dispatched nor a write the toolkit had any reason to look
                     // for. A woven model notices it from inside the assignment and this
                     // returns false; a jar's model is swept here
-                    // ([ADR-0155](../../../../../../book/src/adr/0155-a-jar-binds-at-run-time-an-image-is-woven.md)).
+                    // (ADR-0155).
                     Models.refresh(model);
                 })
                 .exceptionally(failure -> {
@@ -483,7 +483,7 @@ public final class Showcase implements Application {
     ///
     /// The application's rather than the screen's, because starting one needs a
     /// [Host] and a widget has none — the same seam `Menus.open` sits on
-    /// ([ADR-0121](../../../../../../book/src/adr/0121-a-tour-is-a-veil-and-a-sequence.md)).
+    /// (ADR-0121).
     ///
     /// The screen is selected first, because a tour whose targets are on a screen
     /// nobody is looking at would skip every stop and end immediately — which is

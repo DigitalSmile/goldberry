@@ -241,7 +241,8 @@ public record Checkbox(
 
     /// Toggles on a click anywhere in the control, label included.
     ///
-    /// A click rather than a release, exactly as [io.github.digitalsmile.goldberry.widgets.controls.button.Button]: a press dragged off the
+    /// A click rather than a release, exactly as
+    /// [io.github.digitalsmile.goldberry.widgets.controls.button.Button]: a press dragged off the
     /// control and let go is a cancelled click, and the router is what knows the
     /// difference ([ADR-0058]).
     @Override

@@ -24,7 +24,7 @@ import io.github.digitalsmile.goldberry.paint.Box;
 /// means editing 45 argument lists between them, any one of which can put
 /// `height` where `width` goes and produce a record that compiles, runs, and is
 /// subtly wrong in a way no golden would obviously show
-/// ([ADR-0181](../../../../../book/src/adr/0181-a-box-may-say-how-small-and-how-large.md)).
+/// (ADR-0181).
 ///
 /// ## Why this is a test and not a refactor
 ///

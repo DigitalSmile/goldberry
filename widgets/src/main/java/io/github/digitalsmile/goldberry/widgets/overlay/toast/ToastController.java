@@ -32,7 +32,7 @@ import java.util.Objects;
 ///
 /// Confined to the UI thread, like the tree it reaches into. Work that finishes
 /// on a virtual thread hands back to the UI thread first
-/// ([ADR-0020](../../../../../../../../book/src/adr/0020-one-ui-thread-and-virtual-threads-behind-it.md)),
+/// (ADR-0020),
 /// and that is where it raises its toast.
 public final class ToastController {
 

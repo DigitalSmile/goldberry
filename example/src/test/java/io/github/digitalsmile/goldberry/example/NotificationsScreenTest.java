@@ -38,7 +38,7 @@ import io.github.digitalsmile.goldberry.widgets.core.Column;
 /// screen's actual subject, which is that **a banner arrives when an application
 /// describes one and goes when it stops** — the reason this screen is Java and
 /// the reason a `message` takes no `bind=`
-/// ([ADR-0175](../../../../../../book/src/adr/0175-a-banner-says-its-kind-twice.md)).
+/// (ADR-0175).
 ///
 /// So this presses the buttons.
 class NotificationsScreenTest {

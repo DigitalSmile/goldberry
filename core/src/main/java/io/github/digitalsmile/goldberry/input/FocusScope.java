@@ -3,7 +3,7 @@ package io.github.digitalsmile.goldberry.input;
 /// Which arrow keys rove inside a composite — `docs/design-system.md` §7.2.
 ///
 /// A composite is **one Tab stop** with the arrow keys moving focus between its
-/// items ([ADR-0073](../../../../../../book/src/adr/0073-a-composite-is-one-tab-stop.md)).
+/// items (ADR-0073).
 /// This says which pair of arrows does that, and therefore which pair is left for
 /// the widget to mean something else by.
 ///

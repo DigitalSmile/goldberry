@@ -38,7 +38,7 @@ import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
 /// ## It is one series, so it takes `color`
 ///
 /// A series palette is for telling series *apart*
-/// ([ADR-0194](../../../../../../../../book/src/adr/0194-a-series-colour-is-derived-from-nord-not-taken-from-it.md)),
+/// (ADR-0194),
 /// and there is nothing here to tell apart. So a sparkline is drawn in the CSS
 /// `color` it inherits, exactly like text — which means it takes a `statistic`'s
 /// delta colour by sitting inside it, and an application recolours one with the

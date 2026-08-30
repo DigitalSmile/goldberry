@@ -9,7 +9,7 @@ package io.github.digitalsmile.goldberry.widgets.data;
 /// ramp, and it was deferred for a reason that had nothing to do with charts —
 /// Blend2D has gradients and the export list did not, so the first commit of this
 /// was a widening of the native surface
-/// ([ADR-0207](../../../../../../../book/src/adr/0207-a-fill-may-be-a-ramp.md)).
+/// (ADR-0207).
 ///
 /// **This is three values and not a number**, unlike [Bounds] beside it. An
 /// opacity is a number a caller could reasonably want any value of; a fill is a

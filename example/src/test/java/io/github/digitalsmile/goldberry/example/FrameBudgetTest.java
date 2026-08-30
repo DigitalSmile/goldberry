@@ -30,7 +30,7 @@ import io.github.digitalsmile.goldberry.widgets.Widgets;
 
 /// What a frame of the real application costs, stage by stage and resolution by
 /// resolution — and a ceiling under each, so a regression fails the build
-/// ([ADR-0147](../../../../../../../book/src/adr/0147-a-frame-has-a-budget-and-the-build-checks-it.md)).
+/// (ADR-0147).
 ///
 /// ## Why this exists
 ///

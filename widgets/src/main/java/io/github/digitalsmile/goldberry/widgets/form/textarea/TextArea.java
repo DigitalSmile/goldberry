@@ -23,7 +23,8 @@ import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
 ///
 /// ## It is `text-input` with three differences
 ///
-/// The editing model is the same one, unchanged: [io.github.digitalsmile.goldberry.widgets.form.textinput.TextEdit]
+/// The editing model is the same one, unchanged:
+/// [io.github.digitalsmile.goldberry.widgets.form.textinput.TextEdit]
 /// and its history are where §4's rules live, and they were written without a
 /// single line about how many lines there are. What differs is only what a second
 /// dimension makes different:

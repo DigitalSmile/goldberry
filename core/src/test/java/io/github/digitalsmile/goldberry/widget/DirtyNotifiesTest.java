@@ -9,7 +9,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 /// A `setState` asks for a frame
-/// ([ADR-0122](../../../../../../book/src/adr/0122-a-setstate-asks-for-a-frame.md)).
+/// (ADR-0122).
 ///
 /// The rule this covers had no test and could not have had one of the usual
 /// shape: a widget test drives frames itself, so `flush(); update(...)` in a loop

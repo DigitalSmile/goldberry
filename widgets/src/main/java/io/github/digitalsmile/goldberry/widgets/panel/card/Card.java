@@ -30,7 +30,7 @@ import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
 /// supported property list is flex, box, colour, text, transform and transition,
 /// and nothing paints outside a box's own rectangle. `popover` hit this first and
 /// answered it the same way
-/// ([ADR-0104](../../../../../../../../book/src/adr/0104-a-popup-is-measured-then-placed.md)):
+/// (ADR-0104):
 /// **elevation is an edge**, a brighter surface and a stronger border than the
 /// page it sits on.
 ///

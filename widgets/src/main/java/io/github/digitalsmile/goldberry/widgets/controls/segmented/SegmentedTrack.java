@@ -27,11 +27,11 @@ import io.github.digitalsmile.goldberry.widgets.controls.option.Option;
 /// A track with no padding of its own makes the two bases the same box. The bar
 /// keeps the padding, the border and the radius; the track keeps the grid, and
 /// the hairlines between its cells are placed against it for the same reason
-/// ([ADR-0217](../../../../../../../../book/src/adr/0217-a-segmented-control-is-joined-again.md)). That
+/// (ADR-0217). That
 /// is `slider`'s anatomy for the same reason it grew one: two boxes were doing
 /// one job, and the day a third thing joined they stopped being the same box
-/// ([ADR-0080](../../../../../../../../book/src/adr/0080-a-value-is-measured-along-a-part.md),
-/// [ADR-0099](../../../../../../../../book/src/adr/0099-an-indicator-travels-on-a-grid.md)).
+/// (ADR-0080,
+/// ADR-0099).
 ///
 /// @param segments the options, already told whether they are selected
 /// @param index    the selected segment, or -1 when the value matches none
@@ -101,7 +101,7 @@ record SegmentedTrack(List<Widget> segments, int index) implements Widget.Leaf, 
     /// size is indefinite and the bar takes the width it is given — filling its
     /// parent when nothing gives it one. That is the trade the travelling
     /// indicator costs, and §3's row records it
-    /// ([ADR-0099](../../../../../../../../book/src/adr/0099-an-indicator-travels-on-a-grid.md)).
+    /// (ADR-0099).
     @Override
     public Box render(ComputedStyle style, List<Box> children, Context context) {
         var count = optionCount();

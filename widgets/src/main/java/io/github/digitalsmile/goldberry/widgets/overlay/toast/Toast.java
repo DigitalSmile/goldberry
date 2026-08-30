@@ -21,7 +21,7 @@ import java.util.Objects;
 ///
 /// So this is a value handed to [ToastController#show], and a widget only ever
 /// exists for as long as the stack is drawing one
-/// ([ADR-0177](../../../../../../../../book/src/adr/0177-a-toast-is-a-queue-and-the-stack-is-the-widget.md)).
+/// (ADR-0177).
 /// A `Toast` cannot be put in a document for the same reason: a document is a
 /// description of a screen, and a toast is a thing that happened.
 ///

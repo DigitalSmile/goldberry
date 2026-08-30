@@ -31,7 +31,7 @@ import io.github.digitalsmile.goldberry.widgets.text.Text;
 /// also a golden image: data from a clock or a random source would make a picture
 /// that cannot be compared with the one from yesterday, which is the same rule
 /// `hud` follows by never asking for a frame it did not already deserve
-/// ([ADR-0101](../../../../../../../book/src/adr/0101-a-diagnostic-must-not-be-the-thing-it-measures.md)).
+/// (ADR-0101).
 ///
 /// It is a journal of one march because a chart of `Series 1` and `Series 2`
 /// cannot show whether a legend, a crosshair or a shared palette is *readable* —
@@ -42,39 +42,39 @@ import io.github.digitalsmile.goldberry.widgets.text.Text;
 /// - **The palette is assigned by position and shared across widgets.** `Marched`
 ///   is the same green in the area chart and in the donut, because both take slot
 ///   1 — which is what makes a wall of charts about one journey readable
-///   ([ADR-0194](../../../../../../../book/src/adr/0194-a-series-colour-is-derived-from-nord-not-taken-from-it.md)).
+///   (ADR-0194).
 /// - **One rule recolours a chart.** The `#watch-card` card overrides
 ///   `--gb-chart-1`, and the line and its legend swatch both follow, because a
 ///   custom property inherits
-///   ([ADR-0195](../../../../../../../book/src/adr/0195-a-painter-reads-the-theme-through-a-custom-property.md)).
+///   (ADR-0195).
 /// - **A sparkline inherits `color`**, so the one inside a `statistic` is drawn
 ///   in the delta's hue without being told.
 /// - **One crosshair over two charts.** `Leagues per day` and `Provisions` are
 ///   the same seven days and share a [CrosshairGroup]: pointing at the fourth day
 ///   on either puts the crosshair on it in both, and only the one under the
 ///   pointer says what the numbers are
-///   ([ADR-0206](../../../../../../../book/src/adr/0206-a-crosshair-may-be-shared-and-a-bound-may-be-soft.md)).
+///   (ADR-0206).
 /// - **A monotone curve.** The `Provisions` stack is drawn with [Curve#SMOOTH],
 ///   which cannot overshoot: a spline that swung past its own readings would put
 ///   a band below zero on a chart of a sack of food
-///   ([ADR-0204](../../../../../../../book/src/adr/0204-a-smooth-line-cannot-overshoot.md)).
+///   (ADR-0204).
 /// - **A `java.time` axis.** The `Watch kept` card's x is *when* rather than
 ///   *which*: its ninth reading is three hours after its eighth, and the axis is
 ///   three hours wide there rather than one step like every other
-///   ([ADR-0203](../../../../../../../book/src/adr/0203-a-time-axis-is-time-not-a-relabelled-index.md)).
+///   (ADR-0203).
 /// - **A limit is not a series.** The same card carries a threshold band in the
 ///   semantic warning hue, which is the one colour on this screen that is *not*
 ///   from the palette — a limit is a statement about the data rather than one of
 ///   the things being compared
-///   ([ADR-0202](../../../../../../../book/src/adr/0202-a-limit-is-not-a-series.md)).
+///   (ADR-0202).
 /// - **A fill is a hint, not the reading.** The same card fades from its line
 ///   down toward the axis, which is what a fill under a *line* is for — the
 ///   position is still the data, and the area says how much of it there is
-///   ([ADR-0207](../../../../../../../book/src/adr/0207-a-fill-may-be-a-ramp.md)).
+///   (ADR-0207).
 /// - **A hole is not a zero**, which is the last card: the same twelve readings
 ///   drawn twice, under the two [NullPolicy] settings that disagree about what a
 ///   missing one means
-///   ([ADR-0201](../../../../../../../book/src/adr/0201-a-hole-is-not-a-zero.md)).
+///   (ADR-0201).
 ///   **One card and not two**, because the wrong picture is only obviously wrong
 ///   *beside* the right one — on its own a line diving to the baseline looks like
 ///   data — and a masonry places by column height, so two cards could not be

@@ -12,14 +12,14 @@ import io.github.digitalsmile.goldberry.render.model.LogicalRect;
 /// which knows what is under the pointer, and the window, which is where a popup
 /// goes. What it cannot do is **build** the menu — a menu is a widget in the
 /// catalog and the launcher is `:core`'s, which ships none
-/// ([ADR-0092](../../../../../book/src/adr/0092-a-primitive-is-a-widget-like-any-other.md)) —
+/// (ADR-0092) —
 /// and it cannot open one either, because opening a menu means wrapping every
 /// item so that choosing it closes the stack, which is `Menus`'
-/// ([ADR-0106](../../../../../book/src/adr/0106-a-menu-is-a-widget-and-opening-one-is-not.md)).
+/// (ADR-0106).
 ///
 /// So the seam is exactly one sentence wide: **`:core` says which name and
 /// where; `:widgets` says what that name is and opens it**
-/// ([ADR-0108](../../../../../book/src/adr/0108-a-context-menu-is-a-name-on-a-widget.md)).
+/// (ADR-0108).
 @FunctionalInterface
 public interface ContextMenuHandler {
 

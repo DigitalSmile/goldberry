@@ -18,7 +18,7 @@ import io.github.digitalsmile.goldberry.render.model.LogicalRect;
 /// row changes how everything in that row is sized. It broke two tab goldens and
 /// two motion tests the moment it was put around a tab header — the widget did
 /// what it promised and the layout underneath it was no longer the same layout
-/// ([ADR-0120](../../../../../../../../book/src/adr/0120-a-widget-scrolls-itself-into-view.md)).
+/// (ADR-0120).
 ///
 /// §1 words this as an API rather than as markup, and that turns out to be the
 /// load-bearing part of the wording: an API adds no node.
@@ -29,7 +29,7 @@ import io.github.digitalsmile.goldberry.render.model.LogicalRect;
 /// bring a rectangle into view. It **cannot find anything**: a controller has no
 /// idea where any widget is, because nothing in the toolkit can answer that
 /// except the router, and the router answers it to the widget itself
-/// ([ADR-0119](../../../../../../../../book/src/adr/0119-a-widget-may-be-told-where-it-is.md)).
+/// (ADR-0119).
 ///
 /// So the shape is: a widget that wants to be seen implements
 /// [io.github.digitalsmile.goldberry.input.handler.Located], is told its own rectangle and

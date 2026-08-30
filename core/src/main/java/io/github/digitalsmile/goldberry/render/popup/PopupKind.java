@@ -19,7 +19,7 @@ public enum PopupKind {
     /// A menu window in every respect the window manager cares about — it takes
     /// the pointer, it is placed and shadowed like a menu, it is in no window
     /// list — and **not focusable**, so the keyboard stays on the field it hangs
-    /// off ([ADR-0187](../../../../../../book/src/adr/0187-a-panel-takes-the-pointer-and-leaves-the-keyboard.md)).
+    /// off (ADR-0187).
     ///
     /// It is not [#TOOLTIP], and the difference is the whole reason it exists: a
     /// tooltip is "never interacted with", so platforms give it no input at all.

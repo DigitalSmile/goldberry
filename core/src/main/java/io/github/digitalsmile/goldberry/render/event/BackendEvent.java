@@ -115,7 +115,7 @@ public sealed interface BackendEvent {
     /// exactly the users who changed it.
     ///
     /// Lines, not pixels, because SDL reports no pixel-precise delta and
-    /// [ADR-0115](../../../../../../book/src/adr/0115-a-wheel-reports-a-fraction-and-a-detent.md)
+    /// ADR-0115
     /// declines to go around it for one. They are fractional on a touchpad, which
     /// is what stops a trackpad scrolling in jerks.
     ///
@@ -156,7 +156,7 @@ public sealed interface BackendEvent {
     /// and a *gained* for the popup itself, one after the other. So "the
     /// application lost focus" is a conclusion drawn from the whole set and not
     /// an event — see `Launcher`, which is the only thing that needs to draw it
-    /// ([ADR-0144](../../../../../../book/src/adr/0144-a-popup-goes-away-when-the-application-does.md)).
+    /// (ADR-0144).
     record FocusChanged(BackendWindow window, boolean focused) implements BackendEvent {}
 
     /// A key went down.

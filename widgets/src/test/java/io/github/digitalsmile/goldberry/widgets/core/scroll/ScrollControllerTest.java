@@ -31,7 +31,7 @@ import io.github.digitalsmile.goldberry.widgets.core.Column;
 import io.github.digitalsmile.goldberry.widgets.text.Text;
 
 /// §1's `scrollIntoView`, shipped as the API §1 words it as
-/// ([ADR-0120](../../../../../../../../book/src/adr/0120-a-widget-scrolls-itself-into-view.md)).
+/// (ADR-0120).
 class ScrollControllerTest {
 
     private static final int VIEWPORT_HEIGHT = 100;

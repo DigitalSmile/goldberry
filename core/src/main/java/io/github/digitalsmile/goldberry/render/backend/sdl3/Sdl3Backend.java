@@ -59,7 +59,7 @@ public final class Sdl3Backend implements Backend {
     /// **X11 first, deliberately and for now** (ADR-0086). On Wayland the window
     /// manager draws nothing, so decorations come from libdecor, and libdecor's
     /// default plugin cannot run in a stock-launched JVM
-    /// ([ADR-0084](../../../../../../../book/src/adr/0084-the-gtk-plugin-cannot-decorate-a-jvms-window.md)).
+    /// (ADR-0084).
     /// Under XWayland the window manager decorates the window itself, which is
     /// the only way to get a titlebar that matches the desktop today.
     ///
@@ -184,7 +184,7 @@ public final class Sdl3Backend implements Backend {
     /// **It now asks for X11 first, for now** (ADR-0086). Decorations outrank
     /// resize quality: on Wayland the window manager draws none, libdecor is the
     /// only source of them, and its default plugin cannot run in a stock-launched
-    /// JVM ([ADR-0084](../../../../../../../book/src/adr/0084-the-gtk-plugin-cannot-decorate-a-jvms-window.md)).
+    /// JVM (ADR-0084).
     /// Under XWayland the window manager decorates the window itself.
     ///
     /// The hint takes a comma-separated list and SDL tries each in turn, so
@@ -407,7 +407,7 @@ public final class Sdl3Backend implements Backend {
         // menu stayed on screen over somebody else's window. Taking focus off all
         // of them makes that check mean what it says: the application is focused
         // exactly when one of its *own* windows is
-        // ([ADR-0189](../../../../../../book/src/adr/0189-no-popup-holds-the-keyboard.md)).
+        // (ADR-0189).
         var flags = EnumSet.of(SdlWindowFlag.HIGH_PIXEL_DENSITY, SdlWindowFlag.HIDDEN, SdlWindowFlag.NOT_FOCUSABLE);
         switch (spec.kind()) {
             case MENU -> {
@@ -779,7 +779,7 @@ public final class Sdl3Backend implements Backend {
     /// opened. The router looks for the release outside the popup's bounds, finds
     /// nothing, and synthesizes no click — which is a dropdown whose rows cannot
     /// be chosen
-    /// ([ADR-0211](../../../../../../../book/src/adr/0211-a-popup-asks-the-desktop-where-the-pointer-is.md)).
+    /// (ADR-0211).
     ///
     /// **The bounds check is the detector and the desktop is the answer.** A
     /// coordinate inside the window it was delivered to is taken as given, which

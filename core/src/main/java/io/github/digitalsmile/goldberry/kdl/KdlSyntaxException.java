@@ -3,7 +3,8 @@ package io.github.digitalsmile.goldberry.kdl;
 /// Markup that could not be read, with the place that stopped it.
 ///
 /// §9 asks for this by name: "unknown nodes are hard errors with source
-/// positions". The same reasoning as [io.github.digitalsmile.goldberry.css.parse.CssSyntaxException] —
+/// positions". The same reasoning as
+/// [io.github.digitalsmile.goldberry.css.parse.CssSyntaxException] —
 /// a silently dropped node is a widget that is not on screen with nothing in the
 /// log to say why — and the same exception for hot reload to catch: markup saved
 /// mid-edit is *expected* to be broken, so the reload path keeps the last good

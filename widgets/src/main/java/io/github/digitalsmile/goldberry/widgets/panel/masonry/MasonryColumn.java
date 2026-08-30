@@ -20,7 +20,7 @@ import io.github.digitalsmile.goldberry.widget.style.Styled;
 /// ## The width is written by the widget, not by a rule
 ///
 /// `1/n` of the row, where `n` is a number **no selector can count** — which is
-/// [ADR-0099](../../../../../../../../book/src/adr/0099-an-indicator-travels-on-a-grid.md)'s
+/// ADR-0099's
 /// situation exactly, and takes its answer: `restyle` writes the inline value the
 /// cascade cannot express. `flex-grow: 1` alone would size the columns to their
 /// *content*, so a column holding a wide chart would be wider than one holding a

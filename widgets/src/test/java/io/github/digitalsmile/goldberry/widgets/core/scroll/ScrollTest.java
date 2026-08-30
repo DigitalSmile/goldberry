@@ -34,7 +34,7 @@ import io.github.digitalsmile.goldberry.widgets.core.Column;
 import io.github.digitalsmile.goldberry.widgets.text.Text;
 
 /// `scroll` — the viewport three separate pieces of work were waiting on
-/// ([ADR-0116](../../../../../../../../book/src/adr/0116-a-scroll-view-is-a-clip-an-offset-and-two-extents.md)).
+/// (ADR-0116).
 ///
 /// Everything here needs a **painted frame** before it means anything, and that
 /// is the point rather than an inconvenience: a scroll view is arithmetic on two

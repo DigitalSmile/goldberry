@@ -316,11 +316,12 @@ class ToastTest {
 
     /// §3's "siblings reflow via `translate` base — the one sanctioned movement
     /// effect", and the last thing §7 owed
-    /// ([ADR-0178](../../../../../../../../../book/src/adr/0178-a-stack-closes-its-own-hole.md)).
+    /// (ADR-0178).
     ///
     /// Every test here builds a **real renderer**, which the rest of this file
     /// mostly does not need, because the reflow reads two things only a frame
-    /// has: `toaster`'s resolved `gap`, and the clock a [io.github.digitalsmile.goldberry.widgets.core.Phase]
+    /// has: `toaster`'s resolved `gap`, and the clock a
+    /// [io.github.digitalsmile.goldberry.widgets.core.Phase]
     /// runs on.
     @Nested
     @DisplayName("the sibling reflow")

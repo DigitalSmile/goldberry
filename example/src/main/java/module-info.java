@@ -27,7 +27,7 @@ module io.github.digitalsmile.goldberry.example {
     /// needs private access to the fields, and JPMS is what grants it. A woven
     /// module needs neither -- the weaver works from inside the class -- so this
     /// line is the cost of not having to run a build step
-    /// ([ADR-0155](../../../../../book/src/adr/0155-a-jar-binds-at-run-time-an-image-is-woven.md)).
+    /// (ADR-0155).
     opens io.github.digitalsmile.goldberry.example to io.github.digitalsmile.goldberry.core;
 
     /// And the same for the panes' documents — one `opens` per package that

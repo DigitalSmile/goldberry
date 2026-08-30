@@ -372,7 +372,7 @@ public record SdlCoreCalls(
     /// window the platform decided an event belongs to. A popup's events on
     /// macOS arrive attributed to the popup with coordinates in the *owner's*
     /// space, so the per-event numbers cannot be trusted for one
-    /// ([ADR-0211](../../../../../../../../book/src/adr/0211-a-popup-asks-the-desktop-where-the-pointer-is.md)).
+    /// (ADR-0211).
     ///
     /// `unsigned int SDL_GetGlobalMouseState(float *x, float *y)`
     ///

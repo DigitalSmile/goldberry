@@ -20,7 +20,7 @@ import io.github.digitalsmile.goldberry.css.Typography;
 /// A `Font` and a `FontFace` are thread-confined and hold native memory that has
 /// to be released. A process-wide cache would therefore have to be per-thread,
 /// and a per-thread cache of native memory has no hook that would ever free it
-/// ([ADR-0044](../../../../../../../book/src/adr/0044-one-face-many-sizes.md)). So
+/// (ADR-0044). So
 /// this is an ordinary object an application opens and closes, normally for the
 /// life of the window that renders through it:
 ///
@@ -37,7 +37,7 @@ import io.github.digitalsmile.goldberry.css.Typography;
 /// ## What it caches
 ///
 /// Faces by [BundledFont], and fonts by (face, size). Those are the two levels
-/// [ADR-0044](../../../../../../../book/src/adr/0044-one-face-many-sizes.md)
+/// ADR-0044
 /// established: a face is size-independent because Goldberry never scales the
 /// shaper, so a second size costs 4.4 µs rather than 681 and no second copy of
 /// the file.
@@ -69,7 +69,7 @@ public final class Fonts implements AutoCloseable {
     /// so an application that never draws code text never pays for JetBrains
     /// Mono. That matters on the start-up path §1's "starts in milliseconds"
     /// claim is measured against
-    /// ([ADR-0028](../../../../../../../book/src/adr/0028-the-start-up-timeline.md)).
+    /// (ADR-0028).
     public static Fonts bundled() {
         return new Fonts();
     }

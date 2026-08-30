@@ -22,15 +22,15 @@ import io.github.digitalsmile.goldberry.widgets.text.Text;
 /// **In Java, and the reason is the one KDL cannot argue with**: the list changes
 /// while the window is open, and markup is data — it can write two chapters, not
 /// "however many the model has"
-/// ([ADR-0110](../../../../../../../book/src/adr/0110-the-showcase-is-a-gallery-of-screens.md)).
+/// (ADR-0110).
 ///
 /// Every one of the strip's three events reports and decides nothing: `change`
 /// asks to show a chapter, `close` asks for one to go, `new` asks for one to
 /// arrive, and the model answers all three. A strip whose handlers did nothing
 /// would sit there unmoved, which is the visible form of "the model did not
 /// change"
-/// ([ADR-0063](../../../../../../../book/src/adr/0063-data-flows-down-events-flow-up.md),
-/// [ADR-0107](../../../../../../../book/src/adr/0107-a-tab-strip-is-a-model-a-header-and-a-panel.md)).
+/// (ADR-0063,
+/// ADR-0107).
 ///
 /// @param model what it reads and what its strip asks of
 public record TabsDemo(ShowcaseModel model, ShowcaseModel.Actions actions) implements Widget.Stateless {

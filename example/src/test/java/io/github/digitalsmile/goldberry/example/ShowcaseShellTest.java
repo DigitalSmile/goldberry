@@ -25,8 +25,8 @@ import io.github.digitalsmile.goldberry.widgets.menu.Separator;
 
 /// The window's three bands: how it opens, what its menu bar says, and that the
 /// gallery's seven screens are named in one place
-/// ([ADR-0221](../../../../../../book/src/adr/0221-a-window-may-open-maximized.md),
-/// [ADR-0222](../../../../../../book/src/adr/0222-a-showcase-is-a-window-a-bar-and-seven-screens.md)).
+/// (ADR-0221,
+/// ADR-0222).
 ///
 /// None of it is a thing a golden image can show: every picture in
 /// [GalleryGoldenTest] is drawn at a size the test chose, so a window that opened

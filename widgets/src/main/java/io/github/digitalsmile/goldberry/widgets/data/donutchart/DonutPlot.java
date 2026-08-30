@@ -14,7 +14,7 @@ import io.github.digitalsmile.goldberry.widget.Widget;
 /// the one the axis charts have and it is there for the same reason: a widget is
 /// a value rebuilt every frame, and which slice is being read has to outlive
 /// those rebuilds
-/// ([ADR-0198](../../../../../../../../book/src/adr/0198-a-charts-readout-is-painted-and-its-legend-is-a-control.md)).
+/// (ADR-0198).
 ///
 /// A donut has no second piece of interaction state to keep. Its legend is a key
 /// rather than a control: isolating one slice of a part-to-whole chart leaves a

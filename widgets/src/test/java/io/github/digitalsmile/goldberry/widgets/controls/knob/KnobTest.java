@@ -89,7 +89,8 @@ class KnobTest {
             assertEquals(75.0, asked(knob, drag(200, 150, Modifiers.NONE, 50)).getFirst(), 1e-9);
         }
 
-        /// The whole of why [io.github.digitalsmile.goldberry.input.handler.Handles#gestureAnchor()]
+        /// The whole of why
+        /// [io.github.digitalsmile.goldberry.input.handler.Handles#gestureAnchor()]
         /// exists: the same pointer position means a different value depending on
         /// where the drag started. A slider cannot tell you this, because for a
         /// slider it is not true.

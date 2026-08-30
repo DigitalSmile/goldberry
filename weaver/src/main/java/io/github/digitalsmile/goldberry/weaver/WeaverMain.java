@@ -23,7 +23,7 @@ import java.util.List;
 /// ## Two halves, and they are wanted at different times
 ///
 /// The weaver does two unrelated jobs to the same tree, and since
-/// [ADR-0155](../../../../book/src/adr/0155-a-jar-binds-at-run-time-an-image-is-woven.md)
+/// ADR-0155
 /// a build asks for them separately:
 ///
 /// - `--models` rewires `@Bind` fields and writes the `@Action` call sites. Only

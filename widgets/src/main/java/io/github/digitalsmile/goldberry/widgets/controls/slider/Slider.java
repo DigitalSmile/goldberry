@@ -33,7 +33,7 @@ import io.github.digitalsmile.goldberry.widgets.markup.Markup;
 /// switch's thumb moves. No stylesheet can name a number that came out of a
 /// model, so the thumb has to be placed by the widget — and it is placed by
 /// **flex ratio** rather than by a transform, because a transform cannot express
-/// it ([ADR-0079](../../../../../../../../book/src/adr/0079-a-continuous-value-is-placed-by-ratio.md)).
+/// it (ADR-0079).
 ///
 /// ## Direct manipulation
 ///
@@ -74,7 +74,7 @@ import io.github.digitalsmile.goldberry.widgets.markup.Markup;
 ///
 /// §3 asks for "optional **tick marks** and **value label**", and for a fader's
 /// "optional **dB scale** mapping". All three land here
-/// ([ADR-0080](../../../../../../../../book/src/adr/0080-a-value-is-measured-along-a-part.md)):
+/// (ADR-0080):
 ///
 /// ```kdl
 /// slider min=0 max=100 value=40 step=5 ticks=5 format="%.0f%%"
@@ -165,7 +165,7 @@ public record Slider(
     /// the second five-argument one and the two differ only in whether the fourth
     /// parameter is a `double` or an `Observable`. A reader cannot tell those
     /// apart at a call site, and the compiler will happily pick the wrong one for
-    /// a `null` ([ADR-0094](../../../../../../../../book/src/adr/0094-name-the-overload-not-the-allocation.md)).
+    /// a `null` (ADR-0094).
     ///
     /// `of` and not some other verb because the catalog already uses it for
     /// exactly this: [io.github.digitalsmile.goldberry.widgets.text.Text#of],
@@ -180,7 +180,8 @@ public record Slider(
     /// Any `Number` is taken, because a model holding an `Integer` percentage is
     /// at least as likely as one holding a `Double`. Anything else — including a
     /// null, which is a property that has not loaded — reads as [#value()], the
-    /// same rule [io.github.digitalsmile.goldberry.widgets.controls.checkbox.Checkbox#resolved()] and [io.github.digitalsmile.goldberry.widgets.controls.toggle.Toggle#resolved()] follow.
+    /// same rule [io.github.digitalsmile.goldberry.widgets.controls.checkbox.Checkbox#resolved()]
+    /// and [io.github.digitalsmile.goldberry.widgets.controls.toggle.Toggle#resolved()] follow.
     ///
     /// **Clamped rather than trusted.** A model outside the range is an
     /// application bug, and a thumb rendered off the end of its track is a worse

@@ -25,7 +25,7 @@ public final class BlendException extends RuntimeException {
 
     /// Public because the binding class that throws it is `blend2d`'s and an
     /// error is `blend2d.error`'s
-    /// ([ADR-0172](../../../../../../../../book/src/adr/0172-a-package-is-a-role-and-the-module-is-the-fence.md)).
+    /// (ADR-0172).
     public BlendException(String operation, int result) {
         super(message(operation, result));
         this.operation = operation;

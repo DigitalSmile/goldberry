@@ -10,7 +10,7 @@ import java.util.List;
 /// because the engines needed *something* to prove the widget tree against before
 /// there was a catalog to prove it with. They are ordinary widgets now, in the
 /// packages `core-widgets.md` gives them, and `:core` has no widget of its own
-/// ([ADR-0092](../../../../../../../book/src/adr/0092-a-primitive-is-a-widget-like-any-other.md)).
+/// (ADR-0092).
 ///
 /// Kept separate from [io.github.digitalsmile.goldberry.widgets.Controls] rather
 /// than folded into it, so that the sentence "the catalog is what `:widgets` adds

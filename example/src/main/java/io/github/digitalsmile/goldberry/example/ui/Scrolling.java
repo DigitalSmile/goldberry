@@ -30,7 +30,7 @@ import io.github.digitalsmile.goldberry.widgets.text.Text;
 /// a masonry it keeps its own fixed height and the ban keeps holding — the
 /// Navigation screen is not scrolled either, and the wall is what makes that
 /// possible: two columns of cards are half as tall as one
-/// ([ADR-0222](../../../../../../../book/src/adr/0222-a-showcase-is-a-window-a-bar-and-seven-screens.md)).
+/// (ADR-0222).
 ///
 /// Jumping is a **request**, not a scroll: pressing a button records which section
 /// is wanted, the affix for that section is built with a `revealedBy` callback,

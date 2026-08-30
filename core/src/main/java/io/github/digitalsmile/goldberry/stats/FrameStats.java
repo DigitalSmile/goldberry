@@ -34,7 +34,7 @@ public interface FrameStats {
     /// question. Two windows both averaging 2 ms are different animals if one
     /// ranges 1.9–2.1 and the other 0.2–14: the first is steady work and the
     /// second is a spike being averaged away over sixty frames
-    /// ([ADR-0154](../../../../../book/src/adr/0154-a-reading-is-a-range.md)).
+    /// (ADR-0154).
     ///
     /// @param min  the cheapest retained frame, in milliseconds
     /// @param mean the mean over them
@@ -86,13 +86,13 @@ public interface FrameStats {
 
     /// The mean time spent **rebuilding widgets** in one of those frames, in
     /// milliseconds — every `setState` since the last frame, settled once
-    /// ([ADR-0052](../../../../../book/src/adr/0052-state-is-a-plain-object-and-setstate-defers.md)).
+    /// (ADR-0052).
     ///
     /// Zero on a source that does not measure the stages, which is every source
     /// but the frame loop's own. That is not a claim the stage took no time: it
     /// is the same "nothing was measured" [#isEmpty] already means, and the four
     /// stage readings draw dashes on it for the same reason
-    /// ([ADR-0146](../../../../../book/src/adr/0146-a-hud-shows-where-the-frame-went.md)).
+    /// (ADR-0146).
     default double buildMillis() {
         return 0;
     }
@@ -129,7 +129,7 @@ public interface FrameStats {
     /// does, asked of `SDL_GetCurrentDisplayMode` — and it is the number every
     /// budget on a `hud` is a share of, so a 120 Hz window judges itself against
     /// 8.3 ms rather than against a hard-coded 16.7
-    /// ([ADR-0153](../../../../../book/src/adr/0153-a-rate-is-counted-a-refresh-is-asked-for.md)).
+    /// (ADR-0153).
     default double displayHertz() {
         return 0;
     }

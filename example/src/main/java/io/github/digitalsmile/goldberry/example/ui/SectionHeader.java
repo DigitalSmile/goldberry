@@ -18,7 +18,7 @@ import io.github.digitalsmile.goldberry.widgets.text.Text;
 /// moment its section starts scrolling away, so a reveal measured against it
 /// concluded the section was already visible and moved nothing. What travels
 /// with the document is the affix's hole, and the affix is what hands it out
-/// ([ADR-0124](../../../../../../../book/src/adr/0124-a-pinned-affix-is-revealed-by-its-hole.md)).
+/// (ADR-0124).
 /// A screen's heading: the one widget in this application that exists so a
 /// stylesheet has a **type** to select on.
 ///
@@ -27,7 +27,7 @@ import io.github.digitalsmile.goldberry.widgets.text.Text;
 /// wear, and a heading is a *kind* of node. `section-header` is selectable as an
 /// element, which is what lets `showcase.css` say "a heading inside an affixed
 /// section takes a surface" without a second class travelling beside it
-/// ([ADR-0222](../../../../../../../book/src/adr/0222-a-showcase-is-a-window-a-bar-and-seven-screens.md)).
+/// (ADR-0222).
 ///
 /// Public because [io.github.digitalsmile.goldberry.example.ShowcaseTypographyTest]
 /// asserts its size through the cascade — the gallery's golden images are drawn

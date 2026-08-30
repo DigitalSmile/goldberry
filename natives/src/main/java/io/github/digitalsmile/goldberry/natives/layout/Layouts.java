@@ -598,7 +598,8 @@ public final class Layouts {
     /// is four `int` writes per glyph and not a conversion.
     ///
     /// The units are **font design units**, because Blend2D multiplies these by
-    /// the font matrix — see [ADR-0034][io.github.digitalsmile.goldberry.natives.blend2d.BlendFont].
+    /// the font matrix — see
+    /// [ADR-0034][io.github.digitalsmile.goldberry.natives.blend2d.BlendFont].
     public static final NativeStructLayout BL_GLYPH_PLACEMENT = new NativeStructLayout(
             "BLGlyphPlacement",
             MemoryLayout.structLayout(

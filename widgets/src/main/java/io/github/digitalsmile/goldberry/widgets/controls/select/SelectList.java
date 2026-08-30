@@ -15,7 +15,7 @@ import io.github.digitalsmile.goldberry.widget.style.Styled;
 /// own.
 ///
 /// A **part** — CSS-selectable and not constructible
-/// ([ADR-0065](../../../../../../../../book/src/adr/0065-a-part-is-styleable-and-not-constructible.md))
+/// (ADR-0065)
 /// — and a sibling of `menu` rather than a use of it: the two are the same
 /// drawing and different meanings, and §3's list is a set of *values* where §8's
 /// is a set of *commands*. Sharing the type would mean a stylesheet could only

@@ -42,7 +42,8 @@ import io.github.digitalsmile.goldberry.widgets.markup.Markup;
 ///
 /// A `radio` outside a group is inert rather than an error: it draws, it takes no
 /// focus worth having, and picking it does nothing. That is the same choice
-/// [io.github.digitalsmile.goldberry.widgets.controls.button.Button] makes for a button with no `press=` — a control being styled before
+/// [io.github.digitalsmile.goldberry.widgets.controls.button.Button] makes for a button with no
+/// `press=` — a control being styled before
 /// it is wired is a normal stage of building a screen, not a mistake.
 ///
 /// ## Selection follows focus
@@ -152,7 +153,8 @@ public record Radio(
     }
 
     /// Picks this option on a click anywhere in the row, label included — the
-    /// same target [io.github.digitalsmile.goldberry.widgets.controls.checkbox.Checkbox] uses, and for the same reason: a 16px glyph is a
+    /// same target [io.github.digitalsmile.goldberry.widgets.controls.checkbox.Checkbox] uses, and
+    /// for the same reason: a 16px glyph is a
     /// poor thing to aim at when the label beside it is five times as wide.
     @Override
     public void onPointer(PointerEvent event) {
@@ -163,7 +165,8 @@ public record Radio(
     }
 
     /// `Space` picks this option, and `Enter` deliberately does not — the line
-    /// [io.github.digitalsmile.goldberry.widgets.controls.checkbox.Checkbox] draws, for the same reason: Enter belongs to a dialog's default
+    /// [io.github.digitalsmile.goldberry.widgets.controls.checkbox.Checkbox] draws, for the same
+    /// reason: Enter belongs to a dialog's default
     /// action.
     ///
     /// Arrow keys are absent from this method on purpose. Which option is *next*
@@ -190,7 +193,8 @@ public record Radio(
         }
     }
 
-    /// The glyph and the label, as child widgets — the shape [io.github.digitalsmile.goldberry.widgets.controls.checkbox.Checkbox] uses, and
+    /// The glyph and the label, as child widgets — the shape
+    /// [io.github.digitalsmile.goldberry.widgets.controls.checkbox.Checkbox] uses, and
     /// for the same reason: the glyph has its own background, border and radius,
     /// and one [ComputedStyle] cannot carry two.
     @Override

@@ -61,7 +61,8 @@ final class TextAreaState extends State<TextArea> implements AreaEditor {
     private double topPadding;
 
     /// The value the widget last offered, so a change to it can be told from a
-    /// constant that has always been there — see [io.github.digitalsmile.goldberry.widgets.form.textinput.TextInput].
+    /// constant that has always been there — see
+    /// [io.github.digitalsmile.goldberry.widgets.form.textinput.TextInput].
     private String lastOffered;
 
     @Override

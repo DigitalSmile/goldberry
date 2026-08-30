@@ -15,7 +15,7 @@ import io.github.digitalsmile.goldberry.render.model.LogicalSize;
 /// Anything. Set a clip, a transform, a global alpha, leave them set — the
 /// toolkit brackets the call in a `save`/`restore` pair and the context comes
 /// back exactly as it was
-/// ([ADR-0193](../../../../../../book/src/adr/0193-a-canvas-is-a-second-clip-depth.md)).
+/// (ADR-0193).
 /// That pair is why this can be an application's code at all: every other painter
 /// in the toolkit is trusted to unset what it set, and this one is not asked to
 /// be.

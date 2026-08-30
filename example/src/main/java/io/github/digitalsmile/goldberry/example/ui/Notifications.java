@@ -31,7 +31,7 @@ import io.github.digitalsmile.goldberry.widgets.text.Text;
 /// under one. It also puts each piece of state with the card that owns it — the
 /// hidden set only ever affects the resident banners, and the spawned list only
 /// ever affects the stack — so neither card rebuilds when the other changes
-/// ([ADR-0222](../../../../../../../book/src/adr/0222-a-showcase-is-a-window-a-bar-and-seven-screens.md)).
+/// (ADR-0222).
 public final class Notifications {
 
     private Notifications() {}

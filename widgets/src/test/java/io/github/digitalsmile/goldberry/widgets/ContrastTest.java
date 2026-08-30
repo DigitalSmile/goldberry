@@ -53,7 +53,7 @@ import io.github.digitalsmile.goldberry.widgets.text.Text;
 /// debt: it is asserted as an **exact set**, so a pair that newly breaks cannot
 /// be parked in it quietly, and a pair that gets fixed fails this test until it
 /// is removed. A check narrowed to what already passes is
-/// [ADR-0082](../../../../../../book/src/adr/0082-a-preflight-check-that-cannot-fail-is-not-a-check.md)'s
+/// ADR-0082's
 /// trap, so the sweep covers everything.
 class ContrastTest {
 

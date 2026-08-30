@@ -33,7 +33,7 @@ import io.github.digitalsmile.goldberry.bind.registry.BindingRegistry;
 /// The second of the two implementations of [BoundModel], and the one an ordinary
 /// jar uses. The weaver rewrites the compiled class so that `gain++` notifies;
 /// this reads the same annotations at run time and notices afterwards
-/// ([ADR-0155](../../../../../../../book/src/adr/0155-a-jar-binds-at-run-time-an-image-is-woven.md)).
+/// (ADR-0155).
 ///
 /// ## What it can do, and the one thing it cannot
 ///

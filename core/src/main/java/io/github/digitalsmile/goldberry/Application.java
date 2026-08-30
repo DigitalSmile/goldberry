@@ -36,7 +36,7 @@ import io.github.digitalsmile.goldberry.widget.Widget;
 ///
 /// None of that is a decision an application makes differently, and every one of
 /// them was fifteen lines of the showcase before this interface existed
-/// ([ADR-0093](../../../../../book/src/adr/0093-an-application-is-a-root-widget.md)).
+/// (ADR-0093).
 ///
 /// ## What is left to the application
 ///
@@ -77,7 +77,7 @@ public interface Application {
     /// docks, and restores to [#size] when the user un-maximizes it. Asking for a
     /// screen-sized window instead gives one that is too big on a laptop and that
     /// no titlebar button can put back
-    /// ([ADR-0221](../../../../../book/src/adr/0221-a-window-may-open-maximized.md)).
+    /// (ADR-0221).
     ///
     /// False by default, which is the right default for a tool: an application
     /// that takes the whole screen without being asked is one the user has to
@@ -115,8 +115,8 @@ public interface Application {
     /// application says nothing about repainting, which is the point — a model
     /// that changed and a window that did not repaint was the failure the old
     /// `changed()` line existed to prevent and regularly failed to
-    /// ([ADR-0128](../../../../../../book/src/adr/0128-a-change-is-its-own-frame-request.md),
-    /// [ADR-0133](../../../../../../book/src/adr/0133-a-restyle-is-declared.md)).
+    /// (ADR-0128,
+    /// ADR-0133).
     ///
     /// **A list**, because a window's own actions — "open the menu", "toggle the
     /// HUD" — belong to the window rather than to the view model, and an

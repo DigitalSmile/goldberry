@@ -21,7 +21,7 @@ import io.github.digitalsmile.goldberry.widget.style.Styled;
 /// satisfied for both controls by one mechanism rather than two.
 ///
 /// This closes the "the check mark still does not scale" entry that had been open
-/// since [ADR-0067](../../../../../../../../book/src/adr/0067-motion-is-an-overlay-on-a-frame-clock.md)
+/// since ADR-0067
 /// shipped the opacity half without it.
 ///
 /// ## Which shape, and why it is drawn even when nothing is checked

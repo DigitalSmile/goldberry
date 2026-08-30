@@ -50,7 +50,7 @@ import io.github.digitalsmile.goldberry.widgets.panel.list.Selection;
 /// is where the reader *is* and the checks are what they have *marked*. A file
 /// manager where those were the same could not copy six files, because opening
 /// the seventh folder would clear the list
-/// ([ADR-0210](../../../../../../../../book/src/adr/0210-a-tree-checks-and-selects-two-different-things.md)).
+/// (ADR-0210).
 /// So [#selected] and [#checked] are separate sets reported through separate
 /// callbacks, and a tree may have either, both, or neither.
 ///

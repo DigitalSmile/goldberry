@@ -36,10 +36,10 @@ import io.github.digitalsmile.goldberry.render.model.PhysicalSize;
 /// ## What it is for
 ///
 /// [BoxPainter] built a Yoga tree, read it and freed it, every frame. That is
-/// what [ADR-0053](../../../../../../book/src/adr/0053-the-render-tree-is-a-box-tree-for-now.md)
+/// what ADR-0053
 /// chose deliberately and said would need replacing, "and it should be made with
 /// a measurement". The measurement is in
-/// [ADR-0069](../../../../../../book/src/adr/0069-the-render-tree-is-retained.md).
+/// ADR-0069.
 ///
 /// Two things were being thrown away and rebuilt:
 ///
@@ -185,7 +185,7 @@ public final class RenderTree implements AutoCloseable {
     /// promise the backend makes and this class cannot check — ask
     /// [io.github.digitalsmile.goldberry.Window#canRepaintPartially()] and fall
     /// back to [#paint(Frame)] when it says no
-    /// ([ADR-0072](../../../../../../book/src/adr/0072-a-partial-repaint-needs-a-promise.md)).
+    /// (ADR-0072).
     ///
     /// An **empty** list means nothing changed and nothing is drawn at all, which
     /// is the same meaning it has for `present` and is the best case rather than
@@ -715,7 +715,7 @@ public final class RenderTree implements AutoCloseable {
     /// rasterizer clipped to the damage — another export — and a promise from the
     /// backend SPI that the buffer it lends back holds last frame's pixels, which
     /// it does not currently make
-    /// ([ADR-0071](../../../../../../book/src/adr/0071-a-layer-is-a-subtrees-raster.md)).
+    /// (ADR-0071).
     public java.util.List<DamageRect> damage(Frame frame) {
         Objects.requireNonNull(frame, "frame");
         requireUsable();

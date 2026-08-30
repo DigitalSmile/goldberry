@@ -100,7 +100,7 @@ public record BarChart(
     /// **It costs the zeroes.** `log10(0)` is negative infinity, so a
     /// non-positive reading has no position and becomes a hole — the line breaks
     /// there rather than sliding off the bottom
-    /// ([ADR-0205](../../../../../../../../book/src/adr/0205-a-log-axis-has-no-room-for-zero.md)).
+    /// (ADR-0205).
     /// Only `line-chart` draws one: a bar and a band are lengths from zero, and
     /// zero is not on the axis.
     public BarChart logY() {

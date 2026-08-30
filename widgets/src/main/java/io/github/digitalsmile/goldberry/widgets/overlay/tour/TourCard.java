@@ -17,7 +17,7 @@ import io.github.digitalsmile.goldberry.widget.style.Styled;
 /// word is doing less work than it looks: `popover` is the *panel* half of an
 /// anchored floating thing, and its opening half — measure, flip, shift, open a
 /// window, light-dismiss — is precisely what a tour must not do
-/// ([ADR-0104](../../../../../../../../book/src/adr/0104-a-popup-is-measured-then-placed.md)).
+/// (ADR-0104).
 /// A tour's card lives inside the window, over a veil that is also inside it, and
 /// dismisses on its own buttons rather than on an outside click. Reusing the
 /// widget would have meant reusing the surface and the radius, which is what a

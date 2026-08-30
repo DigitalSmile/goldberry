@@ -38,7 +38,7 @@ import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
 /// So the fraction is clamped against the pixels on every layout, which needs the
 /// pane's measured length — and that arrives through
 /// [io.github.digitalsmile.goldberry.input.handler.Measured], once a frame and only on a
-/// change ([ADR-0117](../../../../../../../../book/src/adr/0117-a-widget-may-be-told-what-it-measured.md)).
+/// change (ADR-0117).
 /// Before the first measurement the fraction is used as given, which is right:
 /// the first frame has no minimum it could be violating yet.
 ///
@@ -50,7 +50,7 @@ import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
 /// snap the divider so its centre jumped under the finger on every press.
 ///
 /// So it is the knob's arrangement instead
-/// ([ADR-0089](../../../../../../../../book/src/adr/0089-a-knobs-gesture-is-a-rate.md)):
+/// (ADR-0089):
 /// the divider reports its current offset as a
 /// [io.github.digitalsmile.goldberry.input.handler.Handles#gestureAnchor()], the router
 /// hands that back on every event of the gesture, and the new offset is

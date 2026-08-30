@@ -17,7 +17,7 @@ import io.github.digitalsmile.goldberry.natives.calls.ShimCalls;
 /// What one foreign call costs, held both ways.
 ///
 /// The measurement behind
-/// [ADR-0161](../../../../../../book/src/adr/0161-a-downcall-handle-is-a-constant-or-it-is-not-a-call.md).
+/// ADR-0161.
 /// `goldberry_abi_version` is the cheapest function `libgoldberry` exports — it
 /// returns a constant — so what this times is the crossing and nothing else.
 ///

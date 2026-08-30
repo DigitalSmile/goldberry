@@ -35,7 +35,7 @@ import org.junit.jupiter.api.Test;
 ///
 /// It needs no `libgoldberry`: an unbound handle is linked from a descriptor and
 /// names no address, which is the whole point
-/// ([ADR-0173](../../../../../../book/src/adr/0173-a-bound-function-is-a-holder-and-its-handle-is-a-constant.md)).
+/// (ADR-0173).
 @DisplayName("a bound function's holder")
 class HolderShapeTest {
 

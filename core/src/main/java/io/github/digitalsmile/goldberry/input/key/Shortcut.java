@@ -41,7 +41,7 @@ public record Shortcut(Key key, Modifiers modifiers) {
     /// `Shortcut.of(Key.S, Mod.CTRL, Mod.SHIFT)` for code that has the modifiers
     /// in an array already. [Mod#and(Key)] reads better when they are literals,
     /// because it puts them in the order a menu prints them
-    /// ([ADR-0095](../../../../../../../book/src/adr/0095-a-shortcut-is-built-from-enums.md)).
+    /// (ADR-0095).
     public static Shortcut of(Key key, Mod... mods) {
         return new Shortcut(key, Modifiers.of(mods));
     }

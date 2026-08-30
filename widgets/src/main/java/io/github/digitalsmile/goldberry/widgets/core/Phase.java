@@ -12,15 +12,15 @@ package io.github.digitalsmile.goldberry.widgets.core;
 ///
 /// Everything else that moves in this catalog moves *between two styles the
 /// cascade resolved*, which the renderer interpolates
-/// ([ADR-0067](../../../../../../../../book/src/adr/0067-motion-is-an-overlay-on-a-frame-clock.md)).
+/// (ADR-0067).
 /// Something arriving has no two styles: its element did not exist last frame, and
 /// the first frame of a newly built element starts nothing
-/// ([ADR-0065](../../../../../../../../book/src/adr/0065-a-part-is-styleable-and-not-constructible.md)).
+/// (ADR-0065).
 /// Something leaving is worse — a tab's application has already dropped it from
 /// its list, so without something holding on there is nothing left to animate.
 ///
 /// So this is `spinner`'s shape instead: a **function of the frame clock**
-/// ([ADR-0081](../../../../../../../../book/src/adr/0081-a-perpetual-loop-has-no-state.md)),
+/// (ADR-0081),
 /// with the one thing a spinner does not need — a beginning. The clock is read in
 /// `render`, which is the only place a widget has one, and the first read is what
 /// stamps [#startedAt].
@@ -39,7 +39,7 @@ public final class Phase {
     /// layout" — the same 160ms a `--gb-motion-base` transition uses. A constant
     /// rather than a token because a clock-driven animation cannot read a
     /// `transition` declaration: it is not one
-    /// ([ADR-0109](../../../../../../../../book/src/adr/0109-a-tab-arrives-and-departs-on-the-frame-clock.md)).
+    /// (ADR-0109).
     public static final double DURATION_MILLIS = 160;
 
     /// How long *this* phase takes, which is [#DURATION_MILLIS] unless somebody

@@ -416,7 +416,7 @@ public record Transform(List<Function> functions, Origin origin) {
     /// does not parse is to drop it and carry on. A transform that half-parsed
     /// would be worse than none: the box would move somewhere nobody wrote.
     /// Public because the computed style that calls it is the `css` package's
-    /// and a value type is `css.value`'s ([ADR-0172](../../../../../../../book/src/adr/0172-a-package-is-a-role-and-the-module-is-the-fence.md)).
+    /// and a value type is `css.value`'s (ADR-0172).
     public static Transform parse(List<Token> value, Origin origin) {
         var tokens = value.stream().filter(t -> !t.is(TokenType.WHITESPACE)).toList();
         if (tokens.isEmpty()) {

@@ -12,7 +12,7 @@ import io.github.digitalsmile.goldberry.widget.style.Styled;
 /// The 16px disc that slides — a **part** of [Toggle], and the sixth part.
 ///
 /// It is a node of its own for the reason
-/// [ADR-0073](../../../../../../../../book/src/adr/0073-a-composite-is-one-tab-stop.md)
+/// ADR-0073
 /// established for `check-mark`: **two things must move independently, and the
 /// unit of independent movement is a cascade node.** `docs/design-system.md` §3.1
 /// asks for "thumb `translate` base; track color base", which is a transform on

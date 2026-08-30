@@ -46,7 +46,7 @@ public record Transitions(Map<Animatable, Timing> byProperty) {
     /// transform the painter applies and hit testing does not would produce a
     /// control that looks right and does not respond where it looks like it
     /// should — a failure with no error and no wrong pixel
-    /// ([ADR-0068](../../../../../../../book/src/adr/0068-the-transform-stack-is-java-side.md)).
+    /// (ADR-0068).
     public enum Animatable {
 
         /// Fades. The one every control uses for `:disabled`.

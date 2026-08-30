@@ -18,7 +18,7 @@ import io.github.digitalsmile.goldberry.widgets.core.Phase;
 /// It fills the window — [io.github.digitalsmile.goldberry.Overlay#filling] —
 /// and it is **opaque to the pointer everywhere**, so nothing behind it can be
 /// clicked. `tour`'s veil discovered that
-/// ([ADR-0121](../../../../../../../../book/src/adr/0121-a-tour-is-a-veil-and-a-sequence.md)):
+/// (ADR-0121):
 /// a filling overlay takes the pointer wherever it draws, which makes a thing
 /// modal without any code saying so. The keyboard has no position and cannot be
 /// handled this way, which is what [DialogPanel]'s

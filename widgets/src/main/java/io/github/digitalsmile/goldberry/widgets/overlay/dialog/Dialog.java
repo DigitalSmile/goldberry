@@ -26,7 +26,7 @@ import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
 ///
 /// ## A dialog is a widget, and showing one is not
 ///
-/// [ADR-0106](../../../../../../../../book/src/adr/0106-a-menu-is-a-widget-and-opening-one-is-not.md)'s
+/// ADR-0106's
 /// title, one group later, and the argument is unchanged: a modal needs the
 /// **window** — something has to cover it, take its pointer and hold its
 /// keyboard — and a widget has no window. So this describes a dialog and

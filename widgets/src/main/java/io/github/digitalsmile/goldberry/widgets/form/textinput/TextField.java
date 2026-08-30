@@ -84,7 +84,8 @@ record TextField(
 
     /// How wide the caret is, in logical pixels.
     ///
-    /// In Java rather than in a stylesheet for [io.github.digitalsmile.goldberry.Overlay#WINDOW_MARGIN]'s
+    /// In Java rather than in a stylesheet for
+    /// [io.github.digitalsmile.goldberry.Overlay#WINDOW_MARGIN]'s
     /// reason: §8's subset gives a node its width through `width`, and this node's
     /// width is set here in the same call that sets its position — a stylesheet
     /// that disagreed would move the caret rather than resize it. One pixel is

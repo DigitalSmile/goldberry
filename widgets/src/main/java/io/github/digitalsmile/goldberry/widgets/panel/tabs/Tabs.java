@@ -27,12 +27,12 @@ import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
 ///
 /// The strip **reads** which tab is selected through `bind` and reports what the
 /// user asked for through `change`. It selects nothing itself
-/// ([ADR-0063](../../../../../../../../book/src/adr/0063-data-flows-down-events-flow-up.md)),
+/// (ADR-0063),
 /// which is the same shape `radio-group` and `segmented` have — and it is what
 /// makes adding and removing tabs work without a single API for either: the list
 /// of tabs is the application's, `close` asks for one to go, `new` asks for one to
 /// arrive, and the strip draws whatever comes back
-/// ([ADR-0107](../../../../../../../../book/src/adr/0107-a-tab-strip-is-a-model-a-header-and-a-panel.md)).
+/// (ADR-0107).
 ///
 /// A strip whose `close` handler does nothing keeps its tab, which is the visible
 /// form of "the model did not change" and is where the bug is when a tab will not
@@ -45,7 +45,7 @@ import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
 /// inside the other, and every rule in `controls.css` would apply to both — which
 /// is a doubled padding and a doubled border waiting to happen. So this is a
 /// composition node: it holds the model, and what it builds holds the appearance
-/// ([ADR-0109](../../../../../../../../book/src/adr/0109-a-tab-arrives-and-departs-on-the-frame-clock.md)).
+/// (ADR-0109).
 ///
 /// ## Three parts, and only one of them is built twice
 ///
@@ -58,7 +58,7 @@ import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
 ///
 /// One Tab stop with the arrows roving inside it, per §7.2 — `HORIZONTAL`,
 /// because a top-placed strip is a row and `Up`/`Down` belong to whatever is
-/// above it ([ADR-0078](../../../../../../../../book/src/adr/0078-a-focus-scope-has-an-axis.md)).
+/// above it (ADR-0078).
 /// `Delete` on a closable tab asks for it to close, which is the keyboard's answer
 /// to an affordance that is otherwise a small target for a pointer.
 ///
@@ -152,7 +152,7 @@ public record Tabs(
     /// has just been closed has to fade down — after the application has already
     /// dropped it from its list, so something has to hold on to it for the length
     /// of the animation. That is the whole of what [TabsState] does
-    /// ([ADR-0109](../../../../../../../../book/src/adr/0109-a-tab-arrives-and-departs-on-the-frame-clock.md)).
+    /// (ADR-0109).
     @Override
     public State<?> createState() {
         return new TabsState();

@@ -48,7 +48,7 @@ record TabList(List<Widget> headers, ScrollController controller)
     ///
     /// Enough tabs and the row runs off the side of its window, which was one of
     /// the three things `scroll` was written for
-    /// ([ADR-0116](../../../../../../../../book/src/adr/0116-a-scroll-view-is-a-clip-an-offset-and-two-extents.md)).
+    /// (ADR-0116).
     /// The viewport goes around the **headers only**: the rule is pinned across
     /// the bottom of the whole strip and would otherwise scroll out of the left
     /// edge, leaving the underline of a strip that has been scrolled sitting

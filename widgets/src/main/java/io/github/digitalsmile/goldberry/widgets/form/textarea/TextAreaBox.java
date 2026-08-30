@@ -52,7 +52,7 @@ import io.github.digitalsmile.goldberry.widgets.form.textinput.TextEdit;
 /// run of text that wraps is not a rectangle. Each is one line's slice of the
 /// range, which is why `Paragraph`'s two measurements take a *line's* range
 /// rather than an offset — they were written for this
-/// ([ADR-0167](../../../../../../../../book/src/adr/0167-a-field-owns-its-caret-and-the-model-is-told.md)).
+/// (ADR-0167).
 ///
 /// ## It sizes itself
 ///

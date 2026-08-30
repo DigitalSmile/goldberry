@@ -37,7 +37,7 @@ public final class Toasts {
     /// between this and a dialog in one word: a toast is non-modal, so it must
     /// cover as little as possible and take no press that is not its own. The
     /// overlay layer has done exactly this since `hud` was its first occupant
-    /// ([ADR-0100](../../../../../../../../book/src/adr/0100-a-window-has-an-overlay-layer.md)).
+    /// (ADR-0100).
     ///
     /// @return the handle that takes the whole stack away again — for a window
     ///         that changes where its toasts appear, and for a test

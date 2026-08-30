@@ -20,7 +20,7 @@ import io.github.digitalsmile.goldberry.widget.Widget;
 /// child to an edge of the nearest `scroll` "once the child would have scrolled
 /// past it", and that is a comparison between where this widget is and where the
 /// viewport's edge is — two positions, neither of which any widget can compute
-/// ([ADR-0119](../../../../../../../book/src/adr/0119-a-widget-may-be-told-where-it-is.md)).
+/// (ADR-0119).
 ///
 /// ## The rule that makes it terminate
 ///
@@ -51,7 +51,7 @@ public interface Located extends Widget {
     /// top" is a question about the painted position.
     ///
     /// `clip` is the rectangle the nearest `overflow` above this widget confines
-    /// it to ([ADR-0114](../../../../../../../book/src/adr/0114-a-clip-is-a-rectangle-the-painter-carries.md)),
+    /// it to (ADR-0114),
     /// which for anything inside a `scroll` is that viewport. **The window's own
     /// rectangle when nothing clips**, rather than null: an `affix` outside any
     /// scroll view is then pinned to the window, which is what a toolbar at the

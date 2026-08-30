@@ -120,7 +120,7 @@ public final class Sdl {
     /// needs no new symbol and is wrong in a way that lasts: a window that loses
     /// focus while Shift is held never sees the key release, so the flag stays
     /// down until the next time Shift is pressed and let go
-    /// ([ADR-0089](../../../../../../../book/src/adr/0089-a-knobs-gesture-is-a-rate.md)).
+    /// (ADR-0089).
     ///
     /// Widened to an int here, because the mask is unsigned and Java's short is
     /// not -- SDL's `SDL_KMOD_*` bits stop at 0x4000, but sign extension would
@@ -138,7 +138,7 @@ public final class Sdl {
     /// translated, inside the pump that produced it — and used for one thing: a
     /// pointer event whose window and whose coordinates disagree about which
     /// space they are in. That happens to every popup on macOS
-    /// ([ADR-0211](../../../../../../../book/src/adr/0211-a-popup-asks-the-desktop-where-the-pointer-is.md)),
+    /// (ADR-0211),
     /// and a desktop position plus a window's own position is the one reading
     /// that does not depend on the platform's attribution.
     ///

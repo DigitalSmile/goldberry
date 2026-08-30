@@ -21,7 +21,7 @@ import io.github.digitalsmile.goldberry.widget.WidgetRenderer;
 /// this box tree rather than replacing it: an immutable description is the ideal
 /// thing to diff, and it keeps a widget's job "describe yourself" rather than
 /// "mutate your render object"
-/// ([ADR-0069](../../../../../../../book/src/adr/0069-the-render-tree-is-retained.md)).
+/// (ADR-0069).
 public interface Paints extends Widget {
 
     /// What a render pass can offer a widget that needs more than its style.
@@ -71,7 +71,7 @@ public interface Paints extends Widget {
         /// bar have no two states to move between, and §8's subset has no
         /// `@keyframes` to express a loop with. So they are drawn as a function
         /// of this
-        /// ([ADR-0081](../../../../../../../book/src/adr/0081-a-perpetual-loop-has-no-state.md)).
+        /// (ADR-0081).
         ///
         /// Read **once per frame** by the renderer and handed to every node, so
         /// two spinners in one window are on the same tick rather than a few
@@ -85,7 +85,7 @@ public interface Paints extends Widget {
         /// node has one `color`; a stylesheet cannot say "the fourth series" and
         /// a `canvas` has no child nodes to hang classes on. So the values live
         /// in the theme as `--gb-chart-1…8` and are read here
-        /// ([ADR-0195](../../../../../../../book/src/adr/0195-a-painter-reads-the-theme-through-a-custom-property.md)).
+        /// (ADR-0195).
         ///
         /// **Resolved through the cascade, so it inherits and can be overridden.**
         /// `#revenue { --gb-chart-1: #b48ead }` recolours one chart's first
@@ -112,7 +112,8 @@ public interface Paints extends Widget {
         /// beside it. Two HUDs in one window report one rate.
         ///
         /// [FrameStats#none()] unless something
-        /// told the renderer otherwise — a render into a [io.github.digitalsmile.goldberry.paint.Layer],
+        /// told the renderer otherwise — a render into a
+        /// [io.github.digitalsmile.goldberry.paint.Layer],
         /// or a test, has no frame loop over it and honestly reports no frames.
         ///
         /// **Read, never recorded.** A widget observes the loop; it does not

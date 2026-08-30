@@ -47,7 +47,7 @@ import io.github.digitalsmile.goldberry.text.font.Font;
 /// That is an approximation, and [#isBidiApproximate()] is how a caller asks
 /// whether it is in force. It replaced an exception, because a paragraph that
 /// refused meant a field a user pasted Arabic into took the window down with it
-/// ([ADR-0218](../../../../../../book/src/adr/0218-a-paragraph-approximates-bidi-rather-than-refusing-it.md)).
+/// (ADR-0218).
 /// The real fix is splitting text into directional runs — `java.text.Bidi`'s job,
 /// with the same class already here — and it is still ahead.
 ///

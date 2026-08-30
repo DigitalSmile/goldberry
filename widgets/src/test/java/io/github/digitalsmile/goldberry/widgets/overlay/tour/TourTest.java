@@ -22,7 +22,7 @@ import io.github.digitalsmile.goldberry.widget.ElementTree;
 import io.github.digitalsmile.goldberry.widget.Widget;
 
 /// `tour` — §5's guided sequence, and the veil under it
-/// ([ADR-0121](../../../../../../../../book/src/adr/0121-a-tour-is-a-veil-and-a-sequence.md)).
+/// (ADR-0121).
 ///
 /// Driven against a stub [Host] rather than a live window: everything a tour
 /// decides is a function of what `anchor` answers, so a host that answers on

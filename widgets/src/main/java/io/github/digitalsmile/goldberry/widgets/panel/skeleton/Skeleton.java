@@ -35,7 +35,7 @@ import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
 /// Which is why the pulse is computed here and not written as a CSS transition.
 /// A transition runs between two states and a skeleton has one; the pulse is a
 /// pure function of the clock — `Spinner`'s arrangement exactly, and for the same
-/// reason ([ADR-0081](../../../../../../../../book/src/adr/0081-a-perpetual-loop-has-no-state.md)):
+/// reason (ADR-0081):
 /// no controller, no start, no stop, every skeleton on the screen in step by
 /// construction, and one that unmounts leaves nothing behind.
 ///

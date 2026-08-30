@@ -17,7 +17,7 @@ import io.github.digitalsmile.goldberry.widget.style.Styled;
 /// ## The arithmetic, in one place
 ///
 /// A bar is three numbers and they all come from the two extents the viewport was
-/// measured at ([ADR-0117](../../../../../../../../book/src/adr/0117-a-widget-may-be-told-what-it-measured.md)):
+/// measured at (ADR-0117):
 ///
 /// ```
 /// track      = the viewport's length along this axis
@@ -38,7 +38,7 @@ import io.github.digitalsmile.goldberry.widget.style.Styled;
 /// what it is pointing at. The gesture is a position and not a rate, so it needs
 /// no [Handles#gestureAnchor()]: where the pointer is along the track *is* the
 /// answer, read fresh every event, exactly as a slider reads its value
-/// ([ADR-0079](../../../../../../../../book/src/adr/0079-a-continuous-value-is-placed-by-ratio.md)).
+/// (ADR-0079).
 ///
 /// ## A click on the track pages
 ///

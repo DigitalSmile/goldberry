@@ -30,7 +30,7 @@ import io.github.digitalsmile.goldberry.widgets.controls.TestFont;
 import io.github.digitalsmile.goldberry.widgets.core.Column;
 
 /// Where a slider's marks and its readout actually land, after Yoga has run
-/// ([ADR-0080](../../../../../../../../book/src/adr/0080-a-value-is-measured-along-a-part.md)).
+/// (ADR-0080).
 ///
 /// [SliderTest] asserts the arithmetic and [SliderGoldenTest] asserts the
 /// picture. This is the layer between them, and it exists because the claims the

@@ -11,7 +11,7 @@ import io.github.digitalsmile.goldberry.widget.style.Styled;
 
 /// The `v` at the end of a closed [Select] — a **part**, so it is CSS-selectable
 /// and not constructible
-/// ([ADR-0065](../../../../../../../../book/src/adr/0065-a-part-is-styleable-and-not-constructible.md)).
+/// (ADR-0065).
 ///
 /// It is the only thing that says a field is a dropdown rather than a label with
 /// a border, which is the same job the chevron on a menu row does — and it is a

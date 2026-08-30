@@ -19,9 +19,9 @@ import io.github.digitalsmile.goldberry.stats.FrameStats;
 /// part of a frame is expensive. They cannot say why, and the two times that has
 /// mattered the answer was a count rather than a duration: the style cache
 /// missing on every element
-/// ([ADR-0142](../../../../../../book/src/adr/0142-a-style-handed-down-keeps-its-identity.md)),
+/// (ADR-0142),
 /// and a click invalidating the whole tree
-/// ([ADR-0149](../../../../../../book/src/adr/0149-a-state-invalidates-what-it-can-reach.md)).
+/// (ADR-0149).
 /// Both took a purpose-built probe and a counter compiled into the renderer to
 /// find. This is that counter, kept.
 ///
@@ -41,7 +41,7 @@ public final class FrameTrace {
     ///
     /// A system property and not a log level: a diagnostic that costs an
     /// `isTraceEnabled()` per element per frame would be measuring itself, which
-    /// is [ADR-0101](../../../../../../book/src/adr/0101-a-diagnostic-must-not-be-the-thing-it-measures.md)'s
+    /// is ADR-0101's
     /// whole subject.
     public static final boolean ENABLED = enabled(System.getProperty(TRACE_PROPERTY));
 
@@ -94,7 +94,7 @@ public final class FrameTrace {
 
     /// Nanoseconds spent keeping a style's identity — `restyle` and the value
     /// comparison that decides whether the children can keep their caches
-    /// ([ADR-0142](../../../../../../book/src/adr/0142-a-style-handed-down-keeps-its-identity.md)).
+    /// (ADR-0142).
     private long identityNanos;
 
     /// Nanoseconds in the transition overlay — observing a target, interpolating
@@ -108,7 +108,7 @@ public final class FrameTrace {
     /// Paragraphs this frame found in the cache, and paragraphs it had to shape.
     ///
     /// A miss is 56 microseconds of HarfBuzz
-    /// ([ADR-0037](../../../../../../book/src/adr/0037-what-the-text-path-costs.md)),
+    /// (ADR-0037),
     /// so a frame with a handful of them has spent more on text than on
     /// everything else — and a *steady* trickle of them means something is
     /// building a string per frame rather than reusing one.

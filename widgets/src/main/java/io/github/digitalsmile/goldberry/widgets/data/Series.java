@@ -8,11 +8,11 @@ import java.util.Objects;
 /// **A name, not a colour.** Which colour a series takes is decided by its
 /// *position* — slot 1, slot 2 — because the order is what keeps adjacent series
 /// distinguishable under colour-vision deficiency
-/// ([ADR-0194](../../../../../../../book/src/adr/0194-a-series-colour-is-derived-from-nord-not-taken-from-it.md)),
+/// (ADR-0194),
 /// and a caller that could pass a colour would be a caller that could pass two
 /// that collide. An application that genuinely needs a particular colour writes
 /// a rule: `#revenue { --gb-chart-1: … }`, which is the cascade doing it
-/// ([ADR-0195](../../../../../../../book/src/adr/0195-a-painter-reads-the-theme-through-a-custom-property.md)).
+/// (ADR-0195).
 ///
 /// The x is the **index**. A time axis is `content-widgets.md` §3.1's
 /// `java.time`-driven stepping and is not built; until it is, a chart says where

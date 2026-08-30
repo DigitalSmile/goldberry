@@ -26,8 +26,8 @@ import io.github.digitalsmile.goldberry.widget.style.Styled;
 /// properties. So every widget inside a scrolled viewport is laid out where it
 /// always was and painted a long way from there, and a hit-test region stores
 /// the layout rectangle plus the **inverse** of the matrix it was painted with
-/// ([ADR-0054](../../../../../../book/src/adr/0054-hit-testing-runs-against-the-painted-frame.md),
-/// [ADR-0068](../../../../../../book/src/adr/0068-the-transform-stack-is-java-side.md)).
+/// (ADR-0054,
+/// ADR-0068).
 ///
 /// `Region.contains` uses that inverse. Everything that answers *where inside*
 /// has to use it too, or a control keeps receiving events and starts reading a

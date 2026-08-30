@@ -39,7 +39,7 @@ import io.github.digitalsmile.goldberry.widget.style.Styled;
 /// **This node never moves in answer to it**, which is the rule that makes it
 /// terminate: the spacers and the rows always add up to the same total height,
 /// because that total is a function of the *model* rather than of the window
-/// ([ADR-0213](../../../../../../../../book/src/adr/0213-a-virtual-list-is-two-spacers-and-a-window.md)).
+/// (ADR-0213).
 /// So the frame after a window change reports the same rectangle as the frame
 /// before it, and the second report changes nothing.
 ///
@@ -100,7 +100,7 @@ record ListBox(
     /// What makes the arithmetic terminate: a spacer's height is
     /// `rowCount × rowHeight`, so however the window moves the column adds up to
     /// the same total and the node that was measured does not move
-    /// ([ADR-0213](../../../../../../../../book/src/adr/0213-a-virtual-list-is-two-spacers-and-a-window.md)).
+    /// (ADR-0213).
     ///
     /// Two of them rather than one padded box, because the one above and the one
     /// below answer different questions — how far down the window starts, and how

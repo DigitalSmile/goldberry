@@ -31,7 +31,7 @@ public record Stylesheet(CascadeLayer layer, List<StyleRule> rules) {
     /// that uses it, rather than a text block in the middle of Java. The toolkit
     /// loads its own theme and control sheets exactly this way, and an
     /// application had no supported way to do the same
-    /// ([ADR-0093](../../../../../../book/src/adr/0093-an-application-is-a-root-widget.md)).
+    /// (ADR-0093).
     ///
     /// ```java
     /// Stylesheet.resource(CascadeLayer.APPLICATION, MyApp.class, "app.css")

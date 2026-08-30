@@ -51,7 +51,7 @@ final class GoldberryRuntime {
     /// reports that: opening the popup itself sends a lost for the window under
     /// it and a gained for the popup. Only something that can see every window
     /// can tell the two apart, and that is the launcher
-    /// ([ADR-0144](../../../../../book/src/adr/0144-a-popup-goes-away-when-the-application-does.md)).
+    /// (ADR-0144).
     void onFocusChange(Runnable watcher) {
         this.focusWatcher = watcher;
     }

@@ -12,7 +12,7 @@ import io.github.digitalsmile.goldberry.render.model.LogicalSize;
 
 /// That a window can be asked to open maximized, and that the ask is refused
 /// where it would be silently dropped
-/// ([ADR-0221](../../../../../../book/src/adr/0221-a-window-may-open-maximized.md)).
+/// (ADR-0221).
 class WindowSpecTest {
 
     private static final LogicalSize SIZE = LogicalSize.of(960, 640);

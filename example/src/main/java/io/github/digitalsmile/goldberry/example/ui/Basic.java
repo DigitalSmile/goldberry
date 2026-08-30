@@ -34,7 +34,7 @@ import io.github.digitalsmile.goldberry.widgets.text.Text;
 /// So this class takes the wall the document built and appends two cards to it —
 /// to the *same* masonry, because a masonry places by column height and a second
 /// wall underneath would be laid out against different columns
-/// ([ADR-0222](../../../../../../../book/src/adr/0222-a-showcase-is-a-window-a-bar-and-seven-screens.md)).
+/// (ADR-0222).
 ///
 /// @param cards what `basic.kdl` built, inflated once by [Screen]
 /// @param plus  the icon on the primary button — handed in, because a widget is a

@@ -137,7 +137,7 @@ class FocusScopeTest {
     /// difference visible: it focuses its first row as it opens so that an arrow
     /// key has somewhere to start, and a row picked out before the user has
     /// touched the keyboard reads as a menu that has already chosen
-    /// ([ADR-0112](../../../../../../book/src/adr/0112-a-menu-follows-the-pointer-and-lights-for-the-keyboard.md)).
+    /// (ADR-0112).
     @Nested
     @DisplayName("moving focus says whether the keyboard asked")
     class FocusVisible {
