@@ -397,7 +397,7 @@ configurations {
 
 dependencies {
     pitest "org.pitest:pitest-command-line:${catalog.findVersion('pitest').get().requiredVersion}"
-    pitest 'org.pitest:pitest-junit5-plugin:1.2.1'
+    pitest 'org.pitest:pitest-junit5-plugin:1.2.3'
 }
 
 tasks.register('pitest', JavaExec) {

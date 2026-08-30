@@ -139,7 +139,10 @@ status beside it reads as a description of what exists.
 - **§1.6 dual-mode CI.** `linux.yml` runs the suite reflectively and again with
   `-Pgoldberry.nativeImage=true`, then uploads the aggregate report.
 - **§2 CodeQL**, nightly and on pull requests (`codeql.yml`).
-- **§3 PIT**, as a `pitest` task per module — see the limit below.
+- **§3 PIT**, a `pitest` task per module, **running to completion**. First
+  measurement: `:widgets` kills 2445 of 2995 mutations (82%), `:core` 205 of
+  1146 (18%), both against 95% line coverage of the mutated classes. The gap
+  between those two numbers is the whole reason §3 asks for this.
 
 ### Deliberately narrowed
 
@@ -175,13 +178,6 @@ status beside it reads as a description of what exists.
   `ARCHITECTURE.md` prose and the AccessKit bridge is M5, not started. This is
   the one item here blocked on a subsystem rather than on effort. Contrast, the
   other half of §1.7, is built and has been for a while (`ContrastTest`).
-- **PIT on the modular modules.** The task is wired and runs, and reports "no
-  mutations" correctly where the target packages are absent. On `:core` the
-  coverage minion exits with `UNKNOWN_ERROR` after the tests are sent: PIT forks
-  a JVM that runs everything on the classpath, and these tests run on the module
-  path. Passing the test task's JVM arguments and system properties through got
-  it as far as creating 92 mutation units; the module path is the remaining
-  problem, and it is a real integration rather than a setting.
 - **JSpecify on the remaining 60 packages.** 33 are marked and checked. What is
   left is not more of the same work: the mechanical half is done — a method that
   already returned null now says so — and every package still unmarked has at
@@ -206,6 +202,21 @@ status beside it reads as a description of what exists.
   repository does not have. Neither fails a build in the meantime — the Qodana
   job gates itself on the secret and skips with a note, and the Codecov step is
   conditional on the same. §7 is the two checklists.
+
+### One diagnosis that was wrong
+
+PIT's coverage minion was dying with `UNKNOWN_ERROR`, and this document said the
+cause was the module path — that PIT forks a JVM running everything on the
+classpath while these tests run on the module path. That was a guess dressed as
+a finding, and it was wrong.
+
+Turning PIT's own verbose logging on gave the real one in two lines:
+`JUnitException: TestEngine with ID 'junit-jupiter' failed to discover tests`,
+raised from `DefaultLauncher` — a **JUnit Platform 1.x** class. This project is
+on JUnit 6. `pitest-junit5-plugin` 1.2.1 is built against Platform 1.9, and 1.2.3
+is the version that copes. It is a one-line change to a dependency, and it took
+a week of being described as an architectural incompatibility because nobody
+asked the tool what had actually happened.
 
 ### Two failures worth keeping
 

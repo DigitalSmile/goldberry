@@ -27,15 +27,13 @@ jobs:
   # mode a golden-heavy suite develops -- paint the frame, compare the picture,
   # and never notice the branch above it can never be false.
   #
-  # `continue-on-error`, because PIT currently completes on the modules whose
-  # tests run on the classpath and its coverage minion dies on the ones that run
-  # on the module path (docs/testing.md §6). The report that is produced is worth
-  # having; the failure is known and tracked, and a red nightly nobody can fix
-  # teaches people to ignore the whole lane.
+  # No `continue-on-error`. It had one while PIT's minion was dying on JUnit 6 --
+  # `pitest-junit5-plugin` 1.2.1 is built against JUnit Platform 1.9 and 1.2.3 is
+  # the version that copes -- and now that it completes, a failure here is a real
+  # one worth seeing.
   mutation:
     name: Mutation testing
     runs-on: ubuntu-24.04
-    continue-on-error: true
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
@@ -44,8 +42,15 @@ jobs:
           java-version: '25'
       - uses: gradle/actions/setup-gradle@v4
 
+      # The native library, not `-Pgoldberry.skipNative`: PIT re-runs the suite
+      # once per mutant, and a test that skips for want of a rasterizer kills
+      # nothing. Skipping it would report a mutation score for a suite that
+      # barely ran.
+      - name: Build libgoldberry
+        run: ./gradlew :natives:cmakeBuild --no-daemon
+
       - name: PIT over the logic packages
-        run: ./gradlew pitest -Pgoldberry.skipNative=true --no-daemon --continue
+        run: ./gradlew pitest --no-daemon --continue
 
       - uses: actions/upload-artifact@v4
         if: always()
