@@ -55,6 +55,36 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
       - run: ./gradlew build checkLicenses -Pgoldberry.skipNative=true --no-daemon
 
+      # docs/testing.md §1.6: the suite runs in BOTH binding modes on every PR.
+      #
+      # The one above binds `@Bind` reflectively, which is what a jar does. This
+      # one runs over woven classes, which is what a native image does
+      # (ADR-0155). They are two different code paths through the same tests and
+      # a defect in either is invisible from the other -- the woven path writes
+      # a field directly where the reflective one goes through a handle.
+      #
+      # A second invocation rather than a second task, because weaving rewrites
+      # the compiled classes in place: one build cannot hold both forms.
+      # Coverage survives it, because the exec file is named for the mode and the
+      # report reads every file it finds (§3, "merged across modes").
+      - name: The suite again, woven
+        run: |
+          ./gradlew test -Pgoldberry.skipNative=true -Pgoldberry.nativeImage=true \
+            --no-daemon
+
+      # One report over both modes: a line is uncovered only if NEITHER reached
+      # it. Uploaded rather than gated in CI -- the gate is
+      # `jacocoTestCoverageVerification`, which `build` above already ran.
+      - name: Aggregate coverage
+        run: ./gradlew testCodeCoverageReport -Pgoldberry.skipNative=true --no-daemon
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage
+          path: build/reports/jacoco/testCodeCoverageReport
+          if-no-files-found: ignore
+
   natives:
     name: libgoldberry (${{ matrix.target }})
     strategy:

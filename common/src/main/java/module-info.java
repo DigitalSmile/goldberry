@@ -18,6 +18,15 @@ module io.github.digitalsmile.goldberry.common {
     /// SLF4J itself -- the toolkit binds no implementation, by design (ADR-0023).
     requires transitive org.slf4j;
 
+    /// JSpecify's nullness annotations, for the packages that have opted into
+    /// NullAway (`docs/testing.md` §2).
+    ///
+    /// **`static`**, because they are compile-time only: a consumer's runtime
+    /// module path does not need them, and requiring them non-statically would
+    /// put an annotation jar on every application's module path to describe
+    /// something the compiler has already checked.
+    requires static org.jspecify;
+
     /// Where every Goldberry logger comes from, and the start-up timeline they
     /// report. Both are cross-cutting diagnostics: `NativeLibrary` marks the
     /// moment `libgoldberry` was mapped, and a widget marks nothing but logs

@@ -5,6 +5,7 @@ plugins {
     id 'jacoco'
     id 'com.diffplug.spotless'
     id 'net.ltgt.errorprone'
+    id 'pmd'
 }
 
 // Precompiled Groovy script plugins do not get the generated `libs` accessors
@@ -213,6 +214,34 @@ spotless {
         trimTrailingWhitespace()
         endWithNewline()
     }
+}
+
+// ============================================================================
+// PMD (docs/testing.md §2, the "blocking after triage" tier -- triaged)
+//
+// A hand-picked ruleset in `config/pmd/ruleset.xml` rather than PMD's defaults,
+// and the file says why: the defaults are a style guide, and this project's
+// comments are prose and its painters are long because a rasterizer step is
+// long. What is left is the handful of rules that catch a real defect javac and
+// Error Prone both miss -- an unclosed resource above all, this being a toolkit
+// that owns native memory through wrappers closed exactly once (ADR-0043).
+//
+// Main sources only. A test that swallows an exception on purpose is usually
+// saying so.
+// ============================================================================
+pmd {
+    toolVersion = '7.19.0'
+    ruleSetFiles = files(rootProject.file('config/pmd/ruleset.xml'))
+    // Otherwise PMD runs its own default set *as well as* the one above.
+    ruleSets = []
+    consoleOutput = true
+    // The point of triaging the ruleset is that everything left in it is worth
+    // failing for.
+    ignoreFailures = false
+}
+
+tasks.named('pmdTest') {
+    enabled = false
 }
 
 // ============================================================================

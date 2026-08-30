@@ -1,0 +1,52 @@
+<?xml version="1.0"?>
+<ruleset name="goldberry"
+         xmlns="http://pmd.sourceforge.net/ruleset/2.0.0"
+         xsi:schemaLocation="http://pmd.sourceforge.net/ruleset/2.0.0
+                             https://pmd.sourceforge.io/ruleset_2_0_0.xsd"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+
+  <description>
+    docs/testing.md §2's "blocking after triage" tier, triaged.
+
+    PMD's default rulesets are a style guide with a linter attached: they want
+    every field final, every method short, every `if` braced on its own line and
+    no comment longer than six lines. This project's comments are prose and its
+    painters are long because a rasterizer step is long, so running the defaults
+    would produce thousands of findings that are all wrong and one that is not.
+
+    So this is a hand-picked list. Every rule below catches something that is a
+    defect in any codebase and is invisible to javac and to Error Prone -- which
+    is the only reason to run a third analyser at all. Anything either of those
+    already covers is deliberately absent.
+  </description>
+
+  <!-- CloseResource is deliberately absent, and it was the first rule tried.
+       It found 47 sites and every one was the same false positive: a Window, a
+       Popup, a RenderObject or a BackendWindow created in one method, stored,
+       and closed later by whatever owns it. That is this toolkit's entire
+       lifecycle design (ADR-0043 gives every native handle exactly one owner),
+       and PMD cannot model ownership transfer, so the rule reports the pattern
+       rather than a leak. A gate that is wrong 47 times out of 47 teaches people
+       to skip the report. -->
+  <rule ref="category/java/errorprone.xml/UnconditionalIfStatement"/>
+
+  <!-- A caught exception that is neither rethrown, logged nor commented is a
+       failure nobody will ever hear about. -->
+  <rule ref="category/java/errorprone.xml/EmptyCatchBlock">
+    <properties>
+      <property name="allowCommentedBlocks" value="true"/>
+    </properties>
+  </rule>
+
+
+  <!-- Control flow that cannot do what it looks like it does. -->
+  <rule ref="category/java/errorprone.xml/JumbledIncrementer"/>
+  <rule ref="category/java/errorprone.xml/MisplacedNullCheck"/>
+  <rule ref="category/java/errorprone.xml/BrokenNullCheck"/>
+  <rule ref="category/java/errorprone.xml/OverrideBothEqualsAndHashcode"/>
+
+  <!-- A loop that appends to a String is quadratic, and the text stack runs per
+       frame. -->
+  <rule ref="category/java/performance.xml/StringInstantiation"/>
+  <rule ref="category/java/performance.xml/InefficientStringBuffering"/>
+</ruleset>
