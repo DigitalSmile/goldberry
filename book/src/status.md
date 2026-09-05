@@ -5878,6 +5878,52 @@ is the `scroll` box's.
   after, which is the check that the accent move did not buy the marks at the
   labels' expense.
 
+### Two metrics rows and an attribute the spec already had
+
+- **A badge with one digit is a circle**
+  ([ADR-0259](adr/0259-a-badge-with-one-digit-is-a-circle.md)), which spends the
+  last of ADR-0181's four bounds. Three of them found consumers the day they
+  shipped — `dialog`, `toast` and `tooltip` had each written a *width* where they
+  meant a maximum — and `min-width` had none until now.
+- **The minimum alone would have done nothing.** A caption digit is about 7px, so
+  `8 + 7 + 8` is 23 in a 20-tall box: a badge with §1.3's default padding can
+  never be round however large its minimum, and the version that only added
+  `min-width` would have looked done and not been. Padding-x drops to **4**, which
+  is the legal step below 8 — 6 is the comfortable answer and is **off §1.3's
+  ramp**, which lists `2, 4, 8, 12, …` and says "no off-ramp values" in as many
+  words.
+- **The minimum is the height**, and the test says so rather than saying 20:
+  equal width and height inside a `full` radius is what a circle *is*, so the two
+  drifting apart is the failure worth naming and a test on the literal would pass
+  while they did.
+- **`select-chip` stopped sharing the rule.** It holds a label and a ×, is never
+  one character wide, and has nothing round about it, so it keeps the default
+  padding and gains no minimum. A small loss of the "one drawing" property the
+  shared block expressed, and the honest shape: they were never the same control.
+- **A name is an attribute every widget has**
+  ([ADR-0260](adr/0260-a-name-is-an-attribute-every-widget-has.md)). The entry
+  said "§13's semantics are M5's", and that is true of the **AccessKit bridge**
+  and was never true of `Semantics.role()` and `accessibleName()`, which have
+  shipped for milestones with a sweep enforcing them. What was missing was
+  somewhere to put a name a widget cannot derive.
+- **An icon-only control's label is the empty string by construction**, which is
+  not an oversight in the widget: the icon is the whole of what is on screen.
+  `Button.accessibleName()` returned it, so an icon-only button answered `""` — a
+  control a reader cannot announce, passing a sweep that only checked for null.
+  It answers `null` now when nobody named it, which is honest and is
+  distinguishable from being named with an empty string.
+- **It sits on `Attributes`** beside `tooltip` and `context-menu`, whose own
+  comment is the argument: "a catalog where each control had to remember to carry
+  one would have thirty chances to forget". §13 asks for a name on *everything*,
+  which is exactly the set `Attributes` covers — so two widgets read it today and
+  the rest carry one already.
+- **`core-widgets.md` was ahead of the code**: §3 already documents `name=` on
+  both `button` and `segmented`, so this is the spec being implemented rather
+  than amended. §3's `badge` row is the one that moved.
+- **A test asserts every wither carries the new field forward**, because that is
+  the failure a widened record invites and `null` is a legal name, so nothing else
+  would have complained.
+
 ### Not started
 
 Client-side decorations, the rest of §4 —

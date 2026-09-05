@@ -547,6 +547,30 @@ class SegmentedTest {
             assertTrue(options(bar).stream().noneMatch(Option::disabled));
         }
 
+        /// §3 requires `name=` on an icon-only segment, and until ADR-0260 the
+        /// attribute did not exist anywhere. `Option` already refuses a segment
+        /// with neither a label nor an icon, which was the half that could be
+        /// enforced; this is the other half.
+        @Test
+        @DisplayName("an icon-only segment is named by `name=`, which §3 requires")
+        void iconOnlyIsNamed() {
+            var icon = io.github.digitalsmile.goldberry.icon.Icon.bundled("list", 16);
+            try {
+                var unnamed = new Option("list", "", icon, false, null, false, Attributes.NONE);
+                var named = new Option("list", "", icon, false, null, false, Attributes.NONE.name("List view"));
+
+                assertNull(unnamed.accessibleName());
+                assertEquals("List view", named.accessibleName());
+                assertEquals(
+                        "Grid",
+                        new Option("grid", "Grid", icon, false, null, false, Attributes.NONE.name("Grid view"))
+                                .accessibleName(),
+                        "a label wins, because it is what is on screen");
+            } finally {
+                icon.close();
+            }
+        }
+
         @Test
         @DisplayName("an unwired segment does nothing rather than failing")
         void unwiredIsInert() {

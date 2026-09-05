@@ -4,6 +4,8 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 
+import org.jspecify.annotations.Nullable;
+
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
 import io.github.digitalsmile.goldberry.icon.Icon;
 import io.github.digitalsmile.goldberry.input.event.KeyEvent;
@@ -214,8 +216,19 @@ public record Button(String label, Icon icon, Runnable onPress, boolean disabled
         return Role.BUTTON;
     }
 
+    /// The label, or the explicit `name=` when there is no label to read.
+    ///
+    /// **An icon-only button has an empty label by construction** — the icon is the
+    /// whole of what is on screen — so deriving a name from it produces the empty
+    /// string, which is a control a reader cannot announce. §3 asks for `name=`
+    /// on exactly this case and the attribute exists now, on `Attributes`, where
+    /// every widget gets it rather than each remembering its own ([ADR-0260]).
+    ///
+    /// The label wins where there is one. An author who writes both has said the
+    /// same thing twice, and the one on screen is the one a sighted user is
+    /// reading aloud to somebody else.
     @Override
-    public String accessibleName() {
-        return label;
+    public @Nullable String accessibleName() {
+        return label.isEmpty() ? attributes.name() : label;
     }
 }

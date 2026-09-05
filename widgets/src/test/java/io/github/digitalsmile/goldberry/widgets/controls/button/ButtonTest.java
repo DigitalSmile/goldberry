@@ -2,6 +2,7 @@ package io.github.digitalsmile.goldberry.widgets.controls.button;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -460,6 +461,44 @@ class ButtonTest {
 
             // Nothing to click on and nothing to read out (§13).
             assertThrows(IllegalArgumentException.class, () -> new Button("", null, null, false, Attributes.NONE));
+        }
+
+        /// The other half of "an icon-only button is legal", and the half §13
+        /// cares about: its label is the empty string by construction, so a name
+        /// derived from what is showing is a name that is not there.
+        ///
+        /// `name=` is on `Attributes` rather than on `Button`, so every widget
+        /// has it and none of them had to remember to ([ADR-0260]).
+        @Test
+        @DisplayName("an icon-only button is named by `name=`, because its label cannot name it")
+        void iconOnlyIsNamed() {
+            var unnamed = new Button("", icon, null, false, Attributes.NONE);
+            var named = new Button("", icon, null, false, Attributes.NONE.name("Add a track"));
+
+            assertNull(unnamed.accessibleName(), "nothing to read out, and it says so rather than answering \"\"");
+            assertEquals("Add a track", named.accessibleName());
+        }
+
+        @Test
+        @DisplayName("and a label wins over a `name=`, because it is what is on screen")
+        void theLabelWins() {
+            // An author who writes both has said the same thing twice, and the
+            // one on screen is the one a sighted user reads aloud.
+            var button = new Button("Save", icon, null, false, Attributes.NONE.name("Store the document"));
+
+            assertEquals("Save", button.accessibleName());
+        }
+
+        @Test
+        @DisplayName("markup carries it, which is where §3 asks for it")
+        void nameFromMarkup() {
+            var icons = Icons.strict().bind("plus", icon);
+
+            var button = (Button) Widgets.inflater(ActionRegistry.none(), icons)
+                    .inflateAll(KdlParser.parse("button icon=\"plus\" name=\"New track\""))
+                    .getFirst();
+
+            assertEquals("New track", button.accessibleName());
         }
 
         @Test

@@ -1106,6 +1106,27 @@ select-chip {
   color: var(--gb-badge-text);
 }
 
+/* **A one-digit badge is a circle**, which is what a badge is everywhere else
+   and what this one was not: `3` came out 23 wide in a 20 tall box, a stadium
+   with nothing stadium-shaped about it. `badge-digits.png` was the record of it.
+
+   Two numbers, and §1.3's ramp decides both. `min-width` is the **height** —
+   equal width and height inside a `full` radius is the definition of the circle,
+   so this is not a second metric so much as the first one said twice. And
+   padding-x drops from the component default of 8 to **4**, because it has to:
+   8 + a caption digit + 8 is 23 whatever the minimum says, so a badge with the
+   default padding can never be round. 6 would have been the comfortable answer
+   and is **off the ramp** — §1.3 lists `2, 4, 8, 12, …` and says "no off-ramp
+   values" — so 4 is the legal one below 8 and it is what a count chip wants
+   anyway (ADR-0259).
+
+   `select-chip` keeps the default: it holds a label and a ×, it is never one
+   character wide, and there is nothing round about it. */
+badge {
+  min-width: 20px;
+  padding: 0 4px;
+}
+
 /* A chip is a row: its words, then the affordance that takes it away. Both
    shrink to nothing rather than pushing the chevron off the end of a narrow
    field -- a `select` is given its width by whatever is around it, and a row of

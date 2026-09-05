@@ -92,17 +92,17 @@ class BadgeTest {
         assertEquals("badge", new Badge("3").cssType());
     }
 
-    /// §3's row: height 20, padding-x 8, radius `full`, `caption`. Asserted
-    /// against the *resolved* style rather than read off the stylesheet, so a
-    /// rule that stopped matching would fail here rather than in a golden.
+    /// §3's row: height 20, min-width 20, padding-x 4, radius `full`, `caption`.
+    /// Asserted against the *resolved* style rather than read off the stylesheet,
+    /// so a rule that stopped matching would fail here rather than in a golden.
     @Test
     @DisplayName("§3's metrics come out of the cascade")
     void metrics() {
         var style = styleOf(new Badge("3"), Theme.NORD_DARK);
 
         assertEquals(StyleLength.points(20), style.height());
-        assertEquals(StyleLength.points(8), style.padding().left());
-        assertEquals(StyleLength.points(8), style.padding().right());
+        assertEquals(StyleLength.points(4), style.padding().left());
+        assertEquals(StyleLength.points(4), style.padding().right());
         assertEquals(
                 StyleLength.points(0),
                 style.padding().top(),
@@ -115,6 +115,42 @@ class BadgeTest {
         assertEquals(Align.CENTER, style.alignItems());
     }
 
+    /// **A one-digit badge is a circle**, which is the metric §3's row gained
+    /// last and the one the widget had gone without since it shipped
+    /// ([ADR-0259]).
+    ///
+    /// The minimum is asserted **against the height** rather than against 20,
+    /// because that is the claim: equal width and height inside a `full` radius
+    /// is what a circle *is*, so the two moving apart is the failure worth
+    /// naming, and either of them moving alone would pass a test that checked
+    /// the literal.
+    @Test
+    @DisplayName("its minimum width is its height, which is what makes one digit round")
+    void oneDigitIsACircle() {
+        var style = styleOf(new Badge("3"), Theme.NORD_DARK);
+
+        assertEquals(style.height(), style.limits().minWidth());
+        assertEquals(
+                StyleLength.UNDEFINED,
+                style.limits().maxWidth(),
+                "and no maximum: a badge grows with its content, which is the other half of the row");
+    }
+
+    /// The padding is **4** and not §1.3's component default of 8, and the reason
+    /// is arithmetic rather than taste: 8 + a caption digit + 8 is 23 in a 20-tall
+    /// box, so a badge with the default padding can never be round however large
+    /// its minimum is. 6 would have been the comfortable answer and is off
+    /// §1.3's ramp, which lists `2, 4, 8, 12, …` and says "no off-ramp values".
+    @Test
+    @DisplayName("and the padding that makes it possible is on §1.3's ramp")
+    void thePaddingIsOnTheRamp() {
+        var padding = styleOf(new Badge("3"), Theme.NORD_DARK).padding();
+
+        assertTrue(
+                List.of(2, 4, 8, 12, 16, 20, 24, 32, 40, 48, 64)
+                        .contains((int) ((StyleLength.Points) padding.left()).value()),
+                () -> padding.left() + " is not on §1.3's legal ramp");
+    }
     /// §3.1 has no `badge` row, and its preamble says anything not listed does not
     /// animate. The absence is the specification, so it is asserted rather than
     /// left to be true by accident — a `transition` added to the shared control

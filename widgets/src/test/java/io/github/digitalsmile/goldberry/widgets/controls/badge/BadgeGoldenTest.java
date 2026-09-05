@@ -108,12 +108,14 @@ class BadgeGoldenTest {
     }
 
     /// One, two, three and four digits. The chip grows with its content and its
-    /// height does not move, which is the whole of what `padding: 0 8px` on a
-    /// pinned height means.
+    /// height does not move, which is the whole of what a padded, pinned height
+    /// means.
     ///
-    /// There is no minimum width, so `3` is a stadium and not the circle a badge
-    /// usually is — §8's subset has no `min-width` at all, and this is the image
-    /// that records it rather than a comment claiming it.
+    /// **`3` is a circle now.** This image used to be the record of it not being
+    /// one — "§8's subset has no `min-width` at all" — and both halves of that
+    /// expired: ADR-0181 shipped the four bounds, and ADR-0259 spent the last one
+    /// here. `min-width` is the *height*, so one digit is round and two are a
+    /// stadium, which is the difference this picture exists to show.
     @Test
     @DisplayName("it grows sideways and never taller")
     void digits() {

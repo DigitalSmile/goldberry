@@ -268,6 +268,8 @@
 - [ADR-0256 A line is placed by the paint, not by the box](adr/0256-a-line-is-placed-by-the-paint-not-by-the-box.md)
 - [ADR-0257 A diagnostic is asked for, not logged](adr/0257-a-diagnostic-is-asked-for-not-logged.md)
 - [ADR-0258 The edge a measurement chose](adr/0258-the-edge-a-measurement-chose.md)
+- [ADR-0259 A badge with one digit is a circle](adr/0259-a-badge-with-one-digit-is-a-circle.md)
+- [ADR-0260 A name is an attribute every widget has](adr/0260-a-name-is-an-attribute-every-widget-has.md)
 
 ---
 

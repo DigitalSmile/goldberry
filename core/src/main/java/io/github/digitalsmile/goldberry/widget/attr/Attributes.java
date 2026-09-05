@@ -30,11 +30,12 @@ import io.github.digitalsmile.goldberry.widget.style.Styled;
 ///
 /// [#of(KdlNode)] is here for the same reason: parsing `id` and `class` off a
 /// markup node is the inflater's contract, and the inflater is `:core`'s.
-public record Attributes(@Nullable String id, Set<String> classes, Object key, String tooltip, String contextMenu) {
+public record Attributes(
+        @Nullable String id, Set<String> classes, Object key, String tooltip, String contextMenu, String name) {
 
-    /// No id, no classes, no key, no tooltip — what a widget built in Java gets
-    /// unless it says otherwise.
-    public static final Attributes NONE = new Attributes(null, Set.of(), null, null, null);
+    /// No id, no classes, no key, no tooltip, no name — what a widget built in
+    /// Java gets unless it says otherwise.
+    public static final Attributes NONE = new Attributes(null, Set.of(), null, null, null, null);
 
     public Attributes {
         classes = Set.copyOf(classes == null ? Set.of() : classes);
@@ -47,7 +48,13 @@ public record Attributes(@Nullable String id, Set<String> classes, Object key, S
     /// argument on all of them would be four hundred edits to say `null`
     /// (ADR-0105).
     public Attributes(String id, Set<String> classes, Object key) {
-        this(id, classes, key, null, null);
+        this(id, classes, key, null, null, null);
+    }
+
+    /// The five that every widget had before an accessible name was one of them,
+    /// kept for the reason the three-argument form is (ADR-0260).
+    public Attributes(String id, Set<String> classes, Object key, String tooltip, String contextMenu) {
+        this(id, classes, key, tooltip, contextMenu, null);
     }
 
     /// This, with the text a tooltip would show — `docs/core-widgets.md` §7's
@@ -57,7 +64,7 @@ public record Attributes(@Nullable String id, Set<String> classes, Object key, S
     /// a tooltip is not a property of being a button, and a catalog where each
     /// control had to remember to carry one would have thirty chances to forget.
     public Attributes tooltip(String text) {
-        return new Attributes(id, classes, key, text == null || text.isBlank() ? null : text, contextMenu);
+        return new Attributes(id, classes, key, text == null || text.isBlank() ? null : text, contextMenu, name);
     }
 
     /// This, with the name of the menu a right-click should open —
@@ -69,7 +76,7 @@ public record Attributes(@Nullable String id, Set<String> classes, Object key, S
     /// a thing that has to be opened, and opening needs a window
     /// (ADR-0108).
     public Attributes contextMenu(String menuId) {
-        return new Attributes(id, classes, key, tooltip, menuId == null || menuId.isBlank() ? null : menuId);
+        return new Attributes(id, classes, key, tooltip, menuId == null || menuId.isBlank() ? null : menuId, name);
     }
 
     /// This, with a different `id` — **and the same id as the key**.
@@ -80,18 +87,35 @@ public record Attributes(@Nullable String id, Set<String> classes, Object key, S
     /// did not double as a key would be an id that looks like it identifies the
     /// node and does not, which is [#of(KdlNode)]'s rule too.
     public Attributes id(String id) {
-        return new Attributes(id, classes, id, tooltip, contextMenu);
+        return new Attributes(id, classes, id, tooltip, contextMenu, name);
     }
 
     /// This, with a different set of classes.
     public Attributes classes(String... names) {
-        return new Attributes(id, Set.of(names), key, tooltip, contextMenu);
+        return new Attributes(id, Set.of(names), key, tooltip, contextMenu, name);
     }
 
     /// This, with a key that is not the id — for a list item whose identity is a
     /// row of a model rather than a name in a document.
     public Attributes key(Object key) {
-        return new Attributes(id, classes, key, tooltip, contextMenu);
+        return new Attributes(id, classes, key, tooltip, contextMenu, name);
+    }
+
+    /// This, with the text a reader should announce it as — `docs/core-widgets.md`
+    /// §3's `name="…"`, which like a tooltip attaches to **any** widget.
+    ///
+    /// Here rather than on each widget for the reason a tooltip is here: §13 asks
+    /// for a role *and a name* on everything, and a catalog where each control
+    /// remembered its own would have thirty chances to forget. It is also the
+    /// only way to name the thing that most needs it — an **icon-only** control,
+    /// whose label is the empty string precisely because there is nothing on
+    /// screen to read ([ADR-0260]).
+    ///
+    /// A widget that derives a name from what it is showing keeps doing so; this
+    /// wins when it is set, because an author writing one has said something the
+    /// widget could not work out.
+    public Attributes name(String text) {
+        return new Attributes(id, classes, key, tooltip, contextMenu, text == null || text.isBlank() ? null : text);
     }
 
     /// Parses `id` and `class` off a KDL node, `class` being space-separated as
@@ -115,6 +139,12 @@ public record Attributes(@Nullable String id, Set<String> classes, Object key, S
                 }
             }
         }
-        return new Attributes(id, classes, id, node.stringProperty("tooltip"), node.stringProperty("context-menu"));
+        return new Attributes(
+                id,
+                classes,
+                id,
+                node.stringProperty("tooltip"),
+                node.stringProperty("context-menu"),
+                node.stringProperty("name"));
     }
 }

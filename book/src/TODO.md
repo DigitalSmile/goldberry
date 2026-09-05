@@ -400,11 +400,6 @@ the mechanism the sentence named.
   whole row until an author writes `width`. It buys the travelling indicator, and there
   is no third option under flexbox — content-sized cells cannot be travelled between,
   and a zero basis collapses the bar entirely.
-- **An icon-only segment has no accessible name, and neither does an icon-only button.**
-  §3 requires `name=` for both and the attribute does not exist anywhere; §13's
-  semantics are M5's. `Option` refuses a segment with neither a label nor an icon, which
-  is the half that can be enforced today, and the other half is a gap the whole catalog
-  shares rather than one this control invented.
 - **A `select tree=#true` has no typeahead.** What
   [ADR-0246](adr/0246-text-has-a-capture-phase-now-that-something-wants-one.md)
   left: the flat list reads letters on the capture phase now, and a `tree` in the
@@ -673,17 +668,14 @@ on, which in four cases is the same thing.
   and an ellipsis since
   [ADR-0255](adr/0255-a-label-that-does-not-fit-is-cut-not-wrapped.md). What is
   left is that **nothing warns**: a control clipped out of the window is silent,
-  and reaching for either answer is the author's to do. **`badge`'s half has
-  expired differently.** It said "§8's subset has no `min-width` at all, so a
-  one-digit chip is a stadium rather than the circle a badge usually is" — the
-  subset gained all four bounds in
-  [ADR-0181](adr/0181-a-box-may-say-how-small-and-how-large.md), so the property is
-  there and unused. What stops it now is that `design-system.md` §3's `badge` row
-  says "height 20; padding-x 8; radius `full`" and does not say a minimum width,
-  and §5 wants a metrics row before code. `badge-digits.png` is still the record
-  of what it looks like; the question moved from the style engine to the design
-  system. — [ADR-0076](adr/0076-a-glyph-does-not-negotiate.md),
-  [ADR-0181](adr/0181-a-box-may-say-how-small-and-how-large.md),
+  and reaching for either answer is the author's to do. **`badge`'s half is
+  closed**: §3's row gained `min-width 20` and its padding-x dropped to 4, and
+  `badge-digits.png` shows a round `3`
+  ([ADR-0259](adr/0259-a-badge-with-one-digit-is-a-circle.md)). The minimum alone
+  would have done nothing, which is the part worth keeping — `8 + a caption digit
+  + 8` is 23 in a 20-tall box, so a badge with the default padding can never be
+  round however large its minimum. — [ADR-0076](adr/0076-a-glyph-does-not-negotiate.md),
+  [ADR-0259](adr/0259-a-badge-with-one-digit-is-a-circle.md),
   [ADR-0087](adr/0087-a-semantic-fill-brings-its-own-foreground.md)
 - **An icon larger than its slot overflows it.** An `Icon` is a path built at a
   size and cannot be rescaled at paint time (ADR-0043), so a 20px glyph in a menu's
@@ -1105,6 +1097,19 @@ on, which in four cases is the same thing.
 Kept rather than deleted: each is a trap somebody hit, and the reasoning that got
 out of it is usually worth more than the fact that it is fixed.
 
+- ~~**An icon-only segment has no accessible name, and neither does an icon-only
+  button.**~~ **`name=` is on `Attributes` now, so every widget has one.** The
+  entry separated two things that had drifted together: "§13's semantics are
+  M5's" is true of the **AccessKit bridge**, and was never true of
+  `Semantics.role()` and `accessibleName()`, which have shipped for milestones
+  with a sweep enforcing them. What was missing was somewhere to put a name a
+  widget cannot work out — an icon-only control's label is the empty string *by
+  construction*, so `Button.accessibleName()` answered `""`: a control a reader
+  cannot announce, passing a sweep that only checked for null. It sits beside
+  `tooltip` and `context-menu` for their reason, which the entry had already
+  written ("a gap the whole catalog shares"), and the label wins where there is
+  one. —
+  [ADR-0260](adr/0260-a-name-is-an-attribute-every-widget-has.md)
 - ~~**`--gb-list-row-height` has no consumer.**~~ **It has two, and has had since
   `list` shipped.** `ListState` reads the token through `BuildContext.token`
   ([ADR-0254](adr/0254-a-build-may-ask-the-cascade-for-a-number.md)) and
