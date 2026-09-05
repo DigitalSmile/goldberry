@@ -438,41 +438,44 @@ class ContrastTest {
     /// somewhere it would have to be written down.
     private static final List<String> RINGS_BELOW_FLOOR = List.of();
 
-    /// A mark on the box it is drawn in — see [#RINGS_BELOW_FLOOR] for why these
-    /// are recorded rather than fixed.
+    /// The one mark still below the floor, and the one that is **not** a ramp
+    /// slide.
+    ///
+    /// The other three came off this list when the light accent moved: they were
+    /// `--gb-accent` on `--gb-border` at 2.98:1, one pair wearing three names,
+    /// and 0.02 is what a ramp slide is for ([ADR-0258]).
+    ///
+    /// This one is arithmetic rather than indecision. The light theme's slider
+    /// track sits between a **white thumb** and a **dark accent fill**, and it
+    /// has to clear 3:1 against both: a white thumb needs the track's relative
+    /// luminance at 0.300 or below, and the accent fill needs it at 0.688 or
+    /// above. No solid colour is both. So the track cannot be slid anywhere that
+    /// fixes this, and what has to change is what a light-theme thumb *is* — a
+    /// border around it, or a fill that is not white — which is a sentence
+    /// `docs/design-system.md` §3 does not currently contain and is not a test's
+    /// to write.
+    ///
+    /// Kept as an exact set for [#RINGS_BELOW_FLOOR]'s reason.
     private static final List<String> MARKS_BELOW_FLOOR = List.of(
             // 1.35:1. A near-white thumb on the light theme's grey groove, and
             // the worst mark measurement in either theme.
-            "nord-light slider thumb",
-            // 2.98:1, three times over: all three are `--gb-accent` on
-            // `--gb-border`, which is one pair wearing three names. It misses by
-            // 0.02, which is a ramp that needs sliding rather than rethinking.
-            "nord-light slider fill",
-            "nord-light progress fill",
-            "nord-light knob arc");
+            "nord-light slider thumb");
 
     /// A control against the surface behind it, by the better of fill and edge —
-    /// see [#RINGS_BELOW_FLOOR] for why these are recorded rather than fixed.
+    /// **empty**, and it held all twelve.
     ///
-    /// All twelve, which is both themes × both controls × all three surfaces, and
-    /// the shape of it is one fact: `--gb-checkbox-bg` **is** `--gb-surface-2` in
-    /// the dark theme, so on a `group-box` an unchecked box differs from its
-    /// backdrop by nothing at all and is held up entirely by a 1.17:1 edge.
-    private static final List<String> BOUNDARIES_BELOW_FLOOR = List.of(
-            // fill 1.45 / edge 1.69, 1.17 / 1.36, 1.00 / 1.17
-            "nord-dark checkbox (unchecked) on --gb-bg",
-            "nord-dark checkbox (unchecked) on --gb-surface",
-            "nord-dark checkbox (unchecked) on --gb-surface-2",
-            "nord-dark radio (unchecked) on --gb-bg",
-            "nord-dark radio (unchecked) on --gb-surface",
-            "nord-dark radio (unchecked) on --gb-surface-2",
-            // fill 1.06 / edge 1.17, 1.22 / 1.35, 1.00 / 1.11
-            "nord-light checkbox (unchecked) on --gb-bg",
-            "nord-light checkbox (unchecked) on --gb-surface",
-            "nord-light checkbox (unchecked) on --gb-surface-2",
-            "nord-light radio (unchecked) on --gb-bg",
-            "nord-light radio (unchecked) on --gb-surface",
-            "nord-light radio (unchecked) on --gb-surface-2");
+    /// Both themes × both controls × all three surfaces, and the shape of it was
+    /// one fact: `--gb-checkbox-bg` **is** `--gb-surface-2` in the dark theme, so
+    /// on a `group-box` an unchecked box differed from its backdrop by nothing at
+    /// all and was held up entirely by a 1.17:1 edge. The edge was `--gb-border`,
+    /// on the argument that a divider colour is what an edge is; the measurement
+    /// refuted that, and `--gb-checkbox-border` is what the controls draw now
+    /// ([ADR-0258]).
+    ///
+    /// Kept as an empty list for [#RINGS_BELOW_FLOOR]'s reason: a boundary that
+    /// newly breaks has somewhere it would have to be written down, and putting
+    /// it there fails a test whose name says what happened.
+    private static final List<String> BOUNDARIES_BELOW_FLOOR = List.of();
 
     /// The **non-text** half of §1.2, and the one the entry that asked for this
     /// called "not checked at all" ([ADR-0239]).
@@ -569,8 +572,8 @@ class ContrastTest {
     /// a 1px separator is supposed to do — subtle. The same token is also a
     /// control's edge, and only in that role is it held to 3:1.
     private static final List<String[]> BOUNDARIES = List.of(
-            new String[] {"checkbox (unchecked)", "checkbox-bg", "border"},
-            new String[] {"radio (unchecked)", "radio-bg", "border"});
+            new String[] {"checkbox (unchecked)", "checkbox-bg", "checkbox-border"},
+            new String[] {"radio (unchecked)", "radio-bg", "radio-border"});
 
     @Test
     @DisplayName("every ring the toolkit draws is visible on every surface, on both themes")

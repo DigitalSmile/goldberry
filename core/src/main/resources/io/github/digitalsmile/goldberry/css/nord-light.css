@@ -140,7 +140,15 @@
      there. */
   --gb-text-placeholder: rgba(46, 52, 64, 0.75);
 
-  --gb-accent: var(--nord10);
+  /* `--nord10` slid one step darker, and the step is a measurement rather than
+     a preference. Three of §3's marks are this colour on `--gb-border` -- a
+     slider's fill, a progress bar's, a knob's arc -- and all three measured
+     **2.98:1** against §1.2's floor of 3, missing by 0.02. Sliding the ramp
+     until it clears is ADR-0088's move, and 0.02 is what it costs here: this is
+     3.11:1, and every other pair the accent is in moves the same way, because a
+     darker accent on a light theme is further from every surface it is drawn on
+     (ADR-0258). */
+  --gb-accent: #5c7ea8;
   /* The ring follows the accent, which is what the dark theme has always done
      (`--gb-accent` and `--gb-focus` are both `--nord8` there). This file had
      been left with `--nord8` after its accent moved down the Frost ramp to
@@ -274,6 +282,13 @@
      nord6 and clears 4.5:1, the mirror of the dark theme's choice and the reason
      both are tokens rather than one shared value. */
   --gb-checkbox-bg: var(--nord5);
+  /* The dark theme's token and the same measurement -- see `nord-dark.css` for
+     why this is not `--gb-border`. The gap in the palette is the same gap read
+     from the other end: `--nord4` is 1.11:1 against `--gb-surface-2` and
+     `--nord3` is 6.06, so this is the point between them where it clears.
+     **3.22:1 on `--gb-surface-2`**, 3.42 on `--gb-bg`, 3.94 on `--gb-surface`
+     (ADR-0258). */
+  --gb-checkbox-border: #79818f;
   --gb-checkbox-bg-hover: var(--nord4);
   --gb-checkbox-bg-active: #ccd3df;
   --gb-checkbox-border-hover: var(--nord3);
@@ -299,6 +314,8 @@
      an outlined radio beside a filled checkbox should not have to redefine the
      checkbox to get one. */
   --gb-radio-bg: var(--nord5);
+  /* `--gb-checkbox-border`'s, as on the dark theme. */
+  --gb-radio-border: var(--gb-checkbox-border);
   --gb-radio-bg-hover: var(--nord4);
   --gb-radio-bg-active: #ccd3df;
   --gb-radio-border-hover: var(--nord3);

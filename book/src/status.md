@@ -5832,6 +5832,52 @@ is the `scroll` box's.
   `SupportedPropertyTest`, which are the sweeps the log capture had made too
   expensive to run.
 
+### The edge a measurement chose
+
+- **Fifteen of §1.2's sixteen non-text failures are fixed**
+  ([ADR-0258](adr/0258-the-edge-a-measurement-chose.md)), and the sixteenth is
+  now impossible rather than undecided.
+- **The entry filed them as one thing and they were three.** ADR-0239 measured
+  nineteen pairs below the floor, ADR-0240 fixed the focus ring's three, and the
+  rest were recorded as debt on the grounds that "every one of these is a theme
+  colour … a design decision with a golden-image tail". True of the tail, and
+  the decision had already been taken: `design-system.md` §1.2 says **every
+  non-text pair meets 3:1**, so fifteen of these were the code out of compliance
+  with the document rather than the document owing an answer.
+- **Twelve control boundaries were a gap in the palette.** `--gb-checkbox-bg`
+  *is* `--gb-surface-2` on the dark theme, so an unchecked box on a `group-box`
+  differed from its backdrop by 1.00:1 and the whole control was held up by an
+  edge at 1.17. The edge was `--gb-border`, and `controls.css` argued for it —
+  "the token for exactly that, and why this is not an invented colour". The
+  measurement refutes the sentence: a divider is chosen to be subtle and a
+  control's edge is the one thing §1.2 will not let be.
+- **Nord has nothing to put there.** Between `--nord3` and `--nord4` the palette
+  stops, and against `--gb-surface-2` those two are 1.17:1 and 6.39:1 —
+  invisible, or a white ring round a dark control. `--gb-checkbox-border` is the
+  midpoint of that gap on each theme, slid until it clears and no further, at
+  **3.17:1** and **3.22:1**. Deriving a value is not new (`--gb-accent-fill`,
+  `--gb-border-strong`); justifying one with a number is.
+- **Three marks missed by 0.02.** A slider's fill, a progress bar's and a knob's
+  arc are all `--gb-accent` on `--gb-border` — one pair wearing three names, at
+  2.98:1. The light accent moved to `#5c7ea8`, which is 3.11. Every pair the
+  accent is in moves the *same* way, because a darker accent on a light theme is
+  further from every surface it is drawn on, so there was nothing to referee.
+- **The sixteenth is arithmetic.** The light theme's slider track sits between a
+  white thumb and a dark accent fill and has to clear 3:1 against both: the thumb
+  needs the track's luminance at **≤ 0.300** and the fill needs **≥ 0.688**. No
+  solid colour is both, so no amount of deliberation will find one. What has to
+  change is what a light-theme thumb *is*, which is a sentence §3 does not
+  contain — and it is the one genuine design decision in the original sixteen. It
+  is recorded as impossible beside the list so nobody spends an afternoon sliding
+  the track.
+- **Twenty-two goldens moved**, which is why this had waited.
+  `controls-on-surface-dark` and `controls-on-surface-light` are the pair to
+  look at: they exist because the glyph used to disappear on a panel, and they
+  are now the images that show it does not.
+- **The text sweep is untouched.** `KNOWN_FAILURES` was empty before and is empty
+  after, which is the check that the accent move did not buy the marks at the
+  labels' expense.
+
 ### Not started
 
 Client-side decorations, the rest of §4 —

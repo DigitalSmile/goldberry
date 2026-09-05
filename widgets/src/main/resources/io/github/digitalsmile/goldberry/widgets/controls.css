@@ -475,14 +475,22 @@ checkbox {
    CSS-selectable and not KDL-constructible.
 
    `radius 4` is the design system's small-control corner (§1.5), which is the
-   same one `text-input` and `select` take. The border makes an unchecked box
-   visible on a surface it would otherwise match; `--gb-border` is the token for
-   exactly that and is why this is not an invented colour. */
+   same one `text-input` and `select` take.
+
+   The border makes an unchecked box visible on a surface it would otherwise
+   match, and it is **`--gb-checkbox-border` rather than `--gb-border`**. This
+   comment used to say the opposite -- that a divider colour "is the token for
+   exactly that and is why this is not an invented colour" -- and the sweep
+   ADR-0239 built measured that claim and refuted it: on `--gb-surface-2` the
+   fill *is* the surface, so the edge was the only thing holding the control up
+   and it was doing so at 1.17:1 against §1.2's floor of 3. The colour is
+   invented now, and the measurement is written beside it in the theme
+   (ADR-0258). */
 check-indicator {
   width: 16px;
   height: 16px;
   border-radius: 4px;
-  border: 1px solid var(--gb-border);
+  border: 1px solid var(--gb-checkbox-border);
   background: var(--gb-checkbox-bg);
   color: var(--gb-checkbox-mark);
 }
@@ -616,7 +624,8 @@ radio-indicator {
   width: 16px;
   height: 16px;
   border-radius: 8px;
-  border: 1px solid var(--gb-border);
+  /* `check-indicator`'s edge and its reason (ADR-0258). */
+  border: 1px solid var(--gb-radio-border);
   background: var(--gb-radio-bg);
   color: var(--gb-radio-dot);
 }

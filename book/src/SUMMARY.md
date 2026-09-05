@@ -267,6 +267,7 @@
 - [ADR-0255 A label that does not fit is cut, not wrapped](adr/0255-a-label-that-does-not-fit-is-cut-not-wrapped.md)
 - [ADR-0256 A line is placed by the paint, not by the box](adr/0256-a-line-is-placed-by-the-paint-not-by-the-box.md)
 - [ADR-0257 A diagnostic is asked for, not logged](adr/0257-a-diagnostic-is-asked-for-not-logged.md)
+- [ADR-0258 The edge a measurement chose](adr/0258-the-edge-a-measurement-chose.md)
 
 ---
 

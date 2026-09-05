@@ -266,6 +266,23 @@
      not carry 4.5:1 (§1.2). A press darkens it to nord9, the next step down the
      frost ramp. */
   --gb-checkbox-bg: var(--nord2);
+  /* The edge that makes an unchecked box findable, and the first token in this
+     file that exists **because a measurement said so**.
+
+     It used to be `--gb-border`, on the argument that a divider colour is what
+     an edge is. The sweep ADR-0239 built disagreed with that in numbers: on
+     `--gb-surface-2` the fill *is* `--gb-surface-2`, so the box differs from its
+     backdrop by nothing at all and the whole control was held up by an edge at
+     1.17:1 against §1.2's floor of 3. All three surfaces failed, on both themes,
+     for both controls -- twelve of the nineteen pairs that sweep found.
+
+     Nord has nothing between `--nord3` (#4c566a) and `--nord4` (#d8dee9), and
+     the two ends are 1.17:1 and 6.39:1 -- so a palette colour is either
+     invisible or a bright white edge on a dark control. This is the midpoint,
+     slid until it clears and no further, which is ADR-0088's method: **3.17:1
+     on `--gb-surface-2`**, 3.70 on `--gb-surface`, 4.60 on `--gb-bg`
+     (ADR-0258). */
+  --gb-checkbox-border: #959dad;
   --gb-checkbox-bg-hover: var(--nord3);
   --gb-checkbox-bg-active: var(--nord1);
   --gb-checkbox-border-hover: var(--nord4);
@@ -295,6 +312,10 @@
      redefine the checkbox to change the radio. Identical values here is the
      Nord answer, not the mechanism. */
   --gb-radio-bg: var(--nord2);
+  /* `--gb-checkbox-border`'s, for the reason every other radio token is a
+     checkbox token: §2.1 gives the two controls one drawing with one corner
+     radius between them. */
+  --gb-radio-border: var(--gb-checkbox-border);
   --gb-radio-bg-hover: var(--nord3);
   --gb-radio-bg-active: var(--nord1);
   --gb-radio-border-hover: var(--nord4);

@@ -741,22 +741,26 @@ on, which in four cases is the same thing.
   2px offset and the bar's inset is 2, so the two coincide — legible in
   `segmented-focus.png`, and an accident of two numbers derived separately rather than a
   thing anyone chose. If either moves, look at the image.
-- **Sixteen non-text pairs are still below §1.2's 3:1, and the ramps have to
-  move.** The measurement exists
-  ([ADR-0239](adr/0239-a-mark-is-measured-against-the-box-it-is-drawn-in.md)) and
-  found nineteen; §2.2's focus ring was three of them and is fixed
-  ([ADR-0240](adr/0240-the-ring-follows-the-accent.md)), because its cause was a
-  ramp left behind rather than a colour anyone chose. What is left is bulkier.
-  **Twelve control boundaries**: `--gb-checkbox-bg` *is* `--gb-surface-2` in the
-  dark theme, so an unchecked box on a `group-box` differs from its backdrop by
-  nothing at all and is held up by a 1.17:1 edge; the light theme is the same
-  shape, and `radio` follows `checkbox` in both. **Four marks**, three of which
-  are one pair — `--gb-accent` on `--gb-border` at 2.98:1 in the light theme,
-  missing by 0.02 — and the fourth the light theme's near-white slider thumb on
-  its grey groove at 1.35:1. Each is a **theme colour**, so the fix is ADR-0088's
-  (slide the ramp until it clears, and write the measurement beside it) and its
-  cost is every golden that draws one. Unlike the ring, these move goldens in
-  bulk, which is why they are one entry rather than sixteen. —
+- **One non-text pair is below §1.2's 3:1, and no colour can lift it.** This
+  entry said sixteen, and filed them as one thing waiting for one decision.
+  Measured against the arithmetic rather than against the sentence they were
+  three, and fifteen are fixed
+  ([ADR-0258](adr/0258-the-edge-a-measurement-chose.md)). The **twelve control
+  boundaries** were a gap in the palette nobody had put anything in: Nord stops
+  between `--nord3` and `--nord4`, which measure 1.17:1 and 6.39:1 against
+  `--gb-surface-2`, so a palette edge is either invisible or a white ring around
+  a dark control — `--gb-checkbox-border` is the midpoint, at 3.17:1 and 3.22:1.
+  The **three marks** were `--gb-accent` on `--gb-border`, one pair wearing three
+  names, missing by 0.02; the light accent slid to `#5c7ea8` and every other pair
+  it appears in moved the same way, so there was nothing to trade against. What
+  is left is the **light theme's slider thumb**, and it is not a ramp question:
+  the track sits between a white thumb and a dark accent fill, and clearing 3:1
+  against both needs its relative luminance at once **≤ 0.300 and ≥ 0.688**. No
+  solid colour is both. What has to change is what a light-theme thumb *is* — a
+  border round it, or a fill that is not white — which is a sentence
+  `docs/design-system.md` §3 does not contain and is the one genuine decision in
+  the original sixteen. Twenty-two goldens moved, which is why this had waited. —
+  [ADR-0258](adr/0258-the-edge-a-measurement-chose.md),
   [ADR-0240](adr/0240-the-ring-follows-the-accent.md),
   [ADR-0239](adr/0239-a-mark-is-measured-against-the-box-it-is-drawn-in.md),
   [ADR-0088](adr/0088-a-fill-that-carries-text-moves-away-from-it.md)
