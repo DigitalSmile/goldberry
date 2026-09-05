@@ -5332,6 +5332,41 @@ is the `scroll` box's.
 - **The drop itself is unchanged.** Only the report is once — making the drop
   conditional would be a stylesheet that behaved differently on the second frame.
 
+### The property the document already claimed
+
+- **`align-self` resolves and reaches Yoga**
+  ([ADR-0244](adr/0244-a-child-may-say-where-it-sits.md)), which closes an entry
+  open since ADR-0111 and takes one of the two things `stack` is blocked on.
+- **The entry was wrong twice, in the toolkit's favour.** §8's layout list reads
+  `align-items/self/content` and the sentence naming what is unimplemented said
+  only `flex-basis` — so the *document* claimed this worked, and what was missing
+  was the implementation rather than the sanction. And `Align.AUTO` was already
+  waiting: the enum's own comment says "`AUTO` only means anything for
+  `align-self`", a value that existed for a property that did not.
+- **The price the entry quoted was real and already insured.** 47 positional
+  argument lists across two records — 22 withers on `ComputedStyle`, 25 clean
+  sites on `Box` — and `alignItems` and `alignSelf` are **the same type**, so a
+  swap between them compiles, runs, and is wrong. `RecordWitherTest` has existed
+  since ADR-0181 for exactly this: it asks every wither to set its component to
+  the value it already holds and requires the record back unchanged, which no
+  transposition survives. Its premise is that no two components of one type hold
+  equal values, so the fixtures give `alignItems` `FLEX_END` and `alignSelf`
+  `CENTER`.
+- **The clean sites were scripted**, one identifier per argument, inserted at a
+  fixed index; the four carrying inline commas were edited by hand. A test
+  written the last time somebody paid this price is what made that safe.
+- **Five layout tests, four of which fail against the old code**, asserted
+  against **Yoga's own output** rather than against the record — the property is
+  one line in `RenderObject` and the whole risk is whether that line runs, so a
+  test reading `box.alignSelf()` back would pass on a box nothing laid out.
+  `auto` is asserted indistinguishable from saying nothing, and beside it a check
+  that a non-`auto` value really does move the child, because the reason those
+  two agree must not be that nothing is wired at all.
+- **No golden moved**, because nothing in the catalog declares `align-self` yet.
+  That is the honest state of a property added for the widget that will want it —
+  the tab strip's `+` is the case that found the gap, and changing it is its own
+  diff.
+
 ### Not started
 
 Client-side decorations, the rest of §4 —

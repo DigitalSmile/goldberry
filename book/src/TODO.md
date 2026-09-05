@@ -98,8 +98,9 @@ the mechanism the sentence named.
   *layout* widget where the overlay layer is a *window* facility, and neither
   builds the other — though the mechanism is not in doubt: `WindowRoot` already
   lays an overlay out with `position: absolute` and Yoga insets, which is the
-  layering half. The **alignment** half is what is missing, and it is blocked on
-  `align-self`, which is not in §8's subset (see [Layout](#layout)). The other
+  layering half. The **alignment** half was blocked on `align-self`, which is
+  built now ([ADR-0244](adr/0244-a-child-may-say-where-it-sits.md)) — so what
+  `stack` still wants is `stack`. The other
   half of this entry — "overlays do not animate in or out" — has moved to
   [Answered](#answered): a toast, a dialog and a banner all arrive and depart on a
   `Phase` now. —
@@ -776,13 +777,6 @@ on, which in four cases is the same thing.
   Whether to accept the aliases is open; accepting them means a second table to
   keep in step with Yoga's enum.
 
-- **`align-self` is not in §8's subset**, which a tab strip's `+` found: a child
-  shorter than its row sits at the top of it and there is no per-child way to say
-  otherwise. It is the companion of `align-items`, which *is* in the subset, and
-  Yoga's `setAlignSelf` is already bound — what it costs is a component in
-  `ComputedStyle` and one in `Box`, both of which are records whose every wither
-  would have to be revisited. —
-  [ADR-0111](adr/0111-a-text-box-is-painted-inside-its-padding.md)
 - **Nothing warns when a declaration is dropped for being unsupported** — in an
   *application's* stylesheet. A property the subset does not have is logged at
   DEBUG and ignored, so `border-bottom`, `currentColor`, `margin` and `max-width`
@@ -1184,6 +1178,24 @@ on, which in four cases is the same thing.
 Kept rather than deleted: each is a trap somebody hit, and the reasoning that got
 out of it is usually worth more than the fact that it is fixed.
 
+- ~~**`align-self` is not in §8's subset.**~~ **It is built, and the entry was
+  wrong twice in the toolkit's favour.** §8 had listed
+  `align-items/self/content` all along and named only `flex-basis` as
+  unimplemented — so the document claimed this worked, and what was missing was
+  the implementation rather than the sanction. And `Align.AUTO` was already
+  waiting for it: the enum's own comment says "`AUTO` only means anything for
+  `align-self`", a value that existed for a property that did not. The price the
+  entry quoted was real — 47 positional argument lists across two records, with
+  `alignItems` and `alignSelf` **the same type**, so a swap between them
+  compiles and runs — and it was already insured. `RecordWitherTest` has existed
+  since ADR-0181 for exactly this: it asks every wither to set its component to
+  what it already holds and requires the record back unchanged, which no
+  transposition survives. The clean sites were scripted and the four carrying
+  inline commas edited by hand. **`stack` is one blocker lighter**; what it still
+  wants is `stack` itself. —
+  [ADR-0244](adr/0244-a-child-may-say-where-it-sits.md),
+  [ADR-0181](adr/0181-a-box-may-say-how-small-and-how-large.md),
+  [ADR-0111](adr/0111-a-text-box-is-painted-inside-its-padding.md)
 - ~~**Nothing warns that a `var()` resolved to nothing — it logs, per node, per
   frame.**~~ **It says it once, and the field is the resolver's rather than a
   static.** The entry named the fix — "once per property per stylesheet would

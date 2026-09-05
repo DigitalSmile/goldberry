@@ -253,6 +253,7 @@
 - [ADR-0241 A theme can be audited by whoever wrote it](adr/0241-a-theme-can-be-audited-by-whoever-wrote-it.md)
 - [ADR-0242 `em` is the element's own size](adr/0242-em-is-the-elements-own-size.md)
 - [ADR-0243 A missing token is a message, not a stream](adr/0243-a-missing-token-is-a-message-not-a-stream.md)
+- [ADR-0244 A child may say where it sits](adr/0244-a-child-may-say-where-it-sits.md)
 
 ---
 

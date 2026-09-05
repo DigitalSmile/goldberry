@@ -68,6 +68,13 @@ public record ComputedStyle(
         FlexDirection direction,
         Justify justifyContent,
         Align alignItems,
+        // The per-child companion of `align-items`, which §8 listed and this did
+        // not: a child shorter than its row had no way to say where in the cross
+        // axis it sat, and a tab strip's `+` is what found it (ADR-0244).
+        // `Align.AUTO` is the default and is the only value that means anything
+        // *here* rather than on the parent -- it is the enum's own word for
+        // "whatever my container said".
+        Align alignSelf,
         // §8 has listed `flex-wrap` from the start and nothing had needed it
         // either: every row in the catalog was a row that fitted, until `select
         // multiple` grew a row of chips (ADR-0192).
@@ -124,6 +131,9 @@ public record ComputedStyle(
             FlexDirection.ROW,
             Justify.FLEX_START,
             Align.STRETCH,
+            // "Defer to my container", which is Yoga's default and CSS's: a
+            // child that says nothing is aligned by `align-items` alone.
+            Align.AUTO,
             // One line, however much it overflows -- Yoga's default and CSS's.
             Wrap.NO_WRAP,
             StyleLength.UNDEFINED,
@@ -274,6 +284,13 @@ public record ComputedStyle(
 
             case "align-items" ->
                 keyword(value, Align.class).map(this::alignItems).orElseGet(() -> dropped(property, value));
+
+            // The per-child companion, and the one place `auto` is a value rather
+            // than a missing one: it is the enum's word for "whatever my
+            // container said", so `align-self: auto` is a real declaration that
+            // undoes a more general rule (ADR-0244).
+            case "align-self" ->
+                keyword(value, Align.class).map(this::alignSelf).orElseGet(() -> dropped(property, value));
 
             // Not `keyword(value, Wrap.class)`: CSS spells the default `nowrap`
             // as one word and `YGWrap` spells it `NoWrap`, so the two disagree
@@ -553,6 +570,7 @@ public record ComputedStyle(
                 v,
                 justifyContent,
                 alignItems,
+                alignSelf,
                 wrap,
                 width,
                 height,
@@ -579,6 +597,7 @@ public record ComputedStyle(
                 direction,
                 v,
                 alignItems,
+                alignSelf,
                 wrap,
                 width,
                 height,
@@ -604,6 +623,34 @@ public record ComputedStyle(
         return new ComputedStyle(
                 direction,
                 justifyContent,
+                v,
+                alignSelf,
+                wrap,
+                width,
+                height,
+                limits,
+                padding,
+                gap,
+                flexGrow,
+                flexShrink,
+                position,
+                inset,
+                overflow,
+                background,
+                color,
+                opacity,
+                decoration,
+                typography,
+                transitions,
+                transform,
+                cursor);
+    }
+
+    public ComputedStyle alignSelf(Align v) {
+        return new ComputedStyle(
+                direction,
+                justifyContent,
+                alignItems,
                 v,
                 wrap,
                 width,
@@ -631,6 +678,7 @@ public record ComputedStyle(
                 direction,
                 justifyContent,
                 alignItems,
+                alignSelf,
                 v,
                 width,
                 height,
@@ -657,6 +705,7 @@ public record ComputedStyle(
                 direction,
                 justifyContent,
                 alignItems,
+                alignSelf,
                 wrap,
                 v,
                 height,
@@ -683,6 +732,7 @@ public record ComputedStyle(
                 direction,
                 justifyContent,
                 alignItems,
+                alignSelf,
                 wrap,
                 width,
                 v,
@@ -709,6 +759,7 @@ public record ComputedStyle(
                 direction,
                 justifyContent,
                 alignItems,
+                alignSelf,
                 wrap,
                 width,
                 height,
@@ -737,6 +788,7 @@ public record ComputedStyle(
                 direction,
                 justifyContent,
                 alignItems,
+                alignSelf,
                 wrap,
                 width,
                 height,
@@ -763,6 +815,7 @@ public record ComputedStyle(
                 direction,
                 justifyContent,
                 alignItems,
+                alignSelf,
                 wrap,
                 width,
                 height,
@@ -789,6 +842,7 @@ public record ComputedStyle(
                 direction,
                 justifyContent,
                 alignItems,
+                alignSelf,
                 wrap,
                 width,
                 height,
@@ -815,6 +869,7 @@ public record ComputedStyle(
                 direction,
                 justifyContent,
                 alignItems,
+                alignSelf,
                 wrap,
                 width,
                 height,
@@ -841,6 +896,7 @@ public record ComputedStyle(
                 direction,
                 justifyContent,
                 alignItems,
+                alignSelf,
                 wrap,
                 width,
                 height,
@@ -867,6 +923,7 @@ public record ComputedStyle(
                 direction,
                 justifyContent,
                 alignItems,
+                alignSelf,
                 wrap,
                 width,
                 height,
@@ -893,6 +950,7 @@ public record ComputedStyle(
                 direction,
                 justifyContent,
                 alignItems,
+                alignSelf,
                 wrap,
                 width,
                 height,
@@ -919,6 +977,7 @@ public record ComputedStyle(
                 direction,
                 justifyContent,
                 alignItems,
+                alignSelf,
                 wrap,
                 width,
                 height,
@@ -945,6 +1004,7 @@ public record ComputedStyle(
                 direction,
                 justifyContent,
                 alignItems,
+                alignSelf,
                 wrap,
                 width,
                 height,
@@ -971,6 +1031,7 @@ public record ComputedStyle(
                 direction,
                 justifyContent,
                 alignItems,
+                alignSelf,
                 wrap,
                 width,
                 height,
@@ -997,6 +1058,7 @@ public record ComputedStyle(
                 direction,
                 justifyContent,
                 alignItems,
+                alignSelf,
                 wrap,
                 width,
                 height,
@@ -1023,6 +1085,7 @@ public record ComputedStyle(
                 direction,
                 justifyContent,
                 alignItems,
+                alignSelf,
                 wrap,
                 width,
                 height,
@@ -1049,6 +1112,7 @@ public record ComputedStyle(
                 direction,
                 justifyContent,
                 alignItems,
+                alignSelf,
                 wrap,
                 width,
                 height,
@@ -1075,6 +1139,7 @@ public record ComputedStyle(
                 direction,
                 justifyContent,
                 alignItems,
+                alignSelf,
                 wrap,
                 width,
                 height,
@@ -1101,6 +1166,7 @@ public record ComputedStyle(
                 direction,
                 justifyContent,
                 alignItems,
+                alignSelf,
                 wrap,
                 width,
                 height,

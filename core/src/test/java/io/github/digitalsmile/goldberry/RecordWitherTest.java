@@ -65,6 +65,11 @@ class RecordWitherTest {
                 io.github.digitalsmile.goldberry.natives.yoga.style.FlexDirection.COLUMN,
                 io.github.digitalsmile.goldberry.natives.yoga.style.Justify.CENTER,
                 io.github.digitalsmile.goldberry.natives.yoga.style.Align.FLEX_END,
+                // `alignSelf`, and deliberately not `FLEX_END`: two components of
+                // one type holding equal values is exactly what
+                // `componentsAreDistinct` refuses, because a swap between them
+                // would be invisible to the check below.
+                io.github.digitalsmile.goldberry.natives.yoga.style.Align.CENTER,
                 io.github.digitalsmile.goldberry.natives.yoga.style.Wrap.WRAP_REVERSE,
                 length(11),
                 length(22),
@@ -98,6 +103,7 @@ class RecordWitherTest {
                 .direction(io.github.digitalsmile.goldberry.natives.yoga.style.FlexDirection.COLUMN)
                 .justifyContent(io.github.digitalsmile.goldberry.natives.yoga.style.Justify.CENTER)
                 .alignItems(io.github.digitalsmile.goldberry.natives.yoga.style.Align.FLEX_END)
+                .alignSelf(io.github.digitalsmile.goldberry.natives.yoga.style.Align.CENTER)
                 .wrap(io.github.digitalsmile.goldberry.natives.yoga.style.Wrap.WRAP_REVERSE)
                 .width(length(11))
                 .height(length(22))

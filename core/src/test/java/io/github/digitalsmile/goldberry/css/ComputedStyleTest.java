@@ -163,6 +163,31 @@ class ComputedStyleTest {
                     "a keyword CSS has not got is dropped like any other");
         }
 
+        /// [ADR-0244]: §8 has listed `align-items/self/content` from the
+        /// beginning and only the first was built.
+        @Test
+        @DisplayName("align-self is a keyword like align-items, and independent of it")
+        void alignSelf() {
+            var style = compute("button { align-items: center; align-self: flex-end }");
+
+            assertEquals(Align.CENTER, style.alignItems());
+            assertEquals(Align.FLEX_END, style.alignSelf(), "align-self must not follow align-items");
+        }
+
+        /// `auto` is the one value that means something different on a child than
+        /// it would on a parent — "defer to my container" — so it is a real
+        /// declaration rather than a missing one, and undoes a more general rule.
+        @Test
+        @DisplayName("and auto is its default and a value it can be set back to")
+        void alignSelfAuto() {
+            assertEquals(Align.AUTO, ComputedStyle.INITIAL.alignSelf());
+            assertEquals(Align.AUTO, compute("button { align-self: auto }").alignSelf());
+            assertEquals(
+                    Align.AUTO,
+                    compute("button { align-self: sideways }").alignSelf(),
+                    "a keyword CSS has not got is dropped like any other");
+        }
+
         @Test
         @DisplayName("lengths become points, percents and auto")
         void lengths() {
