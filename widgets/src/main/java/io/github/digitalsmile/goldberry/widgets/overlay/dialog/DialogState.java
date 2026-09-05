@@ -12,6 +12,7 @@ import io.github.digitalsmile.goldberry.widget.BuildContext;
 import io.github.digitalsmile.goldberry.widget.State;
 import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widgets.controls.button.Button;
+import io.github.digitalsmile.goldberry.widgets.core.Departure;
 import io.github.digitalsmile.goldberry.widgets.core.Phase;
 
 /// A [Dialog]'s opening, its closing, and the one thing it has to ask the window
@@ -54,18 +55,17 @@ final class DialogState extends State<Dialog> {
 
     private final Phase opening = new Phase(Phase.Kind.ENTERING, ENTER_MILLIS);
 
-    /// Null until something asks it to close, and never null again.
-    private Phase closing;
-
-    /// True once the closing animation has run out.
+    /// §1.7's `closing → removed`, and the two flags it needs — see [Departure],
+    /// which is where this and `message`'s identical copy of it now live
+    /// ([ADR-0234]).
     ///
-    /// **A second flag, and the two mean different things** — which is the bug
-    /// this pair replaced. `closing` means *input is off*, from the instant an
-    /// answer is given (§1.7: "no ghost clicks"). This means *there is nothing
-    /// left to draw*, and only this may switch the animation off. Using the first
-    /// for both is why a closing dialog stopped asking for frames on the frame it
-    /// started closing, and therefore never faded at all.
-    private boolean closed;
+    /// **Two flags, and they mean different things**, which is the bug the pair
+    /// replaced: `hasBegun` means *input is off*, from the instant an answer is
+    /// given (§1.7: "no ghost clicks"), and `isOver` means *there is nothing left
+    /// to draw*. Using the first for both is why a closing dialog stopped asking
+    /// for frames on the frame it started closing, and therefore never faded at
+    /// all.
+    private final Departure closing = new Departure(EXIT_MILLIS, this::setState);
 
     /// Captured in `build` for the handlers that run later.
     private @Nullable Host host;
@@ -75,8 +75,6 @@ final class DialogState extends State<Dialog> {
     private boolean focusAsked;
 
     private boolean reducedMotion;
-
-    private EventLoop.@Nullable Timer pending;
 
     /// The zero-delay timer that asks for focus — see [#askForFocus].
     ///
@@ -88,10 +86,7 @@ final class DialogState extends State<Dialog> {
 
     @Override
     protected void dispose() {
-        if (pending != null) {
-            pending.cancel();
-            pending = null;
-        }
+        closing.cancel();
         if (focusing != null) {
             focusing.cancel();
             focusing = null;
@@ -109,7 +104,7 @@ final class DialogState extends State<Dialog> {
         for (var action : ordered(dialog.actions())) {
             buttons.add(button(action));
         }
-        var phase = closing != null ? closing : opening;
+        var phase = closing.phaseOr(opening);
         var panel = new DialogPanel(
                 dialog.title(),
                 dialog.content(),
@@ -117,11 +112,11 @@ final class DialogState extends State<Dialog> {
                 this::escape,
                 this::confirm,
                 phase,
-                isClosing(),
-                closed,
+                closing.hasBegun(),
+                closing.isOver(),
                 this::motion,
                 dialog.attributes());
-        return new DialogScrim(panel, this::escape, phase, isClosing(), closed);
+        return new DialogScrim(panel, this::escape, phase, closing.hasBegun(), closing.isOver());
     }
 
     /// §7's canonical order: neutral, then dismissive, then **affirmative last**.
@@ -158,12 +153,6 @@ final class DialogState extends State<Dialog> {
                 .withAttributes(action.attributes().classes(classes.toArray(String[]::new)));
     }
 
-    /// Whether the dialog is on its way out — §1.7's `closing`, and what turns
-    /// every part deaf.
-    private boolean isClosing() {
-        return closing != null;
-    }
-
     /// `Esc`, and a press on the scrim, which mean the same thing: the
     /// dismissive button. A dialog without one is not dismissible by either,
     /// which is what a question that must be answered wants.
@@ -188,32 +177,10 @@ final class DialogState extends State<Dialog> {
     /// answer, which matters more here than anywhere else in the catalog — two
     /// handlers on a save dialog is two saves.
     private void close(Runnable then) {
-        if (closing != null) {
-            return;
-        }
-        if (host == null || reducedMotion) {
-            // Nothing to animate against, or a reader who asked not to be
-            // animated at: the dialog is gone now rather than in 160ms of
-            // nothing happening.
-            closing = new Phase(Phase.Kind.LEAVING, EXIT_MILLIS);
-            closed = true;
-            if (then != null) {
-                then.run();
-            }
-            return;
-        }
-        setState(() -> closing = new Phase(Phase.Kind.LEAVING, EXIT_MILLIS));
-        pending = host.after(Duration.ofMillis((long) EXIT_MILLIS), () -> {
-            pending = null;
-            // Stop drawing first, then tell the application -- `message`'s order,
-            // and for its reason: the handler usually rebuilds the tree without
-            // this dialog in it, and a state still mid-fade would hand a
-            // half-faded panel to whatever element the reconciler reused.
-            setState(() -> closed = true);
-            if (then != null) {
-                then.run();
-            }
-        });
+        // Every rule this used to spell out is [Departure]'s now: idempotent, two
+        // flags, stop drawing before telling the application, and gone at once
+        // when there is no window or the reader asked for no motion ([ADR-0234]).
+        closing.begin(host, reducedMotion, then);
     }
 
     /// Asks the window to put the keyboard in here, once.

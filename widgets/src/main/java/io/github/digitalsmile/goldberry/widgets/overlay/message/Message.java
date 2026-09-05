@@ -7,12 +7,14 @@ import java.util.Optional;
 
 import org.jspecify.annotations.Nullable;
 
+import io.github.digitalsmile.goldberry.bind.Observable;
 import io.github.digitalsmile.goldberry.kdl.KdlNode;
 import io.github.digitalsmile.goldberry.paint.Box;
 import io.github.digitalsmile.goldberry.widget.State;
 import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widget.attr.Attributed;
 import io.github.digitalsmile.goldberry.widget.attr.Attributes;
+import io.github.digitalsmile.goldberry.widget.attr.Bindable;
 import io.github.digitalsmile.goldberry.widgets.markup.Markup;
 import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
 
@@ -68,17 +70,49 @@ import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
 /// is one. A `message-action` element would have been a second button that had to
 /// be kept looking like the first.
 ///
+/// ## A bound banner with nothing to say says nothing
+///
+/// `bind=` was the last thing this widget was missing, and it was missing for a
+/// reason rather than an oversight: a banner bound to an empty string would have
+/// been *present and empty* — a bordered box with 12px of padding saying nothing
+/// — and §8's subset has no `display`, so no widget could take itself out of a
+/// layout. The way round it was to describe the banner away from outside, which
+/// is why [#summary(List)] returns an `Optional`.
+///
+/// The element tree has the word now: a build may answer
+/// [Widget#nothing()], and a node that describes nothing has no box and takes no
+/// gap ([ADR-0227]). So a bound `message` whose value is null or blank is simply
+/// not there, and comes back when the value does — the same element, the same
+/// subscription, the same arrival.
+///
+/// ```kdl
+/// message kind="danger" bind="form.error"
+/// ```
+///
+/// The value is read with `toString`, like every other bound text in the
+/// catalog. `text` stays as the fallback for a banner that has both, because a
+/// document that wrote words *and* a binding meant the words to show until the
+/// value arrives.
+///
 /// @param kind       which of §7's four this is — the glyph and the hue
 /// @param text       what it says; hard newlines break lines, which is what makes
 ///                   [#summary(List)] one banner rather than a column of them
+/// @param source     §9's `bind=`, or null — when it resolves to nothing, so does
+///                   the banner
 /// @param actions    the author's links, in the order they were written
 /// @param onDismiss  what to tell when the × is clicked, or null for a banner
 ///                   with no way out — a message that persists until the
 ///                   *condition* does is the common case, so this is opt-in
 /// @param attributes the `id` and classes, which land on the `message` node
 @Markup("message")
-public record Message(Kind kind, String text, List<Widget> actions, Runnable onDismiss, Attributes attributes)
-        implements Widget.Stateful, Attributed<Message> {
+public record Message(
+        Kind kind,
+        String text,
+        @Nullable Observable<?> source,
+        List<Widget> actions,
+        Runnable onDismiss,
+        Attributes attributes)
+        implements Widget.Stateful, Attributed<Message>, Bindable<Message> {
 
     /// §7's `kind="info|success|warning|danger"`.
     ///
@@ -148,17 +182,50 @@ public record Message(Kind kind, String text, List<Widget> actions, Runnable onD
 
     /// A banner of a kind, saying one thing.
     public Message(Kind kind, String text) {
-        this(kind, text, List.of(), null, Attributes.NONE);
+        this(kind, text, null, List.of(), null, Attributes.NONE);
+    }
+
+    /// The five-argument form, kept because every caller written before `bind=`
+    /// existed passes exactly these.
+    public Message(Kind kind, String text, List<Widget> actions, Runnable onDismiss, Attributes attributes) {
+        this(kind, text, null, actions, onDismiss, attributes);
     }
 
     /// This banner with links after its words.
     public Message actions(Widget... widgets) {
-        return new Message(kind, text, List.of(widgets), onDismiss, attributes);
+        return new Message(kind, text, source, List.of(widgets), onDismiss, attributes);
     }
 
     /// This banner with a way out. Null takes the × away again.
     public Message dismiss(Runnable listener) {
-        return new Message(kind, text, actions, listener, attributes);
+        return new Message(kind, text, source, actions, listener, attributes);
+    }
+
+    @Override
+    public Message bound(Observable<?> value) {
+        return new Message(kind, text, value, actions, onDismiss, attributes);
+    }
+
+    @Override
+    public @Nullable Observable<?> binding() {
+        return source;
+    }
+
+    /// What this banner actually says: the bound value if there is one, and
+    /// [#text] otherwise.
+    ///
+    /// **Blank when the value is null or blank**, which is what makes the banner
+    /// disappear rather than stand there empty — see [MessageState].
+    /// `text` is not a fallback for a *blank* value, only for no binding at all:
+    /// an application whose error property is empty means "there is no error",
+    /// and showing the document's placeholder words instead would be a banner
+    /// reporting a problem that has gone away.
+    public String resolved() {
+        if (source == null) {
+            return text;
+        }
+        var value = source.get();
+        return value == null ? "" : String.valueOf(value);
     }
 
     /// §4's error summary: what is wrong with a form, as one `danger` banner.
@@ -193,7 +260,7 @@ public record Message(Kind kind, String text, List<Widget> actions, Runnable onD
 
     @Override
     public Message withAttributes(Attributes value) {
-        return new Message(kind, text, actions, onDismiss, value);
+        return new Message(kind, text, source, actions, onDismiss, value);
     }
 
     @Override
@@ -220,6 +287,7 @@ public record Message(Kind kind, String text, List<Widget> actions, Runnable onD
         return new Message(
                 Kind.of(node.stringProperty("kind")),
                 Wiring.label(node),
+                wiring.bound(node),
                 children,
                 wiring.action(node, "dismiss"),
                 Attributes.of(node));

@@ -96,6 +96,13 @@ module io.github.digitalsmile.goldberry.core {
     exports io.github.digitalsmile.goldberry.input.hit;
     exports io.github.digitalsmile.goldberry.input.handler;
 
+    // A tap of a modifier key — pressed and released with nothing in between,
+    // which is what §8's "`Alt`-style keyboard activation" is and what a
+    // `Shortcut` cannot be (ADR-0223). Its own package rather than a fifth type
+    // in `input.key`, because it is a *gesture* over two events and the keyboard
+    // vocabulary beside it is a value.
+    exports io.github.digitalsmile.goldberry.input.tap;
+
     // The frame clock, the three easing curves, and the per-node animation
     // overlay CSS transitions run through (design-system.md §1.7, ADR-0067).
     // Exported because an application supplies the clock -- a test drives a

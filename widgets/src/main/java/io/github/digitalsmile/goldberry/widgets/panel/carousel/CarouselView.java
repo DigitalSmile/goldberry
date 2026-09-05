@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Consumer;
-import java.util.function.DoubleUnaryOperator;
 import java.util.function.IntConsumer;
 
 import org.jspecify.annotations.Nullable;
@@ -23,6 +22,7 @@ import io.github.digitalsmile.goldberry.widget.semantics.Role;
 import io.github.digitalsmile.goldberry.widget.semantics.Semantics;
 import io.github.digitalsmile.goldberry.widget.style.Paints;
 import io.github.digitalsmile.goldberry.widget.style.Styled;
+import io.github.digitalsmile.goldberry.widgets.core.Phase;
 
 /// **This is the `carousel` a stylesheet selects.**
 ///
@@ -50,10 +50,12 @@ import io.github.digitalsmile.goldberry.widget.style.Styled;
 /// @param onHover        the pointer arrived or left
 /// @param onFocus        the strip or a control took focus, or gave it up
 /// @param onMotion       what the frame says about the motion preference
-/// @param visibility     how far into its arrival the current slide is at a given
-///                       frame time, `0..1`. Reading it is also what *starts* the
-///                       arrival, because `render` is the only place a widget is
-///                       given the clock ([ADR-0109], [Phase])
+/// @param phase          where the current slide is in its arrival — the [Phase]
+///                       itself and not a function of the clock, because a phase
+///                       settles itself on the frame that finishes it and a
+///                       function cannot say whether it has ([ADR-0228]). Reading
+///                       it is also what *starts* the arrival, because `render` is
+///                       the only place a widget is given the clock ([ADR-0109])
 /// @param direction      which way the last move went, `+1` forwards; the arriving
 ///                       slide translates in from that side
 record CarouselView(
@@ -70,7 +72,7 @@ record CarouselView(
         Consumer<Boolean> onHover,
         Consumer<Boolean> onFocus,
         Consumer<Boolean> onMotion,
-        DoubleUnaryOperator visibility,
+        Phase phase,
         int direction)
         implements Widget.Leaf, Styled, Paints, Handles, Semantics {
 
@@ -173,10 +175,22 @@ record CarouselView(
     }
 
     /// The viewport with the current slide in it, the two buttons, and the dots.
+    /// Whether the slide inside is on its way in.
+    ///
+    /// The same answer [CarouselViewport] gives, from the node that carries the
+    /// phase rather than the one that draws with it — see `CollapseSection` for
+    /// why both say it ([ADR-0228]). The renderer ORs over the tree, so this
+    /// changes nothing but keeps the sweep's rule free of an exception nothing
+    /// could check.
+    @Override
+    public boolean isAnimating() {
+        return phase.isRunning();
+    }
+
     @Override
     public List<Widget> children() {
         var parts = new ArrayList<Widget>(3);
-        parts.add(new CarouselViewport(slide, visibility, direction));
+        parts.add(new CarouselViewport(slide, phase, direction));
         parts.add(new CarouselControls(
                 canGoBack, canGoForward, () -> onStep.accept(-1), () -> onStep.accept(1), onFocus));
         if (count > 1) {
@@ -198,8 +212,7 @@ record CarouselView(
     /// and so the **arrival** has somewhere to live: the animation belongs to the
     /// viewport rather than to the slide, because the slide is the author's widget
     /// and a carousel must not reach inside it.
-    record CarouselViewport(Widget slide, DoubleUnaryOperator visibility, int direction)
-            implements Widget.Leaf, Styled, Paints {
+    record CarouselViewport(Widget slide, Phase phase, int direction) implements Widget.Leaf, Styled, Paints {
 
         /// How far the arriving slide travels, in logical pixels.
         ///
@@ -225,10 +238,13 @@ record CarouselView(
         ///
         /// A carousel that has been sitting on one slide animates nothing and
         /// asks for nothing, so a window with one in it is as idle as a window
-        /// without.
+        /// without. That was the claim and not the behaviour: this used to be
+        /// handed a `DoubleUnaryOperator` that was never null, so it answered
+        /// **true for ever** and any window with a carousel on it never went idle
+        /// ([ADR-0228]). A phase settles itself; a function of the clock cannot.
         @Override
         public boolean isAnimating() {
-            return visibility != null;
+            return phase.isRunning();
         }
 
         /// **Opacity and a translation, and nothing else** — §1.7's whitelist is
@@ -240,13 +256,17 @@ record CarouselView(
         @Override
         public Box render(ComputedStyle style, List<Box> boxes, Context context) {
             var box = Box.of().style(style).children(boxes.toArray(Box[]::new));
-            if (visibility == null) {
+            if (context.reducedMotion()) {
+                // Not merely drawn at full strength: the phase is *ended*, so the
+                // viewport also stops asking for frames it would spend standing
+                // still.
+                phase.skip();
                 return box;
             }
             // Reading it is what starts the arrival: the phase is stamped from the
             // frame clock on its first read, and this is the only place there is
             // one.
-            var visible = context.reducedMotion() ? 1 : visibility.applyAsDouble(context.nowMillis());
+            var visible = phase.progressAt(context.nowMillis());
             if (visible >= 1) {
                 return box;
             }

@@ -114,7 +114,11 @@ final class CarouselState extends State<Carousel> {
                 this::hover,
                 this::focus,
                 this::motion,
-                this::visibility,
+                // The phase itself, not a function of the clock. This used to be
+                // `this::visibility`, which is never null — so the viewport's
+                // `isAnimating` answered true for ever and a window with a
+                // carousel on it never went idle ([ADR-0228]).
+                arriving,
                 direction);
     }
 
@@ -182,14 +186,6 @@ final class CarouselState extends State<Carousel> {
             return;
         }
         setState(() -> index = next);
-    }
-
-    /// How far into its arrival the current slide is at `now`, `0..1`.
-    ///
-    /// Read from `render`, which is what stamps the beginning: a `State` never
-    /// sees the frame clock.
-    private double visibility(double now) {
-        return arriving.progressAt(now);
     }
 
     /// The pointer arrived or left. Cancels immediately rather than waiting for

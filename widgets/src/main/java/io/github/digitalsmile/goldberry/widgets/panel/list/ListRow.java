@@ -12,6 +12,7 @@ import io.github.digitalsmile.goldberry.input.event.KeyEvent;
 import io.github.digitalsmile.goldberry.input.event.PointerEvent;
 import io.github.digitalsmile.goldberry.input.event.TextEvent;
 import io.github.digitalsmile.goldberry.input.handler.Handles;
+import io.github.digitalsmile.goldberry.input.handler.Selects;
 import io.github.digitalsmile.goldberry.input.key.Key;
 import io.github.digitalsmile.goldberry.input.key.Modifiers;
 import io.github.digitalsmile.goldberry.paint.Box;
@@ -69,7 +70,7 @@ record ListRow(
         Consumer<Modifiers> onSelect,
         IntConsumer onEnd,
         Consumer<String> onType)
-        implements Widget.Leaf, Styled, Paints, Handles, Attributed<ListRow>, Semantics {
+        implements Widget.Leaf, Styled, Paints, Handles, Selects, Attributed<ListRow>, Semantics {
 
     @Override
     public String cssType() {
@@ -134,6 +135,25 @@ record ListRow(
         // A row in a `NONE` list does **not** consume: there is nothing for the
         // click to mean here, and swallowing it would stop a button the
         // item-factory put on the row from ever being pressed.
+    }
+
+    /// A right-click selects the row it is over, which is what every file manager
+    /// does before it opens a menu ([ADR-0224]).
+    ///
+    /// **Unless the row is already in the selection.** Right-clicking one of five
+    /// chosen files opens a menu about the five; collapsing them to one would
+    /// throw away the very thing the user is about to act on, and it is the
+    /// failure that makes an application write this by hand and get it wrong.
+    ///
+    /// With no modifiers, because a right-click is not a `Ctrl`-click: the
+    /// gesture means "act on this", and the list resolves that to a selection of
+    /// one exactly as an unmodified press does.
+    @Override
+    public void selectForContextMenu() {
+        if (!selectable || selected) {
+            return;
+        }
+        onSelect.accept(Modifiers.NONE);
     }
 
     @Override

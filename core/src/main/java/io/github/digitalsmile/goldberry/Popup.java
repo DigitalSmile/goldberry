@@ -462,10 +462,17 @@ public final class Popup implements AutoCloseable {
 
     /// Called by the launcher when the owner window sees input the popup should
     /// be dismissed by.
-    void dismissedByInput() {
-        if (lightDismiss) {
-            close();
+    ///
+    /// @return whether this actually closed. A tooltip answers false — it is
+    ///         `lightDismiss(false)` and is dismissed by the pointer leaving —
+    ///         which is what lets a caller walking a stack look past it to the
+    ///         menu underneath ([ADR-0233])
+    boolean dismissedByInput() {
+        if (!lightDismiss || !isOpen()) {
+            return false;
         }
+        close();
+        return true;
     }
 
     private void requireOpen() {

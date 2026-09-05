@@ -1405,9 +1405,12 @@ segmented-indicator {
  * says everything else about them. A row of content-sized cells is a row an
  * indicator cannot travel along without measuring each one (ADR-0099).
  *
- * The cost is that a label longer than its cell overflows it, because nothing
- * in this toolkit clips -- the same limit `progress`'s indeterminate sweep
- * documents. */
+ * The cost is that a label longer than its cell overflows it. **Not because
+ * nothing clips** — `overflow: hidden` has shipped since ADR-0114, and this
+ * comment used to say otherwise. Clipping needs the label to keep its natural
+ * width inside a box that does not, and a box with text is a *measured* leaf: it
+ * is measured again at the narrower width and wraps. `white-space: nowrap` is the
+ * missing property, not `text-overflow` (ADR-0235). */
 option {
   padding: 0 12px;
   gap: 6px;
@@ -1526,9 +1529,14 @@ select.open {
 }
 
 /* The value grows so the chevron is pushed to the trailing edge, and a label
-   longer than the field ellipses rather than pushing the chevron out -- except
-   that nothing in this toolkit clips yet, which is the same limit `option`
-   documents two blocks up. */
+   longer than the field pushes the chevron out rather than being cut.
+
+   **Not because nothing clips** — `overflow: hidden` has shipped since ADR-0114,
+   and this comment used to say otherwise. Clipping it would put the text inside a
+   box that shrinks, and a box with text is a *measured* leaf: it is then measured
+   again at the narrower width and **wraps**, which in a fixed-height field is
+   worse than overflowing. What a cut label needs is `white-space: nowrap`, which
+   §8's subset has not got (ADR-0235). */
 select-value {
   flex-grow: 1;
   flex-shrink: 1;
@@ -1678,9 +1686,13 @@ field-label.required {
 
 /* The message slot. `--gb-danger` is §4's word for it, and the slot is in the
    tree at all times -- an empty one draws nothing and takes no height, so a
-   form does not breathe every time a field goes wrong. */
+   form does not breathe every time a field goes wrong.
+
+   The **`-text` rank**, not the hue and not `-line`: these are words, so §1.2's
+   floor is 4.5:1 rather than the 3:1 a border gets. The bare hue measured 2.46:1
+   on `--gb-surface` in the dark theme (ADR-0229). */
 field-message {
-  color: var(--gb-danger);
+  color: var(--gb-danger-text);
   font-size: var(--gb-font-caption);
   line-height: var(--gb-line-caption);
 }
@@ -1695,7 +1707,11 @@ field-message {
  * readable while somebody fixes it. */
 field:invalid text-input,
 field:invalid select {
-  border-color: var(--gb-danger);
+  /* The **`-line` rank**: this is a stroke on a surface, which is the rank's
+     whole purpose, and the bare hue is 2.46:1 on `--gb-surface` against §1.2's
+     3:1 floor. `message` was the first widget to draw a hue this way and the only
+     one to use the rank until now (ADR-0229). */
+  border-color: var(--gb-danger-line);
 }
 
 /* ---------------------------------------------------------- text-input --
@@ -1943,11 +1959,15 @@ hud-reading.raster {
    there is no pseudo-class for "over budget" and inventing one for a single
    diagnostic would be inventing a language (see `HudReading`). */
 hud-reading.near {
-  color: var(--gb-warning);
+  color: var(--gb-hud-warning);
 }
 
 hud-reading.over {
-  color: var(--gb-danger);
+  /* The HUD's **own** red, not the theme's. Its plate is the same in both themes
+     (see `--gb-hud-bg`), so a theme-varying hue is the wrong thing to draw on it
+     — and `--gb-danger` measured 3.95:1 there against §1.2's 4.5:1 for text
+     (ADR-0229). */
+  color: var(--gb-hud-danger);
   font-weight: 600;
 }
 
@@ -2982,12 +3002,15 @@ statistic-delta {
   color: var(--gb-text-muted);
 }
 
+/* The `-text` rank on both, because a delta is a number and §1.2's floor for
+   words is 4.5:1. The bare `--gb-success` is 2.04:1 on the light theme's
+   `--gb-surface`, which is a green nobody can read (ADR-0229). */
 statistic-delta.up {
-  color: var(--gb-success);
+  color: var(--gb-success-text);
 }
 
 statistic-delta.down {
-  color: var(--gb-danger);
+  color: var(--gb-danger-text);
 }
 
 /* -------------------------------------------------------------- skeleton --
@@ -3572,7 +3595,7 @@ chart-message {
    a filled block, and a chart-sized red panel would read as an alarm rather than
    as "this one query did not answer". */
 chart-message.failed {
-  color: var(--gb-danger);
+  color: var(--gb-danger-text);
 }
 
 /* A plot is **focusable**, so a chart can be read without a pointer (charts.md

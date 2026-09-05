@@ -35,6 +35,36 @@ import io.github.digitalsmile.goldberry.bind.Observable;
 /// right until a list is reordered. Give list items a key.
 public interface Widget {
 
+    /// A widget that describes **nothing at all** — no box, no space, no
+    /// selector.
+    ///
+    /// Every `build` has to return a widget, and until this existed a widget with
+    /// nothing to show had to describe an empty box — which takes no room of its
+    /// own and is still a child, so a `column` with a `gap` puts the gap round it
+    /// and the thing that vanished leaves a hole ([Nothing], ADR-0227).
+    ///
+    /// ```java
+    /// return text.isBlank() ? Widget.nothing() : new MessageBox(…);
+    /// ```
+    ///
+    /// The element stays in the tree — holding its state, its place in the
+    /// reconciler and its binding — which is the point: a widget that describes
+    /// nothing this frame and something the next is one node whose value changed.
+    ///
+    /// **Not `display: none`.** §8's subset still has no way for a *rule* to take
+    /// a node out of a layout. What a widget decides about its own content it may
+    /// now say; what a stylesheet decides is unchanged.
+    ///
+    /// A method rather than a constant, and not for taste: a `static final` field
+    /// on an interface that holds an instance of one of its own subtypes makes
+    /// initialising [Widget] depend on initialising [Nothing] and back again,
+    /// which is a class-initialisation cycle the compiler's own analysis refuses.
+    /// The instance is a singleton either way — it carries no state, so a second
+    /// one would only give the reconciler something to tell apart.
+    static Widget nothing() {
+        return Nothing.INSTANCE;
+    }
+
     /// This widget's identity within its parent, or null for "match by
     /// position".
     ///

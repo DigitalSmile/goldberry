@@ -233,6 +233,62 @@ class ListTest {
     }
 
     @Nested
+    @DisplayName("the right-click's selection")
+    class ContextSelection {
+
+        /// §10's item menus act on what was clicked, which is what every file
+        /// manager does before it opens one ([ADR-0224]). The launcher asks; the
+        /// row decides what the question means.
+        @Test
+        @DisplayName("a right-click on an unselected row asks for that row alone")
+        void selectsWhatItIsOver() {
+            var tree = tree(nordics(Set.of("Norway")));
+
+            row(tree, "list-Finland").selectForContextMenu();
+
+            assertEquals(Set.of("Finland"), lastAsked());
+        }
+
+        /// The rule that makes the feature worth having rather than a nuisance:
+        /// right-clicking one of five chosen files opens a menu about the five.
+        /// Collapsing them to one would throw away the very thing the user is
+        /// about to act on.
+        @Test
+        @DisplayName("a right-click inside the selection leaves it alone")
+        void keepsAMultipleSelection() {
+            var tree = tree(nordics(Set.of("Norway", "Sweden", "Finland")));
+
+            row(tree, "list-Sweden").selectForContextMenu();
+
+            assertTrue(asked.isEmpty(), "the selection was disturbed: " + asked);
+        }
+
+        /// No modifiers, whatever is held. A right-click means "act on this", and
+        /// `Ctrl`-right-clicking is not a request to extend a selection on any
+        /// desktop — so the row asks for the unmodified answer and the list
+        /// resolves it to one row.
+        @Test
+        @DisplayName("it is the unmodified gesture, so it replaces rather than extends")
+        void replacesRatherThanExtending() {
+            var tree = tree(nordics(Set.of("Norway", "Sweden")));
+
+            row(tree, "list-Denmark").selectForContextMenu();
+
+            assertEquals(Set.of("Denmark"), lastAsked());
+        }
+
+        @Test
+        @DisplayName("a NONE list asks for nothing, because nothing there can be chosen")
+        void noneSelectsNothing() {
+            var tree = tree(ListView.of(NORDICS).selection(Selection.NONE).selected(Set.of(), asked::add));
+
+            row(tree, "list-Finland").selectForContextMenu();
+
+            assertTrue(asked.isEmpty());
+        }
+    }
+
+    @Nested
     @DisplayName("the selection models")
     class SelectionModels {
 

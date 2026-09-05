@@ -15,6 +15,9 @@ import io.github.digitalsmile.goldberry.input.hit.Extent;
 import io.github.digitalsmile.goldberry.paint.Box;
 import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widget.attr.Attributes;
+import io.github.digitalsmile.goldberry.widget.semantics.Live;
+import io.github.digitalsmile.goldberry.widget.semantics.Role;
+import io.github.digitalsmile.goldberry.widget.semantics.Semantics;
 import io.github.digitalsmile.goldberry.widget.style.Corner;
 import io.github.digitalsmile.goldberry.widget.style.Paints;
 import io.github.digitalsmile.goldberry.widget.style.Styled;
@@ -58,7 +61,7 @@ record ToastBox(
         Runnable onAction,
         Runnable onDismiss,
         DoubleConsumer onHeight)
-        implements Widget.Leaf, Styled, Paints, Handles, Measured {
+        implements Widget.Leaf, Styled, Paints, Handles, Measured, Semantics {
 
     /// §3: "in: slide 16px from edge".
     private static final double TRAVEL = 16;
@@ -157,6 +160,44 @@ record ToastBox(
     @Override
     public boolean isAnimating() {
         return phase.isRunning() || (reflow != null && reflow.phase().isRunning());
+    }
+
+    /// §7's **live region**, and the reason a toast needs one where nothing else
+    /// in the catalog does ([ADR-0225]).
+    ///
+    /// Every other widget is announced because something *happens to it*: the
+    /// focus lands, the pointer arrives, a value changes under a reader who went
+    /// looking for it. A toast has none of those. Nobody focuses it, nobody has
+    /// to click it, and it is gone in five seconds — so a reader that speaks only
+    /// what is focused says nothing at all about the one thing on screen that is
+    /// there to be noticed.
+    ///
+    /// [Live#POLITE] rather than assertive: a notification waits for the reader
+    /// to finish the sentence they are on. Interrupting is for something that
+    /// must be dealt with before anything else, and a toast is by construction
+    /// dismissible and transient.
+    ///
+    /// **Nothing announces this yet** — the bridge is M5, exactly as for every
+    /// other widget's role and name. What is finished here is the widget's half:
+    /// a toast raised today already carries everything an announcement needs.
+    @Override
+    public Live live() {
+        return Live.POLITE;
+    }
+
+    /// [Role#STATUS] — a region that reports what just happened.
+    @Override
+    public Role role() {
+        return Role.STATUS;
+    }
+
+    /// What it says, which is the whole of a toast.
+    ///
+    /// Not the action button's label: that is a [Button] of its own with a name
+    /// of its own, and folding it in here would have a reader say it twice.
+    @Override
+    public String accessibleName() {
+        return toast.text();
     }
 
     /// How tall this toast came out, reported up to the stack.

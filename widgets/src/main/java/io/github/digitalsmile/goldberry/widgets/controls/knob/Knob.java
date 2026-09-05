@@ -396,6 +396,14 @@ public record Knob(
     /// than accumulating, it would round back *every time* and the knob would sit
     /// there while the user scrolled. So a stepped knob moves **at least one
     /// step** for any scroll at all, and more for a fast one.
+    ///
+    /// **What is consumed is what moved**, which is
+    /// [io.github.digitalsmile.goldberry.widgets.core.scroll.ScrollViewport]'s rule
+    /// and not a second one ([ADR-0236]): a knob already at its end has nothing to
+    /// do with a wheel that pushes it further that way, so the event is left
+    /// unconsumed and the router's ordinary bubble hands it to whatever is above —
+    /// a `scroll` in the usual case. Turning the *other* way still consumes, so
+    /// the list does not lurch while the knob is being used.
     private void wheel(PointerEvent event) {
         var lines = event.deltaY();
         if (lines == 0) {
@@ -404,12 +412,28 @@ public record Knob(
         // Positive deltaY is *down the document*, which is away from the user, so
         // it lowers the value -- the same sign the drag uses.
         var direction = lines > 0 ? -1 : 1;
-        if (step > 0) {
-            ask(resolved() + direction * Math.max(1, Math.round(Math.abs(lines))) * step);
-        } else {
-            ask(resolved() - lines * (max - min) / 100);
+        var current = resolved();
+        var wanted = step > 0
+                ? current + direction * Math.max(1, Math.round(Math.abs(lines))) * step
+                : current - lines * (max - min) / 100;
+        if (!moves(current, wanted)) {
+            return;
         }
+        ask(wanted);
         event.consume();
+    }
+
+    /// Whether asking for `wanted` would change what the user can see.
+    ///
+    /// Compared against what [#ask] would actually pass on rather than against the
+    /// raw arithmetic, so a knob one step from its end still moves the part-step
+    /// that is left. The other two clauses are the same question asked of the
+    /// wiring instead of the range: a knob nobody is listening to, and a disabled
+    /// one, cannot move either — the router already refuses input to a disabled
+    /// subtree, and repeating it here is what makes *not consuming* the answer
+    /// rather than merely doing nothing.
+    private boolean moves(double current, double wanted) {
+        return !disabled && onChange != null && snap(clamp(wanted)) != current;
     }
 
     /// [io.github.digitalsmile.goldberry.widgets.controls.slider.Slider]'s keyboard map exactly,

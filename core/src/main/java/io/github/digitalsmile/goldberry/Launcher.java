@@ -70,6 +70,56 @@ final class Launcher implements Host {
     /// list that changes has to be one the root *reads* (ADR-0062).
     private final Property<List<Overlay>> overlays = Property.of(List.of());
 
+    /// How a popup was placed, so it can be placed again — see [#replacePopups].
+    ///
+    /// @param anchorId  the id it was anchored to, or null for a rectangle the
+    ///                  caller computed. An id is worth more than a rectangle: it
+    ///                  is re-resolved against the frame the *resize* produced, so
+    ///                  a menu follows a heading that moved rather than staying
+    ///                  where the heading used to be.
+    /// @param anchor    the rectangle it was opened against
+    /// @param placement the side, alignment and gap it was opened with
+    private record Placed(String anchorId, LogicalRect anchor, Placement placement) {}
+
+    /// What [#replacePopups] needs, per open popup.
+    ///
+    /// An `IdentityHashMap` rather than a `Map`, and the declaration is the
+    /// documentation: a `Popup` is looked up by *which popup it is*, and two
+    /// popups over the same anchor are two entries.
+    private final java.util.IdentityHashMap<Popup, Placed> placements = new java.util.IdentityHashMap<>();
+
+    /// Set when the window is resized, acted on at the end of the next paint —
+    /// see [#replacePopups] for why the two are not the same moment.
+    private boolean replaceAfterPaint;
+
+    /// Puts every open popup back where its anchor now is.
+    ///
+    /// Called when the window is resized, which is the one thing that moves an
+    /// anchor without moving the popup with it. A popup lives at an offset from
+    /// its owner, so dragging the window carries it along; the work area it was
+    /// clamped against and the widget it was hanging off both move under a
+    /// resize, and neither told it ([ADR-0231]).
+    ///
+    /// **A move and not a reopen.** `Popup.move` exists for exactly this and is
+    /// cheaper: the tree stays mounted, the keyboard stays where it is, and
+    /// nothing flickers.
+    private void replacePopups() {
+        placements.keySet().removeIf(popup -> !popup.isOpen());
+        for (var entry : List.copyOf(placements.entrySet())) {
+            var popup = entry.getKey();
+            var placed = entry.getValue();
+            var anchor = placed.anchorId() == null
+                    ? placed.anchor()
+                    : anchor(placed.anchorId()).map(HitTest.Region::bounds).orElse(placed.anchor());
+            var at = placed.placement()
+                    .place(anchor, popup.bounds().size(), placeableArea())
+                    .at();
+            if (!at.equals(popup.offset())) {
+                popup.move(at);
+            }
+        }
+    }
+
     /// The popups this window has open. Light-dismissed together on a press or an
     /// `Escape` in the window below them, which is the input their own routers
     /// never see.
@@ -160,7 +210,12 @@ final class Launcher implements Host {
         // §7's tooltip: shown on hover *and* on keyboard focus, after a delay.
         // The router knows when either moved and opens nothing; the launcher owns
         // the window, so it is where the two meet (ADR-0105).
-        router.onPointingChanged(this::pointingChanged);
+        // Held rather than dropped: the registration outlives this line, and a
+        // returned handle nobody keeps is the shape that makes a leak invisible
+        // (ADR-0230). The launcher's own router dies with the launcher, so
+        // closing it is tidiness rather than necessity — and tidiness is what
+        // stops the next caller from thinking it does not have to.
+        pointing = router.onPointingChanged(this::pointingChanged);
 
         // Before `root()`, so an application can open its icons and bind its
         // accelerators and then describe a tree that uses them.
@@ -194,6 +249,13 @@ final class Launcher implements Host {
         render = RenderTree.create();
 
         window.onPaint(this::paint);
+
+        // A popup is positioned as an offset from its owner, so **moving** the
+        // window carries it along and only **resizing** moves what it was
+        // anchored to. Re-placing here is what stops a menu opened at the bottom
+        // of a short window from hanging off a taller one, and what keeps a
+        // right-aligned heading's menu under the heading ([ADR-0231]).
+        window.onResize(resized -> replaceAfterPaint = true);
 
         // A press on nothing, or an Escape, closes whatever is open over this
         // window. Neither reaches a widget, which is why it is watched here
@@ -258,8 +320,13 @@ final class Launcher implements Host {
                     return false;
                 }
                 if (key == io.github.digitalsmile.goldberry.input.key.Key.ESCAPE) {
-                    dismissPopups();
-                    return true;
+                    // **The innermost, not the stack.** A press *outside* a chain
+                    // dismisses the whole thing, because the user pointed at
+                    // something else; `Escape` steps back out of it one menu at a
+                    // time, which is what every desktop does and what makes a
+                    // submenu escapable without losing the menu that opened it
+                    // ([ADR-0233]).
+                    return dismissTopmostPopup();
                 }
                 // While a menu is open the keyboard belongs to it, whether or not
                 // the platform moved focus there — otherwise an arrow would move
@@ -367,6 +434,17 @@ final class Launcher implements Host {
                 LogicalRect.of(0, 0, frame.size().width(), frame.size().height()));
         router.updateRegions(regions);
 
+        // **After the regions**, which is the whole of why this is a flag and not
+        // a call in the resize handler: `anchor(id)` answers from the capture the
+        // last paint produced, and during the resize handler that capture is
+        // still the *old* window's. Re-placing there would put every menu back
+        // where its heading used to be, which is the bug rather than the fix
+        // ([ADR-0231]).
+        if (replaceAfterPaint) {
+            replaceAfterPaint = false;
+            replacePopups();
+        }
+
         // §1.7's "the frame loop is fully idle when no animation is active": ask
         // for another frame *only* while something is moving.
         if (renderer().isAnimating()) {
@@ -420,6 +498,10 @@ final class Launcher implements Host {
     }
 
     // --- context menus ------------------------------------------------------
+
+    /// This launcher's registration for "the hover or the focus moved", closed
+    /// when the window goes ([ADR-0230]).
+    private io.github.digitalsmile.goldberry.bind.Subscription pointing;
 
     /// What an application does when a widget that named a menu is right-clicked
     /// — see [Host#onContextMenu].
@@ -483,15 +565,30 @@ final class Launcher implements Host {
         if (contextMenus == null) {
             return false;
         }
+        // The deepest widget on the walk that can make itself the subject, held
+        // rather than told: a menu that never opens must not move a selection,
+        // because a selection that changed with nothing to show for it is a
+        // gesture with no visible cause (ADR-0224).
+        io.github.digitalsmile.goldberry.input.handler.Selects subject = null;
         for (var node = from;
                 node != null;
                 node = node.parent() instanceof io.github.digitalsmile.goldberry.widget.Element parent
                         ? parent
                         : null) {
+            if (subject == null
+                    && node.widget() instanceof io.github.digitalsmile.goldberry.input.handler.Selects selects) {
+                subject = selects;
+            }
             var named = node.widget() instanceof io.github.digitalsmile.goldberry.widget.attr.Attributed<?> a
                     ? a.attributes().contextMenu()
                     : null;
             if (named != null) {
+                // Before the menu, so the row is already drawn as the selection
+                // in the frame the menu opens over — and so an application
+                // building the menu from its own selection reads the new one.
+                if (subject != null) {
+                    subject.selectForContextMenu();
+                }
                 contextMenus.open(named, anchor);
                 return true;
             }
@@ -692,6 +789,23 @@ final class Launcher implements Host {
         });
     }
 
+    /// Closes the innermost light-dismissed popup — what `Escape` does.
+    ///
+    /// The topmost one that will actually go, which is not always the topmost
+    /// one: a tooltip is `lightDismiss(false)` and refuses, and stopping at it
+    /// would leave `Escape` doing nothing while a menu was open underneath.
+    ///
+    /// @return whether anything closed, which is what makes the key handled
+    private boolean dismissTopmostPopup() {
+        for (var i = popups.size() - 1; i >= 0; i--) {
+            if (popups.get(i).dismissedByInput()) {
+                popups.removeIf(popup -> !popup.isOpen());
+                return true;
+            }
+        }
+        return false;
+    }
+
     /// Closes every light-dismissed popup. Copied first: closing one removes it
     /// from the list it is being iterated over.
     ///
@@ -719,6 +833,14 @@ final class Launcher implements Host {
     /// — closing them the other way round leaves Blend2D reading unmapped memory.
     private void shutDown() {
         hideTooltip();
+        // The registration for "the hover or the focus moved". Given back rather
+        // than left to die with the router, because a returned handle nobody keeps
+        // is the shape that makes a leak invisible — and this is the first caller
+        // of a facility that now hands one out ([ADR-0230]).
+        if (pointing != null) {
+            pointing.close();
+            pointing = null;
+        }
         // Before the window's own trees: a popup holds a render tree of its own
         // over the same fonts, and the fonts go last.
         for (var popup : List.copyOf(popups)) {
@@ -780,6 +902,19 @@ final class Launcher implements Host {
     @Override
     public void shortcut(String accelerator, Runnable action) {
         router.shortcut(accelerator, action);
+    }
+
+    @Override
+    public void modifierTap(
+            io.github.digitalsmile.goldberry.input.tap.ModifierKey modifier, Runnable action, Object owner) {
+        // The window's rather than the router's: a tap is read from the platform
+        // keycode, which is the one thing the router never sees (ADR-0223).
+        window.modifierTaps().bind(modifier, action, owner);
+    }
+
+    @Override
+    public void removeModifierTap(io.github.digitalsmile.goldberry.input.tap.ModifierKey modifier, Object owner) {
+        window.modifierTaps().unbind(modifier, owner);
     }
 
     @Override
@@ -954,6 +1089,10 @@ final class Launcher implements Host {
 
         var placed = placement.place(anchor, size, placeableArea());
         var opened = open(tree, render, new PopupSpec(placed.at(), size, kind));
+        // Remembered so a resize can put it back — see [#replacePopups]. The id
+        // half is filled in by the overloads that were given one, which is the
+        // only place it is known.
+        opened.ifPresent(popup -> placements.put(popup, new Placed(null, anchor, placement)));
         // How it measures itself again when its content changes -- the same two
         // passes and the same `Fit`, so a tree that expands grows the window and
         // gets a viewport when it outgrows the screen (ADR-0186).
@@ -994,7 +1133,14 @@ final class Launcher implements Host {
             LOG.warn("nothing with id \"{}\" has been painted, so there is nothing to anchor to", anchorId);
             return java.util.Optional.empty();
         }
-        return popup(content, anchor.get().bounds(), placement);
+        var opened = popup(content, anchor.get().bounds(), placement);
+        // Upgraded from a rectangle to a **name**, which is what makes a resize
+        // able to follow the anchor rather than merely re-clamp against the new
+        // work area: the id is re-resolved against the frame the resize produced
+        // ([ADR-0231]).
+        opened.ifPresent(popup -> placements.computeIfPresent(
+                popup, (key, placed) -> new Placed(anchorId, placed.anchor(), placed.placement())));
+        return opened;
     }
 
     /// The content's own size, capped at the window's width — in **two passes**,

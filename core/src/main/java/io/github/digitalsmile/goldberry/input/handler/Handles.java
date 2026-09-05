@@ -210,11 +210,17 @@ public interface Handles extends Widget {
     /// bookkeeping to keep in step — the invariant is simply that while a modal
     /// is mounted, the focused node is inside it.
     ///
-    /// **The pointer is not this flag's business.** A dialog is unreachable by
-    /// mouse because its scrim covers the window and takes every press, which is
-    /// what a filling [io.github.digitalsmile.goldberry.Overlay] already does for
-    /// `tour`'s veil — modality by geometry rather than by a rule. This is the
-    /// half geometry cannot express, because the keyboard has no position.
+    /// **The pointer obeys it too**, and used not to. This said "the pointer is
+    /// not this flag's business" and left it to geometry: a dialog is unreachable
+    /// by mouse because its scrim covers the window, which is what a filling
+    /// [io.github.digitalsmile.goldberry.Overlay] already does for `tour`'s veil.
+    /// That is a rule a reviewer has to remember, and a widget that declared
+    /// itself modal without one trapped the keyboard and let every click through.
+    ///
+    /// So it is one flag: while a modal is mounted, the pointer reaches its
+    /// **subtree** and its **ancestors**, and nothing else. The ancestors are the
+    /// point rather than a loophole — a dialog's scrim is the panel's *parent*,
+    /// and a click on it is what closes the dialog ([ADR-0232]).
     ///
     /// The **deepest** modal wins, so a dialog opened from a dialog traps inside
     /// the second one and gives the first back when it closes.

@@ -1,6 +1,7 @@
 package io.github.digitalsmile.goldberry.widgets.panel.collapse;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -181,9 +182,13 @@ class CollapseTest {
         var body = Described.first(tree, CollapseBody.class);
         assertTrue(body.isAnimating());
         // A phase has no beginning until it is asked, so this is its beginning.
-        assertEquals(0, body.visibility().applyAsDouble(5000), 1e-9);
-        assertEquals(0.5, body.visibility().applyAsDouble(5080), 1e-9);
-        assertEquals(1, body.visibility().applyAsDouble(5160), 1e-9);
+        assertEquals(0, body.phase().progressAt(5000), 1e-9);
+        assertEquals(0.5, body.phase().progressAt(5080), 1e-9);
+        assertEquals(1, body.phase().progressAt(5160), 1e-9);
+        // And it settles itself on the frame that finishes it, which is what
+        // takes the window back out of the frame loop. Before [ADR-0228] this
+        // answered "is the section open" and stayed true for ever.
+        assertFalse(body.isAnimating(), "an arrived section is still asking for frames");
     }
 
     /// A section that was **declared** open has nothing to arrive from: it was
@@ -194,7 +199,9 @@ class CollapseTest {
     void startedOpenDoesNotAnimate() {
         var tree = new ElementTree(new Collapse("Advanced", true, null, new Text("Body")));
 
-        assertEquals(1, Described.first(tree, CollapseBody.class).visibility().applyAsDouble(0), 1e-9);
+        var body = Described.first(tree, CollapseBody.class);
+        assertEquals(1, body.phase().progressAt(0), 1e-9);
+        assertFalse(body.isAnimating(), "a section that never moved is asking for frames");
     }
 
     @Test

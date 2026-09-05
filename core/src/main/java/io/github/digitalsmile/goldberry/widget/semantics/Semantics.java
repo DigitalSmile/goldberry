@@ -37,4 +37,20 @@ public interface Semantics {
     default @Nullable String accessibleName() {
         return null;
     }
+
+    /// Whether this widget's arrival is worth interrupting a reader for — §7's
+    /// **live region**.
+    ///
+    /// [Live#OFF] for everything a user reaches, which is why it is the default:
+    /// a button is read when the focus lands on it, and the focus landing is the
+    /// event. A `toast` has no such event — nobody focuses it, nobody clicks it,
+    /// and it goes away on its own — so it is the one thing in the catalog whose
+    /// *appearing* is the whole announcement (ADR-0225).
+    ///
+    /// Answered on the widget rather than derived from [#role()], because the two
+    /// are independent: the same role can be live in one place and not in
+    /// another, and a role that implied it would make the choice unspellable.
+    default Live live() {
+        return Live.OFF;
+    }
 }

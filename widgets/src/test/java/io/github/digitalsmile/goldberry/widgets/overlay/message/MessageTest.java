@@ -3,6 +3,7 @@ package io.github.digitalsmile.goldberry.widgets.overlay.message;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -14,7 +15,9 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 import io.github.digitalsmile.goldberry.RendererRequirement;
+import io.github.digitalsmile.goldberry.bind.Property;
 import io.github.digitalsmile.goldberry.bind.registry.ActionRegistry;
+import io.github.digitalsmile.goldberry.bind.registry.BindingRegistry;
 import io.github.digitalsmile.goldberry.css.Theme;
 import io.github.digitalsmile.goldberry.input.event.KeyEvent;
 import io.github.digitalsmile.goldberry.input.event.PointerEvent;
@@ -23,8 +26,10 @@ import io.github.digitalsmile.goldberry.input.key.Modifiers;
 import io.github.digitalsmile.goldberry.kdl.KdlParser;
 import io.github.digitalsmile.goldberry.paint.Box;
 import io.github.digitalsmile.goldberry.widget.ElementTree;
+import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widget.WidgetRenderer;
 import io.github.digitalsmile.goldberry.widgets.Controls;
+import io.github.digitalsmile.goldberry.widgets.Icons;
 import io.github.digitalsmile.goldberry.widgets.TestHost;
 import io.github.digitalsmile.goldberry.widgets.Widgets;
 import io.github.digitalsmile.goldberry.widgets.controls.TestFont;
@@ -374,6 +379,107 @@ class MessageTest {
                     "Name is required\nPort must be a number",
                     summary.text(),
                     "four failures should be four lines of one banner, not four banners");
+        }
+    }
+
+    @Nested
+    @DisplayName("bound to a value")
+    class Bound {
+
+        /// §9's `bind=`, and the reason it took until [ADR-0227]: a banner bound
+        /// to an empty string would have been *present and empty* — a bordered
+        /// box with 12px of padding saying nothing — and §8's subset has no
+        /// `display`, so no widget could take itself out of a layout. The element
+        /// tree has the word now.
+        @Test
+        @DisplayName("a bound banner says what the value says")
+        void readsTheValue() {
+            var error = Property.of("The port is in use.");
+            var tree = new ElementTree(new Message(Message.Kind.DANGER, "").bound(error), new TestHost());
+
+            assertEquals(
+                    "The port is in use.",
+                    Described.first(tree, MessageBox.class).text());
+        }
+
+        @Test
+        @DisplayName("a bound banner with nothing to say is not there at all")
+        void emptyIsAbsent() {
+            var error = Property.of("");
+            var tree = new ElementTree(new Message(Message.Kind.DANGER, "").bound(error), new TestHost());
+
+            assertTrue(
+                    Described.of(tree, MessageBox.class).isEmpty(),
+                    "an empty banner is a bordered box with 12px of padding saying nothing");
+        }
+
+        /// The whole point of doing this with a widget rather than by describing
+        /// the banner away from outside: the element is still there, so the value
+        /// coming back is a value change and not a node being rebuilt.
+        @Test
+        @DisplayName("it comes back when the value does")
+        void returnsWithTheValue() {
+            var error = Property.of("");
+            var tree = new ElementTree(new Message(Message.Kind.DANGER, "").bound(error), new TestHost());
+            assertTrue(Described.of(tree, MessageBox.class).isEmpty());
+
+            error.set("Could not save.");
+            tree.flush();
+
+            assertEquals(
+                    "Could not save.", Described.first(tree, MessageBox.class).text());
+        }
+
+        /// **Not** a fallback for a blank value, only for no binding at all. An
+        /// application whose error property is empty means "there is no error",
+        /// and showing the document's placeholder words instead would be a banner
+        /// reporting a problem that has gone away.
+        @Test
+        @DisplayName("the words in the document are the fallback for no binding, not for a blank one")
+        void textIsNotAFallbackForBlank() {
+            var unbound = new Message(Message.Kind.INFO, "Written in the document");
+            assertEquals("Written in the document", unbound.resolved());
+
+            var bound = unbound.bound(Property.of(""));
+            assertEquals("", bound.resolved());
+        }
+
+        @Test
+        @DisplayName("the element follows the binding, exactly as every other bound widget does")
+        void subscribes() {
+            var error = Property.of("x");
+            new ElementTree(new Message(Message.Kind.DANGER, "").bound(error), new TestHost());
+
+            assertEquals(1, error.listenerCount());
+        }
+
+        @Test
+        @DisplayName("a nothing is what it describes, so the tree still holds the element")
+        void describesNothing() {
+            var tree = new ElementTree(new Message(Message.Kind.DANGER, "").bound(Property.of("")), new TestHost());
+
+            assertTrue(
+                    Described.of(tree, MessageBox.class).isEmpty(),
+                    "the banner drew itself when it had nothing to say");
+            assertSame(
+                    Widget.nothing(),
+                    tree.root().children().getFirst().widget(),
+                    "the element under the message should describe nothing");
+        }
+
+        @Test
+        @DisplayName("markup names a path and the registry resolves it")
+        void fromMarkup() {
+            var error = Property.of("Port in use.");
+            var bindings = BindingRegistry.strict().bind("form.error", error);
+
+            var message = assertInstanceOf(
+                    Message.class,
+                    Widgets.inflater(ActionRegistry.none(), Icons.none(), bindings)
+                            .inflateAll(KdlParser.parse("message kind=\"danger\" bind=\"form.error\""))
+                            .getFirst());
+
+            assertEquals("Port in use.", message.resolved());
         }
     }
 

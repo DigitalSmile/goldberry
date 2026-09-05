@@ -80,4 +80,14 @@ public enum Role {
 
     /// A window-like layer over the rest: a dialog, a tour stop.
     DIALOG,
+
+    /// A region that reports **what just happened** rather than what is true —
+    /// a `toast`.
+    ///
+    /// Distinct from [#GROUP] and from [#DIALOG], and neither of those would do:
+    /// a group is a boundary with content in it, a dialog is something the user
+    /// is in until they leave it, and a notification is neither. It is a sentence
+    /// that appears, is read, and goes. Paired with [Live#POLITE], which is the
+    /// half that says an appearance is worth speaking (ADR-0225).
+    STATUS,
 }

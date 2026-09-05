@@ -357,10 +357,22 @@ public record Item(
             // row is rarely the one with the icon
             // (ADR-0148).
             //
-            // The cost is `option`'s, documented there and taken for the same
-            // reason: a label longer than the room for it overflows, because
-            // nothing in this toolkit clips. A menu one word too wide is legible;
-            // a menu of two-line rows is not.
+            // **It does not shrink**, and a menu row is the place that matters.
+            // A box with text is a measured leaf, so a row squeezed narrower than
+            // its content does not clip the label -- it *wraps* it, and a
+            // two-line label in a fixed-height row is centred to the row's top
+            // edge. That is what "the item after the iconed one is aligned to the
+            // top" turned out to be: the widest row wraps first, and the widest
+            // row is rarely the one with the icon
+            // (ADR-0148).
+            //
+            // Clipping it instead was tried and does not work, which is worth
+            // knowing: `overflow: hidden` exists (ADR-0114) and a clip box around
+            // the text does shrink -- and the text inside it, being a *measured*
+            // leaf, is then re-measured at the narrower width and wraps again.
+            // What a cut label actually needs is `white-space: nowrap`, so the
+            // paragraph is measured at its natural width whatever it is given,
+            // and §8's subset has no such property (ADR-0235).
             content.add(Box.text(context.paragraph(style, label), style.color()).shrink(0));
         }
         // Grows, so everything after it is pushed to the far edge.

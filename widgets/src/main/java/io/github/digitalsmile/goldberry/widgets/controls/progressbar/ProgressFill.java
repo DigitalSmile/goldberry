@@ -34,11 +34,15 @@ import io.github.digitalsmile.goldberry.widget.style.Styled;
 ///
 /// It travels **there and back within the track**, rather than off one end and in
 /// at the other. The off-the-edges version is the more common drawing and it
-/// depends on something this toolkit does not have: `overflow: hidden`. Nothing
-/// clips a box here, so a bar that ran past its track would be drawn across
-/// whatever is beside it — and the wrap from one end to the other, which
-/// clipping is what hides, would be a visible jump once a loop. A bar that
+/// depends on clipping: a bar that ran past its track would otherwise be drawn
+/// across whatever is beside it, and the wrap from one end to the other — which
+/// clipping is what hides — would be a visible jump once a loop. A bar that
 /// reverses has no wrap to hide.
+///
+/// This used to say the toolkit had no `overflow: hidden`, and that has been
+/// untrue since ADR-0114. What is left is a choice rather than a limit: the
+/// off-the-edges sweep would work now, and changing a shipped animation to a
+/// different drawing is a design decision and not a bug fix (ADR-0235).
 ///
 /// The offset is a percentage, and a percentage inside `translate` is a
 /// proportion of the **moving box**. That is CSS's rule, it is exactly what is

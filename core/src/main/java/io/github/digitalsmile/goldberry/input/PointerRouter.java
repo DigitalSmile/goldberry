@@ -10,6 +10,7 @@ import java.util.function.Consumer;
 
 import org.jspecify.annotations.Nullable;
 
+import io.github.digitalsmile.goldberry.bind.Subscription;
 import io.github.digitalsmile.goldberry.css.select.Selector.PseudoClass;
 import io.github.digitalsmile.goldberry.input.event.KeyEvent;
 import io.github.digitalsmile.goldberry.input.event.PointerEvent;
@@ -125,6 +126,12 @@ public final class PointerRouter {
     /// Replaces the hit-test snapshot, normally right after a frame is painted.
     public void updateRegions(List<HitTest.Region> regions) {
         this.regions = List.copyOf(Objects.requireNonNull(regions, "regions"));
+        // Found once per frame and kept beside the regions, which is the same
+        // rule ADR-0054 already states for hit testing: input is answered against
+        // the frame that was painted, so the tree it was painted from is the tree
+        // to ask. Walking for a modal on every pointer motion would be a tree walk
+        // per mouse move ([ADR-0232]).
+        modal = deepestModal(focusRoot);
         refocus();
         notifyMeasured();
         notifyLocated();
@@ -332,26 +339,45 @@ public final class PointerRouter {
     }
 
     /// Told when the hovered or the focused node changes — see [#onPointingChanged].
-    private @Nullable Runnable pointingListener;
+    ///
+    /// A `CopyOnWriteArrayList` for one reason and it is not threads: a listener
+    /// may cancel itself, or another, from inside a notification, and iterating a
+    /// snapshot is what makes that safe without a copy per notification. Hovers
+    /// are frequent and registrations are not.
+    private final List<Runnable> pointingListeners = new java.util.concurrent.CopyOnWriteArrayList<>();
 
     /// Called when the pointer moves to a different node, or focus does.
     ///
-    /// **One listener, and it is the launcher's.** What needs this is the thing
-    /// that opens a `tooltip`: `docs/core-widgets.md` §7 attaches one by attribute
-    /// to any widget and shows it "on hover *and on keyboard focus* after delay",
-    /// so something above the router has to know when either moved and start a
-    /// timer. The router itself opens nothing — it has no window and no notion of
-    /// one ([ADR-0105]).
+    /// The first caller was the thing that opens a `tooltip`:
+    /// `docs/core-widgets.md` §7 attaches one by attribute to any widget and shows
+    /// it "on hover *and on keyboard focus* after delay", so something above the
+    /// router has to know when either moved and start a timer. The router itself
+    /// opens nothing — it has no window and no notion of one ([ADR-0105]).
     ///
-    /// Not a list: a second listener would be a second thing deciding what a
-    /// hover means, and there is exactly one.
-    public void onPointingChanged(Runnable listener) {
-        this.pointingListener = listener;
+    /// ## Every listener is told, and none can stop another
+    ///
+    /// This was one slot, which made a second registration silently drop the
+    /// first. The question that kept it a slot was what it means for two things to
+    /// react to one hover, and the answer is that **this is a notification and not
+    /// an event**: there is nothing to consume, no order that matters, and no way
+    /// for one listener to change what another sees. Each is told and reads
+    /// [#hovered()] or [#focused()] for itself.
+    ///
+    /// An event — one that could be consumed, or that carried a target — would be
+    /// the thing worth refusing, because then a second listener really would be a
+    /// second thing deciding what a hover means ([ADR-0230]).
+    ///
+    /// @return a registration to close; a listener that outlives what it points at
+    ///         is the leak this exists to prevent
+    public Subscription onPointingChanged(Runnable listener) {
+        Objects.requireNonNull(listener, "listener");
+        pointingListeners.add(listener);
+        return () -> pointingListeners.remove(listener);
     }
 
     private void notifyPointing() {
-        if (pointingListener != null) {
-            pointingListener.run();
+        for (var listener : pointingListeners) {
+            listener.run();
         }
     }
 
@@ -437,8 +463,13 @@ public final class PointerRouter {
         updateHover(target, x, y);
         if (target == null) {
             // A press on nothing still moves focus off whatever had it, which is
-            // what clicking the background is for.
-            focus(null, false);
+            // what clicking the background is for -- **unless a modal is in
+            // force**, where "nothing" is the application behind the dialog and
+            // dropping focus there would empty a trap the next frame has to
+            // refill ([ADR-0232]).
+            if (modal == null) {
+                focus(null, false);
+            }
             return;
         }
 
@@ -1019,6 +1050,47 @@ public final class PointerRouter {
         return element.widget() instanceof Handles handles && handles.isModal() ? element : null;
     }
 
+    /// The modal in force for the frame that was last painted, or null.
+    ///
+    /// Refreshed by [#updateRegions] beside the regions themselves, for the
+    /// reason those exist: input is answered against the frame the user can see,
+    /// so the tree that frame came from is the tree to ask ([ADR-0054]).
+    private @Nullable Element modal;
+
+    /// Whether the **pointer** may reach `element`.
+    ///
+    /// Modality used to be two unrelated mechanisms: [Handles#isModal] trapped
+    /// the keyboard, and the pointer was blocked by a `dialog`'s scrim happening
+    /// to cover the window — "modality by geometry", as `Handles` put it. So a
+    /// modal without a scrim trapped the keyboard and let every click through,
+    /// and nothing said so ([ADR-0232]).
+    ///
+    /// The rule is one flag now: **while a modal is mounted, the pointer reaches
+    /// its subtree and its ancestors, and nothing else.**
+    ///
+    /// The ancestors are not a loophole, they are the point: a `dialog`'s scrim
+    /// is the panel's *parent*, and a click on it is what closes the dialog. An
+    /// ancestor is on the path between the modal and the root — a path, not a
+    /// subtree — so a button in the application is neither, and is unreachable.
+    private boolean isPointable(Element element) {
+        if (modal == null) {
+            return true;
+        }
+        // Inside it.
+        for (var current = element; current != null; current = parentOf(current)) {
+            if (current == modal) {
+                return true;
+            }
+        }
+        // Or on the path from it to the root.
+        for (var current = modal; current != null; current = parentOf(current)) {
+            if (current == element) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     /// Whether `element` is inside the modal that currently has the keyboard —
     /// vacuously true when nothing is modal.
     private boolean isReachable(Element element) {
@@ -1190,10 +1262,22 @@ public final class PointerRouter {
 
     // --- internals ---------------------------------------------------------
 
+    /// The topmost painted region's element at `(x, y)`, or null.
+    ///
+    /// **Topmost, and that is the overlay rule.** [HitTest#at] scans the capture
+    /// backwards, and the capture is in paint order — so whatever was drawn last
+    /// answers first. The window's overlay layer is painted after the
+    /// application's root ([io.github.digitalsmile.goldberry.widget.root.WindowRoot]),
+    /// so a button in a `toast` takes the pointer from whatever is under it
+    /// without either of them knowing about the other. It used to be true and
+    /// unwritten; it is the rule now ([ADR-0232]).
+    ///
+    /// **And nothing outside a modal is here at all.** See [#isPointable].
     private @Nullable Element elementAt(float x, float y) {
         return HitTest.at(regions, x, y)
                 .filter(Element.class::isInstance)
                 .map(Element.class::cast)
+                .filter(this::isPointable)
                 .orElse(null);
     }
 

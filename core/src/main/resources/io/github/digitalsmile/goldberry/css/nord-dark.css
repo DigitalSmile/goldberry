@@ -146,6 +146,27 @@
   /* --nord11 at 66% lightness: 3.53:1 on --nord1, where --nord11 is 2.46:1. */
   --gb-danger-line: #ce858c;
 
+  /* The hue at a lightness you can **write words** with — the fourth rank, and
+     the one the `-line` rank turned out not to cover (ADR-0229).
+
+     `-line` is a 3:1 rank by construction, because §1.2's floor for a glyph or a
+     border is 3:1. Several widgets draw a semantic hue as *text* — a
+     `field-message`, a `statistic`'s delta, a chart's failure line — and text is
+     4.5:1. Measured, `--gb-danger` is 2.46:1 on `--gb-surface` and `-line` is
+     3.53:1: both below the floor for the thing they were being used for.
+
+     Derived the way the other ranks are: the same Nord hue and saturation, moved
+     in lightness until the **worst** of the three surfaces a window paints
+     clears, with the measurement written beside it. Only the yellow already
+     carries — a dark theme's trouble is the dark end of the palette. */
+  /* --nord9 at 75% lightness: 4.61:1 on --nord2, where --nord9 is 3.21:1. */
+  --gb-info-text: #aac0d5;
+  /* --nord14 at 68% lightness: 4.56:1 on --nord2, where --nord14 is 4.23:1. */
+  --gb-success-text: #acc497;
+  --gb-warning-text: var(--gb-warning);
+  /* --nord11 at 78% lightness: 4.56:1 on --nord2, where --gb-danger-line is 3.02:1. */
+  --gb-danger-text: #dfb1b5;
+
   /* --- chart series (charts.md §2, ADR-0194) -----------------------------
      The same eight hue angles as the light theme at **their own lightness**, not
      a flip of it: at L 0.62 every slot measures 2.57--2.9:1 on --gb-surface,
@@ -475,4 +496,18 @@
   --gb-hud-border: #ffffff26;
   --gb-hud-text: #eceff4;
   --gb-hud-text-muted: #a3adbe;
+
+  /* The two readings §1.2 lets a HUD colour, on the HUD's own plate rather than
+     on the theme's surface (ADR-0229).
+
+     Their own tokens for the reason every other `--gb-hud-*` has one: the plate
+     is the same in both themes, so a theme-varying hue is the wrong thing to draw
+     on it — the light theme's danger is a *dark* red, and a dark red on a
+     near-black plate is not a warning, it is an absence. Measured against
+     `#1c212a`, which is the plate with its 90% alpha taken off: the yellow is
+     10.34:1 and `--gb-danger` was **3.95:1**, below §1.2's 4.5:1 for text, which
+     is what the `--gb-*-line` survey found here. */
+  --gb-hud-warning: #ebcb8b;
+  /* --nord11 at 66% lightness: 5.66:1 on the plate, where --nord11 is 3.95:1. */
+  --gb-hud-danger: #ce858c;
 }

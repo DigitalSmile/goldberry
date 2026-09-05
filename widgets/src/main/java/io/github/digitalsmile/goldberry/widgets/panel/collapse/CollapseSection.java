@@ -23,7 +23,7 @@ record CollapseSection(
         String title,
         boolean open,
         Runnable onToggle,
-        java.util.function.DoubleUnaryOperator visibility,
+        io.github.digitalsmile.goldberry.widgets.core.Phase phase,
         List<Widget> body,
         Attributes attributes)
         implements Widget.Leaf, Styled, Paints {
@@ -53,6 +53,24 @@ record CollapseSection(
         return Set.copyOf(all);
     }
 
+    /// Whether the body below is on its way in.
+    ///
+    /// The node that *carries* the phase answers for it as well as the node that
+    /// draws with it. The renderer ORs `isAnimating` over the whole tree, so this
+    /// changes no behaviour — what it buys is that `AnimationSweepTest`'s rule
+    /// stays sharp: a widget holding a [io.github.digitalsmile.goldberry.widgets.core.Phase]
+    /// answers the frame loop, with no exception for "it hands it to a child"
+    /// that nothing could check ([ADR-0228]).
+    ///
+    /// **Guarded by `open`**, and that guard is the bug in miniature: a section
+    /// closed half way through its arrival keeps an `ENTERING` phase that nothing
+    /// will ever read again, so nothing will ever settle it. A shut section has
+    /// no body and animates nothing whatever its phase remembers.
+    @Override
+    public boolean isAnimating() {
+        return open && phase.isRunning();
+    }
+
     /// The header, and the body only when it is showing.
     ///
     /// The body is a node of its own rather than the children going straight in,
@@ -63,7 +81,7 @@ record CollapseSection(
         var parts = new ArrayList<Widget>(2);
         parts.add(new CollapseHeader(title, open, onToggle));
         if (open) {
-            parts.add(new CollapseBody(body, visibility));
+            parts.add(new CollapseBody(body, phase));
         }
         return List.copyOf(parts);
     }

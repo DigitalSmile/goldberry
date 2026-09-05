@@ -1,5 +1,6 @@
 package io.github.digitalsmile.goldberry.widgets.arch;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -134,6 +135,38 @@ class SemanticsSweepTest {
                 found >= 25,
                 () -> "only " + found + " widgets implement Semantics; the sweep is probably"
                         + " reading the wrong source tree rather than the catalog having shrunk");
+    }
+
+    /// §7's live region, as a rule rather than as a convention ([ADR-0225]).
+    ///
+    /// The value of `Live` is entirely in its **rarity**: a reader that is
+    /// interrupted by everything is a reader nobody leaves on. So the rule is not
+    /// "the toast is live" — that is `ToastTest`'s — but that *only* the toast is,
+    /// checked over the whole catalog. A widget added later that decides it also
+    /// deserves interrupting has to come here and say why.
+    @Test
+    @DisplayName("exactly one widget in the catalog is a live region")
+    void onlyOneLiveRegion() throws Exception {
+        var live = new ArrayList<String>();
+        for (var type : catalogClasses()) {
+            if (type.isInterface()
+                    || Modifier.isAbstract(type.getModifiers())
+                    || !Semantics.class.isAssignableFrom(type)) {
+                continue;
+            }
+            for (var method : type.getDeclaredMethods()) {
+                if (method.getName().equals("live") && method.getParameterCount() == 0) {
+                    live.add(type.getSimpleName());
+                }
+            }
+        }
+
+        assertEquals(
+                List.of("ToastBox"),
+                live,
+                () -> "these widgets announce themselves over whatever a reader is in the middle of."
+                        + " A toast is the one thing in the catalog whose *appearing* is the whole"
+                        + " event; anything else is reached, and is read when it is reached.");
     }
 
     @Test

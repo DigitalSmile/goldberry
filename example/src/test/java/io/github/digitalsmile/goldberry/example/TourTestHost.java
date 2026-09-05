@@ -75,6 +75,13 @@ record TourTestHost(List<HitTest.Region> regions) implements Host {
     public void removeShortcut(String accelerator) {}
 
     @Override
+    public void modifierTap(
+            io.github.digitalsmile.goldberry.input.tap.ModifierKey modifier, Runnable action, Object owner) {}
+
+    @Override
+    public void removeModifierTap(io.github.digitalsmile.goldberry.input.tap.ModifierKey modifier, Object owner) {}
+
+    @Override
     public LogicalRect placeableArea() {
         return LogicalRect.of(0, 0, 900, 560);
     }

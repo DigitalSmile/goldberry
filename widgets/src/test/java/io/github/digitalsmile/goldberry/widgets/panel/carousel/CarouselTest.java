@@ -429,10 +429,12 @@ class CarouselTest {
             var viewport = Described.first(tree, CarouselView.CarouselViewport.class);
 
             assertEquals(
-                    1,
-                    viewport.visibility().applyAsDouble(0),
-                    1e-9,
-                    "nothing has moved, so the first slide is fully arrived");
+                    1, viewport.phase().progressAt(0), 1e-9, "nothing has moved, so the first slide is fully arrived");
+            // The claim in the sentence above, as an assertion. It used to be
+            // false: the viewport was handed a function of the clock that was
+            // never null, so `isAnimating` answered true for ever and a window
+            // with a carousel on it never went idle ([ADR-0228]).
+            assertFalse(viewport.isAnimating(), "a settled carousel is still asking for frames");
         }
 
         /// The arriving slide starts invisible and ends visible, and the clock is
@@ -447,9 +449,11 @@ class CarouselTest {
 
             // 5000 is an arbitrary "now": a phase has no beginning until it is
             // asked, so this is its beginning.
-            assertEquals(0, arriving.visibility().applyAsDouble(5000), 1e-9);
-            assertEquals(0.5, arriving.visibility().applyAsDouble(5080), 1e-9);
-            assertEquals(1, arriving.visibility().applyAsDouble(5160), 1e-9);
+            assertTrue(arriving.isAnimating(), "an arriving slide asks for the frames to arrive in");
+            assertEquals(0, arriving.phase().progressAt(5000), 1e-9);
+            assertEquals(0.5, arriving.phase().progressAt(5080), 1e-9);
+            assertEquals(1, arriving.phase().progressAt(5160), 1e-9);
+            assertFalse(arriving.isAnimating(), "the frame that finished the arrival did not end it");
         }
 
         /// Going forwards the new slide comes in from the right, which moves the
@@ -495,12 +499,23 @@ class CarouselTest {
         /// §1.7 asks for movement to be *removed* rather than shortened, so
         /// there is no animation at all — the slide is simply there.
         @Test
-        @DisplayName("a viewport that can animate says so, and one that cannot does not")
+        @DisplayName("a viewport animates while a slide is arriving, and not before")
         void animating() {
             var tree = new ElementTree(carousel(0, false, null, 3));
 
+            // This used to assert the opposite, and the opposite was the bug: a
+            // carousel nobody had touched reported an animation, so §1.7's "the
+            // frame loop is fully idle when no animation is active" was false for
+            // any window with one on it ([ADR-0228]).
+            assertFalse(
+                    Described.first(tree, CarouselView.CarouselViewport.class).isAnimating(),
+                    "nothing has moved and it is asking for frames");
+
+            key(tree, Key.RIGHT);
+
             assertTrue(
-                    Described.first(tree, CarouselView.CarouselViewport.class).isAnimating());
+                    Described.first(tree, CarouselView.CarouselViewport.class).isAnimating(),
+                    "a slide is arriving and nothing will ask for the frames to draw it");
         }
     }
 

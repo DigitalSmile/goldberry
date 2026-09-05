@@ -51,7 +51,11 @@ final class CollapseState extends State<Collapse> {
                 collapse.title(),
                 showing,
                 this::toggle,
-                showing ? this::visibility : null,
+                // The phase itself, not a function of the clock: a phase settles
+                // itself on the frame that finishes it, and a `showing ? … : null`
+                // made `isAnimating` answer "is the section open" instead
+                // ([ADR-0228]).
+                arriving,
                 // **The body is not built while it is shut.** Not built and
                 // handed to something that hides it -- the list is empty, so the
                 // element layer never mounts it, its bindings never subscribe,
@@ -77,13 +81,5 @@ final class CollapseState extends State<Collapse> {
             return;
         }
         setState(() -> open = next);
-    }
-
-    /// How far into its arrival the body is at `now`, `0..1`.
-    ///
-    /// Read from `render`, which is what stamps the beginning: a `State` never
-    /// sees the frame clock.
-    private double visibility(double now) {
-        return arriving.progressAt(now);
     }
 }

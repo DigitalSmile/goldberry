@@ -9,6 +9,7 @@ import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 
 import io.github.digitalsmile.goldberry.input.key.Modifiers;
+import io.github.digitalsmile.goldberry.input.tap.ModifierTaps;
 import io.github.digitalsmile.goldberry.log.Logs;
 import io.github.digitalsmile.goldberry.log.Startup;
 import io.github.digitalsmile.goldberry.paint.Frame;
@@ -527,6 +528,23 @@ public final class Window implements AutoCloseable {
         }
     }
 
+    /// See [#modifierTaps()].
+    private final ModifierTaps modifierTaps = new ModifierTaps();
+
+    /// The taps of a bare modifier key this window recognises (ADR-0223).
+    ///
+    /// Here rather than on the router because the rule is written in **platform
+    /// keycodes**: `Key` names no modifier, so `Alt` reaches the router as
+    /// `Key.UNKNOWN` and is indistinguishable there from every letter that
+    /// arrives as text. This is the last place the distinction exists.
+    ///
+    /// Package-private for the same reason [#inputWatcher(InputWatcher)] is: an
+    /// application registers one through [Host#modifierTap], which is where the
+    /// ownership rule that makes it safe for a widget to bind lives.
+    ModifierTaps modifierTaps() {
+        return modifierTaps;
+    }
+
     /// Where pointer events go.
     ///
     /// Null until an application asks for one. A window with no router does the
@@ -585,6 +603,9 @@ public final class Window implements AutoCloseable {
     }
 
     void handlePointerPressed(float x, float y, int button, int clickCount, int modifiers) {
+        // A press ends whatever keyboard gesture was in progress: `Alt` down,
+        // click, `Alt` up is a modified click and not a tap (ADR-0223).
+        modifierTaps.interrupted();
         // Before the router, and unconditionally: light dismissal needs to know a
         // press happened *anywhere* in this window, and the router cannot say so
         // — it dispatches to the widget under the pointer, and a press on nothing
@@ -608,6 +629,9 @@ public final class Window implements AutoCloseable {
     }
 
     void handlePointerWheel(float x, float y, float deltaX, float deltaY, int ticksX, int ticksY, int modifiers) {
+        // `Alt`+wheel is a gesture on three platforms, so the wheel spoils a tap
+        // exactly as a press does.
+        modifierTaps.interrupted();
         if (router != null) {
             router.pointerWheel(x, y, deltaX, deltaY, ticksX, ticksY, Modifiers.fromSdl(modifiers));
         }
@@ -627,6 +651,10 @@ public final class Window implements AutoCloseable {
 
     void handleFocusChanged(boolean value) {
         focused = value;
+        // The `Alt` that reached the compositor's window switcher comes back as a
+        // release this window never saw the press of. Firing on it would open a
+        // menu on the way *back* from another application (ADR-0223).
+        modifierTaps.interrupted();
     }
 
     void handlePointerExited() {
@@ -651,6 +679,10 @@ public final class Window implements AutoCloseable {
     }
 
     void handleKeyPressed(int keycode, int modifiers, boolean repeat) {
+        // Before the watcher and before the router, and told the **raw** keycode:
+        // what arms a tap is a modifier going down, and what disarms one is any
+        // other key doing so — including the keys a popup swallows (ADR-0223).
+        modifierTaps.keyPressed(keycode, repeat);
         if (inputWatcher != null
                 && inputWatcher.keyPressed(
                         io.github.digitalsmile.goldberry.input.key.Key.fromSdl(keycode),
@@ -669,6 +701,11 @@ public final class Window implements AutoCloseable {
     }
 
     void handleKeyReleased(int keycode, int modifiers) {
+        // Fired before the release is dispatched, and the release is dispatched
+        // either way: a widget that tracks a held modifier — a slider snapping
+        // while `Shift` is down — has to see the key come up whether or not the
+        // gesture was also a tap.
+        modifierTaps.keyReleased(keycode);
         if (router != null) {
             router.keyReleased(
                     io.github.digitalsmile.goldberry.input.key.Key.fromSdl(keycode),

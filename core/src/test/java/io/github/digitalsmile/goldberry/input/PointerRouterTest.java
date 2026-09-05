@@ -428,6 +428,104 @@ class PointerRouterTest {
     }
 
     @Nested
+    @DisplayName("who is told the pointing moved")
+    class Pointing {
+
+        /// The bug the list fixes, and it is the one a slot always has: the
+        /// second registration silently replaced the first, so a second consumer
+        /// of "the hover moved" would have turned the tooltip off and nothing
+        /// would have said so ([ADR-0230]).
+        @Test
+        @DisplayName("two listeners are both told")
+        void bothAreTold() {
+            var told = new ArrayList<String>();
+            router.onPointingChanged(() -> told.add("first"));
+            router.onPointingChanged(() -> told.add("second"));
+
+            router.pointerMoved(30, 30);
+
+            assertEquals(List.of("first", "second"), told);
+        }
+
+        /// It is a **notification**, not an event: there is nothing to consume,
+        /// so a listener that throws is the only way one can affect another — and
+        /// that is a bug in the listener rather than a policy this has to have.
+        @Test
+        @DisplayName("each listener reads the router for itself rather than being handed a target")
+        void listenersReadTheRouter() {
+            var seen = new ArrayList<Element>();
+            router.onPointingChanged(() -> seen.add(router.hovered()));
+
+            router.pointerMoved(30, 30);
+
+            assertEquals(List.of(inner), seen);
+        }
+
+        @Test
+        @DisplayName("a closed registration stops being told, and the others carry on")
+        void closingStops() {
+            var told = new ArrayList<String>();
+            var first = router.onPointingChanged(() -> told.add("first"));
+            router.onPointingChanged(() -> told.add("second"));
+
+            router.pointerMoved(30, 30);
+            first.close();
+            router.pointerMoved(70, 70);
+
+            assertEquals(List.of("first", "second", "second"), told);
+        }
+
+        /// Closing twice is a no-op, which [io.github.digitalsmile.goldberry.bind.Subscription]
+        /// requires: a state that unsubscribes in `dispose()` and a caller that
+        /// unsubscribes itself must not fight.
+        @Test
+        @DisplayName("closing twice is harmless")
+        void closingTwice() {
+            var told = new ArrayList<String>();
+            var only = router.onPointingChanged(() -> told.add("x"));
+
+            only.close();
+            only.close();
+            router.pointerMoved(30, 30);
+
+            assertEquals(List.of(), told);
+        }
+
+        /// The reason the list is copy-on-write, and it is not threads: a
+        /// tooltip's listener that cancels itself the moment it fires would
+        /// otherwise mutate the list being walked.
+        @Test
+        @DisplayName("a listener may cancel itself from inside the notification")
+        void selfCancelling() {
+            var told = new ArrayList<String>();
+            var handle = new io.github.digitalsmile.goldberry.bind.Subscription[1];
+            handle[0] = router.onPointingChanged(() -> {
+                told.add("once");
+                handle[0].close();
+            });
+            router.onPointingChanged(() -> told.add("after"));
+
+            router.pointerMoved(30, 30);
+            router.pointerMoved(70, 70);
+
+            assertEquals(List.of("once", "after", "after"), told);
+        }
+
+        /// Focus counts as pointing moving — §7 shows a tooltip "on hover *and on
+        /// keyboard focus*", so both have to reach the same listeners.
+        @Test
+        @DisplayName("focus moving tells them too, not only the pointer")
+        void focusCounts() {
+            var told = new ArrayList<String>();
+            router.onPointingChanged(() -> told.add("moved"));
+
+            router.focus(inner, true);
+
+            assertEquals(List.of("moved"), told);
+        }
+    }
+
+    @Nested
     @DisplayName("restyle bookkeeping")
     class Restyling {
 

@@ -232,6 +232,20 @@
 - [ADR-0220 An accelerator is given back by whoever took it](adr/0220-an-accelerator-is-given-back-by-whoever-took-it.md)
 - [ADR-0221 A window may open maximized](adr/0221-a-window-may-open-maximized.md)
 - [ADR-0222 A showcase is a window, a bar and seven screens](adr/0222-a-showcase-is-a-window-a-bar-and-seven-screens.md)
+- [ADR-0223 A tap is a gesture, and a shortcut is a value](adr/0223-a-tap-is-a-gesture-and-a-shortcut-is-a-value.md)
+- [ADR-0224 A right-click selects what it is over](adr/0224-a-right-click-selects-what-it-is-over.md)
+- [ADR-0225 A toast says it is worth interrupting for](adr/0225-a-toast-says-it-is-worth-interrupting-for.md)
+- [ADR-0226 A golden cannot see an animation that never ran](adr/0226-a-golden-cannot-see-an-animation-that-never-ran.md)
+- [ADR-0227 A widget may describe nothing](adr/0227-a-widget-may-describe-nothing.md)
+- [ADR-0228 A phase is asked whether it is still running](adr/0228-a-phase-is-asked-whether-it-is-still-running.md)
+- [ADR-0229 A hue has a rank for words as well as for lines](adr/0229-a-hue-has-a-rank-for-words-as-well-as-for-lines.md)
+- [ADR-0230 A notification has listeners, and an event has one](adr/0230-a-notification-has-listeners-and-an-event-has-one.md)
+- [ADR-0231 A popup is placed again when its anchor moves](adr/0231-a-popup-is-placed-again-when-its-anchor-moves.md)
+- [ADR-0232 Modality is one flag, and not a scrim](adr/0232-modality-is-one-flag-and-not-a-scrim.md)
+- [ADR-0233 Escape steps out of one menu](adr/0233-escape-steps-out-of-one-menu.md)
+- [ADR-0234 The overlay lifecycle is a departure and a phase](adr/0234-the-overlay-lifecycle-is-a-departure-and-a-phase.md)
+- [ADR-0235 A cut label needs `nowrap`, not `text-overflow`](adr/0235-a-cut-label-needs-nowrap-not-text-overflow.md)
+- [ADR-0236 A wheel is consumed by whatever it moved](adr/0236-a-wheel-is-consumed-by-whatever-it-moved.md)
 
 ---
 

@@ -214,6 +214,26 @@ class ScrollTest {
     @DisplayName("the wheel")
     class Wheel {
 
+        /// The other end of [ScrollFadeTest]: the fade knows it owes frames, and
+        /// the **widget** is what the frame loop asks ([ADR-0226]). A viewport
+        /// that held a fading `ScrollFade` and answered `false` here would paint
+        /// its bars once and leave them at whatever the last frame caught —
+        /// invisible to every golden, because a golden never asks.
+        @Test
+        @DisplayName("a viewport whose bars are fading asks for the next frame")
+        void wheelingAsksForFrames() {
+            var harness = new Harness(tallContent());
+            var viewport = (ScrollViewport) harness.viewport().widget();
+
+            assertFalse(viewport.isAnimating(), "a scroll view nothing has touched is asking for frames");
+
+            harness.wheel(1);
+
+            assertTrue(
+                    ((ScrollViewport) harness.viewport().widget()).isAnimating(),
+                    "the bars have to fade out and nothing will ask for the frames to do it in");
+        }
+
         @Test
         @DisplayName("a scroll view is built from a scroll and a scroll-content")
         void structure() {

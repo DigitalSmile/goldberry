@@ -15,6 +15,7 @@ import io.github.digitalsmile.goldberry.Popup;
 import io.github.digitalsmile.goldberry.Window;
 import io.github.digitalsmile.goldberry.input.hit.HitTest;
 import io.github.digitalsmile.goldberry.input.key.Shortcut;
+import io.github.digitalsmile.goldberry.input.tap.ModifierKey;
 import io.github.digitalsmile.goldberry.render.Clipboard;
 import io.github.digitalsmile.goldberry.render.event.EventLoop;
 import io.github.digitalsmile.goldberry.render.model.LogicalPoint;
@@ -70,6 +71,8 @@ public class TestHost implements Host {
     private final Map<String, LogicalRect> anchors = new LinkedHashMap<>();
     private final Map<Shortcut, Runnable> shortcuts = new LinkedHashMap<>();
     private final Map<Shortcut, Object> owners = new LinkedHashMap<>();
+    private final Map<ModifierKey, Runnable> taps = new LinkedHashMap<>();
+    private final Map<ModifierKey, Object> tapOwners = new LinkedHashMap<>();
     private ContextMenuHandler contextMenus;
     private int repaints;
 
@@ -90,6 +93,27 @@ public class TestHost implements Host {
     /// @return whether anything was
     public boolean press(String accelerator) {
         var action = shortcuts.get(Shortcut.of(accelerator));
+        if (action == null) {
+            return false;
+        }
+        action.run();
+        return true;
+    }
+
+    /// The modifier taps currently bound, in the order they were bound.
+    ///
+    /// The gesture itself — press, release, nothing in between — is
+    /// [io.github.digitalsmile.goldberry.input.tap.ModifierTaps]'s and is tested
+    /// there. What a widget owes is the *binding*, which is what this shows.
+    public Map<ModifierKey, Runnable> modifierTaps() {
+        return Map.copyOf(taps);
+    }
+
+    /// Fires a modifier tap as the window would, if anything is bound to it.
+    ///
+    /// @return whether anything was
+    public boolean tap(ModifierKey modifier) {
+        var action = taps.get(modifier);
         if (action == null) {
             return false;
         }
@@ -226,6 +250,22 @@ public class TestHost implements Host {
     @Override
     public void removeShortcut(String accelerator) {
         removeShortcut(Shortcut.of(accelerator));
+    }
+
+    @Override
+    public void modifierTap(ModifierKey modifier, Runnable action, Object owner) {
+        taps.put(modifier, action);
+        tapOwners.put(modifier, owner);
+    }
+
+    /// Ownership, mirrored from the real registry: only the binder takes it back
+    /// (ADR-0220's rule, ADR-0223's registry).
+    @Override
+    public void removeModifierTap(ModifierKey modifier, Object owner) {
+        if (tapOwners.get(modifier) == owner) {
+            taps.remove(modifier);
+            tapOwners.remove(modifier);
+        }
     }
 
     @Override

@@ -641,6 +641,53 @@ class ToastTest {
     }
 
     @Nested
+    @DisplayName("what it tells a reader")
+    class Announcement {
+
+        /// §7's live region, and the widget half of it ([ADR-0225]). Nothing
+        /// announces anything yet — the bridge is M5 — so what this asserts is
+        /// that a toast carries what an announcement would need, which is the
+        /// half that can be finished today.
+        @Test
+        @DisplayName("a toast is a polite live region, because nothing else will speak it")
+        void isALiveRegion() {
+            var tree = stack();
+            toasts.show(new Toast("Draft saved"));
+            tree.flush();
+
+            var box = Described.first(tree, ToastBox.class);
+            assertEquals(io.github.digitalsmile.goldberry.widget.semantics.Live.POLITE, box.live());
+            assertEquals(io.github.digitalsmile.goldberry.widget.semantics.Role.STATUS, box.role());
+        }
+
+        /// Its words, and **not** its action button's label: the button is a
+        /// widget of its own with a name of its own, and folding the two together
+        /// would have a reader say "Undo" twice.
+        @Test
+        @DisplayName("its name is what it says, not what its button says")
+        void nameIsTheText() {
+            var tree = stack();
+            toasts.show(new Toast("Message sent").action("Undo", () -> pressed.add("undo")));
+            tree.flush();
+
+            assertEquals("Message sent", Described.first(tree, ToastBox.class).accessibleName());
+        }
+
+        /// The default that makes the vocabulary mean something: the *stack* is
+        /// not announced, or three toasts would be four announcements. Asserted
+        /// on the type rather than an instance, because the answer is a fact
+        /// about the class and the compiler already refuses the `instanceof`.
+        @Test
+        @DisplayName("the stack around it says nothing — one announcement per toast")
+        void theStackIsNot() {
+            assertFalse(
+                    io.github.digitalsmile.goldberry.widget.semantics.Semantics.class.isAssignableFrom(
+                            ToasterBox.class),
+                    "the stack would be announced as well as the toast in it");
+        }
+    }
+
+    @Nested
     @DisplayName("the corner")
     class Corners {
 

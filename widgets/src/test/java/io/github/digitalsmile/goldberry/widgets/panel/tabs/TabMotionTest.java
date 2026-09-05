@@ -174,13 +174,12 @@ class TabMotionTest {
         var done = renderer.render(tree);
         assertEquals(1.0, opacityOf(done, "b", List.of("a", "b")));
 
-        // One more frame before the loop sleeps, and the reason is worth knowing:
-        // whether a node animates is read *before* it is drawn, and drawing is
-        // what advances the phase — so the frame that finishes an arrival still
-        // reports itself as animating, and the frame after it does not.
-        assertTrue(renderer.isAnimating());
-        renderer.render(tree);
-        assertFalse(renderer.isAnimating(), "and then the loop goes back to sleep");
+        // **The frame that finishes the arrival is the last one**, and it did not
+        // used to be: whether a node animates was read *before* it was drawn, and
+        // drawing is what advances a phase — so the finishing frame still
+        // reported itself as animating and the loop spent one more. Asked after
+        // the draw, it costs nothing ([ADR-0228]).
+        assertFalse(renderer.isAnimating(), "the loop is spending a frame on an animation that has finished");
     }
 
     /// The one the strip needs state for: the application has already dropped the

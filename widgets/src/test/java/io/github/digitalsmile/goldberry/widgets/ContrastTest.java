@@ -251,6 +251,135 @@ class ContrastTest {
                         + " measurement beside it. Measured:" + report);
     }
 
+    /// Every semantic hue, drawn as **words** on every surface a window paints.
+    ///
+    /// The third sweep, and the one the `--gb-*-line` survey turned up
+    /// ([ADR-0229]). `-line` is a **3:1** rank by construction, because §1.2's
+    /// floor for a glyph or a border is 3:1 — and several widgets draw a semantic
+    /// hue as *text*: a `field-message`, a `statistic`'s delta, a chart's failure
+    /// line. Text is 4.5:1, and measured, both of the ranks that existed were
+    /// below it: `--gb-danger` is 2.46:1 on the dark theme's `--gb-surface` and
+    /// `--gb-danger-line` is 3.53:1.
+    ///
+    /// So a hue has a fourth rank and this is what holds it there. The entry that
+    /// asked for this called it "a survey somebody has to do rather than a
+    /// failure waiting to happen"; between this and [#noBareHueDrawsInk] it is a
+    /// failure waiting to happen now.
+    @Test
+    @DisplayName("every semantic hue is legible as words on every surface, on both themes")
+    void everyTextRankIsLegible() {
+        var failures = new ArrayList<String>();
+        var report = new StringBuilder();
+
+        for (var theme : List.of(Theme.NORD_DARK, Theme.NORD_LIGHT)) {
+            for (var hue : List.of("info", "success", "warning", "danger")) {
+                for (var surface : List.of("bg", "surface", "surface-2")) {
+                    var css = "text { background: var(--gb-" + surface + "); color: var(--gb-" + hue + "-text) }";
+                    var sheets = new ArrayList<>(Controls.stylesheets(theme));
+                    sheets.add(Stylesheet.parse(CascadeLayer.APPLICATION, css));
+                    var style = ComputedStyle.of(
+                            new StyleResolver(sheets).resolve(new ElementTree(new Text("Aa")).root()),
+                            CssLength.Context.DEFAULT);
+
+                    var name = themeName(theme) + " --gb-" + hue + "-text on --gb-" + surface;
+                    var ratio = contrast(style.background(), style.color());
+                    report.append(String.format(Locale.ROOT, "%n  %-46s %5.2f:1", name, ratio));
+                    if (ratio < FLOOR) {
+                        failures.add(name);
+                    }
+                }
+            }
+        }
+
+        assertEquals(
+                List.of(),
+                failures,
+                () -> "a semantic hue is unreadable as words on a surface the toolkit paints."
+                        + " The fix is the one the -line rank used: move the hue's lightness in"
+                        + " that theme until it clears, and write the measurement beside it."
+                        + " Measured:" + report);
+    }
+
+    /// The HUD's two coloured readings, on the HUD's **own** plate.
+    ///
+    /// Measured separately from every other pair because the plate is separate
+    /// from every other surface: `--gb-hud-bg` is the same in both themes, since
+    /// it lies over the application's own colours and the toolkit does not know
+    /// what those are. A theme-varying hue is therefore the wrong thing to draw
+    /// on it — the light theme's danger is a *dark* red, and a dark red on a
+    /// near-black plate is not a warning, it is an absence.
+    ///
+    /// The plate is written out opaque here. It ships at 90% alpha, and that is
+    /// **not** `button.ghost`'s situation: a fully transparent fill has no ratio
+    /// at all because the answer depends entirely on what is behind it, where a
+    /// 90% plate moves the composite by a fraction of a step. Naming the opaque
+    /// colour says which number is being asserted rather than letting the
+    /// measurement quietly ignore an alpha channel.
+    @Test
+    @DisplayName("both of the HUD's coloured readings are legible on its own plate")
+    void everyHudReadingIsLegible() {
+        var failures = new ArrayList<String>();
+        var report = new StringBuilder();
+
+        for (var theme : List.of(Theme.NORD_DARK, Theme.NORD_LIGHT)) {
+            for (var reading : List.of("warning", "danger")) {
+                var css = "text { background: #1c212a; color: var(--gb-hud-" + reading + ") }";
+                var sheets = new ArrayList<>(Controls.stylesheets(theme));
+                sheets.add(Stylesheet.parse(CascadeLayer.APPLICATION, css));
+                var style = ComputedStyle.of(
+                        new StyleResolver(sheets).resolve(new ElementTree(new Text("Aa")).root()),
+                        CssLength.Context.DEFAULT);
+
+                var name = themeName(theme) + " --gb-hud-" + reading + " on the plate";
+                var ratio = contrast(style.background(), style.color());
+                report.append(String.format(Locale.ROOT, "%n  %-46s %5.2f:1", name, ratio));
+                if (ratio < FLOOR) {
+                    failures.add(name);
+                }
+            }
+        }
+
+        assertEquals(List.of(), failures, () -> "a HUD reading is unreadable on the HUD's plate. Measured:" + report);
+    }
+
+    /// **No widget draws ink in a bare semantic hue**, which is what turns the
+    /// three sweeps above into a guarantee rather than a sample.
+    ///
+    /// The sweeps measure *tokens*. This measures the stylesheet: a rule that
+    /// draws `color:` or `border-color:` with `var(--gb-danger)` rather than one
+    /// of its ranks is a widget that is not covered by any of them, and finding
+    /// those was a survey somebody had to do by hand ([ADR-0229]). It found five
+    /// rules, three of them below §1.2's floor.
+    ///
+    /// **Only `color` and `border-color`.** A `background` in the bare hue is a
+    /// fill, which is the rank the hue itself *is*, and is measured by the
+    /// text-on-fill sweep at the top of this class.
+    @Test
+    @DisplayName("no rule draws a line or a word in a bare semantic hue")
+    void noBareHueDrawsInk() throws java.io.IOException {
+        var css = java.nio.file.Files.readString(
+                java.nio.file.Path.of("src/main/resources/io/github/digitalsmile/goldberry/widgets/controls.css"));
+        var offenders = new ArrayList<String>();
+        var pattern = java.util.regex.Pattern.compile(
+                "(color|border-color)\\s*:\\s*var\\(--gb-(info|success|warning|danger)\\)");
+        var lines = css.split("\n", -1);
+        for (var i = 0; i < lines.length; i++) {
+            var matcher = pattern.matcher(lines[i]);
+            if (matcher.find()) {
+                offenders.add("controls.css:" + (i + 1) + "  " + lines[i].trim());
+            }
+        }
+
+        assertEquals(
+                List.of(),
+                offenders,
+                () -> "these rules draw ink in a bare semantic hue, which is a fill rank:"
+                        + " a stroke wants --gb-<hue>-line (3:1) and words want --gb-<hue>-text"
+                        + " (4.5:1), and neither is what the bare hue measures."
+                        + String.join(
+                                "", offenders.stream().map(o -> "\n  " + o).toList()));
+    }
+
     /// Nothing is exempt, stated separately from the sweep.
     ///
     /// The sweep would pass with a populated list — that is what the list is for.

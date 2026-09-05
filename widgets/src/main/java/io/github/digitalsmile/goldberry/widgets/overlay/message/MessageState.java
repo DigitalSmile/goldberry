@@ -1,14 +1,12 @@
 package io.github.digitalsmile.goldberry.widgets.overlay.message;
 
-import java.time.Duration;
-
 import org.jspecify.annotations.Nullable;
 
 import io.github.digitalsmile.goldberry.Host;
-import io.github.digitalsmile.goldberry.render.event.EventLoop;
 import io.github.digitalsmile.goldberry.widget.BuildContext;
 import io.github.digitalsmile.goldberry.widget.State;
 import io.github.digitalsmile.goldberry.widget.Widget;
+import io.github.digitalsmile.goldberry.widgets.core.Departure;
 import io.github.digitalsmile.goldberry.widgets.core.Phase;
 
 /// A [Message]'s arrival and its departure — the whole of its state, and it
@@ -46,10 +44,11 @@ import io.github.digitalsmile.goldberry.widgets.core.Phase;
 ///
 /// That leaves one case worth being explicit about: an application that wires a
 /// `dismiss` handler and then **does not remove the banner**. It stays gone —
-/// [MessageBox] draws nothing once the phase has run out — because a × that
-/// faded a banner and then sprang it back would read as a click that failed.
-/// What it does not do is close the gap its container left round it, which is
-/// the container's number and not this widget's.
+/// this describes [Widget#nothing()] once the phase has run out — because a ×
+/// that faded a banner and then sprang it back would read as a click that
+/// failed. It used to leave a hole: an empty box takes no room of its own and is
+/// still a child, so a `column` with a `gap` kept the gap. A node that describes
+/// nothing has no box for a gap to hang off ([ADR-0227]).
 final class MessageState extends State<Message> {
 
     /// Stamped on the first frame that draws it — [Phase] reads the clock in
@@ -65,11 +64,9 @@ final class MessageState extends State<Message> {
     /// the control is arguing.
     private static final double EXIT_MILLIS = 100;
 
-    /// Null until the × is pressed, and never null again: a banner departs once.
-    private Phase leaving;
-
-    /// True once the departure has run out — see the class note's last paragraph.
-    private boolean departed;
+    /// §1.7's `closing → removed`, shared with `dialog` — see [Departure], which
+    /// is where the timer, the two flags and the ordering live now ([ADR-0234]).
+    private final Departure leaving = new Departure(EXIT_MILLIS, this::setState);
 
     /// Captured in `build` for the handler that runs later, which is the only
     /// thing [BuildContext#host()] may be used for. Null in a test or a golden
@@ -83,16 +80,9 @@ final class MessageState extends State<Message> {
     /// between frames, in a pointer handler.
     private boolean reducedMotion;
 
-    /// The timer that ends the departure. Cancelled on unmount, or a banner
-    /// removed while it was fading would call a handler for a tree that is gone.
-    private EventLoop.@Nullable Timer pending;
-
     @Override
     protected void dispose() {
-        if (pending != null) {
-            pending.cancel();
-            pending = null;
-        }
+        leaving.cancel();
         super.dispose();
     }
 
@@ -100,13 +90,25 @@ final class MessageState extends State<Message> {
     public Widget build(BuildContext context) {
         host = context.host().orElse(null);
         var message = widget();
+        var words = message.resolved();
+        // §9's `bind=`, and the whole of what it took to build: a banner whose
+        // value is empty is **not there**, where before this had to be described
+        // away from outside because a widget could not say it ([ADR-0227]).
+        //
+        // The departed case joins it. `MessageBox` used to answer a box with no
+        // style for it, which takes no room of its own and is still a child — so
+        // a `column` with a `gap` kept the gap round the banner that had gone,
+        // and the widget's own documentation recorded the hole as somebody
+        // else's number. It is nobody's number now.
+        if (leaving.isOver() || (message.binding() != null && words.isBlank())) {
+            return Widget.nothing();
+        }
         return new MessageBox(
                 message.kind(),
-                message.text(),
+                words,
                 message.actions(),
                 message.onDismiss() == null ? null : this::asked,
-                leaving != null ? leaving : arriving,
-                departed,
+                leaving.phaseOr(arriving),
                 this::motion,
                 message.attributes());
     }
@@ -116,35 +118,16 @@ final class MessageState extends State<Message> {
     /// Idempotent: a second press during the fade is not a second dismissal, and
     /// two timers would call the application twice.
     private void asked() {
-        if (leaving != null) {
-            return;
-        }
-        var onDismiss = widget().onDismiss();
-        if (host == null || reducedMotion) {
-            // Nothing to animate against, or a reader who has asked not to be
-            // animated at. Either way the banner goes now rather than in a
-            // hundred milliseconds of nothing happening.
-            departed = true;
-            onDismiss.run();
-            return;
-        }
-        setState(() -> leaving = new Phase(Phase.Kind.LEAVING, EXIT_MILLIS));
-        pending = host.after(Duration.ofMillis((long) EXIT_MILLIS), this::departed);
-    }
-
-    /// The fade is over: stop drawing, then tell the application.
-    ///
-    /// In that order, and it matters for one frame — the application's handler
-    /// usually rebuilds the tree without this banner in it, and a state that
-    /// still thought it was mid-fade would draw a half-faded banner in whatever
-    /// element the reconciler handed it next.
-    private void departed() {
-        pending = null;
-        var onDismiss = widget().onDismiss();
-        setState(() -> departed = true);
-        if (onDismiss != null) {
-            onDismiss.run();
-        }
+        // Every rule this used to spell out is [Departure]'s now: idempotent, two
+        // flags, stop drawing before telling the application, and gone at once
+        // when there is no window or the reader asked for no motion. `dialog` had
+        // written the same six lines independently ([ADR-0234]).
+        leaving.begin(host, reducedMotion, () -> {
+            var onDismiss = widget().onDismiss();
+            if (onDismiss != null) {
+                onDismiss.run();
+            }
+        });
     }
 
     /// What the frame said about the motion preference — see [#reducedMotion].

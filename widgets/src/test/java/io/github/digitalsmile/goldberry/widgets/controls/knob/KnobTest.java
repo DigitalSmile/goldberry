@@ -9,6 +9,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import java.util.function.DoubleConsumer;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -44,18 +45,9 @@ class KnobTest {
     /// What the knob asked for, in order.
     private static List<Double> asked(Knob knob, PointerEvent... events) {
         var seen = new ArrayList<Double>();
-        var wired = new Knob(
-                knob.min(),
-                knob.max(),
-                knob.value(),
-                knob.step(),
-                knob.detents(),
-                knob.source(),
-                seen::add,
-                knob.disabled(),
-                knob.attributes());
+        var listening = wired(knob, seen::add);
         for (var event : events) {
-            wired.onPointer(event);
+            listening.onPointer(event);
         }
         return seen;
     }
@@ -377,6 +369,93 @@ class KnobTest {
         private List<Double> wheeled(Knob knob, float lines) {
             return asked(knob, PointerEvent.wheel(0, 0, 0, lines, null));
         }
+    }
+
+    /// [ADR-0236]: what is consumed is what moved, which is
+    /// [io.github.digitalsmile.goldberry.widgets.core.scroll.ScrollViewport]'s rule
+    /// rather than a second one. These are the arithmetic half; the bubble
+    /// through a real scroll view is [KnobChainingTest]'s.
+    @Nested
+    @DisplayName("chaining at the end of the travel")
+    class Chaining {
+
+        @Test
+        @DisplayName("a wheel that moved the knob is consumed")
+        void consumesWhenItMoves() {
+            assertTrue(consumed(new Knob(0, 100, 50, 5, null), 1), "a knob that turned did not consume the wheel");
+            assertTrue(consumed(new Knob(0, 100, 50, 0, null), 1), "a continuous knob that turned did not consume");
+        }
+
+        /// The case the `TODO.md` entry predicted would fail: `wheel` used to
+        /// consume unconditionally, so a knob pinned at its maximum swallowed
+        /// every upward scroll and the list it sat in never moved.
+        @Test
+        @DisplayName("a wheel past the end is left for an ancestor")
+        void releasesAtTheEnd() {
+            assertFalse(consumed(new Knob(0, 100, 100, 5, null), -1), "a knob at its maximum swallowed the wheel");
+            assertFalse(consumed(new Knob(0, 100, 0, 5, null), 1), "a knob at its minimum swallowed the wheel");
+            assertFalse(consumed(new Knob(0, 100, 100, 0, null), -1), "a continuous knob at its maximum swallowed it");
+        }
+
+        /// Which is what stops the fix going too far: a knob at its end is still
+        /// a knob, and the direction that has somewhere to go is still its own.
+        @Test
+        @DisplayName("but a wheel the other way still turns it")
+        void theOtherWayStillTurns() {
+            assertTrue(consumed(new Knob(0, 100, 100, 5, null), 1), "a knob at its maximum refused to come down");
+            assertEquals(95.0, asked(new Knob(0, 100, 100, 5, null), wheel(1)).getFirst(), 1e-9);
+        }
+
+        /// A part-step is still a step. The comparison is against what [Knob#ask]
+        /// would pass on, so a knob 2 from its end on a grid of 5 moves the 2 —
+        /// a comparison against the raw arithmetic would have called 105 "past
+        /// the end" and stopped.
+        @Test
+        @DisplayName("a knob short of the end moves the part that is left")
+        void thePartStepStillMoves() {
+            assertTrue(consumed(new Knob(0, 100, 98, 5, null), -1), "a knob two from its end refused the last two");
+            assertEquals(100.0, asked(new Knob(0, 100, 98, 5, null), wheel(-1)).getFirst(), 1e-9);
+        }
+
+        /// A knob nobody is listening to cannot move, so it has no business
+        /// swallowing a scroll aimed at the list it is in — the same rule read
+        /// off the wiring instead of off the range.
+        @Test
+        @DisplayName("a knob with no listener is not a place a scroll stops")
+        void anInertKnobChains() {
+            var event = wheel(1);
+            new Knob(0, 100, 50, 5, null).onPointer(event);
+
+            assertFalse(event.isConsumed(), "a knob with no onChange swallowed the wheel");
+        }
+
+        /// Whether the *wired* knob consumed `lines`, which is the only thing the
+        /// router reads. [KnobTest#asked] rebuilds with a listener attached,
+        /// because a knob without one can never move and would answer this
+        /// question by accident.
+        private boolean consumed(Knob knob, float lines) {
+            var event = wheel(lines);
+            wired(knob, seen -> {}).onPointer(event);
+            return event.isConsumed();
+        }
+    }
+
+    private static PointerEvent wheel(float lines) {
+        return PointerEvent.wheel(0, 0, 0, lines, null);
+    }
+
+    /// `knob` with `onChange` attached and everything else copied.
+    private static Knob wired(Knob knob, DoubleConsumer onChange) {
+        return new Knob(
+                knob.min(),
+                knob.max(),
+                knob.value(),
+                knob.step(),
+                knob.detents(),
+                knob.source(),
+                onChange,
+                knob.disabled(),
+                knob.attributes());
     }
 
     @Nested

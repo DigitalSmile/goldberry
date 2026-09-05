@@ -148,8 +148,14 @@ class PopupLifecycleTest {
 
         private final Consumer<Host> onStart;
         private final Consumer<Host> onStop;
+        private final Widget root;
 
         TestApp(Consumer<Host> onStart, Consumer<Host> onStop) {
+            this(new Plate("content"), onStart, onStop);
+        }
+
+        TestApp(Widget root, Consumer<Host> onStart, Consumer<Host> onStop) {
+            this.root = root;
             this.onStart = onStart;
             this.onStop = onStop;
         }
@@ -158,7 +164,7 @@ class PopupLifecycleTest {
 
         @Override
         public Widget root() {
-            return new Plate("content");
+            return root;
         }
 
         @Override
@@ -173,6 +179,10 @@ class PopupLifecycleTest {
                     sized { width: 200px; height: 80px; background: #eceff4 }
                     item { width: 100px; height: 24px }
                     #menu { background: #eceff4 }
+                    /* A column that fills the window and puts its one child at the
+                       bottom, so the child moves when the window is resized -- which
+                       is the whole subject of `replacedOnResize`. */
+                    menu.bottom { flex-grow: 1; flex-direction: column; justify-content: flex-end }
                     """));
         }
 
@@ -565,8 +575,12 @@ class PopupLifecycleTest {
 
     /// A focus scope with items in it — which is what §7 says every overlay
     /// wraps, and what makes `Down` mean "the next item" rather than nothing.
-    private record Menu(List<Widget> items)
+    private record Menu(List<Widget> items, Set<String> classes)
             implements Widget.Leaf, Styled, Paints, io.github.digitalsmile.goldberry.input.handler.Handles {
+
+        Menu(List<Widget> items) {
+            this(items, Set.of());
+        }
 
         @Override
         public io.github.digitalsmile.goldberry.input.FocusScope focusScope() {
@@ -579,11 +593,6 @@ class PopupLifecycleTest {
         }
 
         @Override
-        public Set<String> classes() {
-            return Set.of();
-        }
-
-        @Override
         public List<Widget> children() {
             return items;
         }
@@ -592,6 +601,80 @@ class PopupLifecycleTest {
         public Box render(ComputedStyle style, List<Box> children, Context context) {
             return Box.of().style(style).children(children.toArray(Box[]::new));
         }
+    }
+
+    /// Runs `action` after `turns` more turns of the event loop.
+    ///
+    /// Turns and not milliseconds, which is the difference between this and
+    /// [#later]: a run bounded by `--frames` finishes in whatever wall-clock time
+    /// the machine takes, so a 300ms callback can arrive after the loop has gone.
+    /// A zero-delay timer is scheduled *on* the loop and cannot outlive it.
+    private static void afterTurns(Host host, int turns, Runnable action) {
+        if (turns <= 0) {
+            action.run();
+            return;
+        }
+        host.after(java.time.Duration.ZERO, () -> afterTurns(host, turns - 1, action));
+    }
+
+    /// A popup lives at an **offset from its owner**, so dragging the window
+    /// carries it along and only a *resize* moves what it was anchored to
+    /// ([ADR-0231]).
+    ///
+    /// The root is a column filling the window with one node at the bottom, so
+    /// shrinking the window by 200 moves the anchor up by 200 — and the popup
+    /// under it has to follow, or it hangs in the space the window used to
+    /// occupy.
+    ///
+    /// Anchored by **id** rather than by rectangle, which is the case worth
+    /// testing: the id is re-resolved against the frame the resize produced, so
+    /// this is also what says the re-placement happens *after* that paint rather
+    /// than in the resize handler, where the only geometry available is the old
+    /// window's.
+    @Test
+    @Timeout(20)
+    @DisplayName("a popup follows its anchor when the window is resized")
+    void replacedOnResize() {
+        var before = new LogicalPoint[1];
+        var after = new LogicalPoint[1];
+        var root = new Menu(List.of(new Sized("target")), Set.of("bottom"));
+
+        Goldberry.launch(
+                new TestApp(
+                        root,
+                        // Two turns before opening, because `anchor(id)` answers
+                        // from the capture the last paint produced and the first
+                        // paint has not happened when `start` runs.
+                        host -> afterTurns(host, 2, () -> {
+                            // `Sized` and not `Plate`: a plate grows into whatever
+                            // it is given and measures 0x0 on its own, and a popup
+                            // needs a size.
+                            var popup = host.popup(new Sized("menu"), "target", Placement.BELOW)
+                                    .orElse(null);
+                            if (popup == null) {
+                                Goldberry.stop();
+                                return;
+                            }
+                            before[0] = popup.offset();
+                            ownerWindow().resizeTo(LogicalSize.of(400, 300));
+                            // Four more, which is comfortably past the paint that
+                            // the resize asks for and the re-placement at the end
+                            // of it.
+                            afterTurns(host, 4, () -> {
+                                after[0] = popup.offset();
+                                Goldberry.stop();
+                            });
+                        }),
+                        host -> {}),
+                new String[] {"--size=400x500", "--frames=400"});
+
+        assertNotNull(before[0], "the popup never opened, so there is nothing to say about it");
+        assertEquals(
+                before[0].y() - 200,
+                after[0].y(),
+                0.5,
+                "the window lost 200px of height and the popup stayed where the anchor used to be");
+        assertEquals(before[0].x(), after[0].x(), 0.5, "and it should not have moved sideways");
     }
 
     /// The platform destroys a popup with its parent. So does the toolkit, and

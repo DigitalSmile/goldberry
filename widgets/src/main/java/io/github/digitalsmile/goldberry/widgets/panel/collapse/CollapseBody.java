@@ -9,6 +9,7 @@ import io.github.digitalsmile.goldberry.paint.Box;
 import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widget.style.Paints;
 import io.github.digitalsmile.goldberry.widget.style.Styled;
+import io.github.digitalsmile.goldberry.widgets.core.Phase;
 
 /// What a [Collapse] shows when it is open — §5's "region".
 ///
@@ -34,8 +35,19 @@ import io.github.digitalsmile.goldberry.widget.style.Styled;
 /// Closing is **instant**, and asymmetric on purpose: the body's absence is this
 /// widget's whole claim, and holding a subtree alive for 160ms after it has been
 /// asked to go away would be exactly the thing §5 says a `collapse` does not do.
-record CollapseBody(List<Widget> children, java.util.function.DoubleUnaryOperator visibility)
-        implements Widget.Leaf, Styled, Paints {
+/// ## It is handed the [Phase] itself, not a function of the clock
+///
+/// The first cut took a `DoubleUnaryOperator` and decided at **build** time
+/// whether there was an arrival at all — `showing ? this::visibility : null` —
+/// so `isAnimating` answered "is the section open" rather than "is it still
+/// moving". An open section therefore asked for a frame for ever, and §1.7's
+/// "the frame loop is fully idle when no animation is active" was false for any
+/// window with one on it. Only a rebuild took it back out of the loop, and an
+/// open section is exactly the thing nothing rebuilds ([ADR-0228]).
+///
+/// A phase settles itself on the frame that finishes it, so asking it is asking
+/// the only object that knows. `message` was already built this way.
+record CollapseBody(List<Widget> children, Phase phase) implements Widget.Leaf, Styled, Paints {
 
     /// How far the arriving body travels, in logical pixels. A `tab`'s 6: this is
     /// a settle into place, not an entrance.
@@ -62,21 +74,24 @@ record CollapseBody(List<Widget> children, java.util.function.DoubleUnaryOperato
 
     /// Whether the arrival is still running, which is what keeps the frame loop
     /// awake for the length of one. A section that has been open a while asks for
-    /// nothing.
+    /// nothing — see the class note for what this used to answer instead.
     @Override
     public boolean isAnimating() {
-        return visibility != null;
+        return phase.isRunning();
     }
 
     @Override
     public Box render(ComputedStyle style, List<Box> boxes, Context context) {
         var box = Box.of().style(style).children(boxes.toArray(Box[]::new));
-        if (visibility == null) {
+        if (context.reducedMotion()) {
+            // Not merely drawn at full strength: the phase is *ended*, so the
+            // body also stops asking for frames it would spend standing still.
+            phase.skip();
             return box;
         }
         // Reading it is what starts the arrival -- the phase is stamped from the
         // frame clock on its first read, and this is the only place there is one.
-        var visible = context.reducedMotion() ? 1 : visibility.applyAsDouble(context.nowMillis());
+        var visible = phase.progressAt(context.nowMillis());
         if (visible >= 1) {
             return box;
         }

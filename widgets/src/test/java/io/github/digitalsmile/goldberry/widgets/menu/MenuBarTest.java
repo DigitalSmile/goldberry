@@ -22,6 +22,7 @@ import io.github.digitalsmile.goldberry.input.event.PointerEvent;
 import io.github.digitalsmile.goldberry.input.key.Key;
 import io.github.digitalsmile.goldberry.input.key.Modifiers;
 import io.github.digitalsmile.goldberry.input.key.Shortcut;
+import io.github.digitalsmile.goldberry.input.tap.ModifierKey;
 import io.github.digitalsmile.goldberry.kdl.KdlParser;
 import io.github.digitalsmile.goldberry.widget.Element;
 import io.github.digitalsmile.goldberry.widget.ElementTree;
@@ -402,8 +403,8 @@ class MenuBarTest {
             assertEquals(2, titles(tree).size() + 1, "and the bar still built");
         }
 
-        /// §8's "`Alt`-style keyboard activation", as far as a `Shortcut` on a
-        /// non-modifier key can express it.
+        /// §8's companion binding, and the only one that survives a compositor
+        /// which eats `Alt` for its own window switcher.
         @Test
         @DisplayName("F10 opens the first heading")
         void f10() {
@@ -412,6 +413,37 @@ class MenuBarTest {
 
             assertTrue(host.press("F10"));
             assertEquals(1, host.opened.size());
+        }
+
+        /// §8's "`Alt`-style keyboard activation" itself. Bound through its own
+        /// registry rather than the accelerators, because a tap is a gesture and
+        /// a `Shortcut` is a value — see [ModifierKey] ([ADR-0223]).
+        ///
+        /// What the *gesture* is, and everything that spoils it, belongs to
+        /// [io.github.digitalsmile.goldberry.input.tap.ModifierTaps] and is
+        /// tested there. All a bar owes is the binding.
+        @Test
+        @DisplayName("a bare Alt tap opens the first heading")
+        void altTap() {
+            var host = new TestHost().anchoring("menubar-title-0", 0, 0, 40, 28);
+            new ElementTree(new MenuBar(new Item("File").submenu(new Item("Open…", () -> {}))), host);
+
+            assertTrue(host.tap(ModifierKey.ALT));
+            assertEquals(1, host.opened.size());
+        }
+
+        /// A tap is a registration in somebody else's map, exactly as an
+        /// accelerator is, so it leaks in exactly the same way if nothing gives
+        /// it back — and it is in a *second* map, which is a second thing
+        /// `dispose` has to remember.
+        @Test
+        @DisplayName("unmounting the bar gives the Alt tap back")
+        void unmountUnbindsTheTap() {
+            var tree = new ElementTree(new MenuBar(new Item("File").submenu(new Item("Open…", () -> {}))), host);
+
+            assertTrue(host.modifierTaps().containsKey(ModifierKey.ALT));
+            tree.unmount();
+            assertFalse(host.modifierTaps().containsKey(ModifierKey.ALT), "a bar that has gone away must not own Alt");
         }
     }
 

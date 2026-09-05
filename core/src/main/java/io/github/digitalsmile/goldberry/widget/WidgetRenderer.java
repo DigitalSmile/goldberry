@@ -391,12 +391,6 @@ public final class WidgetRenderer {
             return children;
         }
 
-        // A widget that draws itself from the frame clock keeps the loop awake.
-        // §1.7's idle loop stops the frame after the last transition settles, and
-        // a spinner has no transition to settle -- so without this it would be
-        // painted once and left there (ADR-0081).
-        animating |= paints.isAnimating();
-
         // Tagged with the element that produced it, which is how a pointer
         // event gets from a rectangle on screen back to a node (ADR-0054).
         var boxBegan = trace == null ? 0L : System.nanoTime();
@@ -413,6 +407,21 @@ public final class WidgetRenderer {
         if (trace != null) {
             trace.boxes(System.nanoTime() - boxBegan);
         }
+
+        // A widget that draws itself from the frame clock keeps the loop awake.
+        // §1.7's idle loop stops the frame after the last transition settles, and
+        // a spinner has no transition to settle -- so without this it would be
+        // painted once and left there (ADR-0081).
+        //
+        // **After `render`, and that is worth one frame of every animation in the
+        // toolkit.** A clock-driven animation is a `Phase`, and a phase learns it
+        // has finished by being *read* -- which happens in `render`, the only
+        // place a widget is handed the frame clock. Asked beforehand, the frame
+        // that finishes an arrival still answers "yes" and the frame after it is
+        // the one that goes quiet: one wasted frame per arrival, per widget, and
+        // the reason a golden of an arrival had to render three times
+        // (ADR-0228).
+        animating |= paints.isAnimating();
         return List.of(box);
     }
 }

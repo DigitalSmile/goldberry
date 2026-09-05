@@ -83,7 +83,12 @@ record TreeRow(
         Runnable onSiblings,
         java.util.function.Consumer<String> onType,
         Runnable onCheck)
-        implements Widget.Leaf, Styled, Paints, Handles, Semantics {
+        implements Widget.Leaf,
+                Styled,
+                Paints,
+                Handles,
+                io.github.digitalsmile.goldberry.input.handler.Selects,
+                Semantics {
 
     /// §2's "indent 20 per level".
     static final double INDENT = 20;
@@ -104,6 +109,21 @@ record TreeRow(
     @Override
     public Object key() {
         return node.id();
+    }
+
+    /// A right-click selects the row it is over, and leaves a selection this row
+    /// is already part of alone — [io.github.digitalsmile.goldberry.input.handler.Selects],
+    /// and the same two lines a list's row has ([ADR-0224]).
+    ///
+    /// A tree names its menu on the `tree` rather than per row, so what the walk
+    /// finds above this is the tree's own menu — which is exactly the file
+    /// manager's shape: one menu, acting on whatever the pointer landed on.
+    @Override
+    public void selectForContextMenu() {
+        if (!selectable || selected) {
+            return;
+        }
+        onSelect.accept(io.github.digitalsmile.goldberry.input.key.Modifiers.NONE);
     }
 
     @Override

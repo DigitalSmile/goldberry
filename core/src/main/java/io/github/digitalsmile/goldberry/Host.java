@@ -126,6 +126,35 @@ public interface Host {
     /// @throws IllegalArgumentException if the text names no key this toolkit has
     void removeShortcut(String accelerator);
 
+    /// Binds a **tap** of a bare modifier key — pressed and released with nothing
+    /// in between.
+    ///
+    /// `docs/core-widgets.md` §8's "`Alt`-style keyboard activation", and the
+    /// reason it is not a [io.github.digitalsmile.goldberry.input.key.Shortcut]:
+    /// an accelerator is a key plus modifiers and fires on the press of the key,
+    /// and there is no key here. What the rule is — and everything that spoils it
+    /// — is [io.github.digitalsmile.goldberry.input.tap.ModifierTaps]
+    /// (ADR-0223).
+    ///
+    /// The owner is the same token [#shortcut(Shortcut, Runnable, Object)] takes,
+    /// compared by identity and never called.
+    ///
+    /// Reach for this **only** for activation a modifier is the whole gesture of.
+    /// Anything with a key in it is an accelerator, and an accelerator is cheaper
+    /// to reason about: it cannot be spoiled by what the user did next.
+    void modifierTap(io.github.digitalsmile.goldberry.input.tap.ModifierKey modifier, Runnable action,
+            Object owner);
+
+    /// Unbinds a modifier tap **only if `owner` still holds it**.
+    ///
+    /// The other half of [#modifierTap], and it exists for the reason ADR-0220
+    /// gave for accelerators: a widget that binds while it is mounted has to give
+    /// the binding back, and must not take a later one with it.
+    ///
+    /// Harmless when nothing was bound, and a no-op when something else was.
+    void removeModifierTap(io.github.digitalsmile.goldberry.input.tap.ModifierKey modifier,
+            Object owner);
+
     /// Floats `widget` over the window's content, pinned to `corner`.
     ///
     /// The in-window overlay layer (`docs/core-widgets.md` §7): the widget is a

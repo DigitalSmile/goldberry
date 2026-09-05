@@ -324,6 +324,18 @@ class MenusTest {
         backend.post(new BackendEvent.KeyPressed(ownerWindow(), key.sdlKeycode(), 0, false));
     }
 
+    /// A **tap** of a bare modifier: down, then up, with nothing in between.
+    ///
+    /// Posted as two backend events rather than driven through a detector,
+    /// because the whole claim is that the shipping path recognises them —
+    /// `Window` reads the raw keycode, arms, and fires on the release
+    /// ([ADR-0223]).
+    private void tap(io.github.digitalsmile.goldberry.input.tap.ModifierKey modifier) {
+        backend.post(new BackendEvent.KeyPressed(
+                ownerWindow(), modifier.leftKeycode(), modifier.modifier().bit(), false));
+        backend.post(new BackendEvent.KeyReleased(ownerWindow(), modifier.leftKeycode(), 0));
+    }
+
     private static long openCount(List<HeadlessPopup> popups) {
         return popups.stream().filter(HeadlessPopup::isOpen).count();
     }
@@ -513,6 +525,108 @@ class MenusTest {
                 .filter(HeadlessPopup::isOpen)
                 .reduce((first, second) -> second)
                 .orElseThrow();
+    }
+
+    /// §8's "`Alt`-style keyboard activation", through the real window, the real
+    /// keycodes and the real popup — the half a widget test cannot reach, because
+    /// what recognises a tap lives below the widget tree entirely ([ADR-0223]).
+    ///
+    /// The second tap **closes**, which is what every desktop bar does with the
+    /// same key and what makes the gesture safe to bind: a user who tapped `Alt`
+    /// by accident taps it again rather than hunting for `Escape`.
+    @Test
+    @Timeout(20)
+    @DisplayName("a bare Alt tap opens a menu bar, and a second one puts it away")
+    void altTapOpensAndCloses() {
+        var bar = new MenuBar(
+                List.of(new Item("File").submenu(new Item("New", () -> {}), new Item("Open", () -> {}))),
+                io.github.digitalsmile.goldberry.widget.attr.Attributes.NONE);
+        var afterFirst = new long[1];
+        var afterSecond = new long[1];
+        var afterShortcut = new long[1];
+        Goldberry.launch(new TestApp(
+                bar,
+                host -> later(400, () -> {
+                    tap(io.github.digitalsmile.goldberry.input.tap.ModifierKey.ALT);
+                    later(400, () -> {
+                        afterFirst[0] = openCount(popups());
+                        tap(io.github.digitalsmile.goldberry.input.tap.ModifierKey.ALT);
+                        later(400, () -> {
+                            afterSecond[0] = openCount(popups());
+                            // And `Alt+F` is a shortcut rather than a tap, so it
+                            // must leave the bar exactly as it found it.
+                            backend.post(new BackendEvent.KeyPressed(
+                                    ownerWindow(),
+                                    io.github.digitalsmile.goldberry.input.tap.ModifierKey.ALT.leftKeycode(),
+                                    io.github.digitalsmile.goldberry.input.key.Mod.ALT.bit(),
+                                    false));
+                            backend.post(new BackendEvent.KeyPressed(
+                                    ownerWindow(),
+                                    Key.F.sdlKeycode(),
+                                    io.github.digitalsmile.goldberry.input.key.Mod.ALT.bit(),
+                                    false));
+                            backend.post(new BackendEvent.KeyReleased(
+                                    ownerWindow(),
+                                    Key.F.sdlKeycode(),
+                                    io.github.digitalsmile.goldberry.input.key.Mod.ALT.bit()));
+                            backend.post(new BackendEvent.KeyReleased(
+                                    ownerWindow(),
+                                    io.github.digitalsmile.goldberry.input.tap.ModifierKey.ALT.leftKeycode(),
+                                    0));
+                            later(400, () -> {
+                                afterShortcut[0] = openCount(popups());
+                                Goldberry.stop();
+                            });
+                        });
+                    });
+                })));
+
+        assertEquals(1, afterFirst[0], "a bare Alt tap did not open the bar");
+        assertEquals(0, afterSecond[0], "a second tap did not put it away");
+        assertEquals(0, afterShortcut[0], "Alt+F is a shortcut and must not be read as a tap of Alt");
+    }
+
+    /// `Escape` steps **out of one menu**, not out of the whole chain
+    /// ([ADR-0233]).
+    ///
+    /// The launcher's light dismissal closes every popup at once, which is right
+    /// for the press that lands somewhere else — the user pointed at something
+    /// other than the menu — and wrong for `Escape`, which is how a reader backs
+    /// out of a submenu they opened by mistake. Closing the stack there loses the
+    /// menu that opened it, and there is nothing to reopen it with but the mouse.
+    @Test
+    @Timeout(20)
+    @DisplayName("Escape closes the submenu and leaves the menu that opened it")
+    void escapeClosesOneMenu() {
+        var afterOpen = new long[1];
+        var afterFirst = new long[1];
+        var afterSecond = new long[1];
+        Goldberry.launch(new TestApp(host -> {
+            var menu = new Menu(new Item("Plain", () -> {}), new Item("More").submenu(new Item("Inner", () -> {})));
+            Menus.open(host, ANCHOR, menu).orElseThrow();
+
+            later(300, () -> {
+                // Onto the row that leads somewhere, which is what opens it —
+                // §8's hover-opens-a-submenu, and the shortest way to a chain.
+                backend.post(new BackendEvent.PointerMoved((HeadlessWindow) popups().getFirst(), 40, 52, 0));
+                later(400, () -> {
+                    afterOpen[0] = openCount(popups());
+                    press(Key.ESCAPE);
+                    later(300, () -> {
+                        afterFirst[0] = openCount(popups());
+                        press(Key.ESCAPE);
+                        later(300, () -> {
+                            afterSecond[0] = openCount(popups());
+                            Goldberry.stop();
+                        });
+                    });
+                });
+            });
+        }));
+
+        assertEquals(2, afterOpen[0], "the submenu never opened, so there is no chain to escape from");
+        assertEquals(1, afterFirst[0], "Escape took the whole chain rather than the menu it was in");
+        assertEquals(0, afterSecond[0], "and a second Escape should have closed the root menu");
     }
 
     @Test

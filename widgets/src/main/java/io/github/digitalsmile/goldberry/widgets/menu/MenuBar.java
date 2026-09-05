@@ -58,12 +58,18 @@ import io.github.digitalsmile.goldberry.widgets.markup.Wiring;
 /// horizontal focus scope. `Enter`, `Space` or `Down` open the heading's menu,
 /// and the menu's own `Up`/`Down` take over from there.
 ///
-/// **`F10` focuses the bar**, which is §8's "`Alt`-style keyboard activation" as
-/// far as this toolkit can express it: a bare `Alt` tap is a *modifier* released
-/// with nothing in between, and [io.github.digitalsmile.goldberry.input.key.Shortcut]
-/// is a key with modifiers — `Key` has no `ALT` to name, deliberately, because a
-/// shortcut on a modifier alone can never fire. `F10` is the companion binding on
-/// every platform that has the `Alt` one.
+/// **A bare `Alt` tap opens the bar, and so does `F10`.** The `Alt` half is §8's
+/// "`Alt`-style keyboard activation" itself rather than a stand-in for it: a tap
+/// is a *modifier* released with nothing in between, which is a gesture over two
+/// events and not a [io.github.digitalsmile.goldberry.input.key.Shortcut] — `Key`
+/// still has no `ALT` to name, deliberately, because an accelerator on a modifier
+/// alone could never fire. What recognises the gesture, and everything that
+/// spoils it, is [io.github.digitalsmile.goldberry.input.tap.ModifierTaps]
+/// ([ADR-0223]). `F10` stays beside it: it is the companion binding on every
+/// platform that has the `Alt` one, and it is the only one that survives a
+/// compositor that eats `Alt` for its own window switcher.
+///
+/// Either key **closes** an open bar, which is what every desktop does with them.
 ///
 /// @param children   the headings, each an [Item] with a submenu
 /// @param attributes the `id` and classes, which land on the `menubar` node

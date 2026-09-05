@@ -8,7 +8,9 @@ import org.jspecify.annotations.Nullable;
 import io.github.digitalsmile.goldberry.Host;
 import io.github.digitalsmile.goldberry.Placement;
 import io.github.digitalsmile.goldberry.Popup;
+import io.github.digitalsmile.goldberry.input.key.Key;
 import io.github.digitalsmile.goldberry.input.key.Shortcut;
+import io.github.digitalsmile.goldberry.input.tap.ModifierKey;
 import io.github.digitalsmile.goldberry.widget.BuildContext;
 import io.github.digitalsmile.goldberry.widget.State;
 import io.github.digitalsmile.goldberry.widget.Widget;
@@ -242,29 +244,55 @@ final class MenuBarState extends State<MenuBar> {
         // F10 is the keyboard's way in. Registered with the accelerators so it
         // goes away with them, and reported as bound for the same reason.
         if (!bound.isEmpty() || !widget().children().isEmpty()) {
-            var focusBar = Shortcut.of(io.github.digitalsmile.goldberry.input.key.Key.F10);
+            var focusBar = Shortcut.of(Key.F10);
             host.shortcut(focusBar, this::activateFromKeyboard, this);
             var all = new java.util.LinkedHashSet<>(bound);
             all.add(focusBar);
             bound = Set.copyOf(all);
+            // And a bare `Alt`, which is what §8 asked for and what F10 was
+            // standing in for. Not an accelerator — see [ModifierKey] — so it is
+            // bound through its own registry and given back beside the rest
+            // (ADR-0223).
+            host.modifierTap(ModifierKey.ALT, this::activateFromKeyboard, this);
+            tapped = true;
         }
     }
+
+    /// Whether the `Alt` tap is currently registered on [#boundOn].
+    ///
+    /// A second flag rather than a member of [#bound], because a tap is not a
+    /// [Shortcut] and there is no honest way to put one in a set of them.
+    private boolean tapped;
 
     private void unbind() {
         if (boundOn != null && !bound.isEmpty()) {
             Accelerators.unbind(boundOn, bound, this);
         }
+        if (boundOn != null && tapped) {
+            boundOn.removeModifierTap(ModifierKey.ALT, this);
+        }
+        tapped = false;
         bound = Set.of();
         boundOn = null;
     }
 
-    /// `F10`: open the first heading that can be opened.
+    /// `F10` or a bare `Alt`: open the first heading that can be opened, or put
+    /// the bar away if one is already showing.
     ///
     /// Opening rather than merely focusing, because focus is not a thing a widget
     /// can ask for from here — there is no `Host.focus(id)` — and a bar that took
     /// `F10` and did nothing visible would read as a broken binding rather than a
     /// missing one. Once the menu is down, its own arrows work.
+    ///
+    /// **Closing on a second press** is what every desktop bar does with the same
+    /// key, and it is what makes the gesture safe to reach for: a user who tapped
+    /// `Alt` by accident taps it again rather than hunting for `Escape`
+    /// (ADR-0223).
     private void activateFromKeyboard() {
+        if (isOpen()) {
+            setState(this::close);
+            return;
+        }
         var bar = widget();
         for (var index = 0; index < bar.children().size(); index++) {
             if (bar.children().get(index) instanceof Item item && item.hasSubmenu() && !item.disabled()) {

@@ -28,8 +28,6 @@ import io.github.digitalsmile.goldberry.widgets.core.Phase;
 /// @param onDismiss  what the × tells, or null for a banner with no way out
 /// @param phase      where the banner is in its entrance, or in its exit once the
 ///                   × has been pressed — see [MessageState]
-/// @param departed   whether the exit has run out, in which case this draws
-///                   nothing at all
 /// @param onMotion   told what each frame says about the motion preference, so
 ///                   that the handler which acts on it has an answer
 /// @param attributes the `id` and classes the document wrote
@@ -39,7 +37,6 @@ record MessageBox(
         List<Widget> actions,
         Runnable onDismiss,
         Phase phase,
-        boolean departed,
         java.util.function.Consumer<Boolean> onMotion,
         Attributes attributes)
         implements Widget.Leaf, Styled, Paints {
@@ -75,14 +72,13 @@ record MessageBox(
 
     /// The glyph, the words and the way out — see [Message]'s diagram.
     ///
-    /// **Nothing at all once it has departed**, so the × that was just pressed
-    /// leaves the hit test with the frame it was pressed on rather than staying
-    /// clickable inside a banner nobody can see.
+    /// There is no "departed" case here any more. A banner whose exit has run out
+    /// is not an empty banner: [MessageState] answers [Widget#nothing()] and this
+    /// record is never built at all, so the × leaves the hit test with the frame
+    /// it was pressed on and the container keeps no gap round a node that is not
+    /// there ([ADR-0227]).
     @Override
     public List<Widget> children() {
-        if (departed) {
-            return List.of();
-        }
         var parts = new ArrayList<Widget>(3);
         parts.add(new MessageIcon(kind));
         parts.add(new MessageBody(text, actions));
@@ -105,22 +101,17 @@ record MessageBox(
     ///
     /// A departure is the one phase that does not settle itself — `LEAVING` stays
     /// `LEAVING`, because whatever is going has been dropped by its owner and
-    /// there is nothing to settle into. [MessageState]'s timer ends it, and
-    /// [#departed] is that answer.
+    /// there is nothing to settle into. [MessageState]'s timer ends it, and what
+    /// ends it is the state describing [Widget#nothing()] instead of this: a box
+    /// that does not exist is asked for no frames.
     @Override
     public boolean isAnimating() {
-        return !departed && phase.isRunning();
+        return phase.isRunning();
     }
 
     @Override
     public Box render(ComputedStyle style, List<Box> boxes, Context context) {
         onMotion.accept(context.reducedMotion());
-        if (departed) {
-            // Not `style`: a departed banner keeps no padding, no border and no
-            // background, so what is left of it is a box of nothing. The gap its
-            // container puts round it is the container's and stays.
-            return Box.of();
-        }
         var box = Box.of().style(style).children(boxes.toArray(Box[]::new));
         if (context.reducedMotion()) {
             // Not merely drawn at full strength: the phase is *ended*, so the

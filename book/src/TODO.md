@@ -28,201 +28,41 @@ the mechanism the sentence named.
 
 ## Overlays, popups and windows
 
-- ~~**`menubar` is not built, and it wants a menu that outlives one opening.**~~
-  **Both halves ship, and the model that outlives an opening turned out to be the
-  one the author already wrote.** What is built and discarded per opening is the
-  *popup*; a `Menu` is a value, so a `menubar` holding one holds it for as long as
-  the bar is mounted. `Accelerators` walks that description and binds every
-  command with a key on it, with no menu on screen and none needed. A bar's
-  children are `item`s and a nested `item` is a heading, so no markup was added. —
-  [ADR-0163](adr/0163-a-menu-bar-owns-its-menus.md),
-  [ADR-0106](adr/0106-a-menu-is-a-widget-and-opening-one-is-not.md)
-- **A bare `Alt` tap does not activate the menu bar, and `F10` does.** §8 asks for
-  "`Alt`-style keyboard activation". A bare `Alt` is a **modifier released with
-  nothing in between**, and a `Shortcut` here is a key plus modifiers — `Key` has
-  no `ALT` to name, because a shortcut on a modifier alone can never fire. Doing
-  it properly needs key-release tracking with a "nothing happened in between"
-  rule, at the window level where the `InputWatcher` already lives. `F10` is the
-  companion binding on every platform that has the `Alt` one and is what ships. —
-  [ADR-0163](adr/0163-a-menu-bar-owns-its-menus.md)
-- ~~**`Left` and `Right` do not move between menus while one is showing.**~~
-  **They do, and fixing either did fix both.** The missing item-to-popup callback
-  is `MenuSignals`, and a bar hands its root menu a `Menus.Siblings` saying what
-  the two arrows that leave it mean — wrapping at the ends and skipping a
-  separator or a disabled heading. A submenu gets none, which is what keeps
-  `Left` in one going back a level rather than leaping along the bar. —
-  [ADR-0219](adr/0219-an-item-tells-its-menu-what-the-keyboard-did.md),
-  [ADR-0163](adr/0163-a-menu-bar-owns-its-menus.md)
-- ~~**An accelerator is unbound by key, so a `menubar` going away can take
-  somebody else's binding with it.**~~ **The map remembers owners now, and
-  `menubar` is the only thing that uses it** — which is what the entry predicted.
-  A binding is `(action, owner)` compared by identity; `removeShortcut(key)`
-  still removes whatever is there, and `removeShortcut(key, owner)` is a no-op
-  when somebody else has taken the key since. The bind side is unchanged: two
-  commands on one key is still last-writer-wins, and what changed is that the
-  loser cannot unbind the winner. **A displaced binding is still not restored** —
-  that needs a stack per key, and nothing has asked for one. —
-  [ADR-0220](adr/0220-an-accelerator-is-given-back-by-whoever-took-it.md),
-  [ADR-0163](adr/0163-a-menu-bar-owns-its-menus.md)
-- ~~**The keyboard menu key does not open a context menu.**~~ **It does, and so
-  does `Shift+F10`.** The entry named both pieces correctly: `Key.MENU` is SDL's
-  `SDLK_APPLICATION`, and the element-wise anchor turned out to already exist as
-  `anchorOf`, which the tooltip path had been using since ADR-0111. `Shift+F10`
-  is bound beside it because a Mac keyboard has no menu key; bare `F10` is
-  deliberately left to the `menubar` (ADR-0163). The walk up to the widget that
-  named the menu is now one method both halves call, because "a right-click on a
-  label is a right-click on the button" and "the menu key on a focused button is
-  that button's menu" are the same rule. —
-  [ADR-0208](adr/0208-a-context-menu-answers-the-keyboard.md),
-  [ADR-0108](adr/0108-a-context-menu-is-a-name-on-a-widget.md)
-- **A right-click does not select what it is over.** Every file manager selects the
-  row you right-click before opening its menu; that is the application's to do in
-  its handler today, because the toolkit has no notion of what "select" means for
-  an arbitrary widget. —
-  [ADR-0108](adr/0108-a-context-menu-is-a-name-on-a-widget.md)
-- ~~**A keyboard `Right` into a submenu waits 150ms.**~~ **It opens in the same
-  frame.** `Item` can tell a hover from a keypress now: `hovered()` is what the
-  pointer did and `open()` is what a key did, and the delay is for the pointer —
-  it stops a submenu dropping out of one travelling past three rows, and a
-  keypress has travelled past nothing. —
-  [ADR-0219](adr/0219-an-item-tells-its-menu-what-the-keyboard-did.md),
-  [ADR-0112](adr/0112-a-menu-follows-the-pointer-and-lights-for-the-keyboard.md)
-- ~~**`Left` does not close a submenu.**~~ **It does, and it is the arrow that
-  opened it, undone.** In a submenu it closes back to the menu above; at the root
-  of a bar's menu it moves along the bar; at the root of a context menu it does
-  nothing, deliberately — a menu that vanished on an arrow key would be a menu
-  nobody could navigate, and `Escape` is the key that means "put this away". —
-  [ADR-0219](adr/0219-an-item-tells-its-menu-what-the-keyboard-did.md),
-  [ADR-0112](adr/0112-a-menu-follows-the-pointer-and-lights-for-the-keyboard.md)
-- ~~**Nothing marks the row whose submenu is showing.**~~ **`item.open` does.**
-  The row keeps `:hover`'s wash for as long as its branch is on screen, which is
-  what the pointer moving *into* the submenu made visible: the row it came from
-  went plain while its submenu was still showing. A class rather than a
-  pseudo-class, because "the branch that is showing" is a menu's own bookkeeping
-  and not a state the element tree tracks — the shape `menu-title.open` already
-  used. —
-  [ADR-0219](adr/0219-an-item-tells-its-menu-what-the-keyboard-did.md),
-  [ADR-0113](adr/0113-a-submenu-is-placed-beside-its-menu.md)
-- ~~**A `message` cannot go away with a fade.**~~ **It can, by reversing the
-  order**: the × fades the banner while it is still described and tells the
-  application when the fade is over, so nothing has to outlive the description.
-- ~~**The sibling reflow is still not built, and `toast` is now the thing that
-  could build it.**~~ **It is built, and which toasts move turned out to be a
-  fact about the overlay layer rather than about the widget.** A `toaster` is
-  pinned to a corner and `controls.css` puts the newest toast at that end, so the
-  column is anchored by its *newest* member: a hole in the middle leaves
-  everything between it and the corner alone, and the **older** half travels in
-  to close it. The ordinary case therefore moves nothing — a stack that shares a
-  timeout loses its oldest first, and the oldest has nothing older to move.
-  Neither number was `Host.anchor(id)` in the end: the height comes from
-  `Measured`, banked every frame because the toast is gone by the time it is
-  wanted, and the gap comes from `toaster { gap }` through the channel ADR-0177
-  opened for the frame clock. A column of `message`es still cannot have it, for
-  ADR-0175's unchanged reason: a banner has no owner to hold the list. —
-  [ADR-0178](adr/0178-a-stack-closes-its-own-hole.md)
-- ~~**A toast cannot be dismissed by clicking it**~~ **The plate is the
-  affordance now.** What §7's omission of a × meant is that a toast does not need
-  a *second* affordance competing with its action for a 360×40 plate — not that a
-  persistent one should be undismissable. The click was already being swallowed,
-  because the plate is hit-testable and a click on it reached nothing and did
-  nothing. The trade-off, stated: a click aimed at the action button that misses
-  it dismisses without acting; the button is told first, so a hit is never lost. —
-  [ADR-0182](adr/0182-a-select-may-hold-more-than-one.md)
-- **A toast is not announced**, which is M5's AccessKit bridge like every other
-  widget's semantics — and the one place in the catalog where the absence really
-  costs something, because a notification nobody sees is exactly what §7's "live
-  region" is for. —
+- **A toast is not announced, and the only thing still missing is the bridge.**
+  The widget half is finished: a toast answers [Live#POLITE] and [Role#STATUS] and
+  names itself with its own text, which is the claim §7's "live region" is and the
+  claim a role and a name cannot make. It matters here and nowhere else in the
+  catalog because every other widget is announced when something *happens to it* —
+  the focus lands, the pointer arrives — and a toast has no such event: nobody
+  focuses it, nobody has to click it, and it is gone in five seconds. So a reader
+  that speaks only what is reached would still have said nothing about it on the
+  day the bridge landed. What is left is M5's AccessKit bridge and no decision
+  from the catalog. —
+  [ADR-0225](adr/0225-a-toast-says-it-is-worth-interrupting-for.md),
   [ADR-0177](adr/0177-a-toast-is-a-queue-and-the-stack-is-the-widget.md)
-- **A closing overlay used not to animate at all**, and every golden passed. A
-  golden drives `render` by hand and never asks whether the frame loop would
-  have, so a widget that answered `isAnimating` with `false` while it was fading
-  produced perfect pictures of an animation that never ran. `dialog` had it and
-  it is fixed; the general lesson has nowhere to live except here, because the
-  corpus cannot catch this class of bug **by construction** — an assertion on
-  `isAnimating` is the only thing that can. —
-  [ADR-0176](adr/0176-a-dialog-is-a-widget-and-showing-one-is-not.md)
-- ~~**A tooltip is plain text and has no maximum width of its own**~~ **It has one
-  now: 320, and the number is a judgement rather than a specification.** §2's
-  metrics row gives a tooltip a padding, a radius and two delays and no width, so
-  this is `Toaster.DEFAULT_MAXIMUM`'s kind of decision — without it a sentence of
-  help text is a ribbon across the window that is harder to read than no tooltip.
-  The other three "consumers" of `max-width` turned out not to be: **`toast` keeps
-  its width** on the design argument its own note already made — the same 360 on
-  every toast is what makes a stack read as a stack, and a maximum would give the
-  ragged pile back; **`popover`'s `minimumWidth` is a runtime measurement**
-  (`field.size().width()`) that no declaration can express (ADR-0145); and
-  **`text-area`'s max rows is built** and is a row count rather than a length. —
-  [ADR-0181](adr/0181-a-box-may-say-how-small-and-how-large.md)
-- **A `message` takes no `bind=`, so a banner whose text comes from a model has
-  to be described away rather than emptied.** A bound banner would be *present
-  and empty* when the value was blank — a bordered box with 12px of padding
-  saying nothing — and §8's subset has no `display`, so no widget can take itself
-  out of a layout. Whatever describes it can, which is why
-  `Message.summary` returns an `Optional`, and why the showcase's banner cards are
-  Java where the rest of the **Overlays** screen is a document. What would close this
-  properly is a way for a widget to describe *nothing*, which the element tree has
-  no word for and which `collapse`, `group-box` and `field-message` have each
-  worked around differently. —
-  [ADR-0175](adr/0175-a-banner-says-its-kind-twice.md)
-- **`--gb-*-line` has one consumer, and the widgets that should be next have not
-  been looked at.** The third rank exists because §7's banner draws a hue as a
-  glyph and a border; a `field`'s `:invalid` edge and a `badge`'s border are the
-  same thing and still read the hue directly. `ContrastTest`'s 3:1 sweep covers
-  the *tokens*, not every widget that draws one, so this is a survey somebody has
-  to do rather than a failure waiting to happen. —
-  [ADR-0175](adr/0175-a-banner-says-its-kind-twice.md)
-- **Every clock-driven arrival costs one wasted frame.** The renderer asks
-  whether a node is animating *before* it draws it, so the frame that finishes an
-  arrival still reports one more and the frame after it is the one that goes
-  quiet. Harmless and worth writing down: it is why a golden of an arrival has to
-  render three times, and it is the shape of every `Phase` in the catalog rather
-  than anything about banners. —
-  [ADR-0175](adr/0175-a-banner-says-its-kind-twice.md)
-- **`collapse` and `carousel` never stop asking for frames.** Both decide at
-  *build* time whether their part is animating — `showing ? this::visibility :
-  null` — so an open section reports `isAnimating` for as long as it is open,
-  and only a rebuild takes it back out of the loop. §1.7's "the frame loop is
-  fully idle when no animation is active" is therefore false for any window with
-  an open `collapse` on it. `message` asks its `Phase` instead and does not have
-  the bug; the fix for the other two is the same three lines. —
-  [ADR-0175](adr/0175-a-banner-says-its-kind-twice.md),
-  [ADR-0166](adr/0166-a-raised-thing-is-told-apart-by-its-edge.md)
-- **A tooltip is plain text, has no maximum width of its own and does not follow
-  the pointer.** All three as `docs/core-widgets.md` §7 specifies for v1, and all
-  three are what "rich content" would change. The 500ms delay is not configurable
-  either: §7 says "after delay" and does not say how long, so a
-  `--gb-tooltip-delay` token is a design-system question rather than an
-  implementation one. —
+- **A tooltip's 500ms delay is a constant, and the token that would replace it
+  cannot be read.** The other three halves of this entry have moved to
+  [Answered](#answered): plain text, no maximum width of its own and not
+  following the pointer are what §7 specifies for v1, so they are boundaries
+  rather than gaps. What is left is the delay. §7 says "after delay" and does not
+  say how long, so 500ms is the toolkit's number and an application cannot change
+  it — and the obvious shape for one, a `--gb-tooltip-delay` custom property, is
+  blocked twice over: nothing above the cascade can read a resolved custom
+  property (see [Layout](#layout)), and a delay is not a paint, so whether the
+  design system should carry durations that are not motion is a question for it
+  rather than for this. —
   [ADR-0105](adr/0105-a-tooltip-is-an-attribute-not-a-widget.md)
-- **`PointerRouter` has one listener slot, not a list.** A second consumer of
-  "the hovered or focused node moved" needs a real listener list *and* a decision
-  about what it means for two things to react to one hover. —
-  [ADR-0105](adr/0105-a-tooltip-is-an-attribute-not-a-widget.md)
-- ~~**A menu caps itself by estimate, not by measurement.**~~ **It measures now,
-  and so does `select`.** The popup facility takes a `Host.Fit` — a callback
-  handed what the content measured and the room it has, between the measure and
-  the place — so the guess and the second copy of `--gb-menu-item-height` are both
-  gone. A twenty-row menu measures 667px where the estimate said 696, which is 29px
-  of menu needlessly wrapped on a short display and nothing at all on a tall one.
-  Returning the content unchanged costs nothing; returning something else costs a
-  second element tree, which is the right way round because nearly every popup
-  fits. —
-  [ADR-0179](adr/0179-a-popup-says-what-it-measured.md),
-  [ADR-0118](adr/0118-a-popup-that-does-not-fit-scrolls.md)
-- **`Placement` still clamps, and now two callers have stopped asking it to.** A
-  popup taller than the work area is clamped to the near edge exactly as before;
-  what changed is that `menu` and `select` cap their own content first, from a
-  measurement rather than a guess. Any other caller that opens an oversized popup
-  and offers no `Host.Fit` gets the old behaviour, which is right for a facility
-  that cannot know what its content means — a tooltip that scrolled would be a
-  tooltip that should have been a dialog. —
-  [ADR-0179](adr/0179-a-popup-says-what-it-measured.md),
-  [ADR-0104](adr/0104-a-popup-is-measured-then-placed.md),
-  [ADR-0118](adr/0118-a-popup-that-does-not-fit-scrolls.md)
-- **Nothing re-places an open popup.** Move or resize the window with a menu open
-  and the menu stays where it was put; `Popup.move` exists and nothing calls it. A
-  `popover` that follows a scrolling anchor is the case that needs it, and it
-  needs to know the anchor moved, which today nothing reports. —
+- **A window that *moves* does not re-clamp its popups, and a scrolling anchor
+  does not drag one.** The **resize** half is built — a popup remembers how it was
+  placed and is put back after the paint that follows a resize, following its
+  anchor by id where it had one. What is left is the two halves nothing reports.
+  A window move is not an event: there is no `BackendEvent.Moved`, so re-clamping
+  a menu that was flipped against the work area at the old position needs an SPI
+  event, an SDL translation and a fabricated-event test of ADR-0061's shape. And a
+  `popover` following a scrolling anchor needs the *anchor* to report that it
+  moved, which is `Located`'s shape and a widget-level wiring rather than a
+  window-level one. —
+  [ADR-0231](adr/0231-a-popup-is-placed-again-when-its-anchor-moves.md),
   [ADR-0104](adr/0104-a-popup-is-measured-then-placed.md)
 - **A popup may not give the *platform's* keyboard focus back, and the widget
   layer has nothing to do with it** — **the second half of this entry was wrong
@@ -236,10 +76,6 @@ the mechanism the sentence named.
   test here can currently reach. —
   [ADR-0180](adr/0180-the-keyboard-goes-back-where-it-was.md),
   [ADR-0104](adr/0104-a-popup-is-measured-then-placed.md)
-- **Two popups do not know about each other.** A submenu chain — opening one closes its
-  siblings but not its parent — is `menu`'s to arrange; the launcher's light dismissal
-  closes all of them at once, which is right for one popup and wrong for a chain. —
-  [ADR-0103](adr/0103-a-popup-is-a-second-tree-in-a-second-window.md)
 - **A popup's contents inherit nothing from the widget that opened them.** They are the
   root of a second element tree, so no `color`, no `font-size` and no descendant
   selector reaches in. Right for a menu, whose items are a list rather than part of a
@@ -247,13 +83,6 @@ the mechanism the sentence named.
   describes, and the answer there is to pass the anchor's resolved style in rather than
   to reparent anything. —
   [ADR-0103](adr/0103-a-popup-is-a-second-tree-in-a-second-window.md)
-- **Nothing hit-tests an overlay by rule.** The pointer router tests against the painted
-  frame ([ADR-0054](adr/0054-hit-testing-runs-against-the-painted-frame.md)) and an
-  overlay is in that frame, so a button inside one is reachable today by the accident of
-  paint order rather than by anything anyone wrote down. A modal `dialog` needs the rule
-  stated — the topmost overlay takes the pointer first, and a modal one takes it
-  exclusively — and that belongs with the widget that needs it rather than with the
-  layer. — [ADR-0100](adr/0100-a-window-has-a-layer-above-its-application.md)
 - **A widget can reach its window, and the in-window overlay layer is still the
   application's.** `BuildContext.host()` exists now, because `select` was the
   second consumer and one is not enough to design an interface against — so a
@@ -264,33 +93,43 @@ the mechanism the sentence named.
   the application's help. Smaller than it was, and the same shape. —
   [ADR-0100](adr/0100-a-window-has-a-layer-above-its-application.md),
   [ADR-0140](adr/0140-a-widget-may-reach-its-window.md)
-- **Overlays do not animate in or out, and `stack` is still owed.** §1.7's overlay curve
-  wants a toast to arrive rather than appear, which is a transition on the widget and
-  not on the layer. And `docs/core-widgets.md` §1's `stack` — "z-order layering;
-  children positioned by alignment or absolute insets" — is unbuilt; it is the *layout*
-  widget where this is a *window* facility, and neither builds the other. —
+- **`stack` is still owed.** `docs/core-widgets.md` §1's "z-order layering;
+  children positioned by alignment or absolute insets" is unbuilt. It is the
+  *layout* widget where the overlay layer is a *window* facility, and neither
+  builds the other — though the mechanism is not in doubt: `WindowRoot` already
+  lays an overlay out with `position: absolute` and Yoga insets, which is the
+  layering half. The **alignment** half is what is missing, and it is blocked on
+  `align-self`, which is not in §8's subset (see [Layout](#layout)). The other
+  half of this entry — "overlays do not animate in or out" — has moved to
+  [Answered](#answered): a toast, a dialog and a banner all arrive and depart on a
+  `Phase` now. —
   [ADR-0100](adr/0100-a-window-has-a-layer-above-its-application.md)
 - **Nothing reports a dropped frame.** The ring behind `hud` records frames that were
   painted, so a frame the platform refused *after* it was painted is in the mean and a
   frame the loop never reached is not. "3 late" needs the pacer's view as well as the
   painter's, and the pacer belongs to the `sdl3` backend. —
   [ADR-0101](adr/0101-a-diagnostic-must-not-be-the-thing-it-measures.md)
-- **The overlay enter/exit lifecycle is a specification without a subject, and the
-  imperative `AnimationController` has now lost all three of its own.**
-  `opening → open → closing → removed` applies to menus, popovers, tooltips, dialogs
-  and toasts, which now exist — so this is a survey of five built widgets that each
-  arrive and depart their own way, rather than a mechanism nobody could write. The
-  controller was to drive indeterminate progress, the spinner and toast reflow. The
-  first two ship as **functions of the frame clock with no state at all**, because a
-  loop that never ends has nothing to remember and a controller would be a per-element
-  copy of the time that puts two spinners permanently out of phase. **The third ships
-  without one too**: `Phase` was already the start and the end, and the interruption —
-  a second toast going while the first reflow is still running — turned out to be three
-  lines of arithmetic on the distance that was left. What is left for the controller is
-  the overlay sequence alone, which is now the whole of its case. —
-  [ADR-0178](adr/0178-a-stack-closes-its-own-hole.md),
-  [ADR-0081](adr/0081-a-perpetual-loop-has-no-state.md),
-  [ADR-0067](adr/0067-motion-is-an-overlay-on-a-frame-clock.md)
+- **60 ms is how long a focus-lost is disbelieved for.** Long enough to cover the
+  focus-lost/focus-gained pair that opening a popup produces, short enough that
+  nobody sees a menu over another application. It is one number covering every
+  driver, and the first driver that delivers that pair more slowly will look like
+  a menu that closes as it opens. —
+  [ADR-0144](adr/0144-a-popup-goes-away-when-the-application-does.md)
+- **A menu row overflows rather than ellipsising, and the missing property is
+  `white-space: nowrap`.** ADR-0148 stopped a squeezed row wrapping to two lines;
+  what it leaves is a label running off the edge of a menu too narrow for it, and
+  `option` and `select-value` have the same gap. This entry used to say "nothing
+  in this toolkit clips, so there is no third behaviour to choose", and that was
+  wrong in a way that would have sent the next person after the wrong property:
+  `overflow: hidden` has shipped since ADR-0114. Clipping a label does not work
+  for a different reason — a box with text is a **measured leaf**, so narrowing it
+  re-measures the paragraph and it *wraps* rather than overflowing, and there is
+  then nothing to clip. Three arrangements were tried and all three failed, which
+  [ADR-0235](adr/0235-a-cut-label-needs-nowrap-not-text-overflow.md) records. What
+  is needed first is a way to measure a paragraph at its natural width whatever
+  width it is offered; an ellipsis is reachable after that and not before. —
+  [ADR-0235](adr/0235-a-cut-label-needs-nowrap-not-text-overflow.md),
+  [ADR-0148](adr/0148-a-menu-row-does-not-wrap.md)
 
 ## Input, focus and the pointer
 
@@ -300,22 +139,23 @@ the mechanism the sentence named.
   with the touchpad's fractions preserved, which is honest but is not what the
   architecture document originally promised — reaching the real thing means going around
   SDL to the platform. — [ADR-0056](adr/0056-the-wheel-is-lines-and-the-sign-is-ours.md)
-- **A knob inside a scroll view is still untested, though both now exist.** The
-  bubble path is built and `scroll` chains at its edge, so the two cases the
-  entry below has been waiting for — a knob turning without scrolling the list,
-  and a knob at its maximum letting the scroll through — are now writable. The
-  second one will fail: `Knob.wheel` consumes unconditionally. —
-  [ADR-0089](adr/0089-a-knobs-gesture-is-a-rate.md),
-  [ADR-0116](adr/0116-a-scroll-view-is-a-clip-an-offset-and-two-extents.md)
-- **`Kind.WHEEL` had exactly one consumer for a long time, and it showed.**
-  The wheel route has been live and covered since ADR-0061 — a fabricated
-  `SDL_MouseWheelEvent` pushed onto SDL's own queue, through the real `translate` and
-  the real sink — and until `knob` nothing in the toolkit *handled* one. What that means
-  is that the whole bubble path for a wheel is still unexercised: a knob inside a scroll
-  view should turn without scrolling the list, and a knob at its maximum should let the
-  scroll through, and neither can be tested until `scroll` exists in M3. `Knob.wheel`
-  consumes unconditionally, which is the safe half of that pair and the wrong half if
-  the other one turns out to matter. — [ADR-0089](adr/0089-a-knobs-gesture-is-a-rate.md)
+- **A wheel over a *disabled* control is swallowed outright, and the scroll view
+  above it never gets a turn.** Measured rather than deduced, while
+  [ADR-0236](adr/0236-a-wheel-is-consumed-by-whatever-it-moved.md) was being
+  written: a disabled knob in a scrolling column stops the list dead under the
+  pointer. `PointerRouter.dispatch` returns **before the chain is built** when the
+  target sits in a disabled subtree, so nothing above it is offered the event.
+  That cut is ADR-0059's and it is right for a *click* — bubbling past a disabled
+  button to the row underneath would activate something the user did not aim at —
+  and it is wrong for a wheel, which every desktop chains past a dead control to
+  whatever scrolls. So the question is whether the disabled cut is **per event
+  kind**: `isInput` already partitions the kinds once, for a different purpose,
+  and a second partition would have to say why `WHEEL` leaves the "user *doing*
+  something" set for this one test and not for the other. A decision about the
+  router, not about `knob`. —
+  [ADR-0236](adr/0236-a-wheel-is-consumed-by-whatever-it-moved.md),
+  [ADR-0059](adr/0059-a-control-is-a-record-a-node-and-a-rule.md),
+  [ADR-0077](adr/0077-disabled-propagates-for-input-and-not-for-paint.md)
 - **Every pointer event now costs an `SDL_GetModState`.** Polled per event rather than
   carried on it, because SDL's mouse events have no `mod` field. On a 120 Hz trackpad
   that is a few thousand calls a second into a statically linked function that reads a
@@ -338,20 +178,6 @@ the mechanism the sentence named.
   `SDL_SetTextInputArea` so the candidate window lands under the caret rather
   than in the corner of the screen. M5, as ARCHITECTURE §17 says. —
   [ADR-0167](adr/0167-a-field-owns-its-caret-and-the-model-is-told.md)
-- ~~**A field refuses right-to-left text outright.**~~ **It takes it, and draws
-  it mirrored.** The interim this entry asked for is chosen: a paragraph shapes
-  bidi text with the direction forced to `LTR`, so the glyphs are right, their
-  order is not, and every width, caret and hit test agrees with what is on
-  screen. It says so — `Paragraph.isBidiApproximate()` and one warning per
-  distinct string — because the alternative to a crash should not be a silence.
-  **What is still ahead is the real thing**: `java.text.Bidi` run splitting,
-  which is several runs per line, visual reordering within a line, and a caret
-  that knows which run it is in and which side of it. That last part is why the
-  half-measure of handling *uniformly* right-to-left paragraphs was not taken —
-  it changes what `widthBetween` means to every caller, which is the same change
-  full bidi needs. M5, with the IME preedit it sits beside. —
-  [ADR-0218](adr/0218-a-paragraph-approximates-bidi-rather-than-refusing-it.md),
-  [ADR-0167](adr/0167-a-field-owns-its-caret-and-the-model-is-told.md)
 - **An absolutely positioned child is placed against the border box, and the
   clip is the padding box.** `text-input` allows for it by adding its own padding
   to every child's `left`, which works and is a workaround: the next widget that
@@ -372,82 +198,11 @@ the mechanism the sentence named.
   broken; what is untested is a font-family fallback swapping mid-edit, which no
   test can currently provoke. —
   [ADR-0167](adr/0167-a-field-owns-its-caret-and-the-model-is-told.md)
-- ~~**Markup cannot hand a controller to a widget.**~~ **It can, through a
-  fourth registry — and the first attempt was refused by the codebase itself.**
-  This entry guessed the answer was "a registry beside `actions` and `bindings`",
-  and it was; what it did not guess was that the *binding* registry would settle
-  the question. A `@Bind` field holding a controller is refused with "a value that
-  cannot change is not something to subscribe to", which is exactly what a
-  controller is. `Named` is the registry for objects that are neither methods,
-  resources, nor values that change. **`scroll` still has the gap** — a
-  `ScrollController` could be named the same way and nothing has done it. —
-  [ADR-0170](adr/0170-a-document-names-an-object-and-a-label-hands-focus-down.md)
-- ~~**Nothing can ask for focus, so `field` has no click-to-focus.**~~ **A
-  container can hand focus down now.** `Handles.delegatesFocus()` turns the
-  router's walk round: a press that finds no focusable ancestor takes the first
-  focusable *descendant* of a container that claims one. It has **one consumer**,
-  which is one fewer than a mechanism should have — `group-box` and `card` are
-  candidates and neither has asked. —
-  [ADR-0170](adr/0170-a-document-names-an-object-and-a-label-hands-focus-down.md)
-- ~~**`Host.focus` still does not exist.**~~ **It does**, and `dialog` is what
-  needed it: `host.focus(id, fromKeyboard)`, by **id** for `Host.anchor`'s reason
-  — a widget has no element and never will. The rule that makes it useful was not
-  the obvious one: a node that cannot take focus resolves to **the first
-  focusable thing inside it**, so "focus this dialog" and "focus this form" mean
-  what a caller intends. It is refused for anything outside an open modal. **A
-  form jumping to its first error is now two lines an application writes**, and
-  nothing in the toolkit writes them. —
-  [ADR-0176](adr/0176-a-dialog-is-a-widget-and-showing-one-is-not.md),
-  [ADR-0170](adr/0170-a-document-names-an-object-and-a-label-hands-focus-down.md)
-- ~~**Nothing restores focus when a modal closes.**~~ **It does, and the entry
-  understated the problem.** "The keyboard lands nowhere in particular" was the
-  visible half; `Element.unmount` tells the element tree and nothing else, so the
-  router went on **holding** the element that had left it — an unmounted node
-  receiving key events and keeping its dead subtree reachable. So the fix is two
-  rules: the router never holds an element that is not in the tree (right for a
-  switched tab and a shortened list as much as for a dialog), and if there is
-  somewhere to put the keyboard back, it goes there. The remembered element is
-  indeed the first state the trap has held, kept to one slot, written at exactly
-  one moment, and allowed to go stale on purpose. —
-  [ADR-0180](adr/0180-the-keyboard-goes-back-where-it-was.md)
-- ~~**`min-width` and `max-width` are not in the CSS subset**~~ **All four are,
-  and `dialog` has the two numbers §2 asks it for.** One value rather than four
-  components — the four are only meaningful together, and they are the same
-  question asked four ways, so a caller that handled three would have a bug
-  nobody would find. The trick for "80% of the *window*" was the scrim: a
-  percentage resolves against the containing block, so the scrim's padding across
-  had to go or the maximum would have been 80% of the window less 48px — measured
-  at 330 in a window where §2 permits 339. **The four consumers this entry named
-  are all resolved, and only two of them by being built.** `tooltip` has a
-  `max-width` of 320 — a judgement rather than a specified number, because §2's
-  metrics row gives it no width at all, and 320 so a label cannot reach a
-  `dialog`'s minimum. `text-area`'s max rows shipped with the widget
-  ([ADR-0171](adr/0171-a-column-is-an-x-and-a-width-arrives-late.md)). `toast`
-  **stays a width**: giving every toast the same width is what makes a stack of
-  three read as a stack, and a maximum would size each one to its own string,
-  which is the ragged pile. And `popover`'s `minimumWidth` is not a `min-width`
-  consumer at all — it is "at least as wide as the control this dropped from"
-  ([ADR-0145](adr/0145-a-dropdown-is-as-wide-as-what-it-drops-from.md)), a
-  runtime measurement of a *different node*, which no stylesheet can state. —
-  [ADR-0181](adr/0181-a-box-may-say-how-small-and-how-large.md)
 - **`isModal` has one consumer**, which is one fewer than a mechanism should
   have. A `wizard` step and a `sheet` are the plausible seconds; it is tested in
   `:core` against bare widgets rather than through `dialog`, so the second one
   finds a mechanism rather than a dialog-shaped hole. —
   [ADR-0176](adr/0176-a-dialog-is-a-widget-and-showing-one-is-not.md)
-- ~~**A `field`'s error summary is a list and not a widget.**~~ **`message` is
-  built and `Message.summary(errors)` is the summary** — one `danger` banner with
-  a line per failure, and **empty** when nothing is wrong, because a summary of no
-  errors is not an empty banner. It is a factory rather than a child `form` adds,
-  for two reasons that were not obvious until the widget existed: a form does not
-  know where its summary belongs (above the fields is the convention, below is
-  what a long form wants, a dialog's header is what a dialog wants), and a form
-  that drew one would have to rebuild whenever any field's message changed —
-  which is a notification from `Validated` to `FormAccess` that nothing else
-  needs. **What is still open is a `form summary=#true`** that does exactly that,
-  and it is waiting on that notification rather than on the banner. —
-  [ADR-0175](adr/0175-a-banner-says-its-kind-twice.md),
-  [ADR-0169](adr/0169-a-field-is-silent-until-you-leave-it.md)
 - **A `Validator` is over a `String`, and `date-picker` will want otherwise.**
   What a user typed is text until something parses it, which is right for
   `text-input` and stops being right for a control whose value is a `LocalDate`.
@@ -460,21 +215,6 @@ the mechanism the sentence named.
   so the choice is a `scroll` around the text — which would fight the auto-grow,
   since both want to decide the height — or a second bar implementation. Neither
   is obviously right. —
-  [ADR-0171](adr/0171-a-column-is-an-x-and-a-width-arrives-late.md)
-- ~~**A golden of a `text-area` is a golden of its first frame.**~~ **Both halves
-  are fixed now.** The first was the gallery rendering twice and asserting on the
-  second, 200ms in, which §7's `message` forced. The second — feeding the
-  hit-test regions back *between* those frames — stayed open because nothing
-  needed it badly enough, and `masonry` did: a layout that reads last frame
-  cannot be photographed at all without it
-  ([ADR-0196](adr/0196-a-masonry-is-a-layout-that-reads-last-frame.md)).
-  `Measured` is delivered by the **router**, from the rectangles a laid-out frame
-  produced, so a harness that only rendered gave every self-measuring widget a
-  first-frame answer for ever. The harness runs render → lay out → hand the
-  router the regions, twice, which is what a window does — and the Forms image is
-  now the one the running application shows, with its `text-area` wrapped at the
-  width it actually has. —
-  [ADR-0175](adr/0175-a-banner-says-its-kind-twice.md),
   [ADR-0171](adr/0171-a-column-is-an-x-and-a-width-arrives-late.md)
 - **A guard at the top of `onPointer` is a guard on every pointer kind, and the
   kinds do not carry the same fields.** `text-input` tested
@@ -498,7 +238,6 @@ the mechanism the sentence named.
   that disagreed would move it rather than resize it. A theme that wants a fat
   caret is a design-system decision and a token, which is Principle 3's order. —
   [ADR-0167](adr/0167-a-field-owns-its-caret-and-the-model-is-told.md)
-
 
 - **There is no third text rank, and one was invented and taken back out.** A
   tour's step counter wanted something quieter than `--gb-text-muted`;
@@ -707,41 +446,6 @@ the mechanism the sentence named.
   expensive later — `message` against `toast`, `segmented` against `radio-group`,
   `code-input` against a styled `text-input` are all decisions that would otherwise be
   made by whoever happened to need one.
-- ~~**`tree` is built in a first cut, and §3 asks for more.**~~ **All five of the
-  leftovers are built, and one of them was never actually blocked.** The keyboard
-  three — `Home`/`End`, `*`, type-to-select — needed rows the focused one cannot
-  see, which is why they waited and why each is a callback the tree hands down
-  ([ADR-0209](adr/0209-a-tree-finishes-its-keyboard.md)). The other two are
-  `checkable=` and the selection models
-  ([ADR-0210](adr/0210-a-tree-checks-and-selects-two-different-things.md)).
-  **Multi-selection was recorded here as blocked on `list` and that reading was
-  too strict**: `tree` defined the *node* model itself for the same reason, and
-  wrote down that `list` will have to agree — the selection models are the shape
-  every desktop list has, which makes it a small promise to make on `list`'s
-  behalf. **`list` is built now and the promise was kept**: `Selection` moved to
-  it and `tree` imports it, and nothing about the shape changed on the way
-  ([ADR-0212](adr/0212-a-list-owns-the-models-a-tree-borrowed.md)). The checkbox needed a different question answered first, and it was in
-  the design document rather than in the code: §3 spends the word `checkable`
-  twice, on which rows are an *answer* and on whether rows carry a *box*. Both
-  ship, under two names, and the disagreement is now in `ARCHITECTURE.md` §17.1.
-  **§2's chevron `rotate` is two marks instead**, because §8's subset has no
-  `transform` on a mark — the wall `select`'s chevron hit — so a closed row draws
-  `>` and an open one `v`, and the cost is the animation. —
-  [ADR-0210](adr/0210-a-tree-checks-and-selects-two-different-things.md),
-  [ADR-0209](adr/0209-a-tree-finishes-its-keyboard.md),
-  [ADR-0184](adr/0184-a-tree-is-a-list-that-remembers-what-is-open.md)
-- ~~**`list` renders every row, and `table` is still waiting on the recycler
-  neither has.**~~ **Both are built, and the promise held.** The item-factory
-  did survive contact: `virtualized(rowHeight)` calls the same function with the
-  same items and nothing about the API moved
-  ([ADR-0213](adr/0213-a-virtual-list-is-two-spacers-and-a-window.md)). `table`
-  turned out not to be waiting for the recycler at all but for `list` — a
-  table's rows *are* a list's rows with more than one thing in them, so it
-  composes one ([ADR-0214](adr/0214-a-table-is-a-list-with-columns.md)).
-  **What is still out is rows of varying height**, which the arithmetic rules
-  out rather than merely lacks: `index × height` is only a position if every row
-  is that height, and the usual way round it — an estimate corrected as rows are
-  measured — makes the scrollbar drift under the reader's thumb.
 - **A `list` is Java, like `canvas` and like autocomplete.** An item-factory is a
   function and §8's documents have no way to write one, so no markup builds a
   list — the same wall, reached for the third time, and the third different
@@ -826,33 +530,6 @@ the mechanism the sentence named.
   width, which is what a form does anyway. —
   [ADR-0141](adr/0141-a-select-is-a-closed-control-and-a-list.md),
   [ADR-0145](adr/0145-a-dropdown-is-as-wide-as-what-it-drops-from.md)
-- ~~**A `select`'s list is clamped rather than scrolled when it is taller than the
-  screen.**~~ **It scrolls.** The popup facility reports what it measured, so
-  neither caller has to guess, and both give the same answer from the same helper
-  — `Fitted`, which wraps content taller than the room in a viewport of the room's
-  height and leaves everything else alone. —
-  [ADR-0179](adr/0179-a-popup-says-what-it-measured.md),
-  [ADR-0141](adr/0141-a-select-is-a-closed-control-and-a-list.md)
-- ~~**`select multiple=` … is not built**~~ **It is.** The selection is a set,
-  `change` is a **toggle** in that mode — the set is the application's, so asking
-  for a value it already holds can only mean taking it out — and the list stays
-  open while values are picked, which needed a popup whose content can change
-  while it is open (`Popup.content`, new). §4's **free-text autocomplete** is
-  built too: `TextInput.suggesting(options)` offers a `SelectList` under the
-  field, the rows commit on `Enter` rather than following the focus, and the
-  field's text is never rewritten without the user choosing.
-  **`select autocomplete=#true` is built too** ([ADR-0183](adr/0183-a-combobox-is-a-select-you-can-type-in.md)):
-  the closed control holds a real `text-input`, so the editing model, the undo
-  history, the clipboard and the caret stay where their rules already are; the
-  field stops being a Tab stop and delegates focus, so a combobox is one stop;
-  `Esc` restores and a free-typed value is refused unless `free`, both off one
-  nullable string of offered text that `TextInputState.follow` already knew how
-  to honour. **`tree=#true` is built too** ([ADR-0184](adr/0184-a-tree-is-a-list-that-remembers-what-is-open.md)),
-  and so is a first cut of `tree` itself, which `list` had to agree with since §3
-  says the two share an item-factory — and does, now that `list` is built and the
-  selection models have moved to it (ADR-0212). —
-  [ADR-0182](adr/0182-a-select-may-hold-more-than-one.md),
-  [ADR-0141](adr/0141-a-select-is-a-closed-control-and-a-list.md)
 - **Autocomplete is Java-only, and `SelectList` is in the wrong package.** §4 says
   the application supplies the list, and it arrives by rebuilding the widget in
   answer to `change` — a channel a document does not have, so a document may write
@@ -862,14 +539,6 @@ the mechanism the sentence named.
   because the CSS type it carries is `select-list`, so moving it renames a type in
   every stylesheet and every golden rather than editing one file. —
   [ADR-0182](adr/0182-a-select-may-hold-more-than-one.md)
-- ~~**A `select` opened from the keyboard does not give focus back to the
-  field.**~~ **The field never loses it.** Measured rather than reasoned about:
-  the owner window's router is not touched by a popup opening or closing, so the
-  field keeps both its focus and its ring for as long as the list is up. What
-  remains is the platform-level question above, which is not a control's problem
-  and not this control's in particular. —
-  [ADR-0180](adr/0180-the-keyboard-goes-back-where-it-was.md),
-  [ADR-0104](adr/0104-a-popup-is-measured-then-placed.md)
 - **The circular drag is not built, and §3 offers it.** "Rotary: vertical-drag primary
   (**circular-drag optional**)". The vertical drag ships; the circular one needs an
   answer for the pointer crossing the 90° gap at the bottom, and every answer is either
@@ -921,14 +590,14 @@ the mechanism the sentence named.
   detecting. —
   [ADR-0074](adr/0074-density-is-a-token-swap-and-regular-is-no-stylesheet.md),
   [ADR-0067](adr/0067-motion-is-an-overlay-on-a-frame-clock.md)
-- **Nothing clips, so an indeterminate bar turns where it should run off the edge.**
-  §3.1's sweep is conventionally drawn running off one end and back in at the other,
-  which needs `overflow: hidden` — absent, along with the scroll view and the ellipsis
-  that the same missing feature blocks. What ships reverses at the ends instead, which
-  needs no clipping and has no wrap to hide. The reduced-motion **opacity pulse** §3.1
-  asks for is missing for the same class of reason: a pulse is a loop between two
-  opacities and §8 has no `@keyframes`, so a reduced-motion bar holds still rather than
-  breathing. — [ADR-0081](adr/0081-a-perpetual-loop-has-no-state.md)
+- **An indeterminate bar turns where it should run off the edge, and that is now
+  a choice rather than a limit.** `progress`'s indeterminate sweep travels
+  there-and-back within its track because the off-the-edges drawing — the more
+  common one — needs the bar clipped at the track's edges. This entry said nothing
+  clipped; `overflow: hidden` has shipped since ADR-0114, so the drawing is
+  available. What is left is a design decision about a shipped animation rather
+  than a missing mechanism. —
+  [ADR-0235](adr/0235-a-cut-label-needs-nowrap-not-text-overflow.md)
 - **A `static` `@Action` is still unsupported, and now for a second reason.** The
   accessible path generates `target::method`, which does not compile for a static
   method, and the private path writes `findVirtual`. Nothing refuses one explicitly; it
@@ -990,20 +659,6 @@ description had no effect.
 
 ## `canvas`, and what a document cannot say
 
-- ~~**A gradient fill needs a symbol the export list does not have.**~~ **It has
-  six now, and the entry was right about which commit came first.** The widening
-  is the whole of the interesting part: `bl_gradient_init_as`, `_destroy` and
-  `_add_stop_rgba32` build one, `bl_context_set_fill_style` and its `_rgba32`
-  companion put it on the context and take it off, and
-  `bl_context_fill_path_d` — the plain fill, with no `_rgba32` suffix — is the
-  only styleless drawing call on the list and the only way a ramp reaches a path.
-  **The OKLCH in the original wording turned out to be vacuous**: a fade between
-  two alphas of one hue is the same curve in every perceptual space, and what
-  makes it correct is premultiplied interpolation plus repeating the colour at
-  the far stop, because `0x00000000` is transparent *black* and a green fading
-  to it goes through grey. `goldberry-html` and `goldberry-vector` both start one
-  commit further along. —
-  [ADR-0207](adr/0207-a-fill-may-be-a-ramp.md)
 - **Markup cannot name a painter.** A `canvas` node inflates to a styled, sized
   surface that draws nothing; the drawing is Java. `icon` solved the same problem
   with a registry the application owns
@@ -1099,41 +754,11 @@ on, which in four cases is the same thing.
 
 ## Layout
 
-- ~~**`split-pane` is not built.**~~ ~~**`carousel` is not built.**~~ **Both
-  ship, and §5 is complete.** The divider turned out to want `knob`'s gesture
-  anchor rather than `slider`'s position — the pointer is somewhere inside a
-  six-point bar, and reading its position would snap the divider under the finger
-  on every press — and the carousel's rotation is one one-shot timer rescheduled
-  after each slide, so that a pause is a timer not scheduled rather than one
-  suspended. What did **not** ship is one of the carousel's three brakes; see the
-  entry below. —
-  [ADR-0165](adr/0165-a-divider-translates-and-a-rotation-has-three-brakes.md)
-- ~~**A `carousel` does not pause when focus lands inside a slide.**~~ **The
-  third brake ships, and it cost one line because something else needed the same
-  thing.** This entry guessed the price wrong in an instructive direction: it said
-  closing the gap meant "`:focus-within` in the selector engine, the matcher and
-  the router's focus bookkeeping". None of that was needed. A carousel does not
-  want to *style* itself on focus-within, it wants to be **told** — and so does a
-  `field`, which validates when the keyboard leaves it. So what shipped is
-  `Handles.onFocusWithin`, a notification rather than a selector, reporting only
-  the moves that cross a subtree's boundary. The selector-engine version is still
-  unbuilt and now has no consumer asking for it. —
-  [ADR-0169](adr/0169-a-field-is-silent-until-you-leave-it.md),
-  [ADR-0165](adr/0165-a-divider-translates-and-a-rotation-has-three-brakes.md)
 - **`statistic`'s sparkline waits on `canvas`.** §5 asks for an "optional
   `sparkline` from a `canvas`", and `canvas` is §12's and not in the catalog.
   Nothing in `statistic` is shaped around its absence: a sparkline is one more
   child at the end of the column. —
   [ADR-0164](adr/0164-elevation-is-an-edge-and-a-closed-section-is-absent.md)
-- ~~**`collapse`'s `accordion=` is not built.**~~ **It ships, as a widget rather
-  than as a flag on `column`.** The flag belongs on the container — "one open at a
-  time" is a rule about siblings — but honouring it needs state, and statefulness
-  is a property of the *type*: putting it on `column` would give every column in
-  every document a `State` it never uses. `column accordion=#true` inflates to an
-  `Accordion` that reports `column` as its own CSS type, so the document writes
-  what §5 says and an ordinary column pays nothing. —
-  [ADR-0166](adr/0166-a-raised-thing-is-told-apart-by-its-edge.md)
-
 - **`flex-basis` is still the only layout property §8 names and nothing resolves.** It
   was implemented for `segmented` and taken back out rather than left as a property with
   no consumer — `flex-basis: 0` makes Yoga compute a track's content size as *zero*, so
@@ -1151,6 +776,19 @@ on, which in four cases is the same thing.
   a stadium rather than the circle a badge usually is. `badge-digits.png` is the record
   of it. — [ADR-0076](adr/0076-a-glyph-does-not-negotiate.md),
   [ADR-0087](adr/0087-a-semantic-fill-brings-its-own-foreground.md)
+- **An icon larger than its slot overflows it.** An `Icon` is a path built at a
+  size and cannot be rescaled at paint time (ADR-0043), so a 20px glyph in a menu's
+  16px leading column is 20px — centred now rather than parked in the corner,
+  which is the difference between "large" and "misaligned", but still larger than
+  the column. An application that wants them to fit builds them at 16, and
+  nothing says so at the door. —
+  [ADR-0143](adr/0143-a-strip-keeps-its-height-and-an-icon-its-centre.md)
+- **`align-content` is still absent**, which is what decides how wrapped *lines*
+  share the cross axis. It does not matter to a chip row, whose height is its
+  content, and it would to a wrapped row in a box with a fixed height — where
+  Yoga spreads the lines and CSS's default packs them. Nothing in the catalog
+  wants one yet, which is the rule §8's subset has grown by all along. —
+  [ADR-0192](adr/0192-a-row-of-chips-wraps-and-the-chevron-does-not.md)
 
 ## Style, colour and motion
 
@@ -1166,7 +804,6 @@ on, which in four cases is the same thing.
   each and a document that uses the other gets a warning rather than a mapping.
   Whether to accept the aliases is open; accepting them means a second table to
   keep in step with Yoga's enum.
-
 
 - **`align-self` is not in §8's subset**, which a tab strip's `+` found: a child
   shorter than its row sits at the top of it and there is no per-child way to say
@@ -1198,23 +835,6 @@ on, which in four cases is the same thing.
   nobody else can compute, wrong for anything else. It has one caller in the toolkit and
   one rule ("only what a stylesheet could not have written"); a second caller that is
   *not* a count is the signal to look at it again.
-- ~~**Per-corner radii do not exist, and `segmented` is the second control that
-  wanted one.**~~ **They exist, `segmented` uses them, and the fourth asking is
-  what built them.**
-  `button.square` asked first, `segmented` second — both went round the outside,
-  the bar keeping the radius and the segment inset. `group-box-title` could not:
-  its top corners meet a rounded frame and its bottom ones meet the body, and no
-  arrangement of nodes fakes that. It had been writing `border-radius: 7px 7px 0
-  0` since it shipped, and the engine had been dropping the declaration with a
-  warning nobody read. `Corners` is four numbers over CSS's 1-4 shorthand, the
-  uniform case emits the drawing it always did, and elliptical corners are still
-  refused. `SegmentedTest`'s pinned numbers did what they were pinned for: the
-  bar is drawn joined again, with §3's hairline between its cells, and the design
-  system's row is amended back. `button.square`'s joined buttons and `tabs` are
-  the two callers of `Corners.inRow` that have not arrived yet. —
-  [ADR-0217](adr/0217-a-segmented-control-is-joined-again.md),
-  [ADR-0216](adr/0216-a-corner-is-four-numbers-and-a-lint-reads-values-too.md),
-  [ADR-0097](adr/0097-a-selection-that-travels-needs-a-geometry.md)
 - **A `tabs` indicator still cannot travel, though `segmented`'s does.** §3.1 gives the
   two the same effect and the same controller.
   [ADR-0099](adr/0099-an-indicator-travels-on-a-grid.md) got `segmented` moving by
@@ -1277,6 +897,12 @@ on, which in four cases is the same thing.
   exception, and both are impossible within one compilation, which is how a registry and
   its model are always built. Recorded because it is the one thing ADR-0098 moved later
   rather than earlier.
+- **A widget's CSS classes share a namespace with the design system's.** A `hud`
+  reading named `display` picked up §1.4's `.display` type rank and rendered at
+  28px. Renamed, and nothing prevents the next one: there is no prefix
+  convention, no check, and the two sets of names are written in different files
+  by different people. —
+  [ADR-0153](adr/0153-a-rate-is-counted-a-refresh-is-asked-for.md)
 
 ## Rendering and performance
 
@@ -1365,6 +991,34 @@ on, which in four cases is the same thing.
   `pthread_jit_write_protect_np`. Nothing triggered it until now, because nothing
   created a rendering context. The first frame the macOS build paints is the test. —
   [ADR-0031](adr/0031-blend2d-and-the-borrowed-buffer.md)
+- **A style that really changes still re-resolves its whole subtree, and only
+  the inherited properties can matter.** ADR-0142 stopped a node handing down a
+  new instance for an unchanged value; what it did not do is narrow the
+  comparison to the properties a child could actually inherit. So scrolling —
+  which moves a transform, and a transform inherits nothing — re-resolves every
+  node inside the viewport on every frame of the gesture. The fix needs a notion
+  of which properties inherit, which the cascade has and `ComputedStyle` does
+  not. —
+  [ADR-0142](adr/0142-a-style-handed-down-keeps-its-identity.md)
+- **`Element.update` still invalidates a subtree wholesale.** ADR-0149 narrowed
+  the *state* path; a rebuilt widget still throws away everything below it,
+  because what changed there is the node's identity to the cascade — its classes
+  and its id — rather than one bit of its state. Narrowing that needs the same
+  index keyed on classes as well as types, and nothing has measured it as a
+  problem. —
+  [ADR-0149](adr/0149-a-state-invalidates-what-it-can-reach.md)
+- **A HUD costs about three shaped paragraphs a frame, and reports the cost as
+  its own.** Its readings are strings that change every frame, so no cache keyed
+  on the string can hold them. The caption says so rather than hiding it, and the
+  ways out are all worse than the disclosure: refreshing the text at 10 Hz would
+  need per-frame state a widget cannot have, and excluding the overlay subtree
+  from the timings would report a frame the window did not paint. —
+  [ADR-0152](adr/0152-the-cascade-looks-at-rules-that-could-match.md)
+- **The rule buckets are only as good as the stylesheet.** A sheet written
+  entirely in classes puts every rule in the untyped bucket and gets none of
+  ADR-0152's saving. The toolkit's own sheets are type-first and nothing enforces
+  that they stay so. —
+  [ADR-0152](adr/0152-the-cascade-looks-at-rules-that-could-match.md)
 
 ## Platform, compositor and CI
 
@@ -1457,19 +1111,6 @@ on, which in four cases is the same thing.
   single red tick. A Wayland leg needs a headless compositor in CI (`weston
   --backend=headless` or `sway --headless`), which is a job nobody has written yet. —
   [ADR-0084](adr/0084-the-gtk-plugin-cannot-decorate-a-jvms-window.md)
-- ~~**`WaylandDecorationsTest` asserted `/proc` exists.**~~ **It asserts the
-  platform's own half of the contract now.** One test read the real
-  `/proc/thread-self` and asserted `Optional.of(false)` unconditionally — true on
-  Linux and false everywhere else, in a suite all three OS legs run
-  (`macos.yml` and `windows.yml` both run `:core:test` unfiltered). The fix is
-  not a skip: where `/proc` can answer it is still the live check that the
-  parsing works against a real symlink, and where it cannot the assertion is that
-  the answer is **empty** — which is `onInitialThread`'s documented contract,
-  "a machine that cannot say must produce silence rather than a guess", and the
-  branch macOS and Windows actually take. Gating with `@EnabledOnOs(LINUX)` would
-  have left two of the three platforms asserting nothing about the call that runs
-  on them. —
-  [ADR-0084](adr/0084-the-gtk-plugin-cannot-decorate-a-jvms-window.md)
 - **Native decorations on Wayland need a launcher that embeds the VM.** The GTK plugin
   is the only thing that draws decorations matching the desktop, and its one requirement
   is `getpid() == gettid()`. The stock `java` launcher runs `main` on a thread it
@@ -1550,66 +1191,564 @@ on, which in four cases is the same thing.
   never run. — `docs/ARCHITECTURE.md` §15,
   [ADR-0009](adr/0009-publish-under-io-github-digitalsmile.md)
 
----
+## Answered
 
-- **A style that really changes still re-resolves its whole subtree, and only
-  the inherited properties can matter.** ADR-0142 stopped a node handing down a
-  new instance for an unchanged value; what it did not do is narrow the
-  comparison to the properties a child could actually inherit. So scrolling —
-  which moves a transform, and a transform inherits nothing — re-resolves every
-  node inside the viewport on every frame of the gesture. The fix needs a notion
-  of which properties inherit, which the cascade has and `ComputedStyle` does
-  not. —
-  [ADR-0142](adr/0142-a-style-handed-down-keeps-its-identity.md)
-- **An icon larger than its slot overflows it.** An `Icon` is a path built at a
-  size and cannot be rescaled at paint time (ADR-0043), so a 20px glyph in a menu's
-  16px leading column is 20px — centred now rather than parked in the corner,
-  which is the difference between "large" and "misaligned", but still larger than
-  the column. An application that wants them to fit builds them at 16, and
-  nothing says so at the door. —
-  [ADR-0143](adr/0143-a-strip-keeps-its-height-and-an-icon-its-centre.md)
-- **60 ms is how long a focus-lost is disbelieved for.** Long enough to cover the
-  focus-lost/focus-gained pair that opening a popup produces, short enough that
-  nobody sees a menu over another application. It is one number covering every
-  driver, and the first driver that delivers that pair more slowly will look like
-  a menu that closes as it opens. —
-  [ADR-0144](adr/0144-a-popup-goes-away-when-the-application-does.md)
+Kept rather than deleted: each is a trap somebody hit, and the reasoning that got
+out of it is usually worth more than the fact that it is fixed.
 
-- **A menu row overflows rather than ellipsising.** ADR-0148 stopped a squeezed
-  row wrapping to two lines, which was the visible defect; what it leaves is a
-  label running off the edge of a menu too narrow for it. §8's subset has no
-  `text-overflow` and nothing in this toolkit clips, so there is no third
-  behaviour to choose. `option` has carried the same gap since ADR-0099. —
-  [ADR-0148](adr/0148-a-menu-row-does-not-wrap.md)
+- ~~**A knob inside a scroll view is still untested, and `Kind.WHEEL` had
+  exactly one consumer for a long time.**~~ **Both cases are tested, and the one
+  the entry predicted would fail did.** These were two entries saying the same
+  thing from either end, and they close together. The wheel *route* had been
+  covered since ADR-0061 — a fabricated `SDL_MouseWheelEvent` through the real
+  translate and the real sink — but until `scroll` shipped there was nothing above
+  a knob for an unconsumed wheel to reach, so the half of the contract that is
+  about **not** consuming had never been run. `Knob.wheel` consumed
+  unconditionally; it now consumes what it moved, which is `ScrollViewport`'s
+  existing rule applied to a second widget rather than a new one invented for it.
+  `KnobChainingTest` is the first test in the catalog to drive a wheel through a
+  real bubble **between two widgets**, and the arrangement is what took the work:
+  the list has to be scrolled off its top first, or the viewport's own edge rule
+  refuses the wheel and the test passes before the fix. What the exercise turned
+  up is one entry it did not close, above: a *disabled* control swallows a wheel
+  for a reason that is the router's rather than the knob's. —
+  [ADR-0236](adr/0236-a-wheel-is-consumed-by-whatever-it-moved.md),
+  [ADR-0089](adr/0089-a-knobs-gesture-is-a-rate.md),
+  [ADR-0116](adr/0116-a-scroll-view-is-a-clip-an-offset-and-two-extents.md)
+- ~~**The overlay enter/exit lifecycle is a specification without a subject, and
+  the imperative `AnimationController` has now lost all three of its own.**~~
+  **The survey is done, and the answer is two objects rather than one
+  controller.** The *arrival* needs nothing shared — `Phase` is already the whole
+  of it, and six widgets use it without wanting more. The *departure* was the same
+  code twice: `dialog` and `message` each held two flags, a timer and six lines,
+  and independently got the same four rules right — idempotence, two flags that
+  mean different things, stop-drawing-before-telling, and gone-at-once under
+  reduced motion. That is a mechanism waiting to be named, and it is `Departure`.
+  It is still not an `AnimationController`: it drives no value, interpolates
+  nothing and owns no clock. What the survey also settles is that `toast` and
+  `tab` must **not** be converted — a toast's departure ends when its stack's
+  queue says so and a tab's ends inside `render` — which is ADR-0092's rule about
+  generalising from examples that already agree. —
+  [ADR-0234](adr/0234-the-overlay-lifecycle-is-a-departure-and-a-phase.md),
+  [ADR-0178](adr/0178-a-stack-closes-its-own-hole.md),
+  [ADR-0081](adr/0081-a-perpetual-loop-has-no-state.md)
+- ~~**Overlays do not animate in or out.**~~ **They do, and this was fixed by the
+  widgets rather than by the layer — which is what the entry itself predicted.**
+  §1.7's overlay curve wanted "a toast to arrive rather than appear, which is a
+  transition on the widget and not on the layer": a toast slides 16px from its
+  edge and reflows when a sibling goes ([ADR-0177], [ADR-0178]), a dialog scales
+  from 0.96 and fades ([ADR-0176]), a banner rises 2px ([ADR-0175]). The `stack`
+  half of this entry stays open above, because it is a layout widget and this was
+  never about one. —
+  [ADR-0100](adr/0100-a-window-has-a-layer-above-its-application.md)
+- ~~**Two popups do not know about each other.**~~ **They still do not, and they
+  do not have to: what was wrong is that `Escape` and a press outside were the
+  same code.** A press that lands somewhere else is the user pointing at something
+  other than the menu, and the whole chain goes; `Escape` is the user stepping
+  back out of what they opened, one menu at a time. The launcher ran
+  `dismissPopups()` for both, so opening `File → Recent` and pressing `Escape`
+  took the parent with the submenu. Finding *which* handler was at fault was most
+  of the work — a `Popup` watches its own window and closes only itself, which is
+  correct and never runs, because since ADR-0189 no popup holds the platform
+  keyboard and the key reaches the **owner**. One more thing the entry did not
+  say: the innermost popup is not always the one that goes, because a tooltip
+  refuses light dismissal — so the walk looks past it rather than stopping. —
+  [ADR-0233](adr/0233-escape-steps-out-of-one-menu.md),
+  [ADR-0103](adr/0103-a-popup-is-a-second-tree-in-a-second-window.md)
+- ~~**A tooltip is plain text, has no maximum width of its own and does not
+  follow the pointer.**~~ **All three are what §7 specifies for v1, so they are
+  boundaries and not gaps** — and an entry that records a boundary belongs here
+  rather than on a list of what is missing. All three are what "rich content"
+  would change, and none of them has a caller asking. The **delay** is a different
+  matter and stays open above: it is a number this toolkit chose rather than one
+  §7 gave, and the token that would let an application change it cannot be read.
+  —
+  [ADR-0105](adr/0105-a-tooltip-is-an-attribute-not-a-widget.md)
+- ~~**`Placement` still clamps, and now two callers have stopped asking it
+  to.**~~ **That is the design, stated, and there is nothing here to build.** A
+  popup taller than the work area is clamped to the near edge; `menu` and `select`
+  cap their own content first, from a measurement rather than a guess ([ADR-0179]).
+  Any other caller that opens an oversized popup and offers no `Host.Fit` gets the
+  clamp — which is right for a facility that cannot know what its content means: a
+  tooltip that scrolled would be a tooltip that should have been a dialog. The
+  entry read as a gap because it opens with "still", and what follows it is a
+  division of responsibility rather than a shortfall. —
+  [ADR-0179](adr/0179-a-popup-says-what-it-measured.md),
+  [ADR-0104](adr/0104-a-popup-is-measured-then-placed.md),
+  [ADR-0118](adr/0118-a-popup-that-does-not-fit-scrolls.md)
+- ~~**Nothing hit-tests an overlay by rule.**~~ **Both halves are rules now, and
+  the second was two mechanisms pretending to be one.** The topmost painted region
+  taking the pointer was already true — the capture is in paint order and is
+  scanned backwards — and is written on `elementAt` with a test that fails if it
+  stops being. The modal half was worse than unwritten: `Handles.isModal` said in
+  as many words that "the pointer is not this flag's business", because a dialog
+  is unreachable by mouse through its *scrim*. That is modality by geometry, and a
+  widget that declared itself modal without a scrim trapped the keyboard and let
+  every click through — the two halves of "modal" disagreeing in an accessibility
+  feature. It is one flag now: the pointer reaches the modal's **subtree** and its
+  **ancestors**, and nothing else. The ancestors are the point rather than a
+  loophole, because a scrim is the panel's parent and a click on it is what closes
+  the dialog. —
+  [ADR-0232](adr/0232-modality-is-one-flag-and-not-a-scrim.md)
+- ~~**`PointerRouter` has one listener slot, not a list.**~~ **It is a list, and
+  the decision the entry was waiting for is that there is nothing to decide.**
+  What is delivered is a **notification and not an event**: nothing is passed,
+  nothing can be consumed, and each listener reads `hovered()` or `focused()` from
+  the router for itself — so no listener can change what another sees and order is
+  not a policy. An *event* — one carrying a target, or consumable — would be the
+  shape worth refusing, and is the one ADR-0105's objection was aimed at. The slot
+  also had a bug the entry had not noticed: a setter named `onPointingChanged`
+  reads like a registration and behaved like an assignment, so a second caller
+  silently dropped the first and a tooltip simply stopped appearing. It hands back
+  a `Subscription` now, which the slot could not express at all. —
+  [ADR-0230](adr/0230-a-notification-has-listeners-and-an-event-has-one.md)
+- ~~**`--gb-*-line` has one consumer, and the widgets that should be next have
+  not been looked at.**~~ **The survey is done, and it found a rank missing rather
+  than a rank unused.** Six rules drew ink in a bare semantic hue and only **one**
+  of them was a line — the `field:invalid` edge the entry named. The other four
+  were *words*, and §1.2's floor for words is 4.5:1 where `-line` is derived
+  against 3:1, so pointing them at `-line` would have moved them from clearly
+  wrong to quietly wrong: `--gb-danger-line` is 3.53:1 on the dark theme's
+  surface. So a hue has a fourth rank, `--gb-<hue>-text`, and the HUD has two
+  tokens of its own because its plate is the same in both themes and a
+  theme-varying red on a near-black plate is an absence rather than a warning. The
+  `badge` half of the entry was a false memory: a badge is a filled chip with its
+  own pair and has no border. Eight golden images changed, every one of which had
+  been recording a colour below §1.2's floor. And the survey is a **lint** now —
+  `noBareHueDrawsInk` reads the stylesheet, which is the one question a contrast
+  measurement cannot answer. —
+  [ADR-0229](adr/0229-a-hue-has-a-rank-for-words-as-well-as-for-lines.md),
+  [ADR-0175](adr/0175-a-banner-says-its-kind-twice.md)
+- ~~**`collapse` and `carousel` never stop asking for frames.**~~ **They ask
+  their `Phase` now, and it was the same three lines the entry predicted.** The
+  question the frame loop asks is *are you still moving*, and both were answering
+  *were you built in a state where you could move* — a `carousel`'s was never even
+  conditional, so every window with one on it repainted at the refresh rate for
+  ever. A phase settles itself on the frame that finishes it; a `DoubleUnaryOperator`
+  closing over one cannot say whether it has. Two things the entry did not
+  predict: a section **shut half way through an arrival** keeps a phase nothing
+  will ever settle, so `CollapseSection` guards on `open`; and `CarouselTest`'s own
+  `animating()` case asserted the bug, because it had been written against the
+  implementation rather than against §1.7. —
+  [ADR-0228](adr/0228-a-phase-is-asked-whether-it-is-still-running.md)
+- ~~**Every clock-driven arrival costs one wasted frame.**~~ **It does not, and
+  "harmless and worth writing down" was one line short.** The entry had the
+  diagnosis exactly right — the renderer asked whether a node was animating
+  *before* it drew it — and drew the wrong conclusion from it: a phase learns it
+  has finished by being **read**, and the only place a widget is handed the frame
+  clock is `render`. Asked afterwards, the answer is current. One line moved, and
+  it is worth one frame of every animation in the toolkit. `TabMotionTest`
+  documented the waste in a comment and now asserts its absence. —
+  [ADR-0228](adr/0228-a-phase-is-asked-whether-it-is-still-running.md)
+- ~~**A `message` takes no `bind=`, so a banner whose text comes from a model has
+  to be described away rather than emptied.**~~ **It takes one, and the thing that
+  was missing was a *name* rather than a mechanism.** The entry had already named
+  the fix — "a way for a widget to describe nothing, which the element tree has no
+  word for" — and what looking at the renderer showed is that the tree could
+  always do it: a node that is neither `Styled` nor `Paints` and has no children
+  contributes no box, which is how every composition node already works. So
+  `Widget.nothing()` is a singleton leaf and **no new branch anywhere**. A bound
+  banner whose value is blank is not there, and comes back when the value does —
+  the same element, the same subscription, the same arrival, which is what makes
+  this a value change rather than a node being rebuilt. The dismissed case
+  converged on it and stopped leaving a gap. What is **not** converted is
+  `field-message`: doing so changes the spacing of every form, which five golden
+  images say is a design decision about §4's "message slot" rather than a bug fix.
+  —
+  [ADR-0227](adr/0227-a-widget-may-describe-nothing.md),
+  [ADR-0175](adr/0175-a-banner-says-its-kind-twice.md)
+- ~~**A closing overlay used not to animate at all**, and every golden
+  passed.~~ **The lesson has somewhere to live now, and it is a test rather than a
+  paragraph.** The entry was right twice — the corpus cannot catch this by
+  construction, and an assertion on `isAnimating` is the only thing that can — and
+  stopped one step short: the second half is a *specification for a test*, and
+  left as prose it is read by people who already know. `AnimationSweepTest` is
+  that test, in two rules: a widget holding a `Phase` declares `isAnimating`
+  (structural, scoped to things that actually paint, or it names six false
+  positives and gets deleted), and every declaration of `isAnimating` has a test
+  beside it that names the method (which catches the animations a `Phase` does not
+  describe — a tab's number, a scrollbar's idle clock). It found a real gap on its
+  first run: `ScrollViewport` and `ScrollFade` had no such assertion anywhere. —
+  [ADR-0226](adr/0226-a-golden-cannot-see-an-animation-that-never-ran.md),
+  [ADR-0176](adr/0176-a-dialog-is-a-widget-and-showing-one-is-not.md)
+- ~~**A right-click does not select what it is over.**~~ **It does, and the
+  premise was half right.** The toolkit still has no notion of what "select"
+  means for an arbitrary widget — but the widget *under the pointer* does, and
+  what was missing was never a concept of selection: it was a **moment** at which
+  a row could be told the gesture had happened to it. The launcher's existing walk
+  supplies one, because it already goes from what was clicked up to whatever named
+  the menu; it now remembers the deepest widget on that walk that can answer and
+  asks it, once, immediately before opening. The rule the entry did not state is
+  the one that makes it worth having: a row already **in** the selection leaves it
+  alone, so right-clicking one of five chosen files opens a menu about the five. —
+  [ADR-0224](adr/0224-a-right-click-selects-what-it-is-over.md)
+- ~~**A bare `Alt` tap does not activate the menu bar, and `F10` does.**~~ **It
+  does, and the entry had already written the design.** "Key-release tracking with
+  a nothing-happened-in-between rule, at the window level" is exactly what shipped
+  — the part it did not predict is *where the keycode has to be read*. `Key` names
+  no modifier on purpose, so `Alt` reaches the router as `Key.UNKNOWN` and is
+  indistinguishable there from every letter that arrives as text; the platform
+  keycode is the only place the distinction survives, and `Window` is the last
+  component that holds one. What is bound is not a `Shortcut` at all but a
+  gesture, with its own tiny vocabulary and an exhaustive list of what spoils it —
+  another key, a repeat, a second modifier, a press, a wheel, a focus change, and
+  deliberately *not* pointer motion. `F10` stays beside it as the binding that
+  survives a compositor which eats `Alt`, and both toggle now. —
+  [ADR-0223](adr/0223-a-tap-is-a-gesture-and-a-shortcut-is-a-value.md)
+- ~~**`menubar` is not built, and it wants a menu that outlives one opening.**~~
+  **Both halves ship, and the model that outlives an opening turned out to be the
+  one the author already wrote.** What is built and discarded per opening is the
+  *popup*; a `Menu` is a value, so a `menubar` holding one holds it for as long as
+  the bar is mounted. `Accelerators` walks that description and binds every
+  command with a key on it, with no menu on screen and none needed. A bar's
+  children are `item`s and a nested `item` is a heading, so no markup was added. —
+  [ADR-0163](adr/0163-a-menu-bar-owns-its-menus.md),
+  [ADR-0106](adr/0106-a-menu-is-a-widget-and-opening-one-is-not.md)
+- ~~**`Left` and `Right` do not move between menus while one is showing.**~~
+  **They do, and fixing either did fix both.** The missing item-to-popup callback
+  is `MenuSignals`, and a bar hands its root menu a `Menus.Siblings` saying what
+  the two arrows that leave it mean — wrapping at the ends and skipping a
+  separator or a disabled heading. A submenu gets none, which is what keeps
+  `Left` in one going back a level rather than leaping along the bar. —
+  [ADR-0219](adr/0219-an-item-tells-its-menu-what-the-keyboard-did.md),
+  [ADR-0163](adr/0163-a-menu-bar-owns-its-menus.md)
+- ~~**An accelerator is unbound by key, so a `menubar` going away can take
+  somebody else's binding with it.**~~ **The map remembers owners now, and
+  `menubar` is the only thing that uses it** — which is what the entry predicted.
+  A binding is `(action, owner)` compared by identity; `removeShortcut(key)`
+  still removes whatever is there, and `removeShortcut(key, owner)` is a no-op
+  when somebody else has taken the key since. The bind side is unchanged: two
+  commands on one key is still last-writer-wins, and what changed is that the
+  loser cannot unbind the winner. **A displaced binding is still not restored** —
+  that needs a stack per key, and nothing has asked for one. —
+  [ADR-0220](adr/0220-an-accelerator-is-given-back-by-whoever-took-it.md),
+  [ADR-0163](adr/0163-a-menu-bar-owns-its-menus.md)
+- ~~**The keyboard menu key does not open a context menu.**~~ **It does, and so
+  does `Shift+F10`.** The entry named both pieces correctly: `Key.MENU` is SDL's
+  `SDLK_APPLICATION`, and the element-wise anchor turned out to already exist as
+  `anchorOf`, which the tooltip path had been using since ADR-0111. `Shift+F10`
+  is bound beside it because a Mac keyboard has no menu key; bare `F10` is
+  deliberately left to the `menubar` (ADR-0163). The walk up to the widget that
+  named the menu is now one method both halves call, because "a right-click on a
+  label is a right-click on the button" and "the menu key on a focused button is
+  that button's menu" are the same rule. —
+  [ADR-0208](adr/0208-a-context-menu-answers-the-keyboard.md),
+  [ADR-0108](adr/0108-a-context-menu-is-a-name-on-a-widget.md)
+- ~~**A keyboard `Right` into a submenu waits 150ms.**~~ **It opens in the same
+  frame.** `Item` can tell a hover from a keypress now: `hovered()` is what the
+  pointer did and `open()` is what a key did, and the delay is for the pointer —
+  it stops a submenu dropping out of one travelling past three rows, and a
+  keypress has travelled past nothing. —
+  [ADR-0219](adr/0219-an-item-tells-its-menu-what-the-keyboard-did.md),
+  [ADR-0112](adr/0112-a-menu-follows-the-pointer-and-lights-for-the-keyboard.md)
+- ~~**`Left` does not close a submenu.**~~ **It does, and it is the arrow that
+  opened it, undone.** In a submenu it closes back to the menu above; at the root
+  of a bar's menu it moves along the bar; at the root of a context menu it does
+  nothing, deliberately — a menu that vanished on an arrow key would be a menu
+  nobody could navigate, and `Escape` is the key that means "put this away". —
+  [ADR-0219](adr/0219-an-item-tells-its-menu-what-the-keyboard-did.md),
+  [ADR-0112](adr/0112-a-menu-follows-the-pointer-and-lights-for-the-keyboard.md)
+- ~~**Nothing marks the row whose submenu is showing.**~~ **`item.open` does.**
+  The row keeps `:hover`'s wash for as long as its branch is on screen, which is
+  what the pointer moving *into* the submenu made visible: the row it came from
+  went plain while its submenu was still showing. A class rather than a
+  pseudo-class, because "the branch that is showing" is a menu's own bookkeeping
+  and not a state the element tree tracks — the shape `menu-title.open` already
+  used. —
+  [ADR-0219](adr/0219-an-item-tells-its-menu-what-the-keyboard-did.md),
+  [ADR-0113](adr/0113-a-submenu-is-placed-beside-its-menu.md)
+- ~~**A `message` cannot go away with a fade.**~~ **It can, by reversing the
+  order**: the × fades the banner while it is still described and tells the
+  application when the fade is over, so nothing has to outlive the description.
+- ~~**The sibling reflow is still not built, and `toast` is now the thing that
+  could build it.**~~ **It is built, and which toasts move turned out to be a
+  fact about the overlay layer rather than about the widget.** A `toaster` is
+  pinned to a corner and `controls.css` puts the newest toast at that end, so the
+  column is anchored by its *newest* member: a hole in the middle leaves
+  everything between it and the corner alone, and the **older** half travels in
+  to close it. The ordinary case therefore moves nothing — a stack that shares a
+  timeout loses its oldest first, and the oldest has nothing older to move.
+  Neither number was `Host.anchor(id)` in the end: the height comes from
+  `Measured`, banked every frame because the toast is gone by the time it is
+  wanted, and the gap comes from `toaster { gap }` through the channel ADR-0177
+  opened for the frame clock. A column of `message`es still cannot have it, for
+  ADR-0175's unchanged reason: a banner has no owner to hold the list. —
+  [ADR-0178](adr/0178-a-stack-closes-its-own-hole.md)
+- ~~**A toast cannot be dismissed by clicking it**~~ **The plate is the
+  affordance now.** What §7's omission of a × meant is that a toast does not need
+  a *second* affordance competing with its action for a 360×40 plate — not that a
+  persistent one should be undismissable. The click was already being swallowed,
+  because the plate is hit-testable and a click on it reached nothing and did
+  nothing. The trade-off, stated: a click aimed at the action button that misses
+  it dismisses without acting; the button is told first, so a hit is never lost. —
+  [ADR-0182](adr/0182-a-select-may-hold-more-than-one.md)
+- ~~**A tooltip is plain text and has no maximum width of its own**~~ **It has one
+  now: 320, and the number is a judgement rather than a specification.** §2's
+  metrics row gives a tooltip a padding, a radius and two delays and no width, so
+  this is `Toaster.DEFAULT_MAXIMUM`'s kind of decision — without it a sentence of
+  help text is a ribbon across the window that is harder to read than no tooltip.
+  The other three "consumers" of `max-width` turned out not to be: **`toast` keeps
+  its width** on the design argument its own note already made — the same 360 on
+  every toast is what makes a stack read as a stack, and a maximum would give the
+  ragged pile back; **`popover`'s `minimumWidth` is a runtime measurement**
+  (`field.size().width()`) that no declaration can express (ADR-0145); and
+  **`text-area`'s max rows is built** and is a row count rather than a length. —
+  [ADR-0181](adr/0181-a-box-may-say-how-small-and-how-large.md)
+- ~~**A menu caps itself by estimate, not by measurement.**~~ **It measures now,
+  and so does `select`.** The popup facility takes a `Host.Fit` — a callback
+  handed what the content measured and the room it has, between the measure and
+  the place — so the guess and the second copy of `--gb-menu-item-height` are both
+  gone. A twenty-row menu measures 667px where the estimate said 696, which is 29px
+  of menu needlessly wrapped on a short display and nothing at all on a tall one.
+  Returning the content unchanged costs nothing; returning something else costs a
+  second element tree, which is the right way round because nearly every popup
+  fits. —
+  [ADR-0179](adr/0179-a-popup-says-what-it-measured.md),
+  [ADR-0118](adr/0118-a-popup-that-does-not-fit-scrolls.md)
+- ~~**A field refuses right-to-left text outright.**~~ **It takes it, and draws
+  it mirrored.** The interim this entry asked for is chosen: a paragraph shapes
+  bidi text with the direction forced to `LTR`, so the glyphs are right, their
+  order is not, and every width, caret and hit test agrees with what is on
+  screen. It says so — `Paragraph.isBidiApproximate()` and one warning per
+  distinct string — because the alternative to a crash should not be a silence.
+  **What is still ahead is the real thing**: `java.text.Bidi` run splitting,
+  which is several runs per line, visual reordering within a line, and a caret
+  that knows which run it is in and which side of it. That last part is why the
+  half-measure of handling *uniformly* right-to-left paragraphs was not taken —
+  it changes what `widthBetween` means to every caller, which is the same change
+  full bidi needs. M5, with the IME preedit it sits beside. —
+  [ADR-0218](adr/0218-a-paragraph-approximates-bidi-rather-than-refusing-it.md),
+  [ADR-0167](adr/0167-a-field-owns-its-caret-and-the-model-is-told.md)
+- ~~**Markup cannot hand a controller to a widget.**~~ **It can, through a
+  fourth registry — and the first attempt was refused by the codebase itself.**
+  This entry guessed the answer was "a registry beside `actions` and `bindings`",
+  and it was; what it did not guess was that the *binding* registry would settle
+  the question. A `@Bind` field holding a controller is refused with "a value that
+  cannot change is not something to subscribe to", which is exactly what a
+  controller is. `Named` is the registry for objects that are neither methods,
+  resources, nor values that change. **`scroll` still has the gap** — a
+  `ScrollController` could be named the same way and nothing has done it. —
+  [ADR-0170](adr/0170-a-document-names-an-object-and-a-label-hands-focus-down.md)
+- ~~**Nothing can ask for focus, so `field` has no click-to-focus.**~~ **A
+  container can hand focus down now.** `Handles.delegatesFocus()` turns the
+  router's walk round: a press that finds no focusable ancestor takes the first
+  focusable *descendant* of a container that claims one. It has **one consumer**,
+  which is one fewer than a mechanism should have — `group-box` and `card` are
+  candidates and neither has asked. —
+  [ADR-0170](adr/0170-a-document-names-an-object-and-a-label-hands-focus-down.md)
+- ~~**`Host.focus` still does not exist.**~~ **It does**, and `dialog` is what
+  needed it: `host.focus(id, fromKeyboard)`, by **id** for `Host.anchor`'s reason
+  — a widget has no element and never will. The rule that makes it useful was not
+  the obvious one: a node that cannot take focus resolves to **the first
+  focusable thing inside it**, so "focus this dialog" and "focus this form" mean
+  what a caller intends. It is refused for anything outside an open modal. **A
+  form jumping to its first error is now two lines an application writes**, and
+  nothing in the toolkit writes them. —
+  [ADR-0176](adr/0176-a-dialog-is-a-widget-and-showing-one-is-not.md),
+  [ADR-0170](adr/0170-a-document-names-an-object-and-a-label-hands-focus-down.md)
+- ~~**Nothing restores focus when a modal closes.**~~ **It does, and the entry
+  understated the problem.** "The keyboard lands nowhere in particular" was the
+  visible half; `Element.unmount` tells the element tree and nothing else, so the
+  router went on **holding** the element that had left it — an unmounted node
+  receiving key events and keeping its dead subtree reachable. So the fix is two
+  rules: the router never holds an element that is not in the tree (right for a
+  switched tab and a shortened list as much as for a dialog), and if there is
+  somewhere to put the keyboard back, it goes there. The remembered element is
+  indeed the first state the trap has held, kept to one slot, written at exactly
+  one moment, and allowed to go stale on purpose. —
+  [ADR-0180](adr/0180-the-keyboard-goes-back-where-it-was.md)
+- ~~**`min-width` and `max-width` are not in the CSS subset**~~ **All four are,
+  and `dialog` has the two numbers §2 asks it for.** One value rather than four
+  components — the four are only meaningful together, and they are the same
+  question asked four ways, so a caller that handled three would have a bug
+  nobody would find. The trick for "80% of the *window*" was the scrim: a
+  percentage resolves against the containing block, so the scrim's padding across
+  had to go or the maximum would have been 80% of the window less 48px — measured
+  at 330 in a window where §2 permits 339. **The four consumers this entry named
+  are all resolved, and only two of them by being built.** `tooltip` has a
+  `max-width` of 320 — a judgement rather than a specified number, because §2's
+  metrics row gives it no width at all, and 320 so a label cannot reach a
+  `dialog`'s minimum. `text-area`'s max rows shipped with the widget
+  ([ADR-0171](adr/0171-a-column-is-an-x-and-a-width-arrives-late.md)). `toast`
+  **stays a width**: giving every toast the same width is what makes a stack of
+  three read as a stack, and a maximum would size each one to its own string,
+  which is the ragged pile. And `popover`'s `minimumWidth` is not a `min-width`
+  consumer at all — it is "at least as wide as the control this dropped from"
+  ([ADR-0145](adr/0145-a-dropdown-is-as-wide-as-what-it-drops-from.md)), a
+  runtime measurement of a *different node*, which no stylesheet can state. —
+  [ADR-0181](adr/0181-a-box-may-say-how-small-and-how-large.md)
+- ~~**A `field`'s error summary is a list and not a widget.**~~ **`message` is
+  built and `Message.summary(errors)` is the summary** — one `danger` banner with
+  a line per failure, and **empty** when nothing is wrong, because a summary of no
+  errors is not an empty banner. It is a factory rather than a child `form` adds,
+  for two reasons that were not obvious until the widget existed: a form does not
+  know where its summary belongs (above the fields is the convention, below is
+  what a long form wants, a dialog's header is what a dialog wants), and a form
+  that drew one would have to rebuild whenever any field's message changed —
+  which is a notification from `Validated` to `FormAccess` that nothing else
+  needs. **What is still open is a `form summary=#true`** that does exactly that,
+  and it is waiting on that notification rather than on the banner. —
+  [ADR-0175](adr/0175-a-banner-says-its-kind-twice.md),
+  [ADR-0169](adr/0169-a-field-is-silent-until-you-leave-it.md)
+- ~~**A golden of a `text-area` is a golden of its first frame.**~~ **Both halves
+  are fixed now.** The first was the gallery rendering twice and asserting on the
+  second, 200ms in, which §7's `message` forced. The second — feeding the
+  hit-test regions back *between* those frames — stayed open because nothing
+  needed it badly enough, and `masonry` did: a layout that reads last frame
+  cannot be photographed at all without it
+  ([ADR-0196](adr/0196-a-masonry-is-a-layout-that-reads-last-frame.md)).
+  `Measured` is delivered by the **router**, from the rectangles a laid-out frame
+  produced, so a harness that only rendered gave every self-measuring widget a
+  first-frame answer for ever. The harness runs render → lay out → hand the
+  router the regions, twice, which is what a window does — and the Forms image is
+  now the one the running application shows, with its `text-area` wrapped at the
+  width it actually has. —
+  [ADR-0175](adr/0175-a-banner-says-its-kind-twice.md),
+  [ADR-0171](adr/0171-a-column-is-an-x-and-a-width-arrives-late.md)
+- ~~**`tree` is built in a first cut, and §3 asks for more.**~~ **All five of the
+  leftovers are built, and one of them was never actually blocked.** The keyboard
+  three — `Home`/`End`, `*`, type-to-select — needed rows the focused one cannot
+  see, which is why they waited and why each is a callback the tree hands down
+  ([ADR-0209](adr/0209-a-tree-finishes-its-keyboard.md)). The other two are
+  `checkable=` and the selection models
+  ([ADR-0210](adr/0210-a-tree-checks-and-selects-two-different-things.md)).
+  **Multi-selection was recorded here as blocked on `list` and that reading was
+  too strict**: `tree` defined the *node* model itself for the same reason, and
+  wrote down that `list` will have to agree — the selection models are the shape
+  every desktop list has, which makes it a small promise to make on `list`'s
+  behalf. **`list` is built now and the promise was kept**: `Selection` moved to
+  it and `tree` imports it, and nothing about the shape changed on the way
+  ([ADR-0212](adr/0212-a-list-owns-the-models-a-tree-borrowed.md)). The checkbox needed a different question answered first, and it was in
+  the design document rather than in the code: §3 spends the word `checkable`
+  twice, on which rows are an *answer* and on whether rows carry a *box*. Both
+  ship, under two names, and the disagreement is now in `ARCHITECTURE.md` §17.1.
+  **§2's chevron `rotate` is two marks instead**, because §8's subset has no
+  `transform` on a mark — the wall `select`'s chevron hit — so a closed row draws
+  `>` and an open one `v`, and the cost is the animation. —
+  [ADR-0210](adr/0210-a-tree-checks-and-selects-two-different-things.md),
+  [ADR-0209](adr/0209-a-tree-finishes-its-keyboard.md),
+  [ADR-0184](adr/0184-a-tree-is-a-list-that-remembers-what-is-open.md)
+- ~~**`list` renders every row, and `table` is still waiting on the recycler
+  neither has.**~~ **Both are built, and the promise held.** The item-factory
+  did survive contact: `virtualized(rowHeight)` calls the same function with the
+  same items and nothing about the API moved
+  ([ADR-0213](adr/0213-a-virtual-list-is-two-spacers-and-a-window.md)). `table`
+  turned out not to be waiting for the recycler at all but for `list` — a
+  table's rows *are* a list's rows with more than one thing in them, so it
+  composes one ([ADR-0214](adr/0214-a-table-is-a-list-with-columns.md)).
+  **What is still out is rows of varying height**, which the arithmetic rules
+  out rather than merely lacks: `index × height` is only a position if every row
+  is that height, and the usual way round it — an estimate corrected as rows are
+  measured — makes the scrollbar drift under the reader's thumb.
+- ~~**A `select`'s list is clamped rather than scrolled when it is taller than the
+  screen.**~~ **It scrolls.** The popup facility reports what it measured, so
+  neither caller has to guess, and both give the same answer from the same helper
+  — `Fitted`, which wraps content taller than the room in a viewport of the room's
+  height and leaves everything else alone. —
+  [ADR-0179](adr/0179-a-popup-says-what-it-measured.md),
+  [ADR-0141](adr/0141-a-select-is-a-closed-control-and-a-list.md)
+- ~~**`select multiple=` … is not built**~~ **It is.** The selection is a set,
+  `change` is a **toggle** in that mode — the set is the application's, so asking
+  for a value it already holds can only mean taking it out — and the list stays
+  open while values are picked, which needed a popup whose content can change
+  while it is open (`Popup.content`, new). §4's **free-text autocomplete** is
+  built too: `TextInput.suggesting(options)` offers a `SelectList` under the
+  field, the rows commit on `Enter` rather than following the focus, and the
+  field's text is never rewritten without the user choosing.
+  **`select autocomplete=#true` is built too** ([ADR-0183](adr/0183-a-combobox-is-a-select-you-can-type-in.md)):
+  the closed control holds a real `text-input`, so the editing model, the undo
+  history, the clipboard and the caret stay where their rules already are; the
+  field stops being a Tab stop and delegates focus, so a combobox is one stop;
+  `Esc` restores and a free-typed value is refused unless `free`, both off one
+  nullable string of offered text that `TextInputState.follow` already knew how
+  to honour. **`tree=#true` is built too** ([ADR-0184](adr/0184-a-tree-is-a-list-that-remembers-what-is-open.md)),
+  and so is a first cut of `tree` itself, which `list` had to agree with since §3
+  says the two share an item-factory — and does, now that `list` is built and the
+  selection models have moved to it (ADR-0212). —
+  [ADR-0182](adr/0182-a-select-may-hold-more-than-one.md),
+  [ADR-0141](adr/0141-a-select-is-a-closed-control-and-a-list.md)
+- ~~**A `select` opened from the keyboard does not give focus back to the
+  field.**~~ **The field never loses it.** Measured rather than reasoned about:
+  the owner window's router is not touched by a popup opening or closing, so the
+  field keeps both its focus and its ring for as long as the list is up. What
+  remains is the platform-level question above, which is not a control's problem
+  and not this control's in particular. —
+  [ADR-0180](adr/0180-the-keyboard-goes-back-where-it-was.md),
+  [ADR-0104](adr/0104-a-popup-is-measured-then-placed.md)
+- ~~**A gradient fill needs a symbol the export list does not have.**~~ **It has
+  six now, and the entry was right about which commit came first.** The widening
+  is the whole of the interesting part: `bl_gradient_init_as`, `_destroy` and
+  `_add_stop_rgba32` build one, `bl_context_set_fill_style` and its `_rgba32`
+  companion put it on the context and take it off, and
+  `bl_context_fill_path_d` — the plain fill, with no `_rgba32` suffix — is the
+  only styleless drawing call on the list and the only way a ramp reaches a path.
+  **The OKLCH in the original wording turned out to be vacuous**: a fade between
+  two alphas of one hue is the same curve in every perceptual space, and what
+  makes it correct is premultiplied interpolation plus repeating the colour at
+  the far stop, because `0x00000000` is transparent *black* and a green fading
+  to it goes through grey. `goldberry-html` and `goldberry-vector` both start one
+  commit further along. —
+  [ADR-0207](adr/0207-a-fill-may-be-a-ramp.md)
+- ~~**`split-pane` is not built.**~~ ~~**`carousel` is not built.**~~ **Both
+  ship, and §5 is complete.** The divider turned out to want `knob`'s gesture
+  anchor rather than `slider`'s position — the pointer is somewhere inside a
+  six-point bar, and reading its position would snap the divider under the finger
+  on every press — and the carousel's rotation is one one-shot timer rescheduled
+  after each slide, so that a pause is a timer not scheduled rather than one
+  suspended. What did **not** ship is one of the carousel's three brakes; see the
+  entry below. —
+  [ADR-0165](adr/0165-a-divider-translates-and-a-rotation-has-three-brakes.md)
+- ~~**A `carousel` does not pause when focus lands inside a slide.**~~ **The
+  third brake ships, and it cost one line because something else needed the same
+  thing.** This entry guessed the price wrong in an instructive direction: it said
+  closing the gap meant "`:focus-within` in the selector engine, the matcher and
+  the router's focus bookkeeping". None of that was needed. A carousel does not
+  want to *style* itself on focus-within, it wants to be **told** — and so does a
+  `field`, which validates when the keyboard leaves it. So what shipped is
+  `Handles.onFocusWithin`, a notification rather than a selector, reporting only
+  the moves that cross a subtree's boundary. The selector-engine version is still
+  unbuilt and now has no consumer asking for it. —
+  [ADR-0169](adr/0169-a-field-is-silent-until-you-leave-it.md),
+  [ADR-0165](adr/0165-a-divider-translates-and-a-rotation-has-three-brakes.md)
+- ~~**`collapse`'s `accordion=` is not built.**~~ **It ships, as a widget rather
+  than as a flag on `column`.** The flag belongs on the container — "one open at a
+  time" is a rule about siblings — but honouring it needs state, and statefulness
+  is a property of the *type*: putting it on `column` would give every column in
+  every document a `State` it never uses. `column accordion=#true` inflates to an
+  `Accordion` that reports `column` as its own CSS type, so the document writes
+  what §5 says and an ordinary column pays nothing. —
+  [ADR-0166](adr/0166-a-raised-thing-is-told-apart-by-its-edge.md)
 
-- **`Element.update` still invalidates a subtree wholesale.** ADR-0149 narrowed
-  the *state* path; a rebuilt widget still throws away everything below it,
-  because what changed there is the node's identity to the cascade — its classes
-  and its id — rather than one bit of its state. Narrowing that needs the same
-  index keyed on classes as well as types, and nothing has measured it as a
-  problem. —
-  [ADR-0149](adr/0149-a-state-invalidates-what-it-can-reach.md)
-
-- **A HUD costs about three shaped paragraphs a frame, and reports the cost as
-  its own.** Its readings are strings that change every frame, so no cache keyed
-  on the string can hold them. The caption says so rather than hiding it, and the
-  ways out are all worse than the disclosure: refreshing the text at 10 Hz would
-  need per-frame state a widget cannot have, and excluding the overlay subtree
-  from the timings would report a frame the window did not paint. —
-  [ADR-0152](adr/0152-the-cascade-looks-at-rules-that-could-match.md)
-- **The rule buckets are only as good as the stylesheet.** A sheet written
-  entirely in classes puts every rule in the untyped bucket and gets none of
-  ADR-0152's saving. The toolkit's own sheets are type-first and nothing enforces
-  that they stay so. —
-  [ADR-0152](adr/0152-the-cascade-looks-at-rules-that-could-match.md)
-
-- **A widget's CSS classes share a namespace with the design system's.** A `hud`
-  reading named `display` picked up §1.4's `.display` type rank and rendered at
-  28px. Renamed, and nothing prevents the next one: there is no prefix
-  convention, no check, and the two sets of names are written in different files
-  by different people. —
-  [ADR-0153](adr/0153-a-rate-is-counted-a-refresh-is-asked-for.md)
-
+- ~~**Per-corner radii do not exist, and `segmented` is the second control that
+  wanted one.**~~ **They exist, `segmented` uses them, and the fourth asking is
+  what built them.**
+  `button.square` asked first, `segmented` second — both went round the outside,
+  the bar keeping the radius and the segment inset. `group-box-title` could not:
+  its top corners meet a rounded frame and its bottom ones meet the body, and no
+  arrangement of nodes fakes that. It had been writing `border-radius: 7px 7px 0
+  0` since it shipped, and the engine had been dropping the declaration with a
+  warning nobody read. `Corners` is four numbers over CSS's 1-4 shorthand, the
+  uniform case emits the drawing it always did, and elliptical corners are still
+  refused. `SegmentedTest`'s pinned numbers did what they were pinned for: the
+  bar is drawn joined again, with §3's hairline between its cells, and the design
+  system's row is amended back. `button.square`'s joined buttons and `tabs` are
+  the two callers of `Corners.inRow` that have not arrived yet. —
+  [ADR-0217](adr/0217-a-segmented-control-is-joined-again.md),
+  [ADR-0216](adr/0216-a-corner-is-four-numbers-and-a-lint-reads-values-too.md),
+  [ADR-0097](adr/0097-a-selection-that-travels-needs-a-geometry.md)
+- ~~**`WaylandDecorationsTest` asserted `/proc` exists.**~~ **It asserts the
+  platform's own half of the contract now.** One test read the real
+  `/proc/thread-self` and asserted `Optional.of(false)` unconditionally — true on
+  Linux and false everywhere else, in a suite all three OS legs run
+  (`macos.yml` and `windows.yml` both run `:core:test` unfiltered). The fix is
+  not a skip: where `/proc` can answer it is still the live check that the
+  parsing works against a real symlink, and where it cannot the assertion is that
+  the answer is **empty** — which is `onInitialThread`'s documented contract,
+  "a machine that cannot say must produce silence rather than a guess", and the
+  branch macOS and Windows actually take. Gating with `@EnabledOnOs(LINUX)` would
+  have left two of the three platforms asserting nothing about the call that runs
+  on them. —
+  [ADR-0084](adr/0084-the-gtk-plugin-cannot-decorate-a-jvms-window.md)
 - ~~**A popup hangs on screen when the application loses focus to another
   window**~~ **No popup of any kind holds the platform keyboard now**, so
   `anyWindowFocused` means what it says: the application is focused exactly when
@@ -1625,19 +1764,7 @@ on, which in four cases is the same thing.
   [ADR-0186](adr/0186-a-panel-that-hangs-off-a-field-is-not-a-menu.md), so they
   can no longer be it. The next step is a real window and a log of `FocusChanged`
   per window id, which the headless backend cannot produce.
-- ~~**`flex-wrap` is not in §8's subset.**~~ **It is, and it took the shape this
-  entry predicted** — one component on `Box`, one on `ComputedStyle`, one line in
-  the render tree, and 48 positional reconstructions. What it did not predict is
-  the half that mattered: putting the property on the *field* wraps the chevron
-  onto a second line under the chips, so the chips needed a box of their own. A
-  golden image is what said so; nothing in the CSS looked wrong. —
-  [ADR-0192](adr/0192-a-row-of-chips-wraps-and-the-chevron-does-not.md)
-- **`align-content` is still absent**, which is what decides how wrapped *lines*
-  share the cross axis. It does not matter to a chip row, whose height is its
-  content, and it would to a wrapped row in a box with a fixed height — where
-  Yoga spreads the lines and CSS's default packs them. Nothing in the catalog
-  wants one yet, which is the rule §8's subset has grown by all along. —
-  [ADR-0192](adr/0192-a-row-of-chips-wraps-and-the-chevron-does-not.md)
+  **(earlier)**
   The window hides and the popup stays where it was. The mechanism
   [ADR-0144](adr/0144-a-popup-goes-away-when-the-application-does.md) describes is
   wired — the launcher watches `FocusChanged` and calls `dismissPopups` after a
@@ -1648,6 +1775,13 @@ on, which in four cases is the same thing.
   rather than deactivated. Diagnosing it needs a real window and a real
   compositor. —
   [ADR-0185](adr/0185-a-list-that-hangs-off-a-field-does-not-take-the-keyboard.md)
+- ~~**`flex-wrap` is not in §8's subset.**~~ **It is, and it took the shape this
+  entry predicted** — one component on `Box`, one on `ComputedStyle`, one line in
+  the render tree, and 48 positional reconstructions. What it did not predict is
+  the half that mattered: putting the property on the *field* wraps the chevron
+  onto a second line under the chips, so the chips needed a box of their own. A
+  golden image is what said so; nothing in the CSS looked wrong. —
+  [ADR-0192](adr/0192-a-row-of-chips-wraps-and-the-chevron-does-not.md)
 - ~~**Nothing drives §3's select family through the real loop.**~~ **`SelectLoopTest`
   does**, and found a seventh defect on its first run: a click opened the list and
   closed it again in the same gesture, because the press focused the editor (which
@@ -1664,11 +1798,6 @@ on, which in four cases is the same thing.
   the headless backend and is the shape that would have caught them. Closing this
   is worth more than the three bugs were. —
   [ADR-0185](adr/0185-a-list-that-hangs-off-a-field-does-not-take-the-keyboard.md)
-
-## Answered
-
-Kept rather than deleted: each is a trap somebody hit, and the reasoning that got
-out of it is usually worth more than the fact that it is fixed.
 
 - ~~**The HUD's budgets assume a 60 Hz display.**~~ **They are shares of the
   display's own frame now.** `SDL_GetCurrentDisplayMode`'s refresh rate was

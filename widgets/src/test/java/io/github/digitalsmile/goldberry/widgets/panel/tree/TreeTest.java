@@ -422,6 +422,37 @@ class TreeTest {
             assertTrue(row(tree, "no").selected());
             assertFalse(row(tree, "se").selected());
         }
+
+        /// A right-click selects the row it is over before the menu opens, which
+        /// is the file manager's gesture and the same two lines a list's row has
+        /// ([ADR-0224]). A tree names its menu on the `tree` rather than per row,
+        /// so the walk finds one menu and this decides what it acts on.
+        @Test
+        @DisplayName("a right-click asks for the row it is over")
+        void rightClickSelects() {
+            var tree = world("no");
+            press(row(tree, "europe"), Key.RIGHT);
+            tree.flush();
+
+            row(tree, "se").selectForContextMenu();
+
+            assertEquals(List.of("se"), chosen);
+        }
+
+        /// The rule that makes it worth having: a menu opened over the row that
+        /// is already chosen must not re-report it, because a report is a change
+        /// the application will act on.
+        @Test
+        @DisplayName("a right-click on the row already selected asks for nothing")
+        void rightClickKeepsTheSelection() {
+            var tree = world("no");
+            press(row(tree, "europe"), Key.RIGHT);
+            tree.flush();
+
+            row(tree, "no").selectForContextMenu();
+
+            assertEquals(List.of(), chosen);
+        }
     }
 
     /// §3's `checkable="none|leaf|any|cascade"` — the checkbox per node, which is
