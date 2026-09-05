@@ -310,7 +310,13 @@ the mechanism the sentence named.
   [ADR-0109](adr/0109-a-tab-arrives-and-departs-on-the-frame-clock.md)
 - **`margin` is not in §8's subset**, which `tab-new` found after `border-bottom`
   and `currentColor`. Three properties a widget reached for and did not find, all
-  silently ignored — the subset is right to be small. ~~and nothing warns when a
+  silently ignored — the subset is right to be small. **And `tab-new` no longer
+  wants it**: what it was reaching for was a way to sit somewhere other than the
+  top of its row, which `align-self` answers
+  ([ADR-0244](adr/0244-a-child-may-say-where-it-sits.md)). So `margin` has *no*
+  live consumer — Yoga's binding for it has been there since ADR-0029, and the
+  subset's own rule is what keeps it out rather than any difficulty. This entry
+  is now a record of that rule working. ~~and nothing warns when a
   declaration is dropped.~~ **Something does now, for the toolkit's own sheets:**
   `border-bottom` was written a fourth time, in `table-head`, and drew nothing
   ([ADR-0215](adr/0215-a-property-the-engine-drops-is-a-rule-that-does-nothing.md)).
@@ -412,10 +418,18 @@ the mechanism the sentence named.
   least as wide as the field (ADR-0145), which was the half that showed; the
   field itself still tracks its value, so it moves when the value does. No
   selector can measure a set of options — the same wall `segmented` hit, where
-  the answer was that the control writes the width itself (ADR-0099) — and doing
-  it here means measuring text outside a layout pass, which only `Paragraph` can
-  do and only for a style that has been resolved. An application gives it a
-  width, which is what a form does anyway. —
+  the answer was that the control writes the width itself (ADR-0099). **The
+  reason given for not doing it has expired.** It said this "means measuring text
+  outside a layout pass, which only `Paragraph` can do and only for a style that
+  has been resolved" — and `render` is exactly that place:
+  `Paints.Context.paragraph(style, text)` shapes against the node's own resolved
+  style, and a shaped paragraph's natural width is one call. It is not the
+  `Measured` trap either, because what is measured is *text*, a pure function of
+  the model and the style, rather than last frame's geometry. What it actually
+  costs is a component on `SelectField` carrying the option labels, arithmetic
+  over the padding, the gap and the chevron, and **every `select` golden in the
+  corpus** — which is a decision about a shipped drawing rather than a missing
+  mechanism, and `docs/core-widgets.md` §3 already asks for it. —
   [ADR-0141](adr/0141-a-select-is-a-closed-control-and-a-list.md),
   [ADR-0145](adr/0145-a-dropdown-is-as-wide-as-what-it-drops-from.md)
 - **Autocomplete is Java-only, and `SelectList` is in the wrong package.** §4 says
@@ -433,16 +447,18 @@ the mechanism the sentence named.
   a jump or a wrap that depends on which way round the user went — which needs the
   accumulated angle, a *second* piece of gesture state, for a gesture that is nobody's
   first choice. — [ADR-0089](adr/0089-a-knobs-gesture-is-a-rate.md)
-- **`--gb-list-row-height` has no consumer.** It ships with the density because the
-  density a `list` will have to honour is decided there rather than in the widget, and
-  an application building its own rows today has the token it would otherwise hard-code
-  — the argument ADR-0037 made for `ParagraphCache`. `list` is M3. —
-  [ADR-0074](adr/0074-density-is-a-token-swap-and-regular-is-no-stylesheet.md)
 - **A slider maps the pointer over the track's full width**, so at the extremes the
   thumb's centre is up to 8px from the finger. Mapping over the *travel* needs the
   thumb's width, which is the stylesheet's and not the widget's. The mapping is
-  monotonic and reaches both ends exactly; closing the gap means a widget being told a
-  resolved metric, which is a bigger door than this is worth. The **tick marks do not
+  monotonic and reaches both ends exactly. **The door this entry named is open and
+  a different one is shut**: "a widget being told a resolved metric" is
+  `Paints.Context.length` and has been since
+  [ADR-0251](adr/0251-a-widget-may-read-a-token-and-a-nested-scroller-is-named.md)
+  — but it is a **`render`-time** read, and the pointer arrives at `onPointer`
+  where there is no context to ask. `scroll` solved exactly that by banking the
+  number into its `State`; a `Slider` is a `record` with nowhere to bank one, so
+  closing this means making `slider` stateful. That is still a bigger change than
+  8px, and it is now a different sentence. The **tick marks do not
   have this problem**: their inset is half a thumb, written in the stylesheet beside the
   thumb's own width, so a mark and the thumb agree exactly while the finger is the thing
   that is up to 8px out. — [ADR-0080](adr/0080-a-value-is-measured-along-a-part.md),
@@ -481,10 +497,6 @@ the mechanism the sentence named.
   than a missing mechanism — and it is the **only** thing left on ADR-0235's list,
   now that the label half has been built ([ADR-0255](adr/0255-a-label-that-does-not-fit-is-cut-not-wrapped.md)). —
   [ADR-0235](adr/0235-a-cut-label-needs-nowrap-not-text-overflow.md)
-- **A `static` `@Action` is still unsupported, and now for a second reason.** The
-  accessible path generates `target::method`, which does not compile for a static
-  method, and the private path writes `findVirtual`. Nothing refuses one explicitly; it
-  was broken before ADR-0098 and remains so, because no model has ever wanted one.
 
 ## The shell: the tray, and what it cannot say
 
@@ -642,7 +654,9 @@ on, which in four cases is the same thing.
   Nothing in `statistic` is shaped around its absence: a sparkline is one more
   child at the end of the column. —
   [ADR-0164](adr/0164-elevation-is-an-edge-and-a-closed-section-is-absent.md)
-- **`flex-basis` is still the only layout property §8 names and nothing resolves.** It
+- **`flex-basis` is one of two layout properties §8 names and nothing resolves**,
+  `align-content` being the other — see below; this used to say "the only" and
+  had never agreed with the entry three down from it. It
   was implemented for `segmented` and taken back out rather than left as a property with
   no consumer — `flex-basis: 0` makes Yoga compute a track's content size as *zero*, so
   an unconstrained bar collapses. It is the last of §8's `flex-grow`/`shrink`/`basis`
@@ -1087,6 +1101,30 @@ on, which in four cases is the same thing.
 Kept rather than deleted: each is a trap somebody hit, and the reasoning that got
 out of it is usually worth more than the fact that it is fixed.
 
+- ~~**`--gb-list-row-height` has no consumer.**~~ **It has two, and has had since
+  `list` shipped.** `ListState` reads the token through `BuildContext.token`
+  ([ADR-0254](adr/0254-a-build-may-ask-the-cascade-for-a-number.md)) and
+  `list-row` writes `height: var(--gb-list-row-height)`, so the number the
+  density decides is the number the rows are and the number the spacers are
+  spaced by — which is now checked, since a disagreement between the last two is
+  reported ([ADR-0257](adr/0257-a-diagnostic-is-asked-for-not-logged.md)). The
+  entry's closing line, "`list` is M3", is the other half that expired: `list` is
+  built. —
+  [ADR-0257](adr/0257-a-diagnostic-is-asked-for-not-logged.md),
+  [ADR-0254](adr/0254-a-build-may-ask-the-cascade-for-a-number.md),
+  [ADR-0074](adr/0074-density-is-a-token-swap-and-regular-is-no-stylesheet.md)
+- ~~**A `static` `@Action` is still unsupported, and nothing refuses one
+  explicitly.**~~ **Both paths refuse one by name, and both refusals are
+  tested.** The entry was right that it cannot work — the woven path would
+  generate `target::method` for a method with no target, and the reflective one
+  writes `findVirtual` — and wrong that nothing says so. `ModelWeaver` throws a
+  `WeaveException` and `RuntimeBinding` an `IllegalStateException`, both reading
+  *"is static; an action changes a model, and a static one has no model to
+  change"*, and `ModelWeaverTest.staticAction` and
+  `RuntimeBindingTest.staticAction` are the two tests. Nothing was built to close
+  this; it had been closed and the entry was not updated, which is the argument
+  for reading an entry against the code before believing it. —
+  [ADR-0098](adr/0098-a-private-member-is-reached-by-a-handle.md)
 - ~~**Nothing warns when a declaration is dropped for being unsupported, in an
   application's stylesheet.**~~ ~~**An application's stylesheet can still be all
   classes, and nothing says so.**~~ **Both are asked for now, which is what both
