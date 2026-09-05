@@ -93,18 +93,6 @@ the mechanism the sentence named.
   the application's help. Smaller than it was, and the same shape. —
   [ADR-0100](adr/0100-a-window-has-a-layer-above-its-application.md),
   [ADR-0140](adr/0140-a-widget-may-reach-its-window.md)
-- **`stack` is still owed.** `docs/core-widgets.md` §1's "z-order layering;
-  children positioned by alignment or absolute insets" is unbuilt. It is the
-  *layout* widget where the overlay layer is a *window* facility, and neither
-  builds the other — though the mechanism is not in doubt: `WindowRoot` already
-  lays an overlay out with `position: absolute` and Yoga insets, which is the
-  layering half. The **alignment** half was blocked on `align-self`, which is
-  built now ([ADR-0244](adr/0244-a-child-may-say-where-it-sits.md)) — so what
-  `stack` still wants is `stack`. The other
-  half of this entry — "overlays do not animate in or out" — has moved to
-  [Answered](#answered): a toast, a dialog and a banner all arrive and depart on a
-  `Phase` now. —
-  [ADR-0100](adr/0100-a-window-has-a-layer-above-its-application.md)
 - **Nothing reports a dropped frame.** The ring behind `hud` records frames that were
   painted, so a frame the platform refused *after* it was painted is in the mean and a
   frame the loop never reached is not. "3 late" needs the pacer's view as well as the
@@ -1169,6 +1157,23 @@ on, which in four cases is the same thing.
 Kept rather than deleted: each is a trap somebody hit, and the reasoning that got
 out of it is usually worth more than the fact that it is fixed.
 
+- ~~**`stack` is still owed.**~~ **It is built, and it positions nothing.**
+  The entry's own last sentence had become "what `stack` still wants is `stack`"
+  once [ADR-0244](adr/0244-a-child-may-say-where-it-sits.md) took its last
+  blocker. It is nine lines: the **first child stays in flow** so the box has a
+  size — a stack whose children are all out of flow is a box of nothing, and this
+  is what makes wrapping an existing widget in one a change that cannot move it —
+  and every child after it is `position: absolute` so an overlay cannot resize
+  what it sits on. §1's "positioned by alignment or absolute insets" needed no
+  code at all: both already worked, and this is the case
+  `ComputedStyle.INITIAL`'s inset comment has been describing since before
+  anything could reach it — *"the difference only shows on an absolute node,
+  where zero would stretch it and undefined leaves it where the alignment put
+  it"*. Z-order is document order, which is the painter's existing rule for
+  siblings. —
+  [ADR-0250](adr/0250-a-stack-is-one-child-in-flow.md),
+  [ADR-0244](adr/0244-a-child-may-say-where-it-sits.md),
+  [ADR-0100](adr/0100-a-window-has-a-layer-above-its-application.md)
 - ~~**A style that really changes still re-resolves its whole subtree, and only
   the inherited properties can matter.**~~ **It compares the inherited half now,
   and the notion the entry wanted already existed.** `ComputedStyle` does have a

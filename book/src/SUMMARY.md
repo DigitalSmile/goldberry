@@ -259,6 +259,7 @@
 - [ADR-0247 `start` is CSS, and `flex-start` is Yoga](adr/0247-start-is-css-and-flex-start-is-yoga.md)
 - [ADR-0248 Only the inherited half is handed down](adr/0248-only-the-inherited-half-is-handed-down.md)
 - [ADR-0249 A rule that can name a type, does](adr/0249-a-rule-that-can-name-a-type-does.md)
+- [ADR-0250 A stack is one child in flow and the rest over it](adr/0250-a-stack-is-one-child-in-flow.md)
 
 ---
 

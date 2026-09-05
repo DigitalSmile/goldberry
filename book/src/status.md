@@ -5461,6 +5461,40 @@ is the `scroll` box's.
   assertion that the sheet is large and nearly all of it bucketed, because a
   check listing eight selectors would pass against a stylesheet of eight rules.
 
+### The widget that turned out to be nine lines
+
+- **`stack` is built** ([ADR-0250](adr/0250-a-stack-is-one-child-in-flow.md)),
+  which closes §1's last core-group gap but `image` and an entry whose own final
+  sentence had become "what `stack` still wants is `stack`" once
+  [ADR-0244](adr/0244-a-child-may-say-where-it-sits.md) took its last blocker.
+- **The first child stays in flow and the rest are `position: absolute`.** That
+  is the whole widget, and each half answers what the other cannot: something has
+  to give the stack a size, because a box whose children are all out of flow is a
+  box of nothing — and an overlay must not resize what it sits on. It also means
+  a stack of one child is that child in a box, so wrapping an existing widget in
+  one is a change that cannot move it.
+- **It positions nothing, and that is the point.** §1 asks for children
+  "positioned by alignment or absolute insets" and both already worked: an
+  absolute child with no inset is placed by the container's `align-items` and
+  `justify-content` and by its own `align-self`, and one with an inset goes where
+  it says. This is the case `ComputedStyle.INITIAL`'s inset comment has been
+  describing since before anything could reach it — *"the difference only shows
+  on an absolute node, where zero would stretch it and undefined leaves it where
+  the alignment put it"*. `stack` is the widget that finally shows it.
+- **Ten tests, six of which fail against a stack that positions nothing**, all
+  against Yoga's own output, because every claim a stack makes is a claim about
+  where boxes ended up. The markup path goes through the real catalog rather than
+  constructing the record: `stack` is in §1's `core` list, so what is under test
+  is the registration.
+- **The tests wrap the stack in a row that does not stretch it**, and that is
+  load-bearing. The root box is always laid out at the frame's size, so a stack
+  tested *as* the root is 300 wide whatever its children do and every size
+  assertion passes for the wrong reason — found by writing the assertions first
+  and watching four of them come back 300.
+- **No stylesheet rule ships for it**, which is `row`'s and `column`'s
+  arrangement exactly: a stack sets no colour, no padding and no gap, and where
+  its overlays land is the application's to declare.
+
 ### Not started
 
 Client-side decorations, the rest of §4 —
