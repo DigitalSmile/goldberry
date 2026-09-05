@@ -139,23 +139,6 @@ the mechanism the sentence named.
   with the touchpad's fractions preserved, which is honest but is not what the
   architecture document originally promised — reaching the real thing means going around
   SDL to the platform. — [ADR-0056](adr/0056-the-wheel-is-lines-and-the-sign-is-ours.md)
-- **A wheel over a *disabled* control is swallowed outright, and the scroll view
-  above it never gets a turn.** Measured rather than deduced, while
-  [ADR-0236](adr/0236-a-wheel-is-consumed-by-whatever-it-moved.md) was being
-  written: a disabled knob in a scrolling column stops the list dead under the
-  pointer. `PointerRouter.dispatch` returns **before the chain is built** when the
-  target sits in a disabled subtree, so nothing above it is offered the event.
-  That cut is ADR-0059's and it is right for a *click* — bubbling past a disabled
-  button to the row underneath would activate something the user did not aim at —
-  and it is wrong for a wheel, which every desktop chains past a dead control to
-  whatever scrolls. So the question is whether the disabled cut is **per event
-  kind**: `isInput` already partitions the kinds once, for a different purpose,
-  and a second partition would have to say why `WHEEL` leaves the "user *doing*
-  something" set for this one test and not for the other. A decision about the
-  router, not about `knob`. —
-  [ADR-0236](adr/0236-a-wheel-is-consumed-by-whatever-it-moved.md),
-  [ADR-0059](adr/0059-a-control-is-a-record-a-node-and-a-rule.md),
-  [ADR-0077](adr/0077-disabled-propagates-for-input-and-not-for-paint.md)
 - **Every pointer event now costs an `SDL_GetModState`.** Polled per event rather than
   carried on it, because SDL's mouse events have no `mod` field. On a 120 Hz trackpad
   that is a few thousand calls a second into a statically linked function that reads a
@@ -1191,6 +1174,24 @@ on, which in four cases is the same thing.
 Kept rather than deleted: each is a trap somebody hit, and the reasoning that got
 out of it is usually worth more than the fact that it is fixed.
 
+- ~~**A wheel over a *disabled* control is swallowed outright, and the scroll
+  view above it never gets a turn.**~~ **It chains now, and the answer was "per
+  event kind" — for one kind.** The entry stated the question correctly and the
+  resolution is the narrow half of it: `dispatch` still refuses a press, a
+  release and a click aimed into a disabled subtree, for ADR-0059's unchanged
+  reason — that argument is about *the thing being aimed at*, and a click on a
+  disabled button must not become a click on the row holding it. A wheel is not
+  aimed at a control; it is aimed at whatever scrolls, which is what every
+  platform does with one. So for a wheel the chain is built and its **disabled
+  prefix dropped** rather than the whole dispatch abandoned: the dead subtree
+  still handles nothing, and what changes is only who gets a turn afterwards.
+  `isInput` is untouched — taking `WHEEL` out of "the user *doing* something"
+  would have made the disabled knob start turning. What this also records is why
+  nothing caught it: `DisabledPropagationTest`'s tree had **nothing above** the
+  disabled container, so "refused" and "swallowed" logged identically. —
+  [ADR-0238](adr/0238-a-wheel-chains-past-a-dead-control.md),
+  [ADR-0236](adr/0236-a-wheel-is-consumed-by-whatever-it-moved.md),
+  [ADR-0059](adr/0059-a-control-is-a-record-a-node-and-a-rule.md)
 - ~~**Nothing recomputes the cursor when the tree changes under a still
   pointer.**~~ **It does now, and the entry named half of it.** The cursor half is
   exactly as written — a fourth position field, remembered from every entry point

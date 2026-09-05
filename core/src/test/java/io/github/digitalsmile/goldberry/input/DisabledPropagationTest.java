@@ -144,6 +144,55 @@ class DisabledPropagationTest {
             assertEquals(List.of(), input());
         }
 
+        /// [ADR-0238], and the half the entry above cannot see: nothing in this
+        /// tree is *above* the disabled container, so "refused" and "swallowed"
+        /// look identical here. They are not the same thing, and a wheel is the
+        /// one kind where the difference matters.
+        @Test
+        @DisplayName("but a live scroller above the disabled container still gets it")
+        void wheelChainsPastIt() {
+            var live = new PointerRouter();
+            var scroller = new Node("scroll", false, new Node("form", true, new Node("button", false)));
+            var tree = new ElementTree(scroller);
+            var outer = tree.root();
+            var form = outer.children().getFirst();
+            var button = form.children().getFirst();
+            live.updateRegions(List.of(
+                    HitTest.Region.of(outer, 0, 0, 100, 100),
+                    HitTest.Region.of(form, 10, 10, 60, 60),
+                    HitTest.Region.of(button, 20, 20, 40, 40)));
+
+            live.pointerWheel(30, 30, 0, 1);
+
+            // The dead subtree still handles nothing -- that is the rule above,
+            // unchanged. What it may not do is stop the wheel on its way to
+            // something that can act on it.
+            assertEquals(List.of("scroll:WHEEL"), input());
+        }
+
+        /// Which is what stops the change being "let everything through": a
+        /// click is aimed at a control, and one that fell past a disabled button
+        /// to the row underneath would activate something nobody aimed at.
+        @Test
+        @DisplayName("and a click still stops dead, because a click is aimed at a control")
+        void clickDoesNotChain() {
+            var live = new PointerRouter();
+            var scroller = new Node("row", false, new Node("form", true, new Node("button", false)));
+            var tree = new ElementTree(scroller);
+            var outer = tree.root();
+            var form = outer.children().getFirst();
+            var button = form.children().getFirst();
+            live.updateRegions(List.of(
+                    HitTest.Region.of(outer, 0, 0, 100, 100),
+                    HitTest.Region.of(form, 10, 10, 60, 60),
+                    HitTest.Region.of(button, 20, 20, 40, 40)));
+
+            live.pointerPressed(30, 30, PointerEvent.Button.PRIMARY, 1);
+            live.pointerReleased(30, 30, PointerEvent.Button.PRIMARY, 1);
+
+            assertEquals(List.of(), input(), "a press fell through a disabled container to the row holding it");
+        }
+
         /// The keyboard needs no separate guard, and that is the design rather
         /// than an accident: focus is the only route a key event has, so a
         /// subtree that cannot be focused cannot be typed into either.

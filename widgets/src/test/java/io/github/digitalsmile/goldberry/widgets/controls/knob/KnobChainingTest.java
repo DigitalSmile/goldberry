@@ -158,6 +158,25 @@ class KnobChainingTest {
                 "the scroll view never saw the wheel; the content is still at " + harness.contentMiddle());
     }
 
+    /// The case that opened [ADR-0238] while this file was being written, and
+    /// the one a knob cannot fix for itself: a **disabled** knob never reaches
+    /// [Knob#onPointer] at all, because the router refuses input to a disabled
+    /// subtree — and used to refuse it by returning before the chain was built,
+    /// so the `scroll` above never got a turn either.
+    @Test
+    @DisplayName("a disabled knob is not a place a scroll stops")
+    void aDisabledKnobChains() {
+        var harness = new Harness(50, true);
+        var where = harness.contentMiddle();
+
+        harness.wheelOverTheKnob(2);
+
+        assertEquals(50.0, harness.gain.get(), 1e-9, "a disabled knob turned");
+        assertTrue(
+                harness.contentMiddle() < where - 1,
+                "the disabled knob swallowed the wheel; the content is still at " + harness.contentMiddle());
+    }
+
     /// A live tree: rendered, laid out, and with a router holding the regions the
     /// paint produced.
     private final class Harness {
@@ -173,12 +192,16 @@ class KnobChainingTest {
         private final PointerRouter router = new PointerRouter();
 
         Harness(double value) {
+            this(value, false);
+        }
+
+        Harness(double value, boolean disabled) {
             gain = Property.of(value);
             var rows = new ArrayList<Widget>();
             for (var i = 0; i < LEAD_ROWS; i++) {
                 rows.add(new Text("lead " + i));
             }
-            rows.add(Knob.of(0, 100, STEP, gain, gain::set));
+            rows.add(new Knob(0, 100, value, STEP, 0, gain, gain::set, disabled, Attributes.NONE));
             for (var i = 0; i < ROWS; i++) {
                 rows.add(new Text("row " + i));
             }

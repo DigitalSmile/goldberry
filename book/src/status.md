@@ -5097,6 +5097,42 @@ is the `scroll` box's.
   as an achievement, and that is the kind of comment that stops the next person
   looking.
 
+### The gesture that was never about the control it was over
+
+- **A wheel chains past a dead control**
+  ([ADR-0238](adr/0238-a-wheel-chains-past-a-dead-control.md)), which closes the
+  entry ADR-0236 had opened one commit earlier. A disabled knob in a scrolling
+  column stopped the list dead under the pointer, and no widget could fix it:
+  `dispatch` returned **before the chain was built** when the target sat in a
+  disabled subtree, so the `scroll` above was never offered the event.
+- **The cut is ADR-0059's and its argument is about the thing being aimed at.** A
+  click on a disabled button must not become a click on the row holding it, and a
+  disabled control still hit-tests so a click cannot fall through to what is
+  painted behind it. Both stay. What the argument does not cover is a **wheel**,
+  which is not aimed at a control at all — it is aimed at whatever scrolls, and a
+  browser, GTK and Qt all deliver it to the scroller. Nobody puts the pointer on
+  a dead control in order to scroll; they put it on the list, and the dead
+  control happens to be under it.
+- **So the disabled cut is per event kind, for one kind.** A press, a release and
+  a click are refused exactly as before; a wheel builds the chain and **drops its
+  disabled prefix**. The dead subtree still handles nothing — the trimmed chain
+  never reaches it — and what changes is only who gets a turn afterwards.
+- **The prefix is a fact rather than an assumption.** The chain is deepest-first
+  and `isDisabled` walks *up*, so it is true from the target to the outermost
+  disabled ancestor and false at every step above; `dropWhile` is exact in one
+  pass. A wholly disabled tree trims to nothing, which is the old behaviour
+  reached by the new route.
+- **`isInput` is untouched.** Taking `WHEEL` out of "the user *doing* something"
+  is a one-character diff and the wrong one: the same predicate decides whether
+  the disabled subtree is skipped at all, so the disabled knob would have started
+  turning.
+- **Why nothing caught it, which is the part worth keeping.**
+  `DisabledPropagationTest` has covered "the wheel is refused too" since ADR-0077
+  — against a disabled `form` holding a `button` and **nothing above it**. With
+  no live ancestor, "the subtree refuses the wheel" and "the wheel is swallowed"
+  produce identical logs. The old assertion is unchanged and still passing,
+  because what it actually claims is still true.
+
 ### Not started
 
 Client-side decorations, the rest of §4 —

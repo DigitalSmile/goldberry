@@ -1627,10 +1627,26 @@ public final class PointerRouter {
         // widget. A control's own `disabled` check is then a second line of
         // defence rather than the only one, and a control that forgets to write
         // it is still unavailable inside a disabled container.
-        if (isInput(event.kind()) && isDisabled(event.target())) {
-            return;
-        }
         var chain = chain(event.target());
+        if (isInput(event.kind()) && isDisabled(event.target())) {
+            // ...except that a **wheel** chains past a dead control rather than
+            // stopping at it ([ADR-0238]). The argument above is about the thing
+            // aimed at: a click on a disabled button must not become a click on
+            // the row underneath. A wheel is not aimed at a control at all -- it
+            // is aimed at whatever scrolls -- so a disabled knob in a list that
+            // stopped the list dead under the pointer is the cut being wrong
+            // rather than being enforced.
+            if (event.kind() != PointerEvent.Kind.WHEEL) {
+                return;
+            }
+            // The disabled elements are a **prefix** of the chain, which is
+            // deepest-first: `isDisabled` walks up, so it is true from the target
+            // to the outermost disabled ancestor and false every step above.
+            // Dropping them leaves the live ancestors and nothing else, so the
+            // dead subtree still handles nothing -- what changes is only who gets
+            // a turn after it.
+            chain = chain.stream().dropWhile(PointerRouter::isDisabled).toList();
+        }
         // Every event of a gesture carries its origin, exactly as `dragX` does.
         // Set here rather than at each call site so a kind added later cannot
         // forget -- including CLICKED, which is synthesized after the release.
