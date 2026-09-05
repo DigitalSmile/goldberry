@@ -248,6 +248,7 @@
 - [ADR-0236 A wheel is consumed by whatever it moved](adr/0236-a-wheel-is-consumed-by-whatever-it-moved.md)
 - [ADR-0237 The pointer's state follows the frame](adr/0237-the-pointer-state-follows-the-frame.md)
 - [ADR-0238 A wheel chains past a dead control](adr/0238-a-wheel-chains-past-a-dead-control.md)
+- [ADR-0239 A mark is measured against the box it is drawn in](adr/0239-a-mark-is-measured-against-the-box-it-is-drawn-in.md)
 
 ---
 

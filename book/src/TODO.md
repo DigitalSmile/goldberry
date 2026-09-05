@@ -829,14 +829,24 @@ on, which in four cases is the same thing.
   2px offset and the bar's inset is 2, so the two coincide — legible in
   `segmented-focus.png`, and an accident of two numbers derived separately rather than a
   thing anyone chose. If either moves, look at the image.
-- **Non-text contrast is not checked at all.** `ContrastTest` measures text against the
-  fill under it. §1.2's other half — 3:1 for anything that is not text — reaches a
-  checked checkbox's mark, a slider's thumb against its groove, a spinner's ring, a
-  border against the surface it separates, and the focus ring against whatever is behind
-  it. None of them is measured, and ADR-0088's argument that the accent ramp did not
-  need to move rests on exactly that unenforced number. The arithmetic is already
-  written; what is missing is deciding what counts as the "background" of a mark drawn
-  *onto* its own box. —
+- **Nineteen non-text pairs are below §1.2's 3:1, and the ramps have to move.**
+  The measurement exists now
+  ([ADR-0239](adr/0239-a-mark-is-measured-against-the-box-it-is-drawn-in.md)) and
+  this is what it found. **The focus ring is the one to fix first**: `--gb-focus`
+  is `--nord8`, a pale blue, and on the light theme it is 1.74:1 on `--gb-bg`,
+  2.00:1 on `--gb-surface` and 1.64:1 on `--gb-surface-2` — below the floor on
+  every surface, for the one mark in the system with no second means of being
+  seen. Then **twelve control boundaries**: `--gb-checkbox-bg` *is*
+  `--gb-surface-2` in the dark theme, so an unchecked box on a `group-box`
+  differs from its backdrop by nothing at all and is held up by a 1.17:1 edge;
+  the light theme is the same shape. Then **four marks**, three of which are one
+  pair — `--gb-accent` on `--gb-border` at 2.98:1 in the light theme, missing by
+  0.02 — and the fourth the light theme's near-white slider thumb on its grey
+  groove at 1.35:1. Each is a **theme colour**, so the fix is ADR-0088's — slide
+  the ramp until it clears, and write the measurement beside it — and its cost is
+  every golden that draws one. Recorded rather than done because that is a design
+  decision with a golden-image tail, not a test's to take. —
+  [ADR-0239](adr/0239-a-mark-is-measured-against-the-box-it-is-drawn-in.md),
   [ADR-0088](adr/0088-a-fill-that-carries-text-moves-away-from-it.md)
 - **`button.ghost` has no contrast ratio, and is therefore not checked.** Its fill is
   `transparent` and its hover is a `#ffffff14` wash, so what a user reads depends on the
@@ -1174,6 +1184,22 @@ on, which in four cases is the same thing.
 Kept rather than deleted: each is a trap somebody hit, and the reasoning that got
 out of it is usually worth more than the fact that it is fixed.
 
+- ~~**Non-text contrast is not checked at all.**~~ **It is measured now, and the
+  question the entry could not answer had a simpler answer than it looked.** What
+  counts as the background of a mark drawn onto its own box is **its own box**: a
+  mark is coloured by the `color` of the element it is drawn in and that element
+  supplies its own `background`, and for every mark in the catalog *the same rule
+  sets both* — a checked tick is `--gb-checkbox-mark-checked` on
+  `--gb-checkbox-bg-checked`, both from `check-indicator:checked`. So the pair is
+  one `ComputedStyle`'s two properties and nothing needs the painted frame. Three
+  sweeps: a mark against its box, a ring against the surface behind it, and a
+  control against that surface **by the better of its fill and its edge** — a
+  maximum rather than two measurements, because §1.2 asks that *some* means
+  identifies a component, and measuring separately reported `--gb-border` failing
+  everywhere when a decorative divider is supposed to be subtle. What the sweeps
+  find is [above](#style-colour-and-motion) and is not this entry's any more. —
+  [ADR-0239](adr/0239-a-mark-is-measured-against-the-box-it-is-drawn-in.md),
+  [ADR-0088](adr/0088-a-fill-that-carries-text-moves-away-from-it.md)
 - ~~**A wheel over a *disabled* control is swallowed outright, and the scroll
   view above it never gets a turn.**~~ **It chains now, and the answer was "per
   event kind" — for one kind.** The entry stated the question correctly and the

@@ -44,7 +44,7 @@ import io.github.digitalsmile.goldberry.widgets.text.Text;
 /// Small text throughout: §1.2 allows 3:1 only at ≥20px, and nothing in the
 /// catalog draws text that large — `caption` is 11px and `body` is 13.
 ///
-/// ## The exemption list is empty, and is asserted to be
+/// ## The text exemption list is empty, and is asserted to be
 ///
 /// Its first run found seven shipped `button` pairs below the floor —
 /// `button.danger` on both themes and `button.primary` on light, the worst of
@@ -55,6 +55,23 @@ import io.github.digitalsmile.goldberry.widgets.text.Text;
 /// is removed. A check narrowed to what already passes is
 /// ADR-0082's
 /// trap, so the sweep covers everything.
+///
+/// ## The non-text lists are not empty, and that is the finding
+///
+/// §1.2 has a second floor — 3:1 for anything that is **not** text — and until
+/// [ADR-0239] nothing measured it. Three sweeps do now: a mark against the box it
+/// is drawn in, a ring against the surface behind it, and a control against that
+/// surface by the better of its fill and its edge. Between them they find
+/// nineteen pairs below the floor, held in [#MARKS_BELOW_FLOOR],
+/// [#RINGS_BELOW_FLOOR] and [#BOUNDARIES_BELOW_FLOOR] on
+/// [#KNOWN_FAILURES]'s exact-set terms.
+///
+/// They are recorded rather than fixed, and the distinction is deliberate: every
+/// one is a **theme colour**, and ADR-0088's move — slide the ramp until it
+/// clears — changes what the toolkit looks like. That is a design decision with a
+/// golden-image tail rather than something a test may take on its own authority.
+/// The worst of them is §2.2's focus ring, below 3:1 on every surface of the
+/// light theme.
 class ContrastTest {
 
     /// §1.2's floor for text under 20px, which is all of it.
@@ -386,6 +403,245 @@ class ContrastTest {
     /// This is the assertion that says the list is *empty*, so re-exempting a pair
     /// fails a test whose name says what happened, rather than silently turning a
     /// green run into a differently-green run.
+    /// What the non-text sweeps below measure and find wanting, **today**.
+    ///
+    /// These are three lists rather than one for [#KNOWN_FAILURES]'s reason,
+    /// sharpened: each is asserted as an **exact set** against its own sweep, so
+    /// a pair that newly breaks cannot be parked in one quietly and a pair that
+    /// gets fixed fails the test until it is taken out. Every entry carries the
+    /// measurement that put it there.
+    ///
+    /// ## They are debt, and they are not this change's to pay
+    ///
+    /// [#KNOWN_FAILURES] is empty and asserted to be, because ADR-0088 *fixed*
+    /// the seven pairs the text sweep found. The same move is not available here.
+    /// Every one of these is a **theme colour**, and sliding a ramp to clear 3:1
+    /// changes what the toolkit looks like — the focus ring on the light theme
+    /// would have to go markedly darker, and an unchecked checkbox needs a fill
+    /// that is not literally `--gb-surface-2`. That is a design decision with a
+    /// golden-image tail, and it is not one a test may take on its own authority.
+    ///
+    /// What this change owes, and delivers, is the **measurement**: the entry
+    /// that asked for it said "none of them is measured, and ADR-0088's argument
+    /// that the accent ramp did not need to move rests on exactly that unenforced
+    /// number". It is enforced now, and it says the ramp does need to move.
+    ///
+    /// The worst of them is the first: §2.2's focus ring is **below 3:1 on every
+    /// surface of the light theme**, and a focus ring is the one mark in the
+    /// system with no second means of being seen.
+    private static final List<String> RINGS_BELOW_FLOOR = List.of(
+            // 1.74:1, 2.00:1, 1.64:1 -- `--gb-focus` is `--nord8`, a pale blue,
+            // and the light theme's surfaces are white and near-white.
+            "nord-light focus ring on --gb-bg",
+            "nord-light focus ring on --gb-surface",
+            "nord-light focus ring on --gb-surface-2");
+
+    /// A mark on the box it is drawn in — see [#RINGS_BELOW_FLOOR] for why these
+    /// are recorded rather than fixed.
+    private static final List<String> MARKS_BELOW_FLOOR = List.of(
+            // 1.35:1. A near-white thumb on the light theme's grey groove, and
+            // the worst mark measurement in either theme.
+            "nord-light slider thumb",
+            // 2.98:1, three times over: all three are `--gb-accent` on
+            // `--gb-border`, which is one pair wearing three names. It misses by
+            // 0.02, which is a ramp that needs sliding rather than rethinking.
+            "nord-light slider fill",
+            "nord-light progress fill",
+            "nord-light knob arc");
+
+    /// A control against the surface behind it, by the better of fill and edge —
+    /// see [#RINGS_BELOW_FLOOR] for why these are recorded rather than fixed.
+    ///
+    /// All twelve, which is both themes × both controls × all three surfaces, and
+    /// the shape of it is one fact: `--gb-checkbox-bg` **is** `--gb-surface-2` in
+    /// the dark theme, so on a `group-box` an unchecked box differs from its
+    /// backdrop by nothing at all and is held up entirely by a 1.17:1 edge.
+    private static final List<String> BOUNDARIES_BELOW_FLOOR = List.of(
+            // fill 1.45 / edge 1.69, 1.17 / 1.36, 1.00 / 1.17
+            "nord-dark checkbox (unchecked) on --gb-bg",
+            "nord-dark checkbox (unchecked) on --gb-surface",
+            "nord-dark checkbox (unchecked) on --gb-surface-2",
+            "nord-dark radio (unchecked) on --gb-bg",
+            "nord-dark radio (unchecked) on --gb-surface",
+            "nord-dark radio (unchecked) on --gb-surface-2",
+            // fill 1.06 / edge 1.17, 1.22 / 1.35, 1.00 / 1.11
+            "nord-light checkbox (unchecked) on --gb-bg",
+            "nord-light checkbox (unchecked) on --gb-surface",
+            "nord-light checkbox (unchecked) on --gb-surface-2",
+            "nord-light radio (unchecked) on --gb-bg",
+            "nord-light radio (unchecked) on --gb-surface",
+            "nord-light radio (unchecked) on --gb-surface-2");
+
+    /// The **non-text** half of §1.2, and the one the entry that asked for this
+    /// called "not checked at all" ([ADR-0239]).
+    ///
+    /// ## What counts as the background of a mark drawn onto its own box
+    ///
+    /// That was the open question, and the tokens answer it: a mark is coloured
+    /// by the `color` of the box it is drawn in and the box supplies its own
+    /// `background`, so the pair is **one element's two properties** and not a
+    /// composite of anything. A checked checkbox's tick is
+    /// `--gb-checkbox-mark-checked` on `--gb-checkbox-bg-checked`, both set by the
+    /// same `check-indicator:checked` rule; a slider's thumb sits on its groove;
+    /// a knob's arc on its track. Nothing here needs the painted frame.
+    ///
+    /// Which is also the line this sweep stops at. A mark on a *translucent* fill
+    /// has no single ratio, for `button.ghost`'s reason, and none of these is
+    /// translucent.
+    private static final List<String[]> MARKS = List.of(
+            // §2.1's controls, each in the state where its mark is showing. The
+            // unchecked halves are not marks at all -- `--gb-checkbox-mark` is
+            // `transparent`, because an unchecked box draws no tick.
+            new String[] {"checkbox tick", "checkbox-bg-checked", "checkbox-mark-checked"},
+            new String[] {"radio dot", "radio-bg-checked", "radio-dot-checked"},
+            new String[] {"toggle thumb (off)", "toggle-track-bg", "toggle-thumb-bg"},
+            new String[] {"toggle thumb (on)", "toggle-track-bg-checked", "toggle-thumb-bg-checked"},
+            // §3's ranges. The groove and the track are both `--gb-border`, and the
+            // thumb and the fill are what has to be visible against them.
+            new String[] {"slider thumb", "slider-track-bg", "slider-thumb-bg"},
+            new String[] {"slider fill", "slider-track-bg", "slider-fill-bg"},
+            new String[] {"progress fill", "progress-track-bg", "progress-fill-bg"},
+            // The knob draws two marks on two different boxes: the arc rides the rim
+            // over the track, and the pointer is drawn on the dial's body.
+            new String[] {"knob arc", "knob-track", "knob-arc"},
+            new String[] {"knob pointer", "knob-bg", "knob-pointer"});
+
+    @Test
+    @DisplayName("every mark a control draws is visible on the box it is drawn in, on both themes")
+    void everyMarkIsVisible() {
+        var failures = new ArrayList<String>();
+        var report = new StringBuilder();
+
+        for (var theme : List.of(Theme.NORD_DARK, Theme.NORD_LIGHT)) {
+            for (var mark : MARKS) {
+                var name = themeName(theme) + " " + mark[0];
+                var ratio = ratio(theme, "var(--gb-" + mark[1] + ")", "var(--gb-" + mark[2] + ")");
+                report.append(String.format(Locale.ROOT, "%n  %-44s %5.2f:1", name, ratio));
+                if (ratio < LINE_FLOOR) {
+                    failures.add(name);
+                }
+            }
+        }
+
+        assertEquals(
+                MARKS_BELOW_FLOOR,
+                failures,
+                () -> "a control draws a mark nobody can see on the box it is drawn in."
+                        + " §1.2's floor for something that is not text is " + LINE_FLOOR
+                        + ":1, and ADR-0088 is the precedent for the fix: slide the ramp"
+                        + " in that theme until it clears, and write the measurement"
+                        + " beside it. Measured:" + report);
+    }
+
+    /// The rings: what the toolkit draws **onto a window's surface** with no
+    /// plate of its own, so the surface behind is the whole of the backdrop.
+    ///
+    /// Three measurements each rather than one, because a control may sit on the
+    /// page, in a `card` or inside a `group-box` — the shape
+    /// [#everyLineIsVisible] already uses. Neither of these has a second means of
+    /// being seen, which is what separates them from [#BOUNDARIES] below: a focus
+    /// ring that cannot be made out is not a control that is merely hard to find,
+    /// it is a keyboard user with no idea where they are.
+    private static final List<String[]> RINGS = List.of(
+            // §2.2's ring, drawn *outside* the control at a 2px offset, so what it
+            // lands on is the surface behind rather than the control's own fill.
+            new String[] {"focus ring", "focus"},
+            // §3's spinner is a stroked ring in the accent, drawn straight onto
+            // whatever is behind it.
+            new String[] {"spinner ring", "accent"});
+
+    /// The control boundaries, as `(fill, border)` against the surface.
+    ///
+    /// ## Why this is a *maximum* and the sweeps above are not
+    ///
+    /// §1.2's non-text floor exists so a component can be identified, and a
+    /// control offers two means of it at once: a fill that differs from the
+    /// surface, and an edge drawn around it. WCAG asks that *some* means clears
+    /// the floor, not that every one does — a filled button with no border is not
+    /// a failure for having no border. So the measurement is the **better of the
+    /// two**, and a control fails only when neither carries it.
+    ///
+    /// Measuring the two separately was the first version and it is wrong in a
+    /// way that matters: it would have reported `--gb-border` failing on every
+    /// surface in both themes, which is a *decorative divider* doing exactly what
+    /// a 1px separator is supposed to do — subtle. The same token is also a
+    /// control's edge, and only in that role is it held to 3:1.
+    private static final List<String[]> BOUNDARIES = List.of(
+            new String[] {"checkbox (unchecked)", "checkbox-bg", "border"},
+            new String[] {"radio (unchecked)", "radio-bg", "border"});
+
+    @Test
+    @DisplayName("every ring the toolkit draws is visible on every surface, on both themes")
+    void everyRingIsVisible() {
+        var failures = new ArrayList<String>();
+        var report = new StringBuilder();
+
+        for (var theme : List.of(Theme.NORD_DARK, Theme.NORD_LIGHT)) {
+            for (var ring : RINGS) {
+                for (var surface : List.of("bg", "surface", "surface-2")) {
+                    var name = themeName(theme) + " " + ring[0] + " on --gb-" + surface;
+                    var ratio = ratio(theme, "var(--gb-" + surface + ")", "var(--gb-" + ring[1] + ")");
+                    report.append(String.format(Locale.ROOT, "%n  %-52s %5.2f:1", name, ratio));
+                    if (ratio < LINE_FLOOR) {
+                        failures.add(name);
+                    }
+                }
+            }
+        }
+
+        assertEquals(
+                RINGS_BELOW_FLOOR,
+                failures,
+                () -> "something the toolkit draws as a ring is invisible on a surface it"
+                        + " paints. §1.2's floor for what is not text is " + LINE_FLOOR
+                        + ":1. Measured:" + report);
+    }
+
+    @Test
+    @DisplayName("every control is distinguishable from every surface, by its fill or its edge")
+    void everyControlIsDistinguishable() {
+        var failures = new ArrayList<String>();
+        var report = new StringBuilder();
+
+        for (var theme : List.of(Theme.NORD_DARK, Theme.NORD_LIGHT)) {
+            for (var control : BOUNDARIES) {
+                for (var surface : List.of("bg", "surface", "surface-2")) {
+                    var backdrop = "var(--gb-" + surface + ")";
+                    var fill = ratio(theme, backdrop, "var(--gb-" + control[1] + ")");
+                    var edge = ratio(theme, backdrop, "var(--gb-" + control[2] + ")");
+                    var name = themeName(theme) + " " + control[0] + " on --gb-" + surface;
+                    report.append(String.format(Locale.ROOT, "%n  %-48s fill %5.2f:1  edge %5.2f:1", name, fill, edge));
+                    if (Math.max(fill, edge) < LINE_FLOOR) {
+                        failures.add(name);
+                    }
+                }
+            }
+        }
+
+        assertEquals(
+                BOUNDARIES_BELOW_FLOOR,
+                failures,
+                () -> "a control cannot be told from the surface it sits on by either its"
+                        + " fill or its edge, so §1.2's " + LINE_FLOOR + ":1 is met by"
+                        + " neither means. Measured:" + report);
+    }
+
+    /// One measurement: two token expressions through the real cascade.
+    ///
+    /// A [Text] carrier and a forced rule, which is [#everyLineIsVisible]'s shape
+    /// and for its reason — what is under test is a colour pair, not the route
+    /// that reaches it, and the pseudo-classes these pairs live behind are
+    /// mirrored onto an element by `WidgetRenderer`, which this test deliberately
+    /// does not run.
+    private static double ratio(Theme theme, String background, String color) {
+        var sheets = new ArrayList<>(Controls.stylesheets(theme));
+        sheets.add(Stylesheet.parse(
+                CascadeLayer.APPLICATION, "text { background: " + background + "; color: " + color + " }"));
+        var style = ComputedStyle.of(
+                new StyleResolver(sheets).resolve(new ElementTree(new Text("Aa")).root()), CssLength.Context.DEFAULT);
+        return contrast(style.background(), style.color());
+    }
+
     @Test
     @DisplayName("nothing is exempt from §1.2")
     void nothingIsExempt() {

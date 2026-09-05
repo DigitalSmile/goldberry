@@ -5133,6 +5133,51 @@ is the `scroll` box's.
   produce identical logs. The old assertion is unchanged and still passing,
   because what it actually claims is still true.
 
+### The floor nobody was standing on
+
+- **§1.2's non-text half is measured**
+  ([ADR-0239](adr/0239-a-mark-is-measured-against-the-box-it-is-drawn-in.md)).
+  `ContrastTest` has enforced 4.5:1 for text since ADR-0087; the other floor —
+  3:1 for anything that is *not* text — had nothing behind it, and ADR-0088's
+  argument that the accent ramp did not need to move rested on exactly that
+  unenforced number.
+- **The open question had a simpler answer than it looked.** "What counts as the
+  background of a mark drawn onto its own box" is **its own box**: a mark takes
+  the `color` of the element it is drawn in, and that element supplies its own
+  `background`. For every mark in the catalog *the same rule sets both* — a
+  checked tick is `--gb-checkbox-mark-checked` on `--gb-checkbox-bg-checked`,
+  both from `check-indicator:checked`. So a pair is one `ComputedStyle`'s two
+  properties, and this stays a cascade test like the sweeps beside it.
+- **Three sweeps, because there are three shapes of question**: a mark against
+  the box it is drawn in (nine pairs), a ring against the surface behind it (the
+  focus ring and the spinner, each on all three surfaces), and a control against
+  that surface.
+- **The last one is a maximum, and that is the part that took thinking.** A
+  control offers two means of being identified at once — a fill that differs from
+  the surface and an edge around it — and §1.2 asks that *some* means clears the
+  floor, not that every one does. Measuring the two separately was the first
+  version and it reported `--gb-border` failing on every surface in both themes,
+  which is a decorative divider doing exactly what a 1px separator is meant to
+  do. The maximum tells the two roles of one token apart without needing two
+  tokens.
+- **Nineteen pairs are below the floor**, and they are **recorded rather than
+  fixed**. `KNOWN_FAILURES` is empty because ADR-0088 fixed the seven text pairs
+  it found; the same move is not available here, because every one of these is a
+  theme colour and sliding a ramp changes what the toolkit looks like — a design
+  decision with a golden-image tail rather than a test's to take. They sit in
+  three exact-set lists on `KNOWN_FAILURES`' terms, each carrying its
+  measurement, so none can be parked quietly and any that gets fixed fails the
+  test until it is taken out.
+- **The worst is §2.2's focus ring**, below 3:1 on all three surfaces of the
+  light theme (1.74, 2.00, 1.64) — the one mark in the system with no second
+  means of being seen. Twelve of the nineteen are control boundaries, and their
+  shape is one fact: `--gb-checkbox-bg` **is** `--gb-surface-2` in the dark
+  theme, so an unchecked box on a `group-box` differs from its backdrop by
+  nothing at all.
+- **The class comment stopped saying "the exemption list is empty."** It was true
+  of the text sweep and is now only true of the text sweep, which is the same
+  kind of overstatement ADR-0237 had just finished correcting in `mark`.
+
 ### Not started
 
 Client-side decorations, the rest of §4 —
