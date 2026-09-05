@@ -175,13 +175,22 @@ the mechanism the sentence named.
   colour the palette does not contain. —
   [ADR-0121](adr/0121-a-tour-is-a-veil-and-a-sequence.md)
 
-- **A `masonry`'s column count is a number and not a breakpoint.** Two columns at
-  1200px are two columns at 720px — half as wide and twice as tall — because the
-  count is a constructor argument and no selector can count columns. The showcase
-  keeps a narrow golden to assert the cards still *fit*, which is the most a
-  fixed count can promise; what a wall actually wants is "as many columns as fit
-  at a minimum width", and that is a layout pass that reads its own width, which
-  is the loop ADR-0196 built the last-frame read to avoid. —
+- **A `masonry`'s column count is a number and not a breakpoint, and what stops
+  it is the spec gate rather than the mechanism.** Two columns at 1200px are two
+  columns at 720px — half as wide and twice as tall — because the count is a
+  constructor argument and no selector can count columns. This used to say that
+  "as many columns as fit at a minimum width" is "a layout pass that reads its
+  own width, which is the loop ADR-0196 built the last-frame read to avoid", and
+  that reads the record backwards: ADR-0196 *is* the last-frame read, `masonry`
+  already banks every card's height through `Measured`, and reading its **own**
+  width is the same door one step over. `Measured`'s third rule holds for it too,
+  with one caveat worth stating — a column count changes the masonry's *height*
+  and not its width, so the number is stable under the thing it causes **for a
+  masonry whose width comes from its parent**, which is every one in the
+  showcase and not every one imaginable. What actually blocks it is that
+  `masonry` **has no row in `docs/core-widgets.md` at all** — it is named once,
+  as what the showcase's screens are made of — so §5's spec-then-metrics-then-
+  gallery gate has nothing to have passed. —
   [ADR-0222](adr/0222-a-showcase-is-a-window-a-bar-and-seven-screens.md),
   [ADR-0196](adr/0196-a-masonry-is-a-layout-that-reads-last-frame.md)
 
@@ -204,17 +213,27 @@ the mechanism the sentence named.
   [ADR-0121](adr/0121-a-tour-is-a-veil-and-a-sequence.md),
   [ADR-0109](adr/0109-a-tab-arrives-and-departs-on-the-frame-clock.md)
 
-- **The gallery goldens cannot see typography at all.** `GalleryGoldenTest` builds
+- **The gallery goldens cannot see typography at all, and the 150% half is now
+  waiting on a decision rather than on a mechanism.** `GalleryGoldenTest` builds
   its renderer with the single-font constructor — which ignores `font-family`,
   `font-size` and `font-weight` by design, so that a golden image is not a test of
   whichever Inter is on the machine — so every screenshot draws prose, headings
   and button labels at one size. A screen with no typographic hierarchy looks
   exactly like a screen with one, which is how a screen title and the paragraph
   under it stayed the same 13px with nothing catching it. `ShowcaseTypographyTest`
-  asserts sizes through the cascade instead; what is still missing is any image
-  that would show a *layout* wrong because of a font size — text that clips at
-  150% scale is §1.4's explicit gallery-enforced requirement and nothing enforces
-  it. — [ADR-0118](adr/0118-a-popup-that-does-not-fit-scrolls.md)
+  asserts sizes through the cascade instead. **The clipping half read as a gap in
+  the tests and was a gap in the toolkit**: nothing enforced §1.4's 150% because
+  nothing *implemented* it, so there was nothing for an image to be of.
+  `renderer.textScale` exists now
+  ([ADR-0267](adr/0267-a-text-scale-scales-the-text-and-not-the-layout.md)) — it
+  scales the text and deliberately not the boxes, which is the condition §1.4
+  asks components to survive. What is left is **what to assert**: since
+  `text-overflow: ellipsis` shipped, some cutting is correct, so "no text is
+  clipped" is no longer the sentence, and a golden of eleven screens at 150%
+  would pin every one of those decisions at once in a picture before anybody had
+  taken them. —
+  [ADR-0267](adr/0267-a-text-scale-scales-the-text-and-not-the-layout.md),
+  [ADR-0118](adr/0118-a-popup-that-does-not-fit-scrolls.md)
 
 - **The "always show scroll bars" reserved gutter is not built.** §2.4 wants the
   overlay bar to swap for a classic 12px gutter — "layout, not overlay" — as an

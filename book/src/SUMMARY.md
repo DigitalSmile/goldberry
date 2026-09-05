@@ -276,6 +276,7 @@
 - [ADR-0264 A widget may find the toast stack](adr/0264-a-widget-may-find-the-toast-stack.md)
 - [ADR-0265 Yoga measures an inset from the border box](adr/0265-yoga-measures-an-inset-from-the-border-box.md)
 - [ADR-0266 A null button is unequal to everything](adr/0266-a-null-button-is-unequal-to-everything.md)
+- [ADR-0267 A text scale scales the text, and not the layout](adr/0267-a-text-scale-scales-the-text-and-not-the-layout.md)
 
 ---
 

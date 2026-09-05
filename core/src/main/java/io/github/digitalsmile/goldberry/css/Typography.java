@@ -85,6 +85,29 @@ public record Typography(String family, double size, BundledFont.Weight weight, 
         return new Typography(family, value, weight, lineHeight);
     }
 
+    /// This, with every length multiplied by `factor` — §1.4's **text-scale
+    /// token**.
+    ///
+    /// The size *and* the line height, because a line box that did not grow with
+    /// its text is a paragraph whose lines overlap. A negative `lineHeight` is a
+    /// **ratio** rather than a length ([#resolvedLineHeight()]) and is left
+    /// alone: a multiple of the size scales by scaling the size, and multiplying
+    /// it too would square the factor.
+    ///
+    /// @param factor 1 for no scaling; §1.4's range is 0.9 to 1.5
+    /// @throws IllegalArgumentException if the factor is not a positive, finite
+    ///         number — a zero or negative text scale is a window with no text in
+    ///         it, which is worse than any argument for tolerating it
+    public Typography scaled(double factor) {
+        if (!Double.isFinite(factor) || factor <= 0) {
+            throw new IllegalArgumentException("a text scale must be a positive, finite factor, not " + factor);
+        }
+        if (factor == 1) {
+            return this;
+        }
+        return new Typography(family, size * factor, weight, lineHeight < 0 ? lineHeight : lineHeight * factor);
+    }
+
     public Typography weight(BundledFont.Weight value) {
         return new Typography(family, size, value, lineHeight);
     }

@@ -6097,6 +6097,52 @@ is the `scroll` box's.
   busiest event in the toolkit. Keyed by kind and node type, because a pointer
   event is read per event per handler.
 
+### A text scale, and two entries that were about something else
+
+- **§1.4's global text-scale token is implemented**
+  ([ADR-0267](adr/0267-a-text-scale-scales-the-text-and-not-the-layout.md)).
+  `ARCHITECTURE.md` §17 had it as "neither implemented nor gallery-enforced"; it
+  is now the second of those.
+- **The entry read as a gap in the tests and was a gap in the toolkit.** "Text
+  that clips at 150% scale is §1.4's explicit gallery-enforced requirement and
+  nothing enforces it" — nothing enforced it because nothing *implemented* it, so
+  there was no way to ask for 150% text and nothing for an image to be of.
+- **It scales the text and not the layout**, which is the whole point. The factor
+  is applied where a `ComputedStyle` becomes a `Font` and nowhere in the cascade,
+  so a paragraph is shaped larger and a measured leaf grows around it while a
+  `height: 32px` stays 32 — exactly the condition §1.4 asks components to
+  survive. A control whose box grew with its text could not fail that test and
+  the requirement would be vacuous.
+- **Scaling in the cascade was the other design and is wrong twice.**
+  `font-size: 1.2em` resolves against a parent that would already have been
+  scaled, so an `em` chain takes the factor once per level; and a `padding: 0.5em`
+  would grow with it, hiding the clipping the feature exists to reveal. The
+  `button`-height test is the one that would have caught it.
+- **A switch on the renderer**, beside `reducedMotion` — which is where §13's
+  other accessibility switches are, and the "settings mechanism" three other
+  entries name as missing. §1.4's 90–150% is a **clamp** rather than a refusal: a
+  window that failed to open because somebody's accessibility preference was 200%
+  is worse than one whose text is as large as the system allows.
+- **A line-height *ratio* is deliberately not scaled**, or the factor would be
+  squared — it already scales by the size scaling. A test asserts the resolved
+  line box grows exactly once.
+- **One is the default and no golden moved**, which is what made it safe to build
+  the mechanism before anything enforces the case. The whole corpus is the
+  evidence.
+- **The enforcement is left, and is now a decision rather than a mechanism.**
+  Since `text-overflow: ellipsis` shipped, some cutting is *correct* — so "no text
+  is clipped" is no longer the assertion, and a golden of eleven screens at 150%
+  would pin every one of those calls at once, in a picture, before anybody made
+  them.
+- **`masonry`'s entry read a record backwards.** It said a responsive column count
+  is "a layout pass that reads its own width, which is the loop ADR-0196 built the
+  last-frame read to avoid" — and ADR-0196 *is* the last-frame read. `masonry`
+  already banks every card's height through `Measured`; reading its own width is
+  the same door one step over, and `Measured`'s third rule holds because a column
+  count changes the masonry's height and not its width. What actually blocks it is
+  that `masonry` has **no row in `core-widgets.md` at all**, so §5's gate has
+  nothing to have passed.
+
 ### Not started
 
 Client-side decorations, the rest of §4 —

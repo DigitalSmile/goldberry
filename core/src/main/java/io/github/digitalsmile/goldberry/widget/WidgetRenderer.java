@@ -66,7 +66,7 @@ public final class WidgetRenderer {
         this.resolver = new StyleResolver(Objects.requireNonNull(stylesheets, "stylesheets"));
         this.lengths = Objects.requireNonNull(lengths, "lengths");
         Objects.requireNonNull(fonts, "fonts");
-        this.paintContext = context(style -> fonts.of(style.typography()));
+        this.paintContext = context(style -> fonts.of(style.typography().scaled(textScale)));
     }
 
     /// A renderer that draws every node with one font, whatever the cascade said.
@@ -231,6 +231,55 @@ public final class WidgetRenderer {
         this.frames = Objects.requireNonNull(value, "frames");
         return this;
     }
+
+    /// §1.4's **global text-scale token**, and §13's "text scale to 150%
+    /// without clipping".
+    ///
+    /// A switch on the renderer, which is where §13's other accessibility
+    /// switches are — `reducedMotion` above is the same shape, for the same
+    /// reason: it is a *user* preference applied to a whole window, and there is
+    /// no selector that could express one.
+    ///
+    /// ## It scales the text and not the layout, which is the point
+    ///
+    /// The factor is applied where a [ComputedStyle] becomes a [Font] and
+    /// **nowhere in the cascade**. So a paragraph is shaped larger and a measured
+    /// leaf grows around it, while a `height: 32px` stays 32 — which is exactly
+    /// the condition §1.4 asks every component to survive: "every component must
+    /// survive 150% without clipping".
+    ///
+    /// Scaling in the cascade instead was the other design and is wrong twice
+    /// over: `font-size: 1.2em` resolves against a parent that would already have
+    /// been scaled, so an `em` chain would take the factor once per level; and a
+    /// padding in `em` would grow with it, which would make the boxes get bigger
+    /// too and hide the clipping this exists to reveal.
+    ///
+    /// **1 is the default and changes nothing** — not one golden moves — which is
+    /// what made it safe to add before anything enforces the 150% case.
+    ///
+    /// @param value the factor; §1.4's range is 0.9 to 1.5, and this clamps to it
+    ///              rather than refusing, because a text scale is a user setting
+    ///              and a window that failed to open over one is worse than a
+    ///              window whose text is as large as the design system allows
+    public WidgetRenderer textScale(double value) {
+        if (!Double.isFinite(value)) {
+            throw new IllegalArgumentException("a text scale must be a finite factor, not " + value);
+        }
+        this.textScale = Math.clamp(value, MINIMUM_TEXT_SCALE, MAXIMUM_TEXT_SCALE);
+        return this;
+    }
+
+    /// What [#textScale] is set to.
+    public double textScale() {
+        return textScale;
+    }
+
+    /// §1.4's range: "Global **text-scale token 90–150%**".
+    public static final double MINIMUM_TEXT_SCALE = 0.9;
+
+    public static final double MAXIMUM_TEXT_SCALE = 1.5;
+
+    private double textScale = 1;
 
     public WidgetRenderer reducedMotion(boolean value) {
         this.reducedMotion = value;
