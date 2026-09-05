@@ -119,6 +119,31 @@ class MenuBarGoldenTest {
         paint("menubar-focus", Theme.NORD_DARK, 360, 60, bar(), new PseudoState(2, Selector.PseudoClass.FOCUS_VISIBLE));
     }
 
+    /// The same ring on the light theme, because §2.2's ring is the one mark in
+    /// the system with **no second means of being seen**.
+    ///
+    /// A hover has a wash, a checked control has a fill, a disabled one has its
+    /// opacity — each is a state whose colours other goldens already cover. A
+    /// focus ring is only a ring, and `--gb-focus` resolves differently per
+    /// theme, so a ring photographed on one theme is a ring unwatched on the
+    /// other. That is not hypothetical: §2.2's ring sat below §1.2's floor on
+    /// every light surface, and fixing it moved **no golden at all** — which is
+    /// the gap saying so out loud ([ADR-0240], [ADR-0261]).
+    ///
+    /// `FocusGoldenPairTest` is the rule rather than this comment: every
+    /// `*-focus.png` in the corpus must have a `-light` twin.
+    @Test
+    @DisplayName("and the same on the light theme, where the ring had no picture")
+    void focusRingOnLight() {
+        paint(
+                "menubar-focus-light",
+                Theme.NORD_LIGHT,
+                360,
+                60,
+                bar(),
+                new PseudoState(2, Selector.PseudoClass.FOCUS_VISIBLE));
+    }
+
     /// The heading whose menu is showing.
     ///
     /// Built by hand rather than by opening a menu, because opening one needs a

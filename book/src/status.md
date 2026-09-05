@@ -5924,6 +5924,35 @@ is the `scroll` box's.
   the failure a widened record invites and `null` is a legal name, so nothing else
   would have complained.
 
+### A rule about which states earn a second theme
+
+- **Every focus golden has a light twin, and a test says so**
+  ([ADR-0261](adr/0261-a-ring-is-photographed-on-both-themes.md)). The entry did
+  not ask for images — it asked for "a rule about which states are worth a second
+  theme rather than one more image" — and the rule is narrow on purpose.
+- **§2.2's ring is the one mark with no second means of being seen.** A hover has
+  a wash, a checked control has a fill, a disabled one has its opacity, and each
+  of those is drawn in colours some other golden already covers. A ring is only a
+  ring, and `--gb-focus` resolves differently per theme, so a ring photographed on
+  one theme is a ring nothing watches on the other. That is not hypothetical: the
+  ring measured 1.74:1, 2.00:1 and 1.64:1 on the light theme's surfaces, and the
+  change that fixed it moved **no golden at all**.
+- **`FocusGoldenPairTest` discovers its subject**, reading the resource directory
+  rather than a list, so a focus golden added next month is checked next month.
+  Three assertions rather than one, because a discovering test has a failure mode
+  of its own: the twins exist, the sweep **found** the four rings the catalog has,
+  and no twin is orphaned. Checked against a deliberate break — with
+  `tabs-focus-light.png` moved aside it fails and names the missing file.
+- **Doubling the whole corpus was the alternative**, and it is not a rule so much
+  as the absence of one: thirty more files answering questions their siblings
+  already answer.
+- **The `-focus` naming convention became load-bearing** and the test's javadoc
+  says so, because a name that carries meaning silently is the thing this
+  repository keeps rediscovering.
+- **It deliberately does not check the two images differ.** Two identical pictures
+  would pass, which is the case where a theme swap changed nothing — and that is
+  what `ContrastTest` is for. The pair is the coverage; either alone is not.
+
 ### Not started
 
 Client-side decorations, the rest of §4 —

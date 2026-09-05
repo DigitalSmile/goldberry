@@ -756,14 +756,6 @@ on, which in four cases is the same thing.
   [ADR-0240](adr/0240-the-ring-follows-the-accent.md),
   [ADR-0239](adr/0239-a-mark-is-measured-against-the-box-it-is-drawn-in.md),
   [ADR-0088](adr/0088-a-fill-that-carries-text-moves-away-from-it.md)
-- **A focus ring is only ever pictured on the dark theme, apart from one.**
-  `segmented-focus-light` is new and is the catalog's first; `menu-focus` and
-  `menubar-focus` are still `NORD_DARK` only, and so is every other state golden
-  in the catalog. That asymmetry is what let §2.2's ring sit below §1.2's floor on
-  the light theme without anything noticing — the fix for it moved **no golden at
-  all**. What would close this is a rule about which states are worth a second
-  theme rather than one more image. —
-  [ADR-0240](adr/0240-the-ring-follows-the-accent.md)
 - **`button.ghost` has no contrast ratio, and is therefore not checked.** Its fill is
   `transparent` and its hover is a `#ffffff14` wash, so what a user reads depends on the
   surface underneath — there is no single pair to measure. It is left out of
@@ -1097,6 +1089,21 @@ on, which in four cases is the same thing.
 Kept rather than deleted: each is a trap somebody hit, and the reasoning that got
 out of it is usually worth more than the fact that it is fixed.
 
+- ~~**A focus ring is only ever pictured on the dark theme, apart from one.**~~
+  **There is a rule now, and it is a test.** The entry asked for "a rule about
+  which states are worth a second theme rather than one more image", and the rule
+  is narrow on purpose: §2.2's ring is the one mark in the system with **no second
+  means of being seen** — a hover has a wash, a checked control has a fill, a
+  disabled one has its opacity, and each of those is drawn in colours some other
+  golden already covers. A ring is only a ring, and `--gb-focus` differs per
+  theme. `FocusGoldenPairTest` reads the resource *directory* rather than a list,
+  so a focus golden added next month is checked next month; it also asserts that
+  the sweep **found** something, because a discovering test's own failure mode is
+  passing by seeing nothing. Three images came with it — `menu-focus-light`,
+  `menubar-focus-light`, `tabs-focus-light` — and doubling the whole corpus was
+  the alternative and is not a rule so much as the absence of one. —
+  [ADR-0261](adr/0261-a-ring-is-photographed-on-both-themes.md),
+  [ADR-0240](adr/0240-the-ring-follows-the-accent.md)
 - ~~**An icon-only segment has no accessible name, and neither does an icon-only
   button.**~~ **`name=` is on `Attributes` now, so every widget has one.** The
   entry separated two things that had drifted together: "§13's semantics are
