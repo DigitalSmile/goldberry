@@ -295,4 +295,102 @@ class StyleResolverTest {
             assertEquals("6px 12px", value(resolved, "padding"));
         }
     }
+
+    /// One missing token is a **message**, not a stream ([ADR-0243]).
+    ///
+    /// A stylesheet is static, so a `var()` that resolves to nothing cannot
+    /// resolve on the next frame either — but a style is resolved per element per
+    /// invalidation, so before this an unresolvable token reported itself sixty
+    /// times a second for as long as the screen it was on kept moving. Two of
+    /// them survived long enough to reach a user, which is what a log nobody can
+    /// read costs.
+    ///
+    /// Asserted through [StyleResolver#reportedDrops] rather than through the log
+    /// itself: only `slf4j-api` is on the classpath, so there is no appender to
+    /// read back, and a logging backend bought for one assertion would be a
+    /// dependency this does not need.
+    @Nested
+    @DisplayName("reporting a var() that resolves to nothing")
+    class Reporting {
+
+        /// `--missing` is defined nowhere and the declaration has no fallback,
+        /// which is CSS's "invalid at computed-value time".
+        private static final String CSS = "button { color: var(--missing) } text { color: var(--missing) }";
+
+        /// A fresh `window > type` tree each call, because what varies between
+        /// these cases is the child's **type** and `descend` walks depth rather
+        /// than siblings.
+        private static io.github.digitalsmile.goldberry.css.TestElement childOf(String type) {
+            var root = element("window");
+            root.with(element(type));
+            return root.descend(1);
+        }
+
+        @Test
+        @DisplayName("the same element resolved many times reports once")
+        void oncePerProperty() {
+            var resolver = resolver(sheet(CascadeLayer.APPLICATION, CSS));
+            var root = element("window");
+            root.with(element("button"));
+
+            for (var frame = 0; frame < 5; frame++) {
+                var resolved = resolver.resolve(root.descend(1));
+                assertFalse(resolved.containsKey("color"), "the declaration must be dropped every time");
+            }
+
+            assertEquals(1, resolver.reportedDrops(), "five resolves of one element reported more than once");
+        }
+
+        /// Keyed by element type as well as property, because the same token
+        /// failing on `button` and on `text` is two facts — and which types it
+        /// reaches is the blast radius somebody debugging it wants.
+        @Test
+        @DisplayName("but a second element type is a second fact")
+        void oncePerType() {
+            var resolver = resolver(sheet(CascadeLayer.APPLICATION, CSS));
+
+            resolver.resolve(childOf("button"));
+            resolver.resolve(childOf("text"));
+            resolver.resolve(childOf("button"));
+
+            assertEquals(2, resolver.reportedDrops(), "two types sharing one bad token should be two reports");
+        }
+
+        /// The deduplication is **per resolver**, which is what makes it "per
+        /// stylesheet": a theme swap builds a new renderer and therefore a new
+        /// resolver, and what the new theme is missing is news.
+        @Test
+        @DisplayName("and a new resolver reports again, because a new theme is news")
+        void perResolver() {
+            var root = element("window");
+            root.with(element("button"));
+
+            var first = resolver(sheet(CascadeLayer.APPLICATION, CSS));
+            first.resolve(root.descend(1));
+
+            var second = resolver(sheet(CascadeLayer.APPLICATION, CSS));
+            assertEquals(0, second.reportedDrops(), "a fresh resolver started with something already reported");
+            second.resolve(root.descend(1));
+            assertEquals(1, second.reportedDrops());
+        }
+
+        /// A cycle is a fact about the property rather than about the element, so
+        /// it is keyed by name alone and reported once however many nodes hit it.
+        @Test
+        @DisplayName("a self-referring custom property is reported once too")
+        void cycleReportedOnce() {
+            var resolver = resolver(sheet(
+                    CascadeLayer.APPLICATION,
+                    ":root { --a: var(--b); --b: var(--a) } button { color: var(--a) } text { color: var(--a) }"));
+            resolver.resolve(childOf("button"));
+            resolver.resolve(childOf("text"));
+
+            // The cycle key is the property name; the two drops it causes are
+            // keyed by type. What matters is that neither grows per frame.
+            var after = resolver.reportedDrops();
+            resolver.resolve(childOf("button"));
+            resolver.resolve(childOf("text"));
+            assertEquals(after, resolver.reportedDrops(), "resolving again added a report");
+        }
+    }
 }

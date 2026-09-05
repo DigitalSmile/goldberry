@@ -32,6 +32,39 @@ public final class StyleResolver {
 
     private static final Logger LOG = Logs.of(StyleResolver.class);
 
+    /// What has already been reported dropped, so one bad `var()` is a message
+    /// rather than a stream ([ADR-0243]).
+    ///
+    /// `ComputedStyle` learned this first (ADR-0216) and for the same reason: a
+    /// stylesheet is **static**, so a declaration that cannot be resolved cannot
+    /// resolve on the next frame either — but a style is resolved per element per
+    /// invalidation, so one missing token reported itself sixty times a second
+    /// for as long as the screen it was on kept moving. That is not a louder
+    /// warning, it is a quieter log.
+    ///
+    /// **An instance field, where `ComputedStyle`'s is static**, and that is the
+    /// difference worth having. A resolver is built per stylesheet set and lives
+    /// as long as the renderer holding it, so "once per resolver" *is* "once per
+    /// stylesheet" — a theme swap builds a new one and legitimately reports what
+    /// the new theme is missing, and a test gets its isolation from constructing
+    /// its own rather than from a static `forget` hook.
+    ///
+    /// Keyed by property **and** element type: the same property dropped on
+    /// `button` and on `text` is two facts, and which types an unresolvable token
+    /// reaches is the blast radius somebody debugging it wants. Bounded either
+    /// way, because a stylesheet has finitely many declarations and a tree
+    /// finitely many types.
+    private final java.util.Set<String> reported = java.util.concurrent.ConcurrentHashMap.newKeySet();
+
+    /// How many distinct drops are remembered before deduplication gives up and
+    /// lets them all through.
+    ///
+    /// `ComputedStyle.REPORT_LIMIT`'s number and its argument: letting them
+    /// through rather than falling silent, because past this many distinct
+    /// unresolvable declarations something is generating them and a log that went
+    /// quiet would hide it.
+    private static final int REPORT_LIMIT = 512;
+
     /// Custom properties inherit; ordinary ones do not, at this layer.
     ///
     /// Inheritance of ordinary properties (`color`, `font-size`) is a property
@@ -216,7 +249,12 @@ public final class StyleResolver {
                 // fallback. CSS drops the declaration, and so does this -- but at
                 // resolve time, which is inside the frame loop, so it warns
                 // rather than throwing the way a parse error does.
-                LOG.warn("dropping \"{}\" on <{}>: a var() in it resolves to nothing", entry.getKey(), element.type());
+                if (shouldReport(entry.getKey() + '<' + element.type() + '>')) {
+                    LOG.warn(
+                            "dropping \"{}\" on <{}>: a var() in it resolves to nothing",
+                            entry.getKey(),
+                            element.type());
+                }
                 continue;
             }
             resolved.put(entry.getKey(), value);
@@ -352,8 +390,8 @@ public final class StyleResolver {
     ///                   cycle is caught rather than overflowing the stack
     /// @return the substituted tokens, or null if the value is invalid at
     ///         computed-value time
-    static @Nullable List<Token> substitute(
-            List<Token> value, Map<String, List<Token>> variables, Set<String> inProgress) {
+    @Nullable
+    List<Token> substitute(List<Token> value, Map<String, List<Token>> variables, Set<String> inProgress) {
 
         if (value.stream().noneMatch(t -> t.is(TokenType.FUNCTION) && t.text().equalsIgnoreCase("var"))) {
             return value;
@@ -385,7 +423,7 @@ public final class StyleResolver {
     }
 
     /// `--name` or `--name, fallback…`.
-    private static @Nullable List<Token> expandVar(
+    private @Nullable List<Token> expandVar(
             List<Token> arguments, Map<String, List<Token>> variables, Set<String> inProgress) {
 
         var trimmed = trim(arguments);
@@ -413,7 +451,9 @@ public final class StyleResolver {
         if (defined != null) {
             if (!inProgress.add(name)) {
                 // --a: var(--b); --b: var(--a). Without this the stack goes.
-                LOG.warn("custom property {} refers to itself; dropping the declaration", name);
+                if (shouldReport("cycle:" + name)) {
+                    LOG.warn("custom property {} refers to itself; dropping the declaration", name);
+                }
                 return null;
             }
             try {
@@ -458,5 +498,25 @@ public final class StyleResolver {
             to--;
         }
         return value.subList(from, to);
+    }
+
+    /// Whether `key` has not been reported by this resolver yet.
+    ///
+    /// `add` returning false is the whole test — it says the key was already
+    /// there. See [#reported] for what the key is and why the cap lets drops
+    /// through rather than silencing them.
+    private boolean shouldReport(String key) {
+        return reported.size() >= REPORT_LIMIT || reported.add(key);
+    }
+
+    /// How many distinct drops this resolver has reported.
+    ///
+    /// Package-private and for [StyleResolverTest] alone. The thing worth
+    /// asserting is that one bad `var()` is *one* message however many elements
+    /// hit it, and only `slf4j-api` is on the classpath — there is no appender to
+    /// read the log back from, and adding a logging backend to test a counter
+    /// would be a dependency bought for one assertion.
+    int reportedDrops() {
+        return reported.size();
     }
 }

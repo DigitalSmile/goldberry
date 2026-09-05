@@ -225,13 +225,6 @@ the mechanism the sentence named.
   colour. The size carries the demotion instead. A real third rank would need a
   colour the palette does not contain. —
   [ADR-0121](adr/0121-a-tour-is-a-veil-and-a-sequence.md)
-- **Nothing warns that a `var()` resolved to nothing — it logs, per node, per
-  frame.** One missing token is a stream rather than a message, which is how two
-  of them survived long enough to reach a user. `TokenClosureTest` and
-  `ShowcaseTokensTest` now fail the build instead, so the log is no longer the
-  only line of defence; the log itself is still noise. Saying it once per property
-  per stylesheet would make it a diagnostic. —
-  [ADR-0121](adr/0121-a-tour-is-a-veil-and-a-sequence.md)
 - **`flex-grow` means nothing inside a `scroll`, and nothing says so.** A scroll
   view's content column is as tall as its content by construction, so a child
   asking to fill the remaining height gets none — correct, and completely silent.
@@ -1191,6 +1184,27 @@ on, which in four cases is the same thing.
 Kept rather than deleted: each is a trap somebody hit, and the reasoning that got
 out of it is usually worth more than the fact that it is fixed.
 
+- ~~**Nothing warns that a `var()` resolved to nothing — it logs, per node, per
+  frame.**~~ **It says it once, and the field is the resolver's rather than a
+  static.** The entry named the fix — "once per property per stylesheet would
+  make it a diagnostic" — and `ComputedStyle` had already met the same problem one
+  stage later and answered it (ADR-0216): a stylesheet is static, so a
+  declaration that cannot resolve cannot resolve next frame either, and *"that is
+  not a louder warning, it is a quieter log"*. The difference worth having is
+  where the set lives. `ComputedStyle`'s is static and needs a public
+  `forgetReportedDrops()` for tests; a `StyleResolver` is built per stylesheet
+  set and lives as long as its renderer, so **once per resolver is once per
+  stylesheet** — a theme swap builds a new one and legitimately reports what the
+  *new* theme is missing, and a test is isolated by constructing its own rather
+  than by remembering a static hook. Keyed by property **and** element type,
+  which is a refinement of the entry: the same token failing on `button` and on
+  `text` is two facts, and which types it reaches is the blast radius somebody
+  debugging it wants. A cycle is keyed by the property alone, because that is a
+  fact about the property. The **drop** is unchanged and still happens every
+  time; only the report is once. —
+  [ADR-0243](adr/0243-a-missing-token-is-a-message-not-a-stream.md),
+  [ADR-0216](adr/0216-a-corner-is-four-numbers-and-a-lint-reads-values-too.md),
+  [ADR-0121](adr/0121-a-tour-is-a-veil-and-a-sequence.md)
 - ~~**`em` and `rem` do not resolve against the node's own `font-size`.**~~
   **`em` does now, in two passes, and the fix needed no plumbing at all.**
   `CssLength.Context` was always the right shape; what was missing is that

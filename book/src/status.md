@@ -5292,6 +5292,46 @@ is the `scroll` box's.
   `font-size`, and nothing in the catalog does; recovering it needs a third thing
   threaded down, because a node is handed its parent's style and not the root's.
 
+### The warning that was a stream
+
+- **A missing token says itself once**
+  ([ADR-0243](adr/0243-a-missing-token-is-a-message-not-a-stream.md)), which
+  closes an entry open since ADR-0121 and applies ADR-0216's answer one stage
+  earlier in the same pipeline. A stylesheet is **static**, so a `var()` that
+  resolves to nothing cannot resolve on the next frame either — but a style is
+  resolved per element per invalidation, so one missing token reported itself
+  sixty times a second for as long as the screen it was on kept moving. Two of
+  them survived long enough to reach a user, which is what a log nobody can read
+  costs.
+- **The mechanism is `ComputedStyle`'s, and the field is not.** That one is
+  static, because a record with static factories has nowhere else to put it, and
+  it needs a public `forgetReportedDrops()` so tests in two modules can clear it.
+  A `StyleResolver` is an object, built per stylesheet set and living as long as
+  its renderer — so **once per resolver is once per stylesheet**, which is what
+  the entry asked for and comes out better three ways: a theme swap reports
+  again (what the *new* theme is missing is news), a test is isolated by
+  constructing its own, and nothing leaks between unrelated sheet sets in one
+  JVM.
+- **Keyed by property and element type**, which refines the entry's "per
+  property". The same token failing on `button` and on `text` is two facts, and
+  which types it reaches is the blast radius somebody debugging it wants —
+  bounded either way, because a stylesheet has finitely many declarations and a
+  tree finitely many types. A **cycle** is keyed by the property name alone,
+  because a custom property referring to itself is a fact about the property and
+  not about whichever element asked first.
+- **`substitute` and `expandVar` stopped being static**, so the cycle report
+  could reach the field. Neither had a caller outside the class, so the change is
+  invisible.
+- **The assertion is a counter, and the comment says why.** Only `slf4j-api` is
+  on the classpath, so there is no appender to read the log back from, and a
+  logging backend bought for one assertion would be a dependency this does not
+  need. `reportedDrops()` is package-private for exactly one test.
+- **`descend` walks depth, not siblings**, which two of those tests got wrong
+  first and which cost a `NoSuchElementException` to find out. They build a fresh
+  `window > type` tree per case now.
+- **The drop itself is unchanged.** Only the report is once — making the drop
+  conditional would be a stylesheet that behaved differently on the second frame.
+
 ### Not started
 
 Client-side decorations, the rest of §4 —
