@@ -97,6 +97,18 @@ public interface Handles extends Widget {
     ///
     /// A widget that wants what the user typed wants this, not [#onKey]: one
     /// character can take several keys (§7.1).
+    /// Committed text, on the way **down** to the focused node ([ADR-0246]).
+    ///
+    /// The mirror of [#onKeyCapture], and it exists for one reason: a `select`
+    /// whose list is open has an `option` focused inside a popup, so §3's
+    /// typeahead had nothing to intercept the text in — the letters went to a row
+    /// that does not know what typing means and stopped there.
+    ///
+    /// A capture phase is a routing rule, and one was deliberately not invented
+    /// on spec: a phase added for no consumer is how a router ends up with two of
+    /// them that disagree. This is the consumer.
+    default void onTextCapture(TextEvent event) {}
+
     default void onText(TextEvent event) {}
 
     /// Whether this widget can take keyboard focus.

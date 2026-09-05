@@ -49,10 +49,38 @@ import io.github.digitalsmile.goldberry.widget.style.Styled;
 /// under a user who is only looking (§4).
 ///
 /// @param children the rows — the options, already told what they are
-public record SelectList(List<Widget> children) implements Widget.Leaf, Styled, Paints, Handles {
+public record SelectList(List<Widget> children, java.util.function.Consumer<String> onTypeahead)
+        implements Widget.Leaf, Styled, Paints, Handles {
 
     public SelectList {
         children = List.copyOf(children == null ? List.of() : children);
+    }
+
+    /// A list with no typeahead, which is what a golden wants: the panel is the
+    /// same drawing either way and a picture has nobody to report to.
+    public SelectList(List<Widget> children) {
+        this(children, null);
+    }
+
+    /// §3's typeahead, on the **open** control ([ADR-0246]).
+    ///
+    /// On the **capture** phase, because the focused node inside an open popup is
+    /// an `option` — a row that does not know what typing means and would
+    /// otherwise be where the letters stopped. The list is the only thing in that
+    /// tree with the whole set to search, so it has to read the text before its
+    /// children do.
+    ///
+    /// It calls the same method the closed control does, so typing `n`, `n`, `n`
+    /// cycles the same options in the same order whether the list is showing or
+    /// not — which is the point of fixing this rather than writing a second
+    /// typeahead for the open case.
+    @Override
+    public void onTextCapture(io.github.digitalsmile.goldberry.input.event.TextEvent event) {
+        if (onTypeahead == null || event.text().isBlank()) {
+            return;
+        }
+        onTypeahead.accept(event.text());
+        event.consume();
     }
 
     @Override

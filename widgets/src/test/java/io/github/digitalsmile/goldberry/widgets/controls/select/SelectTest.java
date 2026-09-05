@@ -568,6 +568,53 @@ class SelectTest {
             assertEquals(List.of("light"), picked);
         }
 
+        /// [ADR-0246]: the same typeahead, reached from the **open** list.
+        ///
+        /// A `TextEvent` goes to the focused node, which in an open popup is an
+        /// `option` — so the letters used to stop at a row that does not know
+        /// what typing means. `SelectList` reads them on the capture phase
+        /// instead, and calls the method the closed control calls, so the
+        /// behaviour is one implementation rather than two that drift.
+        @Test
+        @DisplayName("the open list reads a letter before its rows do, and asks for the same option")
+        void openListTypesAhead() {
+            var seen = new ArrayList<String>();
+            var list = new SelectList(List.of(), seen::add);
+            var event = new TextEvent("l", null);
+
+            list.onTextCapture(event);
+
+            assertEquals(List.of("l"), seen);
+            assertTrue(event.isConsumed(), "a letter the list acted on must not also reach a row");
+        }
+
+        /// The panel a golden builds has nobody to report to, and must not throw
+        /// for it.
+        @Test
+        @DisplayName("a list with no typeahead ignores the text rather than failing")
+        void listWithoutTypeahead() {
+            var event = new TextEvent("l", null);
+
+            new SelectList(List.of()).onTextCapture(event);
+
+            assertFalse(event.isConsumed(), "a list that did nothing must leave the text for somebody else");
+        }
+
+        /// Whitespace is not a search. A space in an open list is "pick this one"
+        /// everywhere else, and a typeahead that swallowed it would take the key
+        /// away from whatever means to act on it.
+        @Test
+        @DisplayName("and blank text is left alone")
+        void blankIsNotASearch() {
+            var seen = new ArrayList<String>();
+            var event = new TextEvent(" ", null);
+
+            new SelectList(List.of(), seen::add).onTextCapture(event);
+
+            assertEquals(List.of(), seen);
+            assertFalse(event.isConsumed());
+        }
+
         @Test
         @DisplayName("a repeated letter cycles past the one already selected")
         void cycles() {

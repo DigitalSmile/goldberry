@@ -254,6 +254,9 @@
 - [ADR-0242 `em` is the element's own size](adr/0242-em-is-the-elements-own-size.md)
 - [ADR-0243 A missing token is a message, not a stream](adr/0243-a-missing-token-is-a-message-not-a-stream.md)
 - [ADR-0244 A child may say where it sits](adr/0244-a-child-may-say-where-it-sits.md)
+- [ADR-0245 The second surface stays, and says so](adr/0245-the-second-surface-stays-and-says-so.md)
+- [ADR-0246 Text has a capture phase, now that something wants one](adr/0246-text-has-a-capture-phase-now-that-something-wants-one.md)
+- [ADR-0247 `start` is CSS, and `flex-start` is Yoga](adr/0247-start-is-css-and-flex-start-is-yoga.md)
 
 ---
 

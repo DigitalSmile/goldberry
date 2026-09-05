@@ -1037,7 +1037,20 @@ public final class PointerRouter {
             return;
         }
         var event = new TextEvent(text, focused);
-        for (var element : chain(focused)) {
+        var chain = chain(focused);
+        // Capture is root-first, so the chain -- which is deepest-first -- is
+        // walked backwards. `dispatchKey`'s shape exactly, and for the same
+        // reason a key has one: a container has to be able to read what was typed
+        // before whatever is inside it does ([ADR-0246]).
+        for (var i = chain.size() - 1; i >= 0; i--) {
+            if (event.isConsumed()) {
+                return;
+            }
+            if (chain.get(i).widget() instanceof Handles handles) {
+                handles.onTextCapture(event);
+            }
+        }
+        for (var element : chain) {
             if (event.isConsumed()) {
                 return;
             }

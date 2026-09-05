@@ -135,6 +135,50 @@ class ComputedStyleTest {
             assertEquals(Align.CENTER, style.alignItems());
         }
 
+        /// [ADR-0247]: `align-items: start` is valid CSS — Box Alignment Level 3
+        /// — and Yoga has only `flex-start`, so the toolkit was dropping a
+        /// declaration the specification allows. This is the typo that filled the
+        /// Panels screen's console and needed deduplicating before it was fixed.
+        @Test
+        @DisplayName("`start` and `end` are CSS's spellings of the flex pair, and are taken")
+        void cssAlignmentAliases() {
+            assertEquals(
+                    Align.FLEX_START, compute("button { align-items: start }").alignItems());
+            assertEquals(Align.FLEX_END, compute("button { align-items: end }").alignItems());
+            assertEquals(
+                    Justify.FLEX_START,
+                    compute("button { justify-content: start }").justifyContent());
+            assertEquals(
+                    Justify.FLEX_END, compute("button { justify-content: end }").justifyContent());
+            assertEquals(Align.FLEX_END, compute("button { align-self: end }").alignSelf());
+        }
+
+        /// The flex spellings still work, which is the half an alias table can
+        /// break: a mapping applied before the enum's own lookup would shadow it.
+        @Test
+        @DisplayName("and the flex- spellings still mean what they always did")
+        void flexSpellingsSurvive() {
+            assertEquals(
+                    Align.FLEX_START,
+                    compute("button { align-items: flex-start }").alignItems());
+            assertEquals(
+                    Justify.SPACE_BETWEEN,
+                    compute("button { justify-content: space-between }").justifyContent());
+        }
+
+        /// `left` and `right` are deliberately not aliases. They are
+        /// `justify-content` only, they are **not** the same as `start`/`end`
+        /// under RTL, and §2.4's bidi support means the toolkit cannot promise
+        /// they would stay equivalent — so they are dropped like any other
+        /// keyword it has not got.
+        @Test
+        @DisplayName("but `left` and `right` are not, because they are not the same thing under RTL")
+        void directionalKeywordsAreNotAliased() {
+            assertEquals(
+                    ComputedStyle.INITIAL.justifyContent(),
+                    compute("button { justify-content: left }").justifyContent());
+        }
+
         @Test
         @DisplayName("`flex-wrap` takes CSS's three spellings, `nowrap` included")
         void flexWrap() {
@@ -909,11 +953,15 @@ class ComputedStyleTest {
         /// The value is still dropped every time — only the *report* is once.
         /// Making the drop itself conditional would be a stylesheet that behaved
         /// differently on the second frame.
+        /// The example used to be `align-items: start`, which is the typo that
+        /// produced the console flood this group exists for — and which is
+        /// **accepted** now, because it is valid CSS ([ADR-0247]). A keyword
+        /// nothing has is what this needs, so it asks for one nothing has.
         @Test
         @DisplayName("the declaration is dropped every time, however often it is reported")
         void alwaysDropped() {
             for (var attempt = 0; attempt < 3; attempt++) {
-                var style = compute("button { align-items: start; gap: 4px }");
+                var style = compute("button { align-items: sideways; gap: 4px }");
                 assertEquals(
                         ComputedStyle.INITIAL.alignItems(),
                         style.alignItems(),
@@ -925,16 +973,17 @@ class ComputedStyleTest {
             }
         }
 
-        /// `start` is CSS's alias for `flex-start` and Yoga has only the second,
-        /// which is the exact typo that produced the report this test exists for.
+        /// `start` is CSS's spelling of `flex-start` and Yoga has only the
+        /// second, which is the exact typo that produced the report this group
+        /// exists for. It **is** `flex-start` now ([ADR-0247]) — the report was
+        /// right that the value never reached Yoga and wrong that the author had
+        /// made a mistake — so what is left to assert here is that the two
+        /// spellings agree.
         @Test
-        @DisplayName("`start` is not `flex-start`, which is the typo that started this")
-        void startIsNotFlexStart() {
+        @DisplayName("`start` and `flex-start` are the same value, which is how this stopped being a report")
+        void startIsFlexStart() {
             assertEquals(
-                    io.github.digitalsmile.goldberry.natives.yoga.style.Align.FLEX_START,
-                    compute("button { align-items: flex-start }").alignItems());
-            assertEquals(
-                    ComputedStyle.INITIAL.alignItems(),
+                    compute("button { align-items: flex-start }").alignItems(),
                     compute("button { align-items: start }").alignItems());
         }
     }

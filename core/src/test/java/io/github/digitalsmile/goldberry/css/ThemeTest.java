@@ -77,6 +77,108 @@ class ThemeTest {
         }
     }
 
+    /// Which way a surface token *goes*, which is the fact three widgets got
+    /// wrong ([ADR-0245]).
+    ///
+    /// `card`, `text-input` and `select` each read `--gb-surface-2` meaning
+    /// "raised" or "sunken", and each was wrong **on one theme only** — because
+    /// the token promises a step and not a direction, and takes opposite
+    /// directions in the two files. `--gb-surface-raised` and
+    /// `--gb-surface-sunken` were added to say which way they go; this is what
+    /// holds them to it, and what records why the third token cannot be held to
+    /// anything.
+    @Nested
+    @DisplayName("which way a surface goes")
+    class Elevation {
+
+        /// A token's colour as the cascade delivers it, composited over
+        /// `--gb-surface` when it has alpha.
+        ///
+        /// `--gb-surface-sunken` is `rgba(0, 0, 0, …)` in both themes and
+        /// deliberately so — an alpha over whatever is underneath is the only way
+        /// to say "dimmer than its own surface" in a subset with no colour
+        /// functions (ADR-0166) — so comparing its raw value against anything
+        /// would be comparing a black nobody paints.
+        private double luminanceOver(Theme theme, String token, int backdrop) {
+            var argb = styleWith(theme, "button { background: var(" + token + ") }")
+                    .background();
+            var alpha = ((argb >>> 24) & 0xFF) / 255.0;
+            var r = alpha * ((argb >> 16) & 0xFF) + (1 - alpha) * ((backdrop >> 16) & 0xFF);
+            var g = alpha * ((argb >> 8) & 0xFF) + (1 - alpha) * ((backdrop >> 8) & 0xFF);
+            var b = alpha * (argb & 0xFF) + (1 - alpha) * (backdrop & 0xFF);
+            return 0.2126 * linear(r) + 0.7152 * linear(g) + 0.0722 * linear(b);
+        }
+
+        private double linear(double eight) {
+            var c = eight / 255.0;
+            return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+        }
+
+        private int surfaceOf(Theme theme) {
+            return styleWith(theme, "button { background: var(--gb-surface) }").background();
+        }
+
+        /// The promise the name makes, and the only one that matters: a raised
+        /// thing is never *darker* than what it sits on. Equal is allowed — the
+        /// light theme's `--gb-surface-raised` is the same white as
+        /// `--gb-surface`, because on a light theme there is nowhere lighter to
+        /// go and the edge carries the elevation instead (ADR-0166).
+        @ParameterizedTest
+        @EnumSource(Theme.class)
+        @DisplayName("raised is never darker than the surface it sits on")
+        void raisedGoesUp(Theme theme) {
+            var surface = surfaceOf(theme);
+            var raised = luminanceOver(theme, "--gb-surface-raised", surface);
+
+            assertTrue(
+                    raised >= luminanceOver(theme, "--gb-surface", surface) - 1e-9,
+                    () -> theme + "'s --gb-surface-raised is darker than --gb-surface, which is the"
+                            + " direction its name forbids");
+        }
+
+        @ParameterizedTest
+        @EnumSource(Theme.class)
+        @DisplayName("and sunken is never lighter")
+        void sunkenGoesDown(Theme theme) {
+            var surface = surfaceOf(theme);
+            var sunken = luminanceOver(theme, "--gb-surface-sunken", surface);
+
+            assertTrue(
+                    sunken <= luminanceOver(theme, "--gb-surface", surface) + 1e-9,
+                    () -> theme + "'s --gb-surface-sunken is lighter than --gb-surface");
+        }
+
+        /// The trap, asserted rather than described. `--gb-surface-2` is a step
+        /// **up** from `--gb-surface` on the dark theme and a step **down** on the
+        /// light one, which is exactly why a widget that read it meaning "raised"
+        /// looked right to whoever wrote it and wrong to everybody on the other
+        /// theme.
+        ///
+        /// If this ever fails, the two files have been made to agree and the
+        /// question the `TODO.md` entry asked — whether `--gb-surface-2` should
+        /// keep existing — is worth reopening. It is not a failure to fix by
+        /// changing this test.
+        @Test
+        @DisplayName("--gb-surface-2 takes opposite directions in the two themes, which is why it promises none")
+        void theSecondSurfacePromisesNothing() {
+            var darkSurface = surfaceOf(Theme.NORD_DARK);
+            var lightSurface = surfaceOf(Theme.NORD_LIGHT);
+
+            var darkStep = luminanceOver(Theme.NORD_DARK, "--gb-surface-2", darkSurface)
+                    - luminanceOver(Theme.NORD_DARK, "--gb-surface", darkSurface);
+            var lightStep = luminanceOver(Theme.NORD_LIGHT, "--gb-surface-2", lightSurface)
+                    - luminanceOver(Theme.NORD_LIGHT, "--gb-surface", lightSurface);
+
+            assertTrue(
+                    darkStep > 0, () -> "--gb-surface-2 is expected to be lighter than --gb-surface on the dark theme");
+            assertTrue(
+                    lightStep < 0,
+                    () -> "--gb-surface-2 is expected to be darker than --gb-surface on the light theme."
+                            + " If the themes have been made to agree, reopen the question of whether"
+                            + " --gb-surface-2 should keep existing rather than editing this test.");
+        }
+    }
+
     @Nested
     @DisplayName("the palette is theme-invariant")
     class Palette {

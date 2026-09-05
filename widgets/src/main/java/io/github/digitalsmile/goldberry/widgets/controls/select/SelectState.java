@@ -337,8 +337,11 @@ final class SelectState extends State<Select> {
     private Widget panel() {
         var select = widget();
         if (!select.isTree()) {
-            return new SelectList(rows());
+            return new SelectList(rows(), this::typeahead);
         }
+        // A tree gets no typeahead: its rows are nodes rather than options, and
+        // matching a prefix against a lazily built hierarchy is a different
+        // search from the flat one (ADR-0246).
         return new SelectList(java.util.List.of(new io.github.digitalsmile.goldberry.widgets.panel.tree.Tree(
                 select.tree(), select.resolved(), this::chooseNode)));
     }

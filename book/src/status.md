@@ -5367,6 +5367,58 @@ is the `scroll` box's.
   the tab strip's `+` is the case that found the gap, and changing it is its own
   diff.
 
+### Three answers, and one of them was a question about CSS
+
+- **`--gb-surface-2` stays**
+  ([ADR-0245](adr/0245-the-second-surface-stays-and-says-so.md)). The entry had
+  asked whether it should keep existing after three widgets mistook it for an
+  elevation, and said that needed a look at what still reads it. The look found
+  **five** readers and not one wants a direction: a default `badge`'s fill, a
+  `scrollbar` on hover, a `group-box-title` band, a `skeleton-bar` and a
+  collapsed `split-divider`. All five want a plate merely *distinct* from what is
+  under it, which is what the token promises — the three that were wrong wanted
+  "raised" or "sunken" and have their own tokens now.
+- **The trap is asserted rather than described.** `ThemeTest` holds
+  `--gb-surface-raised` to never being darker than `--gb-surface` and
+  `--gb-surface-sunken` to never being lighter, on both themes — and asserts that
+  **`--gb-surface-2` takes opposite directions in the two files**, up on dark and
+  down on light. That is exactly why each of the three consumers looked right to
+  whoever wrote it and wrong to everybody on the other theme. When a class of
+  mistake has happened three times, the test to write is not one that checks the
+  three fixed sites but one that checks the property they violated.
+- **Text has a capture phase**
+  ([ADR-0246](adr/0246-text-has-a-capture-phase-now-that-something-wants-one.md)),
+  and the entry's own condition for adding one was met. It had named the fix —
+  `Handles` had an `onKeyCapture` and no `onTextCapture` — and refused to build it
+  on spec, "because a capture phase is a routing rule and inventing one for a
+  single consumer is how a router grows two". `select`'s open list is the
+  consumer: it lives in a second window with its own router and an `option`
+  focused, so the letters stopped at a row that does not know what typing means.
+- **It removes an asymmetry nobody had written down.** `dispatchKey` has captured
+  root-first and then bubbled since the beginning; `textInput` only bubbled. One
+  event kind had a phase the other did not, for no recorded reason. `SelectList`
+  now reads letters on the way down and calls the **same** `typeahead` the closed
+  control calls, so `n`, `n`, `n` cycles the same options in the same order
+  either way — one implementation rather than two that drift. Blank text is left
+  alone, because a space in an open list means "pick this one" everywhere else.
+- **`start` and `end` are taken, because they are not aliases**
+  ([ADR-0247](adr/0247-start-is-css-and-flex-start-is-yoga.md)). The entry called
+  them CSS's aliases and left acceptance open; the word is what decided it.
+  `align-items: start` is **CSS** — Box Alignment Level 3 — and Yoga has only
+  `flex-start`, so this was not a toolkit picking one spelling among two
+  conveniences but one **dropping a declaration the specification allows** and
+  telling the author they had made a typo. It filled the Panels screen's console
+  for long enough to need deduplicating before anybody asked whether the
+  declaration was actually wrong.
+- **Two entries, applied after the enum's own lookup**, so a constant named
+  `START` could never be shadowed by a mapping written for a different enum.
+  `left` and `right` stay refused for a reason rather than an omission: they are
+  `justify-content` only and are *not* `start`/`end` under RTL, so §2.4's bidi
+  support means the toolkit cannot promise they stay equivalent.
+- **Two tests changed meaning and were rewritten**, both in the group that exists
+  *because* of this typo: its example of "a value the toolkit has not got" was
+  `align-items: start`, and now has to be one it really has not got.
+
 ### Not started
 
 Client-side decorations, the rest of §4 —

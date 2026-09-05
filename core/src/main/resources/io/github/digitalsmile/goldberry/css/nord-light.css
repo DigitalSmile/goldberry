@@ -43,6 +43,18 @@
   /* Semantic tokens: what widgets actually consume. */
   --gb-bg: var(--nord6);
   --gb-surface: #ffffff;
+  /* **A step, not a direction.** Darker than `--gb-surface` here and *lighter*
+     than it on the dark theme, which is why three widgets that read this
+     meaning "raised" were each wrong on one theme only (ADR-0168). Say
+     `--gb-surface-raised` or `--gb-surface-sunken` when the direction is the
+     point; this is for a second plate that is merely *distinct* from the one
+     under it.
+
+     It stays because five things want exactly that and none of them wants a
+     direction: a default `badge`, a `scrollbar` on hover, a `group-box-title`
+     band, a `skeleton-bar` and a collapsed `split-divider` (ADR-0245).
+     `ThemeTest` asserts the two directions it takes, so the trap is a fact
+     rather than a comment. */
   --gb-surface-2: var(--nord5);
   --gb-text: var(--nord0);
   --gb-text-muted: var(--nord3);

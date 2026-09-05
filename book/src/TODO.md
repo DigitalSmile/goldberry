@@ -204,14 +204,6 @@ the mechanism the sentence named.
   meaningless for the kind in hand answers with a default rather than refusing,
   which is right for `dragX`'s `NaN` and quietly wrong for a null `button`. —
   [ADR-0168](adr/0168-a-field-is-a-well-and-a-drag-is-a-selection.md)
-- **`--gb-surface-2` has now been mistaken for an elevation three times** — by
-  `card` (ADR-0166), by `text-input` and by `select` (ADR-0168). It means "the
-  second surface" and promises no direction, and each consumer that assumed
-  otherwise was wrong on one theme only. The two replacements,
-  `--gb-surface-raised` and `--gb-surface-sunken`, say which way they go; what is
-  unresolved is whether `--gb-surface-2` should keep existing at all, and that
-  needs a look at what still reads it. —
-  [ADR-0168](adr/0168-a-field-is-a-well-and-a-drag-is-a-selection.md)
 - **`--gb-caret-width` is not a token and the caret is one logical pixel.** The
   width is set in the same call that sets the caret's position, so a stylesheet
   that disagreed would move it rather than resize it. A theme that wants a fat
@@ -485,13 +477,15 @@ the mechanism the sentence named.
   semantics are M5's. `Option` refuses a segment with neither a label nor an icon, which
   is the half that can be enforced today, and the other half is a gap the whole catalog
   shares rather than one this control invented.
-- **A `select`'s typeahead works closed and not open.** §3 asks for typeahead
-  and a `TextEvent` goes to the *focused* node, which in an open list is an
-  `option` — so the list has nothing to intercept it in. `Handles` has an
-  `onKeyCapture` and no `onTextCapture`, and adding one is the whole fix; it was
-  not added on spec, because a capture phase is a routing rule and inventing one
-  for a single consumer is how a router grows two. —
-  [ADR-0141](adr/0141-a-select-is-a-closed-control-and-a-list.md)
+- **A `select tree=#true` has no typeahead.** What
+  [ADR-0246](adr/0246-text-has-a-capture-phase-now-that-something-wants-one.md)
+  left: the flat list reads letters on the capture phase now, and a `tree` in the
+  same panel does not. Its rows are nodes rather than options, and matching a
+  prefix against a lazily built hierarchy is a different search from the flat one
+  — it has to decide whether it descends into collapsed branches, and what it
+  means to match a node nobody can see. Nothing has asked for it. —
+  [ADR-0246](adr/0246-text-has-a-capture-phase-now-that-something-wants-one.md),
+  [ADR-0184](adr/0184-a-tree-is-a-list-that-remembers-what-is-open.md)
 - **A `select`'s *field* is as wide as its current value.** The list is now at
   least as wide as the field (ADR-0145), which was the half that showed; the
   field itself still tracks its value, so it moves when the value does. No
@@ -770,12 +764,13 @@ on, which in four cases is the same thing.
   correctly — and reported *per element per style resolution*, which on a moving
   screen is sixty times a second. The typo is fixed and the report is now
   deduplicated by property and value, because a stylesheet is static and a value
-  that is not one cannot become one on the next frame. **What is still true**: the
-  toolkit accepts Yoga's spelling of these keywords and not CSS's aliases, so
-  `start`, `end` and `space-between`-style names have exactly one correct form
-  each and a document that uses the other gets a warning rather than a mapping.
-  Whether to accept the aliases is open; accepting them means a second table to
-  keep in step with Yoga's enum.
+  that is not one cannot become one on the next frame. **What changed since**: `start` and `end` are
+  taken now, because they are not aliases but **CSS** — Box Alignment Level 3
+  defines them and Yoga has only the `flex-` pair, so the toolkit had been
+  dropping a declaration the specification allows
+  ([ADR-0247](adr/0247-start-is-css-and-flex-start-is-yoga.md)). `left` and
+  `right` are still refused, and for a reason rather than an omission: they are
+  not the same as `start`/`end` under RTL.
 
 - **Nothing warns when a declaration is dropped for being unsupported** — in an
   *application's* stylesheet. A property the subset does not have is logged at
@@ -1178,6 +1173,50 @@ on, which in four cases is the same thing.
 Kept rather than deleted: each is a trap somebody hit, and the reasoning that got
 out of it is usually worth more than the fact that it is fixed.
 
+- ~~**`--gb-surface-2` has been mistaken for an elevation three times, and it is
+  unresolved whether it should keep existing.**~~ **It stays, and the trap is an
+  asserted fact now.** The look the entry asked for found **five** readers and
+  not one of them wants a direction: a default `badge`'s fill, a `scrollbar` on
+  hover, a `group-box-title` band, a `skeleton-bar` and a collapsed
+  `split-divider`. Every one wants a plate merely *distinct* from what is under
+  it, which is what the token promises — the three that were wrong wanted
+  "raised" or "sunken" and have their own tokens now. Renaming it would not have
+  stopped a single one of them. What does is `ThemeTest`: `--gb-surface-raised`
+  is never darker than `--gb-surface` and `--gb-surface-sunken` never lighter, on
+  both themes — and **`--gb-surface-2` takes opposite directions in the two
+  files**, a step up on dark and down on light, which is exactly why each
+  consumer looked right to whoever wrote it and wrong to everybody on the other
+  theme. The theme files carry the same sentence at the definition. —
+  [ADR-0245](adr/0245-the-second-surface-stays-and-says-so.md),
+  [ADR-0168](adr/0168-a-field-is-a-well-and-a-drag-is-a-selection.md)
+- ~~**A `select`'s typeahead works closed and not open.**~~ **It works open, and
+  the condition the entry set for adding a capture phase was met.** The entry
+  named the fix — `Handles` had an `onKeyCapture` and no `onTextCapture` — and
+  refused to add it on spec, "because a capture phase is a routing rule and
+  inventing one for a single consumer is how a router grows two". There is a
+  consumer now. `textInput` captures root-first then bubbles, which is
+  `dispatchKey`'s shape exactly and removes an asymmetry nobody had written down:
+  one event kind had a phase the other did not. `SelectList` reads the letters on
+  the way down and calls the **same** `typeahead` the closed control calls, so
+  `n`, `n`, `n` cycles the same options in the same order either way. It consumes
+  what it acted on, leaves blank text alone — a space means "pick this one"
+  everywhere else — and a `tree` gets none, which is [above](#the-catalog-specified-and-unbuilt). —
+  [ADR-0246](adr/0246-text-has-a-capture-phase-now-that-something-wants-one.md),
+  [ADR-0141](adr/0141-a-select-is-a-closed-control-and-a-list.md)
+- ~~**Whether to accept CSS's alignment aliases is open.**~~ **They are taken,
+  because they are not aliases.** `align-items: start` is **CSS** — Box Alignment
+  Level 3 — and Yoga has only `flex-start`, so the toolkit was dropping a
+  declaration the specification allows and telling the author they had made a
+  typo. It filled the Panels screen's console for long enough to need
+  deduplicating before anybody asked whether the declaration was actually wrong.
+  Two entries in one map, applied in `keyword` **after** the enum's own lookup so
+  a constant named `START` could never be shadowed by it. `left` and `right` stay
+  refused: they are `justify-content` only and are *not* `start`/`end` under RTL,
+  so §2.4's bidi support means the toolkit cannot promise they stay equivalent.
+  Two tests that encoded the old decision were rewritten, both in the group that
+  exists because of this typo. —
+  [ADR-0247](adr/0247-start-is-css-and-flex-start-is-yoga.md),
+  [ADR-0216](adr/0216-a-corner-is-four-numbers-and-a-lint-reads-values-too.md)
 - ~~**`align-self` is not in §8's subset.**~~ **It is built, and the entry was
   wrong twice in the toolkit's favour.** §8 had listed
   `align-items/self/content` all along and named only `flex-basis` as

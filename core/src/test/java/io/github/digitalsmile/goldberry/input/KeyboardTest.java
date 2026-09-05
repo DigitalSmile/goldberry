@@ -35,6 +35,11 @@ class KeyboardTest {
         private final List<Widget> children;
         private Key consumeKey;
 
+        /// What this node swallows on the way *down*, or null. Set per test,
+        /// like [#consumeKey], because a capture phase only means anything if
+        /// something can stop the event there.
+        private String consumeText;
+
         Field(String name, boolean focusable, Widget... children) {
             this.name = name;
             this.focusable = focusable;
@@ -65,6 +70,14 @@ class KeyboardTest {
         public void onKey(KeyEvent event) {
             log.add("key:" + name + ":" + event.kind() + ":" + event.key());
             if (event.key() == consumeKey) {
+                event.consume();
+            }
+        }
+
+        @Override
+        public void onTextCapture(TextEvent event) {
+            log.add("textCapture:" + name + ":" + event.text());
+            if (event.text().equals(consumeText)) {
                 event.consume();
             }
         }
@@ -160,6 +173,40 @@ class KeyboardTest {
             // The platform already applied the layout, the dead key and any IME
             // conversion; the widget just appends it (§7.1).
             assertTrue(log.contains("text:first:é"));
+        }
+
+        /// [ADR-0246]: a `select` with its list open has an `option` focused
+        /// inside a popup, so §3's typeahead had nothing to intercept the text
+        /// in. A capture phase is the same shape `dispatchKey` has had all along.
+        @Test
+        @DisplayName("capture runs root-first, before the focused node is told")
+        void captureIsRootFirst() {
+            router.focus(first, true);
+            log.clear();
+
+            router.textInput("é");
+
+            var capture = log.indexOf("textCapture:container:é");
+            var deepest = log.indexOf("textCapture:first:é");
+            var bubble = log.indexOf("text:first:é");
+            assertTrue(capture >= 0 && deepest >= 0 && bubble >= 0, () -> "log was " + log);
+            assertTrue(capture < deepest, () -> "capture should be root-first; log was " + log);
+            assertTrue(deepest < bubble, () -> "capture should precede the bubble; log was " + log);
+        }
+
+        /// Which is the half that makes the phase worth having: a container that
+        /// reads the text may keep it, and the row inside it never sees it.
+        @Test
+        @DisplayName("and a container that consumes on the way down stops it reaching the focus")
+        void captureCanSwallow() {
+            ((Field) root.widget()).consumeText = "n";
+            router.focus(first, true);
+            log.clear();
+
+            router.textInput("n");
+
+            assertTrue(log.contains("textCapture:container:n"), () -> "log was " + log);
+            assertFalse(log.contains("text:first:n"), () -> "the focused node was told anyway; log was " + log);
         }
 
         @Test

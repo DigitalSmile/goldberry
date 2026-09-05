@@ -38,6 +38,18 @@
      lightens, because nord10 on nord0 does not carry enough contrast. */
   --gb-bg: var(--nord0);
   --gb-surface: var(--nord1);
+  /* **A step, not a direction.** Lighter than `--gb-surface` here and *darker*
+     than it on the light theme, which is why three widgets that read this
+     meaning "raised" were each wrong on one theme only (ADR-0168). Say
+     `--gb-surface-raised` or `--gb-surface-sunken` when the direction is the
+     point; this is for a second plate that is merely *distinct* from the one
+     under it.
+
+     It stays because five things want exactly that and none of them wants a
+     direction: a default `badge`, a `scrollbar` on hover, a `group-box-title`
+     band, a `skeleton-bar` and a collapsed `split-divider` (ADR-0245).
+     `ThemeTest` asserts the two directions it takes, so the trap is a fact
+     rather than a comment. */
   --gb-surface-2: var(--nord2);
   --gb-text: var(--nord6);
   --gb-text-muted: var(--nord4);

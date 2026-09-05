@@ -1599,12 +1599,45 @@ public record ComputedStyle(
     /// By name rather than by a hand-written table because the two vocabularies
     /// already agree — Yoga's enums are the CSS names — and a table would be a
     /// second place for them to drift apart.
+    /// CSS's own spellings for the two alignment keywords Yoga names
+    /// differently ([ADR-0247]).
+    ///
+    /// `align-items: start` is **valid CSS** — Box Alignment Level 3 — and Yoga
+    /// has only `flex-start`, so a document that wrote what the specification
+    /// allows had its declaration dropped with a warning. That is the toolkit
+    /// refusing valid CSS rather than the author making a typo, and it filled the
+    /// console on the Panels screen for long enough to need deduplicating
+    /// (ADR-0216).
+    ///
+    /// Two entries and no more. `start` and `end` are writing-mode-relative in
+    /// full CSS and identical to the flex pair in a subset with one writing mode
+    /// and no grid, which is what makes the mapping exact rather than
+    /// approximate. `left` and `right` are deliberately absent: they are
+    /// `justify-content` only, they are *not* the same as `start`/`end` under
+    /// RTL, and §2.4's bidi support (ADR-0218) means the toolkit cannot promise
+    /// they would stay equivalent.
+    private static final java.util.Map<String, String> KEYWORD_ALIASES = java.util.Map.of(
+            "START", "FLEX_START",
+            "END", "FLEX_END");
+
     private static <E extends Enum<E>> java.util.Optional<E> keyword(List<Token> value, Class<E> type) {
         var tokens = value.stream().filter(t -> !t.is(TokenType.WHITESPACE)).toList();
         if (tokens.size() != 1 || !tokens.getFirst().is(TokenType.IDENT)) {
             return java.util.Optional.empty();
         }
         var name = tokens.getFirst().text().toUpperCase(Locale.ROOT).replace('-', '_');
+        var direct = constant(type, name);
+        if (direct.isPresent()) {
+            return direct;
+        }
+        // Only after the enum's own name has failed, so an enum that ever gains a
+        // constant called `START` keeps its own meaning rather than being
+        // shadowed by an alias written for a different one.
+        var alias = KEYWORD_ALIASES.get(name);
+        return alias == null ? java.util.Optional.empty() : constant(type, alias);
+    }
+
+    private static <E extends Enum<E>> java.util.Optional<E> constant(Class<E> type, String name) {
         try {
             return java.util.Optional.of(Enum.valueOf(type, name));
         } catch (IllegalArgumentException e) {
