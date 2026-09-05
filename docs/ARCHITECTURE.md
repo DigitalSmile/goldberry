@@ -530,6 +530,19 @@ tracks them alongside the implementation's own gaps.
   `goldberry-core` module, separated by package. The build ships `:core` and
   `:widgets` as separate modules and artifacts (ADR-0014). The split is
   load-bearing and is not moving; the sentence is what needs amending. (§11)
+- **A `tooltip`'s radius and its type rank.** `design-system.md` §3's row says
+  radius 4 and `caption`; the shipped rule writes 8 and `body`. Neither is drift
+  that anybody would defend as accidental — the type rank has its argument written
+  in `controls.css` (§1.4 gives `caption` to secondary text *under* a control,
+  where the reader has the control for context, and a tooltip is the only text on
+  screen at the moment it is read) — but neither has been agreed either. §1.5
+  groups radii as `4` (inputs, small controls) · `8` (buttons, cards) · `12`
+  (dialogs, popovers, frost panels) and names no tooltip in any of them, so the
+  nearest named thing is a popover at 12 and a tooltip is a small one; 4 and 8 are
+  both readings and neither follows. Found by reading the row against the
+  stylesheet: **three** of that row's four numbers had departed and only one said
+  so. `TooltipMetricsTest` pins what ships, so a fourth departure is a failing
+  test ([ADR-0263](../book/src/adr/0263-three-numbers-in-one-row-and-nothing-watching.md)). (§10.1)
 - **`text style="body"`.** `core-widgets.md` §2 gives `text` a `style=` attribute
   for the typography tokens. What ships is `class="body"` — the same thing spelled
   the way CSS already spells it. A second spelling may still earn its keep when

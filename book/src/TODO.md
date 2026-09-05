@@ -64,12 +64,20 @@ the mechanism the sentence named.
   test here can currently reach. —
   [ADR-0180](adr/0180-the-keyboard-goes-back-where-it-was.md),
   [ADR-0104](adr/0104-a-popup-is-measured-then-placed.md)
-- **A popup's contents inherit nothing from the widget that opened them.** They are the
-  root of a second element tree, so no `color`, no `font-size` and no descendant
-  selector reaches in. Right for a menu, whose items are a list rather than part of a
-  button's subtree; a limitation for `tooltip`, which wants the styling of the thing it
-  describes, and the answer there is to pass the anchor's resolved style in rather than
-  to reparent anything. —
+- **A popup's contents inherit nothing from the widget that opened them, and the
+  answer this entry proposed is wrong for the widget it named.** They are the root
+  of a second element tree, so no `color`, no `font-size` and no descendant
+  selector reaches in. Right for a menu, whose items are a list rather than part
+  of a button's subtree. This used to add "a limitation for `tooltip`, which wants
+  the styling of the thing it describes, and the answer there is to pass the
+  anchor's resolved style in" — and `tooltip` **pins** its typography for a stated
+  reason, §1.4's `caption` rank being the one departure in its row that somebody
+  had thought about ([ADR-0263](adr/0263-three-numbers-in-one-row-and-nothing-watching.md)).
+  Inheriting the anchor's `font-size` would draw a tooltip on a `display`-ranked
+  heading at 28px. So the subject stands and the example does not: what is left is
+  a `popover` or a `menu` whose *application* wanted a descendant selector to
+  reach in, which nothing has asked for. —
+  [ADR-0263](adr/0263-three-numbers-in-one-row-and-nothing-watching.md),
   [ADR-0103](adr/0103-a-popup-is-a-second-tree-in-a-second-window.md)
 - **A widget can reach its window, and the in-window overlay layer is still the
   application's.** `BuildContext.host()` exists now, because `select` was the

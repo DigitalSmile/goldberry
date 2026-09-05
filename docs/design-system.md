@@ -150,7 +150,7 @@ Behavior and API live in `core-widgets.md`; GDS pins the numbers. Metrics ship a
 | `slider` | track 4; thumb 16 (`full` radius); hit ≥32 cross-axis |
 | `knob` | diameters 32 / 48; arc 270° (travel starts at 7:30); dial inset 5 from the ring; pointer line 0.35→0.78 of the dial radius, 2px; value drag 200px per full range, ×0.1 with fine modifier; click on the ring positions the value, click on the dial grabs it — see ADR-0090 |
 | `menu` row | height 28 (24); padding-x 12; icon column 20; accelerator right-aligned `caption` |
-| `tooltip` | padding 6/8; radius 4; `caption`; delay 500ms show / 100ms move-between |
+| `tooltip` | padding **8/12**; radius 4; `caption`; delay 500ms show / 100ms move-between. The padding was `6/8` and **6 is not on §1.3's ramp**, which that section introduces with "no off-ramp values" — so the row could not be implemented without breaking a rule one section above it, and the shipped `8/12` is two legal steps ([ADR-0263](../book/src/adr/0263-three-numbers-in-one-row-and-nothing-watching.md)). The radius and the type rank are **not** what ships and are recorded in `ARCHITECTURE.md` §17.1 rather than quietly amended here |
 | `dialog` | padding 24; title `title`; action bar gap 8, top margin 24; min width 320, max 80% window |
 | `toast` | width 360; padding 12/16; radius 8; timeout 5s default, hover-pauses |
 | `tabs` | tab height 36; padding-x 16; 2px active indicator in `--gb-accent` |

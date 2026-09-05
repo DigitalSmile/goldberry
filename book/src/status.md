@@ -5988,6 +5988,43 @@ is the `scroll` box's.
   checked by putting 500 back. `TooltipTest` grew a two-target scene, because the
   case §3's second number is about cannot be produced by one full-window node.
 
+### Three numbers in one row, and nothing watching
+
+- **Found by reading a row rather than by building anything**
+  ([ADR-0263](adr/0263-three-numbers-in-one-row-and-nothing-watching.md)).
+  `TODO.md`'s popup-inheritance entry says a tooltip "wants the styling of the
+  thing it describes", so the tooltip's own styling was read to see what it would
+  inherit — and §3's row disagreed with the rule implementing it in **three** of
+  four places. Only one of the three had a comment saying so.
+- **§3 said `padding 6/8`, and 6 is not on §1.3's ramp** — that section lists
+  `2, 4, 8, 12, …` and introduces it with "no off-ramp values". The row could not
+  be implemented without breaking a rule one section above it, so this is the
+  document contradicting itself rather than the code overriding it. Amended to the
+  shipped `8/12`, which is two legal steps.
+- **The radius and the type rank are decisions, and went to §17.1.** §1.5 groups
+  radii as 4 (inputs, small controls) · 8 (buttons, cards) · 12 (dialogs,
+  popovers, frost panels) and names no tooltip in any of them, so §3's 4 and the
+  shipped 8 are both readings and neither follows. The type rank already had its
+  argument written in `controls.css` — §1.4 gives `caption` to secondary text
+  *under* a control, and a tooltip is the only text on screen at the moment it is
+  read — and a good argument is not an agreement. Amending §3 to match the code
+  would be taking a decision by writing it down, which is what §17.1 exists to
+  prevent.
+- **Nothing was watching, and that is the finding.** `SupportedPropertyTest` asks
+  whether a declaration does something, `ContrastTest` asks what colours measure,
+  and no test asks whether a metric is the metric §3 pinned — so a row drifts a
+  number at a time and each drift looks like the file it is in.
+  `TooltipMetricsTest` asserts the **shipped** values with each one's standing in
+  its javadoc, because a test that asserted the document would fail today and have
+  to be disabled, which is how a disagreement becomes invisible again.
+- **It also corrects the entry it came from.** A tooltip inheriting the anchor's
+  `font-size` would draw one on a `display`-ranked heading at 28px, so the
+  popup-inheritance entry's proposed answer is wrong for the widget it named; its
+  subject stands and its example does not.
+- **One of about thirty.** Every other metrics row in §3 is unchecked the same
+  way. A general test is the right shape and a markdown parser with opinions;
+  per-widget, as `BadgeTest.metrics` does, is what the catalog has been doing.
+
 ### Not started
 
 Client-side decorations, the rest of §4 —
