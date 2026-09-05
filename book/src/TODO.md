@@ -117,11 +117,22 @@ the mechanism the sentence named.
   than in the corner of the screen. M5, as ARCHITECTURE §17 says. —
   [ADR-0167](adr/0167-a-field-owns-its-caret-and-the-model-is-told.md)
 - **An absolutely positioned child is placed against the border box, and the
-  clip is the padding box.** `text-input` allows for it by adding its own padding
-  to every child's `left`, which works and is a workaround: the next widget that
-  places a child absolutely inside a padded box will hit the same thing and will
-  not know to. Whether Yoga or the painter is the one disagreeing with CSS has
-  not been established. —
+  clip is the padding box — and it is Yoga, in one path of two.** This asked
+  "whether Yoga or the painter is the one disagreeing with CSS", and it is
+  established now, with numbers, in two tests against the compiled library
+  ([ADR-0265](adr/0265-yoga-measures-an-inset-from-the-border-box.md)). A 40×20
+  absolute child in a root with `padding: 12px`, `errata` at its spec-compliant
+  default: with `left: 0; top: 0` Yoga answers **(0, 0)** where CSS says (12,
+  12), and with **no insets at all** it answers **(12, 12)**, which is right. So
+  Yoga contradicts itself rather than simply not implementing this, and the
+  painter is exonerated — it clips to the padding box, which is what CSS says,
+  against positions computed against a different box. **The fix is priced and
+  located**: `RenderObject` applies an inset to its own node and has no reference
+  to the parent's padding, so the parent has to push it down — and the same
+  commit must *remove* `text-input`'s and `text-area`'s compensation or it
+  double-counts, with a golden tail across `segmented`, `tour` and `scroll`. That
+  is worth doing deliberately rather than as a rider on an investigation. —
+  [ADR-0265](adr/0265-yoga-measures-an-inset-from-the-border-box.md),
   [ADR-0167](adr/0167-a-field-owns-its-caret-and-the-model-is-told.md)
 - **A field's scroll offset uses the previous frame's width.** ADR-0116 already
   decided that is what a viewport does, and it is wrong for one frame after a
@@ -154,15 +165,6 @@ the mechanism the sentence named.
   since both want to decide the height — or a second bar implementation. Neither
   is obviously right. —
   [ADR-0171](adr/0171-a-column-is-an-x-and-a-width-arrives-late.md)
-- **A guard at the top of `onPointer` is a guard on every pointer kind, and the
-  kinds do not carry the same fields.** `text-input` tested
-  `button() == PRIMARY` there and silently lost every drag, because
-  `PointerRouter.pointerMoved` builds its event with a null button — a motion is
-  not a button event (ADR-0168). `Slider` asks per kind and reads as a style
-  choice until this happens. Nothing warns; a `PointerEvent` accessor that is
-  meaningless for the kind in hand answers with a default rather than refusing,
-  which is right for `dragX`'s `NaN` and quietly wrong for a null `button`. —
-  [ADR-0168](adr/0168-a-field-is-a-well-and-a-drag-is-a-selection.md)
 
 - **There is no third text rank, and one was invented and taken back out.** A
   tour's step counter wanted something quieter than `--gb-text-muted`;
@@ -1075,6 +1077,22 @@ on, which in four cases is the same thing.
 Kept rather than deleted: each is a trap somebody hit, and the reasoning that got
 out of it is usually worth more than the fact that it is fixed.
 
+- ~~**A guard at the top of `onPointer` is a guard on every pointer kind, and
+  nothing warns.**~~ **It warns now, once per kind per node type.** The entry's
+  own last sentence was the design: a default that is "right for `dragX`'s `NaN`
+  and quietly wrong for a null `button`", because the two are not the same kind
+  of default. `NaN` is **arithmetic** — the meaninglessness propagates and every
+  comparison against it is false in both directions, so a caller cannot act on it
+  by accident. A null button is a **reference**: it is unequal to *everything*, so
+  `button() != PRIMARY` is true for a move and the guard fires backwards, keeping
+  the press it was written for and dropping every drag. It stays null rather than
+  throwing — an input handler that threw would turn a lost drag into a window that
+  falls over — and `Button.NONE` was the other shape and fixes nothing, since the
+  guard still fires backwards against a value that now looks deliberate. All nine
+  `button()` reads in the toolkit are already inside a kind check, so it fires on
+  the mistake and on nothing else. —
+  [ADR-0266](adr/0266-a-null-button-is-unequal-to-everything.md),
+  [ADR-0168](adr/0168-a-field-is-a-well-and-a-drag-is-a-selection.md)
 - ~~**A widget can reach its window, and the in-window overlay layer is still the
   application's.**~~ **`Toasts.of(context)` is the door, and it is a map.** The
   entry had already shrunk once — `BuildContext.host()` answered the popup half —

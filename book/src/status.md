@@ -6059,6 +6059,44 @@ is the `scroll` box's.
   been asked for. When one is, the question to answer is whether the three share
   a mechanism rather than whether to repeat this map.
 
+### Two questions the catalog's own entries had left open
+
+- **Yoga measures an inset from the border box**
+  ([ADR-0265](adr/0265-yoga-measures-an-inset-from-the-border-box.md)). The entry
+  asked "whether Yoga or the painter is the one disagreeing with CSS" and did not
+  answer it; an hour of Yoga did. A 40×20 absolute child in a root with
+  `padding: 12px`, `errata` at its spec-compliant default: with `left: 0; top: 0`
+  it answers **(0, 0)** where CSS says (12, 12), and with **no insets at all** it
+  answers **(12, 12)**, which is right.
+- **So Yoga contradicts itself**, and the painter is exonerated — it clips to the
+  padding box, which is what CSS says, against positions computed against a
+  different box. The disagreement is one path of two rather than a missing
+  feature, which is a more useful thing to know than the entry hoped for.
+- **The fix is priced and located rather than made.** `RenderObject` applies an
+  inset to its own node and has no reference to the parent's padding, so the
+  parent must push it down — and the same commit has to *remove* `text-input`'s
+  and `text-area`'s compensation or it double-counts, with a golden tail across
+  `segmented`, `tour` and `scroll`. Doing that inside an investigation is how a
+  golden moves without anybody looking at it.
+- **A null button is unequal to everything**
+  ([ADR-0266](adr/0266-a-null-button-is-unequal-to-everything.md)), which is the
+  `onPointer` guard entry closed on its own last sentence. It called the default
+  "right for `dragX`'s `NaN` and quietly wrong for a null `button`", and that is
+  exactly the distinction: `NaN` is **arithmetic**, so the meaninglessness
+  propagates and every comparison against it is false in both directions — a
+  caller cannot act on it by accident. A null button is a **reference**, unequal
+  to everything, so `button() != PRIMARY` is true for a move and the guard fires
+  backwards: it keeps the press it was written for and drops every drag.
+- **It reports and does not refuse.** An input handler that threw would turn a
+  lost drag into a window that falls over, on a mistake an application can make in
+  its own widgets. `Button.NONE` was the other shape and fixes nothing — the guard
+  still fires backwards, now against a value that looks deliberate.
+- **Nothing in the catalog trips it.** All nine `button()` reads are already
+  inside a kind check — seven in a `switch` arm and `Toggle`'s behind a
+  short-circuiting `||` — which is what makes a diagnostic affordable on the
+  busiest event in the toolkit. Keyed by kind and node type, because a pointer
+  event is read per event per handler.
+
 ### Not started
 
 Client-side decorations, the rest of §4 —

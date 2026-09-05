@@ -7,6 +7,7 @@ import org.jspecify.annotations.Nullable;
 import io.github.digitalsmile.goldberry.input.handler.Handles;
 import io.github.digitalsmile.goldberry.input.hit.Extent;
 import io.github.digitalsmile.goldberry.input.key.Modifiers;
+import io.github.digitalsmile.goldberry.log.Logs;
 import io.github.digitalsmile.goldberry.widget.Element;
 
 /// A pointer event as a widget sees it.
@@ -65,6 +66,8 @@ public final class PointerEvent {
     private Extent part = Extent.NONE;
     private final float pressX;
     private final float pressY;
+    private static final org.slf4j.Logger LOG = Logs.of(PointerEvent.class);
+
     private final Element target;
     private boolean consumed;
     private Local local = Local.UNKNOWN;
@@ -368,8 +371,64 @@ public final class PointerEvent {
     }
 
     /// The button, or null for a move, enter or exit.
+    ///
+    /// **Reading it on a kind that has none is reported, once.** Null is the
+    /// honest answer and it is also a quiet one: `button() == PRIMARY` at the top
+    /// of an `onPointer` is a guard on *every* kind, and a `MOVED` carries no
+    /// button — so `text-input` wrote exactly that and silently lost every drag
+    /// ([ADR-0168], [ADR-0266]).
+    ///
+    /// It stays null rather than throwing. An input handler that threw would turn
+    /// a lost drag into a window that falls over, and this is a mistake an
+    /// application can make in its own widgets — a diagnostic and never a
+    /// refusal, which is the rule every other one in the toolkit is held to.
+    ///
+    /// It is not the same as [#dragX()]'s `NaN`. That one is *arithmetic*: a
+    /// gesture that has not started is `NaN` wide and every comparison against it
+    /// is false, so the meaninglessness propagates and the caller cannot act on
+    /// it by accident. A null button compares equal to nothing and **unequal to
+    /// everything**, so `!= PRIMARY` is true for a move and the guard fires
+    /// backwards.
     public Button button() {
+        if (button == null) {
+            reportButtonRead();
+        }
         return button;
+    }
+
+    /// Which `(kind, type)` pairs have already been told.
+    ///
+    /// A pointer event is read per event per handler, so an unguarded warning
+    /// here would be the log [ADR-0243] has just finished quietening — a few
+    /// thousand lines a second on a trackpad. Keyed by the pair so that two
+    /// widgets making the mistake are two reports and one widget is one, however
+    /// long the pointer is over it.
+    private static final java.util.Set<String> REPORTED_BUTTON_READS =
+            java.util.concurrent.ConcurrentHashMap.newKeySet();
+
+    /// Forgets what has been reported, for a test that drives the same read
+    /// twice. `ComputedStyle.forgetReportedDrops`'s reason exactly.
+    public static void forgetReportedButtonReads() {
+        REPORTED_BUTTON_READS.clear();
+    }
+
+    /// How many distinct reads have been reported, so a test can say *once*
+    /// rather than merely *at all*.
+    public static int reportedButtonReadCount() {
+        return REPORTED_BUTTON_READS.size();
+    }
+
+    private void reportButtonRead() {
+        var type = target == null ? "?" : target.type();
+        if (REPORTED_BUTTON_READS.add(kind + "/" + type)) {
+            LOG.warn(
+                    "a handler on <{}> read button() from a {} event, which carries none — the"
+                            + " answer is null, so `button() != PRIMARY` is true and `button() =="
+                            + " PRIMARY` is false. A guard at the top of onPointer is a guard on"
+                            + " every kind; ask inside the arm that has a button.",
+                    type,
+                    kind);
+        }
     }
 
     /// 1 for a single click, 2 for a double, and so on.

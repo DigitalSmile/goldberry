@@ -274,6 +274,8 @@
 - [ADR-0262 A delay is a metric, and metrics are tokens](adr/0262-a-delay-is-a-metric-and-metrics-are-tokens.md)
 - [ADR-0263 Three numbers in one row, and nothing watching](adr/0263-three-numbers-in-one-row-and-nothing-watching.md)
 - [ADR-0264 A widget may find the toast stack](adr/0264-a-widget-may-find-the-toast-stack.md)
+- [ADR-0265 Yoga measures an inset from the border box](adr/0265-yoga-measures-an-inset-from-the-border-box.md)
+- [ADR-0266 A null button is unequal to everything](adr/0266-a-null-button-is-unequal-to-everything.md)
 
 ---
 
