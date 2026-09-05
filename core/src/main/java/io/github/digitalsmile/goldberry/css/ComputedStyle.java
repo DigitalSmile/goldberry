@@ -209,8 +209,30 @@ public record ComputedStyle(
         Objects.requireNonNull(context, "context");
 
         var style = parent == null ? INITIAL : INITIAL.inheritingFrom(parent);
+
+        // `font-size` is resolved **first and against the parent's size**, and
+        // everything else against the size that produced — which is CSS's rule
+        // and not a refinement of it ([ADR-0242]). `1.2em` on `font-size` means
+        // "a fifth larger than my parent"; `1.2em` on `padding` means "a fifth
+        // larger than my own text". One pass with one context cannot say both,
+        // and the old code said neither: it used `CssLength.Context`'s constant
+        // for every node at every depth, so `1em` was 16 even where the computed
+        // font-size was `Typography.INITIAL`'s 13.
+        var parentSize = parent == null
+                ? context.fontSize()
+                : (float) parent.typography().size();
+        var fontSize = declarations.get("font-size");
+        if (fontSize != null) {
+            style = style.with("font-size", fontSize, new CssLength.Context(parentSize, context.rootFontSize()));
+        }
+        // Undeclared is the ordinary case and needs no branch: the size is
+        // whatever was inherited, which is exactly what `em` should resolve
+        // against.
+        var own = new CssLength.Context((float) style.typography().size(), context.rootFontSize());
         for (var entry : declarations.entrySet()) {
-            style = style.with(entry.getKey(), entry.getValue(), context);
+            if (!"font-size".equals(entry.getKey())) {
+                style = style.with(entry.getKey(), entry.getValue(), own);
+            }
         }
         return style;
     }
@@ -446,12 +468,12 @@ public record ComputedStyle(
             // matters because CSS puts no ordering on them and an author writing
             // the origin first should not lose it.
             case "transform" -> {
-                var parsed = Transform.parse(value, transform.origin());
+                var parsed = Transform.parse(value, transform.origin(), context);
                 yield parsed == null ? dropped(property, value) : transform(parsed);
             }
 
             case "transform-origin" -> {
-                var parsed = Transform.parseOrigin(value);
+                var parsed = Transform.parseOrigin(value, context);
                 yield parsed == null ? dropped(property, value) : transform(transform.origin(parsed));
             }
 

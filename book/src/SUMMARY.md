@@ -251,6 +251,7 @@
 - [ADR-0239 A mark is measured against the box it is drawn in](adr/0239-a-mark-is-measured-against-the-box-it-is-drawn-in.md)
 - [ADR-0240 The ring follows the accent](adr/0240-the-ring-follows-the-accent.md)
 - [ADR-0241 A theme can be audited by whoever wrote it](adr/0241-a-theme-can-be-audited-by-whoever-wrote-it.md)
+- [ADR-0242 `em` is the element's own size](adr/0242-em-is-the-elements-own-size.md)
 
 ---
 

@@ -38,6 +38,19 @@ class ComputedStyleTest {
         return ComputedStyle.of(declarations, CssLength.Context.DEFAULT);
     }
 
+    /// The same pipeline, with the **parent actually resolved and handed down**
+    /// — which is what `WidgetRenderer` does and what an inherited font size
+    /// needs ([ADR-0242]). `compute` above passes no parent, so every element it
+    /// builds is a root.
+    private static ComputedStyle computeChild(String css) {
+        var sheet = Stylesheet.parse(CascadeLayer.APPLICATION, css);
+        var root = element("window");
+        root.with(element("button"));
+        var resolver = new StyleResolver(List.of(sheet));
+        var parent = ComputedStyle.of(resolver.resolve(root), CssLength.Context.DEFAULT, null);
+        return ComputedStyle.of(resolver.resolve(root.descend(1)), CssLength.Context.DEFAULT, parent);
+    }
+
     @Nested
     @DisplayName("defaults")
     class Defaults {
@@ -177,16 +190,52 @@ class ComputedStyleTest {
     @DisplayName("relative units")
     class RelativeUnits {
 
+        /// [ADR-0242]: `em` is the element's **own** computed font size, which
+        /// this used to assert was whatever number the caller put in the
+        /// [CssLength.Context] — 20 here, on an element whose computed size was
+        /// `Typography.INITIAL`'s 13.
         @Test
-        @DisplayName("em multiplies the font size in force")
+        @DisplayName("em multiplies the element's own font size")
         void em() {
-            var sheet = Stylesheet.parse(CascadeLayer.APPLICATION, "button { padding: 1.5em }");
-            var root = element("window");
-            root.with(element("button"));
-            var declarations = new StyleResolver(List.of(sheet)).resolve(root.descend(1));
+            var style = compute("button { font-size: 20px; padding: 1.5em }");
 
-            var style = ComputedStyle.of(declarations, new CssLength.Context(20, 16));
             assertEquals(Insets.all(StyleLength.points(30)), style.padding());
+        }
+
+        /// The half that needs no declaration: an element that says nothing about
+        /// its size still has one, and `em` is against that.
+        @Test
+        @DisplayName("and against the size it starts at when it declares none")
+        void emWithoutADeclaration() {
+            // `Typography.INITIAL` is 13, so 1.5em is 19.5 -- not the 24 the old
+            // code produced from `Context.DEFAULT`'s unrelated 16.
+            assertEquals(
+                    Insets.all(StyleLength.points(19.5f)),
+                    compute("button { padding: 1.5em }").padding());
+        }
+
+        /// CSS's one exception, and the reason the resolution is two passes: on
+        /// `font-size` itself an `em` is the **parent's** size, because the value
+        /// being computed cannot be its own input.
+        @Test
+        @DisplayName("but on font-size itself it is the parent's size")
+        void emOnFontSizeIsTheParents() {
+            var child = computeChild("window { font-size: 20px } button { font-size: 1.5em; padding: 1em }");
+
+            assertEquals(30.0, child.typography().size(), 1e-9, "font-size resolved against something other than 20");
+            // And `padding` is then against the 30 this element just became, not
+            // against the 20 it inherited -- the two passes, visible in one style.
+            assertEquals(Insets.all(StyleLength.points(30)), child.padding());
+        }
+
+        /// Inheritance carries the size, so a child that declares nothing
+        /// resolves `em` against what its parent computed.
+        @Test
+        @DisplayName("an inherited size is what a silent child resolves against")
+        void emAgainstAnInheritedSize() {
+            var child = computeChild("window { font-size: 20px } button { padding: 2em }");
+
+            assertEquals(Insets.all(StyleLength.points(40)), child.padding());
         }
 
         @Test
@@ -197,7 +246,8 @@ class ComputedStyleTest {
             root.with(element("button"));
             var declarations = new StyleResolver(List.of(sheet)).resolve(root.descend(1));
 
-            // Local 20, root 16 -- rem must ignore the 20.
+            // Root 16, and the element's own size is `Typography.INITIAL`'s 13
+            // -- `rem` must ignore the local one either way ([ADR-0242]).
             var style = ComputedStyle.of(declarations, new CssLength.Context(20, 16));
             assertEquals(Insets.all(StyleLength.points(32)), style.padding());
         }

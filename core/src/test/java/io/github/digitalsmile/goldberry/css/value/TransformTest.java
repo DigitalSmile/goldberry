@@ -184,6 +184,33 @@ class TransformTest {
             assertMaps(transform.matrix(200, 40), 0, 0, 100, 10);
         }
 
+        /// [ADR-0242]: `em` inside a `transform` is the element's own computed
+        /// font size, which it was not — `Transform` reached for
+        /// `CssLength.Context.DEFAULT`'s constant 16 for every node at every
+        /// depth, and said so in a comment naming the gap.
+        @Test
+        @DisplayName("an em translate is of the element's own font size")
+        void emTranslate() {
+            var moved = compute("button { font-size: 20px; transform: translate(1.5em, 2em) }")
+                    .transform()
+                    .matrix(100, 40);
+
+            // 1.5 x 20 and 2 x 20. A pure translation, so the origin cancels.
+            assertMaps(moved, 0, 0, 30, 40);
+        }
+
+        /// And the size it starts at when it declares none, which is
+        /// `Typography.INITIAL`'s 13 rather than the unrelated 16 the old
+        /// constant supplied.
+        @Test
+        @DisplayName("and of the size it starts at when it declares none")
+        void emTranslateWithoutADeclaration() {
+            var moved =
+                    compute("button { transform: translateX(2em) }").transform().matrix(100, 40);
+
+            assertMaps(moved, 0, 0, 26, 0);
+        }
+
         @Test
         @DisplayName("the default origin is the box's middle")
         void defaultOrigin() {

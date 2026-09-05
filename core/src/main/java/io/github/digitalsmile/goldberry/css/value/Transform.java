@@ -418,7 +418,7 @@ public record Transform(List<Function> functions, Origin origin) {
     /// would be worse than none: the box would move somewhere nobody wrote.
     /// Public because the computed style that calls it is the `css` package's
     /// and a value type is `css.value`'s (ADR-0172).
-    public static @Nullable Transform parse(List<Token> value, Origin origin) {
+    public static @Nullable Transform parse(List<Token> value, Origin origin, CssLength.Context context) {
         var tokens = value.stream().filter(t -> !t.is(TokenType.WHITESPACE)).toList();
         if (tokens.isEmpty()) {
             return null;
@@ -440,7 +440,8 @@ public record Transform(List<Function> functions, Origin origin) {
             }
             var function = function(
                     token.text().toLowerCase(Locale.ROOT),
-                    arguments(tokens.subList(index + 1, close)));
+                    arguments(tokens.subList(index + 1, close)),
+                    context);
             if (function == null) {
                 return null;
             }
@@ -495,21 +496,21 @@ public record Transform(List<Function> functions, Origin origin) {
     // method gets longer to satisfy a preference. The suggestion is about style
     // and there is no defect under it.
     @SuppressWarnings("RefactorSwitch")
-    private static @Nullable Function function(String name, List<List<Token>> arguments) {
+    private static @Nullable Function function(String name, List<List<Token>> arguments, CssLength.Context context) {
         var count = arguments.size();
         switch (name) {
             case "translate" -> {
                 // The one-argument form leaves y at zero, which is CSS's rule and
                 // not the same as leaving it unset: `translate(10px)` moves
                 // horizontally only.
-                var values = count == 1 || count == 2 ? lengths(arguments, count) : null;
+                var values = count == 1 || count == 2 ? lengths(arguments, count, context) : null;
                 return values == null
                         ? null
                         : new Function.Translate(
                                 values[0], count == 2 ? values[1] : Length.ZERO);
             }
             case "translatex", "translatey" -> {
-                var values = count == 1 ? lengths(arguments, 1) : null;
+                var values = count == 1 ? lengths(arguments, 1, context) : null;
                 if (values == null) {
                     return null;
                 }
@@ -574,10 +575,10 @@ public record Transform(List<Function> functions, Origin origin) {
         }
     }
 
-    private static @Nullable Length[] lengths(List<List<Token>> arguments, int count) {
+    private static @Nullable Length[] lengths(List<List<Token>> arguments, int count, CssLength.Context context) {
         var values = new Length[count];
         for (var i = 0; i < count; i++) {
-            var length = length(arguments.get(i));
+            var length = length(arguments.get(i), context);
             if (length == null) {
                 return null;
             }
@@ -586,7 +587,7 @@ public record Transform(List<Function> functions, Origin origin) {
         return values;
     }
 
-    private static @Nullable Length length(List<Token> argument) {
+    private static @Nullable Length length(List<Token> argument, CssLength.Context context) {
         if (argument.size() != 1) {
             return null;
         }
@@ -605,11 +606,13 @@ public record Transform(List<Function> functions, Origin origin) {
         }
         return switch (token.unit()) {
             case "px" -> Length.px(token.numeric());
-            // `em` and `rem` against the fixed context numbers, which is the same
-            // approximation the rest of the cascade makes and the same known gap:
-            // they do not resolve against the node's own font-size (ADR-0066).
-            case "em" -> Length.px(token.numeric() * CssLength.Context.DEFAULT.fontSize());
-            case "rem" -> Length.px(token.numeric() * CssLength.Context.DEFAULT.rootFontSize());
+            // Against the node's own computed font-size, which the caller hands
+            // in: `translate(1em)` on a 13px label is 13 and on a 28px heading is
+            // 28. It used to be `CssLength.Context.DEFAULT`'s constant 16 for
+            // every node, which is the gap ADR-0066 recorded and
+            // [ADR-0242] closed.
+            case "em" -> Length.px(token.numeric() * context.fontSize());
+            case "rem" -> Length.px(token.numeric() * context.rootFontSize());
             default -> null;
         };
     }
@@ -678,7 +681,7 @@ public record Transform(List<Function> functions, Origin origin) {
     // parser in this package uses. Error Prone's heuristic does not model a
     // switch expression's target type.
     @SuppressWarnings("NullTernary")
-    public static @Nullable Origin parseOrigin(List<Token> value) {
+    public static @Nullable Origin parseOrigin(List<Token> value, CssLength.Context context) {
         var parts = new ArrayList<List<Token>>();
         var current = new ArrayList<Token>();
         for (var token : value) {
@@ -701,9 +704,9 @@ public record Transform(List<Function> functions, Origin origin) {
                 // centres the other one rather than being taken as horizontal.
                 var only = keyword(parts.getFirst());
                 if (only == Axis.VERTICAL) {
-                    yield new Origin(Length.HALF, originLength(parts.getFirst()));
+                    yield new Origin(Length.HALF, originLength(parts.getFirst(), context));
                 }
-                var x = originLength(parts.getFirst());
+                var x = originLength(parts.getFirst(), context);
                 yield x == null ? null : new Origin(x, Length.HALF);
             }
             case 2 -> {
@@ -716,8 +719,8 @@ public record Transform(List<Function> functions, Origin origin) {
                     first = second;
                     second = swap;
                 }
-                var x = originLength(first);
-                var y = originLength(second);
+                var x = originLength(first, context);
+                var y = originLength(second, context);
                 yield x == null || y == null ? null : new Origin(x, y);
             }
             default -> null;
@@ -738,7 +741,7 @@ public record Transform(List<Function> functions, Origin origin) {
         };
     }
 
-    private static @Nullable Length originLength(List<Token> part) {
+    private static @Nullable Length originLength(List<Token> part, CssLength.Context context) {
         if (part.size() == 1 && part.getFirst().is(TokenType.IDENT)) {
             return switch (part.getFirst().text().toLowerCase(Locale.ROOT)) {
                 case "left", "top" -> Length.ZERO;
@@ -747,6 +750,6 @@ public record Transform(List<Function> functions, Origin origin) {
                 default -> null;
             };
         }
-        return length(part);
+        return length(part, context);
     }
 }

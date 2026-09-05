@@ -5252,6 +5252,46 @@ is the `scroll` box's.
   convention can tell, and the sixteen non-text pairs below the floor stay
   `TODO.md`'s.
 
+### The unit that meant one number everywhere
+
+- **`em` is the element's own computed font size**
+  ([ADR-0242](adr/0242-em-is-the-elements-own-size.md)), which closes an entry
+  open since ADR-0066. `CssLength.Context` was always the right shape —
+  `(fontSize, rootFontSize)`, one read by each unit — and nothing ever built one
+  **per element**: `WidgetRenderer` holds a single instance for the whole tree
+  and hands it to every `ComputedStyle.of` call, so `em` was one constant at
+  every depth.
+- **Two passes, because CSS has one exception.** `1.2em` on `font-size` means "a
+  fifth larger than my parent", since the value being computed cannot be its own
+  input; on anything else it means "a fifth larger than my own text". One pass
+  with one context cannot say both. `font-size` is resolved first against the
+  parent's size, everything else against the size that produced.
+- **It needed no plumbing.** The parent's size is `parent.typography().size()`,
+  already passed in for inheritance — the fix is entirely inside the method that
+  had been given everything it needed all along. The undeclared case needs no
+  branch either: a node that says nothing has whatever it inherited, which is
+  exactly what `em` should resolve against.
+- **Measuring it turned up a number the entry did not mention.**
+  `CssLength.Context.DEFAULT` is `(16, 16)` and `Typography.INITIAL`'s size is
+  **13**. So `1em` was not the parent's size, not the element's own, and not any
+  size the toolkit actually renders text at — two constants with no relationship
+  and nothing making them agree.
+- **`Transform` was the same bug in a second place**, and had said so in a
+  comment naming the gap: it reached for `Context.DEFAULT` directly. It takes a
+  `Context` now, threaded from `ComputedStyle.with`, which had one all along —
+  two public call sites, both in `ComputedStyle`.
+- **No shipped rendering changed, and that was checked rather than assumed.** Not
+  one `em` or `rem` appears in `nord-dark.css`, `nord-light.css`, `controls.css`
+  or the showcase's sheets, and the golden corpus passes untouched.
+- **One existing test changed meaning and was rewritten.** "em multiplies the
+  font size in force" passed `Context(20, 16)` with no parent and asserted 30 —
+  the old semantics, on an element whose computed size was 13. It declares
+  `font-size: 20px` now and asserts the same 30 for a reason that is true.
+- **What is left is `rem`**, which reads the *configured* root size rather than
+  the root element's computed one. They agree unless a root declares a
+  `font-size`, and nothing in the catalog does; recovering it needs a third thing
+  threaded down, because a node is handed its parent's style and not the root's.
+
 ### Not started
 
 Client-side decorations, the rest of §4 —

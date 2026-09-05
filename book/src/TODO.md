@@ -864,11 +864,16 @@ on, which in four cases is the same thing.
   backdrop-aware check would need the painted frame rather than the cascade, which is a
   different kind of test. —
   [ADR-0087](adr/0087-a-semantic-fill-brings-its-own-foreground.md)
-- **`em` and `rem` do not resolve against the node's own `font-size`.** They use
-  `CssLength.Context`'s fixed numbers, so `font-size: 1.2em` means 1.2 × 16 and not 1.2
-  × the parent's size. Nothing in the toolkit's own stylesheets uses `em`, so it has no
-  effect today — but it is wrong, and the typography scale is what makes it reachable. —
-  [ADR-0066](adr/0066-a-weight-is-a-face-and-color-inherits.md)
+- **`rem` is the *configured* root size, not the root element's.** What
+  [ADR-0242](adr/0242-em-is-the-elements-own-size.md) left: `em` resolves against
+  the element's own computed size now, and `rem` still reads
+  `CssLength.Context.rootFontSize()`. CSS says the **root element's** computed
+  `font-size`, so the two agree unless a root declares one — and recovering that
+  inside `ComputedStyle.of` is not possible, because a node is handed its
+  *parent's* style and not the root's. It needs a third thing threaded down, or a
+  field on the renderer that is only correct after the root has resolved. Nothing
+  in the catalog styles a root's `font-size`, so this is exact today. —
+  [ADR-0242](adr/0242-em-is-the-elements-own-size.md)
 - **A bare `text` with no ancestor setting `color` renders black**, which is ADR-0066's
   deliberate `INITIAL` and a trap all the same: the showcase's new gain label was
   unreadable on the dark theme. A control gets away with saying nothing because
@@ -1186,6 +1191,23 @@ on, which in four cases is the same thing.
 Kept rather than deleted: each is a trap somebody hit, and the reasoning that got
 out of it is usually worth more than the fact that it is fixed.
 
+- ~~**`em` and `rem` do not resolve against the node's own `font-size`.**~~
+  **`em` does now, in two passes, and the fix needed no plumbing at all.**
+  `CssLength.Context` was always the right shape; what was missing is that
+  nothing built one per element — `WidgetRenderer` holds one for the whole tree
+  and handed the same instance to every node, so `em` was one constant at every
+  depth. The two passes are CSS's own rule rather than a refinement: on
+  `font-size` an `em` is the **parent's** size, because the value being computed
+  cannot be its own input, and on everything else it is the element's **own**.
+  Both were already in hand — `parent.typography().size()` is passed for
+  inheritance anyway. **Measuring it turned up a number the entry did not
+  mention**: `Context.DEFAULT` is 16 and `Typography.INITIAL` is **13**, so `1em`
+  was not the parent's size, not the element's own, and not any size the toolkit
+  renders text at. `Transform` was the same bug in a second place and said so in
+  a comment; it takes a `Context` now. What is left is `rem`, and it is
+  [above](#style-colour-and-motion). —
+  [ADR-0242](adr/0242-em-is-the-elements-own-size.md),
+  [ADR-0066](adr/0066-a-weight-is-a-face-and-color-inherits.md)
 - ~~**Nothing validates an application's own theme.**~~ **`ThemeAudit` does, and
   the pairs are found by convention rather than listed.** The arithmetic was nine
   private lines in `ContrastTest`; it is `css.contrast.Contrast` now, in `:core`
