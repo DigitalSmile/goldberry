@@ -15,6 +15,7 @@ import io.github.digitalsmile.goldberry.css.Stylesheet;
 import io.github.digitalsmile.goldberry.css.Theme;
 import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
 import io.github.digitalsmile.goldberry.css.cascade.StyleResolver;
+import io.github.digitalsmile.goldberry.css.contrast.Contrast;
 import io.github.digitalsmile.goldberry.css.value.CssLength;
 import io.github.digitalsmile.goldberry.widget.ElementTree;
 import io.github.digitalsmile.goldberry.widget.Widget;
@@ -75,15 +76,17 @@ import io.github.digitalsmile.goldberry.widgets.text.Text;
 /// been left behind when the accent's moved, so the fix was one token.
 class ContrastTest {
 
-    /// §1.2's floor for text under 20px, which is all of it.
-    private static final double FLOOR = 4.5;
+    /// §1.2's floor for text under 20px, which is all of it — [Contrast]'s, so
+    /// the number this asserts and the number an application audits against
+    /// cannot drift apart ([ADR-0241]).
+    private static final double FLOOR = Contrast.TEXT_FLOOR;
 
     /// §1.2's floor for anything that is **not** text — a glyph, a border, an
     /// indicator. Lower because a shape is not read letter by letter, and it is
     /// still a floor: a warning triangle nobody can see is §1.2's own failure
     /// mode, since the rule that forbids colour as the only carrier of meaning
     /// assumes the thing carrying it is visible.
-    private static final double LINE_FLOOR = 3.0;
+    private static final double LINE_FLOOR = Contrast.NON_TEXT_FLOOR;
 
     /// The pairs that do not meet [#FLOOR], and there are none.
     ///
@@ -656,26 +659,18 @@ class ContrastTest {
         return theme == Theme.NORD_DARK ? "nord-dark" : "nord-light";
     }
 
-    /// WCAG 2.1's contrast ratio, `(L1 + 0.05) / (L2 + 0.05)`.
+    /// WCAG 2.1's contrast ratio, from [Contrast] rather than from a copy here.
+    ///
+    /// It was nine private lines in this file until [ADR-0241] made it something
+    /// an application could call, and this now goes through the same code — which
+    /// is the point rather than tidiness: an audit an application runs and a sweep
+    /// CI runs that disagreed about the arithmetic would be worse than either
+    /// alone.
     ///
     /// Alpha is ignored, and every pair here is opaque — a translucent fill has no
     /// single ratio, because what it composites over decides the answer.
     /// `--gb-selection` is exactly that case and is deliberately not swept.
     private static double contrast(int backgroundArgb, int colorArgb) {
-        var a = luminance(backgroundArgb);
-        var b = luminance(colorArgb);
-        return (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
-    }
-
-    /// WCAG 2.1 relative luminance, from an `0xAARRGGBB`.
-    private static double luminance(int argb) {
-        var r = linear(((argb >> 16) & 0xFF) / 255.0);
-        var g = linear(((argb >> 8) & 0xFF) / 255.0);
-        var b = linear((argb & 0xFF) / 255.0);
-        return 0.2126 * r + 0.7152 * g + 0.0722 * b;
-    }
-
-    private static double linear(double channel) {
-        return channel <= 0.03928 ? channel / 12.92 : Math.pow((channel + 0.055) / 1.055, 2.4);
+        return Contrast.ratio(backgroundArgb, colorArgb);
     }
 }

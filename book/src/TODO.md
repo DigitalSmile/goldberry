@@ -864,12 +864,6 @@ on, which in four cases is the same thing.
   backdrop-aware check would need the painted frame rather than the cascade, which is a
   different kind of test. —
   [ADR-0087](adr/0087-a-semantic-fill-brings-its-own-foreground.md)
-- **Nothing validates an application's own theme.** §10 lets an application swap the
-  alias tokens, and `ContrastTest` runs over the two themes the toolkit ships. A
-  third-party theme that pairs `--gb-badge-warning-bg` with an unreadable
-  `--gb-badge-warning-text` is a legibility bug the toolkit will not notice — the
-  arithmetic is nine lines and is not exposed as anything an application can call. —
-  [ADR-0087](adr/0087-a-semantic-fill-brings-its-own-foreground.md)
 - **`em` and `rem` do not resolve against the node's own `font-size`.** They use
   `CssLength.Context`'s fixed numbers, so `font-size: 1.2em` means 1.2 × 16 and not 1.2
   × the parent's size. Nothing in the toolkit's own stylesheets uses `em`, so it has no
@@ -1192,6 +1186,27 @@ on, which in four cases is the same thing.
 Kept rather than deleted: each is a trap somebody hit, and the reasoning that got
 out of it is usually worth more than the fact that it is fixed.
 
+- ~~**Nothing validates an application's own theme.**~~ **`ThemeAudit` does, and
+  the pairs are found by convention rather than listed.** The arithmetic was nine
+  private lines in `ContrastTest`; it is `css.contrast.Contrast` now, in `:core`
+  and exported, because a theme is core and an application should not need the
+  widget catalog to learn its colours are unreadable. The part the entry did not
+  anticipate is what makes it worth having: a hard-coded list of the toolkit's
+  own pairs would check a custom theme's *overrides* and miss everything it
+  added, so the rule is **every `--gb-<name>-bg` with a matching
+  `--gb-<name>-text`** — which the design system already follows, and which
+  audits `--gb-mycard-bg` for free. Two details decide whether it works on a real
+  theme: values are **substituted**, so `--gb-badge-warning-bg: var(--gb-warning)`
+  is measured rather than skipped as "not a colour"; and a **translucent** pair is
+  skipped rather than scored, because what it composites over decides the answer
+  — `--gb-hud-bg` is `#1c212ae6` and is the shipped example. `ContrastTest` now
+  calls the same code, so the number CI asserts and the number an application
+  audits against cannot drift. It does **not** cover the non-text floor: which
+  token is a *mark* is not something a naming convention can tell, and those
+  sixteen are [above](#style-colour-and-motion). —
+  [ADR-0241](adr/0241-a-theme-can-be-audited-by-whoever-wrote-it.md),
+  [ADR-0239](adr/0239-a-mark-is-measured-against-the-box-it-is-drawn-in.md),
+  [ADR-0087](adr/0087-a-semantic-fill-brings-its-own-foreground.md)
 - ~~**§2.2's focus ring is below §1.2's floor on every surface of the light
   theme.**~~ **It follows the accent now, which is what the dark theme always
   did.** Opened by [ADR-0239](adr/0239-a-mark-is-measured-against-the-box-it-is-drawn-in.md)

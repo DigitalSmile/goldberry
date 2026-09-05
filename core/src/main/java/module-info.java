@@ -46,6 +46,12 @@ module io.github.digitalsmile.goldberry.core {
     exports io.github.digitalsmile.goldberry.css.cascade;
     exports io.github.digitalsmile.goldberry.css.value;
 
+    // §1.2's contrast floors, and the audit that measures a theme against them.
+    // Exported for the same reason the cascade is: §10 lets an application swap
+    // every alias token, and a theme it wrote is one nothing else can check
+    // (ADR-0241).
+    exports io.github.digitalsmile.goldberry.css.contrast;
+
     // KDL 2.0 markup and the inflater registry (§9, ADR-0051). Exported
     // because an application registers its own widgets in the same registry the
     // built-ins use.

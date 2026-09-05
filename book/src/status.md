@@ -5210,6 +5210,48 @@ is the `scroll` box's.
   they move goldens in bulk rather than one at a time, and `TODO.md` carries them
   as a single entry for that reason.
 
+### The guarantee that stopped where the extensibility began
+
+- **A theme can be audited by whoever wrote it**
+  ([ADR-0241](adr/0241-a-theme-can-be-audited-by-whoever-wrote-it.md)).
+  `ContrastTest` has measured the two themes the toolkit ships since ADR-0087,
+  and §10 lets an application replace every alias token — so §1.2's promise
+  stopped exactly where §10's extensibility began: the toolkit guaranteed legible
+  colour, handed the application the means to replace all of it, and then had
+  nothing to say.
+- **`css.contrast` is a new package in `:core`, and exported.** `:core` because a
+  theme is, and because an application should not have to depend on the widget
+  catalog to find out its colours are unreadable. Its own package because it is
+  neither a stage of the engine nor a value type — it is a question asked *about*
+  a resolved cascade, which is the shape ADR-0172 gave the other four.
+- **The pairs are found by convention rather than listed**, and this is the
+  decision the entry did not anticipate. A hard-coded list of the toolkit's own
+  pairs would check a custom theme's *overrides* and miss everything it added.
+  The design system already names pairs consistently, so the rule is every
+  `--gb-<name>-bg` with a matching `--gb-<name>-text` — and an application
+  following the same convention for `--gb-mycard-bg` is checked for free. The
+  surface pairs are stated beside it, because `--gb-text` on `--gb-bg` is the one
+  relationship the convention cannot express.
+- **Two details decide whether it works on a real theme.** Values are
+  **substituted**, for ADR-0195's reason: a theme written the ordinary way says
+  `--gb-badge-warning-bg: var(--gb-warning)`, and reading raw tokens would decide
+  that is not a colour, skip the pair, and audit a real theme as having nothing
+  to check. And a **translucent** pair is skipped rather than scored, because
+  what it composites over decides the answer — `--gb-hud-bg` is `#1c212ae6` and
+  is the shipped example, with a test saying so, because the rule is only
+  credible if the toolkit's own tokens are subject to it.
+- **Both shipped themes audit clean at seventeen pairs each**, asserted as a
+  count as well as a set: a sweep that quietly stopped finding pairs would
+  otherwise pass by measuring nothing at all.
+- **`ContrastTest` lost its private arithmetic and its two literal floors.** They
+  are `Contrast`'s now, so the number CI asserts and the number an application
+  audits against cannot drift apart — an audit and a sweep that disagreed would
+  be worse than either alone.
+- **It deliberately does not cover the non-text floor.** `NON_TEXT_FLOOR` is
+  exported and unused here: which token is a *mark* is not something a naming
+  convention can tell, and the sixteen non-text pairs below the floor stay
+  `TODO.md`'s.
+
 ### Not started
 
 Client-side decorations, the rest of §4 —
