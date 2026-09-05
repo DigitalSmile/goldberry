@@ -5756,6 +5756,82 @@ is the `scroll` box's.
   move, that alignment is per line rather than per block, that `left`, `right`
   and `justify` are dropped, and that `slider-value` resolves to `end`.
 
+### Four things the toolkit knew and did not say
+
+- **A diagnostic is asked for, not logged**
+  ([ADR-0257](adr/0257-a-diagnostic-is-asked-for-not-logged.md)), which is the
+  answer two `TODO.md` entries had already written down and two more were waiting
+  for.
+- **`css.lint` is `SupportedPropertyTest` with the test taken off it.** The
+  machinery worked and had one caller: itself. `StyleLint` resolves every rule
+  through the real cascade, hands every declaration to the real `ComputedStyle`
+  and returns `Finding` values carrying the **line and column** the parser saw —
+  which a log line never did. Two sheets rather than one, and it is not ceremony:
+  half of what a declaration means is what its `var()`s stood for, and a sheet
+  linted without its theme reports every colour in it as a value the engine
+  refuses.
+- **`ComputedStyle.applies` is four lines, and the reason is a fact about the
+  control flow.** `with` returns `this` in exactly two places and both of them
+  are failures — the `default` arm and `dropped` — while every success goes
+  through a wither and every wither allocates. So identity is the answer, and it
+  cannot fall out of step with the engine because it is not a copy of it. A list
+  of supported properties would have been a second source of truth needing an
+  edit every time the first changed. That is now a constraint on the class rather
+  than an accident, written down in both places.
+- **The two failures are deliberately not told apart.** "No such property"
+  against "no such value" means the engine *reporting* rather than being asked —
+  a sink threaded through thirty switch arms in the frame loop — for a difference
+  the author reads off §8's list either way. What was invisible is that the rule
+  does nothing.
+- **An unresolvable `var()` is not a finding**, and a test asserts the silence:
+  it is already the resolver's own report, once, which is ADR-0243's shape. Two
+  mechanisms for one fault disagree the day either changes.
+- **The old test lost a hundred and sixty lines** — a logback appender, a
+  log-level override, two sentence-matching filters and its own two guard tests,
+  which existed because a change to either log's wording would have made it pass
+  by seeing nothing at all. It **gained two sweeps it could not afford**: the
+  light theme and the compact density. A `var()` that resolves to something legal
+  in one theme and to nothing in the other is a rule that draws on one and not
+  the other, and no golden of the dark theme could have shown it.
+- **`flex-grow` inside a `scroll` says so now**, and the entry had expected the
+  hard version: "a diagnostic would have to know that a `grow` resolved against
+  an unbounded main axis, which Yoga knows and does not report". Nothing had to
+  be asked of Yoga. `ScrollContent.render` is handed its children as **boxes**
+  with `flex-grow` already resolved, and the content box's main axis *is* the
+  scrolling axis by construction — so it is a field comparison, and it catches a
+  widget that set the growth itself, which no stylesheet rule would have shown.
+- **A virtualized list says when its pitch and its rows disagree**, by a simpler
+  mechanism than the entry predicted. It asked for a `Measured` assertion on the
+  first built row; what it got is the cascade, because `list-row` declares
+  `height: var(--gb-list-row-height)` and that number is resolved before the row
+  is laid out. Exact, free, and a frame earlier than a measurement.
+- **That check has to see the mismatch twice, and ADR-0254 is why.** The first
+  build of a tree has no cascade, so a list reading the token answers the
+  *default* on that build and the stylesheet's value on the next — one frame of a
+  real 32-against-26 disagreement under a compact density, which settles by
+  itself. Reported naively, the form that **cannot** be wrong would have been the
+  noisiest one. And that forced the second decision: the check runs on **one row
+  of the window**, because twenty rows resolving the same height report twenty
+  times a frame and "seen twice" could not then tell a frame from a sibling.
+- **Both widget diagnostics are ADR-0251's shape**, down to the static report set
+  and the `forget` beside it: a diagnostic and never a refusal, because turning a
+  rule into a crash is worse than the rule going unheard. There are four such
+  sets now, which is a pattern rather than a mechanism — the fifth is where
+  somebody should extract it.
+- **One thing found and not fixed**, recorded in `TODO.md`: `StyleElement`
+  documents `type()`, `id()` and `parent()` as "or null" and annotates none of
+  them, inside a `css` package that is `@NullMarked`. Every implementation until
+  now lived in an unmarked package, so nothing had noticed; the lint's probe is
+  the first written in a marked one and cannot say what the interface says. Its
+  package is unmarked as a result, which is the wrong end to fix it from.
+- **Twenty-five tests** — one new class and two nested in existing ones: what the
+  lint finds and the two ways it could report a healthy sheet as broken, a
+  scroller whose child asks to grow, and a list whose two numbers do not agree,
+  including the token form, which is quiet by construction and is the test that
+  found the settling frame. Plus two in the rewritten
+  `SupportedPropertyTest`, which are the sweeps the log capture had made too
+  expensive to run.
+
 ### Not started
 
 Client-side decorations, the rest of §4 —

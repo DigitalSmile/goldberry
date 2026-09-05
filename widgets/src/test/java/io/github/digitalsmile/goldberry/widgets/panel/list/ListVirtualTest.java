@@ -449,6 +449,94 @@ class ListVirtualTest {
         }
     }
 
+    /// A pitch that disagrees with the stylesheet is a **silent** layout error,
+    /// and now it is not ([ADR-0257]).
+    ///
+    /// The spacers are `index × pitch` tall and the rows between them are
+    /// whatever `list-row` resolved to, so a one-pixel disagreement is twenty
+    /// pixels at row twenty and two hundred at row two hundred. The symptom is
+    /// rows drifting out of step with the scrollbar, getting worse the further
+    /// down the model you are — which reads as a scrolling bug rather than as
+    /// two numbers that were never checked against each other.
+    ///
+    /// **A mismatch has to be seen twice before it is believed**, and the token
+    /// form is why: the first build of a tree has no cascade, so a list reading
+    /// `--gb-list-row-height` answers the default on that build and the
+    /// stylesheet's value on the next ([ADR-0254]). That is one frame of a real
+    /// disagreement that settles by itself, and reporting it would make the form
+    /// that *cannot* be wrong the noisiest one.
+    ///
+    /// Asserted through the report set rather than the log, for
+    /// `ScrollTest.Nesting`'s reason: there is no appender on this classpath.
+    @Nested
+    @DisplayName("a pitch that disagrees with the stylesheet")
+    class PitchAgreement {
+
+        @org.junit.jupiter.api.BeforeEach
+        void forget() {
+            ListRow.forgetReportedPitch();
+        }
+
+        @Test
+        @DisplayName("is reported, once, however many rows are built")
+        void mismatchIsReported() {
+            // 64 in Java against 32 in the stylesheet, which is the shape of the
+            // mistake: the number was written once and the sheet moved.
+            var harness = new Harness(
+                    scrolled(ListView.of(names(COUNT)).virtualized(64).id("rows")),
+                    new TestHost(),
+                    "scroll { --gb-list-row-height: 32px }");
+
+            assertEquals(1, ListRow.reportedPitchCount(), "a pitch that disagrees with the rows was not reported");
+            assertTrue(harness.rows().size() > 1, "and it was built from more than one row");
+
+            // `render` runs per row per paint, so an unguarded warning would be
+            // one line per visible row per frame.
+            harness.frame();
+            harness.frame();
+            assertEquals(1, ListRow.reportedPitchCount(), "the warning repeated on a later frame");
+        }
+
+        @Test
+        @DisplayName("and a list whose two numbers agree is quiet")
+        void agreementIsQuiet() {
+            new Harness(
+                    scrolled(ListView.of(names(COUNT)).virtualized(32).id("rows")),
+                    new TestHost(),
+                    "scroll { --gb-list-row-height: 32px }");
+
+            assertEquals(0, ListRow.reportedPitchCount());
+        }
+
+        /// The form that cannot disagree, which is the one to prefer: it reads
+        /// the same token the stylesheet writes the height from (ADR-0254).
+        @Test
+        @DisplayName("and the token form is quiet by construction")
+        void theTokenFormIsQuiet() {
+            var harness = new Harness(
+                    scrolled(ListView.of(names(COUNT)).virtualized().id("rows")),
+                    new TestHost(),
+                    "scroll { --gb-list-row-height: 26px }");
+            harness.frame();
+            harness.frame();
+
+            assertEquals(0, ListRow.reportedPitchCount());
+        }
+
+        /// A list that builds every row does not care whether they are one
+        /// height, because there are no spacers for them to be out of step with.
+        @Test
+        @DisplayName("and a list that is not virtualizing says nothing")
+        void unvirtualizedIsQuiet() {
+            new Harness(
+                    scrolled(ListView.of(names(20)).id("rows")),
+                    new TestHost(),
+                    "scroll { --gb-list-row-height: 32px }");
+
+            assertEquals(0, ListRow.reportedPitchCount());
+        }
+    }
+
     @Nested
     @DisplayName("what it refuses")
     class Refusals {

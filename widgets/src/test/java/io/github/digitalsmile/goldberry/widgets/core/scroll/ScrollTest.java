@@ -405,6 +405,71 @@ class ScrollTest {
     /// Asserted through the report set rather than the log, for
     /// `StyleResolverTest`'s reason: only `slf4j-api` is on the classpath and
     /// there is no appender to read back.
+    /// A child asking to grow inside a scroller gets nothing, and nothing said so
+    /// ([ADR-0257]).
+    ///
+    /// The content box is as tall as its content by construction, which is what
+    /// makes a scroll view a scroll view — so a `flex-grow` inside one is asking
+    /// for a share of space that does not exist. The showcase carried the
+    /// declaration on five screens where it did nothing and on one where it was
+    /// load-bearing, which is how long a dead declaration takes to look like a
+    /// live one.
+    ///
+    /// Asserted through the report set for [Nesting]'s reason: there is no
+    /// appender on this classpath to read the log back from.
+    @Nested
+    @DisplayName("a child that asks to grow inside a scroller")
+    class Growing {
+
+        @org.junit.jupiter.api.BeforeEach
+        void forget() {
+            ScrollContent.forgetReportedGrow();
+        }
+
+        /// A `column` with `flex-grow: 1`, written the way an author would — in a
+        /// stylesheet, on a type, rather than by constructing a `Box`.
+        private Harness scrollWithAGrowingChild() {
+            return new Harness(tallContent(), "column { flex-grow: 1 }");
+        }
+
+        @Test
+        @DisplayName("is reported, once")
+        void growingChildIsReported() {
+            var harness = scrollWithAGrowingChild();
+
+            assertEquals(1, ScrollContent.reportedGrowCount(), "a growing child inside a scroller was not reported");
+
+            // `render` runs per element per paint, so an unguarded warning would
+            // be sixty lines a second for as long as the screen is up.
+            harness.frame();
+            harness.frame();
+            assertEquals(1, ScrollContent.reportedGrowCount(), "the warning repeated on a later frame");
+        }
+
+        @Test
+        @DisplayName("and a scroller whose children ask for nothing is quiet")
+        void ordinaryContentIsQuiet() {
+            new Harness(tallContent());
+
+            assertEquals(
+                    0,
+                    ScrollContent.reportedGrowCount(),
+                    "nothing in this arrangement declares flex-grow, so there is nothing to say");
+        }
+
+        /// The growth is not wrong everywhere — it is wrong *here*. A `flex-grow`
+        /// on a `column` that is not inside a scroller is the ordinary way to
+        /// fill a window, and reporting it would be the warning that is usually
+        /// wrong.
+        @Test
+        @DisplayName("and the same declaration outside a scroller is not a fault")
+        void growingOutsideAScrollerIsFine() {
+            new Harness(new Column(new Text("a")), "column { flex-grow: 1 }");
+
+            assertEquals(0, ScrollContent.reportedGrowCount());
+        }
+    }
+
     @Nested
     @DisplayName("the canon's ban on nesting")
     class Nesting {

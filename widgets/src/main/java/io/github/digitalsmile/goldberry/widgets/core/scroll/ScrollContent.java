@@ -4,6 +4,7 @@ import java.util.List;
 
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
 import io.github.digitalsmile.goldberry.css.value.Transform;
+import io.github.digitalsmile.goldberry.log.Logs;
 import io.github.digitalsmile.goldberry.natives.yoga.style.FlexDirection;
 import io.github.digitalsmile.goldberry.paint.Box;
 import io.github.digitalsmile.goldberry.widget.Widget;
@@ -43,12 +44,51 @@ import io.github.digitalsmile.goldberry.widget.style.Styled;
 /// `transition` later without moving anything (§3.1 gives `scroll` "wheel/drag:
 /// direct · `scrollIntoView` / programmatic: overlay duration").
 ///
+/// ## Why a child asking to grow hears about it
+///
+/// A scroll view's content box is as tall as its content **by construction** —
+/// that is what the paragraph above is about — so a child that writes
+/// `flex-grow: 1` inside one is asking for a share of remaining space that does
+/// not exist, and gets none. Correct, and completely silent: the showcase carried
+/// the declaration on five screens where it did nothing and on one where it was
+/// load-bearing, which is exactly how long it takes for a dead declaration to
+/// look like a live one.
+///
+/// [#warnIfAChildAsksToGrow] is the diagnostic, and it is only a diagnostic —
+/// the arrangement still works, it merely does nothing. The growth belongs on the
+/// `scroll` box itself ([ADR-0116], [ADR-0257]).
+///
 /// @param children what was written inside the `scroll`
 /// @param axis     which way the parent viewport moves
 /// @param offsetX  how far it has been scrolled right, in logical pixels
 /// @param offsetY  how far down
 record ScrollContent(List<Widget> children, ScrollAxis axis, double offsetX, double offsetY)
         implements Widget.Leaf, Styled, Paints {
+
+    private static final org.slf4j.Logger LOG = Logs.of(ScrollContent.class);
+
+    /// Which axes have already been told that a child inside them asks to grow.
+    ///
+    /// `render` runs per element per paint, so an unguarded warning here would be
+    /// the log [ADR-0243] has just finished quietening — sixty lines a second for
+    /// as long as the screen is up. Static and by axis for
+    /// [ScrollState#REPORTED_NESTING]'s reason: what is worth saying is *"this
+    /// application puts `flex-grow` inside a scroller"*, and a document that does
+    /// it on five screens has one mistake rather than five.
+    private static final java.util.Set<ScrollAxis> REPORTED_GROW = java.util.concurrent.ConcurrentHashMap.newKeySet();
+
+    /// Forgets what has been reported, for a test that drives the same
+    /// arrangement twice. `ComputedStyle.forgetReportedDrops`'s reason exactly.
+    static void forgetReportedGrow() {
+        REPORTED_GROW.clear();
+    }
+
+    /// How many axes have been reported, so a test can say *once* rather than
+    /// merely *at all*. There is no appender on the classpath here to read the
+    /// log back from, so the set is what an assertion can see.
+    static int reportedGrowCount() {
+        return REPORTED_GROW.size();
+    }
 
     ScrollContent {
         children = List.copyOf(children == null ? List.of() : children);
@@ -76,8 +116,41 @@ record ScrollContent(List<Widget> children, ScrollAxis axis, double offsetX, dou
                 new Transform.Function.Translate(Transform.Length.px(-offsetX), Transform.Length.px(-offsetY))));
     }
 
+    /// Says once that a child asking to grow inside a scroller will not.
+    ///
+    /// Read off the **boxes** rather than off the cascade, which is what makes it
+    /// exact and cheap: `flex-grow` has already been resolved by the time `render`
+    /// is handed its children, so this is a field comparison and not a second
+    /// question for the style engine. It also catches a widget that set the
+    /// growth itself, which no rule in any stylesheet would have shown.
+    ///
+    /// **Whatever the axis**, because the content box's main axis *is* the
+    /// scrolling axis by construction: [#render] sets `row` for a horizontal
+    /// viewport and `column` for the other two, so a child's `flex-grow` is
+    /// always about the direction that is unbounded. `BOTH` is a column here and
+    /// behaves as `VERTICAL` does, which is what makes one check cover all three.
+    ///
+    /// It stops at the first one. What is worth saying is that this arrangement
+    /// does nothing, and a row of six growing children is one mistake.
+    private void warnIfAChildAsksToGrow(List<Box> boxes) {
+        for (var box : boxes) {
+            if (box.flexGrow() > 0) {
+                if (REPORTED_GROW.add(axis)) {
+                    LOG.warn(
+                            "a child of a {} `scroll` declares flex-grow; it will get nothing,"
+                                    + " because a scroll view's content box is as tall as its content"
+                                    + " and there is no remaining space to share. Put the growth on"
+                                    + " the `scroll` box instead.",
+                            axis.toString().toLowerCase(java.util.Locale.ROOT));
+                }
+                return;
+            }
+        }
+    }
+
     @Override
     public Box render(ComputedStyle style, List<Box> boxes, Context context) {
+        warnIfAChildAsksToGrow(boxes);
         return Box.of()
                 .children(boxes.toArray(Box[]::new))
                 .style(style)

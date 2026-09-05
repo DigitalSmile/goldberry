@@ -123,7 +123,20 @@ final class ListState<T> extends State<ListView<T>> {
                     menuOf(item),
                     modifiers -> select(id, modifiers),
                     this::moveToEnd,
-                    typeahead ? text -> typeahead(id, text) : null));
+                    typeahead ? text -> typeahead(id, text) : null,
+                    // The pitch the spacers above and below are built from, so
+                    // the row can say when its own height is not that number --
+                    // which nothing else is in a position to notice (ADR-0257).
+                    //
+                    // On the **first** row of the window and zero on the rest.
+                    // Every row resolves the same height, so asking all of them
+                    // would be twenty identical answers per frame -- and the
+                    // check has to be able to tell one frame from the next,
+                    // which it cannot do if a single frame reports twenty times.
+                    //
+                    // Zero also when the list is not virtualizing, because then
+                    // every row is built and nothing depends on them agreeing.
+                    virtual && index == from ? rowHeight : 0));
         }
         if (virtual && to < items.size()) {
             children.add(new ListBox.ListSpacer((items.size() - to) * rowHeight));

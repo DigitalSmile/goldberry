@@ -628,6 +628,47 @@ public record ComputedStyle(
         return this;
     }
 
+    /// Whether the engine does anything at all with `property: value`.
+    ///
+    /// The question a lint asks, and it is answered by **running the engine**
+    /// rather than by consulting a list of what the engine supports — which is
+    /// the whole point. A list would be a copy of this switch, and a copy drifts:
+    /// a property added tomorrow would need an edit in two places and would be
+    /// reported as unsupported until somebody made the second one.
+    ///
+    /// ## How it can be this short
+    ///
+    /// [#with] returns **`this`** in exactly two places and both of them are
+    /// failures: the `default` arm, where the property is not in §8's subset, and
+    /// [#dropped], where it is and the value would not parse. Every success goes
+    /// through a wither, and every wither allocates. So identity *is* the answer,
+    /// and it cannot fall out of step with the behaviour because it is the
+    /// behaviour.
+    ///
+    /// That is a real constraint on this class rather than an observation about
+    /// it: an arm that returned `this` on success would silently become "does
+    /// nothing" here, and `ComputedStyleTest` says so.
+    ///
+    /// **The two failures are not told apart**, deliberately. Distinguishing them
+    /// would mean the engine reporting rather than being asked — a sink threaded
+    /// through thirty switch arms, for a difference the author reads off §8's
+    /// list in either case ([ADR-0257]).
+    ///
+    /// Custom properties are **not** this method's business and answer `false`:
+    /// `--gb-accent` reaches the `default` arm and is not a fault, because the
+    /// resolver has already consumed it for `var()` substitution ([ADR-0049]). A
+    /// caller that does not filter them reports every token in the theme.
+    ///
+    /// @param property the property name, already lowercased by the parser
+    /// @param value    the declaration's tokens, with `var()` already substituted
+    /// @param context  what `em` and `rem` resolve against
+    public static boolean applies(String property, List<Token> value, CssLength.Context context) {
+        Objects.requireNonNull(property, "property");
+        Objects.requireNonNull(value, "value");
+        Objects.requireNonNull(context, "context");
+        return INITIAL.with(property, value, context) != INITIAL;
+    }
+
     /// Forgets what has been reported, so a test can drive the same bad
     /// declaration twice.
     ///

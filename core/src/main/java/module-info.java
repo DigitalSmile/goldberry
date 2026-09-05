@@ -52,6 +52,12 @@ module io.github.digitalsmile.goldberry.core {
     // (ADR-0241).
     exports io.github.digitalsmile.goldberry.css.contrast;
 
+    // Asking a stylesheet whether the engine will do what it says (ADR-0257).
+    // Exported for the reason the contrast audit is: §8's subset drops what it
+    // does not know, deliberately and quietly, and an application's own sheet
+    // had no way to find out.
+    exports io.github.digitalsmile.goldberry.css.lint;
+
     // KDL 2.0 markup and the inflater registry (§9, ADR-0051). Exported
     // because an application registers its own widgets in the same registry the
     // built-ins use.

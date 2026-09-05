@@ -186,15 +186,6 @@ the mechanism the sentence named.
   colour. The size carries the demotion instead. A real third rank would need a
   colour the palette does not contain. —
   [ADR-0121](adr/0121-a-tour-is-a-veil-and-a-sequence.md)
-- **`flex-grow` means nothing inside a `scroll`, and nothing says so.** A scroll
-  view's content column is as tall as its content by construction, so a child
-  asking to fill the remaining height gets none — correct, and completely silent.
-  The showcase had it on five screens where it did nothing and on one where it
-  was load-bearing, which is exactly how long it takes for a dead declaration to
-  look like a live one. The growth belongs on the `scroll` box; a diagnostic
-  would have to know that a `grow` resolved against an unbounded main axis, which
-  Yoga knows and does not report. —
-  [ADR-0116](adr/0116-a-scroll-view-is-a-clip-an-offset-and-two-extents.md)
 
 - **A `masonry`'s column count is a number and not a breakpoint.** Two columns at
   1200px are two columns at 720px — half as wide and twice as tall — because the
@@ -368,14 +359,6 @@ the mechanism the sentence named.
   pressing one loses the place. Every recycling list has this unless it pins the
   focused index, and pinning it would keep a row nobody is looking at built for
   ever. —
-  [ADR-0213](adr/0213-a-virtual-list-is-two-spacers-and-a-window.md)
-- **A row height that disagrees with the stylesheet is a silent layout error.**
-  Nothing checks that the number handed to `virtualized` matches what the rows
-  actually measure; the symptom is rows drifting out of step with the scrollbar,
-  and it gets worse the further down the model you are. A `Measured` assertion on
-  the first built row would catch it and is not built. This is the cost of the
-  widget not being able to read `--gb-list-row-height`, which is the same door
-  `scroll`'s line height is waiting behind. —
   [ADR-0213](adr/0213-a-virtual-list-is-two-spacers-and-a-window.md)
 - **A `table` has no column resizing and no sticky header.** §3's metrics row
   allows for the first — "column resize: 1:1, like `split-pane`'s drag" — and
@@ -718,19 +701,6 @@ on, which in four cases is the same thing.
   `right` are still refused, and for a reason rather than an omission: they are
   not the same as `start`/`end` under RTL.
 
-- **Nothing warns when a declaration is dropped for being unsupported** — in an
-  *application's* stylesheet. A property the subset does not have is logged at
-  DEBUG and ignored, so `border-bottom`, `currentColor`, `margin` and `max-width`
-  were each written, silently discarded, and found by looking at a picture. A
-  stylesheet is data and should not be fatal — but the four of them cost more to
-  find than a warning would have cost to read. **The toolkit's own sheets are
-  linted now** (ADR-0215), on the value half as well as the name half
-  (ADR-0216); what is left open is the author writing their own. And the second
-  record is the argument that a louder log is not the answer: a dropped *value*
-  already warns, and `group-box-title` drew square corners for months anyway. —
-  [ADR-0216](adr/0216-a-corner-is-four-numbers-and-a-lint-reads-values-too.md),
-  [ADR-0109](adr/0109-a-tab-arrives-and-departs-on-the-frame-clock.md),
-  [ADR-0111](adr/0111-a-text-box-is-painted-inside-its-padding.md)
 - **A popup's transparent corners need a compositor**, and are unverified on
   Windows and macOS. Without one the flag is ignored and the corners are whatever
   the platform leaves there. The fallback that always works — filling the frame
@@ -813,6 +783,18 @@ on, which in four cases is the same thing.
   collapses every transition; nothing reads the OS setting, because SDL exposes no query
   for it. An application that knows sets it. —
   [ADR-0067](adr/0067-motion-is-an-overlay-on-a-frame-clock.md)
+- **`StyleElement` documents three nullable members inside a `@NullMarked`
+  package and annotates none of them.** `type()`, `id()` and `parent()` each say
+  "or null" in their own javadoc and each is declared as a plain `String` or
+  `StyleElement`, in a `css` package that *is* marked — so NullAway reads all
+  three as non-null. Nothing had noticed because every implementation lived in an
+  unmarked package; `StyleLint`'s probe is the first written in a marked one, and
+  it cannot say what the interface says. The lint's package is unmarked as a
+  result, which is the wrong end to fix it from. Closing it properly means
+  annotating the interface, which moves every implementation and every caller —
+  and would probably find real nullness bugs on the way, which is the argument
+  for doing it rather than against. —
+  [ADR-0257](adr/0257-a-diagnostic-is-asked-for-not-logged.md)
 - **A generated registry can fail at class-init time now, and only for private
   members.** A `VarHandle` lookup that cannot find its field throws
   `ExceptionInInitializerError` where a direct field reference would have thrown
@@ -927,16 +909,6 @@ on, which in four cases is the same thing.
   ways out are all worse than the disclosure: refreshing the text at 10 Hz would
   need per-frame state a widget cannot have, and excluding the overlay subtree
   from the timings would report a frame the window did not paint. —
-  [ADR-0152](adr/0152-the-cascade-looks-at-rules-that-could-match.md)
-- **An application's stylesheet can still be all classes, and nothing says so.**
-  The toolkit's own are held to type-first now
-  ([ADR-0249](adr/0249-a-rule-that-can-name-a-type-does.md)) — 8 untyped rules of
-  340, each named with its reason — and an application's sheet is its own
-  business, so it gets none of ADR-0152's bucketing and no warning about it. A
-  warning that is usually wrong is the log ADR-0243 has just finished
-  quietening; what would help instead is a diagnostic somebody asks for, next to
-  the `hud`. —
-  [ADR-0249](adr/0249-a-rule-that-can-name-a-type-does.md),
   [ADR-0152](adr/0152-the-cascade-looks-at-rules-that-could-match.md)
 
 ## Platform, compositor and CI
@@ -1115,6 +1087,63 @@ on, which in four cases is the same thing.
 Kept rather than deleted: each is a trap somebody hit, and the reasoning that got
 out of it is usually worth more than the fact that it is fixed.
 
+- ~~**Nothing warns when a declaration is dropped for being unsupported, in an
+  application's stylesheet.**~~ ~~**An application's stylesheet can still be all
+  classes, and nothing says so.**~~ **Both are asked for now, which is what both
+  entries said the answer had to be.** `StyleLint` is
+  `SupportedPropertyTest`'s machinery with the test taken off it: every rule
+  through the real cascade, every declaration to the real `ComputedStyle`, and
+  `Finding` values back with the line and column the parser saw. Neither entry
+  wanted a louder log and ADR-0216 is why — a dropped *value* already warned at
+  WARN and `group-box-title` drew square corners for months anyway. The engine
+  side is **four lines**: `with` returns `this` in exactly two places and both
+  are failures, so identity is the answer and it cannot drift from the behaviour
+  because it *is* the behaviour. What it deliberately does not do is tell the two
+  failures apart, which would mean the engine reporting rather than being asked —
+  thirty edited switch arms in the frame loop for a difference the author reads
+  off §8's list either way. An unresolvable `var()` is not a finding either: it
+  is already the resolver's report, once, which is ADR-0243's shape. The test
+  that used to do this lost a logback appender, two sentence-matching filters and
+  its own two guard tests, and **gained two sweeps it could not afford** — the
+  light theme and the compact density, either of which can resolve a `var()` the
+  other does not. —
+  [ADR-0257](adr/0257-a-diagnostic-is-asked-for-not-logged.md),
+  [ADR-0249](adr/0249-a-rule-that-can-name-a-type-does.md),
+  [ADR-0216](adr/0216-a-corner-is-four-numbers-and-a-lint-reads-values-too.md),
+  [ADR-0215](adr/0215-a-property-the-engine-drops-is-a-rule-that-does-nothing.md)
+- ~~**`flex-grow` means nothing inside a `scroll`, and nothing says so.**~~ **It
+  says so now, once per axis.** The entry expected this to be hard — "a
+  diagnostic would have to know that a `grow` resolved against an unbounded main
+  axis, which Yoga knows and does not report" — and it is a field comparison:
+  `ScrollContent.render` is handed its children as **boxes**, with `flex-grow`
+  already resolved, and the content box's main axis *is* the scrolling axis by
+  construction. Nothing had to be asked of Yoga. It also catches a widget that
+  set the growth itself, which no rule in any stylesheet would have shown.
+  ADR-0251's `warnIfNestedOnTheSameAxis` is the shape, down to the static set
+  that keeps it a message rather than a stream. —
+  [ADR-0257](adr/0257-a-diagnostic-is-asked-for-not-logged.md),
+  [ADR-0251](adr/0251-a-widget-may-read-a-token-and-a-nested-scroller-is-named.md),
+  [ADR-0116](adr/0116-a-scroll-view-is-a-clip-an-offset-and-two-extents.md)
+- ~~**A row height that disagrees with the stylesheet is a silent layout
+  error.**~~ **It is reported now, and by a simpler mechanism than the entry
+  predicted.** It asked for "a `Measured` assertion on the first built row"; what
+  it got is the **cascade**, because `list-row` declares
+  `height: var(--gb-list-row-height)` and that number is resolved before the row
+  is laid out — so the check is exact, free and a frame earlier than a
+  measurement. Two things it turned up. **The mismatch has to be seen twice**,
+  because the first build of a tree has no cascade
+  ([ADR-0254](adr/0254-a-build-may-ask-the-cascade-for-a-number.md)): a list
+  reading the token answers the default on that build and the stylesheet's value
+  on the next, so under a compact density there is one frame of a real
+  disagreement that settles by itself — and reported naively, the form that
+  *cannot* be wrong would have been the noisiest one. And that forced the second:
+  the check runs on **one row of the window**, since twenty rows resolving the
+  same height would report twenty times a frame and "seen twice" could not then
+  tell a frame from a sibling. The entry's last sentence was already stale —
+  reading `--gb-list-row-height` is ADR-0254's door and it is open. —
+  [ADR-0257](adr/0257-a-diagnostic-is-asked-for-not-logged.md),
+  [ADR-0254](adr/0254-a-build-may-ask-the-cascade-for-a-number.md),
+  [ADR-0213](adr/0213-a-virtual-list-is-two-spacers-and-a-window.md)
 - ~~**A slider's value label is left-aligned in its box, because §8's subset has
   no `text-align`.**~~ **It is `text-align: end` now, and nothing had to be added
   to `Box`.** The entry's reason was quoting §8's own note — "`Box` cannot express
