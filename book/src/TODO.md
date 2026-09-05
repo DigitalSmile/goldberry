@@ -829,25 +829,33 @@ on, which in four cases is the same thing.
   2px offset and the bar's inset is 2, so the two coincide — legible in
   `segmented-focus.png`, and an accident of two numbers derived separately rather than a
   thing anyone chose. If either moves, look at the image.
-- **Nineteen non-text pairs are below §1.2's 3:1, and the ramps have to move.**
-  The measurement exists now
+- **Sixteen non-text pairs are still below §1.2's 3:1, and the ramps have to
+  move.** The measurement exists
   ([ADR-0239](adr/0239-a-mark-is-measured-against-the-box-it-is-drawn-in.md)) and
-  this is what it found. **The focus ring is the one to fix first**: `--gb-focus`
-  is `--nord8`, a pale blue, and on the light theme it is 1.74:1 on `--gb-bg`,
-  2.00:1 on `--gb-surface` and 1.64:1 on `--gb-surface-2` — below the floor on
-  every surface, for the one mark in the system with no second means of being
-  seen. Then **twelve control boundaries**: `--gb-checkbox-bg` *is*
-  `--gb-surface-2` in the dark theme, so an unchecked box on a `group-box`
-  differs from its backdrop by nothing at all and is held up by a 1.17:1 edge;
-  the light theme is the same shape. Then **four marks**, three of which are one
-  pair — `--gb-accent` on `--gb-border` at 2.98:1 in the light theme, missing by
-  0.02 — and the fourth the light theme's near-white slider thumb on its grey
-  groove at 1.35:1. Each is a **theme colour**, so the fix is ADR-0088's — slide
-  the ramp until it clears, and write the measurement beside it — and its cost is
-  every golden that draws one. Recorded rather than done because that is a design
-  decision with a golden-image tail, not a test's to take. —
+  found nineteen; §2.2's focus ring was three of them and is fixed
+  ([ADR-0240](adr/0240-the-ring-follows-the-accent.md)), because its cause was a
+  ramp left behind rather than a colour anyone chose. What is left is bulkier.
+  **Twelve control boundaries**: `--gb-checkbox-bg` *is* `--gb-surface-2` in the
+  dark theme, so an unchecked box on a `group-box` differs from its backdrop by
+  nothing at all and is held up by a 1.17:1 edge; the light theme is the same
+  shape, and `radio` follows `checkbox` in both. **Four marks**, three of which
+  are one pair — `--gb-accent` on `--gb-border` at 2.98:1 in the light theme,
+  missing by 0.02 — and the fourth the light theme's near-white slider thumb on
+  its grey groove at 1.35:1. Each is a **theme colour**, so the fix is ADR-0088's
+  (slide the ramp until it clears, and write the measurement beside it) and its
+  cost is every golden that draws one. Unlike the ring, these move goldens in
+  bulk, which is why they are one entry rather than sixteen. —
+  [ADR-0240](adr/0240-the-ring-follows-the-accent.md),
   [ADR-0239](adr/0239-a-mark-is-measured-against-the-box-it-is-drawn-in.md),
   [ADR-0088](adr/0088-a-fill-that-carries-text-moves-away-from-it.md)
+- **A focus ring is only ever pictured on the dark theme, apart from one.**
+  `segmented-focus-light` is new and is the catalog's first; `menu-focus` and
+  `menubar-focus` are still `NORD_DARK` only, and so is every other state golden
+  in the catalog. That asymmetry is what let §2.2's ring sit below §1.2's floor on
+  the light theme without anything noticing — the fix for it moved **no golden at
+  all**. What would close this is a rule about which states are worth a second
+  theme rather than one more image. —
+  [ADR-0240](adr/0240-the-ring-follows-the-accent.md)
 - **`button.ghost` has no contrast ratio, and is therefore not checked.** Its fill is
   `transparent` and its hover is a `#ffffff14` wash, so what a user reads depends on the
   surface underneath — there is no single pair to measure. It is left out of
@@ -1184,6 +1192,19 @@ on, which in four cases is the same thing.
 Kept rather than deleted: each is a trap somebody hit, and the reasoning that got
 out of it is usually worth more than the fact that it is fixed.
 
+- ~~**§2.2's focus ring is below §1.2's floor on every surface of the light
+  theme.**~~ **It follows the accent now, which is what the dark theme always
+  did.** Opened by [ADR-0239](adr/0239-a-mark-is-measured-against-the-box-it-is-drawn-in.md)
+  the moment the non-text floor was first measured, and the cause was a **ramp
+  left behind** rather than a colour anyone chose: both themes set the ring to
+  their accent, except that the light theme's accent had moved down the Frost
+  ramp to `--nord10` for contrast and the ring kept the pale `--nord8`. One
+  token, 1.64:1 → 3.31:1 at worst, and a palette value rather than an invented
+  one. What it exposed is the more useful half and is [above](#style-colour-and-motion):
+  changing a shipped colour moved **no golden**, because every focus golden in
+  the catalog was `NORD_DARK`. —
+  [ADR-0240](adr/0240-the-ring-follows-the-accent.md),
+  [ADR-0239](adr/0239-a-mark-is-measured-against-the-box-it-is-drawn-in.md)
 - ~~**Non-text contrast is not checked at all.**~~ **It is measured now, and the
   question the entry could not answer had a simpler answer than it looked.** What
   counts as the background of a mark drawn onto its own box is **its own box**: a

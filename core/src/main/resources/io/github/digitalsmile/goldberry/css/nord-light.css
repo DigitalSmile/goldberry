@@ -129,7 +129,16 @@
   --gb-text-placeholder: rgba(46, 52, 64, 0.75);
 
   --gb-accent: var(--nord10);
-  --gb-focus: var(--nord8);
+  /* The ring follows the accent, which is what the dark theme has always done
+     (`--gb-accent` and `--gb-focus` are both `--nord8` there). This file had
+     been left with `--nord8` after its accent moved down the Frost ramp to
+     `--nord10` for contrast, and the ring did not follow — so §2.2's ring was
+     1.74:1 on `--gb-bg`, 2.00:1 on `--gb-surface` and 1.64:1 on
+     `--gb-surface-2`, below §1.2's 3:1 on every surface this theme paints.
+     `--nord10` is 3.50, 4.03 and 3.31, and it is a palette value rather than an
+     invented one. A focus ring is the one mark in the system with no second
+     means of being seen (ADR-0240). */
+  --gb-focus: var(--nord10);
   --gb-danger: var(--nord11);
   --gb-warning: var(--nord13);
   --gb-success: var(--nord14);

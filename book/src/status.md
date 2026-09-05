@@ -5178,6 +5178,38 @@ is the `scroll` box's.
   of the text sweep and is now only true of the text sweep, which is the same
   kind of overstatement ADR-0237 had just finished correcting in `mark`.
 
+### The ring that had no picture of itself
+
+- **`--gb-focus` follows the accent on the light theme**
+  ([ADR-0240](adr/0240-the-ring-follows-the-accent.md)), which pays the first and
+  worst of the nineteen debts ADR-0239 recorded a commit earlier. §2.2's ring was
+  1.74:1 on `--gb-bg`, 2.00:1 on `--gb-surface` and 1.64:1 on `--gb-surface-2` —
+  below §1.2's floor on every surface the theme paints.
+- **It was the one to fix first for a reason that is not the size of the number.**
+  A focus ring is the only mark in the system with **no second means of being
+  seen**: a control that is hard to make out still has its label, its shape and
+  its position, and a keyboard user who cannot see the ring has nothing.
+- **The cause was a ramp left behind rather than a colour anyone chose.** Both
+  themes set the ring to their accent — except the light theme's accent had
+  already moved down the Frost ramp from `--nord8` to `--nord10` *for contrast*,
+  and the ring kept the pale one. Setting it to `--nord10` gives 3.50, 4.03 and
+  3.31, and it is a palette value rather than an invented one, which the theme
+  files' own two-tier doctrine asks for.
+- **The gap it exposed is the more useful half.** Changing a shipped colour moved
+  **no golden at all** — not because the change is invisible, but because every
+  focus golden in the catalog is `NORD_DARK`: `segmented-focus`, `menu-focus`,
+  `menubar-focus`. §2.2's ring had no picture of it on the one theme where it was
+  broken, which is why nothing caught it and why nothing would have caught it
+  coming back. `segmented-focus-light` is new and is the catalog's first.
+- **`ContrastTest`'s exact-set lists worked on their first use.** Emptying the
+  token without emptying `RINGS_BELOW_FLOOR` failed the build, which is exactly
+  the property ADR-0239 built them for: a pair that gets fixed fails the test
+  until it is taken off the list.
+- **Sixteen non-text pairs remain**, in `MARKS_BELOW_FLOOR` and
+  `BOUNDARIES_BELOW_FLOOR`. They are control fills and one accent-on-border pair,
+  they move goldens in bulk rather than one at a time, and `TODO.md` carries them
+  as a single entry for that reason.
+
 ### Not started
 
 Client-side decorations, the rest of §4 —

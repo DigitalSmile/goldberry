@@ -61,17 +61,18 @@ import io.github.digitalsmile.goldberry.widgets.text.Text;
 /// §1.2 has a second floor — 3:1 for anything that is **not** text — and until
 /// [ADR-0239] nothing measured it. Three sweeps do now: a mark against the box it
 /// is drawn in, a ring against the surface behind it, and a control against that
-/// surface by the better of its fill and its edge. Between them they find
-/// nineteen pairs below the floor, held in [#MARKS_BELOW_FLOOR],
-/// [#RINGS_BELOW_FLOOR] and [#BOUNDARIES_BELOW_FLOOR] on
-/// [#KNOWN_FAILURES]'s exact-set terms.
+/// surface by the better of its fill and its edge. Between them they found
+/// nineteen pairs below the floor; three of those were §2.2's focus ring and
+/// [ADR-0240] fixed them, so sixteen are held in [#MARKS_BELOW_FLOOR] and
+/// [#BOUNDARIES_BELOW_FLOOR] on [#KNOWN_FAILURES]'s exact-set terms, and
+/// [#RINGS_BELOW_FLOOR] is empty.
 ///
 /// They are recorded rather than fixed, and the distinction is deliberate: every
 /// one is a **theme colour**, and ADR-0088's move — slide the ramp until it
 /// clears — changes what the toolkit looks like. That is a design decision with a
 /// golden-image tail rather than something a test may take on its own authority.
-/// The worst of them is §2.2's focus ring, below 3:1 on every surface of the
-/// light theme.
+/// The focus ring was the exception and is the precedent: its ramp had simply
+/// been left behind when the accent's moved, so the fix was one token.
 class ContrastTest {
 
     /// §1.2's floor for text under 20px, which is all of it.
@@ -426,15 +427,13 @@ class ContrastTest {
     /// that the accent ramp did not need to move rests on exactly that unenforced
     /// number". It is enforced now, and it says the ramp does need to move.
     ///
-    /// The worst of them is the first: §2.2's focus ring is **below 3:1 on every
-    /// surface of the light theme**, and a focus ring is the one mark in the
-    /// system with no second means of being seen.
-    private static final List<String> RINGS_BELOW_FLOOR = List.of(
-            // 1.74:1, 2.00:1, 1.64:1 -- `--gb-focus` is `--nord8`, a pale blue,
-            // and the light theme's surfaces are white and near-white.
-            "nord-light focus ring on --gb-bg",
-            "nord-light focus ring on --gb-surface",
-            "nord-light focus ring on --gb-surface-2");
+    /// **The rings list is empty, and was not.** §2.2's focus ring was below 3:1
+    /// on every surface of the light theme, which is the one mark in the system
+    /// with no second means of being seen — [ADR-0240] fixed it by letting the
+    /// ring follow the accent, as the dark theme's always had. It is kept as an
+    /// empty list for [#KNOWN_FAILURES]'s reason: a ring that newly breaks has
+    /// somewhere it would have to be written down.
+    private static final List<String> RINGS_BELOW_FLOOR = List.of();
 
     /// A mark on the box it is drawn in — see [#RINGS_BELOW_FLOOR] for why these
     /// are recorded rather than fixed.

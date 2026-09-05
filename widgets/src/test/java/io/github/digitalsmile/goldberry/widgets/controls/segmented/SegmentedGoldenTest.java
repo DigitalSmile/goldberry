@@ -186,6 +186,26 @@ class SegmentedGoldenTest {
                 new PseudoState(2, Selector.PseudoClass.FOCUS_VISIBLE));
     }
 
+    /// The same ring on the **light** theme, and it is here because it was not.
+    ///
+    /// Every focus golden in the catalog was `NORD_DARK` — this one,
+    /// `menu-focus` and `menubar-focus` — so §2.2's ring had no picture of it on
+    /// the theme where it was **below §1.2's floor on every surface**
+    /// ([ADR-0239] measured it at 1.74:1, 2.00:1 and 1.64:1). Changing
+    /// `--gb-focus` to fix that moved no golden at all, which is the gap saying
+    /// so out loud: a colour with no image is a colour nothing would notice
+    /// going wrong again ([ADR-0240]).
+    @Test
+    @DisplayName("and the same ring on the light theme, where it had no picture at all")
+    void focusRingOnLight() {
+        paint(
+                "segmented-focus-light",
+                Theme.NORD_LIGHT,
+                220,
+                bar("grid"),
+                new PseudoState(2, Selector.PseudoClass.FOCUS_VISIBLE));
+    }
+
     /// A disabled bar fades as one thing — the plate, the edge, the labels and the
     /// selected fill — because opacity multiplies down a subtree and the flag
     /// stays on the node that declared it (ADR-0077).
