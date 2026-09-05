@@ -13,9 +13,11 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 import io.github.digitalsmile.goldberry.Host;
+import io.github.digitalsmile.goldberry.css.ComputedStyle;
 import io.github.digitalsmile.goldberry.input.event.KeyEvent;
 import io.github.digitalsmile.goldberry.input.key.Key;
 import io.github.digitalsmile.goldberry.input.key.Modifiers;
+import io.github.digitalsmile.goldberry.paint.Box;
 import io.github.digitalsmile.goldberry.render.model.LogicalRect;
 import io.github.digitalsmile.goldberry.widget.Element;
 import io.github.digitalsmile.goldberry.widget.ElementTree;
@@ -67,6 +69,104 @@ class TourTest {
             new Stop("one", "First", "the first thing"),
             new Stop("two", "Second", "the second thing"),
             new Stop("three", "Third", "the third thing"));
+
+    /// **The card's height is measured, not estimated** ([ADR-0268]).
+    ///
+    /// `TourStop` decides above-or-below from the card's height, and used a
+    /// constant of 132 to do it — so a card taller than that near the bottom of a
+    /// window was placed *above* its target when it would have fitted below, and
+    /// nothing said why. The entry recording it said measuring "needs the
+    /// measure-then-place machinery ADR-0104 built, which works on windows rather
+    /// than on boxes", and this widget already banks the **window's** rectangle
+    /// from the last frame through `Located`: the card is one node further in and
+    /// the same door.
+    @Nested
+    @DisplayName("the card's height")
+    class CardHeight {
+
+        private static final float WINDOW = 400;
+
+        /// Renders a stop against a window `WINDOW` tall and answers where the
+        /// card's top inset landed.
+        private static float cardTop(LogicalRect target, double measuredHeight) {
+            var stop = new TourStop(
+                    new Stop("one", "First", "the first thing"),
+                    target,
+                    LogicalRect.of(0, 0, 600, WINDOW),
+                    0,
+                    3,
+                    null,
+                    () -> {},
+                    () -> {},
+                    rect -> {},
+                    measuredHeight,
+                    height -> {});
+
+            var box = stop.render(
+                    ComputedStyle.INITIAL,
+                    List.of(Box.of(), Box.of(), Box.of()),
+                    io.github.digitalsmile.goldberry.widgets.controls.TestFont.context());
+
+            // The card is the third child, and its `top` is what the
+            // above-or-below decision comes out as.
+            var inset = box.children().get(2).inset().top();
+            return ((io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength.Points) inset).value();
+        }
+
+        /// A target chosen so the two answers differ, which is the only fixture
+        /// that tests anything: below is `150 + 24 + 12 = 186`, a 132-tall card
+        /// needs 186 + 132 + 12 = 330 and fits in 400, and a 260-tall one needs
+        /// 458 and does not. Any target where both agree would pass against the
+        /// estimate.
+        private static final LogicalRect LOW = LogicalRect.of(10, 150, 80, 24);
+
+        @Test
+        @DisplayName("a card taller than the estimate is placed above, where the estimate said below")
+        void aTallCardFlipsTheDecision() {
+            var estimated = cardTop(LOW, 0);
+            var measured = cardTop(LOW, 260);
+
+            assertEquals(186, estimated, 0.01f, "150 + 24 + 12: below, on the estimate's say-so");
+            assertTrue(
+                    measured < LOW.top(),
+                    () -> "a 260-tall card cannot fit below a target at 254 in a 400 window, and landed at "
+                            + measured);
+        }
+
+        @Test
+        @DisplayName("and a card the estimate's size is placed where it always was")
+        void theEstimateIsStillTheFallback() {
+            // Zero means "nothing has been laid out yet", which is every first
+            // frame — so the estimate has to keep working and keep agreeing.
+            assertEquals(cardTop(LOW, 0), cardTop(LOW, 132), 0.01f);
+        }
+
+        @Test
+        @DisplayName("the card is handed the callback that banks it")
+        void theCardReportsUpwards() {
+            var host = new StubHost().anchor("one", 10, 10, 80, 24);
+            var tree = new ElementTree(new Tour(List.of(THREE.getFirst()), host, () -> {}));
+
+            var card = (TourCard) findWidget(tree.root(), TourCard.class);
+            assertNotNull(card, "no card was described");
+            assertNotNull(card.onMeasured(), "the card cannot report a height nobody is listening for");
+        }
+
+        /// `Measured`'s third rule — what it triggers must not change what it
+        /// reports — holds here **by construction**, and this is the assertion
+        /// that says so: the card's content and width do not depend on where it
+        /// was placed, so the height it reports is the same above or below.
+        @Test
+        @DisplayName("and the decision it feeds cannot change the height it was made from")
+        void itCannotOscillate() {
+            var high = LogicalRect.of(10, 10, 80, 24);
+
+            // Same stop, same card, two placements. If the height fed back into
+            // the content this would be the loop; it does not, so it is a fact.
+            assertEquals(cardTop(high, 260), cardTop(high, 260), 0.01f);
+            assertTrue(cardTop(high, 260) > high.top(), "high target, so below either way");
+        }
+    }
 
     @Nested
     @DisplayName("the sequence")

@@ -194,17 +194,16 @@ the mechanism the sentence named.
   [ADR-0222](adr/0222-a-showcase-is-a-window-a-bar-and-seven-screens.md),
   [ADR-0196](adr/0196-a-masonry-is-a-layout-that-reads-last-frame.md)
 
-- **A `tour` cannot find the viewport its target is in.** §5 asks it to scroll a
-  target into view, and `Stop` takes a `ScrollController` the application
-  supplies. Discovering it means walking from an element to its nearest scrolling
-  ancestor, which is a `:core`-to-`:widgets` dependency the toolkit does not have.
-  ADR-0120 avoided the same wall by turning the question around; here there is
-  nothing to turn around, because the tour is not the thing being revealed. —
-  [ADR-0121](adr/0121-a-tour-is-a-veil-and-a-sequence.md)
-- **A tour card's height is estimated, not measured.** It decides whether it fits
-  below its target from a constant. Measuring needs the measure-then-place
-  machinery ADR-0104 built, which works on *windows* rather than on boxes. Being
-  wrong puts a card above its target when it would have fitted below. —
+- **A `tour` cannot find the viewport its target is in — read against the code,
+  and it stands.** §5 asks it to scroll a target into view, and `Stop` takes a
+  `ScrollController` the application supplies. Discovering it means walking from
+  an element to its nearest scrolling ancestor. `BuildContext.findAncestorState`
+  looks like the answer and is not: it walks up from the element being **built**,
+  and what a tour needs is a walk up from the **target it names** — a different
+  question, and one the tree offers no way to ask. ADR-0120 avoided the same wall
+  by turning the question around; here there is nothing to turn around, because
+  the tour is not the thing being revealed. —
+  [ADR-0268](adr/0268-a-tour-card-says-how-tall-it-came-out.md),
   [ADR-0121](adr/0121-a-tour-is-a-veil-and-a-sequence.md)
 - **A tour has no arrival or exit.** §1.7's overlay curve wants one to arrive
   rather than appear, and stops change instantly — §5's row asks for the veil
@@ -1130,6 +1129,19 @@ out of it is usually worth more than the fact that it is fixed.
   [ADR-0264](adr/0264-a-widget-may-find-the-toast-stack.md),
   [ADR-0140](adr/0140-a-widget-may-reach-its-window.md),
   [ADR-0100](adr/0100-a-window-has-a-layer-above-its-application.md)
+- ~~**A tour card's height is estimated, not measured.**~~ **It is measured, and
+  the mechanism was already in the file.** The entry said measuring "needs the
+  measure-then-place machinery ADR-0104 built, which works on *windows* rather
+  than on boxes" — and `TourStop` already banks the **window's own rectangle**
+  from the frame before, through `Located`. The card is one node further in and
+  `Measured` is the same door. `ESTIMATED_HEIGHT` survives with a narrower
+  meaning: what the *first* frame decides with, before anything has been laid out
+  and had a height to report. `Measured`'s third rule holds **by construction** —
+  the card's width is fixed and its content is the stop's own text, so the height
+  does not depend on whether it was placed above or below — which is `masonry`'s
+  argument rather than the scrollbar's, and is asserted rather than claimed. —
+  [ADR-0268](adr/0268-a-tour-card-says-how-tall-it-came-out.md),
+  [ADR-0121](adr/0121-a-tour-is-a-veil-and-a-sequence.md)
 - ~~**A tooltip's 500ms delay is a constant, and the token that would replace it
   cannot be read.**~~ **Both blockers expired, and one was never true.** The
   first — "nothing above the cascade can read a resolved custom property" — is

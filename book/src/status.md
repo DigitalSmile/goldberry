@@ -6143,6 +6143,37 @@ is the `scroll` box's.
   that `masonry` has **no row in `core-widgets.md` at all**, so §5's gate has
   nothing to have passed.
 
+### A tour card that says how tall it is
+
+- **The card's height is measured rather than estimated**
+  ([ADR-0268](adr/0268-a-tour-card-says-how-tall-it-came-out.md)), and the
+  mechanism was already in the file. The entry said measuring "needs the
+  measure-then-place machinery ADR-0104 built, which works on *windows* rather
+  than on boxes"; `TourStop` already banks the **window's own rectangle** from
+  the frame before through `Located`, and the card is one node further in.
+- **That is the fourth entry in this section whose stated blocker had expired or
+  was never right** — the tooltip delay, the popup-inheritance answer,
+  `masonry`'s column count, and this. The entries are older than the mechanisms
+  that unblock them.
+- **The estimate survives with a narrower meaning**: what the *first* frame
+  decides with, before anything has been laid out and had a height to report. It
+  is no longer the number for every frame, which is what put a card above its
+  target when it would have fitted below.
+- **It cannot oscillate, by construction rather than by promise.** The card's
+  width is fixed at 280 and its content is the stop's own title, body, counter and
+  buttons — none of which depends on whether the card was placed above or below —
+  so the height it reports is the same either way. That is `masonry`'s argument
+  for `Measured`'s third rule rather than the scrollbar's, and a test asserts it.
+- **The test's fixture is chosen so the two answers differ**: below is 186, a
+  132-tall card needs 330 and fits in a 400 window, a 260-tall one needs 458 and
+  does not. Any target where the estimate and the measurement agree would have
+  passed against the old code — which the first version of the fixture did, at a
+  target where the estimate already said "above".
+- **The first tour entry is verified and stands.** A tour still cannot find the
+  viewport its target is in: `findAncestorState` walks up from the element being
+  *built*, and what a tour needs is a walk up from the **target it names**, which
+  is a different question and one the tree cannot answer.
+
 ### Not started
 
 Client-side decorations, the rest of §4 —

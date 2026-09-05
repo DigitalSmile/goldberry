@@ -65,7 +65,9 @@ final class TourState extends State<Tour> {
                 index > 0 ? this::back : null,
                 this::next,
                 this::skip,
-                this::measured);
+                this::measured,
+                cardHeight,
+                this::cardMeasured);
     }
 
     /// The first stop from here whose target is on screen, skipping any that are
@@ -110,6 +112,27 @@ final class TourState extends State<Tour> {
                                     clip.height());
                 })
                 .orElse(LogicalRect.of(0, 0, 0, 0));
+    }
+
+    /// How tall the card came out, as the last frame laid it out, or 0 before
+    /// there has been one.
+    ///
+    /// Banked here rather than read in `render` for the reason `window` is: the
+    /// decision it feeds — above the target or below it — is made while
+    /// describing the tree, and a measurement arrives after one has been drawn.
+    ///
+    /// It settles in one frame and cannot oscillate, which is `Measured`'s third
+    /// rule and holds **by construction** here: the card's width is fixed and its
+    /// content is the stop's own text, so its height does not depend on whether
+    /// it was placed above or below ([ADR-0268]).
+    private double cardHeight;
+
+    /// Told how tall the card is by the card.
+    private void cardMeasured(double height) {
+        if (Math.abs(height - cardHeight) < 0.5) {
+            return;
+        }
+        setState(() -> cardHeight = height);
     }
 
     /// Told how big the window is by the node that fills it.

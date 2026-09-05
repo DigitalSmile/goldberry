@@ -52,7 +52,9 @@ record TourStop(
         Runnable onBack,
         Runnable onNext,
         Runnable onSkip,
-        java.util.function.Consumer<LogicalRect> onWindow)
+        java.util.function.Consumer<LogicalRect> onWindow,
+        double cardHeight,
+        java.util.function.DoubleConsumer onCardHeight)
         implements Widget.Leaf,
                 Styled,
                 Paints,
@@ -69,9 +71,14 @@ record TourStop(
     private static final float WIDTH = 280;
 
     /// Enough for a title, three lines of body and the buttons — the height used
-    /// to decide whether the card fits below its target. An estimate, and the
-    /// consequence of being wrong is a card placed above when it would have fitted
-    /// below.
+    /// to decide whether the card fits below its target **on the first frame**,
+    /// before the card has been laid out and had anything to report.
+    ///
+    /// It used to be the number for every frame, and being wrong put a card above
+    /// its target when it would have fitted below. [#cardHeight] is what the card
+    /// actually came out as, banked by [TourState] from the frame before — the
+    /// same last-frame read this widget already does for the window's own
+    /// rectangle, one node further in ([ADR-0268]).
     private static final float ESTIMATED_HEIGHT = 132;
 
     /// How far the ring sits outside the target, so it frames the widget rather
@@ -129,11 +136,13 @@ record TourStop(
                 // background matches the window's, as a toolbar's does, there is
                 // no visible boundary at all.
                 new TourRing(target),
-                new TourCard(new Column(
-                        new Text(stop.title(), Attributes.NONE.classes("tour-title")),
-                        new Text(stop.body(), Attributes.NONE.classes("tour-body")),
-                        new Text((index + 1) + " of " + count, Attributes.NONE.classes("tour-count")),
-                        new Row(buttons.toArray(Widget[]::new)))));
+                new TourCard(
+                        new Column(
+                                new Text(stop.title(), Attributes.NONE.classes("tour-title")),
+                                new Text(stop.body(), Attributes.NONE.classes("tour-body")),
+                                new Text((index + 1) + " of " + count, Attributes.NONE.classes("tour-count")),
+                                new Row(buttons.toArray(Widget[]::new))),
+                        onCardHeight));
     }
 
     @Override
@@ -171,8 +180,11 @@ record TourStop(
         var ring = children.get(1);
         var card = children.get(2);
         var below = target.top() + target.size().height() + GAP;
-        var fitsBelow = height <= 0 || below + ESTIMATED_HEIGHT + GAP <= height;
-        var cardTop = fitsBelow ? below : Math.max(GAP, target.top() - ESTIMATED_HEIGHT - GAP);
+        // What the card measured last frame, or the estimate on the first —
+        // where nothing has been laid out and there is nothing to have measured.
+        var card_h = cardHeight > 0 ? (float) cardHeight : ESTIMATED_HEIGHT;
+        var fitsBelow = height <= 0 || below + card_h + GAP <= height;
+        var cardTop = fitsBelow ? below : Math.max(GAP, target.top() - card_h - GAP);
         // Centred on the target rather than aligned to its left edge. A stop
         // describing a narrow control had its card start at that control's `x`,
         // which for anything near the left of the window put every card in the
