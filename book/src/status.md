@@ -5597,6 +5597,45 @@ is the `scroll` box's.
 - **`-Werror` caught two dangling doc comments** left behind when the constants
   moved, which is the check doing its job on a refactor rather than on new code.
 
+### The other door, and the number that was a bug waiting for a setting
+
+- **A build may ask the cascade for a number**
+  ([ADR-0254](adr/0254-a-build-may-ask-the-cascade-for-a-number.md)), which is
+  the door ADR-0251 named and did not open. `BuildContext.token` is
+  `Paints.Context.length`'s build-time twin, for the numbers wanted before there
+  is a box to paint.
+- **It was three lines, because the pieces were already there.** `Element`
+  implements **both** `BuildContext` and `StyleElement`, and `ElementTree` has
+  held a `StyleResolver` since ADR-0149 so a node whose state changed could ask
+  what the sheets say. What was missing was the method.
+  `WidgetRenderer.prepare` is the genuinely new part, and it is about *ordering*:
+  `render` hands the tree its resolver on the way in, which is a frame too late
+  for a reader in `build`.
+- **The stakes were higher than a repeated number.** `density-compact.css` sets
+  `--gb-list-row-height: 26px`, so a list written `virtualized(32)` against the
+  regular density virtualizes on the **wrong pitch** the moment an application
+  switches — the spacers and the window disagree with the rows. Repeating the
+  number was a bug waiting for a setting to be changed.
+- **The first attempt was a sentinel, and it cost a guard.** `rowHeight` is
+  already a tagged number — `0` means "do not virtualize" — so `-1` for "ask the
+  token" looked free. `ListVirtualTest` asserts that `virtualized(-1)` *throws*,
+  and its name says why: "a negative row height is refused where it is written".
+  `-1` is what a typo looks like. A `boolean` component instead, across seven
+  constructor sites where `double, boolean, Attributes` in a row makes a
+  transposition something the compiler refuses.
+- **The first build of a tree has no cascade**, found by measuring rather than
+  assumed: the value resolved on every build except the first. A `Stateful`
+  widget builds once inside the `ElementTree` constructor, before any renderer
+  has taken the tree on — so a token there answers its default and the *second*
+  build is the first that can see the stylesheet. Everything that reads one is
+  expected to settle, and a virtualized list settles by construction.
+- **The token must be declared at or above the list.** `ListView` is a
+  composition node whose state builds the `list` element, so the build that
+  decides the row count runs one level above the node a `list { … }` rule would
+  match. That is where it ships — `:root`, in both `controls.css` and
+  `density-compact.css` — and it is written down because `list { … }` looks like
+  it should work and will not.
+
 ### Not started
 
 Client-side decorations, the rest of §4 —

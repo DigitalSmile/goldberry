@@ -118,6 +118,7 @@ public record ListView<T>(
         Consumer<Set<String>> onSelect,
         Selection selection,
         double rowHeight,
+        boolean rowHeightFromToken,
         Attributes attributes)
         implements Widget.Stateful, Attributed<ListView<T>> {
 
@@ -148,7 +149,7 @@ public record ListView<T>(
     /// The two functions §10 cannot supply a default for: what an item *is* and
     /// what it looks like. Everything else has one.
     public ListView(List<T> items, Function<T, String> identity, Function<T, Widget> factory) {
-        this(items, identity, factory, null, null, Set.of(), null, Selection.SINGLE, 0, Attributes.NONE);
+        this(items, identity, factory, null, null, Set.of(), null, Selection.SINGLE, 0, false, Attributes.NONE);
     }
 
     /// A list of plain strings, drawn as `text` — the shape a list most often
@@ -170,6 +171,7 @@ public record ListView<T>(
                 null,
                 Selection.SINGLE,
                 0,
+                false,
                 Attributes.NONE);
     }
 
@@ -189,7 +191,17 @@ public record ListView<T>(
     /// ends or neither.
     public ListView<T> selected(Set<String> values, Consumer<Set<String>> onSelect) {
         return new ListView<>(
-                items, identity, factory, text, itemMenu, values, onSelect, selection, rowHeight, attributes);
+                items,
+                identity,
+                factory,
+                text,
+                itemMenu,
+                values,
+                onSelect,
+                selection,
+                rowHeight,
+                rowHeightFromToken,
+                attributes);
     }
 
     /// The same, for the caller that holds **one** value.
@@ -212,14 +224,34 @@ public record ListView<T>(
     /// This list with a different selection model — §10's "none / single / multi".
     public ListView<T> selection(Selection value) {
         return new ListView<>(
-                items, identity, factory, text, itemMenu, selected, onSelect, value, rowHeight, attributes);
+                items,
+                identity,
+                factory,
+                text,
+                itemMenu,
+                selected,
+                onSelect,
+                value,
+                rowHeight,
+                rowHeightFromToken,
+                attributes);
     }
 
     /// This list with items that expose text, which is what §10 makes
     /// type-to-select conditional on.
     public ListView<T> text(Function<T, String> value) {
         return new ListView<>(
-                items, identity, factory, value, itemMenu, selected, onSelect, selection, rowHeight, attributes);
+                items,
+                identity,
+                factory,
+                value,
+                itemMenu,
+                selected,
+                onSelect,
+                selection,
+                rowHeight,
+                rowHeightFromToken,
+                attributes);
     }
 
     /// This list building **only the rows its viewport can see** — §10's
@@ -245,7 +277,29 @@ public record ListView<T>(
     /// @param height a row's height in logical pixels, or zero to build them all
     public ListView<T> virtualized(double height) {
         return new ListView<>(
-                items, identity, factory, text, itemMenu, selected, onSelect, selection, height, attributes);
+                items, identity, factory, text, itemMenu, selected, onSelect, selection, height, false, attributes);
+    }
+
+    /// This list virtualized at **the height the stylesheet says** —
+    /// `--gb-list-row-height`, read when the list is built ([ADR-0254]).
+    ///
+    /// ```java
+    /// ListView.of(names).virtualized()
+    /// ```
+    ///
+    /// The form to prefer, and the one that could not exist until a build could
+    /// read a token. `virtualized(32)` states a number that has to be kept in
+    /// step with a stylesheet by hand — and `density-compact.css` sets
+    /// `--gb-list-row-height: 26px`, so a list written against the regular
+    /// density virtualizes on the wrong pitch the moment an application switches.
+    /// A number nobody has to repeat is a number nobody can get wrong.
+    ///
+    /// Still opt-in, because virtualization is not free of meaning: it assumes
+    /// every row is the same height, and a list whose rows vary must not use
+    /// either form.
+    public ListView<T> virtualized() {
+        return new ListView<>(
+                items, identity, factory, text, itemMenu, selected, onSelect, selection, 0, true, attributes);
     }
 
     /// This list with a context menu per item — §10's "item context menus".
@@ -260,13 +314,33 @@ public record ListView<T>(
     /// the row itself ([ADR-0208]).
     public ListView<T> itemMenu(Function<T, String> value) {
         return new ListView<>(
-                items, identity, factory, text, value, selected, onSelect, selection, rowHeight, attributes);
+                items,
+                identity,
+                factory,
+                text,
+                value,
+                selected,
+                onSelect,
+                selection,
+                rowHeight,
+                rowHeightFromToken,
+                attributes);
     }
 
     @Override
     public ListView<T> withAttributes(Attributes value) {
         return new ListView<>(
-                items, identity, factory, text, itemMenu, selected, onSelect, selection, rowHeight, value);
+                items,
+                identity,
+                factory,
+                text,
+                itemMenu,
+                selected,
+                onSelect,
+                selection,
+                rowHeight,
+                rowHeightFromToken,
+                value);
     }
 
     @Override

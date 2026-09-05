@@ -500,6 +500,31 @@ public final class Element implements BuildContext, StyleElement {
         return tree.host();
     }
 
+    /// [BuildContext#token]'s implementation.
+    ///
+    /// `Element` is already a [StyleElement], so the resolver can answer about
+    /// *this* node with nothing constructed — which is the whole reason this is
+    /// three lines rather than a mechanism.
+    @Override
+    public double token(String name, double fallback) {
+        java.util.Objects.requireNonNull(name, "name");
+        var resolver = tree.styleResolver();
+        if (resolver == null) {
+            return fallback;
+        }
+        var resolved = resolver.customProperty(this, name);
+        if (resolved == null) {
+            return fallback;
+        }
+        // A percentage is of something, and a build has no containing block in
+        // hand to be a percentage of -- `Paints.Context.length`'s rule exactly.
+        return io.github.digitalsmile.goldberry.css.value.CssLength.parse(
+                                resolved, io.github.digitalsmile.goldberry.css.value.CssLength.Context.DEFAULT)
+                        instanceof io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength.Points points
+                ? points.value()
+                : fallback;
+    }
+
     @Override
     public int depth() {
         var depth = 0;

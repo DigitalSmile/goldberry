@@ -56,6 +56,41 @@ public interface BuildContext {
     /// picture of it wants.
     Optional<io.github.digitalsmile.goldberry.Host> host();
 
+    /// A **length** custom property, in logical pixels, as the cascade resolves
+    /// it here.
+    ///
+    /// [io.github.digitalsmile.goldberry.widget.style.Paints.Context#length]'s
+    /// build-time twin, and it exists because some numbers are wanted *before*
+    /// there is a box to paint ([ADR-0254]). A virtualized `list` decides how
+    /// many rows to build from how tall a row is, and that decision is made here
+    /// — a value banked from `render` would be a frame late in the one place a
+    /// frame late means building the wrong rows.
+    ///
+    /// Resolved against **this element**, so it inherits and can be overridden
+    /// per node like any other custom property.
+    ///
+    /// **Answers the fallback when there is no cascade**, which is a normal
+    /// answer rather than an error: a widget test builds a tree with no renderer
+    /// at all, and so does a golden. A list in one of those virtualizes at its
+    /// default rather than refusing to build.
+    ///
+    /// **The very first build of a tree is one of those**, and it is worth
+    /// knowing rather than working around. A `Stateful` widget builds once inside
+    /// the [ElementTree] constructor — before any renderer has taken the tree on,
+    /// and therefore before any cascade exists — so a token asked for there
+    /// answers its default and the *second* build is the first that can see the
+    /// stylesheet. Everything that reads one is expected to settle, which a
+    /// virtualized list does by construction: its window is recomputed from the
+    /// geometry each frame, so the frame after the first is already right.
+    /// Closing it properly means handing the resolver to the tree at
+    /// construction, which nothing has needed enough to widen the constructor
+    /// for.
+    ///
+    /// @param name     the property, `--` included
+    /// @param fallback what to answer when it is unset, unparseable, a
+    ///                 percentage, or when nothing has styled this tree
+    double token(String name, double fallback);
+
     /// The depth of this element from the root. Mostly for diagnostics.
     int depth();
 }

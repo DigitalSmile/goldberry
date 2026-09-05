@@ -170,6 +170,7 @@ public record Table<T>(
                 onSelect,
                 selection,
                 rowHeight,
+                false,
                 // The list keeps the table's id so a row's focus name is scoped
                 // by it, exactly as a bare list's is: two tables over the same
                 // items would otherwise answer to each other's `Home`.

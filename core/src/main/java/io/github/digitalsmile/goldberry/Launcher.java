@@ -392,10 +392,14 @@ final class Launcher implements Host {
 
         // Every setState since the last frame settles here, once, however many of
         // them there were (ADR-0052).
+        // Before the flush, not after: a build may ask the cascade about a custom
+        // property (ADR-0254), and a resolver handed over afterwards would be a
+        // frame late for no reason. `renderer()` is lazy, so this is also what
+        // creates it on the first frame.
+        renderer().prepare(tree);
         if (tree.needsBuild()) {
             tree.flush();
         }
-        renderer();
         var builtAt = System.nanoTime();
 
         // The cascade and the box tree: the term ADR-0070 measured as the largest

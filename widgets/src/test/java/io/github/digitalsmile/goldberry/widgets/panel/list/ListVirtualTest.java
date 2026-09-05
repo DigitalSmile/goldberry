@@ -95,13 +95,17 @@ class ListVirtualTest {
         }
 
         Harness(Widget root, TestHost withHost) {
+            this(root, withHost, "");
+        }
+
+        Harness(Widget root, TestHost withHost, String extraCss) {
             host = withHost;
             target = TestFrames.of(200, VIEWPORT_HEIGHT, 1.0f, 0);
             renderer = new WidgetRenderer(
                     List.of(
                             Controls.baseStylesheet(),
                             Theme.NORD_DARK.load(),
-                            Stylesheet.parse(CascadeLayer.APPLICATION, SCENE)),
+                            Stylesheet.parse(CascadeLayer.APPLICATION, SCENE + "\n" + extraCss)),
                     TestFont.get());
             tree = new ElementTree(root, host);
             render = RenderTree.create();
@@ -115,6 +119,10 @@ class ListVirtualTest {
         }
 
         void frame() {
+            // Before the flush, as `Launcher` does: a build may ask the cascade
+            // about `--gb-list-row-height` (ADR-0254), and a build runs before
+            // the frame it produces.
+            renderer.prepare(tree);
             tree.flush();
             render.update(target.frame(), renderer.render(tree));
             router.updateRegions(HitTest.capture(render));
@@ -360,6 +368,84 @@ class ListVirtualTest {
             press(harness, first, io.github.digitalsmile.goldberry.input.key.Key.HOME);
 
             assertEquals(List.of("rows-Row 0"), harness.host().focusRequests());
+        }
+    }
+
+    /// §3's "metrics ship as component-token defaults an application may
+    /// override", reaching the one number a virtualized list cannot do without
+    /// ([ADR-0254]).
+    ///
+    /// `virtualized(32)` states a height that has to be kept in step with a
+    /// stylesheet by hand — and `density-compact.css` sets
+    /// `--gb-list-row-height: 26px`, so a list written against the regular
+    /// density virtualizes on the wrong pitch the moment an application switches.
+    @Nested
+    @DisplayName("the row height is a token")
+    class RowHeightToken {
+
+        /// A list with `#rows` styled to a row height, virtualized without a
+        /// number.
+        private Harness harness(String rowHeightCss) {
+            var harness = new Harness(
+                    scrolled(ListView.of(names(COUNT)).virtualized().id("rows")), new TestHost(), rowHeightCss);
+            // Two frames beyond the harness's own two, and the reason is stated
+            // in `BuildContext.token`: a `Stateful` widget builds once inside the
+            // `ElementTree` constructor, before any renderer has taken the tree
+            // on, so that build sees no cascade and answers the default. The
+            // window is recomputed from the geometry every frame, so the list
+            // settles on the token's pitch — these frames are that settling,
+            // which a real window does before anybody sees it.
+            harness.frame();
+            harness.frame();
+            return harness;
+        }
+
+        @Test
+        @DisplayName("it builds a screenful at the token's pitch, not at a number in Java")
+        void readsTheToken() {
+            // Half the default height is about twice as many rows in the same
+            // viewport, which is the arithmetic the token feeds.
+            var tall = harness("scroll { --gb-list-row-height: 64px }").rows().size();
+            var short0 = harness("scroll { --gb-list-row-height: 16px }").rows().size();
+
+            assertTrue(short0 > tall, () -> "16px rows built " + short0 + " and 64px rows built " + tall);
+        }
+
+        @Test
+        @DisplayName("and virtualizes at all, rather than building the model")
+        void stillVirtualizes() {
+            var built = harness("scroll { --gb-list-row-height: 32px }").rows().size();
+
+            assertTrue(built > 0 && built < 40, () -> "expected a screenful of rows, built " + built);
+        }
+
+        /// The compact density is the case this exists for: the same list, the
+        /// same Java, a different stylesheet.
+        @Test
+        @DisplayName("a compact density changes the pitch with no Java change at all")
+        void compactDensity() {
+            var regular =
+                    harness("scroll { --gb-list-row-height: 32px }").rows().size();
+            var compact =
+                    harness("scroll { --gb-list-row-height: 26px }").rows().size();
+
+            assertTrue(compact > regular, () -> "compact built " + compact + " and regular built " + regular);
+        }
+
+        /// And the explicit form is untouched: a caller who states a number gets
+        /// that number, whatever the stylesheet says.
+        @Test
+        @DisplayName("an explicit height still wins over the token")
+        void explicitWins() {
+            var stated = new Harness(
+                            scrolled(ListView.of(names(COUNT)).virtualized(64).id("rows")),
+                            new TestHost(),
+                            "scroll { --gb-list-row-height: 16px }")
+                    .rows()
+                    .size();
+            var token = harness("scroll { --gb-list-row-height: 64px }").rows().size();
+
+            assertEquals(token, stated, "a stated 64 should build what a token of 64 builds");
         }
     }
 

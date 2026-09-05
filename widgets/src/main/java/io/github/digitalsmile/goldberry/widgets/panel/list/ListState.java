@@ -74,6 +74,21 @@ final class ListState<T> extends State<ListView<T>> {
     private int first;
     private int last = FIRST_GUESS;
 
+    /// `--gb-list-row-height`'s default, in logical pixels — the regular
+    /// density's, and what a list gets when nothing has styled its tree.
+    private static final double ROW_HEIGHT = 32;
+
+    /// The token that overrides it.
+    private static final String ROW_HEIGHT_TOKEN = "--gb-list-row-height";
+
+    /// How tall a row is, as the last build resolved it.
+    ///
+    /// Held rather than read from the widget because
+    /// [ListView#rowHeightFromToken()] is an instruction to go and ask rather
+    /// than a height, and `located` runs where there is nothing to ask
+    /// (ADR-0254).
+    private double rowHeight;
+
     @Override
     public Widget build(BuildContext context) {
         host = context.host().orElse(null);
@@ -84,13 +99,18 @@ final class ListState<T> extends State<ListView<T>> {
         var selectable = list.selection() != Selection.NONE && list.onSelect() != null;
         var typeahead = list.text() != null;
         var items = list.items();
-        var virtual = list.rowHeight() > 0;
+        // Resolved here and **banked**, because `located` needs the same number
+        // and runs from the router with no context at all (ADR-0254). Build runs
+        // before `located` in every frame, so the banked value is never older
+        // than the geometry it is measured against.
+        rowHeight = list.rowHeightFromToken() ? context.token(ROW_HEIGHT_TOKEN, ROW_HEIGHT) : list.rowHeight();
+        var virtual = rowHeight > 0;
         var from = virtual ? Math.min(first, items.size()) : 0;
         var to = virtual ? Math.min(last, items.size()) : items.size();
 
         var children = new ArrayList<Widget>(to - from + 2);
         if (virtual && from > 0) {
-            children.add(new ListBox.ListSpacer(from * list.rowHeight()));
+            children.add(new ListBox.ListSpacer(from * rowHeight));
         }
         for (var index = from; index < to; index++) {
             var item = items.get(index);
@@ -106,7 +126,7 @@ final class ListState<T> extends State<ListView<T>> {
                     typeahead ? text -> typeahead(id, text) : null));
         }
         if (virtual && to < items.size()) {
-            children.add(new ListBox.ListSpacer((items.size() - to) * list.rowHeight()));
+            children.add(new ListBox.ListSpacer((items.size() - to) * rowHeight));
         }
         return new ListBox(children, virtual ? this::located : null, list.attributes());
     }
@@ -127,7 +147,7 @@ final class ListState<T> extends State<ListView<T>> {
             io.github.digitalsmile.goldberry.render.model.LogicalRect clip) {
 
         var list = widget();
-        var height = list.rowHeight();
+        var height = rowHeight;
         if (height <= 0 || list.items().isEmpty()) {
             return;
         }
@@ -190,7 +210,7 @@ final class ListState<T> extends State<ListView<T>> {
             return;
         }
         var index = indexOf(id);
-        if (widget().rowHeight() <= 0 || (index >= first && index < last)) {
+        if (rowHeight <= 0 || (index >= first && index < last)) {
             host.focus(rowId(id), true);
             return;
         }

@@ -312,6 +312,10 @@ public final class Popup implements AutoCloseable {
 
     /// One frame of this popup, painted by the same renderer as its owner.
     private void paint(Frame frame) {
+        // Before the flush, for `Launcher`'s reason: a build may ask the cascade
+        // about a custom property, and a build runs before the frame it produces
+        // (ADR-0254).
+        renderer.get().prepare(tree);
         if (tree.needsBuild()) {
             tree.flush();
             // **And then measure again.** A popup's content can change without

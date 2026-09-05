@@ -247,6 +247,21 @@ public final class WidgetRenderer {
         return resolver;
     }
 
+    /// Hands `tree` this renderer's cascade **before** it is built.
+    ///
+    /// [#render] does the same thing on its way in, and that is a frame too late
+    /// for one caller: a build may ask about a custom property
+    /// ([BuildContext#token]), and a build runs before the frame it produces. A
+    /// virtualized `list` deciding how many rows to make is the case — on the
+    /// first frame it would otherwise have no cascade to ask and would build at
+    /// its default, then correct itself on the next one ([ADR-0254]).
+    ///
+    /// Idempotent, and the same instance every time: a renderer holds one
+    /// resolver for its life, and a theme swap builds a new renderer.
+    public void prepare(ElementTree tree) {
+        java.util.Objects.requireNonNull(tree, "tree").styleResolver(resolver);
+    }
+
     /// Whether anything in the last rendered tree is still moving.
     ///
     /// The whole of §1.7's "the frame loop is fully idle when no animation is

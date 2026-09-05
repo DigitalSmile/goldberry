@@ -288,18 +288,6 @@ the mechanism the sentence named.
   absence as reduced motion and density, both of which an application sets
   directly — so this waits on scrollbars existing rather than on the setting. —
   [ADR-0116](adr/0116-a-scroll-view-is-a-clip-an-offset-and-two-extents.md)
-- **`--gb-list-row-height` still has no consumer, and the door `scroll` needed is
-  not the one `list` needs.** A widget can read a resolved custom property now
-  ([ADR-0251](adr/0251-a-widget-may-read-a-token-and-a-nested-scroller-is-named.md)):
-  `Paints.Context.length` is `color`'s companion, and `scroll` reads
-  `--gb-scroll-line` through it and banks it. `list` cannot use the same route.
-  `ListView.virtualized(h)` takes the height as an **API argument**, and the
-  number decides which rows to build in `children()` — so a value banked from
-  `render` would be a frame late in the one place a frame late means building the
-  wrong rows. What would close it is a token readable at *build* time, which is
-  `BuildContext`'s shape rather than `Paints.Context`'s. —
-  [ADR-0251](adr/0251-a-widget-may-read-a-token-and-a-nested-scroller-is-named.md),
-  [ADR-0213](adr/0213-a-virtual-list-is-two-spacers-and-a-window.md)
 - **A pinned `affix` is not pushed out by the next one.** A sticky header
   conventionally gives way when the following section's header reaches it; this
   one stays pinned until its own subtree has scrolled away entirely, so two
@@ -1138,6 +1126,27 @@ on, which in four cases is the same thing.
 Kept rather than deleted: each is a trap somebody hit, and the reasoning that got
 out of it is usually worth more than the fact that it is fixed.
 
+- ~~**`--gb-list-row-height` has no consumer, and no widget can read a resolved
+  custom property at build time.**~~ **`BuildContext.token` is the other door,
+  and it was three lines.** `Element` already implemented **both**
+  `BuildContext` and `StyleElement`, and `ElementTree` has held a `StyleResolver`
+  since ADR-0149 — what was missing was the method. `WidgetRenderer.prepare` is
+  the new part and it is about *ordering*: `render` hands the tree its resolver
+  on the way in, which is a frame too late for a reader in `build`. **The stakes
+  were higher than a repeated number**: `density-compact.css` sets
+  `--gb-list-row-height: 26px`, so a list written `virtualized(32)` virtualizes
+  on the wrong pitch the moment an application switches density. Two things
+  measuring turned up. The **first build of a tree has no cascade** — a
+  `Stateful` widget builds inside the `ElementTree` constructor, before any
+  renderer exists — so a token there answers its default and the second build is
+  the first that can see the stylesheet; a virtualized list settles by
+  construction, and that is now written down rather than assumed. And the token
+  must be declared **at or above** the list, because `ListView` is a composition
+  node whose state builds the `list` element — which is where it ships, on
+  `:root`. —
+  [ADR-0254](adr/0254-a-build-may-ask-the-cascade-for-a-number.md),
+  [ADR-0251](adr/0251-a-widget-may-read-a-token-and-a-nested-scroller-is-named.md),
+  [ADR-0213](adr/0213-a-virtual-list-is-two-spacers-and-a-window.md)
 - ~~**`--gb-caret-width` is not a token and the caret is one logical pixel.**~~
   **It is a token now, and it was an accessibility gap rather than a styling
   question.** The entry's diagnosis was right — a `caret { width: 3px }` is
