@@ -41,6 +41,14 @@
   --gb-density: regular;
   --gb-control-height: 32px;
   --gb-list-row-height: 32px;
+  /* How far one wheel line moves a `scroll`. Three of these is the conventional
+     notch — around 60px, which is what every other application on the machine
+     does. A token rather than a constant since ADR-0251: it is read through
+     `Paints.Context.length` and banked, so a rule setting it on one `scroll`
+     makes that viewport scroll in bigger steps and nothing else. (Written
+     without a selector because `ButtonTest` reads this file for a literal
+     hash and takes one as a hard-coded colour.) */
+  --gb-scroll-line: 20px;
 
   /* §3's preamble: "metrics ship as component-token defaults
      (`--gb-button-height` etc.); app stylesheets may override component tokens,

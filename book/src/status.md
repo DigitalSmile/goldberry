@@ -5495,6 +5495,46 @@ is the `scroll` box's.
   arrangement exactly: a stack sets no colour, no padding and no gap, and where
   its overlays land is the application's to declare.
 
+### Two things §2.4 said that nothing could hear
+
+- **A widget may read a token** ([ADR-0251](adr/0251-a-widget-may-read-a-token-and-a-nested-scroller-is-named.md)),
+  and the entry asking for it was **half stale when it was written**.
+  `Paints.Context.color` has read a resolved custom property since ADR-0195 —
+  that is how a chart gets `--gb-chart-1…8` — so what was actually missing was
+  the same door for a *number*. `length` is it, deliberately still narrow on
+  `color`'s terms: lengths and colours and nothing else, because both are values
+  the cascade already parses and a general token accessor would invite a widget
+  to reimplement the parser.
+- **Reading it was not the hard half.** The wheel arrives at `onPointer`, where
+  there is no context to ask — so `ScrollViewport` reads `--gb-scroll-line` in
+  `render` and **banks** it into `ScrollState` through the shape `onMeasured`
+  already had. A frame late by construction, which is ADR-0117's bargain
+  unchanged: a paint always precedes an input, so a real window has spent that
+  frame before anybody can turn a wheel. Guarded on the value having changed,
+  because the callback sets state and a `setState` every frame is a rebuild every
+  frame.
+- **The override test paints twice and says why.** The first paint banks the
+  token; the rebuild after it is what puts the value on the widget the router
+  hands the wheel to. Writing it with one frame is what found that, and the
+  comment is there so the next reader does not "fix" it.
+- **A nested same-axis scroller says so, once.** §2.4 rules them out and nothing
+  enforced it — and chaining means such a pair behaves *reasonably* rather than
+  badly, so the ban cost nothing and the author heard nothing, which is the worst
+  shape a rule can have. `BuildContext.findAncestorState` is the whole
+  implementation: it exists for `scrollIntoView` and answers this with nothing
+  added, which is why it is asked in `ScrollState.build` rather than by teaching
+  the renderer about scroll views.
+- **It is a diagnostic and not a refusal.** The arrangement still works, because
+  turning a canon rule into a crash is worse than the rule going unheard — the
+  author's problem was that nobody told them. Deduplicated by axis for ADR-0243's
+  reason: `build` runs per element per invalidation, and a document that nests in
+  four places has one mistake rather than four.
+- **`list` is unchanged and its entry stays open**, which is the honest half.
+  `ListView.virtualized(h)` takes the height as an API argument, and the number
+  decides which rows to build in `children()` — so a value banked from `render`
+  would be a frame late in the one place a frame late means building the *wrong
+  rows*. The door `scroll` needed is not the one `list` needs.
+
 ### Not started
 
 Client-side decorations, the rest of §4 —

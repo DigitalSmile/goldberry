@@ -66,6 +66,8 @@ record ScrollViewport(
         Boolean draggingVertical,
         java.util.function.BiConsumer<Boolean, Boolean> onDrag,
         java.util.function.BiConsumer<Extent, Extent> onMeasured,
+        double line,
+        java.util.function.DoubleConsumer onLine,
         Attributes attributes)
         implements Widget.Leaf, Styled, Paints, Handles, Measured, Semantics {
 
@@ -76,12 +78,16 @@ record ScrollViewport(
     /// would be worse: a list that scrolled exactly one row per notch is markedly
     /// slower than the rest of the desktop.
     ///
-    /// A constant and **not** a token, which is a gap rather than a decision.
-    /// §3 says metrics ship as component tokens an application may override, and
-    /// nothing lets a widget read a resolved custom property — so a
-    /// `--gb-scroll-line` would be a number an author could set and this could
-    /// not see. Shipping the number here at least means it is where its only
-    /// consumer is (ADR-0116).
+    /// The **default**, and `--gb-scroll-line` is the token that overrides it
+    /// ([ADR-0251]). It was a constant and not a token for as long as nothing
+    /// let a widget read a resolved custom property — "a number an author could
+    /// set and this could not see" — which [Paints.Context#length] answers.
+    ///
+    /// Read in `render` and **banked** into the state, because the wheel arrives
+    /// at [#onPointer] where there is no context to ask. A frame late by
+    /// construction, and that is [Measured]'s bargain unchanged: nothing can turn
+    /// a wheel between a tree flushing and the frame it produces, and a paint
+    /// always precedes an input.
     static final double LINE = 20;
 
     /// How much of a viewport `PageUp` and `PageDown` leave behind.
@@ -95,6 +101,10 @@ record ScrollViewport(
     /// every list — and `scroll` has no rows to step through, so a line is the
     /// only unit it has.
     static final double ARROW = LINE;
+
+    /// The token an application overrides [#LINE] with — §3's "metrics ship as
+    /// component-token defaults".
+    static final String LINE_TOKEN = "--gb-scroll-line";
 
     @Override
     public String cssType() {
@@ -189,6 +199,13 @@ record ScrollViewport(
     public Box render(ComputedStyle style, List<Box> boxes, Context context) {
         // The only place a widget is handed a clock, and therefore the only place
         // "when did this move" can be answered.
+        // Banked for `onPointer`, which has no context to ask (ADR-0251). Only
+        // when it moved: the callback sets state, and a `setState` every frame
+        // would be a rebuild every frame.
+        var declared = context.length(LINE_TOKEN, LINE);
+        if (declared != line) {
+            onLine.accept(declared);
+        }
         fade.stamp(context.nowMillis());
         var opacity = fade.opacity();
         return Box.of()
@@ -231,7 +248,7 @@ record ScrollViewport(
         }
         // The fraction, not the detents: this is a distance, and a trackpad's
         // eighths are what stop it moving in jerks (ADR-0115).
-        var moved = scrollBy(event.deltaX() * LINE, event.deltaY() * LINE, event.bounds(), event.part());
+        var moved = scrollBy(event.deltaX() * line, event.deltaY() * line, event.bounds(), event.part());
         if (moved) {
             event.consume();
         }
@@ -244,15 +261,15 @@ record ScrollViewport(
         }
         var viewport = event.bounds();
         var content = event.part();
-        var page = Math.max(LINE, viewport.height() - PAGE_OVERLAP);
+        var page = Math.max(line, viewport.height() - PAGE_OVERLAP);
         var moved =
                 switch (event.key()) {
                     case PAGE_DOWN -> scrollBy(0, page, viewport, content);
                     case PAGE_UP -> scrollBy(0, -page, viewport, content);
-                    case DOWN -> scrollBy(0, ARROW, viewport, content);
-                    case UP -> scrollBy(0, -ARROW, viewport, content);
-                    case RIGHT -> scrollBy(ARROW, 0, viewport, content);
-                    case LEFT -> scrollBy(-ARROW, 0, viewport, content);
+                    case DOWN -> scrollBy(0, line, viewport, content);
+                    case UP -> scrollBy(0, -line, viewport, content);
+                    case RIGHT -> scrollBy(line, 0, viewport, content);
+                    case LEFT -> scrollBy(-line, 0, viewport, content);
                     // Absolute rather than a large relative move, so Home reaches the top
                     // of a document of any length in one press.
                     case HOME -> scrollTo(0, 0, viewport, content);

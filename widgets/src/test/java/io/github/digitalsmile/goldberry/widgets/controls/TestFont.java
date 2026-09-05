@@ -81,6 +81,13 @@ public final class TestFont {
                 return fallback;
             }
 
+            /// No cascade here, so every token is unset and answers its default —
+            /// which is what a widget rendered by hand should see.
+            @Override
+            public double length(String name, double fallback) {
+                return fallback;
+            }
+
             /// A stopped clock, which is what a test calling `render` by hand
             /// wants: the frame it gets is the frame at zero, every time. A test
             /// that needs a moving one drives a [WidgetRenderer] with

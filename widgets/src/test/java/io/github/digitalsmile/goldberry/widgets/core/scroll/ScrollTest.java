@@ -85,8 +85,18 @@ class ScrollTest {
         private final PointerRouter router = new PointerRouter();
 
         Harness(Widget root) {
+            this(root, "");
+        }
+
+        Harness(Widget root, String extraCss) {
             target = TestFrames.of(200, VIEWPORT_HEIGHT, 1.0f, 0);
-            renderer = new WidgetRenderer(List.of(Controls.baseStylesheet(), Theme.NORD_DARK.load()), TestFont.get());
+            var sheets = new ArrayList<io.github.digitalsmile.goldberry.css.Stylesheet>(
+                    List.of(Controls.baseStylesheet(), Theme.NORD_DARK.load()));
+            if (!extraCss.isEmpty()) {
+                sheets.add(io.github.digitalsmile.goldberry.css.Stylesheet.parse(
+                        io.github.digitalsmile.goldberry.css.cascade.CascadeLayer.APPLICATION, extraCss));
+            }
+            renderer = new WidgetRenderer(sheets, TestFont.get());
             tree = new ElementTree(root);
             render = RenderTree.create();
             router.focusRoot(tree.root());
@@ -321,6 +331,130 @@ class ScrollTest {
             harness.frame();
 
             assertEquals(before, harness.contentTop(), 0.01);
+        }
+    }
+
+    /// §3's "metrics ship as component-token defaults an application may
+    /// override", reaching a widget at last ([ADR-0251]).
+    ///
+    /// `--gb-scroll-line` was a constant and not a token for as long as nothing
+    /// let a widget read a resolved custom property — "a number an author could
+    /// set and this could not see". It is read in `render` and **banked**,
+    /// because the wheel arrives at `onPointer` where there is no context to ask.
+    @Nested
+    @DisplayName("the line height is a token")
+    class LineToken {
+
+        /// A viewport that inherits the toolkit's own default behaves exactly as
+        /// it did: one line is 20px.
+        @Test
+        @DisplayName("one wheel line is the default 20px when nothing says otherwise")
+        void theDefault() {
+            var harness = new Harness(tallContent());
+            var before = harness.contentTop();
+
+            harness.wheel(1);
+
+            assertEquals(20, before - harness.contentTop(), 0.5, "one line should be --gb-scroll-line's default");
+        }
+
+        /// And an application that overrides it is honoured, which is the whole
+        /// of what "a component-token default" means.
+        @Test
+        @DisplayName("and an application that overrides it is obeyed")
+        void overridden() {
+            var harness = new Harness(tallContent(), "scroll { --gb-scroll-line: 50px }");
+            // **Two frames, and the second is the point.** The first paint reads
+            // the token and banks it; the rebuild that follows is what puts it on
+            // the widget the router will hand the wheel to. That is `Measured`'s
+            // bargain unchanged rather than a compromise — a paint always
+            // precedes an input, so a real window has spent this frame before
+            // anybody can turn a wheel.
+            harness.frame();
+            var before = harness.contentTop();
+
+            harness.wheel(1);
+
+            assertEquals(50, before - harness.contentTop(), 0.5, "the override was not honoured");
+        }
+
+        /// The arrow keys move by the same number, because §2.4 gives them one
+        /// step and `ARROW` has always been `LINE`.
+        @Test
+        @DisplayName("and the arrow keys move by it too")
+        void arrowsFollowIt() {
+            var harness = new Harness(tallContent(), "scroll { --gb-scroll-line: 50px }");
+            harness.frame();
+            var before = harness.contentTop();
+
+            harness.press(Key.DOWN);
+
+            assertEquals(50, before - harness.contentTop(), 0.5, "an arrow key should move one line");
+        }
+    }
+
+    /// §2.4 rules out nested same-axis scrollers, and nothing said so
+    /// ([ADR-0251]).
+    ///
+    /// Chaining means a nested pair behaves *reasonably* rather than badly, so
+    /// the ban cost nothing and the author heard nothing — which is the worst
+    /// shape a rule can have. It stays a diagnostic and not a refusal: the
+    /// arrangement still works, because turning a design rule into a crash is
+    /// worse than the rule going unheard.
+    ///
+    /// Asserted through the report set rather than the log, for
+    /// `StyleResolverTest`'s reason: only `slf4j-api` is on the classpath and
+    /// there is no appender to read back.
+    @Nested
+    @DisplayName("the canon's ban on nesting")
+    class Nesting {
+
+        @org.junit.jupiter.api.BeforeEach
+        void forget() {
+            ScrollState.forgetReportedNesting();
+        }
+
+        @Test
+        @DisplayName("a vertical scroll inside a vertical scroll is reported, once")
+        void sameAxisIsReported() {
+            // `tallContent()` is itself a vertical `scroll`, so wrapping it in
+            // another vertical one is the arrangement §2.4 rules out.
+            var nested = new Scroll(
+                    List.of(tallContent()),
+                    ScrollAxis.VERTICAL,
+                    io.github.digitalsmile.goldberry.widget.attr.Attributes.NONE);
+            var harness = new Harness(nested);
+
+            assertTrue(ScrollState.reportedNesting(), "a nested same-axis pair was not reported");
+
+            // `build` runs per element per invalidation, so an unguarded warning
+            // would be a stream. The set is what makes it a message.
+            harness.frame();
+            harness.frame();
+            assertEquals(1, ScrollState.reportedNestingCount(), "the warning repeated on a later frame");
+        }
+
+        @Test
+        @DisplayName("but a horizontal one inside a vertical one is not")
+        void differentAxesAreFine() {
+            // A vertical page holding a horizontally scrolling table is the
+            // arrangement §2.4 allows, and the one every wide table needs.
+            new Harness(new Scroll(
+                    List.of(tallContent()),
+                    ScrollAxis.HORIZONTAL,
+                    io.github.digitalsmile.goldberry.widget.attr.Attributes.NONE));
+
+            assertFalse(
+                    ScrollState.reportedNesting(),
+                    "crossed axes are the arrangement §2.4 allows, and a table in a page is exactly it");
+        }
+
+        @Test
+        @DisplayName("and a scroll on its own is not")
+        void oneScrollIsFine() {
+            new Harness(tallContent());
+
+            assertFalse(ScrollState.reportedNesting());
         }
     }
 

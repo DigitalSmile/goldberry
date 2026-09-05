@@ -303,22 +303,18 @@ the mechanism the sentence named.
   absence as reduced motion and density, both of which an application sets
   directly — so this waits on scrollbars existing rather than on the setting. —
   [ADR-0116](adr/0116-a-scroll-view-is-a-clip-an-offset-and-two-extents.md)
-- **Nested same-axis scrollers are banned in the canon and nothing enforces it.**
-  §2.4 says so outright. Chaining means a nested pair behaves reasonably rather
-  than badly, so the ban costs nothing today; what is missing is the diagnostic
-  that would tell an author they wrote something the design system rules out. —
-  [ADR-0116](adr/0116-a-scroll-view-is-a-clip-an-offset-and-two-extents.md)
-- **A widget cannot read a resolved custom property, so `scroll`'s line height is
-  a constant.** §3 says metrics ship as component-token defaults an application
-  may override; `StyleResolver` computes custom properties for `var()`
-  substitution and `ComputedStyle` does not carry them, so a widget has no way to
-  ask. `ScrollViewport.LINE` is 20 logical pixels and a `--gb-scroll-line` was
-  deliberately *not* shipped, because a token no widget can read is a number an
-  author sets and nothing honours. This is the same door
-  `--gb-list-row-height` is waiting behind from the other side, and one change
-  opens both. —
-  [ADR-0116](adr/0116-a-scroll-view-is-a-clip-an-offset-and-two-extents.md),
-  [ADR-0080](adr/0080-a-value-is-measured-along-a-part.md)
+- **`--gb-list-row-height` still has no consumer, and the door `scroll` needed is
+  not the one `list` needs.** A widget can read a resolved custom property now
+  ([ADR-0251](adr/0251-a-widget-may-read-a-token-and-a-nested-scroller-is-named.md)):
+  `Paints.Context.length` is `color`'s companion, and `scroll` reads
+  `--gb-scroll-line` through it and banks it. `list` cannot use the same route.
+  `ListView.virtualized(h)` takes the height as an **API argument**, and the
+  number decides which rows to build in `children()` — so a value banked from
+  `render` would be a frame late in the one place a frame late means building the
+  wrong rows. What would close it is a token readable at *build* time, which is
+  `BuildContext`'s shape rather than `Paints.Context`'s. —
+  [ADR-0251](adr/0251-a-widget-may-read-a-token-and-a-nested-scroller-is-named.md),
+  [ADR-0213](adr/0213-a-virtual-list-is-two-spacers-and-a-window.md)
 - **A pinned `affix` is not pushed out by the next one.** A sticky header
   conventionally gives way when the following section's header reaches it; this
   one stays pinned until its own subtree has scrolled away entirely, so two
@@ -1157,6 +1153,33 @@ on, which in four cases is the same thing.
 Kept rather than deleted: each is a trap somebody hit, and the reasoning that got
 out of it is usually worth more than the fact that it is fixed.
 
+- ~~**A widget cannot read a resolved custom property, so `scroll`'s line height
+  is a constant.**~~ **It can, and the entry was half stale when it was
+  written.** `Paints.Context.color` has read one since ADR-0195 — that is how a
+  chart gets `--gb-chart-1…8` — so what was missing was the same door for a
+  *number*, and `length` is it. The interesting half is that reading it is not
+  enough: **the wheel arrives where there is no context to ask**, so
+  `ScrollViewport` reads the token in `render` and *banks* it into `ScrollState`
+  through the shape `onMeasured` already had. That makes it a frame late, which
+  is ADR-0117's bargain unchanged — a paint always precedes an input. What is
+  left is `list`, and it needs a different door; it is
+  [above](#the-catalog-specified-and-unbuilt). —
+  [ADR-0251](adr/0251-a-widget-may-read-a-token-and-a-nested-scroller-is-named.md),
+  [ADR-0195](adr/0195-a-painter-reads-the-theme-through-a-custom-property.md),
+  [ADR-0116](adr/0116-a-scroll-view-is-a-clip-an-offset-and-two-extents.md)
+- ~~**Nested same-axis scrollers are banned in the canon and nothing enforces
+  it.**~~ **A nested pair says so now, once.**
+  `BuildContext.findAncestorState` is the whole implementation — it exists for
+  `scrollIntoView` and answers this question with nothing added, which is why it
+  is asked in `ScrollState.build` rather than by teaching the renderer about
+  scroll views. It stays **a diagnostic and not a refusal**: chaining already
+  makes the arrangement work, and turning a canon rule into a crash is worse than
+  the rule going unheard — the author's problem was that nobody told them.
+  Deduplicated by axis for ADR-0243's reason, because `build` runs per element
+  per invalidation and a document that nests in four places has one mistake. —
+  [ADR-0251](adr/0251-a-widget-may-read-a-token-and-a-nested-scroller-is-named.md),
+  [ADR-0243](adr/0243-a-missing-token-is-a-message-not-a-stream.md),
+  [ADR-0116](adr/0116-a-scroll-view-is-a-clip-an-offset-and-two-extents.md)
 - ~~**`stack` is still owed.**~~ **It is built, and it positions nothing.**
   The entry's own last sentence had become "what `stack` still wants is `stack`"
   once [ADR-0244](adr/0244-a-child-may-say-where-it-sits.md) took its last

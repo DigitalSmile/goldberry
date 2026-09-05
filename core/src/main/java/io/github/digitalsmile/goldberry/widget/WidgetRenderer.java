@@ -149,6 +149,34 @@ public final class WidgetRenderer {
                 return parsed == null ? fallback : parsed;
             }
 
+            /// [Paints.Context#length]'s implementation — `color`'s, with a
+            /// length parser in place of the colour one.
+            ///
+            /// The `CssLength.Context` is the renderer's rather than the node's,
+            /// which is a known and stated narrowing: an `em` here is against the
+            /// root's size and not this element's, because the element's resolved
+            /// style is not in hand at this seam. Nothing asks for one — the
+            /// tokens this answers are all `px` — and the day one does, the fix
+            /// is to pass the style in, not to guess.
+            @Override
+            public double length(String name, double fallback) {
+                java.util.Objects.requireNonNull(name, "name");
+                if (currentElement == null) {
+                    return fallback;
+                }
+                var resolved = resolver.customProperty(currentElement, name);
+                if (resolved == null) {
+                    return fallback;
+                }
+                // A percentage is of something, and a widget asking for a token
+                // has no containing block in hand to be a percentage of; `auto`
+                // is not a number at all. Both answer the fallback.
+                return io.github.digitalsmile.goldberry.css.value.CssLength.parse(resolved, lengths)
+                                instanceof io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength.Points points
+                        ? points.value()
+                        : fallback;
+            }
+
             @Override
             public boolean reducedMotion() {
                 return reducedMotion;

@@ -104,6 +104,34 @@ public interface Paints extends Widget {
         ///                 rather than not draw
         int color(String name, int fallback);
 
+        /// A **length** custom property, in logical pixels.
+        ///
+        /// [#color]'s companion, and the second half of the door ADR-0195 opened
+        /// ([ADR-0251]). A metric that §3 ships as a component-token default is a
+        /// number the stylesheet knows and the widget needs: `--gb-scroll-line`
+        /// is how far one wheel line moves a viewport, and a token no widget can
+        /// read is a number an author sets and nothing honours.
+        ///
+        /// Resolved through the cascade like `color`, so it inherits and can be
+        /// overridden per node — `#log { --gb-scroll-line: 40px }` makes one
+        /// viewport scroll in bigger steps and nothing else.
+        ///
+        /// **Still deliberately narrow**, on `color`'s terms: it answers lengths
+        /// and colours and nothing else. Both are values the cascade already
+        /// parses, and a general token-returning accessor would invite a widget
+        /// to reimplement the parser.
+        ///
+        /// `em` and `rem` resolve against the node's own font size ([ADR-0242]),
+        /// because this goes through the same `CssLength` the declarations do. A
+        /// **percentage** answers the fallback: a percentage is of something, and
+        /// a widget asking for a token has no containing block in hand to be a
+        /// percentage of.
+        ///
+        /// @param name     the property, `--` included
+        /// @param fallback what to answer when it is unset, unparseable or a
+        ///                 percentage
+        double length(String name, double fallback);
+
         /// What the frame loop has been managing lately.
         ///
         /// The third fact here that is about the frame rather than the node, and

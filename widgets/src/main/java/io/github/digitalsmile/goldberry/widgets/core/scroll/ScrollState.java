@@ -93,8 +93,67 @@ final class ScrollState extends State<Scroll> {
         }
     }
 
+    private static final org.slf4j.Logger LOG = io.github.digitalsmile.goldberry.log.Logs.of(ScrollState.class);
+
+    /// The axes already reported nested, so the canon's ban is a message rather
+    /// than a stream ([ADR-0251]).
+    ///
+    /// `build` runs per element per invalidation, so an unguarded warning here
+    /// would be the log ADR-0243 has just finished quietening. Static and by axis
+    /// because the thing worth saying is *"this application nests scrollers"* and
+    /// it is worth saying once — a document that does it in four places has one
+    /// mistake, not four.
+    private static final java.util.Set<ScrollAxis> REPORTED_NESTING =
+            java.util.concurrent.ConcurrentHashMap.newKeySet();
+
+    /// Forgets what has been reported, for a test that drives the same nesting
+    /// twice. `ComputedStyle.forgetReportedDrops`'s reason exactly.
+    static void forgetReportedNesting() {
+        REPORTED_NESTING.clear();
+    }
+
+    /// Whether anything has been reported nested, for the test — see
+    /// [#REPORTED_NESTING]. There is no appender on the classpath to read the log
+    /// back from, so the set is what an assertion can see.
+    static boolean reportedNesting() {
+        return !REPORTED_NESTING.isEmpty();
+    }
+
+    /// How many axes have been reported, so a test can say *once* rather than
+    /// merely *at all*.
+    static int reportedNestingCount() {
+        return REPORTED_NESTING.size();
+    }
+
+    /// Whether this viewport is inside another one **on the same axis**, which
+    /// `docs/core-widgets.md` §2.4 rules out.
+    ///
+    /// Nothing enforced it, and chaining means a nested pair behaves reasonably
+    /// rather than badly — so the ban cost nothing and the author heard nothing.
+    /// This is the diagnostic, and it is deliberately *only* a diagnostic: the
+    /// arrangement still works, because refusing to build it would turn a design
+    /// rule into a crash.
+    ///
+    /// [BuildContext#findAncestorState] is the whole implementation. It exists
+    /// for `scrollIntoView` and answers this question with nothing added — which
+    /// is the argument for asking it here rather than teaching the renderer about
+    /// scroll views.
+    private void warnIfNestedOnTheSameAxis(BuildContext context) {
+        context.findAncestorState(ScrollState.class).ifPresent(outer -> {
+            if (outer.widget().axis() == widget().axis() && REPORTED_NESTING.add(widget().axis())) {
+                LOG.warn(
+                        "a {} `scroll` is inside another one; §2.4 rules that out, and the inner"
+                                + " one takes the wheel until it reaches its edge. Give the inner"
+                                + " box a size and let the outer one scroll, or make them"
+                                + " different axes.",
+                        widget().axis().toString().toLowerCase(java.util.Locale.ROOT));
+            }
+        });
+    }
+
     @Override
     public Widget build(BuildContext context) {
+        warnIfNestedOnTheSameAxis(context);
         var scroll = widget();
         return new ScrollViewport(
                 scroll.children(),
@@ -109,6 +168,8 @@ final class ScrollState extends State<Scroll> {
                 draggingVertical,
                 this::drag,
                 this::measured,
+                line,
+                this::lined,
                 scroll.attributes());
     }
 
@@ -131,6 +192,20 @@ final class ScrollState extends State<Scroll> {
     /// The guard here is belt to the router's braces. It is cheap, and the thing
     /// it protects against — a scroll view repainting forever — is expensive
     /// enough to be worth two comparisons.
+    /// What one wheel line moves, from `--gb-scroll-line` or its default.
+    ///
+    /// Held here because the widget is a value rebuilt every frame and the wheel
+    /// arrives where there is no cascade to ask — the same reason `viewport` and
+    /// `content` are here (ADR-0251).
+    private double line = ScrollViewport.LINE;
+
+    private void lined(double value) {
+        if (value == line) {
+            return;
+        }
+        setState(() -> line = value);
+    }
+
     private void measured(Extent bounds, Extent part) {
         if (bounds.equals(viewport) && part.equals(content)) {
             return;
