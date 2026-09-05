@@ -5048,6 +5048,55 @@ is the `scroll` box's.
   and wrong for a wheel, and whether it should be per event kind is a decision
   about the router rather than about `knob`. It is in `TODO.md`.
 
+### The shape that was a function of the last motion
+
+- **The cursor now follows the frame, not only the pointer**
+  ([ADR-0237](adr/0237-the-pointer-state-follows-the-frame.md)). A `TODO.md`
+  entry had carried its own fix since ADR-0057 — "re-run `cursorAt` after each
+  paint against the last known position" — with the condition "it is worth doing
+  when something can actually change that way". Something can:
+  `cursor: not-allowed` ships on every disabled control, and the sequence that
+  reaches it is a button disabling itself in its own press handler while the
+  person deciding whether to click holds still.
+- **What was missing was a place to remember where the pointer is.** The router
+  had three position fields and all three are gesture-scoped: `pressOriginX`/`Y`
+  span a press-to-release and are `NaN` outside one, which is precisely what made
+  them useless here. The fourth outlives a gesture and is set from every entry
+  point that carries a position — moved, pressed, released, wheeled — so a window
+  whose first event is a click is not left with nowhere to ask about.
+- **`NaN` means "we do not know", twice**: before the pointer has ever arrived,
+  and after it has left, which is another window's pointer or none at all. Both
+  skip the recompute rather than asking about a point the pointer is not at. The
+  capture freeze is reached *through* rather than around, so a repaint during a
+  drag does not thaw the shape mid-gesture.
+- **Measuring it turned up a second half the entry did not name, and a comment
+  that denied it.** `:hover` and `:active` had exactly the same staleness, while
+  `mark` said "a control that was hovered before it became disabled does not keep
+  the state — which is a real sequence, because a button commonly disables itself
+  in its own press handler". It did keep it. Clearing is not suppressed, but
+  nothing called it: `updateHover` returns early when the element under the
+  pointer has not changed, so the wash survived every later move *within* the
+  control and went away only when the pointer left it — on the exact sequence the
+  comment named as the reason it was safe.
+- **So it is one defect and not two.** Fixing only the cursor would have shipped a
+  control drawing its hover wash while its cursor said `not-allowed`, which is
+  more confusing than either mistake alone, and §2.1 already says a disabled
+  control must not light up — no decision left to defer.
+- **`restate()` is `mark(…, true)` and nothing else**, because `mark` already
+  knows the rule: a set on a disabled element becomes a clear, so re-asserting
+  what the pointer is over sets the state where the control is live and takes it
+  away where it is not, in one call with no second branch. **No `ENTERED` or
+  `EXITED` is emitted** — nothing entered or exited anything, and a tooltip
+  opening because a list repainted would be a worse bug than the one being fixed.
+- **This runs once per frame rather than once per motion**, which makes the
+  edge-triggering in `setCursor` and `setPseudoClass` load-bearing in a way it was
+  not before. A 120 Hz repaint over a still pointer is 120 comparisons and no
+  platform calls, and a test asserts it.
+- **Eight cases, three of them checked against the old code.** `mark`'s comment
+  is now true, which matters more than it sounds: it was describing an intention
+  as an achievement, and that is the kind of comment that stops the next person
+  looking.
+
 ### Not started
 
 Client-side decorations, the rest of §4 —

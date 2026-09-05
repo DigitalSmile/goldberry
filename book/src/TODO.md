@@ -161,11 +161,6 @@ the mechanism the sentence named.
   that is a few thousand calls a second into a statically linked function that reads a
   global. Not measured — named here so it can be if a profile ever points at it. —
   [ADR-0089](adr/0089-a-knobs-gesture-is-a-rate.md)
-- **Nothing recomputes the cursor when the tree changes under a still pointer.** A
-  widget that becomes disabled without the pointer moving keeps the shape it had. The
-  fix is re-running `cursorAt` after each paint against the last known position; it is
-  worth doing when something can actually change that way. —
-  [ADR-0057](adr/0057-the-cursor-rides-on-the-painted-box.md)
 
 ## The catalog: specified and unbuilt
 
@@ -1196,6 +1191,24 @@ on, which in four cases is the same thing.
 Kept rather than deleted: each is a trap somebody hit, and the reasoning that got
 out of it is usually worth more than the fact that it is fixed.
 
+- ~~**Nothing recomputes the cursor when the tree changes under a still
+  pointer.**~~ **It does now, and the entry named half of it.** The cursor half is
+  exactly as written — a fourth position field, remembered from every entry point
+  that carries one rather than from `pointerMoved` alone, and `cursorAt` re-run
+  from `updateRegions` after each paint. `NaN` is the whole of "we do not know",
+  and it means it twice: before the pointer has arrived and after it has left,
+  which is another window's pointer and not a place to ask about. The capture
+  freeze is reached *through* rather than around, so a repaint during a drag does
+  not thaw the shape. What measuring it turned up is that **`:hover` and
+  `:active` had the same staleness**, and that `mark`'s own comment denied it —
+  "a control that was hovered before it became disabled does not keep the state"
+  was describing an intention as an achievement, because clearing is not
+  suppressed but nothing called it. Fixing only the cursor would have shipped a
+  control drawing its hover wash while its cursor said `not-allowed`, so both
+  halves went together; §2.1 left no decision to defer. —
+  [ADR-0237](adr/0237-the-pointer-state-follows-the-frame.md),
+  [ADR-0057](adr/0057-the-cursor-rides-on-the-painted-box.md),
+  [ADR-0059](adr/0059-a-control-is-a-record-a-node-and-a-rule.md)
 - ~~**A knob inside a scroll view is still untested, and `Kind.WHEEL` had
   exactly one consumer for a long time.**~~ **Both cases are tested, and the one
   the entry predicted would fail did.** These were two entries saying the same

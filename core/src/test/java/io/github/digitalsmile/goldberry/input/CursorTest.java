@@ -1,6 +1,7 @@
 package io.github.digitalsmile.goldberry.input;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -21,6 +22,7 @@ import io.github.digitalsmile.goldberry.css.ComputedStyle;
 import io.github.digitalsmile.goldberry.css.Stylesheet;
 import io.github.digitalsmile.goldberry.css.cascade.CascadeLayer;
 import io.github.digitalsmile.goldberry.css.cascade.StyleResolver;
+import io.github.digitalsmile.goldberry.css.select.Selector;
 import io.github.digitalsmile.goldberry.css.value.CssLength;
 import io.github.digitalsmile.goldberry.input.event.PointerEvent;
 import io.github.digitalsmile.goldberry.input.handler.Handles;
@@ -257,6 +259,184 @@ class CursorTest {
         }
     }
 
+    /// [ADR-0237]: the shape follows the *frame*, not only the pointer.
+    ///
+    /// A widget that becomes disabled under a still pointer resolves
+    /// `cursor: not-allowed` in the frame it is painted for, and a router that
+    /// only ever recomputed on motion went on advertising the shape the control
+    /// used to have — until the user moved, which is exactly what somebody
+    /// deciding whether to click does not do.
+    @Nested
+    @DisplayName("the tree changing under a still pointer")
+    class Restill {
+
+        private final List<Cursor> seen = new ArrayList<>();
+        private PointerRouter router;
+        private Element outer;
+        private Element inner;
+
+        /// The same two rectangles [Routing] uses, so the only difference between
+        /// the two groups is what moves.
+        @BeforeEach
+        void buildTree() {
+            router = new PointerRouter();
+            var tree = new ElementTree(new Node("outer", new Node("inner")));
+            outer = tree.root();
+            inner = outer.children().getFirst();
+            paint(Cursor.POINTER);
+            router.onCursorChange(seen::add);
+            seen.clear();
+        }
+
+        /// One frame, with the inner rectangle drawn under `shape`.
+        private void paint(Cursor shape) {
+            router.updateRegions(List.of(
+                    new HitTest.Region(outer, Cursor.DEFAULT, 0, 0, 100, 100),
+                    new HitTest.Region(inner, shape, 20, 20, 40, 40)));
+        }
+
+        @Test
+        @DisplayName("a control that disables itself under the pointer gets the new shape")
+        void repaintRecomputes() {
+            router.pointerMoved(30, 30);
+            assertEquals(Cursor.POINTER, router.cursor());
+            seen.clear();
+
+            // The sequence `mark` already names: "a button commonly disables
+            // itself in its own press handler while the pointer is still over
+            // it". Nothing moves; the next frame simply paints it disabled.
+            paint(Cursor.NOT_ALLOWED);
+
+            assertEquals(Cursor.NOT_ALLOWED, router.cursor(), "the frame repainted and the cursor did not follow");
+            assertEquals(List.of(Cursor.NOT_ALLOWED), seen);
+        }
+
+        @Test
+        @DisplayName("a frame that changed nothing under the pointer tells the platform nothing")
+        void unchangedFrameIsSilent() {
+            router.pointerMoved(30, 30);
+            seen.clear();
+
+            paint(Cursor.POINTER);
+            paint(Cursor.POINTER);
+
+            // This now runs once per frame rather than once per motion, so
+            // edge-triggering is load-bearing in a way it was not before:
+            // `setCursor` is what keeps a 120Hz repaint from being 120 platform
+            // calls a second.
+            assertTrue(seen.isEmpty(), () -> "seen was " + seen);
+        }
+
+        @Test
+        @DisplayName("a frame painted before the pointer has ever arrived asks nothing")
+        void noPointerYet() {
+            paint(Cursor.NOT_ALLOWED);
+
+            // There is no position to recompute against, and `cursorAt` given one
+            // would be answering about a point the pointer is not at.
+            assertEquals(Cursor.DEFAULT, router.cursor());
+            assertTrue(seen.isEmpty(), () -> "seen was " + seen);
+        }
+
+        @Test
+        @DisplayName("and a frame painted after the pointer has left asks nothing either")
+        void afterThePointerLeft() {
+            router.pointerMoved(30, 30);
+            router.pointerExited();
+            seen.clear();
+
+            paint(Cursor.NOT_ALLOWED);
+
+            // The pointer is somewhere else entirely -- another window, or off
+            // the screen -- so the last position it had here is not a place to
+            // ask about.
+            assertEquals(Cursor.DEFAULT, router.cursor());
+            assertTrue(seen.isEmpty(), () -> "seen was " + seen);
+        }
+
+        /// The other half of the same frame hook, and the one `mark`'s own
+        /// comment claimed was already working: "a control that was hovered
+        /// before it became disabled does not keep the state". It did keep it —
+        /// clearing is not suppressed, but nothing called it, because
+        /// `updateHover` returns early when the element under the pointer has not
+        /// changed. §2.1 says a disabled control must not light up.
+        @Test
+        @DisplayName("a control that disables itself under the pointer loses :hover")
+        void hoverIsRestated() {
+            var button = new Switchable("button");
+            var tree = new ElementTree(button);
+            var element = tree.root();
+            var live = new PointerRouter();
+            live.updateRegions(List.of(new HitTest.Region(element, Cursor.POINTER, 0, 0, 100, 100)));
+            live.pointerMoved(30, 30);
+            assertTrue(element.hasState(Selector.PseudoClass.HOVER), "the pointer never lit the control at all");
+
+            button.disabled = true;
+            live.updateRegions(List.of(new HitTest.Region(element, Cursor.NOT_ALLOWED, 0, 0, 100, 100)));
+
+            assertFalse(
+                    element.hasState(Selector.PseudoClass.HOVER),
+                    "a disabled control kept the wash that says it can be used");
+        }
+
+        /// And it comes back, which is what stops the fix being "clear it once".
+        @Test
+        @DisplayName("and gets it back when it is enabled again under the same still pointer")
+        void hoverReturns() {
+            var button = new Switchable("button");
+            var tree = new ElementTree(button);
+            var element = tree.root();
+            var live = new PointerRouter();
+            live.updateRegions(List.of(new HitTest.Region(element, Cursor.POINTER, 0, 0, 100, 100)));
+            live.pointerMoved(30, 30);
+            button.disabled = true;
+            live.updateRegions(List.of(new HitTest.Region(element, Cursor.NOT_ALLOWED, 0, 0, 100, 100)));
+
+            button.disabled = false;
+            live.updateRegions(List.of(new HitTest.Region(element, Cursor.POINTER, 0, 0, 100, 100)));
+
+            assertTrue(element.hasState(Selector.PseudoClass.HOVER), "the control came back and stayed dim");
+        }
+
+        /// `:active` is the same field asked of the pressed chain rather than the
+        /// hovered one, and a control that disables itself *in its own press
+        /// handler* is the sequence that hits both at once.
+        @Test
+        @DisplayName("and a control disabled mid-press loses :active too")
+        void activeIsRestated() {
+            var button = new Switchable("button");
+            var tree = new ElementTree(button);
+            var element = tree.root();
+            var live = new PointerRouter();
+            live.updateRegions(List.of(new HitTest.Region(element, Cursor.POINTER, 0, 0, 100, 100)));
+            live.pointerPressed(30, 30, PointerEvent.Button.PRIMARY, 1);
+            assertTrue(element.hasState(Selector.PseudoClass.ACTIVE), "the press never lit the control at all");
+
+            button.disabled = true;
+            live.updateRegions(List.of(new HitTest.Region(element, Cursor.NOT_ALLOWED, 0, 0, 100, 100)));
+
+            assertFalse(
+                    element.hasState(Selector.PseudoClass.ACTIVE),
+                    "a disabled control kept the darkening that says it is being pressed");
+        }
+
+        @Test
+        @DisplayName("a repaint during a drag does not thaw the frozen shape")
+        void captureStillWins() {
+            router.pointerMoved(30, 30);
+            router.pointerPressed(30, 30, PointerEvent.Button.PRIMARY, 1);
+            seen.clear();
+
+            paint(Cursor.NOT_ALLOWED);
+
+            // The freeze is `updateCursor`'s own rule and this must not reach
+            // around it: a drag decides the shape when it starts, and a list that
+            // repaints under a drag would otherwise change it mid-gesture.
+            assertEquals(Cursor.POINTER, router.cursor());
+            assertTrue(seen.isEmpty(), () -> "seen was " + seen);
+        }
+    }
+
     @Nested
     @DisplayName("through the backend")
     class Plumbing {
@@ -327,6 +507,28 @@ class CursorTest {
     }
 
     /// A minimal styleable, selectable node.
+    /// A [Node] that can be disabled after the tree holding it was built, which
+    /// a record cannot be — the whole point is that the *widget* changes under a
+    /// pointer that does not.
+    private static final class Switchable implements Widget.Leaf, Styled, Handles {
+        private final String name;
+        private boolean disabled;
+
+        Switchable(String name) {
+            this.name = name;
+        }
+
+        @Override
+        public String cssType() {
+            return name;
+        }
+
+        @Override
+        public boolean isDisabled() {
+            return disabled;
+        }
+    }
+
     private static class Node implements Widget.Leaf, Styled, Handles {
         private final String name;
         private final List<Widget> children;

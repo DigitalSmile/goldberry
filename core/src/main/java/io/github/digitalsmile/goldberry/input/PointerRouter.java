@@ -102,6 +102,21 @@ public final class PointerRouter {
     private float pressOriginX = Float.NaN;
     private float pressOriginY = Float.NaN;
 
+    /// Where the pointer was last seen, or `NaN` when it is not in this window.
+    ///
+    /// A **fourth** position field, and it is the only one that outlives a
+    /// gesture: the two above span a press-to-release and are `NaN` outside one,
+    /// which is precisely what makes them useless for the question this answers.
+    /// [#updateRegions] needs a point to ask [#updateCursor] about, and "where the
+    /// pointer is right now" is a fact about the window rather than about a drag
+    /// ([ADR-0237]).
+    ///
+    /// `NaN` is the whole of "we do not know", and it means it twice: before the
+    /// pointer has ever arrived, and after [#pointerExited] — which is another
+    /// window's pointer or none at all, and either way not a place to ask about.
+    private float pointerX = Float.NaN;
+    private float pointerY = Float.NaN;
+
     /// What the pressed control's value was when the gesture began, or `NaN`.
     ///
     /// The third gesture-origin field, and it exists because two of the origins a
@@ -135,6 +150,49 @@ public final class PointerRouter {
         refocus();
         notifyMeasured();
         notifyLocated();
+        // The shape follows the frame and not only the pointer ([ADR-0237]). A
+        // control that disables itself under a still pointer resolves
+        // `cursor: not-allowed` in the frame it is painted for, and nothing else
+        // would ever ask -- the user deciding whether to click is the one who is
+        // not moving. Last, so it reads the tree the notifications above have
+        // finished with.
+        if (!Float.isNaN(pointerX)) {
+            updateCursor(pointerX, pointerY);
+        }
+        restate();
+    }
+
+    /// Re-asks the two pointer pseudo-classes against the tree that was painted.
+    ///
+    /// The other half of the same frame hook, and the half `mark` already
+    /// believed it had ([ADR-0237]). Its comment says a control "that was hovered
+    /// before it became disabled does not keep the state, which is a real
+    /// sequence, because a button commonly disables itself in its own press
+    /// handler while the pointer is still over it" — and that was **false**, for
+    /// a reason no reader of `mark` could see: clearing is not suppressed, but
+    /// nothing was calling it. `updateHover` is the only caller and it returns
+    /// early when the element under the pointer has not changed, so the wash
+    /// survived every subsequent move *within* the control and went away only
+    /// when the pointer left it.
+    ///
+    /// `mark(…, true)` is the whole implementation because `mark` already knows
+    /// the rule: it turns a set into a clear on a disabled element, so re-asserting
+    /// what the pointer is over sets it where the control is live and takes it
+    /// away where it is not. `docs/design-system.md` §2.1 is what makes that
+    /// non-discretionary — a disabled control that still lightened under the
+    /// pointer would be telling the user it can be used.
+    ///
+    /// **No `ENTERED` or `EXITED` is emitted**, deliberately. Nothing entered or
+    /// exited anything: the pointer has not moved and the element under it is the
+    /// one that was there. This is about what a control looks like, which is the
+    /// same line `mark` itself draws.
+    private void restate() {
+        for (var element : chain(hovered)) {
+            mark(element, PseudoClass.HOVER, true);
+        }
+        for (var element : chain(pressed)) {
+            mark(element, PseudoClass.ACTIVE, true);
+        }
     }
 
     /// Puts the keyboard back when whatever had it has left the tree.
@@ -431,6 +489,7 @@ public final class PointerRouter {
 
     /// The same, with the modifier keys the platform reported at the time.
     public void pointerMoved(float x, float y, Modifiers modifiers) {
+        pointerAt(x, y);
         var under = elementAt(x, y);
         updateHover(under, x, y);
         updateCursor(x, y);
@@ -447,8 +506,20 @@ public final class PointerRouter {
     /// gesture, and the platform keeps sending the motion — releasing here would
     /// drop the second half of every drag that overshoots an edge.
     public void pointerExited() {
+        pointerAt(Float.NaN, Float.NaN);
         updateHover(null, Float.NaN, Float.NaN);
         setCursor(Cursor.DEFAULT);
+    }
+
+    /// Remembers where the pointer is, for [#updateRegions].
+    ///
+    /// Called from every entry point that carries a position rather than from
+    /// [#pointerMoved] alone: a press, a release and a wheel all state where the
+    /// pointer is, and a window whose first event was a click would otherwise
+    /// paint frame after frame with nowhere to ask about.
+    private void pointerAt(float x, float y) {
+        pointerX = x;
+        pointerY = y;
     }
 
     /// A button went down.
@@ -459,6 +530,7 @@ public final class PointerRouter {
     /// The same, with modifiers.
     public void pointerPressed(
             float x, float y, PointerEvent.@Nullable Button button, int clickCount, Modifiers modifiers) {
+        pointerAt(x, y);
         var target = elementAt(x, y);
         updateHover(target, x, y);
         if (target == null) {
@@ -505,6 +577,7 @@ public final class PointerRouter {
     /// The same, with modifiers.
     public void pointerReleased(
             float x, float y, PointerEvent.@Nullable Button button, int clickCount, Modifiers modifiers) {
+        pointerAt(x, y);
         var under = elementAt(x, y);
         var target = captured != null ? captured : under;
         // Read before `setPressed(null)` clears it: whether this was a click is a
@@ -595,6 +668,7 @@ public final class PointerRouter {
     /// ([ADR-0116]).
     public boolean pointerWheel(
             float x, float y, float deltaX, float deltaY, int ticksX, int ticksY, Modifiers modifiers) {
+        pointerAt(x, y);
         var target = captured != null ? captured : elementAt(x, y);
         if (target == null) {
             return false;
@@ -1379,10 +1453,17 @@ public final class PointerRouter {
     /// dozen siblings, each able to be wrong on its own. CSS would spell it
     /// `:not(:disabled):hover`, and `:not()` is not in §8's subset.
     ///
-    /// Only *setting* is suppressed. Clearing always goes through, so a control
-    /// that was hovered before it became disabled does not keep the state — which
-    /// is a real sequence, because a button commonly disables itself in its own
-    /// press handler while the pointer is still over it.
+    /// Only *setting* is suppressed, and a set on a disabled element becomes a
+    /// **clear** rather than a no-op. That is what lets [#restate] re-assert what
+    /// the pointer is over once a frame and get both answers out of one call: the
+    /// state where the control is live, and no state where it is not.
+    ///
+    /// It has to be re-asserted, because this method is not reached otherwise. A
+    /// button commonly disables itself in its own press handler while the pointer
+    /// is still over it, and `updateHover` returns early when the element under
+    /// the pointer has not changed — so before [ADR-0237] the wash survived every
+    /// later move *within* the control and went away only when the pointer left
+    /// it. This comment claimed the opposite for a long time.
     ///
     /// The `ENTERED` and `EXITED` events are **not** suppressed: this is about
     /// what a control looks like, not about what it is told. A disabled node still
