@@ -509,6 +509,43 @@ public final class StyleResolver {
         return reported.size() >= REPORT_LIMIT || reported.add(key);
     }
 
+    /// How many rules landed in [#untyped], and how many there are in all.
+    ///
+    /// ADR-0152's saving is that a rule for `button` is never even looked at for
+    /// a `text`, and it is worth exactly as much as the stylesheet lets it be: a
+    /// sheet written entirely in classes puts every rule in the untyped bucket,
+    /// where it is checked against every element of every kind. The toolkit's own
+    /// sheets are type-first and **nothing enforced that they stay so**, which is
+    /// what these expose ([ADR-0249]).
+    ///
+    /// Public rather than package-private because the lint that reads them is in
+    /// `:example`, beside the other two that check the toolkit's own stylesheets
+    /// (ADR-0215, ADR-0216) — a sheet's shape is the same kind of fact as a
+    /// dropped declaration, and it belongs in the same place.
+    public int untypedRuleCount() {
+        return untyped.size();
+    }
+
+    /// The selectors of the rules in [#untyped], for a lint that has to say
+    /// *which* ones rather than merely how many.
+    ///
+    /// A count alone makes a threshold that fails without naming anything, which
+    /// is the kind of check somebody raises the number on instead of reading.
+    public List<String> untypedSelectors() {
+        return untyped.stream()
+                .flatMap(candidate -> candidate.rule().selectors().stream())
+                .map(Object::toString)
+                .distinct()
+                .sorted()
+                .toList();
+    }
+
+    /// Every rule this resolver indexed, counting a rule once however many
+    /// buckets its selectors put it in.
+    public int ruleCount() {
+        return stylesheets.stream().mapToInt(sheet -> sheet.rules().size()).sum();
+    }
+
     /// How many distinct drops this resolver has reported.
     ///
     /// Package-private and for [StyleResolverTest] alone. The thing worth

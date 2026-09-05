@@ -2806,14 +2806,21 @@ tour-card > column > row {
   padding-top: 4px;
 }
 
-.tour-title {
+/* Qualified by type, not because a class needs it to match but because an
+   unqualified one is checked against **every element of every kind**: the
+   cascade buckets a rule by the type its rightmost compound names, and a rule
+   that names none goes in the bucket nothing can skip (ADR-0152, ADR-0249).
+   These seven are the only rules in this file that had a type to give and were
+   not giving it. The typography ranks below stay unqualified, and correctly so —
+   `.body` is applied to whatever an application puts it on. */
+text.tour-title {
   font-size: 15px;
   line-height: 20px;
   font-weight: 600;
   color: var(--gb-text);
 }
 
-.tour-body {
+text.tour-body {
   font-size: 13px;
   line-height: 18px;
   color: var(--gb-text-muted);
@@ -2827,14 +2834,14 @@ tour-card > column > row {
    nothing between muted and the border colour. A token invented for it resolved
    to `nord3`, which on `nord1` is a counter nobody can read -- §1.2's contrast
    floor applies to metadata too. The size carries the demotion instead. */
-.tour-count {
+text.tour-count {
   font-size: 11px;
   line-height: 16px;
   color: var(--gb-text-muted);
 }
 
 /* Skip is the way out and must not compete with the way on. */
-.tour-skip {
+button.tour-skip {
   background: transparent;
   color: var(--gb-text-muted);
 }
@@ -2846,16 +2853,16 @@ tour-card > column > row {
    because the accent fill flips which of them is legible — and there is no
    `--gb-on-accent` to ask for. Written as one, it resolved to nothing, dropped
    the declaration, and logged a line per node per frame. */
-.tour-next {
+button.tour-next {
   background: var(--gb-button-primary-bg);
   color: var(--gb-button-primary-text);
 }
 
-.tour-next:hover {
+button.tour-next:hover {
   background: var(--gb-button-primary-bg-hover);
 }
 
-.tour-next:active {
+button.tour-next:active {
   background: var(--gb-button-primary-bg-active);
 }
 

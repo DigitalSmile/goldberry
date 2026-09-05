@@ -157,8 +157,16 @@ public final class Element implements BuildContext, StyleElement {
     ///
     /// A value comparison against one instance, which is a flat record `equals`
     /// — against a re-resolve that costs two orders of magnitude more.
+    /// **Compared on the inherited half only**, which is the narrowing ADR-0142
+    /// left ([ADR-0248]). What this returns is a *cache key for children* and
+    /// nothing else — the node paints with the style it actually resolved — so
+    /// two candidates that agree on `color` and `typography` are
+    /// indistinguishable to everything that reads it. `equals` compared the whole
+    /// record including the **transform**, which nothing inherits and which a
+    /// `scroll` moves on every frame of a gesture: every node inside a scrolling
+    /// viewport re-resolved for a change no child could see.
     ComputedStyle stableStyle(ComputedStyle candidate) {
-        if (handedDown != null && handedDown.equals(candidate)) {
+        if (handedDown != null && handedDown.inheritsSameAs(candidate)) {
             return handedDown;
         }
         handedDown = candidate;

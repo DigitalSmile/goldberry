@@ -313,6 +313,9 @@ public final class WidgetRenderer {
         // resolving it would produce the inherited values it was handed anyway --
         // at the cost of a full cascade walk per composition node per frame.
         ComputedStyle self;
+        // What the children key their cache on, which is `self` or an older
+        // instance that agrees with it about everything they can read (ADR-0248).
+        ComputedStyle handDown;
         if (element.widget() instanceof Styled || element.widget() instanceof Paints) {
             // §5's "style resolution (invalidated nodes)". The cache is checked
             // against the resolver *and* the inherited style, both by identity:
@@ -344,17 +347,24 @@ public final class WidgetRenderer {
                 self = styled.restyle(self);
             }
             // The style handed to the children, kept as one **instance** for as
-            // long as it keeps its value. Their cache is keyed on this by
-            // identity, and `restyle` above hands back a new object every frame
-            // for every widget that writes an inline value — so without this the
-            // cache below a `scroll`, a `tab` or a `segmented` never hit at all
-            // (ADR-0142).
-            self = element.stableStyle(self);
+            // long as its *inherited* half keeps its value. Their cache is keyed
+            // on this by identity, and `restyle` above hands back a new object
+            // every frame for every widget that writes an inline value — so
+            // without this the cache below a `scroll`, a `tab` or a `segmented`
+            // never hit at all (ADR-0142).
+            //
+            // **Not assigned back to `self`**, which is the narrowing ADR-0248
+            // added: what this node paints has to be what it actually resolved,
+            // and what its children key on only has to agree about `color` and
+            // `typography`. Folding the two together would paint a stale
+            // transform the moment the comparison stopped being `equals`.
+            handDown = element.stableStyle(self);
             if (trace != null) {
                 trace.identity(System.nanoTime() - identityBegan);
             }
         } else {
             self = inherited;
+            handDown = inherited;
         }
 
         // The target the cascade just produced, and the values actually in
@@ -382,7 +392,7 @@ public final class WidgetRenderer {
             // control whose colour is mid-transition would otherwise take the
             // halfway value as its own inherited starting point and transition
             // again from there.
-            children.addAll(render(child, self, now));
+            children.addAll(render(child, handDown, now));
         }
 
         if (!(element.widget() instanceof Paints paints)) {

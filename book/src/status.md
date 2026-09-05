@@ -5419,6 +5419,48 @@ is the `scroll` box's.
   *because* of this typo: its example of "a value the toolkit has not got" was
   `align-items: start`, and now has to be one it really has not got.
 
+### Two caches, and what each was actually comparing
+
+- **Only the inherited half is handed down**
+  ([ADR-0248](adr/0248-only-the-inherited-half-is-handed-down.md)). ADR-0142
+  stopped a node handing its children a new style instance for an unchanged
+  value; what it compared was the **whole record**, including the transform — so
+  a `scroll` moving an offset re-resolved every node inside the viewport on every
+  frame of a gesture, for a change none of them could see.
+- **The notion the entry wanted already existed.** It said the fix "needs a
+  notion of which properties inherit, which the cascade has and `ComputedStyle`
+  does not" — but `inheritingFrom` is exactly that list and is two lines, `color`
+  and `typography`, with a comment enumerating what is deliberately *not* there.
+  What was missing was reading it twice, which is what `inheritsSameAs` does,
+  beside it, so a property that starts inheriting has to be added to both.
+- **The difficulty was not the comparison.** `stableStyle`'s return did two
+  unrelated jobs — the children's cache key *and* what the node paints — so
+  loosening it in place would have handed back an older instance carrying last
+  frame's transform and then painted with it: a scrolling viewport frozen at its
+  first offset while every child cached happily. Two variables, because there are
+  two jobs, and the test for it was written against the mistake. Folding the
+  roles back together fails it, which was checked rather than assumed.
+- **A rule that can name a type, does**
+  ([ADR-0249](adr/0249-a-rule-that-can-name-a-type-does.md)). ADR-0152's saving
+  is that a rule for `button` is never looked at for a `text`, and it is worth
+  what the stylesheet lets it be. The entry assumed the toolkit's own sheets were
+  type-first; measuring found **16 of 340** rules naming none, in two families
+  rather than a scattering.
+- **Seven were `tour`'s parts**, and every one *was* matching a known type
+  without saying so: the tour builds them from plain `Text` and `Button` widgets
+  carrying a class, so `text.tour-title` matches exactly what `.tour-title`
+  matched and lands in a bucket. Seven rules, one word each, and **no golden
+  moved** — which is the evidence it changed what the cascade looks at rather
+  than what it finds.
+- **The other eight cannot be qualified and should not be**: the typography scale
+  is seven ranks an application puts on whatever it likes, which is what makes it
+  a scale rather than a widget's parts, and `:root` is the theme's token layer.
+  `RuleBucketTest` holds them as an **exact set** rather than a threshold, and
+  reports the *selectors* rather than a count — the difference between a failure
+  that names `.tour-title` and one that says a number went up. Beside it, an
+  assertion that the sheet is large and nearly all of it bucketed, because a
+  check listing eight selectors would pass against a stylesheet of eight rules.
+
 ### Not started
 
 Client-side decorations, the rest of §4 —

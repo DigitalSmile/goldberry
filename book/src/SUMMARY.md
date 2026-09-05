@@ -257,6 +257,8 @@
 - [ADR-0245 The second surface stays, and says so](adr/0245-the-second-surface-stays-and-says-so.md)
 - [ADR-0246 Text has a capture phase, now that something wants one](adr/0246-text-has-a-capture-phase-now-that-something-wants-one.md)
 - [ADR-0247 `start` is CSS, and `flex-start` is Yoga](adr/0247-start-is-css-and-flex-start-is-yoga.md)
+- [ADR-0248 Only the inherited half is handed down](adr/0248-only-the-inherited-half-is-handed-down.md)
+- [ADR-0249 A rule that can name a type, does](adr/0249-a-rule-that-can-name-a-type-does.md)
 
 ---
 

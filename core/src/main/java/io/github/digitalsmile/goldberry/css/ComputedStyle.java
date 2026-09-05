@@ -266,6 +266,26 @@ public record ComputedStyle(
     ///   (ADR-0064).
     ///   Inheriting the value here would then apply it once per level per
     ///   ancestor: a label under a control at 45% would be drawn at 20%.
+    /// Whether a child would resolve identically against `other` as against
+    /// this — that is, whether the two agree on every **inherited** property.
+    ///
+    /// The inherited half is `color` and `typography`, which is
+    /// [#inheritingFrom]'s whole body, plus nothing: a child reads no other
+    /// component of its parent's style, so two parents that agree on these are
+    /// indistinguishable from below ([ADR-0248]).
+    ///
+    /// It exists because the alternative is `equals`, and `equals` compares the
+    /// **transform** — which nothing inherits and which a `scroll` moves on every
+    /// frame of a gesture, so every node inside a scrolling viewport re-resolved
+    /// for a change no child could see.
+    ///
+    /// Keeping this beside [#inheritingFrom] is deliberate: they are the same
+    /// list read two ways, and a property that starts inheriting has to be added
+    /// to both or the cache goes stale rather than merely cold.
+    public boolean inheritsSameAs(ComputedStyle other) {
+        return other != null && color == other.color && typography.equals(other.typography);
+    }
+
     private ComputedStyle inheritingFrom(ComputedStyle parent) {
         // `transition` is deliberately absent: CSS does not inherit it, and a
         // panel that faded its background must not make every label inside it

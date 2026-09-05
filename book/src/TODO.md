@@ -968,15 +968,6 @@ on, which in four cases is the same thing.
   `pthread_jit_write_protect_np`. Nothing triggered it until now, because nothing
   created a rendering context. The first frame the macOS build paints is the test. —
   [ADR-0031](adr/0031-blend2d-and-the-borrowed-buffer.md)
-- **A style that really changes still re-resolves its whole subtree, and only
-  the inherited properties can matter.** ADR-0142 stopped a node handing down a
-  new instance for an unchanged value; what it did not do is narrow the
-  comparison to the properties a child could actually inherit. So scrolling —
-  which moves a transform, and a transform inherits nothing — re-resolves every
-  node inside the viewport on every frame of the gesture. The fix needs a notion
-  of which properties inherit, which the cascade has and `ComputedStyle` does
-  not. —
-  [ADR-0142](adr/0142-a-style-handed-down-keeps-its-identity.md)
 - **`Element.update` still invalidates a subtree wholesale.** ADR-0149 narrowed
   the *state* path; a rebuilt widget still throws away everything below it,
   because what changed there is the node's identity to the cascade — its classes
@@ -991,10 +982,15 @@ on, which in four cases is the same thing.
   need per-frame state a widget cannot have, and excluding the overlay subtree
   from the timings would report a frame the window did not paint. —
   [ADR-0152](adr/0152-the-cascade-looks-at-rules-that-could-match.md)
-- **The rule buckets are only as good as the stylesheet.** A sheet written
-  entirely in classes puts every rule in the untyped bucket and gets none of
-  ADR-0152's saving. The toolkit's own sheets are type-first and nothing enforces
-  that they stay so. —
+- **An application's stylesheet can still be all classes, and nothing says so.**
+  The toolkit's own are held to type-first now
+  ([ADR-0249](adr/0249-a-rule-that-can-name-a-type-does.md)) — 8 untyped rules of
+  340, each named with its reason — and an application's sheet is its own
+  business, so it gets none of ADR-0152's bucketing and no warning about it. A
+  warning that is usually wrong is the log ADR-0243 has just finished
+  quietening; what would help instead is a diagnostic somebody asks for, next to
+  the `hud`. —
+  [ADR-0249](adr/0249-a-rule-that-can-name-a-type-does.md),
   [ADR-0152](adr/0152-the-cascade-looks-at-rules-that-could-match.md)
 
 ## Platform, compositor and CI
@@ -1173,6 +1169,36 @@ on, which in four cases is the same thing.
 Kept rather than deleted: each is a trap somebody hit, and the reasoning that got
 out of it is usually worth more than the fact that it is fixed.
 
+- ~~**A style that really changes still re-resolves its whole subtree, and only
+  the inherited properties can matter.**~~ **It compares the inherited half now,
+  and the notion the entry wanted already existed.** `ComputedStyle` does have a
+  list of what inherits — `inheritingFrom` is two lines, `color` and
+  `typography`, and its comment even enumerates what is deliberately *not* there.
+  What was missing was reading it twice. **The difficulty was not the
+  comparison**: `stableStyle`'s return did two unrelated jobs, the children's
+  cache key *and* what the node paints, so loosening it would have handed back an
+  older instance with last frame's transform and then painted with it — a
+  scrolling viewport frozen at its first offset while every child cached happily.
+  Two variables, because there are two jobs. The test for that is the one that
+  matters and it was written against the mistake: folding the roles back together
+  fails it. —
+  [ADR-0248](adr/0248-only-the-inherited-half-is-handed-down.md),
+  [ADR-0142](adr/0142-a-style-handed-down-keeps-its-identity.md)
+- ~~**The rule buckets are only as good as the stylesheet, and nothing enforces
+  that the toolkit's own stay type-first.**~~ **They are enforced, and measuring
+  found the assumption was already half wrong.** 16 of 340 rules named no type,
+  and they were two families rather than a scattering. **Seven were `tour`'s
+  parts** — built from plain `Text` and `Button` widgets carrying a class, so
+  every one *was* matching a known type and simply not saying so; `text.tour-title`
+  matches exactly what `.tour-title` matched and lands in a bucket. Seven rules,
+  one word each, and **no golden moved**, which is the evidence that it changed
+  what the cascade looks at rather than what it finds. The other eight cannot be
+  qualified and should not be: the typography scale is ranks an application puts
+  on whatever it likes, and `:root` is the theme's token layer. `RuleBucketTest`
+  holds those eight as an **exact set** — a threshold is a number somebody
+  raises. —
+  [ADR-0249](adr/0249-a-rule-that-can-name-a-type-does.md),
+  [ADR-0152](adr/0152-the-cascade-looks-at-rules-that-could-match.md)
 - ~~**`--gb-surface-2` has been mistaken for an elevation three times, and it is
   unresolved whether it should keep existing.**~~ **It stays, and the trap is an
   asserted fact now.** The look the entry asked for found **five** readers and

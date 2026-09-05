@@ -2,6 +2,7 @@ package io.github.digitalsmile.goldberry.widget;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -60,6 +61,77 @@ class StyleIdentityTest {
         @Override
         public ComputedStyle restyle(ComputedStyle resolved) {
             return resolved.flexShrink(0);
+        }
+
+        @Override
+        public List<Widget> children() {
+            return children;
+        }
+
+        @Override
+        public Box render(ComputedStyle style, List<Box> children, Context context) {
+            return Box.of().style(style).children(children.toArray(Box[]::new));
+        }
+    }
+
+    /// A widget that moves a **transform** every frame, as a `scroll` does
+    /// mid-gesture — and records the style it was actually handed to paint.
+    ///
+    /// The transform is the property that made the narrowing worth doing: nothing
+    /// inherits it, and comparing whole records meant every node inside a
+    /// scrolling viewport re-resolved for a change no child could see
+    /// ([ADR-0248]).
+    private record Scroller(List<Widget> children, List<ComputedStyle> painted, double[] offset)
+            implements Widget.Leaf, Styled, Paints {
+
+        @Override
+        public String cssType() {
+            return "poisoner";
+        }
+
+        @Override
+        public Set<String> classes() {
+            return Set.of();
+        }
+
+        @Override
+        public ComputedStyle restyle(ComputedStyle resolved) {
+            offset[0] -= 7;
+            return resolved.transform(io.github.digitalsmile.goldberry.css.value.Transform.of(
+                    new io.github.digitalsmile.goldberry.css.value.Transform.Function.Translate(
+                            io.github.digitalsmile.goldberry.css.value.Transform.Length.ZERO,
+                            io.github.digitalsmile.goldberry.css.value.Transform.Length.px(offset[0]))));
+        }
+
+        @Override
+        public List<Widget> children() {
+            return children;
+        }
+
+        @Override
+        public Box render(ComputedStyle style, List<Box> children, Context context) {
+            painted.add(style);
+            return Box.of().style(style).children(children.toArray(Box[]::new));
+        }
+    }
+
+    /// A widget that changes an **inherited** property every frame.
+    private record Recolourer(List<Widget> children, int[] shade) implements Widget.Leaf, Styled, Paints {
+
+        @Override
+        public String cssType() {
+            return "poisoner";
+        }
+
+        @Override
+        public Set<String> classes() {
+            return Set.of();
+        }
+
+        @Override
+        public ComputedStyle restyle(ComputedStyle resolved) {
+            shade[0] += 1;
+            return resolved.color(0xFF000000 | shade[0]);
         }
 
         @Override
@@ -231,5 +303,63 @@ class StyleIdentityTest {
 
         assertNotSame(seen.get(0), seen.get(1));
         assertTrue(seen.get(0).color() != seen.get(1).color(), "and it is a different colour");
+    }
+
+    /// [ADR-0248]: the comparison is on the **inherited half**, not the whole
+    /// record.
+    ///
+    /// A `scroll` moves a transform on every frame of a gesture, and nothing
+    /// inherits a transform — so under `equals` every node inside the viewport
+    /// re-resolved for a change none of them could see. `color` and `typography`
+    /// are the whole of what a child reads from its parent, so two parents that
+    /// agree on those are indistinguishable from below.
+    @Test
+    @DisplayName("a parent whose transform moved still hands down the same instance")
+    void aMovedTransformIsNotInherited() {
+        var seen = new ArrayList<ComputedStyle>();
+        var tree = new ElementTree(new Scroller(List.of(new Recorder(seen)), new ArrayList<>(), new double[1]));
+        var renderer = renderer(font);
+
+        renderer.render(tree);
+        renderer.render(tree);
+
+        assertSame(seen.get(0), seen.get(1), "a transform inherits nothing, so a child had no reason to re-resolve");
+    }
+
+    /// The half that keeps the narrowing honest, and the bug it would have been.
+    /// What `stableStyle` returns is a **cache key for children**; the node still
+    /// has to paint what it actually resolved. Folding the two together would
+    /// have left a scrolling viewport painting last frame's offset for ever.
+    @Test
+    @DisplayName("and paints the transform it actually resolved, which is the trap")
+    void theParentStillPaintsItsOwnTransform() {
+        var painted = new ArrayList<ComputedStyle>();
+        var tree = new ElementTree(new Scroller(List.of(new Recorder(new ArrayList<>())), painted, new double[1]));
+        var renderer = renderer(font);
+
+        renderer.render(tree);
+        renderer.render(tree);
+
+        assertNotEquals(
+                painted.get(0).transform(),
+                painted.get(1).transform(),
+                "the node handed its children a stable instance and then painted with it");
+    }
+
+    /// And the other direction: an inherited property that really moved must
+    /// still invalidate, or the cache is not cold but wrong.
+    @Test
+    @DisplayName("but a parent whose colour moved hands down a new one")
+    void aChangedColourStillInvalidates() {
+        var seen = new ArrayList<ComputedStyle>();
+        var tree = new ElementTree(new Recolourer(List.of(new Recorder(seen)), new int[] {0x10}));
+        var renderer = renderer(font);
+
+        renderer.render(tree);
+        renderer.render(tree);
+
+        assertNotSame(
+                seen.get(0), seen.get(1), "`color` inherits, so a child that kept its style would be drawn wrong");
+        assertNotEquals(seen.get(0).color(), seen.get(1).color());
     }
 }
