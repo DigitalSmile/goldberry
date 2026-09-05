@@ -3,6 +3,8 @@ package io.github.digitalsmile.goldberry.widgets.overlay.tour;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -80,6 +82,86 @@ class TourTest {
     /// than on boxes", and this widget already banks the **window's** rectangle
     /// from the last frame through `Located`: the card is one node further in and
     /// the same door.
+    /// §1.7's overlay curve and §3.1's tour row, which asked for two things and
+    /// got neither: a card that **arrives** rather than appears, and a veil
+    /// cut-out that **travels** between stops ([ADR-0269]).
+    ///
+    /// The entry called this "`TabPhase` again: the enter/exit lifecycle built
+    /// for one widget, wanted by a third". It was not built for one widget — it
+    /// is `widgets.core.Phase` and six families use it — so what was missing was
+    /// a tour using it.
+    @Nested
+    @DisplayName("the arrival and the travel")
+    class Motion {
+
+        private static final List<Stop> TWO =
+                List.of(new Stop("one", "First", "the first"), new Stop("two", "Second", "the second"));
+
+        private static ElementTree tour(StubHost host) {
+            return new ElementTree(new Tour(TWO, host, () -> {}));
+        }
+
+        private static StubHost twoAnchors() {
+            return new StubHost().anchor("one", 10, 10, 80, 24).anchor("two", 300, 200, 120, 40);
+        }
+
+        @Test
+        @DisplayName("a tour asks for frames while its card is arriving")
+        void theArrivalAsksForFrames() {
+            // The assertion `AnimationSweepTest` requires by name, and the one
+            // that matters: a phase nothing asks frames for is painted once at
+            // whatever the loop caught and left there.
+            var stop = stopOf(tour(twoAnchors()));
+
+            assertTrue(stop.isAnimating(), "a tour that just opened is arriving");
+            assertNotNull(stop.arrival());
+        }
+
+        @Test
+        @DisplayName("and the veil does too while the cut-out is travelling")
+        void theVeilAsksForFrames() {
+            var tree = tour(twoAnchors());
+            stopOf(tree).onNext().run();
+            tree.flush();
+
+            var veil = (TourVeil) findWidget(tree.root(), TourVeil.class);
+            assertNotNull(veil);
+            assertTrue(veil.isAnimating(), "the hole is on its way from the first target to the second");
+        }
+
+        @Test
+        @DisplayName("advancing starts a travel, and it starts from where the tour was")
+        void advancingTravelsFromTheOldTarget() {
+            var tree = tour(twoAnchors());
+            var first = stopOf(tree);
+            assertNull(first.travel(), "the first stop has nowhere to have come from");
+
+            first.onNext().run();
+            tree.flush();
+
+            var second = stopOf(tree);
+            assertNotNull(second.travel(), "advancing did not start a travel");
+            assertNotNull(second.cameFrom());
+            assertEquals(10, second.cameFrom().left(), 0.01f, "the first stop's target, not the second's");
+            assertEquals(300, second.target().left(), 0.01f);
+        }
+
+        /// The arrival belongs to the **tour** and not to the stop: advancing
+        /// moves the cut-out, and a card that faded in again at every stop would
+        /// be a sequence that restarts rather than advances.
+        @Test
+        @DisplayName("the card does not fade in again at every stop")
+        void theArrivalIsTheTours() {
+            var tree = tour(twoAnchors());
+            var arrival = stopOf(tree).arrival();
+
+            stopOf(tree).onNext().run();
+            tree.flush();
+
+            assertSame(arrival, stopOf(tree).arrival(), "a second stop is not a second arrival");
+        }
+    }
+
     @Nested
     @DisplayName("the card's height")
     class CardHeight {
@@ -92,6 +174,13 @@ class TourTest {
             var stop = new TourStop(
                     new Stop("one", "First", "the first thing"),
                     target,
+                    // No travel: this is about where a card lands, not about how
+                    // it got there, and a running phase would make the answer
+                    // depend on the clock.
+                    null,
+                    null,
+                    new io.github.digitalsmile.goldberry.widgets.core.Phase(
+                            io.github.digitalsmile.goldberry.widgets.core.Phase.Kind.SETTLED),
                     LogicalRect.of(0, 0, 600, WINDOW),
                     0,
                     3,

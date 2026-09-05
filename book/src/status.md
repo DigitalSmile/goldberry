@@ -6174,6 +6174,47 @@ is the `scroll` box's.
   *built*, and what a tour needs is a walk up from the **target it names**, which
   is a different question and one the tree cannot answer.
 
+### A tour that arrives, and a promotion that had already happened
+
+- **The `TabPhase` entry was describing work done two records earlier**
+  ([ADR-0269](adr/0269-a-tour-arrives-and-its-cut-out-travels.md)). It asked for
+  the lifecycle to be promoted "when the second consumer arrives"; it is
+  `widgets.core.Phase`, moved there by ADR-0166 — whose javadoc says "there was
+  never anything tab-shaped in it" — with the `closing → removed` half extracted
+  into `Departure` by ADR-0234. Six families use one or both, **including `toast`
+  and `dialog`**, which are the two consumers the entry named as wanting it.
+- **So the tour entry's blocker was a door.** "That is `TabPhase` again: the
+  enter/exit lifecycle built for one widget, wanted by a third" — it is not built
+  for one widget, and what was missing was a tour using it. Fifth entry in this
+  section with an expired blocker, and the first where the expiry was hiding a
+  second entry behind it.
+- **Two phases, belonging to different things.** The **arrival** is the tour's —
+  one phase for the whole tour, because a card that faded in again at every stop
+  would be a sequence that restarts rather than advances, and a test asserts the
+  second stop holds the same instance. The **travel** is the cut-out's, restarted
+  on every stop change.
+- **One rectangle, interpolated.** §3.1 asks for the cut-out to "`translate`+size"
+  between stops and both fall out of interpolating a single rect — which is what
+  keeps the ring, the veil's hole and the card agreeing on every frame. Three
+  separate animations over one geometry could only agree by accident.
+- **`beginTravel` runs before the index moves**, because `anchorOf` has to answer
+  the stop being *left* — the rectangle the travel starts from. After the move it
+  banks the destination as the origin and animates nothing.
+- **The scale is deliberately absent.** §3.1's popover row is `opacity`,
+  `translateY` and `scale` "from anchor origin"; `transform-origin` resolves
+  against a box the painter measures, so a card scaling from its own centre reads
+  as a pop rather than an arrival. `popover` has the same gap for the same reason.
+- **`AnimationSweepTest` earned its keep.** It failed twice within a minute of the
+  phase being added: `TourVeil` held a `Phase` and never overrode `isAnimating`,
+  and the tour package had no test naming it. Neither would have shown in an
+  image — which is exactly what that sweep exists for.
+- **The goldens did not move.** `TourGoldenTest` warmed five frames on a *system*
+  clock, which pass in microseconds, so a 160ms arrival would have been
+  photographed at whatever opacity the loop caught — differently on every machine.
+  It has a virtual clock now, advanced past the duration, which is
+  `GalleryGoldenTest`'s answer to the same problem. Both tour images match
+  unchanged.
+
 ### Not started
 
 Client-side decorations, the rest of §4 —

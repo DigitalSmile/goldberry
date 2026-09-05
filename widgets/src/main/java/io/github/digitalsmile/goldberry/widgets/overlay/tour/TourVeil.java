@@ -35,7 +35,57 @@ import io.github.digitalsmile.goldberry.widget.style.Styled;
 /// @param target what to leave uncovered, or null to dim everything
 /// @param window the rectangle to fill — the veil's own, since a band's size is
 ///               stated in pixels and Yoga has no `100%` minus anything
-record TourVeil(@Nullable LogicalRect target, LogicalRect window) implements Widget.Leaf, Styled, Paints {
+record TourVeil(
+        @Nullable LogicalRect target,
+        @Nullable LogicalRect cameFrom,
+        io.github.digitalsmile.goldberry.widgets.core.@Nullable Phase travel,
+        LogicalRect window)
+        implements Widget.Leaf, Styled, Paints {
+
+    /// A veil with nothing to travel from — every caller before §3.1's stop
+    /// change was built ([ADR-0269]).
+    TourVeil(@Nullable LogicalRect target, LogicalRect window) {
+        this(target, null, null, window);
+    }
+
+    /// Where the hole is **right now**, between the stop being left and the one
+    /// being arrived at.
+    ///
+    /// Interpolated here rather than handed in already interpolated, because the
+    /// frame clock reaches a widget in `render` and nowhere else — so the node
+    /// that draws the hole is the only one that can know how far through the
+    /// travel it is. [TourStop] does the same arithmetic for the ring and the
+    /// card, from the same two rectangles and the same phase, which is what keeps
+    /// the three agreeing on every frame ([ADR-0269]).
+    private @Nullable LogicalRect litAt(double now) {
+        if (target == null || travel == null || cameFrom == null) {
+            return target;
+        }
+        var t = travel.progressAt(now);
+        if (t >= 1) {
+            return target;
+        }
+        return LogicalRect.of(
+                lerp(cameFrom.left(), target.left(), t),
+                lerp(cameFrom.top(), target.top(), t),
+                lerp(cameFrom.size().width(), target.size().width(), t),
+                lerp(cameFrom.size().height(), target.size().height(), t));
+    }
+
+    private static float lerp(double from, double to, double t) {
+        return (float) (from + (to - from) * t);
+    }
+
+    /// Frames are owed while the hole is travelling.
+    ///
+    /// `AnimationSweepTest` is what says so: a widget that holds a `Phase` and
+    /// does not answer it is a widget painted once at whatever the loop caught
+    /// and left there. It found this one the moment the veil grew a phase
+    /// ([ADR-0269]).
+    @Override
+    public boolean isAnimating() {
+        return travel != null && travel.isRunning();
+    }
 
     @Override
     public String cssType() {
@@ -59,6 +109,7 @@ record TourVeil(@Nullable LogicalRect target, LogicalRect window) implements Wid
         // is nothing here to read it from (ADR-0121).
         var width = window.size().width();
         var height = window.size().height();
+        var target = litAt(context.nowMillis());
         if (target == null || target.size().width() <= 0 || target.size().height() <= 0) {
             // Nothing to cut around: one band covering everything, and the other
             // three collapsed. A tour between stops looks like a dimmed window

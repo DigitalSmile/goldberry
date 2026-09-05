@@ -205,12 +205,6 @@ the mechanism the sentence named.
   the tour is not the thing being revealed. —
   [ADR-0268](adr/0268-a-tour-card-says-how-tall-it-came-out.md),
   [ADR-0121](adr/0121-a-tour-is-a-veil-and-a-sequence.md)
-- **A tour has no arrival or exit.** §1.7's overlay curve wants one to arrive
-  rather than appear, and stops change instantly — §5's row asks for the veil
-  cut-out to `translate` and resize between stops. That is `TabPhase` again: the
-  enter/exit lifecycle built for one widget, wanted by a third. —
-  [ADR-0121](adr/0121-a-tour-is-a-veil-and-a-sequence.md),
-  [ADR-0109](adr/0109-a-tab-arrives-and-departs-on-the-frame-clock.md)
 
 - **The gallery goldens cannot see typography at all, and the 150% half is now
   waiting on a decision rather than on a mechanism.** `GalleryGoldenTest` builds
@@ -308,11 +302,6 @@ the mechanism the sentence named.
   drag-to-reorder; the model shape would take it without a change, since the strip
   draws the list it is given. —
   [ADR-0107](adr/0107-a-tab-strip-is-a-model-a-header-and-a-panel.md),
-  [ADR-0109](adr/0109-a-tab-arrives-and-departs-on-the-frame-clock.md)
-- **The enter/exit lifecycle is a tab's own, not the toolkit's.** `TabPhase` is what
-  §1.7's "overlay enter/exit lifecycle" asks for, built for one widget: `toast`,
-  `dialog` and `popover` all want the same thing, and promoting it should wait for
-  the second consumer rather than be guessed at from the first. —
   [ADR-0109](adr/0109-a-tab-arrives-and-departs-on-the-frame-clock.md)
 - **`margin` is not in §8's subset**, which `tab-new` found after `border-bottom`
   and `currentColor`. Three properties a widget reached for and did not find, all
@@ -1129,6 +1118,29 @@ out of it is usually worth more than the fact that it is fixed.
   [ADR-0264](adr/0264-a-widget-may-find-the-toast-stack.md),
   [ADR-0140](adr/0140-a-widget-may-reach-its-window.md),
   [ADR-0100](adr/0100-a-window-has-a-layer-above-its-application.md)
+- ~~**The enter/exit lifecycle is a tab's own, not the toolkit's.**~~ ~~**A tour
+  has no arrival or exit.**~~ **The promotion happened two records ago, and the
+  tour uses it now.** The first entry asked for `TabPhase` to be promoted "when
+  the second consumer arrives"; it is `widgets.core.Phase`, moved there by
+  [ADR-0166](adr/0166-a-raised-thing-is-told-apart-by-its-edge.md) — whose own
+  javadoc says "there was never anything tab-shaped in it" — with the
+  `closing → removed` half extracted into `Departure` by
+  [ADR-0234](adr/0234-the-overlay-lifecycle-is-a-departure-and-a-phase.md). Six
+  families use one or both, **including `toast` and `dialog`**, which is to say
+  both of the consumers the entry named as *wanting* it. So the second entry's
+  "that is `TabPhase` again" was pointing at a wall that had been a door for
+  milestones, and what was missing was a `tour` walking through it. It has an
+  arrival now (`opacity` and a 4px rise, §3.1's popover row bar the scale, which
+  `popover` itself also lacks and for the same `transform-origin` reason) and a
+  travelling cut-out (one rectangle interpolated, so the ring, the hole and the
+  card cannot disagree mid-flight). `AnimationSweepTest` caught two real gaps
+  within a minute — a `Phase` on `TourVeil` with no `isAnimating`, and a package
+  with no test naming it — neither of which an image would have shown. **The
+  goldens did not move**: `TourGoldenTest` has a virtual clock now, so the
+  settled tour is the picture it always was. —
+  [ADR-0269](adr/0269-a-tour-arrives-and-its-cut-out-travels.md),
+  [ADR-0166](adr/0166-a-raised-thing-is-told-apart-by-its-edge.md),
+  [ADR-0109](adr/0109-a-tab-arrives-and-departs-on-the-frame-clock.md)
 - ~~**A tour card's height is estimated, not measured.**~~ **It is measured, and
   the mechanism was already in the file.** The entry said measuring "needs the
   measure-then-place machinery ADR-0104 built, which works on *windows* rather

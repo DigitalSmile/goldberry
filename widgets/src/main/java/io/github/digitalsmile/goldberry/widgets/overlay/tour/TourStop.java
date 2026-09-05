@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Set;
 
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
+import io.github.digitalsmile.goldberry.css.value.Transform;
 import io.github.digitalsmile.goldberry.input.event.KeyEvent;
 import io.github.digitalsmile.goldberry.input.handler.Handles;
 import io.github.digitalsmile.goldberry.natives.yoga.Insets;
@@ -20,6 +21,7 @@ import io.github.digitalsmile.goldberry.widget.style.Paints;
 import io.github.digitalsmile.goldberry.widget.style.Styled;
 import io.github.digitalsmile.goldberry.widgets.controls.button.Button;
 import io.github.digitalsmile.goldberry.widgets.core.Column;
+import io.github.digitalsmile.goldberry.widgets.core.Phase;
 import io.github.digitalsmile.goldberry.widgets.core.Row;
 import io.github.digitalsmile.goldberry.widgets.core.Spacer;
 import io.github.digitalsmile.goldberry.widgets.text.Text;
@@ -46,6 +48,9 @@ import io.github.digitalsmile.goldberry.widgets.text.Text;
 record TourStop(
         Stop stop,
         LogicalRect target,
+        LogicalRect cameFrom,
+        Phase travel,
+        Phase arrival,
         LogicalRect window,
         int index,
         int count,
@@ -129,7 +134,7 @@ record TourStop(
         buttons.add(new Button(index + 1 >= count ? "Done" : "Next", onNext)
                 .withAttributes(Attributes.NONE.classes("tour-next")));
         return List.of(
-                new TourVeil(target, window),
+                new TourVeil(target, cameFrom, travel, window),
                 // The lit rectangle gets an edge of its own. Without one the
                 // target is "the part that is not dim", which reads as a hole
                 // rather than as the subject — and where the widget's own
@@ -169,6 +174,75 @@ record TourStop(
         }
     }
 
+    /// Where the cut-out is **right now**: between the stop it is leaving and the
+    /// one it is arriving at, on §3.1's `base`.
+    ///
+    /// §3.1's tour row asks for the cut-out to "`translate`+size" between stops,
+    /// and both halves fall out of interpolating the rectangle: a target that
+    /// moves and changes size does both at once, and doing it as one rectangle is
+    /// what keeps the ring and the veil's hole agreeing with each other on every
+    /// frame.
+    ///
+    /// This is a `Phase` and not a `transition` for the reason [Phase] itself
+    /// gives: a cut-out's rectangle is computed from an anchor the cascade has
+    /// never seen, so there are no two styles to interpolate between
+    /// ([ADR-0269]).
+    private LogicalRect litRectAt(double now) {
+        if (travel == null || cameFrom == null) {
+            return target;
+        }
+        var t = travel.progressAt(now);
+        if (t >= 1) {
+            return target;
+        }
+        return LogicalRect.of(
+                lerp(cameFrom.left(), target.left(), t),
+                lerp(cameFrom.top(), target.top(), t),
+                lerp(cameFrom.size().width(), target.size().width(), t),
+                lerp(cameFrom.size().height(), target.size().height(), t));
+    }
+
+    private static float lerp(double from, double to, double t) {
+        return (float) (from + (to - from) * t);
+    }
+
+    /// §1.7's overlay curve on the card: `opacity` 0→1 with a 4px rise.
+    ///
+    /// §3.1 says a tour's card animates "as `popover`", and that row is
+    /// "`opacity` 0→1, `translateY` −4→0, `scale` 0.98→1 from anchor origin,
+    /// base". Two of the three are here; the **scale** is not, and deliberately —
+    /// `transform-origin` is resolved against a box the painter measures, and a
+    /// card that scaled from its own centre rather than from its anchor would
+    /// read as a pop rather than as an arrival. `popover` itself has the same gap
+    /// and the same reason.
+    ///
+    /// The arrival is the **tour's**, not the stop's: it runs once when the tour
+    /// opens, so advancing does not fade the card in again. What moves between
+    /// stops is the cut-out, which is [#litRectAt].
+    private Box arriving(Box card, double now) {
+        var progress = arrival.progressAt(now);
+        if (progress >= 1) {
+            return card;
+        }
+        return card.opacity(progress)
+                .transform(Transform.of(new Transform.Function.Translate(
+                        Transform.Length.px(0), Transform.Length.px((1 - progress) * -RISE))));
+    }
+
+    /// How far the card rises as it arrives — §3.1's `translateY` −4→0.
+    private static final float RISE = 4;
+
+    /// Frames are owed while either phase is running — the arrival that fades the
+    /// card in, and the travel that moves the cut-out between stops.
+    ///
+    /// Without this the first frame of each would be the only one: nothing else
+    /// in a tour changes, so the loop would go idle mid-animation and leave a
+    /// half-faded card on screen ([ADR-0269]).
+    @Override
+    public boolean isAnimating() {
+        return arrival.isRunning() || (travel != null && travel.isRunning());
+    }
+
     @Override
     public Box render(ComputedStyle style, List<Box> children, Context context) {
         // The window, as the last frame measured this node -- see `located`.
@@ -179,17 +253,22 @@ record TourStop(
         var veil = children.get(0);
         var ring = children.get(1);
         var card = children.get(2);
-        var below = target.top() + target.size().height() + GAP;
+        // Where the cut-out is on this frame. The ring and the card follow it
+        // rather than the destination, so the three move together -- §3.1's
+        // "veil cut-out `translate`+size base" is one rectangle travelling and
+        // not three things arriving separately (ADR-0269).
+        var lit = litRectAt(context.nowMillis());
+        var below = lit.top() + lit.size().height() + GAP;
         // What the card measured last frame, or the estimate on the first —
         // where nothing has been laid out and there is nothing to have measured.
         var card_h = cardHeight > 0 ? (float) cardHeight : ESTIMATED_HEIGHT;
         var fitsBelow = height <= 0 || below + card_h + GAP <= height;
-        var cardTop = fitsBelow ? below : Math.max(GAP, target.top() - card_h - GAP);
+        var cardTop = fitsBelow ? below : Math.max(GAP, lit.top() - card_h - GAP);
         // Centred on the target rather than aligned to its left edge. A stop
         // describing a narrow control had its card start at that control's `x`,
         // which for anything near the left of the window put every card in the
         // same place and made the sequence look as though it were not moving.
-        var cardLeft = target.left() + target.size().width() / 2 - WIDTH / 2;
+        var cardLeft = lit.left() + lit.size().width() / 2 - WIDTH / 2;
         if (width > 0) {
             cardLeft = Math.min(cardLeft, width - WIDTH - GAP);
         }
@@ -208,14 +287,15 @@ record TourStop(
                         veil.position(PositionType.ABSOLUTE).inset(Insets.all(StyleLength.points(0))),
                         ring.position(PositionType.ABSOLUTE)
                                 .inset(new Insets(
-                                        StyleLength.points(target.top() - RING),
+                                        StyleLength.points(lit.top() - RING),
                                         StyleLength.UNDEFINED,
                                         StyleLength.UNDEFINED,
-                                        StyleLength.points(target.left() - RING)))
+                                        StyleLength.points(lit.left() - RING)))
                                 .size(
-                                        StyleLength.points(target.size().width() + RING * 2),
-                                        StyleLength.points(target.size().height() + RING * 2)),
-                        card.position(PositionType.ABSOLUTE)
+                                        StyleLength.points(lit.size().width() + RING * 2),
+                                        StyleLength.points(lit.size().height() + RING * 2)),
+                        arriving(card, context.nowMillis())
+                                .position(PositionType.ABSOLUTE)
                                 // `Insets` is in CSS order -- top, right, bottom, left.
                                 // Left and top the other way round anchors the card by
                                 // its top *and its bottom*, which stretches it down the

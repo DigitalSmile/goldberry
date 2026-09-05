@@ -278,6 +278,7 @@
 - [ADR-0266 A null button is unequal to everything](adr/0266-a-null-button-is-unequal-to-everything.md)
 - [ADR-0267 A text scale scales the text, and not the layout](adr/0267-a-text-scale-scales-the-text-and-not-the-layout.md)
 - [ADR-0268 A tour card says how tall it came out](adr/0268-a-tour-card-says-how-tall-it-came-out.md)
+- [ADR-0269 A tour arrives, and its cut-out travels](adr/0269-a-tour-arrives-and-its-cut-out-travels.md)
 
 ---
 

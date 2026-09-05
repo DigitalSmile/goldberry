@@ -8,6 +8,7 @@ import io.github.digitalsmile.goldberry.render.model.LogicalRect;
 import io.github.digitalsmile.goldberry.widget.BuildContext;
 import io.github.digitalsmile.goldberry.widget.State;
 import io.github.digitalsmile.goldberry.widget.Widget;
+import io.github.digitalsmile.goldberry.widgets.core.Phase;
 
 /// Which stop a [Tour] is showing, and how it moves between them.
 final class TourState extends State<Tour> {
@@ -59,6 +60,9 @@ final class TourState extends State<Tour> {
         return new TourStop(
                 stop,
                 anchor,
+                cameFrom,
+                travel,
+                arrival,
                 window,
                 index,
                 tour.stops().size(),
@@ -114,6 +118,28 @@ final class TourState extends State<Tour> {
                 .orElse(LogicalRect.of(0, 0, 0, 0));
     }
 
+    /// §1.7's overlay curve, for the tour's own arrival: the card fades and
+    /// rises in as a `popover` does, because §3.1 says a tour's card animates
+    /// "as `popover`" and that row is `opacity` 0→1 with `translateY` −4→0
+    /// ([ADR-0269]).
+    ///
+    /// One phase for the whole tour rather than one per stop: a tour arrives
+    /// once, and a card that faded in again at every stop would be a sequence
+    /// that restarts rather than advances.
+    private final Phase arrival = new Phase(Phase.Kind.ENTERING);
+
+    /// Where the previous stop's target was, so the cut-out can travel from it —
+    /// or null on the first stop, which has nowhere to have come from.
+    private @Nullable LogicalRect cameFrom;
+
+    /// §3.1's tour row: "stop change: veil cut-out `translate`+size **base**".
+    ///
+    /// Restarted on every stop change, and null while there is nothing to
+    /// travel. It carries the *geometry* rather than a style, which is why it is
+    /// a `Phase` and not a `transition`: a cut-out's rectangle is computed from
+    /// an anchor the cascade has never seen ([ADR-0269]).
+    private @Nullable Phase travel;
+
     /// How tall the card came out, as the last frame laid it out, or 0 before
     /// there has been one.
     ///
@@ -143,7 +169,20 @@ final class TourState extends State<Tour> {
         setState(() -> window = bounds);
     }
 
+    /// Starts the cut-out travelling from where it is now to wherever the next
+    /// stop's target turns out to be.
+    ///
+    /// Called **before** the index moves, so `anchorOf` still answers the stop
+    /// being left — which is the rectangle the travel has to start from. Doing it
+    /// after would bank the destination as the origin and animate nothing.
+    private void beginTravel() {
+        var leaving = advanceToAFindableStop();
+        cameFrom = leaving == null ? null : anchorOf(leaving);
+        travel = cameFrom == null ? null : new Phase(Phase.Kind.ENTERING);
+    }
+
     private void back() {
+        beginTravel();
         setState(() -> {
             index = Math.max(0, index - 1);
             revealed = false;
@@ -155,6 +194,7 @@ final class TourState extends State<Tour> {
             end();
             return;
         }
+        beginTravel();
         setState(() -> {
             index++;
             revealed = false;

@@ -58,7 +58,18 @@ class TourGoldenTest {
         sheets.add(Stylesheet.resource(CascadeLayer.APPLICATION, Showcase.class, "showcase.css"));
 
         try (var fonts = Fonts.bundled()) {
-            var renderer = new WidgetRenderer(sheets, fonts);
+            // A **virtual** clock, and the tour's arrival is why: §1.7's overlay
+            // curve fades the card in over `Phase.DURATION_MILLIS`, and the five
+            // warm frames below happen in microseconds on a system clock — so
+            // the image would be of a card at whatever opacity the loop caught,
+            // which is a different number on every machine (ADR-0269).
+            //
+            // `GalleryGoldenTest` reaches for the same answer for the same
+            // reason, and 200ms is past the duration there too: everything that
+            // arrives has arrived, and the picture is the settled tour this test
+            // has always been of.
+            var clock = io.github.digitalsmile.goldberry.motion.Clock.virtual();
+            var renderer = new WidgetRenderer(sheets, fonts).clock(clock);
             var screen = new Scrolling();
 
             List<HitTest.Region> regions;
@@ -100,6 +111,11 @@ class TourGoldenTest {
                     render.update(warm.frame(), renderer.render(tree));
                     router.updateRegions(HitTest.capture(render));
                 }
+                // Past the arrival, then one more frame to draw it settled.
+                clock.advance(200);
+                tree.flush();
+                render.update(warm.frame(), renderer.render(tree));
+                router.updateRegions(HitTest.capture(render));
             } finally {
                 warm.end();
             }
