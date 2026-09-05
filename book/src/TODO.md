@@ -79,16 +79,6 @@ the mechanism the sentence named.
   reach in, which nothing has asked for. —
   [ADR-0263](adr/0263-three-numbers-in-one-row-and-nothing-watching.md),
   [ADR-0103](adr/0103-a-popup-is-a-second-tree-in-a-second-window.md)
-- **A widget can reach its window, and the in-window overlay layer is still the
-  application's.** `BuildContext.host()` exists now, because `select` was the
-  second consumer and one is not enough to design an interface against — so a
-  control that must open something for itself can. What that answers is the
-  *popup* half; `Host.overlay` is still the door a `toast` raised from a handler
-  deep in the tree would want, and nothing wraps it in the
-  `Overlay.of(context)`-shaped call that would put a toast up from there without
-  the application's help. Smaller than it was, and the same shape. —
-  [ADR-0100](adr/0100-a-window-has-a-layer-above-its-application.md),
-  [ADR-0140](adr/0140-a-widget-may-reach-its-window.md)
 - **Nothing reports a dropped frame.** The ring behind `hud` records frames that were
   painted, so a frame the platform refused *after* it was painted is in the mean and a
   frame the loop never reached is not. "3 late" needs the pacer's view as well as the
@@ -1085,6 +1075,24 @@ on, which in four cases is the same thing.
 Kept rather than deleted: each is a trap somebody hit, and the reasoning that got
 out of it is usually worth more than the fact that it is fixed.
 
+- ~~**A widget can reach its window, and the in-window overlay layer is still the
+  application's.**~~ **`Toasts.of(context)` is the door, and it is a map.** The
+  entry had already shrunk once — `BuildContext.host()` answered the popup half —
+  and what was left was a `toast` raised from a handler deep in the tree, with
+  every layer above it carrying a callback. `findAncestorState` cannot do it and
+  it is worth knowing why: a toast stack is mounted in the **overlay layer**,
+  which is a *sibling* of the application's root under `window-root` and not an
+  ancestor of anything inside it, so walking up reaches `window-root` and stops.
+  `host()` gives the window and `Toasts.at` is the one place that knows which
+  stack is on it, so the mechanism is a weak map from the first to the second —
+  kept in `:widgets`, because `:core` learning what a toast is would undo the
+  reason `Toasts`, `Menus` and `Dialogs` are three classes there rather than
+  three methods on the window. A general `host.service(Class)` is the shape to
+  reach for **if `Menus` or `Dialogs` ever want the same thing**, which is
+  ADR-0140's own rule about one consumer not being enough. —
+  [ADR-0264](adr/0264-a-widget-may-find-the-toast-stack.md),
+  [ADR-0140](adr/0140-a-widget-may-reach-its-window.md),
+  [ADR-0100](adr/0100-a-window-has-a-layer-above-its-application.md)
 - ~~**A tooltip's 500ms delay is a constant, and the token that would replace it
   cannot be read.**~~ **Both blockers expired, and one was never true.** The
   first — "nothing above the cascade can read a resolved custom property" — is

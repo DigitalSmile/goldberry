@@ -6025,6 +6025,40 @@ is the `scroll` box's.
   way. A general test is the right shape and a markdown parser with opinions;
   per-widget, as `BadgeTest.metrics` does, is what the catalog has been doing.
 
+### The door a toast raised from deep in a tree wanted
+
+- **`Toasts.of(context)`** ([ADR-0264](adr/0264-a-widget-may-find-the-toast-stack.md)),
+  which is the `Overlay.of(context)`-shaped call `TODO.md` asked for by name and
+  the last open half of the overlay-layer entry.
+- **`findAncestorState` cannot do it, and the reason is worth knowing.** A toast
+  stack is mounted in the **overlay layer**, which is a *sibling* of the
+  application's root under `window-root` rather than an ancestor of anything
+  inside it — so walking up from a deep widget reaches `window-root` and stops.
+  The mechanism that answers this shape for `scroll` and `form` is the wrong
+  shape here.
+- **`host()` gives the window and `Toasts.at` knows which stack is on it**, so
+  the whole thing is a map from one to the other. The only real decision was
+  where it lives, and it is **not** on `Host`: `:core` learning what a toast is
+  would undo the reason `Toasts`, `Menus` and `Dialogs` are three classes in
+  `:widgets` rather than three methods on the window. A general
+  `host.service(Class)` is the same problem with the type erased, and one
+  consumer is not enough to design one against — which is ADR-0140's own rule,
+  the one that made `BuildContext.host()` wait for `select`.
+- **Weak on the key**, so a window that goes away takes its entry with it; plain
+  rather than concurrent, for the reason already at the top of that file. Last
+  attachment wins, because handing out a controller whose overlay has stopped
+  drawing is the one answer that is certainly wrong.
+- **Empty is an answer twice**: a tree with no window, which is most unit tests,
+  and a window whose application never attached a stack. Neither is a fault.
+- **Seven tests**, including two windows not seeing each other's stacks. One of
+  them mounts the stack as well as attaching it, because `TestHost.overlay`
+  records rather than builds — a controller registered by `at` alone is still
+  *detached* and swallows what it is shown, which would have made the test pass
+  by asserting nothing.
+- **`Menus` and `Dialogs` are now visibly asymmetric with this**, and neither has
+  been asked for. When one is, the question to answer is whether the three share
+  a mechanism rather than whether to repeat this map.
+
 ### Not started
 
 Client-side decorations, the rest of §4 —

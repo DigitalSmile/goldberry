@@ -273,6 +273,7 @@
 - [ADR-0261 A ring is photographed on both themes](adr/0261-a-ring-is-photographed-on-both-themes.md)
 - [ADR-0262 A delay is a metric, and metrics are tokens](adr/0262-a-delay-is-a-metric-and-metrics-are-tokens.md)
 - [ADR-0263 Three numbers in one row, and nothing watching](adr/0263-three-numbers-in-one-row-and-nothing-watching.md)
+- [ADR-0264 A widget may find the toast stack](adr/0264-a-widget-may-find-the-toast-stack.md)
 
 ---
 
