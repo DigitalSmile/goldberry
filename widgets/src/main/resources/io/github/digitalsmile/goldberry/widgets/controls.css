@@ -49,6 +49,12 @@
      without a selector because `ButtonTest` reads this file for a literal
      hash and takes one as a hard-coded colour.) */
   --gb-scroll-line: 20px;
+  /* How wide a text caret is drawn. One pixel is what every desktop draws; a
+     token because a thicker caret is a real low-vision aid and 13 lists that
+     kind of switch. Read through `Paints.Context.length` (ADR-0251), so it
+     resizes the caret rather than moving it -- which is what a `width` in a
+     stylesheet would have done, since the field sets the caret's box itself. */
+  --gb-caret-width: 1px;
 
   /* §3's preamble: "metrics ship as component-token defaults
      (`--gb-button-height` etc.); app stylesheets may override component tokens,

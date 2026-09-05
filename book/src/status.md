@@ -5567,6 +5567,36 @@ is the `scroll` box's.
   adding the event failed the compile until it was routed — the design working
   rather than an inconvenience.
 
+### The number three places had to agree about
+
+- **`--gb-caret-width` ships**
+  ([ADR-0253](adr/0253-a-caret-is-as-wide-as-the-theme-says.md)), which is the
+  second component-token default to arrive since a widget could read one and the
+  first that was an **accessibility** gap rather than a styling question: a
+  thicker caret is a low-vision aid, and §13 lists that kind of switch.
+- **The entry's diagnosis was right and its phrasing understated it.** A
+  `caret { width: 3px }` is not merely ignored, it is *overwritten* — the caret's
+  box is computed from the shaped paragraph in the same `render` that positions
+  it, so the cascade's answer is replaced rather than consulted. `width` is the
+  wrong spelling for this and a token is the right one; the token was not shipped
+  only because nothing could read one.
+- **Two controls had two copies of the number**, and the second's comment said it
+  was the first's — one constant with a comment where the compiler should be.
+  `widgets.form.Carets` holds it and the token name, both controls read it, and a
+  test asserts they agree.
+- **There is a third consumer, and it is the one that would have made a fat caret
+  wrong.** `TextInputState.laidOut` reserves "the caret's own width of room" so a
+  field does not scroll short of showing it, hard-coded to 1. A three-pixel caret
+  against a one-pixel reserve is a caret clipped at the end of the text — a
+  failure that would have read as a text-rendering bug rather than as an
+  unfinished token. `laidOut` takes the width now, which is free because it is
+  already called from `render`.
+- **Four tests, two of which fail against the old code**, and the tests find the
+  caret **by its width** rather than by counting children — a field's anatomy
+  changes, and an index into it is a test that breaks for an unrelated reason.
+- **`-Werror` caught two dangling doc comments** left behind when the constants
+  moved, which is the check doing its job on a refactor rather than on new code.
+
 ### Not started
 
 Client-side decorations, the rest of §4 —

@@ -27,6 +27,7 @@ import io.github.digitalsmile.goldberry.widget.semantics.Role;
 import io.github.digitalsmile.goldberry.widget.semantics.Semantics;
 import io.github.digitalsmile.goldberry.widget.style.Paints;
 import io.github.digitalsmile.goldberry.widget.style.Styled;
+import io.github.digitalsmile.goldberry.widgets.form.Carets;
 import io.github.digitalsmile.goldberry.widgets.form.parts.Caret;
 import io.github.digitalsmile.goldberry.widgets.form.parts.Highlight;
 import io.github.digitalsmile.goldberry.widgets.form.parts.Value;
@@ -90,11 +91,6 @@ record TextAreaBox(
         Attributes attributes,
         AreaEditor editor)
         implements Widget.Leaf, Styled, Paints, Handles, Measured, Semantics {
-
-    /// How wide the caret is, in logical pixels — `text-input`'s, and for its
-    /// reason: the width is set in the same call that sets the position, so a
-    /// stylesheet that disagreed would move the caret rather than resize it.
-    private static final double CARET_WIDTH = 1;
 
     /// How many lines a wheel notch moves. Three, which is what every scroll view
     /// on every desktop does and what `scroll` itself uses.
@@ -314,11 +310,12 @@ record TextAreaBox(
                         Double.isFinite(width) ? StyleLength.points((float) width) : StyleLength.UNDEFINED,
                         StyleLength.UNDEFINED));
 
-        var caret = caretRect(paragraph, lines, padding, offset, lineHeight);
+        var caretWidth = context.length(Carets.WIDTH_TOKEN, Carets.WIDTH);
+        var caret = caretRect(paragraph, lines, padding, offset, lineHeight, caretWidth);
         boxes.add(children.get(children.size() - 1)
                 .position(PositionType.ABSOLUTE)
                 .inset(leftTop(caret.x(), caret.y()))
-                .size(StyleLength.points((float) CARET_WIDTH), StyleLength.points((float) lineHeight)));
+                .size(StyleLength.points((float) caretWidth), StyleLength.points((float) lineHeight)));
 
         return Box.of()
                 .style(style)
@@ -375,7 +372,12 @@ record TextAreaBox(
     /// the start of the next, and somebody who has just pressed `Right` means the
     /// next.
     private Rect caretRect(
-            Paragraph paragraph, List<TextLine> lines, Insets2 padding, double offset, double lineHeight) {
+            Paragraph paragraph,
+            List<TextLine> lines,
+            Insets2 padding,
+            double offset,
+            double lineHeight,
+            double caretWidth) {
         var at = Math.clamp(edit.caret(), 0, display.length());
         var index = 0;
         for (var i = 0; i < lines.size(); i++) {
@@ -385,7 +387,7 @@ record TextAreaBox(
         }
         var line = lines.isEmpty() ? null : lines.get(index);
         var x = line == null ? 0 : paragraph.widthBetween(line.start(), Math.max(at, line.start()));
-        return new Rect(padding.left() + x, padding.top() + index * lineHeight - offset, CARET_WIDTH);
+        return new Rect(padding.left() + x, padding.top() + index * lineHeight - offset, caretWidth);
     }
 
     private static Insets leftTop(double left, double top) {

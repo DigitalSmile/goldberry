@@ -416,7 +416,7 @@ final class TextInputState extends State<TextInput> implements TextEditor {
     }
 
     @Override
-    public double laidOut(Paragraph shaped, double padding) {
+    public double laidOut(Paragraph shaped, double padding, double caretWidth) {
         paragraph = shaped;
         leftPadding = padding;
 
@@ -432,9 +432,10 @@ final class TextInputState extends State<TextInput> implements TextEditor {
         }
 
         // Move as little as possible: only when the caret has left the window.
-        // A caret at the very end needs its own width of room, or the field
-        // scrolls one pixel short of showing it.
-        var offset = Math.max(scrollOffset, caretAt - room + 1);
+        // A caret at the very end needs **its own width** of room, or the field
+        // scrolls short of showing it -- which was hard-coded to one pixel and is
+        // now whatever `--gb-caret-width` resolved to (ADR-0253).
+        var offset = Math.max(scrollOffset, caretAt - room + caretWidth);
         offset = Math.min(offset, caretAt);
         // And never leave a gap at the end: a field that has been scrolled and
         // then had its text deleted should come back rather than show a blank.

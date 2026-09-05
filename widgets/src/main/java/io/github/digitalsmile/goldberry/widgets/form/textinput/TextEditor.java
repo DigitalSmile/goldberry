@@ -105,7 +105,7 @@ interface TextEditor {
     /// be worked out and the only place the pointer's mapping can be prepared.
     ///
     /// @return how far the content is scrolled left, in logical pixels
-    double laidOut(Paragraph paragraph, double leftPadding);
+    double laidOut(Paragraph paragraph, double leftPadding, double caretWidth);
 
     /// `Ctrl+C`. @return whether there was a selection this field would let out
     boolean copy();

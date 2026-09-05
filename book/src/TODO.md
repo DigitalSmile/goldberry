@@ -192,11 +192,6 @@ the mechanism the sentence named.
   meaningless for the kind in hand answers with a default rather than refusing,
   which is right for `dragX`'s `NaN` and quietly wrong for a null `button`. —
   [ADR-0168](adr/0168-a-field-is-a-well-and-a-drag-is-a-selection.md)
-- **`--gb-caret-width` is not a token and the caret is one logical pixel.** The
-  width is set in the same call that sets the caret's position, so a stylesheet
-  that disagreed would move it rather than resize it. A theme that wants a fat
-  caret is a design-system decision and a token, which is Principle 3's order. —
-  [ADR-0167](adr/0167-a-field-owns-its-caret-and-the-model-is-told.md)
 
 - **There is no third text rank, and one was invented and taken back out.** A
   tour's step counter wanted something quieter than `--gb-text-muted`;
@@ -1143,6 +1138,24 @@ on, which in four cases is the same thing.
 Kept rather than deleted: each is a trap somebody hit, and the reasoning that got
 out of it is usually worth more than the fact that it is fixed.
 
+- ~~**`--gb-caret-width` is not a token and the caret is one logical pixel.**~~
+  **It is a token now, and it was an accessibility gap rather than a styling
+  question.** The entry's diagnosis was right — a `caret { width: 3px }` is
+  *overwritten* rather than honoured, because the caret's box is set after the
+  cascade — and the token was not shipped only because nothing could read one,
+  which [ADR-0251](adr/0251-a-widget-may-read-a-token-and-a-nested-scroller-is-named.md)
+  changed. A thicker caret is a **low-vision aid**, which is why §13 lists that
+  kind of switch. Two things the entry did not mention. `text-input` and
+  `text-area` each had their own `CARET_WIDTH = 1`, the second's comment saying
+  it was the first's — one constant in `widgets.form.Carets` now, with a test
+  that says they agree. And there is a **third** consumer:
+  `TextInputState.laidOut` reserves "the caret's own width of room" so a field
+  does not scroll short of showing it, hard-coded to 1 — a three-pixel caret
+  against a one-pixel reserve is a caret clipped at the end of the text, which is
+  the failure that would have looked like a text-rendering bug. —
+  [ADR-0253](adr/0253-a-caret-is-as-wide-as-the-theme-says.md),
+  [ADR-0251](adr/0251-a-widget-may-read-a-token-and-a-nested-scroller-is-named.md),
+  [ADR-0167](adr/0167-a-field-owns-its-caret-and-the-model-is-told.md)
 - ~~**A window's maximized state is write-once and cannot be read back.**~~
   **All three are built, and the question the entry left open has an answer that
   follows from what maximizing is.** `Window.maximize()`, `restore()` and

@@ -262,6 +262,7 @@
 - [ADR-0250 A stack is one child in flow and the rest over it](adr/0250-a-stack-is-one-child-in-flow.md)
 - [ADR-0251 A widget may read a token, and a nested scroller is named](adr/0251-a-widget-may-read-a-token-and-a-nested-scroller-is-named.md)
 - [ADR-0252 A window is maximized when the platform says so](adr/0252-a-window-is-maximized-when-the-platform-says-so.md)
+- [ADR-0253 A caret is as wide as the theme says](adr/0253-a-caret-is-as-wide-as-the-theme-says.md)
 
 ---
 

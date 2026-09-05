@@ -87,17 +87,6 @@ record TextField(
                 io.github.digitalsmile.goldberry.input.handler.Located,
                 Semantics {
 
-    /// How wide the caret is, in logical pixels.
-    ///
-    /// In Java rather than in a stylesheet for
-    /// [io.github.digitalsmile.goldberry.Overlay#WINDOW_MARGIN]'s
-    /// reason: §8's subset gives a node its width through `width`, and this node's
-    /// width is set here in the same call that sets its position — a stylesheet
-    /// that disagreed would move the caret rather than resize it. One pixel is
-    /// what every desktop draws; a theme that wants a fat caret is a
-    /// `--gb-caret-width` token and a design-system decision (Principle 3).
-    private static final double CARET_WIDTH = 1;
-
     /// Where the frame put this, handed straight to the state — which uses it
     /// only to anchor a popover, so [io.github.digitalsmile.goldberry.input.handler.Located]'s
     /// rule that a widget told where it is must not move itself holds trivially.
@@ -280,7 +269,14 @@ record TextField(
         // shape anything for itself. The same move `scroll` makes with the clock:
         // render is the only place a widget is handed what it needs to measure.
         var padding = leftPadding(style);
-        var offset = editor.laidOut(paragraph, padding);
+        // Read once and used three times: the caret's box, the room the scroll
+        // offset must leave for it, and nothing else. A caret three pixels wide
+        // whose field reserved one would be clipped at the end of the text
+        // (ADR-0253).
+        var caretWidth = context.length(
+                io.github.digitalsmile.goldberry.widgets.form.Carets.WIDTH_TOKEN,
+                io.github.digitalsmile.goldberry.widgets.form.Carets.WIDTH);
+        var offset = editor.laidOut(paragraph, padding, caretWidth);
 
         // Every child's `left` carries the padding, because an absolutely
         // positioned box here is placed against the **border** box while the clip
@@ -328,7 +324,7 @@ record TextField(
                 .inset(new Insets(
                         StyleLength.UNDEFINED, StyleLength.UNDEFINED, StyleLength.UNDEFINED, StyleLength.points((float)
                                 (padding + paragraph.widthBetween(0, clamp(edit.caret(), length)) - offset))))
-                .size(StyleLength.points((float) CARET_WIDTH), line);
+                .size(StyleLength.points((float) caretWidth), line);
 
         return Box.of()
                 .style(style)
