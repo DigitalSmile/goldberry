@@ -91,6 +91,27 @@ public interface BuildContext {
     ///                 percentage, or when nothing has styled this tree
     double token(String name, double fallback);
 
+    /// A **duration** custom property, in milliseconds.
+    ///
+    /// [#token]'s sibling, and it exists for the same reason with a different
+    /// unit: §3 pins component metrics as token defaults, and some of those
+    /// metrics are **times** rather than lengths — `tooltip`'s row says "delay
+    /// 500ms show / 100ms move-between" in as many words.
+    ///
+    /// It is a third accessor rather than a general one for
+    /// `Paints.Context.length`'s stated reason: lengths, colours and now
+    /// durations are values *the cascade already parses*, and a general token
+    /// reader would invite a caller to reimplement the parser. `ms` and `s` are
+    /// accepted and a bare number is refused, because that is what
+    /// [io.github.digitalsmile.goldberry.css.ComputedStyle#durationMillis] does
+    /// for `transition` and one syntax should not have two readers
+    /// ([ADR-0262]).
+    ///
+    /// @param name           the custom property, `--gb-` and all
+    /// @param fallbackMillis what to answer when nothing defines it, or defines
+    ///                       it as something that is not a duration
+    double duration(String name, double fallbackMillis);
+
     /// The depth of this element from the root. Mostly for diagnostics.
     int depth();
 }

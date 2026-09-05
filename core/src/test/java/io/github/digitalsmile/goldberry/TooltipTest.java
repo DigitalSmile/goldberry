@@ -69,14 +69,48 @@ class TooltipTest {
         }
     }
 
+    /// Two [Target]s side by side, so the pointer can move **between** two
+    /// tooltipped nodes — which is the case §3's second number is about and the
+    /// one a single full-window target cannot produce.
+    private record Pair(Widget left, Widget right) implements Widget.Leaf, Styled, Paints {
+
+        @Override
+        public String cssType() {
+            return "pair";
+        }
+
+        @Override
+        public List<Widget> children() {
+            return List.of(left, right);
+        }
+
+        @Override
+        public Box render(ComputedStyle style, List<Box> children, Context context) {
+            return Box.of()
+                    .style(style)
+                    .grow(1)
+                    .direction(io.github.digitalsmile.goldberry.natives.yoga.style.FlexDirection.ROW)
+                    .children(children.toArray(Box[]::new));
+        }
+    }
+
     private static final class TestApp implements Application {
 
         private final Widget root;
         private final java.util.function.Consumer<Host> onStart;
 
+        /// Rules the test adds on top of the two below — how a token that only
+        /// exists in a stylesheet gets in front of the launcher.
+        private final String extraCss;
+
         TestApp(Widget root, java.util.function.Consumer<Host> onStart) {
+            this(root, onStart, "");
+        }
+
+        TestApp(Widget root, java.util.function.Consumer<Host> onStart, String extraCss) {
             this.root = root;
             this.onStart = onStart;
+            this.extraCss = extraCss;
         }
 
         @Override
@@ -99,7 +133,7 @@ class TooltipTest {
             return List.of(Stylesheet.parse(CascadeLayer.APPLICATION, """
                     target  { background: #204060; cursor: pointer }
                     tooltip { padding: 4px; background: #1c212a; color: #eceff4 }
-                    """));
+                    """ + extraCss));
         }
     }
 
@@ -252,5 +286,104 @@ class TooltipTest {
             backend.post(new BackendEvent.PointerMoved(ownerWindow(), 50, 50, 0));
             then.run();
         });
+    }
+
+    /// **A stylesheet can change the delay**, which §3's `tooltip` row has always
+    /// pinned and nothing could read: "delay 500ms show / 100ms move-between".
+    ///
+    /// The entry that asked for this called it blocked twice over — "nothing
+    /// above the cascade can read a resolved custom property", and whether the
+    /// design system should carry a duration that is not motion. Both expired:
+    /// `BuildContext.duration` reads one, and §3 had carried the number all
+    /// along ([ADR-0262]).
+    ///
+    /// Asserted at **60ms against a default of 500**, and read at 250 — a window
+    /// where the token's answer is open and the default's is not, so the test
+    /// fails against the old code rather than merely passing against the new.
+    @Test
+    @Timeout(20)
+    @DisplayName("a stylesheet may set the delay, and the launcher honours it")
+    void theDelayIsAToken() {
+        var shown = new boolean[1];
+        Goldberry.launch(new TestApp(
+                new Target(Attributes.NONE.tooltip("Save")).id("target"),
+                host -> hoverAfterTheFirstFrame(() -> later(250, () -> {
+                    shown[0] = tooltipWindow().isPresent();
+                    Goldberry.stop();
+                })),
+                "\ntarget { --gb-tooltip-delay: 60ms }\n"));
+
+        assertTrue(shown[0], "250ms is past a 60ms token and short of the 500ms default");
+    }
+
+    /// A token that is **not a duration** leaves the default alone.
+    ///
+    /// `ComputedStyle.durationMillis` is the one parser, so `--gb-tooltip-delay:
+    /// 60px` is refused here for the reason `transition: color 200` is refused
+    /// there — guessing the unit would make the one stylesheet that meant
+    /// something else silently wrong.
+    @Test
+    @Timeout(20)
+    @DisplayName("and a token that is not a duration is ignored rather than guessed at")
+    void aLengthIsNotADelay() {
+        var shown = new boolean[1];
+        Goldberry.launch(new TestApp(
+                new Target(Attributes.NONE.tooltip("Save")).id("target"),
+                host -> hoverAfterTheFirstFrame(() -> later(250, () -> {
+                    shown[0] = tooltipWindow().isPresent();
+                    Goldberry.stop();
+                })),
+                "\ntarget { --gb-tooltip-delay: 60px }\n"));
+
+        assertFalse(shown[0], "a length is not a delay, so the 500ms default should still be waiting");
+    }
+
+    /// **§3's second number, which had never been built.** The `tooltip` row says
+    /// "delay 500ms show / **100ms move-between**", and every move scheduled the
+    /// full 500 — so a user reading along a toolbar was served the whole sentence
+    /// of hover intent again at every button.
+    ///
+    /// The window is the assertion: the pointer moves to the second target and
+    /// the tooltip is read **250ms** later, which is past the 100ms move delay
+    /// and short of the 500ms first-hover one. It fails against the old code
+    /// ([ADR-0262]).
+    @Test
+    @Timeout(20)
+    @DisplayName("moving from one tooltip to another waits §3's shorter delay")
+    void movingBetweenTooltipsIsQuicker() {
+        var shown = new boolean[1];
+        Goldberry.launch(new TestApp(
+                new Pair(
+                        new Target(Attributes.NONE.tooltip("The first")).id("first"),
+                        new Target(Attributes.NONE.tooltip("The second")).id("second")),
+                host -> hoverAfterTheFirstFrame(() -> later(900, () -> {
+                    // The first tooltip is up by now -- 900ms is past its 500.
+                    backend.post(new BackendEvent.PointerMoved(ownerWindow(), 350, 50, 0));
+                    later(250, () -> {
+                        shown[0] = tooltipWindow().isPresent();
+                        Goldberry.stop();
+                    });
+                }))));
+
+        assertTrue(shown[0], "250ms is past §3's 100ms move-between and short of its 500ms first hover");
+    }
+
+    /// And the first of the two still waits the full delay, so the shorter one is
+    /// a statement about *moving between* rather than a faster tooltip.
+    @Test
+    @Timeout(20)
+    @DisplayName("but the first tooltip in a row still waits the full one")
+    void theFirstStillWaits() {
+        var shown = new boolean[1];
+        Goldberry.launch(new TestApp(
+                new Pair(
+                        new Target(Attributes.NONE.tooltip("The first")).id("first"),
+                        new Target(Attributes.NONE.tooltip("The second")).id("second")),
+                host -> hoverAfterTheFirstFrame(() -> later(250, () -> {
+                    shown[0] = tooltipWindow().isPresent();
+                    Goldberry.stop();
+                }))));
+
+        assertFalse(shown[0], "nothing was showing to move between, so this is a first hover");
     }
 }

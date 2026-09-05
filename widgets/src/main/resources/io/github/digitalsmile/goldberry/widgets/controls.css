@@ -41,6 +41,20 @@
   --gb-density: regular;
   --gb-control-height: 32px;
   --gb-list-row-height: 32px;
+  /* §3's `tooltip` row, which is two numbers and not one: "delay 500ms show /
+     100ms move-between". The second is what makes a row of toolbar buttons
+     readable — having decided to read one tooltip, a user reading the next
+     should not be served the full sentence of hover intent again — and it had
+     never been built.
+
+     Durations rather than lengths, which is what `BuildContext.duration` is
+     for: a component metric measured in milliseconds is still a component
+     metric, and §3 says those ship as token defaults. The launcher carries the
+     same two numbers as fallbacks, because `:core` must not need the catalog to
+     exist -- `--gb-list-row-height` above has exactly that arrangement
+     (ADR-0262). */
+  --gb-tooltip-delay: 500ms;
+  --gb-tooltip-delay-move: 100ms;
   /* How far one wheel line moves a `scroll`. Three of these is the conventional
      notch — around 60px, which is what every other application on the machine
      does. A token rather than a constant since ADR-0251: it is read through

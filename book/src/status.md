@@ -5953,6 +5953,41 @@ is the `scroll` box's.
   would pass, which is the case where a theme swap changed nothing — and that is
   what `ContrastTest` is for. The pair is the coverage; either alone is not.
 
+### A delay that was a constant, and a number nobody had built
+
+- **A tooltip's delay is a token now**
+  ([ADR-0262](adr/0262-a-delay-is-a-metric-and-metrics-are-tokens.md)), and both
+  of the entry's blockers had expired — one of them without ever being true.
+- **The first was real and is gone.** "Nothing above the cascade can read a
+  resolved custom property" was answered by `BuildContext.token`, and the
+  launcher holds an `Element`, which *is* a `BuildContext`.
+- **The second was answered before it was asked.** The entry wondered whether the
+  design system should carry a duration that is not motion; `design-system.md`
+  §3's `tooltip` row says "delay 500ms show / 100ms move-between" in as many
+  words. §7 does not say how long, which is what the entry had read, and §3 does.
+- **So the code had built one of §3's two numbers and not the other.**
+  `pointingChanged` scheduled the full 500ms for every target, including one
+  reached from a tooltip that was already showing — so a user reading along a
+  toolbar was served the whole sentence of hover intent at every button. A
+  specified behaviour that was never built, hiding inside an entry about tokens.
+- **`BuildContext.duration` is `token`'s sibling**, and a third accessor rather
+  than a general one for `Paints.Context.length`'s stated reason: lengths, colours
+  and now durations are values the cascade already parses, and a general reader
+  would invite a caller to reimplement the parser. It calls
+  `ComputedStyle.durationMillis` — the `ms`/`s` reader `transition` has always
+  used, made public rather than written a second time, because two parsers for
+  one syntax disagree the day either grows a unit.
+- **The delay is read off the target**, not off the window, which is the only
+  reading that lets a panel set it for what is inside it rather than being a
+  global setting wearing a token's clothes.
+- **`moving` is read before the hide**, because the hide is what makes it false.
+  A test asserts the *first* tooltip in a row still waits the full delay, so the
+  shorter number stays a statement about moving between rather than a faster
+  tooltip.
+- **Four tests**, and the move-between one fails against the old constant —
+  checked by putting 500 back. `TooltipTest` grew a two-target scene, because the
+  case §3's second number is about cannot be produced by one full-window node.
+
 ### Not started
 
 Client-side decorations, the rest of §4 —

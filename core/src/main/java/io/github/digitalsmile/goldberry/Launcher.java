@@ -602,13 +602,41 @@ final class Launcher implements Host {
 
     // --- tooltips -----------------------------------------------------------
 
-    /// How long the pointer has to rest on something before its tooltip appears.
+    /// How long the pointer has to rest on something before its tooltip appears,
+    /// when no stylesheet says otherwise.
     ///
     /// Long enough not to fire while the pointer is crossing a toolbar on its way
     /// somewhere, short enough that someone who stopped to read is not left
     /// waiting. `docs/core-widgets.md` §7 says "after delay" and does not say how
-    /// long; this is the figure the desktop conventions agree on.
-    private static final java.time.Duration TOOLTIP_DELAY = java.time.Duration.ofMillis(500);
+    /// long; `design-system.md` §3's `tooltip` row does, and this is that number
+    /// as the **fallback** rather than as the figure.
+    ///
+    /// The token is [#TOOLTIP_DELAY_TOKEN] and it ships in `controls.css`, which
+    /// is `:widgets`' — the same arrangement `--gb-list-row-height` has, and for
+    /// the same reason: a `:core` default must not need the catalog to exist
+    /// ([ADR-0262]).
+    private static final double TOOLTIP_DELAY_MS = 500;
+
+    /// How long a tooltip waits when one is **already showing** and the pointer
+    /// has moved to a different node.
+    ///
+    /// §3's row is two numbers — "delay 500ms show / 100ms move-between" — and
+    /// only the first had ever been built. The second is what makes a row of
+    /// toolbar buttons readable: having decided to read one tooltip, a user
+    /// reading the next should not serve the full sentence of hover intent
+    /// again. §3.1 gives the same move "instant reposition, never slides", which
+    /// is the drawing half of the same sentence.
+    private static final double TOOLTIP_MOVE_DELAY_MS = 100;
+
+    /// §3's `tooltip` row, as component-token defaults.
+    ///
+    /// Durations rather than lengths, which is what
+    /// [io.github.digitalsmile.goldberry.widget.BuildContext#duration] is for: a
+    /// component metric measured in milliseconds is still a component metric, and
+    /// §3 says those ship as tokens.
+    private static final String TOOLTIP_DELAY_TOKEN = "--gb-tooltip-delay";
+
+    private static final String TOOLTIP_MOVE_DELAY_TOKEN = "--gb-tooltip-delay-move";
 
     /// The tooltip that is showing, or null.
     private Popup tooltip;
@@ -653,6 +681,10 @@ final class Launcher implements Host {
         if (target == tooltipOwner) {
             return;
         }
+        // Read **before** the hide, because the hide is what makes it false: §3's
+        // shorter delay is for moving *between* tooltips, and by the time the old
+        // one has been closed there is no longer any evidence that there was one.
+        var moving = tooltip != null;
         hideTooltip();
         tooltipOwner = target;
         if (target == null) {
@@ -661,7 +693,28 @@ final class Launcher implements Host {
         // A fresh delay per node, cancelled by the next move. The pointer
         // crossing five buttons on its way to a sixth schedules five timers and
         // fires none of them.
-        tooltipTimer = after(TOOLTIP_DELAY, this::showTooltip);
+        tooltipTimer = after(tooltipDelay(target, moving), this::showTooltip);
+    }
+
+    /// §3's `tooltip` row, resolved against the node the tooltip is for.
+    ///
+    /// Asked of the **target** rather than of the window, so a panel may set the
+    /// token for what is inside it — which is what a custom property inheriting
+    /// down the tree already means, and is the only reading that does not make
+    /// this a global setting wearing a token's clothes.
+    ///
+    /// A tooltip already showing takes the shorter of the two. The full delay is
+    /// hover *intent* — the question "did you mean to stop here?" — and a user
+    /// who is reading tooltips has already answered it.
+    private java.time.Duration tooltipDelay(io.github.digitalsmile.goldberry.widget.Element target, boolean moving) {
+
+        var millis = moving
+                ? target.duration(TOOLTIP_MOVE_DELAY_TOKEN, TOOLTIP_MOVE_DELAY_MS)
+                : target.duration(TOOLTIP_DELAY_TOKEN, TOOLTIP_DELAY_MS);
+        // Clamped at zero rather than refused: a negative delay is a stylesheet
+        // being wrong about something that cannot fail, and "show it at once" is
+        // the only reading of it that draws anything.
+        return java.time.Duration.ofMillis((long) Math.max(0, millis));
     }
 
     /// The node whose tooltip should show: what the pointer is on, or — when the

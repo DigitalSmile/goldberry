@@ -1651,6 +1651,24 @@ public record ComputedStyle(
         return java.util.Optional.of(new Transitions(parsed));
     }
 
+    /// The milliseconds a duration value says, or empty when it is not one.
+    ///
+    /// [#milliseconds]'s public face, and it exists for the reason
+    /// [#applies] does: something above the cascade has a question only the
+    /// cascade's own parser can answer honestly. Here it is a **duration custom
+    /// property** — `--gb-tooltip-delay: 500ms` — read by the launcher, which
+    /// schedules a timer and has no `ComputedStyle` to read it off
+    /// ([ADR-0262]).
+    ///
+    /// Reusing this rather than writing a second `ms`/`s` reader is the whole
+    /// point: two parsers for one syntax disagree the day either grows a unit,
+    /// and this one already refuses a bare `200` for a stated reason.
+    public static java.util.OptionalDouble durationMillis(List<Token> value) {
+        Objects.requireNonNull(value, "value");
+        var parsed = milliseconds(value);
+        return parsed == null ? java.util.OptionalDouble.empty() : java.util.OptionalDouble.of(parsed);
+    }
+
     /// A time in `ms` or `s`, as milliseconds.
     ///
     /// Unitless zero is accepted, because `0` has no duration to be wrong about

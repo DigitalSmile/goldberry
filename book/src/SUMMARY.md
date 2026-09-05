@@ -271,6 +271,7 @@
 - [ADR-0259 A badge with one digit is a circle](adr/0259-a-badge-with-one-digit-is-a-circle.md)
 - [ADR-0260 A name is an attribute every widget has](adr/0260-a-name-is-an-attribute-every-widget-has.md)
 - [ADR-0261 A ring is photographed on both themes](adr/0261-a-ring-is-photographed-on-both-themes.md)
+- [ADR-0262 A delay is a metric, and metrics are tokens](adr/0262-a-delay-is-a-metric-and-metrics-are-tokens.md)
 
 ---
 

@@ -525,6 +525,23 @@ public final class Element implements BuildContext, StyleElement {
                 : fallback;
     }
 
+    /// [BuildContext#duration]'s implementation — [#token]'s, with the cascade's
+    /// own duration parser where its length parser is.
+    @Override
+    public double duration(String name, double fallbackMillis) {
+        java.util.Objects.requireNonNull(name, "name");
+        var resolver = tree.styleResolver();
+        if (resolver == null) {
+            return fallbackMillis;
+        }
+        var resolved = resolver.customProperty(this, name);
+        if (resolved == null) {
+            return fallbackMillis;
+        }
+        return io.github.digitalsmile.goldberry.css.ComputedStyle.durationMillis(resolved)
+                .orElse(fallbackMillis);
+    }
+
     @Override
     public int depth() {
         var depth = 0;

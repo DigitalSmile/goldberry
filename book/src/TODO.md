@@ -40,18 +40,6 @@ the mechanism the sentence named.
   from the catalog. —
   [ADR-0225](adr/0225-a-toast-says-it-is-worth-interrupting-for.md),
   [ADR-0177](adr/0177-a-toast-is-a-queue-and-the-stack-is-the-widget.md)
-- **A tooltip's 500ms delay is a constant, and the token that would replace it
-  cannot be read.** The other three halves of this entry have moved to
-  [Answered](#answered): plain text, no maximum width of its own and not
-  following the pointer are what §7 specifies for v1, so they are boundaries
-  rather than gaps. What is left is the delay. §7 says "after delay" and does not
-  say how long, so 500ms is the toolkit's number and an application cannot change
-  it — and the obvious shape for one, a `--gb-tooltip-delay` custom property, is
-  blocked twice over: nothing above the cascade can read a resolved custom
-  property (see [Layout](#layout)), and a delay is not a paint, so whether the
-  design system should carry durations that are not motion is a question for it
-  rather than for this. —
-  [ADR-0105](adr/0105-a-tooltip-is-an-attribute-not-a-widget.md)
 - **A window that *moves* does not re-clamp its popups, and a scrolling anchor
   does not drag one.** The **resize** half is built — a popup remembers how it was
   placed and is put back after the paint that follows a resize, following its
@@ -1089,6 +1077,24 @@ on, which in four cases is the same thing.
 Kept rather than deleted: each is a trap somebody hit, and the reasoning that got
 out of it is usually worth more than the fact that it is fixed.
 
+- ~~**A tooltip's 500ms delay is a constant, and the token that would replace it
+  cannot be read.**~~ **Both blockers expired, and one was never true.** The
+  first — "nothing above the cascade can read a resolved custom property" — is
+  `BuildContext.token`
+  ([ADR-0254](adr/0254-a-build-may-ask-the-cascade-for-a-number.md)), and the
+  launcher holds an `Element`, which *is* a `BuildContext`. The second asked
+  whether the design system should carry a duration that is not motion, and
+  `design-system.md` §3's `tooltip` row had already answered: **"delay 500ms show
+  / 100ms move-between"**. So the question was settled before it was asked — and
+  the code had built the first number as a constant and **the second not at
+  all**, so a user reading along a toolbar was served the full sentence of hover
+  intent at every button. That is a specified behaviour that was never built,
+  hiding inside an entry about tokens. `BuildContext.duration` is `token`'s
+  sibling with the cascade's own `ms`/`s` parser where its length parser is —
+  made public rather than written twice, because two readers for one syntax
+  disagree the day either grows a unit. —
+  [ADR-0262](adr/0262-a-delay-is-a-metric-and-metrics-are-tokens.md),
+  [ADR-0105](adr/0105-a-tooltip-is-an-attribute-not-a-widget.md)
 - ~~**A focus ring is only ever pictured on the dark theme, apart from one.**~~
   **There is a rule now, and it is a test.** The entry asked for "a rule about
   which states are worth a second theme rather than one more image", and the rule
