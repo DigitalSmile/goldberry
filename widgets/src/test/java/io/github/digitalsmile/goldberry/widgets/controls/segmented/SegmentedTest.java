@@ -730,6 +730,25 @@ class SegmentedTest {
             assertNull(Transitions.Animatable.parse("width"));
         }
 
+        /// **A label longer than 1/n of the bar is cut**, which is what this
+        /// control's own comment said it could not do.
+        ///
+        /// The cells are equal by construction — `SegmentedTrack` sizes them,
+        /// because no selector can count segments (ADR-0099) — so a label wider
+        /// than its cell is the ordinary case rather than an edge one. It used to
+        /// overflow, and not because nothing clips: a box with text is a measured
+        /// leaf, so narrowing it re-measured the paragraph and **wrapped** it,
+        /// which is what ADR-0235 spent a record establishing. `white-space` is
+        /// what stops the re-measure ([ADR-0255]).
+        @Test
+        @DisplayName("a segment's label is one line, cut where it does not fit")
+        void labelsAreCutRatherThanWrapped() {
+            var option = styleOf("option");
+
+            assertFalse(option.whiteSpace().wraps(), "a wrapped label in an equal-width cell is two lines in one");
+            assertTrue(option.textFlow().ellipsises(), "and the cut says it happened");
+        }
+
         // ------------------------------------------------------------ helpers
 
         private static ComputedStyle styleOf(String type, Selector.PseudoClass... states) {

@@ -290,7 +290,13 @@ public record Option(
             content.add(Box.icon(icon, style.color()));
         }
         if (!label.isEmpty()) {
-            content.add(Box.text(context.paragraph(style, label), style.color()));
+            // The flow off this node's own style, because the label is an
+            // anonymous child box that `style` never reaches -- the same move a
+            // menu row makes for the same reason. It is what lets the stylesheet
+            // say `option { white-space: nowrap; text-overflow: ellipsis }` and
+            // have a segment's label cut at its cell rather than wrap inside it
+            // (ADR-0255).
+            content.add(Box.text(context.paragraph(style, label), style.color(), style.textFlow()));
         }
         return Box.of().style(style).children(content.toArray(Box[]::new));
     }

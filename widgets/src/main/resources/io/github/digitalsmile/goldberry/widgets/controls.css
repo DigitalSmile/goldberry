@@ -916,11 +916,22 @@ slider-tick {
 
    It is left-aligned because §8's subset has no `text-align` (ARCHITECTURE
    §8.1), which is the one thing here that is a gap rather than a decision. */
+/* The readout, at a fixed width so the track does not move as the digits change
+   (ADR-0080) — and **aligned to the trailing edge**, which is what a fixed width
+   is for. A column of numbers beside a row of faders lines up on its units
+   column, and a left-aligned one in a 40px box lines up on nothing: `9` and `10`
+   start in the same place and end two pixels apart.
+
+   §8 has listed `text-align` from the start and §8's own note said `Box` could
+   not express it. That was true of `Box` and never true of the paragraph, which
+   has always known how wide its lines are — so the paint places them and `Box`
+   is untouched (ADR-0256). `end` rather than `right`, for ADR-0247's reason. */
 slider-value {
   width: 40px;
   font-size: var(--gb-font-caption);
   line-height: var(--gb-line-caption);
   color: var(--gb-text-muted);
+  text-align: end;
 }
 
 /* `slider.vertical` is §3's `fader`, and it is a class for the reason
@@ -1419,15 +1430,21 @@ segmented-indicator {
  * says everything else about them. A row of content-sized cells is a row an
  * indicator cannot travel along without measuring each one (ADR-0099).
  *
- * The cost is that a label longer than its cell overflows it. **Not because
- * nothing clips** — `overflow: hidden` has shipped since ADR-0114, and this
- * comment used to say otherwise. Clipping needs the label to keep its natural
- * width inside a box that does not, and a box with text is a *measured* leaf: it
- * is measured again at the narrower width and wraps. `white-space: nowrap` is the
- * missing property, not `text-overflow` (ADR-0235). */
+ * A label longer than its cell is **cut with an ellipsis**, which took two
+ * properties and three failed attempts to arrive at. `overflow: hidden` alone
+ * cannot do it: clipping needs the label to keep its natural width inside a box
+ * that does not, and a box with text is a *measured* leaf, so narrowing it
+ * measures the paragraph again and wraps it. `white-space: nowrap` is what stops
+ * the re-measure and `text-overflow` is what marks the cut — in that order, which
+ * is the order ADR-0235 found by trying the other one (ADR-0255). */
 option {
   padding: 0 12px;
   gap: 6px;
+  /* One line whatever the cell's width, cut where it does not fit. `Option`
+     passes this down to its label box by hand, because the label is an anonymous
+     child that no style is applied to. */
+  white-space: nowrap;
+  text-overflow: ellipsis;
   font-size: var(--gb-font-body);
   line-height: var(--gb-line-body);
   font-weight: var(--gb-weight-strong);
@@ -1543,17 +1560,20 @@ select.open {
 }
 
 /* The value grows so the chevron is pushed to the trailing edge, and a label
-   longer than the field pushes the chevron out rather than being cut.
+   longer than the field is **cut with an ellipsis** rather than pushing the
+   chevron out.
 
-   **Not because nothing clips** — `overflow: hidden` has shipped since ADR-0114,
-   and this comment used to say otherwise. Clipping it would put the text inside a
-   box that shrinks, and a box with text is a *measured* leaf: it is then measured
-   again at the narrower width and **wraps**, which in a fixed-height field is
-   worse than overflowing. What a cut label needs is `white-space: nowrap`, which
-   §8's subset has not got (ADR-0235). */
+   `flex-shrink: 1` is what lets the field take the room back, and it was
+   load-bearing in the wrong direction until `white-space` existed: a box with
+   text is a *measured* leaf, so shrinking it measured the paragraph again and
+   **wrapped** it, which in a fixed-height field is worse than overflowing. With
+   `nowrap` the paragraph keeps its natural width whatever it is given, the box
+   shrinks around it, and the ellipsis says what happened (ADR-0235, ADR-0255). */
 select-value {
   flex-grow: 1;
   flex-shrink: 1;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
 /* Nothing chosen reads as `--gb-text-muted`, which is §1.2's rank for text that
@@ -2077,7 +2097,20 @@ menu {
 /* A row: tick column, optional icon, label, the growing gap, accelerator.
    `height` rather than padding alone, so every row is the same height whether or
    not it has an icon — a menu whose rows changed height with their content would
-   be a menu the pointer cannot travel down predictably. */
+   be a menu the pointer cannot travel down predictably.
+
+   `white-space: nowrap` is what makes that height honest. A menu is measured and
+   then placed (ADR-0104), and a menu clamped to the work area is a menu whose
+   rows are narrower than their labels — which used to *wrap* a label onto a
+   second line inside a row that is one line tall, so the text was centred against
+   the row's top edge and the row after it looked misaligned. ADR-0148 stopped it
+   with `flex-shrink: 0` on the label and let the text run off the edge instead;
+   with `nowrap` the label may shrink again, and `text-overflow: ellipsis` says
+   where it was cut (ADR-0235, ADR-0255). The accelerator keeps its
+   `flex-shrink: 0` in `Item.render`, because half a shortcut is not one.
+
+   `flex-shrink: 0` here is about the *column*: a menu taller than its window
+   scrolls rather than compressing its rows. */
 item {
   flex-direction: row;
   align-items: center;
@@ -2086,6 +2119,8 @@ item {
   padding: 0 8px;
   border-radius: 4px;
   flex-shrink: 0;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
 item:hover {

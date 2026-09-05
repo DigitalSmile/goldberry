@@ -104,21 +104,6 @@ the mechanism the sentence named.
   driver, and the first driver that delivers that pair more slowly will look like
   a menu that closes as it opens. —
   [ADR-0144](adr/0144-a-popup-goes-away-when-the-application-does.md)
-- **A menu row overflows rather than ellipsising, and the missing property is
-  `white-space: nowrap`.** ADR-0148 stopped a squeezed row wrapping to two lines;
-  what it leaves is a label running off the edge of a menu too narrow for it, and
-  `option` and `select-value` have the same gap. This entry used to say "nothing
-  in this toolkit clips, so there is no third behaviour to choose", and that was
-  wrong in a way that would have sent the next person after the wrong property:
-  `overflow: hidden` has shipped since ADR-0114. Clipping a label does not work
-  for a different reason — a box with text is a **measured leaf**, so narrowing it
-  re-measures the paragraph and it *wraps* rather than overflowing, and there is
-  then nothing to clip. Three arrangements were tried and all three failed, which
-  [ADR-0235](adr/0235-a-cut-label-needs-nowrap-not-text-overflow.md) records. What
-  is needed first is a way to measure a paragraph at its natural width whatever
-  width it is offered; an ellipsis is reachable after that and not before. —
-  [ADR-0235](adr/0235-a-cut-label-needs-nowrap-not-text-overflow.md),
-  [ADR-0148](adr/0148-a-menu-row-does-not-wrap.md)
 
 ## Input, focus and the pointer
 
@@ -426,9 +411,6 @@ the mechanism the sentence named.
   whole row until an author writes `width`. It buys the travelling indicator, and there
   is no third option under flexbox — content-sized cells cannot be travelled between,
   and a zero basis collapses the bar entirely.
-- **A segment's label overflows its cell when it is longer than 1/n of the bar**,
-  because the cells are equal and nothing clips. Reached by a different road than the
-  indeterminate progress sweep documents, and stopped by the same missing feature.
 - **An icon-only segment has no accessible name, and neither does an icon-only button.**
   §3 requires `name=` for both and the attribute does not exist anywhere; §13's
   semantics are M5's. `Option` refuses a segment with neither a label nor an icon, which
@@ -482,12 +464,6 @@ the mechanism the sentence named.
   thumb's own width, so a mark and the thumb agree exactly while the finger is the thing
   that is up to 8px out. — [ADR-0080](adr/0080-a-value-is-measured-along-a-part.md),
   [ADR-0079](adr/0079-a-continuous-value-is-placed-by-ratio.md)
-- **A slider's value label is left-aligned in its box**, because §8's subset has no
-  `text-align` — `docs/ARCHITECTURE.md` §8.1 lists it among the properties `Box` cannot
-  express, so it resolves into nothing and has no test that could mean anything. A
-  right-aligned readout is what the column of numbers beside a row of faders wants. It
-  arrives with whatever else needs `Box` to place text inside a box rather than at its
-  origin. — [ADR-0080](adr/0080-a-value-is-measured-along-a-part.md)
 - **A toggle's thumb does not follow the pointer during the drag — and the design system
   says it should not.** Left open as a defect after ADR-0075 and closed by reading
   rather than by building: §1.7's first principle names the controls that track 1:1 —
@@ -519,7 +495,8 @@ the mechanism the sentence named.
   common one — needs the bar clipped at the track's edges. This entry said nothing
   clipped; `overflow: hidden` has shipped since ADR-0114, so the drawing is
   available. What is left is a design decision about a shipped animation rather
-  than a missing mechanism. —
+  than a missing mechanism — and it is the **only** thing left on ADR-0235's list,
+  now that the label half has been built ([ADR-0255](adr/0255-a-label-that-does-not-fit-is-cut-not-wrapped.md)). —
   [ADR-0235](adr/0235-a-cut-label-needs-nowrap-not-text-overflow.md)
 - **A `static` `@Action` is still unsupported, and now for a second reason.** The
   accessible path generates `target::method`, which does not compile for a static
@@ -690,14 +667,26 @@ on, which in four cases is the same thing.
   containers, and unexamined for `spacer`, which presumably wants to keep a fixed size.
   — [ADR-0076](adr/0076-a-glyph-does-not-negotiate.md),
   [ADR-0099](adr/0099-an-indicator-travels-on-a-grid.md)
-- **Nothing has a minimum size, so overflow is silent.** `flex-shrink: 0` stops a
-  control being squashed and does not stop it being *clipped*: a window narrower than
-  its content now overflows rather than deforming, which is CSS's behaviour and is what
-  a scroll view or an ellipsis is for. Neither exists yet. M3's problem, named here
-  because ADR-0076 is what makes it visible. **`badge` is the second consumer, and it
-  wants the other half**: §8's subset has no `min-width` at all, so a one-digit chip is
-  a stadium rather than the circle a badge usually is. `badge-digits.png` is the record
-  of it. — [ADR-0076](adr/0076-a-glyph-does-not-negotiate.md),
+- **Nothing has a minimum size, so overflow is silent — and both halves of this
+  entry's reasoning have since expired.** `flex-shrink: 0` stops a control being
+  squashed and does not stop it being *clipped*: a window narrower than its
+  content overflows rather than deforming, which is CSS's behaviour. This said
+  "a scroll view or an ellipsis is for. Neither exists yet", and both exist now —
+  `scroll` since [ADR-0116](adr/0116-a-scroll-view-is-a-clip-an-offset-and-two-extents.md)
+  and an ellipsis since
+  [ADR-0255](adr/0255-a-label-that-does-not-fit-is-cut-not-wrapped.md). What is
+  left is that **nothing warns**: a control clipped out of the window is silent,
+  and reaching for either answer is the author's to do. **`badge`'s half has
+  expired differently.** It said "§8's subset has no `min-width` at all, so a
+  one-digit chip is a stadium rather than the circle a badge usually is" — the
+  subset gained all four bounds in
+  [ADR-0181](adr/0181-a-box-may-say-how-small-and-how-large.md), so the property is
+  there and unused. What stops it now is that `design-system.md` §3's `badge` row
+  says "height 20; padding-x 8; radius `full`" and does not say a minimum width,
+  and §5 wants a metrics row before code. `badge-digits.png` is still the record
+  of what it looks like; the question moved from the style engine to the design
+  system. — [ADR-0076](adr/0076-a-glyph-does-not-negotiate.md),
+  [ADR-0181](adr/0181-a-box-may-say-how-small-and-how-large.md),
   [ADR-0087](adr/0087-a-semantic-fill-brings-its-own-foreground.md)
 - **An icon larger than its slot overflows it.** An `Icon` is a path built at a
   size and cannot be rescaled at paint time (ADR-0043), so a 20px glyph in a menu's
@@ -1126,6 +1115,55 @@ on, which in four cases is the same thing.
 Kept rather than deleted: each is a trap somebody hit, and the reasoning that got
 out of it is usually worth more than the fact that it is fixed.
 
+- ~~**A slider's value label is left-aligned in its box, because §8's subset has
+  no `text-align`.**~~ **It is `text-align: end` now, and nothing had to be added
+  to `Box`.** The entry's reason was quoting §8's own note — "`Box` cannot express
+  them" — and that note was right about `box-shadow`, `backdrop-filter` and
+  `letter-spacing` and wrong about this one. `Paragraph.paint` is already handed
+  the box's width, because it has to be or the text could not wrap to it, and
+  every `TextLine` has already measured itself: the two numbers an alignment
+  needs were in the same method the whole time, and what was missing was a
+  keyword saying what to do with them. `slider-value` is `width: 40px` by
+  declaration (ADR-0080), which is exactly the condition under which an alignment
+  means anything — and the four goldens that moved are all the same readout,
+  `slider-value.png` plus the showcase's Basic screen in its three variants,
+  with `9%`, `50%` and `100%` finally lining up on their trailing edge. `left` and
+  `right` are **refused**, for
+  [ADR-0247](adr/0247-start-is-css-and-flex-start-is-yoga.md)'s reason: they are
+  not the same as `start`/`end` under RTL. `justify` is refused for a different
+  one — it is a respacing rather than a placement, and a paragraph shaped once
+  has nowhere to put the extra advance. —
+  [ADR-0256](adr/0256-a-line-is-placed-by-the-paint-not-by-the-box.md),
+  [ADR-0255](adr/0255-a-label-that-does-not-fit-is-cut-not-wrapped.md),
+  [ADR-0080](adr/0080-a-value-is-measured-along-a-part.md)
+- ~~**A menu row overflows rather than ellipsising, and the missing property is
+  `white-space: nowrap`.**~~ ~~**A segment's label overflows its cell when it is
+  longer than 1/n of the bar.**~~ **Both are cut now, and so are `option` and
+  `select-value`.** The entry was right about the property and right about why
+  three attempts at clipping had failed: a box with text is a **measured leaf**,
+  so narrowing it re-measures the paragraph and *wraps* it, and there is then
+  nothing overflowing to clip. §8's subset has `white-space: normal|nowrap` and
+  `text-overflow: clip|ellipsis` now, and `white-space` is the whole mechanism —
+  under `nowrap` the measure function ignores the width Yoga offers and reports
+  the width the text wants, so a box may be laid out narrower than its own
+  content, which is the state the clip and the ellipsis were always waiting for.
+  Three things worth keeping. **`text-overflow` is read only at paint time**: an
+  ellipsised line is drawn short and measured long, because a paragraph whose
+  measurement shrank from being truncated would let the ellipsis decide the width
+  that caused it. **The cascade carries the two properties apart** and hands out
+  one value, because CSS inherits `white-space` and does not inherit
+  `text-overflow` and a bundle cannot be half-inherited — so `whiteSpace` had to
+  join `inheritsSameAs` as well as `inheritingFrom`, which is
+  [ADR-0248](adr/0248-only-the-inherited-half-is-handed-down.md)'s standing
+  warning. And **ADR-0148's `flex-shrink: 0` came off the label** rather than
+  being reverted: it stopped the wrap by stopping the shrink, and `nowrap` stops
+  the wrap without it. The accelerator keeps its own, because half of
+  `Ctrl+Shift+K` is not a shortcut. What ADR-0235 left that is *not* closed is
+  `progress`'s indeterminate sweep, which is a design decision about a shipped
+  animation. —
+  [ADR-0255](adr/0255-a-label-that-does-not-fit-is-cut-not-wrapped.md),
+  [ADR-0235](adr/0235-a-cut-label-needs-nowrap-not-text-overflow.md),
+  [ADR-0148](adr/0148-a-menu-row-does-not-wrap.md)
 - ~~**`--gb-list-row-height` has no consumer, and no widget can read a resolved
   custom property at build time.**~~ **`BuildContext.token` is the other door,
   and it was three lines.** `Element` already implemented **both**

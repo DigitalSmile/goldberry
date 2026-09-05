@@ -30,6 +30,7 @@ import io.github.digitalsmile.goldberry.input.key.Key;
 import io.github.digitalsmile.goldberry.input.key.Modifiers;
 import io.github.digitalsmile.goldberry.kdl.KdlParser;
 import io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength;
+import io.github.digitalsmile.goldberry.text.flow.TextAlign;
 import io.github.digitalsmile.goldberry.widget.ElementTree;
 import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widget.attr.Attributes;
@@ -456,6 +457,37 @@ class SliderTest {
             assertTrue(
                     style.transform().isNone(),
                     "a slider's thumb is placed by layout; a transform could not express it");
+        }
+
+        /// **The readout is aligned to its trailing edge**, which is what the
+        /// fixed width is for. A column of numbers beside a row of faders lines
+        /// up on its units column; left-aligned in a 40px box, `9%` and `100%`
+        /// start in the same place and end nowhere near each other.
+        ///
+        /// This was open as a defect for the whole of `slider`'s life with the
+        /// reason "§8's subset has no `text-align`" — which was true of the
+        /// subset and, it turned out, never true of the paragraph
+        /// ([ADR-0256]). `end` rather than `right`, for ADR-0247's reason.
+        @Test
+        @DisplayName("the value label is aligned to the trailing edge of its fixed box")
+        void theReadoutIsRightAligned() {
+            var labelled = new Slider(
+                    0,
+                    100,
+                    25,
+                    0,
+                    0,
+                    "%.0f%%",
+                    io.github.digitalsmile.goldberry.widgets.controls.Scale.LINEAR,
+                    null,
+                    null,
+                    false,
+                    Attributes.NONE);
+            var style = styleOf(labelled, 1);
+
+            assertEquals(StyleLength.points(40), style.width(), "a fixed box is what makes an alignment mean anything");
+            assertEquals(TextAlign.END, style.textAlign());
+            assertEquals(TextAlign.END, style.textFlow().textAlign(), "and it reaches the paragraph");
         }
 
         @Test

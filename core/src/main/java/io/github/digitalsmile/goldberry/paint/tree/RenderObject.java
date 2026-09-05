@@ -15,6 +15,7 @@ import io.github.digitalsmile.goldberry.paint.Layer;
 import io.github.digitalsmile.goldberry.render.DamageRect;
 import io.github.digitalsmile.goldberry.render.model.DisplayScale;
 import io.github.digitalsmile.goldberry.render.model.PhysicalSize;
+import io.github.digitalsmile.goldberry.text.flow.TextFlow;
 
 /// One visual node, kept between frames — ADR-0004's third tree.
 ///
@@ -75,6 +76,15 @@ public final class RenderObject implements AutoCloseable {
     /// why [io.github.digitalsmile.goldberry.widget.style.Paints.Context] shapes through
     /// it rather than letting widgets call `Paragraph.of`.
     private @Nullable Object measured;
+
+    /// The flow the attached callback was built for.
+    ///
+    /// By **equality**, unlike [#measured]: a `TextFlow` is a value, two equal
+    /// ones measure identically, and the cascade hands out a fresh instance on
+    /// every resolution. Comparing it by identity would rebind the callback every
+    /// restyle and mark the node dirty each time — which is the cost this whole
+    /// guard exists to avoid.
+    private @Nullable TextFlow measuredFlow;
 
     /// Whether this is a measured leaf.
     ///
@@ -223,12 +233,16 @@ public final class RenderObject implements AutoCloseable {
             return;
         }
         var paragraph = text.paragraph();
-        if (measured == paragraph) {
+        var flow = text.flow();
+        if (measured == paragraph && flow.equals(measuredFlow)) {
             return;
         }
         // A different paragraph: different text, a different font, or the cache
-        // evicted the old one.
-        node.setMeasureFunction(paragraph.measureFunction());
+        // evicted the old one. **Or the same paragraph measured by a different
+        // rule** -- `white-space` is what decides whether the callback takes the
+        // width Yoga offers or reports its own, so a restyle that changes it has
+        // to rebind even though the text did not change (ADR-0255).
+        node.setMeasureFunction(paragraph.measureFunction(flow));
         // And then say so, because **Yoga does not dirty a node when its measure
         // function is replaced**. It dirties on a style change, and the text is
         // not a style — from Yoga's point of view nothing about this node
@@ -242,6 +256,7 @@ public final class RenderObject implements AutoCloseable {
         // [YogaNode#markDirty()] documents itself as the call for exactly this.
         node.markDirty();
         measured = paragraph;
+        measuredFlow = flow;
     }
 
     /// Replaces this object's children with `next`, reusing what it can.

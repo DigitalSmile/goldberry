@@ -24,6 +24,10 @@ import io.github.digitalsmile.goldberry.natives.yoga.style.Align;
 import io.github.digitalsmile.goldberry.natives.yoga.style.FlexDirection;
 import io.github.digitalsmile.goldberry.natives.yoga.style.Justify;
 import io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength;
+import io.github.digitalsmile.goldberry.text.flow.TextAlign;
+import io.github.digitalsmile.goldberry.text.flow.TextFlow;
+import io.github.digitalsmile.goldberry.text.flow.TextOverflow;
+import io.github.digitalsmile.goldberry.text.flow.WhiteSpace;
 
 class ComputedStyleTest {
 
@@ -1054,6 +1058,99 @@ class ComputedStyleTest {
             assertEquals(
                     ComputedStyle.INITIAL.limits(),
                     compute("button { max-width: banana }").limits());
+        }
+    }
+
+    @Nested
+    @DisplayName("white-space, text-overflow and text-align")
+    class TextFlowProperties {
+
+        @Test
+        @DisplayName("all three default to CSS's initial values")
+        void initial() {
+            var style = compute("input { color: red }");
+
+            assertEquals(WhiteSpace.NORMAL, style.whiteSpace());
+            assertEquals(TextOverflow.CLIP, style.textOverflow());
+            assertEquals(TextAlign.START, style.textAlign());
+            assertEquals(TextFlow.NORMAL, style.textFlow());
+        }
+
+        @Test
+        @DisplayName("the wrapping and marking keywords are read")
+        void keywordsAreRead() {
+            var style = compute("button { white-space: nowrap; text-overflow: ellipsis }");
+
+            assertEquals(WhiteSpace.NOWRAP, style.whiteSpace());
+            assertEquals(TextOverflow.ELLIPSIS, style.textOverflow());
+            assertEquals(TextFlow.ELLIPSIS, style.textFlow());
+        }
+
+        @Test
+        @DisplayName("a value the keyword is not is dropped, like every other")
+        void rubbishIsDropped() {
+            assertEquals(
+                    WhiteSpace.NORMAL,
+                    compute("button { white-space: pre-wrap }").whiteSpace());
+            assertEquals(
+                    TextOverflow.CLIP, compute("button { text-overflow: fade }").textOverflow());
+        }
+
+        @Test
+        @DisplayName("text-align is read, and `left` / `right` are refused for ADR-0247's reason")
+        void alignmentKeywords() {
+            assertEquals(TextAlign.END, compute("button { text-align: end }").textAlign());
+            assertEquals(
+                    TextAlign.CENTER, compute("button { text-align: center }").textAlign());
+            assertEquals(
+                    TextAlign.START, compute("button { text-align: start }").textAlign());
+
+            // Not aliases. They coincide with `start`/`end` under LTR and part
+            // company under RTL, so accepting them would write down an answer
+            // that is right today and silently wrong later. `justify` is refused
+            // for a different reason: it is a respacing, and a paragraph shaped
+            // once has nowhere to put the extra advance.
+            assertEquals(
+                    TextAlign.START, compute("button { text-align: right }").textAlign());
+            assertEquals(TextAlign.START, compute("button { text-align: left }").textAlign());
+            assertEquals(
+                    TextAlign.START, compute("button { text-align: justify }").textAlign());
+        }
+
+        /// The one thing that makes them two properties rather than one value.
+        @Test
+        @DisplayName("white-space and text-align inherit; text-overflow does not")
+        void onlyTheCssInheritedHalvesInherit() {
+            var child = computeChild("window { white-space: nowrap; text-overflow: ellipsis; text-align: end }");
+
+            assertEquals(WhiteSpace.NOWRAP, child.whiteSpace(), "`menu { white-space: nowrap }` is about the rows");
+            assertEquals(TextAlign.END, child.textAlign(), "and a column's alignment is about its cells");
+            assertEquals(
+                    TextOverflow.CLIP,
+                    child.textOverflow(),
+                    "a container that draws no text would otherwise mark every label under it");
+        }
+
+        @Test
+        @DisplayName("a child says so for itself, over anything it inherited")
+        void aChildMayOverride() {
+            var child = computeChild("window { white-space: nowrap } button { white-space: normal }");
+
+            assertEquals(WhiteSpace.NORMAL, child.whiteSpace());
+        }
+
+        /// `inheritsSameAs` is the style cache's key, and the note on it says a
+        /// property that starts inheriting has to be added to both it and
+        /// `inheritingFrom` or the cache goes stale rather than merely cold.
+        @Test
+        @DisplayName("two parents that differ only in white-space are not the same to a child")
+        void whiteSpaceIsPartOfTheInheritedKey() {
+            var wrapping = ComputedStyle.INITIAL;
+            var nowrap = ComputedStyle.INITIAL.whiteSpace(WhiteSpace.NOWRAP);
+
+            assertFalse(wrapping.inheritsSameAs(nowrap));
+            assertFalse(wrapping.inheritsSameAs(ComputedStyle.INITIAL.textAlign(TextAlign.END)));
+            assertTrue(wrapping.inheritsSameAs(ComputedStyle.INITIAL.textOverflow(TextOverflow.ELLIPSIS)));
         }
     }
 }

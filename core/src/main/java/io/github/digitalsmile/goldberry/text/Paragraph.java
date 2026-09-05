@@ -15,6 +15,8 @@ import io.github.digitalsmile.goldberry.natives.yoga.measure.MeasureFunction;
 import io.github.digitalsmile.goldberry.natives.yoga.measure.MeasureMode;
 import io.github.digitalsmile.goldberry.natives.yoga.measure.MeasuredSize;
 import io.github.digitalsmile.goldberry.paint.Frame;
+import io.github.digitalsmile.goldberry.text.flow.TextFlow;
+import io.github.digitalsmile.goldberry.text.flow.TextOverflow;
 import io.github.digitalsmile.goldberry.text.font.Font;
 
 /// A run of text that knows how to wrap itself, and therefore how to be laid out.
@@ -231,12 +233,34 @@ public final class Paragraph {
     /// column even when it wrapped well short of it, and a centred parent would
     /// then centre empty space.
     public MeasureFunction measureFunction() {
+        return measureFunction(TextFlow.NORMAL);
+    }
+
+    /// The same, told what the box's `white-space` resolved to.
+    ///
+    /// Under [io.github.digitalsmile.goldberry.text.flow.WhiteSpace#NOWRAP] the
+    /// width Yoga offers is **ignored**: the paragraph reports the width it
+    /// actually wants, and the box is then free to be laid out narrower than its
+    /// own content. That is the whole of what `nowrap` buys, and it is what makes
+    /// a cut label possible at all — a box with text is a measured leaf, so
+    /// narrowing it re-measures the paragraph, and a paragraph that answers "as
+    /// wide as I offered" can never overflow anything ([ADR-0235]).
+    ///
+    /// `text-overflow` is deliberately not read here. An ellipsised line is drawn
+    /// short and measured long: measuring the truncation would let the ellipsis
+    /// decide the width that caused it ([ADR-0255]).
+    ///
+    /// [MeasureMode#EXACTLY] still wins under either value, because a parent that
+    /// has already decided a width is not asking.
+    public MeasureFunction measureFunction(TextFlow flow) {
+        Objects.requireNonNull(flow, "flow");
+        var wraps = flow.wraps();
         return (width, widthMode, height, heightMode) -> {
             var available =
                     switch (widthMode) {
                         // Yoga passes NaN with UNDEFINED, so `width` must not be read.
                         case UNDEFINED -> UNCONSTRAINED;
-                        case EXACTLY, AT_MOST -> (double) width;
+                        case EXACTLY, AT_MOST -> wraps ? (double) width : UNCONSTRAINED;
                     };
             var layout = layout(available);
             var measured = widthMode == MeasureMode.EXACTLY ? width : (float) layout.width();
@@ -253,19 +277,165 @@ public final class Paragraph {
     /// @param maxWidth the width to wrap at; pass what layout gave the box
     /// @param argb     a colour as `0xAARRGGBB`, not premultiplied
     public void paint(Frame frame, double x, double top, double maxWidth, int argb) {
-        Objects.requireNonNull(frame, "frame");
+        paint(frame, x, top, maxWidth, argb, TextFlow.NORMAL);
+    }
 
-        var layout = layout(maxWidth);
+    /// The same, told what the box's `white-space` and `text-overflow` resolved
+    /// to.
+    ///
+    /// Three drawings, from one pair of keywords:
+    ///
+    /// - **wrapping** — the paragraph is laid out at `maxWidth` and every line is
+    ///   drawn. What every box did before either property existed.
+    /// - **`nowrap`** — laid out unconstrained and drawn at its natural width,
+    ///   past `maxWidth` where it is longer. Whether that overhang is visible is
+    ///   an ancestor's `overflow` to decide, and this method neither knows nor
+    ///   needs to: the clip is already on the context when it is called.
+    /// - **`nowrap` with `ellipsis`** — the same, except that a line wider than
+    ///   `maxWidth` is drawn up to the last grapheme that leaves room for
+    ///   [TextOverflow#MARK], and the mark is drawn after it.
+    ///
+    /// The ellipsis is applied **per line** rather than to the last line of the
+    /// box, which is where CSS puts it. Every consumer in the catalog is a
+    /// single-line label, so the two agree wherever it is used today, and per-line
+    /// is the reading that stays true of a `nowrap` paragraph with hard newlines
+    /// in it — where CSS would leave every line but the last running off the edge.
+    ///
+    /// @param maxWidth the width to wrap at, or to truncate at; pass what layout
+    ///                 gave the box
+    /// @param argb     a colour as `0xAARRGGBB`, not premultiplied
+    /// @param flow     what the cascade said about breaking and marking
+    public void paint(Frame frame, double x, double top, double maxWidth, int argb, TextFlow flow) {
+        Objects.requireNonNull(frame, "frame");
+        Objects.requireNonNull(flow, "flow");
+
+        var layout = layout(flow.wraps() ? maxWidth : UNCONSTRAINED);
         var lineHeight = font.lineHeight();
         var ascent = font.ascent();
+        var ellipsis = flow.ellipsises();
+        var slack = flow.textAlign().fractionOfSlack();
 
         for (var i = 0; i < layout.lines().size(); i++) {
             var line = layout.lines().get(i);
             if (line.isEmpty()) {
                 continue;
             }
-            font.draw(frame, x, top + ascent + i * lineHeight, run, line.glyphStart(), line.glyphEnd(), argb);
+            var baseline = top + ascent + i * lineHeight;
+            if (!ellipsis || line.width() <= maxWidth) {
+                font.draw(
+                        frame,
+                        x + indentOf(line.width(), maxWidth, slack),
+                        baseline,
+                        run,
+                        line.glyphStart(),
+                        line.glyphEnd(),
+                        argb);
+                continue;
+            }
+            // A truncated line fills the box by construction, so there is no
+            // slack to share and `text-align` has nothing to say about it.
+            paintTruncated(frame, x, baseline, maxWidth, argb, line);
         }
+    }
+
+    /// How far in from the box's leading edge a line of `width` starts.
+    ///
+    /// **Per line**, which is what `text-align` means: a centred paragraph
+    /// centres each of its lines in the same box rather than centring the block
+    /// they make up.
+    ///
+    /// Clamped at zero, and both reasons are real. A line **wider** than its box
+    /// — every `nowrap` line that overflows — would otherwise be pulled *left* by
+    /// `text-align: end`, hiding its beginning instead of its end; and `maxWidth`
+    /// is [#UNCONSTRAINED] wherever a caller is measuring rather than placing,
+    /// which would make the offset infinite.
+    private static double indentOf(double width, double maxWidth, double fraction) {
+        if (fraction == 0 || !Double.isFinite(maxWidth)) {
+            return 0;
+        }
+        return Math.max(0, maxWidth - width) * fraction;
+    }
+
+    /// Draws one over-long line as much of itself as fits, then the ellipsis.
+    ///
+    /// The mark is measured through [Font#ellipsisWidth()] rather than laid out
+    /// as text, because it is not part of this paragraph: it belongs to the box
+    /// the paragraph did not fit in. Room for it is taken off the top, so the
+    /// mark always lands inside `maxWidth` — an ellipsis that itself overflowed
+    /// would say "there is more" by hanging off the edge, which is the thing it
+    /// exists to stop.
+    ///
+    /// **A line with no room even for the mark still draws the mark.** The
+    /// alternative is a cell that goes blank as it narrows, which reads as a
+    /// missing value rather than as a truncated one.
+    private void paintTruncated(Frame frame, double x, double baseline, double maxWidth, int argb, TextLine line) {
+        var mark = font.ellipsisWidth();
+        var room = maxWidth - mark;
+        var cut = room > 0 ? offsetFitting(line.start(), line.end(), room) : line.start();
+
+        // Trailing whitespace before the mark, so a cut at a word boundary reads
+        // as `Save as…` rather than `Save as …`. The glyph range already drops
+        // it from the *width*; what it does not do is stop the pen advancing
+        // over it, which is what would put the gap in.
+        while (cut > line.start() && Character.isWhitespace(text.charAt(cut - 1))) {
+            cut--;
+        }
+
+        if (cut > line.start()) {
+            font.draw(frame, x, baseline, run, line.glyphStart(), glyphBefore[cut], argb);
+        }
+        font.draw(frame, x + widthOf(line.start(), cut), baseline, TextOverflow.MARK, argb);
+    }
+
+    /// The last grapheme boundary in `[lineStart, lineEnd]` whose prefix is no
+    /// wider than `width`.
+    ///
+    /// [#offsetAt]'s sibling and its opposite: that one rounds to the *nearest*
+    /// caret position, which is what a click means, and this one never rounds up,
+    /// which is what "as much as fits" means. A truncation that rounded to the
+    /// nearest would return half a character more than it had room for on every
+    /// second label.
+    ///
+    /// Steps by grapheme cluster for [#offsetAt]'s reason — a cut between the two
+    /// halves of a surrogate pair, or between a letter and the accent over it, is
+    /// not a place text can end.
+    ///
+    /// @param lineStart the first offset of the line, from [TextLine#start()]
+    /// @param lineEnd   one past its last, from [TextLine#end()]
+    /// @param width     the room available, in logical units
+    /// @return an offset in `[lineStart, lineEnd]`; `lineStart` when not even one
+    ///         grapheme fits
+    /// @throws IndexOutOfBoundsException if either offset is outside the text
+    /// @throws IllegalArgumentException  if `lineEnd` is before `lineStart`
+    public int offsetFitting(int lineStart, int lineEnd, double width) {
+        Objects.checkIndex(lineStart, text.length() + 1);
+        Objects.checkIndex(lineEnd, text.length() + 1);
+        if (lineEnd < lineStart) {
+            throw new IllegalArgumentException("a line cannot end before it starts: " + lineStart + ".." + lineEnd);
+        }
+        if (lineStart == lineEnd || !(width > 0)) {
+            // NaN lands here too, and "no room" is the honest answer to an
+            // unknown width — the caller draws the mark alone.
+            return lineStart;
+        }
+
+        var graphemes = BreakIterator.getCharacterInstance();
+        graphemes.setText(text);
+
+        var fitting = lineStart;
+        for (var offset = graphemes.following(lineStart);
+                offset != BreakIterator.DONE && offset <= lineEnd;
+                offset = graphemes.next()) {
+
+            if (widthOf(lineStart, offset) > width) {
+                // Advances are non-negative, so once a prefix is too wide every
+                // longer one is too. Stopping here is what keeps truncating a
+                // short label out of a long paragraph from walking the paragraph.
+                break;
+            }
+            fitting = offset;
+        }
+        return fitting;
     }
 
     /// The font this paragraph was shaped with.

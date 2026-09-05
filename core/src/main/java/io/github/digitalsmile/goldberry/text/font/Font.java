@@ -11,6 +11,7 @@ import io.github.digitalsmile.goldberry.natives.harfbuzz.ShapedFont;
 import io.github.digitalsmile.goldberry.natives.harfbuzz.ShapingBuffer;
 import java.util.Objects;
 import io.github.digitalsmile.goldberry.text.Paragraph;
+import io.github.digitalsmile.goldberry.text.flow.TextOverflow;
 
 /// One typeface at one size, shaped by HarfBuzz and drawn by Blend2D.
 ///
@@ -77,6 +78,9 @@ public final class Font implements AutoCloseable {
     private final int unitsPerEm;
 
     private boolean closed;
+
+    /// [#ellipsisWidth()]'s memo. NaN is "not asked yet", which no width can be.
+    private double ellipsisWidth = Double.NaN;
 
     private Font(FontFace face, boolean ownsFace, double size) {
         this.face = face;
@@ -231,6 +235,27 @@ public final class Font implements AutoCloseable {
     /// How wide `text` is once shaped, in logical units.
     public double widthOf(CharSequence text) {
         return widthOf(shape(text));
+    }
+
+    /// How wide this font draws [TextOverflow#MARK], in logical units.
+    ///
+    /// Memoised, because it is asked **per painted label per frame** — every
+    /// truncated cell in a list wants it — and the answer is a fact about the
+    /// face and the size, both of which a [Font] fixes for its whole life. One
+    /// shaping of one character, once.
+    ///
+    /// Not `volatile` and not synchronized, for the reason the rest of this class
+    /// is neither: a font holds native handles and is confined to the thread that
+    /// made it, so the only reader of this field is the thread that wrote it.
+    ///
+    /// Here rather than in [Paragraph] because it belongs to the *font*: a
+    /// paragraph would memoise it once per distinct string, which is once per
+    /// cache entry for a number that never differs between them.
+    public double ellipsisWidth() {
+        if (Double.isNaN(ellipsisWidth)) {
+            ellipsisWidth = widthOf(TextOverflow.MARK);
+        }
+        return ellipsisWidth;
     }
 
     /// Draws `text` with `(x, baseline)` on the baseline.

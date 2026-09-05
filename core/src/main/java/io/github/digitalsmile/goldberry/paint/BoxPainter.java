@@ -198,7 +198,13 @@ public final class BoxPainter {
                             x + left,
                             y + top,
                             Math.max(0, width - left - right),
-                            box.text().argb());
+                            box.text().argb(),
+                            // What the cascade said about breaking and marking.
+                            // Under `nowrap` this width stops being a wrap point
+                            // and becomes a *truncation* point, which is the only
+                            // thing the painter has to know about either property
+                            // (ADR-0255).
+                            box.text().flow());
         }
 
         if (box.icon() != null) {

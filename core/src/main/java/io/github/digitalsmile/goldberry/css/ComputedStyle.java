@@ -30,6 +30,10 @@ import io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength;
 import io.github.digitalsmile.goldberry.natives.yoga.style.Wrap;
 import io.github.digitalsmile.goldberry.paint.Box;
 import io.github.digitalsmile.goldberry.render.Cursor;
+import io.github.digitalsmile.goldberry.text.flow.TextAlign;
+import io.github.digitalsmile.goldberry.text.flow.TextFlow;
+import io.github.digitalsmile.goldberry.text.flow.TextOverflow;
+import io.github.digitalsmile.goldberry.text.flow.WhiteSpace;
 
 /// Every property a node resolved to, typed.
 ///
@@ -103,6 +107,18 @@ public record ComputedStyle(
         // the clip, which are two different jobs from one keyword
         // (ADR-0114).
         Overflow overflow,
+        // --- text: read by the paragraph, which is both engines at once ---
+        // `white-space` **inherits** and `text-overflow` does not, which is CSS's
+        // rule and the only reason these are two components rather than one
+        // `TextFlow`: a bundle cannot be half-inherited. [#textFlow()] puts them
+        // back together for everything below the cascade (ADR-0255).
+        WhiteSpace whiteSpace,
+        TextOverflow textOverflow,
+        // The too-narrow half of the same question, and the third property on
+        // the same value. It inherits, like `white-space` and unlike
+        // `text-overflow`, which is CSS's split and the reason these are three
+        // components (ADR-0256).
+        TextAlign textAlign,
         // --- paint: resolved into pixels ---
         int background,
         int color,
@@ -159,6 +175,16 @@ public record ComputedStyle(
             // content spill rather than cutting it off, because a clip nobody
             // asked for is content that vanishes with no rule to blame.
             Overflow.VISIBLE,
+            // CSS's initial values for both. `normal` rather than `nowrap`
+            // because prose is what a paragraph usually is, and `clip` rather
+            // than `ellipsis` because a mark on a box nobody asked to truncate
+            // is text quietly going missing -- the same argument that keeps
+            // `overflow` at `visible`.
+            WhiteSpace.NORMAL,
+            TextOverflow.CLIP,
+            // The leading edge, which is CSS's initial value and where every
+            // line in the toolkit sat before the property existed.
+            TextAlign.START,
             CssColor.TRANSPARENT,
             0xFF000000,
             1.0,
@@ -179,6 +205,9 @@ public record ComputedStyle(
         Objects.requireNonNull(position, "position");
         Objects.requireNonNull(inset, "inset");
         Objects.requireNonNull(overflow, "overflow");
+        Objects.requireNonNull(whiteSpace, "whiteSpace");
+        Objects.requireNonNull(textOverflow, "textOverflow");
+        Objects.requireNonNull(textAlign, "textAlign");
         Objects.requireNonNull(decoration, "decoration");
         Objects.requireNonNull(typography, "typography");
         Objects.requireNonNull(transitions, "transitions");
@@ -283,14 +312,32 @@ public record ComputedStyle(
     /// list read two ways, and a property that starts inheriting has to be added
     /// to both or the cache goes stale rather than merely cold.
     public boolean inheritsSameAs(ComputedStyle other) {
-        return other != null && color == other.color && typography.equals(other.typography);
+        return other != null
+                && color == other.color
+                && typography.equals(other.typography)
+                && whiteSpace == other.whiteSpace
+                && textAlign == other.textAlign;
     }
 
     private ComputedStyle inheritingFrom(ComputedStyle parent) {
         // `transition` is deliberately absent: CSS does not inherit it, and a
         // panel that faded its background must not make every label inside it
         // fade too. A control declares what *it* animates.
-        return INITIAL.color(parent.color()).typography(parent.typography());
+        // `white-space` is on this list and `text-overflow` is not, which is
+        // exactly what CSS says about the pair. It is also what an author means:
+        // `menu { white-space: nowrap }` is a statement about the rows, and
+        // `text-overflow` on a container that draws no text of its own would
+        // otherwise put a mark on every label underneath it (ADR-0255).
+        return INITIAL.color(parent.color())
+                .typography(parent.typography())
+                .whiteSpace(parent.whiteSpace())
+                // `text-align` inherits in CSS and is written on a *container*
+                // far more often than on the thing that draws the text -- which
+                // is exactly why it has to: `slider-value { text-align: end }`
+                // is a rule about a node whose text is its own, and
+                // `column.numeric { text-align: end }` is one about nodes whose
+                // text is not (ADR-0256).
+                .textAlign(parent.textAlign());
     }
 
     /// One declaration applied, or this style unchanged if it does not apply.
@@ -388,6 +435,24 @@ public record ComputedStyle(
             // two a box is (ADR-0114). `auto` resolves to SCROLL and is told
             // apart by the widget, not by the box.
             case "overflow" -> overflow(value).map(this::overflow).orElseGet(() -> dropped(property, value));
+            // §8 has listed neither, and four widgets reached for the pair and
+            // found nothing: a menu row, an `option`, a `select-value` and a
+            // segment all overflow their cells rather than being cut, because a
+            // box with text is a measured leaf and narrowing it *wraps* the text
+            // instead of overflowing it. `white-space: nowrap` is what stops that
+            // and `text-overflow` is what marks the result (ADR-0235, ADR-0255).
+            case "white-space" ->
+                keyword(value, WhiteSpace.class).map(this::whiteSpace).orElseGet(() -> dropped(property, value));
+            case "text-overflow" ->
+                keyword(value, TextOverflow.class).map(this::textOverflow).orElseGet(() -> dropped(property, value));
+            // §8 has listed `text-align` from the start and §8's own note said
+            // `Box` could not express it. That was true of `Box` and never true
+            // of the paragraph, which has always known its lines' widths -- so
+            // it is the paint that places them, and `Box` is untouched
+            // (ADR-0256). `left` and `right` are refused for ADR-0247's reason:
+            // they are not the same as `start`/`end` under RTL.
+            case "text-align" ->
+                keyword(value, TextAlign.class).map(this::textAlign).orElseGet(() -> dropped(property, value));
 
             // `background` is CSS's shorthand and `background-color` its longhand,
             // and the toolkit implements the one layer of it that exists: a
@@ -602,6 +667,9 @@ public record ComputedStyle(
                 position,
                 inset,
                 overflow,
+                whiteSpace,
+                textOverflow,
+                textAlign,
                 background,
                 color,
                 opacity,
@@ -629,6 +697,9 @@ public record ComputedStyle(
                 position,
                 inset,
                 overflow,
+                whiteSpace,
+                textOverflow,
+                textAlign,
                 background,
                 color,
                 opacity,
@@ -656,6 +727,9 @@ public record ComputedStyle(
                 position,
                 inset,
                 overflow,
+                whiteSpace,
+                textOverflow,
+                textAlign,
                 background,
                 color,
                 opacity,
@@ -683,6 +757,9 @@ public record ComputedStyle(
                 position,
                 inset,
                 overflow,
+                whiteSpace,
+                textOverflow,
+                textAlign,
                 background,
                 color,
                 opacity,
@@ -710,6 +787,9 @@ public record ComputedStyle(
                 position,
                 inset,
                 overflow,
+                whiteSpace,
+                textOverflow,
+                textAlign,
                 background,
                 color,
                 opacity,
@@ -737,6 +817,9 @@ public record ComputedStyle(
                 position,
                 inset,
                 overflow,
+                whiteSpace,
+                textOverflow,
+                textAlign,
                 background,
                 color,
                 opacity,
@@ -764,6 +847,9 @@ public record ComputedStyle(
                 position,
                 inset,
                 overflow,
+                whiteSpace,
+                textOverflow,
+                textAlign,
                 background,
                 color,
                 opacity,
@@ -791,6 +877,9 @@ public record ComputedStyle(
                 position,
                 inset,
                 overflow,
+                whiteSpace,
+                textOverflow,
+                textAlign,
                 background,
                 color,
                 opacity,
@@ -820,6 +909,9 @@ public record ComputedStyle(
                 position,
                 inset,
                 overflow,
+                whiteSpace,
+                textOverflow,
+                textAlign,
                 background,
                 color,
                 opacity,
@@ -847,6 +939,9 @@ public record ComputedStyle(
                 position,
                 inset,
                 overflow,
+                whiteSpace,
+                textOverflow,
+                textAlign,
                 background,
                 color,
                 opacity,
@@ -874,6 +969,9 @@ public record ComputedStyle(
                 position,
                 inset,
                 overflow,
+                whiteSpace,
+                textOverflow,
+                textAlign,
                 background,
                 color,
                 opacity,
@@ -901,6 +999,9 @@ public record ComputedStyle(
                 position,
                 inset,
                 overflow,
+                whiteSpace,
+                textOverflow,
+                textAlign,
                 background,
                 color,
                 opacity,
@@ -928,6 +1029,9 @@ public record ComputedStyle(
                 v,
                 inset,
                 overflow,
+                whiteSpace,
+                textOverflow,
+                textAlign,
                 background,
                 color,
                 opacity,
@@ -955,6 +1059,9 @@ public record ComputedStyle(
                 position,
                 v,
                 overflow,
+                whiteSpace,
+                textOverflow,
+                textAlign,
                 background,
                 color,
                 opacity,
@@ -982,6 +1089,9 @@ public record ComputedStyle(
                 position,
                 inset,
                 v,
+                whiteSpace,
+                textOverflow,
+                textAlign,
                 background,
                 color,
                 opacity,
@@ -990,6 +1100,113 @@ public record ComputedStyle(
                 transitions,
                 transform,
                 cursor);
+    }
+
+    public ComputedStyle whiteSpace(WhiteSpace v) {
+        return new ComputedStyle(
+                direction,
+                justifyContent,
+                alignItems,
+                alignSelf,
+                wrap,
+                width,
+                height,
+                limits,
+                padding,
+                gap,
+                flexGrow,
+                flexShrink,
+                position,
+                inset,
+                overflow,
+                v,
+                textOverflow,
+                textAlign,
+                background,
+                color,
+                opacity,
+                decoration,
+                typography,
+                transitions,
+                transform,
+                cursor);
+    }
+
+    public ComputedStyle textOverflow(TextOverflow v) {
+        return new ComputedStyle(
+                direction,
+                justifyContent,
+                alignItems,
+                alignSelf,
+                wrap,
+                width,
+                height,
+                limits,
+                padding,
+                gap,
+                flexGrow,
+                flexShrink,
+                position,
+                inset,
+                overflow,
+                whiteSpace,
+                v,
+                textAlign,
+                background,
+                color,
+                opacity,
+                decoration,
+                typography,
+                transitions,
+                transform,
+                cursor);
+    }
+
+    public ComputedStyle textAlign(TextAlign v) {
+        return new ComputedStyle(
+                direction,
+                justifyContent,
+                alignItems,
+                alignSelf,
+                wrap,
+                width,
+                height,
+                limits,
+                padding,
+                gap,
+                flexGrow,
+                flexShrink,
+                position,
+                inset,
+                overflow,
+                whiteSpace,
+                textOverflow,
+                v,
+                background,
+                color,
+                opacity,
+                decoration,
+                typography,
+                transitions,
+                transform,
+                cursor);
+    }
+
+    /// The three text properties as the one value everything below the cascade
+    /// reads.
+    ///
+    /// The cascade is the only place they are apart, and it is apart for one
+    /// reason: `white-space` and `text-align` inherit and `text-overflow` does
+    /// not, so a single component could not have been handed down correctly. Past
+    /// that point they are always read together — by the measure function, which
+    /// needs the first, and by the painter, which needs all three — so this is
+    /// what
+    /// [Box#style(ComputedStyle)] carries onto a [Box.Text] and what a widget
+    /// building an anonymous label box passes to
+    /// [Box#text(io.github.digitalsmile.goldberry.text.Paragraph, int,
+    /// TextFlow)] ([ADR-0255]).
+    public TextFlow textFlow() {
+        return new TextFlow(whiteSpace, textOverflow, textAlign);
     }
 
     public ComputedStyle background(int v) {
@@ -1009,6 +1226,9 @@ public record ComputedStyle(
                 position,
                 inset,
                 overflow,
+                whiteSpace,
+                textOverflow,
+                textAlign,
                 v,
                 color,
                 opacity,
@@ -1036,6 +1256,9 @@ public record ComputedStyle(
                 position,
                 inset,
                 overflow,
+                whiteSpace,
+                textOverflow,
+                textAlign,
                 background,
                 v,
                 opacity,
@@ -1063,6 +1286,9 @@ public record ComputedStyle(
                 position,
                 inset,
                 overflow,
+                whiteSpace,
+                textOverflow,
+                textAlign,
                 background,
                 color,
                 v,
@@ -1090,6 +1316,9 @@ public record ComputedStyle(
                 position,
                 inset,
                 overflow,
+                whiteSpace,
+                textOverflow,
+                textAlign,
                 background,
                 color,
                 opacity,
@@ -1117,6 +1346,9 @@ public record ComputedStyle(
                 position,
                 inset,
                 overflow,
+                whiteSpace,
+                textOverflow,
+                textAlign,
                 background,
                 color,
                 opacity,
@@ -1144,6 +1376,9 @@ public record ComputedStyle(
                 position,
                 inset,
                 overflow,
+                whiteSpace,
+                textOverflow,
+                textAlign,
                 background,
                 color,
                 opacity,
@@ -1171,6 +1406,9 @@ public record ComputedStyle(
                 position,
                 inset,
                 overflow,
+                whiteSpace,
+                textOverflow,
+                textAlign,
                 background,
                 color,
                 opacity,
@@ -1198,6 +1436,9 @@ public record ComputedStyle(
                 position,
                 inset,
                 overflow,
+                whiteSpace,
+                textOverflow,
+                textAlign,
                 background,
                 color,
                 opacity,

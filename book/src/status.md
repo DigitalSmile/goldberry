@@ -5636,6 +5636,126 @@ is the `scroll` box's.
   `density-compact.css` — and it is written down because `list { … }` looks like
   it should work and will not.
 
+### The property four widgets were waiting for, and the one that had to stay out of the layout
+
+- **A label that does not fit is cut, not wrapped**
+  ([ADR-0255](adr/0255-a-label-that-does-not-fit-is-cut-not-wrapped.md)), which
+  builds what
+  [ADR-0235](adr/0235-a-cut-label-needs-nowrap-not-text-overflow.md) diagnosed a
+  week earlier and deliberately declined to build: §8's subset now has
+  `white-space: normal|nowrap` and `text-overflow: clip|ellipsis`.
+- **`white-space` is the whole mechanism, and it lives in the measure function.**
+  `Paragraph.measureFunction(TextFlow)` ignores the width Yoga offers under
+  `nowrap` and reports the width the text actually wants. Everything else is a
+  consequence: a box may now be laid out *narrower than its own content*, which
+  is the state `overflow: hidden` and an ellipsis were always waiting for and
+  which the toolkit could not previously reach. ADR-0235 recorded three attempts
+  at clipping without it, all of which failed for the same reason — a box with
+  text is a **measured leaf**, so narrowing it re-measures the paragraph and
+  *wraps* it, and there is then nothing overflowing to clip.
+- **`text-overflow` is a paint decision and never a layout one.** An ellipsised
+  line is drawn short and **measured long**, and a test asserts that the two
+  flows measure identically. A paragraph whose measurement shrank because it had
+  been truncated would be a box that shrank because it was too narrow — it would
+  settle at a width nobody asked for or oscillate, and either way the ellipsis
+  would decide the width it is supposed to be a consequence of.
+- **The cascade carries two properties and everything below it sees one value.**
+  `ComputedStyle` gained two components rather than one `TextFlow`, and the split
+  is CSS's own: `white-space` inherits and `text-overflow` does not, and a bundle
+  cannot be half-inherited. Both halves are what an author means as well —
+  `menu { white-space: nowrap }` is a statement about the rows, and
+  `text-overflow` on a container that draws no text would otherwise mark every
+  label under it. So `whiteSpace` joins `color` and `typography` in
+  `inheritingFrom` **and** in `inheritsSameAs`, which ADR-0248 warns has to be
+  edited in the same breath or the style cache goes stale rather than merely
+  cold.
+- **Four widgets stopped overflowing**: a menu row clamped to the work area, an
+  `option` in a `segmented` bar whose cells are exactly 1/n of the track, a
+  `select-value` in a field an application gave a width, and an autocomplete
+  suggestion. Six comments that explained why they could not be cut are replaced
+  by what they now do.
+- **`flex-shrink: 0` came off the menu label**, which is ADR-0148's fix being
+  released rather than reverted: it stopped the wrap by stopping the shrink, and
+  `nowrap` is a way of stopping the wrap that does not. **The accelerator keeps
+  its `flex-shrink: 0`** — a cramped row spends its missing pixels on the label,
+  which has an ellipsis to say so, and never on the shortcut.
+- **An anonymous label box inherits by hand.** `Box.style` carries the flow onto
+  a `Box.Text` exactly as it carries `color`, so `text` and `select-value` needed
+  nothing; a menu `item` and an `option` build their label as a *child* box that
+  no style is applied to, so their `render` passes `style.textFlow()` to a new
+  `Box.text(paragraph, argb, flow)`. That is the same inheritance one level below
+  the cascade.
+- **`RenderObject` rebinds its measure callback when the flow changes**, not only
+  when the paragraph does — and by **equality**, where the paragraph is compared
+  by identity, because the cascade hands out a fresh `TextFlow` on every
+  resolution. Yoga does not dirty a node when its measure function is replaced,
+  which is the trap already recorded there for a changed paragraph.
+- **Three of CSS's five `white-space` values are deliberately absent.** `pre`,
+  `pre-wrap` and `pre-line` are all statements about *collapsing* runs of spaces
+  and newlines, and a `Paragraph` never collapses anything — so `pre-wrap` is
+  what `normal` already does here and `pre` is what `nowrap` already does.
+  Naming them would be four spellings of two behaviours.
+- **`Font` gained its first memo.** `ellipsisWidth()` is asked once per truncated
+  label per frame and the answer is a fact about the face and the size, so it is
+  cached on the font rather than on the paragraph — where it would be memoised
+  once per distinct string for a number that never differs between them.
+- **Thirty-four tests**, in six classes: the value's one rule, the measurement
+  under both flows, the ink under all three drawings, the cascade's split
+  inheritance, and a squeezed menu whose label is now narrower than its own text
+  and still one line tall.
+
+### The property that was never `Box`'s problem
+
+- **A line is placed by the paint, not by the box**
+  ([ADR-0256](adr/0256-a-line-is-placed-by-the-paint-not-by-the-box.md)).
+  `text-align: start | center | end` resolves now, and **nothing was added to
+  `Box`** — which is what §8's own note had said was blocking it.
+- **The note was right about three properties and wrong about the fourth.**
+  `box-shadow` needs a drawing `Box` has no field for, `backdrop-filter` needs a
+  second pass over what is underneath, and `letter-spacing` needs the shaper to
+  be told something before it shapes. `text-align` needs neither engine:
+  `Paragraph.paint` is already handed the box's width, because it has to be or
+  the text could not wrap to it, and every `TextLine` has already measured
+  itself. The two numbers were in the same method the whole time.
+- **It is the third component of `TextFlow`**, not a fourth thing to thread.
+  `white-space` and `text-overflow` answer the too-wide question and this
+  answers the too-narrow one, and all three are answered where the line's width
+  and the box's are both in hand. It inherits, like `white-space` and unlike
+  `text-overflow` — and it has to, because `text-align` is written on a
+  *container* far more often than on the node that draws the text.
+- **Per line, and clamped at zero.** Per line is what `text-align` means — a
+  centred paragraph centres each line rather than the block they make up, and the
+  difference is the short last line. The clamp has two reachable causes: a
+  `nowrap` line wider than its box would otherwise be pulled *left* by
+  `text-align: end`, hiding the beginning to show an end the reader can already
+  guess; and `maxWidth` is `UNCONSTRAINED` wherever a caller is measuring rather
+  than placing, which without it is an infinite offset and a blank frame.
+- **`slider-value` was the consumer, and it had been waiting since the control
+  shipped.** It is `width: 40px` by declaration, because a label that sized
+  itself to its digits would resize the track under the finger setting it
+  (ADR-0080) — which is exactly the condition that makes an alignment mean
+  something. Left-aligned, `9%` and `100%` start in the same column and end four
+  pixels apart. **Four goldens moved and all four are that readout**:
+  `slider-value.png` and the showcase's Basic screen in its three variants,
+  where the whole diff is 274 pixels and every one of them is the `40%` on the
+  gain slider.
+- **`left` and `right` are refused**, for
+  [ADR-0247](adr/0247-start-is-css-and-flex-start-is-yoga.md)'s reason read the
+  other way round: `start` and `end` are what Box Alignment defines, and `left`
+  and `right` name sides of the screen. They coincide under LTR and part company
+  under RTL, so accepting `right` as a synonym would be writing down an answer
+  that is right today and silently wrong later. `justify` is refused because it
+  is a respacing rather than a placement, and a paragraph shaped once has
+  nowhere to put the extra advance.
+- **The menu row's spacer stays**, and is not an alternative to this: a
+  `text-align` places a line inside **one** box, and a menu row shares its room
+  between five. `Item.render`'s comment now says which of the two each is for
+  rather than saying the subset has neither.
+- **Eight more tests**, in four classes: the slack fractions, where the ink lands
+  under each of the three keywords, the two clamps, that a cut line does not
+  move, that alignment is per line rather than per block, that `left`, `right`
+  and `justify` are dropped, and that `slider-value` resolves to `end`.
+
 ### Not started
 
 Client-side decorations, the rest of §4 —

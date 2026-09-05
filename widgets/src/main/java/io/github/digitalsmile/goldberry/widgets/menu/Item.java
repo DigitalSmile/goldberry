@@ -306,9 +306,13 @@ public record Item(
     /// A row: the tick's column, an optional icon, the label, a spacer, and the
     /// accelerator.
     ///
-    /// The spacer is what right-aligns the accelerator, and it is a box rather
-    /// than a `text-align` because §8's CSS subset has neither one — the same
-    /// reason `slider`'s value label sits where it does.
+    /// The spacer is what right-aligns the accelerator, and it stays one now that
+    /// §8's subset has `text-align` (ADR-0256): the two are not alternatives.
+    /// `text-align` places a line inside **one** box, and what this needs is the
+    /// room shared out between **five** of them — the tick column, the label, the
+    /// gap, the accelerator and the chevron. A growing box is flexbox's own
+    /// answer to that and the only one that keeps the chevron after the
+    /// accelerator rather than under it.
     ///
     /// The tick is **always present** — see [#children()] and [ItemCheck].
     /// The leading column, when the menu this row is in has anything to put in
@@ -348,39 +352,40 @@ public record Item(
             content.add(children.getFirst());
         }
         if (!label.isEmpty()) {
-            // **It does not shrink**, and a menu row is the place that matters.
+            // **It shrinks, and it is cut rather than wrapped.**
+            //
             // A box with text is a measured leaf, so a row squeezed narrower than
-            // its content does not clip the label -- it *wraps* it, and a
+            // its content used to have no third option: it *wrapped*, and a
             // two-line label in a fixed-height row is centred to the row's top
             // edge. That is what "the item after the iconed one is aligned to the
-            // top" turned out to be: the widest row wraps first, and the widest
-            // row is rarely the one with the icon
-            // (ADR-0148).
+            // top" turned out to be -- the widest row wraps first, and the widest
+            // row is rarely the one with the icon (ADR-0148). The answer then was
+            // `flex-shrink: 0`: a box that never narrows is a paragraph that
+            // never re-wraps, and the label runs off the edge of the menu.
             //
-            // **It does not shrink**, and a menu row is the place that matters.
-            // A box with text is a measured leaf, so a row squeezed narrower than
-            // its content does not clip the label -- it *wraps* it, and a
-            // two-line label in a fixed-height row is centred to the row's top
-            // edge. That is what "the item after the iconed one is aligned to the
-            // top" turned out to be: the widest row wraps first, and the widest
-            // row is rarely the one with the icon
-            // (ADR-0148).
+            // `white-space: nowrap` is the property that was missing, and the
+            // stylesheet writes it on `item` now: the paragraph reports its
+            // natural width whatever width Yoga offers, so the row may shrink
+            // without the label wrapping, and `text-overflow: ellipsis` marks
+            // where it was cut. Clipping alone was tried first and could not
+            // work, for the reason ADR-0235 records in full.
             //
-            // Clipping it instead was tried and does not work, which is worth
-            // knowing: `overflow: hidden` exists (ADR-0114) and a clip box around
-            // the text does shrink -- and the text inside it, being a *measured*
-            // leaf, is then re-measured at the narrower width and wraps again.
-            // What a cut label actually needs is `white-space: nowrap`, so the
-            // paragraph is measured at its natural width whatever it is given,
-            // and §8's subset has no such property (ADR-0235).
-            content.add(Box.text(context.paragraph(style, label), style.color()).shrink(0));
+            // The flow comes off the *row's* style because the label is an
+            // anonymous box: `render` applies the style to the box it returns,
+            // and nothing applies it to a child. `white-space` inherits in the
+            // cascade and this is the same inheritance one level lower down
+            // (ADR-0255).
+            content.add(Box.text(context.paragraph(style, label), style.color(), style.textFlow()));
         }
         // Grows, so everything after it is pushed to the far edge.
         content.add(Box.of().grow(1));
         if (accelerator != null && !accelerator.isEmpty()) {
-            // The same, and more obviously: `Ctrl+Shift+K` broken over two lines
-            // is not an accelerator anybody can read.
-            content.add(Box.text(context.paragraph(style, accelerator), style.color())
+            // **This one still does not shrink**, and now for a reason rather
+            // than for want of an alternative: `Ctrl+Shift+K` with its tail cut
+            // off is not an accelerator anybody can read, so a cramped row spends
+            // its missing pixels on the label -- which has an ellipsis to say so
+            // -- and never on the shortcut.
+            content.add(Box.text(context.paragraph(style, accelerator), style.color(), style.textFlow())
                     .shrink(0));
         }
         if (hasSubmenu() && !children.isEmpty()) {

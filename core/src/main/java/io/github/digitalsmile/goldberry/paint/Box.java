@@ -16,6 +16,7 @@ import io.github.digitalsmile.goldberry.natives.yoga.style.Wrap;
 import io.github.digitalsmile.goldberry.natives.yoga.style.Justify;
 import io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength;
 import io.github.digitalsmile.goldberry.text.Paragraph;
+import io.github.digitalsmile.goldberry.text.flow.TextFlow;
 import java.util.List;
 import java.util.Objects;
 
@@ -79,17 +80,39 @@ public record Box(
     // only thing that knows both. Typed as Object so `layout` keeps knowing
     // nothing about widgets (ADR-0054).
 
-    /// Text filling a box, and the colour to draw it in.
+    /// Text filling a box, the colour to draw it in, and what it does when it
+    /// does not fit.
     ///
-    /// One component rather than two on [Box], because they are meaningless
-    /// apart: a paragraph with no colour cannot be drawn and a colour with no
-    /// paragraph is not text.
+    /// One component rather than three on [Box], because they are meaningless
+    /// apart: a paragraph with no colour cannot be drawn, a colour with no
+    /// paragraph is not text, and a `white-space` with nothing to break is not a
+    /// declaration about anything.
+    ///
+    /// [TextFlow] is read by **both** engines, which no other part of this record
+    /// is: Yoga asks the paragraph how wide it wants to be and the answer depends
+    /// on `white-space`, while the painter asks where to stop drawing and the
+    /// answer depends on `text-overflow`. It rides here rather than as a
+    /// component of [Box] because the thing it modifies is the paragraph
+    /// ([ADR-0255]).
     ///
     /// @param paragraph the text, already shaped
     /// @param argb      `0xAARRGGBB`, not premultiplied
-    public record Text(Paragraph paragraph, int argb) {
+    /// @param flow      whether it may break, and what marks it where it does not
+    public record Text(Paragraph paragraph, int argb, TextFlow flow) {
         public Text {
             Objects.requireNonNull(paragraph, "paragraph");
+            Objects.requireNonNull(flow, "flow");
+        }
+
+        /// Text that wraps and marks nothing, which is what every box did before
+        /// §8's subset had either property.
+        public Text(Paragraph paragraph, int argb) {
+            this(paragraph, argb, TextFlow.NORMAL);
+        }
+
+        /// This, with a different flow.
+        public Text flow(TextFlow value) {
+            return new Text(paragraph, argb, value);
         }
     }
 
@@ -426,6 +449,18 @@ public record Box(
         return of().text(new Text(paragraph, argb));
     }
 
+    /// The same, told what the box's `white-space` and `text-overflow` resolved
+    /// to.
+    ///
+    /// For a widget whose text is a **child box** rather than its own — `option`,
+    /// a menu `item`'s label, `select-value` — where [#style(ComputedStyle)] is
+    /// applied to the parent and never reaches the leaf. Those callers pass
+    /// [ComputedStyle#textFlow()] explicitly, which is the anonymous box's way of
+    /// inheriting ([ADR-0255]).
+    public static Box text(Paragraph paragraph, int argb, TextFlow flow) {
+        return of().text(new Text(paragraph, argb, flow));
+    }
+
     public Box text(Text value) {
         return new Box(background, decoration, opacity, transform, cursor, direction, justifyContent, alignItems,
                 alignSelf, wrap, width, height, limits, padding, gap, flexGrow, flexShrink, position, inset,
@@ -718,7 +753,7 @@ public record Box(
                 transform,
                 cursor, direction, justifyContent, alignItems, alignSelf, wrap, width, height, limits, padding, gap,
                 flexGrow, flexShrink, position, inset, elevated, overflow,
-                text == null ? null : new Text(text.paragraph(), CssColor.fade(text.argb(), alpha)),
+                text == null ? null : new Text(text.paragraph(), CssColor.fade(text.argb(), alpha), text.flow()),
                 icon == null ? null : new Glyph(icon.icon(), CssColor.fade(icon.argb(), alpha)),
                 mark == null ? null : mark.fade(alpha),
                 painting, // Not applied to the children here. The painter walks the tree
@@ -790,7 +825,10 @@ public record Box(
                 // pins itself sets it after the style (ADR-0123).
                 elevated,
                 style.overflow(),
-                text == null ? null : new Text(text.paragraph(), style.color()),
+                // `white-space` and `text-overflow` reach the paragraph exactly
+                // as `color` does — a `text` element is one box with one style,
+                // and the cascade is where both were resolved (ADR-0255).
+                text == null ? null : new Text(text.paragraph(), style.color(), style.textFlow()),
                 // `color` reaches an icon exactly as it reaches text: Lucide's
                 // set is drawn to be tinted, and a stylesheet saying `color`
                 // means the same thing to both.

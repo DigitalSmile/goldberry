@@ -17,7 +17,10 @@ import org.junit.jupiter.api.Test;
 import io.github.digitalsmile.goldberry.Host;
 import io.github.digitalsmile.goldberry.Placement;
 import io.github.digitalsmile.goldberry.bind.Property;
+import io.github.digitalsmile.goldberry.css.ComputedStyle;
 import io.github.digitalsmile.goldberry.css.Theme;
+import io.github.digitalsmile.goldberry.css.cascade.StyleResolver;
+import io.github.digitalsmile.goldberry.css.value.CssLength;
 import io.github.digitalsmile.goldberry.input.PointerRouter;
 import io.github.digitalsmile.goldberry.input.event.KeyEvent;
 import io.github.digitalsmile.goldberry.input.event.PointerEvent;
@@ -215,6 +218,33 @@ class SelectTest {
             assertFalse(((SelectValue) chosen.children().getFirst()).placeholder());
             assertTrue(((SelectValue) empty.children().getFirst()).placeholder());
             assertTrue(((SelectValue) empty.children().getFirst()).classes().contains("placeholder"));
+        }
+
+        /// **A value longer than its field is cut**, which is what the widget's
+        /// own stylesheet comment said it could not be.
+        ///
+        /// `select-value` grows and shrinks so that the chevron stays on the
+        /// trailing edge, and shrinking used to be the problem rather than the
+        /// answer: a box with text is a measured leaf, so a narrowed value was
+        /// measured again and **wrapped** — two lines in a fixed-height field,
+        /// which is worse than the overflow it replaced (ADR-0235). `nowrap`
+        /// keeps the paragraph at its natural width whatever it is given, and the
+        /// ellipsis says the value was cut rather than mis-typed ([ADR-0255]).
+        ///
+        /// Read off the *cascade* rather than off a painted box: `SelectValue`
+        /// applies its style to the box it returns, so the flow reaches the text
+        /// by `Box.style` and there is nothing widget-side that could drop it.
+        @Test
+        @DisplayName("a value too long for the field is cut, not wrapped and not overflowing")
+        void theValueIsCut() {
+            var tree = new ElementTree(select(new Option("dark", "Dark")));
+            var value = fieldElement(tree).children().getFirst();
+            var style = ComputedStyle.of(
+                    new StyleResolver(Controls.stylesheets(Theme.NORD_DARK)).resolve(value), CssLength.Context.DEFAULT);
+
+            assertEquals("select-value", ((SelectValue) value.widget()).cssType(), "the node the rule names");
+            assertFalse(style.whiteSpace().wraps(), "a two-line value in a fixed-height field is not a value");
+            assertTrue(style.textFlow().ellipsises());
         }
 
         @Test

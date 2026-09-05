@@ -264,6 +264,8 @@
 - [ADR-0252 A window is maximized when the platform says so](adr/0252-a-window-is-maximized-when-the-platform-says-so.md)
 - [ADR-0253 A caret is as wide as the theme says](adr/0253-a-caret-is-as-wide-as-the-theme-says.md)
 - [ADR-0254 A build may ask the cascade for a number](adr/0254-a-build-may-ask-the-cascade-for-a-number.md)
+- [ADR-0255 A label that does not fit is cut, not wrapped](adr/0255-a-label-that-does-not-fit-is-cut-not-wrapped.md)
+- [ADR-0256 A line is placed by the paint, not by the box](adr/0256-a-line-is-placed-by-the-paint-not-by-the-box.md)
 
 ---
 

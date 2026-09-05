@@ -4,8 +4,14 @@ Date: 2026-08-30
 
 ## Status
 
-Accepted as a **diagnosis**. The entries it corrects stay open, with the right
-blocker named. No behaviour changes; four comments do.
+Accepted as a **diagnosis**, and **acted on** by
+[ADR-0255](0255-a-label-that-does-not-fit-is-cut-not-wrapped.md), which added the
+`white-space` this record named and left unbuilt. What it says below about *why*
+clipping alone cannot cut a label is unchanged and is still the reason; what has
+changed is the last sentence of the Decision — the property has a consumer that
+is not a comment, four of them, so it was built.
+
+No behaviour changed *here*: four comments did.
 
 ## Context
 
@@ -25,7 +31,7 @@ comment repeats it:
 > there is no third behaviour to choose. — `TODO.md`, on a menu row
 
 Every one of those sentences is false. `overflow: hidden` shipped with
-[ADR-0114](0114-a-viewport-clips-and-a-scrollbar-is-a-part.md); it is read by two
+[ADR-0114](0114-a-clip-is-a-rectangle-the-painter-carries.md); it is read by two
 engines — Yoga for sizing and the painter for the clip — it reaches hit testing,
 and four rules in `controls.css` plus `text-input`, `text-area` and `scroll` use
 it today.
@@ -82,7 +88,10 @@ it.
 **No `white-space` property is added here.** It is a text-stack change, it wants a
 consumer that is not a comment, and §8's subset has grown one property at a time
 against a named need — which is the rule that kept the subset small enough to
-believe in.
+believe in. *(It got four:
+[ADR-0255](0255-a-label-that-does-not-fit-is-cut-not-wrapped.md) counts them and
+builds it. This paragraph is what it had to answer, and the rule is satisfied
+rather than broken — the need was named before the property was written.)*
 
 **`ProgressFill`'s note becomes a choice rather than a limit.** Its indeterminate
 sweep travels there-and-back because the off-the-edges version needed clipping;

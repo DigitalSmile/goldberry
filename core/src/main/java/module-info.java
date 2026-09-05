@@ -132,6 +132,12 @@ module io.github.digitalsmile.goldberry.core {
     // line by hand.
     exports io.github.digitalsmile.goldberry.text.font;
 
+    // What a line does when it does not fit -- `white-space` and
+    // `text-overflow`, and the value that carries them together (ADR-0255).
+    // Exported because both are §8 properties an application's stylesheet may
+    // write, and because a widget building its own label box names the value.
+    exports io.github.digitalsmile.goldberry.text.flow;
+
     // The backend SPI, and the one backend that needs no platform under it.
     // `sdl3` will live here too and will be what makes this module `requires`
     // the natives module; `headless` deliberately does not, so tests of
