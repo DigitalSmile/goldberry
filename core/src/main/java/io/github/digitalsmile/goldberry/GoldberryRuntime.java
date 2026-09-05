@@ -183,6 +183,7 @@ final class GoldberryRuntime {
                     focusWatcher.run();
                 }
             }
+            case BackendEvent.MaximizedChanged maximized -> window.handleMaximizedChanged(maximized.maximized());
             case BackendEvent.KeyPressed key -> window.handleKeyPressed(key.keycode(), key.modifiers(), key.repeat());
             case BackendEvent.KeyReleased key -> window.handleKeyReleased(key.keycode(), key.modifiers());
             case BackendEvent.TextInput text -> window.handleTextInput(text.text());

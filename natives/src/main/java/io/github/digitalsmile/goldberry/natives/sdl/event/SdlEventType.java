@@ -38,6 +38,18 @@ public enum SdlEventType {
     /// not in the event: it is whether anything else of ours gained it.
     WINDOW_FOCUS_LOST(0x20F),
 
+    /// The window was maximized — by the user or by
+    /// [io.github.digitalsmile.goldberry.natives.sdl.calls.SdlWindowCalls.MaximizeWindow].
+    ///
+    /// **The event is the only truth about the state.** Asking to maximize is a
+    /// request a window manager may refuse, delay or grant in part, so a window
+    /// is maximized when SDL says it is and not when we asked (ADR-0252).
+    WINDOW_MAXIMIZED(0x20A),
+
+    /// The window went back to its ordinary size — SDL's `RESTORED`, which is
+    /// what un-maximizing and un-minimizing both report.
+    WINDOW_RESTORED(0x20B),
+
     /// The window manager asked for the window to close.
     WINDOW_CLOSE_REQUESTED(0x210),
 

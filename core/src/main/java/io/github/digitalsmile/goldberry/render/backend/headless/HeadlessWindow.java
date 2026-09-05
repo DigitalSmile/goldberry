@@ -279,6 +279,31 @@ public sealed class HeadlessWindow implements BackendWindow permits HeadlessPopu
     /// The headless backend exists so the SPI's rules can be tested without a
     /// display (ADR-0019); pointer events are no different, and a test that had
     /// to open a window to check a hover would not run in CI.
+    /// Agrees to the ask and reports it, which is what a window manager that
+    /// says yes does ([ADR-0252]).
+    ///
+    /// A real one may refuse, and the headless backend has no way to model
+    /// *which* — so it models the agreeable case and [#reportMaximized] is how a
+    /// test drives the other, including the one that matters most: the **user**
+    /// maximizing a window nobody asked to.
+    @Override
+    public void setMaximized(boolean maximized) {
+        backend.requireUiThread();
+        requireOpen();
+        backend.post(new BackendEvent.MaximizedChanged(this, maximized));
+    }
+
+    /// Queues a maximize/restore the application did **not** ask for.
+    ///
+    /// The half that makes "remember whether the user maximized it" testable:
+    /// every other route into this state starts with the application, and that is
+    /// the route that does not.
+    public void reportMaximized(boolean maximized) {
+        backend.requireUiThread();
+        requireOpen();
+        backend.post(new BackendEvent.MaximizedChanged(this, maximized));
+    }
+
     public void movePointer(float x, float y) {
         movePointer(x, y, 0);
     }

@@ -682,6 +682,13 @@ public final class Sdl3Backend implements Backend {
             out.add(new BackendEvent.FocusChanged(window, true));
         } else if (type == SdlEventType.WINDOW_FOCUS_LOST.value()) {
             out.add(new BackendEvent.FocusChanged(window, false));
+        } else if (type == SdlEventType.WINDOW_MAXIMIZED.value()) {
+            out.add(new BackendEvent.MaximizedChanged(window, true));
+        } else if (type == SdlEventType.WINDOW_RESTORED.value()) {
+            // SDL reports `RESTORED` for un-maximizing *and* un-minimizing, and
+            // both mean the same thing to a window that only tracks the one
+            // state: it is no longer maximized.
+            out.add(new BackendEvent.MaximizedChanged(window, false));
         } else if (type == SdlEventType.WINDOW_RESIZED.value()) {
             // The sizes are read off the window rather than out of the event, and
             // reported only when they are news: since ADR-0060 the same resize

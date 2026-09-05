@@ -640,6 +640,10 @@ public final class Window implements AutoCloseable {
     /// Whether this window has the keyboard, as the platform last said.
     private boolean focused;
 
+    /// The platform's last word on whether this window is maximized — see
+    /// [#isMaximized].
+    private boolean maximized;
+
     /// Whether this window has the keyboard focus.
     ///
     /// A fact about the platform rather than about the widget tree: the element
@@ -647,6 +651,47 @@ public final class Window implements AutoCloseable {
     /// focused still has one (ADR-0144).
     public boolean isFocused() {
         return focused;
+    }
+
+    /// Whether the window is maximized **as the platform last reported it**.
+    ///
+    /// Not "whether [#maximize] was called", and that is the decision rather than
+    /// an implementation detail ([ADR-0252]). Maximizing is a request a window
+    /// manager may refuse, delay or grant in part — a tiling compositor has its
+    /// own idea — so a flag set on the way out would be a lie the moment one did.
+    /// This answers what `SDL_EVENT_WINDOW_MAXIMIZED` and `…_RESTORED` last said,
+    /// which is also what makes the interesting half work: an application can
+    /// find out that *the user* maximized it, which is what a "remember my window
+    /// size" preference actually needs.
+    ///
+    /// The cost is stated: between [#maximize] and the event, this still answers
+    /// `false`. That is a window that has been asked and has not yet agreed, and
+    /// there is no third answer that is true.
+    public boolean isMaximized() {
+        return maximized;
+    }
+
+    /// Asks the window manager to maximize the window.
+    ///
+    /// A request; see [#isMaximized] for what comes back and when.
+    public void maximize() {
+        if (window.isOpen()) {
+            window.setMaximized(true);
+        }
+    }
+
+    /// Asks for the window's ordinary size back — [#maximize]'s undo.
+    ///
+    /// Also un-minimizes, because that is what SDL's `RESTORED` means and there
+    /// is no separate ask.
+    public void restore() {
+        if (window.isOpen()) {
+            window.setMaximized(false);
+        }
+    }
+
+    void handleMaximizedChanged(boolean value) {
+        maximized = value;
     }
 
     void handleFocusChanged(boolean value) {

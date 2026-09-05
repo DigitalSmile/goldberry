@@ -216,16 +216,6 @@ the mechanism the sentence named.
   Yoga knows and does not report. —
   [ADR-0116](adr/0116-a-scroll-view-is-a-clip-an-offset-and-two-extents.md)
 
-- **A window's maximized state is write-once and cannot be read back.**
-  `Application.maximized()` is a creation flag: it becomes `SDL_WINDOW_MAXIMIZED`
-  and after that nobody involved knows whether the window still is one. There is
-  no `Window.maximize()`, no `restore()`, no `isMaximized()`, and no
-  `SDL_EVENT_WINDOW_MAXIMIZED` plumbed through — so an application cannot find out
-  that the *user* maximized it, which is the half that makes a "remember my window
-  size" preference possible. Each of the three is small on its own; together they
-  are a window-state feature with a question in it that nothing has asked yet
-  (what does `isMaximized()` return between the request and the event?). —
-  [ADR-0221](adr/0221-a-window-may-open-maximized.md)
 - **A `masonry`'s column count is a number and not a breakpoint.** Two columns at
   1200px are two columns at 720px — half as wide and twice as tall — because the
   count is a constructor argument and no selector can count columns. The showcase
@@ -1153,6 +1143,23 @@ on, which in four cases is the same thing.
 Kept rather than deleted: each is a trap somebody hit, and the reasoning that got
 out of it is usually worth more than the fact that it is fixed.
 
+- ~~**A window's maximized state is write-once and cannot be read back.**~~
+  **All three are built, and the question the entry left open has an answer that
+  follows from what maximizing is.** `Window.maximize()`, `restore()` and
+  `isMaximized()` ship, and `SDL_EVENT_WINDOW_MAXIMIZED`/`RESTORED` arrive as one
+  `BackendEvent.MaximizedChanged` — `FocusChanged`'s shape, because SDL sends two
+  and every consumer wants the boolean. **`isMaximized()` answers what the
+  platform last *reported*, not what was last asked.** ADR-0221 had already
+  established that maximized is a *state* rather than a size, and every platform
+  routes the ask through a window manager that may refuse it — so a flag set on
+  the way out would be a lie the moment one did. The cost is stated rather than
+  hidden and is asserted by a test: between the request and the event,
+  `isMaximized()` is still false, because that is a window which has been asked
+  and has not yet agreed. It is also what makes the interesting half work — an
+  application can learn that the **user** maximized it, which no amount of
+  tracking one's own calls can produce. —
+  [ADR-0252](adr/0252-a-window-is-maximized-when-the-platform-says-so.md),
+  [ADR-0221](adr/0221-a-window-may-open-maximized.md)
 - ~~**A widget cannot read a resolved custom property, so `scroll`'s line height
   is a constant.**~~ **It can, and the entry was half stale when it was
   written.** `Paints.Context.color` has read one since ADR-0195 — that is how a

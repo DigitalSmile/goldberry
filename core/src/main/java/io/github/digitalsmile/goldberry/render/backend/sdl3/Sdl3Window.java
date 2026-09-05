@@ -300,6 +300,22 @@ sealed class Sdl3Window implements BackendWindow permits Sdl3Popup {
         video().setWindowTitle(handle, title);
     }
 
+    /// Asks the window manager, and records nothing (ADR-0252).
+    ///
+    /// The state this produces comes back as `SDL_EVENT_WINDOW_MAXIMIZED` or
+    /// `SDL_EVENT_WINDOW_RESTORED`, which is the only thing that knows whether
+    /// the manager agreed.
+    @Override
+    public void setMaximized(boolean maximized) {
+        backend.requireUiThread();
+        requireOpen();
+        if (maximized) {
+            video().maximizeWindow(handle);
+        } else {
+            video().restoreWindow(handle);
+        }
+    }
+
     @Override
     public String title() {
         backend.requireUiThread();

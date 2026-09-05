@@ -5535,6 +5535,38 @@ is the `scroll` box's.
   would be a frame late in the one place a frame late means building the *wrong
   rows*. The door `scroll` needed is not the one `list` needs.
 
+### The state a window could be put into and never asked about
+
+- **A window can be maximized, restored and asked**
+  ([ADR-0252](adr/0252-a-window-is-maximized-when-the-platform-says-so.md)).
+  `Application.maximized()` was a creation flag and nothing else: it became
+  `SDL_WINDOW_MAXIMIZED` and after that nobody involved knew whether the window
+  still was one.
+- **`isMaximized()` answers what the platform last *reported*, not what was last
+  asked**, and that is the question the entry left open. It follows from what
+  ADR-0221 already established — maximized is a *state* rather than a size — and
+  from the fact that every platform routes the ask through a window manager that
+  may refuse it, delay it or grant it in part. A flag set on the way out would be
+  a lie the moment one did.
+- **The cost is stated rather than hidden**: between `maximize()` and the event,
+  `isMaximized()` is still false. That is a window which has been asked and has
+  not yet agreed, and there is no third answer that is true — asserted by a test,
+  because it is the kind of thing a later reader would "fix".
+- **It is also what makes the feature worth having.** An application can learn
+  that the **user** maximized it, which is what a "remember my window size"
+  preference needs and which no amount of tracking one's own calls can produce.
+  `HeadlessWindow.reportMaximized` is the route that does not start with the
+  application, and the test for it is the one that matters most.
+- **The export list and the C shim both had to learn the new names**, and that
+  refusal earned its keep immediately. `SDL_EVENT_WINDOW_MAXIMIZED` is `0x20A`
+  and `RESTORED` is `0x20B` — derived by counting an unnumbered C enum from the
+  last explicit value, which is precisely the arithmetic that is silently wrong.
+  `LayoutVerificationTest` refuses a constant declared in Java that nothing
+  verifies against the compiled library, and it checked both.
+- **`GoldberryRuntime`'s switch is exhaustive over a sealed interface**, so
+  adding the event failed the compile until it was routed — the design working
+  rather than an inconvenience.
+
 ### Not started
 
 Client-side decorations, the rest of §4 —

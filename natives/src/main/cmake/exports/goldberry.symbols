@@ -50,6 +50,8 @@ SDL_CreateWindow
 SDL_DestroyWindow
 SDL_ShowWindow
 SDL_SetWindowTitle
+SDL_MaximizeWindow
+SDL_RestoreWindow
 SDL_GetWindowSize
 SDL_GetWindowSizeInPixels
 SDL_GetWindowDisplayScale

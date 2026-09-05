@@ -23,6 +23,8 @@ public record SdlWindowCalls(
         DestroyWindow destroyWindow,
         ShowWindow showWindow,
         SetWindowTitle setWindowTitle,
+        MaximizeWindow maximizeWindow,
+        RestoreWindow restoreWindow,
         SetWindowPosition setWindowPosition,
         GetWindowPosition getWindowPosition,
         SetWindowSize setWindowSize,
@@ -43,6 +45,8 @@ public record SdlWindowCalls(
                 new DestroyWindow(lookup),
                 new ShowWindow(lookup),
                 new SetWindowTitle(lookup),
+                new MaximizeWindow(lookup),
+                new RestoreWindow(lookup),
                 new SetWindowPosition(lookup),
                 new GetWindowPosition(lookup),
                 new SetWindowSize(lookup),
@@ -190,6 +194,62 @@ public record SdlWindowCalls(
                 return (boolean) FD_SDL_SetWindowTitle.invokeExact(address, window, title);
             } catch (Throwable t) {
                 throw Downcalls.failure("SDL_SetWindowTitle", t);
+            }
+        }
+    }
+
+    /// Asks the window manager to maximize the window.
+    ///
+    /// `_Bool SDL_MaximizeWindow(void*)`
+    ///
+    /// **A request rather than a setter.** On every platform this is a message to
+    /// the window manager, which may refuse it — a tiling compositor has its own
+    /// idea — so what it returns is whether SDL accepted the *ask*, and the state
+    /// is `SDL_EVENT_WINDOW_MAXIMIZED` arriving afterwards (ADR-0252).
+    ///
+    /// @return false if SDL refused
+    public static final class MaximizeWindow {
+
+        private static final MethodHandle FD_SDL_MaximizeWindow =
+                Downcalls.link(FunctionDescriptor.of(JAVA_BOOLEAN, ADDRESS));
+
+        private final MemorySegment address;
+
+        MaximizeWindow(SymbolLookup lookup) {
+            this.address = Downcalls.symbol(lookup, "SDL_MaximizeWindow");
+        }
+
+        public boolean call(MemorySegment window) {
+            try {
+                return (boolean) FD_SDL_MaximizeWindow.invokeExact(address, window);
+            } catch (Throwable t) {
+                throw Downcalls.failure("SDL_MaximizeWindow", t);
+            }
+        }
+    }
+
+    /// Asks for the window's ordinary size back — [MaximizeWindow]'s undo, and
+    /// also un-minimizes.
+    ///
+    /// `_Bool SDL_RestoreWindow(void*)`
+    ///
+    /// @return false if SDL refused
+    public static final class RestoreWindow {
+
+        private static final MethodHandle FD_SDL_RestoreWindow =
+                Downcalls.link(FunctionDescriptor.of(JAVA_BOOLEAN, ADDRESS));
+
+        private final MemorySegment address;
+
+        RestoreWindow(SymbolLookup lookup) {
+            this.address = Downcalls.symbol(lookup, "SDL_RestoreWindow");
+        }
+
+        public boolean call(MemorySegment window) {
+            try {
+                return (boolean) FD_SDL_RestoreWindow.invokeExact(address, window);
+            } catch (Throwable t) {
+                throw Downcalls.failure("SDL_RestoreWindow", t);
             }
         }
     }

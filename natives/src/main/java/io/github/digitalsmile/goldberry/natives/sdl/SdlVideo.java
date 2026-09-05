@@ -242,6 +242,25 @@ public final class SdlVideo {
         }
     }
 
+    /// Asks the window manager to maximize `window`.
+    ///
+    /// **A request, not a setter** (ADR-0252). Whether it happened arrives as
+    /// `SDL_EVENT_WINDOW_MAXIMIZED`, and a window manager that declines sends
+    /// nothing — so nothing here reports the state.
+    public void maximizeWindow(SdlWindowHandle window) {
+        if (!sdlWindowCalls.maximizeWindow().call(window.pointer())) {
+            throw new SdlException("SDL_MaximizeWindow", Sdl.get().lastError());
+        }
+    }
+
+    /// Asks for `window`'s ordinary size back — [#maximizeWindow]'s undo, on the
+    /// same terms.
+    public void restoreWindow(SdlWindowHandle window) {
+        if (!sdlWindowCalls.restoreWindow().call(window.pointer())) {
+            throw new SdlException("SDL_RestoreWindow", Sdl.get().lastError());
+        }
+    }
+
     /// Asks `window` to start delivering `SDL_EVENT_TEXT_INPUT`.
     ///
     /// **SDL3 does not deliver committed text until something asks.** Text input

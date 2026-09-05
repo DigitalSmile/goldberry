@@ -159,6 +159,19 @@ public sealed interface BackendEvent {
     /// (ADR-0144).
     record FocusChanged(BackendWindow window, boolean focused) implements BackendEvent {}
 
+    /// The window became maximized, or stopped being.
+    ///
+    /// **The only truth about the state** (ADR-0252). Maximizing is a *request* a
+    /// window manager may refuse, delay or grant in part, so a window is
+    /// maximized when the platform says it is and not when the application asked
+    /// — which is what makes "remember whether the user maximized it" answerable
+    /// at all.
+    ///
+    /// One event for both directions, because SDL reports them as two
+    /// (`MAXIMIZED` and `RESTORED`) and every consumer wants the boolean. The
+    /// same shape [FocusChanged] already has, for the same reason.
+    record MaximizedChanged(BackendWindow window, boolean maximized) implements BackendEvent {}
+
     /// A key went down.
     ///
     /// @param keycode  the platform's virtual keycode — translated to a [Key] by

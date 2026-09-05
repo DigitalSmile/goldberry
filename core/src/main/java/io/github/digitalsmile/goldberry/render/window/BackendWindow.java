@@ -185,6 +185,19 @@ public interface BackendWindow extends AutoCloseable {
     /// Sets the window title.
     void setTitle(String title);
 
+    /// Asks the platform to maximize this window, or to give its ordinary size
+    /// back.
+    ///
+    /// **A request rather than a setter** (ADR-0252). Every platform routes this
+    /// through a window manager that may refuse it, so nothing here returns
+    /// whether it happened — that arrives as
+    /// [BackendEvent.MaximizedChanged].
+    ///
+    /// A default no-op, because a backend with no window manager has nothing to
+    /// ask: the headless one overrides it to report the change itself, which is
+    /// what lets a test drive the whole path.
+    default void setMaximized(boolean maximized) {}
+
     /// The current title.
     String title();
 
