@@ -42,7 +42,7 @@ tree = new ElementTree(new WindowRoot(application.root(), overlays));
 
 `WindowRoot` renders one box: the application's root in flow with `flex-grow: 1`,
 so it fills the window, and every overlay after it as an absolute box inset to a
-[`Corner`](../../../core/src/main/java/io/github/digitalsmile/goldberry/widget/Corner.java).
+[`Corner`](../../../core/src/main/java/io/github/digitalsmile/goldberry/widget/style/Corner.java).
 Three consequences follow from that one shape, and each is the point of it:
 
 - **An overlay takes no space.** An absolute box takes no part in its parent's

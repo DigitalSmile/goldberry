@@ -93,7 +93,7 @@ A horizontal field's **control has to grow**, and that is not decoration: a
 row it takes nothing at all. The controls are enumerated rather than selected as
 "everything that is not the label", because §8's subset has no `:not()` — the
 same reason a disabled control is kept from lighting up in the router rather than
-in a stylesheet ([ADR-0064](0064-input-is-a-service-a-widget-opts-into.md)).
+in a stylesheet ([ADR-0064](0064-a-rounded-rectangle-is-four-cubics.md)).
 
 ### A shorthand keeps the spaces inside a function
 

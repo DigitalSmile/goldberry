@@ -135,7 +135,7 @@ settling itself is what stops `isAnimating` asking for frames forever.
   top-anchored — so it photographs the *newer* toast moving, which is the
   opposite of what a pinned stack does. Overlay placement is not assertable as a
   number, which
-  [`HudGoldenTest`](0100-a-window-has-an-overlay-layer.md) found first.
+  [`HudGoldenTest`](0100-a-window-has-a-layer-above-its-application.md) found first.
 - **`Measured` has a fifth consumer**, and the first whose reason is not its own
   geometry but a sibling's. `book/src/TODO.md` calls it "a door every widget can
   now open and almost none should"; a stack that must move its survivors by an

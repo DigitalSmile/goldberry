@@ -28,7 +28,7 @@ predict from the description.
 
 **The gesture is a translation, not a position.** A slider reads its value
 straight off the pointer, because the value *is* a position along a track
-([ADR-0079](0079-a-slider-reads-the-pointer.md)). A divider cannot: the pointer is
+([ADR-0079](0079-a-continuous-value-is-placed-by-ratio.md)). A divider cannot: the pointer is
 somewhere inside a six-point bar, and mapping that to a fraction of the pane would
 snap the divider so its centre jumped under the finger on every press — by up to
 three points, which is visible and feels broken.

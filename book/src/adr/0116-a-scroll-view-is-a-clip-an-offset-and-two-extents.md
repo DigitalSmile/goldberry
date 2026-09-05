@@ -73,7 +73,7 @@ overflow left to scroll — negotiated away before it was ever measured.
 This is the part that is new machinery rather than assembly.
 
 `PointerEvent` and `KeyEvent` each gained `bounds()` and `part()`, both
-[`Extent`](../../../core/src/main/java/io/github/digitalsmile/goldberry/input/Extent.java)s
+[`Extent`](../../../core/src/main/java/io/github/digitalsmile/goldberry/input/hit/Extent.java)s
 — a width and a height, resolved by the router out of the hit-test snapshot the
 last paint left behind. `bounds()` is the handling widget's own box; `part()` is
 the box named by the existing `Handles.localPart()`. A scroll view names

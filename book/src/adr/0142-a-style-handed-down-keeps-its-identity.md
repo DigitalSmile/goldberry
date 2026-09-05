@@ -4,7 +4,7 @@ Date: 2026-08-19
 
 ## Status
 
-Accepted. Repairs [ADR-0070](0070-the-style-cache-and-what-it-cost.md)'s cache,
+Accepted. Repairs [ADR-0070](0070-the-cascade-resolves-invalidated-nodes.md)'s cache,
 which had a hole in it from the day [ADR-0099](0099-an-indicator-travels-on-a-grid.md)
 added the `inline` seam.
 

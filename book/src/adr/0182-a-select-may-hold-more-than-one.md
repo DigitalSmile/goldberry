@@ -61,7 +61,7 @@ time.
 ### A popup's content may change while it is open
 
 Which the toolkit could not do. A popup is an element tree of its own with its own
-build schedule ([ADR-0103](0103-a-popup-is-a-tree-in-a-window.md)), so a
+build schedule ([ADR-0103](0103-a-popup-is-a-second-tree-in-a-second-window.md)), so a
 `setState` in the widget that opened it reaches that widget's tree and nothing in
 the window the popup is drawn in — and the only way to show a popup something new
 was to close it and open another, which flickers and loses the keyboard's place.

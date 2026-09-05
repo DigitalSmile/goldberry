@@ -4,7 +4,7 @@ Date: 2026-08-19
 
 ## Status
 
-Accepted. Narrows [ADR-0070](0070-the-style-cache-and-what-it-cost.md)'s
+Accepted. Narrows [ADR-0070](0070-the-cascade-resolves-invalidated-nodes.md)'s
 invalidation, which was conservative by an amount nobody had measured until
 [ADR-0146](0146-a-hud-shows-where-the-frame-went.md) put the number on screen.
 

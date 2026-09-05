@@ -5,8 +5,8 @@ Date: 2026-08-18
 ## Status
 
 Accepted. Closes the second of the five disagreements in `docs/ARCHITECTURE.md`
-§17.1. Follows [ADR-0056](0056-sdl-is-the-windowing-layer.md) (SDL is the
-windowing layer) and [ADR-0089](0089-a-knobs-gesture-is-a-rate.md) (a knob's
+§17.1. Follows [ADR-0056](0056-the-wheel-is-lines-and-the-sign-is-ours.md) (the wheel is
+lines, and the sign is ours) and [ADR-0089](0089-a-knobs-gesture-is-a-rate.md) (a knob's
 wheel is a rate).
 
 ## Context

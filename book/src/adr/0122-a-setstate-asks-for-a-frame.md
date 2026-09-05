@@ -5,7 +5,7 @@ Date: 2026-08-19
 ## Status
 
 Accepted. Fixes a gap left by
-[ADR-0052](0052-state-is-a-plain-object-and-setstate-defers.md) and
+[ADR-0052](0052-state-lives-on-the-element-and-rebuilds-are-deferred.md) and
 [ADR-0067](0067-motion-is-an-overlay-on-a-frame-clock.md) between them.
 
 ## Context

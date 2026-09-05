@@ -49,7 +49,7 @@ offered, and adopts only a value that has *changed* since the last build.
 It also has to be in `build` rather than in `didUpdateWidget`. A `bind=` value
 firing does not replace the widget: the property notifies, the element is marked
 for build, and the widget is the same object it was
-([ADR-0062](0062-a-binding-is-a-subscription-the-element-owns.md)).
+([ADR-0062](0062-bind-is-a-path-and-nothing-else.md)).
 `didUpdateWidget` would miss the case the mechanism exists for.
 
 ### The editing model is a value, and it is tested without a widget
