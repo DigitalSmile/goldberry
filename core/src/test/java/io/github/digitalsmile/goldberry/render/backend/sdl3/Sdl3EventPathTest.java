@@ -190,6 +190,44 @@ class Sdl3EventPathTest {
         });
     }
 
+    /// A **window move** is not an event any test can produce on the platform —
+    /// there is no window manager under the dummy driver and nothing to drag —
+    /// so it is fabricated onto SDL's own queue and comes back out of the
+    /// ordinary pump ([ADR-0061], [ADR-0270]).
+    ///
+    /// The position is read off the window rather than out of the event, exactly
+    /// as the sizes are, which is why the event's own `data1`/`data2` here are
+    /// nothing in particular.
+    @Test
+    @DisplayName("a window move reaches the sink with the position read off the window")
+    void moveReachesTheSink() {
+        withBackend((backend, window) -> {
+            var events = pump(
+                    backend,
+                    sink -> push(buffer -> buffer.writeWindowEvent(SdlEventType.WINDOW_MOVED, id(window), 0, 0)));
+
+            var moved = only(events, BackendEvent.Moved.class);
+            assertSame(window, moved.window());
+            assertEquals(window.position().orElseThrow(), moved.position());
+        });
+    }
+
+    @Test
+    @DisplayName("the same move arriving twice is reported once")
+    void duplicateMoveIsCoalesced() {
+        withBackend((backend, window) -> {
+            // SDL reports `WINDOW_MOVED` for every pixel of a title-bar drag, and
+            // again for a move that put the window back where it already was.
+            // What a move costs above the SPI is a re-placement per open popup.
+            var events = pump(backend, sink -> {
+                push(buffer -> buffer.writeWindowEvent(SdlEventType.WINDOW_MOVED, id(window), 0, 0));
+                push(buffer -> buffer.writeWindowEvent(SdlEventType.WINDOW_MOVED, id(window), 0, 0));
+            });
+
+            assertEquals(1L, count(events, BackendEvent.Moved.class), () -> "expected one move, got " + names(events));
+        });
+    }
+
     @Test
     @DisplayName("the same resize arriving twice is reported once")
     void duplicateResizeIsCoalesced() {

@@ -139,6 +139,43 @@ final class FramePacer {
         started = true;
     }
 
+    /// How many of the display's refreshes went by with a frame **wanted and
+    /// undelivered**.
+    ///
+    /// The pacer's half of a dropped frame, and the half nothing above the
+    /// backend can see ([ADR-0271]). A
+    /// [io.github.digitalsmile.goldberry.stats.FrameRing] records the frames that
+    /// were painted, so the gap left by a frame that was never painted is
+    /// invisible to it: sixty frames at 30 fps and sixty frames at 60 fps are
+    /// both "sixty frames", and only one of them missed every other refresh.
+    ///
+    /// **Not the gap since the last frame.** An idle loop asks for nothing, and a
+    /// window that sat untouched for a minute has not dropped three thousand
+    /// frames — it has drawn every one it was asked for. What counts is the
+    /// interval between the moment a frame *could* have been emitted and the
+    /// moment one was:
+    ///
+    /// - the request arrived at `pendingSinceNanos`;
+    /// - the previous frame plus one interval is the earliest the display could
+    ///   have wanted another;
+    /// - whichever of those is later is when this frame was **due**, and every
+    ///   whole interval between then and now is a refresh that showed the
+    ///   previous frame again.
+    ///
+    /// Zero for an unpaced pacer and for the first frame, neither of which has an
+    /// interval to be late against.
+    ///
+    /// @param pendingSinceNanos when the frame now being emitted was asked for
+    /// @param nowNanos          when it is being emitted
+    int missedRefreshes(long pendingSinceNanos, long nowNanos) {
+        if (!isPacing() || !started) {
+            return 0;
+        }
+        var due = Math.max(pendingSinceNanos, lastFrameAt + intervalNanos);
+        var late = nowNanos - due;
+        return late < intervalNanos ? 0 : (int) (late / intervalNanos);
+    }
+
     /// The wait a pump should use: the caller's timeout, shortened if a frame
     /// comes due first.
     ///

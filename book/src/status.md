@@ -6215,6 +6215,55 @@ is the `scroll` box's.
   `GalleryGoldenTest`'s answer to the same problem. Both tour images match
   unchanged.
 
+### Two overlay entries, an input chapter, and the frames nobody could see
+
+- **A window move is an event now** ([ADR-0270](adr/0270-a-popup-is-placed-again-when-its-window-moves.md)).
+  `BackendEvent.Moved`, `SDL_EVENT_WINDOW_MOVED` translated and deduplicated per
+  position, and `HeadlessWindow.moveTo` posting the event a window manager would —
+  so the whole re-clamping path runs in CI. The layout probe caught the constant
+  being unregistered in `goldberry_shim.c` before anything else did, which is
+  exactly the failure `SdlEventType`'s javadoc says it exists for: a wrong event
+  number does nothing at all, and there is no error anywhere to notice.
+- **A move re-places immediately; a resize still waits for the paint.** The
+  opposite of ADR-0231's rule and for the same reason: a move produces no new
+  hit-test capture and invalidates none, so the current one is the right one. No
+  repaint follows a move either — nothing inside the window changed.
+- **The scrolling anchor did not need `Located`.** The TODO entry proposed it; the
+  anchor turns out to have nothing to report, because `anchor(id)` answers from a
+  capture taken **every frame**. What was missing was the question, so
+  `replacePopups` runs at the end of any frame with a popup anchored **by id** —
+  which is also the guard, since a popup opened against a caller's rectangle has
+  nothing to re-resolve.
+- **A popup was anchoring to the wrong rectangle, and had been since before
+  anything scrolled.** `Region.bounds()` is the **layout** rectangle and
+  `painted()` is where the box was drawn; both javadocs said a popup anchors to
+  the first. A button inside a `scroll` sits in the flow hundreds of pixels from
+  where it is drawn, so a menu opened from a scrolled list opened hundreds of
+  pixels away from its button. Three call sites read `painted()` now. The two
+  rectangles are identical for every box nothing transformed, which is why it took
+  a scrolling anchor to show it.
+- **`late` is a `hud` reading** ([ADR-0271](adr/0271-a-frame-that-never-happened-is-counted.md)).
+  Both halves of "nothing reports a dropped frame" in one number: the frames the
+  loop never reached, which leave no record in a ring that only holds frames that
+  were painted, and the frames the platform refused *after* painting them, which
+  were in the mean as though somebody had seen them.
+- **`pendingSince` is what makes that number honest.** The naive version — the gap
+  since the last frame, over the display's interval — reports a window nobody
+  touched for a minute as three and a half thousand dropped frames, when it drew
+  every frame it was asked for. §1.7's idle loop is the common case, so lateness
+  is counted from the moment a frame was *asked for*, not from the last one
+  delivered. A window of sixty rather than a total, so it comes back down.
+- **60 ms can be told otherwise.** `-Dgoldberry.popup.settle=` overrides how long
+  a focus-lost is disbelieved for, clamped to 1–2000 ms — zero would act on the
+  first of the focus-lost/focus-gained pair every driver sends, which is the exact
+  bug the delay exists for. The default is unchanged and still cannot be derived.
+- **The input chapter is gone, and one of its two entries was closed by
+  arithmetic.** `SDL_GetModState` costs **8.71 ns a call** — 34.8 µs per second of
+  dragging at 4000 events a second, 0.0035% of one core — measured by
+  `ModifierPollBenchmark` on the same headless path `SdlTest` uses. The other
+  entry had been answered by ADR-0115 two milestones earlier and was still sitting
+  in the list under an introduction that said it had left.
+
 ### Not started
 
 Client-side decorations, the rest of §4 —

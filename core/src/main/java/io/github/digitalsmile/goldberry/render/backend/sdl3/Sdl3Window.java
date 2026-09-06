@@ -59,6 +59,17 @@ sealed class Sdl3Window implements BackendWindow permits Sdl3Popup {
     private @Nullable LogicalSize reportedSize;
     private @Nullable PhysicalSize reportedPhysicalSize;
 
+    /// When the outstanding frame request arrived, in `System.nanoTime` units.
+    /// Meaningless unless [#framePending]. See [#lateFrames()].
+    private long framePendingSince;
+
+    /// Refreshes that went by with a frame wanted and undelivered — see
+    /// [#lateFrames()].
+    private long lateFrames;
+
+    /// The position the last reported move carried. See [#movedTo].
+    private @Nullable LogicalPoint reportedPosition;
+
     /// The handle, for a subclass that has to make its own SDL calls.
     final SdlWindowHandle handle() {
         return handle;
@@ -205,6 +216,10 @@ sealed class Sdl3Window implements BackendWindow permits Sdl3Popup {
             return;
         }
         framePending = true;
+        // When it was asked for, which is what makes lateness measurable: the
+        // pacer can then tell a frame the loop was too busy to deliver from one
+        // nobody had asked for yet ([ADR-0271]).
+        framePendingSince = System.nanoTime();
 
         // Wake the loop. Without this the request sits until the next platform
         // event or the loop's idle heartbeat -- so a repaint asked for from an
@@ -385,6 +400,21 @@ sealed class Sdl3Window implements BackendWindow permits Sdl3Popup {
         refreshRate = 0f;
     }
 
+    /// Records a move and says whether it is news.
+    ///
+    /// SDL reports `WINDOW_MOVED` for every pixel of a title-bar drag, and it
+    /// reports it again for a move that put the window back where it already
+    /// was. What a move costs above the SPI is a popup re-placement per open
+    /// popup, so the same position twice is skipped here rather than there
+    /// ([ADR-0270]).
+    boolean movedTo(LogicalPoint position) {
+        if (position.equals(reportedPosition)) {
+            return false;
+        }
+        reportedPosition = position;
+        return true;
+    }
+
     /// Records a resize and says whether it is news.
     ///
     /// SDL sends `WINDOW_RESIZED` liberally, and since ADR-0060 the same one
@@ -403,6 +433,25 @@ sealed class Sdl3Window implements BackendWindow permits Sdl3Popup {
         reportedSize = logical;
         reportedPhysicalSize = physical;
         return true;
+    }
+
+    /// When the outstanding frame request arrived, or 0 if none is outstanding.
+    long framePendingSince() {
+        return framePending && open ? framePendingSince : 0L;
+    }
+
+    @Override
+    public long lateFrames() {
+        return lateFrames;
+    }
+
+    /// Adds to the count of refreshes that went by with this window waiting for a
+    /// frame. Counted by the backend, which owns the pacer that can say
+    /// ([ADR-0271]).
+    void frameWasLate(int refreshes) {
+        if (refreshes > 0) {
+            lateFrames += refreshes;
+        }
     }
 
     /// Consumes an outstanding frame request. Coalescing is implicit: the flag is

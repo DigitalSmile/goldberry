@@ -20,11 +20,14 @@ two, `text style=` against `text class=`, a disabled container disabling its
 descendants, and — since `docs/content-widgets.md` joined the plan — where the
 emoji font lives and who owes its attribution, whether `goldberry-charts` is an
 artifact, and what "zero new natives" costs (see [Content
-modules](#content-modules)). **Pixel-precise wheel deltas left this list** —
+modules](#content-modules)). **Pixel-precise wheel deltas left this list** and
+have now left the list below it too:
 [ADR-0115](adr/0115-a-wheel-reports-a-fraction-and-a-detent.md) settled it as a
-difference rather than an agreement: what §2.4 wanted from "pixel-precise" is
+difference rather than an agreement — what §2.4 wanted from "pixel-precise" is
 scrolling that does not quantize, and a fractional line delivers that without
-the mechanism the sentence named.
+the mechanism the sentence named — while the entry itself sat on under
+*Input, focus and the pointer* for two milestones. That section is **gone**: its
+other entry was a cost nobody had measured, and measuring it was the answer.
 
 ## Overlays, popups and windows
 
@@ -40,18 +43,6 @@ the mechanism the sentence named.
   from the catalog. —
   [ADR-0225](adr/0225-a-toast-says-it-is-worth-interrupting-for.md),
   [ADR-0177](adr/0177-a-toast-is-a-queue-and-the-stack-is-the-widget.md)
-- **A window that *moves* does not re-clamp its popups, and a scrolling anchor
-  does not drag one.** The **resize** half is built — a popup remembers how it was
-  placed and is put back after the paint that follows a resize, following its
-  anchor by id where it had one. What is left is the two halves nothing reports.
-  A window move is not an event: there is no `BackendEvent.Moved`, so re-clamping
-  a menu that was flipped against the work area at the old position needs an SPI
-  event, an SDL translation and a fabricated-event test of ADR-0061's shape. And a
-  `popover` following a scrolling anchor needs the *anchor* to report that it
-  moved, which is `Located`'s shape and a widget-level wiring rather than a
-  window-level one. —
-  [ADR-0231](adr/0231-a-popup-is-placed-again-when-its-anchor-moves.md),
-  [ADR-0104](adr/0104-a-popup-is-measured-then-placed.md)
 - **A popup may not give the *platform's* keyboard focus back, and the widget
   layer has nothing to do with it** — **the second half of this entry was wrong
   and has been measured.** A popup gets its own tree and its own router, and
@@ -79,31 +70,37 @@ the mechanism the sentence named.
   reach in, which nothing has asked for. —
   [ADR-0263](adr/0263-three-numbers-in-one-row-and-nothing-watching.md),
   [ADR-0103](adr/0103-a-popup-is-a-second-tree-in-a-second-window.md)
-- **Nothing reports a dropped frame.** The ring behind `hud` records frames that were
-  painted, so a frame the platform refused *after* it was painted is in the mean and a
-  frame the loop never reached is not. "3 late" needs the pacer's view as well as the
-  painter's, and the pacer belongs to the `sdl3` backend. —
-  [ADR-0101](adr/0101-a-diagnostic-must-not-be-the-thing-it-measures.md)
-- **60 ms is how long a focus-lost is disbelieved for.** Long enough to cover the
-  focus-lost/focus-gained pair that opening a popup produces, short enough that
-  nobody sees a menu over another application. It is one number covering every
-  driver, and the first driver that delivers that pair more slowly will look like
-  a menu that closes as it opens. —
+- **60 ms is how long a focus-lost is disbelieved for, and it can now be told
+  otherwise.** Long enough to cover the focus-lost/focus-gained pair that opening
+  a popup produces, short enough that nobody sees a menu over another application.
+  It is still **one default covering every driver** and it cannot be derived — the
+  gap between the two events is the compositor's own scheduling and nothing
+  reports what it will be — so what changed is that `-Dgoldberry.popup.settle=250`
+  overrides it without a rebuild, clamped to 1–2000 ms because a delay of zero
+  acts on the first of the pair every driver sends and is the exact bug the delay
+  exists for. A driver that needs the flag will still *look* like a menu that
+  closes as it opens until somebody sets it. —
   [ADR-0144](adr/0144-a-popup-goes-away-when-the-application-does.md)
-
-## Input, focus and the pointer
-
-- **"Pixel-precise wheel deltas" is not reachable through SDL.** §7.1 asked for them
-  with a line-based fallback; SDL reports only detents, as floats. Wayland and macOS
-  both have a pixel axis underneath and SDL does not surface it. What ships is lines
-  with the touchpad's fractions preserved, which is honest but is not what the
-  architecture document originally promised — reaching the real thing means going around
-  SDL to the platform. — [ADR-0056](adr/0056-the-wheel-is-lines-and-the-sign-is-ours.md)
-- **Every pointer event now costs an `SDL_GetModState`.** Polled per event rather than
-  carried on it, because SDL's mouse events have no `mod` field. On a 120 Hz trackpad
-  that is a few thousand calls a second into a statically linked function that reads a
-  global. Not measured — named here so it can be if a profile ever points at it. —
-  [ADR-0089](adr/0089-a-knobs-gesture-is-a-rate.md)
+- **Only a `popover` follows a scrolling anchor; a `menu` and a `select` hold the
+  rectangle they opened against.** Following is a property of having been opened
+  **by id**, which is `Popover`'s documented shape and the one the entry that
+  asked for this named. `Menus` and `SelectState` resolve the anchor to a
+  rectangle themselves, because they want a minimum width and a `Fit` as well and
+  no `Host.popup` overload takes an id *and* those two. It is one overload's worth
+  of work and nothing has asked for it: a dropdown is dismissed by a press
+  elsewhere, and the wheel over an open one scrolls its own list. —
+  [ADR-0270](adr/0270-a-popup-is-placed-again-when-its-window-moves.md),
+  [ADR-0145](adr/0145-a-dropdown-is-as-wide-as-what-it-drops-from.md)
+- **A popup whose anchor scrolls out of sight follows it out of sight.** Now that
+  a `popover` travels with its anchor, an anchor scrolled past the top of its
+  viewport takes the popup with it, and the placement clamps it to the work area
+  rather than dismissing it — so a menu can end up pointing at a widget that is no
+  longer drawn. The region carries the clip that would answer "is it still
+  visible", so the mechanism is there; what is missing is a decision about what
+  should happen — close it, hide it, or pin it to the viewport's edge — and
+  nothing has asked for one yet. —
+  [ADR-0270](adr/0270-a-popup-is-placed-again-when-its-window-moves.md),
+  [ADR-0114](adr/0114-a-clip-is-a-rectangle-the-painter-carries.md)
 
 ## The catalog: specified and unbuilt
 
@@ -1083,6 +1080,72 @@ on, which in four cases is the same thing.
 
 Kept rather than deleted: each is a trap somebody hit, and the reasoning that got
 out of it is usually worth more than the fact that it is fixed.
+
+- ~~**A window that *moves* does not re-clamp its popups, and a scrolling anchor
+  does not drag one.**~~ **Both halves are built, and the second one was a
+  question nobody was asking rather than a report nobody was making.** The move
+  half is what the entry described: `BackendEvent.Moved`, an SDL translation of
+  `WINDOW_MOVED` deduplicated per position, and a fabricated-event test under the
+  `dummy` driver. It re-places **immediately** rather than after the next paint,
+  which is the opposite of the resize case and for the stated reason — a move
+  produces no new capture and invalidates none, so the current one is the right
+  one, and no repaint follows a move at all because nothing inside the window
+  changed. The scroll half was proposed as `Located` on the anchor, and the anchor
+  turns out to have nothing to report: `anchor(id)` answers from a hit-test
+  capture taken **every frame**, so the position already had a fresh answer and
+  what was missing was the question. `replacePopups` now runs at the end of any
+  frame with a popup anchored **by id**, which is also the guard — a popup opened
+  against a rectangle a caller computed has nothing to re-resolve. Underneath both
+  was a third thing, and it had been wrong since before anything scrolled: a popup
+  anchored to `Region.bounds()`, the **layout** rectangle, which for a button
+  inside a `scroll` is hundreds of pixels from where the button is drawn. It reads
+  `painted()` now, in all three places, and the two rectangles are identical for
+  every box nothing transformed — which is why it took a scrolling anchor to show
+  it. —
+  [ADR-0270](adr/0270-a-popup-is-placed-again-when-its-window-moves.md),
+  [ADR-0231](adr/0231-a-popup-is-placed-again-when-its-anchor-moves.md),
+  [ADR-0123](adr/0123-a-pinned-box-paints-after-its-siblings.md)
+- ~~**Nothing reports a dropped frame.**~~ **`late` is a reading now, and the
+  pacer is what can count it.** Both halves the entry named are in one number:
+  the frames the loop never reached, which leave no record in a ring that only
+  holds frames that were painted, and the frames the platform refused *after* they
+  were painted, which were in the mean as though somebody had seen them. The
+  arithmetic is `max(pendingSince, lastFrame + interval)` — and `pendingSince` is
+  the whole of why this is honest, because the naive version (the gap since the
+  last frame, over the interval) reports a window nobody touched for a minute as
+  three and a half thousand dropped frames. It drew every frame it was asked for.
+  §1.7's idle loop is the common case, so a count of missed refreshes that does
+  not know when the request arrived is a count of how long the user was away. A
+  **window** rather than a total, like every other number on `FrameStats`: a total
+  only ever goes up, and somebody watching a HUD while they work would never see
+  it come back to zero. —
+  [ADR-0271](adr/0271-a-frame-that-never-happened-is-counted.md),
+  [ADR-0146](adr/0146-a-hud-shows-where-the-frame-went.md),
+  [ADR-0101](adr/0101-a-diagnostic-must-not-be-the-thing-it-measures.md)
+- ~~**"Pixel-precise wheel deltas" is not reachable through SDL.**~~ **A
+  difference rather than an agreement**, and the entry that outlived its own
+  resolution: §7.1 asked for pixel-precise deltas with a line-based fallback, SDL
+  reports only detents as floats, and the two platforms with a pixel axis
+  underneath do not surface it. What §2.4 actually wanted from "pixel-precise" is
+  scrolling that does not quantize, and a **fractional line** delivers that
+  without the mechanism the sentence named — so the honest change was to the
+  document rather than to the backend. This had already been settled and said so
+  in this file's own introduction while the entry sat on in the list below it. —
+  [ADR-0115](adr/0115-a-wheel-reports-a-fraction-and-a-detent.md),
+  [ADR-0056](adr/0056-the-wheel-is-lines-and-the-sign-is-ours.md)
+- ~~**Every pointer event now costs an `SDL_GetModState`.**~~ **Measured: 8.71
+  ns a call, so 34.8 µs per second of dragging.** Polled per event rather than
+  carried on it, because SDL's mouse events have no `mod` field where its keyboard
+  events do. The entry said "not measured — named here so it can be if a profile
+  ever points at it", which is what `ModifierPollBenchmark`
+  (`./gradlew :natives:benchmark`) is: at a generous 4000 events a second that is
+  0.0035% of one core, spread across a whole second of frames whose budget is 16.7
+  ms each. Nothing to do, and nothing to carry on the event either — ADR-0089's
+  reason for polling stands, since latching the mask from the last key event
+  leaves it stuck down when a window loses focus mid-chord. The number is the
+  answer: the next person to wonder should find the measurement rather than repeat
+  the worry. —
+  [ADR-0089](adr/0089-a-knobs-gesture-is-a-rate.md)
 
 - ~~**A guard at the top of `onPointer` is a guard on every pointer kind, and
   nothing warns.**~~ **It warns now, once per kind per node type.** The entry's

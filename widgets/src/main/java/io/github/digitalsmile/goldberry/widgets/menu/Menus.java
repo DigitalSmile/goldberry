@@ -134,7 +134,9 @@ public final class Menus {
         Objects.requireNonNull(anchorId, "anchorId");
         Objects.requireNonNull(placement, "placement");
         return host.anchor(anchorId)
-                .flatMap(anchor -> open(host, anchor.bounds(), menu, placement, new ArrayList<>(), null, siblings));
+                // `painted()`: where the anchor was drawn, which is where the
+                // user is looking ([ADR-0270]).
+                .flatMap(anchor -> open(host, anchor.painted(), menu, placement, new ArrayList<>(), null, siblings));
     }
 
     /// Opens `menu` against a rectangle in the window's own coordinates — where a

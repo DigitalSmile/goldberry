@@ -159,7 +159,10 @@ public final class Popup implements AutoCloseable {
             if (region.owner() instanceof io.github.digitalsmile.goldberry.widget.Element element
                     && element.widget() instanceof io.github.digitalsmile.goldberry.widget.style.Styled styled
                     && id.equals(styled.id())) {
-                var bounds = region.bounds();
+                // Where the item was **painted**, which for a menu tall enough
+                // to scroll is not where it was laid out ([ADR-0118],
+                // [ADR-0270]).
+                var bounds = region.painted();
                 return java.util.Optional.of(
                         bounds.offsetBy(backend.offset().x(), backend.offset().y()));
             }

@@ -162,6 +162,26 @@ public interface BackendWindow extends AutoCloseable {
         return Optional.empty();
     }
 
+    /// How many of the display's refreshes have gone by, since this window
+    /// opened, with a frame **asked for and not yet delivered**.
+    ///
+    /// Monotonic, like a frame count and for the same reason: a caller reads it
+    /// twice and takes the difference, so nothing here has to know what window
+    /// of frames anybody is averaging over.
+    ///
+    /// **The half of a dropped frame only the backend can see.** What the frame
+    /// loop records is the frames it painted, and a frame that was never painted
+    /// leaves no record at all — so a loop delivering every other refresh looks
+    /// exactly like a loop delivering every one, only slower. The pacer knows the
+    /// difference, because it knows both when the request arrived and when the
+    /// display could have taken it ([ADR-0271]).
+    ///
+    /// Zero on a backend that does not pace — which is the headless one, where
+    /// there is no display to be late for.
+    default long lateFrames() {
+        return 0L;
+    }
+
     /// Asks the platform to start or stop delivering committed text to this
     /// window as [BackendEvent.TextInput].
     ///

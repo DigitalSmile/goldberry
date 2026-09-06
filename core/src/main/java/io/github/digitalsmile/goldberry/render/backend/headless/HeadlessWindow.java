@@ -138,10 +138,25 @@ public sealed class HeadlessWindow implements BackendWindow permits HeadlessPopu
     ///
     /// There is no window manager here to do it, and a placement test needs a
     /// window that is *near an edge* — which is the only interesting case.
+    /// **Posts a [BackendEvent.Moved]**, which is the half a real window manager
+    /// would send and the half nothing else here can fabricate: a window move is
+    /// not an event any test can produce on the platform, and it is the one
+    /// thing that changes where the screen's edges are without changing anything
+    /// inside the window ([ADR-0061], [ADR-0270]).
+    ///
+    /// Silent when the window is already there, exactly as
+    /// [io.github.digitalsmile.goldberry.render.backend.sdl3.Sdl3Window] is:
+    /// a test that moves a window to where it already is should get the same
+    /// nothing a compositor would deliver.
     public void moveTo(LogicalPoint next) {
         backend.requireUiThread();
         requireOpen();
-        this.position = Objects.requireNonNull(next, "position");
+        Objects.requireNonNull(next, "position");
+        if (next.equals(position)) {
+            return;
+        }
+        this.position = next;
+        backend.post(new BackendEvent.Moved(this, next));
     }
 
     @Override

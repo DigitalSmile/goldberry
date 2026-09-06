@@ -81,6 +81,10 @@ public record Hud(List<Reading> readings, Attributes attributes)
     /// frame of *this display* is, because that is what every budget below is a
     /// share of (ADR-0153).
     ///
+    /// [Reading#LATE] is in the list and is not a stage: it is the frames that
+    /// did not happen, which is the one thing a breakdown of the frames that did
+    /// can never account for ([ADR-0271]).
+    ///
     /// Four stages rather than "everything a frame does": the hit-test capture and
     /// the frame's own setup are in [Reading#PAINT] and not in any of these, so
     /// the four do not add up to the total and are not meant to. What they are for
@@ -89,7 +93,7 @@ public record Hud(List<Reading> readings, Attributes attributes)
     /// running uncached (ADR-0142,
     /// ADR-0146).
     public static final List<Reading> STAGES = List.of(
-            Reading.FPS, Reading.REFRESH, Reading.PAINT,
+            Reading.FPS, Reading.REFRESH, Reading.LATE, Reading.PAINT,
             Reading.BUILD, Reading.STYLE, Reading.LAYOUT, Reading.RASTER);
 
     /// A HUD showing [#STAGES].

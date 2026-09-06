@@ -120,6 +120,36 @@ public interface FrameStats {
         return 0;
     }
 
+    /// How many of the display's refreshes went by, over the retained window,
+    /// with a frame **wanted and never seen**.
+    ///
+    /// The number `docs/ARCHITECTURE.md` §1.7 needs and nothing here could
+    /// previously answer: everything else on this interface is measured over the
+    /// frames that were painted, so a frame that was never painted moves the mean
+    /// and is not otherwise reported, and a frame that *was* painted and then
+    /// refused by the platform is in the mean as though the user had seen it
+    /// ([ADR-0271]).
+    ///
+    /// Two sources, one number, because a reader wants the one:
+    ///
+    /// - the **pacer's** view — a frame was asked for, the display refreshed, and
+    ///   the loop had not produced it. That is a loop that overran its budget,
+    ///   and it is the only place the overrun is visible.
+    /// - the **painter's** view — a frame was painted and then refused, which
+    ///   during a resize is ordinary rather than exotic: the window became a
+    ///   different size while the frame was being drawn for the old one.
+    ///
+    /// Over the retained window, like every mean here and unlike [#count()]: a
+    /// total since start-up would only ever go up, so a loop that dropped four
+    /// frames during a resize a minute ago would still be reporting them.
+    ///
+    /// Zero on a source that does not measure it, which is every source but the
+    /// frame loop's own — and, like [#displayHertz], zero is "nothing was
+    /// measured" rather than "nothing was dropped".
+    default long lateFrames() {
+        return 0;
+    }
+
     /// How many times a second the display refreshes, or **0** if the platform
     /// will not say.
     ///
@@ -185,7 +215,7 @@ public interface FrameStats {
     /// @param paintMillis the paint time to report
     /// @param count       the frame count to report
     static FrameStats of(double fps, double frameMillis, double paintMillis, long count) {
-        return new FixedFrameStats(fps, frameMillis, paintMillis, count, 0, 0, 0, 0, 0);
+        return new FixedFrameStats(fps, frameMillis, paintMillis, count, 0, 0, 0, 0, 0, 0);
     }
 
     /// The same, with the four stages a frame is made of — for the golden image
@@ -204,7 +234,7 @@ public interface FrameStats {
             double layoutMillis,
             double rasterMillis) {
         return new FixedFrameStats(
-                fps, frameMillis, paintMillis, count, buildMillis, styleMillis, layoutMillis, rasterMillis, 0);
+                fps, frameMillis, paintMillis, count, buildMillis, styleMillis, layoutMillis, rasterMillis, 0, 0);
     }
 
     /// The same, with the display's refresh rate — for the golden image of a
@@ -219,6 +249,33 @@ public interface FrameStats {
             double layoutMillis,
             double rasterMillis,
             double displayHertz) {
+        return of(
+                fps,
+                frameMillis,
+                paintMillis,
+                count,
+                buildMillis,
+                styleMillis,
+                layoutMillis,
+                rasterMillis,
+                displayHertz,
+                0);
+    }
+
+    /// The same, with the frames that never reached the screen — for the golden
+    /// image of a `hud` reporting a loop that dropped some, which is a picture
+    /// nothing else can produce on demand ([ADR-0271]).
+    static FrameStats of(
+            double fps,
+            double frameMillis,
+            double paintMillis,
+            long count,
+            double buildMillis,
+            double styleMillis,
+            double layoutMillis,
+            double rasterMillis,
+            double displayHertz,
+            long lateFrames) {
         return new FixedFrameStats(
                 fps,
                 frameMillis,
@@ -228,6 +285,7 @@ public interface FrameStats {
                 styleMillis,
                 layoutMillis,
                 rasterMillis,
-                displayHertz);
+                displayHertz,
+                lateFrames);
     }
 }

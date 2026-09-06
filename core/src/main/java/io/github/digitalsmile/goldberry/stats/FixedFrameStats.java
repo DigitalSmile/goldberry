@@ -10,7 +10,8 @@ record FixedFrameStats(
         double styleMillis,
         double layoutMillis,
         double rasterMillis,
-        double displayHertz)
+        double displayHertz,
+        long lateFrames)
         implements FrameStats {
 
     /// Zero, because these numbers came from nowhere and are an average of no

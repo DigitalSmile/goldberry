@@ -279,6 +279,8 @@
 - [ADR-0267 A text scale scales the text, and not the layout](adr/0267-a-text-scale-scales-the-text-and-not-the-layout.md)
 - [ADR-0268 A tour card says how tall it came out](adr/0268-a-tour-card-says-how-tall-it-came-out.md)
 - [ADR-0269 A tour arrives, and its cut-out travels](adr/0269-a-tour-arrives-and-its-cut-out-travels.md)
+- [ADR-0270 A popup is placed again when its window moves](adr/0270-a-popup-is-placed-again-when-its-window-moves.md)
+- [ADR-0271 A frame that never happened is counted](adr/0271-a-frame-that-never-happened-is-counted.md)
 
 ---
 

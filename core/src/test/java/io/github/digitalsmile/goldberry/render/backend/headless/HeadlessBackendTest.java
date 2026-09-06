@@ -210,6 +210,39 @@ class HeadlessBackendTest {
         assertEquals(new PhysicalSize(1200, 900), resized.physicalSize());
     }
 
+    /// A window move is not an event any test can produce on the platform, so the
+    /// headless backend fabricates it — which is what makes the whole re-clamping
+    /// path reachable in CI ([ADR-0061], [ADR-0270]).
+    @Test
+    @DisplayName("a move reports where the window went, and says nothing when it did not")
+    void moveReportsThePosition() {
+        var window = (HeadlessWindow) backend.createWindow(SPEC);
+        var seen = new ArrayList<BackendEvent>();
+
+        window.moveTo(io.github.digitalsmile.goldberry.render.model.LogicalPoint.of(320f, 240f));
+        backend.pumpEvents(seen::add, Duration.ZERO);
+
+        var moved = assertInstanceOf(BackendEvent.Moved.class, seen.getFirst());
+        assertEquals(io.github.digitalsmile.goldberry.render.model.LogicalPoint.of(320f, 240f), moved.position());
+        assertEquals(moved.position(), window.position().orElseThrow(), "and the window agrees with its own event");
+
+        // A move to where it already is, which a compositor sends and which costs
+        // a popup re-placement per open popup above the SPI.
+        seen.clear();
+        window.moveTo(io.github.digitalsmile.goldberry.render.model.LogicalPoint.of(320f, 240f));
+        assertEquals(0, backend.pumpEvents(seen::add, Duration.ZERO), "the same position twice is not news");
+    }
+
+    @Test
+    @DisplayName("a backend with no display is never late for a frame")
+    void headlessIsNeverLate() {
+        var window = backend.createWindow(SPEC);
+
+        // Zero is "nothing was measured" here, exactly as `refreshRate` is: there
+        // is no display under this backend to be a refresh behind ([ADR-0271]).
+        assertEquals(0L, window.lateFrames());
+    }
+
     @Test
     @DisplayName("a scale change keeps the logical size and moves the physical one")
     void scaleChangeKeepsLogicalSize() {

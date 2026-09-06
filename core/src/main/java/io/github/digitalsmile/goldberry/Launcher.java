@@ -94,11 +94,20 @@ final class Launcher implements Host {
 
     /// Puts every open popup back where its anchor now is.
     ///
-    /// Called when the window is resized, which is the one thing that moves an
-    /// anchor without moving the popup with it. A popup lives at an offset from
-    /// its owner, so dragging the window carries it along; the work area it was
-    /// clamped against and the widget it was hanging off both move under a
-    /// resize, and neither told it ([ADR-0231]).
+    /// Called from the three things that move an anchor without moving the popup
+    /// with it ([ADR-0231], [ADR-0270]):
+    ///
+    /// - a **resize**, which moves the widget the popup hangs off and the work
+    ///   area it was clamped against, and tells neither of them;
+    /// - a **move**, which moves the screen's edges in this window's own
+    ///   coordinates and nothing else — the anchor is where it was, and a menu
+    ///   flipped against the old position may not fit at the new one;
+    /// - a **frame**, while anything is anchored by id: a `popover` hanging off a
+    ///   widget in a `scroll` travels with it, and scrolling is not an event
+    ///   anybody reports.
+    ///
+    /// A popup lives at an offset from its owner, so dragging the window carries
+    /// it along — which is why a move re-clamps rather than re-anchors.
     ///
     /// **A move and not a reopen.** `Popup.move` exists for exactly this and is
     /// cheaper: the tree stays mounted, the keyboard stays where it is, and
@@ -110,7 +119,7 @@ final class Launcher implements Host {
             var placed = entry.getValue();
             var anchor = placed.anchorId() == null
                     ? placed.anchor()
-                    : anchor(placed.anchorId()).map(HitTest.Region::bounds).orElse(placed.anchor());
+                    : anchor(placed.anchorId()).map(HitTest.Region::painted).orElse(placed.anchor());
             var at = placed.placement()
                     .place(anchor, popup.bounds().size(), placeableArea())
                     .at();
@@ -118,6 +127,23 @@ final class Launcher implements Host {
                 popup.move(at);
             }
         }
+    }
+
+    /// Whether any open popup was anchored to an **id**, which is the only kind
+    /// that can follow anything.
+    ///
+    /// A popup opened against a rectangle a caller computed has nothing to be
+    /// re-resolved against: the rectangle is all there ever was, and re-placing
+    /// it every frame would put it back where it already is. An id is a question
+    /// the last paint can answer again, and the answer moves when the widget
+    /// does ([ADR-0270]).
+    private boolean followsAnAnchor() {
+        for (var entry : placements.entrySet()) {
+            if (entry.getValue().anchorId() != null && entry.getKey().isOpen()) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /// The popups this window has open. Light-dismissed together on a press or an
@@ -256,6 +282,14 @@ final class Launcher implements Host {
         // of a short window from hanging off a taller one, and what keeps a
         // right-aligned heading's menu under the heading ([ADR-0231]).
         window.onResize(resized -> replaceAfterPaint = true);
+
+        // A **move** does not move the anchor and does not need a paint: the
+        // frame on screen is still the right one, and `anchor(id)` answers from
+        // it. What moved is the work area *in this window's coordinates*, so a
+        // menu that was flipped or shifted against a screen edge has to be asked
+        // again — immediately, from the capture that is already current
+        // ([ADR-0270]).
+        window.onMove(position -> replacePopups());
 
         // A press on nothing, or an Escape, closes whatever is open over this
         // window. Neither reaches a widget, which is why it is watched here
@@ -444,7 +478,13 @@ final class Launcher implements Host {
         // still the *old* window's. Re-placing there would put every menu back
         // where its heading used to be, which is the bug rather than the fix
         // ([ADR-0231]).
-        if (replaceAfterPaint) {
+        //
+        // And on **every** frame while something is anchored by id, which is the
+        // other half of the same claim: a `popover` hanging off a widget in a
+        // `scroll` has to travel with it, and a scroll is a frame rather than an
+        // event anybody reports. Guarded by the id, so a window with no anchored
+        // popup open pays nothing ([ADR-0270]).
+        if (replaceAfterPaint || followsAnAnchor()) {
             replaceAfterPaint = false;
             replacePopups();
         }
@@ -822,7 +862,46 @@ final class Launcher implements Host {
     /// Short enough not to leave a menu floating over another application while
     /// anybody notices, long enough to cover a pair of events the compositor
     /// delivers in two batches.
-    private static final java.time.Duration FOCUS_SETTLE = java.time.Duration.ofMillis(60);
+    ///
+    /// **60 ms is one number covering every driver**, and the first driver to
+    /// deliver that pair more slowly makes a menu look like it closes as it
+    /// opens. It cannot be derived — the pair is the compositor's own scheduling
+    /// and nothing reports what it will be — so what can be done about it is to
+    /// let it be told: [#SETTLE_PROPERTY] overrides it without a rebuild, which
+    /// is what turns "this driver is broken" into a flag somebody can set
+    /// ([ADR-0144]).
+    ///
+    /// **An instance field and not a constant**: read when the launcher is built
+    /// rather than when the class is loaded, so a test that sets the property can
+    /// set it in the test rather than in the JVM that runs the suite.
+    private final java.time.Duration focusSettle = focusSettle();
+
+    /// How long to disbelieve a focus-lost for, in milliseconds.
+    ///
+    /// A tuning flag of the same kind as `goldberry.frame.rate`: rarely needed,
+    /// and the one thing that makes a compositor nobody here has run against
+    /// somebody else's afternoon rather than a bug report.
+    static final String SETTLE_PROPERTY = "goldberry.popup.settle";
+
+    /// The default, or what [#SETTLE_PROPERTY] says.
+    ///
+    /// Clamped rather than trusted: zero would act on the *first* of the pair
+    /// every driver sends and close every menu as it opened, which is the exact
+    /// bug this delay exists for. A value that will not parse is ignored rather
+    /// than fatal, for the reason a malformed frame rate is — a tuning flag
+    /// should not stop an application starting.
+    static java.time.Duration focusSettle() {
+        var raw = System.getProperty(SETTLE_PROPERTY);
+        if (raw == null || raw.isBlank()) {
+            return java.time.Duration.ofMillis(60);
+        }
+        try {
+            return java.time.Duration.ofMillis(Math.clamp(Long.parseLong(raw.trim()), 1L, 2_000L));
+        } catch (NumberFormatException e) {
+            LOG.warn("{}=\"{}\" is not a number of milliseconds; using 60", SETTLE_PROPERTY, raw);
+            return java.time.Duration.ofMillis(60);
+        }
+    }
 
     /// Some window's focus changed. If the application ends up with none of it,
     /// every light-dismissed popup goes away.
@@ -838,7 +917,7 @@ final class Launcher implements Host {
         if (focusCheck != null) {
             focusCheck.cancel();
         }
-        focusCheck = after(FOCUS_SETTLE, () -> {
+        focusCheck = after(focusSettle, () -> {
             focusCheck = null;
             if (!GoldberryRuntime.get().anyWindowFocused()) {
                 dismissPopups();
@@ -1190,7 +1269,13 @@ final class Launcher implements Host {
             LOG.warn("nothing with id \"{}\" has been painted, so there is nothing to anchor to", anchorId);
             return java.util.Optional.empty();
         }
-        var opened = popup(content, anchor.get().bounds(), placement);
+        // `painted()` and not `bounds()`: a menu belongs under where its button
+        // was **drawn**, and a button inside a `scroll` is laid out where it
+        // always was and drawn a long way from there ([ADR-0270]). The two are
+        // the same rectangle for anything nothing transformed, which is nearly
+        // every anchor there has ever been — which is why this was not wrong
+        // until something scrolled.
+        var opened = popup(content, anchor.get().painted(), placement);
         // Upgraded from a rectangle to a **name**, which is what makes a resize
         // able to follow the anchor rather than merely re-clamp against the new
         // work area: the id is re-resolved against the frame the resize produced

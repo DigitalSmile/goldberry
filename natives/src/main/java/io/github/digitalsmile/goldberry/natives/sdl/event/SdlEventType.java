@@ -20,6 +20,13 @@ public enum SdlEventType {
     /// The window's contents were lost and must be redrawn.
     WINDOW_EXPOSED(0x204),
 
+    /// The window's top-left corner moved on the desktop.
+    ///
+    /// Sent liberally, and during a drag continuously — the same way
+    /// [#WINDOW_RESIZED] is. What consumes it deduplicates it
+    /// ([ADR-0270]).
+    WINDOW_MOVED(0x205),
+
     /// The window's logical size changed.
     WINDOW_RESIZED(0x206),
 

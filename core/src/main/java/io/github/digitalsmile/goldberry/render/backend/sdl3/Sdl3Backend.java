@@ -540,8 +540,13 @@ public final class Sdl3Backend implements Backend {
         }
         var frames = new ArrayList<BackendEvent>();
         for (var window : windowsById.values()) {
+            // Read before the request is consumed and before the pacer is
+            // stamped, because both of those are what lateness is measured
+            // against ([ADR-0271]).
+            var pendingSince = window.framePendingSince();
             if (window.takeFrameRequest()) {
                 frames.add(new BackendEvent.FrameDue(window));
+                window.frameWasLate(pacer.missedRefreshes(pendingSince, now));
             }
         }
         if (frames.isEmpty()) {
@@ -689,6 +694,18 @@ public final class Sdl3Backend implements Backend {
             // both mean the same thing to a window that only tracks the one
             // state: it is no longer maximized.
             out.add(new BackendEvent.MaximizedChanged(window, false));
+        } else if (type == SdlEventType.WINDOW_MOVED.value()) {
+            // The position is read off the window rather than out of the event,
+            // for the reason the sizes below are: one place asks the platform,
+            // and `position()` is what every other caller already uses.
+            //
+            // Reported only when it is news. SDL sends `WINDOW_MOVED` for every
+            // pixel of a title-bar drag, and a re-placement per pixel of a drag
+            // nobody had a menu open during is work for nothing ([ADR-0270]).
+            var position = window.position();
+            if (position.isPresent() && window.movedTo(position.get())) {
+                out.add(new BackendEvent.Moved(window, position.get()));
+            }
         } else if (type == SdlEventType.WINDOW_RESIZED.value()) {
             // The sizes are read off the window rather than out of the event, and
             // reported only when they are news: since ADR-0060 the same resize

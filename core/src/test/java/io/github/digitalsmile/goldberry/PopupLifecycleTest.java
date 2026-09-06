@@ -72,6 +72,55 @@ class PopupLifecycleTest {
         }
     }
 
+    /// A box that **translates its children**, which is what a `scroll` is: Yoga
+    /// lays the content out where it always was and the viewport moves it
+    /// ([ADR-0114], [ADR-0116]).
+    ///
+    /// Bound to a [io.github.digitalsmile.goldberry.bind.Property], so changing
+    /// the offset marks this element for a rebuild and asks for a frame by the
+    /// same route a `setState` does ([ADR-0062], [ADR-0122]) — which is the
+    /// point: the anchor moves between two frames, with no resize and no event
+    /// that says so.
+    private record Scrolled(
+            io.github.digitalsmile.goldberry.bind.Property<Float> offset, List<Widget> kids, Attributes attributes)
+            implements Widget.Leaf, Styled, Paints {
+
+        Scrolled(io.github.digitalsmile.goldberry.bind.Property<Float> offset, Widget... kids) {
+            this(offset, List.of(kids), new Attributes("viewport", Set.of(), "viewport"));
+        }
+
+        @Override
+        public io.github.digitalsmile.goldberry.bind.Observable<?> binding() {
+            return offset;
+        }
+
+        @Override
+        public String cssType() {
+            return "viewport";
+        }
+
+        @Override
+        public String id() {
+            return attributes.id();
+        }
+
+        @Override
+        public List<Widget> children() {
+            return kids;
+        }
+
+        @Override
+        public Box render(ComputedStyle style, List<Box> children, Context context) {
+            return Box.of()
+                    .style(style)
+                    .transform(io.github.digitalsmile.goldberry.css.value.Transform.of(
+                            new io.github.digitalsmile.goldberry.css.value.Transform.Function.Translate(
+                                    io.github.digitalsmile.goldberry.css.value.Transform.Length.ZERO,
+                                    io.github.digitalsmile.goldberry.css.value.Transform.Length.px(-offset.get()))))
+                    .children(children.toArray(Box[]::new));
+        }
+    }
+
     /// A node with a size of its own, so a measured popup has something to
     /// measure.
     private record Sized(Attributes attributes) implements Widget.Leaf, Styled, Paints {
@@ -179,6 +228,7 @@ class PopupLifecycleTest {
                     sized { width: 200px; height: 80px; background: #eceff4 }
                     item { width: 100px; height: 24px }
                     #menu { background: #eceff4 }
+                    viewport { flex-grow: 1; flex-direction: column }
                     /* A column that fills the window and puts its one child at the
                        bottom, so the child moves when the window is resized -- which
                        is the whole subject of `replacedOnResize`. */
@@ -674,6 +724,108 @@ class PopupLifecycleTest {
                 after[0].y(),
                 0.5,
                 "the window lost 200px of height and the popup stayed where the anchor used to be");
+        assertEquals(before[0].x(), after[0].x(), 0.5, "and it should not have moved sideways");
+    }
+
+    /// A **move** does not move the anchor and does not repaint anything. What it
+    /// moves is the work area *in this window's coordinates*, and a menu that was
+    /// flipped or clamped against the old position has to be asked again
+    /// ([ADR-0270]).
+    ///
+    /// The window opens 400x500 at the desktop's origin, where the work area is
+    /// 1920x1040 and a menu under a target at the bottom of the window has all
+    /// the room it wants. Moved to y=700 the same menu would open at 1204 on a
+    /// desktop that stops at 1040 — under the taskbar, on a screen that has one.
+    @Test
+    @Timeout(20)
+    @DisplayName("a popup is placed again when the window moves")
+    void replacedOnMove() {
+        var before = new LogicalPoint[1];
+        var after = new LogicalPoint[1];
+        var root = new Menu(List.of(new Sized("target")), Set.of("bottom"));
+
+        Goldberry.launch(
+                new TestApp(
+                        root,
+                        host -> afterTurns(host, 2, () -> {
+                            var popup = host.popup(new Sized("menu"), "target", Placement.BELOW)
+                                    .orElse(null);
+                            if (popup == null) {
+                                Goldberry.stop();
+                                return;
+                            }
+                            before[0] = popup.offset();
+                            ownerWindow().moveTo(new LogicalPoint(0, 700));
+                            // Two turns: one for the Moved event to be dispatched,
+                            // and one to be comfortably past it. No paint is
+                            // needed and none is asked for -- the capture the last
+                            // frame produced is still the right one, which is the
+                            // difference between this and `replacedOnResize`.
+                            afterTurns(host, 2, () -> {
+                                after[0] = popup.offset();
+                                Goldberry.stop();
+                            });
+                        }),
+                        host -> {}),
+                new String[] {"--size=400x500", "--frames=400"});
+
+        assertNotNull(before[0], "the popup never opened, so there is nothing to say about it");
+        assertEquals(504, before[0].y(), 0.5, "4px under a target whose bottom edge is the window's");
+        assertEquals(
+                336,
+                after[0].y(),
+                0.5,
+                "the window moved down the screen, so the room below the target went away and the"
+                        + " menu had to flip above it");
+    }
+
+    /// The other half of the same claim, and the one no event reports: the
+    /// **anchor** moved.
+    ///
+    /// A `scroll` is a translation on the content — Yoga never sees it — so the
+    /// widget the menu hangs off is laid out where it always was and drawn 120
+    /// pixels higher. Two things have to be true for the menu to follow it: the
+    /// anchor rectangle has to be the *painted* one rather than the laid-out one,
+    /// and something has to re-ask the question on a frame that no resize and no
+    /// move produced ([ADR-0270]).
+    @Test
+    @Timeout(20)
+    @DisplayName("a popup follows an anchor that scrolls under it")
+    void followsAScrollingAnchor() {
+        var before = new LogicalPoint[1];
+        var after = new LogicalPoint[1];
+        var scrolled = io.github.digitalsmile.goldberry.bind.Property.of(0f);
+        var root = new Menu(List.of(new Scrolled(scrolled, new Sized("target"))), Set.of());
+
+        Goldberry.launch(
+                new TestApp(
+                        root,
+                        host -> afterTurns(host, 2, () -> {
+                            var popup = host.popup(new Sized("menu"), "target", Placement.BELOW)
+                                    .orElse(null);
+                            if (popup == null) {
+                                Goldberry.stop();
+                                return;
+                            }
+                            before[0] = popup.offset();
+                            scrolled.set(120f);
+                            // Four turns, which is past the frame the binding
+                            // asked for and past the re-placement at the end of
+                            // it.
+                            afterTurns(host, 4, () -> {
+                                after[0] = popup.offset();
+                                Goldberry.stop();
+                            });
+                        }),
+                        host -> {}),
+                new String[] {"--size=400x500", "--frames=400"});
+
+        assertNotNull(before[0], "the popup never opened, so there is nothing to say about it");
+        assertEquals(
+                before[0].y() - 120,
+                after[0].y(),
+                0.5,
+                "the content scrolled 120px and the menu stayed where the target used to be drawn");
         assertEquals(before[0].x(), after[0].x(), 0.5, "and it should not have moved sideways");
     }
 

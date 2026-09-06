@@ -155,6 +155,7 @@ final class GoldberryRuntime {
             case BackendEvent.FrameDue ignored -> window.paint();
             case BackendEvent.Exposed ignored -> window.repaint();
             case BackendEvent.Resized resized -> window.handleResize(resized.size());
+            case BackendEvent.Moved moved -> window.handleMoved(moved.position());
             case BackendEvent.ScaleChanged rescaled -> window.handleScaleChange(rescaled.scale());
             case BackendEvent.CloseRequested ignored -> window.handleCloseRequest();
             case BackendEvent.PointerMoved moved -> window.handlePointerMoved(moved.x(), moved.y(), moved.modifiers());

@@ -17,6 +17,7 @@ import io.github.digitalsmile.goldberry.render.Cursor;
 import io.github.digitalsmile.goldberry.render.DamageRect;
 import io.github.digitalsmile.goldberry.render.PixelBuffer;
 import io.github.digitalsmile.goldberry.render.model.DisplayScale;
+import io.github.digitalsmile.goldberry.render.model.LogicalPoint;
 import io.github.digitalsmile.goldberry.render.model.LogicalSize;
 import io.github.digitalsmile.goldberry.render.model.PhysicalSize;
 import io.github.digitalsmile.goldberry.render.model.PixelFormat;
@@ -54,8 +55,19 @@ public final class Window implements AutoCloseable {
 
     private Consumer<Frame> painter = frame -> {};
     private Consumer<LogicalSize> resizeHandler = size -> {};
+    private Consumer<LogicalPoint> moveHandler = position -> {};
     private Consumer<DisplayScale> scaleHandler = scale -> {};
     private BooleanSupplier closeHandler = () -> true;
+
+    /// [BackendWindow#lateFrames()] as of the last frame, so the difference is
+    /// what belongs to *this* one — the backend's counter is monotonic and this
+    /// ring is a window over sixty frames ([ADR-0271]).
+    private long backendLateFrames;
+
+    /// Frames painted and then refused by the platform, waiting for the next
+    /// frame to bank them. Counted here because this is where the refusal is
+    /// caught, and a frame nobody saw is late whatever the reason.
+    private long refusedFrames;
 
     /// Whether this window has ever reached the screen. The first time is what
     /// the start-up timeline is measuring.
@@ -135,6 +147,18 @@ public final class Window implements AutoCloseable {
     /// scheduled; this is for anything else that has to react.
     public Window onResize(Consumer<LogicalSize> handler) {
         this.resizeHandler = Objects.requireNonNull(handler, "handler");
+        return this;
+    }
+
+    /// Called after the window's top-left corner moves on the desktop.
+    ///
+    /// **No repaint is scheduled, and that is the difference from
+    /// [#onResize].** Nothing inside the window moved, so its last frame is
+    /// still correct; what moved is the window's own coordinate space relative
+    /// to the screen's edges, which is a question only something placing another
+    /// window against them has to ask ([ADR-0270]).
+    public Window onMove(Consumer<LogicalPoint> handler) {
+        this.moveHandler = Objects.requireNonNull(handler, "handler");
         return this;
     }
 
@@ -382,6 +406,15 @@ public final class Window implements AutoCloseable {
         }
         var painted = System.nanoTime();
 
+        // What went missing between the last frame and this one, from the two
+        // things that can tell: the backend's pacer, whose counter is monotonic
+        // and so is read as a difference, and the refusals this window caught
+        // itself ([ADR-0271]). Before `record`, which is what banks it.
+        var lateNow = window.lateFrames();
+        frames.late(Math.max(0L, lateNow - backendLateFrames) + refusedFrames);
+        backendLateFrames = lateNow;
+        refusedFrames = 0;
+
         // Before `present`, and counted even when that throws: the frame was
         // painted, and a frame the platform then refused because the window was
         // resized under it is a frame this loop still spent (see the catch).
@@ -447,6 +480,10 @@ public final class Window implements AutoCloseable {
             var current = window.isOpen() ? window.physicalSize() : frameSize;
             if (!current.equals(frameSize)) {
                 LOG.debug("dropped a {} frame: the window became {} while it was painted", frameSize, current);
+                // A frame nobody saw. Banked by the next one, which is the frame
+                // whose interval contains the gap this left ([ADR-0271]) — and
+                // it is asked for on the line below, so there will be one.
+                refusedFrames++;
                 repaint();
                 return;
             }
@@ -462,6 +499,13 @@ public final class Window implements AutoCloseable {
         // compositor sends, which during a drag is per pointer motion.
         resizeHandler.accept(size);
         repaint();
+    }
+
+    void handleMoved(LogicalPoint position) {
+        LOG.trace("window moved to {}", position);
+        // No repaint. The frame on screen is still the right one -- see
+        // [#onMove].
+        moveHandler.accept(position);
     }
 
     void handleScaleChange(DisplayScale scale) {

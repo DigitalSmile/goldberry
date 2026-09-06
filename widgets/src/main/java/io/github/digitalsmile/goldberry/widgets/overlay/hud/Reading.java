@@ -87,6 +87,61 @@ public enum Reading {
         }
     },
 
+    /// Frames that were wanted and never seen: `late 3`.
+    ///
+    /// **The only reading here that is not a measurement of a frame that
+    /// happened**, and the reason it exists: every other number is a mean over
+    /// the frames that were painted, so a frame the loop never reached and a
+    /// frame the platform refused after it was painted are both invisible —
+    /// the first leaves no record at all, and the second is in the mean as
+    /// though somebody had seen it ([ADR-0271]).
+    ///
+    /// A count over the same sixty frames the means are taken over, so it falls
+    /// again once the resize that caused it is over. A total since start-up would
+    /// only ever go up, and a HUD showing four dropped frames from a minute ago
+    /// is a HUD reporting the past.
+    ///
+    /// No unit and no decimal: these are whole frames, and `late 3.0 ms` would be
+    /// three different lies at once.
+    LATE("late") {
+        @Override
+        String text(FrameStats stats) {
+            return "late " + stats.lateFrames();
+        }
+
+        @Override
+        double value(FrameStats stats) {
+            return stats.lateFrames();
+        }
+
+        /// **Judged by hand rather than against a budget.** Every other level
+        /// here is a share of a display frame, and a count of frames is not a
+        /// duration — so this is the one reading whose thresholds are stated
+        /// rather than derived ([ADR-0271]).
+        ///
+        /// Zero is fine. One is not an alarm: a resize refuses a frame that was
+        /// painted for the size the window has just stopped being, and that is
+        /// ordinary. More than [#TOLERATED] — one in twenty of the ring's sixty
+        /// frames — is stutter somebody can see, and that is what a red number is
+        /// for.
+        ///
+        /// A stated number rather than a share of [FrameStats#capacity], which a
+        /// source that keeps no window reports as zero: a threshold derived from
+        /// that would make one dropped frame an alarm for every fixed source
+        /// there is.
+        @Override
+        Level level(FrameStats stats) {
+            if (stats == null || stats.isEmpty()) {
+                return Level.OK;
+            }
+            var late = stats.lateFrames();
+            if (late == 0) {
+                return Level.OK;
+            }
+            return late > TOLERATED ? Level.OVER : Level.NEAR;
+        }
+    },
+
     /// The mean time inside the painter: `paint 2.1 ms`.
     ///
     /// The half of the interval the toolkit is answerable for. Labelled, unlike
@@ -239,6 +294,10 @@ public enum Reading {
         }
     }
 
+    /// How many dropped frames in a window of sixty are worth noticing but not
+    /// worth an alarm — see [#LATE].
+    private static final long TOLERATED = 3;
+
     /// At what fraction of its budget a reading starts to be worth looking at.
     ///
     /// Three quarters, so the warning arrives with a quarter of the budget left
@@ -268,7 +327,7 @@ public enum Reading {
             }
         }
         throw new IllegalArgumentException("\"" + text + "\" is not a hud reading. Use one of:"
-                + " fps, refresh, paint, build, style, layout, raster");
+                + " fps, refresh, late, paint, build, style, layout, raster");
     }
 
     /// This reading of `stats`, assuming there is something to read.
@@ -358,6 +417,7 @@ public enum Reading {
             return switch (this) {
                 case FPS -> "— fps";
                 case REFRESH -> "refresh —";
+                case LATE -> "late —";
                 case PAINT -> "paint —";
                 case BUILD -> "build —";
                 case STYLE -> "style —";

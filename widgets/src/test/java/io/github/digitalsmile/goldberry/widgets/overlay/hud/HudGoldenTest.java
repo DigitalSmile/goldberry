@@ -99,7 +99,19 @@ class HudGoldenTest {
     /// number three times and prove nothing about the layout (ADR-0154).
     private static FrameStats spread(
             double fps, double paint, double build, double style, double layout, double raster) {
+        return spread(fps, paint, build, style, layout, raster, 0);
+    }
+
+    /// The same, with frames that never reached the screen — the one reading here
+    /// that is not a measurement of a frame that happened ([ADR-0271]).
+    private static FrameStats spread(
+            double fps, double paint, double build, double style, double layout, double raster, long late) {
         return new FrameStats() {
+            @Override
+            public long lateFrames() {
+                return late;
+            }
+
             @Override
             public int capacity() {
                 return 60;
@@ -160,7 +172,7 @@ class HudGoldenTest {
     @Test
     @DisplayName("the stage breakdown, a line each, min / mean / max")
     void stages() {
-        paint("hud-stages", Theme.NORD_DARK, spread(60, 2.1, 0.05, 0.29, 0.11, 1.34), 360, 190, Hud.stages());
+        paint("hud-stages", Theme.NORD_DARK, spread(60, 2.1, 0.05, 0.29, 0.11, 1.34), 360, 210, Hud.stages());
     }
 
     /// **A frame in trouble** — [ADR-0150], and the only thing that can say
@@ -173,7 +185,11 @@ class HudGoldenTest {
     @Test
     @DisplayName("readings over their budget are red, near it amber, and the rest quiet")
     void overBudget() {
-        paint("hud-over-budget", Theme.NORD_DARK, spread(22, 11.0, 0.04, 9.6, 0.2, 3.4), 360, 190, Hud.stages());
+        // **Seven frames of the last sixty never reached the screen**, which is
+        // what 22 fps on a 60 Hz display means and what no other reading here can
+        // say ([ADR-0271]). A loop over its paint budget is exactly the loop that
+        // drops them, so this is the picture where the two belong together.
+        paint("hud-over-budget", Theme.NORD_DARK, spread(22, 11.0, 0.04, 9.6, 0.2, 3.4, 7), 360, 210, Hud.stages());
     }
 
     /// The plate: a dim rate and a dimmer paint time, on the dark theme.

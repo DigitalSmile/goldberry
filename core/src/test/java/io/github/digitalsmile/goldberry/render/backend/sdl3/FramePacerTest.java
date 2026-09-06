@@ -58,6 +58,80 @@ class FramePacerTest {
     }
 
     @Nested
+    @DisplayName("lateness")
+    class Lateness {
+
+        @Test
+        @DisplayName("an unpaced pacer is never late, because it has no interval to be late against")
+        void unpacedIsNeverLate() {
+            var pacer = new FramePacer(0L);
+            pacer.frameEmitted(0L);
+
+            assertEquals(0, pacer.missedRefreshes(0L, Duration.ofSeconds(1).toNanos()));
+        }
+
+        @Test
+        @DisplayName("the first frame is never late")
+        void theFirstFrameIsNeverLate() {
+            var pacer = atSixtyHz();
+
+            // Nothing has been emitted, so there is no previous frame for this
+            // one to be a refresh behind.
+            assertEquals(0, pacer.missedRefreshes(0L, Duration.ofSeconds(1).toNanos()));
+        }
+
+        @Test
+        @DisplayName("a frame delivered on its interval is not late")
+        void anOnTimeFrameIsNotLate() {
+            var pacer = atSixtyHz();
+            pacer.frameEmitted(0L);
+
+            // Asked for immediately, delivered one interval later, which is as
+            // fast as a paced loop is allowed to go.
+            assertEquals(0, pacer.missedRefreshes(1_000L, SIXTY_HZ));
+        }
+
+        @Test
+        @DisplayName("a frame two intervals late costs one refresh, and three costs two")
+        void anOverrunCostsARefreshPerInterval() {
+            var pacer = atSixtyHz();
+            pacer.frameEmitted(0L);
+
+            assertEquals(1, pacer.missedRefreshes(1_000L, 2 * SIXTY_HZ));
+            assertEquals(2, pacer.missedRefreshes(1_000L, 3 * SIXTY_HZ));
+        }
+
+        /// **The case that makes this number honest.** §1.7 makes the loop idle
+        /// when nothing asks for a frame, so a window nobody touched for a second
+        /// has sixty refreshes' worth of gap since its last frame and has dropped
+        /// nothing at all: it drew every frame it was asked for.
+        @Test
+        @DisplayName("an idle second is not sixty dropped frames")
+        void anIdleLoopDropsNothing() {
+            var pacer = atSixtyHz();
+            pacer.frameEmitted(0L);
+            var aSecond = Duration.ofSeconds(1).toNanos();
+
+            // Nothing was asked for until the very end of that second, and it was
+            // emitted the moment it was asked for.
+            assertEquals(0, pacer.missedRefreshes(aSecond, aSecond));
+        }
+
+        @Test
+        @DisplayName("lateness is counted from the request, not from the last frame")
+        void latenessIsCountedFromTheRequest() {
+            var pacer = atSixtyHz();
+            pacer.frameEmitted(0L);
+
+            // Asked for ten intervals after the last frame -- nine of which
+            // nobody wanted a frame in -- and delivered two intervals after that.
+            // Two refreshes went by with somebody waiting, not eleven: the nine
+            // idle ones are not this loop's failure to keep up.
+            assertEquals(2, pacer.missedRefreshes(10 * SIXTY_HZ, 12 * SIXTY_HZ));
+        }
+    }
+
+    @Nested
     @DisplayName("paced")
     class Paced {
 

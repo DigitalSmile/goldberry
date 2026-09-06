@@ -94,17 +94,21 @@ public final class HitTest {
 
         /// This rectangle as a plain one, in the window's logical coordinates.
         ///
-        /// What a popup is anchored to — the rectangle without the owner, the
-        /// cursor or the transform, which is all a placement policy wants.
+        /// The rectangle **layout** produced, without the owner, the cursor or
+        /// the transform. Not what a popup anchors to: see [#painted()], which
+        /// is the same rectangle for every box nothing transformed and the right
+        /// one for the boxes something did ([ADR-0270]).
         /// Where this box was **painted**, which is not where it was laid out
         /// when something above it was transformed.
         ///
-        /// [#bounds()] is the layout rectangle, which is what a popup anchors to
-        /// — a menu belongs under where its button sits in the flow. Anything
-        /// reasoning about what the user can *see* wants this one instead: a row
-        /// inside a scrolled list is laid out where it always was and drawn a
-        /// long way from there
+        /// [#bounds()] is the layout rectangle. Anything reasoning about what the
+        /// user can *see* wants this one instead: a row inside a scrolled list is
+        /// laid out where it always was and drawn a long way from there
         /// (ADR-0123).
+        ///
+        /// **A popup anchors to this one too**, which it did not always: a menu
+        /// belongs under where its button was drawn, and the flow rectangle only
+        /// agreed with that until something scrolled ([ADR-0270]).
         ///
         /// A region stores the **inverse** of its matrix, because undoing a
         /// transform is what hit testing needs and inverting once while painting

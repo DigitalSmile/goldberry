@@ -68,6 +68,28 @@ public final class FrameRing implements FrameStats {
         pendingRastered = Math.max(0L, rasterNanos);
     }
 
+    /// Frames that were wanted and never seen, per slot — see [#lateFrames()].
+    private final long[] late = new long[CAPACITY];
+
+    /// What [#record] will bank as this frame's lateness, waiting for it.
+    private long pendingLate;
+
+    /// How many refreshes went by with a frame wanted and undelivered **before**
+    /// the frame now being painted.
+    ///
+    /// Handed in by [io.github.digitalsmile.goldberry.Window] from the two things
+    /// that know: the backend's pacer, which counts the refreshes a frame that
+    /// was asked for did not arrive in time for, and the window itself, which
+    /// counts the frames it painted and the platform then refused ([ADR-0271]).
+    ///
+    /// Banked **with the frame that follows the gap**, because that is the frame
+    /// whose interval contains it: a gap has to be attached to something in the
+    /// ring, or it ages out on a different schedule from the frames it belongs
+    /// between.
+    public void late(long refreshes) {
+        pendingLate = Math.max(0L, refreshes);
+    }
+
     /// Where the next frame goes.
     private int next;
 
@@ -108,6 +130,8 @@ public final class FrameRing implements FrameStats {
         styled[next] = pendingStyled;
         laid[next] = pendingLaid;
         rastered[next] = pendingRastered;
+        late[next] = pendingLate;
+        pendingLate = 0;
         pendingBuilt = 0;
         pendingStyled = 0;
         pendingLaid = 0;
@@ -146,6 +170,18 @@ public final class FrameRing implements FrameStats {
         var oldest = finished[(next - size + CAPACITY) % CAPACITY];
         var span = newest - oldest;
         return span > 0 ? span / 1_000_000.0 / (size - 1) : 0;
+    }
+
+    @Override
+    public long lateFrames() {
+        if (size == 0) {
+            return 0;
+        }
+        var total = 0L;
+        for (var i = 0; i < size; i++) {
+            total += late[(next - 1 - i + CAPACITY) % CAPACITY];
+        }
+        return total;
     }
 
     @Override
@@ -233,6 +269,7 @@ public final class FrameRing implements FrameStats {
 
     @Override
     public String toString() {
-        return "FrameRing[%d frames, %.1f fps, paint %.2fms]".formatted(count, fps(), paintMillis());
+        return "FrameRing[%d frames, %.1f fps, paint %.2fms, %d late]"
+                .formatted(count, fps(), paintMillis(), lateFrames());
     }
 }

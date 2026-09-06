@@ -105,6 +105,7 @@ class HudTest {
                 List.of(
                         "60 fps",
                         "refresh 60 Hz",
+                        "late 0",
                         "paint 2.1 / 2.1 / 2.1 ms",
                         "build 0.05 / 0.05 / 0.05 ms",
                         "style 0.29 / 0.29 / 0.29 ms",
@@ -144,7 +145,8 @@ class HudTest {
         var box = renderer(FrameStats.none()).render(new ElementTree(Hud.stages()));
 
         assertEquals(
-                List.of("— fps", "refresh —", "paint —", "build —", "style —", "layout —", "raster —"), readings(box));
+                List.of("— fps", "refresh —", "late —", "paint —", "build —", "style —", "layout —", "raster —"),
+                readings(box));
     }
 
     /// A zero is a measurement. A HUD rendered with no frame loop over it has not
@@ -218,6 +220,52 @@ class HudTest {
                 "no frames measured",
                 caption(empty),
                 "and a HUD with no loop behind it does not describe a window it has not filled");
+    }
+
+    /// **The frames that did not happen** — [ADR-0271].
+    ///
+    /// Every other reading is a mean over the frames that were painted, so a
+    /// frame the loop never reached leaves no record and a frame the platform
+    /// refused after it was painted is in the mean as though somebody had seen
+    /// it. This is the only number here that is about neither.
+    @Test
+    @DisplayName("`late` counts the frames nobody saw, as whole frames")
+    void lateFrames() {
+        var box = renderer(FrameStats.of(58, 17.2, 2.1, 500, 0, 0, 0, 0, 60, 3))
+                .render(new ElementTree(new Hud(Reading.FPS, Reading.LATE)));
+
+        // No unit and no decimal: these are whole frames, and there is no such
+        // thing as two thirds of one.
+        assertEquals(List.of("58 fps", "late 3"), readings(box));
+    }
+
+    /// A dropped frame is not automatically an alarm. A resize refuses a frame
+    /// that was painted for the size the window has just stopped being, and that
+    /// is ordinary rather than exotic — so one is worth noticing and four in a
+    /// window of sixty is stutter somebody can see ([ADR-0271]).
+    @Test
+    @DisplayName("one late frame is worth noticing and four is a problem")
+    void lateLevels() {
+        var none = FrameStats.of(60, 16.7, 2.1, 500, 0, 0, 0, 0, 60, 0);
+        var some = FrameStats.of(60, 16.7, 2.1, 500, 0, 0, 0, 0, 60, 1);
+        var many = FrameStats.of(60, 16.7, 2.1, 500, 0, 0, 0, 0, 60, 4);
+
+        assertTrue(new HudReading(Reading.LATE).classes(none).contains("ok"), "nothing dropped is nothing to say");
+        assertTrue(new HudReading(Reading.LATE).classes(some).contains("near"), "one is worth noticing");
+        assertTrue(new HudReading(Reading.LATE).classes(many).contains("over"), "four in sixty is visible stutter");
+        // And a HUD with no loop over it is not reporting a healthy one: dashes
+        // in red would be an alarm about nothing.
+        assertTrue(new HudReading(Reading.LATE).classes(FrameStats.none()).contains("ok"));
+    }
+
+    @Test
+    @DisplayName("`late` is one of the names a document may ask for")
+    void lateFromMarkup() {
+        var hud = (Hud) io.github.digitalsmile.goldberry.widgets.Widgets.inflater()
+                .inflate(io.github.digitalsmile.goldberry.kdl.KdlParser.parse("hud readings=\"fps late\"")
+                        .getFirst());
+
+        assertEquals(List.of(Reading.FPS, Reading.LATE), hud.readings());
     }
 
     /// **A reading colours itself against a budget** — [ADR-0150].

@@ -93,10 +93,10 @@ final class TourState extends State<Tour> {
     /// Where the target is on screen.
     ///
     /// `painted()` and not `bounds()`. A region's `bounds` is the **layout**
-    /// rectangle, which is what a popup anchors to — a menu belongs under where
-    /// its button sits in the flow. A veil is about what the user can see, and a
-    /// row inside a scrolled list is laid out where it always was and drawn a
-    /// long way from there ([ADR-0123]).
+    /// rectangle, and a veil is about what the user can see: a row inside a
+    /// scrolled list is laid out where it always was and drawn a long way from
+    /// there ([ADR-0123]). A popup anchors to the same rectangle this does, and
+    /// for the same reason ([ADR-0270]).
     private LogicalRect anchorOf(Stop stop) {
         return widget().host()
                 .anchor(stop.targetId())

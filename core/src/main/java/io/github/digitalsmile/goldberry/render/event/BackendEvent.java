@@ -3,6 +3,7 @@ package io.github.digitalsmile.goldberry.render.event;
 import java.util.Objects;
 
 import io.github.digitalsmile.goldberry.render.model.DisplayScale;
+import io.github.digitalsmile.goldberry.render.model.LogicalPoint;
 import io.github.digitalsmile.goldberry.render.model.LogicalSize;
 import io.github.digitalsmile.goldberry.render.model.PhysicalSize;
 import io.github.digitalsmile.goldberry.render.window.BackendWindow;
@@ -42,6 +43,25 @@ public sealed interface BackendEvent {
             Objects.requireNonNull(window, "window");
             Objects.requireNonNull(size, "size");
             Objects.requireNonNull(physicalSize, "physicalSize");
+        }
+    }
+
+    /// The window's top-left corner moved on the desktop.
+    ///
+    /// **Not a resize and not a scale change**: nothing inside the window moved,
+    /// which is why no repaint follows one. What changes is where the window
+    /// *is*, and therefore where the screen's edges are in the window's own
+    /// coordinates — which is the space a popup is placed in. A menu flipped
+    /// above its button because there was no room below it has to be asked the
+    /// question again when the window it hangs off is dragged up the screen
+    /// ([ADR-0270]).
+    ///
+    /// The position is in the desktop's logical coordinates, the same space
+    /// [BackendWindow#position()] and [BackendWindow#workArea()] answer in.
+    record Moved(BackendWindow window, LogicalPoint position) implements BackendEvent {
+        public Moved {
+            Objects.requireNonNull(window, "window");
+            Objects.requireNonNull(position, "position");
         }
     }
 
