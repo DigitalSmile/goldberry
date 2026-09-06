@@ -284,6 +284,7 @@
 - [ADR-0272 An absolute child is placed inside the padding](adr/0272-an-absolute-child-is-placed-inside-the-padding.md)
 - [ADR-0273 A code is a string, and the boxes are a drawing](adr/0273-a-code-is-a-string-and-the-boxes-are-a-drawing.md)
 - [ADR-0274 A calendar is told what day it is](adr/0274-a-calendar-is-told-what-day-it-is.md)
+- [ADR-0275 A wheel is a column that wraps](adr/0275-a-wheel-is-a-column-that-wraps.md)
 
 ---
 

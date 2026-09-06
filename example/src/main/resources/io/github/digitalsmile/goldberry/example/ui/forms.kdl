@@ -89,6 +89,13 @@ press the chevron and use the grid"
 and nothing outside them can be pressed"
     text class="caption" "In the grid: arrows move a day, PgUp and PgDn a month, \
 Shift with either a year"
+    text class="caption" "And what time it leaves — the same control with wheels \
+instead of a grid"
+    time-picker id="departure-time" bind="trip.time" change="trip.set-time" \
+                min="06:00" max="22:00" placeholder="Boarding time"
+    text id="trip-time-status" class="caption" bind="trip.time-status"
+    text class="caption" "In the wheels: Up and Down turn one, Left and Right \
+choose which"
   }
 
   card id="code-card" class="wall-card" {

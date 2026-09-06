@@ -121,6 +121,13 @@
      other here and in `density-compact.css` for the same reason
      `--gb-code-box-*` are. */
   --gb-calendar-day-radius: 16px;
+  /* §2's `time-picker` row, added by ADR-0275: a wheel row is a `list` row, which
+     is the height a column of numbers reads at and the one number a density
+     already moves. The column's width is its own, because two digits in a
+     `--gb-list-row-height` box would be a square and three wheels of squares
+     reads as a calculator. */
+  --gb-time-cell-height: var(--gb-list-row-height);
+  --gb-time-column-width: 48px;
 }
 
 /* ------------------------------------------------------------- no shrink --
@@ -180,6 +187,7 @@ option,
 code-box,
 calendar-day,
 calendar-weekday,
+time-cell,
 text-input {
   flex-shrink: 0;
 }
@@ -1919,6 +1927,84 @@ text-area:disabled {
   cursor: not-allowed;
 }
 
+/* ----------------------------------------------------------- time-picker --
+ *
+ * §4's typed time field. The control itself is `date-picker`'s -- the same
+ * `PickerField`, the same `picker-toggle`, the same `picker-panel` -- so what is
+ * here is only the popover's contents: §4's "hour/minute/second column set".
+ *
+ * §2 gives the two pickers one row and it is about the *date* half of it (a day
+ * cell), so the wheels' metrics are ADR-0275's addition and `design-system.md` §2
+ * gained a row for them in the same change.
+ */
+time-picker {
+  flex-direction: row;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+time-picker text-input {
+  flex-grow: 1;
+}
+
+time-picker:disabled {
+  cursor: not-allowed;
+}
+
+time-columns {
+  flex-direction: row;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+time-column {
+  flex-direction: column;
+  align-items: stretch;
+  width: var(--gb-time-column-width);
+  flex-shrink: 0;
+}
+
+/* A row of the wheel. The neighbours are quieter and the middle one is not,
+   which is the whole of how a fixed five-row column reads as a wheel rather than
+   as a list: the value is the one you can read. */
+time-cell {
+  height: var(--gb-time-cell-height);
+  justify-content: center;
+  align-items: center;
+  border-radius: 4px;
+  color: var(--gb-text-muted);
+  font-size: var(--gb-font-body);
+  line-height: var(--gb-line-body);
+  flex-shrink: 0;
+  transition: background-color var(--gb-motion-fast) ease-enter;
+}
+
+time-cell:hover {
+  background: var(--gb-overlay-hover);
+  color: var(--gb-text);
+}
+
+/* The column's current value. `--gb-text` against the neighbours' muted, and a
+   fill so it reads as chosen -- not `:checked`, because an hour is one digit of
+   one value rather than one of a set somebody picked from (see `TimeCell`). */
+time-cell.selected {
+  background: var(--gb-accent);
+  color: var(--gb-button-primary-text);
+}
+
+time-cell.selected:hover {
+  background: var(--gb-accent);
+}
+
+/* Which wheel the arrows are on. A ring inside the cell, like `calendar-day`'s
+   roving day, and for the same reason: the popover is one thing the keyboard is
+   pointed at and the cells are a drawing. */
+time-cell.roving {
+  outline: 2px solid var(--gb-focus);
+  outline-offset: -2px;
+}
+
 /* ----------------------------------------------------------- date-picker --
  *
  * §4's typed date field, and §2's row for it: "field = `text-input`; popup radius
@@ -1967,7 +2053,7 @@ date-picker:disabled {
    moved the chevron to the *far* side of the field: a relative offset moves a box
    that is still in the flow, so the field kept its place and the chevron slid
    across it. */
-date-picker-toggle {
+picker-toggle {
   position: absolute;
   right: 10px;
   width: 20px;
@@ -1979,13 +2065,13 @@ date-picker-toggle {
   transition: color var(--gb-motion-fast) ease-enter;
 }
 
-date-picker-toggle:hover {
+picker-toggle:hover {
   color: var(--gb-text);
 }
 
 /* The affordance while the grid is showing. `:checked` on the box is what says
    so -- see `DatePickerBox`. */
-date-picker:checked date-picker-toggle {
+date-picker:checked picker-toggle {
   color: var(--gb-accent);
 }
 
@@ -1994,7 +2080,7 @@ date-picker:checked date-picker-toggle {
    the surface is this, and it is `select-list`'s shape because a picker's popup
    is the same kind of thing as a combobox's. The 12 is the row's and not
    `select-list`'s 8: §2 gives this popup its own number. */
-date-picker-panel {
+picker-panel {
   flex-direction: column;
   padding: 8px;
   background: var(--gb-surface);

@@ -6432,18 +6432,58 @@ is the `scroll` box's.
   dropped declaration warns and fails nothing, so it was found by looking at the
   image.
 
+### A wheel that wraps, and a popover that was as wide as its field
+
+- **`time-picker` is built**
+  ([ADR-0275](adr/0275-a-wheel-is-a-column-that-wraps.md)), and it is
+  `date-picker`'s control with different things in the popover: the field, the
+  affordance, `Alt+Down`, `Esc`, the delegated focus and the `:checked` affordance
+  are one shared node now (`PickerField`), because §4 writes the two pickers in
+  one entry and they differ in exactly one thing.
+- **The reported popover width was the wrong rule borrowed.** A `date-picker`
+  opened its calendar with the **field's** width as the popup's minimum, which is
+  `select`'s rule and ADR-0145's argument — "a list narrower than the control it
+  hangs off reads as a mistake". It does not survive the move: a list's rows
+  *stretch* and a grid's cells do not, so a floor produced a panel as wide as the
+  field with the 224-point grid stranded in a 350-point panel. Both pickers ask
+  for no minimum now, and both say so with a named constant rather than a bare
+  zero — the interesting thing about the number is that it is a *different answer
+  from `select`'s* to the same question.
+- **A wheel and not a scrolling list.** Sixty minutes in a viewport costs a
+  `scroll`, a `ScrollController` and a `Located` cell per column, and gives a
+  popover whose height depends on how much of a list it decided to show. Five rows
+  centred on the value and wrapping at both ends is what every platform's own time
+  picker does: one height always, nothing to scroll into view, and `23 → 00` in one
+  press rather than sixty rows back up.
+- **The wrap is what makes the quiet neighbours honest.** A column showing
+  `58 59 00 01 02` says what comes next; a list clamped at `59` stops.
+- **The arrows split by axis, and a calendar's do not.** A grid moves a cell with
+  all four; a column set is a row of independent wheels, so `Up`/`Down` turn one
+  and `Left`/`Right` choose which. §4 gives both pickers the sentence "arrows move
+  within the grid" and means two different things by it.
+- **The wheels report on every turn**, where a calendar reports nothing until
+  `Enter`. There is no "not yet" for an hour — the columns always show some time —
+  and it is what keeps §4's source-of-truth field in step rather than a step
+  behind.
+- **`selected` is a class and not `:checked`.** A chosen date is one of a set
+  somebody picked from; an hour is one digit of one value that nobody chose.
+- **`WidgetWitherTest` caught a coupling.** `precision()` was rebuilding the
+  format so a seconds column got a field that could show one, which made
+  `precision(its own value)` produce an unequal record — a `DateTimeFormatter` has
+  no value equality. The format is **null until somebody sets it** now, and
+  `resolvedFormat()` derives the default: it still follows the precision, and it
+  follows because nobody pinned it rather than because a wither reached over.
+
 ### Not started
 
-Client-side decorations, and two of §4's pickers — `time-picker` and
-`color-picker`. §7 is **complete**, mechanism and all: §3's **sibling reflow** is
-built, and it was the last thing the group owed.
+Client-side decorations, and one of §4's pickers — `color-picker`. §7 is
+**complete**, mechanism and all: §3's **sibling reflow** is built, and it was the
+last thing the group owed.
 
-Both of the two left are smaller than they were. `time-picker` is `date-picker`
-with three columns instead of a grid, and shares the field, the popover, the
-gates and the revert with it; `color-picker` shares the field and the popover and
-adds a plane. The seam this list carried for two milestones — a `Validator` over
-a **parsed** value — is closed, and `calendar` is built, so neither of them is
-waiting on anything. Everything outstanding is in [TODO.md](TODO.md).
+`color-picker` is the third user of `PickerField`: it shares the field, the
+affordance, `Alt+Down`, `Esc` and the popover surface with the two that are
+built, and adds a saturation/value plane, a hue slider and a hex field. Nothing
+is waiting on anything. Everything outstanding is in [TODO.md](TODO.md).
 
 ## M4 — GPU
 

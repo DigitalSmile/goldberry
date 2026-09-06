@@ -173,6 +173,29 @@ public record DatePicker(
                 Attributes.NONE);
     }
 
+    /// This picker holding `text` when nothing is bound.
+    ///
+    /// The *text*, not a `LocalDate`, because that is what this control holds —
+    /// §4's "the typed field is the source of truth", and the reason a picker can
+    /// be built showing something half typed.
+    public DatePicker value(String text) {
+        return new DatePicker(
+                Objects.requireNonNull(text, "text"),
+                source,
+                onChange,
+                placeholder,
+                range,
+                month,
+                today,
+                min,
+                max,
+                disabledDates,
+                format,
+                locale,
+                disabled,
+                attributes);
+    }
+
     /// This picker showing `text` when it is empty.
     public DatePicker placeholder(String text) {
         return new DatePicker(

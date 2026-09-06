@@ -34,7 +34,7 @@ import io.github.digitalsmile.goldberry.widgets.panel.calendar.DateSelection;
 ///
 /// The **open** one is built by hand rather than by opening the popover, because
 /// a golden has no window and a popup is a platform window (ADR-0140). What it
-/// photographs is the thing that would otherwise go unwatched: `date-picker-panel`
+/// photographs is the thing that would otherwise go unwatched: `picker-panel`
 /// is §2's "popup radius 12, padding 8", and the calendar inside draws no surface
 /// of its own — so if the panel ever stopped drawing one, the grid would float on
 /// the desktop and every test in this module would still pass.
@@ -119,8 +119,9 @@ class DatePickerGoldenTest {
                 Theme.NORD_DARK,
                 288,
                 320,
-                new DatePickerPanel(new CalendarView(DateSelection.of(LocalDate.of(2026, 9, 14)), null, SEPTEMBER)
-                        .today(TODAY)
-                        .locale(Locale.UK)));
+                new io.github.digitalsmile.goldberry.widgets.form.parts.PickerPanel(
+                        new CalendarView(DateSelection.of(LocalDate.of(2026, 9, 14)), null, SEPTEMBER)
+                                .today(TODAY)
+                                .locale(Locale.UK)));
     }
 }

@@ -1,6 +1,7 @@
 package io.github.digitalsmile.goldberry.example;
 
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.FormatStyle;
 import java.util.ArrayList;
@@ -140,6 +141,16 @@ public final class ShowcaseModel {
 
     @Bind("trip.status")
     private String tripStatus = "Type a date, or press the chevron";
+
+    /// When the departure leaves, and what the wheels made of it.
+    ///
+    /// A **`LocalTime`**, for `trip.date`'s reason: §4 gives the control a typed
+    /// value and a model that has parsed its own is what a picker formats from.
+    @Bind("trip.time")
+    private LocalTime tripTime = LocalTime.of(9, 30);
+
+    @Bind("trip.time-status")
+    private String tripTimeStatus = "Type it, or turn the wheels";
 
     /// The one-time code, and what happened to it.
     ///
@@ -387,6 +398,21 @@ public final class ShowcaseModel {
             var date = LocalDate.parse(value, DateTimeFormatter.ofLocalizedDate(FormatStyle.SHORT));
             values.tripDate = date;
             values.tripStatus = "Leaving on " + date;
+        }
+
+        /// What the wheels or the field committed. A `String` for
+        /// `trip.set-date`'s reason: §9's valued actions cross as text, so the
+        /// application that chose the format is the one that reads it back.
+        @Action("trip.set-time")
+        void setTripTime(String value) {
+            if (value.isBlank()) {
+                values.tripTime = null;
+                values.tripTimeStatus = "No time chosen";
+                return;
+            }
+            var time = LocalTime.parse(value, DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT));
+            values.tripTime = time;
+            values.tripTimeStatus = "Boarding at " + time;
         }
 
         /// Every box, as it fills. The round trip a real form makes.

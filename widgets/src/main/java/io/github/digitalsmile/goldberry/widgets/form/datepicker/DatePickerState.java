@@ -13,6 +13,8 @@ import io.github.digitalsmile.goldberry.render.model.LogicalRect;
 import io.github.digitalsmile.goldberry.widget.BuildContext;
 import io.github.digitalsmile.goldberry.widget.State;
 import io.github.digitalsmile.goldberry.widget.Widget;
+import io.github.digitalsmile.goldberry.widgets.form.parts.PickerField;
+import io.github.digitalsmile.goldberry.widgets.form.parts.PickerPanel;
 import io.github.digitalsmile.goldberry.widgets.form.textinput.TextInput;
 import io.github.digitalsmile.goldberry.widgets.panel.calendar.CalendarView;
 import io.github.digitalsmile.goldberry.widgets.panel.calendar.DateSelection;
@@ -31,9 +33,16 @@ import io.github.digitalsmile.goldberry.widgets.panel.calendar.DateSelection;
 /// It is also what makes the two halves agree without either watching the other:
 /// the grid **writes text** into the field exactly as a user would, so there is
 /// one path a value takes and one place it is parsed.
-final class DatePickerState extends State<DatePicker> implements DatePickerBox.PickerActions {
+final class DatePickerState extends State<DatePicker> implements PickerField.PickerActions {
 
     private static final org.slf4j.Logger LOG = Logs.of(DatePickerState.class);
+
+    /// What [#open] asks the popup facility for — see the note there.
+    ///
+    /// Named rather than a bare zero, because zero is the *answer* to a question
+    /// ("how wide must this be at least?") and the interesting thing about it is
+    /// that a picker asks a different one from `select`.
+    private static final float NO_MINIMUM_WIDTH = 0;
 
     /// What the field holds. The whole of this widget's state, plus the popover.
     private String text = "";
@@ -73,7 +82,8 @@ final class DatePickerState extends State<DatePicker> implements DatePickerBox.P
         if (isOpen() && open != null) {
             open.content(calendar());
         }
-        return new DatePickerBox(
+        return new PickerField(
+                "date-picker",
                 new TextInput(text, this::typed)
                         .placeholder(picker.placeholder())
                         .disabled(picker.disabled()),
@@ -117,7 +127,7 @@ final class DatePickerState extends State<DatePicker> implements DatePickerBox.P
     private Widget calendar() {
         var picker = widget();
         var start = selection().first();
-        return new DatePickerPanel(
+        return new PickerPanel(
                 new CalendarView(selection(), this::chose, start == null ? picker.month() : YearMonth.from(start))
                         .today(picker.today())
                         .between(picker.min(), picker.max())
@@ -178,12 +188,22 @@ final class DatePickerState extends State<DatePicker> implements DatePickerBox.P
         // focusable popup would take the keyboard off it (ADR-0186). The arrows
         // still reach the grid, because while a popup is open the keyboard
         // belongs to it (ADR-0104).
-        // The content is its own size and always fits: a month grid is six rows
-        // of seven cells whatever is in it, so there is nothing for a `Fit` to
-        // shrink. `menu` and `select` hand over a `Fitted` because a list can be
-        // taller than the screen; this cannot.
+        //
+        // **No minimum width, and that is the difference from `select`.** A
+        // dropdown asks for at least the width of the control it drops from,
+        // because a list narrower than its field reads as a mistake (ADR-0145) —
+        // and a list's rows *stretch* to fill whatever it is given. A month grid
+        // does not: it is seven cells of `--gb-calendar-day` and cannot be any
+        // other width, so a floor produces a panel as wide as the field with the
+        // grid stranded at one end of it. The first version passed the field's
+        // width here and that is exactly what it looked like.
+        //
+        // The `Fit` is the identity for the same reason: six rows of seven cells
+        // is the same size whatever is in it, so there is nothing to shrink.
+        // `menu` and `select` hand over a `Fitted` because a list can be taller
+        // than the screen; this cannot.
         var opened = host.attachedPopup(
-                calendar(), bounds, Placement.BELOW, bounds.size().width(), (content, measured, available) -> content);
+                calendar(), bounds, Placement.BELOW, NO_MINIMUM_WIDTH, (content, measured, available) -> content);
         if (opened.isEmpty()) {
             LOG.info("this platform has no popup windows, so a date-picker cannot open its calendar");
             return false;

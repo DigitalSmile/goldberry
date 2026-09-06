@@ -35,6 +35,7 @@ import io.github.digitalsmile.goldberry.widgets.Controls;
 import io.github.digitalsmile.goldberry.widgets.TestHost;
 import io.github.digitalsmile.goldberry.widgets.Widgets;
 import io.github.digitalsmile.goldberry.widgets.controls.TestFont;
+import io.github.digitalsmile.goldberry.widgets.form.parts.PickerField;
 import io.github.digitalsmile.goldberry.widgets.panel.calendar.DateSelection;
 
 /// §4's typed date field, driven the way a user drives it.
@@ -53,6 +54,13 @@ class DatePickerTest {
     private static final YearMonth SEPTEMBER = YearMonth.of(2026, 9);
     private static final DateFormat ISO = DateFormat.of(DateTimeFormatter.ISO_LOCAL_DATE);
 
+    /// Where a frame might have put the control — wide, so that a popup which
+    /// took its width from the field would be visibly wrong.
+    private static final io.github.digitalsmile.goldberry.render.model.LogicalRect FIELD_BOUNDS =
+            new io.github.digitalsmile.goldberry.render.model.LogicalRect(
+                    new io.github.digitalsmile.goldberry.render.model.LogicalPoint(12, 40),
+                    new io.github.digitalsmile.goldberry.render.model.LogicalSize(360, 32));
+
     private final TestHost host = new TestHost();
 
     private static DatePicker picker() {
@@ -70,8 +78,8 @@ class DatePickerTest {
         new WidgetRenderer(List.of(Controls.baseStylesheet(), Theme.NORD_DARK.load()), TestFont.get()).render(tree);
     }
 
-    private DatePickerBox box(ElementTree tree) {
-        return (DatePickerBox) tree.root().children().getFirst().widget();
+    private PickerField box(ElementTree tree) {
+        return (PickerField) tree.root().children().getFirst().widget();
     }
 
     /// The `text-input` node inside, found by the name a **stylesheet** would use
@@ -272,6 +280,28 @@ class DatePickerTest {
             render(tree);
 
             assertFalse(box(tree).open());
+        }
+
+        /// The bug this asserts against: the first version passed the **field's**
+        /// width as a minimum, which is `select`'s rule (ADR-0145) and is wrong
+        /// here. A dropdown's rows stretch to fill whatever they are given; a
+        /// month grid is seven cells of `--gb-calendar-day` and cannot be any
+        /// other width, so a floor produced a panel as wide as the field with the
+        /// grid stranded at one end of it.
+        @Test
+        @DisplayName("asks for no minimum width, because a grid cannot stretch")
+        void noMinimumWidth() {
+            var tree = mounted(picker());
+            // The router does this after a paint; a test driving the node has to
+            // say where the frame put it.
+            box(tree).located(FIELD_BOUNDS, FIELD_BOUNDS);
+
+            box(tree).picker().toggle();
+            render(tree);
+
+            assertEquals(1, host.opened.size());
+            assertEquals(0f, host.opened.getLast().minimumWidth());
+            assertEquals(FIELD_BOUNDS, host.opened.getLast().anchor());
         }
 
         /// The capture pass, because `text-input` reads a plain `Down` as "go to
