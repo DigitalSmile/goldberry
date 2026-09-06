@@ -131,20 +131,33 @@ other entry was a cost nobody had measured, and measuring it was the answer.
   `:core` against bare widgets rather than through `dialog`, so the second one
   finds a mechanism rather than a dialog-shaped hole. —
   [ADR-0176](adr/0176-a-dialog-is-a-widget-and-showing-one-is-not.md)
-- **Three widgets announce what they are and cannot say what they hold.**
+- **Four widgets announce what they are and cannot say what they hold.**
   Each has a specification sentence with two halves and only the first is built.
   `code-input` is "a single textbox with the whole code as its value" —
   `Role.TEXT_FIELD`, one Tab stop, boxes with no role at all. `calendar` is "grid
   with each cell's full date as its name" — `Role.GRID`, cells that are parts.
   `date-picker` is "combobox owning a grid, with the formatted date as its value
-  text" — `Role.COMBO_BOX`. The second half of all three needs the same thing and
-  there is nowhere to put it: `Semantics` is a role, a name and a liveness, with
-  **no value channel and no per-cell channel** for any widget. So this is the
-  AccessKit bridge's entry rather than any of theirs, and the three are named
-  because they are the controls whose specifications spent a sentence on what they
-  would say. M5. —
+  text" — `Role.COMBO_BOX`. `color-picker` is "combobox with the hex as its value
+  text", and it gets *half* of that one: its closed swatch is a `Role.BUTTON`
+  whose accessible **name** is the hex, which is as close as a name can come to a
+  value. The second half of all four needs the same thing and there is nowhere to
+  put it: `Semantics` is a role, a name and a liveness, with **no value channel
+  and no per-cell channel** for any widget. So this is the AccessKit bridge's
+  entry rather than any of theirs, and the four are named because they are the
+  controls whose specifications spent a sentence on what they would say. M5. —
+  [ADR-0276](adr/0276-a-plane-is-hsv-and-the-hex-is-the-value.md),
   [ADR-0274](adr/0274-a-calendar-is-told-what-day-it-is.md),
   [ADR-0273](adr/0273-a-code-is-a-string-and-the-boxes-are-a-drawing.md)
+
+- **A slider with two axes has no role, here or in ARIA.** `color-picker`'s plane
+  answers `Role.SLIDER`, which is true as far as it goes — a control whose value
+  you move continuously — and says nothing about the second axis. `GROUP` is "a
+  boundary with content in it" and a plane has none; `GRID` promises cells
+  addressed by row and column, which is the one thing a continuous plane is not.
+  Filed rather than guessed at: the answer is probably a role *and* a second value
+  channel, and the shape of that depends on the AccessKit bridge nothing has
+  built. M5. —
+  [ADR-0276](adr/0276-a-plane-is-hsv-and-the-hex-is-the-value.md)
 - **A `text-area` has no visible scrollbar.** §4 asks for "scrollbar beyond" the
   maximum rows; it scrolls with the wheel and to keep the caret in view, and
   draws no bar. `scroll`'s bars belong to a *viewport* rather than to a control,

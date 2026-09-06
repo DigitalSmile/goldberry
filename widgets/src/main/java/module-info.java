@@ -123,6 +123,7 @@ module io.github.digitalsmile.goldberry.widgets {
     exports io.github.digitalsmile.goldberry.widgets.form.field;
     exports io.github.digitalsmile.goldberry.widgets.form.form;
     exports io.github.digitalsmile.goldberry.widgets.form.codeinput;
+    exports io.github.digitalsmile.goldberry.widgets.form.colorpicker;
     exports io.github.digitalsmile.goldberry.widgets.form.datepicker;
     exports io.github.digitalsmile.goldberry.widgets.form.timepicker;
     exports io.github.digitalsmile.goldberry.widgets.form.textarea;

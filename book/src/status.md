@@ -6474,16 +6474,68 @@ is the `scroll` box's.
   `resolvedFormat()` derives the default: it still follows the precision, and it
   follows because nobody pinned it rather than because a wither reached over.
 
+### A plane that is HSV, and §4 finished
+
+- **`color-picker` is built**
+  ([ADR-0276](adr/0276-a-plane-is-hsv-and-the-hex-is-the-value.md)), and **§4 is
+  complete**: `text-input`, `text-area`, `field`, `form`, the validation model,
+  autocomplete, `code-input` and all three pickers.
+- **The model is HSV, and §4 asks for OKLCH.** The departure is the entry's own
+  two sentences disagreeing: a **saturation/value plane** *is* HSV — the axes are
+  S and V — where OKLCH's are lightness, chroma and hue. OKLCH chroma has a gamut
+  boundary that varies with both of the others, so a rectangular plane over it has
+  large unreachable regions: corners that clamp elsewhere, a cursor that cannot be
+  put where it was clicked, and a colour that changes when the hue slider moves
+  under a stationary cursor.
+- **And the stated reason survives somewhere else**, which is the test that it was
+  a good reason for the wrong thing. "That is what §1.7 interpolates in" is about
+  **transitions**, and every colour transition in the toolkit still goes through
+  `Oklch`. This control interpolates nothing — dragging is not a transition — and
+  a picked colour is an ordinary `0xAARRGGBB` that fades like any other. "Round-
+  trips to hex without drift" is kept, and asserted over 4,096 colours plus every
+  24-bit corner.
+- **Two pieces of state, and the second is the point.** The hex is the value, as
+  §4 says. An `HsvColor` is kept beside it because the conversion is lossy exactly
+  where people drag: every colour with no saturation is a grey with no hue, so a
+  picker that re-derived it each frame would swing the hue slider to red at the
+  left edge and lose it entirely at the bottom. `withArgb` keeps the hue a colour
+  does not carry, which is CSS Color 4's powerless-hue rule and what `Oklch`
+  already does.
+- **The closed control is a swatch and not a field**, which is the one place this
+  picker's chrome departs from the other two — §4 says "a swatch **button**", so
+  it is one: focusable, `Role.BUTTON`, `Space` opens it, and its accessible name
+  is the hex. The presets are deliberately **not** focusable: twelve colours would
+  be twelve Tab stops in a popover, and §4 gives them no roving mechanism.
+- **Everything it draws is painted rather than styled**, because §8's subset has
+  no gradient. Three fills and no per-pixel loop — 32,000 pixels a frame in Java
+  is a picker that makes the frame budget its problem — and **white then black,
+  not the reverse**, which is the kind of wrong a picture catches and no assertion
+  does. Five goldens for that reason.
+- **`alpha=#false` refuses in both directions.** A picker with no way to change
+  alpha must not report one, or a `bind=` carrying `#88c0d080` leaves the control
+  showing a colour it cannot express and a form holding one nobody chose.
+- **`#88c0` is a colour**, found by a test asserting it was rubbish: it is CSS's
+  four-digit `#rgba` form. The picker takes whatever the engine takes, because one
+  that second-guessed it would refuse text a stylesheet accepts.
+- **The affordance's placement is scoped now.** `picker-toggle` was absolutely
+  positioned over its field's right padding, which is right for the two pickers
+  that have a field and lands on top of a 24-point swatch for the one that does
+  not. Found in the first picture of the closed control.
+
 ### Not started
 
-Client-side decorations, and one of §4's pickers — `color-picker`. §7 is
-**complete**, mechanism and all: §3's **sibling reflow** is built, and it was the
-last thing the group owed.
+**Client-side decorations**, and nothing else in the catalog. §4 and §7 are
+both **complete**, mechanism and all.
 
-`color-picker` is the third user of `PickerField`: it shares the field, the
-affordance, `Alt+Down`, `Esc` and the popover surface with the two that are
-built, and adds a saturation/value plane, a hue slider and a hex field. Nothing
-is waiting on anything. Everything outstanding is in [TODO.md](TODO.md).
+What is left of M3 is therefore one platform question rather than any widget
+work: whether Goldberry carries its own decorations —
+`SdlWindowFlag.BORDERLESS` already describes the design — or keeps depending on
+libdecor and the two packages from two phases that
+[ADR-0083](adr/0083-on-gnome-wayland-libdecor-is-not-a-fallback.md) and
+[ADR-0084](adr/0084-the-gtk-plugin-cannot-decorate-a-jvms-window.md) found.
+Answering it also unblocks the fractional-scaling entry, which was given up "for
+as long as decorations are unobtainable on the better path". Everything
+outstanding is in [TODO.md](TODO.md).
 
 ## M4 — GPU
 

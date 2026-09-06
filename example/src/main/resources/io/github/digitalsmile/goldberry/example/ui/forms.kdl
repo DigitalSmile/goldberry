@@ -1,5 +1,6 @@
-// The **Forms** screen's markup half: §4's `text-input`, `text-area`, `code-input`,
-// `date-picker`, `field` and `form`, in every state each of them has.
+// The **Forms** screen's markup half: §4 entire — `text-input`, `text-area`,
+// `code-input`, `date-picker`, `time-picker`, `color-picker`, `field` and `form`,
+// in every state each of them has.
 //
 // A document for the Panels screen's reason and a stronger one: a field holds its
 // own text, caret and undo stack, so a screen full of them needs no more wiring
@@ -96,6 +97,20 @@ instead of a grid"
     text id="trip-time-status" class="caption" bind="trip.time-status"
     text class="caption" "In the wheels: Up and Down turn one, Left and Right \
 choose which"
+  }
+
+  card id="paint-card" class="wall-card" {
+    text class="card-title" "A colour, dragged or typed"
+    text class="caption" "The hex field is the source of truth — the plane, the \
+ramps and the presets all write into it"
+    row id="paint-row" {
+      color-picker id="paint" bind="paint.colour" change="paint.set-colour"
+      text id="paint-status" class="caption" bind="paint.status"
+    }
+    text class="caption" "Arrows move the plane cursor by one step, Shift by ten"
+    text class="caption" "And with an alpha ramp, which is off by default because \
+a picker without one must not report a translucent value"
+    color-picker id="paint-alpha" alpha=#true value="#bf616a80"
   }
 
   card id="code-card" class="wall-card" {

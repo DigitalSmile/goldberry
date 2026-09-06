@@ -128,6 +128,15 @@
      reads as a calculator. */
   --gb-time-cell-height: var(--gb-list-row-height);
   --gb-time-column-width: 48px;
+  /* §2's `color-picker` row: "swatch 24, radius 4; plane 200x160; hue/alpha
+     sliders `slider` metrics; preset swatch 20, gap 4". The plane is the one
+     control in the catalog with two fixed dimensions and no density: a colour
+     space is not denser on a small screen, and a compact plane would give a
+     dragged colour a coarser resolution rather than a tidier layout. */
+  --gb-color-swatch: 24px;
+  --gb-color-preset: 20px;
+  --gb-color-plane-width: 200px;
+  --gb-color-plane-height: 160px;
 }
 
 /* ------------------------------------------------------------- no shrink --
@@ -188,6 +197,9 @@ code-box,
 calendar-day,
 calendar-weekday,
 time-cell,
+color-swatch,
+color-plane,
+color-ramp,
 text-input {
   flex-shrink: 0;
 }
@@ -1927,6 +1939,96 @@ text-area:disabled {
   cursor: not-allowed;
 }
 
+/* ---------------------------------------------------------- color-picker --
+ *
+ * §4's colour field, and §2's row for it: swatch 24, radius 4; plane 200x160;
+ * hue/alpha sliders `slider` metrics; preset swatch 20, gap 4.
+ *
+ * The closed control is a **swatch button** rather than a field, which is §4's
+ * word -- so unlike the other two pickers there is no `text-input` out here. The
+ * hex field is inside the popover, where §4 puts it.
+ */
+color-picker {
+  flex-direction: row;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+color-picker:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* A block of colour. The colour itself is a `background` the widget writes
+   (ADR-0099's seam), so it can transition rather than jump -- which is the only
+   reason this rule does not name one. */
+color-swatch {
+  width: var(--gb-color-swatch);
+  height: var(--gb-color-swatch);
+  border-radius: 4px;
+  border: 1px solid var(--gb-border-strong);
+  flex-shrink: 0;
+  transition: background-color var(--gb-motion-base) ease-enter;
+}
+
+color-swatch:focus-visible {
+  outline: 2px solid var(--gb-focus);
+  outline-offset: 2px;
+}
+
+/* §2's second swatch. Smaller, and the border is lighter because twelve of them
+   in a row with a strong edge each reads as a grid rather than as a palette. */
+color-swatch.preset {
+  width: var(--gb-color-preset);
+  height: var(--gb-color-preset);
+  border-color: var(--gb-border);
+}
+
+color-swatch.preset:hover {
+  border-color: var(--gb-text-muted);
+}
+
+/* The popover's contents. A column of the four things §4 lists, in its order. */
+color-board {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+color-plane {
+  width: var(--gb-color-plane-width);
+  height: var(--gb-color-plane-height);
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+color-plane:focus-visible {
+  outline: 2px solid var(--gb-focus);
+  outline-offset: 2px;
+}
+
+/* §2 says *`slider` metrics*, which is the track height -- and not `slider`,
+   because a `slider`'s track is a groove in `--gb-border` and these are a picture
+   of what the value means. The track is painted, since §8's subset has no
+   gradient (ADR-0207). Taller than a `slider`'s 4 because a ramp is something you
+   read as well as drag. */
+color-ramp {
+  height: 12px;
+  border-radius: 6px;
+  flex-shrink: 0;
+}
+
+/* However many fit, which is a question only the width can answer -- §2 sizes the
+   swatch and the gap and says nothing about how many. §8 has `flex-wrap`, so the
+   stylesheet answers it rather than the widget counting. */
+color-presets {
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
 /* ----------------------------------------------------------- time-picker --
  *
  * §4's typed time field. The control itself is `date-picker`'s -- the same
@@ -2043,19 +2145,9 @@ date-picker:disabled {
    of thing: a field with a list under it. Pulled back over the field's own right
    padding rather than sitting beside it, so the control is one box wide and not
    one box plus a margin. */
-/* Over the field's own right padding rather than beside it, so the control is
-   one box wide and not one box plus a margin.
-
-   `position: absolute` with only a `right`, which places it against this box's
-   **padding** edge and lets `align-items: center` above put it on the middle --
-   the path Yoga has always had right, and now the other one is right too
-   (ADR-0272). A `relative` box with a negative `left` was the first answer and
-   moved the chevron to the *far* side of the field: a relative offset moves a box
-   that is still in the flow, so the field kept its place and the chevron slid
-   across it. */
+/* The affordance all three pickers share. Its *placement* is not shared, because
+   two of them have a field to sit over and one does not -- see below. */
 picker-toggle {
-  position: absolute;
-  right: 10px;
   width: 20px;
   height: 20px;
   justify-content: center;
@@ -2067,6 +2159,27 @@ picker-toggle {
 
 picker-toggle:hover {
   color: var(--gb-text);
+}
+
+/* Over the field's own right padding rather than beside it, so a picker with a
+   field is one box wide and not one box plus a margin.
+
+   `position: absolute` with only a `right`, which places it against the picker's
+   **padding** edge and lets `align-items: center` put it on the middle -- the
+   path Yoga has always had right, and now the other one is right too (ADR-0272).
+   A `relative` box with a negative `left` was the first answer and moved the
+   chevron to the *far* side of the field: a relative offset moves a box that is
+   still in the flow, so the field kept its place and the chevron slid across it.
+
+   Scoped to the two pickers that have a field. A `color-picker`'s closed control
+   is a 24-point swatch (§4 calls it "a swatch button"), and an affordance pinned
+   to the right edge of *that* lands on top of it -- which is what the first
+   picture of it showed. It sits beside the swatch instead, which is what
+   `color-picker`'s own `gap` is for. */
+date-picker picker-toggle,
+time-picker picker-toggle {
+  position: absolute;
+  right: 10px;
 }
 
 /* The affordance while the grid is showing. `:checked` on the box is what says

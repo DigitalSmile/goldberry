@@ -11,6 +11,7 @@ import io.github.digitalsmile.goldberry.bind.Action;
 import io.github.digitalsmile.goldberry.bind.Bind;
 import io.github.digitalsmile.goldberry.bind.Model;
 import io.github.digitalsmile.goldberry.css.Theme;
+import io.github.digitalsmile.goldberry.css.value.CssColor;
 import io.github.digitalsmile.goldberry.widgets.Density;
 import io.github.digitalsmile.goldberry.widgets.controls.checkbox.Checkbox;
 
@@ -151,6 +152,15 @@ public final class ShowcaseModel {
 
     @Bind("trip.time-status")
     private String tripTimeStatus = "Type it, or turn the wheels";
+
+    /// A colour, held as one — §4 gives `color-picker` a `CssColor` value, which
+    /// is an `0xAARRGGBB` int, and a model that keeps colours as colours is what
+    /// the picker formats its hex from.
+    @Bind("paint.colour")
+    private Integer paintColour = 0xFF88C0D0;
+
+    @Bind("paint.status")
+    private String paintStatus = "Nord frost";
 
     /// The one-time code, and what happened to it.
     ///
@@ -413,6 +423,23 @@ public final class ShowcaseModel {
             var time = LocalTime.parse(value, DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT));
             values.tripTime = time;
             values.tripTimeStatus = "Boarding at " + time;
+        }
+
+        /// What the plane, the ramps, a preset or the hex field committed — one
+        /// handler, because §4 makes the hex field the source of truth and every
+        /// other part writes into it.
+        ///
+        /// A `String` for `trip.set-date`'s reason: §9's valued actions cross as
+        /// text. Here the text is the value's own spelling rather than a
+        /// formatting choice, so parsing it back is exact.
+        @Action("paint.set-colour")
+        void setPaintColour(String hex) {
+            var argb = CssColor.parse(hex);
+            if (argb == null) {
+                return;
+            }
+            values.paintColour = argb;
+            values.paintStatus = hex;
         }
 
         /// Every box, as it fills. The round trip a real form makes.
