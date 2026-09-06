@@ -907,6 +907,30 @@ on, which in four cases is the same thing.
 
 ## Platform, compositor and CI
 
+- **The 60 fps claim is measured on one machine, and closing M1 is a CI job.**
+  §16's M1 asks for a styled wrapped paragraph *resized* at 60 fps on Linux,
+  macOS and Windows. The budget half is met with 3.9× of headroom
+  ([ADR-0047](adr/0047-a-frame-nobody-sees-costs-full-price.md)); the breadth half
+  is one VirtualBox VM. **Scheduled at M5** — see [status.md](status.md#m5--hardening) for
+  the shape of it. Three things are missing and only the first is toolkit work:
+  nothing can **resize a window from outside** (`SDL_SetWindowSize` is bound in
+  `:natives` and `BackendWindow` never exposes it, so an application cannot resize
+  its own window either); a run reports **no timings** at exit, though the ring
+  holds every number one would print; and the three `showcase.yml` legs that
+  already open a real window on each runner assert only that three frames were
+  drawn. The caveat travels with the numbers: GitHub's runners are GPU-less VMs,
+  so what this can prove is that three platforms' *drivers* hold the budget, not
+  that hardware does. —
+  [ADR-0045](adr/0045-a-frame-is-not-a-benchmark-iteration.md),
+  [ADR-0147](adr/0147-a-frame-has-a-budget-and-the-build-checks-it.md)
+- **A like-for-like Wayland frame measurement is still owed.** ADR-0037's numbers
+  — paint 5.10 ms, present 1.92 ms, 7.86 ms median — were taken on **X11**, after
+  the Wayland run crashed the compositor, and they are compared against ADR-0031's
+  Wayland ones. Nothing in that work made present faster; the driver changed. The
+  two rows should not be read against each other until the same frame has been
+  measured twice on the same session type. —
+  [ADR-0037](adr/0037-what-the-text-path-costs.md),
+  [ADR-0031](adr/0031-blend2d-and-the-borrowed-buffer.md)
 - **Layout verification has not yet passed in CI.** The first run's verify jobs failed
   without running a test, and the fix — verify the downloaded artifact, and fail rather
   than skip when it is absent — has been tested locally against every path but has not
@@ -925,8 +949,13 @@ on, which in four cases is the same thing.
   macOS and `Sdl3Backend` appends the explanation after SDL says no — as a diagnosis
   rather than a precondition, since a JVM embedded on the real main thread would lack
   the launcher's environment variable and would work anyway. The hole that hid it is
-  still open: the macOS leg links the library and runs the `:natives` tests, and never
-  opens a window. — [ADR-0039](adr/0039-macos-needs-the-first-thread.md)
+  **half closed**: `macos.yml` still links the library and runs the tests without
+  ever opening a window, but `showcase.yml` runs the *packaged* image on
+  `macos-14` and asserts it painted three frames — so a repeat of this failure
+  would now turn a tick red. What that leg cannot catch is anything about
+  `gradlew run`, which is the path this bug was found on and the one an
+  application author uses. —
+  [ADR-0039](adr/0039-macos-needs-the-first-thread.md)
 - **"Starts in milliseconds" is still unproven.** The timeline exists and the first
   numbers are in ADR-0028 — `SDL_Init(VIDEO)` is ~99ms and dominates, while mapping
   `libgoldberry` is under 2ms — but they were measured under `gradle run`, which adds a

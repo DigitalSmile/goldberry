@@ -11,11 +11,11 @@ page is the other half: it says what works and what it cost to find out.
 |---|---|---|
 | [Foundation](#foundation) | **done** | The build, the module graph, the toolchain and the decision log |
 | [M0 — Skeleton](#m0--skeleton) | **done** | One native library on four targets, two backends, a window at the right fractional DPI |
-| [M1 — Vertical slice](#m1--vertical-slice) | **started** | Blend2D rasterizes, HarfBuzz shapes, text lays out, and a frame's cost is measured |
+| [M1 — Vertical slice](#m1--vertical-slice) | **built, unproven** | Blend2D rasterizes, HarfBuzz shapes, text lays out, and a frame's cost is measured — on one machine. The three-platform evidence that closes it is **scheduled at M5** |
 | [M2 — Widgets & style](#m2--widgets--style) | **done** | CSS, KDL, the three trees, input, motion — and every §3 control, `select` included |
 | [M3 — Shell](#m3--shell) | **started** | **The whole of §7**, §9's `tray-icon`, `menubar`, §5's containers, the whole `scroll` family and §4's fields — with the clipboard, text input, a focus trap and a third rank of every semantic hue that nothing had asked for. The showcase is a menu bar, a bar and seven walls of cards, in a window that opens maximized |
 | [M4 — GPU](#m4--gpu) | not started | `canvas3d`, GPU composition |
-| [M5 — Hardening](#m5--hardening) | not started | Text editing depth, AccessKit bridge, IME preedit, docs, 0.1 release |
+| [M5 — Hardening](#m5--hardening) | not started | Text editing depth, AccessKit bridge, IME preedit, docs, 0.1 release — and the three-platform frame evidence M1 is waiting on |
 | [Content modules](#content-modules) | not started | Eleven optional artifacts in `docs/content-widgets.md`; nothing exists, nothing scheduled |
 
 ## Foundation
@@ -63,8 +63,12 @@ page is the other half: it says what works and what it cost to find out.
 
 ## M1 — Vertical slice
 
-**Started.** Everything in the pipeline exists and runs; what is unfinished is
-the *breadth* of the 60 fps claim, not the pipeline.
+**Built, unproven.** Everything in the pipeline exists, runs and is measured;
+what is unfinished is the *breadth* of the 60 fps claim, not the pipeline — and
+breadth is a CI job rather than toolkit work, so it is **scheduled at M5** with
+the rest of the hardening. M1 stays open until that job has run, because a
+milestone whose claim is "on Linux, macOS and Windows" cannot be closed on
+evidence from one Linux VM.
 
 ### Rasterizing and shaping
 
@@ -142,6 +146,10 @@ the *breadth* of the 60 fps claim, not the pipeline.
   frame was work thrown away on frames the display never scanned out.
 - **What remains of the claim is breadth, not budget**: it is still one machine, and
   that machine is a VirtualBox VM. The milestone asks for Linux, macOS and Windows.
+  **Scheduled at M5**, where the shape of the job is written down — most of the
+  machinery is already there, since `showcase.yml` opens a real window on all
+  three runners and paints three frames on each. What it does not do is resize,
+  time anything, or assert a budget.
 - **A window was laying its tree out twice per frame**, once to paint and once to find
   out where it had painted, and nobody had noticed. `HitTest.capture` took a frame and a
   box tree and built a whole second Yoga tree to answer. `HitTest.capture(RenderTree)`
@@ -198,10 +206,10 @@ the *breadth* of the 60 fps claim, not the pipeline.
 
 ## M2 — Widgets & style
 
-**Engines done; the catalog is complete except `select`,** whose popup list
-belongs with M3's overlays. Every other widget in `docs/core-widgets.md` §3 is
-built, and each was finished against both specification documents rather than
-merely made to appear.
+**Done.** Every widget in `docs/core-widgets.md` §3 is built, and each was
+finished against both specification documents rather than merely made to appear.
+`select` was the last of them and is not described here: its list is a platform
+window, so it was built with M3's overlays and is written up there.
 
 ### The engines
 
@@ -6281,7 +6289,34 @@ Everything outstanding is in [TODO.md](TODO.md).
 ## M5 — Hardening
 
 **Not started.** Text editing depth, the AccessKit bridge, IME preedit, docs, and the
-0.1 release.
+0.1 release — **and the three-platform frame evidence M1 is waiting on**, which is
+here rather than in M1 because it is a CI job and because the hardening milestone
+is where every other "prove it on hardware nobody has run it on" item already
+lives.
+
+What that job needs, in the order the work falls:
+
+- **A window that can be resized from outside.** M1's claim is a paragraph
+  *resized* at 60 fps, and nothing can drive one: `SDL_SetWindowSize` is bound in
+  `:natives` and `BackendWindow` never exposes it, so an application cannot resize
+  its own window either. One SPI method, and a `--resize=` option that changes the
+  size by a pixel a frame — which is what a drag actually produces, and what found
+  the damage-clamp bug ([ADR-0072](adr/0072-a-partial-repaint-needs-a-promise.md)).
+- **A run that says what it cost.** The ring already holds the rate, the four
+  stage spans and the frames nobody saw
+  ([ADR-0271](adr/0271-a-frame-that-never-happened-is-counted.md)); what is missing
+  is a summary line at exit. "N of 300 frames were late while resizing" is the
+  60 fps claim in one number.
+- **A ceiling under it, on three runners.** `showcase.yml` already opens a real
+  window on `ubuntu-24.04`, `macos-14` and `windows-2022` and asserts that three
+  frames were drawn. Painting three hundred while resizing, and failing over
+  budget, is a change to those three steps rather than a new workflow.
+
+**And a caveat that has to be written down with the numbers.** GitHub's runners
+are GPU-less virtual machines. Measuring there is real evidence about three
+platforms' *drivers* — Cocoa/Metal, D3D, X11 — and far better than one VirtualBox
+VM, but it is not a claim about hardware, and the milestone should close on what
+was measured rather than on what it would be nice to have measured.
 
 ## Content modules
 
