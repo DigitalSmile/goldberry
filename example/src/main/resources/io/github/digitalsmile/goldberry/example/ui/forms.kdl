@@ -1,5 +1,5 @@
-// The **Forms** screen's markup half: §4's `text-input`, `text-area`, `field` and
-// `form`, in every state each of them has.
+// The **Forms** screen's markup half: §4's `text-input`, `text-area`, `code-input`,
+// `field` and `form`, in every state each of them has.
 //
 // A document for the Panels screen's reason and a stronger one: a field holds its
 // own text, caret and undo stack, so a screen full of them needs no more wiring
@@ -75,6 +75,22 @@ sit above"
       field label="Name" { text-input placeholder="Peregrin Took" }
       field label="Palantír" { text-input placeholder="8080" filter="digits" }
     }
+  }
+
+  card id="code-card" class="wall-card" {
+    text class="card-title" "Six boxes, one value"
+    text class="caption" "Type digits, or paste `123 456` — the spaces are not \
+boxes, so they are dropped"
+    code-input id="one-time-code" length=6 type="digits" \
+               bind="app.code" change="app.set-code" complete="app.code-complete"
+    text id="code-status" class="caption" bind="app.code-status"
+    text class="caption" "Backspace clears the box before the ring; Escape starts \
+the code again"
+    text class="caption" "And the same thing an authenticator draws"
+    code-input id="masked-code" length=6 type="digits" mask=#true
+    text class="caption" "An odd length is a flat row — the wider gap at the \
+midpoint only exists when there is one"
+    code-input id="alnum-code" length=5 type="alnum"
   }
 
   card id="label-card" class="wall-card" {

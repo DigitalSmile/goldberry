@@ -16,10 +16,10 @@ import io.github.digitalsmile.goldberry.widgets.panel.masonry.Masonry;
 /// @param cards what `forms.kdl` built, inflated once by [Screen]
 public record Forms(Masonry cards) implements Widget.Stateless {
 
-    private static final String NOTE = "§4's fields and §3's choosers. Six of these cards are forms.kdl — a field holds"
-            + " its own text, caret and undo stack, so a wall of them needs no wiring."
-            + " The last three cannot be: a set is toggled, a filter is applied and a"
-            + " branch is fetched, and all three are the application's.";
+    private static final String NOTE = "§4's fields and §3's choosers. Seven of these cards are forms.kdl — a field"
+            + " holds its own text, caret and undo stack, so a wall of them needs no"
+            + " wiring. The last three cannot be: a set is toggled, a filter is applied"
+            + " and a branch is fetched, and all three are the application's.";
 
     @Override
     public Widget build(BuildContext context) {

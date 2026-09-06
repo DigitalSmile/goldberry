@@ -126,6 +126,18 @@ public final class ShowcaseModel {
     @Bind("app.signup-status")
     private String signupStatus = "Nobody has enlisted yet";
 
+    /// The one-time code, and what happened to it.
+    ///
+    /// Two values rather than one, because `code-input` is the one field in §4
+    /// that raises **two** events: `change` on every box, and `complete` once,
+    /// when the last one fills. The status line is what the second writes, and it
+    /// is the only way a screenshot can show the difference between them.
+    @Bind("app.code")
+    private String code = "";
+
+    @Bind("app.code-status")
+    private String codeStatus = "Type or paste six digits";
+
     /// The `text-area`'s value, so the screen shows a multi-line control that a
     /// model can see — and one long enough to wrap, which is the half of it
     /// `text-input` cannot demonstrate.
@@ -339,6 +351,22 @@ public final class ShowcaseModel {
         @Action("app.set-bio")
         void setBio(String value) {
             values.bio = value;
+        }
+
+        /// Every box, as it fills. The round trip a real form makes.
+        @Action("app.set-code")
+        void setCode(String value) {
+            values.code = value;
+            values.codeStatus = value.isEmpty() ? "Type or paste six digits" : value.length() + " of 6";
+        }
+
+        /// And the second event, once, on the box that filled the code — §4's
+        /// "what lets a form submit without a button". Nothing here presses
+        /// anything, because a showcase that verified a code would have to invent
+        /// one that was right.
+        @Action("app.code-complete")
+        void codeComplete(String value) {
+            values.codeStatus = "Verifying " + value + "…";
         }
 
         @Action("app.set-signup-name")

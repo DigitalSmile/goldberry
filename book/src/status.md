@@ -6316,15 +6316,70 @@ is the `scroll` box's.
   on it and asserts (12, 12). The day Yoga fixes its inset path, the `:natives`
   pair fails first and names the correction that has to come out.
 
+### Six boxes over one string, and §4's shortest specification
+
+- **`code-input` is built** ([ADR-0273](adr/0273-a-code-is-a-string-and-the-boxes-are-a-drawing.md)),
+  and §4's paragraph on it turned out to be two rules seen from four directions.
+  `CodeEdit` is a **string and a box count** — no caret, no anchor, no undo stack
+  and no per-box array — and the active box is `min(filled, length - 1)`, derived
+  rather than held.
+- **So three of the four sentences are not implemented.** "Focus lands wherever
+  the first empty box is" is what the derivation *says*, every frame, with
+  nothing to keep in step. "Typing advances" and "a paste of the full code fills
+  every box at once" are one append, because committed text arrives as a string
+  whether it came from a keystroke or a clipboard. And `Backspace` has no second
+  case: the box the ring is on is always empty, so the box to clear is always the
+  one before it.
+- **No holes, and §4's last sentence is why.** Six boxes are announced as one
+  textbox with the whole code as its value, and a code holding `12` and `56` with
+  a gap between them has no honest string. An array of slots with a movable caret
+  is the model a code field would need if a code had gaps, and it does not.
+- **One departure, and it is from another widget's rule.** `TextFilter` rejects
+  and never corrects, for a stated reason: a filter that rewrote what was typed
+  would move the caret out from under somebody mid-word. `CodeType` **drops per
+  character**, because neither half of that survives here — there is no caret to
+  disturb, and a whole-value filter rejects a paste of `Your code is 123 456`
+  outright, which is the paste §4 calls "the thing users actually do". The
+  alphabets are `TextFilter`'s own, which had named this widget in a javadoc
+  since it was written.
+- **`complete` is guarded by a flag rather than by being full.** A field that
+  raised it whenever every box was filled would submit a form again on every
+  rebuild. A `Backspace` clears the flag, so a mistyped code corrected and
+  finished completes twice — which is right, because that is two codes.
+- **The group gap is a widget, not a selector.** §2 asks for "group gap 16 at the
+  midpoint when `length` is even", and §8's subset has no `:nth-child`. The boxes
+  go into `code-group` parts: the row of groups carries the 16 and a group carries
+  the 8, so both numbers are written where they are read. An odd length is one
+  group and the outer gap never applies. A pixel probe of the golden reads
+  `[16..56] [64..104] [112..152] [168..208] [216..256] [264..304]` — eight,
+  eight, **sixteen**, eight, eight.
+- **The one control whose density is two numbers.** `--gb-code-box-width` and
+  `--gb-code-box-height` are both tokens, because §2's row is 40×48 (36×44) and
+  six boxes that narrowed without shortening would be a code on graph paper.
+  Every other row in the catalog moves a height and nothing else.
+- **It asks for no frames.** There is no caret, so there is no blink timer — the
+  focus ring on the active box says where the next character goes and §2.2 wants
+  it instant. `text-input` had to build a 530 ms timer to keep §1.7's idle loop
+  true for a focused field; this one keeps it by having nothing that moves.
+- **Fifty tests and five images.** The editing rules are `CodeEditTest`'s, with
+  no font and no frame; the images are for what no assertion can see — the 16 at
+  the midpoint and not at every gap, a ring on one box rather than around six,
+  and what a mask draws. The Forms screen gained a seventh markup card, and it is
+  the only one on that screen showing a control that raises **two** events.
+
 ### Not started
 
-Client-side decorations, the rest of §4 —
-the pickers, `code-input` and autocomplete. §7 is **complete**, mechanism and
-all: §3's **sibling reflow** is built, and it was the last thing the group owed.
-All of §4's leftovers reuse
-`TextEdit` and `EditHistory` for their editing and `field` for their contract,
-which are the parts with rules in them, so each is ordinary widget work now.
-Everything outstanding is in [TODO.md](TODO.md).
+Client-side decorations, and the rest of §4 — the three pickers. §7 is
+**complete**, mechanism and all: §3's **sibling reflow** is built, and it was the
+last thing the group owed.
+
+The three that are left are one shape: a **typed field plus a popover**, so each
+reuses `TextEdit` and `EditHistory` for its editing and `field` for its contract,
+which are the parts with rules in them. `code-input` was the leftover that reused
+the *least* and it is done; what the pickers add is the seam this list has been
+carrying for two milestones — a `Validator` over a **parsed** value rather than
+over a `String` — plus a `calendar` grid for two of the three. Everything
+outstanding is in [TODO.md](TODO.md).
 
 ## M4 — GPU
 

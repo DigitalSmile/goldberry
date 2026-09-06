@@ -38,4 +38,11 @@
      row height plus four, because a header is a boundary as well as a label and
      a density that closed the gap would take that away. */
   --gb-table-header-height: 30px;
+
+  /* §2's `code-input` row: "box 40x48 (36x44)". The one control whose density
+     is two numbers rather than a height, because a code box is a character in a
+     frame and its width is as much a metric as its height -- six boxes that
+     narrowed without shortening would be a code drawn on graph paper. */
+  --gb-code-box-width: 36px;
+  --gb-code-box-height: 44px;
 }

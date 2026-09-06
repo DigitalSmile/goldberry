@@ -137,6 +137,15 @@ other entry was a cost nobody had measured, and measuring it was the answer.
   That is a second seam — a field that validates a *parsed* value — rather than a
   change to this one, and it is the picker's to open. —
   [ADR-0169](adr/0169-a-field-is-silent-until-you-leave-it.md)
+- **A `code-input` announces itself as a textbox and cannot say what it holds.**
+  §4 asks for "a single textbox with the whole code as its value", and the first
+  half is built — `CodeField` is `Role.TEXT_FIELD`, the boxes carry no role at
+  all, and there is one Tab stop. The second half has nowhere to go: `Semantics`
+  is a role, a name and a liveness, and has **no value channel** for any widget.
+  So this is the AccessKit bridge's entry rather than this widget's, and it is
+  named here because `code-input` is the first control whose specification spends
+  a sentence on what it would say. M5. —
+  [ADR-0273](adr/0273-a-code-is-a-string-and-the-boxes-are-a-drawing.md)
 - **A `text-area` has no visible scrollbar.** §4 asks for "scrollbar beyond" the
   maximum rows; it scrolls with the wheel and to keep the caret in view, and
   draws no bar. `scroll`'s bars belong to a *viewport* rather than to a control,
@@ -547,8 +556,8 @@ description had no effect.
 ## Content modules
 
 `docs/content-widgets.md` specifies eleven optional modules; **none of them
-exists**, and none is scheduled while M3 still owes tray, client-side
-decorations, charts and the rest of §4. The shape they share is
+exists**, and none is scheduled while M3 still owes client-side decorations and
+the rest of §4. The shape they share is
 [ADR-0190](adr/0190-a-content-module-brings-its-own-natives.md) and the summary
 is `docs/ARCHITECTURE.md` §11.1. What follows is what each is actually waiting
 on, which in four cases is the same thing.

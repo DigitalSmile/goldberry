@@ -121,6 +121,7 @@ module io.github.digitalsmile.goldberry.widgets {
     exports io.github.digitalsmile.goldberry.widgets.form;
     exports io.github.digitalsmile.goldberry.widgets.form.field;
     exports io.github.digitalsmile.goldberry.widgets.form.form;
+    exports io.github.digitalsmile.goldberry.widgets.form.codeinput;
     exports io.github.digitalsmile.goldberry.widgets.form.textarea;
 
     /// `…form.parts` is deliberately **not** exported. `text-input` and
