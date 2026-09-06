@@ -1,5 +1,5 @@
 // The **Forms** screen's markup half: §4's `text-input`, `text-area`, `code-input`,
-// `field` and `form`, in every state each of them has.
+// `date-picker`, `field` and `form`, in every state each of them has.
 //
 // A document for the Panels screen's reason and a stronger one: a field holds its
 // own text, caret and undo stack, so a screen full of them needs no more wiring
@@ -75,6 +75,20 @@ sit above"
       field label="Name" { text-input placeholder="Peregrin Took" }
       field label="Palantír" { text-input placeholder="8080" filter="digits" }
     }
+  }
+
+  card id="date-card" class="wall-card" {
+    text class="card-title" "A date, typed or picked"
+    text class="caption" "The field is the source of truth — type into it, or \
+press the chevron and use the grid"
+    date-picker id="departure" bind="trip.date" change="trip.set-date" \
+                month="2026-09" min="2026-09-01" max="2026-12-31" \
+                placeholder="When are you leaving?"
+    text id="trip-status" class="caption" bind="trip.status"
+    text class="caption" "Nothing before September or after December will parse, \
+and nothing outside them can be pressed"
+    text class="caption" "In the grid: arrows move a day, PgUp and PgDn a month, \
+Shift with either a year"
   }
 
   card id="code-card" class="wall-card" {

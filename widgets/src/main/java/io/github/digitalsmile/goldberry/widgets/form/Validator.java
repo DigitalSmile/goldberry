@@ -122,4 +122,68 @@ public interface Validator<T> {
                         || pattern.matcher(value).matches(),
                 message);
     }
+
+    /// A rule over a **parsed** value, as a rule over the text it was parsed
+    /// from.
+    ///
+    /// The seam `date-picker` opened. §4 gives a picker a `LocalDate` value and a
+    /// `field` a `Validator<String>`, and this class's own note says why the
+    /// second is right for a `text-input`: "what the user typed is text until
+    /// something parses it, and a validator is exactly the thing that decides
+    /// whether it *can* be parsed". A control whose value is a `LocalDate` does
+    /// not stop that being true — it adds a second question after it, and this is
+    /// the composition of the two rather than a second kind of validator
+    /// ([ADR-0274]).
+    ///
+    /// So an application writes the rule it means:
+    ///
+    /// ```java
+    /// Validator.parsing(
+    ///         text -> LocalDate.parse(text, formatter),
+    ///         "That is not a date",
+    ///         Validator.of(date -> !date.isBefore(today), "Pick a date in the future"))
+    /// ```
+    ///
+    /// **A `field` needed no change at all**, which is the evidence that the
+    /// second seam was a composition and not a type parameter: `Field` still holds
+    /// a `Validator<String>`, `FieldState` still reads its control's binding as
+    /// text, and neither of them knows a date was involved.
+    ///
+    /// An **empty** value passes without `parse` being called, for [#matching]'s
+    /// reason: "this must be a date" and "this must be filled in" are two rules,
+    /// and one that also refused emptiness would make every optional field with a
+    /// format into a required one. Combine with [#required] when both are meant.
+    ///
+    /// `parse` may **throw or answer null**, and both mean the same thing. A
+    /// `java.time` parser throws, a hand-written one usually returns null, and a
+    /// seam that admitted only one of the two would make the other an application
+    /// writing a try/catch to satisfy this method.
+    ///
+    /// @param parse   what turns the text into a value
+    /// @param message what to say when it will not
+    /// @param rule    what to ask of the value once there is one
+    /// @param <T>     what the text parses to
+    static <T> Validator<String> parsing(
+            java.util.function.Function<String, ? extends T> parse, String message, Validator<T> rule) {
+        Objects.requireNonNull(parse, "parse");
+        Objects.requireNonNull(message, "message");
+        Objects.requireNonNull(rule, "rule");
+        return text -> {
+            if (text == null || text.isBlank()) {
+                return Result.VALID;
+            }
+            T value;
+            try {
+                value = parse.apply(text);
+            } catch (RuntimeException refused) {
+                return Result.invalid(message);
+            }
+            return value == null ? Result.invalid(message) : rule.check(value);
+        };
+    }
+
+    /// [#parsing] with nothing to ask beyond "does it parse".
+    static <T> Validator<String> parsing(java.util.function.Function<String, ? extends T> parse, String message) {
+        return parsing(parse, message, none());
+    }
 }

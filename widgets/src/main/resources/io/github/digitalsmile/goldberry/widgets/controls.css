@@ -109,6 +109,18 @@
      the 32/28 every other row shares. A density still moves both, below. */
   --gb-code-box-width: 40px;
   --gb-code-box-height: 48px;
+  /* §2's `calendar` row: "day cell 32 (28) square". One token for both axes,
+     because the row says *square* -- a cell that could be told its width and its
+     height separately is one an application could make oblong, and a month of
+     oblong cells is a month whose weeks read as columns. */
+  --gb-calendar-day: 32px;
+  /* Half the cell, which is §2's `full` on a square box -- the spelling every
+     other `full` radius in this file uses, because §8's subset has no `calc()`
+     and no keyword for it. A second token rather than a literal 16, so a density
+     moving the cell moves its corner with it; the two are written next to each
+     other here and in `density-compact.css` for the same reason
+     `--gb-code-box-*` are. */
+  --gb-calendar-day-radius: 16px;
 }
 
 /* ------------------------------------------------------------- no shrink --
@@ -166,6 +178,8 @@ select,
 select-chevron,
 option,
 code-box,
+calendar-day,
+calendar-weekday,
 text-input {
   flex-shrink: 0;
 }
@@ -1903,6 +1917,263 @@ text-area:focus-visible {
 text-area:disabled {
   opacity: 0.45;
   cursor: not-allowed;
+}
+
+/* ----------------------------------------------------------- date-picker --
+ *
+ * §4's typed date field, and §2's row for it: "field = `text-input`; popup radius
+ * 12, padding 8; day cell 32 square, radius `full`". Three of those four belong
+ * to something else -- the field is a real `text-input` and takes `text-input`'s
+ * rules unchanged, and the cell is `calendar-day`'s -- so what is left here is
+ * the box around the pair and the affordance beside it.
+ *
+ * The box draws **nothing**: no fill, no border, no radius. The field inside
+ * already has all three, and a second frame around it would read as a control
+ * inside a control. `code-input` makes the same choice for the same reason.
+ */
+date-picker {
+  flex-direction: row;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+/* The field takes the width, so a picker in a form column stretches like a
+   `text-input` does.
+
+   A **descendant** selector and not a child one, and that is not a slip: the
+   stateful `text-input` between these two styles nothing, so it "matches no type
+   selector and carries no classes, and is invisible to every selector except a
+   descendant combinator" (`Element.parent`). A `>` here matches nothing at all,
+   which is a field that does not grow and a picture that says so. */
+date-picker text-input {
+  flex-grow: 1;
+}
+
+date-picker:disabled {
+  cursor: not-allowed;
+}
+
+/* `select-chevron`'s shape and its size, because a picker reads as the same kind
+   of thing: a field with a list under it. Pulled back over the field's own right
+   padding rather than sitting beside it, so the control is one box wide and not
+   one box plus a margin. */
+/* Over the field's own right padding rather than beside it, so the control is
+   one box wide and not one box plus a margin.
+
+   `position: absolute` with only a `right`, which places it against this box's
+   **padding** edge and lets `align-items: center` above put it on the middle --
+   the path Yoga has always had right, and now the other one is right too
+   (ADR-0272). A `relative` box with a negative `left` was the first answer and
+   moved the chevron to the *far* side of the field: a relative offset moves a box
+   that is still in the flow, so the field kept its place and the chevron slid
+   across it. */
+date-picker-toggle {
+  position: absolute;
+  right: 10px;
+  width: 20px;
+  height: 20px;
+  justify-content: center;
+  align-items: center;
+  color: var(--gb-text-muted);
+  flex-shrink: 0;
+  transition: color var(--gb-motion-fast) ease-enter;
+}
+
+date-picker-toggle:hover {
+  color: var(--gb-text);
+}
+
+/* The affordance while the grid is showing. `:checked` on the box is what says
+   so -- see `DatePickerBox`. */
+date-picker:checked date-picker-toggle {
+  color: var(--gb-accent);
+}
+
+/* §2: "popup radius 12, padding 8". A `calendar` draws no surface of its own --
+   it sits on whatever it was put on, which is `panel`'s rule and `chart`'s -- so
+   the surface is this, and it is `select-list`'s shape because a picker's popup
+   is the same kind of thing as a combobox's. The 12 is the row's and not
+   `select-list`'s 8: §2 gives this popup its own number. */
+date-picker-panel {
+  flex-direction: column;
+  padding: 8px;
+  background: var(--gb-surface);
+  color: var(--gb-text);
+  border: 1px solid var(--gb-border);
+  border-radius: 12px;
+}
+
+/* -------------------------------------------------------------- calendar --
+ *
+ * §10's month grid, and §2's row for it: day cell 32 (28) square; header row
+ * `caption` in `--gb-text-muted`; grid gap 0; radius `full` on the selected day,
+ * range ends only.
+ *
+ * **Grid gap 0 is load-bearing rather than a taste.** A range is drawn by shading
+ * the days between its ends, and a gap between cells would break that shading
+ * into seven separate stripes a week -- the run has to be continuous, so the
+ * cells meet and the breathing room is inside them.
+ *
+ * The whole thing draws no surface of its own: a calendar sits on whatever it was
+ * put on, and one that painted its own would be a card inside a card wherever a
+ * `date-picker`'s popover already gave it one. `panel`'s rule, and `chart`'s.
+ */
+calendar {
+  flex-direction: column;
+  align-items: stretch;
+  flex-shrink: 0;
+}
+
+calendar:focus-visible {
+  outline: 2px solid var(--gb-focus);
+  outline-offset: 2px;
+}
+
+calendar:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* The month, and the two arrows. Not in §10 -- see ADR-0274 for why a calendar
+   needs one anyway, and `design-system.md` §2 for the row it gained. */
+calendar-header {
+  flex-direction: row;
+  align-items: center;
+  height: var(--gb-control-height);
+  flex-shrink: 0;
+}
+
+calendar-title {
+  flex-grow: 1;
+  justify-content: center;
+  font-size: var(--gb-font-body);
+  line-height: var(--gb-line-body);
+  font-weight: 600;
+  color: var(--gb-text);
+}
+
+/* A `button.ghost.circle`'s shape without being one: a `button` is a Tab stop and
+   §10 says the grid is one. See `CalendarHeader`. */
+calendar-nav {
+  width: var(--gb-calendar-day);
+  height: var(--gb-calendar-day);
+  justify-content: center;
+  align-items: center;
+  border-radius: var(--gb-calendar-day-radius);
+  color: var(--gb-text-muted);
+  flex-shrink: 0;
+  transition: background-color var(--gb-motion-fast) ease-enter;
+}
+
+calendar-nav:hover {
+  background: var(--gb-overlay-hover);
+  color: var(--gb-text);
+}
+
+/* The same chevron turned half round, which is `carousel`'s trade: there is no
+   CHEVRON_START, and a second mark kind would have to stay this one's mirror
+   forever where a transform cannot drift. */
+calendar-nav.previous {
+  transform: rotate(180deg);
+}
+
+calendar-weekdays {
+  flex-direction: row;
+  flex-shrink: 0;
+}
+
+calendar-weekday {
+  width: var(--gb-calendar-day);
+  justify-content: center;
+  align-items: center;
+  font-size: var(--gb-font-caption);
+  line-height: var(--gb-line-caption);
+  color: var(--gb-text-muted);
+  flex-shrink: 0;
+}
+
+/* The two months of a change, stacked. Nothing here has a gap: see the note
+   above about a range's shading. */
+calendar-grid {
+  flex-direction: column;
+  flex-shrink: 0;
+}
+
+calendar-month {
+  flex-direction: column;
+  flex-shrink: 0;
+}
+
+calendar-week {
+  flex-direction: row;
+  flex-shrink: 0;
+}
+
+/* One day. The radius is `full` and the fill is what decides whether it shows:
+   §2 asks for the round corner on "the selected day, range ends only", and a
+   range's middle is `in-range` and not `:checked`, so this one rule covers both
+   without an exception. */
+calendar-day {
+  width: var(--gb-calendar-day);
+  height: var(--gb-calendar-day);
+  justify-content: center;
+  align-items: center;
+  border-radius: var(--gb-calendar-day-radius);
+  font-size: var(--gb-font-body);
+  line-height: var(--gb-line-body);
+  color: var(--gb-text);
+  flex-shrink: 0;
+  transition: background-color var(--gb-motion-fast) ease-enter;
+}
+
+/* A day borrowed from the month on either side. Quieter and still real: it is a
+   date, it can be pressed, and pressing it pages the grid. */
+calendar-day.outside {
+  color: var(--gb-text-muted);
+}
+
+calendar-day:hover {
+  background: var(--gb-overlay-hover);
+}
+
+/* Today, when it is not the chosen day. A ring rather than a fill, because a
+   fill is what "chosen" means and two fills in one grid is two answers. */
+calendar-day.today {
+  border: 1px solid var(--gb-border-strong);
+}
+
+/* Inside a range: shaded, square, and deliberately not `:checked`. The ends are
+   the two chosen dates and they are round; the middle is neither. */
+calendar-day.in-range {
+  background: var(--gb-overlay-hover);
+  border-radius: 0;
+}
+
+calendar-day:checked {
+  background: var(--gb-accent);
+  color: var(--gb-button-primary-text);
+}
+
+calendar-day:checked:hover {
+  background: var(--gb-accent);
+}
+
+/* The roving day -- §10's "one Tab stop with a roving day". A class and not
+   `:focus-visible`, because the focus is the grid's: forty-two focusable cells
+   would be forty-two Tab stops (see `CalendarBox`). It only ever carries the
+   class while the grid has the keyboard, so this needs no `:focus` of its own. */
+calendar-day.roving {
+  outline: 2px solid var(--gb-focus);
+  outline-offset: -2px;
+}
+
+calendar-day:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+calendar-day:disabled:hover {
+  background: transparent;
 }
 
 /* ------------------------------------------------------------ code-input --

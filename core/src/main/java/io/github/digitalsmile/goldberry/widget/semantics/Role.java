@@ -78,6 +78,18 @@ public enum Role {
     /// A region with a boundary and no better word — a carousel's viewport.
     GROUP,
 
+    /// A two-dimensional set of cells addressed by row and column — a
+    /// `calendar`'s month.
+    ///
+    /// Distinct from [#GROUP], and the distinction is the arrows: a group is a
+    /// boundary with content in it and says nothing about how the content is
+    /// reached, where a grid promises that all four arrow keys mean something and
+    /// that a cell has a position in two axes. `docs/core-widgets.md` §10 asks a
+    /// calendar for exactly that — "grid with each cell's full date as its name"
+    /// — and the second half of that sentence has nowhere to go until the
+    /// AccessKit bridge, because [Semantics] has no per-cell channel (ADR-0274).
+    GRID,
+
     /// A window-like layer over the rest: a dialog, a tour stop.
     DIALOG,
 

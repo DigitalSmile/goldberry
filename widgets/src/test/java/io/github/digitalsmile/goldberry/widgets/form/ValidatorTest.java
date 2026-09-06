@@ -142,4 +142,73 @@ class ValidatorTest {
             assertEquals("Wrong port", rule.check("80").message());
         }
     }
+
+    /// The seam `date-picker` opened — a rule over a **parsed** value, as a rule
+    /// over the text it was parsed from (ADR-0274).
+    @Nested
+    @DisplayName("a rule over a parsed value")
+    class Parsing {
+
+        private static final java.time.LocalDate SEPTEMBER = java.time.LocalDate.of(2026, 9, 14);
+
+        private Validator<String> notBefore(java.time.LocalDate earliest) {
+            return Validator.parsing(
+                    java.time.LocalDate::parse,
+                    "That is not a date",
+                    Validator.of(date -> !date.isBefore(earliest), "Too early"));
+        }
+
+        @Test
+        @DisplayName("runs the rule on what the text parsed to")
+        void checksTheValue() {
+            var rule = notBefore(SEPTEMBER);
+
+            assertTrue(rule.check("2026-09-21").isValid());
+            assertEquals("Too early", rule.check("2026-09-01").message());
+        }
+
+        /// A `java.time` parser throws where a hand-written one returns null, and
+        /// a seam that admitted only one of the two would make the other an
+        /// application writing a try/catch to satisfy the method.
+        @Test
+        @DisplayName("a parser that throws and one that answers null mean the same thing")
+        void bothWaysOfFailing() {
+            assertEquals(
+                    "That is not a date",
+                    notBefore(SEPTEMBER).check("the fourteenth").message());
+
+            var nullish = Validator.parsing(text -> null, "That is not a date");
+            assertEquals("That is not a date", nullish.check("anything").message());
+        }
+
+        /// `matching`'s rule, for its reason: "this must be a date" and "this must
+        /// be filled in" are two rules, and one that also refused emptiness would
+        /// make every optional field with a format into a required one.
+        @Test
+        @DisplayName("an empty value passes without the parser being called")
+        void emptyPasses() {
+            var called = new boolean[1];
+            var rule = Validator.parsing(
+                    text -> {
+                        called[0] = true;
+                        return text;
+                    },
+                    "Nope");
+
+            assertTrue(rule.check("").isValid());
+            assertTrue(rule.check("   ").isValid());
+            assertTrue(rule.check(null).isValid());
+            assertFalse(called[0]);
+        }
+
+        @Test
+        @DisplayName("and it composes with the rules that are already here")
+        void composes() {
+            var rule = Validator.required("A date is needed").and(notBefore(SEPTEMBER));
+
+            assertEquals("A date is needed", rule.check("").message());
+            assertEquals("Too early", rule.check("2026-01-01").message());
+            assertTrue(rule.check("2026-12-25").isValid());
+        }
+    }
 }

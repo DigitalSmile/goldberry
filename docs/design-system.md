@@ -167,6 +167,7 @@ Behavior and API live in `core-widgets.md`; GDS pins the numbers. Metrics ship a
 | `button[float]` | offset 24 from both window edges; elevation 1; icon-only ⇒ 48 square |
 | `date-picker` / `time-picker` | field = `text-input`; popup radius 12, padding 8; day cell 32 square, radius `full` |
 | `calendar` | day cell 32 (28) square; header row `caption` in `--gb-text-muted`; grid gap 0; radius `full` on the selected day, range ends only |
+| `calendar-header` | month row `--gb-control-height`; label `body-strong` centred; prev/next 32 (28) square with a `full` radius, `--gb-text-muted` and an `--gb-overlay-hover` wash. **Added by [ADR-0274](../book/src/adr/0274-a-calendar-is-told-what-day-it-is.md)**, because §10 gives a calendar only a keyboard for changing month — `PgUp`/`PgDn` — and the row above is the *weekday* row: a calendar a mouse cannot page is not one. Neither arrow is a Tab stop, because §10 says the grid is one |
 | `color-picker` | swatch 24, radius 4; plane 200×160; hue/alpha sliders `slider` metrics; preset swatch 20, gap 4 |
 | `code-input` | box 40×48 (36×44); gap 8; radius 4; `title`, centred; group gap 16 at the midpoint when `length` is even |
 | `breadcrumbs` | height 24; `body`; separator = `chevron-right` 16 in `--gb-text-muted`, gap 4; overflow menu after 4 crumbs |

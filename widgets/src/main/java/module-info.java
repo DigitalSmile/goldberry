@@ -100,6 +100,7 @@ module io.github.digitalsmile.goldberry.widgets {
     exports io.github.digitalsmile.goldberry.widgets.panel.split;
     exports io.github.digitalsmile.goldberry.widgets.panel.statistic;
     exports io.github.digitalsmile.goldberry.widgets.panel.table;
+    exports io.github.digitalsmile.goldberry.widgets.panel.calendar;
     exports io.github.digitalsmile.goldberry.widgets.panel.tree;
 
     /// `docs/core-widgets.md` §4's `form` group. `text-input` is the first of
@@ -122,6 +123,7 @@ module io.github.digitalsmile.goldberry.widgets {
     exports io.github.digitalsmile.goldberry.widgets.form.field;
     exports io.github.digitalsmile.goldberry.widgets.form.form;
     exports io.github.digitalsmile.goldberry.widgets.form.codeinput;
+    exports io.github.digitalsmile.goldberry.widgets.form.datepicker;
     exports io.github.digitalsmile.goldberry.widgets.form.textarea;
 
     /// `…form.parts` is deliberately **not** exported. `text-input` and

@@ -1,5 +1,8 @@
 package io.github.digitalsmile.goldberry.example;
 
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.time.format.FormatStyle;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -125,6 +128,18 @@ public final class ShowcaseModel {
 
     @Bind("app.signup-status")
     private String signupStatus = "Nobody has enlisted yet";
+
+    /// The departure date, and what the picker made of it.
+    ///
+    /// A **`LocalDate`**, which is what §4 gives this control and what a model
+    /// that has parsed its values holds. The picker formats it into the field
+    /// rather than stringifying it, so the screen shows the application's own
+    /// spelling of a date it owns.
+    @Bind("trip.date")
+    private LocalDate tripDate = LocalDate.of(2026, 9, 14);
+
+    @Bind("trip.status")
+    private String tripStatus = "Type a date, or press the chevron";
 
     /// The one-time code, and what happened to it.
     ///
@@ -351,6 +366,27 @@ public final class ShowcaseModel {
         @Action("app.set-bio")
         void setBio(String value) {
             values.bio = value;
+        }
+
+        /// What the picker committed — either from the grid or from the field,
+        /// which is the point: §4 makes the typed field the source of truth and
+        /// the grid writes into it, so there is one handler and not two.
+        ///
+        /// A **`String`**, and it has to be: §9's valued actions cross as text,
+        /// so a document is handed the *formatted* date and Java is handed the
+        /// `DateSelection`. Parsing it back here is the application doing what §4
+        /// says it does — "the toolkit does not invent a date syntax", so the
+        /// application that chose the format is the one that can read it.
+        @Action("trip.set-date")
+        void setTripDate(String value) {
+            if (value.isBlank()) {
+                values.tripDate = null;
+                values.tripStatus = "Nothing chosen";
+                return;
+            }
+            var date = LocalDate.parse(value, DateTimeFormatter.ofLocalizedDate(FormatStyle.SHORT));
+            values.tripDate = date;
+            values.tripStatus = "Leaving on " + date;
         }
 
         /// Every box, as it fills. The round trip a real form makes.

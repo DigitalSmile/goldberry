@@ -45,4 +45,9 @@
      narrowed without shortening would be a code drawn on graph paper. */
   --gb-code-box-width: 36px;
   --gb-code-box-height: 44px;
+
+  /* §2's `calendar` row: "day cell 32 (28) square". One token, because the row
+     says square. */
+  --gb-calendar-day: 28px;
+  --gb-calendar-day-radius: 14px;
 }

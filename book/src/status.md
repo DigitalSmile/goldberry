@@ -6367,19 +6367,83 @@ is the `scroll` box's.
   and what a mask draws. The Forms screen gained a seventh markup card, and it is
   the only one on that screen showing a control that raises **two** events.
 
+### A month that has to be told what day it is, and a field that types
+
+- **`calendar` and `date-picker` are built**
+  ([ADR-0274](adr/0274-a-calendar-is-told-what-day-it-is.md)) — §10's month grid
+  and §4's typed date field, which are one pair: the picker's popover holds §10's
+  widget unchanged rather than a month of its own.
+- **An existing rule refused to bend, and the API is better for it.** The first
+  version read the clock, which is what every calendar API does.
+  `DeterminismTest` failed it: `ZoneId.systemDefault()` has exactly one sanctioned
+  caller in the catalog and it is `TimeAxis` (ADR-0203). The rule turns out to be
+  exactly as true here — **an instant is only a date in some zone** — so the month
+  is an argument, `today` may be null and null marks no day. A golden of September
+  2026 is the same image tomorrow, and in Auckland.
+- **`DateSelection` is one value for three models**, where `list` uses an enum and
+  a separate set of rows. That split works for a list because its models differ
+  only in *how many* rows may be chosen; a calendar's third is not a count. A
+  range of two dates is not two dates, and it is what makes §2's "radius `full` on
+  the selected day, **range ends only**" one CSS rule: the ends are `:checked` and
+  the middle is not.
+- **§2's grid gap of 0 is load-bearing.** A range is drawn by shading the days
+  between its ends, and a gap would break that shading into seven stripes a week.
+  The row says the number and not the reason; this is the reason.
+- **Six weeks always**, so a four-week month and a six-week one are the same
+  height and nothing under a popover moves when it pages. §3.1's cross-fade is
+  **two months at once** — the incoming one in flow, the outgoing one absolutely
+  positioned over it — because a single grid dipping to transparent is a dissolve
+  to the background, which on a popover reads as a blink. That absolute layer
+  lands correctly because ADR-0272 landed last week.
+- **One Tab stop is one focusable node and a class.** A `FocusScope` roves between
+  *focusable* children, and forty-two cells would be forty-two Tab stops from
+  anywhere the scope does not reach.
+- **The arrows clamp to the bounds and not to the predicate.** A bound is a window
+  and a predicate is a rule inside it; a `Right` that skipped four days because a
+  weekend was refused is a grid whose arrows lie.
+- **A month header, which §10 does not ask for.** It gives the widget only
+  `PgUp`/`PgDn`, and §2's "header row `caption`" is the *weekday* row — so a
+  calendar built to the letter of both is one a mouse cannot page.
+  `docs/design-system.md` §2 gained a row for it in the same change, which is the
+  difference between an addition and an undocumented part.
+- **The picker holds text and derives the date.** §4's "the typed field is the
+  source of truth" built rather than quoted: holding a `LocalDate` and rendering
+  it into the field has to answer what the field says while somebody is halfway
+  through typing. The grid **writes text into the field**, exactly as a user
+  would, so a value takes one path and is parsed in one place.
+- **The one date syntax the toolkit writes is a range's separator**, an en dash
+  with spaces, because no locale service answers "how does this language join two
+  dates". Parsing accepts a plain hyphen as well — which is why the separator
+  cannot *be* a bare hyphen, since `9-1-2026` is a date in some locales.
+- **A document's `change` carries text and Java's carries a value**, because §9's
+  valued actions cross as a `String`. Found by the binding weaver refusing the
+  showcase's first handler, which is that check doing its job.
+- **The `Validator` entry closed by composition.** `Validator.parsing` is a rule
+  over the parsed value expressed as a rule over the text it came from, and
+  **`field` needed no change at all** — which is the evidence the second seam was
+  never a type parameter.
+- **Three sweeps caught three real decisions before any test did.**
+  `DeterminismTest` on the clock; `TokenClosureTest` on a `--gb-accent-on` that
+  does not exist; and `SemanticsSweepTest` on two parts that *overrode*
+  `isFocusable` to say false, which is what makes a type owe a role — the default
+  already said what they meant. A fourth thing no sweep could catch:
+  `border-radius: full` is not a value the engine has, §2 writes `full` and
+  `controls.css` spells it as half the height, and two rules asked for it. A
+  dropped declaration warns and fails nothing, so it was found by looking at the
+  image.
+
 ### Not started
 
-Client-side decorations, and the rest of §4 — the three pickers. §7 is
-**complete**, mechanism and all: §3's **sibling reflow** is built, and it was the
-last thing the group owed.
+Client-side decorations, and two of §4's pickers — `time-picker` and
+`color-picker`. §7 is **complete**, mechanism and all: §3's **sibling reflow** is
+built, and it was the last thing the group owed.
 
-The three that are left are one shape: a **typed field plus a popover**, so each
-reuses `TextEdit` and `EditHistory` for its editing and `field` for its contract,
-which are the parts with rules in them. `code-input` was the leftover that reused
-the *least* and it is done; what the pickers add is the seam this list has been
-carrying for two milestones — a `Validator` over a **parsed** value rather than
-over a `String` — plus a `calendar` grid for two of the three. Everything
-outstanding is in [TODO.md](TODO.md).
+Both of the two left are smaller than they were. `time-picker` is `date-picker`
+with three columns instead of a grid, and shares the field, the popover, the
+gates and the revert with it; `color-picker` shares the field and the popover and
+adds a plane. The seam this list carried for two milestones — a `Validator` over
+a **parsed** value — is closed, and `calendar` is built, so neither of them is
+waiting on anything. Everything outstanding is in [TODO.md](TODO.md).
 
 ## M4 — GPU
 

@@ -131,20 +131,19 @@ other entry was a cost nobody had measured, and measuring it was the answer.
   `:core` against bare widgets rather than through `dialog`, so the second one
   finds a mechanism rather than a dialog-shaped hole. —
   [ADR-0176](adr/0176-a-dialog-is-a-widget-and-showing-one-is-not.md)
-- **A `Validator` is over a `String`, and `date-picker` will want otherwise.**
-  What a user typed is text until something parses it, which is right for
-  `text-input` and stops being right for a control whose value is a `LocalDate`.
-  That is a second seam — a field that validates a *parsed* value — rather than a
-  change to this one, and it is the picker's to open. —
-  [ADR-0169](adr/0169-a-field-is-silent-until-you-leave-it.md)
-- **A `code-input` announces itself as a textbox and cannot say what it holds.**
-  §4 asks for "a single textbox with the whole code as its value", and the first
-  half is built — `CodeField` is `Role.TEXT_FIELD`, the boxes carry no role at
-  all, and there is one Tab stop. The second half has nowhere to go: `Semantics`
-  is a role, a name and a liveness, and has **no value channel** for any widget.
-  So this is the AccessKit bridge's entry rather than this widget's, and it is
-  named here because `code-input` is the first control whose specification spends
-  a sentence on what it would say. M5. —
+- **Three widgets announce what they are and cannot say what they hold.**
+  Each has a specification sentence with two halves and only the first is built.
+  `code-input` is "a single textbox with the whole code as its value" —
+  `Role.TEXT_FIELD`, one Tab stop, boxes with no role at all. `calendar` is "grid
+  with each cell's full date as its name" — `Role.GRID`, cells that are parts.
+  `date-picker` is "combobox owning a grid, with the formatted date as its value
+  text" — `Role.COMBO_BOX`. The second half of all three needs the same thing and
+  there is nowhere to put it: `Semantics` is a role, a name and a liveness, with
+  **no value channel and no per-cell channel** for any widget. So this is the
+  AccessKit bridge's entry rather than any of theirs, and the three are named
+  because they are the controls whose specifications spent a sentence on what they
+  would say. M5. —
+  [ADR-0274](adr/0274-a-calendar-is-told-what-day-it-is.md),
   [ADR-0273](adr/0273-a-code-is-a-string-and-the-boxes-are-a-drawing.md)
 - **A `text-area` has no visible scrollbar.** §4 asks for "scrollbar beyond" the
   maximum rows; it scrolls with the wheel and to keep the caret in view, and
@@ -1101,6 +1100,22 @@ on, which in four cases is the same thing.
 Kept rather than deleted: each is a trap somebody hit, and the reasoning that got
 out of it is usually worth more than the fact that it is fixed.
 
+- ~~**A `Validator` is over a `String`, and `date-picker` will want
+  otherwise.**~~ **The second seam turned out to be a composition, and `field`
+  needed no change at all.** `Validator.parsing(parse, message, rule)` is a rule
+  over the *parsed* value expressed as a rule over the text it was parsed from, so
+  `Field` still holds a `Validator<String>`, `FieldState` still reads its
+  control's binding as text, and neither of them knows a date was involved —
+  which is the evidence that this was never a type parameter. It also keeps this
+  entry's own premise intact rather than contradicting it: what the user typed
+  *is* text until something parses it, and a validator is exactly the thing that
+  decides whether it can be. `parse` may throw or answer null and both mean the
+  same thing, because `java.time` throws where a hand-written parser returns null
+  and a seam that took only one would make the other an application writing a
+  try/catch to satisfy a method. An empty value passes without the parser running,
+  for `matching`'s stated reason. —
+  [ADR-0274](adr/0274-a-calendar-is-told-what-day-it-is.md),
+  [ADR-0169](adr/0169-a-field-is-silent-until-you-leave-it.md)
 - ~~**An absolutely positioned child is placed against the border box, and the
   clip is the padding box.**~~ **Fixed where ADR-0265 said it was, and the golden
   tail was somewhere else.** `ContainingBlock` shifts an absolute child's inset by
