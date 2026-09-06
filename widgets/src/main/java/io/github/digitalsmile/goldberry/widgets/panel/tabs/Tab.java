@@ -14,6 +14,7 @@ import io.github.digitalsmile.goldberry.input.handler.Handles;
 import io.github.digitalsmile.goldberry.input.key.Key;
 import io.github.digitalsmile.goldberry.kdl.KdlNode;
 import io.github.digitalsmile.goldberry.paint.Box;
+import io.github.digitalsmile.goldberry.paint.tree.ContainingBlock;
 import io.github.digitalsmile.goldberry.render.model.LogicalRect;
 import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widget.attr.Attributed;
@@ -321,7 +322,16 @@ public record Tab(
     public Box render(ComputedStyle style, List<Box> children, Context context) {
         var content = new ArrayList<Box>(4);
         // Child 0 is the indicator, which is out of flow and takes no space.
-        content.add(children.getFirst());
+        //
+        // Widened back to the header's own edges. An absolutely positioned child
+        // is placed against its containing block's **padding** box, which is what
+        // CSS says and what `ContainingBlock` makes true (ADR-0272) — so the
+        // indicator's `left: 0; right: 0` means 24 points narrower than the tab,
+        // and an underline that stops short of its label is not one. The number
+        // comes from `tab`'s own resolved padding, so `density-compact` moves it
+        // without mentioning it.
+        var indicator = children.getFirst();
+        content.add(indicator.inset(ContainingBlock.acrossBorderBox(indicator.inset(), style.padding())));
         if (icon != null) {
             content.add(Box.icon(icon, style.color()));
         }

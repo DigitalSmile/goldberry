@@ -6272,6 +6272,50 @@ is the `scroll` box's.
   entry had been answered by ADR-0115 two milestones earlier and was still sitting
   in the list under an introduction that said it had left.
 
+### The box a child is placed against, and two widgets that meant the other one
+
+- **`ContainingBlock`, and ADR-0265's fix made rather than priced**
+  ([ADR-0272](adr/0272-an-absolute-child-is-placed-inside-the-padding.md)). An
+  absolutely positioned child's containing block is the **padding** box of its
+  positioned ancestor, and Yoga implements one path of two: given no insets it
+  lands on the padding edge and is right, given an inset it measures from the
+  border box. `RenderObject` now takes its containing block's padding, shifts the
+  inset through one class, and puts *that* on the node.
+- **On the style rather than on the answer**, which is the part a post-layout
+  correction could not have done. With `left` and `right` both given Yoga derives
+  the child's **width** from the two insets; shifting both makes that width the
+  padding box's. A correction applied after the pass could have moved a child and
+  could not have resized one.
+- **Only the edges the box named**, because Yoga's fallback for an edge with no
+  inset is the static position, which already includes the padding. Defining an
+  edge in order to correct it would replace a right answer with a placement
+  nobody asked for. Percentages are declined on both sides of the sum and say so:
+  a percentage inset resolves against a size the layout pass has not produced.
+- **`text-input`'s and `text-area`'s compensations came out in the same commit**,
+  as ADR-0265 insisted they must — three `left`s and three rectangles that each
+  added their control's own padding. Both controls still read that padding for the
+  three things that are not placement: where the text wraps, the room the scroll
+  offset leaves, and turning a pointer's x into an offset into the text.
+- **The golden tail was smaller than priced and pointed somewhere else.**
+  `segmented`, `tour` and `scroll` were the three named and not one of them moved,
+  because their parents genuinely have no padding. What moved was **`tabs`**,
+  where an underline pinned across a header with `padding: 0 12px` came out 24
+  points short of its own label, and **`toast`**, where an overlay pinned 12 points
+  from a corner started counting from the application's content box instead of
+  from the window. Both mean the border box; both now say so through
+  `acrossBorderBox`, in terms of the padding their own style resolved rather than
+  a negative number written into a stylesheet three rules from the positive one.
+- **No damage flag was needed, and that is a deleted flag rather than an
+  assumption.** One was written on the theory that a child moved by its *parent's*
+  padding has an identical box and would go unreported. Removing it broke nothing,
+  twice over: `sameAppearance` compares the parent's own padding, so the parent is
+  damaged, and `collectDamage` reports any node whose remembered rectangle differs
+  from its current one — a comparison of results, which does not care why.
+- **`YogaLayoutTest`'s two tests still assert (0, 0)**, deliberately. They are
+  about the compiled library; `AbsolutePlacementTest` is about the toolkit built
+  on it and asserts (12, 12). The day Yoga fixes its inset path, the `:natives`
+  pair fails first and names the correction that has to come out.
+
 ### Not started
 
 Client-side decorations, the rest of §4 —

@@ -5,6 +5,7 @@ import java.util.List;
 
 import org.jspecify.annotations.Nullable;
 
+import io.github.digitalsmile.goldberry.natives.yoga.Insets;
 import io.github.digitalsmile.goldberry.natives.yoga.YogaConfig;
 import io.github.digitalsmile.goldberry.natives.yoga.YogaNode;
 import io.github.digitalsmile.goldberry.natives.yoga.style.Edge;
@@ -67,6 +68,16 @@ public final class RenderObject implements AutoCloseable {
     /// The comparison target for every guard below. Null until the first
     /// [#apply], which is what makes the first frame set everything.
     private @Nullable Box applied;
+
+    /// The inset currently *on* the node, which is not the one the box declared.
+    ///
+    /// An absolutely positioned child is shifted by its containing block's
+    /// padding before it reaches Yoga ([ContainingBlock]), so the box's own
+    /// `inset` is the wrong thing to guard against: a parent that grew padding
+    /// moves this child without changing a single field of its box. Kept
+    /// separately rather than derived, because deriving it needs the parent's
+    /// padding and this object has never had a reference to its parent.
+    private @Nullable Insets appliedInset;
 
     /// The paragraph the attached measure callback measures, by identity.
     ///
@@ -136,7 +147,7 @@ public final class RenderObject implements AutoCloseable {
     /// every frame and Yoga's layout cache would never hit once — which is the
     /// same amount of work as throwing the tree away, with the memory management
     /// of keeping it.
-    void apply(Box box) {
+    void apply(Box box, Insets inset) {
         var previous = applied;
         applied = box;
 
@@ -202,8 +213,13 @@ public final class RenderObject implements AutoCloseable {
         if (previous == null || previous.overflow() != box.overflow()) {
             node.setOverflow(box.overflow());
         }
-        var inset = box.inset();
-        if (previous == null || !previous.inset().equals(inset)) {
+        // Against `appliedInset` rather than against `previous.inset()`, because
+        // the value on the node is the box's inset shifted by the containing
+        // block's padding and the box does not carry that ([ContainingBlock]).
+        // Guarding on the declared inset would leave a child where it was when
+        // only its parent's padding had changed.
+        if (!inset.equals(appliedInset)) {
+            appliedInset = inset;
             // Per edge, like padding, and for the same reason: Yoga resolves the
             // more specific edge over `Edge.ALL` only when both are set, so a
             // node that named one edge and left the rest undefined would keep
@@ -270,7 +286,7 @@ public final class RenderObject implements AutoCloseable {
     ///
     /// @return whether the child list changed, so the caller can avoid touching
     ///         Yoga's child list — which dirties the node — when it did not
-    boolean reconcileChildren(List<Box> next, YogaConfig config) {
+    boolean reconcileChildren(List<Box> next, Insets blockPadding, YogaConfig config) {
         var changed = false;
 
         for (var i = 0; i < next.size(); i++) {
@@ -281,7 +297,7 @@ public final class RenderObject implements AutoCloseable {
                     // OR-ed in, not discarded: a promoted ancestor's raster is
                     // only reusable if *nothing* under it changed, and a child
                     // three levels down is under it.
-                    changed |= existing.update(box, config);
+                    changed |= existing.update(box, blockPadding, config);
                     continue;
                 }
                 // Not interchangeable. Detach and close it; the replacement is
@@ -292,7 +308,7 @@ public final class RenderObject implements AutoCloseable {
                 changed = true;
             }
             var built = new RenderObject(config, box.text() != null);
-            built.update(box, config);
+            built.update(box, blockPadding, config);
             children.add(i, built);
             node.insertChild(built.node, i);
             changed = true;
@@ -430,7 +446,7 @@ public final class RenderObject implements AutoCloseable {
     ///
     /// @return whether anything in this subtree changed, which is what a promoted
     ///         ancestor needs to know to decide its raster is still good
-    boolean update(Box box, YogaConfig config) {
+    boolean update(Box box, Insets blockPadding, YogaConfig config) {
         // Compared before `apply` overwrites it. Everything that affects what is
         // drawn, not only what Yoga reads: a background that changed needs a
         // repaint even though the layout is untouched.
@@ -449,12 +465,27 @@ public final class RenderObject implements AutoCloseable {
         // (3) is the one §1.7 promotes a node for. Answering it with (1) meant an
         // opacity transition invalidated the very raster it existed to reuse.
         var previous = applied;
+        // The inset that will reach Yoga, which is the box's own only when
+        // nothing shifts it ([ContainingBlock]). Resolved here rather than inside
+        // `apply` because it needs the parent's padding, which `apply` has no
+        // reason to take.
+        //
+        // Nothing below counts it as a change, and that is checked rather than
+        // assumed. The only thing that shifts a child without touching its own
+        // box is its **parent's** padding — which `sameAppearance` compares, so
+        // the parent is `selfChanged` and its rectangle is damaged; and a child
+        // that moved out from under it is caught by `collectDamage` comparing
+        // where it was against where it is, which is a comparison of results
+        // rather than of styles and does not care why it moved.
+        var inset = ContainingBlock.insetFor(box.position(), box.inset(), blockPadding);
         selfChanged = previous == null || !sameAppearance(previous, box);
         contentChanged = previous == null || !sameRaster(previous, box);
         changed = selfChanged;
-        apply(box);
+        apply(box, inset);
         if (!box.children().isEmpty() || !children.isEmpty()) {
-            var childrenChanged = reconcileChildren(box.children(), config);
+            // This box's own padding is the containing block for every absolutely
+            // positioned child of it.
+            var childrenChanged = reconcileChildren(box.children(), box.padding(), config);
             changed |= childrenChanged;
             // A descendant's own opacity and transform *are* baked into this
             // node's raster, so a child changing anything invalidates it.

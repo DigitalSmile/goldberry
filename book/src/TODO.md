@@ -113,24 +113,6 @@ other entry was a cost nobody had measured, and measuring it was the answer.
   `SDL_SetTextInputArea` so the candidate window lands under the caret rather
   than in the corner of the screen. M5, as ARCHITECTURE §17 says. —
   [ADR-0167](adr/0167-a-field-owns-its-caret-and-the-model-is-told.md)
-- **An absolutely positioned child is placed against the border box, and the
-  clip is the padding box — and it is Yoga, in one path of two.** This asked
-  "whether Yoga or the painter is the one disagreeing with CSS", and it is
-  established now, with numbers, in two tests against the compiled library
-  ([ADR-0265](adr/0265-yoga-measures-an-inset-from-the-border-box.md)). A 40×20
-  absolute child in a root with `padding: 12px`, `errata` at its spec-compliant
-  default: with `left: 0; top: 0` Yoga answers **(0, 0)** where CSS says (12,
-  12), and with **no insets at all** it answers **(12, 12)**, which is right. So
-  Yoga contradicts itself rather than simply not implementing this, and the
-  painter is exonerated — it clips to the padding box, which is what CSS says,
-  against positions computed against a different box. **The fix is priced and
-  located**: `RenderObject` applies an inset to its own node and has no reference
-  to the parent's padding, so the parent has to push it down — and the same
-  commit must *remove* `text-input`'s and `text-area`'s compensation or it
-  double-counts, with a golden tail across `segmented`, `tour` and `scroll`. That
-  is worth doing deliberately rather than as a rider on an investigation. —
-  [ADR-0265](adr/0265-yoga-measures-an-inset-from-the-border-box.md),
-  [ADR-0167](adr/0167-a-field-owns-its-caret-and-the-model-is-told.md)
 - **A field's scroll offset uses the previous frame's width.** ADR-0116 already
   decided that is what a viewport does, and it is wrong for one frame after a
   resize — invisible, because a resize is followed immediately by another frame.
@@ -1110,6 +1092,28 @@ on, which in four cases is the same thing.
 Kept rather than deleted: each is a trap somebody hit, and the reasoning that got
 out of it is usually worth more than the fact that it is fixed.
 
+- ~~**An absolutely positioned child is placed against the border box, and the
+  clip is the padding box.**~~ **Fixed where ADR-0265 said it was, and the golden
+  tail was somewhere else.** `ContainingBlock` shifts an absolute child's inset by
+  its containing block's padding on the way to the Yoga node, per edge and only on
+  the edges the box named — Yoga's no-inset path already lands on the padding and
+  is already right. On the **style** rather than on the computed rectangle,
+  because with `left` and `right` both given Yoga derives the child's *width* from
+  them: a correction applied after the layout pass could have moved the child and
+  could not have resized it. Percentages are declined on both sides of the sum and
+  say so, since a percentage inset resolves against a size that does not exist
+  yet. `text-input`'s and `text-area`'s compensations came out in the same commit,
+  as ADR-0265 insisted they must. What the record could not predict is where the
+  images moved: **not** `segmented`, `tour` or `scroll`, whose parents genuinely
+  have no padding, but `tabs` — an underline pinned across a header with
+  `padding: 0 12px` came out 24 points short of its own label — and `toast`, where
+  an overlay pinned to a corner started counting from the application's content
+  box instead of from the window. Both mean the border box and now say so, through
+  `acrossBorderBox`, in terms of the padding their own style resolved rather than
+  a number repeated in a stylesheet. —
+  [ADR-0272](adr/0272-an-absolute-child-is-placed-inside-the-padding.md),
+  [ADR-0265](adr/0265-yoga-measures-an-inset-from-the-border-box.md),
+  [ADR-0167](adr/0167-a-field-owns-its-caret-and-the-model-is-told.md)
 - ~~**A window that *moves* does not re-clamp its popups, and a scrolling anchor
   does not drag one.**~~ **Both halves are built, and the second one was a
   question nobody was asking rather than a report nobody was making.** The move

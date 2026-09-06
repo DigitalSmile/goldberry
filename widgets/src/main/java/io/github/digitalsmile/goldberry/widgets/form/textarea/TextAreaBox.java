@@ -281,7 +281,12 @@ record TextAreaBox(
         var lines = paragraph.layout(width).lines();
 
         var boxes = new ArrayList<Box>(children.size());
-        var rects = selectionRects(paragraph, lines, padding, offset, lineHeight);
+        // In the padding box's coordinates, not the border box's: `ContainingBlock`
+        // shifts every absolutely positioned child by its containing block's
+        // padding on the way to Yoga (ADR-0272), so a rectangle that added the
+        // padding itself — which is what these three did until that landed —
+        // would now be a padding's width too far in and a line too far down.
+        var rects = selectionRects(paragraph, lines, offset, lineHeight);
         for (var i = 0; i < maxRows; i++) {
             if (i < rects.size()) {
                 var rect = rects.get(i);
@@ -296,7 +301,7 @@ record TextAreaBox(
 
         boxes.add(children.get(children.size() - 2)
                 .position(PositionType.ABSOLUTE)
-                .inset(leftTop(padding.left(), padding.top() - offset))
+                .inset(leftTop(0, -offset))
                 // A definite width, because an absolutely positioned box has no
                 // parent width to wrap against -- and it is the same number the
                 // caret was measured against, which is what keeps the two from
@@ -311,7 +316,7 @@ record TextAreaBox(
                         StyleLength.UNDEFINED));
 
         var caretWidth = context.length(Carets.WIDTH_TOKEN, Carets.WIDTH);
-        var caret = caretRect(paragraph, lines, padding, offset, lineHeight, caretWidth);
+        var caret = caretRect(paragraph, lines, offset, lineHeight, caretWidth);
         boxes.add(children.get(children.size() - 1)
                 .position(PositionType.ABSOLUTE)
                 .inset(leftTop(caret.x(), caret.y()))
@@ -342,8 +347,7 @@ record TextAreaBox(
     /// A run of wrapped text is not a rectangle, which is the whole of what a
     /// second dimension costs the selection — and the reason `Paragraph`'s two
     /// measurements take a **line's** range rather than an offset.
-    private List<Rect> selectionRects(
-            Paragraph paragraph, List<TextLine> lines, Insets2 padding, double offset, double lineHeight) {
+    private List<Rect> selectionRects(Paragraph paragraph, List<TextLine> lines, double offset, double lineHeight) {
         var rects = new ArrayList<Rect>();
         if (!edit.hasSelection() || !focused) {
             return rects;
@@ -358,8 +362,8 @@ record TextAreaBox(
                 continue;
             }
             rects.add(new Rect(
-                    padding.left() + paragraph.widthBetween(line.start(), start),
-                    padding.top() + i * lineHeight - offset,
+                    paragraph.widthBetween(line.start(), start),
+                    i * lineHeight - offset,
                     Math.max(1, paragraph.widthBetween(start, end))));
         }
         return rects;
@@ -372,12 +376,7 @@ record TextAreaBox(
     /// the start of the next, and somebody who has just pressed `Right` means the
     /// next.
     private Rect caretRect(
-            Paragraph paragraph,
-            List<TextLine> lines,
-            Insets2 padding,
-            double offset,
-            double lineHeight,
-            double caretWidth) {
+            Paragraph paragraph, List<TextLine> lines, double offset, double lineHeight, double caretWidth) {
         var at = Math.clamp(edit.caret(), 0, display.length());
         var index = 0;
         for (var i = 0; i < lines.size(); i++) {
@@ -387,7 +386,7 @@ record TextAreaBox(
         }
         var line = lines.isEmpty() ? null : lines.get(index);
         var x = line == null ? 0 : paragraph.widthBetween(line.start(), Math.max(at, line.start()));
-        return new Rect(padding.left() + x, padding.top() + index * lineHeight - offset, caretWidth);
+        return new Rect(x, index * lineHeight - offset, caretWidth);
     }
 
     private static Insets leftTop(double left, double top) {

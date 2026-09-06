@@ -278,11 +278,13 @@ record TextField(
                 io.github.digitalsmile.goldberry.widgets.form.Carets.WIDTH);
         var offset = editor.laidOut(paragraph, padding, caretWidth);
 
-        // Every child's `left` carries the padding, because an absolutely
-        // positioned box here is placed against the **border** box while the clip
-        // is the padding box. Without it the first character of every field is
-        // drawn under the left padding and clipped away -- which is exactly what
-        // the Forms screen's first golden showed.
+        // No child's `left` carries the padding any more. It used to: an
+        // absolutely positioned box was placed against the **border** box while
+        // the clip was the padding box, so without the compensation the first
+        // character of every field was drawn under the left padding and clipped
+        // away. `ContainingBlock` shifts every absolute child by its containing
+        // block's padding now (ADR-0272), so adding it here as well would count
+        // it twice and start the text a padding's width too far in.
 
         // A line tall, and centred by the field's `align-items` like the text is —
         // **not** pinned top and bottom. A caret that filled a 32-point control
@@ -301,7 +303,7 @@ record TextField(
                 .position(PositionType.ABSOLUTE)
                 .inset(new Insets(
                         StyleLength.UNDEFINED, StyleLength.UNDEFINED, StyleLength.UNDEFINED, StyleLength.points((float)
-                                (padding + paragraph.widthBetween(0, clamp(edit.start(), length)) - offset))))
+                                (paragraph.widthBetween(0, clamp(edit.start(), length)) - offset))))
                 .size(
                         StyleLength.points(
                                 (float) paragraph.widthBetween(clamp(edit.start(), length), clamp(edit.end(), length))),
@@ -317,13 +319,13 @@ record TextField(
                 .position(PositionType.ABSOLUTE)
                 .inset(new Insets(
                         StyleLength.UNDEFINED, StyleLength.UNDEFINED, StyleLength.UNDEFINED, StyleLength.points((float)
-                                (padding - offset))));
+                                -offset)));
 
         var caret = children.get(2)
                 .position(PositionType.ABSOLUTE)
                 .inset(new Insets(
                         StyleLength.UNDEFINED, StyleLength.UNDEFINED, StyleLength.UNDEFINED, StyleLength.points((float)
-                                (padding + paragraph.widthBetween(0, clamp(edit.caret(), length)) - offset))))
+                                (paragraph.widthBetween(0, clamp(edit.caret(), length)) - offset))))
                 .size(StyleLength.points((float) caretWidth), line);
 
         return Box.of()

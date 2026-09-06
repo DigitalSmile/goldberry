@@ -9,6 +9,7 @@ import io.github.digitalsmile.goldberry.css.value.Affine;
 import io.github.digitalsmile.goldberry.css.value.Transform;
 import io.github.digitalsmile.goldberry.natives.blend2d.BlendPath;
 import io.github.digitalsmile.goldberry.natives.yoga.ComputedLayout;
+import io.github.digitalsmile.goldberry.natives.yoga.Insets;
 import io.github.digitalsmile.goldberry.natives.yoga.YogaConfig;
 import io.github.digitalsmile.goldberry.natives.yoga.style.Overflow;
 import io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength;
@@ -125,7 +126,10 @@ public final class RenderTree implements AutoCloseable {
             root.close();
             root = new RenderObject(config, box.text() != null);
         }
-        root.update(box, config);
+        // The root's containing block is the window, which has no padding to be
+        // placed inside of — so nothing shifts, and `ContainingBlock` says so by
+        // handing every inset straight back.
+        root.update(box, Insets.ZERO, config);
     }
 
     /// Lays the tree out against `available` and reports the size it wants, with

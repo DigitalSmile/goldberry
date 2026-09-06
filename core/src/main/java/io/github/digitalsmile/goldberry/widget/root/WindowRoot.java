@@ -9,8 +9,11 @@ import io.github.digitalsmile.goldberry.Overlay;
 import io.github.digitalsmile.goldberry.bind.Observable;
 import io.github.digitalsmile.goldberry.bind.Property;
 import io.github.digitalsmile.goldberry.css.ComputedStyle;
+import io.github.digitalsmile.goldberry.natives.yoga.Insets;
 import io.github.digitalsmile.goldberry.natives.yoga.style.PositionType;
+import io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength;
 import io.github.digitalsmile.goldberry.paint.Box;
+import io.github.digitalsmile.goldberry.paint.tree.ContainingBlock;
 import io.github.digitalsmile.goldberry.widget.ElementTree;
 import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widget.style.Corner;
@@ -124,15 +127,23 @@ public record WindowRoot(Widget content, Property<List<Overlay>> overlays) imple
         boxes.add(children.getFirst().grow(1));
         for (var i = 1; i < children.size(); i++) {
             var entry = entries.get(i - 1);
+            // Insets on all four sides is Yoga's "fill"; two sides is a corner.
+            // One flag, no second placement path (ADR-0121).
+            var inset = entry.isFilling()
+                    ? Insets.all(StyleLength.points(0))
+                    : entry.corner().insets(entry.margin());
             boxes.add(children.get(i)
                     .position(PositionType.ABSOLUTE)
-                    // Insets on all four sides is Yoga's "fill"; two sides is a
-                    // corner. One flag, no second placement path (ADR-0121).
-                    .inset(
-                            entry.isFilling()
-                                    ? io.github.digitalsmile.goldberry.natives.yoga.Insets.all(
-                                            io.github.digitalsmile.goldberry.natives.yoga.style.StyleLength.points(0))
-                                    : entry.corner().insets(entry.margin())));
+                    // Against the **window**, not against the application's
+                    // content box. An absolutely positioned child is placed
+                    // inside its containing block's padding by default, which is
+                    // CSS and is right for a child of the content — and this
+                    // layer is not one. A `window-root { padding: 16px }` is the
+                    // application saying where its own widgets start; a toast
+                    // pinned 12 points from the corner means 12 from the corner
+                    // of the window, and a veil that fills means the window
+                    // (ADR-0272).
+                    .inset(ContainingBlock.acrossBorderBox(inset, style.padding())));
         }
         return Box.of().style(style).children(boxes.toArray(Box[]::new));
     }

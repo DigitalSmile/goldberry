@@ -23,7 +23,9 @@ import io.github.digitalsmile.goldberry.input.key.Key;
 import io.github.digitalsmile.goldberry.input.key.Mod;
 import io.github.digitalsmile.goldberry.input.key.Modifiers;
 import io.github.digitalsmile.goldberry.kdl.KdlParser;
+import io.github.digitalsmile.goldberry.natives.yoga.style.PositionType;
 import io.github.digitalsmile.goldberry.paint.Box;
+import io.github.digitalsmile.goldberry.paint.tree.ContainingBlock;
 import io.github.digitalsmile.goldberry.widget.ElementTree;
 import io.github.digitalsmile.goldberry.widget.WidgetRenderer;
 import io.github.digitalsmile.goldberry.widgets.Controls;
@@ -859,17 +861,21 @@ class TextInputTest {
         /// The boxes the field describes, rendered by hand — the only way to see
         /// where a caret actually goes, since its position is a measurement
         /// rather than anything a stylesheet or a layout decides.
-        private List<Box> parts(ElementTree tree) {
-            var context = TestFont.context();
-            // The **real** resolved style, so the padding this asserts against is
-            // the one `controls.css` actually gives a field rather than a number
-            // repeated here.
+        /// The **real** resolved style, so the padding these assert against is the
+        /// one `controls.css` actually gives a field rather than a number
+        /// repeated here.
+        private io.github.digitalsmile.goldberry.css.ComputedStyle style(ElementTree tree) {
             var element = tree.root().children().getFirst();
-            var style = io.github.digitalsmile.goldberry.css.ComputedStyle.of(
+            return io.github.digitalsmile.goldberry.css.ComputedStyle.of(
                     new io.github.digitalsmile.goldberry.css.cascade.StyleResolver(
                                     Controls.stylesheets(Theme.NORD_DARK))
                             .resolve(element),
                     io.github.digitalsmile.goldberry.css.value.CssLength.Context.DEFAULT);
+        }
+
+        private List<Box> parts(ElementTree tree) {
+            var context = TestFont.context();
+            var style = style(tree);
             var field = field(tree);
             var children = field.children().stream()
                     .map(child -> ((io.github.digitalsmile.goldberry.widget.style.Paints) child)
@@ -912,21 +918,35 @@ class TextInputTest {
             assertEquals(TestFont.one().lineHeight(), points(selection.height()), 0.01);
         }
 
+        /// The field used to add its own padding to every part's `left`, because
+        /// an absolutely positioned child was placed against the **border** box
+        /// while the clip was the padding box — a `left` of zero drew the first
+        /// character under the padding and lost it, which is what the Forms
+        /// screen's first golden showed.
+        ///
+        /// `ContainingBlock` shifts every absolute child by its containing
+        /// block's padding now (ADR-0272), so the compensation is gone and this
+        /// asserts both halves: the field writes zero, and zero still lands at
+        /// the padding.
         @Test
-        @DisplayName("every part's left carries the field's padding")
-        void partsAllowForPadding() {
+        @DisplayName("no part's left carries the field's padding, and the text still starts at it")
+        void partsAreInPaddingBoxCoordinates() {
             var tree = mounted(new TextInput("Goldberry", null));
             focus(tree, true, false);
             key(tree, Key.HOME);
 
             var parts = parts(tree);
+            var padding = style(tree).padding();
 
-            // The bug the Forms screen's first golden showed: an absolutely
-            // positioned child here is placed against the border box while the
-            // clip is the padding box, so a `left` of zero draws the first
-            // character under the padding and loses it.
-            assertEquals(8, points(parts.get(1).inset().left()), 0.01, "the text");
-            assertEquals(8, points(parts.get(2).inset().left()), 0.01, "the caret at offset 0");
+            assertEquals(0, points(parts.get(1).inset().left()), 0.01, "the text");
+            assertEquals(0, points(parts.get(2).inset().left()), 0.01, "the caret at offset 0");
+            assertEquals(
+                    8,
+                    points(ContainingBlock.insetFor(
+                                    PositionType.ABSOLUTE, parts.get(1).inset(), padding)
+                            .left()),
+                    0.01,
+                    "the text does not start at the field's padding after all");
         }
     }
 

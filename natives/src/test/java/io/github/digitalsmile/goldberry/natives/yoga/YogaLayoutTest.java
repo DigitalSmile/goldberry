@@ -307,6 +307,12 @@ class YogaLayoutTest {
     /// Asserted with no painter and no widget in the way, so the answer is
     /// attributable. `errata` is at its default of `None`, which is Yoga's
     /// spec-compliant mode: this is not a setting anybody turned off.
+    ///
+    /// **Deliberately still asserting Yoga's answer** now that the toolkit
+    /// corrects it (ADR-0272). This test is about the compiled library;
+    /// `AbsolutePlacementTest` in `:core` is about the toolkit built on it, and
+    /// asserts (12, 12). The day Yoga fixes its inset path, this one fails first
+    /// and names the correction that has to come out.
     @Test
     @DisplayName("and against which box, when the containing block has padding")
     void absolutePositioningInsidePadding() {
@@ -328,9 +334,9 @@ class YogaLayoutTest {
                     new ComputedLayout(0f, 0f, 40f, 20f),
                     child.layout(),
                     "Yoga measures an inset from the *border* box. CSS measures it from the"
-                            + " padding box, which would be (12, 12) — so a widget placing a child"
-                            + " absolutely inside a padded parent has to add the padding itself,"
-                            + " which is what `text-input` does and what the next one will not know to");
+                            + " padding box, which would be (12, 12) — so something above Yoga has to"
+                            + " add the padding, and since ADR-0272 that is `ContainingBlock`, once,"
+                            + " for every absolutely positioned box in the toolkit");
         }
     }
 
