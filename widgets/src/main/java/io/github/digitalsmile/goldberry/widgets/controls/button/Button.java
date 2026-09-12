@@ -203,12 +203,21 @@ public record Button(String label, Icon icon, Runnable onPress, boolean disabled
     /// *built* by a document: an `Icon` owns native memory and has to be closed,
     /// so one reloaded on every keystroke would leak per reload.
     public static Widget inflate(KdlNode node, List<Widget> children, Wiring wiring) {
-        return new Button(
-                Wiring.label(node),
-                wiring.icon(node),
-                wiring.action(node, "press"),
-                Wiring.disabled(node),
-                Attributes.of(node));
+        var label = Wiring.label(node);
+        var glyph = wiring.icon(node);
+        // A document that names an icon and gets none has a *registry* problem,
+        // and the constructor below cannot know that -- it sees a button with
+        // neither, and says so, which sends the author to look at a KDL file
+        // where the icon is plainly written. `Icons.lenient()` answering null is
+        // the whole of it, and an icon-only button is the one shape where that
+        // answer is fatal rather than cosmetic (ADR-0293).
+        if (label.isEmpty() && glyph == null && node.stringProperty("icon") != null) {
+            throw new IllegalArgumentException("button icon=\"" + node.stringProperty("icon")
+                    + "\" has no label to fall back on, and the icon registry did not supply that name."
+                    + " Bind it — Icons.strict().bind(\"" + node.stringProperty("icon") + "\", …) — or give the button"
+                    + " a label, because an icon-only button in a document is only as real as its registry");
+        }
+        return new Button(label, glyph, wiring.action(node, "press"), Wiring.disabled(node), Attributes.of(node));
     }
 
     @Override

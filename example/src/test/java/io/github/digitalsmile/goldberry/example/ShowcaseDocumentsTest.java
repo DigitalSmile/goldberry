@@ -214,9 +214,16 @@ class ShowcaseDocumentsTest {
         var onGain = new ArrayList<String>();
         collectOn(new ElementTree(wall("basic")).root(), Models.observable(model, "app.gain"), onGain);
 
+        // Sorted, not in document order. What this asserts is *which four
+        // controls* read one number; where they fall in the tree is the
+        // masonry's, and it packs by column height — so adding a card anywhere
+        // in the wall can reorder these four without any of them changing what
+        // they read. That is exactly what happened when the buttons card landed
+        // (ADR-0293), and an assertion that failed for it was testing the wall's
+        // packing under a name about bindings.
         assertEquals(
-                List.of("slider", "knob", "slider", "progress"),
-                onGain,
+                List.of("knob", "progress", "slider", "slider"),
+                onGain.stream().sorted().toList(),
                 "the slider, the knob, the fader and the bar — four readers of one number");
     }
 

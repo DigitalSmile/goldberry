@@ -92,7 +92,7 @@ class ButtonGoldenTest {
     }
 
     @Test
-    @DisplayName("the four variants, at rest, on the dark theme")
+    @DisplayName("the five variants, at rest, on the dark theme")
     void variantsDark() {
         paint(
                 "button-variants-dark",
@@ -101,14 +101,19 @@ class ButtonGoldenTest {
                         new Button("Default", null, null, false, id("a")),
                         new Button("Primary", null, null, false, id("b", "primary")),
                         new Button("Danger", null, null, false, id("c", "danger")),
-                        new Button("Ghost", null, null, false, id("d", "ghost"))));
+                        new Button("Ghost", null, null, false, id("d", "ghost")),
+                        new Button("Link", null, null, false, id("e", "link"))));
     }
 
     @Test
-    @DisplayName("the same four on the light theme, which is a different set of tokens")
+    @DisplayName("the same five on the light theme, which is a different set of tokens")
     void variantsLight() {
         // Two files, not one shared rule: the light theme's hover darkens where
         // the dark theme's lightens, and this is where that stops being a claim.
+        // `link` is the one whose ink differs between the files rather than its
+        // fill: the dark theme lifts the accent a step to clear §1.2 on
+        // `--gb-surface-2`, and the light theme reaches for the two-steps-darker
+        // fill value instead (ADR-0293).
         paint(
                 "button-variants-light",
                 Theme.NORD_LIGHT,
@@ -116,7 +121,8 @@ class ButtonGoldenTest {
                         new Button("Default", null, null, false, id("a")),
                         new Button("Primary", null, null, false, id("b", "primary")),
                         new Button("Danger", null, null, false, id("c", "danger")),
-                        new Button("Ghost", null, null, false, id("d", "ghost"))));
+                        new Button("Ghost", null, null, false, id("d", "ghost")),
+                        new Button("Link", null, null, false, id("e", "link"))));
     }
 
     @Test

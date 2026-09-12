@@ -268,6 +268,23 @@
   --gb-button-danger-bg-active: #83353c;
   --gb-button-danger-text: var(--nord6);
 
+  /* `button.link` — a button that reads as a link (ADR-0293). Transparent fill
+     and the overlay wash on hover, like `button.ghost`, so its text is the only
+     colour it needs.
+
+     **`--gb-accent` fails §1.2 on every surface this theme paints**: #5c7ea8 is
+     3.64:1 on `--gb-bg`, 4.20 on `--gb-surface` and 3.45 on `--gb-surface-2`,
+     against a floor of 4.5. That is not a surprise — the light accent is chosen
+     as a *fill* that carries white text, and this asks it to be text on a light
+     surface, which is the opposite job.
+
+     So it is `--gb-accent-fill`, the two-steps-darker value ADR-0088 derived for
+     `button.primary`, used here as ink rather than as a fill: 5.38, 6.20 and
+     5.09. The same colour doing both jobs is the Nord answer rather than a
+     coincidence — a fill dark enough to carry white text is dark enough to be
+     read on white. */
+  --gb-button-link-text: var(--gb-accent-fill);
+
   /* The button's ramp, exactly as on the dark theme and for the same reason:
      the glyph was `#ffffff`, which is `--gb-surface`, so an unchecked box was
      invisible on the white panel a control normally sits on. A white well is the

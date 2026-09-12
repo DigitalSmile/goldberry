@@ -250,6 +250,20 @@
   --gb-button-danger-bg-active: #83353c;
   --gb-button-danger-text: var(--nord6);
 
+  /* `button.link` — a button that reads as a link (ADR-0293). Its fill is
+     transparent and its hover is the overlay wash, like `button.ghost`, so the
+     only colour it needs is its text.
+
+     **Not `--gb-accent`, and the measurement is the reason.** The accent is
+     #88c0d0 and it clears §1.2's 4.5:1 on `--gb-bg` (6.24) and `--gb-surface`
+     (5.03) and **fails on `--gb-surface-2` at 4.31** — which is the surface a
+     card inside a card paints, and exactly where a link in a caption would sit.
+     One step lighter clears all three: 7.51, 6.05 and 5.19. It is an invented
+     value rather than a Nord one, on `--gb-checkbox-border`'s terms — the ramp
+     is what the rule asks for, and the palette does not happen to have a rung
+     there (ADR-0258). */
+  --gb-button-link-text: #a3d0dd;
+
   /* The glyph's own surface, and it takes **the button's ramp** -- nord2 at
      rest, nord3 hovered, nord1 pressed -- rather than a ramp of its own.
 

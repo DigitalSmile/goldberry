@@ -14,12 +14,21 @@ import io.github.digitalsmile.goldberry.widgets.panel.card.Card;
 import io.github.digitalsmile.goldberry.widgets.panel.masonry.Masonry;
 import io.github.digitalsmile.goldberry.widgets.text.Text;
 
-/// The **Basic** screen: §1's type scale, §2's wrapped paragraph and every §3
-/// control whose value is a state or a number.
+/// The **Basic** screen: §1's type scale, §2's wrapped paragraph and **every §3
+/// control the toolkit has** — `button` in all five variants and both icon forms,
+/// `toggle`, `checkbox`, `radio`/`radio-group`, `slider`, `knob`, `select`,
+/// `segmented`, `progress`, `spinner` and `badge`.
+///
+/// The list is the point: §3 names eleven control families and this screen shows
+/// all eleven, so "what does the catalogue actually have" is answered by a
+/// picture rather than by reading a table. What it does **not** show is the parts
+/// of §3 that are specified and unbuilt — a button's `outlined`, `square`,
+/// `circle` and `float`, and `select`'s `multiple`, `autocomplete` and `tree`,
+/// which the Forms screen carries where they exist.
 ///
 /// ## Why it is a document *and* a class
 ///
-/// Six of its nine cards are `basic.kdl` and three of them cannot be, and every
+/// Seven of its ten cards are `basic.kdl` and three of them cannot be, and every
 /// reason is an interesting one rather than incidental:
 ///
 /// - **The prose card is in the tree only while the checkbox says so.** That is a
@@ -46,11 +55,12 @@ import io.github.digitalsmile.goldberry.widgets.text.Text;
 public record Basic(ShowcaseModel model, ShowcaseModel.Actions actions, Masonry cards, Icon plus)
         implements Widget.Stateless {
 
-    private static final String NOTE = "§1's type scale, §2's paragraph and every §3 control. Six of these cards are"
-            + " basic.kdl and three of them cannot be — the verse is in the tree only"
-            + " while the box beside it is ticked, Turn back is disabled while the"
-            + " count is zero, and a file dialog answers long after the click that"
-            + " opened it.";
+    private static final String NOTE = "§1's type scale, §2's paragraph and every §3 control the toolkit has —"
+            + " button, toggle, checkbox, radio, slider, knob, select, segmented,"
+            + " progress, spinner and badge. Seven of these cards are basic.kdl and"
+            + " three of them cannot be: the verse is in the tree only while the box"
+            + " beside it is ticked, Turn back is disabled while the count is zero,"
+            + " and a file dialog answers long after the click that opened it.";
 
     /// The paragraph, which is here to be **re-wrapped** rather than to be read.
     ///
@@ -117,6 +127,20 @@ public record Basic(ShowcaseModel model, ShowcaseModel.Actions actions, Masonry 
                                                 .withIcon(plus)
                                                 .id("click")
                                                 .styled("primary"),
+                                        // The icon-only button, which is here
+                                        // rather than in `basic.kdl` because it
+                                        // is the one button shape a document
+                                        // cannot safely write: with no label to
+                                        // fall back on, an icon the registry
+                                        // does not answer makes it illegal
+                                        // (ADR-0293). `name=` is the accessible
+                                        // name §1.6 asks for in a label's place.
+                                        new Button(
+                                                "",
+                                                plus,
+                                                actions::click,
+                                                false,
+                                                Attributes.NONE.id("click-icon").name("March a league")),
                                         new Button("Turn back", actions::undo)
                                                 .disabled(!model.hasClicks())
                                                 .id("undo"),
@@ -126,8 +150,11 @@ public record Basic(ShowcaseModel model, ShowcaseModel.Actions actions, Masonry 
                                                 .styled("danger"))
                                 .id("actions"),
                         new Text(
-                                "Two of these three are disabled until there is something to undo,"
-                                        + " which is the whole reason this card is not in basic.kdl.",
+                                "Two of these four are disabled until there is something to undo,"
+                                        + " which is the whole reason this card is not in basic.kdl —"
+                                        + " and the bare + is the other reason: an icon-only button"
+                                        + " has no label to fall back on if a registry does not answer"
+                                        + " the name, so it belongs where the icon is an object.",
                                 Attributes.NONE.classes("caption"))),
                 Attributes.NONE.id("road-card").classes("wall-card"));
     }

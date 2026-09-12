@@ -3,17 +3,18 @@
 //
 // ## Why the root is a `masonry` and not a screen
 //
-// Because two of this screen's cards cannot be written here and the rest can, and
-// a masonry places by *column height* — so the two have to go into the same wall
-// as the six or they would be a second wall under the first, laid out against
-// different columns.
+// Because three of this screen's cards cannot be written here and the rest can,
+// and a masonry places by *column height* — so the three have to go into the same
+// wall as the seven or they would be a second wall under the first, laid out
+// against different columns.
 //
 // So this document is the **cards**, not the screen:
 // [io.github.digitalsmile.goldberry.example.ui.Basic] takes these children, adds
-// the prose card (in the tree only while the checkbox says so) and the road card
-// (whose Turn back is disabled while the count is zero), and builds one wall out
-// of all eight. §8's markup has no expressions and is not going to grow any
-// (ADR-0062, ADR-0110, ADR-0222).
+// the prose card (in the tree only while the checkbox says so), the road card
+// (whose Turn back is disabled while the count is zero) and the dialogs card
+// (which holds what a dialog answered, and a dialog answers later), and builds
+// one wall out of all ten. §8's markup has no expressions and is not going to
+// grow any (ADR-0062, ADR-0110, ADR-0222).
 //
 // Everything below flows down through `bind=` and back up through `change=`, so
 // the file names what the application registered and never touches a `Property`
@@ -33,6 +34,46 @@ masonry id="basic-wall" columns=2 {
 and turned under the mountain only when the snow refused them."
     text class="rank-caption" "Marked in the Red Book, in a hand that was not steady"
     text class="rank-code" "leagues = 1795  //  pace 3.1/hr"
+  }
+
+  // §3's first control, and every variant the toolkit actually has. A button's
+  // appearance is a **class** and never a constructor parameter, which is the
+  // whole reason this card is a document: five variants, an icon beside a label
+  // and a disabled one, and not one line of Java.
+  //
+  // `link` is the newest of them (ADR-0293) -- semantically a button, in the tab
+  // order with the focus ring, and visually a piece of running text. Its ink is
+  // the one button colour that differs between the two theme files rather than
+  // its fill.
+  //
+  // Every one of them presses `app.click`, so the road card below counts them:
+  // what is on show here is how a button *looks*, and the card that shows what a
+  // button's state does is the one in Java.
+  card id="button-card" class="wall-card" {
+    text class="card-title" "Buttons, every variant"
+    row id="button-variants" {
+      button id="b-default" press="app.click" "Default"
+      button id="b-primary" class="primary" press="app.click" "Primary"
+      button id="b-ghost" class="ghost" press="app.click" "Ghost"
+      button id="b-danger" class="danger" press="app.click" "Danger"
+    }
+    row id="button-links" {
+      button id="b-link" class="link" press="app.click" "A link that marches"
+      button id="b-link-disabled" class="link" disabled=#true "And one that cannot"
+    }
+    row id="button-icons" {
+      button id="b-icon-label" class="primary" icon="plus" press="app.click" "Icon and label"
+      button id="b-off" disabled=#true "Disabled"
+    }
+    // **No icon-only button here, and the reason is a document's.** §3 allows one
+    // -- `name=` supplies the accessible name a missing label would have -- but an
+    // icon in markup is a *registry lookup*, and `Icons.lenient()` answers an
+    // unbound name with null. A button with a label survives that and draws
+    // without its glyph; a button without one becomes illegal, so the only shape
+    // whose legality depends on the registry is the one with nothing to fall back
+    // on. It belongs in Java, where the `Icon` is an object rather than a name
+    // (ADR-0293).
+    text class="caption" "Nothing above sets a colour: the variant is a class and the tokens are the theme's, so Ctrl+T restyles all eight. The `link` is a button that reads as text -- Tab reaches it and Space presses it, and its ink is measured on every surface a card can sit on."
   }
 
   // One Tab stop, not two: Tab reaches the group and the arrow keys move inside

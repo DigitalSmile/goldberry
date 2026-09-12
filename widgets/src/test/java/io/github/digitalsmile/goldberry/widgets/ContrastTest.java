@@ -159,6 +159,14 @@ class ContrastTest {
 
         // The plain text pairs §1.2 names first: body text on each of the three
         // surfaces a window actually paints, and muted text on two of them.
+        //
+        // `button.link`'s ink is measured the same way and for a sharper reason.
+        // The variant itself cannot be swept -- its fill is `transparent`, which
+        // is `button.ghost`'s situation exactly -- but it is the one variant
+        // whose **text colour** is not a token something else already carries, so
+        // the pair that matters is its ink over each surface a card can be on.
+        // The first run of this is what rejected `--gb-accent` for the job:
+        // 3.45:1 on the light theme's `--gb-surface-2` (ADR-0293).
         for (var surface : List.of("bg", "surface", "surface-2")) {
             all.add(new Pair(
                     "text on --gb-" + surface,
@@ -168,6 +176,10 @@ class ContrastTest {
                     "muted text on --gb-" + surface,
                     new Text("Aa"),
                     "text { background: var(--gb-" + surface + "); color: var(--gb-text-muted) }"));
+            all.add(new Pair(
+                    "button.link ink on --gb-" + surface,
+                    new Text("Aa"),
+                    "text { background: var(--gb-" + surface + "); color: var(--gb-button-link-text) }"));
         }
         return all;
     }

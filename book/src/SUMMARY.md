@@ -302,6 +302,7 @@
 - [ADR-0290 The pen belongs to the rasterizer](adr/0290-the-pen-belongs-to-the-rasterizer.md)
 - [ADR-0291 A URL scheme is packaging, and packaging is the application's](adr/0291-a-url-scheme-is-packaging-and-packaging-is-the-applications.md)
 - [ADR-0292 A field composes, and a password does not](adr/0292-a-field-composes-and-a-password-does-not.md)
+- [ADR-0293 A button that reads as a link](adr/0293-a-button-that-reads-as-a-link.md)
 
 ---
 
