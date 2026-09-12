@@ -300,6 +300,7 @@
 - [ADR-0288 A painter is told what the cascade resolved](adr/0288-a-painter-is-told-what-the-cascade-resolved.md)
 - [ADR-0289 A composition is not an edit](adr/0289-a-composition-is-not-an-edit.md)
 - [ADR-0290 The pen belongs to the rasterizer](adr/0290-the-pen-belongs-to-the-rasterizer.md)
+- [ADR-0291 A URL scheme is packaging, and packaging is the application's](adr/0291-a-url-scheme-is-packaging-and-packaging-is-the-applications.md)
 
 ---
 

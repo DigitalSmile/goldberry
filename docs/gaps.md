@@ -76,7 +76,7 @@ a rule.
 | ~~[G9](#g9)~~ | ~~Native file dialogs~~ | **closed** — ADR-0287 | done |
 | ~~[G10](#g10)~~ | ~~Gradients as a `core.paint` value~~ | **closed** — ADR-0277 | done |
 | ~~[G11](#g11)~~ | ~~The computed font of a box, inside a painter~~ | **closed** — ADR-0288 | done |
-| [G12](#g12) | Deep-link URI handling and single-instance handoff | `brd://open/<token>` (plan D5) | medium |
+| ~~[G12](#g12)~~ | ~~Deep-link URI handling and single-instance handoff~~ | **not Goldberry's** — ADR-0291 | answered |
 | ~~[G13](#g13)~~ | ~~The other `natives` leak: Yoga through `paint.Box`~~ | **closed** — ADR-0279, ADR-0280 | done |
 | ~~[G14](#g14)~~ | ~~The last `natives` leak: **one method**, `Frame.drawGlyphs`~~ | **closed** — ADR-0290 | done |
 | ~~[G15](#g15)~~ | ~~IME preedit: the composition string, inline~~ | **closed** — ADR-0289; `text-input` is [G16](#g16) | done |
@@ -101,6 +101,10 @@ a rule.
 - **Stylesheets and theming**: `Controls.stylesheets(Theme[, Density])`, the cascade, `Icons`.
 - **Markup and binding**: `Widgets.inflater(...)` over KDL, `@Bind`/`@Action` with `Models`.
 - **Shortcuts, overlays, popups, tray**: `Host.shortcut(...)`, `Host.overlay(...)`, `Popup`, tray SPI.
+- **Native file dialogs**: `Host.fileDialog(FileDialogSpec.saveFile()..., choice -> …)` — open, save and
+  folder, asynchronous, with filters and a starting directory ([G9](#g9)).
+- **A painter that follows the theme**: a three-parameter `Canvas` painter is handed the node's own
+  resolved font and colour, this frame's time and `reducedMotion` ([G11](#g11)).
 - **The clipboard, both halves**: text, and bytes under any MIME type, with `Image.fromClipboard` /
   `toClipboard` for the common one.
 - **Cursors**, **headless backend**, **start-up timeline** (`Startup`), **frame stats**/HUD.
@@ -511,16 +515,60 @@ drives both.
 ---
 
 <a id="g12"></a>
-### G12 — Deep links and single-instance handoff
+### G12 — Deep links and single-instance handoff — **answered: not Goldberry's**
 
-**Today.** Nothing. Plan D5 needs `brd://open/<token>` to reach a running client, which is three
-platform mechanisms (a registry key, `CFBundleURLTypes`, a `.desktop` entry) plus an IPC handoff so a
-second launch focuses the first.
+Decided in [ADR-0291](../book/src/adr/0291-a-url-scheme-is-packaging-and-packaging-is-the-applications.md).
 
-**Why it might be Goldberry's.** It is window-and-platform integration, which is the toolkit's half of
-the world, and every desktop application that ships needs it. If Goldberry would rather not own it, brd
-will — but that is a decision to take deliberately rather than by default, which is what this entry is
-for. The OS keychain (plan `auth/`) is the same question and probably the same answer.
+This entry asked a question rather than proposing an API, and the answer is
+**no** — for all three of its parts, and for the OS keychain it predicted would
+be the same question.
+
+`brd://open/<token>` is three problems wearing one name:
+
+| | What it is | Whose |
+|---|---|---|
+| **Registration** | a registry key, `CFBundleURLTypes`, a `.desktop` with `x-scheme-handler/brd` | the **installer's**. Goldberry ships none, and on any packaged install the scheme belongs to the package and is removed with it. |
+| **Delivery** | the URL reaching a process — an `SDL_EVENT_DROP_FILE` on macOS, `argv[1]` everywhere else | the platform's, and already there |
+| **Handoff** | a second launch finding the first, handing over, and exiting | **brd's**, because it is a *process model*: one window or two, and what a URL may do to a window with unsaved work |
+
+The middle option — the toolkit owning delivery and handoff but not registration
+— is the one the record spent longest on and rejected: a `Host.onOpen(URI)` that
+is inert on two platforms out of three until the application does the packaging
+anyway is a feature that looks supported and is not, which is worse than one
+honestly absent.
+
+**What brd writes, and what it already has.** Roughly eighty lines and one line
+of packaging:
+
+```java
+// second launch: take the lock, or hand over and exit
+var lock = FileChannel.open(runtimeDir.resolve("brd.lock"), CREATE, WRITE).tryLock();
+if (lock == null) {
+    SocketChannel.open(UnixDomainSocketAddress.of(runtimeDir.resolve("brd.sock")))
+            .write(UTF_8.encode(args[0]));
+    return;
+}
+// first launch: listen, and post what arrives onto the UI thread
+host.loop().ui().execute(() -> open(uri));      // UiExecutor is the one legal way in (ADR-0019)
+```
+
+No native call, no SDL, nothing the toolkit has to lend. `Application` is handed
+the process's `args`; `EventLoop.ui()` is how a listener thread reaches the UI
+thread.
+
+**The keychain is the same answer** — DPAPI, the macOS Keychain and libsecret are
+three platform APIs with no SDL coverage and a failure mode that leaks a token.
+It is not a gap and will not become one.
+
+**One piece is genuinely the toolkit's and is simply not needed yet**:
+drag-and-drop. `SDL_EVENT_DROP_FILE` is unbound because nothing in the catalog
+drops a file; when something does, that binding lands for its own reason and
+macOS's deep-link path falls out of it.
+
+If a *second* application needs the same eighty lines, that is the moment to
+reopen this — two consumers is evidence and one is a guess, which is the rule
+that kept the popup, the clipboard and the tray waiting. Reopening means editing
+ADR-0291, not quietly adding a method.
 
 ---
 
@@ -683,6 +731,10 @@ what the platforms' own fields do is the first step, not the last.
 
 ## 4. Closed
 
+An entry leaves the list one of two ways: it lands upstream, or it is **answered**
+— decided, deliberately, not to be Goldberry's. Both are here, because "we looked
+at this and said no" is a result and an entry that quietly disappeared is not.
+
 | # | Closed by | What brd deletes |
 |---|---|---|
 | G1 | ADR-0277 | `BoardRenderer`'s `natives.blend2d` imports — `BlendPath`, `BlendStrokeCap`, `BlendStrokeJoin` |
@@ -698,3 +750,4 @@ what the platforms' own fields do is the first step, not the last.
 | G11 | ADR-0288 | nothing brd had; a board's fonts are the document's — it is the *chart* and the custom control that could not follow a theme |
 | G15 | ADR-0289 | the wordless-in-Japanese sticky: a composition, its clause and its caret are drawn, and the candidate window lands under them |
 | G14 | ADR-0290 | nothing brd had; it is the toolkit's own boundary, and closing it is what makes "`natives.*` is not application API" a compiler error rather than a rule |
+| G12 | ADR-0291 | nothing — it is the entry that was **answered** rather than built: brd writes its own lock, socket and packaging line, and the toolkit stops carrying the question |
