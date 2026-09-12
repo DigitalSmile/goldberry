@@ -458,6 +458,10 @@ The native surface gained three symbols. The headless backend has **real**
 dialogs a test scripts — `answerWith(...)` says what the user did, `shown()` says
 what was asked for — so an export button is testable with no desktop under it.
 
+The showcase's **Basic** screen has a card for it: three buttons and a line that
+fills in when the dialog closes, which is the half of this that is Goldberry's.
+The dialog itself is the desktop's window and cannot be photographed.
+
 ---
 
 <a id="g10"></a>

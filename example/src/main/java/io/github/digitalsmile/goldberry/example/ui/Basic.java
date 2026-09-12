@@ -19,8 +19,8 @@ import io.github.digitalsmile.goldberry.widgets.text.Text;
 ///
 /// ## Why it is a document *and* a class
 ///
-/// Six of its eight cards are `basic.kdl` and two of them cannot be, and both
-/// reasons are the interesting ones rather than incidental:
+/// Six of its nine cards are `basic.kdl` and three of them cannot be, and every
+/// reason is an interesting one rather than incidental:
 ///
 /// - **The prose card is in the tree only while the checkbox says so.** That is a
 ///   structural change and not a value one — the paragraph is *absent*, not
@@ -30,8 +30,11 @@ import io.github.digitalsmile.goldberry.widgets.text.Text;
 ///   this property is zero" and is not going to grow a way to, because a document
 ///   that could evaluate `clicks == 0` would be code in a data file with no stack
 ///   trace when it went wrong ([ADR-0062], [ADR-0110]).
+/// - **The dialogs card holds what a dialog answered**, and a dialog answers
+///   *later* — a person is inside the call. A document can name an action; it has
+///   nowhere to put a result that arrives on a callback ([FileDialogsCard]).
 ///
-/// So this class takes the wall the document built and appends two cards to it —
+/// So this class takes the wall the document built and appends three cards to it —
 /// to the *same* masonry, because a masonry places by column height and a second
 /// wall underneath would be laid out against different columns
 /// (ADR-0222).
@@ -44,9 +47,10 @@ public record Basic(ShowcaseModel model, ShowcaseModel.Actions actions, Masonry 
         implements Widget.Stateless {
 
     private static final String NOTE = "§1's type scale, §2's paragraph and every §3 control. Six of these cards are"
-            + " basic.kdl and two of them cannot be — the verse is in the tree only"
-            + " while the box beside it is ticked, and Turn back is disabled while"
-            + " the count is zero.";
+            + " basic.kdl and three of them cannot be — the verse is in the tree only"
+            + " while the box beside it is ticked, Turn back is disabled while the"
+            + " count is zero, and a file dialog answers long after the click that"
+            + " opened it.";
 
     /// The paragraph, which is here to be **re-wrapped** rather than to be read.
     ///
@@ -72,11 +76,16 @@ public record Basic(ShowcaseModel model, ShowcaseModel.Actions actions, Masonry 
 
     @Override
     public Widget build(BuildContext context) {
-        var extra = new ArrayList<Widget>(2);
+        var extra = new ArrayList<Widget>(3);
         if (model.isProseShown()) {
             extra.add(prose());
         }
         extra.add(road());
+        // A value, like every other widget here: the state that remembers what
+        // the last dialog answered is the card's own, made once when it is
+        // mounted and kept across the rebuilds this screen does for everything
+        // else.
+        extra.add(new FileDialogsCard());
         return Wall.of("basic", "Basic", NOTE, cards, extra.toArray(Widget[]::new));
     }
 

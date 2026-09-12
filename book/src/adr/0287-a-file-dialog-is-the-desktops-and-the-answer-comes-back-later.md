@@ -161,9 +161,12 @@ offering an "Export…" item.
   `Optional`: absence is `FileDialogs.none()`, which answers every request with a
   `Failed` rather than a silent cancel, because a caller whose export quietly did
   nothing would go looking for the bug in its own code.
-- **Nothing is drawn, so nothing is photographed.** There is no golden image for
-  this feature and cannot be one — the dialog is the desktop's window, not
-  Goldberry's. The showcase gained no card for the same reason.
+- **Nothing is drawn, so nothing is photographed.** There is no golden image of a
+  file dialog and cannot be one — it is the desktop's window, not Goldberry's.
+  The showcase's Basic screen gained a card anyway, and what it shows is the half
+  that *is* Goldberry's: three buttons and a line that fills in later. Its test
+  presses them against a scripted host, which is the only way the asynchrony is
+  checkable at all.
 
 ## Alternatives considered
 

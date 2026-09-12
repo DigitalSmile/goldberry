@@ -9,6 +9,7 @@ import io.github.digitalsmile.goldberry.Popup;
 import io.github.digitalsmile.goldberry.Window;
 import io.github.digitalsmile.goldberry.input.hit.HitTest;
 import io.github.digitalsmile.goldberry.render.Clipboard;
+import io.github.digitalsmile.goldberry.render.backend.headless.HeadlessFileDialogs;
 import io.github.digitalsmile.goldberry.render.event.EventLoop;
 import io.github.digitalsmile.goldberry.render.model.LogicalPoint;
 import io.github.digitalsmile.goldberry.render.model.LogicalRect;
@@ -20,10 +21,18 @@ import io.github.digitalsmile.goldberry.widget.Widget;
 import io.github.digitalsmile.goldberry.widget.style.Corner;
 
 /// A host that answers `anchor` from a captured frame — enough to draw a tour.
-record TourTestHost(List<HitTest.Region> regions, Clipboard board) implements Host {
+///
+/// It also carries **real, scriptable file dialogs**, for the reason its
+/// clipboard is a real one: a card that asks the user for a path is only testable
+/// against a host that can say what the user picked (ADR-0287).
+record TourTestHost(List<HitTest.Region> regions, Clipboard board, HeadlessFileDialogs dialogs) implements Host {
 
     TourTestHost(List<HitTest.Region> regions) {
         this(regions, Clipboard.none());
+    }
+
+    TourTestHost(List<HitTest.Region> regions, Clipboard board) {
+        this(regions, board, new HeadlessFileDialogs());
     }
 
     @Override
@@ -162,12 +171,11 @@ record TourTestHost(List<HitTest.Region> regions, Clipboard board) implements Ho
         return board;
     }
 
-    /// No file dialogs: this host has no desktop under it, and
-    /// [io.github.digitalsmile.goldberry.render.dialog.FileDialogs#none()] is
-    /// exactly what a backend in that position reports.
+    /// Real ones, scripted — `dialogs().answerWith(...)` says what the user
+    /// picked, and `dialogs().shown()` says what was asked for.
     @Override
-    public io.github.digitalsmile.goldberry.render.dialog.FileDialogs fileDialogs() {
-        return io.github.digitalsmile.goldberry.render.dialog.FileDialogs.none();
+    public HeadlessFileDialogs fileDialogs() {
+        return dialogs;
     }
 
     /// No tray: this host exists to drive a `tour` and has no desktop under it,
